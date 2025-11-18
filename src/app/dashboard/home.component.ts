@@ -21,7 +21,7 @@ import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
 
 @Component({
-  selector: 'app-home',
+  selector: 'pt-home',
   standalone: true,
   imports: [
     BaseChartDirective,
@@ -3570,7 +3570,6 @@ export class HomeComponent {
 
   // Mini line chart options for KPI sparkline
   public get sparklineOptions(): any {
-    const component = this;
     return {
       responsive: true,
       maintainAspectRatio: false,
@@ -3614,7 +3613,7 @@ export class HomeComponent {
         // Handle click directly in options
         if (active && active.length > 0) {
           const idx = active[0].index;
-          const data: any = component.latesDailyChartData();
+          const data: any = this.latesDailyChartData();
           console.log('[Chart Click] Data:', data);
           console.log('[Chart Click] Index:', idx);
 
@@ -3639,15 +3638,15 @@ export class HomeComponent {
             // Format title: "Día 1 Nov"
             const now = new Date();
             const dayNum = idx + 1;
-            const monthName = component.getMonthNameSpanish(now);
+            const monthName = this.getMonthNameSpanish(now);
             const title = `Tardanzas - Día ${dayNum} ${monthName}`;
 
             console.log('[Chart Click] Setting title:', title);
             console.log('[Chart Click] Setting sorted details:', sortedDetails);
 
-            component.lateDialogTitle.set(title);
-            component.lateDialogDetails.set(sortedDetails);
-            component.lateDialogVisible.set(true);
+            this.lateDialogTitle.set(title);
+            this.lateDialogDetails.set(sortedDetails);
+            this.lateDialogVisible.set(true);
           }
         }
       },
