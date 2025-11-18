@@ -148,40 +148,45 @@ import { EmployeesStore } from '../stores/employees.store';
               pTooltip="Muestra la distribución porcentual de empleados por género (masculino y femenino). El cálculo se basa en el campo 'gender' de cada empleado activo. El arco visual representa la proporción de cada género en la plantilla total."
               tooltipPosition="top"
             >
-              <div class="kpi-label">Distribución por Género</div>
-              <div class="gender-chart-container">
-                <div class="gender-chart-wrapper">
-                  <canvas
-                    baseChart
-                    [type]="'doughnut'"
-                    [data]="genderChartData()"
-                    [options]="genderChartOptions"
-                    class="gender-chart-canvas"
-                  ></canvas>
+              <div class="kpi-icon">
+                <i class="pi pi-id-card"></i>
+              </div>
+              <div class="kpi-content">
+                <div class="kpi-label">Distribución por Género</div>
+                <div class="gender-chart-container">
+                  <div class="gender-chart-wrapper">
+                    <canvas
+                      baseChart
+                      [type]="'doughnut'"
+                      [data]="genderChartData()"
+                      [options]="genderChartOptions"
+                      class="gender-chart-canvas"
+                    ></canvas>
 
-                  <!-- Center icons inside the arc -->
-                  <div class="gender-center-icons">
-                    <i class="pi pi-user male-center-icon"></i>
-                    <i class="pi pi-user female-center-icon"></i>
+                    <!-- Center icons inside the arc -->
+                    <div class="gender-center-icons">
+                      <i class="pi pi-user male-center-icon"></i>
+                      <i class="pi pi-user female-center-icon"></i>
+                    </div>
                   </div>
-                </div>
 
-                <div class="gender-legend">
-                  <div class="legend-item">
-                    <span class="legend-label">Masculino</span>
-                    <span class="legend-value"
-                      >{{ getGenderCount('M') }} ({{
-                        getGenderPercentage('M')
-                      }}%)</span
-                    >
-                  </div>
-                  <div class="legend-item">
-                    <span class="legend-label">Femenino</span>
-                    <span class="legend-value"
-                      >{{ getGenderCount('F') }} ({{
-                        getGenderPercentage('F')
-                      }}%)</span
-                    >
+                  <div class="gender-legend">
+                    <div class="legend-item">
+                      <span class="legend-label">Masculino</span>
+                      <span class="legend-value"
+                        >{{ getGenderCount('M') }} ({{
+                          getGenderPercentage('M')
+                        }}%)</span
+                      >
+                    </div>
+                    <div class="legend-item">
+                      <span class="legend-label">Femenino</span>
+                      <span class="legend-value"
+                        >{{ getGenderCount('F') }} ({{
+                          getGenderPercentage('F')
+                        }}%)</span
+                      >
+                    </div>
                   </div>
                 </div>
               </div>
@@ -218,36 +223,41 @@ import { EmployeesStore } from '../stores/employees.store';
               tooltipPosition="top"
               (click)="openHiresExitsDialog()"
             >
-              <div class="kpi-label">Ingresos y Salida del Personal</div>
-              <div class="hires-exits-chart-container">
-                <div class="hires-exits-chart-wrapper">
-                  <canvas
-                    baseChart
-                    [type]="'doughnut'"
-                    [data]="hiresExitsChartData()"
-                    [options]="hiresExitsChartOptions"
-                    class="hires-exits-chart-canvas"
-                  ></canvas>
+              <div class="kpi-icon">
+                <i class="pi pi-user-plus"></i>
+              </div>
+              <div class="kpi-content">
+                <div class="kpi-label">Ingresos y Salida del Personal</div>
+                <div class="hires-exits-chart-container">
+                  <div class="hires-exits-chart-wrapper">
+                    <canvas
+                      baseChart
+                      [type]="'doughnut'"
+                      [data]="hiresExitsChartData()"
+                      [options]="hiresExitsChartOptions"
+                      class="hires-exits-chart-canvas"
+                    ></canvas>
 
-                  <!-- Center icons inside the arc -->
-                  <div class="hires-exits-center-icons">
-                    <i class="pi pi-arrow-down hires-center-icon"></i>
-                    <i class="pi pi-arrow-up exits-center-icon"></i>
+                    <!-- Center icons inside the arc -->
+                    <div class="hires-exits-center-icons">
+                      <i class="pi pi-arrow-down hires-center-icon"></i>
+                      <i class="pi pi-arrow-up exits-center-icon"></i>
+                    </div>
                   </div>
-                </div>
 
-                <div class="hires-exits-legend">
-                  <div class="legend-item">
-                    <span class="legend-label">Ingresos</span>
-                    <span class="legend-value">{{
-                      getHiresExitsCount('hires')
-                    }}</span>
-                  </div>
-                  <div class="legend-item">
-                    <span class="legend-label">Salidas</span>
-                    <span class="legend-value">{{
-                      getHiresExitsCount('exits')
-                    }}</span>
+                  <div class="hires-exits-legend">
+                    <div class="legend-item">
+                      <span class="legend-label">Ingresos</span>
+                      <span class="legend-value">{{
+                        getHiresExitsCount('hires')
+                      }}</span>
+                    </div>
+                    <div class="legend-item">
+                      <span class="legend-label">Salidas</span>
+                      <span class="legend-value">{{
+                        getHiresExitsCount('exits')
+                      }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -273,7 +283,7 @@ import { EmployeesStore } from '../stores/employees.store';
               (click)="openBirthdaysDialog()"
             >
               <div class="kpi-icon">
-                <i class="pi pi-star"></i>
+                <i class="pi pi-crown"></i>
               </div>
               <div class="kpi-content">
                 <div class="kpi-label">Cumpleañeros del Mes</div>
@@ -363,7 +373,7 @@ import { EmployeesStore } from '../stores/employees.store';
               tooltipPosition="top"
             >
               <div class="kpi-icon">
-                <i class="pi pi-smile"></i>
+                <i class="pi pi-users"></i>
               </div>
               <div class="kpi-content">
                 <div class="kpi-label">Índice de Clima Laboral</div>
@@ -1721,6 +1731,14 @@ import { EmployeesStore } from '../stores/employees.store';
       grid-column: span 1;
       flex-direction: column;
       padding: 1rem;
+      position: relative;
+    }
+    
+    .hires-exits-vs-card .kpi-icon {
+      position: absolute;
+      left: 0.6rem;
+      top: 0.6rem;
+      z-index: 1;
     }
 
     .hires-exits-vs-card .kpi-label {
@@ -1868,6 +1886,14 @@ import { EmployeesStore } from '../stores/employees.store';
       grid-column: span 1;
       flex-direction: column;
       padding: 1rem;
+      position: relative;
+    }
+    
+    .gender-vs-card .kpi-icon {
+      position: absolute;
+      left: 0.6rem;
+      top: 0.6rem;
+      z-index: 1;
     }
 
     @media (max-width: 1200px) {

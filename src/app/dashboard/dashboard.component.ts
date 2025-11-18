@@ -1,5 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Router, RouterOutlet, NavigationEnd, ActivatedRoute } from '@angular/router';
+import { filter } from 'rxjs/operators';
 import { AccordionModule } from 'primeng/accordion';
 import { ConfirmationService, MenuItem, MessageService } from 'primeng/api';
 import { CardModule } from 'primeng/card';
@@ -25,6 +26,7 @@ import { SchedulesStore } from '../stores/schedules.store';
 
 @Component({
   selector: 'pt-dashboard',
+  standalone: true,
   providers: [
     AuthStore,
     DashboardStore,
@@ -41,8 +43,6 @@ import { SchedulesStore } from '../stores/schedules.store';
   ],
   imports: [
     RouterOutlet,
-    RouterLink,
-    RouterLinkActive,
     ToastModule,
     AccordionModule,
     RippleModule,
@@ -65,47 +65,47 @@ import { SchedulesStore } from '../stores/schedules.store';
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div class="flex h-16 items-center justify-between">
             <div class="flex items-center">
-              <a routerLink="/home" class="shrink-0 flex items-center gap-2 group">
+              <a (click)="navigateTo('home')" class="shrink-0 flex items-center gap-2 group cursor-pointer">
                 <img src="images/blackdog.png" class="h-9 transition-transform duration-300 group-hover:scale-105" alt="Peopletrak" />
               </a>
               <div class="hidden md:block">
                 <div class="ml-10 flex items-baseline space-x-1">
                   @if(store.isAdmin() && !store.hasPortalAccessOnly()) {
                   <a
-                    routerLink="/home"
-                    routerLinkActive="selected"
-                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md"
+                    (click)="navigateTo('home')"
+                    [class.selected]="isActiveRoute('home')"
+                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
                     ><i class="pi pi-home text-base"></i> <span>Inicio</span></a
                   >
                   } @if(store.isAdmin() && !store.hasPortalAccessOnly()) {
                   <a
-                    routerLink="/admin"
-                    routerLinkActive="selected"
-                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md"
+                    (click)="navigateTo('admin')"
+                    [class.selected]="isActiveRoute('admin')"
+                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
                   >
                     <i class="pi pi-building text-base"></i> <span>Administración</span></a
                   >
                   } @if(store.isAdmin() && !store.hasPortalAccessOnly()) {
                   <a
-                    routerLink="/payroll"
-                    routerLinkActive="selected"
-                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md"
+                    (click)="navigateTo('payroll')"
+                    [class.selected]="isActiveRoute('payroll')"
+                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
                   >
                     <i class="pi pi-money-bill text-base"></i> <span>Nómina</span></a
                   >
                   } @if(store.isScheduleAdmin() && !store.hasPortalAccessOnly()) {
                   <a
-                    routerLink="/time-management"
-                    routerLinkActive="selected"
-                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md"
+                    (click)="navigateTo('time-management')"
+                    [class.selected]="isActiveRoute('time-management')"
+                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
                     ><i class="pi pi-calendar text-base"></i> <span>Gestión de tiempo</span></a
                   >
                   }
                   @if(!store.hasPortalAccessOnly()) {
                   <a
-                    routerLink="/timeclock"
-                    routerLinkActive="selected"
-                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md"
+                    (click)="navigateTo('timeclock')"
+                    [class.selected]="isActiveRoute('timeclock')"
+                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
                     ><i class="pi pi-clock text-base"></i> <span>Reloj de marcación</span></a
                   >
                   }
@@ -155,58 +155,48 @@ import { SchedulesStore } from '../stores/schedules.store';
           <div class="space-y-1 px-2 pt-2 pb-3 sm:px-3">
             @if(store.isAdmin() && !store.hasPortalAccessOnly()) {
             <a
-              routerLink="/home"
-              [routerLinkActive]="[
-                'bg-gray-700/50',
-                'text-white',
-                'shadow-md'
-              ]"
-              class="rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200"
+              (click)="navigateTo('home')"
+              [class.bg-gray-700]="isActiveRoute('home')"
+              [class.text-white]="isActiveRoute('home')"
+              [class.shadow-md]="isActiveRoute('home')"
+              class="rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer"
               ><i class="pi pi-home text-lg"></i> <span>Inicio</span></a
             >
             } @if(store.isAdmin() && !store.hasPortalAccessOnly()) {
             <a
-              routerLink="/admin"
-              [routerLinkActive]="[
-                'bg-gray-700/50',
-                'text-white',
-                'shadow-md'
-              ]"
-              class="rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200"
+              (click)="navigateTo('admin')"
+              [class.bg-gray-700]="isActiveRoute('admin')"
+              [class.text-white]="isActiveRoute('admin')"
+              [class.shadow-md]="isActiveRoute('admin')"
+              class="rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer"
               ><i class="pi pi-building text-lg"></i> <span>Administración</span></a
             >
             } @if(store.isScheduleAdmin() && !store.hasPortalAccessOnly()) {
             <a
-              routerLink="/time-management"
-              [routerLinkActive]="[
-                'bg-gray-700/50',
-                'text-white',
-                'shadow-md'
-              ]"
-              class="rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200"
+              (click)="navigateTo('time-management')"
+              [class.bg-gray-700]="isActiveRoute('time-management')"
+              [class.text-white]="isActiveRoute('time-management')"
+              [class.shadow-md]="isActiveRoute('time-management')"
+              class="rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer"
               ><i class="pi pi-calendar text-lg"></i> <span>Gestión de tiempo</span></a
             >
             } @if(store.isAdmin() && !store.hasPortalAccessOnly()) {
             <a
-              routerLink="/payroll"
-              [routerLinkActive]="[
-                'bg-gray-700/50',
-                'text-white',
-                'shadow-md'
-              ]"
-              class="rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200"
+              (click)="navigateTo('payroll')"
+              [class.bg-gray-700]="isActiveRoute('payroll')"
+              [class.text-white]="isActiveRoute('payroll')"
+              [class.shadow-md]="isActiveRoute('payroll')"
+              class="rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer"
               ><i class="pi pi-money-bill text-lg"></i> <span>Nómina</span></a
             >
             }
             @if(!store.hasPortalAccessOnly()) {
             <a
-              routerLink="/timeclock"
-              [routerLinkActive]="[
-                'bg-gray-700/50',
-                'text-white',
-                'shadow-md'
-              ]"
-              class="rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200"
+              (click)="navigateTo('timeclock')"
+              [class.bg-gray-700]="isActiveRoute('timeclock')"
+              [class.text-white]="isActiveRoute('timeclock')"
+              [class.shadow-md]="isActiveRoute('timeclock')"
+              class="rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer"
               ><i class="pi pi-clock text-lg"></i> <span>Reloj de marcación</span></a
             >
             }
@@ -312,9 +302,58 @@ export class DashboardComponent {
   public store = inject(DashboardStore);
   public auth = inject(AuthService);
   public router = inject(Router);
+  public route = inject(ActivatedRoute);
+  public currentRoute = signal('');
 
   constructor() {
     // La redirección se maneja en el guard para evitar conflictos de navegación
+    // Track current route for active state
+    this.router.events
+      .pipe(filter(event => event instanceof NavigationEnd))
+      .subscribe((event: any) => {
+        const url = event.urlAfterRedirects || event.url;
+        const segments = url.split('/').filter((s: string) => s);
+        // Si estamos en una ruta hija (ej: admin/employees), usar el primer segmento después de la raíz
+        // Si estamos en la raíz del dashboard, usar el segmento o 'home'
+        const route = segments.length > 0 ? segments[segments.length - 1] : 'home';
+        this.currentRoute.set(route);
+      });
+    
+    // Set initial route
+    const url = this.router.url;
+    const segments = url.split('/').filter((s: string) => s);
+    const route = segments.length > 0 ? segments[segments.length - 1] : 'home';
+    this.currentRoute.set(route);
+  }
+
+  navigateTo(route: string) {
+    // Navigate relative to the current activated route (which is the dashboard component)
+    this.router.navigate([route], { relativeTo: this.route });
+  }
+
+  isActiveRoute(route: string): boolean {
+    const url = this.router.url;
+    const segments = url.split('/').filter((s: string) => s);
+    
+    // Verificar si la ruta está en los segmentos de la URL
+    // Esto funciona tanto para rutas directas como subrutas
+    if (route === 'admin' && segments.includes('admin')) {
+      return true;
+    }
+    if (route === 'payroll' && segments.includes('payroll')) {
+      return true;
+    }
+    if (route === 'time-management' && segments.includes('time-management')) {
+      return true;
+    }
+    if (route === 'timeclock' && segments.includes('timeclock')) {
+      return true;
+    }
+    if (route === 'home' && (segments.includes('home') || segments.length === 0)) {
+      return true;
+    }
+    
+    return false;
   }
 
   public items: MenuItem[] = [

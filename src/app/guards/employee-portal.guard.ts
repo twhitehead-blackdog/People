@@ -2,7 +2,16 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router, UrlTree } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
 import { HttpClient } from '@angular/common/http';
-import { map, switchMap, take, of } from 'rxjs';
+import { map, switchMap, take, of, catchError } from 'rxjs';
+
+// Cache simple en memoria para evitar llamadas HTTP repetidas
+let employeeCache: {
+  email: string;
+  employee: any;
+  timestamp: number;
+} | null = null;
+
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
 
 /**
  * Guard que redirige a empleados normales (no admins) al portal
@@ -41,6 +50,43 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
         return of(false);
       }
 
+      // Verificar cache
+      const now = Date.now();
+      if (
+        employeeCache &&
+        employeeCache.email === user.email &&
+        now - employeeCache.timestamp < CACHE_DURATION
+      ) {
+        const employee = employeeCache.employee;
+        const positionName = employee.position?.name || '';
+        const isPortalOnlyPosition = portalOnlyPositions.some(
+          (pos) => positionName.toLowerCase().includes(pos.toLowerCase())
+        );
+        const hasPortalAccessOnly = 
+          isPortalOnlyPosition || 
+          (employee.has_portal_access === true && !employee.position?.admin);
+
+        const currentRoute = route.routeConfig?.path || '';
+        const isTimeclockRoute = currentRoute === 'timeclock' || state.url.includes('/timeclock');
+        const isPortalRoute = currentRoute === 'my-portal' || state.url.includes('/my-portal') || state.url.includes('/employee-portal');
+        const isHomeRoute = currentRoute === 'home' || state.url.includes('/home') || state.url === '/' || state.url === '';
+
+        if (hasPortalAccessOnly && isTimeclockRoute) {
+          return of(router.createUrlTree(['/employee-portal']));
+        }
+
+        if (hasPortalAccessOnly && !isPortalRoute && (isHomeRoute || !isTimeclockRoute)) {
+          return of(router.createUrlTree(['/employee-portal']));
+        }
+
+        if (isPortalRoute) {
+          return of(true);
+        }
+
+        return of(!hasPortalAccessOnly);
+      }
+
+      // Si no hay cache, hacer llamada HTTP
       return http.get<Array<{
         id: string;
         position?: { name: string; admin: boolean };
@@ -57,6 +103,16 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
       ).pipe(
         map((employees) => {
           const employee = employees[0];
+          
+          // Actualizar cache
+          if (employee) {
+            employeeCache = {
+              email: user.email!,
+              employee,
+              timestamp: Date.now(),
+            };
+          }
+
           if (!employee) {
             return true; // Permitir acceso si no se encuentra el empleado
           }
@@ -92,6 +148,23 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
 
           // Para otras rutas, permitir acceso si no tiene restricción de portal
           return !hasPortalAccessOnly;
+        }),
+        catchError(() => {
+          // Si hay error en la llamada HTTP, usar cache si existe
+          if (employeeCache && employeeCache.email === user.email) {
+            const employee = employeeCache.employee;
+            const positionName = employee.position?.name || '';
+            const isPortalOnlyPosition = portalOnlyPositions.some(
+              (pos) => positionName.toLowerCase().includes(pos.toLowerCase())
+            );
+            const hasPortalAccessOnly = 
+              isPortalOnlyPosition || 
+              (employee.has_portal_access === true && !employee.position?.admin);
+            
+            return of(!hasPortalAccessOnly);
+          }
+          // Si no hay cache y hay error, permitir acceso por defecto
+          return of(true);
         })
       );
     })
