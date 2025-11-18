@@ -22,6 +22,19 @@ import { PayrollsStore } from '../stores/payrolls.store';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { MessageService, ConfirmationService } from 'primeng/api';
 
+type NavSection = {
+  id: string;
+  label: string;
+  icon: string;
+  section?: string;
+  children?: Array<{
+    id: string;
+    label: string;
+    icon: string;
+    section: string;
+  }>;
+};
+
 @Component({
   selector: 'pt-employee-portal-layout',
   standalone: true,
@@ -66,74 +79,52 @@ import { MessageService, ConfirmationService } from 'primeng/api';
                 <img src="images/blackdog.png" class="h-9 transition-transform duration-300 group-hover:scale-105" alt="Peopletrak" />
               </a>
               <div class="hidden md:block">
-                <div class="ml-10 flex items-center space-x-1">
-                  <a
-                    (click)="navigateToSection('dashboard')"
-                    [class.selected]="isActiveSection('dashboard')"
-                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer min-h-[48px] leading-tight"
-                  >
-                    <i class="pi pi-home text-base"></i>
-                    <span class="whitespace-nowrap">Dashboard</span>
-                  </a>
-                  <a
-                    routerLink="/employee-portal"
-                    [fragment]="'profile'"
-                    routerLinkActive="selected"
-                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md min-h-[48px] leading-tight"
-                  >
-                    <i class="pi pi-user text-base"></i>
-                    <span class="whitespace-nowrap">Mi Perfil</span>
-                  </a>
-                  <a
-                    routerLink="/employee-portal"
-                    [fragment]="'timelogs'"
-                    routerLinkActive="selected"
-                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md min-h-[48px] leading-tight"
-                  >
-                    <i class="pi pi-calendar-clock text-base"></i>
-                    <span class="hidden lg:inline whitespace-nowrap">Mis Marcaciones</span>
-                    <span class="lg:hidden whitespace-nowrap">Marcaciones</span>
-                  </a>
-                  <a
-                    routerLink="/employee-portal"
-                    [fragment]="'lates'"
-                    routerLinkActive="selected"
-                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md min-h-[48px] leading-tight"
-                  >
-                    <i class="pi pi-clock text-base"></i>
-                    <span class="hidden lg:inline whitespace-nowrap">Mis Tardanzas</span>
-                    <span class="lg:hidden whitespace-nowrap">Tardanzas</span>
-                  </a>
-                  <a
-                    routerLink="/employee-portal"
-                    [fragment]="'disabilities'"
-                    routerLinkActive="selected"
-                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md min-h-[48px] leading-tight"
-                  >
-                    <i class="pi pi-file-medical text-base"></i>
-                    <span class="hidden lg:inline whitespace-nowrap">Incapacidades</span>
-                    <span class="lg:hidden whitespace-nowrap">Incap.</span>
-                  </a>
-                  <a
-                    routerLink="/employee-portal"
-                    [fragment]="'documents'"
-                    routerLinkActive="selected"
-                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md min-h-[48px] leading-tight"
-                  >
-                    <i class="pi pi-file-edit text-base"></i>
-                    <span class="hidden lg:inline whitespace-nowrap">Solicitar Documentos</span>
-                    <span class="lg:hidden whitespace-nowrap">Documentos</span>
-                  </a>
-                  <a
-                    routerLink="/employee-portal"
-                    [fragment]="'complaints'"
-                    routerLinkActive="selected"
-                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md min-h-[48px] leading-tight"
-                  >
-                    <i class="pi pi-comments text-base"></i>
-                    <span class="hidden lg:inline whitespace-nowrap">Buzón de Quejas</span>
-                    <span class="lg:hidden whitespace-nowrap">Quejas</span>
-                  </a>
+                <div class="ml-10 flex items-center space-x-3">
+                  @for (nav of navSections; track nav.id) {
+                    @if (!nav.children) {
+                      <button
+                        type="button"
+                        (click)="navigateToSection(nav.section!)"
+                        [class.selected]="isActiveSection(nav.section!)"
+                        class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md min-h-[48px] leading-tight"
+                      >
+                        <i [class]="nav.icon + ' text-base'"></i>
+                        <span class="whitespace-nowrap">{{ nav.label }}</span>
+                      </button>
+                    } @else {
+                      <div
+                        class="relative"
+                        (mouseenter)="openDropdown.set(nav.id)"
+                        (mouseleave)="openDropdown.set(null)"
+                      >
+                        <button
+                          type="button"
+                          class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md min-h-[48px] leading-tight"
+                        >
+                          <i [class]="nav.icon + ' text-base'"></i>
+                          <span class="whitespace-nowrap">{{ nav.label }}</span>
+                          <i class="pi pi-chevron-down text-xs"></i>
+                        </button>
+                        @if (openDropdown() === nav.id) {
+                          <div
+                            class="absolute left-0 mt-2 w-56 rounded-lg bg-neutral-800 border border-neutral-700 shadow-xl z-20 py-2"
+                          >
+                            @for (child of nav.children; track child.id) {
+                              <button
+                                type="button"
+                                (click)="navigateToSection(child.section)"
+                                [class.selected]="isActiveSection(child.section)"
+                                class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-700/60 flex items-center gap-2 transition-colors"
+                              >
+                                <i [class]="child.icon + ' text-sm'"></i>
+                                <span class="truncate">{{ child.label }}</span>
+                              </button>
+                            }
+                          </div>
+                        }
+                      </div>
+                    }
+                  }
                 </div>
               </div>
             </div>
@@ -176,63 +167,52 @@ import { MessageService, ConfirmationService } from 'primeng/api';
           </div>
         </div>
         <div class="md:hidden border-t border-neutral-700/50 bg-neutral-800/90 backdrop-blur-sm" [class.hidden]="isCollapsed()">
-          <div class="space-y-1 px-2 pt-2 pb-3 sm:px-3">
-            <a
-              (click)="navigateToSection('dashboard')"
-              [class.selected]="isActiveSection('dashboard')"
-              class="rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer"
-            >
-              <i class="pi pi-home text-lg"></i>
-              <span>Dashboard</span>
-            </a>
-            <a
-              (click)="navigateToSection('profile')"
-              [class.selected]="isActiveSection('profile')"
-              class="rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer"
-            >
-              <i class="pi pi-user text-lg"></i>
-              <span>Mi Perfil</span>
-            </a>
-            <a
-              (click)="navigateToSection('timelogs')"
-              [class.selected]="isActiveSection('timelogs')"
-              class="rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer"
-            >
-              <i class="pi pi-calendar-clock text-lg"></i>
-              <span>Mis Marcaciones</span>
-            </a>
-            <a
-              (click)="navigateToSection('lates')"
-              [class.selected]="isActiveSection('lates')"
-              class="rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer"
-            >
-              <i class="pi pi-clock text-lg"></i>
-              <span>Mis Tardanzas</span>
-            </a>
-            <a
-              (click)="navigateToSection('disabilities')"
-              [class.selected]="isActiveSection('disabilities')"
-              class="rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer"
-            >
-              <i class="pi pi-file-medical text-lg"></i>
-              <span>Incapacidades</span>
-            </a>
-            <a
-              (click)="navigateToSection('documents')"
-              [class.selected]="isActiveSection('documents')"
-              class="rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer"
-            >
-              <i class="pi pi-file-edit text-lg"></i>
-              <span>Solicitar Documentos</span>
-            </a>
-            <a
-              (click)="navigateToSection('complaints')"
-              [class.selected]="isActiveSection('complaints')"
-              class="rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer"
-            >
-              <i class="pi pi-comments text-lg"></i>
-              <span>Buzón de Quejas</span>
-            </a>
+          <div class="space-y-2 px-2 pt-2 pb-3 sm:px-3">
+            @for (nav of navSections; track nav.id) {
+              @if (!nav.children) {
+                <button
+                  type="button"
+                  (click)="navigateToSection(nav.section!)"
+                  [class.selected]="isActiveSection(nav.section!)"
+                  class="w-full rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer text-left"
+                >
+                  <i [class]="nav.icon + ' text-lg'"></i>
+                  <span>{{ nav.label }}</span>
+                </button>
+              } @else {
+                <div class="rounded-lg bg-neutral-900/40 border border-neutral-700/60">
+                  <button
+                    type="button"
+                    (click)="toggleMobileCategory(nav.id)"
+                    class="w-full px-4 py-3 text-base font-medium text-gray-300 flex items-center justify-between"
+                  >
+                    <span class="flex items-center gap-3">
+                      <i [class]="nav.icon + ' text-lg'"></i>
+                      {{ nav.label }}
+                    </span>
+                    <i class="pi"
+                      [class.pi-chevron-up]="isMobileCategoryOpen(nav.id)"
+                      [class.pi-chevron-down]="!isMobileCategoryOpen(nav.id)"
+                    ></i>
+                  </button>
+                  @if (isMobileCategoryOpen(nav.id)) {
+                    <div class="pb-2">
+                      @for (child of nav.children; track child.id) {
+                        <button
+                          type="button"
+                          (click)="navigateToSection(child.section)"
+                          [class.selected]="isActiveSection(child.section)"
+                          class="w-full px-6 py-2 text-left text-sm text-gray-300 hover:bg-gray-800 flex gap-2 items-center transition-colors"
+                        >
+                          <i [class]="child.icon + ' text-sm'"></i>
+                          <span>{{ child.label }}</span>
+                        </button>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            }
           </div>
           @if(user) {
           <div class="border-t border-gray-700/50 pt-4 pb-3 px-5">
@@ -337,7 +317,38 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
   
   public isCollapsed = signal(true);
   public currentFragment = signal<string | null>(null);
+  public openDropdown = signal<string | null>(null);
+  public mobileDropdowns = signal<Record<string, boolean>>({});
   private routerSubscription?: Subscription;
+
+  public navSections: NavSection[] = [
+    {
+      id: 'dashboard',
+      label: 'Dashboard',
+      icon: 'pi pi-home',
+      section: 'dashboard',
+    },
+    {
+      id: 'personal',
+      label: 'Mi Portal',
+      icon: 'pi pi-user',
+      children: [
+        { id: 'profile', label: 'Mi Perfil', icon: 'pi pi-id-card', section: 'profile' },
+        { id: 'timelogs', label: 'Mis Marcaciones', icon: 'pi pi-calendar-clock', section: 'timelogs' },
+        { id: 'lates', label: 'Mis Tardanzas', icon: 'pi pi-clock', section: 'lates' },
+      ],
+    },
+    {
+      id: 'management',
+      label: 'Gestiones',
+      icon: 'pi pi-briefcase',
+      children: [
+        { id: 'disabilities', label: 'Incapacidades', icon: 'pi pi-file-medical', section: 'disabilities' },
+        { id: 'documents', label: 'Solicitar Documentos', icon: 'pi pi-file-edit', section: 'documents' },
+        { id: 'complaints', label: 'Buzón de Quejas', icon: 'pi pi-comments', section: 'complaints' },
+      ],
+    },
+  ];
 
   public items: MenuItem[] = [
     {
@@ -374,6 +385,7 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
   navigateToSection(section: string) {
     this.router.navigate(['/employee-portal'], { fragment: section });
     this.currentFragment.set(section);
+    this.openDropdown.set(null);
     // Cerrar menú móvil si está abierto
     if (!this.isCollapsed()) {
       this.isCollapsed.set(true);
@@ -390,6 +402,17 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
 
   toggleMenu() {
     this.isCollapsed.update((value) => !value);
+  }
+
+  toggleMobileCategory(id: string) {
+    this.mobileDropdowns.update((state) => ({
+      ...state,
+      [id]: !state[id],
+    }));
+  }
+
+  isMobileCategoryOpen(id: string): boolean {
+    return !!this.mobileDropdowns()[id];
   }
 }
 

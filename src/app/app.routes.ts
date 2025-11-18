@@ -26,5 +26,10 @@ export const appRoutes: Route[] = [
     loadComponent: () =>
       import('./login/login.component').then((x) => x.LoginComponent),
   },
+  {
+    path: 'sin-acceso',
+    loadComponent: () =>
+      import('./no-access.component').then((x) => x.NoAccessComponent),
+  },
   { path: '**', redirectTo: 'login', pathMatch: 'full' },
 ];
