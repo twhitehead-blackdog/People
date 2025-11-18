@@ -13,14 +13,6 @@ import {
   format,
   startOfMonth,
 } from 'date-fns';
-import {
-  ApexChart,
-  ApexDataLabels,
-  ApexLegend,
-  ApexPlotOptions,
-  ApexTheme,
-  NgApexchartsModule,
-} from 'ng-apexcharts';
 import { BaseChartDirective } from 'ng2-charts';
 import { CardModule } from 'primeng/card';
 import { DialogModule } from 'primeng/dialog';
@@ -33,7 +25,6 @@ import { EmployeesStore } from '../stores/employees.store';
   standalone: true,
   imports: [
     BaseChartDirective,
-    NgApexchartsModule,
     CardModule,
     CommonModule,
     CurrencyPipe,
@@ -160,17 +151,13 @@ import { EmployeesStore } from '../stores/employees.store';
               <div class="kpi-label">Distribución por Género</div>
               <div class="gender-chart-container">
                 <div class="gender-chart-wrapper">
-                  <apx-chart
-                    [series]="genderChartSeries()"
-                    [chart]="genderChartOptions.chart"
-                    [labels]="genderChartOptions.labels"
-                    [colors]="genderChartOptions.colors"
-                    [plotOptions]="genderChartOptions.plotOptions"
-                    [dataLabels]="genderChartOptions.dataLabels"
-                    [legend]="genderChartOptions.legend"
-                    [theme]="genderChartOptions.theme"
-                    class="gender-apex-chart"
-                  ></apx-chart>
+                  <canvas
+                    baseChart
+                    [type]="'doughnut'"
+                    [data]="genderChartData()"
+                    [options]="genderChartOptions"
+                    class="gender-chart-canvas"
+                  ></canvas>
 
                   <!-- Center icons inside the arc -->
                   <div class="gender-center-icons">
@@ -183,16 +170,16 @@ import { EmployeesStore } from '../stores/employees.store';
                   <div class="legend-item">
                     <span class="legend-label">Masculino</span>
                     <span class="legend-value"
-                      >{{ genderChartData().maleCount }} ({{
-                        genderChartData().malePercentage
+                      >{{ getGenderCount('M') }} ({{
+                        getGenderPercentage('M')
                       }}%)</span
                     >
                   </div>
                   <div class="legend-item">
                     <span class="legend-label">Femenino</span>
                     <span class="legend-value"
-                      >{{ genderChartData().femaleCount }} ({{
-                        genderChartData().femalePercentage
+                      >{{ getGenderCount('F') }} ({{
+                        getGenderPercentage('F')
                       }}%)</span
                     >
                   </div>
@@ -234,105 +221,13 @@ import { EmployeesStore } from '../stores/employees.store';
               <div class="kpi-label">Ingresos y Salida del Personal</div>
               <div class="hires-exits-chart-container">
                 <div class="hires-exits-chart-wrapper">
-                  <svg
-                    class="hires-exits-chart-svg"
-                    viewBox="0 0 200 100"
-                    preserveAspectRatio="xMidYMid meet"
-                  >
-                    <!-- Define gradient based on percentages -->
-                    <defs>
-                      <linearGradient
-                        id="hiresExitsGradient"
-                        x1="0%"
-                        y1="0%"
-                        x2="100%"
-                        y2="0%"
-                      >
-                        <!-- Green section (hires) -->
-                        <stop
-                          [attr.offset]="
-                            hiresExitsChartData().gradientOffset - 2 + '%'
-                          "
-                          stop-color="#10b981"
-                        />
-                        <!-- Smooth transition -->
-                        <stop
-                          [attr.offset]="
-                            hiresExitsChartData().gradientOffset + '%'
-                          "
-                          stop-color="#f59e0b"
-                        />
-                        <!-- Red section (exits) -->
-                        <stop
-                          [attr.offset]="
-                            hiresExitsChartData().gradientOffset + 2 + '%'
-                          "
-                          stop-color="#ef4444"
-                        />
-                      </linearGradient>
-                    </defs>
-
-                    <!-- Background semicircle -->
-                    <path
-                      d="M 15 100 A 85 85 0 0 1 185 100"
-                      fill="none"
-                      stroke="rgba(255, 255, 255, 0.05)"
-                      stroke-width="18"
-                      stroke-linecap="round"
-                    />
-
-                    <!-- Single arc with gradient -->
-                    @if (hiresExitsChartData().showArc) {
-                    <path
-                      class="hires-exits-arc"
-                      [attr.d]="hiresExitsChartData().arcPath"
-                      fill="none"
-                      stroke="url(#hiresExitsGradient)"
-                      stroke-width="18"
-                      stroke-linecap="round"
-                    />
-                    }
-
-                    <!-- Hires marker (left) -->
-                    @if (hiresExitsChartData().showGreen) {
-                    <circle
-                      class="hires-exits-marker hires-marker"
-                      [attr.cx]="hiresExitsChartData().hiresMarkerX"
-                      [attr.cy]="hiresExitsChartData().hiresMarkerY"
-                      r="5"
-                      fill="#10b981"
-                      stroke="#ffffff"
-                      stroke-width="2"
-                    />
-                    }
-
-                    <!-- Exits marker (right) -->
-                    @if (hiresExitsChartData().showRed) {
-                    <circle
-                      class="hires-exits-marker exits-marker"
-                      [attr.cx]="hiresExitsChartData().exitsMarkerX"
-                      [attr.cy]="hiresExitsChartData().exitsMarkerY"
-                      r="5"
-                      fill="#ef4444"
-                      stroke="#ffffff"
-                      stroke-width="2"
-                    />
-                    }
-
-                    <!-- Transition marker (where colors meet) -->
-                    @if (hiresExitsChartData().showTransition) {
-                    <circle
-                      class="hires-exits-marker transition-marker"
-                      [attr.cx]="hiresExitsChartData().transitionMarkerX"
-                      [attr.cy]="hiresExitsChartData().transitionMarkerY"
-                      r="4"
-                      fill="#f59e0b"
-                      stroke="#ffffff"
-                      stroke-width="2"
-                      opacity="0.8"
-                    />
-                    }
-                  </svg>
+                  <canvas
+                    baseChart
+                    [type]="'doughnut'"
+                    [data]="hiresExitsChartData()"
+                    [options]="hiresExitsChartOptions"
+                    class="hires-exits-chart-canvas"
+                  ></canvas>
 
                   <!-- Center icons inside the arc -->
                   <div class="hires-exits-center-icons">
@@ -345,13 +240,13 @@ import { EmployeesStore } from '../stores/employees.store';
                   <div class="legend-item">
                     <span class="legend-label">Ingresos</span>
                     <span class="legend-value">{{
-                      hiresExitsChartData().hires
+                      getHiresExitsCount('hires')
                     }}</span>
                   </div>
                   <div class="legend-item">
                     <span class="legend-label">Salidas</span>
                     <span class="legend-value">{{
-                      hiresExitsChartData().exits
+                      getHiresExitsCount('exits')
                     }}</span>
                   </div>
                 </div>
@@ -1866,19 +1761,11 @@ import { EmployeesStore } from '../stores/employees.store';
       }
     }
 
-    .hires-exits-chart-svg {
-      width: 100%;
-      height: 100%;
-      display: block;
-      user-select: none;
-      -webkit-user-select: none;
-      -moz-user-select: none;
-      -ms-user-select: none;
-    }
-
-    .hires-exits-arc {
-      transition: all 1.5s cubic-bezier(0.4, 0, 0.2, 1);
-      pointer-events: none;
+    .hires-exits-chart-canvas {
+      width: 100% !important;
+      height: 100% !important;
+      max-width: 100%;
+      max-height: 100%;
     }
 
     .hires-exits-center-icons {
@@ -1908,23 +1795,6 @@ import { EmployeesStore } from '../stores/employees.store';
       color: #ef4444;
     }
 
-    .hires-exits-marker {
-      transition: all 1.5s cubic-bezier(0.4, 0, 0.2, 1);
-      pointer-events: none;
-      filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));
-    }
-
-    .hires-marker {
-      filter: drop-shadow(0 0 3px rgba(16, 185, 129, 0.8));
-    }
-
-    .exits-marker {
-      filter: drop-shadow(0 0 3px rgba(239, 68, 68, 0.8));
-    }
-
-    .transition-marker {
-      filter: drop-shadow(0 0 3px rgba(245, 158, 11, 0.9));
-    }
 
     .hires-exits-legend {
       display: flex;
@@ -2039,86 +1909,11 @@ import { EmployeesStore } from '../stores/employees.store';
       }
     }
 
-    .gender-apex-chart {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      user-select: none;
-      -webkit-user-select: none;
-      -moz-user-select: none;
-      -ms-user-select: none;
-    }
-
-    .gender-apex-chart ::ng-deep .apexcharts-canvas {
-      margin: 0 auto !important;
-      display: block !important;
-    }
-
-    .gender-apex-chart ::ng-deep .apexcharts-inner {
-      margin: 0 auto !important;
-      display: block !important;
-    }
-
-    .gender-apex-chart ::ng-deep .apexcharts-svg {
-      margin: 0 auto !important;
-      display: block !important;
-    }
-
-    .gender-apex-chart ::ng-deep svg {
-      margin: 0 auto !important;
-      display: block !important;
-    }
-
-    .gender-apex-chart ::ng-deep .apexcharts-datalabels-group {
-      display: none;
-    }
-
-    .gender-apex-chart ::ng-deep .apexcharts-svg {
-      background: transparent !important;
-    }
-
-    .gender-apex-chart ::ng-deep .apexcharts-pie {
-      transform: translateY(20px);
-    }
-
-    .gender-apex-chart ::ng-deep .apexcharts-pie path {
-      stroke: transparent !important;
-      stroke-width: 0 !important;
-    }
-
-    .gender-apex-chart ::ng-deep .apexcharts-tooltip {
-      background: #18181b !important;
-      border: 1px solid rgba(107, 114, 128, 0.3) !important;
-      border-radius: 8px !important;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
-      color: #ffffff !important;
-      padding: 0 !important;
-    }
-
-    .gender-apex-chart ::ng-deep .apexcharts-tooltip-title {
-      background: transparent !important;
-      border-bottom: 1px solid rgba(107, 114, 128, 0.3) !important;
-      color: #fbbf24 !important;
-      font-weight: 600 !important;
-      padding: 8px 12px !important;
-      margin: 0 !important;
-    }
-
-    .gender-apex-chart ::ng-deep .apexcharts-tooltip-series-group {
-      padding: 8px 12px !important;
-      color: #ffffff !important;
-    }
-
-    .gender-apex-chart ::ng-deep .apexcharts-tooltip-marker {
-      width: 12px !important;
-      height: 12px !important;
-      margin-right: 8px !important;
-    }
-
-    .gender-apex-chart ::ng-deep .apexcharts-tooltip-y-group {
-      padding: 0 !important;
+    .gender-chart-canvas {
+      width: 100% !important;
+      height: 100% !important;
+      max-width: 100%;
+      max-height: 100%;
     }
 
     .gender-center-icons {
@@ -3565,19 +3360,11 @@ export class HomeComponent {
         if (active && active.length > 0) {
           const idx = active[0].index;
           const data: any = this.latesDailyChartData();
-          console.log('[Chart Click] Data:', data);
-          console.log('[Chart Click] Index:', idx);
 
           if (data && data.datasets && data.datasets.length > 0) {
             const ds: any = data.datasets[0];
             const labels: any[] = data.labels || [];
             const details = (ds?.customDetails?.[idx] ?? []) as any[];
-
-            console.log('[Chart Click] Details from dataset:', details);
-            console.log(
-              '[Chart Click] customDetails array:',
-              ds?.customDetails
-            );
 
             // Sort details by minutesLate descending (highest first)
             const sortedDetails = [...details].sort((a, b) => {
@@ -3591,9 +3378,6 @@ export class HomeComponent {
             const dayNum = idx + 1;
             const monthName = this.getMonthNameSpanish(now);
             const title = `Tardanzas - Día ${dayNum} ${monthName}`;
-
-            console.log('[Chart Click] Setting title:', title);
-            console.log('[Chart Click] Setting sorted details:', sortedDetails);
 
             this.lateDialogTitle.set(title);
             this.lateDialogDetails.set(sortedDetails);
@@ -3679,12 +3463,6 @@ export class HomeComponent {
     >();
 
     if (timelogs.length > 0 && schedules.length > 0) {
-      console.log(
-        '[Chart] Processing timelogs:',
-        timelogs.length,
-        'schedules:',
-        schedules.length
-      );
       const entriesByEmployeeDay = new Map<string, any>();
       for (const log of timelogs) {
         // Solo considerar entradas (type === 'entry')
@@ -3699,13 +3477,6 @@ export class HomeComponent {
         const entryDay = entryTime.getDate();
 
         if (entryMonth !== month || entryYear !== year) {
-          console.log('[Chart] Skipping entry outside current month:', {
-            entryDate: format(entryTime, 'yyyy-MM-dd'),
-            entryMonth: entryMonth + 1,
-            entryYear,
-            currentMonth: month + 1,
-            currentYear: year,
-          });
           continue; // Skip entries outside current month
         }
 
@@ -3722,53 +3493,10 @@ export class HomeComponent {
         }
       }
 
-      console.log('[Chart] Unique entries by day:', entriesByEmployeeDay.size);
       const entryDays = Array.from(entriesByEmployeeDay.values())
         .map((e) => e.day)
         .sort();
       const uniqueDays = Array.from(new Set(entryDays));
-      console.log('[Chart] Entry days found:', entryDays);
-      console.log('[Chart] Unique entry days:', uniqueDays);
-      console.log('[Chart] Latest entry day:', entryDays[entryDays.length - 1]);
-      console.log('[Chart] Current day should be:', format(now, 'yyyy-MM-dd'));
-      console.log('[Chart] Total timelogs received:', timelogs.length);
-
-      // Verificar si hay timelogs para días 14-17
-      const days14to17 = uniqueDays.filter((day) => {
-        const dayNum = parseInt(day.split('-')[2]);
-        return dayNum >= 14 && dayNum <= 17;
-      });
-      console.log('[Chart] Days 14-17 with timelogs:', days14to17);
-
-      // Contar timelogs por día para días 14-17
-      if (days14to17.length > 0) {
-        days14to17.forEach((day) => {
-          const count = entryDays.filter((d) => d === day).length;
-          console.log(`[Chart] Day ${day}: ${count} timelogs`);
-        });
-      } else {
-        console.log(
-          '[Chart] ⚠️ NO HAY TIMELOGS PARA DÍAS 14-17 - Esto explica por qué no hay datos'
-        );
-      }
-
-      // Log para debugging: mostrar horarios disponibles para algunos empleados
-      if (entriesByEmployeeDay.size > 0) {
-        const sampleEntry = Array.from(entriesByEmployeeDay.values())[0];
-        const sampleSchedules = schedules.filter(
-          (s) => s.employee_id === sampleEntry.employee_id
-        );
-        console.log('[Chart] Sample employee schedules:', {
-          employee: sampleEntry.employee_name,
-          employee_id: sampleEntry.employee_id,
-          schedules: sampleSchedules.map((s) => ({
-            start_date: s.start_date,
-            end_date: s.end_date,
-            schedule_name: s.schedule?.name,
-            entry_time: s.schedule?.entry_time,
-          })),
-        });
-      }
 
       for (const [, entry] of entriesByEmployeeDay) {
         // Buscar horarios que se solapen con el día de la entrada
@@ -3779,31 +3507,6 @@ export class HomeComponent {
         const schedule = matchingSchedules.find(
           (s: any) => s.start_date <= entry.day && s.end_date >= entry.day
         );
-
-        // Si no se encuentra, log más detallado para debugging
-        if (!schedule) {
-          const employeeSchedules = schedules.filter(
-            (s) => s.employee_id === entry.employee_id
-          );
-          if (employeeSchedules.length > 0) {
-            console.log('[Chart] Sin horario para fecha específica:', {
-              employee: entry.employee_name,
-              day: entry.day,
-              available_schedules: employeeSchedules.map((s) => ({
-                start_date: s.start_date,
-                end_date: s.end_date,
-                schedule_name: s.schedule?.name,
-                overlaps: s.start_date <= entry.day && s.end_date >= entry.day,
-              })),
-            });
-          } else {
-            console.log(
-              '[Chart] Sin horario (ningún horario asignado):',
-              entry.employee_name,
-              entry.day
-            );
-          }
-        }
 
         // Excluir si no hay schedule o no hay entry_time configurado
         if (!schedule || !schedule.schedule?.entry_time) {
@@ -3816,17 +3519,6 @@ export class HomeComponent {
         const isDiaLibre =
           scheduleId === 'c01dff8f-ce0d-498f-a473-46418576e589';
         if (isFeriado || isDiaLibre || schedule.schedule?.day_off) {
-          console.log(
-            '[Chart] Horario con error:',
-            entry.employee_name,
-            entry.day,
-            'isFeriado:',
-            isFeriado,
-            'isDiaLibre:',
-            isDiaLibre,
-            'day_off:',
-            schedule.schedule?.day_off
-          );
           continue;
         }
 
@@ -3851,20 +3543,6 @@ export class HomeComponent {
         const minutesLate = this.calcTimeDiff(actualEntry, scheduledEntry);
         const tolerance = schedule.schedule.minutes_tolerance ?? 0;
 
-        console.log(
-          '[Chart] Verificando:',
-          entry.employee_name,
-          entry.day,
-          'programado:',
-          scheduledEntry,
-          'llegó:',
-          actualEntry,
-          'minutos tarde:',
-          minutesLate,
-          'tolerancia:',
-          tolerance
-        );
-
         // Solo contar como tardanza si minutesLate > tolerance (misma lógica que timelogs)
         if (minutesLate > tolerance) {
           const dateKey = entry.day; // yyyy-MM-dd
@@ -3881,13 +3559,6 @@ export class HomeComponent {
             minutesLate: minutesLate,
           });
           detailsByDate.set(dateKey, detArr);
-          console.log(
-            '[Chart] ✓ TARDE:',
-            entry.employee_name,
-            entry.day,
-            minutesLate,
-            'minutos'
-          );
         }
       }
     }
@@ -3897,41 +3568,16 @@ export class HomeComponent {
     const customNames: string[][] = [];
     const customDetails: any[] = [];
 
-    console.log('[Chart Data] Building data for days:', {
-      daysSoFar,
-      year,
-      month: month + 1,
-      totalsByDateSize: totalsByDate.size,
-    });
-    console.log(
-      '[Chart Data] Available dates in totalsByDate:',
-      Array.from(totalsByDate.keys()).sort()
-    );
-
     for (let d = 1; d <= daysSoFar; d++) {
       const dateKey = format(new Date(year, month, d), 'yyyy-MM-dd');
       const count = totalsByDate.get(dateKey) ?? 0;
       const names = namesByDate.get(dateKey) ?? [];
       const details = detailsByDate.get(dateKey) ?? [];
 
-      console.log(
-        `[Chart Data] Day ${d} (${dateKey}): count=${count}, names=${names.length}, details=${details.length}`,
-        details
-      );
-
       data.push(count);
       customNames.push(names);
       customDetails.push(details);
     }
-
-    console.log(
-      '[Chart Data] Final data array length:',
-      data.length,
-      'Total sum:',
-      data.reduce((a, b) => a + b, 0)
-    );
-
-    console.log('[Chart Data] Total customDetails:', customDetails);
 
     return {
       labels,
@@ -4121,264 +3767,150 @@ export class HomeComponent {
   });
 
   /**
-   * Gender distribution chart data
-   * Creates two connected segments in a semicircle (top half)
-   * Male arc starts from left (180°) and goes to its percentage
-   * Female arc continues from where male ends to right (0°)
-   * 50% = top center (90°)
+   * Chart.js data for gender distribution donut chart
+   * Returns data in Chart.js format with labels and datasets
    */
   public genderChartData = computed(() => {
     const maleCount = this.state.countByGender()['M'] || 0;
     const femaleCount = this.state.countByGender()['F'] || 0;
     const total = maleCount + femaleCount;
 
-    // SVG constants
-    const centerX = 100;
-    const centerY = 100;
-    const radius = 85;
-    // Start point: left side (180°)
-    const startX = 15;
-    const startY = 100;
-    // End point: right side (0°)
-    const endX = 185;
-    const endY = 100;
-
-    // Default values when no data
-    if (total === 0) {
-      return {
-        maleCount: 0,
-        femaleCount: 0,
-        malePercentage: 0,
-        femalePercentage: 0,
-        maleArcPath: '',
-        femaleArcPath: '',
-      };
-    }
-
-    // Calculate percentages
-    const malePercentage = Math.round((maleCount / total) * 100);
-    const femalePercentage = 100 - malePercentage; // Ensure they sum to 100%
-
-    // Calculate angles in radians for the top semicircle
-    // Start angle: 180° (left side)
-    // End angle: 0° (right side)
-    // Top center: 90°
-    // We go clockwise from 180° to 0° (top half)
-
-    // Calculate where male arc ends (transition point)
-    // malePercentage of 45% means: start at 180°, go clockwise 45% of 180° = 81°
-    // So end angle = 180° - (45/100 * 180°) = 180° - 81° = 99°
-    const maleEndAngle = Math.PI - (malePercentage / 100) * Math.PI;
-
-    // Calculate coordinates for the transition point (where male ends and female begins)
-    const transitionX = centerX + radius * Math.cos(maleEndAngle);
-    const transitionY = centerY - radius * Math.sin(maleEndAngle); // Negative because Y increases downward
-
-    // Build arc paths
-    // Male arc: from left (180°) to transition point
-    let maleArcPath = '';
-    if (malePercentage > 0) {
-      const largeArcFlag = malePercentage > 50 ? 1 : 0;
-      maleArcPath = `M ${startX} ${startY} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${transitionX} ${transitionY}`;
-    }
-
-    // Female arc: from transition point to right (0°)
-    let femaleArcPath = '';
-    if (femalePercentage > 0) {
-      const largeArcFlag = femalePercentage > 50 ? 1 : 0;
-      femaleArcPath = `M ${transitionX} ${transitionY} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${endX} ${endY}`;
-    }
-
     return {
-      maleCount,
-      femaleCount,
-      malePercentage,
-      femalePercentage,
-      maleArcPath,
-      femaleArcPath,
+      labels: ['Masculino', 'Femenino'],
+      datasets: [
+        {
+          data: [maleCount, femaleCount],
+          backgroundColor: ['#3b82f6', '#f472b6'],
+          borderColor: ['#3b82f6', '#f472b6'],
+          borderWidth: 0,
+        },
+      ],
     };
   });
 
   /**
-   * ApexCharts series data for gender distribution
-   * Order: Male (blue) first, then Female (pink)
-   * With startAngle: 0, endAngle: 180, this will show blue on left, pink on right
+   * Chart.js options for semicircular donut chart
+   * Configured to show only top half (semicircle)
    */
-  public genderChartSeries = computed(() => {
-    const data = this.genderChartData();
-    return [data.maleCount, data.femaleCount];
-  });
-
-  /**
-   * ApexCharts options for semicircular donut chart
-   * Rotated to start from left (180°) and go to right (0°) through top
-   * Male (blue) on left, Female (pink) on right
-   */
-  public genderChartOptions = {
-    chart: {
-      type: 'donut',
-      height: 300,
-      width: '100%',
-      offsetY: 40,
-      offsetX: 0,
-      background: 'transparent',
-      toolbar: {
-        show: false,
+  public genderChartOptions: any = {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '85%',
+    rotation: -90,
+    circumference: 180,
+    plugins: {
+      legend: {
+        display: false,
       },
-      animations: {
+      tooltip: {
         enabled: true,
-        easing: 'easeinout',
-        speed: 800,
-      },
-      sparkline: {
-        enabled: false,
-      },
-    } as ApexChart,
-    labels: ['Masculino', 'Femenino'],
-    colors: ['#3b82f6', '#f472b6'],
-    plotOptions: {
-      pie: {
-        startAngle: -90,
-        endAngle: 90,
-        donut: {
-          size: '85%',
-          background: 'transparent',
-          labels: {
-            show: false,
+        backgroundColor: '#18181b',
+        titleColor: '#fbbf24',
+        bodyColor: '#ffffff',
+        borderColor: 'rgba(107, 114, 128, 0.3)',
+        borderWidth: 1,
+        callbacks: {
+          label: (context: any) => {
+            const label = context.label || '';
+            const value = context.parsed || 0;
+            const total = context.dataset.data.reduce(
+              (a: number, b: number) => a + b,
+              0
+            );
+            const percentage =
+              total > 0 ? Math.round((value / total) * 100) : 0;
+            return `${label}: ${value} (${percentage}%)`;
           },
         },
       },
-    } as ApexPlotOptions,
-    dataLabels: {
-      enabled: false,
-    } as ApexDataLabels,
-    legend: {
-      show: false,
-    } as ApexLegend,
-    tooltip: {
-      enabled: true,
-      theme: 'dark',
-      style: {
-        fontSize: '10px',
-        fontFamily: 'inherit',
-      },
-      backgroundColor: '#18181b',
-      titleColor: '#fbbf24',
-      bodyColor: '#ffffff',
-      borderColor: 'rgba(107, 114, 128, 0.3)',
-      y: {
-        formatter: (val: number, opts: any) => {
-          const data = this.genderChartData();
-          const total = data.maleCount + data.femaleCount;
-          const percentage = total > 0 ? Math.round((val / total) * 100) : 0;
-          return `${val} (${percentage}%)`;
-        },
-      },
     },
-    stroke: {
-      show: true,
-      width: 0,
-    },
-    theme: {
-      mode: 'dark',
-    } as ApexTheme,
   };
 
   /**
-   * Single arc with gradient for hires/exits distribution
-   * Creates one perfect semicircle with smooth green→red gradient
+   * Chart.js data for hires/exits distribution donut chart
+   * Returns data in Chart.js format with labels and datasets
    */
   public hiresExitsChartData = computed(() => {
     const hires = this.monthlyHiresAndExits().hires;
     const exits = this.monthlyHiresAndExits().exits;
-    const total = hires + exits;
-
-    // Default values when no data
-    if (total === 0) {
-      return {
-        hires: 0,
-        exits: 0,
-        hiresPercentage: 0,
-        exitsPercentage: 0,
-        arcPath: 'M 15 100 A 85 85 0 0 1 185 100',
-        gradientOffset: 50,
-        hiresMarkerX: 15,
-        hiresMarkerY: 100,
-        exitsMarkerX: 185,
-        exitsMarkerY: 100,
-        transitionMarkerX: 100,
-        transitionMarkerY: 15,
-        showArc: false,
-        showGreen: false,
-        showRed: false,
-        showTransition: false,
-      };
-    }
-
-    // Calculate percentages
-    const hiresPercentage = Math.round((hires / total) * 100);
-    const exitsPercentage = 100 - hiresPercentage; // Ensure they sum to 100%
-
-    // SVG constants
-    const centerX = 100;
-    const centerY = 100;
-    const radius = 85;
-
-    // Complete semicircle path (180° to 0° going UPWARD)
-    const arcPath = 'M 15 100 A 85 85 0 0 1 185 100';
-
-    // Calculate gradient offset (where green ends and red begins)
-    // For a linear gradient from left to right on the semicircle
-    const gradientOffset = hiresPercentage;
-
-    // Calculate marker positions
-    // Hires marker: always at start (180° / left)
-    const hiresMarkerX = centerX + radius * Math.cos(Math.PI);
-    const hiresMarkerY = centerY + radius * Math.sin(Math.PI);
-
-    // Exits marker: always at end (0° / right)
-    const exitsMarkerX = centerX + radius * Math.cos(0);
-    const exitsMarkerY = centerY + radius * Math.sin(0);
-
-    // Transition marker: where the two colors meet
-    const transitionAngle = Math.PI - (hiresPercentage / 100) * Math.PI;
-    const transitionMarkerX = centerX + radius * Math.cos(transitionAngle);
-    const transitionMarkerY = centerY + radius * Math.sin(transitionAngle);
 
     return {
-      hires,
-      exits,
-      hiresPercentage,
-      exitsPercentage,
-      arcPath,
-      gradientOffset,
-      hiresMarkerX,
-      hiresMarkerY,
-      exitsMarkerX,
-      exitsMarkerY,
-      transitionMarkerX,
-      transitionMarkerY,
-      showArc: true,
-      showGreen: hires > 0,
-      showRed: exits > 0,
-      showTransition: hires > 0 && exits > 0,
+      labels: ['Ingresos', 'Salidas'],
+      datasets: [
+        {
+          data: [hires, exits],
+          backgroundColor: ['#10b981', '#ef4444'],
+          borderColor: ['#10b981', '#ef4444'],
+          borderWidth: 0,
+        },
+      ],
     };
   });
 
-  // Keep methods for backward compatibility
+  /**
+   * Chart.js options for semicircular donut chart (hires/exits)
+   * Configured to show only top half (semicircle)
+   */
+  public hiresExitsChartOptions: any = {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '85%',
+    rotation: -90,
+    circumference: 180,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      tooltip: {
+        enabled: true,
+        backgroundColor: '#18181b',
+        titleColor: '#fbbf24',
+        bodyColor: '#ffffff',
+        borderColor: 'rgba(107, 114, 128, 0.3)',
+        borderWidth: 1,
+        callbacks: {
+          label: (context: any) => {
+            const label = context.label || '';
+            const value = context.parsed || 0;
+            const total = context.dataset.data.reduce(
+              (a: number, b: number) => a + b,
+              0
+            );
+            const percentage =
+              total > 0 ? Math.round((value / total) * 100) : 0;
+            return `${label}: ${value} (${percentage}%)`;
+          },
+        },
+      },
+    },
+  };
+
+  // Helper methods for gender data
+  public getGenderCount(gender: 'M' | 'F'): number {
+    return this.state.countByGender()[gender] || 0;
+  }
+
   public getGenderPercentage(gender: 'M' | 'F'): number {
-    const data = this.genderChartData();
-    return gender === 'M' ? data.malePercentage : data.femalePercentage;
+    const maleCount = this.state.countByGender()['M'] || 0;
+    const femaleCount = this.state.countByGender()['F'] || 0;
+    const total = maleCount + femaleCount;
+
+    if (total === 0) return 0;
+
+    const count = gender === 'M' ? maleCount : femaleCount;
+    return Math.round((count / total) * 100);
+  }
+
+  // Helper methods for hires/exits data
+  public getHiresExitsCount(type: 'hires' | 'exits'): number {
+    const data = this.monthlyHiresAndExits();
+    return type === 'hires' ? data.hires : data.exits;
   }
 
   public getMonthlyLates(): number {
     const now = new Date();
     const currentMonth = now.getMonth() + 1;
     const currentYear = now.getFullYear();
-    console.log(
-      '[Tardanzas KPI] Calculando tardanzas del mes...',
-      `Mes actual: ${currentMonth}/${currentYear}`
-    );
 
     // PRIMARY: Usar directamente el total del gráfico (misma fuente que muestra el gráfico)
     // El gráfico ya excluye casos sin horario o con errores
@@ -4393,10 +3925,6 @@ export class HomeComponent {
         (sum: number, val: number) => sum + val,
         0
       );
-      console.log(
-        '[Tardanzas KPI] ✓✓✓ Usando total del gráfico (PRIMARY):',
-        totalFromChart
-      );
       return totalFromChart;
     }
 
@@ -4405,23 +3933,11 @@ export class HomeComponent {
     const timelogs = this.latesFromTimelogs.value() ?? [];
     const schedules = this.employeeSchedules.value() ?? [];
 
-    console.log('[Tardanzas KPI] Timelogs recibidos:', timelogs.length);
-    console.log('[Tardanzas KPI] Schedules recibidos:', schedules.length);
-    console.log('[Tardanzas KPI] Primeros 3 timelogs:', timelogs.slice(0, 3));
-    console.log('[Tardanzas KPI] Primeros 3 schedules:', schedules.slice(0, 3));
-
     if (timelogs.length > 0 && schedules.length > 0) {
       let lateCount = 0;
       const timelogsNow = new Date();
       const timelogsCurrentMonth = timelogsNow.getMonth();
       const timelogsCurrentYear = timelogsNow.getFullYear();
-
-      console.log(
-        '[Tardanzas] Mes actual:',
-        timelogsCurrentMonth + 1,
-        'Año:',
-        timelogsCurrentYear
-      );
 
       // Group timelogs by employee and day (first entry of the day)
       const entriesByEmployeeDay = new Map<string, any>();
@@ -4458,11 +3974,6 @@ export class HomeComponent {
         }
       }
 
-      console.log(
-        '[Tardanzas KPI] Entradas únicas procesadas:',
-        entriesByEmployeeDay.size
-      );
-
       let entriesWithoutSchedule = 0;
       let entriesWithScheduleErrors = 0;
       let entriesProcessed = 0;
@@ -4480,15 +3991,6 @@ export class HomeComponent {
         // Excluir si no hay schedule o no hay entry_time configurado
         if (!schedule || !schedule.schedule?.entry_time) {
           entriesWithoutSchedule++;
-          console.log(
-            '[Tardanzas KPI] ⚠️ Sin horario:',
-            entry.employee_name,
-            entry.day,
-            'schedule encontrado:',
-            !!schedule,
-            'entry_time:',
-            schedule?.schedule?.entry_time
-          );
           continue; // No schedule or no entry time defined
         }
 
@@ -4499,19 +4001,6 @@ export class HomeComponent {
           scheduleId === 'c01dff8f-ce0d-498f-a473-46418576e589';
         if (isFeriado || isDiaLibre || schedule.schedule?.day_off) {
           entriesWithScheduleErrors++;
-          console.log(
-            '[Tardanzas KPI] ⚠️ Horario con error (feriado/día libre):',
-            entry.employee_name,
-            entry.day,
-            'scheduleId:',
-            scheduleId,
-            'isFeriado:',
-            isFeriado,
-            'isDiaLibre:',
-            isDiaLibre,
-            'day_off:',
-            schedule.schedule?.day_off
-          );
           continue; // Excluir feriados, días libres y días sin horario válido
         }
 
@@ -4538,56 +4027,14 @@ export class HomeComponent {
         const minutesLate = this.calcTimeDiff(actualEntry, scheduledEntry);
         const tolerance = schedule.schedule.minutes_tolerance ?? 0;
 
-        console.log(
-          '[Tardanzas] Verificando:',
-          entry.employee_name,
-          entry.day,
-          'programado:',
-          scheduledEntry,
-          'llegó:',
-          actualEntry,
-          'minutos tarde:',
-          minutesLate,
-          'tolerancia:',
-          tolerance
-        );
-
         if (minutesLate > tolerance) {
           lateCount++;
-          console.log(
-            '[Tardanzas] ✓ TARDE:',
-            entry.employee_name,
-            entry.day,
-            'programado:',
-            scheduledEntry,
-            'llegó:',
-            actualEntry,
-            'minutos tarde:',
-            minutesLate
-          );
         }
       }
 
-      console.log('[Tardanzas KPI] Resumen:');
-      console.log(
-        '[Tardanzas KPI] - Entradas sin horario:',
-        entriesWithoutSchedule
-      );
-      console.log(
-        '[Tardanzas KPI] - Entradas con errores de horario:',
-        entriesWithScheduleErrors
-      );
-      console.log('[Tardanzas KPI] - Entradas procesadas:', entriesProcessed);
-      console.log(
-        '[Tardanzas KPI] ✓✓✓ Total calculado desde timelogs + schedules:',
-        lateCount
-      );
       return lateCount;
     }
 
-    console.log('[Tardanzas KPI] ⚠️ No se encontraron timelogs o schedules');
-    console.log('[Tardanzas KPI] - Timelogs:', timelogs.length);
-    console.log('[Tardanzas KPI] - Schedules:', schedules.length);
     return 0;
   }
 
@@ -4818,42 +4265,28 @@ export class HomeComponent {
   }
 
   public onLatesChartClick(evt: any) {
-    console.log('[Chart Click Handler] Event received:', evt);
-
     // Chart.js click event structure: { event: MouseEvent, active: Array }
     const activePoints = evt?.active;
     if (!activePoints || activePoints.length === 0) {
-      console.log('[Chart Click Handler] No active points');
       return;
     }
 
     const firstPoint = activePoints[0];
     const idx = firstPoint?.index;
 
-    console.log('[Chart Click Handler] Index:', idx);
-
     if (idx == null || idx < 0) {
-      console.log('[Chart Click Handler] Invalid index');
       return;
     }
 
     const data: any = this.latesDailyChartData();
-    console.log('[Chart Click Handler] Chart data:', data);
 
     if (!data || !data.datasets || data.datasets.length === 0) {
-      console.log('[Chart Click Handler] No chart data available');
       return;
     }
 
     const ds: any = data.datasets[0];
     const labels: any[] = data.labels || [];
     const details = (ds?.customDetails?.[idx] ?? []) as any[];
-
-    console.log('[Chart Click Handler] Details for index', idx, ':', details);
-    console.log(
-      '[Chart Click Handler] customDetails array:',
-      ds?.customDetails
-    );
 
     // Sort details by minutesLate descending (highest first)
     const sortedDetails = [...details].sort((a, b) => {
@@ -4868,17 +4301,8 @@ export class HomeComponent {
     const monthName = this.getMonthNameSpanish(now);
     const title = `Tardanzas - Día ${dayNum} ${monthName}`;
 
-    console.log('[Chart Click Handler] Setting title:', title);
-    console.log('[Chart Click Handler] Setting sorted details:', sortedDetails);
-
     this.lateDialogTitle.set(title);
     this.lateDialogDetails.set(sortedDetails);
     this.lateDialogVisible.set(true);
-
-    console.log(
-      '[Chart Click Handler] Dialog opened with',
-      details.length,
-      'items'
-    );
   }
 }
