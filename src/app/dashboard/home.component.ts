@@ -13,6 +13,14 @@ import {
   format,
   startOfMonth,
 } from 'date-fns';
+import {
+  ApexChart,
+  ApexDataLabels,
+  ApexLegend,
+  ApexPlotOptions,
+  ApexTheme,
+  NgApexchartsModule,
+} from 'ng-apexcharts';
 import { BaseChartDirective } from 'ng2-charts';
 import { CardModule } from 'primeng/card';
 import { DialogModule } from 'primeng/dialog';
@@ -25,6 +33,7 @@ import { EmployeesStore } from '../stores/employees.store';
   standalone: true,
   imports: [
     BaseChartDirective,
+    NgApexchartsModule,
     CardModule,
     CommonModule,
     CurrencyPipe,
@@ -151,95 +160,17 @@ import { EmployeesStore } from '../stores/employees.store';
               <div class="kpi-label">Distribución por Género</div>
               <div class="gender-chart-container">
                 <div class="gender-chart-wrapper">
-                  <svg
-                    class="gender-chart-svg"
-                    viewBox="0 0 200 100"
-                    preserveAspectRatio="xMidYMid meet"
-                  >
-                    <!-- Define gradient based on percentages -->
-                    <defs>
-                      <linearGradient
-                        id="genderGradient"
-                        x1="0%"
-                        y1="0%"
-                        x2="100%"
-                        y2="0%"
-                      >
-                        <!-- Blue section (male) -->
-                        <stop
-                          [attr.offset]="
-                            genderChartData().gradientOffset - 2 + '%'
-                          "
-                          stop-color="#3b82f6"
-                        />
-                        <!-- Smooth transition -->
-                        <stop
-                          [attr.offset]="genderChartData().gradientOffset + '%'"
-                          stop-color="#a855f7"
-                        />
-                        <!-- Pink section (female) -->
-                        <stop
-                          [attr.offset]="
-                            genderChartData().gradientOffset + 2 + '%'
-                          "
-                          stop-color="#f472b6"
-                        />
-                      </linearGradient>
-                    </defs>
-
-                    <!-- Background semicircle -->
-                    <path
-                      d="M 15 100 A 85 85 0 0 1 185 100"
-                      fill="none"
-                      stroke="rgba(255, 255, 255, 0.05)"
-                      stroke-width="18"
-                      stroke-linecap="round"
-                    />
-
-                    <!-- Single arc with gradient -->
-                    <path
-                      class="gender-arc"
-                      [attr.d]="genderChartData().arcPath"
-                      fill="none"
-                      stroke="url(#genderGradient)"
-                      stroke-width="18"
-                      stroke-linecap="round"
-                    />
-
-                    <!-- Male marker (left) -->
-                    <circle
-                      class="gender-marker male-marker"
-                      [attr.cx]="genderChartData().maleMarkerX"
-                      [attr.cy]="genderChartData().maleMarkerY"
-                      r="5"
-                      fill="#3b82f6"
-                      stroke="#ffffff"
-                      stroke-width="2"
-                    />
-
-                    <!-- Female marker (right) -->
-                    <circle
-                      class="gender-marker female-marker"
-                      [attr.cx]="genderChartData().femaleMarkerX"
-                      [attr.cy]="genderChartData().femaleMarkerY"
-                      r="5"
-                      fill="#f472b6"
-                      stroke="#ffffff"
-                      stroke-width="2"
-                    />
-
-                    <!-- Transition marker (where colors meet) -->
-                    <circle
-                      class="gender-marker transition-marker"
-                      [attr.cx]="genderChartData().transitionMarkerX"
-                      [attr.cy]="genderChartData().transitionMarkerY"
-                      r="4"
-                      fill="#a855f7"
-                      stroke="#ffffff"
-                      stroke-width="2"
-                      opacity="0.8"
-                    />
-                  </svg>
+                  <apx-chart
+                    [series]="genderChartSeries()"
+                    [chart]="genderChartOptions.chart"
+                    [labels]="genderChartOptions.labels"
+                    [colors]="genderChartOptions.colors"
+                    [plotOptions]="genderChartOptions.plotOptions"
+                    [dataLabels]="genderChartOptions.dataLabels"
+                    [legend]="genderChartOptions.legend"
+                    [theme]="genderChartOptions.theme"
+                    class="gender-apex-chart"
+                  ></apx-chart>
 
                   <!-- Center icons inside the arc -->
                   <div class="gender-center-icons">
@@ -250,24 +181,20 @@ import { EmployeesStore } from '../stores/employees.store';
 
                 <div class="gender-legend">
                   <div class="legend-item">
-                    <div class="legend-text">
-                      <span class="legend-label">Masculino</span>
-                      <span class="legend-value"
-                        >{{ genderChartData().maleCount }} ({{
-                          genderChartData().malePercentage
-                        }}%)</span
-                      >
-                    </div>
+                    <span class="legend-label">Masculino</span>
+                    <span class="legend-value"
+                      >{{ genderChartData().maleCount }} ({{
+                        genderChartData().malePercentage
+                      }}%)</span
+                    >
                   </div>
                   <div class="legend-item">
-                    <div class="legend-text">
-                      <span class="legend-label">Femenino</span>
-                      <span class="legend-value"
-                        >{{ genderChartData().femaleCount }} ({{
-                          genderChartData().femalePercentage
-                        }}%)</span
-                      >
-                    </div>
+                    <span class="legend-label">Femenino</span>
+                    <span class="legend-value"
+                      >{{ genderChartData().femaleCount }} ({{
+                        genderChartData().femalePercentage
+                      }}%)</span
+                    >
                   </div>
                 </div>
               </div>
@@ -2092,8 +2019,8 @@ import { EmployeesStore } from '../stores/employees.store';
     .gender-chart-wrapper {
       position: relative;
       width: 100%;
-      max-width: 240px;
-      height: 120px;
+      max-width: 400px;
+      height: 150px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -2102,6 +2029,7 @@ import { EmployeesStore } from '../stores/employees.store';
       -webkit-user-select: none;
       -moz-user-select: none;
       -ms-user-select: none;
+      overflow: visible;
     }
 
     @media (max-width: 768px) {
@@ -2111,19 +2039,86 @@ import { EmployeesStore } from '../stores/employees.store';
       }
     }
 
-    .gender-chart-svg {
+    .gender-apex-chart {
       width: 100%;
       height: 100%;
-      display: block;
+      display: flex;
+      justify-content: center;
+      align-items: center;
       user-select: none;
       -webkit-user-select: none;
       -moz-user-select: none;
       -ms-user-select: none;
     }
 
-    .gender-arc {
-      transition: all 1.5s cubic-bezier(0.4, 0, 0.2, 1);
-      pointer-events: none;
+    .gender-apex-chart ::ng-deep .apexcharts-canvas {
+      margin: 0 auto !important;
+      display: block !important;
+    }
+
+    .gender-apex-chart ::ng-deep .apexcharts-inner {
+      margin: 0 auto !important;
+      display: block !important;
+    }
+
+    .gender-apex-chart ::ng-deep .apexcharts-svg {
+      margin: 0 auto !important;
+      display: block !important;
+    }
+
+    .gender-apex-chart ::ng-deep svg {
+      margin: 0 auto !important;
+      display: block !important;
+    }
+
+    .gender-apex-chart ::ng-deep .apexcharts-datalabels-group {
+      display: none;
+    }
+
+    .gender-apex-chart ::ng-deep .apexcharts-svg {
+      background: transparent !important;
+    }
+
+    .gender-apex-chart ::ng-deep .apexcharts-pie {
+      transform: translateY(20px);
+    }
+
+    .gender-apex-chart ::ng-deep .apexcharts-pie path {
+      stroke: transparent !important;
+      stroke-width: 0 !important;
+    }
+
+    .gender-apex-chart ::ng-deep .apexcharts-tooltip {
+      background: #18181b !important;
+      border: 1px solid rgba(107, 114, 128, 0.3) !important;
+      border-radius: 8px !important;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
+      color: #ffffff !important;
+      padding: 0 !important;
+    }
+
+    .gender-apex-chart ::ng-deep .apexcharts-tooltip-title {
+      background: transparent !important;
+      border-bottom: 1px solid rgba(107, 114, 128, 0.3) !important;
+      color: #fbbf24 !important;
+      font-weight: 600 !important;
+      padding: 8px 12px !important;
+      margin: 0 !important;
+    }
+
+    .gender-apex-chart ::ng-deep .apexcharts-tooltip-series-group {
+      padding: 8px 12px !important;
+      color: #ffffff !important;
+    }
+
+    .gender-apex-chart ::ng-deep .apexcharts-tooltip-marker {
+      width: 12px !important;
+      height: 12px !important;
+      margin-right: 8px !important;
+    }
+
+    .gender-apex-chart ::ng-deep .apexcharts-tooltip-y-group {
+      padding: 0 !important;
     }
 
     .gender-center-icons {
@@ -2134,13 +2129,13 @@ import { EmployeesStore } from '../stores/employees.store';
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 1.25rem;
+      gap: 4.00rem;
       z-index: 10;
       pointer-events: none;
     }
 
     .gender-center-icons .pi {
-      font-size: 2.64rem;
+      font-size: 3.64rem;
       line-height: 1;
       filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.6));
     }
@@ -2151,24 +2146,6 @@ import { EmployeesStore } from '../stores/employees.store';
 
     .female-center-icon {
       color: #f472b6;
-    }
-
-    .gender-marker {
-      transition: all 1.5s cubic-bezier(0.4, 0, 0.2, 1);
-      pointer-events: none;
-      filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.5));
-    }
-
-    .male-marker {
-      filter: drop-shadow(0 0 3px rgba(59, 130, 246, 0.8));
-    }
-
-    .female-marker {
-      filter: drop-shadow(0 0 3px rgba(244, 114, 182, 0.8));
-    }
-
-    .transition-marker {
-      filter: drop-shadow(0 0 3px rgba(168, 85, 247, 0.9));
     }
 
     .gender-chart-center {
@@ -2217,8 +2194,8 @@ import { EmployeesStore } from '../stores/employees.store';
       gap: 3rem;
       width: 100%;
       justify-content: center;
-      align-items: flex-start;
-      flex-wrap: wrap;
+      align-items: center;
+      flex-wrap: nowrap;
     }
 
     @media (max-width: 768px) {
@@ -2227,59 +2204,33 @@ import { EmployeesStore } from '../stores/employees.store';
       }
     }
 
-    .legend-item {
+    .gender-legend .legend-item {
       display: flex;
-      flex-direction: column;
+      flex-direction: row;
       align-items: center;
-      gap: 0.35rem;
-      min-width: 120px;
+      gap: 0.5rem;
+      min-width: auto;
     }
 
-    .legend-dot {
-      width: 1rem;
-      height: 1rem;
-      border-radius: 50%;
-      flex-shrink: 0;
-    }
-
-    .male-dot {
-      background: #3b82f6;
-    }
-
-    .female-dot {
-      background: #f472b6;
-    }
-
-    .legend-text {
-      display: flex;
-      flex-direction: column;
-      gap: 0.125rem;
-      align-items: center;
-      text-align: center;
-    }
-
-    .legend-label {
+    .gender-legend .legend-label {
       font-size: 0.875rem;
       font-weight: 600;
       color: rgba(255, 255, 255, 0.7);
       text-transform: uppercase;
       letter-spacing: 0.05em;
-      display: flex;
-      align-items: center;
-      gap: 0.25rem;
     }
 
-    .legend-value {
-      font-size: 0.9375rem;
-      font-weight: 600;
-      color: #ffffff;
+    .gender-legend .legend-value {
+      font-size: 1rem;
+      font-weight: 700;
+      line-height: 1;
     }
 
-    .legend-item:first-child .legend-value {
+    .gender-legend .legend-item:first-child .legend-value {
       color: #3b82f6;
     }
 
-    .legend-item:last-child .legend-value {
+    .gender-legend .legend-item:last-child .legend-value {
       color: #f472b6;
     }
 
@@ -4170,13 +4121,27 @@ export class HomeComponent {
   });
 
   /**
-   * REWRITTEN: Single arc with gradient for gender distribution
-   * Creates one perfect semicircle with smooth blue→pink gradient
+   * Gender distribution chart data
+   * Creates two connected segments in a semicircle (top half)
+   * Male arc starts from left (180°) and goes to its percentage
+   * Female arc continues from where male ends to right (0°)
+   * 50% = top center (90°)
    */
   public genderChartData = computed(() => {
     const maleCount = this.state.countByGender()['M'] || 0;
     const femaleCount = this.state.countByGender()['F'] || 0;
     const total = maleCount + femaleCount;
+
+    // SVG constants
+    const centerX = 100;
+    const centerY = 100;
+    const radius = 85;
+    // Start point: left side (180°)
+    const startX = 15;
+    const startY = 100;
+    // End point: right side (0°)
+    const endX = 185;
+    const endY = 100;
 
     // Default values when no data
     if (total === 0) {
@@ -4185,14 +4150,8 @@ export class HomeComponent {
         femaleCount: 0,
         malePercentage: 0,
         femalePercentage: 0,
-        arcPath: 'M 15 100 A 85 85 0 0 1 185 100',
-        gradientOffset: 50,
-        maleMarkerX: 15,
-        maleMarkerY: 100,
-        femaleMarkerX: 185,
-        femaleMarkerY: 100,
-        transitionMarkerX: 100,
-        transitionMarkerY: 15,
+        maleArcPath: '',
+        femaleArcPath: '',
       };
     }
 
@@ -4200,47 +4159,130 @@ export class HomeComponent {
     const malePercentage = Math.round((maleCount / total) * 100);
     const femalePercentage = 100 - malePercentage; // Ensure they sum to 100%
 
-    // SVG constants
-    const centerX = 100;
-    const centerY = 100;
-    const radius = 85;
+    // Calculate angles in radians for the top semicircle
+    // Start angle: 180° (left side)
+    // End angle: 0° (right side)
+    // Top center: 90°
+    // We go clockwise from 180° to 0° (top half)
 
-    // Complete semicircle path (180° to 0° going UPWARD)
-    const arcPath = 'M 15 100 A 85 85 0 0 1 185 100';
+    // Calculate where male arc ends (transition point)
+    // malePercentage of 45% means: start at 180°, go clockwise 45% of 180° = 81°
+    // So end angle = 180° - (45/100 * 180°) = 180° - 81° = 99°
+    const maleEndAngle = Math.PI - (malePercentage / 100) * Math.PI;
 
-    // Calculate gradient offset (where blue ends and pink begins)
-    // For a linear gradient from left to right on the semicircle
-    const gradientOffset = malePercentage;
+    // Calculate coordinates for the transition point (where male ends and female begins)
+    const transitionX = centerX + radius * Math.cos(maleEndAngle);
+    const transitionY = centerY - radius * Math.sin(maleEndAngle); // Negative because Y increases downward
 
-    // Calculate marker positions
-    // Male marker: always at start (180° / left)
-    const maleMarkerX = centerX + radius * Math.cos(Math.PI);
-    const maleMarkerY = centerY + radius * Math.sin(Math.PI);
+    // Build arc paths
+    // Male arc: from left (180°) to transition point
+    let maleArcPath = '';
+    if (malePercentage > 0) {
+      const largeArcFlag = malePercentage > 50 ? 1 : 0;
+      maleArcPath = `M ${startX} ${startY} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${transitionX} ${transitionY}`;
+    }
 
-    // Female marker: always at end (0° / right)
-    const femaleMarkerX = centerX + radius * Math.cos(0);
-    const femaleMarkerY = centerY + radius * Math.sin(0);
-
-    // Transition marker: where the two colors meet
-    const transitionAngle = Math.PI - (malePercentage / 100) * Math.PI;
-    const transitionMarkerX = centerX + radius * Math.cos(transitionAngle);
-    const transitionMarkerY = centerY + radius * Math.sin(transitionAngle);
+    // Female arc: from transition point to right (0°)
+    let femaleArcPath = '';
+    if (femalePercentage > 0) {
+      const largeArcFlag = femalePercentage > 50 ? 1 : 0;
+      femaleArcPath = `M ${transitionX} ${transitionY} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${endX} ${endY}`;
+    }
 
     return {
       maleCount,
       femaleCount,
       malePercentage,
       femalePercentage,
-      arcPath,
-      gradientOffset,
-      maleMarkerX,
-      maleMarkerY,
-      femaleMarkerX,
-      femaleMarkerY,
-      transitionMarkerX,
-      transitionMarkerY,
+      maleArcPath,
+      femaleArcPath,
     };
   });
+
+  /**
+   * ApexCharts series data for gender distribution
+   * Order: Male (blue) first, then Female (pink)
+   * With startAngle: 0, endAngle: 180, this will show blue on left, pink on right
+   */
+  public genderChartSeries = computed(() => {
+    const data = this.genderChartData();
+    return [data.maleCount, data.femaleCount];
+  });
+
+  /**
+   * ApexCharts options for semicircular donut chart
+   * Rotated to start from left (180°) and go to right (0°) through top
+   * Male (blue) on left, Female (pink) on right
+   */
+  public genderChartOptions = {
+    chart: {
+      type: 'donut',
+      height: 300,
+      width: '100%',
+      offsetY: 40,
+      offsetX: 0,
+      background: 'transparent',
+      toolbar: {
+        show: false,
+      },
+      animations: {
+        enabled: true,
+        easing: 'easeinout',
+        speed: 800,
+      },
+      sparkline: {
+        enabled: false,
+      },
+    } as ApexChart,
+    labels: ['Masculino', 'Femenino'],
+    colors: ['#3b82f6', '#f472b6'],
+    plotOptions: {
+      pie: {
+        startAngle: -90,
+        endAngle: 90,
+        donut: {
+          size: '85%',
+          background: 'transparent',
+          labels: {
+            show: false,
+          },
+        },
+      },
+    } as ApexPlotOptions,
+    dataLabels: {
+      enabled: false,
+    } as ApexDataLabels,
+    legend: {
+      show: false,
+    } as ApexLegend,
+    tooltip: {
+      enabled: true,
+      theme: 'dark',
+      style: {
+        fontSize: '10px',
+        fontFamily: 'inherit',
+      },
+      backgroundColor: '#18181b',
+      titleColor: '#fbbf24',
+      bodyColor: '#ffffff',
+      borderColor: 'rgba(107, 114, 128, 0.3)',
+      y: {
+        formatter: (val: number, opts: any) => {
+          const data = this.genderChartData();
+          const total = data.maleCount + data.femaleCount;
+          const percentage = total > 0 ? Math.round((val / total) * 100) : 0;
+          return `${val} (${percentage}%)`;
+        },
+      },
+    },
+    stroke: {
+      show: true,
+      width: 0,
+    },
+    theme: {
+      mode: 'dark',
+    } as ApexTheme,
+  };
 
   /**
    * Single arc with gradient for hires/exits distribution

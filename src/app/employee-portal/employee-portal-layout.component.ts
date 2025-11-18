@@ -1,27 +1,38 @@
-import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet, NavigationEnd } from '@angular/router';
-import { filter, Subscription } from 'rxjs';
-import { AuthService } from '@auth0/auth0-angular';
-import { Button } from 'primeng/button';
-import { MenuModule } from 'primeng/menu';
-import { MenuItem } from 'primeng/api';
-import { AvatarModule } from 'primeng/avatar';
 import { AsyncPipe } from '@angular/common';
-import { ToastModule } from 'primeng/toast';
+import {
+  Component,
+  computed,
+  inject,
+  OnDestroy,
+  OnInit,
+  signal,
+} from '@angular/core';
+import {
+  NavigationEnd,
+  Router,
+  RouterLink,
+  RouterLinkActive,
+  RouterOutlet,
+} from '@angular/router';
+import { AuthService } from '@auth0/auth0-angular';
+import { ConfirmationService, MenuItem, MessageService } from 'primeng/api';
+import { AvatarModule } from 'primeng/avatar';
+import { Button } from 'primeng/button';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { MenuModule } from 'primeng/menu';
+import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
-import { DashboardStore } from '../stores/dashboard.store';
+import { filter, Subscription } from 'rxjs';
 import { AuthStore } from '../stores/auth.store';
-import { EmployeesStore } from '../stores/employees.store';
+import { BanksStore } from '../stores/banks.store';
 import { BranchesStore } from '../stores/branches.store';
 import { CompaniesStore } from '../stores/companies.store';
-import { PositionsStore } from '../stores/positions.store';
+import { DashboardStore } from '../stores/dashboard.store';
 import { DepartmentsStore } from '../stores/departments.store';
-import { SchedulesStore } from '../stores/schedules.store';
-import { BanksStore } from '../stores/banks.store';
+import { EmployeesStore } from '../stores/employees.store';
 import { PayrollsStore } from '../stores/payrolls.store';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { MessageService, ConfirmationService } from 'primeng/api';
+import { PositionsStore } from '../stores/positions.store';
+import { SchedulesStore } from '../stores/schedules.store';
 
 type NavSection = {
   id: string;
@@ -77,98 +88,128 @@ type NavSection = {
         <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div class="flex h-16 items-center justify-between">
             <div class="flex items-center">
-              <a routerLink="/employee-portal" class="shrink-0 flex items-center gap-2 group">
-                <img src="images/blackdog.png" class="h-9 transition-transform duration-300 group-hover:scale-105" alt="Peopletrak" />
+              <a
+                routerLink="/employee-portal"
+                class="shrink-0 flex items-center gap-2 group"
+              >
+                <img
+                  src="images/blackdog.png"
+                  class="h-9 transition-transform duration-300 group-hover:scale-105"
+                  alt="Peopletrak"
+                />
               </a>
               <div class="hidden md:block">
                 <div class="ml-10 flex items-center space-x-3">
-                  @for (nav of navSections; track nav.id) {
-                    @if (!nav.children) {
+                  @for (nav of navSections; track nav.id) { @if (!nav.children)
+                  {
+                  <button
+                    type="button"
+                    (click)="navigateToSection(nav.section!)"
+                    [class.selected]="isActiveSection(nav.section!)"
+                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md min-h-[48px] leading-tight"
+                  >
+                    <i [class]="nav.icon + ' text-base'"></i>
+                    <span class="whitespace-nowrap">{{ nav.label }}</span>
+                  </button>
+                  } @else {
+                  <div
+                    class="relative"
+                    (mouseenter)="openDropdownWithDelay(nav.id)"
+                    (mouseleave)="closeDropdownWithDelay()"
+                  >
+                    <button
+                      type="button"
+                      class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md min-h-[48px] leading-tight"
+                    >
+                      <i [class]="nav.icon + ' text-base'"></i>
+                      <span class="whitespace-nowrap">{{ nav.label }}</span>
+                      <i class="pi pi-chevron-down text-xs"></i>
+                    </button>
+                    @if (openDropdown() === nav.id) {
+                    <div
+                      class="absolute left-0 top-full w-56 rounded-lg bg-neutral-800 border border-neutral-700 shadow-xl z-50 py-2 mt-0"
+                      style="margin-top: -1px;"
+                      (mouseenter)="openDropdownWithDelay(nav.id)"
+                      (mouseleave)="closeDropdownWithDelay()"
+                    >
+                      @for (child of nav.children; track child.id) {
                       <button
                         type="button"
-                        (click)="navigateToSection(nav.section!)"
-                        [class.selected]="isActiveSection(nav.section!)"
-                        class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md min-h-[48px] leading-tight"
+                        (click)="navigateToSection(child.section)"
+                        [class.selected]="isActiveSection(child.section)"
+                        class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-700/60 flex items-center gap-2 transition-colors"
                       >
-                        <i [class]="nav.icon + ' text-base'"></i>
-                        <span class="whitespace-nowrap">{{ nav.label }}</span>
+                        <i [class]="child.icon + ' text-sm'"></i>
+                        <span class="truncate">{{ child.label }}</span>
                       </button>
-                    } @else {
-                      <div
-                        class="relative"
-                        (mouseenter)="openDropdownWithDelay(nav.id)"
-                        (mouseleave)="closeDropdownWithDelay()"
-                      >
-                        <button
-                          type="button"
-                          class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md min-h-[48px] leading-tight"
-                        >
-                          <i [class]="nav.icon + ' text-base'"></i>
-                          <span class="whitespace-nowrap">{{ nav.label }}</span>
-                          <i class="pi pi-chevron-down text-xs"></i>
-                        </button>
-                        @if (openDropdown() === nav.id) {
-                          <div
-                            class="absolute left-0 mt-2 w-56 rounded-lg bg-neutral-800 border border-neutral-700 shadow-xl z-20 py-2"
-                            (mouseenter)="openDropdownWithDelay(nav.id)"
-                            (mouseleave)="closeDropdownWithDelay()"
-                          >
-                            @for (child of nav.children; track child.id) {
-                              <button
-                                type="button"
-                                (click)="navigateToSection(child.section)"
-                                [class.selected]="isActiveSection(child.section)"
-                                class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-700/60 flex items-center gap-2 transition-colors"
-                              >
-                                <i [class]="child.icon + ' text-sm'"></i>
-                                <span class="truncate">{{ child.label }}</span>
-                              </button>
-                            }
-                          </div>
-                        }
-                      </div>
+                      }
+                    </div>
                     }
-                  }
+                  </div>
+                  } }
                 </div>
               </div>
             </div>
-            <div class="hidden md:block">
+            <div class="flex items-center">
               @if(user) {
               <div class="ml-4 flex items-center md:ml-6 gap-3">
                 <button
                   type="button"
                   (click)="navigateToSection('complaints')"
-                  class="relative p-2 rounded-lg hover:bg-gray-700/50 transition-all duration-200 text-gray-300 hover:text-white"
+                  class="relative p-2.5 rounded-lg bg-gray-700/30 hover:bg-gray-700/60 transition-all duration-200 text-white border border-gray-600/50 hover:border-gray-500"
                   pTooltip="Buzón de Quejas"
+                  title="Buzón de Quejas"
                 >
                   <i class="pi pi-inbox text-xl"></i>
                   @if (unreadComplaintsCount() > 0) {
-                    <span class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white">
-                      {{ unreadComplaintsCount() > 99 ? '99+' : unreadComplaintsCount() }}
-                    </span>
+                  <span
+                    class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-gray-800"
+                  >
+                    {{
+                      unreadComplaintsCount() > 99
+                        ? '99+'
+                        : unreadComplaintsCount()
+                    }}
+                  </span>
                   }
                 </button>
-                <p-menu #menu [model]="items" popup />
-                <div
-                  class="flex items-center gap-3 cursor-pointer group px-3 py-2 rounded-lg hover:bg-gray-700/50 transition-all duration-200"
-                  (click)="menu.toggle($event)"
-                >
-                  <div class="relative flex-shrink-0">
-                    <div class="avatar-container">
-                      <p-avatar [image]="user?.picture" shape="circle" size="normal" />
+                <div class="hidden md:flex items-center gap-3">
+                  <p-menu #menu [model]="items" popup />
+                  <div
+                    class="flex items-center gap-3 cursor-pointer group px-3 py-2 rounded-lg hover:bg-gray-700/50 transition-all duration-200"
+                    (click)="menu.toggle($event)"
+                  >
+                    <div class="relative flex-shrink-0">
+                      <div class="avatar-container">
+                        <p-avatar
+                          [image]="user?.picture"
+                          shape="circle"
+                          size="normal"
+                        />
+                      </div>
+                      <div
+                        class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-800"
+                      ></div>
                     </div>
-                    <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-800"></div>
+                    <div class="flex flex-col min-w-0 flex-1">
+                      <div
+                        class="text-sm font-semibold text-white group-hover:text-gray-100 transition-colors truncate"
+                      >
+                        {{ store.currentEmployee()?.first_name }}
+                        {{ store.currentEmployee()?.father_name }}
+                      </div>
+                      <div
+                        class="text-xs text-gray-400 group-hover:text-gray-300 transition-colors truncate"
+                      >
+                        {{
+                          store.currentEmployee()?.position?.name || 'Sin cargo'
+                        }}
+                      </div>
+                    </div>
+                    <i
+                      class="pi pi-chevron-down text-gray-400 group-hover:text-gray-300 transition-colors text-xs flex-shrink-0"
+                    ></i>
                   </div>
-                  <div class="flex flex-col min-w-0 flex-1">
-                    <div class="text-sm font-semibold text-white group-hover:text-gray-100 transition-colors truncate">
-                      {{ store.currentEmployee()?.first_name }}
-                      {{ store.currentEmployee()?.father_name }}
-                    </div>
-                    <div class="text-xs text-gray-400 group-hover:text-gray-300 transition-colors truncate">
-                      {{ store.currentEmployee()?.position?.name || 'Sin cargo' }}
-                    </div>
-                  </div>
-                  <i class="pi pi-chevron-down text-gray-400 group-hover:text-gray-300 transition-colors text-xs flex-shrink-0"></i>
                 </div>
               </div>
               }
@@ -185,62 +226,90 @@ type NavSection = {
             </div>
           </div>
         </div>
-        <div class="md:hidden border-t border-neutral-700/50 bg-neutral-800/90 backdrop-blur-sm" [class.hidden]="isCollapsed()">
+        <div
+          class="md:hidden border-t border-neutral-700/50 bg-neutral-800/90 backdrop-blur-sm"
+          [class.hidden]="isCollapsed()"
+        >
           <div class="space-y-2 px-2 pt-2 pb-3 sm:px-3">
-            @for (nav of navSections; track nav.id) {
-              @if (!nav.children) {
+            @if(user) {
+            <button
+              type="button"
+              (click)="navigateToSection('complaints')"
+              class="relative w-full rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer text-left"
+            >
+              <i class="pi pi-inbox text-lg"></i>
+              <span>Buzón de Quejas</span>
+              @if (unreadComplaintsCount() > 0) {
+              <span
+                class="ml-auto w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white"
+              >
+                {{
+                  unreadComplaintsCount() > 99 ? '99+' : unreadComplaintsCount()
+                }}
+              </span>
+              }
+            </button>
+            } @for (nav of navSections; track nav.id) { @if (!nav.children) {
+            <button
+              type="button"
+              (click)="navigateToSection(nav.section!)"
+              [class.selected]="isActiveSection(nav.section!)"
+              class="w-full rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer text-left"
+            >
+              <i [class]="nav.icon + ' text-lg'"></i>
+              <span>{{ nav.label }}</span>
+            </button>
+            } @else {
+            <div
+              class="rounded-lg bg-neutral-900/40 border border-neutral-700/60"
+            >
+              <button
+                type="button"
+                (click)="toggleMobileCategory(nav.id)"
+                class="w-full px-4 py-3 text-base font-medium text-gray-300 flex items-center justify-between"
+              >
+                <span class="flex items-center gap-3">
+                  <i [class]="nav.icon + ' text-lg'"></i>
+                  {{ nav.label }}
+                </span>
+                <i
+                  class="pi"
+                  [class.pi-chevron-up]="isMobileCategoryOpen(nav.id)"
+                  [class.pi-chevron-down]="!isMobileCategoryOpen(nav.id)"
+                ></i>
+              </button>
+              @if (isMobileCategoryOpen(nav.id)) {
+              <div class="pb-2">
+                @for (child of nav.children; track child.id) {
                 <button
                   type="button"
-                  (click)="navigateToSection(nav.section!)"
-                  [class.selected]="isActiveSection(nav.section!)"
-                  class="w-full rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer text-left"
+                  (click)="navigateToSection(child.section)"
+                  [class.selected]="isActiveSection(child.section)"
+                  class="w-full px-6 py-2 text-left text-sm text-gray-300 hover:bg-gray-800 flex gap-2 items-center transition-colors"
                 >
-                  <i [class]="nav.icon + ' text-lg'"></i>
-                  <span>{{ nav.label }}</span>
+                  <i [class]="child.icon + ' text-sm'"></i>
+                  <span>{{ child.label }}</span>
                 </button>
-              } @else {
-                <div class="rounded-lg bg-neutral-900/40 border border-neutral-700/60">
-                  <button
-                    type="button"
-                    (click)="toggleMobileCategory(nav.id)"
-                    class="w-full px-4 py-3 text-base font-medium text-gray-300 flex items-center justify-between"
-                  >
-                    <span class="flex items-center gap-3">
-                      <i [class]="nav.icon + ' text-lg'"></i>
-                      {{ nav.label }}
-                    </span>
-                    <i class="pi"
-                      [class.pi-chevron-up]="isMobileCategoryOpen(nav.id)"
-                      [class.pi-chevron-down]="!isMobileCategoryOpen(nav.id)"
-                    ></i>
-                  </button>
-                  @if (isMobileCategoryOpen(nav.id)) {
-                    <div class="pb-2">
-                      @for (child of nav.children; track child.id) {
-                        <button
-                          type="button"
-                          (click)="navigateToSection(child.section)"
-                          [class.selected]="isActiveSection(child.section)"
-                          class="w-full px-6 py-2 text-left text-sm text-gray-300 hover:bg-gray-800 flex gap-2 items-center transition-colors"
-                        >
-                          <i [class]="child.icon + ' text-sm'"></i>
-                          <span>{{ child.label }}</span>
-                        </button>
-                      }
-                    </div>
-                  }
-                </div>
+                }
+              </div>
               }
-            }
+            </div>
+            } }
           </div>
           @if(user) {
           <div class="border-t border-gray-700/50 pt-4 pb-3 px-5">
             <div class="flex items-center gap-3">
               <div class="relative">
                 <div class="avatar-container">
-                  <p-avatar [image]="user.picture" shape="circle" size="normal" />
+                  <p-avatar
+                    [image]="user.picture"
+                    shape="circle"
+                    size="normal"
+                  />
                 </div>
-                <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-800"></div>
+                <div
+                  class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-800"
+                ></div>
               </div>
               <div class="flex-1">
                 <div class="text-base font-semibold text-white">
@@ -259,81 +328,83 @@ type NavSection = {
       <div class="flex-1 overflow-y-auto"><router-outlet /></div>
     </div>
   `,
-  styles: [`
-    .selected {
-      @apply bg-gradient-to-r from-gray-700/80 to-gray-600/80 text-white shadow-md transition-all duration-300 ease-in-out;
-      border-left: 3px solid #FBBF24;
-    }
-    
-    ::ng-deep .p-menu {
-      background: #1f2937 !important;
-      border: 1px solid rgba(251, 191, 36, 0.2) !important;
-      border-radius: 0.5rem !important;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
-      padding: 0.5rem !important;
-    }
-    
-    ::ng-deep .p-menu .p-menuitem-link {
-      padding: 0.75rem 1rem !important;
-      border-radius: 0.375rem !important;
-      transition: all 0.2s ease !important;
-    }
-    
-    ::ng-deep .p-menu .p-menuitem-link:hover {
-      background: rgba(251, 191, 36, 0.1) !important;
-    }
-    
-    ::ng-deep .p-menu .p-menuitem-link .p-menuitem-text {
-      color: #e5e7eb !important;
-    }
-    
-    ::ng-deep .p-menu .p-menuitem-link:hover .p-menuitem-text {
-      color: #ffffff !important;
-    }
-    
-    ::ng-deep .p-menu .p-menuitem-link .p-menuitem-icon {
-      color: #fbbf24 !important;
-    }
+  styles: [
+    `
+      .selected {
+        @apply bg-gradient-to-r from-gray-700/80 to-gray-600/80 text-white shadow-md transition-all duration-300 ease-in-out;
+        border-left: 3px solid #fbbf24;
+      }
 
-    /* Avatar Container Styles */
-    .avatar-container {
-      width: 2.5rem;
-      height: 2.5rem;
-      border-radius: 50%;
-      overflow: hidden;
-      border: 2px solid rgba(107, 114, 128, 0.6);
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+      ::ng-deep .p-menu {
+        background: #1f2937 !important;
+        border: 1px solid rgba(251, 191, 36, 0.2) !important;
+        border-radius: 0.5rem !important;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
+        padding: 0.5rem !important;
+      }
 
-    .avatar-container:hover {
-      border-color: rgba(156, 163, 175, 0.4);
-    }
+      ::ng-deep .p-menu .p-menuitem-link {
+        padding: 0.75rem 1rem !important;
+        border-radius: 0.375rem !important;
+        transition: all 0.2s ease !important;
+      }
 
-    ::ng-deep .avatar-container .p-avatar {
-      width: 100% !important;
-      height: 100% !important;
-    }
+      ::ng-deep .p-menu .p-menuitem-link:hover {
+        background: rgba(251, 191, 36, 0.1) !important;
+      }
 
-    ::ng-deep .avatar-container .p-avatar img {
-      width: 100% !important;
-      height: 100% !important;
-      object-fit: cover;
-      border-radius: 50%;
-    }
+      ::ng-deep .p-menu .p-menuitem-link .p-menuitem-text {
+        color: #e5e7eb !important;
+      }
 
-    ::ng-deep .avatar-container .p-avatar-circle {
-      border-radius: 50% !important;
-    }
-  `],
+      ::ng-deep .p-menu .p-menuitem-link:hover .p-menuitem-text {
+        color: #ffffff !important;
+      }
+
+      ::ng-deep .p-menu .p-menuitem-link .p-menuitem-icon {
+        color: #fbbf24 !important;
+      }
+
+      /* Avatar Container Styles */
+      .avatar-container {
+        width: 2.5rem;
+        height: 2.5rem;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 2px solid rgba(107, 114, 128, 0.6);
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .avatar-container:hover {
+        border-color: rgba(156, 163, 175, 0.4);
+      }
+
+      ::ng-deep .avatar-container .p-avatar {
+        width: 100% !important;
+        height: 100% !important;
+      }
+
+      ::ng-deep .avatar-container .p-avatar img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover;
+        border-radius: 50%;
+      }
+
+      ::ng-deep .avatar-container .p-avatar-circle {
+        border-radius: 50% !important;
+      }
+    `,
+  ],
 })
 export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
   public auth = inject(AuthService);
   public router = inject(Router);
   public store = inject(DashboardStore);
-  
+
   public isCollapsed = signal(true);
   public currentFragment = signal<string | null>(null);
   public openDropdown = signal<string | null>(null);
@@ -359,9 +430,24 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
       label: 'Mi Portal',
       icon: 'pi pi-user',
       children: [
-        { id: 'profile', label: 'Mi Perfil', icon: 'pi pi-id-card', section: 'profile' },
-        { id: 'timelogs', label: 'Mis Marcaciones', icon: 'pi pi-calendar-clock', section: 'timelogs' },
-        { id: 'lates', label: 'Mis Tardanzas', icon: 'pi pi-clock', section: 'lates' },
+        {
+          id: 'profile',
+          label: 'Mi Perfil',
+          icon: 'pi pi-id-card',
+          section: 'profile',
+        },
+        {
+          id: 'timelogs',
+          label: 'Mis Marcaciones',
+          icon: 'pi pi-calendar-clock',
+          section: 'timelogs',
+        },
+        {
+          id: 'lates',
+          label: 'Mis Tardanzas',
+          icon: 'pi pi-clock',
+          section: 'lates',
+        },
       ],
     },
     {
@@ -369,9 +455,24 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
       label: 'Gestiones',
       icon: 'pi pi-briefcase',
       children: [
-        { id: 'disabilities', label: 'Incapacidades', icon: 'pi pi-file-medical', section: 'disabilities' },
-        { id: 'documents', label: 'Solicitar Documentos', icon: 'pi pi-file-edit', section: 'documents' },
-        { id: 'complaints', label: 'Buzón de Quejas', icon: 'pi pi-comments', section: 'complaints' },
+        {
+          id: 'disabilities',
+          label: 'Incapacidades',
+          icon: 'pi pi-file-medical',
+          section: 'disabilities',
+        },
+        {
+          id: 'documents',
+          label: 'Solicitar Documentos',
+          icon: 'pi pi-file-edit',
+          section: 'documents',
+        },
+        {
+          id: 'complaints',
+          label: 'Buzón de Quejas',
+          icon: 'pi pi-comments',
+          section: 'complaints',
+        },
       ],
     },
   ];
@@ -387,10 +488,10 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
   ngOnInit() {
     // Inicializar con el fragmento actual
     this.updateFragment();
-    
+
     // Suscribirse a cambios de navegación
     this.routerSubscription = this.router.events
-      .pipe(filter(event => event instanceof NavigationEnd))
+      .pipe(filter((event) => event instanceof NavigationEnd))
       .subscribe(() => {
         this.updateFragment();
       });
@@ -444,6 +545,7 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
   openDropdownWithDelay(id: string) {
     if (this.dropdownTimeout) {
       clearTimeout(this.dropdownTimeout);
+      this.dropdownTimeout = null;
     }
     this.openDropdown.set(id);
   }
@@ -454,7 +556,7 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
     }
     this.dropdownTimeout = setTimeout(() => {
       this.openDropdown.set(null);
-    }, 200); // 200ms delay before closing
+      this.dropdownTimeout = null;
+    }, 500); // 500ms delay before closing to allow moving to dropdown
   }
 }
-
