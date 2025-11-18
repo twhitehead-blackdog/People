@@ -66,73 +66,73 @@ import { MessageService, ConfirmationService } from 'primeng/api';
                 <img src="images/blackdog.png" class="h-9 transition-transform duration-300 group-hover:scale-105" alt="Peopletrak" />
               </a>
               <div class="hidden md:block">
-                <div class="ml-10 flex items-baseline space-x-1">
+                <div class="ml-10 flex items-center space-x-1">
                   <a
                     (click)="navigateToSection('dashboard')"
                     [class.selected]="isActiveSection('dashboard')"
-                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
+                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer min-h-[48px] leading-tight"
                   >
                     <i class="pi pi-home text-base"></i>
-                    <span>Dashboard</span>
+                    <span class="whitespace-nowrap">Dashboard</span>
                   </a>
                   <a
                     routerLink="/employee-portal"
                     [fragment]="'profile'"
                     routerLinkActive="selected"
-                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md"
+                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md min-h-[48px] leading-tight"
                   >
                     <i class="pi pi-user text-base"></i>
-                    <span>Mi Perfil</span>
+                    <span class="whitespace-nowrap">Mi Perfil</span>
                   </a>
                   <a
                     routerLink="/employee-portal"
                     [fragment]="'timelogs'"
                     routerLinkActive="selected"
-                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md"
+                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md min-h-[48px] leading-tight"
                   >
                     <i class="pi pi-calendar-clock text-base"></i>
-                    <span class="hidden lg:inline">Mis Marcaciones</span>
-                    <span class="lg:hidden">Marcaciones</span>
+                    <span class="hidden lg:inline whitespace-nowrap">Mis Marcaciones</span>
+                    <span class="lg:hidden whitespace-nowrap">Marcaciones</span>
                   </a>
                   <a
                     routerLink="/employee-portal"
                     [fragment]="'lates'"
                     routerLinkActive="selected"
-                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md"
+                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md min-h-[48px] leading-tight"
                   >
                     <i class="pi pi-clock text-base"></i>
-                    <span class="hidden lg:inline">Mis Tardanzas</span>
-                    <span class="lg:hidden">Tardanzas</span>
+                    <span class="hidden lg:inline whitespace-nowrap">Mis Tardanzas</span>
+                    <span class="lg:hidden whitespace-nowrap">Tardanzas</span>
                   </a>
                   <a
                     routerLink="/employee-portal"
                     [fragment]="'disabilities'"
                     routerLinkActive="selected"
-                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md"
+                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md min-h-[48px] leading-tight"
                   >
                     <i class="pi pi-file-medical text-base"></i>
-                    <span class="hidden lg:inline">Incapacidades</span>
-                    <span class="lg:hidden">Incap.</span>
+                    <span class="hidden lg:inline whitespace-nowrap">Incapacidades</span>
+                    <span class="lg:hidden whitespace-nowrap">Incap.</span>
                   </a>
                   <a
                     routerLink="/employee-portal"
                     [fragment]="'documents'"
                     routerLinkActive="selected"
-                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md"
+                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md min-h-[48px] leading-tight"
                   >
                     <i class="pi pi-file-edit text-base"></i>
-                    <span class="hidden lg:inline">Solicitar Documentos</span>
-                    <span class="lg:hidden">Documentos</span>
+                    <span class="hidden lg:inline whitespace-nowrap">Solicitar Documentos</span>
+                    <span class="lg:hidden whitespace-nowrap">Documentos</span>
                   </a>
                   <a
                     routerLink="/employee-portal"
                     [fragment]="'complaints'"
                     routerLinkActive="selected"
-                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md"
+                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md min-h-[48px] leading-tight"
                   >
                     <i class="pi pi-comments text-base"></i>
-                    <span class="hidden lg:inline">Buzón de Quejas</span>
-                    <span class="lg:hidden">Quejas</span>
+                    <span class="hidden lg:inline whitespace-nowrap">Buzón de Quejas</span>
+                    <span class="lg:hidden whitespace-nowrap">Quejas</span>
                   </a>
                 </div>
               </div>
