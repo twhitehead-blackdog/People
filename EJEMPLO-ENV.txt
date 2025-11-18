@@ -1,0 +1,35 @@
+# ============================================
+# EJEMPLO de cómo debería verse tu archivo .env
+# (NO uses estos valores, son solo ejemplos del formato)
+# ============================================
+
+# Supabase - Obtén estos valores de: https://app.supabase.com > Tu Proyecto > Settings > API
+ENV_SUPABASE_URL=https://abcdefghijklmnop.supabase.co
+ENV_SUPABASE_API_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiY2RlZmdoaWprbG1ub3AiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTYz...
+ENV_SUPABASE_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiY2RlZmdoaWprbG1ub3AiLCJyb2xlIjoic2VydmljZV9yb2xlIiwiaWF0IjoxNjM...
+
+# Auth0 - Obtén estos valores de: https://manage.auth0.com > Applications > Tu App
+ENV_AUTH0_DOMAIN=dev-xxxxx.us.auth0.com
+ENV_AUTH0_CLIENT_ID=abc123xyz456def789ghi012jkl345
+ENV_AUTH0_AUDIENCE=https://peopletrak.api
+
+# Application
+ENV_APP_URL=http://localhost:4200
+
+# ============================================
+# INSTRUCCIONES:
+# ============================================
+# 1. Abre el archivo .env en tu editor
+# 2. Reemplaza CADA valor de ejemplo con tus valores reales
+# 3. Asegúrate de que NO haya espacios alrededor del =
+# 4. Guarda el archivo
+# 5. Reinicia la aplicación (detén con Ctrl+C y ejecuta npm start de nuevo)
+
+
+
+
+
+
+
+
+

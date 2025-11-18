@@ -1,0 +1,147 @@
+@layer tw-base, primeng, tw-components, tw-utilities, tw-variants;
+
+// Please take note of the order in which these are imported
+@import 'tailwindcss/base.css' layer(tw-base);
+@import 'primeicons/primeicons';
+@import 'tailwindcss/components.css' layer(tw-components);
+@import 'tailwindcss/utilities.css' layer(tw-utilities);
+@import 'tailwindcss/variants.css' layer(tw-variants);
+
+@layer tw-base {
+}
+
+@layer tw-components {
+  // tailwind component classes here
+}
+
+@layer tw-utilities {
+  // tailwind utitlity classes here
+}
+
+/* You can add global styles to this file, and also import other style files */
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+}
+
+td,
+th {
+  white-space: nowrap;
+}
+
+.input-container {
+  @apply flex flex-col gap-1.5 w-full justify-end;
+  label {
+    @apply text-xs text-slate-500;
+  }
+
+  .p-select,
+  .p-icon-field,
+  input,
+  .p-inputnumber,
+  .p-datepicker {
+    @apply w-full;
+  }
+}
+
+.dialog-actions {
+  @apply flex justify-end gap-2 items-center mt-2;
+}
+
+.p-fluid .p-inputtext {
+  width: unset;
+}
+
+.p-card .p-card-body {
+  @apply gap-2;
+}
+
+.p-card {
+  @apply shadow-none border border-gray-300 dark:border-gray-500;
+  .p-card-content {
+    @apply mt-4;
+  }
+}
+
+.p-select-overlay,
+.p-select-fluid {
+  @apply w-full;
+}
+
+/* Global Paginator Dropdown Styles */
+.p-paginator .p-paginator-dropdown {
+  background: #262626 !important;
+  border: 1px solid #404040 !important;
+  color: #e5e7eb !important;
+  border-radius: 0.375rem !important;
+  padding: 0.5rem 2rem 0.5rem 0.75rem !important;
+  min-width: 4rem !important;
+  cursor: pointer !important;
+}
+
+.p-paginator .p-paginator-dropdown:hover {
+  border-color: #fbbf24 !important;
+}
+
+.p-paginator .p-paginator-dropdown:focus {
+  border-color: #fbbf24 !important;
+  box-shadow: 0 0 0 0.2rem rgba(251, 191, 36, 0.2) !important;
+  outline: none !important;
+}
+
+.p-paginator .p-dropdown-panel {
+  background: #262626 !important;
+  border: 1px solid rgba(251, 191, 36, 0.3) !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
+  border-radius: 0.5rem !important;
+  z-index: 10000 !important;
+}
+
+.p-paginator .p-dropdown-panel .p-dropdown-items {
+  padding: 0.25rem !important;
+}
+
+.p-paginator .p-dropdown-panel .p-dropdown-items .p-dropdown-item {
+  color: #e5e7eb !important;
+  padding: 0.75rem 1rem !important;
+  border-radius: 0.375rem !important;
+  margin: 0.125rem 0 !important;
+  cursor: pointer !important;
+}
+
+.p-paginator .p-dropdown-panel .p-dropdown-items .p-dropdown-item:hover {
+  background: rgba(251, 191, 36, 0.1) !important;
+  color: #fbbf24 !important;
+}
+
+.p-paginator .p-dropdown-panel .p-dropdown-items .p-dropdown-item.p-highlight {
+  background: rgba(251, 191, 36, 0.2) !important;
+  color: #fbbf24 !important;
+}
+
+.p-paginator .p-dropdown-panel .p-dropdown-items .p-dropdown-item:focus {
+  outline: none !important;
+}
+
+/* Reduce table row height globally */
+.p-datatable-tbody > tr > td {
+  padding: 0.375rem 0.75rem !important;
+  font-size: 0.8125rem !important;
+  line-height: 1.25rem !important;
+}
+
+.p-datatable-thead > tr > th {
+  padding: 0.375rem 0.75rem !important;
+  font-size: 0.8125rem !important;
+  line-height: 1.25rem !important;
+}
+
+/* Reduce paginator padding globally */
+.p-paginator {
+  padding: 0.375rem 0.5rem !important;
+}

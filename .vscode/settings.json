@@ -1,0 +1,14 @@
+{
+  "javascript.experimental.updateImportsOnPaste": true,
+  "typescript.experimental.updateImportsOnPaste": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnSave": true,
+  "editor.codeActionsOnSave": {
+    "source.organizeImports": "always",
+    "source.removeUnusedImports": "always",
+    "source.fixAll.eslint": "explicit",
+    "source.sortImports": "always"
+  },
+  "cSpell.words": ["Peopletrak", "supabase"],
+  "search.useIgnoreFiles": false
+}
