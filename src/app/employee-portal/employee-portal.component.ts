@@ -1,15 +1,15 @@
 import { CurrencyPipe, DatePipe, NgClass } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
-import { httpResource } from '@angular/common/http';
+import { HttpClient, httpResource } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router, ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import {
   addDays,
   differenceInMinutes,
@@ -24,8 +24,8 @@ import { DatePicker } from 'primeng/datepicker';
 import { DialogModule } from 'primeng/dialog';
 import { FileUpload } from 'primeng/fileupload';
 import { InputText } from 'primeng/inputtext';
-import { Textarea } from 'primeng/textarea';
 import { TableModule } from 'primeng/table';
+import { Textarea } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { TimeLogEnum } from '../models';
@@ -54,36 +54,6 @@ import { EmployeesStore } from '../stores/employees.store';
   providers: [MessageService],
   template: `
     <div class="portal-content">
-      <!-- Mensaje de Aprobación Pendiente -->
-      @if (currentEmployee() && (currentEmployee()?.account_approved === false
-      || currentEmployee()?.account_approved === null ||
-      currentEmployee()?.account_approved === undefined)) {
-      <p-card class="approval-pending-card mb-4">
-        <div class="flex items-start gap-4">
-          <div class="flex-shrink-0">
-            <div
-              class="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center"
-            >
-              <i class="pi pi-clock text-amber-400 text-xl"></i>
-            </div>
-          </div>
-          <div class="flex-1">
-            <h3 class="text-lg font-semibold text-white m-0 mb-2">
-              Cuenta en Espera de Aprobación
-            </h3>
-            <p class="text-gray-300 m-0 mb-2">
-              Tu cuenta está pendiente de aprobación por parte del
-              administrador. Una vez aprobada, tendrás acceso completo al
-              portal.
-            </p>
-            <p class="text-sm text-gray-400 m-0">
-              Por favor, contacta a Recursos Humanos si tienes alguna pregunta.
-            </p>
-          </div>
-        </div>
-      </p-card>
-      }
-
       <!-- Dashboard Section -->
       @if (activeSection() === 'dashboard') {
       <div id="dashboard" class="section-content">
@@ -1285,21 +1255,6 @@ import { EmployeesStore } from '../stores/employees.store';
       }
     }
 
-    /* Approval Pending Card */
-    .approval-pending-card {
-      background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(251, 191, 36, 0.05) 100%);
-      border: 1px solid rgba(251, 191, 36, 0.3);
-      animation: pulse 2s ease-in-out infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% {
-        box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.4);
-      }
-      50% {
-        box-shadow: 0 0 0 8px rgba(251, 191, 36, 0);
-      }
-    }
 
     ::ng-deep .dashboard-welcome-card .p-card-body {
       background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(251, 191, 36, 0.05) 100%);
@@ -1479,6 +1434,8 @@ export class EmployeePortalComponent {
     return workEmail.endsWith(this.companyEmailDomain);
   });
 
+  private approvalToastShown = signal(false);
+
   constructor() {
     // Inicializar con el fragmento actual si existe
     const currentFragment = this.route.snapshot.fragment;
@@ -1501,6 +1458,27 @@ export class EmployeePortalComponent {
         }, 100);
       } else {
         this.activeSection.set('dashboard');
+      }
+    });
+
+    // Mostrar toast de aprobación pendiente
+    effect(() => {
+      const employee = this.currentEmployee();
+      if (
+        employee &&
+        !this.approvalToastShown() &&
+        (employee.account_approved === false ||
+          employee.account_approved === null ||
+          employee.account_approved === undefined)
+      ) {
+        this.approvalToastShown.set(true);
+        this.messageService.add({
+          severity: 'warn',
+          summary: 'Cuenta en Espera de Aprobación',
+          detail:
+            'Tu cuenta está pendiente de aprobación por parte del administrador. Una vez aprobada, tendrás acceso completo al portal. Por favor, contacta a Recursos Humanos si tienes alguna pregunta.',
+          life: 5000,
+        });
       }
     });
   }
@@ -1751,6 +1729,10 @@ export class EmployeePortalComponent {
     });
 
     return unreadSet;
+  });
+
+  public unreadComplaintsCount = computed(() => {
+    return this.unreadMessagesMap().size;
   });
 
   // Señales para conversación

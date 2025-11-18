@@ -9,6 +9,7 @@ import { AvatarModule } from 'primeng/avatar';
 import { AsyncPipe } from '@angular/common';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { TooltipModule } from 'primeng/tooltip';
 import { DashboardStore } from '../stores/dashboard.store';
 import { AuthStore } from '../stores/auth.store';
 import { EmployeesStore } from '../stores/employees.store';
@@ -62,6 +63,7 @@ type NavSection = {
     AvatarModule,
     AsyncPipe,
     Button,
+    TooltipModule,
   ],
   template: `
     <p-toast />
@@ -94,8 +96,8 @@ type NavSection = {
                     } @else {
                       <div
                         class="relative"
-                        (mouseenter)="openDropdown.set(nav.id)"
-                        (mouseleave)="openDropdown.set(null)"
+                        (mouseenter)="openDropdownWithDelay(nav.id)"
+                        (mouseleave)="closeDropdownWithDelay()"
                       >
                         <button
                           type="button"
@@ -108,6 +110,8 @@ type NavSection = {
                         @if (openDropdown() === nav.id) {
                           <div
                             class="absolute left-0 mt-2 w-56 rounded-lg bg-neutral-800 border border-neutral-700 shadow-xl z-20 py-2"
+                            (mouseenter)="openDropdownWithDelay(nav.id)"
+                            (mouseleave)="closeDropdownWithDelay()"
                           >
                             @for (child of nav.children; track child.id) {
                               <button
@@ -130,27 +134,42 @@ type NavSection = {
             </div>
             <div class="hidden md:block">
               @if(user) {
-              <p-menu #menu [model]="items" popup />
-              <div
-                class="ml-4 flex items-center md:ml-6 gap-3 cursor-pointer group px-3 py-2 rounded-lg hover:bg-gray-700/50 transition-all duration-200"
-                (click)="menu.toggle($event)"
-              >
-                <div class="relative flex-shrink-0">
-                  <div class="avatar-container">
-                    <p-avatar [image]="user?.picture" shape="circle" size="normal" />
+              <div class="ml-4 flex items-center md:ml-6 gap-3">
+                <button
+                  type="button"
+                  (click)="navigateToSection('complaints')"
+                  class="relative p-2 rounded-lg hover:bg-gray-700/50 transition-all duration-200 text-gray-300 hover:text-white"
+                  pTooltip="Buzón de Quejas"
+                >
+                  <i class="pi pi-inbox text-xl"></i>
+                  @if (unreadComplaintsCount() > 0) {
+                    <span class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white">
+                      {{ unreadComplaintsCount() > 99 ? '99+' : unreadComplaintsCount() }}
+                    </span>
+                  }
+                </button>
+                <p-menu #menu [model]="items" popup />
+                <div
+                  class="flex items-center gap-3 cursor-pointer group px-3 py-2 rounded-lg hover:bg-gray-700/50 transition-all duration-200"
+                  (click)="menu.toggle($event)"
+                >
+                  <div class="relative flex-shrink-0">
+                    <div class="avatar-container">
+                      <p-avatar [image]="user?.picture" shape="circle" size="normal" />
+                    </div>
+                    <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-800"></div>
                   </div>
-                  <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-800"></div>
+                  <div class="flex flex-col min-w-0 flex-1">
+                    <div class="text-sm font-semibold text-white group-hover:text-gray-100 transition-colors truncate">
+                      {{ store.currentEmployee()?.first_name }}
+                      {{ store.currentEmployee()?.father_name }}
+                    </div>
+                    <div class="text-xs text-gray-400 group-hover:text-gray-300 transition-colors truncate">
+                      {{ store.currentEmployee()?.position?.name || 'Sin cargo' }}
+                    </div>
+                  </div>
+                  <i class="pi pi-chevron-down text-gray-400 group-hover:text-gray-300 transition-colors text-xs flex-shrink-0"></i>
                 </div>
-                <div class="flex flex-col min-w-0 flex-1">
-                  <div class="text-sm font-semibold text-white group-hover:text-gray-100 transition-colors truncate">
-                    {{ store.currentEmployee()?.first_name }}
-                    {{ store.currentEmployee()?.father_name }}
-                  </div>
-                  <div class="text-xs text-gray-400 group-hover:text-gray-300 transition-colors truncate">
-                    {{ store.currentEmployee()?.position?.name || 'Sin cargo' }}
-                  </div>
-                </div>
-                <i class="pi pi-chevron-down text-gray-400 group-hover:text-gray-300 transition-colors text-xs flex-shrink-0"></i>
               </div>
               }
             </div>
@@ -320,6 +339,13 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
   public openDropdown = signal<string | null>(null);
   public mobileDropdowns = signal<Record<string, boolean>>({});
   private routerSubscription?: Subscription;
+  private dropdownTimeout: any = null;
+
+  public unreadComplaintsCount = computed(() => {
+    // This will be populated from the employee portal component
+    // For now, return 0 as placeholder
+    return 0;
+  });
 
   public navSections: NavSection[] = [
     {
@@ -413,6 +439,22 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
 
   isMobileCategoryOpen(id: string): boolean {
     return !!this.mobileDropdowns()[id];
+  }
+
+  openDropdownWithDelay(id: string) {
+    if (this.dropdownTimeout) {
+      clearTimeout(this.dropdownTimeout);
+    }
+    this.openDropdown.set(id);
+  }
+
+  closeDropdownWithDelay() {
+    if (this.dropdownTimeout) {
+      clearTimeout(this.dropdownTimeout);
+    }
+    this.dropdownTimeout = setTimeout(() => {
+      this.openDropdown.set(null);
+    }, 200); // 200ms delay before closing
   }
 }
 
