@@ -74,7 +74,7 @@ import { PayrollEmployeesFormComponent } from './payroll-employees-form.componen
             <input
               pInputText
               type="text"
-              (input)="dt2.filterGlobal($event.target.value, 'contains')"
+              (input)="onFilterInput($event, dt2)"
               placeholder="Buscar por nombre"
             />
           </p-iconfield>
@@ -129,6 +129,19 @@ import { PayrollEmployeesFormComponent } from './payroll-employees-form.componen
 export class PayrollEmployeesComponent {
   public payrollId = input.required<string>();
   public employeesStore = inject(EmployeesStore);
+
+  // Validar y sanitizar input de filtros
+  public onFilterInput(event: Event, table: any): void {
+    const input = event.target as HTMLInputElement;
+    if (!input) return;
+    
+    // Sanitizar input: remover caracteres peligrosos y limitar longitud
+    let value = input.value || '';
+    // Remover caracteres de control y limitar a 200 caracteres
+    value = value.replace(/[\x00-\x1F\x7F]/g, '').substring(0, 200);
+    
+    table.filterGlobal(value, 'contains');
+  }
   public employees = httpResource<PayrollEmployee[]>(() => ({
     url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_payrolls`,
     method: 'GET',

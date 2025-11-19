@@ -60,7 +60,7 @@ import { PayrollPaymentsFormComponent } from './payroll-payments-form.component'
             <input
               pInputText
               type="text"
-              (input)="dt1.filterGlobal($event.target.value, 'contains')"
+              (input)="onFilterInput($event, dt1)"
               placeholder="Buscar"
             />
           </p-iconfield>
@@ -113,6 +113,19 @@ import { PayrollPaymentsFormComponent } from './payroll-payments-form.component'
 export class PayrollPaymentsComponent {
   public payrollId = input.required<string>();
   public dialogService = inject(DialogService);
+
+  // Validar y sanitizar input de filtros
+  public onFilterInput(event: Event, table: any): void {
+    const input = event.target as HTMLInputElement;
+    if (!input) return;
+    
+    // Sanitizar input: remover caracteres peligrosos y limitar longitud
+    let value = input.value || '';
+    // Remover caracteres de control y limitar a 200 caracteres
+    value = value.replace(/[\x00-\x1F\x7F]/g, '').substring(0, 200);
+    
+    table.filterGlobal(value, 'contains');
+  }
 
   public payments = httpResource<PayrollPayment[]>(() => ({
     url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/payroll_payments`,

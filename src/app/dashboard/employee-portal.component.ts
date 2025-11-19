@@ -1,13 +1,14 @@
 import { CurrencyPipe, DatePipe, NgClass } from '@angular/common';
 import { HttpClient, httpResource } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
 import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   inject,
   signal,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import {
   addDays,
@@ -28,6 +29,7 @@ import { TabsModule } from 'primeng/tabs';
 import { Textarea } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
+import { firstValueFrom } from 'rxjs';
 import { TimeLogEnum } from '../models';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
@@ -2042,9 +2044,10 @@ export class EmployeePortalComponent {
       this.editMode.set(false);
     } catch (error: any) {
       console.error('Error updating personal data:', error);
-      const errorMessage = error?.error?.message || 
-                          error?.message || 
-                          'No se pudieron actualizar los datos. Por favor intenta de nuevo.';
+      const errorMessage =
+        error?.error?.message ||
+        error?.message ||
+        'No se pudieron actualizar los datos. Por favor intenta de nuevo.';
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
@@ -2070,9 +2073,11 @@ export class EmployeePortalComponent {
       return;
     }
 
-    // Validar que las fechas sean válidas
+    // Normalizar fechas para evitar problemas de timezone
     const startDate = new Date(this.disabilityStartDate()!);
+    startDate.setHours(0, 0, 0, 0);
     const endDate = new Date(this.disabilityEndDate()!);
+    endDate.setHours(23, 59, 59, 999);
 
     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
       this.messageService.add({
@@ -2112,7 +2117,7 @@ export class EmployeePortalComponent {
     // Validar que el rango de fechas no sea mayor a 1 año
     const oneYearFromStart = new Date(startDate);
     oneYearFromStart.setFullYear(oneYearFromStart.getFullYear() + 1);
-    
+
     if (endDate > oneYearFromStart) {
       this.messageService.add({
         severity: 'error',
@@ -2197,6 +2202,7 @@ export class EmployeePortalComponent {
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_disabilities`,
           disabilityData
         )
+        .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
           next: () => {
             this.messageService.add({
@@ -2216,10 +2222,11 @@ export class EmployeePortalComponent {
           },
           error: (error) => {
             console.error('Error uploading disability:', error);
-            const errorMessage = error?.error?.message || 
-                                error?.error?.error || 
-                                error?.message ||
-                                'No se pudo subir la incapacidad. Por favor intenta de nuevo.';
+            const errorMessage =
+              error?.error?.message ||
+              error?.error?.error ||
+              error?.message ||
+              'No se pudo subir la incapacidad. Por favor intenta de nuevo.';
             this.messageService.add({
               severity: 'error',
               summary: 'Error al Subir Incapacidad',
@@ -2229,10 +2236,11 @@ export class EmployeePortalComponent {
           },
         });
     } catch (error: any) {
-      const errorMessage = error?.error?.message || 
-                          error?.error?.error || 
-                          error?.message ||
-                          'No se pudo subir la incapacidad. Por favor intenta de nuevo.';
+      const errorMessage =
+        error?.error?.message ||
+        error?.error?.error ||
+        error?.message ||
+        'No se pudo subir la incapacidad. Por favor intenta de nuevo.';
       this.messageService.add({
         severity: 'error',
         summary: 'Error al Subir Incapacidad',
@@ -2271,11 +2279,12 @@ export class EmployeePortalComponent {
       status: 'pending',
     };
 
-    this.http
+      this.http
       .post(
         `${process.env['ENV_SUPABASE_URL']}/rest/v1/document_requests`,
         requestData
       )
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.messageService.add({
@@ -2340,6 +2349,7 @@ export class EmployeePortalComponent {
           },
         }
       )
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: async (response: any) => {
           // La respuesta puede ser un array o un objeto único

@@ -57,7 +57,7 @@ import { PositionsFormComponent } from './positions-form.component';
               <input
                 pInputText
                 type="text"
-                (input)="dt.filterGlobal($event.target?.value, 'contains')"
+                (input)="onFilterInput($event, dt)"
                 placeholder="Buscar"
               />
             </p-iconfield>
@@ -153,6 +153,19 @@ export class PositionsComponent implements OnInit {
   private dialog = inject(DialogService);
   private ref = inject(DynamicDialogRef);
   public positions = computed(() => [...this.store.positions.entities()]);
+
+  // Validar y sanitizar input de filtros
+  public onFilterInput(event: Event, table: any): void {
+    const input = event.target as HTMLInputElement;
+    if (!input) return;
+    
+    // Sanitizar input: remover caracteres peligrosos y limitar longitud
+    let value = input.value || '';
+    // Remover caracteres de control y limitar a 200 caracteres
+    value = value.replace(/[\x00-\x1F\x7F]/g, '').substring(0, 200);
+    
+    table.filterGlobal(value, 'contains');
+  }
 
   ngOnInit() {
     this.store.positions.fetchItems();
