@@ -2204,17 +2204,21 @@ export class EmployeePortalComponent {
         const filePath = `disabilities/${fileName}`;
 
         // Upload to Supabase Storage using REST API
-        // Nota: El interceptor ya agrega apikey y Authorization, pero necesitamos asegurar que no agregue Content-Type
+        // IMPORTANTE: Para subir archivos necesitamos usar Service Role Key o configurar políticas que permitan anon
+        // El interceptor NO debe agregar Content-Type para Storage API
         try {
+          // Usar Service Role Key si está disponible, sino usar API Key pública
+          const storageKey = process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'] || 
+                             process.env['ENV_SUPABASE_API_KEY'] || '';
+          
           const uploadResponse = await firstValueFrom(
             this.http.post(
               `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/disabilities/${fileName}`,
-              file, // Enviar el archivo directamente, no FormData
+              file, // Enviar el archivo directamente como binario
               {
                 headers: {
-                  // El interceptor ya agrega apikey y Authorization
-                  // No establecer Content-Type aquí, dejar que el navegador lo establezca
-                  // O establecer el Content-Type del archivo si es necesario
+                  'apikey': storageKey,
+                  'Authorization': `Bearer ${storageKey}`,
                   'Content-Type': file.type || 'application/octet-stream',
                   'x-upsert': 'true', // Permite sobrescribir si el archivo ya existe
                 },

@@ -114,6 +114,21 @@ Para verificar que todo funciona:
 
 ---
 
+## 🔑 Variables de Entorno Necesarias
+
+Para que la subida de archivos funcione correctamente, necesitas configurar:
+
+```env
+ENV_SUPABASE_URL=https://tu-proyecto.supabase.co
+ENV_SUPABASE_API_KEY=tu-api-key-publica
+ENV_SUPABASE_SERVICE_ROLE_KEY=tu-service-role-key (RECOMENDADO para subida de archivos)
+```
+
+**Nota importante**: 
+- La API Key pública puede funcionar si las políticas permiten `anon`
+- El Service Role Key tiene permisos completos y es más confiable para subir archivos
+- Puedes encontrar el Service Role Key en: Supabase Dashboard → Settings → API → service_role (secret)
+
 ## 🔒 Seguridad
 
 ### Configuración Actual (Pública)
