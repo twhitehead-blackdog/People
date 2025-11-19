@@ -1,5 +1,5 @@
 {
-  "name": "peopletrak",
+  "name": "people",
   "$schema": "node_modules/nx/schemas/project-schema.json",
   "includedScripts": [],
   "projectType": "application",
@@ -13,7 +13,7 @@
         "{options.outputPath}"
       ],
       "options": {
-        "outputPath": "dist/peopletrak",
+        "outputPath": "dist/people",
         "index": "./src/index.html",
         "browser": "./src/main.ts",
         "polyfills": [
@@ -74,10 +74,10 @@
       "executor": "@nx/angular:dev-server",
       "configurations": {
         "production": {
-          "buildTarget": "peopletrak:build:production"
+          "buildTarget": "people:build:production"
         },
         "development": {
-          "buildTarget": "peopletrak:build:development",
+          "buildTarget": "people:build:development",
           "proxyConfig": "proxy.conf.json"
         }
       },
@@ -87,7 +87,7 @@
     "extract-i18n": {
       "executor": "@nx/angular:extract-i18n",
       "options": {
-        "buildTarget": "peopletrak:build"
+        "buildTarget": "people:build"
       }
     },
     "lint": {

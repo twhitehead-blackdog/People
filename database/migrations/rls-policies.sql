@@ -1,5 +1,5 @@
 -- ============================================
--- Row Level Security Policies para Peopletrak
+-- Row Level Security Policies para People
 -- ============================================
 -- Políticas de seguridad más específicas basadas en roles
 -- Ejecutar DESPUÉS de schema.sql

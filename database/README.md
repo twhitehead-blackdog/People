@@ -1,13 +1,57 @@
-# Base de Datos Peopletrak - Supabase
+# Base de Datos People - Supabase
 
-Este directorio contiene los scripts SQL para crear y configurar la base de datos de Peopletrak en Supabase.
+## 📋 Guía Rápida
 
-## 📋 Requisitos Previos
+### Para una instalación nueva (base de datos vacía):
 
-1. **Cuenta de Supabase**: Necesitas tener una cuenta en [Supabase](https://supabase.com)
-2. **Proyecto creado**: Debes haber creado un proyecto en Supabase
+**Ejecuta SOLO este archivo:**
+```
+01-setup.sql
+```
 
-## 🚀 Pasos para Crear la Base de Datos
+Este archivo incluye TODO lo necesario:
+- ✅ Todas las tablas principales
+- ✅ Tablas adicionales (datos personales, portal, quejas)
+- ✅ Índices y triggers
+- ✅ RLS básico
+- ✅ Configuraciones iniciales
+
+### ⚠️ ¿Es seguro ejecutarlo en una base de datos existente?
+
+**SÍ, es seguro.** El script usa:
+- `CREATE TABLE IF NOT EXISTS` - Solo crea tablas que no existen
+- `CREATE INDEX IF NOT EXISTS` - Solo crea índices que no existen
+- `CREATE OR REPLACE FUNCTION` - Actualiza funciones sin perder datos
+- `CREATE OR REPLACE VIEW` - Actualiza vistas sin perder datos
+- `DROP POLICY IF EXISTS` - Elimina políticas antes de recrearlas (evita errores)
+- `INSERT ... ON CONFLICT DO NOTHING` - No duplica datos existentes
+
+**No elimina ni modifica datos existentes**, solo crea lo que falta y actualiza funciones/vistas/políticas.
+
+### Para actualizar una base de datos existente:
+
+Si ya tienes una base de datos y necesitas aplicar cambios específicos, revisa los archivos en `migrations/` según lo que necesites.
+
+---
+
+## 📁 Estructura de Archivos
+
+### Archivos Principales (USAR ESTOS)
+
+- **`01-setup.sql`** ⭐ **USAR ESTE** - Setup completo de la base de datos
+- **`02-migrations.sql`** - Migraciones adicionales (solo si ya tienes datos)
+
+### Archivos de Referencia (NO USAR DIRECTAMENTE)
+
+Los siguientes archivos están en `migrations/` solo para referencia histórica:
+- `schema.sql` - Versión antigua del schema
+- `seed.sql` - Datos de ejemplo (solo desarrollo)
+- `rls-policies.sql` - Políticas RLS avanzadas (opcional)
+- Otros archivos de migración individuales
+
+---
+
+## 🚀 Instalación Paso a Paso
 
 ### 1. Crear el Proyecto en Supabase
 
@@ -16,38 +60,15 @@ Este directorio contiene los scripts SQL para crear y configurar la base de dato
 3. Crea un nuevo proyecto
 4. Anota la URL del proyecto y la API Key
 
-### 2. Ejecutar los Scripts SQL
-
-Ejecuta los scripts en el siguiente orden:
-
-#### a) Crear el Esquema (schema.sql)
+### 2. Ejecutar el Setup
 
 1. En el dashboard de Supabase, ve a **SQL Editor**
 2. Haz clic en **New Query**
-3. Copia y pega el contenido completo del archivo `schema.sql`
-4. Haz clic en **Run** o presiona `Ctrl+Enter` (Windows) / `Cmd+Enter` (Mac)
+3. Abre el archivo `01-setup.sql`
+4. Copia y pega TODO el contenido
+5. Haz clic en **Run** o presiona `Ctrl+Enter` (Windows) / `Cmd+Enter` (Mac)
 
-Este script crea todas las tablas, índices y configuraciones básicas.
-
-#### b) (Opcional) Datos Iniciales (seed.sql)
-
-Si quieres datos de ejemplo para desarrollo:
-
-1. Crea una nueva query en el SQL Editor
-2. Copia y pega el contenido de `seed.sql`
-3. Ejecuta el script
-
-**⚠️ Solo para desarrollo/testing, no ejecutar en producción.**
-
-#### c) (Recomendado) Políticas de Seguridad (rls-policies.sql)
-
-Para configurar políticas de seguridad más específicas:
-
-1. Crea una nueva query en el SQL Editor
-2. Copia y pega el contenido de `rls-policies.sql`
-3. Ejecuta el script
-
-Este script reemplaza las políticas básicas con políticas más granulares basadas en roles.
+**¡Listo!** Tu base de datos está configurada.
 
 ### 3. Configurar Variables de Entorno
 
@@ -59,27 +80,7 @@ ENV_SUPABASE_API_KEY=tu-api-key-publica
 ENV_SUPABASE_TOKEN=tu-service-role-key (opcional, para operaciones administrativas)
 ```
 
-### 4. Configurar Autenticación con Auth0
-
-La aplicación usa Auth0 para autenticación. Necesitas:
-
-1. Crear una cuenta en [Auth0](https://auth0.com)
-2. Crear una aplicación
-3. Configurar las variables de entorno:
-
-```env
-ENV_AUTH0_DOMAIN=tu-dominio.auth0.com
-ENV_AUTH0_CLIENT_ID=tu-client-id
-ENV_AUTH0_AUDIENCE=tu-api-audience
-ENV_APP_URL=http://localhost:4200
-```
-
-## 📁 Archivos en este Directorio
-
-- **schema.sql** - Script principal que crea todas las tablas, índices y configuraciones básicas
-- **seed.sql** - Datos iniciales para desarrollo/testing (opcional)
-- **rls-policies.sql** - Políticas de seguridad avanzadas basadas en roles (recomendado)
-- **README.md** - Esta documentación
+---
 
 ## 📊 Estructura de la Base de Datos
 
@@ -89,6 +90,7 @@ ENV_APP_URL=http://localhost:4200
 - **branches** - Sucursales
 - **departments** - Departamentos
 - **positions** - Posiciones/cargos
+- **organization_chart** - Organigrama (permite múltiples padres)
 - **employees** - Empleados
 - **schedules** - Horarios de trabajo
 - **employee_schedules** - Asignación de horarios
@@ -98,37 +100,58 @@ ENV_APP_URL=http://localhost:4200
 - **payroll_payments** - Pagos de nómina
 - **payroll_debts** - Deudas de empleados
 
+### Tablas Adicionales
+
+- **emergency_contacts** - Contactos de emergencia
+- **employee_documents** - Documentos del empleado
+- **employee_notes** - Notas sobre empleados
+- **employee_skills** - Habilidades
+- **employee_languages** - Idiomas
+- **employee_disabilities** - Incapacidades
+- **document_requests** - Solicitudes de documentos
+- **complaints** - Buzón de quejas
+- **complaint_messages** - Mensajes del buzón
+- **settings** - Configuraciones del sistema
+
+---
+
 ## 🔒 Seguridad (RLS)
 
-El script habilita Row Level Security (RLS) en todas las tablas. Las políticas básicas permiten acceso a usuarios autenticados.
+El script `01-setup.sql` habilita Row Level Security (RLS) en todas las tablas con políticas básicas que permiten acceso a usuarios autenticados.
 
 **⚠️ IMPORTANTE**: En producción, debes crear políticas más específicas basadas en roles de usuario y permisos.
 
-### Ejemplo de Política Más Específica
+Para políticas más avanzadas, revisa `migrations/rls-policies.sql` (opcional).
+
+---
+
+## 🐛 Troubleshooting
+
+### Error: "extension uuid-ossp does not exist"
+
+El script `01-setup.sql` ya incluye la creación de esta extensión. Si aún así obtienes el error, ejecuta manualmente:
 
 ```sql
--- Solo permitir que los empleados vean sus propios registros
-CREATE POLICY "Employees can view own timelogs" ON timelogs
-    FOR SELECT USING (
-        auth.uid()::text = (
-            SELECT work_email FROM employees WHERE id = timelogs.employee_id
-        )
-    );
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 ```
 
-## 🔧 Mantenimiento
+### Error de permisos en RLS
 
-### Backup
+Si tienes problemas con las políticas RLS, puedes temporalmente deshabilitarlas (solo desarrollo):
 
-Supabase realiza backups automáticos, pero puedes crear backups manuales desde el dashboard.
+```sql
+ALTER TABLE nombre_tabla DISABLE ROW LEVEL SECURITY;
+```
 
-### Migraciones
+**⚠️ Solo para desarrollo, nunca en producción sin políticas adecuadas.**
 
-Para cambios futuros en el esquema:
+### Error: "relation already exists"
 
-1. Crea un nuevo archivo SQL con los cambios
-2. Ejecuta el script en el SQL Editor
-3. Documenta los cambios
+Si obtienes este error, significa que algunas tablas ya existen. Puedes:
+1. Eliminar las tablas existentes y ejecutar `01-setup.sql` de nuevo
+2. O usar los scripts de migración individuales en `migrations/`
+
+---
 
 ## 📝 Notas Importantes
 
@@ -137,26 +160,9 @@ Para cambios futuros en el esquema:
 3. **Constraints**: Hay validaciones de datos (CHECK constraints) en varios campos
 4. **Foreign Keys**: Las relaciones están definidas con foreign keys para integridad referencial
 5. **Índices**: Se crean índices en campos frecuentemente consultados para mejorar rendimiento
+6. **Múltiples Padres**: La tabla `organization_chart` permite que una posición reporte a múltiples supervisores
 
-## 🐛 Troubleshooting
-
-### Error: "extension uuid-ossp does not exist"
-
-Si obtienes este error, ejecuta primero:
-
-```sql
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-```
-
-### Error de permisos en RLS
-
-Si tienes problemas con las políticas RLS, puedes temporalmente deshabilitarlas:
-
-```sql
-ALTER TABLE nombre_tabla DISABLE ROW LEVEL SECURITY;
-```
-
-**⚠️ Solo para desarrollo, nunca en producción sin políticas adecuadas.**
+---
 
 ## 📚 Recursos
 
@@ -164,3 +170,15 @@ ALTER TABLE nombre_tabla DISABLE ROW LEVEL SECURITY;
 - [Guía de RLS en Supabase](https://supabase.com/docs/guides/auth/row-level-security)
 - [PostgreSQL UUID](https://www.postgresql.org/docs/current/uuid-ossp.html)
 
+---
+
+## ❓ ¿Qué archivo usar?
+
+| Situación | Archivo a usar |
+|-----------|----------------|
+| Base de datos nueva | `01-setup.sql` |
+| Ya tienes datos y necesitas cambios específicos | Revisa `migrations/` |
+| Solo quieres datos de ejemplo (desarrollo) | `migrations/seed.sql` |
+| Quieres políticas RLS avanzadas | `migrations/rls-policies.sql` |
+
+**En caso de duda, usa `01-setup.sql`** - Es el archivo completo y seguro.

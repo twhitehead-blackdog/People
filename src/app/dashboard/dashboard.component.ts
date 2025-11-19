@@ -68,7 +68,7 @@ import { EmployeePortalComponent } from './employee-portal.component';
           <div class="flex h-16 items-center justify-between">
             <div class="flex items-center">
               <a (click)="navigateTo('home')" class="shrink-0 flex items-center gap-2 group cursor-pointer">
-                <img src="images/blackdog.png" class="h-9 transition-transform duration-300 group-hover:scale-105" alt="Peopletrak" />
+                <img src="images/blackdog.png" class="h-9 transition-transform duration-300 group-hover:scale-105" alt="People" />
               </a>
               <div class="hidden md:block">
                 <div class="ml-10 flex items-baseline space-x-1">

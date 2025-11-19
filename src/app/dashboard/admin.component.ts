@@ -22,6 +22,18 @@ import { HttpClient, httpResource } from '@angular/common/http';
               ><i class="pi pi-users text-base"></i> <span>Empleados</span></a
             >
             <a
+              routerLink="organigrama"
+              class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
+              [routerLinkActive]="[
+                'bg-gradient-to-r',
+                'from-amber-500/20',
+                'to-amber-600/20',
+                'text-amber-300',
+                'shadow-md'
+              ]"
+              ><i class="pi pi-sitemap text-base"></i> <span>Organigrama</span></a
+            >
+            <a
               routerLink="companies"
               class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
               [routerLinkActive]="[

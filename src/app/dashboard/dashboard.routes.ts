@@ -59,6 +59,11 @@ export const DASHBOARD_ROUTES: Routes = [
             ],
           },
           {
+            path: 'organigrama',
+            loadComponent: () =>
+              import('./organigrama.component').then((x) => x.OrganigramaComponent),
+          },
+          {
             path: 'companies',
             loadComponent: () =>
               import('./companies.component').then((x) => x.CompaniesComponent),

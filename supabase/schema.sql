@@ -1,4 +1,4 @@
--- PeopleTrak - Supabase Schema (PostgreSQL)
+-- People - Supabase Schema (PostgreSQL)
 -- Ejecuta este archivo en tu proyecto de Supabase.
 -- Incluye tablas base de RR.HH., asistencia y planilla.
 

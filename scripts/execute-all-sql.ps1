@@ -84,7 +84,7 @@ if (-not $psqlPath) {
     
     $combinedScript = @'
 -- ============================================
--- Script SQL Combinado - Peopletrak
+-- Script SQL Combinado - People
 -- Generado automáticamente
 -- ============================================
 -- Ejecuta este script completo en el SQL Editor de Supabase

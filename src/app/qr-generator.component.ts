@@ -64,7 +64,7 @@ export class QrGeneratorComponent {
       return;
     }
     const totp = new OTPAuth.TOTP({
-      issuer: 'Peopletrak Blackdog',
+      issuer: 'People Blackdog',
       label: `${this.employee()!.first_name.trim()} ${this.employee()!.father_name.trim()}`,
       algorithm: 'SHA1',
       digits: 6,
