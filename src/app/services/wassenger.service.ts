@@ -78,7 +78,7 @@ export class WassengerService {
         error.error?.message ||
         error.message ||
         'No se pudo enviar el mensaje por Wassenger';
-      
+
       this.messageService?.add({
         severity: 'error',
         summary: 'Error al enviar mensaje',
@@ -103,9 +103,13 @@ export class WassengerService {
   ): Promise<boolean> {
     const message = `¡Hola ${employeeName}!
 
-Bienvenido/a a Peopletrak. Tu cuenta ha sido creada.
+Bienvenido/a a People. Tu cuenta ha sido creada.
 
-${invitationLink ? `Para acceder, haz clic en este enlace: ${invitationLink}` : 'Pronto recibirás las credenciales para acceder al sistema.'}
+${
+  invitationLink
+    ? `Para acceder, haz clic en este enlace: ${invitationLink}`
+    : 'Pronto recibirás las credenciales para acceder al sistema.'
+}
 
 Si necesitas ayuda, contacta a Recursos Humanos.
 
@@ -147,7 +151,7 @@ Si no solicitaste este código, ignora este mensaje.`;
   ): Promise<boolean> {
     const message = `¡Hola ${employeeName}!
 
-Has sido invitado/a al Portal de Empleados de Peopletrak.
+Has sido invitado/a al Portal de Empleados de People.
 
 Puedes acceder a tu portal en: ${portalUrl}
 
@@ -164,6 +168,4 @@ En el portal podrás:
 
     return this.sendMessage(phoneNumber, message);
   }
-
 }
-

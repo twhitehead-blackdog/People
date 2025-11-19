@@ -1,5 +1,5 @@
 -- ============================================
--- Peopletrak Seed Data
+-- People Seed Data
 -- ============================================
 -- Datos iniciales para desarrollo/testing
 -- Ejecutar DESPUÉS de schema.sql

@@ -95,7 +95,7 @@ type NavSection = {
                 <img
                   src="images/blackdog.png"
                   class="h-9 transition-transform duration-300 group-hover:scale-105"
-                  alt="Peopletrak"
+                  alt="People"
                 />
               </a>
               <div class="hidden md:block">

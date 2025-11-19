@@ -1,6 +1,6 @@
-# Base de Datos Peopletrak - Supabase
+# Base de Datos People - Supabase
 
-Este directorio contiene los scripts SQL para crear y configurar la base de datos de Peopletrak en Supabase.
+Este directorio contiene los scripts SQL para crear y configurar la base de datos de People en Supabase.
 
 ## 📋 Requisitos Previos
 

@@ -1,7 +1,7 @@
 -- ============================================
--- Peopletrak Database Schema for Supabase
+-- People Database Schema for Supabase
 -- ============================================
--- Este script crea todas las tablas necesarias para la aplicación Peopletrak
+-- Este script crea todas las tablas necesarias para la aplicación People
 -- Ejecutar en el SQL Editor de Supabase
 
 -- Habilitar extensiones necesarias
@@ -48,6 +48,15 @@ CREATE TABLE IF NOT EXISTS positions (
     admin BOOLEAN DEFAULT false,
     schedule_approver BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Tabla: organization_chart (Organigrama)
+CREATE TABLE IF NOT EXISTS organization_chart (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    position_id UUID NOT NULL REFERENCES positions(id) ON DELETE CASCADE,
+    parent_position_id UUID REFERENCES positions(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    UNIQUE(position_id)
 );
 
 -- Tabla: banks (Bancos)

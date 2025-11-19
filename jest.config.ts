@@ -1,9 +1,9 @@
 /* eslint-disable */
 export default {
-  displayName: 'peopletrak',
+  displayName: 'people',
   preset: './jest.preset.js',
   setupFilesAfterEnv: ['<rootDir>/src/test-setup.ts'],
-  coverageDirectory: './coverage/peopletrak',
+  coverageDirectory: './coverage/people',
   transform: {
     '^.+\\.(ts|mjs|js|html)$': [
       'jest-preset-angular',

@@ -60,7 +60,10 @@ export const EmployeesStore = signalStore(
           exhaustMap(() =>
             state._http.patch(
               `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
-              { is_active: false },
+              { 
+                is_active: false,
+                end_date: request.date // Actualizar también el campo end_date con la fecha de terminación
+              },
               {
                 params: { id: `eq.${request.employee_id}` },
               }

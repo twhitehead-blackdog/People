@@ -754,7 +754,7 @@ export class EmployeeFormComponent implements OnInit {
   private addTimeclockQR() {
     const { first_name, father_name } = this.form.getRawValue();
     const totp = new OTPAuth.TOTP({
-      issuer: 'Peopletrak Blackdog',
+      issuer: 'People Blackdog',
       label: `${first_name.trim()} ${father_name.trim()}`,
       algorithm: 'SHA1',
       digits: 6,

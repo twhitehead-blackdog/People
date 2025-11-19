@@ -1,9 +1,9 @@
 # Script de Verificacion de Configuracion
-# Peopletrak - Windows PowerShell
+# People - Windows PowerShell
 
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host "Verificacion de Configuracion" -ForegroundColor Cyan
-Write-Host "Peopletrak" -ForegroundColor Cyan
+Write-Host "People" -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host ""
 

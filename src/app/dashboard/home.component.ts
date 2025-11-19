@@ -12,6 +12,12 @@ import {
   endOfMonth,
   format,
   startOfMonth,
+  startOfYear,
+  subMonths,
+  eachMonthOfInterval,
+  isBefore,
+  isAfter,
+  parseISO,
 } from 'date-fns';
 import { BaseChartDirective } from 'ng2-charts';
 import { CardModule } from 'primeng/card';
@@ -125,7 +131,7 @@ import { EmployeesStore } from '../stores/employees.store';
               </div>
               <div class="kpi-content">
                 <div class="headcount-header">
-                  <div class="kpi-label">PLANTILLA TOTAL</div>
+                  <div class="kpi-label">TOTAL COLABORADORES</div>
                   <div class="kpi-value">{{ state.headCount() }}</div>
                   <div class="kpi-sublabel">Empleados activos</div>
                 </div>
@@ -137,7 +143,7 @@ import { EmployeesStore } from '../stores/employees.store';
                       baseChart
                       [type]="'line'"
                       [data]="headcountChartData()"
-                      [options]="sparklineOptions"
+                      [options]="headcountChartOptions"
                     ></canvas>
                   </div>
                 </div>
@@ -209,8 +215,7 @@ import { EmployeesStore } from '../stores/employees.store';
                       baseChart
                       [type]="'line'"
                       [data]="latesDailyChartData()"
-                      [options]="sparklineOptions"
-                      (chartClick)="onLatesChartClick($event)"
+                      [options]="latesChartOptions"
                     ></canvas>
                   </div>
                 </div>
@@ -756,6 +761,142 @@ import { EmployeesStore } from '../stores/employees.store';
               </div>
             </div>
           </p-dialog>
+          <!-- Dialog for month-specific hires and exits details -->
+          <p-dialog
+            [visible]="monthHiresExitsDialogVisible()"
+            (visibleChange)="monthHiresExitsDialogVisible.set($event)"
+            [modal]="true"
+            [closable]="true"
+            [draggable]="false"
+            [resizable]="false"
+            [dismissableMask]="true"
+            [style]="{ width: '600px' }"
+            [header]="'Ingresos y Salidas - ' + selectedMonthLabel()"
+            styleClass="late-details-dialog hires-exits-dialog"
+          >
+            <div
+              class="flex flex-col gap-0"
+              style="padding: 1.5rem 2rem; min-height: 100px;"
+            >
+              <!-- Tabs for Hires and Exits -->
+              <div class="hires-exits-tabs">
+                <button
+                  class="tab-button"
+                  [class.active]="monthHiresExitsTab() === 'hires'"
+                  (click)="monthHiresExitsTab.set('hires')"
+                >
+                  <i class="pi pi-arrow-down"></i>
+                  Ingresos ({{ selectedMonthHiresList().length }})
+                </button>
+                <button
+                  class="tab-button"
+                  [class.active]="monthHiresExitsTab() === 'exits'"
+                  (click)="monthHiresExitsTab.set('exits')"
+                >
+                  <i class="pi pi-arrow-up"></i>
+                  Salidas ({{ selectedMonthExitsList().length }})
+                </button>
+              </div>
+
+              <!-- Hires List -->
+              <div *ngIf="monthHiresExitsTab() === 'hires'">
+                <div
+                  class="text-sm text-gray-300 text-center py-4"
+                  *ngIf="selectedMonthHiresList().length === 0"
+                >
+                  No hay ingresos en este mes.
+                </div>
+                <ul
+                  class="flex flex-col gap-0 max-h-96 overflow-auto list-none m-0 p-0"
+                  *ngIf="selectedMonthHiresList().length > 0"
+                >
+                  <li
+                    class="hires-exits-list-item"
+                    *ngFor="let hire of selectedMonthHiresList()"
+                  >
+                    <div class="hires-exits-item-content">
+                      <div class="hires-exits-icon-box icon-hire">
+                        <i class="pi pi-user-plus"></i>
+                      </div>
+                      <div class="hires-exits-details">
+                        <div class="hires-exits-name-row">
+                          <span class="hires-exits-name">
+                            {{ hire.first_name }} {{ hire.father_name }}
+                          </span>
+                        </div>
+                        <div class="hires-exits-info-row">
+                          <span class="hires-exits-branch">
+                            <i class="pi pi-building"></i>
+                            {{ hire.branch?.name || 'Sin sucursal' }}
+                          </span>
+                          <span
+                            class="hires-exits-position"
+                            *ngIf="hire.position"
+                          >
+                            <i class="pi pi-briefcase"></i>
+                            {{ hire.position.name }}
+                          </span>
+                        </div>
+                      </div>
+                      <div class="hires-exits-right-section">
+                        <div class="hires-exits-date-display">
+                          {{ getHireDate(hire.start_date) }}
+                        </div>
+                      </div>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+
+              <!-- Exits List -->
+              <div *ngIf="monthHiresExitsTab() === 'exits'">
+                <div
+                  class="text-sm text-gray-300 text-center py-4"
+                  *ngIf="selectedMonthExitsList().length === 0"
+                >
+                  No hay salidas en este mes.
+                </div>
+                <ul
+                  class="flex flex-col gap-0 max-h-96 overflow-auto list-none m-0 p-0"
+                  *ngIf="selectedMonthExitsList().length > 0"
+                >
+                  <li
+                    class="hires-exits-list-item"
+                    *ngFor="let exit of selectedMonthExitsList()"
+                  >
+                    <div class="hires-exits-item-content">
+                      <div class="hires-exits-icon-box icon-exit">
+                        <i class="pi pi-user-minus"></i>
+                      </div>
+                      <div class="hires-exits-details">
+                        <div class="hires-exits-name-row">
+                          <span class="hires-exits-name">
+                            {{ exit.employee?.first_name }}
+                            {{ exit.employee?.father_name }}
+                          </span>
+                        </div>
+                        <div class="hires-exits-info-row">
+                          <span class="hires-exits-branch">
+                            <i class="pi pi-building"></i>
+                            {{ exit.employee?.branch?.name || 'Sin sucursal' }}
+                          </span>
+                          <span class="hires-exits-reason" *ngIf="exit.reason">
+                            <i class="pi pi-info-circle"></i>
+                            {{ exit.reason }}
+                          </span>
+                        </div>
+                      </div>
+                      <div class="hires-exits-right-section">
+                        <div class="hires-exits-date-display exit-date">
+                          {{ getExitDate(exit.date) }}
+                        </div>
+                      </div>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </p-dialog>
         </div>
         }
 
@@ -867,6 +1008,7 @@ import { EmployeesStore } from '../stores/employees.store';
         @if (activeSection() === 'management') {
         <div class="section-content">
           <div class="kpi-grid">
+            <!-- Contrataciones y Crecimiento -->
             <div class="kpi-card">
               <div class="kpi-icon">
                 <i class="pi pi-user-plus"></i>
@@ -881,6 +1023,16 @@ import { EmployeesStore } from '../stores/employees.store';
             </div>
             <div class="kpi-card">
               <div class="kpi-icon">
+                <i class="pi pi-arrow-up"></i>
+              </div>
+              <div class="kpi-content">
+                <div class="kpi-label">Tasa de Crecimiento</div>
+                <div class="kpi-value">{{ state.growthRate() }}%</div>
+                <div class="kpi-sublabel">Crecimiento mensual</div>
+              </div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon">
                 <i class="pi pi-clock"></i>
               </div>
               <div class="kpi-content">
@@ -889,14 +1041,70 @@ import { EmployeesStore } from '../stores/employees.store';
                 <div class="kpi-sublabel">Menos de 3 meses</div>
               </div>
             </div>
+            
+            <!-- Rotación y Retención -->
             <div class="kpi-card">
               <div class="kpi-icon">
-                <i class="pi pi-arrow-up"></i>
+                <i class="pi pi-refresh"></i>
               </div>
               <div class="kpi-content">
-                <div class="kpi-label">Tasa de Crecimiento</div>
-                <div class="kpi-value">{{ state.growthRate() }}%</div>
-                <div class="kpi-sublabel">Crecimiento mensual</div>
+                <div class="kpi-label">Rotación Mensual</div>
+                <div class="kpi-value">{{ state.monthlyTurnover() }}%</div>
+                <div class="kpi-sublabel">Bajas este mes</div>
+              </div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon">
+                <i class="pi pi-chart-line"></i>
+              </div>
+              <div class="kpi-content">
+                <div class="kpi-label">Rotación Anual</div>
+                <div class="kpi-value">{{ state.annualTurnover() }}%</div>
+                <div class="kpi-sublabel">Últimos 12 meses</div>
+              </div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon">
+                <i class="pi pi-shield"></i>
+              </div>
+              <div class="kpi-content">
+                <div class="kpi-label">Tasa de Retención</div>
+                <div class="kpi-value">{{ state.retentionRate() }}%</div>
+                <div class="kpi-sublabel">Empleados retenidos</div>
+              </div>
+            </div>
+            
+            <!-- Antigüedad y Estabilidad -->
+            <div class="kpi-card">
+              <div class="kpi-icon">
+                <i class="pi pi-calendar"></i>
+              </div>
+              <div class="kpi-content">
+                <div class="kpi-label">Antigüedad Promedio</div>
+                <div class="kpi-value">{{ state.averageTenure() }}</div>
+                <div class="kpi-sublabel">Años de experiencia</div>
+              </div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon">
+                <i class="pi pi-star"></i>
+              </div>
+              <div class="kpi-content">
+                <div class="kpi-label">Aniversarios Próximos</div>
+                <div class="kpi-value">{{ state.upcomingAnniversaries().length }}</div>
+                <div class="kpi-sublabel">Próximos 30 días</div>
+              </div>
+            </div>
+            
+            <!-- Ausentismo y Licencias -->
+            <div class="kpi-card">
+              <div class="kpi-icon">
+                <i class="pi pi-exclamation-triangle"></i>
+              </div>
+              <div class="kpi-content">
+                <div class="kpi-label">Ausentismo Mensual</div>
+                <div class="kpi-value">{{ state.monthlyAbsenteeism() }}%</div>
+                <div class="kpi-sublabel">Tasa de ausencias</div>
               </div>
             </div>
             <div class="kpi-card">
@@ -907,6 +1115,44 @@ import { EmployeesStore } from '../stores/employees.store';
                 <div class="kpi-label">Mujeres en Licencia</div>
                 <div class="kpi-value">{{ state.womenOnLeave() }}</div>
                 <div class="kpi-sublabel">Licencias activas</div>
+              </div>
+            </div>
+            
+            <!-- Costos y Eficiencia -->
+            <div class="kpi-card">
+              <div class="kpi-icon">
+                <i class="pi pi-dollar"></i>
+              </div>
+              <div class="kpi-content">
+                <div class="kpi-label">Costo por Empleado</div>
+                <div class="kpi-value">
+                  {{ state.costPerEmployee() | currency : '$' : 'symbol' : '1.0-0' }}
+                </div>
+                <div class="kpi-sublabel">Costo promedio mensual</div>
+              </div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-icon">
+                <i class="pi pi-chart-bar"></i>
+              </div>
+              <div class="kpi-content">
+                <div class="kpi-label">Ratio de Eficiencia</div>
+                <div class="kpi-value">{{ state.peopleEfficiencyRatio() }}%</div>
+                <div class="kpi-sublabel">Eficiencia del personal</div>
+              </div>
+            </div>
+            
+            <!-- Deudas y Finanzas -->
+            <div class="kpi-card">
+              <div class="kpi-icon">
+                <i class="pi pi-credit-card"></i>
+              </div>
+              <div class="kpi-content">
+                <div class="kpi-label">Empleados con Deudas</div>
+                <div class="kpi-value">{{ state.employeesWithDebts() }}</div>
+                <div class="kpi-sublabel">
+                  Total: {{ state.totalDebtAmount() | currency : '$' : 'symbol' : '1.0-0' }}
+                </div>
               </div>
             </div>
           </div>
@@ -3191,13 +3437,11 @@ export class HomeComponent {
     return this.state.birthDates().length;
   });
 
-  // API resource para obtener terminaciones del mes
+  // API resource para obtener todas las terminaciones (necesario para cálculo histórico)
   public terminationsApi = httpResource<any[]>(() => {
     const baseUrl = process.env['ENV_SUPABASE_URL']!;
-    const now = new Date();
-    const from = format(startOfMonth(now), 'yyyy-MM-dd');
-    const to = format(endOfMonth(now), 'yyyy-MM-dd');
-    const url = `${baseUrl}/rest/v1/terminations?select=date,reason,employee_id&date=gte.${from}&date=lte.${to}&order=date.asc`;
+    // Obtener todas las terminaciones, no solo del mes actual
+    const url = `${baseUrl}/rest/v1/terminations?select=date,reason,employee_id&order=date.asc`;
     return {
       url,
       method: 'GET',
@@ -3340,15 +3584,210 @@ export class HomeComponent {
     };
   });
 
-  // Mini line chart options for KPI sparkline
-  public get sparklineOptions(): any {
+  // Chart options specifically for headcount chart (shows month/year)
+  public get headcountChartOptions(): any {
     return {
       responsive: true,
       maintainAspectRatio: false,
+      animation: {
+        duration: 1000,
+        easing: 'easeInOutQuart',
+      },
       plugins: {
         legend: { display: false },
         tooltip: {
           enabled: true,
+          backgroundColor: '#18181b',
+          titleColor: '#fbbf24',
+          bodyColor: '#ffffff',
+          borderColor: 'rgba(251, 191, 36, 0.3)',
+          borderWidth: 1,
+          padding: 12,
+          displayColors: false,
+          callbacks: {
+            label: (ctx: any) => {
+              const y = ctx.parsed?.y ?? ctx.parsed ?? 0;
+              const label = ctx.dataset?.label || 'Empleados';
+              return `${label}: ${y}`;
+            },
+            title: (ctx: any) => {
+              // Show month/year from chart labels
+              const chart = ctx[0]?.chart;
+              if (chart && chart.data && chart.data.labels) {
+                const index = ctx[0]?.dataIndex;
+                if (index !== undefined && chart.data.labels[index]) {
+                  return chart.data.labels[index];
+                }
+              }
+              // Fallback: get from computed
+              const data: any = this.headcountChartData();
+              const labels = data?.labels || [];
+              const index = ctx[0]?.dataIndex;
+              if (index !== undefined && labels[index]) {
+                return labels[index];
+              }
+              return '';
+            },
+          },
+        },
+      },
+      scales: {
+        x: { 
+          display: false,
+          grid: { display: false },
+        },
+        y: {
+          display: false,
+          beginAtZero: false,
+          grid: { display: false },
+        },
+      },
+      elements: {
+        line: { 
+          tension: 0.4, 
+          borderWidth: 3,
+          borderJoinStyle: 'round',
+          borderCapStyle: 'round',
+        },
+        point: { 
+          radius: 0,
+          hoverRadius: 6,
+          hitRadius: 10,
+          hoverBorderWidth: 2,
+        },
+      },
+      onClick: (evt: any, active: any[]) => {
+        // Handle click on headcount chart to show hires/exits for that month
+        if (active && active.length > 0) {
+          const idx = active[0].index;
+          const data: any = this.headcountChartData();
+          const labels = data?.labels || [];
+          
+          if (idx !== undefined && labels[idx]) {
+            // Parse the month/year from label (e.g., "Ene 2024")
+            const label = labels[idx];
+            this.openMonthHiresExitsDialog(label, idx);
+          }
+        }
+      },
+    };
+  }
+
+  // Chart options for Tardanzas del Mes - Same style as headcount chart
+  public get latesChartOptions(): any {
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: {
+        duration: 1000,
+        easing: 'easeInOutQuart',
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          enabled: true,
+          backgroundColor: '#18181b',
+          titleColor: '#fbbf24',
+          bodyColor: '#ffffff',
+          borderColor: 'rgba(251, 191, 36, 0.3)',
+          borderWidth: 1,
+          padding: 12,
+          displayColors: false,
+          callbacks: {
+            label: (ctx: any) => {
+              const y = ctx.parsed?.y ?? ctx.parsed ?? 0;
+              const label = ctx.dataset?.label || 'Tardanzas';
+              return `${label}: ${y}`;
+            },
+            afterLabel: (ctx: any) => {
+              const names: string[] | undefined = (ctx.dataset as any)
+                ?.customNames?.[ctx.dataIndex];
+              if (!names || names.length === 0) return '';
+              return names.map((n) => ` ${n}`);
+            },
+            title: (ctx: any) => {
+              const dayNum = ctx[0]?.dataIndex + 1;
+              const now = new Date();
+              const monthName = this.getMonthNameSpanish(now);
+              return `Día ${dayNum} ${monthName}`;
+            },
+          },
+        },
+      },
+      scales: {
+        x: { 
+          display: false,
+          grid: { display: false },
+        },
+        y: {
+          display: false,
+          beginAtZero: false,
+          grid: { display: false },
+        },
+      },
+      elements: {
+        line: { 
+          tension: 0.4, 
+          borderWidth: 3,
+          borderJoinStyle: 'round',
+          borderCapStyle: 'round',
+        },
+        point: { 
+          radius: 0,
+          hoverRadius: 6,
+          hitRadius: 10,
+          hoverBorderWidth: 2,
+        },
+      },
+      onClick: (evt: any, active: any[]) => {
+        if (active && active.length > 0) {
+          const idx = active[0].index;
+          const data: any = this.latesDailyChartData();
+
+          if (data && data.datasets && data.datasets.length > 0) {
+            const ds: any = data.datasets[0];
+            const details = (ds?.customDetails?.[idx] ?? []) as any[];
+
+            const sortedDetails = [...details].sort((a, b) => {
+              const aMinutes = a.minutesLate ?? 0;
+              const bMinutes = b.minutesLate ?? 0;
+              return bMinutes - aMinutes;
+            });
+
+            const now = new Date();
+            const dayNum = idx + 1;
+            const monthName = this.getMonthNameSpanish(now);
+            const title = `Tardanzas - Día ${dayNum} ${monthName}`;
+
+            this.lateDialogTitle.set(title);
+            this.lateDialogDetails.set(sortedDetails);
+            this.lateDialogVisible.set(true);
+          }
+        }
+      },
+    };
+  }
+
+  // Mini line chart options for KPI sparkline - Improved with better styling
+  public get sparklineOptions(): any {
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: {
+        duration: 1000,
+        easing: 'easeInOutQuart',
+      },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          enabled: true,
+          backgroundColor: '#18181b',
+          titleColor: '#fbbf24',
+          bodyColor: '#ffffff',
+          borderColor: 'rgba(251, 191, 36, 0.3)',
+          borderWidth: 1,
+          padding: 12,
+          displayColors: false,
           callbacks: {
             label: (ctx: any) => {
               const y = ctx.parsed?.y ?? ctx.parsed ?? 0;
@@ -3363,7 +3802,14 @@ export class HomeComponent {
               return names.map((n) => ` ${n}`);
             },
             title: (ctx: any) => {
-              // Show date in title
+              // Show month/year in title for headcount chart
+              const data: any = this.headcountChartData();
+              const labels = data?.labels || [];
+              const index = ctx[0]?.dataIndex;
+              if (index !== undefined && labels[index]) {
+                return labels[index];
+              }
+              // Fallback for other charts (like lates)
               const dayNum = ctx[0]?.dataIndex + 1;
               return `Día ${dayNum}`;
             },
@@ -3371,15 +3817,29 @@ export class HomeComponent {
         },
       },
       scales: {
-        x: { display: false },
+        x: { 
+          display: false,
+          grid: { display: false },
+        },
         y: {
           display: false,
           beginAtZero: false,
+          grid: { display: false },
         },
       },
       elements: {
-        line: { tension: 0.18, borderWidth: 2 },
-        point: { radius: 1.5, hoverRadius: 4, hitRadius: 10 },
+        line: { 
+          tension: 0.4, 
+          borderWidth: 3,
+          borderJoinStyle: 'round',
+          borderCapStyle: 'round',
+        },
+        point: { 
+          radius: 0,
+          hoverRadius: 6,
+          hitRadius: 10,
+          hoverBorderWidth: 2,
+        },
       },
       onClick: (evt: any, active: any[]) => {
         // Handle click directly in options
@@ -3414,49 +3874,195 @@ export class HomeComponent {
     };
   }
 
-  // Generate a headcount growth trend with visible fluctuations ending at current headcount
+  // Generate headcount trend by month/year based on actual employee start dates
   public headcountChartData = computed(() => {
-    const points = 24; // more points for more detail
-    const labels = Array.from({ length: points }, (_, i) => {
-      const d = new Date();
-      d.setMonth(d.getMonth() - (points - 1 - i));
-      return d.toLocaleString('es-ES', { month: 'short' });
-    });
-
-    const current = this.state.headCount();
-    const start = Math.max(0, Math.floor(current * 0.65));
-    const baseStep = (current - start) / (points - 1);
-
-    // deterministic pseudo-random for consistent UI
-    let seed = current * 31;
-    const rand = () => {
-      seed = (seed * 9301 + 49297) % 233280;
-      return seed / 233280;
-    };
-
+    const employees = this.employees.entities();
+    const terminations = this.terminationsApi.value() ?? [];
+    const now = new Date();
+    const currentMonthStart = startOfMonth(now);
+    
+    // Get the start of the current month and go back 24 months
+    const endDate = startOfMonth(now);
+    const startDate = subMonths(endDate, 23);
+    
+    // Generate array of months
+    const months = eachMonthOfInterval({ start: startDate, end: endDate });
+    
+    // Calculate headcount for each month
     const data: number[] = [];
-    let value = start;
-    for (let i = 0; i < points; i++) {
-      // base growth
-      value = start + baseStep * i;
-      // add visible but bounded fluctuations
-      const wave = Math.sin(i / 2.8) * (current * 0.015);
-      const noise = (rand() - 0.5) * (current * 0.01);
-      data.push(Math.max(0, Math.round(value + wave + noise)));
+    const labels: string[] = [];
+    
+    for (const month of months) {
+      const monthStart = startOfMonth(month);
+      const monthEnd = endOfMonth(month);
+      const monthStartTimestamp = new Date(monthStart.getFullYear(), monthStart.getMonth(), monthStart.getDate(), 0, 0, 0, 0).getTime();
+      const monthEndTimestamp = new Date(monthEnd.getFullYear(), monthEnd.getMonth(), monthEnd.getDate(), 23, 59, 59, 999).getTime();
+      const isCurrentOrFutureMonth = month.getTime() >= currentMonthStart.getTime();
+      
+      // Count employees who were active at the end of this specific month/year
+      const headcount = employees.filter((emp) => {
+        // ============================================
+        // CASE 1: CURRENT OR FUTURE MONTHS
+        // ============================================
+        // For current/future months, use is_active flag as source of truth
+        // This ensures consistency with state.headCount()
+        if (isCurrentOrFutureMonth) {
+          // Only count employees who are currently active
+          return emp.is_active === true;
+        }
+        
+        // ============================================
+        // CASE 2: PAST MONTHS
+        // ============================================
+        // For past months, calculate based on start_date and termination dates
+        // An employee was active at the end of a past month if:
+        // 1. They started on or before the last day of that month
+        // 2. They were NOT terminated on or before the last day of that month
+        
+        // If employee has no start_date, we cannot determine if they were active in past months
+        if (!emp.start_date) {
+          return false;
+        }
+        
+        // Parse start_date (handle both Date objects and ISO strings)
+        let empStartDate: Date;
+        try {
+          const startDateValue: Date | string = emp.start_date as any;
+          if (startDateValue instanceof Date) {
+            empStartDate = startDateValue;
+          } else if (typeof startDateValue === 'string') {
+            empStartDate = parseISO(startDateValue);
+          } else {
+            return false; // Invalid start_date format
+          }
+        } catch (error) {
+          return false; // Failed to parse start_date
+        }
+        
+        // Normalize start_date to start of day for comparison
+        const empStartTimestamp = new Date(
+          empStartDate.getFullYear(),
+          empStartDate.getMonth(),
+          empStartDate.getDate(),
+          0, 0, 0, 0
+        ).getTime();
+        
+        // Employee must have started on or before the last day of this month
+        // If they started after this month, they cannot be counted
+        if (empStartTimestamp > monthEndTimestamp) {
+          return false;
+        }
+        
+        // Now check if employee was terminated before or during this month
+        // Check termination date from terminations table first
+        const termination = terminations.find((t) => t.employee_id === emp.id);
+        if (termination && termination.date) {
+          try {
+            const termDateValue: Date | string = termination.date as any;
+            let termDate: Date | null = null;
+            if (termDateValue instanceof Date) {
+              termDate = termDateValue;
+            } else if (typeof termDateValue === 'string') {
+              termDate = parseISO(termDateValue);
+            }
+            
+            if (termDate) {
+              const termDateTimestamp = new Date(
+                termDate.getFullYear(),
+                termDate.getMonth(),
+                termDate.getDate(),
+                0, 0, 0, 0
+              ).getTime();
+              
+              // If terminated on or before the last day of this month, exclude
+              if (termDateTimestamp <= monthEndTimestamp) {
+                return false;
+              }
+            }
+          } catch (error) {
+            // Failed to parse termination date, continue to check end_date
+          }
+        }
+        
+        // Check end_date field (some employees may have end_date instead of termination record)
+        if (emp.end_date) {
+          try {
+            const endDateValue: Date | string = emp.end_date as any;
+            let empEndDate: Date;
+            if (endDateValue instanceof Date) {
+              empEndDate = endDateValue;
+            } else if (typeof endDateValue === 'string') {
+              empEndDate = parseISO(endDateValue);
+            } else {
+              // Invalid end_date format, assume employee was active
+              // (if end_date is invalid, we can't determine termination)
+              return true;
+            }
+            
+            const empEndDateTimestamp = new Date(
+              empEndDate.getFullYear(),
+              empEndDate.getMonth(),
+              empEndDate.getDate(),
+              0, 0, 0, 0
+            ).getTime();
+            
+            // If end_date is on or before the last day of this month, exclude
+            if (empEndDateTimestamp <= monthEndTimestamp) {
+              return false;
+            }
+          } catch (error) {
+            // Failed to parse end_date, assume employee was active
+            // (if end_date is invalid, we can't determine termination)
+          }
+        }
+        
+        // Additional check: If employee is currently inactive and has no termination date,
+        // they might have been terminated but the date wasn't recorded properly.
+        // For past months, if they're inactive now and we can't find a termination date,
+        // we should be conservative and exclude them if the month is recent (within last 12 months)
+        // Otherwise, assume they were active if they passed all other checks
+        const monthsAgo = Math.floor((now.getTime() - monthEndTimestamp) / (1000 * 60 * 60 * 24 * 30));
+        if (!emp.is_active && monthsAgo <= 12) {
+          // If employee is inactive and month is recent, and we couldn't find termination date,
+          // they were likely terminated but date wasn't recorded - exclude them
+          if (!termination && !emp.end_date) {
+            return false;
+          }
+        }
+        
+        // Employee passed all checks:
+        // - Started on or before the end of this month
+        // - Was not terminated on or before the end of this month
+        return true;
+      }).length;
+      
+      data.push(headcount);
+      
+      // Format label as "Mes Año" (e.g., "Ene 2024")
+      const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+      const monthName = monthNames[month.getMonth()];
+      const year = format(month, 'yyyy');
+      labels.push(`${monthName} ${year}`);
     }
-
-    // ensure the last point equals current headcount exactly
-    data[data.length - 1] = current;
 
     return {
       labels,
       datasets: [
         {
           data,
-          label: 'Headcount',
+          label: 'Empleados',
           borderColor: '#FCD34D',
-          backgroundColor: 'rgba(252, 211, 77, 0.18)',
+          backgroundColor: 'rgba(252, 211, 77, 0.25)',
           fill: true,
+          tension: 0.4,
+          borderWidth: 3,
+          pointRadius: 0,
+          pointHoverRadius: 6,
+          pointBackgroundColor: '#FCD34D',
+          pointBorderColor: '#fff',
+          pointBorderWidth: 2,
+          pointHoverBackgroundColor: '#FCD34D',
+          pointHoverBorderColor: '#fff',
         },
       ],
     };
@@ -3612,15 +4218,17 @@ export class HomeComponent {
           data,
           label: 'Tardanzas',
           borderColor: '#FCD34D',
-          backgroundColor: 'rgba(252, 211, 77, 0.1)',
-          borderWidth: 2,
+          backgroundColor: 'rgba(252, 211, 77, 0.25)',
           fill: true,
           tension: 0.4,
-          pointRadius: 4,
+          borderWidth: 3,
+          pointRadius: 0,
           pointHoverRadius: 6,
           pointBackgroundColor: '#FCD34D',
           pointBorderColor: '#fff',
           pointBorderWidth: 2,
+          pointHoverBackgroundColor: '#FCD34D',
+          pointHoverBorderColor: '#fff',
           customNames,
           customDetails,
         },
@@ -3717,6 +4325,112 @@ export class HomeComponent {
     const d = new Date(date);
     return `${d.getDate()} de ${this.getBirthdayMonth(d)}`;
   }
+
+  public openMonthHiresExitsDialog(monthLabel: string, monthIndex: number): void {
+    this.selectedMonthLabel.set(monthLabel);
+    this.selectedMonthIndex.set(monthIndex);
+    this.monthHiresExitsDialogVisible.set(true);
+    this.monthHiresExitsTab.set('hires');
+  }
+
+  // Get hires list for selected month from headcount chart
+  public selectedMonthHiresList = computed(() => {
+    const monthIndex = this.selectedMonthIndex();
+    if (monthIndex < 0) return [];
+
+    const data: any = this.headcountChartData();
+    const labels = data?.labels || [];
+    if (monthIndex >= labels.length) return [];
+
+    // Parse month/year from label (e.g., "Ene 2024")
+    const label = labels[monthIndex];
+    const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const parts = label.split(' ');
+    const monthName = parts[0];
+    const year = parseInt(parts[1]);
+    const monthIndexNum = monthNames.indexOf(monthName);
+    
+    if (monthIndexNum === -1 || isNaN(year)) return [];
+
+    const monthStart = new Date(year, monthIndexNum, 1);
+    const monthEnd = endOfMonth(monthStart);
+
+    return this.employees
+      .entities()
+      .filter((x) => {
+        if (!x.start_date) return false;
+        const startDateValue: Date | string = x.start_date as any;
+        const startDate = startDateValue instanceof Date 
+          ? startDateValue 
+          : parseISO(startDateValue);
+        return startDate >= monthStart && startDate <= monthEnd;
+      })
+      .map((x) => ({
+        first_name: x.first_name,
+        father_name: x.father_name,
+        start_date: x.start_date,
+        branch: x.branch,
+        position: x.position,
+      }))
+      .sort((a, b) => {
+        if (!a.start_date || !b.start_date) return 0;
+        const aDate: Date | string = a.start_date as any;
+        const bDate: Date | string = b.start_date as any;
+        const aDateObj = aDate instanceof Date ? aDate : parseISO(aDate);
+        const bDateObj = bDate instanceof Date ? bDate : parseISO(bDate);
+        return aDateObj.getTime() - bDateObj.getTime();
+      });
+  });
+
+  // Get exits list for selected month from headcount chart
+  public selectedMonthExitsList = computed(() => {
+    const monthIndex = this.selectedMonthIndex();
+    if (monthIndex < 0) return [];
+
+    const data: any = this.headcountChartData();
+    const labels = data?.labels || [];
+    if (monthIndex >= labels.length) return [];
+
+    // Parse month/year from label (e.g., "Ene 2024")
+    const label = labels[monthIndex];
+    const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const parts = label.split(' ');
+    const monthName = parts[0];
+    const year = parseInt(parts[1]);
+    const monthIndexNum = monthNames.indexOf(monthName);
+    
+    if (monthIndexNum === -1 || isNaN(year)) return [];
+
+    const monthStart = new Date(year, monthIndexNum, 1);
+    const monthEnd = endOfMonth(monthStart);
+
+    const terminations = this.terminationsApi.value() ?? [];
+    return terminations
+      .filter((t) => {
+        if (!t.date) return false;
+        const termDateValue: Date | string = t.date as any;
+        const terminationDate = termDateValue instanceof Date 
+          ? termDateValue 
+          : parseISO(termDateValue);
+        const termDateNormalized = new Date(terminationDate.getFullYear(), terminationDate.getMonth(), terminationDate.getDate());
+        const monthStartNormalized = new Date(monthStart.getFullYear(), monthStart.getMonth(), monthStart.getDate());
+        const monthEndNormalized = new Date(monthEnd.getFullYear(), monthEnd.getMonth(), monthEnd.getDate());
+        return termDateNormalized >= monthStartNormalized && termDateNormalized <= monthEndNormalized;
+      })
+      .map((t) => ({
+        date: t.date,
+        reason: t.reason,
+        employee: this.employees.entities().find((e) => e.id === t.employee_id),
+      }))
+      .sort((a, b) => {
+        if (!a.date || !b.date) return 0;
+        const aDateValue: Date | string = a.date as any;
+        const bDateValue: Date | string = b.date as any;
+        const aDate = aDateValue instanceof Date ? aDateValue : parseISO(aDateValue);
+        const bDate = bDateValue instanceof Date ? bDateValue : parseISO(bDateValue);
+        return aDate.getTime() - bDate.getTime();
+      });
+  });
 
   public branchLabels = computed(() =>
     this.state.employeesByBranch().map((x) => x.branch?.name || 'Sin sucursal')
@@ -4270,6 +4984,12 @@ export class HomeComponent {
   // Hires and Exits Dialog
   public hiresExitsDialogVisible = signal(false);
   public hiresExitsTab = signal<'hires' | 'exits'>('hires');
+  
+  // Month-specific Hires and Exits Dialog
+  public monthHiresExitsDialogVisible = signal(false);
+  public monthHiresExitsTab = signal<'hires' | 'exits'>('hires');
+  public selectedMonthLabel = signal<string>('');
+  public selectedMonthIndex = signal<number>(-1);
 
   // Helper to get month name in Spanish
   private getMonthNameSpanish(date: Date): string {

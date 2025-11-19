@@ -1,9 +1,9 @@
 # Script de Configuracion de Variables de Entorno
-# Peopletrak - Windows PowerShell
+# People - Windows PowerShell
 
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host "Configuracion de Variables de Entorno" -ForegroundColor Cyan
-Write-Host "Peopletrak" -ForegroundColor Cyan
+Write-Host "People" -ForegroundColor Cyan
 Write-Host "============================================" -ForegroundColor Cyan
 Write-Host ""
 
