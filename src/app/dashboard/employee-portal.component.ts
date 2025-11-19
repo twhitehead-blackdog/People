@@ -2280,7 +2280,7 @@ export class EmployeePortalComponent {
       status: 'pending',
     };
 
-      this.http
+    this.http
       .post(
         `${process.env['ENV_SUPABASE_URL']}/rest/v1/document_requests`,
         requestData
