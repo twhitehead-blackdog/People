@@ -14,23 +14,17 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
--- 2. Política para permitir INSERT (subir archivos) - Solo empleados autenticados
--- Nota: Esto requiere que el usuario esté autenticado con Auth0
--- Como estamos usando API Key, necesitamos una política más permisiva
+-- 2. Eliminar políticas existentes si existen (para evitar conflictos)
+DROP POLICY IF EXISTS "Permitir subida de archivos de incapacidades" ON storage.objects;
+DROP POLICY IF EXISTS "Permitir subida con API Key" ON storage.objects;
+DROP POLICY IF EXISTS "Permitir lectura de archivos de incapacidades" ON storage.objects;
+DROP POLICY IF EXISTS "Permitir actualización de archivos propios" ON storage.objects;
+DROP POLICY IF EXISTS "Permitir eliminación de archivos propios" ON storage.objects;
 
--- Política para INSERT: Permitir subir archivos a empleados autenticados
-CREATE POLICY IF NOT EXISTS "Permitir subida de archivos de incapacidades"
-ON storage.objects
-FOR INSERT
-TO authenticated
-WITH CHECK (
-  bucket_id = 'disabilities' AND
-  (storage.foldername(name))[1] = auth.uid()::text
-);
-
--- Política alternativa: Permitir subida usando service role (para API Key)
--- Esta política permite subir archivos usando la API Key
-CREATE POLICY IF NOT EXISTS "Permitir subida con API Key"
+-- 3. Política para permitir INSERT (subir archivos)
+-- Como estamos usando API Key (anon), permitimos subida con anon
+-- Esto es necesario porque la aplicación usa ENV_SUPABASE_API_KEY
+CREATE POLICY "Permitir subida de archivos de incapacidades"
 ON storage.objects
 FOR INSERT
 TO anon
@@ -38,8 +32,8 @@ WITH CHECK (
   bucket_id = 'disabilities'
 );
 
--- 3. Política para SELECT (descargar/leer archivos) - Público
-CREATE POLICY IF NOT EXISTS "Permitir lectura de archivos de incapacidades"
+-- 4. Política para SELECT (descargar/leer archivos) - Público
+CREATE POLICY "Permitir lectura de archivos de incapacidades"
 ON storage.objects
 FOR SELECT
 TO public
@@ -47,24 +41,24 @@ USING (
   bucket_id = 'disabilities'
 );
 
--- 4. Política para UPDATE (actualizar archivos) - Solo el propietario
-CREATE POLICY IF NOT EXISTS "Permitir actualización de archivos propios"
+-- 5. Política para UPDATE (actualizar archivos) - Opcional, solo anon por ahora
+-- Nota: Si necesitas restricciones más estrictas, puedes ajustar esto
+CREATE POLICY "Permitir actualización de archivos de incapacidades"
 ON storage.objects
 FOR UPDATE
-TO authenticated
+TO anon
 USING (
-  bucket_id = 'disabilities' AND
-  (storage.foldername(name))[1] = auth.uid()::text
+  bucket_id = 'disabilities'
 );
 
--- 5. Política para DELETE (eliminar archivos) - Solo el propietario
-CREATE POLICY IF NOT EXISTS "Permitir eliminación de archivos propios"
+-- 6. Política para DELETE (eliminar archivos) - Opcional, solo anon por ahora
+-- Nota: Si necesitas restricciones más estrictas, puedes ajustar esto
+CREATE POLICY "Permitir eliminación de archivos de incapacidades"
 ON storage.objects
 FOR DELETE
-TO authenticated
+TO anon
 USING (
-  bucket_id = 'disabilities' AND
-  (storage.foldername(name))[1] = auth.uid()::text
+  bucket_id = 'disabilities'
 );
 
 -- ============================================
