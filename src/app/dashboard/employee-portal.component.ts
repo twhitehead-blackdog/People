@@ -742,9 +742,11 @@ import { EmployeesStore } from '../stores/employees.store';
                 <p class="text-xs text-gray-500 mt-2">
                   Formatos permitidos: PDF, JPG, PNG (máx. 10MB)
                 </p>
-                <p class="text-xs text-gray-400 mt-1" *ngIf="!selectedFile()">
+                @if(!selectedFile()) {
+                <p class="text-xs text-gray-400 mt-1">
                   No se ha seleccionado ningún archivo
                 </p>
+                }
               </div>
               <div class="flex justify-end">
                 <p-button
