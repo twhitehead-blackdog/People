@@ -16,6 +16,18 @@ Este archivo incluye TODO lo necesario:
 - ✅ RLS básico
 - ✅ Configuraciones iniciales
 
+### ⚠️ ¿Es seguro ejecutarlo en una base de datos existente?
+
+**SÍ, es seguro.** El script usa:
+- `CREATE TABLE IF NOT EXISTS` - Solo crea tablas que no existen
+- `CREATE INDEX IF NOT EXISTS` - Solo crea índices que no existen
+- `CREATE OR REPLACE FUNCTION` - Actualiza funciones sin perder datos
+- `CREATE OR REPLACE VIEW` - Actualiza vistas sin perder datos
+- `DROP POLICY IF EXISTS` - Elimina políticas antes de recrearlas (evita errores)
+- `INSERT ... ON CONFLICT DO NOTHING` - No duplica datos existentes
+
+**No elimina ni modifica datos existentes**, solo crea lo que falta y actualiza funciones/vistas/políticas.
+
 ### Para actualizar una base de datos existente:
 
 Si ya tienes una base de datos y necesitas aplicar cambios específicos, revisa los archivos en `migrations/` según lo que necesites.

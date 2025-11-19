@@ -648,99 +648,132 @@ ALTER TABLE complaint_messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE settings ENABLE ROW LEVEL SECURITY;
 
 -- Políticas básicas (ajustar según necesidades)
+-- Eliminar políticas existentes antes de crear nuevas (evita errores)
+DROP POLICY IF EXISTS "Enable all access for authenticated users" ON companies;
 CREATE POLICY "Enable all access for authenticated users" ON companies
     FOR ALL USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Enable all access for authenticated users" ON branches;
 CREATE POLICY "Enable all access for authenticated users" ON branches
     FOR ALL USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Enable all access for authenticated users" ON departments;
 CREATE POLICY "Enable all access for authenticated users" ON departments
     FOR ALL USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Enable all access for authenticated users" ON positions;
 CREATE POLICY "Enable all access for authenticated users" ON positions
     FOR ALL USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Enable all access for authenticated users" ON organization_chart;
 CREATE POLICY "Enable all access for authenticated users" ON organization_chart
     FOR ALL USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Enable all access for authenticated users" ON banks;
 CREATE POLICY "Enable all access for authenticated users" ON banks
     FOR ALL USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Enable all access for authenticated users" ON creditors;
 CREATE POLICY "Enable all access for authenticated users" ON creditors
     FOR ALL USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Enable all access for authenticated users" ON timeoff_types;
 CREATE POLICY "Enable all access for authenticated users" ON timeoff_types
     FOR ALL USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Enable all access for authenticated users" ON employees;
 CREATE POLICY "Enable all access for authenticated users" ON employees
     FOR ALL USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Enable all access for authenticated users" ON timeoffs;
 CREATE POLICY "Enable all access for authenticated users" ON timeoffs
     FOR ALL USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Enable all access for authenticated users" ON terminations;
 CREATE POLICY "Enable all access for authenticated users" ON terminations
     FOR ALL USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Enable all access for authenticated users" ON schedules;
 CREATE POLICY "Enable all access for authenticated users" ON schedules
     FOR ALL USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Enable all access for authenticated users" ON employee_schedules;
 CREATE POLICY "Enable all access for authenticated users" ON employee_schedules
     FOR ALL USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Enable all access for authenticated users" ON timelogs;
 CREATE POLICY "Enable all access for authenticated users" ON timelogs
     FOR ALL USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Enable all access for authenticated users" ON attendance_sheets;
 CREATE POLICY "Enable all access for authenticated users" ON attendance_sheets
     FOR ALL USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Enable all access for authenticated users" ON payrolls;
 CREATE POLICY "Enable all access for authenticated users" ON payrolls
     FOR ALL USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Enable all access for authenticated users" ON payroll_deductions;
 CREATE POLICY "Enable all access for authenticated users" ON payroll_deductions
     FOR ALL USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Enable all access for authenticated users" ON employee_payrolls;
 CREATE POLICY "Enable all access for authenticated users" ON employee_payrolls
     FOR ALL USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Enable all access for authenticated users" ON payroll_payments;
 CREATE POLICY "Enable all access for authenticated users" ON payroll_payments
     FOR ALL USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Enable all access for authenticated users" ON payroll_debts;
 CREATE POLICY "Enable all access for authenticated users" ON payroll_debts
     FOR ALL USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Enable all access for authenticated users" ON payroll_payment_employees;
 CREATE POLICY "Enable all access for authenticated users" ON payroll_payment_employees
     FOR ALL USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Enable all access for authenticated users" ON payroll_payment_employee_items;
 CREATE POLICY "Enable all access for authenticated users" ON payroll_payment_employee_items
     FOR ALL USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Enable all access for authenticated users" ON emergency_contacts;
 CREATE POLICY "Enable all access for authenticated users" ON emergency_contacts
     FOR ALL USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Enable all access for authenticated users" ON employee_documents;
 CREATE POLICY "Enable all access for authenticated users" ON employee_documents
     FOR ALL USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Enable all access for authenticated users" ON employee_notes;
 CREATE POLICY "Enable all access for authenticated users" ON employee_notes
     FOR ALL USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Enable all access for authenticated users" ON employee_skills;
 CREATE POLICY "Enable all access for authenticated users" ON employee_skills
     FOR ALL USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Enable all access for authenticated users" ON employee_languages;
 CREATE POLICY "Enable all access for authenticated users" ON employee_languages
     FOR ALL USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Enable all access for authenticated users" ON employee_disabilities;
 CREATE POLICY "Enable all access for authenticated users" ON employee_disabilities
     FOR ALL USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Enable all access for authenticated users" ON document_requests;
 CREATE POLICY "Enable all access for authenticated users" ON document_requests
     FOR ALL USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Enable all access for authenticated users" ON complaints;
 CREATE POLICY "Enable all access for authenticated users" ON complaints
     FOR ALL USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Enable all access for authenticated users" ON complaint_messages;
 CREATE POLICY "Enable all access for authenticated users" ON complaint_messages
     FOR ALL USING (auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "Enable all access for authenticated users" ON settings;
 CREATE POLICY "Enable all access for authenticated users" ON settings
     FOR ALL USING (auth.role() = 'authenticated');
 
