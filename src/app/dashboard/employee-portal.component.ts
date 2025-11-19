@@ -1558,11 +1558,11 @@ export class EmployeePortalComponent {
       .filter((x) => x !== null) // Remover logs con fechas inválidas
       .reduce<any[]>((acc, x) => {
         if (!x) return acc; // Skip si x es null
-        
+
         const existing = acc.find((item) => item.day === x.day);
         const logDate = new Date(x.created_at);
         const logBranch = x.branch || null; // Validar que branch exista
-        
+
         if (!existing) {
           acc.push({
             day: x.day,
@@ -1793,7 +1793,10 @@ export class EmployeePortalComponent {
   public sendingReply = signal(false);
 
   // Helper methods
-  public calculateWorkedHours(entry: Date | null | undefined, exit: Date | null | undefined): string {
+  public calculateWorkedHours(
+    entry: Date | null | undefined,
+    exit: Date | null | undefined
+  ): string {
     // Validar que ambas fechas existan
     if (!entry || !exit) {
       return '-';
@@ -1802,14 +1805,14 @@ export class EmployeePortalComponent {
     // Validar que las fechas sean válidas
     const entryDate = new Date(entry);
     const exitDate = new Date(exit);
-    
+
     if (isNaN(entryDate.getTime()) || isNaN(exitDate.getTime())) {
       return '-';
     }
 
     // Calcular diferencia en minutos
     const minutes = differenceInMinutes(exitDate, entryDate);
-    
+
     // Validar que la diferencia no sea negativa
     if (minutes < 0) {
       return '0h 0m';
@@ -1820,7 +1823,10 @@ export class EmployeePortalComponent {
     return `${hours}h ${mins}m`;
   }
 
-  public calculateDays(start: Date | string | null | undefined, end: Date | string | null | undefined): number {
+  public calculateDays(
+    start: Date | string | null | undefined,
+    end: Date | string | null | undefined
+  ): number {
     // Validar que ambas fechas existan
     if (!start || !end) {
       return 0;
@@ -1829,7 +1835,7 @@ export class EmployeePortalComponent {
     // Crear objetos Date y validar que sean fechas válidas
     const startDate = new Date(start);
     const endDate = new Date(end);
-    
+
     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
       return 0;
     }
@@ -1842,7 +1848,7 @@ export class EmployeePortalComponent {
     // Calcular diferencia en días
     const diffTime = endDate.getTime() - startDate.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     // Incluir ambos días (inicio y fin)
     return diffDays + 1;
   }
@@ -1871,15 +1877,17 @@ export class EmployeePortalComponent {
     }
 
     const file = event.files[0];
-    
+
     // Validar tamaño del archivo (máximo 10MB)
     const maxFileSize = 10 * 1024 * 1024; // 10MB en bytes
     if (file.size > maxFileSize) {
       this.messageService.add({
         severity: 'error',
         summary: 'Archivo Demasiado Grande',
-        detail: 'El archivo no puede exceder 10MB. Tamaño actual: ' + 
-                (file.size / (1024 * 1024)).toFixed(2) + 'MB',
+        detail:
+          'El archivo no puede exceder 10MB. Tamaño actual: ' +
+          (file.size / (1024 * 1024)).toFixed(2) +
+          'MB',
       });
       this.selectedFile.set(null);
       return;
@@ -1895,8 +1903,12 @@ export class EmployeePortalComponent {
     ];
     const fileExt = file.name.split('.').pop()?.toLowerCase();
     const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'gif'];
-    
-    if (!file.type || (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExt || ''))) {
+
+    if (
+      !file.type ||
+      (!allowedTypes.includes(file.type) &&
+        !allowedExtensions.includes(fileExt || ''))
+    ) {
       this.messageService.add({
         severity: 'error',
         summary: 'Tipo de Archivo No Válido',
@@ -1998,7 +2010,8 @@ export class EmployeePortalComponent {
     try {
       const updateData: any = {};
       if (this.editEmail()) updateData.email = this.editEmail().trim();
-      if (this.editWorkEmail()) updateData.work_email = this.editWorkEmail().trim();
+      if (this.editWorkEmail())
+        updateData.work_email = this.editWorkEmail().trim();
       if (this.editPhone()) updateData.phone_number = this.editPhone().trim();
       if (this.editAddress()) updateData.address = this.editAddress().trim();
 
@@ -2056,7 +2069,7 @@ export class EmployeePortalComponent {
     // Validar que las fechas sean válidas
     const startDate = new Date(this.disabilityStartDate()!);
     const endDate = new Date(this.disabilityEndDate()!);
-    
+
     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
       this.messageService.add({
         severity: 'error',
@@ -2071,7 +2084,8 @@ export class EmployeePortalComponent {
       this.messageService.add({
         severity: 'error',
         summary: 'Error de Fechas',
-        detail: 'La fecha de fin debe ser posterior o igual a la fecha de inicio',
+        detail:
+          'La fecha de fin debe ser posterior o igual a la fecha de inicio',
       });
       return;
     }
@@ -2081,7 +2095,7 @@ export class EmployeePortalComponent {
     today.setHours(0, 0, 0, 0);
     const maxFutureDate = new Date(today);
     maxFutureDate.setDate(maxFutureDate.getDate() + 1);
-    
+
     if (startDate > maxFutureDate) {
       this.messageService.add({
         severity: 'error',
@@ -2094,13 +2108,15 @@ export class EmployeePortalComponent {
     // Validar tamaño del archivo (máximo 10MB)
     const file = this.selectedFile()!;
     const maxFileSize = 10 * 1024 * 1024; // 10MB en bytes
-    
+
     if (file.size > maxFileSize) {
       this.messageService.add({
         severity: 'error',
         summary: 'Archivo Demasiado Grande',
-        detail: 'El archivo no puede exceder 10MB. Tamaño actual: ' + 
-                (file.size / (1024 * 1024)).toFixed(2) + 'MB',
+        detail:
+          'El archivo no puede exceder 10MB. Tamaño actual: ' +
+          (file.size / (1024 * 1024)).toFixed(2) +
+          'MB',
       });
       return;
     }
@@ -2115,8 +2131,12 @@ export class EmployeePortalComponent {
     ];
     const fileExt = file.name.split('.').pop()?.toLowerCase();
     const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'gif'];
-    
-    if (!file.type || (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExt || ''))) {
+
+    if (
+      !file.type ||
+      (!allowedTypes.includes(file.type) &&
+        !allowedExtensions.includes(fileExt || ''))
+    ) {
       this.messageService.add({
         severity: 'error',
         summary: 'Tipo de Archivo No Válido',
