@@ -8,108 +8,141 @@ import { HttpClient, httpResource } from '@angular/common/http';
   template: `<header class="bg-gradient-to-r from-neutral-800 via-neutral-700 to-neutral-800 border-b border-neutral-600/50 shadow-md">
       <div class="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
         <div class="block w-full overflow-x-auto">
-          <div class="flex gap-2 min-w-max">
-            <a
-              routerLink="employees"
-              class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
-              [routerLinkActive]="[
-                'bg-gradient-to-r',
-                'from-amber-500/20',
-                'to-amber-600/20',
-                'text-amber-300',
-                'shadow-md'
-              ]"
-              ><i class="pi pi-users text-base"></i> <span>Empleados</span></a
-            >
-            <a
-              routerLink="organigrama"
-              class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
-              [routerLinkActive]="[
-                'bg-gradient-to-r',
-                'from-amber-500/20',
-                'to-amber-600/20',
-                'text-amber-300',
-                'shadow-md'
-              ]"
-              ><i class="pi pi-sitemap text-base"></i> <span>Organigrama</span></a
-            >
-            <a
-              routerLink="companies"
-              class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
-              [routerLinkActive]="[
-                'bg-gradient-to-r',
-                'from-amber-500/20',
-                'to-amber-600/20',
-                'text-amber-300',
-                'shadow-md'
-              ]"
-              ><i class="pi pi-building text-base"></i> <span>Empresas</span></a
-            >
-            <a
-              routerLink="positions"
-              class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
-              [routerLinkActive]="[
-                'bg-gradient-to-r',
-                'from-amber-500/20',
-                'to-amber-600/20',
-                'text-amber-300',
-                'shadow-md'
-              ]"
-              ><i class="pi pi-user-plus text-base"></i> <span>Cargos</span></a
-            >
-            <a
-              routerLink="branches"
-              class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
-              [routerLinkActive]="[
-                'bg-gradient-to-r',
-                'from-amber-500/20',
-                'to-amber-600/20',
-                'text-amber-300',
-                'shadow-md'
-              ]"
-              ><i class="pi pi-shop text-base"></i> <span>Sucursales</span></a
-            >
-            <a
-              routerLink="departments"
-              class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
-              [routerLinkActive]="[
-                'bg-gradient-to-r',
-                'from-amber-500/20',
-                'to-amber-600/20',
-                'text-amber-300',
-                'shadow-md'
-              ]"
-              ><i class="pi pi-sitemap text-base"></i> <span>Areas</span></a
-            >
-            <a
-              routerLink="settings"
-              class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
-              [routerLinkActive]="[
-                'bg-gradient-to-r',
-                'from-amber-500/20',
-                'to-amber-600/20',
-                'text-amber-300',
-                'shadow-md'
-              ]"
-              ><i class="pi pi-cog text-base"></i> <span>Configuración</span></a
-            >
-            <a
-              routerLink="complaints-inbox"
-              class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200 relative"
-              [routerLinkActive]="[
-                'bg-gradient-to-r',
-                'from-amber-500/20',
-                'to-amber-600/20',
-                'text-amber-300',
-                'shadow-md'
-              ]"
-              ><i class="pi pi-inbox text-base"></i> <span>Buzón</span>
-              @if (unreadCount() > 0) {
-                <span class="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shadow-lg">
-                  {{ unreadCount() > 99 ? '99+' : unreadCount() }}
-                </span>
-              }
-            </a>
+          <div class="flex gap-3 min-w-max">
+            <!-- Sección RRHH -->
+            <div class="flex items-center gap-2 px-2 border-r border-neutral-600/50 pr-3">
+              <span class="text-xs font-semibold text-amber-400/70 uppercase tracking-wider">RRHH</span>
+              <div class="flex gap-2">
+                <a
+                  routerLink="hr/disabilities"
+                  class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
+                  [routerLinkActive]="[
+                    'bg-gradient-to-r',
+                    'from-amber-500/20',
+                    'to-amber-600/20',
+                    'text-amber-300',
+                    'shadow-md'
+                  ]"
+                  ><i class="pi pi-heart text-base"></i> <span>Incapacidades</span></a
+                >
+              </div>
+            </div>
+
+            <!-- Sección Organización -->
+            <div class="flex items-center gap-2 px-2 border-r border-neutral-600/50 pr-3">
+              <span class="text-xs font-semibold text-amber-400/70 uppercase tracking-wider">Organización</span>
+              <div class="flex gap-2">
+                <a
+                  routerLink="employees"
+                  class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
+                  [routerLinkActive]="[
+                    'bg-gradient-to-r',
+                    'from-amber-500/20',
+                    'to-amber-600/20',
+                    'text-amber-300',
+                    'shadow-md'
+                  ]"
+                  ><i class="pi pi-users text-base"></i> <span>Empleados</span></a
+                >
+                <a
+                  routerLink="organigrama"
+                  class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
+                  [routerLinkActive]="[
+                    'bg-gradient-to-r',
+                    'from-amber-500/20',
+                    'to-amber-600/20',
+                    'text-amber-300',
+                    'shadow-md'
+                  ]"
+                  ><i class="pi pi-sitemap text-base"></i> <span>Organigrama</span></a
+                >
+                <a
+                  routerLink="companies"
+                  class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
+                  [routerLinkActive]="[
+                    'bg-gradient-to-r',
+                    'from-amber-500/20',
+                    'to-amber-600/20',
+                    'text-amber-300',
+                    'shadow-md'
+                  ]"
+                  ><i class="pi pi-building text-base"></i> <span>Empresas</span></a
+                >
+                <a
+                  routerLink="positions"
+                  class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
+                  [routerLinkActive]="[
+                    'bg-gradient-to-r',
+                    'from-amber-500/20',
+                    'to-amber-600/20',
+                    'text-amber-300',
+                    'shadow-md'
+                  ]"
+                  ><i class="pi pi-user-plus text-base"></i> <span>Cargos</span></a
+                >
+                <a
+                  routerLink="branches"
+                  class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
+                  [routerLinkActive]="[
+                    'bg-gradient-to-r',
+                    'from-amber-500/20',
+                    'to-amber-600/20',
+                    'text-amber-300',
+                    'shadow-md'
+                  ]"
+                  ><i class="pi pi-shop text-base"></i> <span>Sucursales</span></a
+                >
+                <a
+                  routerLink="departments"
+                  class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
+                  [routerLinkActive]="[
+                    'bg-gradient-to-r',
+                    'from-amber-500/20',
+                    'to-amber-600/20',
+                    'text-amber-300',
+                    'shadow-md'
+                  ]"
+                  ><i class="pi pi-sitemap text-base"></i> <span>Areas</span></a
+                >
+              </div>
+            </div>
+
+            <!-- Sección Configuración -->
+            <div class="flex items-center gap-2 px-2 border-r border-neutral-600/50 pr-3">
+              <a
+                routerLink="settings"
+                class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
+                [routerLinkActive]="[
+                  'bg-gradient-to-r',
+                  'from-amber-500/20',
+                  'to-amber-600/20',
+                  'text-amber-300',
+                  'shadow-md'
+                ]"
+                ><i class="pi pi-cog text-base"></i> <span>Configuración</span></a
+              >
+            </div>
+
+            <!-- Sección Buzón de Quejas -->
+            <div class="flex items-center gap-2 px-2">
+              <a
+                routerLink="complaints-inbox"
+                class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200 relative"
+                [routerLinkActive]="[
+                  'bg-gradient-to-r',
+                  'from-amber-500/20',
+                  'to-amber-600/20',
+                  'text-amber-300',
+                  'shadow-md'
+                ]"
+                ><i class="pi pi-inbox text-base"></i> <span>Buzón de Quejas</span>
+                @if (unreadCount() > 0) {
+                  <span class="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shadow-lg">
+                    {{ unreadCount() > 99 ? '99+' : unreadCount() }}
+                  </span>
+                }
+              </a>
+            </div>
           </div>
         </div>
       </div>

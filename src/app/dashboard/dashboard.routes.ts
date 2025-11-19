@@ -97,6 +97,19 @@ export const DASHBOARD_ROUTES: Routes = [
                 (x) => x.ComplaintsInboxComponent
               ),
           },
+          {
+            path: 'hr',
+            children: [
+              {
+                path: 'disabilities',
+                loadComponent: () =>
+                  import('./hr-disabilities.component').then(
+                    (x) => x.HRDisabilitiesComponent
+                  ),
+              },
+              { path: '', redirectTo: 'disabilities', pathMatch: 'full' },
+            ],
+          },
           { path: '', redirectTo: 'employees', pathMatch: 'full' },
         ],
       },
