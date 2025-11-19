@@ -173,33 +173,35 @@ export class PayrollSummaryComponent {
   });
 
   public completedByBranch = computed(() => {
+    const MAX_AMOUNT = 999999999; // Límite máximo para evitar overflow
+    
+    const safeSum = (items: any[], type: string): number => {
+      return items
+        ?.filter((item) => item.type === type)
+        .reduce((acc, item) => {
+          const amount = item.amount || 0;
+          if (isNaN(amount) || amount < 0 || amount > MAX_AMOUNT) {
+            return acc;
+          }
+          const newTotal = acc + amount;
+          return newTotal > MAX_AMOUNT ? MAX_AMOUNT : newTotal;
+        }, 0) || 0;
+    };
+    
     return this.completed.value()?.reduce((acc, item) => {
+      const totalIncome = safeSum(item.items || [], 'income');
+      const totalDeductions = safeSum(item.items || [], 'deduction');
+      const totalDebt = safeSum(item.items || [], 'debt');
+      const total = Math.max(0, totalIncome - totalDeductions - totalDebt);
+      
       acc[item.employee?.branch?.name || 'N/A'] = [
         ...(acc[item.employee?.branch?.name || 'N/A'] || []),
         {
           ...item,
-          total_deductions:
-            item.items
-              ?.filter((item) => item.type === 'deduction')
-              .reduce((acc, item) => acc + item.amount, 0) || 0,
-          total_income:
-            item.items
-              ?.filter((item) => item.type === 'income')
-              .reduce((acc, item) => acc + item.amount, 0) || 0,
-          total:
-            (item.items
-              ?.filter((item) => item.type === 'income')
-              .reduce((acc, item) => acc + item.amount, 0) || 0) -
-            (item.items
-              ?.filter((item) => item.type === 'deduction')
-              .reduce((acc, item) => acc + item.amount, 0) || 0) -
-            (item.items
-              ?.filter((item) => item.type === 'debt')
-              .reduce((acc, item) => acc + item.amount, 0) || 0),
-          total_debt:
-            item.items
-              ?.filter((item) => item.type === 'debt')
-              .reduce((acc, item) => acc + item.amount, 0) || 0,
+          total_deductions: totalDeductions,
+          total_income: totalIncome,
+          total: total,
+          total_debt: totalDebt,
         },
       ];
       return acc;

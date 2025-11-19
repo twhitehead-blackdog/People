@@ -22,7 +22,13 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
             errorMessage = 'Solicitud incorrecta. Por favor, verifica los datos.';
             break;
           case 401:
-            errorMessage = 'No autorizado. Por favor, inicia sesión nuevamente.';
+            errorMessage = 'Tu sesion ha expirado. Por favor, inicia sesion nuevamente.';
+            // Invalidar cache del guard si existe
+            if (typeof window !== 'undefined') {
+              // Limpiar cualquier dato de sesión local
+              sessionStorage.clear();
+              localStorage.removeItem('auth_token');
+            }
             router.navigate(['/login']);
             break;
           case 403:

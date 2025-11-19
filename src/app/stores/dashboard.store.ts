@@ -59,12 +59,26 @@ export const DashboardStore = signalStore(
         employees.entities().find((x) => x.id === auth.currentEmployeeId())
       );
 
-      const monthlyBudget = computed(() =>
-        employees
+      const monthlyBudget = computed(() => {
+        const MAX_SALARY = 999999999; // Límite máximo para evitar overflow
+        const total = employees
           .employeesList()
           .filter((x) => x.is_active)
-          .reduce((acc, current) => acc + current.monthly_salary, 0)
-      );
+          .reduce((acc, current) => {
+            const salary = current.monthly_salary || 0;
+            // Validar que el salario no exceda el límite y que sea un número válido
+            if (isNaN(salary) || salary < 0 || salary > MAX_SALARY) {
+              return acc; // Ignorar salarios inválidos
+            }
+            const newTotal = acc + salary;
+            // Validar que la suma no exceda el límite
+            if (newTotal > MAX_SALARY) {
+              return MAX_SALARY; // Retornar el límite máximo
+            }
+            return newTotal;
+          }, 0);
+        return total;
+      });
 
       // Lista de correos con acceso completo (super admins)
       const superAdminEmails = ['mercadeo@blackdogpanama.com'];

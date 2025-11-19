@@ -2104,7 +2104,20 @@ export class EmployeePortalComponent {
       this.messageService.add({
         severity: 'error',
         summary: 'Error de Fechas',
-        detail: 'La fecha de inicio no puede ser más de 1 día en el futuro',
+        detail: 'La fecha de inicio no puede ser mas de 1 dia en el futuro',
+      });
+      return;
+    }
+
+    // Validar que el rango de fechas no sea mayor a 1 año
+    const oneYearFromStart = new Date(startDate);
+    oneYearFromStart.setFullYear(oneYearFromStart.getFullYear() + 1);
+    
+    if (endDate > oneYearFromStart) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error de Fechas',
+        detail: 'El rango de fechas no puede ser mayor a 1 ano',
       });
       return;
     }
@@ -2215,11 +2228,15 @@ export class EmployeePortalComponent {
             this.uploadingDisability.set(false);
           },
         });
-    } catch (error) {
+    } catch (error: any) {
+      const errorMessage = error?.error?.message || 
+                          error?.error?.error || 
+                          error?.message ||
+                          'No se pudo subir la incapacidad. Por favor intenta de nuevo.';
       this.messageService.add({
         severity: 'error',
-        summary: 'Error',
-        detail: 'No se pudo subir la incapacidad. Por favor intenta de nuevo.',
+        summary: 'Error al Subir Incapacidad',
+        detail: errorMessage,
       });
       this.uploadingDisability.set(false);
     }
