@@ -733,20 +733,23 @@ import { EmployeesStore } from '../stores/employees.store';
                 <p-fileUpload
                   mode="basic"
                   accept="image/*,.pdf"
-                  maxFileSize="5000000"
+                  maxFileSize="10000000"
                   [auto]="false"
                   chooseLabel="Seleccionar Archivo"
                   (onSelect)="onFileSelect($event)"
                   class="w-full"
                 />
                 <p class="text-xs text-gray-500 mt-2">
-                  Formatos permitidos: PDF, JPG, PNG (máx. 5MB)
+                  Formatos permitidos: PDF, JPG, PNG (máx. 10MB)
+                </p>
+                <p class="text-xs text-gray-400 mt-1" *ngIf="!selectedFile()">
+                  No se ha seleccionado ningún archivo
                 </p>
               </div>
               <div class="flex justify-end">
                 <p-button
-                  label="Subir Incapacidad"
-                  icon="pi pi-upload"
+                  label="Enviar Incapacidad"
+                  icon="pi pi-send"
                   [loading]="uploadingDisability()"
                   (click)="uploadDisability()"
                 />
@@ -774,6 +777,7 @@ import { EmployeesStore } from '../stores/employees.store';
                       <th>Fecha de Inicio</th>
                       <th>Fecha de Fin</th>
                       <th>Días</th>
+                      <th>Descripción</th>
                       <th>Estado</th>
                       <th>Documento</th>
                     </tr>
@@ -789,6 +793,24 @@ import { EmployeesStore } from '../stores/employees.store';
                             disability.end_date
                           )
                         }}
+                      </td>
+                      <td>
+                        @if(disability.description) {
+                        <span
+                          class="text-sm text-gray-300 cursor-help"
+                          [pTooltip]="disability.description"
+                          tooltipPosition="top"
+                          [style.max-width.px]="150"
+                          [style.display]="'inline-block'"
+                          [style.overflow]="'hidden'"
+                          [style.text-overflow]="'ellipsis'"
+                          [style.white-space]="'nowrap'"
+                        >
+                          {{ disability.description }}
+                        </span>
+                        } @else {
+                        <span class="text-gray-500 text-sm">-</span>
+                        }
                       </td>
                       <td>
                         <span
@@ -2179,13 +2201,37 @@ export class EmployeePortalComponent {
         }/${Date.now()}.${fileExt}`;
         const filePath = `disabilities/${fileName}`;
 
-        // Upload to Supabase Storage
+        // Upload to Supabase Storage using REST API
         const formData = new FormData();
-        formData.append('file', file);
+        formData.append('file', file, fileName);
 
-        // Note: You may need to adjust this based on your Supabase storage setup
-        // For now, we'll store the file name and handle upload separately
-        documentUrl = filePath;
+        try {
+          const uploadResponse = await firstValueFrom(
+            this.http.post(
+              `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/disabilities/${fileName}`,
+              file,
+              {
+                headers: {
+                  'apikey': process.env['ENV_SUPABASE_API_KEY'] ?? '',
+                  'Authorization': `Bearer ${process.env['ENV_SUPABASE_API_KEY'] ?? ''}`,
+                  'Content-Type': file.type || 'application/octet-stream',
+                },
+              }
+            )
+          );
+          
+          // Get public URL for the uploaded file
+          documentUrl = `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/public/disabilities/${fileName}`;
+        } catch (uploadError: any) {
+          console.error('Error uploading file to storage:', uploadError);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error al Subir Archivo',
+            detail: 'No se pudo subir el archivo. Por favor intenta de nuevo.',
+          });
+          this.uploadingDisability.set(false);
+          return;
+        }
       }
 
       // Create disability record
