@@ -697,12 +697,27 @@ export class TimelogsComponent {
               acc[index].exit.date,
               acc[index].entry.date
             );
-            const lunchTime = acc[index].lunch_start && acc[index].lunch_end
-              ? differenceInMinutes(acc[index].lunch_end.date, acc[index].lunch_start.date)
-              : 0;
+            // Validar y calcular tiempo de almuerzo
+            let lunchTime = 0;
+            if (acc[index].lunch_start && acc[index].lunch_end) {
+              const lunchStart = acc[index].lunch_start.date;
+              const lunchEnd = acc[index].lunch_end.date;
+              
+              // Validar que las fechas sean válidas
+              if (lunchStart && lunchEnd && 
+                  !isNaN(new Date(lunchStart).getTime()) && 
+                  !isNaN(new Date(lunchEnd).getTime())) {
+                const diff = differenceInMinutes(lunchEnd, lunchStart);
+                // Solo usar si la diferencia es positiva y razonable (máximo 3 horas)
+                if (diff > 0 && diff <= 180) {
+                  lunchTime = diff;
+                }
+              }
+            }
             
             const workMinutes = totalMinutes - lunchTime;
-            const totalHours = totalMinutes / 60;
+            // Validar que totalMinutes sea válido antes de dividir
+            const totalHours = totalMinutes > 0 ? totalMinutes / 60 : 0;
             acc[index].totalHours = totalHours;
           }
         } else {
@@ -743,7 +758,7 @@ export class TimelogsComponent {
         if (range === '1-5') {
           return exceededMinutes >= 1 && exceededMinutes <= 5;
         } else if (range === '5-10') {
-          return exceededMinutes > 5 && exceededMinutes <= 10;
+          return exceededMinutes >= 5 && exceededMinutes <= 10; // Incluir el 5 para consistencia
         } else if (range === '10+') {
           return exceededMinutes > 10;
         }
@@ -772,13 +787,39 @@ export class TimelogsComponent {
     if (!time1 || !time2) {
       return 0;
     }
-    const timeStart = new Date();
-    const timeEnd = new Date();
+
+    // Validar formato de hora (debe tener :)
+    if (!time1.includes(':') || !time2.includes(':')) {
+      return 0;
+    }
+
     const valueStart = time1.split(':');
     const valueEnd = time2.split(':');
 
-    timeStart.setHours(+valueStart[0], +valueStart[1], 0, 0);
-    timeEnd.setHours(+valueEnd[0], +valueEnd[1], 0, 0);
+    // Validar que tenga al menos horas y minutos
+    if (valueStart.length < 2 || valueEnd.length < 2) {
+      return 0;
+    }
+
+    const hours1 = parseInt(valueStart[0], 10);
+    const minutes1 = parseInt(valueStart[1], 10);
+    const hours2 = parseInt(valueEnd[0], 10);
+    const minutes2 = parseInt(valueEnd[1], 10);
+
+    // Validar que sean números válidos y estén en rango
+    if (
+      isNaN(hours1) || isNaN(minutes1) || isNaN(hours2) || isNaN(minutes2) ||
+      hours1 < 0 || hours1 > 23 || minutes1 < 0 || minutes1 > 59 ||
+      hours2 < 0 || hours2 > 23 || minutes2 < 0 || minutes2 > 59
+    ) {
+      return 0;
+    }
+
+    const timeStart = new Date();
+    const timeEnd = new Date();
+
+    timeStart.setHours(hours1, minutes1, 0, 0);
+    timeEnd.setHours(hours2, minutes2, 0, 0);
 
     return differenceInMinutes(timeStart, timeEnd);
   };

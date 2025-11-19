@@ -1,5 +1,6 @@
 import { CurrencyPipe, DatePipe, NgClass } from '@angular/common';
 import { HttpClient, httpResource } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -2015,8 +2016,8 @@ export class EmployeePortalComponent {
       if (this.editPhone()) updateData.phone_number = this.editPhone().trim();
       if (this.editAddress()) updateData.address = this.editAddress().trim();
 
-      await this.http
-        .patch(
+      await firstValueFrom(
+        this.http.patch(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees?id=eq.${
             this.currentEmployee()!.id
           }`,
@@ -2028,7 +2029,7 @@ export class EmployeePortalComponent {
             },
           }
         )
-        .toPromise();
+      );
 
       this.messageService.add({
         severity: 'success',
@@ -2041,10 +2042,13 @@ export class EmployeePortalComponent {
       this.editMode.set(false);
     } catch (error: any) {
       console.error('Error updating personal data:', error);
+      const errorMessage = error?.error?.message || 
+                          error?.message || 
+                          'No se pudieron actualizar los datos. Por favor intenta de nuevo.';
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'No se pudieron actualizar los datos',
+        detail: errorMessage,
       });
     } finally {
       this.savingPersonalData.set(false);
@@ -2199,12 +2203,14 @@ export class EmployeePortalComponent {
           },
           error: (error) => {
             console.error('Error uploading disability:', error);
+            const errorMessage = error?.error?.message || 
+                                error?.error?.error || 
+                                error?.message ||
+                                'No se pudo subir la incapacidad. Por favor intenta de nuevo.';
             this.messageService.add({
               severity: 'error',
-              summary: 'Error',
-              detail:
-                error.error?.message ||
-                'No se pudo subir la incapacidad. Por favor intenta de nuevo.',
+              summary: 'Error al Subir Incapacidad',
+              detail: errorMessage,
             });
             this.uploadingDisability.set(false);
           },
@@ -2336,8 +2342,8 @@ export class EmployeePortalComponent {
             };
 
             try {
-              await this.http
-                .post(
+              await firstValueFrom(
+                this.http.post(
                   `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages`,
                   messageData,
                   {
@@ -2347,7 +2353,7 @@ export class EmployeePortalComponent {
                     },
                   }
                 )
-                .toPromise();
+              );
 
               this.messageService.add({
                 severity: 'success',
@@ -2454,8 +2460,8 @@ export class EmployeePortalComponent {
     // Marcar todos los mensajes de HR como leídos
     for (const message of unreadMessages) {
       try {
-        await this.http
-          .patch(
+        await firstValueFrom(
+          this.http.patch(
             `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages?id=eq.${message.id}`,
             { is_read: true, read_at: new Date().toISOString() },
             {
@@ -2465,7 +2471,7 @@ export class EmployeePortalComponent {
               },
             }
           )
-          .toPromise();
+        );
       } catch (error: any) {
         console.error('Error marking message as read:', error);
       }
@@ -2511,8 +2517,8 @@ export class EmployeePortalComponent {
     };
 
     try {
-      await this.http
-        .post(
+      await firstValueFrom(
+        this.http.post(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages`,
           messageData,
           {
@@ -2522,7 +2528,7 @@ export class EmployeePortalComponent {
             },
           }
         )
-        .toPromise();
+      );
 
       this.messageService.add({
         severity: 'success',
