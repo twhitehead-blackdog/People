@@ -1904,11 +1904,11 @@ export class EmployeePortalComponent {
     const fileExt = file.name.split('.').pop()?.toLowerCase();
     const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'gif'];
 
-    if (
-      !file.type ||
-      (!allowedTypes.includes(file.type) &&
-        !allowedExtensions.includes(fileExt || ''))
-    ) {
+    // Validar por tipo MIME o por extensión si el tipo no está disponible
+    const isValidType = file.type && allowedTypes.includes(file.type);
+    const isValidExtension = fileExt && allowedExtensions.includes(fileExt);
+
+    if (!isValidType && !isValidExtension) {
       this.messageService.add({
         severity: 'error',
         summary: 'Tipo de Archivo No Válido',
@@ -2132,11 +2132,11 @@ export class EmployeePortalComponent {
     const fileExt = file.name.split('.').pop()?.toLowerCase();
     const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'gif'];
 
-    if (
-      !file.type ||
-      (!allowedTypes.includes(file.type) &&
-        !allowedExtensions.includes(fileExt || ''))
-    ) {
+    // Validar por tipo MIME o por extensión si el tipo no está disponible
+    const isValidType = file.type && allowedTypes.includes(file.type);
+    const isValidExtension = fileExt && allowedExtensions.includes(fileExt);
+
+    if (!isValidType && !isValidExtension) {
       this.messageService.add({
         severity: 'error',
         summary: 'Tipo de Archivo No Válido',
