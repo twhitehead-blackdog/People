@@ -14,52 +14,84 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
--- 2. Eliminar políticas existentes si existen (para evitar conflictos)
-DROP POLICY IF EXISTS "Permitir subida de archivos de incapacidades" ON storage.objects;
-DROP POLICY IF EXISTS "Permitir subida con API Key" ON storage.objects;
-DROP POLICY IF EXISTS "Permitir lectura de archivos de incapacidades" ON storage.objects;
-DROP POLICY IF EXISTS "Permitir actualización de archivos propios" ON storage.objects;
-DROP POLICY IF EXISTS "Permitir eliminación de archivos propios" ON storage.objects;
+-- 2. Crear políticas solo si no existen (versión segura sin DROP)
+-- Esto evita operaciones destructivas y es seguro ejecutar múltiples veces
 
--- 3. Política para permitir INSERT (subir archivos)
--- Como estamos usando API Key (anon), permitimos subida con anon
--- Esto es necesario porque la aplicación usa ENV_SUPABASE_API_KEY
-CREATE POLICY "Permitir subida de archivos de incapacidades"
-ON storage.objects
-FOR INSERT
-TO anon
-WITH CHECK (
-  bucket_id = 'disabilities'
-);
+-- Política para INSERT (subir archivos) - Usando API Key (anon)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE schemaname = 'storage' 
+    AND tablename = 'objects' 
+    AND policyname = 'Permitir subida de archivos de incapacidades'
+  ) THEN
+    CREATE POLICY "Permitir subida de archivos de incapacidades"
+    ON storage.objects
+    FOR INSERT
+    TO anon
+    WITH CHECK (
+      bucket_id = 'disabilities'
+    );
+  END IF;
+END $$;
 
--- 4. Política para SELECT (descargar/leer archivos) - Público
-CREATE POLICY "Permitir lectura de archivos de incapacidades"
-ON storage.objects
-FOR SELECT
-TO public
-USING (
-  bucket_id = 'disabilities'
-);
+-- Política para SELECT (descargar/leer archivos) - Público
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE schemaname = 'storage' 
+    AND tablename = 'objects' 
+    AND policyname = 'Permitir lectura de archivos de incapacidades'
+  ) THEN
+    CREATE POLICY "Permitir lectura de archivos de incapacidades"
+    ON storage.objects
+    FOR SELECT
+    TO public
+    USING (
+      bucket_id = 'disabilities'
+    );
+  END IF;
+END $$;
 
--- 5. Política para UPDATE (actualizar archivos) - Opcional, solo anon por ahora
--- Nota: Si necesitas restricciones más estrictas, puedes ajustar esto
-CREATE POLICY "Permitir actualización de archivos de incapacidades"
-ON storage.objects
-FOR UPDATE
-TO anon
-USING (
-  bucket_id = 'disabilities'
-);
+-- Política para UPDATE (actualizar archivos) - Opcional
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE schemaname = 'storage' 
+    AND tablename = 'objects' 
+    AND policyname = 'Permitir actualización de archivos de incapacidades'
+  ) THEN
+    CREATE POLICY "Permitir actualización de archivos de incapacidades"
+    ON storage.objects
+    FOR UPDATE
+    TO anon
+    USING (
+      bucket_id = 'disabilities'
+    );
+  END IF;
+END $$;
 
--- 6. Política para DELETE (eliminar archivos) - Opcional, solo anon por ahora
--- Nota: Si necesitas restricciones más estrictas, puedes ajustar esto
-CREATE POLICY "Permitir eliminación de archivos de incapacidades"
-ON storage.objects
-FOR DELETE
-TO anon
-USING (
-  bucket_id = 'disabilities'
-);
+-- Política para DELETE (eliminar archivos) - Opcional
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies 
+    WHERE schemaname = 'storage' 
+    AND tablename = 'objects' 
+    AND policyname = 'Permitir eliminación de archivos de incapacidades'
+  ) THEN
+    CREATE POLICY "Permitir eliminación de archivos de incapacidades"
+    ON storage.objects
+    FOR DELETE
+    TO anon
+    USING (
+      bucket_id = 'disabilities'
+    );
+  END IF;
+END $$;
 
 -- ============================================
 -- NOTAS IMPORTANTES:
