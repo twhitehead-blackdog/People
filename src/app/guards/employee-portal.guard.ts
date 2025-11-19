@@ -14,6 +14,22 @@ let employeeCache: {
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutos
 
 /**
+ * Función para invalidar el cache del guard
+ * Útil cuando el empleado cambia de estado o permisos
+ */
+export function invalidateEmployeeCache(email?: string): void {
+  if (email) {
+    // Invalidar cache solo para un email específico
+    if (employeeCache && employeeCache.email === email) {
+      employeeCache = null;
+    }
+  } else {
+    // Invalidar todo el cache
+    employeeCache = null;
+  }
+}
+
+/**
  * Guard que redirige a empleados normales (no admins) al portal
  * Solo los admins pueden acceder a rutas administrativas
  */
@@ -58,6 +74,14 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
         now - employeeCache.timestamp < CACHE_DURATION
       ) {
         const employee = employeeCache.employee;
+        
+        // Validar que account_approved sea true incluso en cache
+        if (employee.account_approved !== true) {
+          // Invalidar cache si el empleado no está aprobado
+          employeeCache = null;
+          return of(false);
+        }
+        
         const positionName = employee.position?.name || '';
         const isPortalOnlyPosition = portalOnlyPositions.some(
           (pos) => positionName.toLowerCase().includes(pos.toLowerCase())
@@ -114,7 +138,16 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
           }
 
           if (!employee) {
-            return true; // Permitir acceso si no se encuentra el empleado
+            // Si no se encuentra el empleado, invalidar cache y denegar acceso
+            employeeCache = null;
+            return false;
+          }
+
+          // Validar que account_approved sea true antes de permitir acceso
+          if (employee.account_approved !== true) {
+            // Invalidar cache si el empleado no está aprobado
+            employeeCache = null;
+            return false;
           }
 
           const positionName = employee.position?.name || '';
@@ -153,6 +186,13 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
           // Si hay error en la llamada HTTP, usar cache si existe
           if (employeeCache && employeeCache.email === user.email) {
             const employee = employeeCache.employee;
+            
+            // Validar account_approved incluso en cache
+            if (employee.account_approved !== true) {
+              employeeCache = null;
+              return of(false);
+            }
+            
             const positionName = employee.position?.name || '';
             const isPortalOnlyPosition = portalOnlyPositions.some(
               (pos) => positionName.toLowerCase().includes(pos.toLowerCase())
@@ -163,8 +203,8 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
             
             return of(!hasPortalAccessOnly);
           }
-          // Si no hay cache y hay error, permitir acceso por defecto
-          return of(true);
+          // Si no hay cache y hay error, denegar acceso por seguridad
+          return of(false);
         })
       );
     })

@@ -1619,19 +1619,32 @@ export class EmployeePortalComponent {
     return logs
       .filter((log) => {
         const logDate = new Date(log.day);
+        // Solo incluir logs con delay válido y dentro del mes actual
         return (
           logDate >= monthStart &&
           logDate <= monthEnd &&
           log.delay &&
-          typeof log.delay === 'number'
+          typeof log.delay === 'number' &&
+          log.delay > 0
         );
       })
-      .map((log) => ({
-        date: new Date(log.day),
-        scheduled_time: log.schedule?.schedule?.start_time || '-',
-        actual_time: log.entry?.date ? format(log.entry.date, 'HH:mm') : '-',
-        minutes: log.delay as number,
-      }))
+      .map((log) => {
+        // Manejar caso donde schedule puede ser null
+        let scheduledTime = '-';
+        if (log.schedule?.schedule?.entry_time) {
+          const entryTime = new Date(log.schedule.schedule.entry_time);
+          scheduledTime = format(entryTime, 'HH:mm');
+        } else if (log.schedule?.schedule?.start_time) {
+          scheduledTime = log.schedule.schedule.start_time;
+        }
+
+        return {
+          date: new Date(log.day),
+          scheduled_time: scheduledTime,
+          actual_time: log.entry?.date ? format(log.entry.date, 'HH:mm') : '-',
+          minutes: log.delay as number,
+        };
+      })
       .sort((a, b) => b.date.getTime() - a.date.getTime());
   });
 
@@ -1693,7 +1706,10 @@ export class EmployeePortalComponent {
   // Computed: Validación del formulario de quejas
   public canSubmitComplaint = computed(() => {
     const text = this.complaintText();
-    return text && text.trim().length >= 10;
+    if (!text) return false;
+    const trimmedText = text.trim();
+    // Mínimo 20 caracteres, máximo 5000 caracteres
+    return trimmedText.length >= 20 && trimmedText.length <= 5000;
   });
 
   public complaintsApi = httpResource<any[]>(() => {
@@ -1844,7 +1860,53 @@ export class EmployeePortalComponent {
   }
 
   public onFileSelect(event: any): void {
-    this.selectedFile.set(event.files[0]);
+    // Validar que haya archivos seleccionados
+    if (!event.files || event.files.length === 0) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Sin Archivo',
+        detail: 'No se seleccionó ningún archivo',
+      });
+      return;
+    }
+
+    const file = event.files[0];
+    
+    // Validar tamaño del archivo (máximo 10MB)
+    const maxFileSize = 10 * 1024 * 1024; // 10MB en bytes
+    if (file.size > maxFileSize) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Archivo Demasiado Grande',
+        detail: 'El archivo no puede exceder 10MB. Tamaño actual: ' + 
+                (file.size / (1024 * 1024)).toFixed(2) + 'MB',
+      });
+      this.selectedFile.set(null);
+      return;
+    }
+
+    // Validar tipo de archivo
+    const allowedTypes = [
+      'application/pdf',
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/gif',
+    ];
+    const fileExt = file.name.split('.').pop()?.toLowerCase();
+    const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'gif'];
+    
+    if (!file.type || (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExt || ''))) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Tipo de Archivo No Válido',
+        detail: 'Solo se permiten archivos PDF o imágenes (JPG, PNG, GIF)',
+      });
+      this.selectedFile.set(null);
+      return;
+    }
+
+    this.selectedFile.set(file);
   }
 
   // Dashboard computed properties
@@ -1903,16 +1965,42 @@ export class EmployeePortalComponent {
     this.editAddress.set('');
   }
 
+  // Validar formato de email
+  private isValidEmail(email: string): boolean {
+    if (!email || !email.trim()) return false;
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email.trim());
+  }
+
   public async savePersonalData() {
     if (!this.currentEmployee()?.id) return;
+
+    // Validar formato de emails si se proporcionaron
+    if (this.editEmail() && !this.isValidEmail(this.editEmail())) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Email Inválido',
+        detail: 'El formato del email personal no es válido',
+      });
+      return;
+    }
+
+    if (this.editWorkEmail() && !this.isValidEmail(this.editWorkEmail())) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Email Inválido',
+        detail: 'El formato del email laboral no es válido',
+      });
+      return;
+    }
 
     this.savingPersonalData.set(true);
     try {
       const updateData: any = {};
-      if (this.editEmail()) updateData.email = this.editEmail();
-      if (this.editWorkEmail()) updateData.work_email = this.editWorkEmail();
-      if (this.editPhone()) updateData.phone_number = this.editPhone();
-      if (this.editAddress()) updateData.address = this.editAddress();
+      if (this.editEmail()) updateData.email = this.editEmail().trim();
+      if (this.editWorkEmail()) updateData.work_email = this.editWorkEmail().trim();
+      if (this.editPhone()) updateData.phone_number = this.editPhone().trim();
+      if (this.editAddress()) updateData.address = this.editAddress().trim();
 
       await this.http
         .patch(
@@ -1951,6 +2039,7 @@ export class EmployeePortalComponent {
   }
 
   public async uploadDisability(): Promise<void> {
+    // Validar campos requeridos
     if (
       !this.disabilityStartDate() ||
       !this.disabilityEndDate() ||
@@ -1964,14 +2053,84 @@ export class EmployeePortalComponent {
       return;
     }
 
+    // Validar que las fechas sean válidas
+    const startDate = new Date(this.disabilityStartDate()!);
+    const endDate = new Date(this.disabilityEndDate()!);
+    
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error de Fechas',
+        detail: 'Las fechas ingresadas no son válidas',
+      });
+      return;
+    }
+
+    // Validar que endDate sea posterior o igual a startDate
+    if (endDate < startDate) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error de Fechas',
+        detail: 'La fecha de fin debe ser posterior o igual a la fecha de inicio',
+      });
+      return;
+    }
+
+    // Validar que las fechas no sean futuras (más de 1 día en el futuro)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const maxFutureDate = new Date(today);
+    maxFutureDate.setDate(maxFutureDate.getDate() + 1);
+    
+    if (startDate > maxFutureDate) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error de Fechas',
+        detail: 'La fecha de inicio no puede ser más de 1 día en el futuro',
+      });
+      return;
+    }
+
+    // Validar tamaño del archivo (máximo 10MB)
+    const file = this.selectedFile()!;
+    const maxFileSize = 10 * 1024 * 1024; // 10MB en bytes
+    
+    if (file.size > maxFileSize) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Archivo Demasiado Grande',
+        detail: 'El archivo no puede exceder 10MB. Tamaño actual: ' + 
+                (file.size / (1024 * 1024)).toFixed(2) + 'MB',
+      });
+      return;
+    }
+
+    // Validar tipo de archivo (PDF, imágenes comunes)
+    const allowedTypes = [
+      'application/pdf',
+      'image/jpeg',
+      'image/jpg',
+      'image/png',
+      'image/gif',
+    ];
+    const fileExt = file.name.split('.').pop()?.toLowerCase();
+    const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'gif'];
+    
+    if (!file.type || (!allowedTypes.includes(file.type) && !allowedExtensions.includes(fileExt || ''))) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Tipo de Archivo No Válido',
+        detail: 'Solo se permiten archivos PDF o imágenes (JPG, PNG, GIF)',
+      });
+      return;
+    }
+
     this.uploadingDisability.set(true);
     try {
       let documentUrl = '';
 
       // Upload file to Supabase Storage if file is selected
       if (this.selectedFile()) {
-        const file = this.selectedFile()!;
-        const fileExt = file.name.split('.').pop();
         const fileName = `${
           this.currentEmployee()!.id
         }/${Date.now()}.${fileExt}`;
@@ -1989,8 +2148,8 @@ export class EmployeePortalComponent {
       // Create disability record
       const disabilityData = {
         employee_id: this.currentEmployee()!.id,
-        start_date: format(this.disabilityStartDate()!, 'yyyy-MM-dd'),
-        end_date: format(this.disabilityEndDate()!, 'yyyy-MM-dd'),
+        start_date: format(startDate, 'yyyy-MM-dd'),
+        end_date: format(endDate, 'yyyy-MM-dd'),
         description: this.disabilityDescription() || null,
         document_url: documentUrl || null,
         status: 'pending',
