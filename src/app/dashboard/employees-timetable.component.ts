@@ -144,8 +144,12 @@ import { EmployeeSchedulesFormComponent } from './employee-schedules-form.compon
             @for(days of days(); track days){
             <th class="text-center min-w-[100px] max-w-[100px]">
               <div class="flex flex-col items-center gap-0 leading-[1.1]">
-                <span class="text-xs font-bold uppercase">{{ days.date | date : 'EEE' }}</span>
-                <span class="text-[10px]">{{ days.date | date : 'd MMM' }}</span>
+                <span class="text-xs font-bold uppercase">{{
+                  days.date | date : 'EEE'
+                }}</span>
+                <span class="text-[10px]">{{
+                  days.date | date : 'd MMM'
+                }}</span>
               </div>
             </th>
             }
@@ -173,9 +177,13 @@ import { EmployeeSchedulesFormComponent } from './employee-schedules-form.compon
                   {{ day.shift.schedule.name }}
                 </span>
                 @if(day.shift.approved) {
-                <i class="pi pi-check-circle text-green-400 text-[9px] ml-0.5 flex-shrink-0"></i>
+                <i
+                  class="pi pi-check-circle text-green-400 text-[9px] ml-0.5 flex-shrink-0"
+                ></i>
                 } @else {
-                <i class="pi pi-exclamation-circle text-amber-400 text-[9px] ml-0.5 animate-pulse flex-shrink-0"></i>
+                <i
+                  class="pi pi-exclamation-circle text-yellow-200 text-[9px] ml-0.5 animate-pulse flex-shrink-0 drop-shadow-[0_0_4px_rgba(251,191,36,0.8)]"
+                ></i>
                 }
               </div>
               <ng-template #tooltipContent>
@@ -265,7 +273,7 @@ import { EmployeeSchedulesFormComponent } from './employee-schedules-form.compon
         />
         <p-button label="Validar" (click)="validateCode(code)" rounded />
       </div>
-    </p-dialog>   `,
+    </p-dialog> `,
   styles: ``,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
