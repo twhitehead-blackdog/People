@@ -86,7 +86,7 @@ interface Disability {
       </div>
 
       <!-- Estadísticas -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
         <div class="bg-neutral-800 rounded-lg p-4 border border-neutral-700">
           <div class="flex items-center justify-between">
             <div>
