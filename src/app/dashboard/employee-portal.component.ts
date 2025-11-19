@@ -1504,6 +1504,7 @@ export class EmployeePortalComponent {
   public employees = inject(EmployeesStore);
   public messageService = inject(MessageService);
   private http = inject(HttpClient);
+  private destroyRef = inject(DestroyRef);
 
   public currentEmployee = computed(() => this.store.currentEmployee());
 
