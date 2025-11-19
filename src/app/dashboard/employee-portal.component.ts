@@ -2204,32 +2204,36 @@ export class EmployeePortalComponent {
         const filePath = `disabilities/${fileName}`;
 
         // Upload to Supabase Storage using REST API
-        const formData = new FormData();
-        formData.append('file', file, fileName);
-
+        // Nota: El interceptor ya agrega apikey y Authorization, pero necesitamos asegurar que no agregue Content-Type
         try {
           const uploadResponse = await firstValueFrom(
             this.http.post(
               `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/disabilities/${fileName}`,
-              file,
+              file, // Enviar el archivo directamente, no FormData
               {
                 headers: {
-                  'apikey': process.env['ENV_SUPABASE_API_KEY'] ?? '',
-                  'Authorization': `Bearer ${process.env['ENV_SUPABASE_API_KEY'] ?? ''}`,
+                  // El interceptor ya agrega apikey y Authorization
+                  // No establecer Content-Type aquí, dejar que el navegador lo establezca
+                  // O establecer el Content-Type del archivo si es necesario
                   'Content-Type': file.type || 'application/octet-stream',
+                  'x-upsert': 'true', // Permite sobrescribir si el archivo ya existe
                 },
               }
             )
           );
-          
+
           // Get public URL for the uploaded file
           documentUrl = `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/public/disabilities/${fileName}`;
         } catch (uploadError: any) {
           console.error('Error uploading file to storage:', uploadError);
+          const errorDetail = uploadError?.error?.message || 
+                            uploadError?.error?.error || 
+                            uploadError?.message ||
+                            'No se pudo subir el archivo. Verifica que el bucket existe y tiene las políticas correctas.';
           this.messageService.add({
             severity: 'error',
             summary: 'Error al Subir Archivo',
-            detail: 'No se pudo subir el archivo. Por favor intenta de nuevo.',
+            detail: errorDetail,
           });
           this.uploadingDisability.set(false);
           return;
