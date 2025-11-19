@@ -76,10 +76,11 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
         const employee = employeeCache.employee;
         
         // Validar que account_approved sea true incluso en cache
-        if (employee.account_approved !== true) {
-          // Invalidar cache si el empleado no está aprobado
+        // Si account_approved es null o undefined, permitir acceso (compatibilidad con datos antiguos)
+        if (employee.account_approved === false) {
+          // Invalidar cache si el empleado está explícitamente desaprobado
           employeeCache = null;
-          return of(false);
+          return of(router.createUrlTree(['/sin-acceso']));
         }
         
         const positionName = employee.position?.name || '';
@@ -143,11 +144,12 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
             return false;
           }
 
-          // Validar que account_approved sea true antes de permitir acceso
-          if (employee.account_approved !== true) {
-            // Invalidar cache si el empleado no está aprobado
+          // Validar que account_approved no sea false antes de permitir acceso
+          // Si account_approved es null o undefined, permitir acceso (compatibilidad con datos antiguos)
+          if (employee.account_approved === false) {
+            // Invalidar cache si el empleado está explícitamente desaprobado
             employeeCache = null;
-            return false;
+            return router.createUrlTree(['/sin-acceso']);
           }
 
           const positionName = employee.position?.name || '';
@@ -188,9 +190,10 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
             const employee = employeeCache.employee;
             
             // Validar account_approved incluso en cache
-            if (employee.account_approved !== true) {
+            // Si account_approved es null o undefined, permitir acceso (compatibilidad con datos antiguos)
+            if (employee.account_approved === false) {
               employeeCache = null;
-              return of(false);
+              return of(router.createUrlTree(['/sin-acceso']));
             }
             
             const positionName = employee.position?.name || '';
