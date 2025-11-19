@@ -1540,47 +1540,66 @@ export class EmployeePortalComponent {
   public myTimelogs = computed(() => {
     const logs = this.timelogsApi.value() ?? [];
     // Process logs similar to timelogs component
+    // Filtrar logs sin fecha válida antes de procesar
     const processedLogs = logs
-      .map((x) => ({ ...x, day: format(x.created_at, 'yyyy-MM-dd') }))
+      .filter((x) => x.created_at) // Filtrar logs sin fecha
+      .map((x) => {
+        // Validar que created_at sea válido antes de formatear
+        try {
+          const date = new Date(x.created_at);
+          if (isNaN(date.getTime())) {
+            return null; // Fecha inválida
+          }
+          return { ...x, day: format(date, 'yyyy-MM-dd') };
+        } catch {
+          return null; // Error al formatear fecha
+        }
+      })
+      .filter((x) => x !== null) // Remover logs con fechas inválidas
       .reduce<any[]>((acc, x) => {
+        if (!x) return acc; // Skip si x es null
+        
         const existing = acc.find((item) => item.day === x.day);
+        const logDate = new Date(x.created_at);
+        const logBranch = x.branch || null; // Validar que branch exista
+        
         if (!existing) {
           acc.push({
             day: x.day,
             entry:
               x.type === TimeLogEnum.entry
-                ? { date: new Date(x.created_at), branch: x.branch }
+                ? { date: logDate, branch: logBranch }
                 : undefined,
             lunch_start:
               x.type === TimeLogEnum.lunch_start
-                ? { date: new Date(x.created_at), branch: x.branch }
+                ? { date: logDate, branch: logBranch }
                 : undefined,
             lunch_end:
               x.type === TimeLogEnum.lunch_end
-                ? { date: new Date(x.created_at), branch: x.branch }
+                ? { date: logDate, branch: logBranch }
                 : undefined,
             exit:
               x.type === TimeLogEnum.exit
-                ? { date: new Date(x.created_at), branch: x.branch }
+                ? { date: logDate, branch: logBranch }
                 : undefined,
             schedule: null, // Would need to fetch schedules separately
             delay: undefined,
           });
         } else {
           if (x.type === TimeLogEnum.entry)
-            existing.entry = { date: new Date(x.created_at), branch: x.branch };
+            existing.entry = { date: logDate, branch: logBranch };
           if (x.type === TimeLogEnum.lunch_start)
             existing.lunch_start = {
-              date: new Date(x.created_at),
-              branch: x.branch,
+              date: logDate,
+              branch: logBranch,
             };
           if (x.type === TimeLogEnum.lunch_end)
             existing.lunch_end = {
-              date: new Date(x.created_at),
-              branch: x.branch,
+              date: logDate,
+              branch: logBranch,
             };
           if (x.type === TimeLogEnum.exit)
-            existing.exit = { date: new Date(x.created_at), branch: x.branch };
+            existing.exit = { date: logDate, branch: logBranch };
         }
         return acc;
       }, []);
@@ -1758,19 +1777,58 @@ export class EmployeePortalComponent {
   public sendingReply = signal(false);
 
   // Helper methods
-  public calculateWorkedHours(entry: Date, exit: Date): string {
-    const minutes = differenceInMinutes(new Date(exit), new Date(entry));
+  public calculateWorkedHours(entry: Date | null | undefined, exit: Date | null | undefined): string {
+    // Validar que ambas fechas existan
+    if (!entry || !exit) {
+      return '-';
+    }
+
+    // Validar que las fechas sean válidas
+    const entryDate = new Date(entry);
+    const exitDate = new Date(exit);
+    
+    if (isNaN(entryDate.getTime()) || isNaN(exitDate.getTime())) {
+      return '-';
+    }
+
+    // Calcular diferencia en minutos
+    const minutes = differenceInMinutes(exitDate, entryDate);
+    
+    // Validar que la diferencia no sea negativa
+    if (minutes < 0) {
+      return '0h 0m';
+    }
+
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return `${hours}h ${mins}m`;
   }
 
-  public calculateDays(start: Date | string, end: Date | string): number {
+  public calculateDays(start: Date | string | null | undefined, end: Date | string | null | undefined): number {
+    // Validar que ambas fechas existan
+    if (!start || !end) {
+      return 0;
+    }
+
+    // Crear objetos Date y validar que sean fechas válidas
     const startDate = new Date(start);
     const endDate = new Date(end);
-    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+    
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return 0;
+    }
+
+    // Validar que end_date sea posterior o igual a start_date
+    if (endDate < startDate) {
+      return 0;
+    }
+
+    // Calcular diferencia en días
+    const diffTime = endDate.getTime() - startDate.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays + 1; // Include both start and end days
+    
+    // Incluir ambos días (inicio y fin)
+    return diffDays + 1;
   }
 
   public getScheduleColor(color: string): string {
