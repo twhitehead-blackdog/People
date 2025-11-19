@@ -28,6 +28,7 @@ import { TableModule } from 'primeng/table';
 import { Textarea } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
+import { firstValueFrom } from 'rxjs';
 import { TimeLogEnum } from '../models';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
@@ -653,7 +654,7 @@ import { EmployeesStore } from '../stores/employees.store';
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm text-gray-400 mb-2"
-                  >Fecha de Inicio</label
+                  >Inicio de Incapacidad</label
                 >
                 <p-datepicker
                   [(ngModel)]="disabilityStartDate"
@@ -663,7 +664,7 @@ import { EmployeesStore } from '../stores/employees.store';
               </div>
               <div>
                 <label class="block text-sm text-gray-400 mb-2"
-                  >Fecha de Fin</label
+                  >Fin de Incapacidad</label
                 >
                 <p-datepicker
                   [(ngModel)]="disabilityEndDate"
@@ -677,6 +678,7 @@ import { EmployeesStore } from '../stores/employees.store';
                 >Descripción (opcional)</label
               >
               <textarea
+                id="disability-description"
                 pInputTextarea
                 [(ngModel)]="disabilityDescription"
                 rows="3"
@@ -729,8 +731,8 @@ import { EmployeesStore } from '../stores/employees.store';
               >
                 <ng-template #header>
                   <tr>
-                    <th>Fecha de Inicio</th>
-                    <th>Fecha de Fin</th>
+                    <th>Inicio de Incapacidad</th>
+                    <th>Fin de Incapacidad</th>
                     <th>Días</th>
                     <th>Estado</th>
                     <th>Documento</th>
@@ -749,6 +751,25 @@ import { EmployeesStore } from '../stores/employees.store';
                       }}
                     </td>
                     <td>
+                      @if (disability.status === 'rejected' &&
+                      disability.rejection_comment) {
+                      <span
+                        class="px-2 py-1 rounded text-xs font-semibold cursor-help"
+                        [class.bg-yellow-500]="disability.status === 'pending'"
+                        [class.bg-green-500]="disability.status === 'approved'"
+                        [class.bg-red-500]="disability.status === 'rejected'"
+                        [pTooltip]="'Motivo: ' + disability.rejection_comment"
+                        tooltipPosition="top"
+                      >
+                        {{
+                          disability.status === 'pending'
+                            ? 'Pendiente'
+                            : disability.status === 'approved'
+                            ? 'Aprobada'
+                            : 'Rechazada'
+                        }}
+                      </span>
+                      } @else {
                       <span
                         class="px-2 py-1 rounded text-xs font-semibold"
                         [class.bg-yellow-500]="disability.status === 'pending'"
@@ -763,6 +784,7 @@ import { EmployeesStore } from '../stores/employees.store';
                             : 'Rechazada'
                         }}
                       </span>
+                      }
                     </td>
                     <td>
                       @if(disability.document_url) {
@@ -771,6 +793,8 @@ import { EmployeesStore } from '../stores/employees.store';
                         severity="secondary"
                         size="small"
                         (click)="downloadDocument(disability.document_url)"
+                        pTooltip="Descargar documento"
+                        tooltipPosition="top"
                       />
                       }
                     </td>
@@ -1608,7 +1632,7 @@ export class EmployeePortalComponent {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_disabilities`,
       method: 'GET',
       params: {
-        select: '*',
+        select: '*,rejection_comment',
         employee_id: `eq.${this.currentEmployee()!.id}`,
         order: 'created_at.desc',
       },
@@ -1900,15 +1924,47 @@ export class EmployeePortalComponent {
         const fileName = `${
           this.currentEmployee()!.id
         }/${Date.now()}.${fileExt}`;
-        const filePath = `disabilities/${fileName}`;
 
-        // Upload to Supabase Storage
-        const formData = new FormData();
-        formData.append('file', file);
+        // Upload to Supabase Storage using REST API
+        try {
+          // Usar Service Role Key si está disponible, sino usar API Key pública
+          const storageKey =
+            process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'] ||
+            process.env['ENV_SUPABASE_API_KEY'] ||
+            '';
 
-        // Note: You may need to adjust this based on your Supabase storage setup
-        // For now, we'll store the file name and handle upload separately
-        documentUrl = filePath;
+          await firstValueFrom(
+            this.http.post(
+              `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/disabilities/${fileName}`,
+              file, // Enviar el archivo directamente como binario
+              {
+                headers: {
+                  apikey: storageKey,
+                  Authorization: `Bearer ${storageKey}`,
+                  'Content-Type': file.type || 'application/octet-stream',
+                  'x-upsert': 'true', // Permite sobrescribir si el archivo ya existe
+                },
+              }
+            )
+          );
+
+          // Get public URL for the uploaded file
+          documentUrl = `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/public/disabilities/${fileName}`;
+        } catch (uploadError: any) {
+          console.error('Error uploading file to storage:', uploadError);
+          const errorDetail =
+            uploadError?.error?.message ||
+            uploadError?.error?.error ||
+            uploadError?.message ||
+            'No se pudo subir el archivo. Verifica que el bucket existe y tiene las políticas correctas.';
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error al Subir Archivo',
+            detail: errorDetail,
+          });
+          this.uploadingDisability.set(false);
+          return;
+        }
       }
 
       // Create disability record
@@ -2167,8 +2223,25 @@ export class EmployeePortalComponent {
     return labels[category] || category;
   }
 
-  public downloadDocument(url: string): void {
-    window.open(url, '_blank');
+  public downloadDocument(url: string | null | undefined): void {
+    if (!url) {
+      return;
+    }
+    try {
+      // Si la URL es relativa (empieza con /disabilities/ o disabilities/), construir la URL completa
+      let fullUrl = url;
+      if (url.startsWith('/disabilities/') || url.startsWith('disabilities/')) {
+        const path = url.startsWith('/') ? url.slice(1) : url;
+        fullUrl = `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/public/${path}`;
+      } else if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        // Si es una ruta relativa sin prefijo, asumir que es del bucket disabilities
+        const path = url.startsWith('/') ? url.slice(1) : url;
+        fullUrl = `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/public/disabilities/${path}`;
+      }
+      window.open(fullUrl, '_blank');
+    } catch (error) {
+      console.error('Error al descargar documento:', error);
+    }
   }
 
   public viewResponse(complaint: any): void {

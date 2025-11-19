@@ -397,6 +397,44 @@ type NavSection = {
       ::ng-deep .avatar-container .p-avatar-circle {
         border-radius: 50% !important;
       }
+
+      /* Estilos para textarea - igual que otros inputs */
+      ::ng-deep textarea.p-inputtextarea,
+      ::ng-deep .p-inputtextarea,
+      ::ng-deep textarea[pinputtextarea],
+      ::ng-deep textarea.p-inputtextarea.p-component {
+        width: 100% !important;
+        padding: 1.125rem 1.25rem !important;
+        background: #262626 !important;
+        border: 1px solid #404040 !important;
+        border-radius: 0.375rem !important;
+        color: #e5e7eb !important;
+        font-size: 0.875rem !important;
+        transition: all 0.2s ease !important;
+        font-family: inherit !important;
+        margin: 0 !important;
+        resize: vertical !important;
+      }
+
+      ::ng-deep textarea.p-inputtextarea:focus,
+      ::ng-deep .p-inputtextarea:focus,
+      ::ng-deep textarea[pinputtextarea]:focus {
+        outline: none !important;
+        border-color: #fbbf24 !important;
+        box-shadow: 0 0 0 0.2rem rgba(251, 191, 36, 0.2) !important;
+      }
+
+      ::ng-deep textarea.p-inputtextarea::placeholder,
+      ::ng-deep .p-inputtextarea::placeholder,
+      ::ng-deep textarea[pinputtextarea]::placeholder {
+        color: rgba(156, 163, 175, 0.6) !important;
+      }
+
+      ::ng-deep textarea.p-inputtextarea:hover:not(:disabled),
+      ::ng-deep .p-inputtextarea:hover:not(:disabled),
+      ::ng-deep textarea[pinputtextarea]:hover:not(:disabled) {
+        border-color: rgba(107, 114, 128, 0.7) !important;
+      }
     `,
   ],
 })
@@ -458,7 +496,7 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
         {
           id: 'disabilities',
           label: 'Incapacidades',
-          icon: 'pi pi-file-medical',
+          icon: 'pi pi-file-plus',
           section: 'disabilities',
         },
         {

@@ -26,6 +26,7 @@ import { FileUpload } from 'primeng/fileupload';
 import { InputText } from 'primeng/inputtext';
 import { TableModule } from 'primeng/table';
 import { TabsModule } from 'primeng/tabs';
+import { TagModule } from 'primeng/tag';
 import { Textarea } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
@@ -40,6 +41,7 @@ import { EmployeesStore } from '../stores/employees.store';
     Card,
     TabsModule,
     TableModule,
+    TagModule,
     DatePipe,
     CurrencyPipe,
     Button,
@@ -85,7 +87,7 @@ import { EmployeesStore } from '../stores/employees.store';
             <span class="sm:hidden">Tardanzas</span>
           </p-tab>
           <p-tab value="4">
-            <i class="pi pi-file-medical mr-2"></i>
+            <i class="pi pi-file-plus mr-2"></i>
             <span class="hidden sm:inline">Incapacidades</span>
             <span class="sm:hidden">Incap.</span>
           </p-tab>
@@ -686,7 +688,7 @@ import { EmployeesStore } from '../stores/employees.store';
 
         <!-- Tab 4: Incapacidades -->
         <p-tabpanel value="4">
-          <p-card>
+          <p-card class="bg-neutral-800 border-neutral-700">
             <ng-template #title>Subir Incapacidad</ng-template>
             <ng-template #subtitle
               >Carga documentos de incapacidad médica</ng-template
@@ -695,7 +697,7 @@ import { EmployeesStore } from '../stores/employees.store';
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label class="block text-sm text-gray-400 mb-2"
-                    >Fecha de Inicio</label
+                    >Inicio de Incapacidad</label
                   >
                   <p-datepicker
                     [(ngModel)]="disabilityStartDate"
@@ -705,7 +707,7 @@ import { EmployeesStore } from '../stores/employees.store';
                 </div>
                 <div>
                   <label class="block text-sm text-gray-400 mb-2"
-                    >Fecha de Fin</label
+                    >Fin de Incapacidad</label
                   >
                   <p-datepicker
                     [(ngModel)]="disabilityEndDate"
@@ -719,6 +721,7 @@ import { EmployeesStore } from '../stores/employees.store';
                   >Descripción (opcional)</label
                 >
                 <textarea
+                  id="disability-description"
                   pInputTextarea
                   [(ngModel)]="disabilityDescription"
                   rows="3"
@@ -733,25 +736,20 @@ import { EmployeesStore } from '../stores/employees.store';
                 <p-fileUpload
                   mode="basic"
                   accept="image/*,.pdf"
-                  maxFileSize="10000000"
+                  maxFileSize="5000000"
                   [auto]="false"
                   chooseLabel="Seleccionar Archivo"
                   (onSelect)="onFileSelect($event)"
                   class="w-full"
                 />
                 <p class="text-xs text-gray-500 mt-2">
-                  Formatos permitidos: PDF, JPG, PNG (máx. 10MB)
+                  Formatos permitidos: PDF, JPG, PNG (máx. 5MB)
                 </p>
-                @if(!selectedFile()) {
-                <p class="text-xs text-gray-400 mt-1">
-                  No se ha seleccionado ningún archivo
-                </p>
-                }
               </div>
               <div class="flex justify-end">
                 <p-button
-                  label="Enviar Incapacidad"
-                  icon="pi pi-send"
+                  label="Subir Incapacidad"
+                  icon="pi pi-upload"
                   [loading]="uploadingDisability()"
                   (click)="uploadDisability()"
                 />
@@ -776,10 +774,9 @@ import { EmployeesStore } from '../stores/employees.store';
                 >
                   <ng-template #header>
                     <tr>
-                      <th>Fecha de Inicio</th>
-                      <th>Fecha de Fin</th>
+                      <th>Inicio de Incapacidad</th>
+                      <th>Fin de Incapacidad</th>
                       <th>Días</th>
-                      <th>Descripción</th>
                       <th>Estado</th>
                       <th>Documento</th>
                     </tr>
@@ -797,24 +794,29 @@ import { EmployeesStore } from '../stores/employees.store';
                         }}
                       </td>
                       <td>
-                        @if(disability.description) {
+                        @if (disability.status === 'rejected' &&
+                        disability.rejection_comment) {
                         <span
-                          class="text-sm text-gray-300 cursor-help"
-                          [pTooltip]="disability.description"
+                          class="px-2 py-1 rounded text-xs font-semibold cursor-help"
+                          [class.bg-yellow-500]="
+                            disability.status === 'pending'
+                          "
+                          [class.bg-green-500]="
+                            disability.status === 'approved'
+                          "
+                          [class.bg-red-500]="disability.status === 'rejected'"
+                          [pTooltip]="'Motivo: ' + disability.rejection_comment"
                           tooltipPosition="top"
-                          [style.max-width.px]="150"
-                          [style.display]="'inline-block'"
-                          [style.overflow]="'hidden'"
-                          [style.text-overflow]="'ellipsis'"
-                          [style.white-space]="'nowrap'"
                         >
-                          {{ disability.description }}
+                          {{
+                            disability.status === 'pending'
+                              ? 'Pendiente'
+                              : disability.status === 'approved'
+                              ? 'Aprobada'
+                              : 'Rechazada'
+                          }}
                         </span>
                         } @else {
-                        <span class="text-gray-500 text-sm">-</span>
-                        }
-                      </td>
-                      <td>
                         <span
                           class="px-2 py-1 rounded text-xs font-semibold"
                           [class.bg-yellow-500]="
@@ -833,6 +835,7 @@ import { EmployeesStore } from '../stores/employees.store';
                               : 'Rechazada'
                           }}
                         </span>
+                        }
                       </td>
                       <td>
                         @if(disability.document_url) {
@@ -841,6 +844,8 @@ import { EmployeesStore } from '../stores/employees.store';
                           severity="secondary"
                           size="small"
                           (click)="downloadDocument(disability.document_url)"
+                          pTooltip="Descargar documento"
+                          tooltipPosition="top"
                         />
                         }
                       </td>
@@ -1399,6 +1404,29 @@ import { EmployeesStore } from '../stores/employees.store';
       border-radius: 0.5rem;
     }
 
+    /* Estilos para cards con bg-neutral-800 (igual que HR Disabilities) */
+    ::ng-deep .p-card.bg-neutral-800 {
+      background: #262626 !important;
+      border-color: #404040 !important;
+    }
+
+    ::ng-deep .p-card.bg-neutral-800 .p-card-body {
+      background: #262626 !important;
+    }
+
+    ::ng-deep .p-card.bg-neutral-800 .p-card-header {
+      background: #262626 !important;
+      border-bottom-color: #404040 !important;
+    }
+
+    ::ng-deep .p-card.bg-neutral-800 .p-card-title {
+      color: #e5e7eb !important;
+    }
+
+    ::ng-deep .p-card.bg-neutral-800 .p-card-subtitle {
+      color: #9ca3af !important;
+    }
+
     @media (max-width: 640px) {
       ::ng-deep .p-card .p-card-body {
         padding: 1rem;
@@ -1468,6 +1496,38 @@ import { EmployeesStore } from '../stores/employees.store';
     ::ng-deep .p-inputtextarea:hover:not(:disabled),
     ::ng-deep textarea[pinputtextarea]:hover:not(:disabled) {
       border-color: rgba(107, 114, 128, 0.7) !important;
+    }
+
+    /* Estilos para input-container (igual que otros formularios) */
+    .input-container {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .input-container label {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #e5e7eb;
+    }
+
+    /* Estilos consistentes para inputs */
+    ::ng-deep .input-container .p-inputtext,
+    ::ng-deep .input-container .p-inputnumber-input,
+    ::ng-deep .input-container .p-select,
+    ::ng-deep .input-container .p-datepicker input {
+      background: #262626 !important;
+      border: 1px solid #404040 !important;
+      color: #e5e7eb !important;
+      border-radius: 0.375rem !important;
+    }
+
+    ::ng-deep .input-container .p-inputtext:focus,
+    ::ng-deep .input-container .p-inputnumber-input:focus,
+    ::ng-deep .input-container .p-select.p-focus,
+    ::ng-deep .input-container .p-datepicker.p-focus input {
+      border-color: #fbbf24 !important;
+      box-shadow: 0 0 0 0.2rem rgba(251, 191, 36, 0.2) !important;
     }
 
     /* Asegurar que el textarea tenga el mismo estilo que los datepickers */
@@ -1689,7 +1749,7 @@ export class EmployeePortalComponent {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_disabilities`,
       method: 'GET',
       params: {
-        select: '*',
+        select: '*,rejection_comment',
         employee_id: `eq.${this.currentEmployee()!.id}`,
         order: 'created_at.desc',
       },
@@ -2208,17 +2268,19 @@ export class EmployeePortalComponent {
         // El interceptor NO debe agregar Content-Type para Storage API
         try {
           // Usar Service Role Key si está disponible, sino usar API Key pública
-          const storageKey = process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'] || 
-                             process.env['ENV_SUPABASE_API_KEY'] || '';
-          
+          const storageKey =
+            process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'] ||
+            process.env['ENV_SUPABASE_API_KEY'] ||
+            '';
+
           const uploadResponse = await firstValueFrom(
             this.http.post(
               `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/disabilities/${fileName}`,
               file, // Enviar el archivo directamente como binario
               {
                 headers: {
-                  'apikey': storageKey,
-                  'Authorization': `Bearer ${storageKey}`,
+                  apikey: storageKey,
+                  Authorization: `Bearer ${storageKey}`,
                   'Content-Type': file.type || 'application/octet-stream',
                   'x-upsert': 'true', // Permite sobrescribir si el archivo ya existe
                 },
@@ -2230,10 +2292,11 @@ export class EmployeePortalComponent {
           documentUrl = `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/public/disabilities/${fileName}`;
         } catch (uploadError: any) {
           console.error('Error uploading file to storage:', uploadError);
-          const errorDetail = uploadError?.error?.message || 
-                            uploadError?.error?.error || 
-                            uploadError?.message ||
-                            'No se pudo subir el archivo. Verifica que el bucket existe y tiene las políticas correctas.';
+          const errorDetail =
+            uploadError?.error?.message ||
+            uploadError?.error?.error ||
+            uploadError?.message ||
+            'No se pudo subir el archivo. Verifica que el bucket existe y tiene las políticas correctas.';
           this.messageService.add({
             severity: 'error',
             summary: 'Error al Subir Archivo',
@@ -2511,8 +2574,25 @@ export class EmployeePortalComponent {
     return labels[category] || category;
   }
 
-  public downloadDocument(url: string): void {
-    window.open(url, '_blank');
+  public downloadDocument(url: string | null | undefined): void {
+    if (!url) {
+      return;
+    }
+    try {
+      // Si la URL es relativa (empieza con /disabilities/ o disabilities/), construir la URL completa
+      let fullUrl = url;
+      if (url.startsWith('/disabilities/') || url.startsWith('disabilities/')) {
+        const path = url.startsWith('/') ? url.slice(1) : url;
+        fullUrl = `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/public/${path}`;
+      } else if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        // Si es una ruta relativa sin prefijo, asumir que es del bucket disabilities
+        const path = url.startsWith('/') ? url.slice(1) : url;
+        fullUrl = `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/public/disabilities/${path}`;
+      }
+      window.open(fullUrl, '_blank');
+    } catch (error) {
+      console.error('Error al descargar documento:', error);
+    }
   }
 
   public viewResponse(complaint: any): void {
