@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterOutlet, NavigationEnd, ActivatedRoute } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { AccordionModule } from 'primeng/accordion';
@@ -23,6 +23,7 @@ import { EmployeesStore } from '../stores/employees.store';
 import { PayrollsStore } from '../stores/payrolls.store';
 import { PositionsStore } from '../stores/positions.store';
 import { SchedulesStore } from '../stores/schedules.store';
+import { EmployeePortalComponent } from './employee-portal.component';
 
 @Component({
   selector: 'pt-dashboard',
@@ -52,6 +53,7 @@ import { SchedulesStore } from '../stores/schedules.store';
     Avatar,
     AsyncPipe,
     MenuModule,
+    EmployeePortalComponent,
   ],
   template: `
     <p-toast />
@@ -114,7 +116,7 @@ import { SchedulesStore } from '../stores/schedules.store';
             </div>
             <div class="hidden md:block">
               @if(user) {
-              <p-menu #menu [model]="items" popup />
+              <p-menu #menu [model]="items()" popup />
               <div
                 class="ml-4 flex items-center md:ml-6 gap-3 cursor-pointer group px-3 py-2 rounded-lg hover:bg-gray-700/50 transition-all duration-200"
                 (click)="menu.toggle($event)"
@@ -224,7 +226,13 @@ import { SchedulesStore } from '../stores/schedules.store';
           }
         </div>
       </nav>
-      <div class="flex-1 overflow-y-auto"><router-outlet /></div>
+      <div class="flex-1 overflow-y-auto">
+        @if(showEmployeePortalView()) {
+          <pt-employee-portal />
+        } @else {
+          <router-outlet />
+        }
+      </div>
     </div>
   `,
   styles: `
@@ -304,6 +312,14 @@ export class DashboardComponent {
   public router = inject(Router);
   public route = inject(ActivatedRoute);
   public currentRoute = signal('');
+  public showEmployeePortalView = signal(false);
+
+  // Verificar si el usuario es soporte2@blackdogpanama.com
+  public isSupportUser = computed(() => {
+    const employee = this.store.currentEmployee();
+    const email = employee?.work_email?.toLowerCase() || '';
+    return email === 'soporte2@blackdogpanama.com';
+  });
 
   constructor() {
     // La redirección se maneja en el guard para evitar conflictos de navegación
@@ -356,21 +372,39 @@ export class DashboardComponent {
     return false;
   }
 
-  public items: MenuItem[] = [
-    {
-      label: 'Mi Portal',
-      icon: 'pi pi-user',
-      command: () => this.router.navigate(['/my-portal']),
-    },
-    {
-      separator: true,
-    },
-    {
-      label: 'Cerrar sesion',
-      icon: 'pi pi-sign-out',
-      command: () => this.auth.logout(),
-    },
-  ];
+  public items = computed<MenuItem[]>(() => {
+    const items: MenuItem[] = [
+      {
+        label: 'Mi Portal',
+        icon: 'pi pi-user',
+        command: () => this.router.navigate(['/my-portal']),
+      },
+    ];
+
+    // Agregar opción de vista Employee Portal solo para soporte2@blackdogpanama.com
+    if (this.isSupportUser()) {
+      items.push({
+        label: this.showEmployeePortalView() ? 'Vista Completa' : 'Vista Employee Portal',
+        icon: this.showEmployeePortalView() ? 'pi pi-th-large' : 'pi pi-id-card',
+        command: () => {
+          this.showEmployeePortalView.update(v => !v);
+        },
+      });
+    }
+
+    items.push(
+      {
+        separator: true,
+      },
+      {
+        label: 'Cerrar sesion',
+        icon: 'pi pi-sign-out',
+        command: () => this.auth.logout(),
+      }
+    );
+
+    return items;
+  });
 
   async toggleMenu() {
     this.isCollapsed.update((value) => !value);

@@ -111,6 +111,32 @@ export function withCustomEntities<T extends { id: EntityId }>({
           )
         )
       ),
+      reloadItems: rxMethod<void>(
+        pipe(
+          tap(() => {
+            // Reset lastUpdated to force reload
+            patchState(state, { lastUpdated: null, isLoading: true, error: null });
+          }),
+          switchMap(() =>
+            state._http
+              .get<T[]>(`${process.env['ENV_SUPABASE_URL']}/rest/v1/${name}`, {
+                params: { select: query, order: order },
+              })
+              .pipe(
+                tapResponse({
+                  next: (entities) =>
+                    patchState(state, setAllEntities(entities), {
+                      lastUpdated: new Date(),
+                    }),
+                  error: (error) => {
+                    patchState(state, { error });
+                  },
+                  finalize: () => patchState(state, { isLoading: false }),
+                })
+              )
+          )
+        )
+      ),
       createItem(request: T): Observable<T[]> {
         patchState(state, { isLoading: true, error: null });
         return state._http

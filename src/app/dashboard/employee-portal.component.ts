@@ -1,6 +1,5 @@
 import { CurrencyPipe, DatePipe, NgClass } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
-import { httpResource } from '@angular/common/http';
+import { HttpClient, httpResource } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -23,9 +22,9 @@ import { DatePicker } from 'primeng/datepicker';
 import { DialogModule } from 'primeng/dialog';
 import { FileUpload } from 'primeng/fileupload';
 import { InputText } from 'primeng/inputtext';
-import { Textarea } from 'primeng/textarea';
 import { TableModule } from 'primeng/table';
 import { TabsModule } from 'primeng/tabs';
+import { Textarea } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { TimeLogEnum } from '../models';
@@ -105,9 +104,13 @@ import { EmployeesStore } from '../stores/employees.store';
           <div class="flex flex-col gap-6">
             <!-- Welcome Card -->
             <p-card class="dashboard-welcome-card">
-              <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div
+                class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
+              >
                 <div class="flex items-center gap-4">
-                  <div class="w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg">
+                  <div
+                    class="w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg"
+                  >
                     <i class="pi pi-user text-white text-2xl"></i>
                   </div>
                   <div>
@@ -115,13 +118,16 @@ import { EmployeesStore } from '../stores/employees.store';
                       ¡Hola, {{ currentEmployee()?.first_name }}!
                     </h2>
                     <p class="text-gray-400 m-0 mt-1">
-                      {{ currentEmployee()?.position?.name || 'Sin cargo' }} - {{ currentEmployee()?.branch?.name || 'Sin sucursal' }}
+                      {{ currentEmployee()?.position?.name || 'Sin cargo' }} -
+                      {{ currentEmployee()?.branch?.name || 'Sin sucursal' }}
                     </p>
                   </div>
                 </div>
                 <div class="text-right">
                   <p class="text-sm text-gray-400 m-0">Hoy es</p>
-                  <p class="text-lg font-semibold text-white m-0">{{ getCurrentDate() | date : 'fullDate' }}</p>
+                  <p class="text-lg font-semibold text-white m-0">
+                    {{ getCurrentDate() | date : 'fullDate' }}
+                  </p>
                 </div>
               </div>
             </p-card>
@@ -132,11 +138,17 @@ import { EmployeesStore } from '../stores/employees.store';
               <p-card class="dashboard-stat-card">
                 <div class="flex items-center justify-between">
                   <div>
-                    <p class="text-sm text-gray-400 m-0 mb-1">Días Trabajados</p>
-                    <p class="text-2xl font-bold text-white m-0">{{ daysWorkedThisMonth() }}</p>
+                    <p class="text-sm text-gray-400 m-0 mb-1">
+                      Días Trabajados
+                    </p>
+                    <p class="text-2xl font-bold text-white m-0">
+                      {{ daysWorkedThisMonth() }}
+                    </p>
                     <p class="text-xs text-gray-500 m-0 mt-1">Este mes</p>
                   </div>
-                  <div class="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
+                  <div
+                    class="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center"
+                  >
                     <i class="pi pi-calendar text-blue-400 text-xl"></i>
                   </div>
                 </div>
@@ -147,10 +159,14 @@ import { EmployeesStore } from '../stores/employees.store';
                 <div class="flex items-center justify-between">
                   <div>
                     <p class="text-sm text-gray-400 m-0 mb-1">Tardanzas</p>
-                    <p class="text-2xl font-bold text-white m-0">{{ myLates().length }}</p>
+                    <p class="text-2xl font-bold text-white m-0">
+                      {{ myLates().length }}
+                    </p>
                     <p class="text-xs text-gray-500 m-0 mt-1">Este mes</p>
                   </div>
-                  <div class="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
+                  <div
+                    class="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center"
+                  >
                     <i class="pi pi-clock text-red-400 text-xl"></i>
                   </div>
                 </div>
@@ -161,10 +177,14 @@ import { EmployeesStore } from '../stores/employees.store';
                 <div class="flex items-center justify-between">
                   <div>
                     <p class="text-sm text-gray-400 m-0 mb-1">Marcaciones</p>
-                    <p class="text-2xl font-bold text-white m-0">{{ recentTimelogsCount() }}</p>
+                    <p class="text-2xl font-bold text-white m-0">
+                      {{ recentTimelogsCount() }}
+                    </p>
                     <p class="text-xs text-gray-500 m-0 mt-1">Últimos 7 días</p>
                   </div>
-                  <div class="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
+                  <div
+                    class="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center"
+                  >
                     <i class="pi pi-check-circle text-green-400 text-xl"></i>
                   </div>
                 </div>
@@ -174,11 +194,17 @@ import { EmployeesStore } from '../stores/employees.store';
               <p-card class="dashboard-stat-card">
                 <div class="flex items-center justify-between">
                   <div>
-                    <p class="text-sm text-gray-400 m-0 mb-1">Salario Mensual</p>
-                    <p class="text-2xl font-bold text-green-400 m-0">{{ currentEmployee()?.monthly_salary | currency : '$' }}</p>
+                    <p class="text-sm text-gray-400 m-0 mb-1">
+                      Salario Mensual
+                    </p>
+                    <p class="text-2xl font-bold text-green-400 m-0">
+                      {{ currentEmployee()?.monthly_salary | currency : '$' }}
+                    </p>
                     <p class="text-xs text-gray-500 m-0 mt-1">Base</p>
                   </div>
-                  <div class="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center">
+                  <div
+                    class="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center"
+                  >
                     <i class="pi pi-money-bill text-amber-400 text-xl"></i>
                   </div>
                 </div>
@@ -196,33 +222,49 @@ import { EmployeesStore } from '../stores/employees.store';
                   </div>
                 </ng-template>
                 <div class="flex flex-col gap-3">
-                  @if (recentTimelogs().length > 0) {
-                    @for (log of recentTimelogs(); track log.day) {
-                      <div class="flex items-center justify-between p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50">
-                        <div class="flex items-center gap-3">
-                          <div class="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
-                            <i class="pi pi-clock text-amber-400"></i>
-                          </div>
-                          <div>
-                            <p class="text-white font-semibold m-0">{{ log.day | date : 'mediumDate' }}</p>
-                            <p class="text-sm text-gray-400 m-0">
-                              Entrada: {{ log.entry?.date ? (log.entry.date | date : 'hh:mm a') : 'Sin registro' }}
-                            </p>
-                          </div>
-                        </div>
-                        @if (log.delay && typeof log.delay === 'number') {
-                          <span class="text-xs text-red-400 font-semibold px-2 py-1 rounded bg-red-500/20">
-                            +{{ log.delay }} min
-                          </span>
-                        } @else {
-                          <span class="text-xs text-green-400 font-semibold px-2 py-1 rounded bg-green-500/20">
-                            A tiempo
-                          </span>
-                        }
+                  @if (recentTimelogs().length > 0) { @for (log of
+                  recentTimelogs(); track log.day) {
+                  <div
+                    class="flex items-center justify-between p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
+                  >
+                    <div class="flex items-center gap-3">
+                      <div
+                        class="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center"
+                      >
+                        <i class="pi pi-clock text-amber-400"></i>
                       </div>
+                      <div>
+                        <p class="text-white font-semibold m-0">
+                          {{ log.day | date : 'mediumDate' }}
+                        </p>
+                        <p class="text-sm text-gray-400 m-0">
+                          Entrada:
+                          {{
+                            log.entry?.date
+                              ? (log.entry.date | date : 'hh:mm a')
+                              : 'Sin registro'
+                          }}
+                        </p>
+                      </div>
+                    </div>
+                    @if (log.delay && typeof log.delay === 'number') {
+                    <span
+                      class="text-xs text-red-400 font-semibold px-2 py-1 rounded bg-red-500/20"
+                    >
+                      +{{ log.delay }} min
+                    </span>
+                    } @else {
+                    <span
+                      class="text-xs text-green-400 font-semibold px-2 py-1 rounded bg-green-500/20"
+                    >
+                      A tiempo
+                    </span>
                     }
-                  } @else {
-                    <p class="text-gray-400 text-center py-4">No hay marcaciones recientes</p>
+                  </div>
+                  } } @else {
+                  <p class="text-gray-400 text-center py-4">
+                    No hay marcaciones recientes
+                  </p>
                   }
                 </div>
               </p-card>
@@ -236,33 +278,49 @@ import { EmployeesStore } from '../stores/employees.store';
                   </div>
                 </ng-template>
                 <div class="flex flex-col gap-3">
-                  <div class="flex items-center justify-between p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50">
+                  <div
+                    class="flex items-center justify-between p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
+                  >
                     <div class="flex items-center gap-3">
                       <i class="pi pi-building text-amber-400"></i>
                       <span class="text-gray-400">Sucursal:</span>
                     </div>
-                    <span class="text-white font-semibold">{{ currentEmployee()?.branch?.name || 'N/A' }}</span>
+                    <span class="text-white font-semibold">{{
+                      currentEmployee()?.branch?.name || 'N/A'
+                    }}</span>
                   </div>
-                  <div class="flex items-center justify-between p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50">
+                  <div
+                    class="flex items-center justify-between p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
+                  >
                     <div class="flex items-center gap-3">
                       <i class="pi pi-sitemap text-amber-400"></i>
                       <span class="text-gray-400">Departamento:</span>
                     </div>
-                    <span class="text-white font-semibold">{{ currentEmployee()?.department?.name || 'N/A' }}</span>
+                    <span class="text-white font-semibold">{{
+                      currentEmployee()?.department?.name || 'N/A'
+                    }}</span>
                   </div>
-                  <div class="flex items-center justify-between p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50">
+                  <div
+                    class="flex items-center justify-between p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
+                  >
                     <div class="flex items-center gap-3">
                       <i class="pi pi-calendar text-amber-400"></i>
                       <span class="text-gray-400">Fecha de Ingreso:</span>
                     </div>
-                    <span class="text-white font-semibold">{{ currentEmployee()?.start_date | date : 'shortDate' }}</span>
+                    <span class="text-white font-semibold">{{
+                      currentEmployee()?.start_date | date : 'shortDate'
+                    }}</span>
                   </div>
-                  <div class="flex items-center justify-between p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50">
+                  <div
+                    class="flex items-center justify-between p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
+                  >
                     <div class="flex items-center gap-3">
                       <i class="pi pi-envelope text-amber-400"></i>
                       <span class="text-gray-400">Email:</span>
                     </div>
-                    <span class="text-white font-semibold text-sm">{{ currentEmployee()?.work_email || 'N/A' }}</span>
+                    <span class="text-white font-semibold text-sm">{{
+                      currentEmployee()?.work_email || 'N/A'
+                    }}</span>
                   </div>
                 </div>
               </p-card>
@@ -315,7 +373,9 @@ import { EmployeesStore } from '../stores/employees.store';
                 <div>
                   <label class="text-sm text-gray-400">Departamento</label>
                   <p class="text-white font-semibold">
-                    {{ currentEmployee()?.department?.name || 'Sin departamento' }}
+                    {{
+                      currentEmployee()?.department?.name || 'Sin departamento'
+                    }}
                   </p>
                 </div>
                 <div>
@@ -334,88 +394,98 @@ import { EmployeesStore } from '../stores/employees.store';
 
               <!-- Información editable -->
               <div class="border-t border-neutral-700 pt-6">
-                <h3 class="text-lg font-semibold text-white mb-4">Datos de Contacto</h3>
+                <h3 class="text-lg font-semibold text-white mb-4">
+                  Datos de Contacto
+                </h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                   @if (!editMode()) {
-                    <div>
-                      <label class="text-sm text-gray-400">Email Personal</label>
-                      <p class="text-white font-semibold">
-                        {{ currentEmployee()?.email || 'Sin email' }}
-                      </p>
-                    </div>
-                    <div>
-                      <label class="text-sm text-gray-400">Email Laboral</label>
-                      <p class="text-white font-semibold">
-                        {{ currentEmployee()?.work_email || 'Sin email' }}
-                      </p>
-                    </div>
-                    <div>
-                      <label class="text-sm text-gray-400">Teléfono</label>
-                      <p class="text-white font-semibold">
-                        {{ currentEmployee()?.phone_number || 'Sin teléfono' }}
-                      </p>
-                    </div>
-                    <div>
-                      <label class="text-sm text-gray-400">Dirección</label>
-                      <p class="text-white font-semibold">
-                        {{ currentEmployee()?.address || 'Sin dirección' }}
-                      </p>
-                    </div>
+                  <div>
+                    <label class="text-sm text-gray-400">Email Personal</label>
+                    <p class="text-white font-semibold">
+                      {{ currentEmployee()?.email || 'Sin email' }}
+                    </p>
+                  </div>
+                  <div>
+                    <label class="text-sm text-gray-400">Email Laboral</label>
+                    <p class="text-white font-semibold">
+                      {{ currentEmployee()?.work_email || 'Sin email' }}
+                    </p>
+                  </div>
+                  <div>
+                    <label class="text-sm text-gray-400">Teléfono</label>
+                    <p class="text-white font-semibold">
+                      {{ currentEmployee()?.phone_number || 'Sin teléfono' }}
+                    </p>
+                  </div>
+                  <div>
+                    <label class="text-sm text-gray-400">Dirección</label>
+                    <p class="text-white font-semibold">
+                      {{ currentEmployee()?.address || 'Sin dirección' }}
+                    </p>
+                  </div>
                   } @else {
-                    <div>
-                      <label class="text-sm text-gray-400 mb-2 block">Email Personal</label>
-                      <input
-                        pInputText
-                        [ngModel]="editEmail()"
-                        (ngModelChange)="editEmail.set($event)"
-                        placeholder="correo@ejemplo.com"
-                        class="w-full"
-                      />
-                    </div>
-                    <div>
-                      <label class="text-sm text-gray-400 mb-2 block">Email Laboral</label>
-                      <input
-                        pInputText
-                        [ngModel]="editWorkEmail()"
-                        (ngModelChange)="editWorkEmail.set($event)"
-                        placeholder="correo@empresa.com"
-                        class="w-full"
-                      />
-                    </div>
-                    <div>
-                      <label class="text-sm text-gray-400 mb-2 block">Teléfono</label>
-                      <input
-                        pInputText
-                        [ngModel]="editPhone()"
-                        (ngModelChange)="editPhone.set($event)"
-                        placeholder="+507 1234-5678"
-                        class="w-full"
-                      />
-                    </div>
-                    <div>
-                      <label class="text-sm text-gray-400 mb-2 block">Dirección</label>
-                      <input
-                        pInputText
-                        [ngModel]="editAddress()"
-                        (ngModelChange)="editAddress.set($event)"
-                        placeholder="Calle, Ciudad, Provincia"
-                        class="w-full"
-                      />
-                    </div>
-                    <div class="md:col-span-2 flex justify-end gap-2 mt-4">
-                      <p-button
-                        label="Cancelar"
-                        severity="secondary"
-                        outlined
-                        (click)="cancelEdit()"
-                      />
-                      <p-button
-                        label="Guardar Cambios"
-                        icon="pi pi-save"
-                        (click)="savePersonalData()"
-                        [loading]="savingPersonalData()"
-                      />
-                    </div>
+                  <div>
+                    <label class="text-sm text-gray-400 mb-2 block"
+                      >Email Personal</label
+                    >
+                    <input
+                      pInputText
+                      [ngModel]="editEmail()"
+                      (ngModelChange)="editEmail.set($event)"
+                      placeholder="correo@ejemplo.com"
+                      class="w-full"
+                    />
+                  </div>
+                  <div>
+                    <label class="text-sm text-gray-400 mb-2 block"
+                      >Email Laboral</label
+                    >
+                    <input
+                      pInputText
+                      [ngModel]="editWorkEmail()"
+                      (ngModelChange)="editWorkEmail.set($event)"
+                      placeholder="correo@empresa.com"
+                      class="w-full"
+                    />
+                  </div>
+                  <div>
+                    <label class="text-sm text-gray-400 mb-2 block"
+                      >Teléfono</label
+                    >
+                    <input
+                      pInputText
+                      [ngModel]="editPhone()"
+                      (ngModelChange)="editPhone.set($event)"
+                      placeholder="+507 1234-5678"
+                      class="w-full"
+                    />
+                  </div>
+                  <div>
+                    <label class="text-sm text-gray-400 mb-2 block"
+                      >Dirección</label
+                    >
+                    <input
+                      pInputText
+                      [ngModel]="editAddress()"
+                      (ngModelChange)="editAddress.set($event)"
+                      placeholder="Calle, Ciudad, Provincia"
+                      class="w-full"
+                    />
+                  </div>
+                  <div class="md:col-span-2 flex justify-end gap-2 mt-4">
+                    <p-button
+                      label="Cancelar"
+                      severity="secondary"
+                      outlined
+                      (click)="cancelEdit()"
+                    />
+                    <p-button
+                      label="Guardar Cambios"
+                      icon="pi pi-save"
+                      (click)="savePersonalData()"
+                      [loading]="savingPersonalData()"
+                    />
+                  </div>
                   }
                 </div>
               </div>
@@ -455,91 +525,97 @@ import { EmployeesStore } from '../stores/employees.store';
                 scrollHeight="400px"
                 [responsiveLayout]="'scroll'"
               >
-              <ng-template #header>
-                <tr>
-                  <th>Fecha</th>
-                  <th>Horario</th>
-                  <th>Entrada</th>
-                  <th>Inicio Almuerzo</th>
-                  <th>Fin Almuerzo</th>
-                  <th>Salida</th>
-                  <th>Horas Trabajadas</th>
-                </tr>
-              </ng-template>
-              <ng-template #body let-log>
-                <tr>
-                  <td>{{ log.day | date : 'mediumDate' }}</td>
-                  <td>
-                    <span
-                      class="inline-flex gap-1 py-0.5 px-1.5 rounded-sm font-medium items-center justify-center text-xs border border-black/20 shadow-sm"
-                      [class]="
-                        log.schedule?.schedule
-                          ? getScheduleColor(log.schedule.schedule.color)
-                          : 'bg-neutral-700 text-gray-300'
-                      "
-                    >
-                      {{ log?.schedule?.schedule?.name || 'Sin horario' }}
-                    </span>
-                  </td>
-                  <td>
-                    <div class="flex gap-2 items-center">
+                <ng-template #header>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Horario</th>
+                    <th>Entrada</th>
+                    <th>Inicio Almuerzo</th>
+                    <th>Fin Almuerzo</th>
+                    <th>Salida</th>
+                    <th>Horas Trabajadas</th>
+                  </tr>
+                </ng-template>
+                <ng-template #body let-log>
+                  <tr>
+                    <td>{{ log.day | date : 'mediumDate' }}</td>
+                    <td>
                       <span
-                        class="text-sm"
-                        [class.text-red-400]="
-                          log.delay && typeof log.delay === 'number'
-                        "
-                        [class.font-semibold]="
-                          log.delay && typeof log.delay === 'number'
+                        class="inline-flex gap-1 py-0.5 px-1.5 rounded-sm font-medium items-center justify-center text-xs border border-black/20 shadow-sm"
+                        [class]="
+                          log.schedule?.schedule
+                            ? getScheduleColor(log.schedule.schedule.color)
+                            : 'bg-neutral-700 text-gray-300'
                         "
                       >
-                        {{ log.entry?.date ? (log.entry.date | date : 'hh:mm a') : '-' }}
+                        {{ log?.schedule?.schedule?.name || 'Sin horario' }}
                       </span>
-                      @if(log.delay && typeof log.delay === 'number') {
-                      <span class="text-xs text-red-400"
-                        >Retraso: {{ log.delay }} min</span
-                      >
+                    </td>
+                    <td>
+                      <div class="flex gap-2 items-center">
+                        <span
+                          class="text-sm"
+                          [class.text-red-400]="
+                          log.delay && typeof log.delay === 'number'
+                        "
+                          [class.font-semibold]="
+                          log.delay && typeof log.delay === 'number'
+                        "
+                        >
+                          {{
+                            log.entry?.date
+                              ? (log.entry.date | date : 'hh:mm a')
+                              : '-'
+                          }}
+                        </span>
+                        @if(log.delay && typeof log.delay === 'number') {
+                        <span class="text-xs text-red-400"
+                          >Retraso: {{ log.delay }} min</span
+                        >
+                        }
+                      </div>
+                    </td>
+                    <td>
+                      {{
+                        log.lunch_start?.date
+                          ? (log.lunch_start.date | date : 'hh:mm a')
+                          : '-'
+                      }}
+                    </td>
+                    <td>
+                      {{
+                        log.lunch_end?.date
+                          ? (log.lunch_end.date | date : 'hh:mm a')
+                          : '-'
+                      }}
+                    </td>
+                    <td>
+                      {{
+                        log.exit?.date
+                          ? (log.exit.date | date : 'hh:mm a')
+                          : '-'
+                      }}
+                    </td>
+                    <td>
+                      @if(log.entry && log.exit) {
+                      {{ calculateWorkedHours(log.entry.date, log.exit.date) }}
+                      } @else {
+                      <span class="text-gray-400">-</span>
                       }
-                    </div>
-                  </td>
-                  <td>
-                    {{
-                      log.lunch_start?.date
-                        ? (log.lunch_start.date | date : 'hh:mm a')
-                        : '-'
-                    }}
-                  </td>
-                  <td>
-                    {{
-                      log.lunch_end?.date
-                        ? (log.lunch_end.date | date : 'hh:mm a')
-                        : '-'
-                    }}
-                  </td>
-                  <td>
-                    {{
-                      log.exit?.date ? (log.exit.date | date : 'hh:mm a') : '-'
-                    }}
-                  </td>
-                  <td>
-                    @if(log.entry && log.exit) {
-                    {{
-                      calculateWorkedHours(log.entry.date, log.exit.date)
-                    }}
-                    } @else {
-                    <span class="text-gray-400">-</span>
-                    }
-                  </td>
-                </tr>
-              </ng-template>
-              <ng-template #emptymessage>
-                <tr>
-                  <td colspan="7">
-                    <div class="flex flex-col items-center justify-center gap-4 py-8">
-                      <p class="text-gray-400">No se encontraron registros</p>
-                    </div>
-                  </td>
-                </tr>
-              </ng-template>
+                    </td>
+                  </tr>
+                </ng-template>
+                <ng-template #emptymessage>
+                  <tr>
+                    <td colspan="7">
+                      <div
+                        class="flex flex-col items-center justify-center gap-4 py-8"
+                      >
+                        <p class="text-gray-400">No se encontraron registros</p>
+                      </div>
+                    </td>
+                  </tr>
+                </ng-template>
               </p-table>
             </div>
           </p-card>
@@ -560,40 +636,46 @@ import { EmployeesStore } from '../stores/employees.store';
                 scrollHeight="400px"
                 [responsiveLayout]="'scroll'"
               >
-              <ng-template #header>
-                <tr>
-                  <th>Fecha</th>
-                  <th>Horario Programado</th>
-                  <th>Hora de Entrada</th>
-                  <th>Minutos de Retraso</th>
-                </tr>
-              </ng-template>
-              <ng-template #body let-late>
-                <tr>
-                  <td>{{ late.date | date : 'fullDate' }}</td>
-                  <td>{{ late.scheduled_time || '-' }}</td>
-                  <td>{{ late.actual_time || '-' }}</td>
-                  <td>
-                    <span
-                      class="font-semibold"
-                      [class.text-yellow-400]="late.minutes <= 10"
-                      [class.text-red-400]="late.minutes > 10"
-                    >
-                      {{ late.minutes }} min
-                    </span>
-                  </td>
-                </tr>
-              </ng-template>
-              <ng-template #emptymessage>
-                <tr>
-                  <td colspan="4">
-                    <div class="flex flex-col items-center justify-center gap-4 py-8">
-                      <i class="pi pi-check-circle text-green-400 text-4xl"></i>
-                      <p class="text-gray-400">¡Excelente! No tienes tardanzas este mes</p>
-                    </div>
-                  </td>
-                </tr>
-              </ng-template>
+                <ng-template #header>
+                  <tr>
+                    <th>Fecha</th>
+                    <th>Horario Programado</th>
+                    <th>Hora de Entrada</th>
+                    <th>Minutos de Retraso</th>
+                  </tr>
+                </ng-template>
+                <ng-template #body let-late>
+                  <tr>
+                    <td>{{ late.date | date : 'fullDate' }}</td>
+                    <td>{{ late.scheduled_time || '-' }}</td>
+                    <td>{{ late.actual_time || '-' }}</td>
+                    <td>
+                      <span
+                        class="font-semibold"
+                        [class.text-yellow-400]="late.minutes <= 10"
+                        [class.text-red-400]="late.minutes > 10"
+                      >
+                        {{ late.minutes }} min
+                      </span>
+                    </td>
+                  </tr>
+                </ng-template>
+                <ng-template #emptymessage>
+                  <tr>
+                    <td colspan="4">
+                      <div
+                        class="flex flex-col items-center justify-center gap-4 py-8"
+                      >
+                        <i
+                          class="pi pi-check-circle text-green-400 text-4xl"
+                        ></i>
+                        <p class="text-gray-400">
+                          ¡Excelente! No tienes tardanzas este mes
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                </ng-template>
               </p-table>
             </div>
           </p-card>
@@ -684,48 +766,59 @@ import { EmployeesStore } from '../stores/employees.store';
                   scrollHeight="400px"
                   [responsiveLayout]="'scroll'"
                 >
-                <ng-template #header>
-                  <tr>
-                    <th>Fecha de Inicio</th>
-                    <th>Fecha de Fin</th>
-                    <th>Días</th>
-                    <th>Estado</th>
-                    <th>Documento</th>
-                  </tr>
-                </ng-template>
-                <ng-template #body let-disability>
-                  <tr>
-                    <td>{{ disability.start_date | date : 'mediumDate' }}</td>
-                    <td>{{ disability.end_date | date : 'mediumDate' }}</td>
-                    <td>{{ calculateDays(disability.start_date, disability.end_date) }}</td>
-                    <td>
-                      <span
-                        class="px-2 py-1 rounded text-xs font-semibold"
-                        [class.bg-yellow-500]="disability.status === 'pending'"
-                        [class.bg-green-500]="disability.status === 'approved'"
-                        [class.bg-red-500]="disability.status === 'rejected'"
-                      >
+                  <ng-template #header>
+                    <tr>
+                      <th>Fecha de Inicio</th>
+                      <th>Fecha de Fin</th>
+                      <th>Días</th>
+                      <th>Estado</th>
+                      <th>Documento</th>
+                    </tr>
+                  </ng-template>
+                  <ng-template #body let-disability>
+                    <tr>
+                      <td>{{ disability.start_date | date : 'mediumDate' }}</td>
+                      <td>{{ disability.end_date | date : 'mediumDate' }}</td>
+                      <td>
                         {{
-                          disability.status === 'pending'
-                            ? 'Pendiente'
-                            : disability.status === 'approved'
-                            ? 'Aprobada'
-                            : 'Rechazada'
+                          calculateDays(
+                            disability.start_date,
+                            disability.end_date
+                          )
                         }}
-                      </span>
-                    </td>
-                    <td>
-                      @if(disability.document_url) {
-                      <p-button
-                        icon="pi pi-download"
-                        severity="secondary"
-                        size="small"
-                        (click)="downloadDocument(disability.document_url)"
-                      />
-                      }
-                    </td>
-                  </tr>
-                </ng-template>
+                      </td>
+                      <td>
+                        <span
+                          class="px-2 py-1 rounded text-xs font-semibold"
+                          [class.bg-yellow-500]="
+                            disability.status === 'pending'
+                          "
+                          [class.bg-green-500]="
+                            disability.status === 'approved'
+                          "
+                          [class.bg-red-500]="disability.status === 'rejected'"
+                        >
+                          {{
+                            disability.status === 'pending'
+                              ? 'Pendiente'
+                              : disability.status === 'approved'
+                              ? 'Aprobada'
+                              : 'Rechazada'
+                          }}
+                        </span>
+                      </td>
+                      <td>
+                        @if(disability.document_url) {
+                        <p-button
+                          icon="pi pi-download"
+                          severity="secondary"
+                          size="small"
+                          (click)="downloadDocument(disability.document_url)"
+                        />
+                        }
+                      </td>
+                    </tr>
+                  </ng-template>
                 </p-table>
               </div>
             </div>
@@ -744,14 +837,14 @@ import { EmployeesStore } from '../stores/employees.store';
                 <label class="block text-sm text-gray-400 mb-2"
                   >Tipo de Documento</label
                 >
-                <select
-                  pInputText
-                  [(ngModel)]="documentType"
-                  class="w-full"
-                >
+                <select pInputText [(ngModel)]="documentType" class="w-full">
                   <option value="work_letter">Carta de Trabajo</option>
-                  <option value="salary_certificate">Certificado de Salario</option>
-                  <option value="employment_certificate">Certificado de Empleo</option>
+                  <option value="salary_certificate">
+                    Certificado de Salario
+                  </option>
+                  <option value="employment_certificate">
+                    Certificado de Empleo
+                  </option>
                   <option value="other">Otro</option>
                 </select>
               </div>
@@ -816,49 +909,50 @@ import { EmployeesStore } from '../stores/employees.store';
                   scrollHeight="400px"
                   [responsiveLayout]="'scroll'"
                 >
-                <ng-template #header>
-                  <tr>
-                    <th>Fecha de Solicitud</th>
-                    <th>Tipo de Documento</th>
-                    <th>Motivo</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                  </tr>
-                </ng-template>
-                <ng-template #body let-request>
-                  <tr>
-                    <td>{{ request.created_at | date : 'mediumDate' }}</td>
-                    <td>{{ getDocumentTypeLabel(request.document_type) }}</td>
-                    <td>{{ request.reason || '-' }}</td>
-                    <td>
-                      <span
-                        class="px-2 py-1 rounded text-xs font-semibold"
-                        [class.bg-yellow-500]="request.status === 'pending'"
-                        [class.bg-green-500]="request.status === 'approved'"
-                        [class.bg-red-500]="request.status === 'rejected'"
-                      >
-                        {{
-                          request.status === 'pending'
-                            ? 'Pendiente'
-                            : request.status === 'approved'
-                            ? 'Aprobada'
-                            : 'Rechazada'
-                        }}
-                      </span>
-                    </td>
-                    <td>
-                      @if(request.status === 'approved' && request.document_url) {
-                      <p-button
-                        icon="pi pi-download"
-                        severity="success"
-                        size="small"
-                        (click)="downloadDocument(request.document_url)"
-                        pTooltip="Descargar documento"
-                      />
-                      }
-                    </td>
-                  </tr>
-                </ng-template>
+                  <ng-template #header>
+                    <tr>
+                      <th>Fecha de Solicitud</th>
+                      <th>Tipo de Documento</th>
+                      <th>Motivo</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </ng-template>
+                  <ng-template #body let-request>
+                    <tr>
+                      <td>{{ request.created_at | date : 'mediumDate' }}</td>
+                      <td>{{ getDocumentTypeLabel(request.document_type) }}</td>
+                      <td>{{ request.reason || '-' }}</td>
+                      <td>
+                        <span
+                          class="px-2 py-1 rounded text-xs font-semibold"
+                          [class.bg-yellow-500]="request.status === 'pending'"
+                          [class.bg-green-500]="request.status === 'approved'"
+                          [class.bg-red-500]="request.status === 'rejected'"
+                        >
+                          {{
+                            request.status === 'pending'
+                              ? 'Pendiente'
+                              : request.status === 'approved'
+                              ? 'Aprobada'
+                              : 'Rechazada'
+                          }}
+                        </span>
+                      </td>
+                      <td>
+                        @if(request.status === 'approved' &&
+                        request.document_url) {
+                        <p-button
+                          icon="pi pi-download"
+                          severity="success"
+                          size="small"
+                          (click)="downloadDocument(request.document_url)"
+                          pTooltip="Descargar documento"
+                        />
+                        }
+                      </td>
+                    </tr>
+                  </ng-template>
                 </p-table>
               </div>
             </div>
@@ -870,10 +964,13 @@ import { EmployeesStore } from '../stores/employees.store';
           <p-card>
             <ng-template #title>Buzón de Quejas Anónimas</ng-template>
             <ng-template #subtitle
-              >Expresa tus inquietudes de forma anónima y confidencial</ng-template
+              >Expresa tus inquietudes de forma anónima y
+              confidencial</ng-template
             >
             <div class="flex flex-col gap-4">
-              <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+              <div
+                class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4"
+              >
                 <div class="flex items-start gap-3">
                   <i class="pi pi-info-circle text-yellow-400 text-xl"></i>
                   <div class="flex-1">
@@ -891,7 +988,12 @@ import { EmployeesStore } from '../stores/employees.store';
                 <label class="block text-sm text-gray-400 mb-2"
                   >Categoría</label
                 >
-                <select pInputText [ngModel]="complaintCategory()" (ngModelChange)="complaintCategory.set($event)" class="w-full">
+                <select
+                  pInputText
+                  [ngModel]="complaintCategory()"
+                  (ngModelChange)="complaintCategory.set($event)"
+                  class="w-full"
+                >
                   <option value="work_environment">Ambiente Laboral</option>
                   <option value="harassment">Acoso o Discriminación</option>
                   <option value="safety">Seguridad</option>
@@ -921,7 +1023,8 @@ import { EmployeesStore } from '../stores/employees.store';
                   (ngModelChange)="allowContact.set($event)"
                 />
                 <label for="allowContact" class="text-sm text-gray-300"
-                  >Permitir que RRHH me contacte para seguimiento (opcional)</label
+                  >Permitir que RRHH me contacte para seguimiento
+                  (opcional)</label
                 >
               </div>
               @if(allowContact()) {
@@ -929,7 +1032,12 @@ import { EmployeesStore } from '../stores/employees.store';
                 <label class="block text-sm text-gray-400 mb-2"
                   >Forma de Contacto Preferida</label
                 >
-                <select pInputText [ngModel]="contactMethod()" (ngModelChange)="contactMethod.set($event)" class="w-full">
+                <select
+                  pInputText
+                  [ngModel]="contactMethod()"
+                  (ngModelChange)="contactMethod.set($event)"
+                  class="w-full"
+                >
                   <option value="email">Email</option>
                   <option value="phone">Teléfono</option>
                   <option value="meeting">Reunión Presencial</option>
@@ -954,22 +1062,24 @@ import { EmployeesStore } from '../stores/employees.store';
                 Mis Quejas y Conversaciones
               </h3>
               @if(myComplaints().length === 0 && !complaintsApi.isLoading()) {
-                <div class="text-center py-8">
-                  <i class="pi pi-inbox text-4xl text-gray-500 mb-4"></i>
-                  <p class="text-gray-400">No has enviado ninguna queja todavía.</p>
-                </div>
+              <div class="text-center py-8">
+                <i class="pi pi-inbox text-4xl text-gray-500 mb-4"></i>
+                <p class="text-gray-400">
+                  No has enviado ninguna queja todavía.
+                </p>
+              </div>
               } @else {
-                <div class="overflow-x-auto">
-                  <p-table
-                    [value]="myComplaints()"
-                    [rows]="10"
-                    paginator
-                    [loading]="complaintsApi.isLoading()"
-                    styleClass="p-datatable-sm md:p-datatable-lg"
-                    [scrollable]="true"
-                    scrollHeight="400px"
-                    [responsiveLayout]="'scroll'"
-                  >
+              <div class="overflow-x-auto">
+                <p-table
+                  [value]="myComplaints()"
+                  [rows]="10"
+                  paginator
+                  [loading]="complaintsApi.isLoading()"
+                  styleClass="p-datatable-sm md:p-datatable-lg"
+                  [scrollable]="true"
+                  scrollHeight="400px"
+                  [responsiveLayout]="'scroll'"
+                >
                   <ng-template #header>
                     <tr>
                       <th>Fecha</th>
@@ -980,9 +1090,15 @@ import { EmployeesStore } from '../stores/employees.store';
                     </tr>
                   </ng-template>
                   <ng-template #body let-complaint>
-                    <tr [ngClass]="{'bg-amber-500/10': hasUnreadMessages(complaint)}">
+                    <tr
+                      [ngClass]="{
+                        'bg-amber-500/10': hasUnreadMessages(complaint)
+                      }"
+                    >
                       <td>{{ complaint.created_at | date : 'mediumDate' }}</td>
-                      <td>{{ getComplaintCategoryLabel(complaint.category) }}</td>
+                      <td>
+                        {{ getComplaintCategoryLabel(complaint.category) }}
+                      </td>
                       <td>
                         <span
                           class="px-2 py-1 rounded text-xs font-semibold"
@@ -1000,9 +1116,14 @@ import { EmployeesStore } from '../stores/employees.store';
                         </span>
                       </td>
                       <td class="text-sm text-gray-400">
-                        {{ (complaint.last_message_at || complaint.updated_at) | date : 'short' }}
+                        {{
+                          complaint.last_message_at || complaint.updated_at
+                            | date : 'short'
+                        }}
                         @if(hasUnreadMessages(complaint)) {
-                          <i class="pi pi-circle-fill text-amber-400 text-xs ml-2"></i>
+                        <i
+                          class="pi pi-circle-fill text-amber-400 text-xs ml-2"
+                        ></i>
                         }
                       </td>
                       <td>
@@ -1010,15 +1131,19 @@ import { EmployeesStore } from '../stores/employees.store';
                           icon="pi pi-comments"
                           severity="info"
                           size="small"
-                          [label]="hasUnreadMessages(complaint) ? 'Ver Conversación (Nuevo)' : 'Ver Conversación'"
+                          [label]="
+                            hasUnreadMessages(complaint)
+                              ? 'Ver Conversación (Nuevo)'
+                              : 'Ver Conversación'
+                          "
                           (click)="viewResponse(complaint)"
                           pTooltip="Abrir conversación"
                         />
                       </td>
                     </tr>
                   </ng-template>
-                  </p-table>
-                </div>
+                </p-table>
+              </div>
               }
             </div>
           </p-card>
@@ -1028,116 +1153,129 @@ import { EmployeesStore } from '../stores/employees.store';
 
     <!-- Dialog para conversación bidireccional -->
     @if(conversationDialogVisible()) {
-      <div class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" (click)="closeConversation()">
-        <div class="bg-neutral-800 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col" (click)="$event.stopPropagation()">
-          <!-- Header -->
-          <div class="p-6 border-b border-neutral-700">
-            <div class="flex items-center justify-between mb-4">
-              <h3 class="text-xl font-bold text-white flex items-center gap-2">
-                <i class="pi pi-comments text-amber-400"></i>
-                Conversación
-              </h3>
-              <p-button
-                icon="pi pi-times"
-                severity="secondary"
-                text
-                rounded
-                (onClick)="closeConversation()"
-              />
-            </div>
-            @if(selectedComplaint()) {
-              <div class="flex flex-wrap gap-4 text-sm">
-                <div>
-                  <span class="text-gray-400">Categoría: </span>
-                  <span class="text-white">{{ getComplaintCategoryLabel(selectedComplaint()!.category) }}</span>
-                </div>
-                <div>
-                  <span class="text-gray-400">Estado: </span>
-                  <span class="text-white">{{ 
-                    selectedComplaint()!.status === 'pending' ? 'Pendiente' :
-                    selectedComplaint()!.status === 'in_review' ? 'En Revisión' :
-                    'Resuelto'
-                  }}</span>
-                </div>
-              </div>
-            }
+    <div
+      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      (click)="closeConversation()"
+    >
+      <div
+        class="bg-neutral-800 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col"
+        (click)="$event.stopPropagation()"
+      >
+        <!-- Header -->
+        <div class="p-6 border-b border-neutral-700">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xl font-bold text-white flex items-center gap-2">
+              <i class="pi pi-comments text-amber-400"></i>
+              Conversación
+            </h3>
+            <p-button
+              icon="pi pi-times"
+              severity="secondary"
+              text
+              rounded
+              (onClick)="closeConversation()"
+            />
           </div>
-
-          <!-- Mensajes -->
-          <div class="flex-1 overflow-y-auto p-6 space-y-4" style="max-height: 400px;">
-            @if(complaintMessagesApi.isLoading()) {
-              <div class="text-center py-8 text-gray-400">Cargando mensajes...</div>
-            } @else if(conversationMessages().length === 0) {
-              <div class="text-center py-8">
-                <p class="text-gray-400">No hay mensajes todavía.</p>
-                <p class="text-sm text-gray-500 mt-2">
-                  {{ selectedComplaint()?.complaint }}
-                </p>
-              </div>
-            } @else {
-              @for(message of conversationMessages(); track message.id) {
-                <div
-                  class="flex"
-                  [ngClass]="{
-                    'justify-end': message.sender_type === 'employee',
-                    'justify-start': message.sender_type === 'hr'
-                  }"
-                >
-                  <div
-                    class="max-w-[70%] rounded-lg p-4"
-                    [ngClass]="{
-                      'bg-amber-500/20': message.sender_type === 'employee',
-                      'border': message.sender_type === 'employee',
-                      'border-amber-500/30': message.sender_type === 'employee',
-                      'bg-neutral-700': message.sender_type === 'hr',
-                      'border-neutral-600': message.sender_type === 'hr'
-                    }"
-                  >
-                    <div class="flex items-center gap-2 mb-2">
-                      @if(message.sender_type === 'employee') {
-                        <i class="pi pi-user text-amber-400"></i>
-                        <span class="text-amber-300 font-semibold text-sm">Tú</span>
-                      } @else {
-                        <i class="pi pi-building text-gray-400"></i>
-                        <span class="text-gray-300 font-semibold text-sm">RRHH</span>
-                      }
-                      <span class="text-xs text-gray-500">
-                        {{ message.created_at | date : 'short' }}
-                      </span>
-                    </div>
-                    <p class="text-white text-sm whitespace-pre-wrap">{{ message.message }}</p>
-                  </div>
-                </div>
-              }
-            }
-          </div>
-
-          <!-- Input de respuesta -->
           @if(selectedComplaint()) {
-            <div class="p-6 border-t border-neutral-700">
-              <div class="flex flex-col gap-3">
-                <textarea
-                  pInputTextarea
-                  [ngModel]="replyMessage()"
-                  (ngModelChange)="replyMessage.set($event)"
-                  rows="3"
-                  placeholder="Escribe tu respuesta..."
-                  class="w-full"
-                ></textarea>
-                <div class="flex justify-end gap-2">
-                  <p-button
-                    label="Enviar"
-                    icon="pi pi-send"
-                    [loading]="sendingReply()"
-                    [disabled]="!replyMessage().trim()"
-                    (onClick)="sendReply()"
-                  />
-                </div>
-              </div>
+          <div class="flex flex-wrap gap-4 text-sm">
+            <div>
+              <span class="text-gray-400">Categoría: </span>
+              <span class="text-white">{{
+                getComplaintCategoryLabel(selectedComplaint()!.category)
+              }}</span>
             </div>
+            <div>
+              <span class="text-gray-400">Estado: </span>
+              <span class="text-white">{{
+                selectedComplaint()!.status === 'pending'
+                  ? 'Pendiente'
+                  : selectedComplaint()!.status === 'in_review'
+                  ? 'En Revisión'
+                  : 'Resuelto'
+              }}</span>
+            </div>
+          </div>
           }
         </div>
+
+        <!-- Mensajes -->
+        <div
+          class="flex-1 overflow-y-auto p-6 space-y-4"
+          style="max-height: 400px;"
+        >
+          @if(complaintMessagesApi.isLoading()) {
+          <div class="text-center py-8 text-gray-400">Cargando mensajes...</div>
+          } @else if(conversationMessages().length === 0) {
+          <div class="text-center py-8">
+            <p class="text-gray-400">No hay mensajes todavía.</p>
+            <p class="text-sm text-gray-500 mt-2">
+              {{ selectedComplaint()?.complaint }}
+            </p>
+          </div>
+          } @else { @for(message of conversationMessages(); track message.id) {
+          <div
+            class="flex"
+            [ngClass]="{
+              'justify-end': message.sender_type === 'employee',
+              'justify-start': message.sender_type === 'hr'
+            }"
+          >
+            <div
+              class="max-w-[70%] rounded-lg p-4"
+              [ngClass]="{
+                'bg-amber-500/20': message.sender_type === 'employee',
+                border: message.sender_type === 'employee',
+                'border-amber-500/30': message.sender_type === 'employee',
+                'bg-neutral-700': message.sender_type === 'hr',
+                'border-neutral-600': message.sender_type === 'hr'
+              }"
+            >
+              <div class="flex items-center gap-2 mb-2">
+                @if(message.sender_type === 'employee') {
+                <i class="pi pi-user text-amber-400"></i>
+                <span class="text-amber-300 font-semibold text-sm">Tú</span>
+                } @else {
+                <i class="pi pi-building text-gray-400"></i>
+                <span class="text-gray-300 font-semibold text-sm">RRHH</span>
+                }
+                <span class="text-xs text-gray-500">
+                  {{ message.created_at | date : 'short' }}
+                </span>
+              </div>
+              <p class="text-white text-sm whitespace-pre-wrap">
+                {{ message.message }}
+              </p>
+            </div>
+          </div>
+          } }
+        </div>
+
+        <!-- Input de respuesta -->
+        @if(selectedComplaint()) {
+        <div class="p-6 border-t border-neutral-700">
+          <div class="flex flex-col gap-3">
+            <textarea
+              pInputTextarea
+              [ngModel]="replyMessage()"
+              (ngModelChange)="replyMessage.set($event)"
+              rows="3"
+              placeholder="Escribe tu respuesta..."
+              class="w-full"
+            ></textarea>
+            <div class="flex justify-end gap-2">
+              <p-button
+                label="Enviar"
+                icon="pi pi-send"
+                [loading]="sendingReply()"
+                [disabled]="!replyMessage().trim()"
+                (onClick)="sendReply()"
+              />
+            </div>
+          </div>
+        </div>
+        }
       </div>
+    </div>
     }
 
     <p-toast />
@@ -1264,6 +1402,56 @@ import { EmployeesStore } from '../stores/employees.store';
       }
     }
 
+    /* Estilos para textarea - igual que otros inputs */
+    ::ng-deep textarea.p-inputtextarea,
+    ::ng-deep .p-inputtextarea,
+    ::ng-deep textarea[pinputtextarea],
+    ::ng-deep textarea.p-inputtextarea.p-component {
+      width: 100% !important;
+      padding: 1.125rem 1.25rem !important;
+      background: #262626 !important;
+      border: 1px solid #404040 !important;
+      border-radius: 0.375rem !important;
+      color: #e5e7eb !important;
+      font-size: 0.875rem !important;
+      transition: all 0.2s ease !important;
+      font-family: inherit !important;
+      margin: 0 !important;
+      box-sizing: border-box !important;
+      line-height: 1.6 !important;
+      min-height: auto !important;
+      resize: vertical !important;
+    }
+
+    ::ng-deep textarea.p-inputtextarea:focus,
+    ::ng-deep .p-inputtextarea:focus,
+    ::ng-deep textarea[pinputtextarea]:focus {
+      outline: none !important;
+      border-color: #fbbf24 !important;
+      box-shadow: 0 0 0 0.2rem rgba(251, 191, 36, 0.2) !important;
+    }
+
+    ::ng-deep textarea.p-inputtextarea::placeholder,
+    ::ng-deep .p-inputtextarea::placeholder,
+    ::ng-deep textarea[pinputtextarea]::placeholder {
+      color: rgba(156, 163, 175, 0.6) !important;
+    }
+
+    ::ng-deep textarea.p-inputtextarea:hover:not(:disabled),
+    ::ng-deep .p-inputtextarea:hover:not(:disabled),
+    ::ng-deep textarea[pinputtextarea]:hover:not(:disabled) {
+      border-color: rgba(107, 114, 128, 0.7) !important;
+    }
+
+    /* Asegurar que el textarea tenga el mismo estilo que los datepickers */
+    ::ng-deep .p-inputtextarea.p-component,
+    ::ng-deep textarea.p-inputtextarea.p-component {
+      background: #262626 !important;
+      border: 1px solid #404040 !important;
+      color: #e5e7eb !important;
+      padding: 1rem 1.125rem !important;
+    }
+
     /* Responsive forms */
     @media (max-width: 640px) {
       .grid {
@@ -1329,7 +1517,11 @@ export class EmployeePortalComponent {
 
   // Timelogs API
   public timelogsApi = httpResource<any[]>(() => {
-    if (!this.dateRange()[0] || !this.dateRange()[1] || !this.currentEmployee()?.id) {
+    if (
+      !this.dateRange()[0] ||
+      !this.dateRange()[1] ||
+      !this.currentEmployee()?.id
+    ) {
       return undefined;
     }
     const employeeId = this.currentEmployee()!.id;
@@ -1337,7 +1529,8 @@ export class EmployeePortalComponent {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`,
       method: 'GET',
       params: {
-        select: '*,employee:employees(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)',
+        select:
+          '*,employee:employees(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)',
         employee_id: `eq.${employeeId}`,
         created_at: `gte.${format(this.dateRange()[0], 'yyyy-MM-dd 06:00:00')}`,
       },
@@ -1354,24 +1547,46 @@ export class EmployeePortalComponent {
         if (!existing) {
           acc.push({
             day: x.day,
-            entry: x.type === TimeLogEnum.entry ? { date: new Date(x.created_at), branch: x.branch } : undefined,
-            lunch_start: x.type === TimeLogEnum.lunch_start ? { date: new Date(x.created_at), branch: x.branch } : undefined,
-            lunch_end: x.type === TimeLogEnum.lunch_end ? { date: new Date(x.created_at), branch: x.branch } : undefined,
-            exit: x.type === TimeLogEnum.exit ? { date: new Date(x.created_at), branch: x.branch } : undefined,
+            entry:
+              x.type === TimeLogEnum.entry
+                ? { date: new Date(x.created_at), branch: x.branch }
+                : undefined,
+            lunch_start:
+              x.type === TimeLogEnum.lunch_start
+                ? { date: new Date(x.created_at), branch: x.branch }
+                : undefined,
+            lunch_end:
+              x.type === TimeLogEnum.lunch_end
+                ? { date: new Date(x.created_at), branch: x.branch }
+                : undefined,
+            exit:
+              x.type === TimeLogEnum.exit
+                ? { date: new Date(x.created_at), branch: x.branch }
+                : undefined,
             schedule: null, // Would need to fetch schedules separately
             delay: undefined,
           });
         } else {
-          if (x.type === TimeLogEnum.entry) existing.entry = { date: new Date(x.created_at), branch: x.branch };
-          if (x.type === TimeLogEnum.lunch_start) existing.lunch_start = { date: new Date(x.created_at), branch: x.branch };
-          if (x.type === TimeLogEnum.lunch_end) existing.lunch_end = { date: new Date(x.created_at), branch: x.branch };
-          if (x.type === TimeLogEnum.exit) existing.exit = { date: new Date(x.created_at), branch: x.branch };
+          if (x.type === TimeLogEnum.entry)
+            existing.entry = { date: new Date(x.created_at), branch: x.branch };
+          if (x.type === TimeLogEnum.lunch_start)
+            existing.lunch_start = {
+              date: new Date(x.created_at),
+              branch: x.branch,
+            };
+          if (x.type === TimeLogEnum.lunch_end)
+            existing.lunch_end = {
+              date: new Date(x.created_at),
+              branch: x.branch,
+            };
+          if (x.type === TimeLogEnum.exit)
+            existing.exit = { date: new Date(x.created_at), branch: x.branch };
         }
         return acc;
       }, []);
-    
-    return processedLogs.sort((a, b) => 
-      new Date(b.day).getTime() - new Date(a.day).getTime()
+
+    return processedLogs.sort(
+      (a, b) => new Date(b.day).getTime() - new Date(a.day).getTime()
     );
   });
 
@@ -1381,11 +1596,16 @@ export class EmployeePortalComponent {
     const now = new Date();
     const monthStart = startOfMonth(now);
     const monthEnd = endOfMonth(now);
-    
+
     return logs
       .filter((log) => {
         const logDate = new Date(log.day);
-        return logDate >= monthStart && logDate <= monthEnd && log.delay && typeof log.delay === 'number';
+        return (
+          logDate >= monthStart &&
+          logDate <= monthEnd &&
+          log.delay &&
+          typeof log.delay === 'number'
+        );
       })
       .map((log) => ({
         date: new Date(log.day),
@@ -1438,8 +1658,8 @@ export class EmployeePortalComponent {
     };
   });
 
-  public myDocumentRequests = computed(() => 
-    this.documentRequestsApi.value() ?? []
+  public myDocumentRequests = computed(
+    () => this.documentRequestsApi.value() ?? []
   );
 
   // Complaints
@@ -1492,7 +1712,9 @@ export class EmployeePortalComponent {
     };
   });
 
-  public conversationMessages = computed(() => this.complaintMessagesApi.value() ?? []);
+  public conversationMessages = computed(
+    () => this.complaintMessagesApi.value() ?? []
+  );
 
   // API para obtener todos los mensajes sin leer de HR (por complaint_id)
   public unreadMessagesApi = httpResource<any[]>(() => {
@@ -1512,12 +1734,13 @@ export class EmployeePortalComponent {
   public unreadMessagesMap = computed(() => {
     const messages = this.unreadMessagesApi.value() ?? [];
     const myComplaints = this.myComplaints();
-    
-    if (myComplaints.length === 0 || messages.length === 0) return new Set<string>();
-    
+
+    if (myComplaints.length === 0 || messages.length === 0)
+      return new Set<string>();
+
     // Crear un Set de complaint_ids de las quejas del empleado
     const myComplaintIds = new Set(myComplaints.map((c: any) => c.id));
-    
+
     // Filtrar mensajes sin leer que pertenecen a las quejas del empleado
     const unreadSet = new Set<string>();
     messages.forEach((msg: any) => {
@@ -1525,7 +1748,7 @@ export class EmployeePortalComponent {
         unreadSet.add(msg.complaint_id);
       }
     });
-    
+
     return unreadSet;
   });
 
@@ -1572,7 +1795,7 @@ export class EmployeePortalComponent {
     const now = new Date();
     const monthStart = startOfMonth(now);
     const monthEnd = endOfMonth(now);
-    
+
     return logs.filter((log) => {
       const logDate = new Date(log.day);
       return logDate >= monthStart && logDate <= monthEnd && log.entry;
@@ -1635,12 +1858,14 @@ export class EmployeePortalComponent {
 
       await this.http
         .patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees?id=eq.${this.currentEmployee()!.id}`,
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees?id=eq.${
+            this.currentEmployee()!.id
+          }`,
           updateData,
           {
             headers: {
               'Content-Type': 'application/json',
-              'Prefer': 'return=representation',
+              Prefer: 'return=representation',
             },
           }
         )
@@ -1668,7 +1893,11 @@ export class EmployeePortalComponent {
   }
 
   public async uploadDisability(): Promise<void> {
-    if (!this.disabilityStartDate() || !this.disabilityEndDate() || !this.selectedFile()) {
+    if (
+      !this.disabilityStartDate() ||
+      !this.disabilityEndDate() ||
+      !this.selectedFile()
+    ) {
       this.messageService.add({
         severity: 'warn',
         summary: 'Campos Requeridos',
@@ -1680,12 +1909,14 @@ export class EmployeePortalComponent {
     this.uploadingDisability.set(true);
     try {
       let documentUrl = '';
-      
+
       // Upload file to Supabase Storage if file is selected
       if (this.selectedFile()) {
         const file = this.selectedFile()!;
         const fileExt = file.name.split('.').pop();
-        const fileName = `${this.currentEmployee()!.id}/${Date.now()}.${fileExt}`;
+        const fileName = `${
+          this.currentEmployee()!.id
+        }/${Date.now()}.${fileExt}`;
         const filePath = `disabilities/${fileName}`;
 
         // Upload to Supabase Storage
@@ -1717,7 +1948,8 @@ export class EmployeePortalComponent {
             this.messageService.add({
               severity: 'success',
               summary: 'Éxito',
-              detail: 'Incapacidad subida correctamente. Está pendiente de revisión.',
+              detail:
+                'Incapacidad subida correctamente. Está pendiente de revisión.',
             });
 
             // Reset form
@@ -1733,7 +1965,9 @@ export class EmployeePortalComponent {
             this.messageService.add({
               severity: 'error',
               summary: 'Error',
-              detail: error.error?.message || 'No se pudo subir la incapacidad. Por favor intenta de nuevo.',
+              detail:
+                error.error?.message ||
+                'No se pudo subir la incapacidad. Por favor intenta de nuevo.',
             });
             this.uploadingDisability.set(false);
           },
@@ -1760,16 +1994,20 @@ export class EmployeePortalComponent {
 
     this.submittingDocument.set(true);
 
-    const documentType = this.documentType() === 'other' 
-      ? this.customDocumentType() 
-      : this.documentType();
+    const documentType =
+      this.documentType() === 'other'
+        ? this.customDocumentType()
+        : this.documentType();
 
     const requestData = {
       employee_id: this.currentEmployee()!.id,
       document_type: documentType,
-      custom_document_type: this.documentType() === 'other' ? this.customDocumentType() : null,
+      custom_document_type:
+        this.documentType() === 'other' ? this.customDocumentType() : null,
       reason: this.documentReason(),
-      required_date: this.documentRequiredDate() ? format(this.documentRequiredDate()!, 'yyyy-MM-dd') : null,
+      required_date: this.documentRequiredDate()
+        ? format(this.documentRequiredDate()!, 'yyyy-MM-dd')
+        : null,
       status: 'pending',
     };
 
@@ -1783,7 +2021,8 @@ export class EmployeePortalComponent {
           this.messageService.add({
             severity: 'success',
             summary: 'Éxito',
-            detail: 'Solicitud enviada correctamente. Recibirás una notificación cuando esté lista.',
+            detail:
+              'Solicitud enviada correctamente. Recibirás una notificación cuando esté lista.',
           });
 
           // Reset form
@@ -1799,7 +2038,9 @@ export class EmployeePortalComponent {
           this.messageService.add({
             severity: 'error',
             summary: 'Error',
-            detail: error.error?.message || 'No se pudo enviar la solicitud. Por favor intenta de nuevo.',
+            detail:
+              error.error?.message ||
+              'No se pudo enviar la solicitud. Por favor intenta de nuevo.',
           });
           this.submittingDocument.set(false);
         },
@@ -1835,7 +2076,7 @@ export class EmployeePortalComponent {
         {
           headers: {
             'Content-Type': 'application/json',
-            'Prefer': 'return=representation',
+            Prefer: 'return=representation',
           },
         }
       )
@@ -1843,12 +2084,14 @@ export class EmployeePortalComponent {
         next: async (response: any) => {
           // La respuesta puede ser un array o un objeto único
           const complaint = Array.isArray(response) ? response[0] : response;
-          
+
           if (complaint && complaint.id) {
             // Crear el primer mensaje con el texto de la queja
             const messageData = {
               complaint_id: complaint.id,
-              sender_id: this.allowContact() ? this.currentEmployee()!.id : null,
+              sender_id: this.allowContact()
+                ? this.currentEmployee()!.id
+                : null,
               sender_type: 'employee',
               is_anonymous: !this.allowContact(),
               message: this.complaintText().trim(),
@@ -1863,7 +2106,7 @@ export class EmployeePortalComponent {
                   {
                     headers: {
                       'Content-Type': 'application/json',
-                      'Prefer': 'return=representation',
+                      Prefer: 'return=representation',
                     },
                   }
                 )
@@ -1872,7 +2115,7 @@ export class EmployeePortalComponent {
               this.messageService.add({
                 severity: 'success',
                 summary: 'Queja Enviada',
-                detail: this.allowContact() 
+                detail: this.allowContact()
                   ? 'Tu queja ha sido enviada. Recibirás respuesta de RRHH pronto.'
                   : 'Tu queja ha sido enviada de forma anónima. Recibirás respuesta de RRHH pronto.',
               });
@@ -1889,7 +2132,8 @@ export class EmployeePortalComponent {
               this.messageService.add({
                 severity: 'warn',
                 summary: 'Queja Enviada',
-                detail: 'La queja fue creada pero hubo un problema al crear el mensaje. Contacta a RRHH si no recibes respuesta.',
+                detail:
+                  'La queja fue creada pero hubo un problema al crear el mensaje. Contacta a RRHH si no recibes respuesta.',
               });
               this.complaintsApi.reload();
               this.submittingComplaint.set(false);
@@ -1908,7 +2152,10 @@ export class EmployeePortalComponent {
           this.messageService.add({
             severity: 'error',
             summary: 'Error',
-            detail: error?.error?.message || error?.message || 'No se pudo enviar la queja. Por favor intenta de nuevo.',
+            detail:
+              error?.error?.message ||
+              error?.message ||
+              'No se pudo enviar la queja. Por favor intenta de nuevo.',
           });
           this.submittingComplaint.set(false);
         },
@@ -1977,7 +2224,7 @@ export class EmployeePortalComponent {
             {
               headers: {
                 'Content-Type': 'application/json',
-                'Prefer': 'return=representation',
+                Prefer: 'return=representation',
               },
             }
           )
@@ -2034,7 +2281,7 @@ export class EmployeePortalComponent {
           {
             headers: {
               'Content-Type': 'application/json',
-              'Prefer': 'return=representation',
+              Prefer: 'return=representation',
             },
           }
         )
@@ -2067,9 +2314,8 @@ export class EmployeePortalComponent {
       const messages = this.conversationMessages();
       return messages.some((m) => m.sender_type === 'hr' && !m.is_read);
     }
-    
+
     // Si no está seleccionada, usar el mapa de mensajes sin leer
     return this.unreadMessagesMap().has(complaint.id);
   }
 }
-

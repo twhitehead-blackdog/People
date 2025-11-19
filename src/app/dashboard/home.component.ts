@@ -111,6 +111,22 @@ import { EmployeesStore } from '../stores/employees.store';
       </aside>
 
       <main class="dashboard-container">
+        <!-- Botón de recarga de datos -->
+        <div class="reload-data-container">
+          <button
+            class="reload-data-button"
+            (click)="reloadAllData()"
+            [disabled]="state.employees.isLoading()"
+            pTooltip="Recargar todos los datos del dashboard"
+            tooltipPosition="left"
+          >
+            <i
+              class="pi pi-refresh"
+              [class.pi-spin]="state.employees.isLoading()"
+            ></i>
+            <span>Recargar Datos</span>
+          </button>
+        </div>
         <!-- Resumen Ejecutivo -->
         @if (activeSection() === 'executive') {
         <div class="section-content executive-section">
@@ -3176,12 +3192,76 @@ import { EmployeesStore } from '../stores/employees.store';
     .lates-dialog ul::-webkit-scrollbar-thumb:active {
       background: linear-gradient(180deg, #fbbf24, #f59e0b);
     }
+
+    /* Reload Data Button */
+    .reload-data-container {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 1rem;
+      padding: 0 0.5rem;
+    }
+
+    .reload-data-button {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: rgba(251, 191, 36, 0.1);
+      border: 1px solid rgba(251, 191, 36, 0.3);
+      border-radius: 0.5rem;
+      color: #fbbf24;
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .reload-data-button:hover:not(:disabled) {
+      background: rgba(251, 191, 36, 0.2);
+      border-color: rgba(251, 191, 36, 0.5);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(251, 191, 36, 0.2);
+    }
+
+    .reload-data-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .reload-data-button i {
+      font-size: 1rem;
+    }
+
+    .reload-data-button i.pi-spin {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HomeComponent {
   public state = inject(DashboardStore);
   public employees = inject(EmployeesStore);
+
+  // Método para recargar todos los datos
+  public reloadAllData() {
+    this.employees.reloadItems();
+    this.state.branches.reloadItems();
+    this.state.companies.reloadItems();
+    this.state.positions.reloadItems();
+    this.state.departments.reloadItems();
+    this.terminationsApi.reload();
+    this.latesFromTimelogs.reload();
+    this.employeeSchedules.reload();
+  }
 
   public sidebarOpen = signal(true);
   public activeSection = signal('executive');
