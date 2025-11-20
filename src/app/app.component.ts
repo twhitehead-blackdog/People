@@ -19,6 +19,13 @@ export class AppComponent implements OnInit {
   private router = inject(Router);
 
   ngOnInit() {
+    // Forzar modo oscuro siempre
+    if (typeof document !== 'undefined') {
+      document.documentElement.classList.add('dark');
+      document.body.classList.add('dark');
+      document.documentElement.style.colorScheme = 'dark';
+    }
+    
     // Mostrar la URL de Supabase que se está usando
     const supabaseUrl = process.env['ENV_SUPABASE_URL'];
     const supabaseApiKey = process.env['ENV_SUPABASE_API_KEY'];

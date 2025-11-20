@@ -1,13 +1,24 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="utf-8" />
     <title>People | Registro de Empleados</title>
     <base href="/" />
     <meta content="width=device-width, initial-scale=1" name="viewport" />
     <link href="favicon.ico" rel="icon" type="image/x-icon" />
+    <script>
+      // Forzar modo oscuro siempre
+      document.documentElement.classList.add('dark');
+      // Prevenir cambios de tema
+      if (window.matchMedia) {
+        const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: light)');
+        darkModeMediaQuery.addEventListener('change', () => {
+          document.documentElement.classList.add('dark');
+        });
+      }
+    </script>
   </head>
-  <body>
+  <body class="dark">
     <pt-root></pt-root>
   </body>
 </html>
