@@ -193,6 +193,7 @@ export class PositionsComponent implements OnInit {
     // Sanitizar input: remover caracteres peligrosos y limitar longitud
     let value = input.value || '';
     // Remover caracteres de control y limitar a 200 caracteres
+    // eslint-disable-next-line no-control-regex
     value = value.replace(/[\x00-\x1F\x7F]/g, '').substring(0, 200);
     
     table.filterGlobal(value, 'contains');

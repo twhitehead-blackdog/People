@@ -25,4 +25,4 @@ window.process.env.ENV_SUPABASE_URL =
 window.process.env.ENV_SUPABASE_API_KEY = 'your-public';
 window.process.env.ENV_SUPABASE_TOKEN = '';
 
-import 'jest-preset-angular/setup-jest';
+// jest-preset-angular setup is handled automatically in v15+
