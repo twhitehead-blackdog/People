@@ -95,7 +95,7 @@ echo ""
 # Paso 3: Instalar/Actualizar dependencias
 # ============================================
 print_step "📦 Paso 3: Instalando dependencias..."
-if npm install; then
+if npm install --legacy-peer-deps; then
     print_success "Dependencias instaladas"
 else
     print_error "Error al instalar dependencias"
