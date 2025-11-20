@@ -95,7 +95,7 @@ import { EmployeePortalComponent } from './employee-portal.component';
                   >
                     <i class="pi pi-money-bill text-base"></i> <span>Nómina</span></a
                   >
-                  } @if(store.isScheduleAdmin() && !store.hasPortalAccessOnly()) {
+                  } @if((store.isScheduleAdmin() && !store.hasPortalAccessOnly()) || store.hasTimeManagementAccess()) {
                   <a
                     (click)="navigateTo('time-management')"
                     [class.selected]="isActiveRoute('time-management')"
@@ -103,7 +103,7 @@ import { EmployeePortalComponent } from './employee-portal.component';
                     ><i class="pi pi-calendar text-base"></i> <span>Gestión de tiempo</span></a
                   >
                   }
-                  @if(!store.hasPortalAccessOnly()) {
+                  @if(!store.hasPortalAccessOnly() || store.hasTimeManagementAccess()) {
                   <a
                     (click)="navigateTo('timeclock')"
                     [class.selected]="isActiveRoute('timeclock')"
@@ -173,7 +173,7 @@ import { EmployeePortalComponent } from './employee-portal.component';
               class="rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer"
               ><i class="pi pi-building text-lg"></i> <span>Administración</span></a
             >
-            } @if(store.isScheduleAdmin() && !store.hasPortalAccessOnly()) {
+            } @if((store.isScheduleAdmin() && !store.hasPortalAccessOnly()) || store.hasTimeManagementAccess()) {
             <a
               (click)="navigateTo('time-management')"
               [class.bg-gray-700]="isActiveRoute('time-management')"
@@ -192,7 +192,7 @@ import { EmployeePortalComponent } from './employee-portal.component';
               ><i class="pi pi-money-bill text-lg"></i> <span>Nómina</span></a
             >
             }
-            @if(!store.hasPortalAccessOnly()) {
+            @if(!store.hasPortalAccessOnly() || store.hasTimeManagementAccess()) {
             <a
               (click)="navigateTo('timeclock')"
               [class.bg-gray-700]="isActiveRoute('timeclock')"
