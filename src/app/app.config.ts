@@ -51,7 +51,6 @@ export const appConfig: ApplicationConfig = {
     provideRouter(
       appRoutes,
       withComponentInputBinding(),
-      withDisabledInitialNavigation(),
       withRouterConfig({ onSameUrlNavigation: 'reload' }),
       withViewTransitions()
     ),

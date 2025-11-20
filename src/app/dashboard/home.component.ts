@@ -117,22 +117,6 @@ import { EmployeesStore } from '../stores/employees.store';
       </aside>
 
       <main class="dashboard-container">
-        <!-- Botón de recarga de datos -->
-        <div class="reload-data-container">
-          <button
-            class="reload-data-button"
-            (click)="reloadAllData()"
-            [disabled]="state.employees.isLoading()"
-            pTooltip="Recargar todos los datos del dashboard"
-            tooltipPosition="left"
-          >
-            <i
-              class="pi pi-refresh"
-              [class.pi-spin]="state.employees.isLoading()"
-            ></i>
-            <span>Recargar Datos</span>
-          </button>
-        </div>
         <!-- Resumen Ejecutivo -->
         @if (activeSection() === 'executive') {
         <div class="section-content executive-section">
@@ -3438,58 +3422,6 @@ import { EmployeesStore } from '../stores/employees.store';
     .lates-dialog ul::-webkit-scrollbar-thumb:active {
       background: linear-gradient(180deg, #fbbf24, #f59e0b);
     }
-
-    /* Reload Data Button */
-    .reload-data-container {
-      display: flex;
-      justify-content: flex-end;
-      margin-bottom: 1rem;
-      padding: 0 0.5rem;
-    }
-
-    .reload-data-button {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.5rem 1rem;
-      background: rgba(251, 191, 36, 0.1);
-      border: 1px solid rgba(251, 191, 36, 0.3);
-      border-radius: 0.5rem;
-      color: #fbbf24;
-      font-size: 0.875rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .reload-data-button:hover:not(:disabled) {
-      background: rgba(251, 191, 36, 0.2);
-      border-color: rgba(251, 191, 36, 0.5);
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(251, 191, 36, 0.2);
-    }
-
-    .reload-data-button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .reload-data-button i {
-      font-size: 1rem;
-    }
-
-    .reload-data-button i.pi-spin {
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      from {
-        transform: rotate(0deg);
-      }
-      to {
-        transform: rotate(360deg);
-      }
-    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -3497,23 +3429,15 @@ export class HomeComponent {
   public state = inject(DashboardStore);
   public employees = inject(EmployeesStore);
 
-  // Método para recargar todos los datos
-  public reloadAllData() {
-    this.employees.reloadItems();
-    this.state.branches.reloadItems();
-    this.state.companies.reloadItems();
-    this.state.positions.reloadItems();
-    this.state.departments.reloadItems();
-    this.terminationsApi.reload();
-    this.latesFromTimelogs.reload();
-    this.employeeSchedules.reload();
-  }
-
   public sidebarOpen = signal(true);
   public activeSection = signal('executive');
 
   // Computed para contar cumpleañeros del mes
+  // Only calculate when executive or events section is active
   public monthlyBirthdaysCount = computed(() => {
+    if (this.activeSection() !== 'executive' && this.activeSection() !== 'events') {
+      return 0;
+    }
     return this.state.birthDates().length;
   });
 
@@ -3529,7 +3453,12 @@ export class HomeComponent {
   });
 
   // Calcular ingresos y salidas del mes
+  // Only calculate when executive section is active
   public monthlyHiresAndExits = computed(() => {
+    if (this.activeSection() !== 'executive') {
+      return { hires: 0, exits: 0 };
+    }
+    
     const now = new Date();
     const monthStart = startOfMonth(now);
     const monthEnd = endOfMonth(now);
@@ -3955,7 +3884,12 @@ export class HomeComponent {
   }
 
   // Generate headcount trend by month/year based on actual employee start dates
+  // Only calculate when executive section is active
   public headcountChartData = computed(() => {
+    if (this.activeSection() !== 'executive') {
+      return { labels: [], datasets: [] };
+    }
+    
     const employees = this.employees.entities();
     const terminations = this.terminationsApi.value() ?? [];
     const now = new Date();
@@ -4149,7 +4083,12 @@ export class HomeComponent {
   });
 
   // Daily lates for current month (sparkline like headcount), using Supabase if available
+  // Only calculate when executive section is active
   public latesDailyChartData = computed(() => {
+    if (this.activeSection() !== 'executive') {
+      return { labels: [], datasets: [] };
+    }
+    
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth();
@@ -4342,7 +4281,12 @@ export class HomeComponent {
   }
 
   // Get monthly hires list
+  // Only calculate when executive section is active or dialog is open
   public monthlyHiresList = computed(() => {
+    if (this.activeSection() !== 'executive' && !this.hiresExitsDialogVisible()) {
+      return [];
+    }
+    
     const now = new Date();
     const monthStart = startOfMonth(now);
     const monthEnd = endOfMonth(now);
@@ -4371,7 +4315,12 @@ export class HomeComponent {
   });
 
   // Get monthly exits list
+  // Only calculate when executive section is active or dialog is open
   public monthlyExitsList = computed(() => {
+    if (this.activeSection() !== 'executive' && !this.hiresExitsDialogVisible()) {
+      return [];
+    }
+    
     const now = new Date();
     const monthStart = startOfMonth(now);
     const monthEnd = endOfMonth(now);
@@ -4414,7 +4363,12 @@ export class HomeComponent {
   }
 
   // Get hires list for selected month from headcount chart
+  // Only calculate when executive section is active or dialog is open
   public selectedMonthHiresList = computed(() => {
+    if (this.activeSection() !== 'executive' && !this.monthHiresExitsDialogVisible()) {
+      return [];
+    }
+    
     const monthIndex = this.selectedMonthIndex();
     if (monthIndex < 0) return [];
 
@@ -4463,7 +4417,12 @@ export class HomeComponent {
   });
 
   // Get exits list for selected month from headcount chart
+  // Only calculate when executive section is active or dialog is open
   public selectedMonthExitsList = computed(() => {
+    if (this.activeSection() !== 'executive' && !this.monthHiresExitsDialogVisible()) {
+      return [];
+    }
+    
     const monthIndex = this.selectedMonthIndex();
     if (monthIndex < 0) return [];
 
@@ -4512,11 +4471,19 @@ export class HomeComponent {
       });
   });
 
-  public branchLabels = computed(() =>
-    this.state.employeesByBranch().map((x) => x.branch?.name || 'Sin sucursal')
-  );
+  // Only calculate when structure section is active
+  public branchLabels = computed(() => {
+    if (this.activeSection() !== 'structure') {
+      return [];
+    }
+    return this.state.employeesByBranch().map((x) => x.branch?.name || 'Sin sucursal');
+  });
 
   public branchData = computed(() => {
+    if (this.activeSection() !== 'charts') {
+      return [];
+    }
+    
     const counts = this.state.employeesByBranch().map((x) => x.count);
     const colors = this.generateCorporateColors(counts.length);
     return [
@@ -4589,8 +4556,13 @@ export class HomeComponent {
   /**
    * Chart.js data for gender distribution donut chart
    * Returns data in Chart.js format with labels and datasets
+   * Only calculate when executive section is active
    */
   public genderChartData = computed(() => {
+    if (this.activeSection() !== 'executive') {
+      return { labels: [], datasets: [] };
+    }
+    
     const maleCount = this.state.countByGender()['M'] || 0;
     const femaleCount = this.state.countByGender()['F'] || 0;
     const total = maleCount + femaleCount;
@@ -4649,8 +4621,13 @@ export class HomeComponent {
   /**
    * Chart.js data for hires/exits distribution donut chart
    * Returns data in Chart.js format with labels and datasets
+   * Only calculate when executive section is active
    */
   public hiresExitsChartData = computed(() => {
+    if (this.activeSection() !== 'executive') {
+      return { labels: [], datasets: [] };
+    }
+    
     const hires = this.monthlyHiresAndExits().hires;
     const exits = this.monthlyHiresAndExits().exits;
 

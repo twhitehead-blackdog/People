@@ -397,15 +397,30 @@ export class TimelogsComponent {
   );
 
   days = computed(() => {
-    const days = [];
-    for (
-      let date = this.dateRange()?.[0];
-      date <= this.dateRange()?.[1];
-      date = addDays(date, 1)
-    ) {
-      days.push(format(date, 'yyyy-MM-dd'));
+    const startDate = this.dateRange()?.[0];
+    const endDate = this.dateRange()?.[1];
+    
+    if (!startDate || !endDate) {
+      return [];
     }
-    return days;
+    
+    // Normalizar las fechas para asegurar que empezamos desde el inicio del día
+    const normalizedStart = new Date(startDate);
+    normalizedStart.setHours(0, 0, 0, 0);
+    
+    const normalizedEnd = new Date(endDate);
+    normalizedEnd.setHours(0, 0, 0, 0);
+    
+    const days = [];
+    let currentDate = new Date(normalizedStart);
+    
+    while (currentDate <= normalizedEnd) {
+      days.push(format(currentDate, 'yyyy-MM-dd'));
+      currentDate = addDays(currentDate, 1);
+    }
+    
+    // Asegurar que las fechas están ordenadas
+    return days.sort();
   });
 
   public schedules = httpResource<any[]>(() => {
@@ -482,65 +497,176 @@ export class TimelogsComponent {
     return params;
   });
 
-  public dayLogs = computed(() =>
-    (this.logs.value() ?? [])
+  public dayLogs = computed(() => {
+    // Obtener el rango de fechas para filtrar
+    const startDate = this.dateRange()?.[0];
+    const endDate = this.dateRange()?.[1];
+    
+    if (!startDate || !endDate) {
+      return [];
+    }
+    
+    // Normalizar fechas al inicio del día para comparaciones precisas
+    const normalizedStart = new Date(startDate);
+    normalizedStart.setHours(0, 0, 0, 0);
+    const dateRangeStart = format(normalizedStart, 'yyyy-MM-dd');
+    
+    const normalizedEnd = new Date(endDate);
+    normalizedEnd.setHours(0, 0, 0, 0);
+    const dateRangeEnd = format(normalizedEnd, 'yyyy-MM-dd');
+    
+    // Obtener valores una sola vez para evitar múltiples accesos
+    const logsData = this.logs.value() ?? [];
+    const schedulesData = this.schedules.value() ?? [];
+    const timeoffsData = this.timeoffs.value() ?? [];
+    const daysList = this.days();
+    
+    // Validar que daysList esté completo y ordenado
+    if (daysList.length === 0 || daysList[0] !== dateRangeStart || daysList[daysList.length - 1] !== dateRangeEnd) {
+      // Si hay inconsistencias, regenerar daysList
+      const regeneratedDays: string[] = [];
+      let currentDate = new Date(normalizedStart);
+      while (currentDate <= normalizedEnd) {
+        regeneratedDays.push(format(currentDate, 'yyyy-MM-dd'));
+        currentDate = addDays(currentDate, 1);
+      }
+      daysList.length = 0;
+      daysList.push(...regeneratedDays);
+    }
+    
+    // Primero obtener todos los logs filtrados
+    const filteredLogs = logsData
       .filter((x) =>
-        this.branchId() ? x.employee.branch.id === this.branchId() : true
+        this.branchId() ? x.employee?.branch?.id === this.branchId() : true
       )
-      .map((x) => ({ ...x, day: format(x.created_at, 'yyyy-MM-dd') }))
-      .reduce<
-        {
-          employee: Partial<Employee>;
-          day: string;
-          schedule?: any;
-          delay?: number | string;
-          alert?: string;
-          scheduleError?: boolean;
-          lunchExceeded?: boolean;
-          lunchMinutes?: number;
-          earlyExit?: boolean;
-          insufficientHours?: boolean;
-          totalHours?: number;
-          entry?: { date: Date; branch: Branch };
-          lunch_start?: { date: Date; branch: Branch };
-          lunch_end?: { date: Date; branch: Branch };
-          exit?: { date: Date; branch: Branch };
-        }[]
-      >((acc, x) => {
-        if (!acc.filter((day) => day.employee.id === x.employee.id).length) {
-          this.days().forEach((day) => {
-            const schedule = this.schedules
-              .value()
-              ?.find(
-                (schedule) =>
-                  schedule.employee_id === x.employee.id &&
-                  schedule.start_date <= day &&
-                  schedule.end_date >= day
-              );
+      .map((x) => {
+        const logDate = new Date(x.created_at);
+        logDate.setHours(0, 0, 0, 0);
+        return { ...x, day: format(logDate, 'yyyy-MM-dd') };
+      })
+      // Filtrar logs que estén dentro del rango seleccionado (solo fechas válidas)
+      .filter((x) => {
+        const logDay = x.day;
+        return logDay >= dateRangeStart && logDay <= dateRangeEnd && logDay !== format(new Date('1900-01-01'), 'yyyy-MM-dd');
+      });
+    
+    // Obtener empleados únicos que tienen logs en el rango o que están activos
+    const uniqueEmployees = new Map<string, Partial<Employee>>();
+    
+    // Primero agregar empleados que tienen logs
+    filteredLogs.forEach((log) => {
+      if (log.employee?.id && !uniqueEmployees.has(log.employee.id)) {
+        uniqueEmployees.set(log.employee.id, log.employee);
+      }
+    });
+    
+    // También agregar empleados activos seleccionados si hay filtro por empleado
+    if (this.employeeId()) {
+      const selectedEmployee = this.employees.employeesList().find(emp => emp.id === this.employeeId());
+      if (selectedEmployee && !uniqueEmployees.has(selectedEmployee.id)) {
+        uniqueEmployees.set(selectedEmployee.id, selectedEmployee);
+      }
+    }
+    
+    // Si no hay empleados únicos, usar todos los empleados activos
+    if (uniqueEmployees.size === 0) {
+      this.employees.employeesList().forEach((emp) => {
+        if (emp.is_active) {
+          uniqueEmployees.set(emp.id, emp);
+        }
+      });
+    }
+    
+    // Crear estructura inicial: TODOS los días del rango para TODOS los empleados
+    const acc: {
+      employee: Partial<Employee>;
+      day: string;
+      schedule?: any;
+      delay?: number | string;
+      alert?: string;
+      scheduleError?: boolean;
+      lunchExceeded?: boolean;
+      lunchMinutes?: number;
+      earlyExit?: boolean;
+      insufficientHours?: boolean;
+      totalHours?: number;
+      entry?: { date: Date; branch: Branch };
+      lunch_start?: { date: Date; branch: Branch };
+      lunch_end?: { date: Date; branch: Branch };
+      exit?: { date: Date; branch: Branch };
+    }[] = [];
+    
+    // Para cada empleado, crear registros para TODOS los días del rango en orden
+    uniqueEmployees.forEach((employee) => {
+      daysList.forEach((day) => {
+        // Asegurarse de que el día esté dentro del rango (validación adicional)
+        if (day < dateRangeStart || day > dateRangeEnd) {
+          return;
+        }
+        
+        // Buscar schedule que corresponda a este día
+        const schedule = schedulesData.find(
+          (schedule) =>
+            schedule.employee_id === employee.id &&
+            schedule.start_date <= day &&
+            schedule.end_date >= day
+        );
 
-            acc.push({
-              employee: x.employee,
-              day,
-              schedule,
-              delay: undefined,
-              alert: undefined,
-              scheduleError: false,
-              lunchExceeded: false,
-              lunchMinutes: undefined,
-              earlyExit: false,
-              insufficientHours: false,
-              totalHours: undefined,
-              entry: undefined,
-              lunch_start: undefined,
-              lunch_end: undefined,
-              exit: undefined,
-            });
-          });
+        acc.push({
+          employee,
+          day,
+          schedule,
+          delay: undefined,
+          alert: undefined,
+          scheduleError: false,
+          lunchExceeded: false,
+          lunchMinutes: undefined,
+          earlyExit: false,
+          insufficientHours: false,
+          totalHours: undefined,
+          entry: undefined,
+          lunch_start: undefined,
+          lunch_end: undefined,
+          exit: undefined,
+        });
+      });
+    });
+    
+    // Ahora procesar los logs para actualizar los registros creados
+    return filteredLogs.reduce<
+      {
+        employee: Partial<Employee>;
+        day: string;
+        schedule?: any;
+        delay?: number | string;
+        alert?: string;
+        scheduleError?: boolean;
+        lunchExceeded?: boolean;
+        lunchMinutes?: number;
+        earlyExit?: boolean;
+        insufficientHours?: boolean;
+        totalHours?: number;
+        entry?: { date: Date; branch: Branch };
+        lunch_start?: { date: Date; branch: Branch };
+        lunch_end?: { date: Date; branch: Branch };
+        exit?: { date: Date; branch: Branch };
+      }[]
+    >((acc, x) => {
+
+        // Solo procesar si el día está dentro del rango
+        if (x.day < dateRangeStart || x.day > dateRangeEnd) {
+          return acc;
         }
 
         const index = acc.findIndex(
           (y) => y.day === x.day && y.employee.id === x.employee.id
         );
+
+        // Si no se encuentra el índice, significa que el día no está en this.days()
+        // Esto no debería pasar si el query filtra correctamente, pero por seguridad lo validamos
+        if (index === -1) {
+          return acc;
+        }
 
         acc[index] = {
           ...acc[index],
@@ -550,9 +676,7 @@ export class TimelogsComponent {
         // Detectar alertas cuando hay marcación
         const dayDate = new Date(acc[index].day);
         const dayStr = format(dayDate, 'yyyy-MM-dd');
-        const timeoffForDay = this.timeoffs
-          .value()
-          ?.find(
+        const timeoffForDay = timeoffsData.find(
             (timeoff) => {
               if (timeoff.employee_id !== acc[index].employee.id) return false;
               const fromStr = format(new Date(timeoff.date_from), 'yyyy-MM-dd');
@@ -728,14 +852,29 @@ export class TimelogsComponent {
         }
 
         return acc;
-      }, [])
-      .sort((a, b) =>
-        (a.employee.first_name || '').localeCompare(b.employee.first_name || '')
-      )
-  );
+      }, acc) // Usar el array inicial que ya tiene todos los días
+      .sort((a, b) => {
+        // Ordenar primero por fecha (asegurar orden cronológico), luego por nombre de empleado
+        const dateA = new Date(a.day + 'T00:00:00').getTime();
+        const dateB = new Date(b.day + 'T00:00:00').getTime();
+        if (dateA !== dateB) {
+          return dateA - dateB;
+        }
+        const nameA = (a.employee.first_name || '') + ' ' + (a.employee.father_name || '');
+        const nameB = (b.employee.first_name || '') + ' ' + (b.employee.father_name || '');
+        return nameA.localeCompare(nameB);
+      })
+      // Filtrar días finales que estén dentro del rango (validación final)
+      .filter((x) => {
+        const dayStr = x.day;
+        // Asegurar que la fecha esté en el rango correcto
+        return dayStr >= dateRangeStart && dayStr <= dateRangeEnd;
+      });
+  });
 
-  public filteredDaylogs = computed(() =>
-    this.dayLogs().filter((x) => {
+  public filteredDaylogs = computed(() => {
+    // Filtrar manteniendo el mismo orden que dayLogs
+    const filtered = this.dayLogs().filter((x) => {
       if (this.onlyDelayed()) {
         return x.delay !== undefined;
       }
@@ -780,8 +919,11 @@ export class TimelogsComponent {
         );
       }
       return true;
-    })
-  );
+    });
+    
+    // Retornar los datos filtrados en el mismo orden (ya están ordenados por dayLogs)
+    return filtered;
+  });
 
   calcTimeDiff = (time1: string, time2: string) => {
     if (!time1 || !time2) {
@@ -869,8 +1011,49 @@ export class TimelogsComponent {
     return `${h}h ${m}m`;
   }
 
-  public timelogsReport = computed(() =>
-    this.dayLogs().map((x) => {
+  public timelogsReport = computed(() => {
+    // Usar exactamente los mismos datos que se muestran en la tabla, en el mismo orden
+    const filteredData = this.filteredDaylogs();
+    
+    // Obtener y normalizar el rango de fechas
+    const startDate = this.dateRange()?.[0];
+    const endDate = this.dateRange()?.[1];
+    
+    if (!startDate || !endDate || filteredData.length === 0) {
+      return [];
+    }
+    
+    // Normalizar fechas al inicio del día
+    const normalizedStart = new Date(startDate);
+    normalizedStart.setHours(0, 0, 0, 0);
+    const dateRangeStart = format(normalizedStart, 'yyyy-MM-dd');
+    
+    const normalizedEnd = new Date(endDate);
+    normalizedEnd.setHours(0, 0, 0, 0);
+    const dateRangeEnd = format(normalizedEnd, 'yyyy-MM-dd');
+    
+    // Filtrar y ordenar datos antes de mapear (usando x.day que está en formato 'yyyy-MM-dd')
+    const sortedAndFilteredData = filteredData
+      .filter((x) => {
+        // x.day ya está en formato 'yyyy-MM-dd', comparar directamente como string
+        const dayStr = x.day || '';
+        return dayStr >= dateRangeStart && dayStr <= dateRangeEnd;
+      })
+      .sort((a, b) => {
+        // Ordenar por fecha (x.day está en formato 'yyyy-MM-dd', perfecto para ordenar como string)
+        const dayA = a.day || '';
+        const dayB = b.day || '';
+        if (dayA !== dayB) {
+          return dayA.localeCompare(dayB);
+        }
+        // Si las fechas son iguales, ordenar por nombre del empleado
+        const nameA = (a.employee?.first_name || '') + ' ' + (a.employee?.father_name || '');
+        const nameB = (b.employee?.first_name || '') + ' ' + (b.employee?.father_name || '');
+        return nameA.localeCompare(nameB);
+      });
+    
+    // Mapear datos ya ordenados
+    const mappedData = sortedAndFilteredData.map((x) => {
       const lunchMinutes = x.lunchMinutes || 0;
       const lunchExceeded = x.lunchExceeded ? `EXCEDIDO (${lunchMinutes} min)` : lunchMinutes > 0 ? `${lunchMinutes} min` : '';
       const totalHours = x.totalHours ? this.formatHours(x.totalHours) : '-';
@@ -881,26 +1064,111 @@ export class TimelogsComponent {
       if (x.insufficientHours) errors.push('Horas Insuficientes');
       if (x.alert && !x.scheduleError) errors.push(x.alert);
       
+      // Formatear entrada igual que en la tabla (evitar concatenaciones incorrectas)
+      let entrada = '';
+      if (x.entry?.date) {
+        try {
+          entrada = format(x.entry.date, 'hh:mm a');
+          if (x.entry.branch?.short_name) {
+            entrada += ` (${x.entry.branch.short_name})`;
+          }
+          if (x.delay) {
+            const delayText = typeof x.delay === 'number' ? `${x.delay} min` : String(x.delay);
+            entrada += ` Retraso de ${delayText}`;
+          }
+        } catch (error) {
+          entrada = 'SIN MARCA';
+        }
+      } else {
+        entrada = 'SIN MARCA';
+      }
+      
+      // Formatear inicio de almuerzo igual que en la tabla (evitar concatenaciones incorrectas)
+      let inicioAlmuerzo = '';
+      if (x.lunch_start?.date) {
+        try {
+          inicioAlmuerzo = format(x.lunch_start.date, 'hh:mm a');
+          if (x.lunch_start.branch?.short_name) {
+            inicioAlmuerzo += ` (${x.lunch_start.branch.short_name})`;
+          }
+        } catch (error) {
+          inicioAlmuerzo = 'SIN MARCA';
+        }
+      } else {
+        inicioAlmuerzo = 'SIN MARCA';
+      }
+      
+      // Formatear fin de almuerzo igual que en la tabla (evitar concatenaciones incorrectas)
+      let finAlmuerzo = '';
+      if (x.lunch_end?.date) {
+        try {
+          finAlmuerzo = format(x.lunch_end.date, 'hh:mm a');
+          if (x.lunch_end.branch?.short_name) {
+            finAlmuerzo += ` (${x.lunch_end.branch.short_name})`;
+          }
+          if (x.lunchExceeded && x.lunchMinutes) {
+            finAlmuerzo += ` Almuerzo ${x.lunchMinutes} min`;
+          }
+        } catch (error) {
+          finAlmuerzo = 'SIN MARCA';
+        }
+      } else {
+        finAlmuerzo = 'SIN MARCA';
+      }
+      
+      // Formatear salida igual que en la tabla (evitar concatenaciones incorrectas)
+      let salida = '';
+      if (x.exit?.date) {
+        try {
+          salida = format(x.exit.date, 'hh:mm a');
+          if (x.exit.branch?.short_name) {
+            salida += ` (${x.exit.branch.short_name})`;
+          }
+          if (x.earlyExit) {
+            salida += ' Salida temprana';
+          }
+        } catch (error) {
+          salida = 'SIN MARCA';
+        }
+      } else {
+        salida = 'SIN MARCA';
+      }
+      
+      // Formatear fecha igual que en la tabla (mediumDate: "10 nov 2025")
+      let formattedDate = '';
+      try {
+        const dayDate = new Date(x.day + 'T00:00:00'); // Asegurar parseo correcto
+        if (!isNaN(dayDate.getTime())) {
+          formattedDate = format(dayDate, 'd MMM yyyy', { locale: es });
+        } else {
+          formattedDate = x.day || '';
+        }
+      } catch (error) {
+        formattedDate = x.day || '';
+      }
+      
+      // Construir nombre del empleado de forma segura
+      const employeeName = [
+        x.employee?.first_name || '',
+        x.employee?.father_name || ''
+      ].filter(Boolean).join(' ') || 'Sin nombre';
+      
       return {
-        'Empleado': x.employee.first_name + ' ' + x.employee.father_name,
-        'Fecha': format(new Date(x.day), 'dd/MM/yyyy'),
-        'Día Semana': format(new Date(x.day), 'EEEE', { locale: es }),
+        'Empleado': employeeName,
+        'Día': formattedDate,
         'Horario': x.schedule?.schedule?.name || 'Sin horario',
-        'Sucursal Entrada': x.entry?.branch?.name || '',
-        'Entrada': x.entry?.date ? format(x.entry?.date, 'HH:mm') : 'SIN MARCA',
-        'Retraso': typeof x.delay === 'number' ? `${x.delay} min` : x.delay || '',
-        'Inicio Almuerzo': x.lunch_start?.date ? format(x.lunch_start?.date, 'HH:mm') : 'SIN MARCA',
-        'Fin Almuerzo': x.lunch_end?.date ? format(x.lunch_end?.date, 'HH:mm') : 'SIN MARCA',
-        'Tiempo Almuerzo': lunchExceeded,
-        'Sucursal Salida': x.exit?.branch?.name || '',
-        'Salida': x.exit?.date ? format(x.exit?.date, 'HH:mm') : 'SIN MARCA',
+        'Entrada': entrada,
+        'Inicio de almuerzo': inicioAlmuerzo,
+        'Fin de almuerzo': finAlmuerzo,
+        'Salida': salida,
         'Horas Trabajadas': totalHours,
-        'Errores/Alertas': errors.join(', ') || 'Ninguno',
-        'Salida Temprana': x.earlyExit ? 'Sí' : 'No',
-        'Horas Insuficientes': x.insufficientHours ? 'Sí' : 'No',
+        'Errores/Alertas': errors.length > 0 ? errors.join(', ') : 'Ninguno',
       };
-    })
-  );
+    });
+    
+    // Los datos ya están ordenados, solo retornar
+    return mappedData;
+  });
 
   generateReport() {
     try {
@@ -917,24 +1185,17 @@ export class TimelogsComponent {
       const lastCol = String.fromCharCode(64 + headers.length);
       ws['!autofilter'] = { ref: `A1:${lastCol}${data.length + 1}` };
       
-      // Ajustar ancho de columnas
+      // Ajustar ancho de columnas según el orden de las columnas
       const colWidths = [
         { wch: 25 }, // Empleado
-        { wch: 12 }, // Fecha
-        { wch: 12 }, // Día Semana
+        { wch: 12 }, // Día
         { wch: 20 }, // Horario
-        { wch: 20 }, // Sucursal Entrada
-        { wch: 10 }, // Entrada
-        { wch: 10 }, // Retraso
-        { wch: 15 }, // Inicio Almuerzo
-        { wch: 15 }, // Fin Almuerzo
-        { wch: 15 }, // Tiempo Almuerzo
-        { wch: 20 }, // Sucursal Salida
-        { wch: 10 }, // Salida
+        { wch: 25 }, // Entrada (incluye sucursal y retraso)
+        { wch: 20 }, // Inicio de almuerzo (incluye sucursal)
+        { wch: 20 }, // Fin de almuerzo (incluye sucursal)
+        { wch: 20 }, // Salida (incluye sucursal)
         { wch: 15 }, // Horas Trabajadas
-        { wch: 30 }, // Errores/Alertas
-        { wch: 15 }, // Salida Temprana
-        { wch: 18 }, // Horas Insuficientes
+        { wch: 40 }, // Errores/Alertas
       ];
       ws['!cols'] = colWidths;
       

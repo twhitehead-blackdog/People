@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { Router, RouterOutlet, NavigationEnd, ActivatedRoute } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { AccordionModule } from 'primeng/accordion';
@@ -64,14 +64,15 @@ import { EmployeePortalComponent } from './employee-portal.component';
         class="bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900 border-b border-neutral-700/50 w-full min-w-0 shadow-lg"
         style="position: relative; z-index: 1000;"
       >
-        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div class="flex h-16 items-center justify-between">
-            <div class="flex items-center">
-              <a (click)="navigateTo('home')" class="shrink-0 flex items-center gap-2 group cursor-pointer">
+        <div class="mx-auto max-w-7xl px-2 sm:px-4 lg:px-6">
+          <div class="header-container h-16">
+            <div class="header-logo">
+              <a (click)="navigateTo('home')" class="flex items-center gap-2 group cursor-pointer">
                 <img src="images/blackdog.png" class="h-9 transition-transform duration-300 group-hover:scale-105" alt="People" />
               </a>
-              <div class="hidden md:block">
-                <div class="ml-10 flex items-baseline space-x-1">
+            </div>
+            <div class="header-menu hidden md:block">
+              <div class="flex items-baseline space-x-1">
                   @if(store.isAdmin() && !store.hasPortalAccessOnly() && !store.hasTimeManagementAccess()) {
                   <a
                     (click)="navigateTo('home')"
@@ -112,13 +113,12 @@ import { EmployeePortalComponent } from './employee-portal.component';
                   >
                   }
                 </div>
-              </div>
             </div>
-            <div class="hidden md:block">
+            <div class="header-user hidden md:block">
               @if(user) {
               <p-menu #menu [model]="items()" popup />
               <div
-                class="ml-4 flex items-center md:ml-6 gap-3 cursor-pointer group px-3 py-2 rounded-lg hover:bg-gray-700/50 transition-all duration-200"
+                class="flex items-center gap-3 cursor-pointer group px-3 py-2 rounded-lg hover:bg-gray-700/50 transition-all duration-200"
                 (click)="menu.toggle($event)"
               >
                 <div class="relative flex-shrink-0">
@@ -129,11 +129,10 @@ import { EmployeePortalComponent } from './employee-portal.component';
                 </div>
                 <div class="flex flex-col min-w-0 flex-1">
                   <div class="text-sm font-semibold text-white group-hover:text-gray-100 transition-colors truncate">
-                    {{ store.currentEmployee()?.first_name }}
-                    {{ store.currentEmployee()?.father_name }}
+                    {{ currentEmployeeName() }}
                   </div>
                   <div class="text-xs text-gray-400 group-hover:text-gray-300 transition-colors truncate">
-                    {{ store.currentEmployee()?.position?.name || 'Sin cargo' }}
+                    {{ currentEmployeePosition() }}
                   </div>
                 </div>
                 <i class="pi pi-chevron-down text-gray-400 group-hover:text-gray-300 transition-colors text-xs flex-shrink-0"></i>
@@ -214,11 +213,10 @@ import { EmployeePortalComponent } from './employee-portal.component';
               </div>
               <div class="flex-1">
                 <div class="text-base font-semibold text-white">
-                  {{ store.currentEmployee()?.first_name }}
-                  {{ store.currentEmployee()?.father_name }}
+                  {{ currentEmployeeName() }}
                 </div>
                 <div class="text-sm text-gray-400">
-                  {{ store.currentEmployee()?.position?.name }}
+                  {{ currentEmployeePosition() }}
                 </div>
               </div>
             </div>
@@ -303,7 +301,33 @@ import { EmployeePortalComponent } from './employee-portal.component';
       ::ng-deep .avatar-container .p-avatar-circle {
         border-radius: 50% !important;
       }
+
+      /* Header layout optimizations */
+      .header-container {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        gap: 1rem;
+      }
+
+      .header-logo {
+        flex-shrink: 0;
+        margin-right: auto;
+      }
+
+      .header-menu {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        min-width: 0;
+      }
+
+      .header-user {
+        flex-shrink: 0;
+        margin-left: auto;
+      }
       `,
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DashboardComponent {
   public isCollapsed = signal(true);
@@ -315,10 +339,25 @@ export class DashboardComponent {
   public showEmployeePortalView = signal(false);
 
   // Verificar si el usuario es soporte2@blackdogpanama.com
+  // Memoized to avoid recalculation
   public isSupportUser = computed(() => {
     const employee = this.store.currentEmployee();
-    const email = employee?.work_email?.toLowerCase() || '';
+    if (!employee) return false;
+    const email = employee.work_email?.toLowerCase() || '';
     return email === 'soporte2@blackdogpanama.com';
+  });
+
+  // Memoized employee name to avoid multiple store calls
+  public currentEmployeeName = computed(() => {
+    const employee = this.store.currentEmployee();
+    if (!employee) return '';
+    return `${employee.first_name || ''} ${employee.father_name || ''}`.trim();
+  });
+
+  // Memoized employee position to avoid multiple store calls
+  public currentEmployeePosition = computed(() => {
+    const employee = this.store.currentEmployee();
+    return employee?.position?.name || 'Sin cargo';
   });
 
   constructor() {
@@ -347,45 +386,77 @@ export class DashboardComponent {
     this.router.navigate([route], { relativeTo: this.route });
   }
 
+  // Memoized route check to avoid recalculating on every change detection
+  private _routeCache = new Map<string, boolean>();
+  private _lastUrl = '';
+
   isActiveRoute(route: string): boolean {
     const url = this.router.url;
+    
+    // Use cache if URL hasn't changed
+    if (url === this._lastUrl && this._routeCache.has(route)) {
+      return this._routeCache.get(route)!;
+    }
+
+    // Clear cache if URL changed
+    if (url !== this._lastUrl) {
+      this._routeCache.clear();
+      this._lastUrl = url;
+    }
+
     const segments = url.split('/').filter((s: string) => s);
+    let isActive = false;
     
     // Verificar si la ruta está en los segmentos de la URL
     // Esto funciona tanto para rutas directas como subrutas
     if (route === 'admin' && segments.includes('admin')) {
-      return true;
+      isActive = true;
+    } else if (route === 'payroll' && segments.includes('payroll')) {
+      isActive = true;
+    } else if (route === 'time-management' && segments.includes('time-management')) {
+      isActive = true;
+    } else if (route === 'timeclock' && segments.includes('timeclock')) {
+      isActive = true;
+    } else if (route === 'home' && (segments.includes('home') || segments.length === 0)) {
+      isActive = true;
     }
-    if (route === 'payroll' && segments.includes('payroll')) {
-      return true;
-    }
-    if (route === 'time-management' && segments.includes('time-management')) {
-      return true;
-    }
-    if (route === 'timeclock' && segments.includes('timeclock')) {
-      return true;
-    }
-    if (route === 'home' && (segments.includes('home') || segments.length === 0)) {
-      return true;
-    }
-    
-    return false;
+
+    // Cache result
+    this._routeCache.set(route, isActive);
+    return isActive;
   }
 
+  // Memoized menu items to avoid recalculation on every change detection
+  private _cachedItems: MenuItem[] | null = null;
+  private _lastSupportUserState: boolean | null = null;
+  private _lastPortalViewState: boolean | null = null;
+
   public items = computed<MenuItem[]>(() => {
+    const isSupport = this.isSupportUser();
+    const portalView = this.showEmployeePortalView();
+    
+    // Only recompute if relevant state changed
+    if (
+      this._cachedItems !== null &&
+      this._lastSupportUserState === isSupport &&
+      this._lastPortalViewState === portalView
+    ) {
+      return this._cachedItems;
+    }
+
     const items: MenuItem[] = [
       {
         label: 'Mi Portal',
         icon: 'pi pi-user',
-        command: () => this.router.navigate(['/my-portal']),
+        command: () => this.router.navigate(['/employee-portal']),
       },
     ];
 
     // Agregar opción de vista Employee Portal solo para soporte2@blackdogpanama.com
-    if (this.isSupportUser()) {
+    if (isSupport) {
       items.push({
-        label: this.showEmployeePortalView() ? 'Vista Completa' : 'Vista Employee Portal',
-        icon: this.showEmployeePortalView() ? 'pi pi-th-large' : 'pi pi-id-card',
+        label: portalView ? 'Vista Completa' : 'Vista Employee Portal',
+        icon: portalView ? 'pi pi-th-large' : 'pi pi-id-card',
         command: () => {
           this.showEmployeePortalView.update(v => !v);
         },
@@ -402,6 +473,10 @@ export class DashboardComponent {
         command: () => this.auth.logout(),
       }
     );
+
+    this._cachedItems = items;
+    this._lastSupportUserState = isSupport;
+    this._lastPortalViewState = portalView;
 
     return items;
   });
