@@ -1,5 +1,6 @@
 import { Route } from '@angular/router';
 import { authGuardFn } from '../../guard';
+import { timeclockKioskGuard } from './guards/timeclock-kiosk.guard';
 
 export const appRoutes: Route[] = [
   {
@@ -35,7 +36,7 @@ export const appRoutes: Route[] = [
     path: 'timeclock-kiosk',
     loadComponent: () =>
       import('./timeclock.component').then((x) => x.TimeclockComponent),
-    canActivate: [() => import('./guards/timeclock-kiosk.guard').then(m => m.timeclockKioskGuard)],
+    canActivate: [timeclockKioskGuard],
   },
   { path: '**', redirectTo: 'login', pathMatch: 'full' },
 ];

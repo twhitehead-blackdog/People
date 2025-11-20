@@ -34,6 +34,13 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
     return next(request);
   }
 
+  // Endpoints públicos que NO requieren autenticación de Auth0
+  // /api/client-ip es usado por el modo kiosko que no requiere autenticación
+  if (req.url.includes('/api/client-ip') || req.url.includes('/api/health')) {
+    // Permitir peticiones sin autenticación
+    return next(req);
+  }
+
   // For non-Supabase requests, use Auth0 token
   return inject(AuthService)
     .getAccessTokenSilently()

@@ -1,68 +1,94 @@
 import { inject } from '@angular/core';
-import { CanActivateFn, Router } from '@angular/router';
+import { CanActivateFn, Router, UrlTree } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
-import { catchError, map, of, timeout } from 'rxjs';
+import { catchError, from, Observable, of, switchMap, timeout } from 'rxjs';
+import { IpMonitorService } from '../services/ip-monitor.service';
+import { Branch } from '../models';
 
 /**
  * Guard para el modo kiosko del reloj de marcaciones
  * Permite acceso sin autenticación pero valida la IP del cliente
- * Solo permite acceso desde IPs de tienda configuradas
- * 
- * Configuración:
- * - Variable de entorno: ENV_KIOSK_ALLOWED_IPS
- * - Formato: IPs separadas por comas (ej: "192.168.1.100,192.168.1.101,10.0.0.50")
- * - Ejemplo: ENV_KIOSK_ALLOWED_IPS=192.168.1.100,192.168.1.101,10.0.0.50
+ * Solo permite acceso desde IPs de sucursales activas configuradas en la base de datos
  */
-export const timeclockKioskGuard: CanActivateFn = (route, state) => {
+export const timeclockKioskGuard: CanActivateFn = (route, state): Observable<boolean | UrlTree> => {
   const router = inject(Router);
   const http = inject(HttpClient);
+  const ipMonitor = inject(IpMonitorService);
 
-  // Lista de IPs permitidas para modo kiosko desde variables de entorno
-  const allowedIPsEnv = process.env['ENV_KIOSK_ALLOWED_IPS'];
-  const allowedIPs = allowedIPsEnv?.split(',').map(ip => ip.trim()).filter(ip => ip.length > 0) || [];
+  // Obtener IPs de sucursales activas desde la base de datos
+  return http.get<Branch[]>(`${process.env['ENV_SUPABASE_URL']}/rest/v1/branches`, {
+    params: {
+      select: 'ip',
+      is_active: 'eq.true',
+      ip: 'not.is.null'
+    },
+    headers: {
+      'apikey': process.env['ENV_SUPABASE_API_KEY'] || '',
+      'Authorization': `Bearer ${process.env['ENV_SUPABASE_API_KEY'] || ''}`
+    }
+  }).pipe(
+    timeout(10000),
+    switchMap((branches) => {
+      // Extraer IPs de las sucursales, filtrando valores nulos o vacíos
+      const allowedIPs = branches
+        .map(branch => branch.ip?.trim())
+        .filter((ip): ip is string => !!ip && ip.length > 0);
 
-  // Si no hay IPs configuradas, denegar acceso por seguridad
-  if (allowedIPs.length === 0) {
-    console.warn('No hay IPs configuradas para modo kiosko. Configure ENV_KIOSK_ALLOWED_IPS');
-    router.navigate(['/sin-acceso'], {
-      queryParams: { reason: 'no_ips_configured' }
-    });
-    return of(false);
-  }
-
-  // Obtener la IP del cliente usando un servicio externo
-  // Timeout de 5 segundos para evitar esperas largas
-  return http.get<{ ip: string }>('https://api.ipify.org?format=json').pipe(
-    timeout(5000),
-    map((response) => {
-      const clientIP = response.ip;
-      
-      // Verificar si la IP está en la lista de permitidas
-      const isAllowed = allowedIPs.some((allowedIP) => {
-        // Soporta IPs exactas
-        // TODO: Implementar validación CIDR si es necesario en el futuro
-        const trimmedIP = allowedIP.trim();
-        return clientIP === trimmedIP;
-      });
-
-      if (!isAllowed) {
-        console.warn(`Acceso denegado desde IP: ${clientIP}. IPs permitidas: ${allowedIPs.join(', ')}`);
-        router.navigate(['/sin-acceso'], {
-          queryParams: { reason: 'ip_not_allowed', ip: clientIP }
-        });
-        return false;
+      // Si no hay IPs configuradas, denegar acceso por seguridad
+      if (allowedIPs.length === 0) {
+        return of(router.createUrlTree(['/sin-acceso'], {
+          queryParams: { reason: 'no_ips_configured' }
+        }));
       }
 
-      console.log(`Acceso permitido desde IP: ${clientIP}`);
-      return true;
+      // Configurar IPs permitidas en el servicio
+      ipMonitor.setAllowedIPs(allowedIPs);
+
+      // Validar IP inicial usando el servicio de monitoreo
+      // Convertir Promise a Observable usando from()
+      return from(ipMonitor.validateInitialIP(allowedIPs)).pipe(
+        switchMap((result) => {
+          // BLOQUEAR ACCESO si no se pudo obtener la IP
+          if (!result.ip) {
+            return of(router.createUrlTree(['/sin-acceso'], {
+              queryParams: { reason: 'ip_check_failed', ip: 'unknown' }
+            }));
+          }
+
+          // Verificar explícitamente que la IP esté en la lista de permitidas
+          const clientIP = result.ip.trim();
+          const isIPInList = allowedIPs.some(allowedIP => {
+            const trimmedAllowed = allowedIP.trim();
+            return clientIP === trimmedAllowed;
+          });
+
+          // BLOQUEAR ACCESO si la IP no está en la lista O si result.allowed es false
+          if (!isIPInList || !result.allowed) {
+            return of(router.createUrlTree(['/sin-acceso'], {
+              queryParams: { reason: 'ip_not_allowed', ip: clientIP }
+            }));
+          }
+
+          // Iniciar monitoreo continuo de IP
+          ipMonitor.startMonitoring(allowedIPs);
+          
+          return of(true);
+        }),
+        catchError((error) => {
+          console.error('[timeclockKioskGuard] Error al validar IP:', error);
+          // En caso de error, SIEMPRE BLOQUEAR acceso por seguridad
+          return of(router.createUrlTree(['/sin-acceso'], {
+            queryParams: { reason: 'ip_check_failed' }
+          }));
+        })
+      );
     }),
     catchError((error) => {
-      console.error('Error al obtener IP del cliente:', error);
-      // En caso de error, denegar acceso por seguridad
-      router.navigate(['/sin-acceso'], {
+      console.error('[timeclockKioskGuard] Error al obtener IPs de sucursales:', error);
+      // En caso de error, BLOQUEAR acceso por seguridad
+      return of(router.createUrlTree(['/sin-acceso'], {
         queryParams: { reason: 'ip_check_failed' }
-      });
-      return of(false);
+      }));
     })
   );
 };

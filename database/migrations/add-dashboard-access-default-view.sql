@@ -22,3 +22,4 @@ UPDATE positions
 SET dashboard_access = true 
 WHERE dashboard_access IS NULL;
 
+

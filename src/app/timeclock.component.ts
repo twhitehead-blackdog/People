@@ -4,6 +4,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   effect,
   ElementRef,
   inject,
@@ -12,6 +13,7 @@ import {
   signal,
   ViewChild,
 } from '@angular/core';
+import { Router } from '@angular/router';
 import {
   FormControl,
   FormGroup,
@@ -28,9 +30,11 @@ import { InputOtp } from 'primeng/inputotp';
 import { Select } from 'primeng/select';
 import { Toast } from 'primeng/toast';
 import { catchError, EMPTY, Observable, of } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { map, switchMap } from 'rxjs/operators';
 import { Branch, Company, Employee, TimelogType, EmployeeSchedule, Schedule, TimeLog, TimeLogEnum } from './models';
 import { TrimPipe } from './pipes/trim.pipe';
+import { IpMonitorService } from './services/ip-monitor.service';
 
 @Component({
   selector: 'pt-timeclock',
@@ -71,6 +75,7 @@ import { TrimPipe } from './pipes/trim.pipe';
         class="flex flex-col items-center justify-center animated-gradient-container"
         style="width: 100%; position: relative; min-height: 100vh; overflow-y: auto; overflow-x: hidden;"
       >
+      @if (!isKioskMode() || isIPValid()) {
       <div
         class="flex flex-col gap-2 md:gap-3 lg:gap-4 items-center px-3 md:px-6 relative z-10 timeclock-content"
         style="max-width: 600px; width: 100%; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem 0;"
@@ -200,6 +205,39 @@ import { TrimPipe } from './pipes/trim.pipe';
           </form>
         </p-card>
       </div>
+      } @else {
+      <!-- Mensaje de acceso restringido en modo kiosko -->
+      <div
+        class="flex flex-col gap-4 items-center px-3 md:px-6 relative z-10"
+        style="max-width: 600px; width: 100%; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem 0;"
+      >
+        <img src="images/blackdog.png" class="h-12 md:h-16 lg:h-20 w-auto object-contain drop-shadow-2xl relative z-10" />
+        <p-card class="w-full timeclock-card relative z-10">
+          <ng-template pTemplate="title">
+            <div class="flex flex-col gap-3 items-center">
+              <div class="relative">
+                <div class="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-red-500/30 to-red-600/20 flex items-center justify-center shadow-lg shadow-red-500/20 border border-red-500/30 animate-pulse">
+                  <i class="pi pi-exclamation-triangle text-red-400 text-3xl md:text-4xl drop-shadow-lg"></i>
+                </div>
+                <div class="absolute inset-0 w-20 h-20 md:w-24 md:h-24 rounded-full bg-red-500/10 animate-ping"></div>
+              </div>
+              <h1 class="text-xl md:text-2xl font-semibold text-white m-0 text-center">Acceso Restringido</h1>
+            </div>
+          </ng-template>
+          <div class="space-y-4 text-gray-300 text-center">
+            <p class="text-base md:text-lg text-white font-medium">Dirección IP no autorizada</p>
+            <p class="text-sm md:text-base leading-relaxed">Tu dirección IP actual no está autorizada para usar el modo kiosko.</p>
+            @if (currentIP()) {
+              <div class="mt-4 p-3 bg-neutral-800/50 rounded-lg border border-neutral-700">
+                <p class="text-xs text-gray-400 mb-1">IP detectada:</p>
+                <p class="text-sm text-red-400 font-mono font-semibold text-center">{{ currentIP() }}</p>
+              </div>
+            }
+            <p class="text-xs md:text-sm text-gray-400 italic">Si cambias de red o tu IP cambia, el acceso será bloqueado automáticamente.</p>
+          </div>
+        </p-card>
+      </div>
+      }
     </div>`,
   styles: `
     .animated-gradient-container {
@@ -532,18 +570,27 @@ export class TimeclockComponent implements OnDestroy {
   private message = inject(MessageService);
   private confirmation = inject(ConfirmationService);
   private http = inject(HttpClient);
+  private router = inject(Router);
+  private ipMonitor = inject(IpMonitorService);
+  private destroyRef = inject(DestroyRef);
   // Get IP address - try multiple methods to get real IP even from localhost
   public currentIP = signal<string>('127.0.0.1');
   public isProcessing = signal<boolean>(false);
   public showKeypad = signal<boolean>(false);
   public currentTime = signal<Date>(new Date());
   public availableTypes = signal<Array<{value: string, label: string}>>([]);
+  public isKioskMode = signal<boolean>(false);
+  public isIPValid = signal<boolean>(true);
 
   private injector = inject(Injector);
   private timeInterval: any;
 
   // Update time every second
   constructor() {
+    // Detectar si está en modo kiosko
+    const isKioskRoute = this.router.url.includes('/timeclock-kiosk');
+    this.isKioskMode.set(isKioskRoute);
+    
     this.timeInterval = setInterval(() => {
       this.currentTime.set(new Date());
     }, 1000);
@@ -553,6 +600,11 @@ export class TimeclockComponent implements OnDestroy {
     
     // Try to get real IP address using multiple methods
     this.detectIP();
+    
+    // Si está en modo kiosko, monitorear la IP continuamente
+    if (isKioskRoute) {
+      this.setupKioskModeMonitoring();
+    }
     
     // Auto-select company and branch when data loads
     effect(() => {
@@ -612,9 +664,48 @@ export class TimeclockComponent implements OnDestroy {
     });
   }
 
+  /**
+   * Configura el monitoreo de IP en modo kiosko
+   */
+  private setupKioskModeMonitoring(): void {
+    // Suscribirse al estado de validez de la IP
+    this.ipMonitor.isIPValid.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe((isValid) => {
+      this.isIPValid.set(isValid);
+      
+      if (!isValid) {
+        // Mostrar alerta cuando la IP no es válida
+        this.message.add({
+          severity: 'error',
+          summary: 'Acceso Restringido',
+          detail: 'La dirección IP no está autorizada para usar el modo kiosko. El acceso ha sido bloqueado.',
+          life: 0, // No desaparece automáticamente
+          closable: true
+        });
+      } else {
+        // Limpiar mensajes de error si la IP vuelve a ser válida
+        this.message.clear();
+      }
+    });
+    
+    // También suscribirse a cambios de IP para detectar cambios de red
+    this.ipMonitor.currentIP.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe((ip) => {
+      if (ip) {
+        this.currentIP.set(ip);
+      }
+    });
+  }
+
   ngOnDestroy() {
     if (this.timeInterval) {
       clearInterval(this.timeInterval);
+    }
+    // Detener monitoreo de IP si está activo
+    if (this.isKioskMode()) {
+      this.ipMonitor.stopMonitoring();
     }
   }
 
