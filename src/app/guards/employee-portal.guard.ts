@@ -113,22 +113,36 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
           return of(true);
         }
         
+        // Los gerentes de tienda NO pueden acceder a home (resumen), redirigir a time-management
+        if (hasTimeManagementAccess && isHomeRoute) {
+          return of(router.createUrlTree(['/time-management']));
+        }
+        
+        // Si es gerente de tienda en ruta raíz sin dashboard_access, redirigir a time-management
+        if (hasTimeManagementAccess && (state.url === '/' || state.url === '') && !hasDashboardAccess) {
+          return of(router.createUrlTree(['/time-management']));
+        }
+        
         // Si no tiene acceso al dashboard y está intentando acceder a rutas del dashboard, redirigir al portal
-        if (!hasDashboardAccess && !isPortalRoute && !isTimeclockRoute && !isTimeManagementRoute) {
+        // Pero excluir gerentes de tienda que tienen acceso especial
+        if (!hasDashboardAccess && !isPortalRoute && !isTimeclockRoute && !isTimeManagementRoute && !hasTimeManagementAccess) {
           return of(router.createUrlTree(['/employee-portal']));
         }
 
-        if (hasPortalAccessOnly && isTimeclockRoute) {
+        // Excluir gerentes de tienda de las restricciones de portal-only
+        if (hasPortalAccessOnly && !hasTimeManagementAccess && isTimeclockRoute) {
           return of(router.createUrlTree(['/employee-portal']));
         }
 
-        if (hasPortalAccessOnly && !isPortalRoute && (isHomeRoute || !isTimeclockRoute)) {
+        if (hasPortalAccessOnly && !hasTimeManagementAccess && !isPortalRoute && (isHomeRoute || !isTimeclockRoute)) {
           return of(router.createUrlTree(['/employee-portal']));
         }
         
         // Si está en la ruta raíz o home y tiene una vista predeterminada, redirigir
+        // Pero los gerentes de tienda no pueden tener 'home' como vista predeterminada
         if ((isHomeRoute || state.url === '/' || state.url === '') && employee.position?.default_view) {
           const defaultView = employee.position.default_view;
+          // Mapear la vista predeterminada a la ruta correcta
           const routeMap: Record<string, string> = {
             'home': '/home',
             'admin': '/admin',
@@ -137,11 +151,20 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
             'timeclock': '/timeclock',
             'employee-portal': '/employee-portal',
           };
+          // Si es gerente de tienda y la vista predeterminada es 'home', usar 'time-management' en su lugar
+          if (hasTimeManagementAccess && defaultView === 'home') {
+            return of(router.createUrlTree(['/time-management']));
+          }
           const targetRoute = routeMap[defaultView] || '/home';
           return of(router.createUrlTree([targetRoute]));
         }
 
         if (isPortalRoute) {
+          return of(true);
+        }
+
+        // Permitir acceso a gerentes de tienda incluso sin dashboard_access
+        if (hasTimeManagementAccess) {
           return of(true);
         }
 
@@ -215,22 +238,35 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
             return true;
           }
           
+          // Los gerentes de tienda NO pueden acceder a home (resumen), redirigir a time-management
+          if (hasTimeManagementAccess && isHomeRoute) {
+            return router.createUrlTree(['/time-management']);
+          }
+          
+          // Si es gerente de tienda en ruta raíz sin dashboard_access, redirigir a time-management
+          if (hasTimeManagementAccess && (state.url === '/' || state.url === '') && !hasDashboardAccess) {
+            return router.createUrlTree(['/time-management']);
+          }
+          
           // Si no tiene acceso al dashboard y está intentando acceder a rutas del dashboard, redirigir al portal
-          if (!hasDashboardAccess && !isPortalRoute && !isTimeclockRoute && !isTimeManagementRoute) {
+          // Pero excluir gerentes de tienda que tienen acceso especial
+          if (!hasDashboardAccess && !isPortalRoute && !isTimeclockRoute && !isTimeManagementRoute && !hasTimeManagementAccess) {
             return router.createUrlTree(['/employee-portal']);
           }
 
-          // Si tiene acceso solo al portal y está intentando acceder al reloj de marcaciones, redirigir
-          if (hasPortalAccessOnly && isTimeclockRoute) {
+          // Excluir gerentes de tienda de las restricciones de portal-only
+          if (hasPortalAccessOnly && !hasTimeManagementAccess && isTimeclockRoute) {
             return router.createUrlTree(['/employee-portal']);
           }
 
           // Si tiene acceso solo al portal y está intentando acceder a home u otras rutas, redirigir al portal
-          if (hasPortalAccessOnly && !isPortalRoute && (isHomeRoute || !isTimeclockRoute)) {
+          // Pero excluir gerentes de tienda
+          if (hasPortalAccessOnly && !hasTimeManagementAccess && !isPortalRoute && (isHomeRoute || !isTimeclockRoute)) {
             return router.createUrlTree(['/employee-portal']);
           }
           
           // Si está en la ruta raíz o home y tiene una vista predeterminada, redirigir
+          // Pero los gerentes de tienda no pueden tener 'home' como vista predeterminada
           if ((isHomeRoute || state.url === '/' || state.url === '') && employee.position?.default_view) {
             const defaultView = employee.position.default_view;
             // Mapear la vista predeterminada a la ruta correcta
@@ -242,12 +278,21 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
               'timeclock': '/timeclock',
               'employee-portal': '/employee-portal',
             };
+            // Si es gerente de tienda y la vista predeterminada es 'home', usar 'time-management' en su lugar
+            if (hasTimeManagementAccess && defaultView === 'home') {
+              return router.createUrlTree(['/time-management']);
+            }
             const targetRoute = routeMap[defaultView] || '/home';
             return router.createUrlTree([targetRoute]);
           }
 
           // Permitir acceso al portal siempre
           if (isPortalRoute) {
+            return true;
+          }
+
+          // Permitir acceso a gerentes de tienda incluso sin dashboard_access
+          if (hasTimeManagementAccess) {
             return true;
           }
 
@@ -280,7 +325,7 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
             // Verificar permiso de dashboard
             const hasDashboardAccess = employee.position?.dashboard_access !== false;
             
-            // Si tiene acceso especial a gestión de tiempo, permitir acceso
+            // Si tiene acceso especial a gestión de tiempo, permitir acceso siempre
             if (hasTimeManagementAccess) {
               return of(true);
             }

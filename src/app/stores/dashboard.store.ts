@@ -131,6 +131,19 @@ export const DashboardStore = signalStore(
       const isScheduleAdmin = computed(
         () => currentEmployee()?.position?.schedule_admin
       );
+
+      // Lista de cargos que tienen acceso especial a gestión de tiempo y reloj de marcaciones
+      const timeManagementAccessPositions = [
+        'gerente de tienda',
+      ];
+
+      const hasTimeManagementAccess = computed(() => {
+        const employee = currentEmployee();
+        const positionName = employee?.position?.name || '';
+        return timeManagementAccessPositions.some(
+          (pos) => positionName.toLowerCase().includes(pos.toLowerCase())
+        );
+      });
       const isScheduleApprover = computed(
         () => currentEmployee()?.position?.schedule_approver
       );
@@ -798,6 +811,7 @@ export const DashboardStore = signalStore(
         hasPortalAccessOnly,
         isScheduleAdmin,
         isScheduleApprover,
+        hasTimeManagementAccess,
         currentBranch,
         monthlyBudget,
         countByGender,

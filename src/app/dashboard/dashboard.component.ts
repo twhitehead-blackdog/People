@@ -72,7 +72,7 @@ import { EmployeePortalComponent } from './employee-portal.component';
               </a>
               <div class="hidden md:block">
                 <div class="ml-10 flex items-baseline space-x-1">
-                  @if(store.isAdmin() && !store.hasPortalAccessOnly()) {
+                  @if(store.isAdmin() && !store.hasPortalAccessOnly() && !store.hasTimeManagementAccess()) {
                   <a
                     (click)="navigateTo('home')"
                     [class.selected]="isActiveRoute('home')"
@@ -155,7 +155,7 @@ import { EmployeePortalComponent } from './employee-portal.component';
         </div>
         <div class="md:hidden border-t border-neutral-700/50 bg-neutral-800/90 backdrop-blur-sm" [class.hidden]="isCollapsed()">
           <div class="space-y-1 px-2 pt-2 pb-3 sm:px-3">
-            @if(store.isAdmin() && !store.hasPortalAccessOnly()) {
+            @if(store.isAdmin() && !store.hasPortalAccessOnly() && !store.hasTimeManagementAccess()) {
             <a
               (click)="navigateTo('home')"
               [class.bg-gray-700]="isActiveRoute('home')"
