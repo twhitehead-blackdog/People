@@ -191,8 +191,12 @@ interface Disability {
             [globalFilterFields]="['employee.first_name', 'employee.father_name', 'employee.work_email', 'description']"
             styleClass="p-datatable-striped"
             [tableStyle]="{ 'min-width': '50rem' }"
-            [emptyMessage]="'No se encontraron incapacidades'"
           >
+            <ng-template #emptymessage>
+              <tr>
+                <td colspan="8" class="text-center py-4">No se encontraron incapacidades</td>
+              </tr>
+            </ng-template>
             <ng-template pTemplate="header">
               <tr>
                 <th style="width: 200px">Empleado</th>
@@ -335,12 +339,12 @@ interface Disability {
             </p>
             @if (selectedDisability()!.employee?.position?.name) {
               <p class="text-sm text-gray-500">
-                {{ selectedDisability()!.employee.position.name }}
+                {{ selectedDisability()!.employee?.position?.name }}
               </p>
             }
             @if (selectedDisability()!.employee?.branch?.name) {
               <p class="text-sm text-gray-500">
-                Sucursal: {{ selectedDisability()!.employee.branch.name }}
+                Sucursal: {{ selectedDisability()!.employee?.branch?.name }}
               </p>
             }
           </div>
@@ -541,9 +545,9 @@ export class HRDisabilitiesComponent {
     return labels[status] || status;
   }
 
-  public getStatusSeverity(status: string): string {
-    const severities: Record<string, string> = {
-      pending: 'warning',
+  public getStatusSeverity(status: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
+    const severities: Record<string, 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'> = {
+      pending: 'warn',
       approved: 'success',
       rejected: 'danger',
     };
