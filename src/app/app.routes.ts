@@ -31,5 +31,11 @@ export const appRoutes: Route[] = [
     loadComponent: () =>
       import('./no-access.component').then((x) => x.NoAccessComponent),
   },
+  {
+    path: 'timeclock-kiosk',
+    loadComponent: () =>
+      import('./timeclock.component').then((x) => x.TimeclockComponent),
+    canActivate: [() => import('./guards/timeclock-kiosk.guard').then(m => m.timeclockKioskGuard)],
+  },
   { path: '**', redirectTo: 'login', pathMatch: 'full' },
 ];
