@@ -76,10 +76,23 @@ export const timeclockGuard: CanActivateFn = (route, state) => {
             'Asistente de peluquería',
           ];
 
+          // Lista de cargos que tienen acceso especial a gestión de tiempo y reloj de marcaciones
+          const timeManagementAccessPositions = [
+            'gerente de tienda',
+          ];
+
           const positionName = employee.position?.name || '';
           const isPortalOnlyPosition = portalOnlyPositions.some(
             (pos) => positionName.toLowerCase().includes(pos.toLowerCase())
           );
+          const hasTimeManagementAccess = timeManagementAccessPositions.some(
+            (pos) => positionName.toLowerCase().includes(pos.toLowerCase())
+          );
+
+          // Si tiene acceso especial a gestión de tiempo, permitir acceso al timeclock
+          if (hasTimeManagementAccess) {
+            return employee.account_approved === true;
+          }
 
           // Si tiene un cargo que solo permite acceso al portal, denegar acceso al timeclock
           if (isPortalOnlyPosition) {

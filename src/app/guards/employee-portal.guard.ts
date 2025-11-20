@@ -50,6 +50,11 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
     'Asistente de peluquería',
   ];
 
+  // Lista de cargos que tienen acceso especial a gestión de tiempo y reloj de marcaciones
+  const timeManagementAccessPositions = [
+    'gerente de tienda',
+  ];
+
   return authService.user$.pipe(
     take(1),
     switchMap((user) => {
@@ -87,6 +92,9 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
         const isPortalOnlyPosition = portalOnlyPositions.some(
           (pos) => positionName.toLowerCase().includes(pos.toLowerCase())
         );
+        const hasTimeManagementAccess = timeManagementAccessPositions.some(
+          (pos) => positionName.toLowerCase().includes(pos.toLowerCase())
+        );
         const hasPortalAccessOnly = 
           isPortalOnlyPosition || 
           (employee.has_portal_access === true && !employee.position?.admin);
@@ -96,11 +104,17 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
 
         const currentRoute = route.routeConfig?.path || '';
         const isTimeclockRoute = currentRoute === 'timeclock' || state.url.includes('/timeclock');
+        const isTimeManagementRoute = currentRoute === 'time-management' || state.url.includes('/time-management');
         const isPortalRoute = currentRoute === 'my-portal' || state.url.includes('/my-portal') || state.url.includes('/employee-portal');
         const isHomeRoute = currentRoute === 'home' || state.url.includes('/home') || state.url === '/' || state.url === '';
         
+        // Si tiene acceso especial a gestión de tiempo, permitir acceso a time-management y timeclock
+        if (hasTimeManagementAccess && (isTimeManagementRoute || isTimeclockRoute)) {
+          return of(true);
+        }
+        
         // Si no tiene acceso al dashboard y está intentando acceder a rutas del dashboard, redirigir al portal
-        if (!hasDashboardAccess && !isPortalRoute && !isTimeclockRoute) {
+        if (!hasDashboardAccess && !isPortalRoute && !isTimeclockRoute && !isTimeManagementRoute) {
           return of(router.createUrlTree(['/employee-portal']));
         }
 
@@ -179,6 +193,9 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
           const isPortalOnlyPosition = portalOnlyPositions.some(
             (pos) => positionName.toLowerCase().includes(pos.toLowerCase())
           );
+          const hasTimeManagementAccess = timeManagementAccessPositions.some(
+            (pos) => positionName.toLowerCase().includes(pos.toLowerCase())
+          );
           const hasPortalAccessOnly = 
             isPortalOnlyPosition || 
             (employee.has_portal_access === true && !employee.position?.admin);
@@ -186,14 +203,20 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
           // Rutas que todos pueden acceder
           const currentRoute = route.routeConfig?.path || '';
           const isTimeclockRoute = currentRoute === 'timeclock' || state.url.includes('/timeclock');
+          const isTimeManagementRoute = currentRoute === 'time-management' || state.url.includes('/time-management');
           const isPortalRoute = currentRoute === 'my-portal' || state.url.includes('/my-portal') || state.url.includes('/employee-portal');
           const isHomeRoute = currentRoute === 'home' || state.url.includes('/home') || state.url === '/' || state.url === '';
           
           // Verificar permiso de dashboard
           const hasDashboardAccess = employee.position?.dashboard_access !== false;
           
+          // Si tiene acceso especial a gestión de tiempo, permitir acceso a time-management y timeclock
+          if (hasTimeManagementAccess && (isTimeManagementRoute || isTimeclockRoute)) {
+            return true;
+          }
+          
           // Si no tiene acceso al dashboard y está intentando acceder a rutas del dashboard, redirigir al portal
-          if (!hasDashboardAccess && !isPortalRoute && !isTimeclockRoute) {
+          if (!hasDashboardAccess && !isPortalRoute && !isTimeclockRoute && !isTimeManagementRoute) {
             return router.createUrlTree(['/employee-portal']);
           }
 
@@ -247,12 +270,20 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
             const isPortalOnlyPosition = portalOnlyPositions.some(
               (pos) => positionName.toLowerCase().includes(pos.toLowerCase())
             );
+            const hasTimeManagementAccess = timeManagementAccessPositions.some(
+              (pos) => positionName.toLowerCase().includes(pos.toLowerCase())
+            );
             const hasPortalAccessOnly = 
               isPortalOnlyPosition || 
               (employee.has_portal_access === true && !employee.position?.admin);
             
             // Verificar permiso de dashboard
             const hasDashboardAccess = employee.position?.dashboard_access !== false;
+            
+            // Si tiene acceso especial a gestión de tiempo, permitir acceso
+            if (hasTimeManagementAccess) {
+              return of(true);
+            }
             
             return of(!hasPortalAccessOnly && hasDashboardAccess);
           }
