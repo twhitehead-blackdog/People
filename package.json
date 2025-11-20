@@ -123,6 +123,9 @@
     },
     "@ngrx/operators": {
       "@angular/core": "20.3.12"
+    },
+    "@angular-devkit/build-angular": {
+      "jest": "30.2.0"
     }
   }
 }
