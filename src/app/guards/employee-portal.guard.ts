@@ -90,11 +90,19 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
         const hasPortalAccessOnly = 
           isPortalOnlyPosition || 
           (employee.has_portal_access === true && !employee.position?.admin);
+        
+        // Verificar permiso de dashboard
+        const hasDashboardAccess = employee.position?.dashboard_access !== false;
 
         const currentRoute = route.routeConfig?.path || '';
         const isTimeclockRoute = currentRoute === 'timeclock' || state.url.includes('/timeclock');
         const isPortalRoute = currentRoute === 'my-portal' || state.url.includes('/my-portal') || state.url.includes('/employee-portal');
         const isHomeRoute = currentRoute === 'home' || state.url.includes('/home') || state.url === '/' || state.url === '';
+        
+        // Si no tiene acceso al dashboard y está intentando acceder a rutas del dashboard, redirigir al portal
+        if (!hasDashboardAccess && !isPortalRoute && !isTimeclockRoute) {
+          return of(router.createUrlTree(['/employee-portal']));
+        }
 
         if (hasPortalAccessOnly && isTimeclockRoute) {
           return of(router.createUrlTree(['/employee-portal']));
@@ -103,18 +111,33 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
         if (hasPortalAccessOnly && !isPortalRoute && (isHomeRoute || !isTimeclockRoute)) {
           return of(router.createUrlTree(['/employee-portal']));
         }
+        
+        // Si está en la ruta raíz o home y tiene una vista predeterminada, redirigir
+        if ((isHomeRoute || state.url === '/' || state.url === '') && employee.position?.default_view) {
+          const defaultView = employee.position.default_view;
+          const routeMap: Record<string, string> = {
+            'home': '/home',
+            'admin': '/admin',
+            'payroll': '/payroll',
+            'time-management': '/time-management',
+            'timeclock': '/timeclock',
+            'employee-portal': '/employee-portal',
+          };
+          const targetRoute = routeMap[defaultView] || '/home';
+          return of(router.createUrlTree([targetRoute]));
+        }
 
         if (isPortalRoute) {
           return of(true);
         }
 
-        return of(!hasPortalAccessOnly);
+        return of(!hasPortalAccessOnly && hasDashboardAccess);
       }
 
       // Si no hay cache, hacer llamada HTTP
       return http.get<Array<{
         id: string;
-        position?: { name: string; admin: boolean };
+        position?: { name: string; admin: boolean; dashboard_access?: boolean; default_view?: string };
         has_portal_access?: boolean;
         account_approved?: boolean;
       }>>(
@@ -122,7 +145,7 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
         {
           params: {
             work_email: `eq.${user.email}`,
-            select: 'id,position:positions(name,admin),has_portal_access,account_approved',
+            select: 'id,position:positions(name,admin,dashboard_access,default_view),has_portal_access,account_approved',
           },
         }
       ).pipe(
@@ -165,6 +188,14 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
           const isTimeclockRoute = currentRoute === 'timeclock' || state.url.includes('/timeclock');
           const isPortalRoute = currentRoute === 'my-portal' || state.url.includes('/my-portal') || state.url.includes('/employee-portal');
           const isHomeRoute = currentRoute === 'home' || state.url.includes('/home') || state.url === '/' || state.url === '';
+          
+          // Verificar permiso de dashboard
+          const hasDashboardAccess = employee.position?.dashboard_access !== false;
+          
+          // Si no tiene acceso al dashboard y está intentando acceder a rutas del dashboard, redirigir al portal
+          if (!hasDashboardAccess && !isPortalRoute && !isTimeclockRoute) {
+            return router.createUrlTree(['/employee-portal']);
+          }
 
           // Si tiene acceso solo al portal y está intentando acceder al reloj de marcaciones, redirigir
           if (hasPortalAccessOnly && isTimeclockRoute) {
@@ -175,14 +206,30 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
           if (hasPortalAccessOnly && !isPortalRoute && (isHomeRoute || !isTimeclockRoute)) {
             return router.createUrlTree(['/employee-portal']);
           }
+          
+          // Si está en la ruta raíz o home y tiene una vista predeterminada, redirigir
+          if ((isHomeRoute || state.url === '/' || state.url === '') && employee.position?.default_view) {
+            const defaultView = employee.position.default_view;
+            // Mapear la vista predeterminada a la ruta correcta
+            const routeMap: Record<string, string> = {
+              'home': '/home',
+              'admin': '/admin',
+              'payroll': '/payroll',
+              'time-management': '/time-management',
+              'timeclock': '/timeclock',
+              'employee-portal': '/employee-portal',
+            };
+            const targetRoute = routeMap[defaultView] || '/home';
+            return router.createUrlTree([targetRoute]);
+          }
 
           // Permitir acceso al portal siempre
           if (isPortalRoute) {
             return true;
           }
 
-          // Para otras rutas, permitir acceso si no tiene restricción de portal
-          return !hasPortalAccessOnly;
+          // Para otras rutas, permitir acceso si no tiene restricción de portal y tiene acceso al dashboard
+          return !hasPortalAccessOnly && hasDashboardAccess;
         }),
         catchError(() => {
           // Si hay error en la llamada HTTP, usar cache si existe
@@ -204,7 +251,10 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
               isPortalOnlyPosition || 
               (employee.has_portal_access === true && !employee.position?.admin);
             
-            return of(!hasPortalAccessOnly);
+            // Verificar permiso de dashboard
+            const hasDashboardAccess = employee.position?.dashboard_access !== false;
+            
+            return of(!hasPortalAccessOnly && hasDashboardAccess);
           }
           // Si no hay cache y hay error, denegar acceso por seguridad
           return of(false);

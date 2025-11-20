@@ -76,6 +76,8 @@ import { PositionsFormComponent } from './positions-form.component';
             <th>Admin</th>
             <th>Horarios</th>
             <th>App. horarios</th>
+            <th>Dashboard</th>
+            <th>Vista predeterminada</th>
             <th></th>
           </tr>
         </ng-template>
@@ -122,6 +124,22 @@ import { PositionsFormComponent } from './positions-form.component';
               ></i>
               }
             </td>
+            <td>
+              @if(item.dashboard_access) {
+              <i
+                class="pi pi-check-circle text-green-400"
+                style="font-size: 1.25rem"
+              ></i>
+              } @else {
+              <i
+                class="pi pi-times-circle text-red-400"
+                style="font-size: 1.25rem"
+              ></i>
+              }
+            </td>
+            <td class="text-gray-300 text-sm">
+              {{ getDefaultViewLabel(item.default_view) }}
+            </td>
             <td class="flex gap-2">
               <p-button
                 severity="success"
@@ -153,6 +171,19 @@ export class PositionsComponent implements OnInit {
   private dialog = inject(DialogService);
   private ref = inject(DynamicDialogRef);
   public positions = computed(() => [...this.store.positions.entities()]);
+
+  public getDefaultViewLabel(value?: string): string {
+    if (!value) return 'No definida';
+    const options: Record<string, string> = {
+      'home': 'Inicio',
+      'admin': 'Administración',
+      'payroll': 'Nómina',
+      'time-management': 'Gestión de tiempo',
+      'timeclock': 'Reloj de marcación',
+      'employee-portal': 'Portal de empleado',
+    };
+    return options[value] || value;
+  }
 
   // Validar y sanitizar input de filtros
   public onFilterInput(event: Event, table: any): void {

@@ -576,7 +576,7 @@ export class EmployeesTimetableComponent implements OnInit {
         this.http
           .patch(
             `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
-            { approved: true, approved_at: new Date() },
+            { approved: true },
             { params: { id: `eq.${id}` } }
           )
           .pipe(

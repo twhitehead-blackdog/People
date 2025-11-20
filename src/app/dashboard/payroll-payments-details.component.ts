@@ -1028,11 +1028,22 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
   }
 
   calcTimeDiff = (time1: string, time2: string) => {
-    if (!time2) return 0;
+    if (!time1 || !time2) return 0;
+    
+    // Validar formato de hora (debe tener :)
+    if (!time1.includes(':') || !time2.includes(':')) {
+      return 0;
+    }
+    
     const timeStart = new Date();
     const timeEnd = new Date();
     const valueStart = time1.split(':');
     const valueEnd = time2.split(':');
+
+    // Validar que tenga al menos horas y minutos
+    if (valueStart.length < 2 || valueEnd.length < 2) {
+      return 0;
+    }
 
     timeStart.setHours(+valueStart[0], +valueStart[1], 0, 0);
     timeEnd.setHours(+valueEnd[0], +valueEnd[1], 0, 0);

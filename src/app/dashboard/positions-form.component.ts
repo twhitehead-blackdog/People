@@ -75,6 +75,25 @@ import { DashboardStore } from '../stores/dashboard.store';
         />
         <label for="schedule_approver">Aprueba horarios</label>
       </div>
+      <div class="flex items-center gap-2">
+        <p-toggleswitch
+          formControlName="dashboard_access"
+          inputId="dashboard_access"
+        />
+        <label for="dashboard_access">Acceso al dashboard</label>
+      </div>
+      <div class="input-container">
+        <label for="default_view">Vista predeterminada</label>
+        <p-select
+          id="default_view"
+          appendTo="body"
+          [options]="defaultViewOptions"
+          optionValue="value"
+          optionLabel="label"
+          formControlName="default_view"
+          placeholder="Seleccione una vista"
+        />
+      </div>
       <div class="dialog-actions">
         <p-button
           label="Cancelar"
@@ -115,7 +134,19 @@ export class PositionsFormComponent implements OnInit {
     admin: new FormControl(false, { nonNullable: true }),
     schedule_admin: new FormControl(false, { nonNullable: true }),
     schedule_approver: new FormControl(false, { nonNullable: true }),
+    dashboard_access: new FormControl(false, { nonNullable: true }),
+    default_view: new FormControl('', { nonNullable: false }),
   });
+  
+  public defaultViewOptions = [
+    { label: 'Inicio', value: 'home' },
+    { label: 'Administración', value: 'admin' },
+    { label: 'Nómina', value: 'payroll' },
+    { label: 'Gestión de tiempo', value: 'time-management' },
+    { label: 'Reloj de marcación', value: 'timeclock' },
+    { label: 'Portal de empleado', value: 'employee-portal' },
+  ];
+  
   public store = inject(DashboardStore);
   public dialog = inject(DynamicDialogRef);
   private dialogConfig = inject(DynamicDialogConfig);
@@ -149,9 +180,18 @@ export class PositionsFormComponent implements OnInit {
       return;
     }
 
+    const formValue = this.form.getRawValue();
+    // Convertir null o cadena vacía a undefined para default_view
+    const positionData = {
+      ...formValue,
+      default_view: formValue.default_view && formValue.default_view.trim() !== '' 
+        ? formValue.default_view 
+        : undefined,
+    };
+
     if (this.dialogConfig.data.position) {
       this.store.positions
-        .editItem(this.form.getRawValue())
+        .editItem(positionData)
         .pipe(
           tap(() => this.dialog.close()),
           takeUntilDestroyed(this.destroyRef)
@@ -161,7 +201,7 @@ export class PositionsFormComponent implements OnInit {
     }
 
     this.store.positions
-      .createItem(this.form.getRawValue())
+      .createItem(positionData)
       .pipe(
         tap(() => this.dialog.close()),
         takeUntilDestroyed(this.destroyRef)

@@ -33,6 +33,8 @@ export type Position = {
   schedule_admin: boolean;
   admin: boolean;
   schedule_approver: boolean;
+  dashboard_access?: boolean;
+  default_view?: string;
 };
 
 export type Employee = {

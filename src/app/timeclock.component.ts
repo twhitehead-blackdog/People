@@ -71,9 +71,6 @@ import { TrimPipe } from './pipes/trim.pipe';
         class="flex flex-col items-center justify-center animated-gradient-container"
         style="width: 100%; position: relative; min-height: 100vh; overflow-y: auto; overflow-x: hidden;"
       >
-        <div class="wave-layer wave-layer-1"></div>
-        <div class="wave-layer wave-layer-2"></div>
-        <div class="wave-layer wave-layer-3"></div>
       <div
         class="flex flex-col gap-2 md:gap-3 lg:gap-4 items-center px-3 md:px-6 relative z-10 timeclock-content"
         style="max-width: 600px; width: 100%; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem 0;"
@@ -206,7 +203,7 @@ import { TrimPipe } from './pipes/trim.pipe';
     </div>`,
   styles: `
     .animated-gradient-container {
-      background: #000000;
+      background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 25%, #000000 50%, #0d0d0d 75%, #2a2a2a 100%);
       position: relative;
       min-height: 100vh;
       overflow-y: auto;
@@ -297,101 +294,6 @@ import { TrimPipe } from './pipes/trim.pipe';
       }
     }
     
-    .wave-layer {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      opacity: 0.9;
-      will-change: transform, background-position;
-      z-index: 0;
-      pointer-events: none;
-    }
-    
-    .wave-layer-1 {
-      background: radial-gradient(ellipse 800px 600px at 20% 50%, rgba(55, 55, 55, 1) 0%, transparent 40%),
-                  radial-gradient(ellipse 700px 500px at 80% 50%, rgba(40, 40, 40, 1) 0%, transparent 40%),
-                  radial-gradient(ellipse 600px 400px at 50% 20%, rgba(60, 60, 60, 0.8) 0%, transparent 50%),
-                  linear-gradient(135deg, #1a1a1a 0%, #000000 50%, #2a2a2a 100%);
-      background-size: 150% 150%;
-      animation: wave1 12s ease-in-out infinite;
-      transform: scale(1.2);
-    }
-    
-    .wave-layer-2 {
-      background: radial-gradient(ellipse 900px 700px at 60% 30%, rgba(50, 50, 50, 0.9) 0%, transparent 45%),
-                  radial-gradient(ellipse 800px 600px at 40% 70%, rgba(30, 30, 30, 0.9) 0%, transparent 45%),
-                  radial-gradient(ellipse 700px 500px at 10% 80%, rgba(45, 45, 45, 0.8) 0%, transparent 50%),
-                  linear-gradient(45deg, #2a2a2a 0%, #1a1a1a 50%, #000000 100%);
-      background-size: 180% 180%;
-      animation: wave2 15s ease-in-out infinite;
-      transform: scale(1.25);
-      animation-delay: -3s;
-    }
-    
-    .wave-layer-3 {
-      background: radial-gradient(ellipse 1000px 800px at 50% 50%, rgba(35, 35, 35, 0.85) 0%, transparent 55%),
-                  radial-gradient(ellipse 850px 650px at 30% 60%, rgba(25, 25, 25, 0.8) 0%, transparent 50%),
-                  linear-gradient(-45deg, #0a0a0a 0%, #1a1a1a 30%, #2a2a2a 60%, #000000 100%);
-      background-size: 200% 200%;
-      animation: wave3 18s ease-in-out infinite;
-      transform: scale(1.3);
-      animation-delay: -6s;
-    }
-    
-    @keyframes wave1 {
-      0%, 100% {
-        background-position: 0% 50%, 100% 50%, 50% 0%, 0% 0%;
-        transform: scale(1.2) translateY(0px) translateX(0px) rotate(0deg);
-      }
-      25% {
-        background-position: 100% 20%, 0% 80%, 80% 40%, 50% 50%;
-        transform: scale(1.3) translateY(-60px) translateX(30px) rotate(5deg);
-      }
-      50% {
-        background-position: 50% 100%, 50% 0%, 20% 80%, 100% 100%;
-        transform: scale(1.15) translateY(40px) translateX(-20px) rotate(-4deg);
-      }
-      75% {
-        background-position: 80% 30%, 20% 70%, 60% 20%, 30% 50%;
-        transform: scale(1.28) translateY(-30px) translateX(40px) rotate(3deg);
-      }
-    }
-    
-    @keyframes wave2 {
-      0%, 100% {
-        background-position: 50% 50%, 50% 50%, 50% 50%, 0% 0%;
-        transform: scale(1.25) translateY(0px) translateX(0px) rotate(0deg);
-      }
-      25% {
-        background-position: 0% 80%, 100% 20%, 20% 60%, 100% 50%;
-        transform: scale(1.35) translateY(70px) translateX(-40px) rotate(-6deg);
-      }
-      50% {
-        background-position: 100% 10%, 0% 90%, 80% 30%, 50% 100%;
-        transform: scale(1.2) translateY(-50px) translateX(50px) rotate(4deg);
-      }
-      75% {
-        background-position: 30% 70%, 70% 30%, 40% 80%, 20% 30%;
-        transform: scale(1.32) translateY(30px) translateX(-30px) rotate(-3deg);
-      }
-    }
-    
-    @keyframes wave3 {
-      0%, 100% {
-        background-position: 50% 50%, 50% 50%, 0% 0%;
-        transform: scale(1.3) translateY(0px) translateX(0px) rotate(0deg);
-      }
-      33% {
-        background-position: 100% 100%, 20% 20%, 100% 100%;
-        transform: scale(1.4) translateY(-80px) translateX(60px) rotate(8deg);
-      }
-      66% {
-        background-position: 0% 0%, 80% 80%, 50% 50%;
-        transform: scale(1.25) translateY(60px) translateX(-50px) rotate(-6deg);
-      }
-    }
     
     .timeclock-card {
       border: 2px solid rgba(251, 191, 36, 0.5) !important;
@@ -409,6 +311,18 @@ import { TrimPipe } from './pipes/trim.pipe';
       
       .timeclock-card ::ng-deep .p-card-title {
         padding: 0.75rem !important;
+      }
+      
+    }
+    
+    /* Desactivar animaciones solo si el usuario explícitamente prefiere movimiento reducido */
+    @media (prefers-reduced-motion: reduce) {
+      .clock-time {
+        animation: none !important;
+      }
+      
+      .timeclock-card {
+        animation: none !important;
       }
     }
     
