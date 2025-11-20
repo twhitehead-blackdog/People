@@ -116,5 +116,13 @@
   },
   "nx": {
     "includedScripts": []
+  },
+  "overrides": {
+    "@ngrx/signals": {
+      "@angular/core": "20.3.12"
+    },
+    "@ngrx/operators": {
+      "@angular/core": "20.3.12"
+    }
   }
 }
