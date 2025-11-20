@@ -22,7 +22,7 @@ import { Toast } from 'primeng/toast';
       <div
         class="login-container flex flex-col items-center justify-center w-full h-full relative z-10"
       >
-        <div class="logo-wrapper mb-8 md:mb-12">
+        <div class="logo-wrapper mb-6 md:mb-8 lg:mb-10">
           <img
             src="images/blackdog.png"
             class="logo-image"
@@ -90,18 +90,45 @@ import { Toast } from 'primeng/toast';
     
     @media (min-width: 768px) {
       .login-container {
+        padding: 2rem 1.5rem;
+      }
+    }
+    
+    @media (min-width: 1024px) {
+      .login-container {
+        padding: 2.5rem 2rem;
+      }
+    }
+    
+    @media (min-width: 1366px) {
+      .login-container {
         padding: 3rem 2rem;
       }
     }
     
     /* Logo */
     .logo-wrapper {
-      padding: 2rem 0;
+      padding: 1.5rem 0;
+      margin-bottom: 0;
       animation: logo-entrance 0.8s ease-out;
     }
     
+    @media (min-width: 768px) {
+      .logo-wrapper {
+        padding: 1.5rem 0;
+        margin-bottom: 0.5rem;
+      }
+    }
+    
+    @media (min-width: 1024px) {
+      .logo-wrapper {
+        padding: 2rem 0;
+        margin-bottom: 1rem;
+      }
+    }
+    
     .logo-image {
-      height: 5rem;
+      height: 4rem;
       width: auto;
       object-fit: contain;
       filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.4)) 
@@ -111,13 +138,19 @@ import { Toast } from 'primeng/toast';
     
     @media (min-width: 768px) {
       .logo-image {
-        height: 6rem;
+        height: 5rem;
       }
     }
     
     @media (min-width: 1024px) {
       .logo-image {
-        height: 7rem;
+        height: 5.5rem;
+      }
+    }
+    
+    @media (min-width: 1366px) {
+      .logo-image {
+        height: 6rem;
       }
     }
     
@@ -159,10 +192,28 @@ import { Toast } from 'primeng/toast';
     }
     
     .login-card ::ng-deep .p-card-body {
-      padding: 2rem 1.5rem !important;
+      padding: 1.75rem 1.5rem !important;
     }
     
     @media (min-width: 768px) {
+      .login-card {
+        max-width: 400px;
+      }
+      .login-card ::ng-deep .p-card-body {
+        padding: 2rem 1.75rem !important;
+      }
+    }
+    
+    @media (min-width: 1024px) {
+      .login-card {
+        max-width: 420px;
+      }
+      .login-card ::ng-deep .p-card-body {
+        padding: 2.25rem 2rem !important;
+      }
+    }
+    
+    @media (min-width: 1366px) {
       .login-card ::ng-deep .p-card-body {
         padding: 2.5rem 2rem !important;
       }
@@ -204,13 +255,25 @@ import { Toast } from 'primeng/toast';
     
     .card-title {
       color: #f5f5f5;
-      font-size: 1.75rem;
+      font-size: 1.5rem;
       font-weight: 600;
       letter-spacing: -0.02em;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     }
     
     @media (min-width: 768px) {
+      .card-title {
+        font-size: 1.75rem;
+      }
+    }
+    
+    @media (min-width: 1024px) {
+      .card-title {
+        font-size: 1.875rem;
+      }
+    }
+    
+    @media (min-width: 1366px) {
       .card-title {
         font-size: 2rem;
       }
@@ -238,13 +301,21 @@ import { Toast } from 'primeng/toast';
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding-top: 1.5rem;
+      padding-top: 1.25rem;
+      width: 100%;
     }
     
     @media (min-width: 640px) {
       .card-footer {
         flex-direction: row;
         justify-content: center;
+        padding-top: 1.5rem;
+      }
+    }
+    
+    @media (min-width: 768px) {
+      .card-footer {
+        padding-top: 1.5rem;
       }
     }
 
@@ -252,10 +323,10 @@ import { Toast } from 'primeng/toast';
     .switch-container {
       display: inline-flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: 0.5rem;
       background: rgba(20, 20, 20, 0.95);
       border-radius: 16px;
-      padding: 0.5rem 0.75rem;
+      padding: 0.5rem;
       border: 1px solid rgba(100, 100, 100, 0.2);
       box-shadow: 
         inset 0 2px 4px rgba(0, 0, 0, 0.5),
@@ -263,13 +334,37 @@ import { Toast } from 'primeng/toast';
         0 0 0 1px rgba(255, 255, 255, 0.05);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
+      width: 100%;
+      max-width: 320px;
+    }
+    
+    @media (min-width: 768px) {
+      .switch-container {
+        gap: 0.625rem;
+        padding: 0.5rem 0.625rem;
+        max-width: 360px;
+      }
+    }
+    
+    @media (min-width: 1024px) {
+      .switch-container {
+        gap: 0.75rem;
+        padding: 0.5rem 0.75rem;
+        max-width: 380px;
+      }
+    }
+    
+    @media (min-width: 1366px) {
+      .switch-container {
+        max-width: 400px;
+      }
     }
 
     /* Switch Buttons - Estilos base iguales para ambos */
     .switch-button {
       position: relative;
-      min-width: 180px;
-      width: 180px;
+      min-width: 150px;
+      width: 150px;
       margin: 0;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
       flex: 1 1 0;
@@ -278,9 +373,36 @@ import { Toast } from 'primeng/toast';
     /* Asegurar que ambos botones tengan el mismo tamaño */
     .switch-button-dashboard,
     .switch-button-kiosk {
-      min-width: 180px;
-      width: 180px;
+      min-width: 150px;
+      width: 150px;
       flex: 1 1 0;
+    }
+    
+    @media (min-width: 768px) {
+      .switch-button,
+      .switch-button-dashboard,
+      .switch-button-kiosk {
+        min-width: 165px;
+        width: 165px;
+      }
+    }
+    
+    @media (min-width: 1024px) {
+      .switch-button,
+      .switch-button-dashboard,
+      .switch-button-kiosk {
+        min-width: 175px;
+        width: 175px;
+      }
+    }
+    
+    @media (min-width: 1366px) {
+      .switch-button,
+      .switch-button-dashboard,
+      .switch-button-kiosk {
+        min-width: 180px;
+        width: 180px;
+      }
     }
 
     /* Hover effect on active button */
@@ -290,15 +412,15 @@ import { Toast } from 'primeng/toast';
 
     /* Botones inactivos - mismo tamaño y estilo para ambos */
     .switch-button:not(.switch-button-active) ::ng-deep .p-button {
-      padding: 0.875rem 2rem !important;
-      font-size: 1rem !important;
+      padding: 0.75rem 1.5rem !important;
+      font-size: 0.9375rem !important;
       font-weight: 500 !important;
       letter-spacing: 0.02em !important;
       border-radius: 12px !important;
-      min-width: 180px !important;
+      min-width: 150px !important;
       width: 100% !important;
       height: auto !important;
-      min-height: 3rem !important;
+      min-height: 2.75rem !important;
       background: transparent !important;
       border: 1px solid transparent !important;
       color: rgba(255, 255, 255, 0.7) !important;
@@ -311,6 +433,29 @@ import { Toast } from 'primeng/toast';
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
+    }
+    
+    @media (min-width: 768px) {
+      .switch-button:not(.switch-button-active) ::ng-deep .p-button {
+        min-width: 165px !important;
+        padding: 0.8125rem 1.75rem !important;
+        font-size: 0.96875rem !important;
+      }
+    }
+    
+    @media (min-width: 1024px) {
+      .switch-button:not(.switch-button-active) ::ng-deep .p-button {
+        min-width: 175px !important;
+        padding: 0.875rem 2rem !important;
+        font-size: 1rem !important;
+        min-height: 3rem !important;
+      }
+    }
+    
+    @media (min-width: 1366px) {
+      .switch-button:not(.switch-button-active) ::ng-deep .p-button {
+        min-width: 180px !important;
+      }
     }
 
     /* Iconos de botones inactivos - mismo color para ambos */
@@ -380,15 +525,15 @@ import { Toast } from 'primeng/toast';
 
     /* Botón activo - Estilos base iguales para ambos */
     .switch-button-active ::ng-deep .p-button {
-      padding: 0.875rem 2rem !important;
-      font-size: 1rem !important;
+      padding: 0.75rem 1.5rem !important;
+      font-size: 0.9375rem !important;
       font-weight: 600 !important;
       letter-spacing: 0.02em !important;
       border-radius: 12px !important;
-      min-width: 180px !important;
+      min-width: 150px !important;
       width: 100% !important;
       height: auto !important;
-      min-height: 3rem !important;
+      min-height: 2.75rem !important;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
       position: relative !important;
       overflow: hidden;
@@ -397,6 +542,29 @@ import { Toast } from 'primeng/toast';
       align-items: center !important;
       justify-content: center !important;
       z-index: 2 !important;
+    }
+    
+    @media (min-width: 768px) {
+      .switch-button-active ::ng-deep .p-button {
+        min-width: 165px !important;
+        padding: 0.8125rem 1.75rem !important;
+        font-size: 0.96875rem !important;
+      }
+    }
+    
+    @media (min-width: 1024px) {
+      .switch-button-active ::ng-deep .p-button {
+        min-width: 175px !important;
+        padding: 0.875rem 2rem !important;
+        font-size: 1rem !important;
+        min-height: 3rem !important;
+      }
+    }
+    
+    @media (min-width: 1366px) {
+      .switch-button-active ::ng-deep .p-button {
+        min-width: 180px !important;
+      }
     }
     
     /* Botón activo de Dashboard - fondo amarillo sólido */

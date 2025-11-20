@@ -9,7 +9,9 @@
     "build": "nx build",
     "test": "nx run people:test --codeCoverage=true",
     "setup:env": "powershell -ExecutionPolicy Bypass -File ./scripts/setup-env.ps1",
-    "verify": "powershell -ExecutionPolicy Bypass -File ./scripts/verify-setup.ps1"
+    "verify": "powershell -ExecutionPolicy Bypass -File ./scripts/verify-setup.ps1",
+    "get-ip": "powershell -ExecutionPolicy Bypass -File ./scripts/get-ip.ps1",
+    "setup-firewall": "powershell -ExecutionPolicy Bypass -File ./scripts/setup-firewall.ps1"
   },
   "private": true,
   "dependencies": {
