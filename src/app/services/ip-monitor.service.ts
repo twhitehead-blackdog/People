@@ -72,15 +72,11 @@ export class IpMonitorService {
    * Actualiza la lista de IPs permitidas desde la base de datos
    */
   private refreshAllowedIPs(): void {
+    // El interceptor HTTP ya agrega los headers de Supabase automáticamente
     this.http.get<Branch[]>(`${process.env['ENV_SUPABASE_URL']}/rest/v1/branches`, {
       params: {
         select: 'ip',
-        is_active: 'eq.true',
-        ip: 'not.is.null'
-      },
-      headers: {
-        'apikey': process.env['ENV_SUPABASE_API_KEY'] || '',
-        'Authorization': `Bearer ${process.env['ENV_SUPABASE_API_KEY'] || ''}`
+        is_active: 'eq.true'
       }
     }).pipe(
       timeout(5000),

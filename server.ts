@@ -4,6 +4,10 @@ import express from 'express';
 export function app(): express.Express {
   const server = express();
 
+  // Configurar Express para confiar en proxies (necesario para obtener IP real en producción/VPS)
+  // Esto permite que req.ip funcione correctamente cuando hay un proxy reverso (nginx, etc.)
+  server.set('trust proxy', true);
+
   // Middleware para parsear JSON
   server.use(express.json());
   
@@ -87,6 +91,64 @@ export function app(): express.Express {
   // Health check endpoint
   server.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Server is running' });
+  });
+
+  // Endpoint para obtener la IP real del cliente
+  // Funciona tanto en localhost como en producción/VPS
+  server.get('/api/client-ip', (req, res) => {
+    // Intentar obtener la IP real del cliente desde varios headers
+    // X-Forwarded-For: usado por proxies y load balancers
+    // X-Real-IP: usado por algunos proxies
+    // req.ip: IP directa de la conexión
+    // req.connection.remoteAddress: IP de la conexión (legacy)
+    
+    let clientIP: string | undefined;
+    
+    // 1. Intentar desde X-Forwarded-For (puede tener múltiples IPs, tomar la primera)
+    const forwardedFor = req.headers['x-forwarded-for'];
+    if (forwardedFor) {
+      const ips = Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor;
+      clientIP = ips.split(',')[0].trim();
+    }
+    
+    // 2. Intentar desde X-Real-IP
+    if (!clientIP) {
+      const realIP = req.headers['x-real-ip'];
+      if (realIP) {
+        clientIP = Array.isArray(realIP) ? realIP[0] : realIP;
+      }
+    }
+    
+    // 3. Usar req.ip (Express confía en el proxy si está configurado)
+    if (!clientIP && req.ip) {
+      clientIP = req.ip;
+    }
+    
+    // 4. Usar req.connection.remoteAddress (fallback)
+    if (!clientIP && req.socket.remoteAddress) {
+      clientIP = req.socket.remoteAddress;
+    }
+    
+    // 5. Si es IPv6 localhost, convertir a IPv4
+    if (clientIP === '::1' || clientIP === '::ffff:127.0.0.1') {
+      clientIP = '127.0.0.1';
+    }
+    
+    // 6. Limpiar IPv6 mapped IPv4 (::ffff:192.168.1.1 -> 192.168.1.1)
+    if (clientIP && clientIP.startsWith('::ffff:')) {
+      clientIP = clientIP.substring(7);
+    }
+    
+    // Si no se pudo obtener la IP, devolver null
+    if (!clientIP) {
+      res.status(500).json({ 
+        error: 'No se pudo determinar la IP del cliente',
+        ip: null 
+      });
+      return;
+    }
+    
+    res.json({ ip: clientIP });
   });
 
   return server;

@@ -563,6 +563,7 @@ import { IpMonitorService } from './services/ip-monitor.service';
     .timeclock-card ::ng-deep .p-button .pi-spinner {
       animation: rotate 0.6s linear infinite;
     }
+
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

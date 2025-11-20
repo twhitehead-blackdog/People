@@ -16,15 +16,11 @@ export const timeclockKioskGuard: CanActivateFn = (route, state): Observable<boo
   const ipMonitor = inject(IpMonitorService);
 
   // Obtener IPs de sucursales activas desde la base de datos
+  // El interceptor HTTP ya agrega los headers de Supabase automáticamente
   return http.get<Branch[]>(`${process.env['ENV_SUPABASE_URL']}/rest/v1/branches`, {
     params: {
       select: 'ip',
-      is_active: 'eq.true',
-      ip: 'not.is.null'
-    },
-    headers: {
-      'apikey': process.env['ENV_SUPABASE_API_KEY'] || '',
-      'Authorization': `Bearer ${process.env['ENV_SUPABASE_API_KEY'] || ''}`
+      is_active: 'eq.true'
     }
   }).pipe(
     timeout(10000),
