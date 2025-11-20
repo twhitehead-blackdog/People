@@ -464,6 +464,19 @@ CREATE TABLE IF NOT EXISTS payroll_payment_employee_items (
 );
 
 -- ============================================
+-- MIGRACIONES: Agregar columnas a tablas existentes
+-- ============================================
+-- Estas migraciones agregan columnas nuevas a tablas que ya pueden existir
+-- Son seguras de ejecutar múltiples veces
+
+-- Agregar columnas al portal de empleados si no existen
+ALTER TABLE employees 
+ADD COLUMN IF NOT EXISTS has_portal_access BOOLEAN DEFAULT false;
+
+ALTER TABLE employees
+ADD COLUMN IF NOT EXISTS account_approved BOOLEAN DEFAULT NULL;
+
+-- ============================================
 -- ÍNDICES
 -- ============================================
 
