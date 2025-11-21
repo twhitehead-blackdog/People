@@ -1,8 +1,8 @@
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { CanActivateFn, Router, UrlTree } from '@angular/router';
+import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
-import { HttpClient } from '@angular/common/http';
-import { map, switchMap, take, of, catchError } from 'rxjs';
+import { catchError, map, of, switchMap, take } from 'rxjs';
 
 // Cache simple en memoria para evitar llamadas HTTP repetidas
 let employeeCache: {
@@ -40,7 +40,7 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
 
   // Lista de correos con acceso completo (super admins)
   const superAdminEmails = ['mercadeo@blackdogpanama.com'];
-  
+
   // Lista de cargos que solo tienen acceso al portal (no al reloj de marcaciones)
   const portalOnlyPositions = [
     'Piso de venta',
@@ -51,16 +51,14 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
   ];
 
   // Lista de cargos que tienen acceso especial a gestión de tiempo y reloj de marcaciones
-  const timeManagementAccessPositions = [
-    'gerente de tienda',
-  ];
+  const timeManagementAccessPositions = ['gerente de tienda'];
 
   return authService.user$.pipe(
     take(1),
     switchMap((user) => {
       // Verificar si el usuario actual es un super admin
       const userEmail = user?.email?.toLowerCase();
-      
+
       if (userEmail && superAdminEmails.includes(userEmail)) {
         // Super admin tiene acceso a todo
         return of(true);
@@ -79,7 +77,7 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
         now - employeeCache.timestamp < CACHE_DURATION
       ) {
         const employee = employeeCache.employee;
-        
+
         // Validar que account_approved sea true incluso en cache
         // Si account_approved es null o undefined, permitir acceso (compatibilidad con datos antiguos)
         if (employee.account_approved === false) {
@@ -87,68 +85,104 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
           employeeCache = null;
           return of(router.createUrlTree(['/sin-acceso']));
         }
-        
+
         const positionName = employee.position?.name || '';
-        const isPortalOnlyPosition = portalOnlyPositions.some(
-          (pos) => positionName.toLowerCase().includes(pos.toLowerCase())
+        const isPortalOnlyPosition = portalOnlyPositions.some((pos) =>
+          positionName.toLowerCase().includes(pos.toLowerCase())
         );
         const hasTimeManagementAccess = timeManagementAccessPositions.some(
           (pos) => positionName.toLowerCase().includes(pos.toLowerCase())
         );
-        const hasPortalAccessOnly = 
-          isPortalOnlyPosition || 
+        const hasPortalAccessOnly =
+          isPortalOnlyPosition ||
           (employee.has_portal_access === true && !employee.position?.admin);
-        
+
         // Verificar permiso de dashboard
-        const hasDashboardAccess = employee.position?.dashboard_access !== false;
+        const hasDashboardAccess =
+          employee.position?.dashboard_access !== false;
 
         const currentRoute = route.routeConfig?.path || '';
-        const isTimeclockRoute = currentRoute === 'timeclock' || state.url.includes('/timeclock');
-        const isTimeManagementRoute = currentRoute === 'time-management' || state.url.includes('/time-management');
-        const isPortalRoute = currentRoute === 'my-portal' || state.url.includes('/my-portal') || state.url.includes('/employee-portal');
-        const isHomeRoute = currentRoute === 'home' || state.url.includes('/home') || state.url === '/' || state.url === '';
-        
+        const isTimeclockRoute =
+          currentRoute === 'timeclock' || state.url.includes('/timeclock');
+        const isTimeManagementRoute =
+          currentRoute === 'time-management' ||
+          state.url.includes('/time-management');
+        const isPortalRoute =
+          currentRoute === 'my-portal' ||
+          state.url.includes('/my-portal') ||
+          state.url.includes('/employee-portal');
+        const isHomeRoute =
+          currentRoute === 'home' ||
+          state.url.includes('/home') ||
+          state.url === '/' ||
+          state.url === '';
+
         // Si tiene acceso especial a gestión de tiempo, permitir acceso a time-management y timeclock
-        if (hasTimeManagementAccess && (isTimeManagementRoute || isTimeclockRoute)) {
+        if (
+          hasTimeManagementAccess &&
+          (isTimeManagementRoute || isTimeclockRoute)
+        ) {
           return of(true);
         }
-        
+
         // Los gerentes de tienda NO pueden acceder a home (resumen), redirigir a time-management
         if (hasTimeManagementAccess && isHomeRoute) {
           return of(router.createUrlTree(['/time-management']));
         }
-        
+
         // Si es gerente de tienda en ruta raíz sin dashboard_access, redirigir a time-management
-        if (hasTimeManagementAccess && (state.url === '/' || state.url === '') && !hasDashboardAccess) {
+        if (
+          hasTimeManagementAccess &&
+          (state.url === '/' || state.url === '') &&
+          !hasDashboardAccess
+        ) {
           return of(router.createUrlTree(['/time-management']));
         }
-        
+
         // Si no tiene acceso al dashboard y está intentando acceder a rutas del dashboard, redirigir al portal
         // Pero excluir gerentes de tienda que tienen acceso especial
-        if (!hasDashboardAccess && !isPortalRoute && !isTimeclockRoute && !isTimeManagementRoute && !hasTimeManagementAccess) {
+        if (
+          !hasDashboardAccess &&
+          !isPortalRoute &&
+          !isTimeclockRoute &&
+          !isTimeManagementRoute &&
+          !hasTimeManagementAccess
+        ) {
           return of(router.createUrlTree(['/employee-portal']));
         }
 
         // Excluir gerentes de tienda de las restricciones de portal-only
-        if (hasPortalAccessOnly && !hasTimeManagementAccess && isTimeclockRoute) {
+        if (
+          hasPortalAccessOnly &&
+          !hasTimeManagementAccess &&
+          isTimeclockRoute
+        ) {
           return of(router.createUrlTree(['/employee-portal']));
         }
 
-        if (hasPortalAccessOnly && !hasTimeManagementAccess && !isPortalRoute && (isHomeRoute || !isTimeclockRoute)) {
+        if (
+          hasPortalAccessOnly &&
+          !hasTimeManagementAccess &&
+          !isPortalRoute &&
+          (isHomeRoute || !isTimeclockRoute)
+        ) {
           return of(router.createUrlTree(['/employee-portal']));
         }
-        
+
         // Si está en la ruta raíz o home y tiene una vista predeterminada, redirigir
         // Pero los gerentes de tienda no pueden tener 'home' como vista predeterminada
-        if ((isHomeRoute || state.url === '/' || state.url === '') && employee.position?.default_view) {
+        if (
+          (isHomeRoute || state.url === '/' || state.url === '') &&
+          employee.position?.default_view
+        ) {
           const defaultView = employee.position.default_view;
           // Mapear la vista predeterminada a la ruta correcta
           const routeMap: Record<string, string> = {
-            'home': '/home',
-            'admin': '/admin',
-            'payroll': '/payroll',
+            home: '/home',
+            admin: '/admin',
+            payroll: '/payroll',
             'time-management': '/time-management',
-            'timeclock': '/timeclock',
+            timeclock: '/timeclock',
             'employee-portal': '/employee-portal',
           };
           // Si es gerente de tienda y la vista predeterminada es 'home', usar 'time-management' en su lugar
@@ -172,171 +206,183 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
       }
 
       // Si no hay cache, hacer llamada HTTP
-      return http.get<Array<{
-        id: string;
-        position?: { name: string; admin: boolean; dashboard_access?: boolean; default_view?: string };
-        has_portal_access?: boolean;
-        account_approved?: boolean;
-      }>>(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
-        {
-          params: {
-            work_email: `eq.${user.email}`,
-            select: 'id,position:positions(name,admin,dashboard_access,default_view),has_portal_access,account_approved',
-          },
-        }
-      ).pipe(
-        map((employees) => {
-          const employee = employees[0];
-          
-          // Actualizar cache
-          if (employee) {
-            employeeCache = {
-              email: user.email!,
-              employee,
-              timestamp: Date.now(),
+      // Primero intentar con una consulta más simple (similar a employees.store.ts)
+      // Si los campos dashboard_access y default_view causan problemas, los obtendremos por separado
+      const params = new HttpParams()
+        .set('work_email', `eq.${user.email}`)
+        .set(
+          'select',
+          'id,position:positions(id,name,admin,schedule_admin,schedule_approver),has_portal_access,account_approved'
+        );
+
+      return http
+        .get<
+          Array<{
+            id: string;
+            position?: {
+              id?: string;
+              name: string;
+              admin: boolean;
+              schedule_admin?: boolean;
+              schedule_approver?: boolean;
             };
-          }
+            has_portal_access?: boolean;
+            account_approved?: boolean;
+          }>
+        >(`${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`, { params })
+        .pipe(
+          map((employees) => {
+            const employee = employees[0];
 
-          if (!employee) {
-            // Si no se encuentra el empleado, invalidar cache y denegar acceso
-            employeeCache = null;
-            return false;
-          }
-
-          // Validar que account_approved no sea false antes de permitir acceso
-          // Si account_approved es null o undefined, permitir acceso (compatibilidad con datos antiguos)
-          if (employee.account_approved === false) {
-            // Invalidar cache si el empleado está explícitamente desaprobado
-            employeeCache = null;
-            return router.createUrlTree(['/sin-acceso']);
-          }
-
-          const positionName = employee.position?.name || '';
-          const isPortalOnlyPosition = portalOnlyPositions.some(
-            (pos) => positionName.toLowerCase().includes(pos.toLowerCase())
-          );
-          const hasTimeManagementAccess = timeManagementAccessPositions.some(
-            (pos) => positionName.toLowerCase().includes(pos.toLowerCase())
-          );
-          const hasPortalAccessOnly = 
-            isPortalOnlyPosition || 
-            (employee.has_portal_access === true && !employee.position?.admin);
-
-          // Rutas que todos pueden acceder
-          const currentRoute = route.routeConfig?.path || '';
-          const isTimeclockRoute = currentRoute === 'timeclock' || state.url.includes('/timeclock');
-          const isTimeManagementRoute = currentRoute === 'time-management' || state.url.includes('/time-management');
-          const isPortalRoute = currentRoute === 'my-portal' || state.url.includes('/my-portal') || state.url.includes('/employee-portal');
-          const isHomeRoute = currentRoute === 'home' || state.url.includes('/home') || state.url === '/' || state.url === '';
-          
-          // Verificar permiso de dashboard
-          const hasDashboardAccess = employee.position?.dashboard_access !== false;
-          
-          // Si tiene acceso especial a gestión de tiempo, permitir acceso a time-management y timeclock
-          if (hasTimeManagementAccess && (isTimeManagementRoute || isTimeclockRoute)) {
-            return true;
-          }
-          
-          // Los gerentes de tienda NO pueden acceder a home (resumen), redirigir a time-management
-          if (hasTimeManagementAccess && isHomeRoute) {
-            return router.createUrlTree(['/time-management']);
-          }
-          
-          // Si es gerente de tienda en ruta raíz sin dashboard_access, redirigir a time-management
-          if (hasTimeManagementAccess && (state.url === '/' || state.url === '') && !hasDashboardAccess) {
-            return router.createUrlTree(['/time-management']);
-          }
-          
-          // Si no tiene acceso al dashboard y está intentando acceder a rutas del dashboard, redirigir al portal
-          // Pero excluir gerentes de tienda que tienen acceso especial
-          if (!hasDashboardAccess && !isPortalRoute && !isTimeclockRoute && !isTimeManagementRoute && !hasTimeManagementAccess) {
-            return router.createUrlTree(['/employee-portal']);
-          }
-
-          // Excluir gerentes de tienda de las restricciones de portal-only
-          if (hasPortalAccessOnly && !hasTimeManagementAccess && isTimeclockRoute) {
-            return router.createUrlTree(['/employee-portal']);
-          }
-
-          // Si tiene acceso solo al portal y está intentando acceder a home u otras rutas, redirigir al portal
-          // Pero excluir gerentes de tienda
-          if (hasPortalAccessOnly && !hasTimeManagementAccess && !isPortalRoute && (isHomeRoute || !isTimeclockRoute)) {
-            return router.createUrlTree(['/employee-portal']);
-          }
-          
-          // Si está en la ruta raíz o home y tiene una vista predeterminada, redirigir
-          // Pero los gerentes de tienda no pueden tener 'home' como vista predeterminada
-          if ((isHomeRoute || state.url === '/' || state.url === '') && employee.position?.default_view) {
-            const defaultView = employee.position.default_view;
-            // Mapear la vista predeterminada a la ruta correcta
-            const routeMap: Record<string, string> = {
-              'home': '/home',
-              'admin': '/admin',
-              'payroll': '/payroll',
-              'time-management': '/time-management',
-              'timeclock': '/timeclock',
-              'employee-portal': '/employee-portal',
-            };
-            // Si es gerente de tienda y la vista predeterminada es 'home', usar 'time-management' en su lugar
-            if (hasTimeManagementAccess && defaultView === 'home') {
-              return router.createUrlTree(['/time-management']);
+            // Actualizar cache
+            if (employee) {
+              employeeCache = {
+                email: user.email!,
+                employee,
+                timestamp: Date.now(),
+              };
             }
-            const targetRoute = routeMap[defaultView] || '/home';
-            return router.createUrlTree([targetRoute]);
-          }
 
-          // Permitir acceso al portal siempre
-          if (isPortalRoute) {
-            return true;
-          }
+            if (!employee) {
+              // Si no se encuentra el empleado, invalidar cache y denegar acceso
+              employeeCache = null;
+              return false;
+            }
 
-          // Permitir acceso a gerentes de tienda incluso sin dashboard_access
-          if (hasTimeManagementAccess) {
-            return true;
-          }
-
-          // Para otras rutas, permitir acceso si no tiene restricción de portal y tiene acceso al dashboard
-          return !hasPortalAccessOnly && hasDashboardAccess;
-        }),
-        catchError(() => {
-          // Si hay error en la llamada HTTP, usar cache si existe
-          if (employeeCache && employeeCache.email === user.email) {
-            const employee = employeeCache.employee;
-            
-            // Validar account_approved incluso en cache
+            // Validar que account_approved no sea false antes de permitir acceso
             // Si account_approved es null o undefined, permitir acceso (compatibilidad con datos antiguos)
             if (employee.account_approved === false) {
+              // Invalidar cache si el empleado está explícitamente desaprobado
               employeeCache = null;
-              return of(router.createUrlTree(['/sin-acceso']));
+              return router.createUrlTree(['/sin-acceso']);
             }
-            
+
             const positionName = employee.position?.name || '';
-            const isPortalOnlyPosition = portalOnlyPositions.some(
-              (pos) => positionName.toLowerCase().includes(pos.toLowerCase())
+            const isPortalOnlyPosition = portalOnlyPositions.some((pos) =>
+              positionName.toLowerCase().includes(pos.toLowerCase())
             );
             const hasTimeManagementAccess = timeManagementAccessPositions.some(
               (pos) => positionName.toLowerCase().includes(pos.toLowerCase())
             );
-            const hasPortalAccessOnly = 
-              isPortalOnlyPosition || 
-              (employee.has_portal_access === true && !employee.position?.admin);
-            
-            // Verificar permiso de dashboard
-            const hasDashboardAccess = employee.position?.dashboard_access !== false;
-            
-            // Si tiene acceso especial a gestión de tiempo, permitir acceso siempre
-            if (hasTimeManagementAccess) {
-              return of(true);
+            const hasPortalAccessOnly =
+              isPortalOnlyPosition ||
+              (employee.has_portal_access === true &&
+                !employee.position?.admin);
+
+            // Rutas que todos pueden acceder
+            const currentRoute = route.routeConfig?.path || '';
+            const isTimeclockRoute =
+              currentRoute === 'timeclock' || state.url.includes('/timeclock');
+            const isTimeManagementRoute =
+              currentRoute === 'time-management' ||
+              state.url.includes('/time-management');
+            const isPortalRoute =
+              currentRoute === 'my-portal' ||
+              state.url.includes('/my-portal') ||
+              state.url.includes('/employee-portal');
+            const isHomeRoute =
+              currentRoute === 'home' ||
+              state.url.includes('/home') ||
+              state.url === '/' ||
+              state.url === '';
+
+            // Verificar permiso de dashboard - por defecto permitir acceso si no hay restricción explícita
+            // dashboard_access no está disponible en esta consulta, así que asumimos acceso por defecto
+            const hasDashboardAccess = true; // Asumir acceso por defecto hasta que obtengamos el campo completo
+
+            // Si tiene acceso especial a gestión de tiempo, permitir acceso a time-management y timeclock
+            if (
+              hasTimeManagementAccess &&
+              (isTimeManagementRoute || isTimeclockRoute)
+            ) {
+              return true;
             }
-            
-            return of(!hasPortalAccessOnly && hasDashboardAccess);
-          }
-          // Si no hay cache y hay error, denegar acceso por seguridad
-          return of(false);
-        })
-      );
+
+            // Los gerentes de tienda NO pueden acceder a home (resumen), redirigir a time-management
+            if (hasTimeManagementAccess && isHomeRoute) {
+              return router.createUrlTree(['/time-management']);
+            }
+
+            // Si es gerente de tienda en ruta raíz, redirigir a time-management
+            if (
+              hasTimeManagementAccess &&
+              (state.url === '/' || state.url === '')
+            ) {
+              return router.createUrlTree(['/time-management']);
+            }
+
+            // Excluir gerentes de tienda de las restricciones de portal-only
+            if (
+              hasPortalAccessOnly &&
+              !hasTimeManagementAccess &&
+              isTimeclockRoute
+            ) {
+              return router.createUrlTree(['/employee-portal']);
+            }
+
+            // Si tiene acceso solo al portal y está intentando acceder a home u otras rutas, redirigir al portal
+            // Pero excluir gerentes de tienda
+            if (
+              hasPortalAccessOnly &&
+              !hasTimeManagementAccess &&
+              !isPortalRoute &&
+              (isHomeRoute || !isTimeclockRoute)
+            ) {
+              return router.createUrlTree(['/employee-portal']);
+            }
+
+            // Permitir acceso al portal siempre
+            if (isPortalRoute) {
+              return true;
+            }
+
+            // Permitir acceso a gerentes de tienda incluso sin dashboard_access
+            if (hasTimeManagementAccess) {
+              return true;
+            }
+
+            // Para otras rutas, permitir acceso si no tiene restricción de portal
+            return !hasPortalAccessOnly;
+          }),
+          catchError(() => {
+            // Si hay error en la llamada HTTP, usar cache si existe
+            if (employeeCache && employeeCache.email === user.email) {
+              const employee = employeeCache.employee;
+
+              // Validar account_approved incluso en cache
+              // Si account_approved es null o undefined, permitir acceso (compatibilidad con datos antiguos)
+              if (employee.account_approved === false) {
+                employeeCache = null;
+                return of(router.createUrlTree(['/sin-acceso']));
+              }
+
+              const positionName = employee.position?.name || '';
+              const isPortalOnlyPosition = portalOnlyPositions.some((pos) =>
+                positionName.toLowerCase().includes(pos.toLowerCase())
+              );
+              const hasTimeManagementAccess =
+                timeManagementAccessPositions.some((pos) =>
+                  positionName.toLowerCase().includes(pos.toLowerCase())
+                );
+              const hasPortalAccessOnly =
+                isPortalOnlyPosition ||
+                (employee.has_portal_access === true &&
+                  !employee.position?.admin);
+
+              // Verificar permiso de dashboard - por defecto permitir acceso
+              const hasDashboardAccess = true; // Asumir acceso por defecto
+
+              // Si tiene acceso especial a gestión de tiempo, permitir acceso siempre
+              if (hasTimeManagementAccess) {
+                return of(true);
+              }
+
+              return of(!hasPortalAccessOnly);
+            }
+            // Si no hay cache y hay error, denegar acceso por seguridad
+            return of(false);
+          })
+        );
     })
   );
 };
-

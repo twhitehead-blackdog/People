@@ -23,7 +23,6 @@ import { EmployeesStore } from '../stores/employees.store';
 import { PayrollsStore } from '../stores/payrolls.store';
 import { PositionsStore } from '../stores/positions.store';
 import { SchedulesStore } from '../stores/schedules.store';
-import { EmployeePortalComponent } from './employee-portal.component';
 
 @Component({
   selector: 'pt-dashboard',
@@ -53,7 +52,6 @@ import { EmployeePortalComponent } from './employee-portal.component';
     Avatar,
     AsyncPipe,
     MenuModule,
-    EmployeePortalComponent,
   ],
   template: `
     <p-toast />
@@ -67,7 +65,7 @@ import { EmployeePortalComponent } from './employee-portal.component';
         <div class="mx-auto max-w-7xl px-2 sm:px-4 lg:px-6">
           <div class="header-container h-16">
             <div class="header-logo">
-              <a (click)="navigateTo('home')" class="flex items-center gap-2 group cursor-pointer">
+              <a (click)="navigateToHome()" class="flex items-center gap-2 group cursor-pointer">
                 <img src="images/blackdog.png" class="h-9 transition-transform duration-300 group-hover:scale-105" alt="People" />
               </a>
             </div>
@@ -225,11 +223,7 @@ import { EmployeePortalComponent } from './employee-portal.component';
         </div>
       </nav>
       <div class="flex-1 overflow-y-auto">
-        @if(showEmployeePortalView()) {
-          <pt-employee-portal />
-        } @else {
-          <router-outlet />
-        }
+        <router-outlet />
       </div>
     </div>
   `,
@@ -336,16 +330,6 @@ export class DashboardComponent {
   public router = inject(Router);
   public route = inject(ActivatedRoute);
   public currentRoute = signal('');
-  public showEmployeePortalView = signal(false);
-
-  // Verificar si el usuario es soporte2@blackdogpanama.com
-  // Memoized to avoid recalculation
-  public isSupportUser = computed(() => {
-    const employee = this.store.currentEmployee();
-    if (!employee) return false;
-    const email = employee.work_email?.toLowerCase() || '';
-    return email === 'soporte2@blackdogpanama.com';
-  });
 
   // Memoized employee name to avoid multiple store calls
   public currentEmployeeName = computed(() => {
@@ -384,6 +368,16 @@ export class DashboardComponent {
   navigateTo(route: string) {
     // Navigate relative to the current activated route (which is the dashboard component)
     this.router.navigate([route], { relativeTo: this.route });
+  }
+
+  navigateToHome() {
+    // Si es admin, navegar a home; si es employee, navegar a timeclock
+    if (this.store.isAdmin() && !this.store.hasPortalAccessOnly()) {
+      this.navigateTo('home');
+    } else {
+      // Employee: navegar al reloj de marcaciones
+      this.navigateTo('timeclock');
+    }
   }
 
   // Memoized route check to avoid recalculating on every change detection
@@ -426,60 +420,21 @@ export class DashboardComponent {
     return isActive;
   }
 
-  // Memoized menu items to avoid recalculation on every change detection
-  private _cachedItems: MenuItem[] | null = null;
-  private _lastSupportUserState: boolean | null = null;
-  private _lastPortalViewState: boolean | null = null;
-
-  public items = computed<MenuItem[]>(() => {
-    const isSupport = this.isSupportUser();
-    const portalView = this.showEmployeePortalView();
-    
-    // Only recompute if relevant state changed
-    if (
-      this._cachedItems !== null &&
-      this._lastSupportUserState === isSupport &&
-      this._lastPortalViewState === portalView
-    ) {
-      return this._cachedItems;
-    }
-
-    const items: MenuItem[] = [
-      {
-        label: 'Mi Portal',
-        icon: 'pi pi-user',
-        command: () => this.router.navigate(['/employee-portal']),
-      },
-    ];
-
-    // Agregar opción de vista Employee Portal solo para soporte2@blackdogpanama.com
-    if (isSupport) {
-      items.push({
-        label: portalView ? 'Vista Completa' : 'Vista Employee Portal',
-        icon: portalView ? 'pi pi-th-large' : 'pi pi-id-card',
-        command: () => {
-          this.showEmployeePortalView.update(v => !v);
-        },
-      });
-    }
-
-    items.push(
-      {
-        separator: true,
-      },
-      {
-        label: 'Cerrar sesion',
-        icon: 'pi pi-sign-out',
-        command: () => this.auth.logout(),
-      }
-    );
-
-    this._cachedItems = items;
-    this._lastSupportUserState = isSupport;
-    this._lastPortalViewState = portalView;
-
-    return items;
-  });
+  public items = computed<MenuItem[]>(() => [
+    {
+      label: 'Mi Portal',
+      icon: 'pi pi-user',
+      command: () => this.router.navigate(['/employee-portal']),
+    },
+    {
+      separator: true,
+    },
+    {
+      label: 'Cerrar sesion',
+      icon: 'pi pi-sign-out',
+      command: () => this.auth.logout(),
+    },
+  ]);
 
   async toggleMenu() {
     this.isCollapsed.update((value) => !value);

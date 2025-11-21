@@ -645,7 +645,7 @@ import { EmployeesStore } from '../stores/employees.store';
       <!-- Incapacidades Section -->
       @if (activeSection() === 'disabilities') {
       <div id="disabilities" class="section-content">
-        <p-card>
+        <p-card class="bg-neutral-800 border-neutral-700">
           <ng-template #title>Subir Incapacidad</ng-template>
           <ng-template #subtitle
             >Carga documentos de incapacidad médica</ng-template
