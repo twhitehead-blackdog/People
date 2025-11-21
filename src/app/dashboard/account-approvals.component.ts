@@ -16,10 +16,10 @@ import { CardModule } from 'primeng/card';
 import { FormsModule } from '@angular/forms';
 import { Employee } from '../models';
 
-interface PendingAccount extends Employee {
+interface PendingAccount extends Omit<Employee, 'created_at' | 'account_approved'> {
   account_approved: boolean | null;
   has_portal_access: boolean;
-  created_at: string;
+  created_at: string | Date;
 }
 
 @Component({

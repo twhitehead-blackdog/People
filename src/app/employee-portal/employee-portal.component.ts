@@ -4,7 +4,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  effect,
   inject,
   signal,
 } from '@angular/core';
@@ -24,11 +23,14 @@ import { DatePicker } from 'primeng/datepicker';
 import { DialogModule } from 'primeng/dialog';
 import { FileUpload } from 'primeng/fileupload';
 import { InputText } from 'primeng/inputtext';
+import { ProgressBar } from 'primeng/progressbar';
 import { TableModule } from 'primeng/table';
 import { Textarea } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
+import { CalendarComponent } from '../calendar.component';
+import { EmployeeSchedulesComponent } from '../dashboard/employee-schedules.component';
 import { TimeLogEnum } from '../models';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
@@ -51,6 +53,9 @@ import { EmployeesStore } from '../stores/employees.store';
     ToastModule,
     TooltipModule,
     NgClass,
+    ProgressBar,
+    CalendarComponent,
+    EmployeeSchedulesComponent,
   ],
   providers: [MessageService],
   template: `
@@ -642,6 +647,21 @@ import { EmployeesStore } from '../stores/employees.store';
       </div>
       }
 
+      <!-- Horario Section -->
+      @if (activeSection() === 'schedule') {
+      <div id="schedule" class="section-content">
+        <p-card>
+          <ng-template #title>Mi Horario</ng-template>
+          <ng-template #subtitle
+            >Consulta tu horario de trabajo asignado</ng-template
+          >
+          @if (currentEmployee()?.id) {
+          <pt-employee-schedules [employeeId]="currentEmployee()!.id!" />
+          }
+        </p-card>
+      </div>
+      }
+
       <!-- Incapacidades Section -->
       @if (activeSection() === 'disabilities') {
       <div id="disabilities" class="section-content">
@@ -703,13 +723,27 @@ import { EmployeesStore } from '../stores/employees.store';
                 Formatos permitidos: PDF, JPG, PNG (máx. 5MB)
               </p>
             </div>
-            <div class="flex justify-end">
-              <p-button
-                label="Subir Incapacidad"
-                icon="pi pi-upload"
-                [loading]="uploadingDisability()"
-                (click)="uploadDisability()"
-              />
+            <div class="flex flex-col gap-3">
+              @if (uploadingDisability()) {
+              <div class="flex flex-col gap-2">
+                <div
+                  class="flex items-center justify-between text-sm text-gray-400"
+                >
+                  <span>Subiendo archivo...</span>
+                  <span>{{ uploadProgress() }}%</span>
+                </div>
+                <p-progressBar [value]="uploadProgress()" [showValue]="false" />
+              </div>
+              }
+              <div class="flex justify-end">
+                <p-button
+                  label="Subir Incapacidad"
+                  icon="pi pi-upload"
+                  [loading]="uploadingDisability()"
+                  [disabled]="uploadingDisability()"
+                  (click)="uploadDisability()"
+                />
+              </div>
             </div>
           </div>
 
@@ -768,6 +802,21 @@ import { EmployeesStore } from '../stores/employees.store';
                             ? 'Aprobada'
                             : 'Rechazada'
                         }}
+                      </span>
+                      } @else if (disability.status === 'approved' &&
+                      disability.approved_by) {
+                      <span
+                        class="px-2 py-1 rounded text-xs font-semibold cursor-help"
+                        [class.bg-green-500]="true"
+                        [pTooltip]="
+                          'Aprobado por: ' +
+                          disability.approved_by.first_name +
+                          ' ' +
+                          disability.approved_by.father_name
+                        "
+                        tooltipPosition="top"
+                      >
+                        Aprobada
                       </span>
                       } @else {
                       <span
@@ -907,6 +956,22 @@ import { EmployeesStore } from '../stores/employees.store';
                     <td>{{ getDocumentTypeLabel(request.document_type) }}</td>
                     <td>{{ request.reason || '-' }}</td>
                     <td>
+                      @if (request.status === 'approved' && request.approved_by)
+                      {
+                      <span
+                        class="px-2 py-1 rounded text-xs font-semibold cursor-help"
+                        [class.bg-green-500]="true"
+                        [pTooltip]="
+                          'Aprobado por: ' +
+                          request.approved_by.first_name +
+                          ' ' +
+                          request.approved_by.father_name
+                        "
+                        tooltipPosition="top"
+                      >
+                        Aprobada
+                      </span>
+                      } @else {
                       <span
                         class="px-2 py-1 rounded text-xs font-semibold"
                         [class.bg-yellow-500]="request.status === 'pending'"
@@ -921,6 +986,7 @@ import { EmployeesStore } from '../stores/employees.store';
                             : 'Rechazada'
                         }}
                       </span>
+                      }
                     </td>
                     <td>
                       @if(request.status === 'approved' && request.document_url)
@@ -1459,8 +1525,6 @@ export class EmployeePortalComponent {
     return workEmail.endsWith(this.companyEmailDomain);
   });
 
-  private approvalToastShown = signal(false);
-
   constructor() {
     // Inicializar con el fragmento actual si existe
     const currentFragment = this.route.snapshot.fragment;
@@ -1496,26 +1560,9 @@ export class EmployeePortalComponent {
       }
     });
 
-    // Mostrar toast de aprobación pendiente
-    effect(() => {
-      const employee = this.currentEmployee();
-      if (
-        employee &&
-        !this.approvalToastShown() &&
-        (employee.account_approved === false ||
-          employee.account_approved === null ||
-          employee.account_approved === undefined)
-      ) {
-        this.approvalToastShown.set(true);
-        this.messageService.add({
-          severity: 'warn',
-          summary: 'Cuenta en Espera de Aprobación',
-          detail:
-            'Tu cuenta está pendiente de aprobación por parte del administrador. Una vez aprobada, tendrás acceso completo al portal. Por favor, contacta a Recursos Humanos si tienes alguna pregunta.',
-          life: 5000,
-        });
-      }
-    });
+    // La notificación de cuenta pendiente de aprobación ahora se maneja
+    // en el sistema de notificaciones (notificationsList) en lugar de toast
+    // para mantener consistencia y centralizar todas las notificaciones
   }
 
   // Get current date for template
@@ -1636,6 +1683,7 @@ export class EmployeePortalComponent {
   public disabilityDescription = signal('');
   public selectedFile = signal<File | null>(null);
   public uploadingDisability = signal(false);
+  public uploadProgress = signal(0);
 
   public disabilitiesApi = httpResource<any[]>(() => {
     if (!this.currentEmployee()?.id) return undefined;
@@ -1643,7 +1691,8 @@ export class EmployeePortalComponent {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_disabilities`,
       method: 'GET',
       params: {
-        select: '*,rejection_comment',
+        select:
+          '*,rejection_comment,approved_by:employees!employee_disabilities_approved_by_id_fkey(id,first_name,father_name)',
         employee_id: `eq.${this.currentEmployee()!.id}`,
         order: 'created_at.desc',
       },
@@ -1665,7 +1714,8 @@ export class EmployeePortalComponent {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/document_requests`,
       method: 'GET',
       params: {
-        select: '*',
+        select:
+          '*,approved_by:employees!document_requests_approved_by_id_fkey(id,first_name,father_name)',
         employee_id: `eq.${this.currentEmployee()!.id}`,
         order: 'created_at.desc',
       },
@@ -1730,21 +1780,69 @@ export class EmployeePortalComponent {
     () => this.complaintMessagesApi.value() ?? []
   );
 
-  // API para obtener todos los mensajes sin leer de HR (por complaint_id)
+  // API para obtener todos los mensajes sin leer de HR (por complaint_id) con detalles
   public unreadMessagesApi = httpResource<any[]>(() => {
     if (!this.currentEmployee()?.id) return undefined;
     return {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages`,
       method: 'GET',
       params: {
-        select: 'complaint_id',
+        select: 'id,complaint_id,message,created_at,sender_type',
         sender_type: 'eq.hr',
         is_read: 'eq.false',
+        order: 'created_at.desc',
+        limit: '20',
       },
     };
   });
 
-  // Computed: Set de quejas con mensajes sin leer del empleado
+  // Computed: Lista de notificaciones formateadas (incluye mensajes de quejas y notificaciones del sistema)
+  public notificationsList = computed(() => {
+    const messages = this.unreadMessagesApi.value() || [];
+    const employee = this.currentEmployee();
+    if (!employee?.id) return [];
+
+    // Filtrar mensajes que pertenecen a las quejas del empleado
+    const myComplaints = this.myComplaints();
+    const myComplaintIds = new Set(myComplaints.map((c: any) => c.id));
+    const filteredMessages = messages.filter(
+      (msg: any) => msg.complaint_id && myComplaintIds.has(msg.complaint_id)
+    );
+
+    // Mapear a un formato de notificación con preview
+    const notifications = filteredMessages.map((msg: any) => ({
+      id: msg.id,
+      complaint_id: msg.complaint_id,
+      message: msg.message,
+      created_at: msg.created_at,
+      preview: this.truncateMessage(msg.message, 100),
+    }));
+
+    // Agregar notificación de cuenta no verificada si aplica
+    if (
+      (employee.account_approved === false ||
+        employee.account_approved === null ||
+        employee.account_approved === undefined) &&
+      employee.has_portal_access
+    ) {
+      notifications.unshift({
+        id: 'account-pending-approval',
+        complaint_id: null,
+        message:
+          'Tu cuenta está pendiente de aprobación por parte del administrador. Una vez aprobada, tendrás acceso completo al portal.',
+        created_at: new Date().toISOString(),
+        preview:
+          'Tu cuenta está pendiente de aprobación por parte del administrador...',
+      });
+    }
+
+    return notifications.sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  });
+
+  // Computed: Set de quejas con mensajes sin leer del empleado (para compatibilidad)
   public unreadMessagesMap = computed(() => {
     const messages = this.unreadMessagesApi.value() ?? [];
     const myComplaints = this.myComplaints();
@@ -1767,8 +1865,25 @@ export class EmployeePortalComponent {
   });
 
   public unreadComplaintsCount = computed(() => {
-    return this.unreadMessagesMap().size;
+    // Incluir notificación de cuenta pendiente si aplica
+    const employee = this.currentEmployee();
+    const baseCount = this.unreadMessagesMap().size;
+    const hasPendingAccount =
+      employee &&
+      (employee.account_approved === false ||
+        employee.account_approved === null ||
+        employee.account_approved === undefined) &&
+      employee.has_portal_access;
+    return baseCount + (hasPendingAccount ? 1 : 0);
   });
+
+  // Helper para truncar mensajes
+  private truncateMessage(message: string, maxLength: number): string {
+    if (!message || message.length <= maxLength) {
+      return message || '';
+    }
+    return message.substring(0, maxLength) + '...';
+  }
 
   // Señales para conversación
   public conversationDialogVisible = signal(false);
@@ -1925,6 +2040,7 @@ export class EmployeePortalComponent {
     }
 
     this.uploadingDisability.set(true);
+    this.uploadProgress.set(0);
     try {
       let documentUrl = '';
 
@@ -1944,6 +2060,9 @@ export class EmployeePortalComponent {
             process.env['ENV_SUPABASE_API_KEY'] ||
             '';
 
+          // Simular progreso de carga
+          this.uploadProgress.set(30);
+
           await firstValueFrom(
             this.http.post(
               `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/disabilities/${fileName}`,
@@ -1955,12 +2074,15 @@ export class EmployeePortalComponent {
                   'Content-Type': file.type || 'application/octet-stream',
                   'x-upsert': 'true', // Permite sobrescribir si el archivo ya existe
                 },
+                reportProgress: true,
               }
             )
           );
 
+          this.uploadProgress.set(90);
           // Get public URL for the uploaded file
           documentUrl = `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/public/disabilities/${fileName}`;
+          this.uploadProgress.set(100);
         } catch (uploadError: any) {
           console.error('Error uploading file to storage:', uploadError);
           const errorDetail =
@@ -1973,12 +2095,14 @@ export class EmployeePortalComponent {
             summary: 'Error al Subir Archivo',
             detail: errorDetail,
           });
+          this.uploadProgress.set(0);
           this.uploadingDisability.set(false);
           return;
         }
       }
 
       // Create disability record
+      this.uploadProgress.set(95);
       const disabilityData = {
         employee_id: this.currentEmployee()!.id,
         start_date: format(this.disabilityStartDate()!, 'yyyy-MM-dd'),
@@ -2008,6 +2132,8 @@ export class EmployeePortalComponent {
             this.disabilityDescription.set('');
             this.selectedFile.set(null);
             this.disabilitiesApi.reload();
+            this.uploadProgress.set(0);
+            this.uploadProgress.set(0);
             this.uploadingDisability.set(false);
           },
           error: (error) => {
@@ -2019,6 +2145,7 @@ export class EmployeePortalComponent {
                 error.error?.message ||
                 'No se pudo subir la incapacidad. Por favor intenta de nuevo.',
             });
+            this.uploadProgress.set(0);
             this.uploadingDisability.set(false);
           },
         });
@@ -2028,6 +2155,7 @@ export class EmployeePortalComponent {
         summary: 'Error',
         detail: 'No se pudo subir la incapacidad. Por favor intenta de nuevo.',
       });
+      this.uploadProgress.set(0);
       this.uploadingDisability.set(false);
     }
   }

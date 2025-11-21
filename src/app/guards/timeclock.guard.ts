@@ -1,8 +1,37 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { map, switchMap, take, of } from 'rxjs';
+
+/**
+ * Escapa y cita correctamente un email para uso en filtros PostgREST.
+ * PostgREST requiere que los valores string estén entre comillas dobles.
+ * Cualquier comilla doble dentro del email debe ser escapada.
+ * 
+ * @param email - El email a escapar y citar
+ * @returns El email correctamente escapado y citado para PostgREST
+ */
+function escapeEmailForPostgREST(email: string): string {
+  // Validar formato básico de email para prevenir caracteres peligrosos
+  if (!email || typeof email !== 'string') {
+    throw new Error('Invalid email: email must be a non-empty string');
+  }
+
+  // Normalizar a lowercase
+  const normalizedEmail = email.toLowerCase().trim();
+  
+  // Validar formato básico de email (debe contener @)
+  if (!normalizedEmail.includes('@')) {
+    throw new Error('Invalid email format: must contain @');
+  }
+
+  // Escapar comillas dobles dentro del email (reemplazar " con \"")
+  const escapedEmail = normalizedEmail.replace(/"/g, '""');
+  
+  // Citar el email con comillas dobles para PostgREST
+  return `"${escapedEmail}"`;
+}
 
 /**
  * Guard que protege el reloj de marcaciones
@@ -34,6 +63,20 @@ export const timeclockGuard: CanActivateFn = (route, state) => {
         return of(false);
       }
 
+      let params: HttpParams;
+      try {
+        // Escapar y citar el email correctamente para PostgREST
+        const escapedEmail = escapeEmailForPostgREST(user.email);
+        params = new HttpParams()
+          .set('work_email', `eq.${escapedEmail}`)
+          .set('select', 'id,position:positions(name,admin),has_portal_access,account_approved');
+      } catch (error) {
+        // Si el email es inválido, denegar acceso por seguridad
+        console.error('⚠️ Security: Invalid email format detected:', error);
+        router.navigate(['/login']);
+        return of(false);
+      }
+
       return http.get<Array<{
         id: string;
         position?: { name: string; admin: boolean };
@@ -41,12 +84,7 @@ export const timeclockGuard: CanActivateFn = (route, state) => {
         account_approved?: boolean;
       }>>(
         `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
-        {
-          params: {
-            work_email: `eq.${user.email}`,
-            select: 'id,position:positions(name,admin),has_portal_access,account_approved',
-          },
-        }
+        { params }
       ).pipe(
         map((employees) => {
           const employee = employees[0];

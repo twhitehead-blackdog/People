@@ -4,6 +4,36 @@ import { ActivatedRouteSnapshot, CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
 import { catchError, from, map, of, switchMap, take } from 'rxjs';
 
+/**
+ * Escapa y cita correctamente un email para uso en filtros PostgREST.
+ * PostgREST requiere que los valores string estén entre comillas dobles.
+ * Cualquier comilla doble dentro del email debe ser escapada.
+ *
+ * @param email - El email a escapar y citar
+ * @returns El email correctamente escapado y citado para PostgREST
+ */
+function escapeEmailForPostgREST(email: string): string {
+  // Validar formato básico de email para prevenir caracteres peligrosos
+  // Permitir caracteres válidos según RFC 5321 (incluyendo comas en quoted local parts)
+  if (!email || typeof email !== 'string') {
+    throw new Error('Invalid email: email must be a non-empty string');
+  }
+
+  // Normalizar a lowercase
+  const normalizedEmail = email.toLowerCase().trim();
+
+  // Validar formato básico de email (debe contener @)
+  if (!normalizedEmail.includes('@')) {
+    throw new Error('Invalid email format: must contain @');
+  }
+
+  // Escapar comillas dobles dentro del email (reemplazar " con \"")
+  const escapedEmail = normalizedEmail.replace(/"/g, '""');
+
+  // Citar el email con comillas dobles para PostgREST
+  return `"${escapedEmail}"`;
+}
+
 export const authGuardFn: CanActivateFn = (_route: ActivatedRouteSnapshot) => {
   const auth = inject(AuthService);
   const router = inject(Router);
@@ -33,23 +63,35 @@ export const authGuardFn: CanActivateFn = (_route: ActivatedRouteSnapshot) => {
             return of(router.createUrlTree(['/login']));
           }
 
-          const email = user.email.toLowerCase();
-          const params = new HttpParams()
-            .set('select', 'id')
-            .set('or', `(work_email.eq.${email},email.eq.${email})`);
+          try {
+            // Escapar y citar el email correctamente para PostgREST
+            const escapedEmail = escapeEmailForPostgREST(user.email);
 
-          return http
-            .get<Array<{ id: string }>>(`${supabaseUrl}/rest/v1/employees`, {
-              params,
-            })
-            .pipe(
-              map((records) =>
-                records.length > 0
-                  ? true
-                  : router.createUrlTree(['/sin-acceso'])
-              ),
-              catchError(() => of(router.createUrlTree(['/sin-acceso'])))
-            );
+            // Construir el filtro OR de manera segura con email correctamente citado
+            const params = new HttpParams()
+              .set('select', 'id')
+              .set(
+                'or',
+                `(work_email.eq.${escapedEmail},email.eq.${escapedEmail})`
+              );
+
+            return http
+              .get<Array<{ id: string }>>(`${supabaseUrl}/rest/v1/employees`, {
+                params,
+              })
+              .pipe(
+                map((records) =>
+                  records.length > 0
+                    ? true
+                    : router.createUrlTree(['/sin-acceso'])
+                ),
+                catchError(() => of(router.createUrlTree(['/sin-acceso'])))
+              );
+          } catch (error) {
+            // Si el email es inválido, denegar acceso por seguridad
+            console.error('⚠️ Security: Invalid email format detected:', error);
+            return of(router.createUrlTree(['/login']));
+          }
         })
       );
     })
