@@ -1,18 +1,6 @@
-import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  inject,
-  OnDestroy,
-  OnInit,
-  signal,
-} from '@angular/core';
-import {
-  ActivatedRoute,
-  NavigationEnd,
-  Router,
-  RouterOutlet,
-} from '@angular/router';
+import { Component, computed, inject, signal, ChangeDetectionStrategy, OnDestroy, OnInit } from '@angular/core';
+import { Router, RouterOutlet, NavigationEnd, ActivatedRoute } from '@angular/router';
+import { filter } from 'rxjs/operators';
 import { AccordionModule } from 'primeng/accordion';
 import { ConfirmationService, MenuItem, MessageService } from 'primeng/api';
 import { CardModule } from 'primeng/card';
@@ -20,12 +8,10 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { RippleModule } from 'primeng/ripple';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
-import { filter } from 'rxjs/operators';
 
 import { AsyncPipe } from '@angular/common';
 import { HttpClient, httpResource } from '@angular/common/http';
 import { AuthService } from '@auth0/auth0-angular';
-import { formatDistanceToNowStrict } from 'date-fns';
 import { Avatar } from 'primeng/avatar';
 import { Button } from 'primeng/button';
 import { MenuModule } from 'primeng/menu';
@@ -39,14 +25,6 @@ import { EmployeesStore } from '../stores/employees.store';
 import { PayrollsStore } from '../stores/payrolls.store';
 import { PositionsStore } from '../stores/positions.store';
 import { SchedulesStore } from '../stores/schedules.store';
-
-interface Notification {
-  id: string;
-  complaint_id: string;
-  message: string;
-  created_at: string;
-  preview: string;
-}
 
 @Component({
   selector: 'pt-dashboard',
@@ -90,65 +68,52 @@ interface Notification {
         <div class="mx-auto max-w-7xl px-2 sm:px-4 lg:px-6">
           <div class="header-container h-16">
             <div class="header-logo">
-              <a
-                (click)="navigateToHome()"
-                class="flex items-center gap-2 group cursor-pointer"
-              >
-                <img
-                  src="images/blackdog.png"
-                  class="h-9 transition-transform duration-300 group-hover:scale-105"
-                  alt="People"
-                />
+              <a (click)="navigateToHome()" class="flex items-center gap-2 group cursor-pointer">
+                <img src="images/blackdog.png" class="h-9 transition-transform duration-300 group-hover:scale-105" alt="People" />
               </a>
             </div>
             <div class="header-menu hidden md:block">
               <div class="flex items-baseline space-x-1">
-                @if(store.isAdmin() && !store.hasPortalAccessOnly() &&
-                !store.hasTimeManagementAccess()) {
-                <a
-                  (click)="navigateTo('home')"
-                  [class.selected]="isActiveRoute('home')"
-                  class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
-                  ><i class="pi pi-home text-base"></i> <span>Inicio</span></a
-                >
-                } @if(store.isAdmin() && !store.hasPortalAccessOnly()) {
-                <a
-                  (click)="navigateTo('admin')"
-                  [class.selected]="isActiveRoute('admin')"
-                  class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
-                >
-                  <i class="pi pi-building text-base"></i>
-                  <span>Administración</span></a
-                >
-                } @if(store.isAdmin() && !store.hasPortalAccessOnly()) {
-                <a
-                  (click)="navigateTo('payroll')"
-                  [class.selected]="isActiveRoute('payroll')"
-                  class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
-                >
-                  <i class="pi pi-money-bill text-base"></i>
-                  <span>Nómina</span></a
-                >
-                } @if((store.isScheduleAdmin() && !store.hasPortalAccessOnly())
-                || store.hasTimeManagementAccess()) {
-                <a
-                  (click)="navigateTo('time-management')"
-                  [class.selected]="isActiveRoute('time-management')"
-                  class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
-                  ><i class="pi pi-calendar text-base"></i>
-                  <span>Gestión de tiempo</span></a
-                >
-                } @if(!store.hasPortalAccessOnly() ||
-                store.hasTimeManagementAccess()) {
-                <a
-                  (click)="navigateTo('timeclock')"
-                  [class.selected]="isActiveRoute('timeclock')"
-                  class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
-                  ><i class="pi pi-clock text-base"></i>
-                  <span>Reloj de marcación</span></a
-                >
-                }
-              </div>
+                  @if(store.isAdmin() && !store.hasPortalAccessOnly() && !store.hasTimeManagementAccess()) {
+                  <a
+                    (click)="navigateTo('home')"
+                    [class.selected]="isActiveRoute('home')"
+                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
+                    ><i class="pi pi-home text-base"></i> <span>Inicio</span></a
+                  >
+                  } @if(store.isAdmin() && !store.hasPortalAccessOnly()) {
+                  <a
+                    (click)="navigateTo('admin')"
+                    [class.selected]="isActiveRoute('admin')"
+                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
+                  >
+                    <i class="pi pi-building text-base"></i> <span>Administración</span></a
+                  >
+                  } @if(store.isAdmin() && !store.hasPortalAccessOnly()) {
+                  <a
+                    (click)="navigateTo('payroll')"
+                    [class.selected]="isActiveRoute('payroll')"
+                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
+                  >
+                    <i class="pi pi-money-bill text-base"></i> <span>Nómina</span></a
+                  >
+                  } @if((store.isScheduleAdmin() && !store.hasPortalAccessOnly()) || store.hasTimeManagementAccess()) {
+                  <a
+                    (click)="navigateTo('time-management')"
+                    [class.selected]="isActiveRoute('time-management')"
+                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
+                    ><i class="pi pi-calendar text-base"></i> <span>Gestión de tiempo</span></a
+                  >
+                  }
+                  @if(!store.hasPortalAccessOnly() || store.hasTimeManagementAccess()) {
+                  <a
+                    (click)="navigateTo('timeclock')"
+                    [class.selected]="isActiveRoute('timeclock')"
+                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
+                    ><i class="pi pi-clock text-base"></i> <span>Reloj de marcación</span></a
+                  >
+                  }
+                </div>
             </div>
             <div class="header-user hidden md:block">
               @if(user) {
@@ -169,11 +134,7 @@ interface Notification {
                       class="absolute -top-0.5 -right-0.5 text-yellow-400 font-bold leading-none"
                       style="font-size: 9px; min-width: 12px; text-align: center;"
                     >
-                      {{
-                        unreadNotificationsCount() > 99
-                          ? '99+'
-                          : unreadNotificationsCount()
-                      }}
+                      {{ unreadNotificationsCount() > 99 ? '99+' : unreadNotificationsCount() }}
                     </span>
                     }
                   </button>
@@ -184,9 +145,7 @@ interface Notification {
                     (mouseleave)="showNotificationsDropdown.set(false)"
                   >
                     <div class="p-2">
-                      <div
-                        class="px-3 py-2 text-sm font-semibold text-white border-b border-neutral-700 mb-2"
-                      >
+                      <div class="px-3 py-2 text-sm font-semibold text-white border-b border-neutral-700 mb-2">
                         Notificaciones
                       </div>
                       @if (unreadMessagesApi.isLoading()) {
@@ -197,8 +156,8 @@ interface Notification {
                       <div class="px-3 py-4 text-center text-sm text-gray-400">
                         No hay notificaciones
                       </div>
-                      } @else { @for (notification of notificationsList(); track
-                      notification.id) {
+                      } @else {
+                      @for (notification of notificationsList(); track notification.id) {
                       <div
                         class="px-3 py-2 rounded-lg hover:bg-neutral-700/50 cursor-pointer transition-colors mb-1"
                         (click)="handleNotificationClick(notification)"
@@ -209,17 +168,13 @@ interface Notification {
                           ></i>
                           <div class="flex-1 min-w-0">
                             <div class="text-xs text-gray-400 mb-1">
-                              {{
-                                formatNotificationTime(notification.created_at)
-                              }}
+                              {{ formatNotificationTime(notification.created_at) }}
                             </div>
                             <div class="text-sm text-white line-clamp-2">
                               {{ notification.preview }}
                             </div>
                             @if (notification.complaint_id) {
-                            <div
-                              class="text-xs text-yellow-400 mt-1 flex items-center gap-1"
-                            >
+                            <div class="text-xs text-yellow-400 mt-1 flex items-center gap-1">
                               Ver queja
                               <i class="pi pi-arrow-right text-xs"></i>
                             </div>
@@ -227,7 +182,8 @@ interface Notification {
                           </div>
                         </div>
                       </div>
-                      } }
+                      }
+                      }
                     </div>
                   </div>
                   }
@@ -237,34 +193,22 @@ interface Notification {
                   class="flex items-center gap-3 cursor-pointer group px-3 py-2 rounded-lg hover:bg-gray-700/50 transition-all duration-200"
                   (click)="menu.toggle($event)"
                 >
-                  <div class="relative flex-shrink-0">
-                    <div class="avatar-container">
-                      <p-avatar
-                        [image]="user?.picture"
-                        shape="circle"
-                        size="normal"
-                      />
-                    </div>
-                    <div
-                      class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-800"
-                    ></div>
+                <div class="relative flex-shrink-0">
+                  <div class="avatar-container">
+                    <p-avatar [image]="user?.picture" shape="circle" size="normal" />
                   </div>
-                  <div class="flex flex-col min-w-0 flex-1">
-                    <div
-                      class="text-sm font-semibold text-white group-hover:text-gray-100 transition-colors truncate"
-                    >
-                      {{ currentEmployeeName() }}
-                    </div>
-                    <div
-                      class="text-xs text-gray-400 group-hover:text-gray-300 transition-colors truncate"
-                    >
-                      {{ currentEmployeePosition() }}
-                    </div>
-                  </div>
-                  <i
-                    class="pi pi-chevron-down text-gray-400 group-hover:text-gray-300 transition-colors text-xs flex-shrink-0"
-                  ></i>
+                  <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-800"></div>
                 </div>
+                <div class="flex flex-col min-w-0 flex-1">
+                  <div class="text-sm font-semibold text-white group-hover:text-gray-100 transition-colors truncate">
+                    {{ currentEmployeeName() }}
+                  </div>
+                  <div class="text-xs text-gray-400 group-hover:text-gray-300 transition-colors truncate">
+                    {{ currentEmployeePosition() }}
+                  </div>
+                </div>
+                <i class="pi pi-chevron-down text-gray-400 group-hover:text-gray-300 transition-colors text-xs flex-shrink-0"></i>
+              </div>
               </div>
               }
             </div>
@@ -280,13 +224,9 @@ interface Notification {
             </div>
           </div>
         </div>
-        <div
-          class="md:hidden border-t border-neutral-700/50 bg-neutral-800/90 backdrop-blur-sm"
-          [class.hidden]="isCollapsed()"
-        >
+        <div class="md:hidden border-t border-neutral-700/50 bg-neutral-800/90 backdrop-blur-sm" [class.hidden]="isCollapsed()">
           <div class="space-y-1 px-2 pt-2 pb-3 sm:px-3">
-            @if(store.isAdmin() && !store.hasPortalAccessOnly() &&
-            !store.hasTimeManagementAccess()) {
+            @if(store.isAdmin() && !store.hasPortalAccessOnly() && !store.hasTimeManagementAccess()) {
             <a
               (click)="navigateTo('home')"
               [class.bg-gray-700]="isActiveRoute('home')"
@@ -302,19 +242,16 @@ interface Notification {
               [class.text-white]="isActiveRoute('admin')"
               [class.shadow-md]="isActiveRoute('admin')"
               class="rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer"
-              ><i class="pi pi-building text-lg"></i>
-              <span>Administración</span></a
+              ><i class="pi pi-building text-lg"></i> <span>Administración</span></a
             >
-            } @if((store.isScheduleAdmin() && !store.hasPortalAccessOnly()) ||
-            store.hasTimeManagementAccess()) {
+            } @if((store.isScheduleAdmin() && !store.hasPortalAccessOnly()) || store.hasTimeManagementAccess()) {
             <a
               (click)="navigateTo('time-management')"
               [class.bg-gray-700]="isActiveRoute('time-management')"
               [class.text-white]="isActiveRoute('time-management')"
               [class.shadow-md]="isActiveRoute('time-management')"
               class="rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer"
-              ><i class="pi pi-calendar text-lg"></i>
-              <span>Gestión de tiempo</span></a
+              ><i class="pi pi-calendar text-lg"></i> <span>Gestión de tiempo</span></a
             >
             } @if(store.isAdmin() && !store.hasPortalAccessOnly()) {
             <a
@@ -325,16 +262,15 @@ interface Notification {
               class="rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer"
               ><i class="pi pi-money-bill text-lg"></i> <span>Nómina</span></a
             >
-            } @if(!store.hasPortalAccessOnly() ||
-            store.hasTimeManagementAccess()) {
+            }
+            @if(!store.hasPortalAccessOnly() || store.hasTimeManagementAccess()) {
             <a
               (click)="navigateTo('timeclock')"
               [class.bg-gray-700]="isActiveRoute('timeclock')"
               [class.text-white]="isActiveRoute('timeclock')"
               [class.shadow-md]="isActiveRoute('timeclock')"
               class="rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer"
-              ><i class="pi pi-clock text-lg"></i>
-              <span>Reloj de marcación</span></a
+              ><i class="pi pi-clock text-lg"></i> <span>Reloj de marcación</span></a
             >
             }
           </div>
@@ -351,9 +287,7 @@ interface Notification {
               class="ml-auto w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white"
             >
               {{
-                unreadNotificationsCount() > 99
-                  ? '99+'
-                  : unreadNotificationsCount()
+                unreadNotificationsCount() > 99 ? '99+' : unreadNotificationsCount()
               }}
             </span>
             }
@@ -362,15 +296,9 @@ interface Notification {
             <div class="flex items-center gap-3">
               <div class="relative">
                 <div class="avatar-container">
-                  <p-avatar
-                    [image]="user.picture"
-                    shape="circle"
-                    size="normal"
-                  />
+                  <p-avatar [image]="user.picture" shape="circle" size="normal" />
                 </div>
-                <div
-                  class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-800"
-                ></div>
+                <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-800"></div>
               </div>
               <div class="flex-1">
                 <div class="text-base font-semibold text-white">
@@ -517,16 +445,18 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (!employee?.id) return undefined;
 
     const isAdmin = this.store.isAdmin() && !this.store.hasPortalAccessOnly();
-
+    
     if (isAdmin) {
       // Admin: ver mensajes sin leer de empleados con detalles
       return {
         url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages`,
         method: 'GET',
         params: {
-          select: 'complaint_id,message,created_at',
+          select: 'id,complaint_id,message,created_at,sender_type',
           sender_type: 'eq.employee',
           is_read: 'eq.false',
+          order: 'created_at.desc',
+          limit: '20',
         },
       };
     } else {
@@ -535,9 +465,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
         url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages`,
         method: 'GET',
         params: {
-          select: 'complaint_id,message,created_at',
+          select: 'id,complaint_id,message,created_at,sender_type',
           sender_type: 'eq.hr',
           is_read: 'eq.false',
+          order: 'created_at.desc',
+          limit: '20',
         },
       };
     }
@@ -547,10 +479,10 @@ export class DashboardComponent implements OnInit, OnDestroy {
   public employeeComplaintsApi = httpResource<any[]>(() => {
     const employee = this.store.currentEmployee();
     if (!employee?.id) return undefined;
-
+    
     const isAdmin = this.store.isAdmin() && !this.store.hasPortalAccessOnly();
     if (isAdmin) return undefined; // Admin no necesita filtrar por quejas propias
-
+    
     // Empleado: obtener sus quejas para filtrar notificaciones
     return {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaints`,
@@ -562,30 +494,45 @@ export class DashboardComponent implements OnInit, OnDestroy {
     };
   });
 
-  // Lista de notificaciones para el dropdown
-  public notificationsList = computed<Notification[]>(() => {
+  // Lista de notificaciones formateadas
+  public notificationsList = computed(() => {
     const messages = this.unreadMessagesApi.value() || [];
     const employee = this.store.currentEmployee();
     const isAdmin = this.store.isAdmin() && !this.store.hasPortalAccessOnly();
-
-    let filteredMessages = messages;
-
+    
     if (!isAdmin && employee?.id) {
+      // Empleado: filtrar solo mensajes de sus quejas
       const myComplaints = this.employeeComplaintsApi.value() || [];
       const myComplaintIds = new Set(myComplaints.map((c: any) => c.id));
-      filteredMessages = messages.filter((msg: any) =>
-        myComplaintIds.has(msg.complaint_id)
-      );
+      
+      return messages
+        .filter((msg: any) => msg.complaint_id && myComplaintIds.has(msg.complaint_id))
+        .map((msg: any) => ({
+          id: msg.id,
+          complaint_id: msg.complaint_id,
+          preview: msg.message?.substring(0, 100) + (msg.message?.length > 100 ? '...' : '') || 'Nuevo mensaje',
+          created_at: msg.created_at,
+          category: msg.complaints?.category || 'general',
+        }));
     }
-
-    // Mapear a un formato de notificación con preview
-    return filteredMessages.map((msg: any) => ({
-      id: msg.complaint_id, // Usar complaint_id como ID de notificación para agrupar
-      complaint_id: msg.complaint_id,
-      message: msg.message,
-      created_at: msg.created_at,
-      preview: this.truncateMessage(msg.message, 100), // Truncar mensaje para preview
-    }));
+    
+    // Admin: mostrar todos los mensajes de empleados
+    const uniqueComplaints = new Map<string, any>();
+    messages.forEach((msg: any) => {
+      if (msg.complaint_id && !uniqueComplaints.has(msg.complaint_id)) {
+        uniqueComplaints.set(msg.complaint_id, {
+          id: msg.id,
+          complaint_id: msg.complaint_id,
+          preview: msg.message?.substring(0, 100) + (msg.message?.length > 100 ? '...' : '') || 'Nuevo mensaje',
+          created_at: msg.created_at,
+          category: msg.complaints?.category || 'general',
+        });
+      }
+    });
+    
+    return Array.from(uniqueComplaints.values()).sort((a, b) => 
+      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
   });
 
   // Contador de notificaciones sin leer
@@ -597,17 +544,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
     // La redirección se maneja en el guard para evitar conflictos de navegación
     // Track current route for active state
     this.router.events
-      .pipe(filter((event) => event instanceof NavigationEnd))
+      .pipe(filter(event => event instanceof NavigationEnd))
       .subscribe((event: any) => {
         const url = event.urlAfterRedirects || event.url;
         const segments = url.split('/').filter((s: string) => s);
         // Si estamos en una ruta hija (ej: admin/employees), usar el primer segmento después de la raíz
         // Si estamos en la raíz del dashboard, usar el segmento o 'home'
-        const route =
-          segments.length > 0 ? segments[segments.length - 1] : 'home';
+        const route = segments.length > 0 ? segments[segments.length - 1] : 'home';
         this.currentRoute.set(route);
       });
-
+    
     // Set initial route
     const url = this.router.url;
     const segments = url.split('/').filter((s: string) => s);
@@ -631,7 +577,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   toggleNotificationsDropdown() {
-    this.showNotificationsDropdown.update((v) => !v);
+    this.showNotificationsDropdown.update(v => !v);
   }
 
   navigateToNotifications() {
@@ -647,13 +593,13 @@ export class DashboardComponent implements OnInit, OnDestroy {
     if (notification.complaint_id) {
       // Si tiene complaint_id, navegar a la queja específica
       if (this.store.isAdmin() && !this.store.hasPortalAccessOnly()) {
-        this.router.navigate(['/admin/complaints-inbox'], {
-          queryParams: { complaint: notification.complaint_id },
+        this.router.navigate(['/admin/complaints-inbox'], { 
+          queryParams: { complaint: notification.complaint_id }
         });
       } else {
-        this.router.navigate(['/employee-portal'], {
+        this.router.navigate(['/employee-portal'], { 
           fragment: 'notifications',
-          queryParams: { complaint: notification.complaint_id },
+          queryParams: { complaint: notification.complaint_id }
         });
       }
     }
@@ -661,52 +607,28 @@ export class DashboardComponent implements OnInit, OnDestroy {
   }
 
   formatNotificationTime(dateString: string): string {
-    if (!dateString) return 'Ahora';
-    const result = formatDistanceToNowStrict(new Date(dateString), {
-      addSuffix: true,
-    });
-    // Formatear el resultado a español simplificado
-    if (result === '0 seconds' || result.includes('0 seconds')) return 'Ahora';
-    if (result.includes('second'))
-      return result.replace(/\d+ seconds?/, (m) =>
-        m.replace('second', 's').replace('seconds', 's')
-      );
-    if (result.includes('minute'))
-      return result.replace(/\d+ minutes?/, (m) =>
-        m.replace('minute', 'm').replace('minutes', 'm')
-      );
-    if (result.includes('hour'))
-      return result.replace(/\d+ hours?/, (m) =>
-        m.replace('hour', 'h').replace('hours', 'h')
-      );
-    if (result.includes('day'))
-      return result.replace(/\d+ days?/, (m) =>
-        m.replace('day', 'd').replace('days', 'd')
-      );
-    if (result.includes('month'))
-      return result.replace(/\d+ months?/, (m) =>
-        m.replace('month', 'M').replace('months', 'M')
-      );
-    if (result.includes('year'))
-      return result.replace(/\d+ years?/, (m) =>
-        m.replace('year', 'a').replace('years', 'a')
-      );
-    return result.replace('ago', '').trim();
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Ahora';
+    if (diffMins < 60) return `Hace ${diffMins}m`;
+    if (diffHours < 24) return `Hace ${diffHours}h`;
+    if (diffDays < 7) return `Hace ${diffDays}d`;
+    return date.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
   }
 
-  truncateMessage(message: string, maxLength: number): string {
-    if (message.length <= maxLength) {
-      return message;
-    }
-    return message.substring(0, maxLength) + '...';
-  }
   // Memoized route check to avoid recalculating on every change detection
   private _routeCache = new Map<string, boolean>();
   private _lastUrl = '';
 
   isActiveRoute(route: string): boolean {
     const url = this.router.url;
-
+    
     // Use cache if URL hasn't changed
     if (url === this._lastUrl && this._routeCache.has(route)) {
       return this._routeCache.get(route)!;
@@ -720,24 +642,18 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
     const segments = url.split('/').filter((s: string) => s);
     let isActive = false;
-
+    
     // Verificar si la ruta está en los segmentos de la URL
     // Esto funciona tanto para rutas directas como subrutas
     if (route === 'admin' && segments.includes('admin')) {
       isActive = true;
     } else if (route === 'payroll' && segments.includes('payroll')) {
       isActive = true;
-    } else if (
-      route === 'time-management' &&
-      segments.includes('time-management')
-    ) {
+    } else if (route === 'time-management' && segments.includes('time-management')) {
       isActive = true;
     } else if (route === 'timeclock' && segments.includes('timeclock')) {
       isActive = true;
-    } else if (
-      route === 'home' &&
-      (segments.includes('home') || segments.length === 0)
-    ) {
+    } else if (route === 'home' && (segments.includes('home') || segments.length === 0)) {
       isActive = true;
     }
 
