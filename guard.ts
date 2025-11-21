@@ -1,7 +1,7 @@
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { ActivatedRouteSnapshot, CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
-import { HttpClient, HttpParams } from '@angular/common/http';
 import { catchError, from, map, of, switchMap, take } from 'rxjs';
 
 export const authGuardFn: CanActivateFn = (_route: ActivatedRouteSnapshot) => {
@@ -25,7 +25,12 @@ export const authGuardFn: CanActivateFn = (_route: ActivatedRouteSnapshot) => {
 
           const supabaseUrl = process.env['ENV_SUPABASE_URL'];
           if (!supabaseUrl) {
-            return of(true);
+            // Fail securely: deny access if Supabase URL is not configured
+            // This prevents unauthorized access when environment variables are misconfigured
+            console.error(
+              '⚠️ Security: ENV_SUPABASE_URL is not configured. Access denied.'
+            );
+            return of(router.createUrlTree(['/login']));
           }
 
           const email = user.email.toLowerCase();

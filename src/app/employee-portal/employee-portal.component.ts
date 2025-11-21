@@ -645,7 +645,7 @@ import { EmployeesStore } from '../stores/employees.store';
       <!-- Incapacidades Section -->
       @if (activeSection() === 'disabilities') {
       <div id="disabilities" class="section-content">
-        <p-card class="bg-neutral-800 border-neutral-700">
+        <p-card>
           <ng-template #title>Subir Incapacidad</ng-template>
           <ng-template #subtitle
             >Carga documentos de incapacidad médica</ng-template
@@ -944,8 +944,9 @@ import { EmployeesStore } from '../stores/employees.store';
       }
 
       <!-- Buzón de Quejas Section -->
-      @if (activeSection() === 'complaints') {
-      <div id="complaints" class="section-content">
+      @if (activeSection() === 'notifications' || activeSection() ===
+      'complaints') {
+      <div id="notifications" class="section-content">
         <p-card>
           <ng-template #title>Buzón de Quejas Anónimas</ng-template>
           <ng-template #subtitle
@@ -1464,7 +1465,10 @@ export class EmployeePortalComponent {
     // Inicializar con el fragmento actual si existe
     const currentFragment = this.route.snapshot.fragment;
     if (currentFragment) {
-      this.activeSection.set(currentFragment);
+      // Normalizar 'notifications' a 'complaints' para mantener compatibilidad
+      const normalizedFragment =
+        currentFragment === 'notifications' ? 'complaints' : currentFragment;
+      this.activeSection.set(normalizedFragment);
     } else {
       this.activeSection.set('dashboard');
     }
@@ -1472,10 +1476,17 @@ export class EmployeePortalComponent {
     // Suscribirse a cambios de fragmento
     this.route.fragment.subscribe((fragment) => {
       if (fragment) {
-        this.activeSection.set(fragment);
+        // Normalizar 'notifications' a 'complaints' para mantener compatibilidad
+        const normalizedFragment =
+          fragment === 'notifications' ? 'complaints' : fragment;
+        this.activeSection.set(normalizedFragment);
         // Hacer scroll a la sección después de un pequeño delay
         setTimeout(() => {
-          const element = document.getElementById(fragment);
+          const element = document.getElementById(
+            normalizedFragment === 'complaints'
+              ? 'notifications'
+              : normalizedFragment
+          );
           if (element) {
             element.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }
