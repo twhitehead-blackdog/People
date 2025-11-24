@@ -110,19 +110,6 @@ export const DASHBOARD_ROUTES: Routes = [
               { path: '', redirectTo: 'disabilities', pathMatch: 'full' },
             ],
           },
-          {
-            path: 'gestiones',
-            children: [
-              {
-                path: 'account-approvals',
-                loadComponent: () =>
-                  import('./account-approvals.component').then(
-                    (x) => x.AccountApprovalsComponent
-                  ),
-              },
-              { path: '', redirectTo: 'account-approvals', pathMatch: 'full' },
-            ],
-          },
           { path: '', redirectTo: 'employees', pathMatch: 'full' },
         ],
       },

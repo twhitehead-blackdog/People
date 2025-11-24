@@ -55,42 +55,6 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
             </div>
           </div>
 
-          <!-- Gestiones Dropdown -->
-          <div
-            class="relative group cursor-pointer select-none"
-            (mouseenter)="openDropdown('gestiones')"
-            (mouseleave)="closeDropdown()"
-          >
-            <!-- Título Gestiones -->
-            <div
-              class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
-              [class.selected]="isActiveRoute('gestiones/account-approvals')"
-            >
-              <i class="pi pi-briefcase text-base"></i>
-              <span>Gestiones</span>
-            </div>
-
-            <!-- Dropdown Menu -->
-            <div
-              class="absolute left-0 top-full hidden group-hover:block bg-neutral-800/95 border border-neutral-600/40 shadow-xl rounded-md w-56 z-50 overflow-hidden"
-              style="margin-top: -1px;"
-              [class.block]="isDropdownOpen('gestiones')"
-              (mouseenter)="openDropdown('gestiones')"
-              (mouseleave)="closeDropdown()"
-            >
-              <!-- Aprobación de Cuentas -->
-              <a
-                routerLink="gestiones/account-approvals"
-                class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
-                [class.bg-neutral-700]="isActiveRoute('gestiones/account-approvals')"
-                [class.text-amber-300]="isActiveRoute('gestiones/account-approvals')"
-              >
-                <i class="pi pi-user-check text-sm"></i>
-                <span>Aprobación de Cuentas</span>
-              </a>
-            </div>
-          </div>
-
           <!-- Organización Dropdown -->
           <div
             class="relative group cursor-pointer select-none"
@@ -200,7 +164,7 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
               <span>Configuración</span>
             </a>
 
-            <!-- Notificaciones -->
+            <!-- Buzón de Quejas -->
             <a
               routerLink="complaints-inbox"
               class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200 relative"
@@ -212,8 +176,8 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
                 'shadow-md'
               ]"
             >
-              <i class="pi pi-bell text-base"></i>
-              <span>Notificaciones</span>
+              <i class="pi pi-inbox text-base"></i>
+              <span>Buzón de Quejas</span>
               @if (unreadCount() > 0) {
               <span
                 class="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shadow-lg"

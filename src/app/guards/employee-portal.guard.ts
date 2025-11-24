@@ -1,37 +1,8 @@
-import { HttpClient, HttpParams } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
 import { catchError, map, of, switchMap, take } from 'rxjs';
-
-/**
- * Escapa y cita correctamente un email para uso en filtros PostgREST.
- * PostgREST requiere que los valores string estén entre comillas dobles.
- * Cualquier comilla doble dentro del email debe ser escapada.
- * 
- * @param email - El email a escapar y citar
- * @returns El email correctamente escapado y citado para PostgREST
- */
-function escapeEmailForPostgREST(email: string): string {
-  // Validar formato básico de email para prevenir caracteres peligrosos
-  if (!email || typeof email !== 'string') {
-    throw new Error('Invalid email: email must be a non-empty string');
-  }
-
-  // Normalizar a lowercase
-  const normalizedEmail = email.toLowerCase().trim();
-  
-  // Validar formato básico de email (debe contener @)
-  if (!normalizedEmail.includes('@')) {
-    throw new Error('Invalid email format: must contain @');
-  }
-
-  // Escapar comillas dobles dentro del email (reemplazar " con \"")
-  const escapedEmail = normalizedEmail.replace(/"/g, '""');
-  
-  // Citar el email con comillas dobles para PostgREST
-  return `"${escapedEmail}"`;
-}
 
 // Cache simple en memoria para evitar llamadas HTTP repetidas
 let employeeCache: {
@@ -235,39 +206,26 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
       }
 
       // Si no hay cache, hacer llamada HTTP
-      // Primero intentar con una consulta más simple (similar a employees.store.ts)
-      // Si los campos dashboard_access y default_view causan problemas, los obtendremos por separado
-      let params: HttpParams;
-      try {
-        // Escapar y citar el email correctamente para PostgREST
-        const escapedEmail = escapeEmailForPostgREST(user.email!);
-        params = new HttpParams()
-          .set('work_email', `eq.${escapedEmail}`)
-          .set(
-            'select',
-            'id,position:positions(id,name,admin,schedule_admin,schedule_approver),has_portal_access,account_approved'
-          );
-      } catch (error) {
-        // Si el email es inválido, denegar acceso por seguridad
-        console.error('⚠️ Security: Invalid email format detected:', error);
-        return of(false);
-      }
-
       return http
         .get<
           Array<{
             id: string;
             position?: {
-              id?: string;
               name: string;
               admin: boolean;
-              schedule_admin?: boolean;
-              schedule_approver?: boolean;
+              dashboard_access?: boolean;
+              default_view?: string;
             };
             has_portal_access?: boolean;
             account_approved?: boolean;
           }>
-        >(`${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`, { params })
+        >(`${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`, {
+          params: {
+            work_email: `eq.${user.email}`,
+            select:
+              'id,position:positions(name,admin),has_portal_access,account_approved',
+          },
+        })
         .pipe(
           map((employees) => {
             const employee = employees[0];
@@ -324,9 +282,9 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
               state.url === '/' ||
               state.url === '';
 
-            // Verificar permiso de dashboard - por defecto permitir acceso si no hay restricción explícita
-            // dashboard_access no está disponible en esta consulta, así que asumimos acceso por defecto
-            const hasDashboardAccess = true; // Asumir acceso por defecto hasta que obtengamos el campo completo
+            // Verificar permiso de dashboard
+            const hasDashboardAccess =
+              employee.position?.dashboard_access !== false;
 
             // Si tiene acceso especial a gestión de tiempo, permitir acceso a time-management y timeclock
             if (
@@ -341,12 +299,25 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
               return router.createUrlTree(['/time-management']);
             }
 
-            // Si es gerente de tienda en ruta raíz, redirigir a time-management
+            // Si es gerente de tienda en ruta raíz sin dashboard_access, redirigir a time-management
             if (
               hasTimeManagementAccess &&
-              (state.url === '/' || state.url === '')
+              (state.url === '/' || state.url === '') &&
+              !hasDashboardAccess
             ) {
               return router.createUrlTree(['/time-management']);
+            }
+
+            // Si no tiene acceso al dashboard y está intentando acceder a rutas del dashboard, redirigir al portal
+            // Pero excluir gerentes de tienda que tienen acceso especial
+            if (
+              !hasDashboardAccess &&
+              !isPortalRoute &&
+              !isTimeclockRoute &&
+              !isTimeManagementRoute &&
+              !hasTimeManagementAccess
+            ) {
+              return router.createUrlTree(['/employee-portal']);
             }
 
             // Excluir gerentes de tienda de las restricciones de portal-only
@@ -369,6 +340,30 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
               return router.createUrlTree(['/employee-portal']);
             }
 
+            // Si está en la ruta raíz o home y tiene una vista predeterminada, redirigir
+            // Pero los gerentes de tienda no pueden tener 'home' como vista predeterminada
+            if (
+              (isHomeRoute || state.url === '/' || state.url === '') &&
+              employee.position?.default_view
+            ) {
+              const defaultView = employee.position.default_view;
+              // Mapear la vista predeterminada a la ruta correcta
+              const routeMap: Record<string, string> = {
+                home: '/home',
+                admin: '/admin',
+                payroll: '/payroll',
+                'time-management': '/time-management',
+                timeclock: '/timeclock',
+                'employee-portal': '/employee-portal',
+              };
+              // Si es gerente de tienda y la vista predeterminada es 'home', usar 'time-management' en su lugar
+              if (hasTimeManagementAccess && defaultView === 'home') {
+                return router.createUrlTree(['/time-management']);
+              }
+              const targetRoute = routeMap[defaultView] || '/home';
+              return router.createUrlTree([targetRoute]);
+            }
+
             // Permitir acceso al portal siempre
             if (isPortalRoute) {
               return true;
@@ -379,8 +374,8 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
               return true;
             }
 
-            // Para otras rutas, permitir acceso si no tiene restricción de portal
-            return !hasPortalAccessOnly;
+            // Para otras rutas, permitir acceso si no tiene restricción de portal y tiene acceso al dashboard
+            return !hasPortalAccessOnly && hasDashboardAccess;
           }),
           catchError(() => {
             // Si hay error en la llamada HTTP, usar cache si existe
@@ -407,15 +402,16 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
                 (employee.has_portal_access === true &&
                   !employee.position?.admin);
 
-              // Verificar permiso de dashboard - por defecto permitir acceso
-              const hasDashboardAccess = true; // Asumir acceso por defecto
+              // Verificar permiso de dashboard
+              const hasDashboardAccess =
+                employee.position?.dashboard_access !== false;
 
               // Si tiene acceso especial a gestión de tiempo, permitir acceso siempre
               if (hasTimeManagementAccess) {
                 return of(true);
               }
 
-              return of(!hasPortalAccessOnly);
+              return of(!hasPortalAccessOnly && hasDashboardAccess);
             }
             // Si no hay cache y hay error, denegar acceso por seguridad
             return of(false);

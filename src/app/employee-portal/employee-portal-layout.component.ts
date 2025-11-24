@@ -1,5 +1,4 @@
 import { AsyncPipe } from '@angular/common';
-import { HttpClient, httpResource } from '@angular/common/http';
 import {
   Component,
   computed,
@@ -90,8 +89,8 @@ type NavSection = {
           <div class="flex h-16 items-center justify-between">
             <div class="flex items-center">
               <a
-                (click)="navigateToHome()"
-                class="shrink-0 flex items-center gap-2 group cursor-pointer"
+                routerLink="/employee-portal"
+                class="shrink-0 flex items-center gap-2 group"
               >
                 <img
                   src="images/blackdog.png"
@@ -154,86 +153,26 @@ type NavSection = {
             <div class="flex items-center">
               @if(user) {
               <div class="ml-4 flex items-center md:ml-6 gap-3">
-                <div
-                  class="relative"
-                  (mouseenter)="showNotificationsDropdown.set(true)"
-                  (mouseleave)="showNotificationsDropdown.set(false)"
+                <button
+                  type="button"
+                  (click)="navigateToSection('complaints')"
+                  class="relative p-2.5 rounded-lg bg-gray-700/30 hover:bg-gray-700/60 transition-all duration-200 text-white border border-gray-600/50 hover:border-gray-500"
+                  pTooltip="Buzón de Quejas"
+                  title="Buzón de Quejas"
                 >
-                  <button
-                    type="button"
-                    (click)="
-                      toggleNotificationsDropdown($event);
-                      $event.stopPropagation();
-                      $event.preventDefault()
-                    "
-                    class="relative p-2.5 rounded-lg bg-gray-700/30 hover:bg-gray-700/60 transition-all duration-200 text-white border border-gray-600/50 hover:border-gray-500"
-                    title="Notificaciones"
+                  <i class="pi pi-inbox text-xl"></i>
+                  @if (unreadComplaintsCount() > 0) {
+                  <span
+                    class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-gray-800"
                   >
-                    <i class="pi pi-bell text-xl relative"></i>
-                    @if (unreadComplaintsCount() > 0) {
-                    <span
-                      class="absolute -top-0.5 -right-0.5 text-yellow-400 font-bold leading-none"
-                      style="font-size: 9px; min-width: 12px; text-align: center;"
-                    >
-                      {{
-                        unreadComplaintsCount() > 99
-                          ? '99+'
-                          : unreadComplaintsCount()
-                      }}
-                    </span>
-                    }
-                  </button>
-                  @if (showNotificationsDropdown()) {
-                  <div
-                    class="absolute right-0 top-full mt-2 w-80 max-h-96 overflow-y-auto bg-neutral-800 border border-neutral-700 rounded-lg shadow-xl z-50"
-                    (mouseenter)="showNotificationsDropdown.set(true)"
-                    (mouseleave)="showNotificationsDropdown.set(false)"
-                  >
-                    <div class="p-2">
-                      <div
-                        class="px-3 py-2 text-sm font-semibold text-white border-b border-neutral-700 mb-2"
-                      >
-                        Notificaciones
-                      </div>
-                      @if (notificationsList().length === 0) {
-                      <div class="px-3 py-4 text-center text-sm text-gray-400">
-                        No hay notificaciones
-                      </div>
-                      } @else { @for (notification of notificationsList(); track
-                      notification.id) {
-                      <div
-                        class="px-3 py-2 rounded-lg hover:bg-neutral-700/50 cursor-pointer transition-colors mb-1"
-                        (click)="handleNotificationClick(notification)"
-                      >
-                        <div class="flex items-start gap-2">
-                          <i
-                            class="pi pi-comment text-yellow-400 text-sm mt-0.5 flex-shrink-0"
-                          ></i>
-                          <div class="flex-1 min-w-0">
-                            <div class="text-xs text-gray-400 mb-1">
-                              {{
-                                formatNotificationTime(notification.created_at)
-                              }}
-                            </div>
-                            <div class="text-sm text-white line-clamp-2">
-                              {{ notification.preview }}
-                            </div>
-                            @if (notification.complaint_id) {
-                            <div
-                              class="text-xs text-yellow-400 mt-1 flex items-center gap-1"
-                            >
-                              Ver queja
-                              <i class="pi pi-arrow-right text-xs"></i>
-                            </div>
-                            }
-                          </div>
-                        </div>
-                      </div>
-                      } }
-                    </div>
-                  </div>
+                    {{
+                      unreadComplaintsCount() > 99
+                        ? '99+'
+                        : unreadComplaintsCount()
+                    }}
+                  </span>
                   }
-                </div>
+                </button>
                 <div class="hidden md:flex items-center gap-3">
                   <p-menu #menu [model]="items" popup />
                   <div
@@ -295,11 +234,11 @@ type NavSection = {
             @if(user) {
             <button
               type="button"
-              (click)="navigateToSection('notifications')"
+              (click)="navigateToSection('complaints')"
               class="relative w-full rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer text-left"
             >
-              <i class="pi pi-bell text-lg"></i>
-              <span>Notificaciones</span>
+              <i class="pi pi-inbox text-lg"></i>
+              <span>Buzón de Quejas</span>
               @if (unreadComplaintsCount() > 0) {
               <span
                 class="ml-auto w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white"
@@ -503,96 +442,18 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
   public auth = inject(AuthService);
   public router = inject(Router);
   public store = inject(DashboardStore);
-  public http = inject(HttpClient);
 
   public isCollapsed = signal(true);
   public currentFragment = signal<string | null>(null);
   public openDropdown = signal<string | null>(null);
   public mobileDropdowns = signal<Record<string, boolean>>({});
-  public showNotificationsDropdown = signal(false);
   private routerSubscription?: Subscription;
   private dropdownTimeout: any = null;
 
-  // API para obtener mensajes sin leer de HR con detalles
-  public unreadMessagesApi = httpResource<any[]>(() => {
-    const employee = this.store.currentEmployee();
-    if (!employee?.id) return undefined;
-    return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages`,
-      method: 'GET',
-      params: {
-        select: 'id,complaint_id,message,created_at,sender_type',
-        sender_type: 'eq.hr',
-        is_read: 'eq.false',
-        order: 'created_at.desc',
-        limit: '20',
-      },
-    };
-  });
-
-  // API para obtener quejas del empleado (para filtrar notificaciones)
-  public employeeComplaintsApi = httpResource<any[]>(() => {
-    const employee = this.store.currentEmployee();
-    if (!employee?.id) return undefined;
-    return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaints`,
-      method: 'GET',
-      params: {
-        select: 'id',
-        creator_employee_id: `eq.${employee.id}`,
-      },
-    };
-  });
-
-  // Lista de notificaciones formateadas
-  public notificationsList = computed(() => {
-    const messages = this.unreadMessagesApi.value() || [];
-    const employee = this.store.currentEmployee();
-    if (!employee?.id) return [];
-
-    const myComplaints = this.employeeComplaintsApi.value() || [];
-    const myComplaintIds = new Set(myComplaints.map((c: any) => c.id));
-    const filteredMessages = messages.filter(
-      (msg: any) => msg.complaint_id && myComplaintIds.has(msg.complaint_id)
-    );
-
-    const notifications = filteredMessages.map((msg: any) => ({
-      id: msg.id,
-      complaint_id: msg.complaint_id,
-      message: msg.message,
-      created_at: msg.created_at,
-      preview: this.truncateMessage(msg.message, 100),
-    }));
-
-    // Agregar notificación de cuenta no verificada si aplica
-    if (
-      (employee.account_approved === false ||
-        employee.account_approved === null ||
-        employee.account_approved === undefined) &&
-      employee.has_portal_access
-    ) {
-      notifications.unshift({
-        id: 'account-pending-approval',
-        complaint_id: null,
-        message:
-          'Tu cuenta está pendiente de aprobación por parte del administrador. Una vez aprobada, tendrás acceso completo al portal.',
-        created_at: new Date().toISOString(),
-        preview:
-          'Tu cuenta está pendiente de aprobación por parte del administrador...',
-      });
-    }
-
-    return notifications.sort(
-      (a, b) =>
-        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    );
-  });
-
   public unreadComplaintsCount = computed(() => {
-    const employee = this.store.currentEmployee();
-    const baseCount = this.notificationsList().length;
-    // Ya está incluido en notificationsList, así que solo retornamos el tamaño
-    return baseCount;
+    // This will be populated from the employee portal component
+    // For now, return 0 as placeholder
+    return 0;
   });
 
   public navSections: NavSection[] = [
@@ -612,12 +473,6 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
           label: 'Mi Perfil',
           icon: 'pi pi-id-card',
           section: 'profile',
-        },
-        {
-          id: 'schedule',
-          label: 'Mi Horario',
-          icon: 'pi pi-calendar',
-          section: 'schedule',
         },
         {
           id: 'timelogs',
@@ -654,7 +509,7 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
           id: 'complaints',
           label: 'Buzón de Quejas',
           icon: 'pi pi-comments',
-          section: 'notifications',
+          section: 'complaints',
         },
       ],
     },
@@ -668,20 +523,28 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
     },
   ];
 
+  ngOnInit() {
+    // Inicializar con el fragmento actual
+    this.updateFragment();
+
+    // Suscribirse a cambios de navegación
+    this.routerSubscription = this.router.events
+      .pipe(filter((event) => event instanceof NavigationEnd))
+      .subscribe(() => {
+        this.updateFragment();
+      });
+  }
+
+  ngOnDestroy() {
+    if (this.routerSubscription) {
+      this.routerSubscription.unsubscribe();
+    }
+  }
+
   private updateFragment() {
     const url = this.router.url;
     const fragment = url.includes('#') ? url.split('#')[1] : null;
     this.currentFragment.set(fragment);
-  }
-
-  navigateToHome() {
-    // Si es admin, navegar al timeclock; si es empleado, también al timeclock
-    if (this.store.isAdmin() && !this.store.hasPortalAccessOnly()) {
-      this.router.navigate(['/timeclock']);
-    } else {
-      // Employee: navegar al reloj de marcaciones
-      this.router.navigate(['/timeclock']);
-    }
   }
 
   navigateToSection(section: string) {
@@ -733,92 +596,5 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
       this.openDropdown.set(null);
       this.dropdownTimeout = null;
     }, 500); // 500ms delay before closing to allow moving to dropdown
-  }
-
-  toggleNotificationsDropdown(event?: Event) {
-    if (event) {
-      event.stopPropagation();
-      event.preventDefault();
-    }
-    // Solo mostrar/ocultar el dropdown, NO navegar
-    const currentValue = this.showNotificationsDropdown();
-    this.showNotificationsDropdown.set(!currentValue);
-
-    // Asegurar que no se navegue
-    if (event && event.target) {
-      const target = event.target as HTMLElement;
-      if (target.closest('a') || target.closest('[routerLink]')) {
-        event.stopPropagation();
-        event.preventDefault();
-      }
-    }
-  }
-
-  handleNotificationClick(notification: any) {
-    // Prevenir navegación si es la notificación de cuenta pendiente
-    if (notification.id === 'account-pending-approval') {
-      // Solo cerrar el dropdown, no navegar
-      this.showNotificationsDropdown.set(false);
-      return;
-    }
-
-    if (notification.complaint_id) {
-      // Navegar a la queja específica
-      this.router.navigate(['/employee-portal'], {
-        fragment: 'notifications',
-        queryParams: { complaintId: notification.complaint_id },
-      });
-    } else {
-      // Si no hay complaint_id, simplemente navegar a la vista general de notificaciones
-      this.navigateToSection('notifications');
-    }
-    this.showNotificationsDropdown.set(false);
-  }
-
-  formatNotificationTime(dateString: string): string {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'Ahora';
-    if (diffMins < 60) return `Hace ${diffMins}m`;
-    if (diffHours < 24) return `Hace ${diffHours}h`;
-    if (diffDays < 7) return `Hace ${diffDays}d`;
-    return date.toLocaleDateString('es-MX', { day: 'numeric', month: 'short' });
-  }
-
-  private truncateMessage(message: string, maxLength: number): string {
-    if (!message || message.length <= maxLength) {
-      return message || '';
-    }
-    return message.substring(0, maxLength) + '...';
-  }
-
-  ngOnInit() {
-    // Inicializar con el fragmento actual
-    this.updateFragment();
-
-    // Suscribirse a cambios de navegación
-    this.routerSubscription = this.router.events
-      .pipe(filter((event) => event instanceof NavigationEnd))
-      .subscribe(() => {
-        this.updateFragment();
-      });
-
-    // Recargar notificaciones cada 10 segundos
-    setInterval(() => {
-      this.unreadMessagesApi.reload();
-      this.employeeComplaintsApi.reload();
-    }, 10000);
-  }
-
-  ngOnDestroy() {
-    if (this.routerSubscription) {
-      this.routerSubscription.unsubscribe();
-    }
   }
 }
