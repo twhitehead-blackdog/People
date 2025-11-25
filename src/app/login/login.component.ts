@@ -5,6 +5,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { Router } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
@@ -72,6 +73,17 @@ import { Toast } from 'primeng/toast';
             </div>
           </ng-template>
         </p-card>
+
+        <!-- Botón de Feria de Empleo fuera de la tarjeta -->
+        <div class="job-fair-button-container">
+          <p-button
+            label="Feria de Empleo Virtual"
+            (click)="openJobFair()"
+            icon="pi pi-briefcase"
+            size="large"
+            styleClass="job-fair-button"
+          />
+        </div>
       </div>
     </div>
   `,
@@ -159,12 +171,12 @@ import { Toast } from 'primeng/toast';
     }
     
     .login-card ::ng-deep .p-card-body {
-      padding: 2rem 1.5rem !important;
+      padding: 1.5rem 1.5rem 2rem 1.5rem !important;
     }
     
     @media (min-width: 768px) {
       .login-card ::ng-deep .p-card-body {
-        padding: 2.5rem 2rem !important;
+        padding: 1.75rem 2rem 2.5rem 2rem !important;
       }
     }
     
@@ -220,6 +232,7 @@ import { Toast } from 'primeng/toast';
       color: rgba(180, 180, 180, 0.8);
       font-size: 0.875rem;
       margin-top: 0.5rem;
+      margin-bottom: 0.25rem;
       text-align: center;
       font-weight: 400;
       line-height: 1.5;
@@ -230,6 +243,7 @@ import { Toast } from 'primeng/toast';
       .card-description {
         font-size: 0.9375rem;
         margin-top: 0.75rem;
+        margin-bottom: 0.5rem;
       }
     }
     
@@ -238,14 +252,9 @@ import { Toast } from 'primeng/toast';
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding-top: 1.5rem;
-    }
-    
-    @media (min-width: 640px) {
-      .card-footer {
-        flex-direction: row;
-        justify-content: center;
-      }
+      padding-top: 0;
+      margin-top: -0.25rem;
+      gap: 0.75rem;
     }
 
     /* Switch Container - Diseño Simple */
@@ -680,11 +689,74 @@ import { Toast } from 'primeng/toast';
     .switch-button-dashboard:not(.fly) ::ng-deep .p-button {
       transform: translate(0, 0) rotate(0deg) scale(1);
     }
+
+    /* Contenedor del botón de Feria de Empleo (fuera de la tarjeta) */
+    .job-fair-button-container {
+      width: 100%;
+      max-width: 420px;
+      margin-top: 1.5rem;
+      display: flex;
+      justify-content: center;
+      animation: card-entrance 0.6s ease-out 0.4s both;
+    }
+
+    /* Estilos para el botón de Feria de Empleo */
+    .job-fair-button {
+      width: 100%;
+      max-width: 372px; /* Ancho máximo igual al switch-container (180px + 180px + 12px gap) */
+      min-width: 180px;
+    }
+
+    .job-fair-button ::ng-deep .p-button {
+      width: 100%;
+      min-width: 180px;
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+      border: none !important;
+      color: white !important;
+      font-weight: 600 !important;
+      padding: 0.875rem 2rem !important;
+      border-radius: 12px !important;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      box-shadow: 
+        0 4px 16px rgba(59, 130, 246, 0.4),
+        0 2px 8px rgba(59, 130, 246, 0.3) !important;
+    }
+
+    .job-fair-button ::ng-deep .p-button:hover {
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+      transform: translateY(-2px);
+      box-shadow: 
+        0 6px 20px rgba(59, 130, 246, 0.5),
+        0 4px 12px rgba(59, 130, 246, 0.4) !important;
+    }
+
+    .job-fair-button ::ng-deep .p-button-icon {
+      margin-right: 0.5rem;
+    }
+
+    @media (max-width: 640px) {
+      .job-fair-button-container {
+        max-width: 100%;
+        padding: 0 1rem;
+      }
+
+      .job-fair-button {
+        width: 100%;
+        max-width: 100%;
+        min-width: 100%;
+      }
+
+      .job-fair-button ::ng-deep .p-button {
+        width: 100%;
+        min-width: 100%;
+      }
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LoginComponent {
   public auth = inject(AuthService);
+  public router = inject(Router);
   public activeMode = signal<'dashboard' | 'kiosk'>('dashboard');
   public isFlying = signal<boolean>(false);
 
@@ -715,5 +787,10 @@ export class LoginComponent {
   openKioskMode() {
     // Solo abrir el modo kiosko, sin cambiar el modo activo para evitar problemas visuales
     window.open('/timeclock-kiosk', '_blank');
+  }
+
+  openJobFair() {
+    // Navegar a la feria de empleo
+    this.router.navigate(['/job-fair']);
   }
 }

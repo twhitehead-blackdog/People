@@ -1,0 +1,831 @@
+import { CommonModule } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import {
+  FormBuilder,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
+import { Router } from '@angular/router';
+import { ConfirmationService, MessageService } from 'primeng/api';
+import { Button } from 'primeng/button';
+import { Card } from 'primeng/card';
+import { FileUploadModule } from 'primeng/fileupload';
+import { InputText } from 'primeng/inputtext';
+import { Select } from 'primeng/select';
+import { Textarea } from 'primeng/textarea';
+import { ToastModule } from 'primeng/toast';
+import { PositionsStore } from '../stores/positions.store';
+
+@Component({
+  selector: 'pt-job-fair-form',
+  standalone: true,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    Card,
+    Button,
+    InputText,
+    Textarea,
+    Select,
+    FileUploadModule,
+    ToastModule,
+  ],
+  providers: [PositionsStore, MessageService, ConfirmationService],
+  template: `
+    <p-toast />
+    <div
+      class="min-h-screen job-fair-background flex items-center justify-center p-4 py-12"
+    >
+      <div class="w-full max-w-5xl">
+        <!-- Header con información de la empresa -->
+        <div class="text-center mb-10 animate-fade-in">
+          <div class="logo-container mb-6">
+            <img
+              src="images/blackdog.png"
+              alt="Black Dog Logo"
+              class="h-24 mx-auto mb-6 drop-shadow-2xl animate-logo-float"
+            />
+          </div>
+          <div class="badge-container mb-6">
+            <span class="job-fair-badge">
+              <i class="pi pi-star-fill mr-2"></i>
+              Feria Virtual de Empleo
+            </span>
+          </div>
+          <h1
+            class="text-5xl md:text-6xl font-extrabold text-white mb-6 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 bg-clip-text text-transparent animate-gradient"
+          >
+            Únete a Nuestro Equipo
+          </h1>
+          <p class="text-2xl md:text-3xl text-gray-200 mb-4 font-light">
+            En Black Dog estamos creciendo y queremos que tú seas parte de
+            nuestro desarrollo en Panamá 🇵🇦
+          </p>
+          <div class="max-w-3xl mx-auto">
+            <p class="text-lg text-gray-300 mb-6 leading-relaxed">
+              Te invitamos a nuestra
+              <strong class="text-amber-400">Feria Virtual de Empleo</strong>,
+              donde podrás conocer las oportunidades laborales que tenemos para
+              ti, aprender más sobre nuestra empresa y dar el siguiente paso en
+              tu carrera profesional.
+            </p>
+            <div class="highlight-box mb-6">
+              <p class="text-xl text-white font-semibold">
+                <i class="pi pi-bolt text-amber-400 mr-2"></i>
+                ¿Quieres formar parte de un equipo innovador y en constante
+                expansión?
+              </p>
+              <p class="text-lg text-gray-200 mt-2">
+                No te pierdas esta oportunidad. ¡Inscríbete ahora y sé parte del
+                crecimiento de Black Dog en Panamá!
+              </p>
+            </div>
+            <div class="info-badge-container">
+              <div class="info-badge">
+                <i class="pi pi-calendar text-amber-400 mr-2"></i>
+                <span>Las personas serán contactadas y atendidas por cita</span>
+              </div>
+              <div class="info-badge">
+                <i class="pi pi-clock text-amber-400 mr-2"></i>
+                <span>Las entrevistas iniciarán el jueves 4 de diciembre</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Formulario -->
+        <p-card class="job-fair-card animate-slide-up">
+          <ng-template #title>
+            <div class="flex items-center gap-3">
+              <div class="icon-wrapper">
+                <i class="pi pi-briefcase text-2xl"></i>
+              </div>
+              <div>
+                <h2 class="text-white text-2xl font-bold m-0">
+                  Formulario de Aplicación
+                </h2>
+                <p class="text-gray-400 text-sm m-0 mt-1">
+                  Completa tus datos y únete a nuestro equipo
+                </p>
+              </div>
+            </div>
+          </ng-template>
+
+          <form [formGroup]="applicationForm" (ngSubmit)="onSubmit()">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <!-- Nombre -->
+              <div>
+                <label
+                  for="first_name"
+                  class="block text-sm font-medium text-gray-300 mb-2"
+                >
+                  Nombre <span class="text-red-400">*</span>
+                </label>
+                <input
+                  pInputText
+                  id="first_name"
+                  formControlName="first_name"
+                  placeholder="Tu nombre"
+                  class="w-full"
+                  [class.ng-invalid]="
+                    applicationForm.get('first_name')?.invalid &&
+                    applicationForm.get('first_name')?.touched
+                  "
+                />
+                @if ( applicationForm.get('first_name')?.invalid &&
+                applicationForm.get('first_name')?.touched ) {
+                <small class="text-red-400">El nombre es requerido</small>
+                }
+              </div>
+
+              <!-- Apellido -->
+              <div>
+                <label
+                  for="last_name"
+                  class="block text-sm font-medium text-gray-300 mb-2"
+                >
+                  Apellido <span class="text-red-400">*</span>
+                </label>
+                <input
+                  pInputText
+                  id="last_name"
+                  formControlName="last_name"
+                  placeholder="Tu apellido"
+                  class="w-full"
+                  [class.ng-invalid]="
+                    applicationForm.get('last_name')?.invalid &&
+                    applicationForm.get('last_name')?.touched
+                  "
+                />
+                @if ( applicationForm.get('last_name')?.invalid &&
+                applicationForm.get('last_name')?.touched ) {
+                <small class="text-red-400">El apellido es requerido</small>
+                }
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <!-- Email -->
+              <div>
+                <label
+                  for="email"
+                  class="block text-sm font-medium text-gray-300 mb-2"
+                >
+                  Email <span class="text-red-400">*</span>
+                </label>
+                <input
+                  pInputText
+                  type="email"
+                  id="email"
+                  formControlName="email"
+                  placeholder="tu@email.com"
+                  class="w-full"
+                  [class.ng-invalid]="
+                    applicationForm.get('email')?.invalid &&
+                    applicationForm.get('email')?.touched
+                  "
+                />
+                @if ( applicationForm.get('email')?.invalid &&
+                applicationForm.get('email')?.touched ) {
+                <small class="text-red-400">Ingresa un email válido</small>
+                }
+              </div>
+
+              <!-- Teléfono -->
+              <div>
+                <label
+                  for="phone_number"
+                  class="block text-sm font-medium text-gray-300 mb-2"
+                >
+                  Teléfono <span class="text-red-400">*</span>
+                </label>
+                <input
+                  pInputText
+                  id="phone_number"
+                  formControlName="phone_number"
+                  placeholder="+507 1234-5678"
+                  class="w-full"
+                  [class.ng-invalid]="
+                    applicationForm.get('phone_number')?.invalid &&
+                    applicationForm.get('phone_number')?.touched
+                  "
+                />
+                @if ( applicationForm.get('phone_number')?.invalid &&
+                applicationForm.get('phone_number')?.touched ) {
+                <small class="text-red-400">El teléfono es requerido</small>
+                }
+              </div>
+            </div>
+
+            <!-- Posición -->
+            <div class="mb-4">
+              <label
+                for="position_id"
+                class="block text-sm font-medium text-gray-300 mb-2"
+              >
+                Vacante a la que aspiras <span class="text-red-400">*</span>
+              </label>
+              <p-select
+                id="position_id"
+                formControlName="position_id"
+                [options]="availablePositions()"
+                optionLabel="name"
+                optionValue="id"
+                placeholder="Selecciona una vacante"
+                [showClear]="true"
+                [filter]="true"
+                filterBy="name"
+                class="w-full"
+                [class.ng-invalid]="
+                  applicationForm.get('position_id')?.invalid &&
+                  applicationForm.get('position_id')?.touched
+                "
+              />
+              @if ( applicationForm.get('position_id')?.invalid &&
+              applicationForm.get('position_id')?.touched ) {
+              <small class="text-red-400">Debes seleccionar una vacante</small>
+              }
+            </div>
+
+            <!-- Hoja de Vida -->
+            <div class="mb-4">
+              <label
+                for="resume"
+                class="block text-sm font-medium text-gray-300 mb-2"
+              >
+                Hoja de Vida (CV) <span class="text-red-400">*</span>
+              </label>
+              <p-fileUpload
+                #fileUpload
+                mode="basic"
+                name="resume"
+                accept=".pdf,.doc,.docx"
+                maxFileSize="5000000"
+                [auto]="false"
+                chooseLabel="Seleccionar archivo"
+                (onSelect)="onFileSelect($event)"
+                (onClear)="onFileClear()"
+                [disabled]="isSubmitting()"
+              />
+              @if (selectedFile()) {
+              <div class="mt-2 text-sm text-gray-400">
+                <i class="pi pi-file"></i>
+                {{ selectedFile()?.name }}
+                ({{ formatFileSize(selectedFile()?.size || 0) }})
+              </div>
+              } @if ( !selectedFile() && applicationForm.get('resume')?.invalid
+              && applicationForm.get('resume')?.touched ) {
+              <small class="text-red-400">Debes adjuntar tu hoja de vida</small>
+              }
+            </div>
+
+            <!-- Información Adicional -->
+            <div class="mb-4">
+              <label
+                for="additional_info"
+                class="block text-sm font-medium text-gray-300 mb-2"
+              >
+                Información Adicional (Opcional)
+              </label>
+              <textarea
+                pTextarea
+                id="additional_info"
+                formControlName="additional_info"
+                rows="4"
+                placeholder="Cuéntanos sobre ti, tu experiencia, por qué quieres trabajar con nosotros..."
+                class="w-full"
+              ></textarea>
+            </div>
+
+            <!-- Botones -->
+            <div class="flex gap-4 justify-end">
+              <p-button
+                label="Cancelar"
+                icon="pi pi-times"
+                severity="secondary"
+                (click)="onCancel()"
+                [disabled]="isSubmitting()"
+              />
+              <p-button
+                type="submit"
+                label="Enviar Aplicación"
+                icon="pi pi-send"
+                [loading]="isSubmitting()"
+                [disabled]="applicationForm.invalid || !selectedFile()"
+              />
+            </div>
+          </form>
+        </p-card>
+
+        <!-- Mensaje de éxito -->
+        @if (isSuccess()) {
+        <p-card class="mt-4">
+          <div class="text-center py-8">
+            <i class="pi pi-check-circle text-6xl text-green-400 mb-4"></i>
+            <h2 class="text-2xl font-bold text-white mb-2">
+              ¡Aplicación Enviada Exitosamente!
+            </h2>
+            <p class="text-gray-300 mb-4">
+              Gracias por tu interés en formar parte de Black Dog. Hemos
+              recibido tu aplicación y la revisaremos pronto.
+            </p>
+            <p class="text-gray-400 text-sm">
+              Te contactaremos por email o teléfono para coordinar una cita de
+              entrevista.
+            </p>
+            <p-button
+              label="Volver al Inicio"
+              icon="pi pi-home"
+              (click)="goToLogin()"
+              class="mt-4"
+            />
+          </div>
+        </p-card>
+        }
+      </div>
+    </div>
+  `,
+  styles: `
+    .job-fair-background {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 25%, #334155 50%, #1e293b 75%, #0f172a 100%);
+      background-size: 400% 400%;
+      animation: gradient-shift 15s ease infinite;
+      position: relative;
+    }
+
+
+    @keyframes gradient-shift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
+    @keyframes fade-in {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes slide-up {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes logo-float {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-10px); }
+    }
+
+    @keyframes gradient {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
+    .animate-fade-in {
+      animation: fade-in 0.8s ease-out;
+    }
+
+    .animate-slide-up {
+      animation: slide-up 0.8s ease-out 0.2s both;
+    }
+
+    .animate-logo-float {
+      animation: logo-float 3s ease-in-out infinite;
+    }
+
+    .animate-gradient {
+      background-size: 200% 200%;
+      animation: gradient 3s ease infinite;
+    }
+
+    .logo-container {
+      filter: drop-shadow(0 10px 30px rgba(251, 191, 36, 0.3));
+    }
+
+    .job-fair-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+      color: #000;
+      padding: 0.75rem 1.5rem;
+      border-radius: 50px;
+      font-weight: 700;
+      font-size: 1rem;
+      box-shadow: 0 4px 15px rgba(251, 191, 36, 0.4);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .highlight-box {
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(59, 130, 246, 0.1) 100%);
+      border: 2px solid rgba(251, 191, 36, 0.3);
+      border-radius: 16px;
+      padding: 2rem;
+    }
+
+    .info-badge-container {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      align-items: center;
+      margin-top: 1.5rem;
+    }
+
+    .info-badge {
+      display: inline-flex;
+      align-items: center;
+      background: rgba(30, 30, 30, 0.95);
+      border: 2px solid rgba(251, 191, 36, 0.5);
+      border-radius: 12px;
+      padding: 1rem 1.5rem;
+      color: #f3f4f6;
+      font-size: 1rem;
+      font-weight: 500;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3),
+                  0 0 0 1px rgba(251, 191, 36, 0.2);
+      min-width: fit-content;
+      transition: all 0.3s ease;
+    }
+
+    .info-badge:hover {
+      border-color: rgba(251, 191, 36, 0.7);
+      background: rgba(40, 40, 40, 0.95);
+      box-shadow: 0 6px 20px rgba(251, 191, 36, 0.2),
+                  0 0 0 1px rgba(251, 191, 36, 0.3);
+      transform: translateY(-2px);
+    }
+
+    .info-badge i {
+      font-size: 1.1rem;
+    }
+
+    @media (min-width: 768px) {
+      .info-badge-container {
+        flex-direction: row;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+    }
+
+    .job-fair-card {
+      background: rgba(20, 20, 20, 0.95) !important;
+      border: 2px solid rgba(251, 191, 36, 0.2) !important;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5),
+                  0 0 0 1px rgba(251, 191, 36, 0.1),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+      border-radius: 24px !important;
+    }
+
+    .icon-wrapper {
+      width: 56px;
+      height: 56px;
+      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 15px rgba(251, 191, 36, 0.4);
+    }
+
+    .icon-wrapper i {
+      color: #000 !important;
+    }
+
+    ::ng-deep .p-card .p-card-title {
+      color: white !important;
+      padding: 1.5rem 1.5rem 1rem 1.5rem !important;
+    }
+
+    ::ng-deep .p-card .p-card-body {
+      padding: 1.5rem !important;
+    }
+
+    ::ng-deep .p-inputtext,
+    ::ng-deep .p-textarea,
+    ::ng-deep .p-select {
+      background: rgba(30, 30, 30, 0.9) !important;
+      border: 2px solid rgba(100, 100, 100, 0.3) !important;
+      color: white !important;
+      border-radius: 12px !important;
+      padding: 0.75rem 1rem !important;
+      transition: all 0.3s ease !important;
+    }
+
+    ::ng-deep .p-inputtext:hover,
+    ::ng-deep .p-textarea:hover,
+    ::ng-deep .p-select:hover {
+      border-color: rgba(251, 191, 36, 0.5) !important;
+    }
+
+    ::ng-deep .p-inputtext:focus,
+    ::ng-deep .p-textarea:focus,
+    ::ng-deep .p-select:focus {
+      border-color: #fbbf24 !important;
+      box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.2) !important;
+      background: rgba(40, 40, 40, 0.95) !important;
+    }
+
+    ::ng-deep .p-fileupload-basic {
+      background: rgba(30, 30, 30, 0.9) !important;
+      border: 2px dashed rgba(251, 191, 36, 0.4) !important;
+      border-radius: 12px !important;
+      padding: 1rem !important;
+      transition: all 0.3s ease !important;
+    }
+
+    ::ng-deep .p-fileupload-basic:hover {
+      border-color: rgba(251, 191, 36, 0.7) !important;
+      background: rgba(40, 40, 40, 0.95) !important;
+    }
+
+    ::ng-deep .p-fileupload-basic .p-button {
+      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
+      border: none !important;
+      color: #000 !important;
+      font-weight: 600 !important;
+      border-radius: 10px !important;
+      padding: 0.75rem 1.5rem !important;
+      transition: all 0.3s ease !important;
+      box-shadow: 0 4px 15px rgba(251, 191, 36, 0.3) !important;
+    }
+
+    ::ng-deep .p-fileupload-basic .p-button:hover {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(251, 191, 36, 0.5) !important;
+    }
+
+    ::ng-deep .p-button.p-button-primary {
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+      border: none !important;
+      color: white !important;
+      font-weight: 600 !important;
+      padding: 0.875rem 2rem !important;
+      border-radius: 12px !important;
+      box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4) !important;
+      transition: all 0.3s ease !important;
+    }
+
+    ::ng-deep .p-button.p-button-primary:hover:not(:disabled) {
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%) !important;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6) !important;
+    }
+
+    ::ng-deep .p-button.p-button-secondary {
+      background: rgba(60, 60, 60, 0.8) !important;
+      border: 1px solid rgba(100, 100, 100, 0.5) !important;
+      color: white !important;
+    }
+
+    ::ng-deep .p-button.p-button-secondary:hover {
+      background: rgba(80, 80, 80, 0.9) !important;
+      border-color: rgba(150, 150, 150, 0.7) !important;
+    }
+
+    label {
+      font-weight: 600;
+      color: #e5e7eb;
+      margin-bottom: 0.5rem;
+      display: block;
+    }
+
+    small {
+      display: block;
+      margin-top: 0.25rem;
+    }
+  `,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class JobFairFormComponent {
+  private fb = inject(FormBuilder);
+  private http = inject(HttpClient);
+  private router = inject(Router);
+  private messageService = inject(MessageService);
+  private positionsStore = inject(PositionsStore);
+
+  public selectedFile = signal<File | null>(null);
+  public isSubmitting = signal<boolean>(false);
+  public isSuccess = signal<boolean>(false);
+
+  // Posiciones disponibles para la feria de empleo
+  public availablePositions = computed(() => {
+    const allPositions = this.positionsStore.entities();
+    // Filtrar posiciones relevantes para la feria
+    const relevantPositions = [
+      'Gerente de Sucursal',
+      'Subgerente de Sucursal',
+      'Asesor de Ventas',
+      'Estilista',
+      'Veterinario',
+      'Administrativo',
+      'Ayudante General',
+    ];
+
+    return allPositions.filter((pos) =>
+      relevantPositions.some((relevant) =>
+        pos.name.toLowerCase().includes(relevant.toLowerCase())
+      )
+    );
+  });
+
+  public applicationForm: FormGroup = this.fb.group({
+    first_name: ['', [Validators.required]],
+    last_name: ['', [Validators.required]],
+    email: ['', [Validators.required, Validators.email]],
+    phone_number: ['', [Validators.required]],
+    position_id: ['', [Validators.required]],
+    additional_info: [''],
+    resume: [null, [Validators.required]],
+  });
+
+  constructor() {
+    // Cargar posiciones
+    this.positionsStore.reloadItems();
+  }
+
+  onFileSelect(event: any) {
+    const file = event.files?.[0];
+    if (file) {
+      // Validar tipo de archivo
+      const allowedTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      ];
+      if (!allowedTypes.includes(file.type)) {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Archivo inválido',
+          detail: 'Solo se permiten archivos PDF, DOC o DOCX',
+        });
+        return;
+      }
+
+      // Validar tamaño (5MB máximo)
+      if (file.size > 5000000) {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Archivo muy grande',
+          detail: 'El archivo no debe exceder 5MB',
+        });
+        return;
+      }
+
+      this.selectedFile.set(file);
+      this.applicationForm.patchValue({ resume: file });
+    }
+  }
+
+  onFileClear() {
+    this.selectedFile.set(null);
+    this.applicationForm.patchValue({ resume: null });
+  }
+
+  formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+  }
+
+  async onSubmit() {
+    if (this.applicationForm.invalid || !this.selectedFile()) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Formulario incompleto',
+        detail: 'Por favor completa todos los campos requeridos',
+      });
+      return;
+    }
+
+    this.isSubmitting.set(true);
+
+    try {
+      // 1. Subir archivo a Supabase Storage
+      const resumeUrl = await this.uploadResume(this.selectedFile()!);
+
+      // 2. Obtener nombre de la posición
+      const positionId = this.applicationForm.value.position_id;
+      const position = this.availablePositions().find(
+        (p) => p.id === positionId
+      );
+      const positionName = position?.name || '';
+
+      // 3. Crear aplicación en la base de datos
+      const applicationData = {
+        first_name: this.applicationForm.value.first_name,
+        last_name: this.applicationForm.value.last_name,
+        email: this.applicationForm.value.email,
+        phone_number: this.applicationForm.value.phone_number,
+        position_id: positionId,
+        position_name: positionName,
+        resume_url: resumeUrl.url,
+        resume_filename: this.selectedFile()!.name,
+        additional_info: this.applicationForm.value.additional_info || null,
+        status: 'pending',
+      };
+
+      const application = await this.http
+        .post<any>(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/job_applications`,
+          applicationData
+        )
+        .toPromise();
+
+      // 4. Enviar notificaciones
+      await this.sendNotifications(applicationData);
+
+      this.isSuccess.set(true);
+      this.messageService.add({
+        severity: 'success',
+        summary: '¡Éxito!',
+        detail: 'Tu aplicación ha sido enviada correctamente',
+      });
+    } catch (error: any) {
+      console.error('Error submitting application:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail:
+          error.error?.message ||
+          'Hubo un error al enviar tu aplicación. Por favor intenta nuevamente.',
+      });
+    } finally {
+      this.isSubmitting.set(false);
+    }
+  }
+
+  private async uploadResume(
+    file: File
+  ): Promise<{ url: string; path: string }> {
+    const timestamp = Date.now();
+    const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const fileName = `${timestamp}_${sanitizedName}`;
+    const filePath = `job-applications/${fileName}`;
+
+    // Subir a Supabase Storage usando FormData
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await this.http
+        .post<any>(
+          `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/job-applications/${fileName}`,
+          formData
+        )
+        .toPromise();
+
+      // Construir URL pública
+      const publicUrl = `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/public/job-applications/${fileName}`;
+
+      return {
+        url: publicUrl,
+        path: filePath,
+      };
+    } catch (error: any) {
+      // Si el bucket no existe, intentar crear la aplicación sin el archivo por ahora
+      // y registrar el error
+      console.error('Error uploading file to Supabase Storage:', error);
+      throw new Error(
+        'No se pudo subir el archivo. Por favor, contacta al administrador.'
+      );
+    }
+  }
+
+  private async sendNotifications(applicationData: any): Promise<void> {
+    // Emails de destinatarios (Lia y el usuario)
+    const recipients = [
+      'lia@blackdogpanama.com', // Reemplazar con el email real de Lia
+      'mercadeo@blackdogpanama.com', // Email del usuario
+    ];
+
+    const message = `Nueva aplicación de trabajo recibida:
+
+Nombre: ${applicationData.first_name} ${applicationData.last_name}
+Email: ${applicationData.email}
+Teléfono: ${applicationData.phone_number}
+Vacante: ${applicationData.position_name}
+Fecha: ${new Date().toLocaleString('es-PA')}
+
+Revisa la aplicación en el sistema de gestión.`;
+
+    // Enviar notificaciones (por ahora solo log, se puede integrar con email service)
+    console.log('Notificación enviada:', message);
+    // TODO: Integrar con servicio de email o Wassenger
+  }
+
+  onCancel() {
+    this.router.navigate(['/login']);
+  }
+
+  goToLogin() {
+    this.router.navigate(['/login']);
+  }
+}

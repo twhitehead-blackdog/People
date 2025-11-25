@@ -37,14 +37,19 @@ import { DashboardStore } from '../stores/dashboard.store';
         <textarea pTextarea formControlName="address"></textarea>
       </div>
       <div class="input-container">
-        <label for="address">Nro. de Telefono</label>
-        <input pInputText type="tel" formControlName="phone_number" />
+        <label for="phone_number">Nro. de Telefono</label>
+        <input
+          pInputText
+          type="tel"
+          formControlName="phone_number"
+          id="phone_number"
+        />
       </div>
       <div class="flex items-center gap-2">
         <p-toggleswitch formControlName="is_active" inputId="active" />
         <label for="active">Activo</label>
       </div>
-      <div class="flex gap-4 items-center justify-end">
+      <div class="dialog-actions">
         <p-button
           label="Cancelar"
           severity="secondary"
@@ -63,7 +68,54 @@ import { DashboardStore } from '../stores/dashboard.store';
       </div>
     </div>
   </form>`,
-  styles: ``,
+  styles: `
+    .input-container {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    
+    .input-container label {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #e5e7eb;
+    }
+    
+    .dialog-actions {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: flex-end;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid rgba(100, 100, 100, 0.2);
+    }
+    
+    ::ng-deep .p-inputtext,
+    ::ng-deep .p-textarea {
+      background: #262626 !important;
+      border: 1px solid #404040 !important;
+      color: #e5e7eb !important;
+      border-radius: 0.375rem !important;
+    }
+    
+    ::ng-deep .p-inputtext:focus,
+    ::ng-deep .p-textarea:focus {
+      border-color: #fbbf24 !important;
+      box-shadow: 0 0 0 0.2rem rgba(251, 191, 36, 0.2) !important;
+    }
+    
+    ::ng-deep .p-toggleswitch {
+      margin-right: 0.5rem;
+    }
+    
+    ::ng-deep .p-toggleswitch .p-toggleswitch-slider {
+      background: #404040 !important;
+    }
+    
+    ::ng-deep .p-toggleswitch.p-toggleswitch-checked .p-toggleswitch-slider {
+      background: #fbbf24 !important;
+    }
+  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CompaniesFormComponent implements OnInit {

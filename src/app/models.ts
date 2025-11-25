@@ -327,3 +327,47 @@ export const colorVariants: Record<string, string> = {
   teal: 'bg-teal-300 text-teal-800',
   cyan: 'bg-cyan-300 text-cyan-800',
 };
+
+export type JobApplication = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone_number: string;
+  position_id?: string;
+  position?: Position;
+  position_name?: string;
+  resume_url?: string;
+  resume_filename?: string;
+  additional_info?: string;
+  status: 'pending' | 'reviewed' | 'contacted' | 'rejected' | 'hired';
+  interview_date?: Date;
+  notes?: string;
+  created_at?: Date;
+  updated_at?: Date;
+};
+
+export type Notification = {
+  id: string;
+  recipient_id?: string;
+  branch_id?: string;
+  branch?: Branch;
+  type:
+    | 'timelog_entry'
+    | 'timelog_exit'
+    | 'timelog_lunch_start'
+    | 'timelog_lunch_end'
+    | 'delay'
+    | 'early_exit'
+    | 'lunch_exceeded'
+    | 'complaint'
+    | 'other';
+  title: string;
+  message: string;
+  related_entity_type?: string;
+  related_entity_id?: string;
+  is_read: boolean;
+  read_at?: Date;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  created_at: Date;
+};

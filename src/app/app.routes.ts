@@ -1,7 +1,7 @@
 import { Route } from '@angular/router';
 import { authGuardFn } from '../../guard';
-import { timeclockKioskGuard } from './guards/timeclock-kiosk.guard';
 import { supervisorPreviewGuard } from './guards/supervisor-preview.guard';
+import { timeclockKioskGuard } from './guards/timeclock-kiosk.guard';
 
 export const appRoutes: Route[] = [
   {
@@ -46,6 +46,13 @@ export const appRoutes: Route[] = [
         (x) => x.SupervisorPreviewComponent
       ),
     canActivate: [supervisorPreviewGuard],
+  },
+  {
+    path: 'job-fair',
+    loadComponent: () =>
+      import('./job-fair/job-fair-form.component').then(
+        (x) => x.JobFairFormComponent
+      ),
   },
   { path: '**', redirectTo: 'login', pathMatch: 'full' },
 ];
