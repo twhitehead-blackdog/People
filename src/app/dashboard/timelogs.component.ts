@@ -315,12 +315,9 @@ import { EmployeesStore } from '../stores/employees.store';
         <tr>
           <td colspan="8">
             <div class="flex flex-col items-center justify-center gap-4">
-              <p>No se encontraron registros</p>
-              <p-button
-                label="Limpiar"
-                icon="pi pi-refresh"
-                (click)="employeeId.set('')"
-              />
+              <i class="pi pi-wrench text-4xl text-amber-400 mb-2"></i>
+              <p class="text-gray-400 text-lg font-semibold">En construcción</p>
+              <p class="text-sm text-gray-500">Esta funcionalidad estará disponible pronto</p>
             </div>
           </td>
         </tr>

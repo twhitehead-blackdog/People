@@ -9,7 +9,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { format } from 'date-fns';
+import { addDays, format } from 'date-fns';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { Avatar } from 'primeng/avatar';
 import { Button } from 'primeng/button';
@@ -642,6 +642,11 @@ export class SupervisorPreviewComponent {
     const branchId = this.selectedBranchId();
     if (!branchId) return undefined;
 
+    const selectedDate = this.selectedDate();
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    const nextDayStr = format(addDays(selectedDate, 1), 'yyyy-MM-dd');
+
+    // PostgREST requiere usar el operador 'and' para múltiples condiciones en el mismo campo
     return {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`,
       method: 'GET',
@@ -649,6 +654,7 @@ export class SupervisorPreviewComponent {
         branch_id: `eq.${branchId}`,
         select:
           '*,employee:employees(id,first_name,father_name),branch:branches(id,name,short_name)',
+        and: `(created_at.gte.${dateStr}T00:00:00,created_at.lt.${nextDayStr}T00:00:00)`,
         order: 'created_at.desc',
         limit: '1000',
       },

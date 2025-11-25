@@ -4,7 +4,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  effect,
   inject,
   signal,
 } from '@angular/core';
@@ -29,7 +28,7 @@ import { Textarea } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
-import { TimeLogEnum } from '../models';
+import { Notification, TimeLogEnum } from '../models';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
 
@@ -233,9 +232,13 @@ import { EmployeesStore } from '../stores/employees.store';
                   }
                 </div>
                 } } @else {
-                <p class="text-gray-400 text-center py-4">
-                  No hay marcaciones recientes
-                </p>
+                <div class="text-center py-4">
+                  <i class="pi pi-wrench text-2xl text-amber-400 mb-2"></i>
+                  <p class="text-gray-400 font-semibold">En construcción</p>
+                  <p class="text-sm text-gray-500">
+                    Esta funcionalidad estará disponible pronto
+                  </p>
+                </div>
                 }
               </div>
             </p-card>
@@ -600,7 +603,13 @@ import { EmployeesStore } from '../stores/employees.store';
                     <div
                       class="flex flex-col items-center justify-center gap-4 py-8"
                     >
-                      <p class="text-gray-400">No se encontraron registros</p>
+                      <i class="pi pi-wrench text-4xl text-amber-400 mb-2"></i>
+                      <p class="text-gray-400 text-lg font-semibold">
+                        En construcción
+                      </p>
+                      <p class="text-sm text-gray-500">
+                        Esta funcionalidad estará disponible pronto
+                      </p>
                     </div>
                   </td>
                 </tr>
@@ -657,9 +666,12 @@ import { EmployeesStore } from '../stores/employees.store';
                     <div
                       class="flex flex-col items-center justify-center gap-4 py-8"
                     >
-                      <i class="pi pi-check-circle text-green-400 text-4xl"></i>
-                      <p class="text-gray-400">
-                        ¡Excelente! No tienes tardanzas este mes
+                      <i class="pi pi-wrench text-4xl text-amber-400 mb-2"></i>
+                      <p class="text-gray-400 text-lg font-semibold">
+                        En construcción
+                      </p>
+                      <p class="text-sm text-gray-500">
+                        Esta funcionalidad estará disponible pronto
                       </p>
                     </div>
                   </td>
@@ -972,188 +984,142 @@ import { EmployeesStore } from '../stores/employees.store';
       </div>
       }
 
-      <!-- Buzón de Quejas Section -->
+      <!-- Buzón de Notificaciones Section -->
       @if (activeSection() === 'complaints') {
       <div id="complaints" class="section-content">
         <p-card>
-          <ng-template #title>Buzón de Quejas Anónimas</ng-template>
+          <ng-template #title>Notificaciones</ng-template>
           <ng-template #subtitle
-            >Expresa tus inquietudes de forma anónima y
-            confidencial</ng-template
+            >Todas tus notificaciones del sistema</ng-template
           >
-          <div class="flex flex-col gap-4">
-            <div
-              class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4"
-            >
-              <div class="flex items-start gap-3">
-                <i class="pi pi-info-circle text-yellow-400 text-xl"></i>
-                <div class="flex-1">
-                  <p class="text-yellow-300 font-semibold mb-2">
-                    Tu privacidad está protegida
-                  </p>
-                  <p class="text-sm text-gray-300">
-                    Todas las quejas son completamente anónimas. Tu identidad no
-                    será revelada a menos que lo autorices explícitamente.
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div>
-              <label class="block text-sm text-gray-400 mb-2">Categoría</label>
-              <select
-                pInputText
-                [ngModel]="complaintCategory()"
-                (ngModelChange)="complaintCategory.set($event)"
-                class="w-full"
-              >
-                <option value="work_environment">Ambiente Laboral</option>
-                <option value="harassment">Acoso o Discriminación</option>
-                <option value="safety">Seguridad</option>
-                <option value="management">Supervisión/Gerencia</option>
-                <option value="benefits">Beneficios</option>
-                <option value="other">Otro</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm text-gray-400 mb-2"
-                >Describe tu queja o sugerencia</label
-              >
-              <textarea
-                pTextarea
-                [ngModel]="complaintText()"
-                (ngModelChange)="complaintText.set($event)"
-                rows="6"
-                placeholder="Describe detalladamente tu queja, sugerencia o inquietud..."
-                class="w-full"
-              ></textarea>
-            </div>
+
+          <div class="flex items-center justify-between mb-4">
             <div class="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="allowContact"
-                [ngModel]="allowContact()"
-                (ngModelChange)="allowContact.set($event)"
-              />
-              <label for="allowContact" class="text-sm text-gray-300"
-                >Permitir que RRHH me contacte para seguimiento
-                (opcional)</label
-              >
-            </div>
-            @if(allowContact()) {
-            <div>
-              <label class="block text-sm text-gray-400 mb-2"
-                >Forma de Contacto Preferida</label
-              >
-              <select
-                pInputText
-                [ngModel]="contactMethod()"
-                (ngModelChange)="contactMethod.set($event)"
-                class="w-full"
-              >
-                <option value="email">Email</option>
-                <option value="phone">Teléfono</option>
-                <option value="meeting">Reunión Presencial</option>
-              </select>
-            </div>
-            }
-            <div class="flex justify-end">
               <p-button
-                label="Enviar Queja"
-                icon="pi pi-send"
-                severity="warn"
-                [loading]="submittingComplaint()"
-                [disabled]="!canSubmitComplaint() || submittingComplaint()"
-                (click)="submitComplaint()"
+                label="Marcar todas como leídas"
+                icon="pi pi-check"
+                severity="secondary"
+                size="small"
+                [disabled]="unreadNotificationsCount() === 0"
+                (click)="markAllNotificationsAsRead()"
               />
+            </div>
+            <div class="text-sm text-gray-400">
+              {{ unreadNotificationsCount() }} sin leer
             </div>
           </div>
 
-          <!-- Lista de quejas/conversaciones enviadas -->
-          <div class="mt-6">
-            <h3 class="text-lg font-semibold text-white mb-4">
-              Mis Quejas y Conversaciones
-            </h3>
-            @if(myComplaints().length === 0 && !complaintsApi.isLoading()) {
-            <div class="text-center py-8">
-              <i class="pi pi-inbox text-4xl text-gray-500 mb-4"></i>
-              <p class="text-gray-400">No has enviado ninguna queja todavía.</p>
-            </div>
-            } @else {
-            <div class="overflow-x-auto">
-              <p-table
-                [value]="myComplaints()"
-                [rows]="10"
-                paginator
-                [loading]="complaintsApi.isLoading()"
-                styleClass="p-datatable-sm md:p-datatable-lg"
-                [scrollable]="true"
-                scrollHeight="400px"
-                [responsiveLayout]="'scroll'"
-              >
-                <ng-template #header>
-                  <tr>
-                    <th>Fecha</th>
-                    <th>Categoría</th>
-                    <th>Estado</th>
-                    <th>Última Actividad</th>
-                    <th>Acciones</th>
-                  </tr>
-                </ng-template>
-                <ng-template #body let-complaint>
-                  <tr
-                    [ngClass]="{
-                      'bg-amber-500/10': hasUnreadMessages(complaint)
-                    }"
-                  >
-                    <td>{{ complaint.created_at | date : 'mediumDate' }}</td>
-                    <td>{{ getComplaintCategoryLabel(complaint.category) }}</td>
-                    <td>
-                      <span
-                        class="px-2 py-1 rounded text-xs font-semibold"
-                        [class.bg-yellow-500]="complaint.status === 'pending'"
-                        [class.bg-green-500]="complaint.status === 'resolved'"
-                        [class.bg-blue-500]="complaint.status === 'in_review'"
-                      >
-                        {{
-                          complaint.status === 'pending'
-                            ? 'Pendiente'
-                            : complaint.status === 'resolved'
-                            ? 'Resuelta'
-                            : 'En Revisión'
-                        }}
-                      </span>
-                    </td>
-                    <td class="text-sm text-gray-400">
-                      {{
-                        complaint.last_message_at || complaint.updated_at
-                          | date : 'short'
-                      }}
-                      @if(hasUnreadMessages(complaint)) {
-                      <i
-                        class="pi pi-circle-fill text-amber-400 text-xs ml-2"
-                      ></i>
-                      }
-                    </td>
-                    <td>
-                      <p-button
-                        icon="pi pi-comments"
-                        severity="info"
-                        size="small"
-                        [label]="
-                          hasUnreadMessages(complaint)
-                            ? 'Ver Conversación (Nuevo)'
-                            : 'Ver Conversación'
-                        "
-                        (click)="viewResponse(complaint)"
-                        pTooltip="Abrir conversación"
-                      />
-                    </td>
-                  </tr>
-                </ng-template>
-              </p-table>
-            </div>
-            }
+          @if(notifications().length === 0 && !notificationsApi.isLoading()) {
+          <div class="text-center py-8">
+            <i class="pi pi-wrench text-4xl text-amber-400 mb-2"></i>
+            <p class="text-gray-400 text-lg font-semibold">En construcción</p>
+            <p class="text-sm text-gray-500">
+              Esta funcionalidad estará disponible pronto
+            </p>
           </div>
+          } @else {
+          <div class="overflow-x-auto">
+            <p-table
+              [value]="notifications()"
+              [rows]="10"
+              paginator
+              [loading]="notificationsApi.isLoading()"
+              styleClass="p-datatable-sm md:p-datatable-lg"
+              [scrollable]="true"
+              scrollHeight="500px"
+              [responsiveLayout]="'scroll'"
+            >
+              <ng-template #header>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Tipo</th>
+                  <th>Título</th>
+                  <th>Mensaje</th>
+                  <th>Prioridad</th>
+                  <th>Estado</th>
+                  <th>Acciones</th>
+                </tr>
+              </ng-template>
+              <ng-template #body let-notification>
+                <tr
+                  [ngClass]="{
+                    'bg-blue-500/10': !notification.is_read,
+                    'opacity-60': notification.is_read
+                  }"
+                >
+                  <td>{{ notification.created_at | date : 'short' }}</td>
+                  <td>
+                    <span
+                      class="px-2 py-1 rounded text-xs font-semibold"
+                      [ngClass]="{
+                        'bg-green-500/20 text-green-400':
+                          notification.type?.includes('timelog'),
+                        'bg-yellow-500/20 text-yellow-400':
+                          notification.type === 'delay',
+                        'bg-red-500/20 text-red-400':
+                          notification.type === 'early_exit' ||
+                          notification.type === 'lunch_exceeded',
+                        'bg-blue-500/20 text-blue-400':
+                          notification.type === 'complaint',
+                        'bg-gray-500/20 text-gray-400':
+                          notification.type === 'other'
+                      }"
+                    >
+                      {{ getNotificationTypeLabel(notification.type) }}
+                    </span>
+                  </td>
+                  <td class="font-semibold">{{ notification.title }}</td>
+                  <td class="text-sm">{{ notification.message }}</td>
+                  <td>
+                    <span
+                      class="px-2 py-1 rounded text-xs"
+                      [ngClass]="{
+                        'bg-green-500/20 text-green-400':
+                          notification.priority === 'low',
+                        'bg-yellow-500/20 text-yellow-400':
+                          notification.priority === 'medium',
+                        'bg-orange-500/20 text-orange-400':
+                          notification.priority === 'high',
+                        'bg-red-500/20 text-red-400':
+                          notification.priority === 'urgent'
+                      }"
+                    >
+                      {{ getPriorityLabel(notification.priority) }}
+                    </span>
+                  </td>
+                  <td>
+                    @if(!notification.is_read) {
+                    <span
+                      class="px-2 py-1 rounded text-xs bg-blue-500/20 text-blue-400"
+                    >
+                      No leída
+                    </span>
+                    } @else {
+                    <span
+                      class="px-2 py-1 rounded text-xs bg-gray-500/20 text-gray-400"
+                    >
+                      Leída
+                    </span>
+                    }
+                  </td>
+                  <td>
+                    @if(!notification.is_read) {
+                    <p-button
+                      icon="pi pi-check"
+                      severity="success"
+                      size="small"
+                      [text]="true"
+                      label="Marcar como leída"
+                      (click)="markNotificationAsRead(notification)"
+                      pTooltip="Marcar como leída"
+                    />
+                    }
+                  </td>
+                </tr>
+              </ng-template>
+            </p-table>
+          </div>
+          }
         </p-card>
       </div>
       }
@@ -1225,7 +1191,13 @@ import { EmployeesStore } from '../stores/employees.store';
               {
               <div class="text-center py-8">
                 <i class="pi pi-inbox text-4xl text-gray-500 mb-4"></i>
-                <p class="text-gray-400">No hay sugerencias todavía.</p>
+                <i class="pi pi-wrench text-4xl text-amber-400 mb-2"></i>
+                <p class="text-gray-400 text-lg font-semibold">
+                  En construcción
+                </p>
+                <p class="text-sm text-gray-500">
+                  Esta funcionalidad estará disponible pronto
+                </p>
               </div>
               } @else {
               <div class="overflow-x-auto">
@@ -1368,9 +1340,10 @@ import { EmployeesStore } from '../stores/employees.store';
           <div class="text-center py-8 text-gray-400">Cargando mensajes...</div>
           } @else if(conversationMessages().length === 0) {
           <div class="text-center py-8">
-            <p class="text-gray-400">No hay mensajes todavía.</p>
-            <p class="text-sm text-gray-500 mt-2">
-              {{ selectedComplaint()?.complaint }}
+            <i class="pi pi-wrench text-4xl text-amber-400 mb-2"></i>
+            <p class="text-gray-400 text-lg font-semibold">En construcción</p>
+            <p class="text-sm text-gray-500">
+              Esta funcionalidad estará disponible pronto
             </p>
           </div>
           } @else { @for(message of conversationMessages(); track message.id) {
@@ -1498,9 +1471,10 @@ import { EmployeesStore } from '../stores/employees.store';
           <div class="text-center py-8 text-gray-400">Cargando mensajes...</div>
           } @else if(suggestionMessages().length === 0) {
           <div class="text-center py-8">
-            <p class="text-gray-400">No hay mensajes todavía.</p>
-            <p class="text-sm text-gray-500 mt-2">
-              {{ selectedSuggestion()?.complaint }}
+            <i class="pi pi-wrench text-4xl text-amber-400 mb-2"></i>
+            <p class="text-gray-400 text-lg font-semibold">En construcción</p>
+            <p class="text-sm text-gray-500">
+              Esta funcionalidad estará disponible pronto
             </p>
           </div>
           } @else { @for(message of suggestionMessages(); track message.id) {
@@ -1783,8 +1757,6 @@ export class EmployeePortalComponent {
     return workEmail.endsWith(this.companyEmailDomain);
   });
 
-  private approvalToastShown = signal(false);
-
   constructor() {
     // Inicializar con el fragmento actual si existe
     const currentFragment = this.route.snapshot.fragment;
@@ -1807,27 +1779,6 @@ export class EmployeePortalComponent {
         }, 100);
       } else {
         this.activeSection.set('dashboard');
-      }
-    });
-
-    // Mostrar toast de aprobación pendiente
-    effect(() => {
-      const employee = this.currentEmployee();
-      if (
-        employee &&
-        !this.approvalToastShown() &&
-        (employee.account_approved === false ||
-          employee.account_approved === null ||
-          employee.account_approved === undefined)
-      ) {
-        this.approvalToastShown.set(true);
-        this.messageService.add({
-          severity: 'warn',
-          summary: 'Cuenta en Espera de Aprobación',
-          detail:
-            'Tu cuenta está pendiente de aprobación por parte del administrador. Una vez aprobada, tendrás acceso completo al portal. Por favor, contacta a Recursos Humanos si tienes alguna pregunta.',
-          life: 5000,
-        });
       }
     });
   }
@@ -2004,6 +1955,29 @@ export class EmployeePortalComponent {
   public submittingSuggestion = signal(false);
   public suggestionDialogVisible = signal(false);
   public selectedSuggestion = signal<any>(null);
+
+  // Notifications
+  public notificationsApi = httpResource<Notification[]>(() => {
+    if (!this.currentEmployee()?.id) return undefined;
+
+    return {
+      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/notifications`,
+      method: 'GET',
+      params: {
+        select: '*,branch:branches(id,name,short_name)',
+        recipient_id: `eq.${this.currentEmployee()!.id}`,
+        order: 'created_at.desc',
+      },
+    };
+  });
+
+  public notifications = computed(() => {
+    return this.notificationsApi.value() ?? [];
+  });
+
+  public unreadNotificationsCount = computed(() => {
+    return this.notifications().filter((n) => !n.is_read).length;
+  });
 
   // Computed: Validación del formulario de quejas
   public canSubmitComplaint = computed(() => {
@@ -2606,6 +2580,83 @@ export class EmployeePortalComponent {
       other: 'Otro',
     };
     return labels[type] || type;
+  }
+
+  // Métodos para notificaciones
+  public getNotificationTypeLabel(type: string): string {
+    const labels: Record<string, string> = {
+      timelog_entry: 'Entrada',
+      timelog_exit: 'Salida',
+      timelog_lunch_start: 'Inicio Almuerzo',
+      timelog_lunch_end: 'Fin Almuerzo',
+      delay: 'Retraso',
+      early_exit: 'Salida Temprana',
+      lunch_exceeded: 'Almuerzo Excedido',
+      complaint: 'Queja',
+      other: 'Otro',
+    };
+    return labels[type] || type;
+  }
+
+  public getPriorityLabel(priority?: string): string {
+    const labels: Record<string, string> = {
+      low: 'Baja',
+      medium: 'Media',
+      high: 'Alta',
+      urgent: 'Urgente',
+    };
+    return labels[priority || 'medium'] || 'Media';
+  }
+
+  public async markNotificationAsRead(
+    notification: Notification
+  ): Promise<void> {
+    try {
+      await firstValueFrom(
+        this.http.patch(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/notifications`,
+          { is_read: true, read_at: new Date().toISOString() },
+          { params: { id: `eq.${notification.id}` } }
+        )
+      );
+      this.notificationsApi.reload();
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Notificación marcada como leída',
+        detail: 'La notificación ha sido marcada como leída.',
+        life: 3000,
+      });
+    } catch (error) {
+      console.error('Error al marcar notificación como leída:', error);
+    }
+  }
+
+  public async markAllNotificationsAsRead(): Promise<void> {
+    const unreadNotifications = this.notifications().filter((n) => !n.is_read);
+    if (unreadNotifications.length === 0) return;
+
+    try {
+      const updatePromises = unreadNotifications.map((notification) =>
+        firstValueFrom(
+          this.http.patch(
+            `${process.env['ENV_SUPABASE_URL']}/rest/v1/notifications`,
+            { is_read: true, read_at: new Date().toISOString() },
+            { params: { id: `eq.${notification.id}` } }
+          )
+        )
+      );
+
+      await Promise.all(updatePromises);
+      this.notificationsApi.reload();
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Notificaciones marcadas como leídas',
+        detail: `${unreadNotifications.length} notificaciones han sido marcadas como leídas.`,
+        life: 3000,
+      });
+    } catch (error) {
+      console.error('Error al marcar notificaciones como leídas:', error);
+    }
   }
 
   public getComplaintCategoryLabel(category: string): string {

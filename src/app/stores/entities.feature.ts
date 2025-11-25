@@ -75,8 +75,9 @@ export function withCustomEntities<T extends { id: EntityId }>({
               next: (changes) => {
                 patchState(state, updateEntity({ id: changes.id, changes }));
               },
-              error: (error) => {
+              error: (error: any) => {
                 patchState(state, { error });
+                // El interceptor HTTP mostrará la notificación automáticamente
               },
             })
           )
@@ -102,8 +103,9 @@ export function withCustomEntities<T extends { id: EntityId }>({
                     patchState(state, setAllEntities(entities), {
                       lastUpdated: new Date(),
                     }),
-                  error: (error) => {
-                    patchState(state, { error });
+                  error: (error: any) => {
+                    patchState(state, { error, isLoading: false });
+                    // El interceptor HTTP mostrará la notificación automáticamente
                   },
                   finalize: () => patchState(state, { isLoading: false }),
                 })
@@ -128,8 +130,9 @@ export function withCustomEntities<T extends { id: EntityId }>({
                     patchState(state, setAllEntities(entities), {
                       lastUpdated: new Date(),
                     }),
-                  error: (error) => {
-                    patchState(state, { error });
+                  error: (error: any) => {
+                    patchState(state, { error, isLoading: false });
+                    // El interceptor HTTP mostrará la notificación automáticamente
                   },
                   finalize: () => patchState(state, { isLoading: false }),
                 })

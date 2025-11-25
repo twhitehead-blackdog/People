@@ -616,7 +616,9 @@ import { EmployeesStore } from '../stores/employees.store';
                       <div
                         class="flex flex-col items-center justify-center gap-4 py-8"
                       >
-                        <p class="text-gray-400">No se encontraron registros</p>
+                        <i class="pi pi-wrench text-4xl text-amber-400 mb-2"></i>
+                        <p class="text-gray-400 text-lg font-semibold">En construcción</p>
+                        <p class="text-sm text-gray-500">Esta funcionalidad estará disponible pronto</p>
                       </div>
                     </td>
                   </tr>

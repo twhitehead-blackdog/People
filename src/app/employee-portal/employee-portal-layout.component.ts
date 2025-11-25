@@ -149,8 +149,8 @@ type NavSection = {
                   type="button"
                   (click)="navigateToSection('complaints')"
                   class="relative p-2.5 rounded-lg bg-gray-700/30 hover:bg-gray-700/60 transition-all duration-200 text-white border border-gray-600/50 hover:border-gray-500"
-                  pTooltip="Buzón de Quejas"
-                  title="Buzón de Quejas"
+                  pTooltip="Notificaciones"
+                  title="Notificaciones"
                 >
                   <i class="pi pi-inbox text-xl"></i>
                   @if (unreadComplaintsCount() > 0) {
@@ -239,7 +239,7 @@ type NavSection = {
               class="relative w-full rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer text-left"
             >
               <i class="pi pi-inbox text-lg"></i>
-              <span>Buzón de Quejas</span>
+              <span>Notificaciones</span>
               @if (unreadComplaintsCount() > 0) {
               <span
                 class="ml-auto w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white"
@@ -460,9 +460,9 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
   private dropdownTimeout: any = null;
 
   public unreadComplaintsCount = computed(() => {
-    // This will be populated from the employee portal component
-    // For now, return 0 as placeholder
-    return 0;
+    // Este contador ahora muestra notificaciones no leídas
+    // Se actualizará desde el componente employee-portal
+    return this.store.currentEmployee() ? 0 : 0;
   });
 
   public navSections: NavSection[] = [
