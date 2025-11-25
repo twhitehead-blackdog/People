@@ -1,6 +1,7 @@
 import { Route } from '@angular/router';
 import { authGuardFn } from '../../guard';
 import { timeclockKioskGuard } from './guards/timeclock-kiosk.guard';
+import { supervisorPreviewGuard } from './guards/supervisor-preview.guard';
 
 export const appRoutes: Route[] = [
   {
@@ -37,6 +38,14 @@ export const appRoutes: Route[] = [
     loadComponent: () =>
       import('./timeclock.component').then((x) => x.TimeclockComponent),
     canActivate: [timeclockKioskGuard],
+  },
+  {
+    path: 'supervisor-preview',
+    loadComponent: () =>
+      import('./supervisor-preview/supervisor-preview.component').then(
+        (x) => x.SupervisorPreviewComponent
+      ),
+    canActivate: [supervisorPreviewGuard],
   },
   { path: '**', redirectTo: 'login', pathMatch: 'full' },
 ];

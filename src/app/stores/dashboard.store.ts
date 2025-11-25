@@ -51,8 +51,44 @@ export const DashboardStore = signalStore(
   })),
   withComputed(
     ({ employees, branches, companies, selectedCompanyId, auth }) => {
+      // Identificar si el usuario es supervisor de una sucursal por su work_email
+      const supervisorBranch = computed(() => {
+        const employee = currentEmployee();
+        if (!employee?.work_email) return null;
+        
+        // Buscar si el work_email del empleado coincide con algún work_email de sucursal
+        const branch = branches.entities().find(
+          b => b.work_email?.toLowerCase() === employee.work_email.toLowerCase()
+        );
+        
+        return branch || null;
+      });
+
+      // Obtener el branch_id del supervisor si existe
+      // Primero intentar desde supervisorBranch (work_email del empleado coincide con sucursal)
+      // Si no, intentar desde auth.supervisorBranchId (correo de sucursal directo)
+      const supervisorBranchId = computed(() => {
+        const branchFromEmployee = supervisorBranch()?.id;
+        if (branchFromEmployee) return branchFromEmployee;
+        
+        // Si no se encontró desde el empleado, verificar si auth tiene supervisorBranchId
+        // Esto ocurre cuando alguien inicia sesión directamente con un correo de sucursal
+        return auth.supervisorBranchId() || null;
+      });
+
+      // Filtrar empleados por sucursal del supervisor si es supervisor
+      const filteredEmployees = computed(() => {
+        const branchId = supervisorBranchId();
+        if (!branchId) {
+          // Si no es supervisor, mostrar todos
+          return employees.entities();
+        }
+        // Si es supervisor, solo mostrar empleados de su sucursal
+        return employees.entities().filter(emp => emp.branch_id === branchId);
+      });
+
       const headCount = computed(
-        () => employees.entities().filter((x) => x.is_active).length
+        () => filteredEmployees().filter((x) => x.is_active).length
       );
 
       const currentEmployee = computed(() =>
@@ -82,6 +118,11 @@ export const DashboardStore = signalStore(
 
       // Lista de correos con acceso completo (super admins)
       const superAdminEmails = ['mercadeo@blackdogpanama.com'];
+
+      // Verificar si el usuario es supervisor de sucursal (no admin general)
+      const isBranchSupervisor = computed(() => {
+        return supervisorBranch() !== null;
+      });
 
       const isAdmin = computed(() => {
         const employee = currentEmployee();
@@ -231,7 +272,7 @@ export const DashboardStore = signalStore(
       );
 
       const employeesList = computed(() =>
-        employees.entities().map((item) => ({
+        filteredEmployees().map((item) => ({
           ...item,
           full_name: `${item.first_name} ${item.middle_name} ${item.father_name} ${item.mother_name}`,
           short_name: `${item.first_name} ${item.father_name}`,
@@ -808,6 +849,8 @@ export const DashboardStore = signalStore(
         selectedCompany,
         currentEmployee,
         isAdmin,
+        supervisorBranch,
+        isBranchSupervisor,
         hasPortalAccessOnly,
         isScheduleAdmin,
         isScheduleApprover,

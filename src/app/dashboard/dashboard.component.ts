@@ -463,6 +463,15 @@ export class DashboardComponent {
       });
     }
 
+    // Agregar vista de prueba de supervisor para admins
+    if (this.store.isAdmin()) {
+      items.push({
+        label: 'Vista Supervisor (Prueba)',
+        icon: 'pi pi-eye',
+        command: () => this.router.navigate(['/supervisor-preview']),
+      });
+    }
+
     items.push(
       {
         separator: true,

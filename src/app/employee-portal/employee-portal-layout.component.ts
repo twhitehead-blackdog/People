@@ -7,13 +7,7 @@ import {
   OnInit,
   signal,
 } from '@angular/core';
-import {
-  NavigationEnd,
-  Router,
-  RouterLink,
-  RouterLinkActive,
-  RouterOutlet,
-} from '@angular/router';
+import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
 import { ConfirmationService, MenuItem, MessageService } from 'primeng/api';
 import { AvatarModule } from 'primeng/avatar';
@@ -66,8 +60,6 @@ type NavSection = {
   ],
   imports: [
     RouterOutlet,
-    RouterLink,
-    RouterLinkActive,
     ToastModule,
     ConfirmDialogModule,
     MenuModule,
@@ -89,8 +81,8 @@ type NavSection = {
           <div class="flex h-16 items-center justify-between">
             <div class="flex items-center">
               <a
-                routerLink="/employee-portal"
-                class="shrink-0 flex items-center gap-2 group"
+                (click)="navigateToHome($event)"
+                class="shrink-0 flex items-center gap-2 group cursor-pointer"
               >
                 <img
                   src="images/blackdog.png"
@@ -173,6 +165,15 @@ type NavSection = {
                   </span>
                   }
                 </button>
+                <button
+                  type="button"
+                  (click)="navigateToSection('suggestions')"
+                  class="relative p-2.5 rounded-lg bg-blue-700/30 hover:bg-blue-700/60 transition-all duration-200 text-white border border-blue-600/50 hover:border-blue-500"
+                  pTooltip="Buzón de Sugerencias"
+                  title="Buzón de Sugerencias"
+                >
+                  <i class="pi pi-lightbulb text-xl"></i>
+                </button>
                 <div class="hidden md:flex items-center gap-3">
                   <p-menu #menu [model]="items" popup />
                   <div
@@ -248,6 +249,14 @@ type NavSection = {
                 }}
               </span>
               }
+            </button>
+            <button
+              type="button"
+              (click)="navigateToSection('suggestions')"
+              class="w-full rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-blue-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer text-left"
+            >
+              <i class="pi pi-lightbulb text-lg"></i>
+              <span>Buzón de Sugerencias</span>
             </button>
             } @for (nav of navSections; track nav.id) { @if (!nav.children) {
             <button
@@ -511,6 +520,12 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
           icon: 'pi pi-comments',
           section: 'complaints',
         },
+        {
+          id: 'suggestions',
+          label: 'Buzón de Sugerencias',
+          icon: 'pi pi-lightbulb',
+          section: 'suggestions',
+        },
       ],
     },
   ];
@@ -596,5 +611,16 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
       this.openDropdown.set(null);
       this.dropdownTimeout = null;
     }, 500); // 500ms delay before closing to allow moving to dropdown
+  }
+
+  navigateToHome(event: Event) {
+    event.preventDefault();
+    // Si es admin, redirigir a /timeclock
+    if (this.store.isAdmin()) {
+      this.router.navigate(['/timeclock']);
+    } else {
+      // Si no es admin, retroceder como en webs tradicionales
+      window.history.back();
+    }
   }
 }

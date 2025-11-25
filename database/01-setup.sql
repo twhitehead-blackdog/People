@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS branches (
     address TEXT,
     is_active BOOLEAN DEFAULT true,
     ip VARCHAR(45),
+    work_email VARCHAR(255) UNIQUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

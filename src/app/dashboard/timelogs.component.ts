@@ -673,12 +673,17 @@ export class TimelogsComponent {
           [x.type]: { date: x.created_at, branch: x.branch, id: x.id },
         };
         
-        // Detectar alertas cuando hay marcación
-        const dayDate = new Date(acc[index].day);
+        return acc;
+      }, acc)
+      // Ahora procesar TODOS los registros (con y sin marcaciones) para detectar vacaciones y otros estados
+      .map((item) => {
+        // Detectar alertas y estados para cada día
+        const dayDate = new Date(item.day);
         const dayStr = format(dayDate, 'yyyy-MM-dd');
         const timeoffForDay = timeoffsData.find(
             (timeoff) => {
-              if (timeoff.employee_id !== acc[index].employee.id) return false;
+              if (timeoff.employee_id !== item.employee.id) return false;
+              if (!timeoff.is_approved) return false;
               const fromStr = format(new Date(timeoff.date_from), 'yyyy-MM-dd');
               const toStr = format(new Date(timeoff.date_to), 'yyyy-MM-dd');
               return dayStr >= fromStr && dayStr <= toStr;
@@ -687,76 +692,77 @@ export class TimelogsComponent {
         const hasTimeOff = !!timeoffForDay;
         // El type_id puede estar directamente o anidado en type (según el query)
         const timeoffTypeId = timeoffForDay?.type_id || timeoffForDay?.type?.id;
+        const isVacation = hasTimeOff && timeoffTypeId === 'e7e63bb4-ca86-4091-85fa-c4da16545b49';
         const hasRestrictedTimeOff = hasTimeOff && timeoffForDay && timeoffTypeId && this.restrictedTimeOffTypeIds.includes(timeoffTypeId);
 
         // Verificar si hay marcación para mostrar alertas
-        const hasMark = acc[index].entry || acc[index].lunch_start || acc[index].exit;
+        const hasMark = item.entry || item.lunch_start || item.exit;
 
         // Verificar si el schedule es feriado o día libre
-        const scheduleId = acc[index].schedule?.schedule?.id;
-        const scheduleName = acc[index].schedule?.schedule?.name?.toLowerCase() || '';
+        const scheduleId = item.schedule?.schedule?.id;
+        const scheduleName = item.schedule?.schedule?.name?.toLowerCase() || '';
         const isRestrictedScheduleId = scheduleId && this.restrictedScheduleIds.includes(scheduleId);
         const isRestrictedScheduleName = this.restrictedScheduleNames.some(name => scheduleName.includes(name));
-        const isScheduleFeriado = isRestrictedScheduleId || isRestrictedScheduleName || acc[index].schedule?.schedule?.day_off;
+        const isScheduleFeriado = isRestrictedScheduleId || isRestrictedScheduleName || item.schedule?.schedule?.day_off;
 
         // SIEMPRE marcar como error si hay timeoff y marcaciones (no hay horario válido)
         if (hasTimeOff && hasMark) {
-          acc[index].alert = 'Feriado';
-          acc[index].scheduleError = true; // Error crítico: marcó en día de feriado/permiso (no hay horario válido)
+          item.alert = 'Feriado';
+          item.scheduleError = true; // Error crítico: marcó en día de feriado/permiso (no hay horario válido)
         }
 
         // SIEMPRE marcar como error si el schedule es feriado/día libre y hay marcaciones
         if (isScheduleFeriado && hasMark) {
-          acc[index].alert = acc[index].schedule?.schedule?.day_off ? 'Día Libre' : 'Feriado';
-          acc[index].scheduleError = true; // Error crítico: marcó en día feriado/libre (no debería tener marcaciones)
+          item.alert = item.schedule?.schedule?.day_off ? 'Día Libre' : 'Feriado';
+          item.scheduleError = true; // Error crítico: marcó en día feriado/libre (no debería tener marcaciones)
         }
 
         if (hasMark) {
           // Prioridad: Feriado > Día Libre > Sin Horario
           if (hasTimeOff) {
             // Ya se marcó arriba, solo asegurar que esté marcado
-            if (!acc[index].scheduleError) {
-              acc[index].scheduleError = true;
+            if (!item.scheduleError) {
+              item.scheduleError = true;
             }
-          } else if (acc[index].schedule) {
-            if (acc[index].schedule.schedule.day_off || isScheduleFeriado) {
+          } else if (item.schedule) {
+            if (item.schedule.schedule.day_off || isScheduleFeriado) {
               // Si es día libre o feriado pero el empleado marcó, es un error de configuración
-              acc[index].delay = 'DIA LIBRE';
-              acc[index].alert = acc[index].schedule.schedule.day_off ? 'Día Libre' : 'Feriado';
-              acc[index].scheduleError = true; // Error: marcó en día libre/feriado
+              item.delay = 'DIA LIBRE';
+              item.alert = item.schedule.schedule.day_off ? 'Día Libre' : 'Feriado';
+              item.scheduleError = true; // Error: marcó en día libre/feriado
             } else {
               // Calcular retraso si hay entrada
-              if (acc[index].entry) {
-                const entryTime = format(acc[index].entry.date, 'hh:mm:ss');
-                const scheduleTime = acc[index].schedule.schedule.entry_time;
+              if (item.entry) {
+                const entryTime = format(item.entry.date, 'hh:mm:ss');
+                const scheduleTime = item.schedule.schedule.entry_time;
                 const delay = this.calcTimeDiff(entryTime, scheduleTime);
 
-                if (delay > acc[index].schedule.schedule.minutes_tolerance) {
-                  acc[index].delay = delay;
+                if (delay > item.schedule.schedule.minutes_tolerance) {
+                  item.delay = delay;
                 }
               }
             }
           } else {
             // Sin horario establecido
-            acc[index].alert = 'Sin Horario';
+            item.alert = 'Sin Horario';
           }
 
           // Validar tiempo de almuerzo (no debe exceder 60 minutos)
-          if (acc[index].lunch_start && acc[index].lunch_end) {
+          if (item.lunch_start && item.lunch_end) {
             const lunchMinutes = differenceInMinutes(
-              acc[index].lunch_end.date,
-              acc[index].lunch_start.date
+              item.lunch_end.date,
+              item.lunch_start.date
             );
-            acc[index].lunchMinutes = lunchMinutes;
+            item.lunchMinutes = lunchMinutes;
             if (lunchMinutes > 60) {
-              acc[index].lunchExceeded = true;
+              item.lunchExceeded = true;
             }
           }
 
           // Validar salida temprana
-          if (acc[index].schedule && acc[index].exit && !acc[index].schedule.schedule.day_off) {
-            const exitTime = format(acc[index].exit.date, 'HH:mm:ss');
-            const scheduleExitTime = acc[index].schedule.schedule.exit_time;
+          if (item.schedule && item.exit && !item.schedule.schedule.day_off) {
+            const exitTime = format(item.exit.date, 'HH:mm:ss');
+            const scheduleExitTime = item.schedule.schedule.exit_time;
             if (scheduleExitTime) {
               // Convertir scheduleExitTime a string si es Date
               const scheduleTimeStr = typeof scheduleExitTime === 'string' 
@@ -770,21 +776,21 @@ export class TimelogsComponent {
               const scheduleMinutes = (+scheduleParts[0] * 60) + (+scheduleParts[1]);
               
               if (exitMinutes < scheduleMinutes) {
-                acc[index].earlyExit = true;
+                item.earlyExit = true;
               }
             }
           }
 
           // Validar horas trabajadas (9 horas totales en la empresa: 7am-4pm, 8am-5pm, 11am-8pm)
           // Se calcula desde la hora establecida del horario, no desde la entrada real
-          if (acc[index].entry && acc[index].exit && acc[index].schedule && !acc[index].schedule.schedule.day_off) {
-            const scheduleEntryTime = acc[index].schedule.schedule.entry_time;
-            const scheduleExitTime = acc[index].schedule.schedule.exit_time;
+          if (item.entry && item.exit && item.schedule && !item.schedule.schedule.day_off) {
+            const scheduleEntryTime = item.schedule.schedule.entry_time;
+            const scheduleExitTime = item.schedule.schedule.exit_time;
             
             if (scheduleEntryTime && scheduleExitTime) {
               // Crear fechas usando la hora establecida del horario
-              const entryDate = new Date(acc[index].entry.date);
-              const exitDate = new Date(acc[index].exit.date);
+              const entryDate = new Date(item.entry.date);
+              const exitDate = new Date(item.exit.date);
               
               // Convertir scheduleEntryTime a string si es Date
               const entryTimeStr = typeof scheduleEntryTime === 'string' 
@@ -799,33 +805,33 @@ export class TimelogsComponent {
               const totalMinutes = differenceInMinutes(exitDate, entryDate);
               
               // Restar tiempo de almuerzo si existe
-              const lunchTime = acc[index].lunch_start && acc[index].lunch_end
-                ? differenceInMinutes(acc[index].lunch_end.date, acc[index].lunch_start.date)
+              const lunchTime = item.lunch_start && item.lunch_end
+                ? differenceInMinutes(item.lunch_end.date, item.lunch_start.date)
                 : 0;
               
               const workMinutes = totalMinutes - lunchTime;
               const totalHours = totalMinutes / 60; // Horas totales en la empresa
-              acc[index].totalHours = totalHours;
+              item.totalHours = totalHours;
               
               // Debe cumplir 9 horas totales en la empresa (ej: 7am-4pm, 8am-5pm, 11am-8pm)
               // Permitimos un margen de tolerancia de 5 minutos
               const requiredTotalMinutes = 540; // 9 horas totales (540 minutos)
               
               if (totalMinutes < requiredTotalMinutes) {
-                acc[index].insufficientHours = true;
+                item.insufficientHours = true;
               }
             }
-          } else if (acc[index].entry && acc[index].exit) {
+          } else if (item.entry && item.exit) {
             // Si no hay horario establecido, calcular desde la entrada real
             const totalMinutes = differenceInMinutes(
-              acc[index].exit.date,
-              acc[index].entry.date
+              item.exit.date,
+              item.entry.date
             );
             // Validar y calcular tiempo de almuerzo
             let lunchTime = 0;
-            if (acc[index].lunch_start && acc[index].lunch_end) {
-              const lunchStart = acc[index].lunch_start.date;
-              const lunchEnd = acc[index].lunch_end.date;
+            if (item.lunch_start && item.lunch_end) {
+              const lunchStart = item.lunch_start.date;
+              const lunchEnd = item.lunch_end.date;
               
               // Validar que las fechas sean válidas
               if (lunchStart && lunchEnd && 
@@ -842,16 +848,30 @@ export class TimelogsComponent {
             const workMinutes = totalMinutes - lunchTime;
             // Validar que totalMinutes sea válido antes de dividir
             const totalHours = totalMinutes > 0 ? totalMinutes / 60 : 0;
-            acc[index].totalHours = totalHours;
+            item.totalHours = totalHours;
           }
         } else {
-          // Si no hay marcación pero hay schedule, calcular retraso si aplica
-          if (acc[index].schedule && !acc[index].schedule.schedule.day_off) {
-            // No hay nada que hacer aquí, el delay se calcula cuando hay entrada
+          // Si no hay marcación, verificar si está de vacaciones u otros estados
+          if (isVacation) {
+            item.alert = 'Vacaciones';
+            item.scheduleError = false;
+          } else if (hasRestrictedTimeOff) {
+            item.alert = timeoffForDay?.type?.name || 'Permiso';
+            item.scheduleError = false;
+          } else if (!item.schedule) {
+            // Si no hay schedule y no hay timeoff, verificar si es fin de semana
+            const dayOfWeek = new Date(item.day).getDay();
+            if (dayOfWeek === 0 || dayOfWeek === 6) {
+              // Es sábado (6) o domingo (0)
+              item.alert = dayOfWeek === 0 ? 'Domingo' : 'Sábado';
+            } else {
+              // Sin horario establecido
+              item.alert = 'Sin Horario';
+            }
           }
         }
 
-        return acc;
+        return item;
       }, acc) // Usar el array inicial que ya tiene todos los días
       .sort((a, b) => {
         // Ordenar primero por fecha (asegurar orden cronológico), luego por nombre de empleado

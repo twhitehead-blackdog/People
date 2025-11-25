@@ -151,10 +151,27 @@ import { EmployeesStore } from '../stores/employees.store';
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-sm text-gray-400 m-0 mb-1">Salario Mensual</p>
+                  @if (showSalary()) {
                   <p class="text-2xl font-bold text-green-400 m-0">
                     {{ currentEmployee()?.monthly_salary | currency : '$' }}
                   </p>
-                  <p class="text-xs text-gray-500 m-0 mt-1">Base</p>
+                  } @else {
+                  <p
+                    class="text-2xl font-bold text-gray-500 m-0 cursor-pointer"
+                    (click)="showSalary.set(true)"
+                  >
+                    ••••••••
+                  </p>
+                  }
+                  <p class="text-xs text-gray-500 m-0 mt-1">
+                    @if (showSalary()) { Base } @else {
+                    <span
+                      class="cursor-pointer hover:text-gray-400"
+                      (click)="showSalary.set(true)"
+                      >Click para revelar</span
+                    >
+                    }
+                  </p>
                 </div>
                 <div
                   class="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center"
@@ -342,9 +359,21 @@ import { EmployeesStore } from '../stores/employees.store';
               </div>
               <div>
                 <label class="text-sm text-gray-400">Salario Mensual</label>
+                @if (showSalary()) {
                 <p class="text-white font-semibold">
                   {{ currentEmployee()?.monthly_salary | currency : '$' }}
                 </p>
+                } @else {
+                <p
+                  class="text-white font-semibold cursor-pointer hover:text-gray-300"
+                  (click)="showSalary.set(true)"
+                >
+                  ••••••••
+                  <span class="text-sm text-gray-400"
+                    >(Click para revelar)</span
+                  >
+                </p>
+                }
               </div>
             </div>
 
@@ -1128,6 +1157,159 @@ import { EmployeesStore } from '../stores/employees.store';
         </p-card>
       </div>
       }
+
+      <!-- Buzón de Sugerencias Section -->
+      @if (activeSection() === 'suggestions') {
+      <div id="suggestions" class="section-content">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Ventana 1: Crear Sugerencia (Todos los empleados) -->
+          <p-card>
+            <ng-template #title>Crear Sugerencia</ng-template>
+            <ng-template #subtitle
+              >Comparte tus ideas y sugerencias para mejorar</ng-template
+            >
+            <div class="flex flex-col gap-4">
+              <div
+                class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4"
+              >
+                <div class="flex items-start gap-3">
+                  <i class="pi pi-info-circle text-blue-400 text-xl"></i>
+                  <div class="flex-1">
+                    <p class="text-blue-300 font-semibold mb-2">
+                      Tu opinión es importante
+                    </p>
+                    <p class="text-sm text-gray-300">
+                      Comparte tus ideas y sugerencias. Los administradores
+                      revisarán todas las sugerencias.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <label class="block text-sm text-gray-400 mb-2"
+                  >Describe tu sugerencia</label
+                >
+                <textarea
+                  pTextarea
+                  [ngModel]="suggestionText()"
+                  (ngModelChange)="suggestionText.set($event)"
+                  rows="8"
+                  placeholder="Describe detalladamente tu sugerencia o idea para mejorar..."
+                  class="w-full"
+                  id="suggestion-text"
+                  name="suggestion-text"
+                ></textarea>
+              </div>
+              <div class="flex justify-end">
+                <p-button
+                  label="Enviar Sugerencia"
+                  icon="pi pi-send"
+                  severity="info"
+                  [loading]="submittingSuggestion()"
+                  [disabled]="!canSubmitSuggestion() || submittingSuggestion()"
+                  (click)="submitSuggestion()"
+                />
+              </div>
+            </div>
+          </p-card>
+
+          <!-- Ventana 2: Ver Sugerencias Recibidas (Solo Admins) -->
+          @if (isAdmin()) {
+          <p-card>
+            <ng-template #title>Sugerencias Recibidas</ng-template>
+            <ng-template #subtitle
+              >Sugerencias enviadas por los empleados</ng-template
+            >
+            <div class="flex flex-col gap-4">
+              @if(allSuggestions().length === 0 && !suggestionsApi.isLoading())
+              {
+              <div class="text-center py-8">
+                <i class="pi pi-inbox text-4xl text-gray-500 mb-4"></i>
+                <p class="text-gray-400">No hay sugerencias todavía.</p>
+              </div>
+              } @else {
+              <div class="overflow-x-auto">
+                <p-table
+                  [value]="allSuggestions()"
+                  [rows]="10"
+                  paginator
+                  [loading]="suggestionsApi.isLoading()"
+                  styleClass="p-datatable-sm md:p-datatable-lg"
+                  [scrollable]="true"
+                  scrollHeight="400px"
+                  [responsiveLayout]="'scroll'"
+                >
+                  <ng-template #header>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Empleado</th>
+                      <th>Sugerencia</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </ng-template>
+                  <ng-template #body let-suggestion>
+                    <tr>
+                      <td>{{ suggestion.created_at | date : 'mediumDate' }}</td>
+                      <td>
+                        @if (suggestion.employee) {
+                        {{ suggestion.employee.first_name }}
+                        {{ suggestion.employee.father_name }}
+                        } @else {
+                        <span class="text-gray-500">Anónimo</span>
+                        }
+                      </td>
+                      <td class="max-w-xs">
+                        <p
+                          class="truncate text-sm"
+                          [pTooltip]="suggestion.complaint"
+                        >
+                          {{ suggestion.complaint }}
+                        </p>
+                      </td>
+                      <td>
+                        <span
+                          class="px-2 py-1 rounded text-xs font-semibold"
+                          [class.bg-yellow-500]="
+                            suggestion.status === 'pending'
+                          "
+                          [class.bg-green-500]="
+                            suggestion.status === 'resolved'
+                          "
+                          [class.bg-blue-500]="
+                            suggestion.status === 'in_review'
+                          "
+                        >
+                          {{
+                            suggestion.status === 'pending'
+                              ? 'Pendiente'
+                              : suggestion.status === 'resolved'
+                              ? 'Resuelta'
+                              : 'En Revisión'
+                          }}
+                        </span>
+                      </td>
+                      <td>
+                        <p-button
+                          icon="pi pi-comments"
+                          severity="info"
+                          size="small"
+                          label="Ver"
+                          (click)="viewSuggestionResponse(suggestion)"
+                          pTooltip="Ver conversación"
+                        />
+                      </td>
+                    </tr>
+                  </ng-template>
+                </p-table>
+              </div>
+              }
+            </div>
+          </p-card>
+          }
+        </div>
+      </div>
+      }
     </div>
 
     <!-- Dialog para conversación bidireccional -->
@@ -1248,6 +1430,147 @@ import { EmployeesStore } from '../stores/employees.store';
                 [loading]="sendingReply()"
                 [disabled]="!replyMessage().trim()"
                 (onClick)="sendReply()"
+              />
+            </div>
+          </div>
+        </div>
+        }
+      </div>
+    </div>
+    }
+
+    <!-- Dialog para conversación de sugerencias -->
+    @if(suggestionDialogVisible()) {
+    <div
+      class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+      (click)="closeSuggestionConversation()"
+    >
+      <div
+        class="bg-neutral-800 rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] flex flex-col"
+        (click)="$event.stopPropagation()"
+      >
+        <!-- Header -->
+        <div class="p-6 border-b border-neutral-700">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xl font-bold text-white flex items-center gap-2">
+              <i class="pi pi-comments text-blue-400"></i>
+              Conversación - Sugerencia
+            </h3>
+            <p-button
+              icon="pi pi-times"
+              severity="secondary"
+              text
+              rounded
+              (onClick)="closeSuggestionConversation()"
+            />
+          </div>
+          @if(selectedSuggestion()) {
+          <div class="flex flex-wrap gap-4 text-sm">
+            <div>
+              <span class="text-gray-400">Empleado: </span>
+              <span class="text-white">
+                @if (selectedSuggestion()!.employee) {
+                {{ selectedSuggestion()!.employee.first_name }}
+                {{ selectedSuggestion()!.employee.father_name }}
+                } @else { Anónimo }
+              </span>
+            </div>
+            <div>
+              <span class="text-gray-400">Estado: </span>
+              <span class="text-white">{{
+                selectedSuggestion()!.status === 'pending'
+                  ? 'Pendiente'
+                  : selectedSuggestion()!.status === 'in_review'
+                  ? 'En Revisión'
+                  : 'Resuelto'
+              }}</span>
+            </div>
+          </div>
+          }
+        </div>
+
+        <!-- Mensajes -->
+        <div
+          class="flex-1 overflow-y-auto p-6 space-y-4"
+          style="max-height: 400px;"
+        >
+          @if(suggestionMessagesApi.isLoading()) {
+          <div class="text-center py-8 text-gray-400">Cargando mensajes...</div>
+          } @else if(suggestionMessages().length === 0) {
+          <div class="text-center py-8">
+            <p class="text-gray-400">No hay mensajes todavía.</p>
+            <p class="text-sm text-gray-500 mt-2">
+              {{ selectedSuggestion()?.complaint }}
+            </p>
+          </div>
+          } @else { @for(message of suggestionMessages(); track message.id) {
+          <div
+            class="flex"
+            [ngClass]="{
+              'justify-end': message.sender_type === 'employee',
+              'justify-start':
+                message.sender_type === 'hr' || message.sender_type === 'admin'
+            }"
+          >
+            <div
+              class="max-w-[70%] rounded-lg p-4"
+              [ngClass]="{
+                'bg-blue-500/20': message.sender_type === 'employee',
+                border: message.sender_type === 'employee',
+                'border-blue-500/30': message.sender_type === 'employee',
+                'bg-neutral-700':
+                  message.sender_type === 'hr' ||
+                  message.sender_type === 'admin',
+                'border-neutral-600':
+                  message.sender_type === 'hr' ||
+                  message.sender_type === 'admin'
+              }"
+            >
+              <div class="flex items-center gap-2 mb-2">
+                @if(message.sender_type === 'employee') {
+                <i class="pi pi-user text-blue-400"></i>
+                <span class="text-blue-300 font-semibold text-sm"
+                  >Empleado</span
+                >
+                } @else {
+                <i class="pi pi-shield text-gray-400"></i>
+                <span class="text-gray-300 font-semibold text-sm"
+                  >Administración</span
+                >
+                }
+                <span class="text-xs text-gray-500">
+                  {{ message.created_at | date : 'short' }}
+                </span>
+              </div>
+              <p class="text-white text-sm whitespace-pre-wrap">
+                {{ message.message }}
+              </p>
+            </div>
+          </div>
+          } }
+        </div>
+
+        <!-- Input de respuesta -->
+        @if(selectedSuggestion()) {
+        <div class="p-6 border-t border-neutral-700">
+          <div class="flex flex-col gap-3">
+            <textarea
+              pInputTextarea
+              [ngModel]="replyMessage()"
+              (ngModelChange)="replyMessage.set($event)"
+              rows="3"
+              placeholder="Escribe tu respuesta..."
+              class="w-full"
+              id="reply-suggestion"
+              name="reply-suggestion"
+            ></textarea>
+            <div class="flex justify-end gap-2">
+              <p-button
+                label="Enviar"
+                icon="pi pi-send"
+                [loading]="sendingReply()"
+                [disabled]="!replyMessage().trim()"
+                (onClick)="sendSuggestionReply()"
               />
             </div>
           </div>
@@ -1452,6 +1775,8 @@ export class EmployeePortalComponent {
 
   public currentEmployee = computed(() => this.store.currentEmployee());
   public activeSection = signal<string>('dashboard');
+  public showSalary = signal(false);
+  public isAdmin = computed(() => this.store.isAdmin());
   public showWorkEmail = computed(() => {
     const workEmail =
       this.currentEmployee()?.work_email?.trim().toLowerCase() ?? '';
@@ -1674,9 +1999,21 @@ export class EmployeePortalComponent {
   public responseDialogVisible = signal(false);
   public selectedComplaint = signal<any>(null);
 
+  // Suggestions
+  public suggestionText = signal('');
+  public submittingSuggestion = signal(false);
+  public suggestionDialogVisible = signal(false);
+  public selectedSuggestion = signal<any>(null);
+
   // Computed: Validación del formulario de quejas
   public canSubmitComplaint = computed(() => {
     const text = this.complaintText();
+    return text && text.trim().length >= 10;
+  });
+
+  // Computed: Validación del formulario de sugerencias
+  public canSubmitSuggestion = computed(() => {
+    const text = this.suggestionText();
     return text && text.trim().length >= 10;
   });
 
@@ -1758,6 +2095,66 @@ export class EmployeePortalComponent {
   public unreadComplaintsCount = computed(() => {
     return this.unreadMessagesMap().size;
   });
+
+  // Suggestions API
+  public suggestionsApi = httpResource<any[]>(() => {
+    if (!this.currentEmployee()?.id) return undefined;
+
+    const baseParams: Record<string, string> = {
+      category: 'eq.suggestion',
+      order: 'updated_at.desc',
+    };
+
+    // Si es admin, obtener todas las sugerencias
+    if (this.isAdmin()) {
+      const params: Record<string, string> = {
+        ...baseParams,
+        select:
+          '*,employee:employees(id,first_name,father_name),creator_employee:employees!creator_employee_id(id,first_name,father_name)',
+      };
+      return {
+        url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaints`,
+        method: 'GET',
+        params,
+      };
+    } else {
+      // Si no es admin, solo obtener las sugerencias del empleado
+      const params: Record<string, string> = {
+        ...baseParams,
+        select: '*',
+        creator_employee_id: `eq.${this.currentEmployee()!.id}`,
+      };
+      return {
+        url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaints`,
+        method: 'GET',
+        params,
+      };
+    }
+  });
+
+  // Computed: Todas las sugerencias (para admins) o solo las del empleado
+  public allSuggestions = computed(() => {
+    return this.suggestionsApi.value() ?? [];
+  });
+
+  // API para mensajes de una sugerencia específica
+  public suggestionMessagesApi = httpResource<any[]>(() => {
+    const suggestion = this.selectedSuggestion();
+    if (!suggestion) return undefined;
+    return {
+      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages`,
+      method: 'GET',
+      params: {
+        select: '*',
+        complaint_id: `eq.${suggestion.id}`,
+        order: 'created_at.asc',
+      },
+    };
+  });
+
+  public suggestionMessages = computed(
+    () => this.suggestionMessagesApi.value() ?? []
+  );
 
   // Señales para conversación
   public conversationDialogVisible = signal(false);
@@ -2373,5 +2770,189 @@ export class EmployeePortalComponent {
 
     // Si no está seleccionada, usar el mapa de mensajes sin leer
     return this.unreadMessagesMap().has(complaint.id);
+  }
+
+  // Suggestions methods
+  public async submitSuggestion(): Promise<void> {
+    if (!this.canSubmitSuggestion()) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Sugerencia Muy Corta',
+        detail: 'Por favor describe tu sugerencia con al menos 10 caracteres',
+      });
+      return;
+    }
+
+    this.submittingSuggestion.set(true);
+
+    const suggestionData = {
+      employee_id: this.currentEmployee()!.id, // Siempre identificado para sugerencias
+      creator_employee_id: this.currentEmployee()!.id,
+      category: 'suggestion',
+      complaint: this.suggestionText(), // Usar el mismo campo que quejas
+      allow_contact: true, // Siempre permitir contacto para sugerencias
+      contact_method: 'email',
+      status: 'pending',
+    };
+
+    this.http
+      .post(
+        `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaints`,
+        suggestionData,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Prefer: 'return=representation',
+          },
+        }
+      )
+      .subscribe({
+        next: async (response: any) => {
+          const suggestion = Array.isArray(response) ? response[0] : response;
+
+          if (suggestion && suggestion.id) {
+            // Crear el primer mensaje con el texto de la sugerencia
+            const messageData = {
+              complaint_id: suggestion.id,
+              sender_id: this.currentEmployee()!.id,
+              sender_type: 'employee',
+              is_anonymous: false,
+              message: this.suggestionText().trim(),
+              thread_id: suggestion.thread_id || suggestion.id,
+            };
+
+            try {
+              await this.http
+                .post(
+                  `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages`,
+                  messageData,
+                  {
+                    headers: {
+                      'Content-Type': 'application/json',
+                      Prefer: 'return=representation',
+                    },
+                  }
+                )
+                .toPromise();
+
+              this.messageService.add({
+                severity: 'success',
+                summary: 'Sugerencia Enviada',
+                detail:
+                  'Tu sugerencia ha sido enviada. Los administradores la revisarán pronto.',
+              });
+
+              // Reset form
+              this.suggestionText.set('');
+              this.suggestionsApi.reload();
+              this.submittingSuggestion.set(false);
+            } catch (messageError: any) {
+              console.error('Error creating message:', messageError);
+              this.messageService.add({
+                severity: 'warn',
+                summary: 'Sugerencia Enviada',
+                detail:
+                  'La sugerencia fue creada pero hubo un problema al crear el mensaje. Contacta a administración si no recibes respuesta.',
+              });
+              this.suggestionsApi.reload();
+              this.submittingSuggestion.set(false);
+            }
+          } else {
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Error',
+              detail: 'No se pudo obtener el ID de la sugerencia creada',
+            });
+            this.submittingSuggestion.set(false);
+          }
+        },
+        error: (error) => {
+          console.error('Error submitting suggestion:', error);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail:
+              error.error?.message ||
+              'No se pudo enviar la sugerencia. Por favor intenta de nuevo.',
+          });
+          this.submittingSuggestion.set(false);
+        },
+      });
+  }
+
+  public viewSuggestionResponse(suggestion: any): void {
+    this.selectedSuggestion.set(suggestion);
+    this.suggestionDialogVisible.set(true);
+    this.suggestionMessagesApi.reload();
+  }
+
+  public closeSuggestionConversation(): void {
+    this.suggestionDialogVisible.set(false);
+    this.selectedSuggestion.set(null);
+    this.replyMessage.set('');
+    this.suggestionMessagesApi.reload();
+  }
+
+  public async sendSuggestionReply(): Promise<void> {
+    const suggestion = this.selectedSuggestion();
+    if (!suggestion || !this.replyMessage().trim()) return;
+
+    this.sendingReply.set(true);
+    const currentEmployee = this.currentEmployee();
+    if (!currentEmployee) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo identificar al usuario actual',
+      });
+      this.sendingReply.set(false);
+      return;
+    }
+
+    // Determinar el tipo de remitente según si es admin o no
+    const senderType = this.isAdmin() ? 'admin' : 'employee';
+
+    const messageData = {
+      complaint_id: suggestion.id,
+      sender_id: currentEmployee.id,
+      sender_type: senderType,
+      is_anonymous: false,
+      message: this.replyMessage().trim(),
+      thread_id: suggestion.thread_id || suggestion.id,
+    };
+
+    try {
+      await this.http
+        .post(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages`,
+          messageData,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Prefer: 'return=representation',
+            },
+          }
+        )
+        .toPromise();
+
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Mensaje Enviado',
+        detail: 'Tu respuesta ha sido enviada correctamente',
+      });
+
+      this.replyMessage.set('');
+      this.suggestionMessagesApi.reload();
+      this.suggestionsApi.reload();
+      this.sendingReply.set(false);
+    } catch (error: any) {
+      console.error('Error sending reply:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: error.error?.message || 'No se pudo enviar el mensaje',
+      });
+      this.sendingReply.set(false);
+    }
   }
 }
