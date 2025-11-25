@@ -19,10 +19,12 @@ import {
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
+import { Checkbox } from 'primeng/checkbox';
 import { DatePicker } from 'primeng/datepicker';
 import { DialogModule } from 'primeng/dialog';
 import { FileUpload } from 'primeng/fileupload';
 import { InputText } from 'primeng/inputtext';
+import { Select } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { Textarea } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
@@ -50,6 +52,8 @@ import { EmployeesStore } from '../stores/employees.store';
     ToastModule,
     TooltipModule,
     NgClass,
+    Checkbox,
+    Select,
   ],
   providers: [MessageService],
   template: `
@@ -233,10 +237,14 @@ import { EmployeesStore } from '../stores/employees.store';
                 </div>
                 } } @else {
                 <div class="text-center py-4">
-                  <i class="pi pi-wrench text-2xl text-amber-400 mb-2"></i>
-                  <p class="text-gray-400 font-semibold">En construcción</p>
+                  <i
+                    class="pi pi-calendar-times text-2xl text-gray-500 mb-2"
+                  ></i>
+                  <p class="text-gray-400 font-semibold">
+                    No hay marcaciones recientes
+                  </p>
                   <p class="text-sm text-gray-500">
-                    Esta funcionalidad estará disponible pronto
+                    No se encontraron marcaciones en los últimos días
                   </p>
                 </div>
                 }
@@ -603,12 +611,15 @@ import { EmployeesStore } from '../stores/employees.store';
                     <div
                       class="flex flex-col items-center justify-center gap-4 py-8"
                     >
-                      <i class="pi pi-wrench text-4xl text-amber-400 mb-2"></i>
+                      <i
+                        class="pi pi-calendar-times text-4xl text-gray-500 mb-2"
+                      ></i>
                       <p class="text-gray-400 text-lg font-semibold">
-                        En construcción
+                        No hay marcaciones
                       </p>
                       <p class="text-sm text-gray-500">
-                        Esta funcionalidad estará disponible pronto
+                        No se encontraron marcaciones para el período
+                        seleccionado
                       </p>
                     </div>
                   </td>
@@ -666,12 +677,14 @@ import { EmployeesStore } from '../stores/employees.store';
                     <div
                       class="flex flex-col items-center justify-center gap-4 py-8"
                     >
-                      <i class="pi pi-wrench text-4xl text-amber-400 mb-2"></i>
+                      <i
+                        class="pi pi-check-circle text-4xl text-green-500 mb-2"
+                      ></i>
                       <p class="text-gray-400 text-lg font-semibold">
-                        En construcción
+                        No hay tardanzas
                       </p>
                       <p class="text-sm text-gray-500">
-                        Esta funcionalidad estará disponible pronto
+                        ¡Excelente! No tienes tardanzas registradas este mes
                       </p>
                     </div>
                   </td>
@@ -984,9 +997,194 @@ import { EmployeesStore } from '../stores/employees.store';
       </div>
       }
 
-      <!-- Buzón de Notificaciones Section -->
+      <!-- Buzón de Quejas Section -->
       @if (activeSection() === 'complaints') {
       <div id="complaints" class="section-content">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <!-- Ventana 1: Crear Queja -->
+          <p-card>
+            <ng-template #title>Buzón de Quejas Anónimas</ng-template>
+            <ng-template #subtitle
+              >Expresa tus inquietudes de forma anónima y
+              confidencial</ng-template
+            >
+            <div class="flex flex-col gap-4">
+              <!-- Alerta de privacidad -->
+              <div
+                class="bg-yellow-500/20 border border-yellow-500/50 rounded-lg p-4"
+              >
+                <div class="flex items-start gap-3">
+                  <i class="pi pi-info-circle text-yellow-400 text-xl"></i>
+                  <div class="flex-1">
+                    <p class="text-yellow-300 font-semibold mb-2">
+                      Tu privacidad está protegida
+                    </p>
+                    <p class="text-sm text-gray-300">
+                      Todas las quejas son completamente anónimas. Tu identidad
+                      no será revelada a menos que lo autorices explícitamente.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Campo de categoría -->
+              <div>
+                <label class="block text-sm text-gray-400 mb-2"
+                  >Categoría</label
+                >
+                <p-select
+                  [options]="complaintCategoryOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  [(ngModel)]="complaintCategory"
+                  placeholder="Seleccionar categoría"
+                  class="w-full"
+                  appendTo="body"
+                />
+              </div>
+
+              <!-- Campo de texto -->
+              <div>
+                <label class="block text-sm text-gray-400 mb-2"
+                  >Describe tu queja o sugerencia</label
+                >
+                <textarea
+                  pTextarea
+                  [ngModel]="complaintText()"
+                  (ngModelChange)="complaintText.set($event)"
+                  rows="8"
+                  placeholder="Describe detalladamente tu queja, sugerencia o inquietud..."
+                  class="w-full"
+                  id="complaint-text"
+                  name="complaint-text"
+                ></textarea>
+              </div>
+
+              <!-- Checkbox de contacto -->
+              <div class="flex items-center gap-2">
+                <p-checkbox
+                  [(ngModel)]="allowContact"
+                  inputId="allow-contact"
+                  [binary]="true"
+                />
+                <label
+                  for="allow-contact"
+                  class="text-sm text-gray-400 cursor-pointer"
+                >
+                  Permitir que RRHH me contacte para seguimiento (opcional)
+                </label>
+              </div>
+
+              <!-- Botón de envío -->
+              <div class="flex justify-end">
+                <p-button
+                  label="Enviar Queja"
+                  icon="pi pi-send"
+                  severity="warn"
+                  [loading]="submittingComplaint()"
+                  [disabled]="!canSubmitComplaint() || submittingComplaint()"
+                  (click)="submitComplaint()"
+                />
+              </div>
+            </div>
+          </p-card>
+
+          <!-- Ventana 2: Mis Quejas y Conversaciones -->
+          <p-card>
+            <ng-template #title>Mis Quejas y Conversaciones</ng-template>
+            <ng-template #subtitle
+              >Historial de tus quejas y respuestas de RRHH</ng-template
+            >
+            <div class="flex flex-col gap-4">
+              @if(myComplaints().length === 0 && !complaintsApi.isLoading()) {
+              <div class="text-center py-8">
+                <i class="pi pi-inbox text-4xl text-gray-500 mb-2"></i>
+                <p class="text-gray-400 text-lg font-semibold">
+                  No has enviado ninguna queja todavía
+                </p>
+                <p class="text-sm text-gray-500">
+                  Tus quejas y conversaciones aparecerán aquí
+                </p>
+              </div>
+              } @else {
+              <div class="overflow-x-auto">
+                <p-table
+                  [value]="myComplaints()"
+                  [rows]="10"
+                  paginator
+                  [loading]="complaintsApi.isLoading()"
+                  styleClass="p-datatable-sm md:p-datatable-lg"
+                  [scrollable]="true"
+                  scrollHeight="400px"
+                  [responsiveLayout]="'scroll'"
+                >
+                  <ng-template #header>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Categoría</th>
+                      <th>Queja</th>
+                      <th>Estado</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </ng-template>
+                  <ng-template #body let-complaint>
+                    <tr>
+                      <td>{{ complaint.created_at | date : 'mediumDate' }}</td>
+                      <td>
+                        <span
+                          class="px-2 py-1 rounded text-xs font-semibold bg-blue-500/20 text-blue-400"
+                        >
+                          {{ getComplaintCategoryLabel(complaint.category) }}
+                        </span>
+                      </td>
+                      <td class="max-w-xs">
+                        <p
+                          class="truncate text-sm"
+                          [pTooltip]="complaint.complaint"
+                        >
+                          {{ complaint.complaint }}
+                        </p>
+                      </td>
+                      <td>
+                        <span
+                          class="px-2 py-1 rounded text-xs font-semibold"
+                          [class.bg-yellow-500]="complaint.status === 'pending'"
+                          [class.bg-green-500]="complaint.status === 'resolved'"
+                          [class.bg-blue-500]="complaint.status === 'in_review'"
+                        >
+                          {{
+                            complaint.status === 'pending'
+                              ? 'Pendiente'
+                              : complaint.status === 'resolved'
+                              ? 'Resuelta'
+                              : 'En Revisión'
+                          }}
+                        </span>
+                      </td>
+                      <td>
+                        <p-button
+                          icon="pi pi-comments"
+                          severity="info"
+                          size="small"
+                          label="Ver"
+                          (click)="viewResponse(complaint)"
+                          pTooltip="Ver conversación"
+                        />
+                      </td>
+                    </tr>
+                  </ng-template>
+                </p-table>
+              </div>
+              }
+            </div>
+          </p-card>
+        </div>
+      </div>
+      }
+
+      <!-- Buzón de Notificaciones Section -->
+      @if (activeSection() === 'notifications') {
+      <div id="notifications" class="section-content">
         <p-card>
           <ng-template #title>Notificaciones</ng-template>
           <ng-template #subtitle
@@ -1011,10 +1209,12 @@ import { EmployeesStore } from '../stores/employees.store';
 
           @if(notifications().length === 0 && !notificationsApi.isLoading()) {
           <div class="text-center py-8">
-            <i class="pi pi-wrench text-4xl text-amber-400 mb-2"></i>
-            <p class="text-gray-400 text-lg font-semibold">En construcción</p>
+            <i class="pi pi-inbox text-4xl text-gray-500 mb-2"></i>
+            <p class="text-gray-400 text-lg font-semibold">
+              No hay notificaciones
+            </p>
             <p class="text-sm text-gray-500">
-              Esta funcionalidad estará disponible pronto
+              No tienes notificaciones pendientes en este momento
             </p>
           </div>
           } @else {
@@ -1190,13 +1390,12 @@ import { EmployeesStore } from '../stores/employees.store';
               @if(allSuggestions().length === 0 && !suggestionsApi.isLoading())
               {
               <div class="text-center py-8">
-                <i class="pi pi-inbox text-4xl text-gray-500 mb-4"></i>
-                <i class="pi pi-wrench text-4xl text-amber-400 mb-2"></i>
+                <i class="pi pi-inbox text-4xl text-gray-500 mb-2"></i>
                 <p class="text-gray-400 text-lg font-semibold">
-                  En construcción
+                  No hay sugerencias
                 </p>
                 <p class="text-sm text-gray-500">
-                  Esta funcionalidad estará disponible pronto
+                  No se han recibido sugerencias de los empleados aún
                 </p>
               </div>
               } @else {
@@ -1340,10 +1539,11 @@ import { EmployeesStore } from '../stores/employees.store';
           <div class="text-center py-8 text-gray-400">Cargando mensajes...</div>
           } @else if(conversationMessages().length === 0) {
           <div class="text-center py-8">
-            <i class="pi pi-wrench text-4xl text-amber-400 mb-2"></i>
-            <p class="text-gray-400 text-lg font-semibold">En construcción</p>
+            <i class="pi pi-comments text-4xl text-gray-500 mb-2"></i>
+            <p class="text-gray-400 text-lg font-semibold">No hay mensajes</p>
             <p class="text-sm text-gray-500">
-              Esta funcionalidad estará disponible pronto
+              Aún no hay mensajes en esta conversación. Sé el primero en
+              escribir.
             </p>
           </div>
           } @else { @for(message of conversationMessages(); track message.id) {
@@ -1471,10 +1671,11 @@ import { EmployeesStore } from '../stores/employees.store';
           <div class="text-center py-8 text-gray-400">Cargando mensajes...</div>
           } @else if(suggestionMessages().length === 0) {
           <div class="text-center py-8">
-            <i class="pi pi-wrench text-4xl text-amber-400 mb-2"></i>
-            <p class="text-gray-400 text-lg font-semibold">En construcción</p>
+            <i class="pi pi-comments text-4xl text-gray-500 mb-2"></i>
+            <p class="text-gray-400 text-lg font-semibold">No hay mensajes</p>
             <p class="text-sm text-gray-500">
-              Esta funcionalidad estará disponible pronto
+              Aún no hay mensajes en esta conversación. Sé el primero en
+              escribir.
             </p>
           </div>
           } @else { @for(message of suggestionMessages(); track message.id) {
@@ -1804,6 +2005,9 @@ export class EmployeePortalComponent {
       return undefined;
     }
     const employeeId = this.currentEmployee()!.id;
+    const startDate = format(this.dateRange()[0], 'yyyy-MM-dd');
+    const endDate = format(addDays(this.dateRange()[1], 1), 'yyyy-MM-dd'); // Add 1 day to include the end date
+
     return {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`,
       method: 'GET',
@@ -1811,19 +2015,96 @@ export class EmployeePortalComponent {
         select:
           '*,employee:employees(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)',
         employee_id: `eq.${employeeId}`,
-        created_at: `gte.${format(this.dateRange()[0], 'yyyy-MM-dd 06:00:00')}`,
+        and: `(created_at.gte.${startDate}T00:00:00,created_at.lt.${endDate}T00:00:00)`,
+        order: 'created_at.desc',
       },
     };
   });
 
+  // Employee schedules API
+  public employeeSchedulesApi = httpResource<any[]>(() => {
+    if (!this.currentEmployee()?.id) return undefined;
+    const startDate = format(this.dateRange()[0], 'yyyy-MM-dd');
+    const endDate = format(this.dateRange()[1], 'yyyy-MM-dd');
+
+    return {
+      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+      method: 'GET',
+      params: {
+        select: '*,schedule:schedules(*)',
+        employee_id: `eq.${this.currentEmployee()!.id}`,
+        start_date: `lte.${endDate}`,
+        end_date: `gte.${startDate}`,
+      },
+    };
+  });
+
+  // Helper to get schedule for a specific day
+  private getScheduleForDay(day: string, schedules: any[]): any | null {
+    const dayDate = new Date(day);
+    return (
+      schedules.find((s) => {
+        const startDate = new Date(s.start_date);
+        const endDate = new Date(s.end_date);
+        return dayDate >= startDate && dayDate <= endDate;
+      }) || null
+    );
+  }
+
+  // Helper to calculate delay in minutes
+  private calculateDelay(entryTime: Date, schedule: any): number | null {
+    if (!schedule?.schedule?.entry_time || schedule.schedule.day_off) {
+      return null;
+    }
+
+    const entryTimeStr = format(entryTime, 'HH:mm:ss');
+    const scheduleTimeStr =
+      typeof schedule.schedule.entry_time === 'string'
+        ? schedule.schedule.entry_time
+        : format(new Date(schedule.schedule.entry_time), 'HH:mm:ss');
+
+    const entryParts = entryTimeStr.split(':');
+    const scheduleParts = scheduleTimeStr.split(':');
+
+    const entryDate = new Date();
+    entryDate.setHours(+entryParts[0], +entryParts[1], +entryParts[2] || 0, 0);
+
+    const scheduleDate = new Date();
+    scheduleDate.setHours(
+      +scheduleParts[0],
+      +scheduleParts[1],
+      +scheduleParts[2] || 0,
+      0
+    );
+
+    const delay = differenceInMinutes(entryDate, scheduleDate);
+    const tolerance = schedule.schedule.minutes_tolerance || 0;
+
+    if (delay > tolerance) {
+      return delay;
+    }
+
+    return null;
+  }
+
   public myTimelogs = computed(() => {
     const logs = this.timelogsApi.value() ?? [];
+    const schedules = this.employeeSchedulesApi.value() ?? [];
+
     // Process logs similar to timelogs component
     const processedLogs = logs
       .map((x) => ({ ...x, day: format(x.created_at, 'yyyy-MM-dd') }))
       .reduce<any[]>((acc, x) => {
         const existing = acc.find((item) => item.day === x.day);
         if (!existing) {
+          const schedule = this.getScheduleForDay(x.day, schedules);
+          const entryDate =
+            x.type === TimeLogEnum.entry ? new Date(x.created_at) : null;
+          const delay =
+            entryDate && schedule
+              ? this.calculateDelay(entryDate, schedule)
+              : null;
+
           acc.push({
             day: x.day,
             entry:
@@ -1842,12 +2123,23 @@ export class EmployeePortalComponent {
               x.type === TimeLogEnum.exit
                 ? { date: new Date(x.created_at), branch: x.branch }
                 : undefined,
-            schedule: null, // Would need to fetch schedules separately
-            delay: undefined,
+            schedule: schedule,
+            delay: delay,
           });
         } else {
-          if (x.type === TimeLogEnum.entry)
+          if (x.type === TimeLogEnum.entry) {
             existing.entry = { date: new Date(x.created_at), branch: x.branch };
+            // Recalculate delay when entry is added
+            const schedule =
+              existing.schedule || this.getScheduleForDay(x.day, schedules);
+            if (schedule) {
+              existing.schedule = schedule;
+              existing.delay = this.calculateDelay(
+                new Date(x.created_at),
+                schedule
+              );
+            }
+          }
           if (x.type === TimeLogEnum.lunch_start)
             existing.lunch_start = {
               date: new Date(x.created_at),
@@ -1882,16 +2174,30 @@ export class EmployeePortalComponent {
         return (
           logDate >= monthStart &&
           logDate <= monthEnd &&
-          log.delay &&
-          typeof log.delay === 'number'
+          log.delay !== null &&
+          log.delay !== undefined &&
+          typeof log.delay === 'number' &&
+          log.delay > 0
         );
       })
-      .map((log) => ({
-        date: new Date(log.day),
-        scheduled_time: log.schedule?.schedule?.start_time || '-',
-        actual_time: log.entry?.date ? format(log.entry.date, 'HH:mm') : '-',
-        minutes: log.delay as number,
-      }))
+      .map((log) => {
+        const scheduleTime = log.schedule?.schedule?.entry_time;
+        let scheduledTimeStr = '-';
+        if (scheduleTime) {
+          if (typeof scheduleTime === 'string') {
+            scheduledTimeStr = scheduleTime.substring(0, 5); // HH:mm
+          } else {
+            scheduledTimeStr = format(new Date(scheduleTime), 'HH:mm');
+          }
+        }
+
+        return {
+          date: new Date(log.day),
+          scheduled_time: scheduledTimeStr,
+          actual_time: log.entry?.date ? format(log.entry.date, 'HH:mm') : '-',
+          minutes: log.delay as number,
+        };
+      })
       .sort((a, b) => b.date.getTime() - a.date.getTime());
   });
 
@@ -1949,6 +2255,16 @@ export class EmployeePortalComponent {
   public submittingComplaint = signal(false);
   public responseDialogVisible = signal(false);
   public selectedComplaint = signal<any>(null);
+
+  // Opciones de categoría para quejas
+  public complaintCategoryOptions = [
+    { label: 'Ambiente Laboral', value: 'work_environment' },
+    { label: 'Acoso o Discriminación', value: 'harassment' },
+    { label: 'Seguridad', value: 'safety' },
+    { label: 'Supervisión/Gerencia', value: 'management' },
+    { label: 'Beneficios', value: 'benefits' },
+    { label: 'Otro', value: 'other' },
+  ];
 
   // Suggestions
   public suggestionText = signal('');

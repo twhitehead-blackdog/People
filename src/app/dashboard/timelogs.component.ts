@@ -126,10 +126,11 @@ import { EmployeesStore } from '../stores/employees.store';
       </div>
       <div class="input-container">
         <p-datepicker
-          placeholder="Fecha"
+          placeholder="Fecha o Rango"
           selectionMode="range"
           appendTo="body"
           [(ngModel)]="dateRange"
+          [maxDate]="getMaxDate()"
         />
       </div>
 
@@ -329,7 +330,7 @@ import { EmployeesStore } from '../stores/employees.store';
 })
 export class TimelogsComponent {
   public employees = inject(EmployeesStore);
-  public dateRange = signal<Date[]>([startOfMonth(new Date()), new Date()]);
+  public dateRange = signal<Date[] | Date | null>([new Date()]);
   public employeeId = model<string>();
   public branchId = model<string>();
   public store = inject(DashboardStore);
@@ -393,74 +394,126 @@ export class TimelogsComponent {
     this.employees.employeesList().find((x) => x.id === this.employeeId())
   );
 
+  // Computed para obtener la fecha de inicio (puede ser un solo día o el inicio del rango)
+  private getStartDate(): Date | null {
+    const range = this.dateRange();
+    if (!range) return null;
+    if (Array.isArray(range)) {
+      return range[0] || null;
+    }
+    return range;
+  }
+
+  // Computed para obtener la fecha de fin (puede ser un solo día o el fin del rango)
+  private getEndDate(): Date | null {
+    const range = this.dateRange();
+    if (!range) return null;
+    if (Array.isArray(range)) {
+      return range[1] || range[0] || null; // Si solo hay una fecha en el array, usar esa
+    }
+    return range; // Si es un solo Date, usar ese mismo
+  }
+
   days = computed(() => {
-    const startDate = this.dateRange()?.[0];
-    const endDate = this.dateRange()?.[1];
+    const startDate = this.getStartDate();
+    const endDate = this.getEndDate();
     
-    if (!startDate || !endDate) {
+    if (!startDate) {
       return [];
     }
     
-    // Normalizar las fechas para asegurar que empezamos desde el inicio del día
+    // Si no hay endDate o es la misma que startDate, retornar solo un día
+    if (!endDate || startDate.getTime() === endDate.getTime()) {
+      const normalizedDate = new Date(startDate);
+      normalizedDate.setHours(0, 0, 0, 0);
+      return [format(normalizedDate, 'yyyy-MM-dd')];
+    }
+    
+    // Si hay rango, generar todos los días del rango
     const normalizedStart = new Date(startDate);
     normalizedStart.setHours(0, 0, 0, 0);
-    
     const normalizedEnd = new Date(endDate);
     normalizedEnd.setHours(0, 0, 0, 0);
     
     const days = [];
     let currentDate = new Date(normalizedStart);
-    
     while (currentDate <= normalizedEnd) {
       days.push(format(currentDate, 'yyyy-MM-dd'));
       currentDate = addDays(currentDate, 1);
     }
     
-    // Asegurar que las fechas están ordenadas
     return days.sort();
   });
 
   public schedules = httpResource<any[]>(() => {
+    const startDate = this.getStartDate();
+    const endDate = this.getEndDate();
+    if (!startDate) return undefined;
+    
+    const startStr = format(startDate, 'yyyy-MM-dd');
+    const endStr = endDate && endDate.getTime() !== startDate.getTime() 
+      ? format(endDate, 'yyyy-MM-dd')
+      : startStr;
+    
     return {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
       method: 'GET',
       params: {
         select: '*,schedule:schedules(*)',
-        start_date: `gte.${format(this.dateRange()[0], 'yyyy-MM-dd 06:00:00')}`,
-        end_date: `lte.${format(this.dateRange()[1], 'yyyy-MM-dd 06:00:00')}`,
+        start_date: `lte.${endStr}T23:59:59`,
+        end_date: `gte.${startStr}T00:00:00`,
       },
     };
   });
 
   public timeoffs = httpResource<any[]>(() => {
-    if (!this.dateRange()[0] || !this.dateRange()[1]) {
-      return undefined;
-    }
+    const startDate = this.getStartDate();
+    const endDate = this.getEndDate();
+    if (!startDate) return undefined;
+    
+    const startStr = format(startDate, 'yyyy-MM-dd');
+    const endStr = endDate && endDate.getTime() !== startDate.getTime() 
+      ? format(endDate, 'yyyy-MM-dd')
+      : startStr;
+    
     return {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`,
       method: 'GET',
       params: {
         select: 'id,type_id,employee_id,date_from,date_to,is_approved,type:timeoff_types(id,name)',
-        date_from: `lte.${format(this.dateRange()[1], 'yyyy-MM-dd')}`,
-        date_to: `gte.${format(this.dateRange()[0], 'yyyy-MM-dd')}`,
+        date_from: `lte.${endStr}`,
+        date_to: `gte.${startStr}`,
         is_approved: 'eq.true',
       },
     };
   });
 
   public logs = httpResource<any[]>(() => {
-    if (!this.dateRange()[0] || !this.dateRange()[1]) {
-      return undefined;
+    const startDate = this.getStartDate();
+    const endDate = this.getEndDate();
+    if (!startDate) return undefined;
+    
+    const startStr = format(startDate, 'yyyy-MM-dd');
+    // Si es un solo día, usar el día siguiente como límite superior
+    // Si es un rango, usar el día siguiente al último día del rango
+    const effectiveEndDate = endDate && endDate.getTime() !== startDate.getTime() 
+      ? endDate 
+      : startDate;
+    const nextDayStr = format(addDays(effectiveEndDate, 1), 'yyyy-MM-dd');
+    
+    const params: Record<string, string> = {
+      select:
+        '*,employee:employees(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)',
+      and: `(created_at.gte.${startStr}T00:00:00,created_at.lt.${nextDayStr}T00:00:00)`,
+    };
+    if (this.employeeId()) {
+      params['employee_id'] = `eq.${this.employeeId()}`;
     }
+    
     return {
-      url: `${
-        process.env['ENV_SUPABASE_URL']
-      }/rest/v1/timelogs?created_at=lte.${format(
-        addDays(this.dateRange()[1], 1),
-        'yyyy-MM-dd 06:00:00'
-      )}`,
+      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`,
       method: 'GET',
-      params: this.queryParams(),
+      params: params,
     };
   });
 
@@ -478,28 +531,13 @@ export class TimelogsComponent {
     return false;
   });
 
-  public queryParams = computed(() => {
-    const params: {
-      select: string;
-      created_at: string;
-      employee_id?: string;
-    } = {
-      select:
-        '*,employee:employees(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)',
-      created_at: `gte.${format(this.dateRange()[0], 'yyyy-MM-dd 06:00:00')}`,
-    };
-    if (this.employeeId()) {
-      params['employee_id'] = `eq.${this.employeeId()}`;
-    }
-    return params;
-  });
 
   public dayLogs = computed(() => {
-    // Obtener el rango de fechas para filtrar
-    const startDate = this.dateRange()?.[0];
-    const endDate = this.dateRange()?.[1];
+    // Obtener las fechas (puede ser un solo día o un rango)
+    const startDate = this.getStartDate();
+    const endDate = this.getEndDate();
     
-    if (!startDate || !endDate) {
+    if (!startDate) {
       return [];
     }
     
@@ -508,7 +546,10 @@ export class TimelogsComponent {
     normalizedStart.setHours(0, 0, 0, 0);
     const dateRangeStart = format(normalizedStart, 'yyyy-MM-dd');
     
-    const normalizedEnd = new Date(endDate);
+    // Si no hay endDate o es la misma que startDate, usar solo startDate
+    const normalizedEnd = endDate && endDate.getTime() !== startDate.getTime()
+      ? new Date(endDate)
+      : normalizedStart;
     normalizedEnd.setHours(0, 0, 0, 0);
     const dateRangeEnd = format(normalizedEnd, 'yyyy-MM-dd');
     
@@ -518,17 +559,17 @@ export class TimelogsComponent {
     const timeoffsData = this.timeoffs.value() ?? [];
     const daysList = this.days();
     
-    // Validar que daysList esté completo y ordenado
-    if (daysList.length === 0 || daysList[0] !== dateRangeStart || daysList[daysList.length - 1] !== dateRangeEnd) {
-      // Si hay inconsistencias, regenerar daysList
-      const regeneratedDays: string[] = [];
+    // Validar que daysList esté completo
+    if (daysList.length === 0 || !daysList.includes(dateRangeStart)) {
+      // Si hay inconsistencias, regenerar daysList con el rango de fechas
+      const allDays = [];
       let currentDate = new Date(normalizedStart);
       while (currentDate <= normalizedEnd) {
-        regeneratedDays.push(format(currentDate, 'yyyy-MM-dd'));
+        allDays.push(format(currentDate, 'yyyy-MM-dd'));
         currentDate = addDays(currentDate, 1);
       }
       daysList.length = 0;
-      daysList.push(...regeneratedDays);
+      daysList.push(...allDays);
     }
     
     // Primero obtener todos los logs filtrados
@@ -1028,15 +1069,19 @@ export class TimelogsComponent {
     return `${h}h ${m}m`;
   }
 
+  getMaxDate(): Date {
+    return new Date();
+  }
+
   public timelogsReport = computed(() => {
     // Usar exactamente los mismos datos que se muestran en la tabla, en el mismo orden
     const filteredData = this.filteredDaylogs();
     
-    // Obtener y normalizar el rango de fechas
-    const startDate = this.dateRange()?.[0];
-    const endDate = this.dateRange()?.[1];
+    // Obtener y normalizar las fechas (puede ser un solo día o un rango)
+    const startDate = this.getStartDate();
+    const endDate = this.getEndDate();
     
-    if (!startDate || !endDate || filteredData.length === 0) {
+    if (!startDate || filteredData.length === 0) {
       return [];
     }
     
@@ -1045,7 +1090,9 @@ export class TimelogsComponent {
     normalizedStart.setHours(0, 0, 0, 0);
     const dateRangeStart = format(normalizedStart, 'yyyy-MM-dd');
     
-    const normalizedEnd = new Date(endDate);
+    const normalizedEnd = endDate && endDate.getTime() !== startDate.getTime()
+      ? new Date(endDate)
+      : normalizedStart;
     normalizedEnd.setHours(0, 0, 0, 0);
     const dateRangeEnd = format(normalizedEnd, 'yyyy-MM-dd');
     
@@ -1226,7 +1273,9 @@ export class TimelogsComponent {
       const reportInfo = [
         ['REPORTE DE MARCACIONES'],
         ['Fecha de generación:', format(new Date(), 'dd/MM/yyyy HH:mm')],
-        ['Período:', `${format(this.dateRange()[0], 'dd/MM/yyyy')} - ${format(this.dateRange()[1], 'dd/MM/yyyy')}`],
+        ['Período:', this.getStartDate() && this.getEndDate() && this.getEndDate()!.getTime() !== this.getStartDate()!.getTime()
+          ? `${format(this.getStartDate()!, 'dd/MM/yyyy')} - ${format(this.getEndDate()!, 'dd/MM/yyyy')}`
+          : `${format(this.getStartDate()!, 'dd/MM/yyyy')}`],
         ['Total de registros:', data.length],
         [''],
       ];
@@ -1243,7 +1292,11 @@ export class TimelogsComponent {
       const name = this.selectedEmployee()
         ? trim(this.selectedEmployee()?.short_name.toUpperCase()).replace(' ', '_')
         : 'GLOBAL';
-      const fileName = `${name}_${format(this.dateRange()[0], 'yyyyMMdd')}-${format(this.dateRange()[1], 'yyyyMMdd')}.xlsx`;
+      const startDate = this.getStartDate()!;
+      const endDate = this.getEndDate();
+      const fileName = endDate && endDate.getTime() !== startDate.getTime()
+        ? `${name}_${format(startDate, 'yyyyMMdd')}-${format(endDate, 'yyyyMMdd')}.xlsx`
+        : `${name}_${format(startDate, 'yyyyMMdd')}.xlsx`;
       
       writeFile(wb, fileName);
       

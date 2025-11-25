@@ -147,12 +147,12 @@ type NavSection = {
               <div class="ml-4 flex items-center md:ml-6 gap-3">
                 <button
                   type="button"
-                  (click)="navigateToSection('complaints')"
+                  (click)="navigateToSection('notifications')"
                   class="relative p-2.5 rounded-lg bg-gray-700/30 hover:bg-gray-700/60 transition-all duration-200 text-white border border-gray-600/50 hover:border-gray-500"
                   pTooltip="Notificaciones"
                   title="Notificaciones"
                 >
-                  <i class="pi pi-inbox text-xl"></i>
+                  <i class="pi pi-bell text-xl"></i>
                   @if (unreadComplaintsCount() > 0) {
                   <span
                     class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-gray-800"
@@ -164,15 +164,6 @@ type NavSection = {
                     }}
                   </span>
                   }
-                </button>
-                <button
-                  type="button"
-                  (click)="navigateToSection('suggestions')"
-                  class="relative p-2.5 rounded-lg bg-blue-700/30 hover:bg-blue-700/60 transition-all duration-200 text-white border border-blue-600/50 hover:border-blue-500"
-                  pTooltip="Buzón de Sugerencias"
-                  title="Buzón de Sugerencias"
-                >
-                  <i class="pi pi-lightbulb text-xl"></i>
                 </button>
                 <div class="hidden md:flex items-center gap-3">
                   <p-menu #menu [model]="items" popup />
@@ -235,10 +226,10 @@ type NavSection = {
             @if(user) {
             <button
               type="button"
-              (click)="navigateToSection('complaints')"
+              (click)="navigateToSection('notifications')"
               class="relative w-full rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer text-left"
             >
-              <i class="pi pi-inbox text-lg"></i>
+              <i class="pi pi-bell text-lg"></i>
               <span>Notificaciones</span>
               @if (unreadComplaintsCount() > 0) {
               <span
@@ -249,14 +240,6 @@ type NavSection = {
                 }}
               </span>
               }
-            </button>
-            <button
-              type="button"
-              (click)="navigateToSection('suggestions')"
-              class="w-full rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-blue-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer text-left"
-            >
-              <i class="pi pi-lightbulb text-lg"></i>
-              <span>Buzón de Sugerencias</span>
             </button>
             } @for (nav of navSections; track nav.id) { @if (!nav.children) {
             <button
