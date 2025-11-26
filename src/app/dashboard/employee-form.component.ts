@@ -641,6 +641,9 @@ export class EmployeeFormComponent implements OnInit {
   });
 
   ngOnInit() {
+    // Cargar posiciones si no están cargadas
+    this.store.positions.fetchItems();
+    
     effect(
       () => {
         const employee = this.currentEmployee.value()?.[0];

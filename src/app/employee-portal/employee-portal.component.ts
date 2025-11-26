@@ -2093,13 +2093,27 @@ export class EmployeePortalComponent {
 
     // Process logs similar to timelogs component
     const processedLogs = logs
-      .map((x) => ({ ...x, day: format(x.created_at, 'yyyy-MM-dd') }))
+      .filter((x) => {
+        // Validar que created_at exista y sea válido
+        if (!x.created_at) return false;
+        const date = new Date(x.created_at);
+        return !isNaN(date.getTime());
+      })
+      .map((x) => {
+        const date = new Date(x.created_at!);
+        return {
+          ...x,
+          day: format(date, 'yyyy-MM-dd'),
+          // Validar branch antes de usarlo
+          branch: x.branch || null,
+        };
+      })
       .reduce<any[]>((acc, x) => {
         const existing = acc.find((item) => item.day === x.day);
         if (!existing) {
           const schedule = this.getScheduleForDay(x.day, schedules);
           const entryDate =
-            x.type === TimeLogEnum.entry ? new Date(x.created_at) : null;
+            x.type === TimeLogEnum.entry ? new Date(x.created_at!) : null;
           const delay =
             entryDate && schedule
               ? this.calculateDelay(entryDate, schedule)
@@ -2109,49 +2123,49 @@ export class EmployeePortalComponent {
             day: x.day,
             entry:
               x.type === TimeLogEnum.entry
-                ? { date: new Date(x.created_at), branch: x.branch }
+                ? { date: new Date(x.created_at!), branch: x.branch || null }
                 : undefined,
             lunch_start:
               x.type === TimeLogEnum.lunch_start
-                ? { date: new Date(x.created_at), branch: x.branch }
+                ? { date: new Date(x.created_at!), branch: x.branch || null }
                 : undefined,
             lunch_end:
               x.type === TimeLogEnum.lunch_end
-                ? { date: new Date(x.created_at), branch: x.branch }
+                ? { date: new Date(x.created_at!), branch: x.branch || null }
                 : undefined,
             exit:
               x.type === TimeLogEnum.exit
-                ? { date: new Date(x.created_at), branch: x.branch }
+                ? { date: new Date(x.created_at!), branch: x.branch || null }
                 : undefined,
             schedule: schedule,
             delay: delay,
           });
         } else {
           if (x.type === TimeLogEnum.entry) {
-            existing.entry = { date: new Date(x.created_at), branch: x.branch };
+            existing.entry = { date: new Date(x.created_at!), branch: x.branch || null };
             // Recalculate delay when entry is added
             const schedule =
               existing.schedule || this.getScheduleForDay(x.day, schedules);
             if (schedule) {
               existing.schedule = schedule;
               existing.delay = this.calculateDelay(
-                new Date(x.created_at),
+                new Date(x.created_at!),
                 schedule
               );
             }
           }
           if (x.type === TimeLogEnum.lunch_start)
             existing.lunch_start = {
-              date: new Date(x.created_at),
-              branch: x.branch,
+              date: new Date(x.created_at!),
+              branch: x.branch || null,
             };
           if (x.type === TimeLogEnum.lunch_end)
             existing.lunch_end = {
-              date: new Date(x.created_at),
-              branch: x.branch,
+              date: new Date(x.created_at!),
+              branch: x.branch || null,
             };
           if (x.type === TimeLogEnum.exit)
-            existing.exit = { date: new Date(x.created_at), branch: x.branch };
+            existing.exit = { date: new Date(x.created_at!), branch: x.branch || null };
         }
         return acc;
       }, []);
@@ -2452,17 +2466,53 @@ export class EmployeePortalComponent {
   public sendingReply = signal(false);
 
   // Helper methods
-  public calculateWorkedHours(entry: Date, exit: Date): string {
-    const minutes = differenceInMinutes(new Date(exit), new Date(entry));
+  public calculateWorkedHours(entry: Date | null | undefined, exit: Date | null | undefined): string {
+    // Validar que ambas fechas existan
+    if (!entry || !exit) {
+      return '-';
+    }
+
+    // Validar que las fechas sean válidas
+    const entryDate = new Date(entry);
+    const exitDate = new Date(exit);
+
+    if (isNaN(entryDate.getTime()) || isNaN(exitDate.getTime())) {
+      return '-';
+    }
+
+    // Calcular diferencia en minutos
+    const minutes = differenceInMinutes(exitDate, entryDate);
+
+    // Validar que la diferencia no sea negativa
+    if (minutes < 0) {
+      return '0h 0m';
+    }
+
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return `${hours}h ${mins}m`;
   }
 
-  public calculateDays(start: Date | string, end: Date | string): number {
+  public calculateDays(start: Date | string | null | undefined, end: Date | string | null | undefined): number {
+    // Validar que ambas fechas existan
+    if (!start || !end) {
+      return 0;
+    }
+
+    // Crear objetos Date y validar que sean fechas válidas
     const startDate = new Date(start);
     const endDate = new Date(end);
-    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return 0;
+    }
+
+    // Validar que endDate sea posterior o igual a startDate
+    if (endDate < startDate) {
+      return 0;
+    }
+
+    const diffTime = endDate.getTime() - startDate.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays + 1; // Include both start and end days
   }

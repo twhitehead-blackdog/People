@@ -330,7 +330,7 @@ import { EmployeesStore } from '../stores/employees.store';
 })
 export class TimelogsComponent {
   public employees = inject(EmployeesStore);
-  public dateRange = signal<Date[] | Date | null>([new Date()]);
+  public dateRange = signal<Date[] | Date | null>([startOfMonth(new Date()), new Date()]);
   public employeeId = model<string>();
   public branchId = model<string>();
   public store = inject(DashboardStore);
