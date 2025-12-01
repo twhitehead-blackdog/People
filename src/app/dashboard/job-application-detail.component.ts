@@ -296,6 +296,36 @@ export class JobApplicationDetailComponent implements OnInit {
     }
   }
 
+  private generateResumeFileName(application: JobApplication): string {
+    // Obtener nombre completo
+    const fullName = `${application.first_name || ''} ${application.last_name || ''}`.trim();
+    
+    // Obtener nombre del cargo
+    const positionName = application.position_name || application.position?.name || 'Sin Cargo';
+    
+    // Obtener extensión del archivo original
+    const originalFileName = application.resume_filename || '';
+    const fileExtension = originalFileName.includes('.') 
+      ? originalFileName.substring(originalFileName.lastIndexOf('.'))
+      : '.pdf';
+    
+    // Sanitizar nombres: remover caracteres especiales y espacios
+    const sanitize = (str: string): string => {
+      return str
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Remover acentos
+        .replace(/[^a-zA-Z0-9\s]/g, '') // Remover caracteres especiales
+        .replace(/\s+/g, '_') // Reemplazar espacios con guión bajo
+        .toLowerCase();
+    };
+    
+    const sanitizedName = sanitize(fullName);
+    const sanitizedPosition = sanitize(positionName);
+    
+    // Formato: Nombre_Apellido-Cargo.extensión
+    return `${sanitizedName}-${sanitizedPosition}${fileExtension}`;
+  }
+
   async downloadResume() {
     const app = this.application();
     if (!app?.resume_url) {
@@ -310,7 +340,7 @@ export class JobApplicationDetailComponent implements OnInit {
       const url = window.URL.createObjectURL(response);
       const link = document.createElement('a');
       link.href = url;
-      link.download = app.resume_filename || `CV_${app.first_name}_${app.last_name}.pdf`;
+      link.download = this.generateResumeFileName(app);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
