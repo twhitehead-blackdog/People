@@ -25,8 +25,8 @@ import { InputNumber } from 'primeng/inputnumber';
 import { InputText } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
 import { Textarea } from 'primeng/textarea';
-import { ToggleSwitch } from 'primeng/toggleswitch';
 import { ToastModule } from 'primeng/toast';
+import { ToggleSwitch } from 'primeng/toggleswitch';
 import { firstValueFrom } from 'rxjs';
 import { PositionsStore } from '../stores/positions.store';
 
@@ -287,7 +287,9 @@ import { PositionsStore } from '../stores/positions.store';
                 />
                 @if ( applicationForm.get('corregimiento')?.invalid &&
                 applicationForm.get('corregimiento')?.touched ) {
-                <small class="text-red-400">El corregimiento es requerido</small>
+                <small class="text-red-400"
+                  >El corregimiento es requerido</small
+                >
                 }
               </div>
             </div>
@@ -322,6 +324,7 @@ import { PositionsStore } from '../stores/positions.store';
                   formControlName="salary_expectation"
                   mode="decimal"
                   [min]="0"
+                  [max]="999999.99"
                   [maxFractionDigits]="2"
                   placeholder="0.00"
                   prefix="B/. "
@@ -1141,6 +1144,15 @@ export class JobFairFormComponent implements OnInit {
           if (error?.status === 401) {
             errorMessage =
               'Error de autenticación (401). Esto puede indicar que las políticas RLS no están configuradas correctamente. Por favor ejecuta el script SQL: database/migrations/recreate-job-applications-table.sql';
+          } else if (error?.status === 400) {
+            // Error 400 puede ser por columnas faltantes en la base de datos
+            const errorMsg = error?.error?.message || '';
+            if (errorMsg.includes('Could not find') && (errorMsg.includes('column') || errorMsg.includes('corregimiento') || errorMsg.includes('province'))) {
+              errorMessage =
+                'Error: Faltan columnas en la base de datos. Por favor ejecuta la migración SQL: database/migrations/add-fields-to-job-applications.sql en el SQL Editor de Supabase para agregar los campos: province, corregimiento, currently_working, salary_expectation';
+            } else {
+              errorMessage = error?.error?.message || error?.message || errorMessage;
+            }
           } else if (error?.error?.message) {
             errorMessage = error.error.message;
           } else if (error?.message) {
