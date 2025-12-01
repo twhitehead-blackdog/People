@@ -1044,14 +1044,17 @@ export class JobFairFormComponent implements OnInit {
   /**
    * Verifica si ya existe una aplicación con el mismo email o teléfono
    */
-  async checkDuplicateApplication(email: string, phoneNumber: string): Promise<{
+  async checkDuplicateApplication(
+    email: string,
+    phoneNumber: string
+  ): Promise<{
     isDuplicate: boolean;
     message: string;
   }> {
     try {
       // Limpiar el teléfono para comparación (remover espacios, guiones, paréntesis)
       const cleanPhone = phoneNumber.replace(/\D/g, '').replace(/^507/, '');
-      
+
       // Verificar por email
       const emailCheck = await firstValueFrom(
         this.http.get<any[]>(
@@ -1088,7 +1091,9 @@ export class JobFairFormComponent implements OnInit {
         // Comparar números de teléfono limpiados
         const duplicateByPhone = phoneCheck.find((app) => {
           if (!app.phone_number) return false;
-          const appCleanPhone = app.phone_number.replace(/\D/g, '').replace(/^507/, '');
+          const appCleanPhone = app.phone_number
+            .replace(/\D/g, '')
+            .replace(/^507/, '');
           return appCleanPhone === cleanPhone;
         });
 
@@ -1123,8 +1128,11 @@ export class JobFairFormComponent implements OnInit {
     const phoneNumber = this.applicationForm.value.phone_number?.trim();
 
     if (email || phoneNumber) {
-      const duplicateCheck = await this.checkDuplicateApplication(email || '', phoneNumber || '');
-      
+      const duplicateCheck = await this.checkDuplicateApplication(
+        email || '',
+        phoneNumber || ''
+      );
+
       if (duplicateCheck.isDuplicate) {
         this.messageService.add({
           severity: 'warn',

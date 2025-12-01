@@ -31,6 +31,7 @@ import { JobApplicationsStore } from '../stores/job-applications.store';
 import { PositionsStore } from '../stores/positions.store';
 import { JobApplicationDetailComponent } from './job-application-detail.component';
 import { JobApplicationStatusDialogComponent } from './job-application-status-dialog.component';
+import { PositionsFormComponent } from './positions-form.component';
 
 @Component({
   selector: 'pt-job-applications-list',
@@ -277,6 +278,14 @@ import { JobApplicationStatusDialogComponent } from './job-application-status-di
               [loading]="positionsStore.isLoading()"
               class="mb-4"
             />
+            <p-button
+              icon="pi pi-plus-circle"
+              severity="success"
+              label="Añadir Vacante"
+              (onClick)="editPosition()"
+              rounded
+              class="mb-4"
+            />
           </div>
           <p-table
             #positionsTable
@@ -308,6 +317,7 @@ import { JobApplicationStatusDialogComponent } from './job-application-status-di
                   Área <p-sortIcon field="department.name" />
                 </th>
                 <th>Disponible en Feria</th>
+                <th>Acciones</th>
               </tr>
             </ng-template>
             <ng-template #body let-position>
@@ -321,11 +331,21 @@ import { JobApplicationStatusDialogComponent } from './job-application-status-di
                     [disabled]="isUpdatingPosition()"
                   />
                 </td>
+                <td>
+                  <p-button
+                    icon="pi pi-pen-to-square"
+                    severity="success"
+                    text
+                    rounded
+                    (onClick)="editPosition(position)"
+                    pTooltip="Editar vacante"
+                  />
+                </td>
               </tr>
             </ng-template>
             <ng-template #emptymessage>
               <tr>
-                <td [attr.colspan]="3" class="text-center py-8">
+                <td [attr.colspan]="4" class="text-center py-8">
                   <div class="flex flex-col items-center gap-2">
                     <i class="pi pi-inbox text-4xl text-gray-500"></i>
                     <p class="text-gray-400">No hay posiciones</p>
@@ -403,6 +423,20 @@ export class JobApplicationsListComponent implements OnInit {
       severity: 'success',
       summary: 'Actualizado',
       detail: 'Lista de vacantes actualizada',
+    });
+  }
+
+  editPosition(position?: Position) {
+    const ref = this.dialog.open(PositionsFormComponent, {
+      header: position ? 'Editar Vacante' : 'Añadir Vacante',
+      width: '36rem',
+      data: { position },
+      modal: true,
+    });
+
+    ref.onClose.subscribe(() => {
+      // Recargar posiciones después de cerrar el diálogo
+      this.positionsStore.reloadItems();
     });
   }
 
