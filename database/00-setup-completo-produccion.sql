@@ -573,6 +573,51 @@ CREATE INDEX idx_job_applications_status ON job_applications(status);
 CREATE INDEX idx_job_applications_created_at ON job_applications(created_at DESC);
 CREATE INDEX idx_job_applications_email ON job_applications(email);
 
+-- Crear constraints únicos para evitar duplicados por email y teléfono
+-- Constraint único para email
+DO $$ 
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint 
+        WHERE conname = 'uk_job_applications_email'
+    ) THEN
+        ALTER TABLE job_applications 
+        ADD CONSTRAINT uk_job_applications_email 
+        UNIQUE (email);
+        
+        COMMENT ON CONSTRAINT uk_job_applications_email ON job_applications IS 
+        'Constraint único para evitar múltiples aplicaciones con el mismo email';
+    END IF;
+END $$;
+
+-- Función para normalizar teléfono (remover formato y prefijo 507)
+CREATE OR REPLACE FUNCTION normalize_phone(phone TEXT) 
+RETURNS TEXT AS $$
+BEGIN
+    IF phone IS NULL THEN
+        RETURN NULL;
+    END IF;
+    -- Remover todo excepto números y quitar prefijo 507
+    RETURN REGEXP_REPLACE(REGEXP_REPLACE(phone, '\D', '', 'g'), '^507', '');
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+-- Índice único para teléfono normalizado (previene duplicados con diferentes formatos)
+DO $$ 
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_indexes 
+        WHERE indexname = 'job_applications_phone_unique'
+    ) THEN
+        CREATE UNIQUE INDEX job_applications_phone_unique 
+        ON job_applications(normalize_phone(phone_number)) 
+        WHERE phone_number IS NOT NULL;
+        
+        COMMENT ON INDEX job_applications_phone_unique IS 
+        'Índice único para evitar múltiples aplicaciones con el mismo teléfono (normalizado)';
+    END IF;
+END $$;
+
 -- Crear trigger para actualizar updated_at
 DROP TRIGGER IF EXISTS update_job_applications_updated_at ON job_applications;
 CREATE TRIGGER update_job_applications_updated_at

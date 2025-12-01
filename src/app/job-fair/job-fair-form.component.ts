@@ -1041,6 +1041,73 @@ export class JobFairFormComponent implements OnInit {
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   }
 
+  /**
+   * Verifica si ya existe una aplicación con el mismo email o teléfono
+   */
+  async checkDuplicateApplication(email: string, phoneNumber: string): Promise<{
+    isDuplicate: boolean;
+    message: string;
+  }> {
+    try {
+      // Limpiar el teléfono para comparación (remover espacios, guiones, paréntesis)
+      const cleanPhone = phoneNumber.replace(/\D/g, '').replace(/^507/, '');
+      
+      // Verificar por email
+      const emailCheck = await firstValueFrom(
+        this.http.get<any[]>(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/job_applications`,
+          {
+            params: {
+              select: 'id,email,phone_number',
+              email: `eq.${email}`,
+            },
+          }
+        )
+      );
+
+      if (emailCheck && emailCheck.length > 0) {
+        return {
+          isDuplicate: true,
+          message: `Ya existe una aplicación registrada con el correo electrónico "${email}". Por favor verifica tu información o contacta con Recursos Humanos si crees que esto es un error.`,
+        };
+      }
+
+      // Verificar por teléfono (comparar números limpios)
+      const phoneCheck = await firstValueFrom(
+        this.http.get<any[]>(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/job_applications`,
+          {
+            params: {
+              select: 'id,email,phone_number',
+            },
+          }
+        )
+      );
+
+      if (phoneCheck && phoneCheck.length > 0) {
+        // Comparar números de teléfono limpiados
+        const duplicateByPhone = phoneCheck.find((app) => {
+          if (!app.phone_number) return false;
+          const appCleanPhone = app.phone_number.replace(/\D/g, '').replace(/^507/, '');
+          return appCleanPhone === cleanPhone;
+        });
+
+        if (duplicateByPhone) {
+          return {
+            isDuplicate: true,
+            message: `Ya existe una aplicación registrada con el número de teléfono "${phoneNumber}". Por favor verifica tu información o contacta con Recursos Humanos si crees que esto es un error.`,
+          };
+        }
+      }
+
+      return { isDuplicate: false, message: '' };
+    } catch (error: any) {
+      console.error('Error verificando duplicados:', error);
+      // Si hay error en la verificación, permitir continuar pero mostrar advertencia
+      return { isDuplicate: false, message: '' };
+    }
+  }
+
   async onSubmit() {
     if (this.applicationForm.invalid) {
       this.messageService.add({
@@ -1049,6 +1116,23 @@ export class JobFairFormComponent implements OnInit {
         detail: 'Por favor completa todos los campos requeridos',
       });
       return;
+    }
+
+    // Verificar duplicados antes de proceder
+    const email = this.applicationForm.value.email?.trim();
+    const phoneNumber = this.applicationForm.value.phone_number?.trim();
+
+    if (email || phoneNumber) {
+      const duplicateCheck = await this.checkDuplicateApplication(email || '', phoneNumber || '');
+      
+      if (duplicateCheck.isDuplicate) {
+        this.messageService.add({
+          severity: 'warn',
+          summary: 'Aplicación duplicada',
+          detail: duplicateCheck.message,
+        });
+        return;
+      }
     }
 
     this.isSubmitting.set(true);

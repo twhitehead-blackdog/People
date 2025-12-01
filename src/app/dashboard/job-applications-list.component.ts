@@ -109,7 +109,7 @@ import { JobApplicationStatusDialogComponent } from './job-application-status-di
             [paginator]="true"
             [rows]="10"
             [rowsPerPageOptions]="[10, 20, 50]"
-            [globalFilterFields]="['first_name', 'last_name', 'email', 'position_name', 'status']"
+            [globalFilterFields]="['first_name', 'last_name', 'email', 'phone_number', 'province', 'corregimiento', 'position_name', 'status']"
             paginatorDropdownAppendTo="body"
             [showCurrentPageReport]="true"
             currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} aplicaciones"
@@ -152,7 +152,7 @@ import { JobApplicationStatusDialogComponent } from './job-application-status-di
               Email <p-sortIcon field="email" />
             </th>
             <th pSortableColumn="phone_number">Teléfono</th>
-            <th>Residencia</th>
+            <th pSortableColumn="province">Residencia</th>
             <th>Laborando</th>
             <th pSortableColumn="salary_expectation">
               Aspiración Salarial <p-sortIcon field="salary_expectation" />
@@ -165,6 +165,49 @@ import { JobApplicationStatusDialogComponent } from './job-application-status-di
             </th>
             <th>CV</th>
             <th>Acciones</th>
+          </tr>
+          <tr>
+            <th></th>
+            <th>
+              <p-columnFilter
+                type="text"
+                field="first_name"
+                placeholder="Buscar nombre"
+              />
+            </th>
+            <th>
+              <p-columnFilter
+                type="text"
+                field="email"
+                placeholder="Buscar email"
+              />
+            </th>
+            <th>
+              <p-columnFilter
+                type="text"
+                field="phone_number"
+                placeholder="Buscar teléfono"
+              />
+            </th>
+            <th>
+              <p-columnFilter
+                type="text"
+                field="province"
+                placeholder="Buscar provincia"
+              />
+            </th>
+            <th></th>
+            <th></th>
+            <th>
+              <p-columnFilter
+                type="text"
+                field="position_name"
+                placeholder="Buscar vacante"
+              />
+            </th>
+            <th></th>
+            <th></th>
+            <th></th>
           </tr>
         </ng-template>
         <ng-template #body let-application>
