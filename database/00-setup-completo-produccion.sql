@@ -551,6 +551,10 @@ CREATE TABLE job_applications (
     last_name VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
     phone_number VARCHAR(50) NOT NULL,
+    province VARCHAR(100),
+    corregimiento VARCHAR(100),
+    currently_working BOOLEAN DEFAULT false,
+    salary_expectation NUMERIC(12, 2),
     position_id UUID REFERENCES positions(id),
     position_name VARCHAR(255), -- Guardar nombre de la posición por si se elimina
     resume_url TEXT, -- URL del archivo de hoja de vida en Supabase Storage
@@ -580,6 +584,10 @@ CREATE TRIGGER update_job_applications_updated_at
 COMMENT ON TABLE job_applications IS 'Almacena las aplicaciones de trabajo de la Feria de Empleo Virtual';
 COMMENT ON COLUMN job_applications.status IS 'Estado de la aplicación: pending, reviewed, contacted, rejected, hired';
 COMMENT ON COLUMN job_applications.resume_url IS 'URL del archivo de hoja de vida almacenado en Supabase Storage';
+COMMENT ON COLUMN job_applications.province IS 'Provincia de residencia del aspirante';
+COMMENT ON COLUMN job_applications.corregimiento IS 'Corregimiento de residencia del aspirante';
+COMMENT ON COLUMN job_applications.currently_working IS 'Indica si el aspirante está trabajando actualmente';
+COMMENT ON COLUMN job_applications.salary_expectation IS 'Aspiración salarial del aspirante';
 
 -- Habilitar Row Level Security
 ALTER TABLE job_applications ENABLE ROW LEVEL SECURITY;

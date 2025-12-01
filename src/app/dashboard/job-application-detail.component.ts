@@ -1,4 +1,4 @@
-import { DatePipe } from '@angular/common';
+import { CurrencyPipe, DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
@@ -27,6 +27,7 @@ import { JobApplicationsStore } from '../stores/job-applications.store';
   selector: 'pt-job-application-detail',
   imports: [
     DatePipe,
+    CurrencyPipe,
     FormsModule,
     ReactiveFormsModule,
     Card,
@@ -66,6 +67,31 @@ import { JobApplicationsStore } from '../stores/job-applications.store';
           <div>
             <label class="block text-sm font-medium text-gray-300 mb-1">Teléfono</label>
             <p class="text-white">{{ application()?.phone_number }}</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-1">Provincia</label>
+            <p class="text-white">{{ application()?.province || 'N/A' }}</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-1">Corregimiento</label>
+            <p class="text-white">{{ application()?.corregimiento || 'N/A' }}</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-1">¿Está laborando actualmente?</label>
+            <p-tag
+              [value]="application()?.currently_working ? 'Sí' : 'No'"
+              [severity]="application()?.currently_working ? 'success' : 'secondary'"
+            />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-1">Aspiración Salarial</label>
+            <p class="text-white">
+              @if (application()?.salary_expectation) {
+                {{ application()?.salary_expectation | currency : 'B/.' : 'symbol' : '1.2-2' }}
+              } @else {
+                N/A
+              }
+            </p>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-300 mb-1">Vacante</label>

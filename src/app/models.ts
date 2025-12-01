@@ -338,6 +338,10 @@ export type JobApplication = {
   position_id?: string;
   position?: Position;
   position_name?: string;
+  province?: string;
+  corregimiento?: string;
+  currently_working?: boolean;
+  salary_expectation?: number;
   resume_url?: string;
   resume_filename?: string;
   additional_info?: string;

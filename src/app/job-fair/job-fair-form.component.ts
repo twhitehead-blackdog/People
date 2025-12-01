@@ -21,9 +21,11 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { FileUploadModule } from 'primeng/fileupload';
+import { InputNumber } from 'primeng/inputnumber';
 import { InputText } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
 import { Textarea } from 'primeng/textarea';
+import { ToggleSwitch } from 'primeng/toggleswitch';
 import { ToastModule } from 'primeng/toast';
 import { firstValueFrom } from 'rxjs';
 import { PositionsStore } from '../stores/positions.store';
@@ -37,8 +39,10 @@ import { PositionsStore } from '../stores/positions.store';
     Card,
     Button,
     InputText,
+    InputNumber,
     Textarea,
     Select,
+    ToggleSwitch,
     FileUploadModule,
     ToastModule,
   ],
@@ -230,6 +234,100 @@ import { PositionsStore } from '../stores/positions.store';
                 applicationForm.get('phone_number')?.touched ) {
                 <small class="text-red-400">El teléfono es requerido</small>
                 }
+              </div>
+            </div>
+
+            <!-- Provincia y Corregimiento -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <!-- Provincia -->
+              <div>
+                <label
+                  for="province"
+                  class="block text-sm font-medium text-gray-300 mb-2"
+                >
+                  Provincia <span class="text-red-400">*</span>
+                </label>
+                <p-select
+                  id="province"
+                  formControlName="province"
+                  [options]="provinces"
+                  placeholder="Selecciona una provincia"
+                  [showClear]="true"
+                  [filter]="true"
+                  class="w-full"
+                  [class.ng-invalid]="
+                    applicationForm.get('province')?.invalid &&
+                    applicationForm.get('province')?.touched
+                  "
+                />
+                @if ( applicationForm.get('province')?.invalid &&
+                applicationForm.get('province')?.touched ) {
+                <small class="text-red-400">La provincia es requerida</small>
+                }
+              </div>
+
+              <!-- Corregimiento -->
+              <div>
+                <label
+                  for="corregimiento"
+                  class="block text-sm font-medium text-gray-300 mb-2"
+                >
+                  Corregimiento <span class="text-red-400">*</span>
+                </label>
+                <input
+                  pInputText
+                  id="corregimiento"
+                  formControlName="corregimiento"
+                  placeholder="Ej: San Francisco"
+                  class="w-full"
+                  [class.ng-invalid]="
+                    applicationForm.get('corregimiento')?.invalid &&
+                    applicationForm.get('corregimiento')?.touched
+                  "
+                />
+                @if ( applicationForm.get('corregimiento')?.invalid &&
+                applicationForm.get('corregimiento')?.touched ) {
+                <small class="text-red-400">El corregimiento es requerido</small>
+                }
+              </div>
+            </div>
+
+            <!-- Laborando Actualmente y Aspiración Salarial -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <!-- Laborando Actualmente -->
+              <div>
+                <label
+                  for="currently_working"
+                  class="block text-sm font-medium text-gray-300 mb-2"
+                >
+                  ¿Estás laborando actualmente?
+                </label>
+                <p-toggleSwitch
+                  formControlName="currently_working"
+                  id="currently_working"
+                  class="block"
+                />
+              </div>
+
+              <!-- Aspiración Salarial -->
+              <div>
+                <label
+                  for="salary_expectation"
+                  class="block text-sm font-medium text-gray-300 mb-2"
+                >
+                  Aspiración Salarial (Opcional)
+                </label>
+                <p-inputNumber
+                  id="salary_expectation"
+                  formControlName="salary_expectation"
+                  mode="decimal"
+                  [min]="0"
+                  [maxFractionDigits]="2"
+                  placeholder="0.00"
+                  prefix="B/. "
+                  class="w-full"
+                  [useGrouping]="true"
+                />
               </div>
             </div>
 
@@ -623,6 +721,23 @@ export class JobFairFormComponent implements OnInit {
   public isSubmitting = signal<boolean>(false);
   public isSuccess = signal<boolean>(false);
 
+  // Lista de provincias de Panamá
+  public provinces = [
+    'Bocas del Toro',
+    'Coclé',
+    'Colón',
+    'Chiriquí',
+    'Darién',
+    'Herrera',
+    'Los Santos',
+    'Panamá',
+    'Panamá Oeste',
+    'Veraguas',
+    'Guna Yala (Comarca)',
+    'Emberá-Wounaan (Comarca)',
+    'Ngäbe-Buglé (Comarca)',
+  ];
+
   // Posiciones disponibles para la feria de empleo
   public availablePositions = computed(() => {
     const allPositions = this.positionsStore.entities();
@@ -797,6 +912,10 @@ export class JobFairFormComponent implements OnInit {
     last_name: ['', [Validators.required]],
     email: ['', [Validators.required, Validators.email]],
     phone_number: ['', [Validators.required]],
+    province: ['', [Validators.required]],
+    corregimiento: ['', [Validators.required]],
+    currently_working: [false],
+    salary_expectation: [null],
     position_id: ['', [Validators.required]],
     additional_info: [''],
     resume: [null, [Validators.required]], // Requerido
@@ -933,7 +1052,7 @@ export class JobFairFormComponent implements OnInit {
     // 1. Subir archivo a Supabase Storage (si existe)
     let resumeUrl: string | null = null;
     let resumeFilename: string | null = null;
-    
+
     if (this.selectedFile()) {
       try {
         const resumeResult = await this.uploadResume(this.selectedFile()!);
@@ -944,7 +1063,8 @@ export class JobFairFormComponent implements OnInit {
         this.messageService.add({
           severity: 'error',
           summary: 'Error al subir CV',
-          detail: 'No se pudo subir tu hoja de vida. Por favor intenta nuevamente.',
+          detail:
+            'No se pudo subir tu hoja de vida. Por favor intenta nuevamente.',
         });
         this.isSubmitting.set(false);
         return;
@@ -963,6 +1083,10 @@ export class JobFairFormComponent implements OnInit {
       last_name: this.applicationForm.value.last_name,
       email: this.applicationForm.value.email,
       phone_number: this.applicationForm.value.phone_number,
+      province: this.applicationForm.value.province || null,
+      corregimiento: this.applicationForm.value.corregimiento || null,
+      currently_working: this.applicationForm.value.currently_working || false,
+      salary_expectation: this.applicationForm.value.salary_expectation || null,
       position_id: positionId,
       position_name: positionName,
       resume_url: resumeUrl,

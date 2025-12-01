@@ -1,4 +1,4 @@
-import { DatePipe } from '@angular/common';
+import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
@@ -36,6 +36,8 @@ import { JobApplicationStatusDialogComponent } from './job-application-status-di
   selector: 'pt-job-applications-list',
   imports: [
     DatePipe,
+    DecimalPipe,
+    CurrencyPipe,
     ReactiveFormsModule,
     FormsModule,
     InputText,
@@ -150,6 +152,11 @@ import { JobApplicationStatusDialogComponent } from './job-application-status-di
               Email <p-sortIcon field="email" />
             </th>
             <th pSortableColumn="phone_number">Teléfono</th>
+            <th>Residencia</th>
+            <th>Laborando</th>
+            <th pSortableColumn="salary_expectation">
+              Aspiración Salarial <p-sortIcon field="salary_expectation" />
+            </th>
             <th pSortableColumn="position_name">
               Vacante <p-sortIcon field="position_name" />
             </th>
@@ -170,6 +177,34 @@ import { JobApplicationStatusDialogComponent } from './job-application-status-di
             </td>
             <td class="text-gray-300">{{ application.email }}</td>
             <td class="text-gray-300">{{ application.phone_number }}</td>
+            <td class="text-gray-300">
+              @if (application.province || application.corregimiento) {
+                <div class="text-sm">
+                  @if (application.province) {
+                    <div>{{ application.province }}</div>
+                  }
+                  @if (application.corregimiento) {
+                    <div class="text-gray-400">{{ application.corregimiento }}</div>
+                  }
+                </div>
+              } @else {
+                <span class="text-gray-500">-</span>
+              }
+            </td>
+            <td class="text-center">
+              @if (application.currently_working) {
+                <p-tag value="Sí" severity="success" />
+              } @else {
+                <p-tag value="No" severity="secondary" />
+              }
+            </td>
+            <td class="text-gray-300">
+              @if (application.salary_expectation) {
+                {{ application.salary_expectation | currency : 'B/.' : 'symbol' : '1.2-2' }}
+              } @else {
+                <span class="text-gray-500">-</span>
+              }
+            </td>
             <td class="text-gray-300">
               {{ application.position_name || application.position?.name || 'N/A' }}
             </td>
@@ -217,7 +252,7 @@ import { JobApplicationStatusDialogComponent } from './job-application-status-di
         </ng-template>
         <ng-template #emptymessage>
           <tr>
-            <td [attr.colspan]="8" class="text-center py-8">
+            <td [attr.colspan]="11" class="text-center py-8">
               <div class="flex flex-col items-center gap-2">
                 <i class="pi pi-inbox text-4xl text-gray-500"></i>
                 <p class="text-gray-400">No hay aplicaciones</p>
@@ -520,6 +555,10 @@ export class JobApplicationsListComponent implements OnInit {
         'Nombre': `${app.first_name} ${app.last_name}`,
         'Email': app.email,
         'Teléfono': app.phone_number,
+        'Provincia': app.province || 'N/A',
+        'Corregimiento': app.corregimiento || 'N/A',
+        'Laborando Actualmente': app.currently_working ? 'Sí' : 'No',
+        'Aspiración Salarial': app.salary_expectation ? `B/. ${app.salary_expectation.toFixed(2)}` : 'N/A',
         'Vacante': app.position_name || app.position?.name || 'N/A',
         'Estado': this.getStatusLabel(app.status),
         'Fecha Entrevista': app.interview_date ? new Date(app.interview_date).toLocaleDateString('es-PA') : '',
@@ -538,6 +577,10 @@ export class JobApplicationsListComponent implements OnInit {
         { wch: 25 }, // Nombre
         { wch: 30 }, // Email
         { wch: 15 }, // Teléfono
+        { wch: 15 }, // Provincia
+        { wch: 15 }, // Corregimiento
+        { wch: 20 }, // Laborando Actualmente
+        { wch: 18 }, // Aspiración Salarial
         { wch: 25 }, // Vacante
         { wch: 12 }, // Estado
         { wch: 15 }, // Fecha Entrevista
