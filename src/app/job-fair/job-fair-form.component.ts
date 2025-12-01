@@ -263,8 +263,8 @@ import { PositionsStore } from '../stores/positions.store';
               }
             </div>
 
-            <!-- Hoja de Vida - DESHABILITADO TEMPORALMENTE -->
-            <!-- <div class="mb-4">
+            <!-- Hoja de Vida -->
+            <div class="mb-4">
               <label
                 for="resume"
                 class="block text-sm font-medium text-gray-300 mb-2"
@@ -281,7 +281,7 @@ import { PositionsStore } from '../stores/positions.store';
                 chooseLabel="Seleccionar archivo"
                 (onSelect)="onFileSelect($event)"
                 (onClear)="onFileClear()"
-                [disabled]="true"
+                [disabled]="isSubmitting()"
               />
               @if (selectedFile()) {
               <div class="mt-2 text-sm text-gray-400">
@@ -293,7 +293,7 @@ import { PositionsStore } from '../stores/positions.store';
               && applicationForm.get('resume')?.touched ) {
               <small class="text-red-400">Debes adjuntar tu hoja de vida</small>
               }
-            </div> -->
+            </div>
 
             <!-- Información Adicional -->
             <div class="mb-4">
@@ -799,7 +799,7 @@ export class JobFairFormComponent implements OnInit {
     phone_number: ['', [Validators.required]],
     position_id: ['', [Validators.required]],
     additional_info: [''],
-    resume: [null], // Validación deshabilitada temporalmente
+    resume: [null, [Validators.required]], // Requerido
   });
 
   constructor() {
@@ -918,7 +918,7 @@ export class JobFairFormComponent implements OnInit {
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   }
 
-  onSubmit() {
+  async onSubmit() {
     if (this.applicationForm.invalid) {
       this.messageService.add({
         severity: 'warn',
@@ -930,8 +930,26 @@ export class JobFairFormComponent implements OnInit {
 
     this.isSubmitting.set(true);
 
-    // 1. Subir archivo a Supabase Storage - DESHABILITADO TEMPORALMENTE
-    // const resumeUrl = await this.uploadResume(this.selectedFile()!);
+    // 1. Subir archivo a Supabase Storage (si existe)
+    let resumeUrl: string | null = null;
+    let resumeFilename: string | null = null;
+    
+    if (this.selectedFile()) {
+      try {
+        const resumeResult = await this.uploadResume(this.selectedFile()!);
+        resumeUrl = resumeResult.url;
+        resumeFilename = resumeResult.path.split('/').pop() || null;
+      } catch (uploadError: any) {
+        console.error('Error uploading resume:', uploadError);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error al subir CV',
+          detail: 'No se pudo subir tu hoja de vida. Por favor intenta nuevamente.',
+        });
+        this.isSubmitting.set(false);
+        return;
+      }
+    }
 
     // 2. Obtener nombre de la posición
     const positionId = this.applicationForm.value.position_id;
@@ -947,8 +965,8 @@ export class JobFairFormComponent implements OnInit {
       phone_number: this.applicationForm.value.phone_number,
       position_id: positionId,
       position_name: positionName,
-      resume_url: null, // Deshabilitado temporalmente
-      resume_filename: null, // Deshabilitado temporalmente
+      resume_url: resumeUrl,
+      resume_filename: resumeFilename,
       additional_info: this.applicationForm.value.additional_info || null,
       status: 'pending',
     };
