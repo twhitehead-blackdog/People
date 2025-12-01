@@ -13,34 +13,16 @@ import { AuthService } from '@auth0/auth0-angular';
 import { Avatar } from 'primeng/avatar';
 import { Button } from 'primeng/button';
 import { MenuModule } from 'primeng/menu';
-import { AuthStore } from '../stores/auth.store';
-import { BanksStore } from '../stores/banks.store';
-import { BranchesStore } from '../stores/branches.store';
-import { CompaniesStore } from '../stores/companies.store';
 import { DashboardStore } from '../stores/dashboard.store';
-import { DepartmentsStore } from '../stores/departments.store';
-import { EmployeesStore } from '../stores/employees.store';
-import { PayrollsStore } from '../stores/payrolls.store';
-import { PositionsStore } from '../stores/positions.store';
-import { SchedulesStore } from '../stores/schedules.store';
 import { EmployeePortalComponent } from './employee-portal.component';
 
 @Component({
   selector: 'pt-dashboard',
   standalone: true,
   providers: [
-    AuthStore,
-    DashboardStore,
+    // Los stores están ahora en app.config.ts a nivel de aplicación
     MessageService,
     ConfirmationService,
-    EmployeesStore,
-    BranchesStore,
-    CompaniesStore,
-    PositionsStore,
-    DepartmentsStore,
-    SchedulesStore,
-    BanksStore,
-    PayrollsStore,
   ],
   imports: [
     RouterOutlet,

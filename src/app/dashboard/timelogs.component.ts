@@ -161,14 +161,14 @@ import { EmployeesStore } from '../stores/employees.store';
     >
       <ng-template #header>
         <tr>
-          <th>Empleado</th>
-          <th>Día</th>
-          <th>Horario</th>
-          <th>Entrada</th>
-          <th>Inicio de almuerzo</th>
-          <th>Fin de almuerzo</th>
-          <th>Salida</th>
-          <th>Horas Trabajadas</th>
+          <th class="text-center">Empleado</th>
+          <th class="text-center">Día</th>
+          <th class="text-center">Horario</th>
+          <th class="text-center">Entrada</th>
+          <th class="text-center">Inicio de almuerzo</th>
+          <th class="text-center">Fin de almuerzo</th>
+          <th class="text-center">Salida</th>
+          <th class="text-center">Horas Extras</th>
         </tr>
       </ng-template>
       <ng-template #body let-log>
@@ -240,20 +240,22 @@ import { EmployeesStore } from '../stores/employees.store';
             </div>
           </td>
           <td>
-            <div class="flex gap-1 items-center">
-              <span
-                [ngClass]="{
-                  'text-red-500 font-semibold': log.lunchExceeded
-                }"
-                >{{ log.lunch_end?.date | date : 'hh:mm a' }}</span
-              >
-              @if(log.lunch_end) {
-              <p-avatar
-                shape="circle"
-                [label]="log.lunch_end?.branch.short_name"
-                [pTooltip]="log.lunch_end?.branch.name"
-                tooltipPosition="top"
-              />}
+            <div class="flex flex-col gap-1">
+              <div class="flex items-center gap-1">
+                <span
+                  [ngClass]="{
+                    'text-red-500 font-semibold': log.lunchExceeded
+                  }"
+                  >{{ log.lunch_end?.date | date : 'hh:mm a' }}</span
+                >
+                @if(log.lunch_end) {
+                <p-avatar
+                  shape="circle"
+                  [label]="log.lunch_end?.branch.short_name"
+                  [pTooltip]="log.lunch_end?.branch.name"
+                  tooltipPosition="top"
+                />}
+              </div>
               @if(log.lunchExceeded) {
               <p-tag
                 [value]="'Almuerzo ' + log.lunchMinutes + ' min'"
@@ -261,25 +263,28 @@ import { EmployeesStore } from '../stores/employees.store';
                 icon="pi pi-exclamation-triangle"
                 [pTooltip]="'El tiempo de almuerzo excede los 60 minutos permitidos'"
                 tooltipPosition="top"
+                class="w-fit"
               />
               }
             </div>
           </td>
           <td>
-            <div class="flex gap-1 items-center">
-              <span
-                [ngClass]="{
-                  'text-red-500 font-semibold': log.earlyExit
-                }"
-                >{{ log.exit?.date | date : 'hh:mm a' }}</span
-              >
-              @if(log.exit) {
-              <p-avatar
-                shape="circle"
-                [label]="log.exit?.branch.short_name"
-                [pTooltip]="log.exit?.branch.name"
-                tooltipPosition="top"
-              />}
+            <div class="flex flex-col gap-1">
+              <div class="flex items-center gap-1">
+                <span
+                  [ngClass]="{
+                    'text-red-500 font-semibold': log.earlyExit
+                  }"
+                  >{{ log.exit?.date | date : 'hh:mm a' }}</span
+                >
+                @if(log.exit) {
+                <p-avatar
+                  shape="circle"
+                  [label]="log.exit?.branch.short_name"
+                  [pTooltip]="log.exit?.branch.name"
+                  tooltipPosition="top"
+                />}
+              </div>
               @if(log.earlyExit) {
               <p-tag
                 value="Salida temprana"
@@ -287,26 +292,35 @@ import { EmployeesStore } from '../stores/employees.store';
                 icon="pi pi-exclamation-triangle"
                 [pTooltip]="'El empleado salió antes del horario laboral establecido'"
                 tooltipPosition="top"
+                class="w-fit"
               />
               }
             </div>
           </td>
-          <td>
-            <div class="flex flex-col gap-1">
-              <span [ngClass]="{
-                'text-red-500 font-semibold': log.insufficientHours,
-                'text-green-500 font-semibold': !log.insufficientHours && log.totalHours
-              }">
-                {{ log.totalHours ? formatHours(log.totalHours) : '-' }}
-              </span>
-              @if(log.insufficientHours) {
-              <p-tag
-                value="Menos de 9h"
-                severity="danger"
-                icon="pi pi-clock"
-                [pTooltip]="'El empleado no cumplió las 9 horas requeridas en la empresa (ej: 7am-4pm, 8am-5pm, 11am-8pm)'"
-                tooltipPosition="top"
-              />
+          <td class="text-center align-middle">
+            <div class="flex flex-col items-center justify-center gap-1">
+              @if(log.overtimeHours !== undefined && log.overtimeHours !== 0) {
+                @if(log.overtimeHours > 0) {
+                  <!-- Horas extras -->
+                  <p-tag
+                    [value]="formatHours(log.overtimeHours)"
+                    severity="success"
+                    icon="pi pi-clock"
+                    [pTooltip]="'Horas extras: trabajó ' + formatHours(log.overtimeHours) + ' después de la hora de salida programada'"
+                    tooltipPosition="top"
+                  />
+                } @else {
+                  <!-- Tiempo faltante (salida temprana) -->
+                  <p-tag
+                    [value]="'-' + formatHours(abs(log.overtimeHours))"
+                    severity="danger"
+                    icon="pi pi-exclamation-triangle"
+                    [pTooltip]="'Tiempo faltante: salió ' + formatHours(abs(log.overtimeHours)) + ' antes de la hora programada'"
+                    tooltipPosition="top"
+                  />
+                }
+              } @else {
+                <span class="text-gray-400">-</span>
               }
             </div>
           </td>
@@ -628,6 +642,7 @@ export class TimelogsComponent {
       earlyExit?: boolean;
       insufficientHours?: boolean;
       totalHours?: number;
+      overtimeHours?: number;
       entry?: { date: Date; branch: Branch };
       lunch_start?: { date: Date; branch: Branch };
       lunch_end?: { date: Date; branch: Branch };
@@ -662,6 +677,7 @@ export class TimelogsComponent {
           earlyExit: false,
           insufficientHours: false,
           totalHours: undefined,
+          overtimeHours: undefined,
           entry: undefined,
           lunch_start: undefined,
           lunch_end: undefined,
@@ -684,6 +700,7 @@ export class TimelogsComponent {
         earlyExit?: boolean;
         insufficientHours?: boolean;
         totalHours?: number;
+      overtimeHours?: number;
         entry?: { date: Date; branch: Branch };
         lunch_start?: { date: Date; branch: Branch };
         lunch_end?: { date: Date; branch: Branch };
@@ -817,6 +834,34 @@ export class TimelogsComponent {
                 item.earlyExit = true;
               }
             }
+          }
+
+          // Calcular horas extras o tiempo faltante: diferencia entre salida real y programada
+          if (item.exit && item.schedule && !item.schedule.schedule.day_off) {
+            const scheduleExitTime = item.schedule.schedule.exit_time;
+            
+            if (scheduleExitTime) {
+              // Convertir scheduleExitTime a string si es Date
+              const scheduleTimeStr = typeof scheduleExitTime === 'string' 
+                ? scheduleExitTime 
+                : format(new Date(scheduleExitTime), 'HH:mm:ss');
+              
+              // Crear fecha de salida programada usando el día de la salida real
+              const exitDate = new Date(item.exit.date);
+              const scheduledExitDate = new Date(exitDate);
+              
+              // Establecer la hora de salida programada
+              const scheduleParts = scheduleTimeStr.split(':');
+              scheduledExitDate.setHours(+scheduleParts[0], +scheduleParts[1], +scheduleParts[2] || 0, 0);
+              
+              // Calcular diferencia: positivo = horas extras, negativo = tiempo faltante
+              const diffMinutes = differenceInMinutes(exitDate, scheduledExitDate);
+              item.overtimeHours = diffMinutes / 60; // Puede ser positivo (extras) o negativo (faltante)
+            } else {
+              item.overtimeHours = undefined;
+            }
+          } else {
+            item.overtimeHours = undefined;
           }
 
           // Validar horas trabajadas (9 horas totales en la empresa: 7am-4pm, 8am-5pm, 11am-8pm)
@@ -1069,6 +1114,10 @@ export class TimelogsComponent {
     return `${h}h ${m}m`;
   }
 
+  abs(value: number): number {
+    return Math.abs(value);
+  }
+
   getMaxDate(): Date {
     return new Date();
   }
@@ -1120,7 +1169,16 @@ export class TimelogsComponent {
     const mappedData = sortedAndFilteredData.map((x) => {
       const lunchMinutes = x.lunchMinutes || 0;
       const lunchExceeded = x.lunchExceeded ? `EXCEDIDO (${lunchMinutes} min)` : lunchMinutes > 0 ? `${lunchMinutes} min` : '';
-      const totalHours = x.totalHours ? this.formatHours(x.totalHours) : '-';
+      let overtimeHours = '-';
+      if (x.overtimeHours !== undefined) {
+        if (x.overtimeHours > 0) {
+          overtimeHours = this.formatHours(x.overtimeHours);
+        } else if (x.overtimeHours < 0) {
+          overtimeHours = '-' + this.formatHours(Math.abs(x.overtimeHours));
+        } else {
+          overtimeHours = '0h 0m';
+        }
+      }
       const errors = [];
       if (x.scheduleError) errors.push('Error de Horario');
       if (x.lunchExceeded) errors.push('Almuerzo Excedido');
@@ -1225,7 +1283,7 @@ export class TimelogsComponent {
         'Inicio de almuerzo': inicioAlmuerzo,
         'Fin de almuerzo': finAlmuerzo,
         'Salida': salida,
-        'Horas Trabajadas': totalHours,
+        'Horas Extras': overtimeHours,
         'Errores/Alertas': errors.length > 0 ? errors.join(', ') : 'Ninguno',
       };
     });
@@ -1258,7 +1316,7 @@ export class TimelogsComponent {
         { wch: 20 }, // Inicio de almuerzo (incluye sucursal)
         { wch: 20 }, // Fin de almuerzo (incluye sucursal)
         { wch: 20 }, // Salida (incluye sucursal)
-        { wch: 15 }, // Horas Trabajadas
+        { wch: 15 }, // Horas Extras
         { wch: 40 }, // Errores/Alertas
       ];
       ws['!cols'] = colWidths;

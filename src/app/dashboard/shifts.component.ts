@@ -35,17 +35,47 @@ import { EmployeeSchedulesComponent } from './employee-schedules.component';
           [options]="store.employeesList()"
           appendTo="body"
           optionValue="id"
-          placeholder="Seleccionar empleado"
+          placeholder="Buscar empleado (nombre, cédula o email)..."
           filter
-          filterBy="first_name,father_name"
+          filterBy="first_name,father_name,mother_name,document_id,work_email"
           showClear
+          [filterPlaceholder]="'Buscar por nombre, cédula o email...'"
         >
           <ng-template #selectedItem let-selected>
-            {{ selected.first_name | trim }}
-            {{ selected.father_name | trim }}
+            <div class="flex flex-col">
+              <span>{{ selected.first_name | trim }} {{ selected.father_name | trim }}</span>
+              @if(selected.document_id || selected.work_email) {
+                <span class="text-xs text-gray-400">
+                  @if(selected.document_id) {
+                    {{ selected.document_id }}
+                  }
+                  @if(selected.document_id && selected.work_email) {
+                    • 
+                  }
+                  @if(selected.work_email) {
+                    {{ selected.work_email }}
+                  }
+                </span>
+              }
+            </div>
           </ng-template>
           <ng-template let-item #item>
-            {{ item.first_name | trim }} {{ item.father_name | trim }}
+            <div class="flex flex-col">
+              <span>{{ item.first_name | trim }} {{ item.father_name | trim }}</span>
+              @if(item.document_id || item.work_email) {
+                <span class="text-xs text-gray-400">
+                  @if(item.document_id) {
+                    {{ item.document_id }}
+                  }
+                  @if(item.document_id && item.work_email) {
+                    • 
+                  }
+                  @if(item.work_email) {
+                    {{ item.work_email }}
+                  }
+                </span>
+              }
+            </div>
           </ng-template>
         </p-select>
       </div>

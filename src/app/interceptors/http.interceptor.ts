@@ -7,19 +7,36 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
   if (req.url.includes('supabase')) {
     // Use Supabase API key directly for now
     // TODO: Configure Supabase to accept Auth0 tokens or use service role for admin operations
-    let headers = req.headers
-      .set('apikey', process.env['ENV_SUPABASE_API_KEY'] ?? '')
-      .set(
+    let headers = req.headers;
+
+    // Solo agregar apikey si no está presente
+    if (!headers.has('apikey')) {
+      headers = headers.set('apikey', process.env['ENV_SUPABASE_API_KEY'] ?? '');
+    }
+
+    // Solo agregar Authorization si no está presente
+    if (!headers.has('Authorization')) {
+      headers = headers.set(
         'Authorization',
         `Bearer ${process.env['ENV_SUPABASE_API_KEY'] ?? ''}`
       );
+    }
 
-    // No agregar Content-Type para Storage API (dejar que el navegador lo establezca con boundary)
-    // No agregar Prefer para Storage API
+    // No agregar Content-Type ni Prefer para Storage API
+    // Dejar que se establezcan manualmente en el componente para subidas de archivos
+    // Esto es crítico para que los archivos se suban correctamente
     if (!req.url.includes('/storage/v1/')) {
-      headers = headers
-        .set('Prefer', 'return=representation')
-        .set('Content-Type', 'application/json');
+      // Solo agregar Prefer y Content-Type si no están presentes y NO es Storage
+      if (!headers.has('Prefer')) {
+        headers = headers.set('Prefer', 'return=representation');
+      }
+      if (!headers.has('Content-Type')) {
+        headers = headers.set('Content-Type', 'application/json');
+      }
+    } else {
+      // Para Storage API, asegurar que no sobrescribimos headers personalizados
+      // Especialmente importante para PUT requests con archivos
+      // El Content-Type y otros headers deben establecerse en el componente
     }
 
     // Agregar header Range para peticiones a timelogs que necesitan más de 1000 registros

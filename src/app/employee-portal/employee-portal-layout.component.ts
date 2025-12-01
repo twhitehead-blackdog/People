@@ -92,7 +92,7 @@ type NavSection = {
               </a>
               <div class="hidden md:block">
                 <div class="ml-10 flex items-center space-x-3">
-                  @for (nav of navSections; track nav.id) { @if (!nav.children)
+                  @for (nav of navSections(); track nav.id) { @if (!nav.children)
                   {
                   <button
                     type="button"
@@ -111,11 +111,12 @@ type NavSection = {
                   >
                     <button
                       type="button"
+                      (click)="toggleDropdown(nav.id)"
                       class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md min-h-[48px] leading-tight"
                     >
                       <i [class]="nav.icon + ' text-base'"></i>
                       <span class="whitespace-nowrap">{{ nav.label }}</span>
-                      <i class="pi pi-chevron-down text-xs"></i>
+                      <i class="pi pi-chevron-down text-xs" [class.pi-chevron-up]="openDropdown() === nav.id"></i>
                     </button>
                     @if (openDropdown() === nav.id) {
                     <div
@@ -241,7 +242,7 @@ type NavSection = {
               </span>
               }
             </button>
-            } @for (nav of navSections; track nav.id) { @if (!nav.children) {
+            } @for (nav of navSections(); track nav.id) { @if (!nav.children) {
             <button
               type="button"
               (click)="navigateToSection(nav.section!)"
@@ -448,70 +449,126 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
     return this.store.currentEmployee() ? 0 : 0;
   });
 
-  public navSections: NavSection[] = [
-    {
-      id: 'dashboard',
-      label: 'Dashboard',
-      icon: 'pi pi-home',
-      section: 'dashboard',
-    },
-    {
-      id: 'personal',
-      label: 'Mi Portal',
-      icon: 'pi pi-user',
-      children: [
-        {
-          id: 'profile',
-          label: 'Mi Perfil',
-          icon: 'pi pi-id-card',
-          section: 'profile',
-        },
-        {
-          id: 'timelogs',
-          label: 'Mis Marcaciones',
-          icon: 'pi pi-calendar-clock',
-          section: 'timelogs',
-        },
-        {
-          id: 'lates',
-          label: 'Mis Tardanzas',
-          icon: 'pi pi-clock',
-          section: 'lates',
-        },
-      ],
-    },
-    {
-      id: 'management',
-      label: 'Gestiones',
-      icon: 'pi pi-briefcase',
-      children: [
-        {
-          id: 'disabilities',
-          label: 'Incapacidades',
-          icon: 'pi pi-file-plus',
-          section: 'disabilities',
-        },
-        {
-          id: 'documents',
-          label: 'Solicitar Documentos',
-          icon: 'pi pi-file-edit',
-          section: 'documents',
-        },
-        {
-          id: 'complaints',
-          label: 'Buzón de Quejas',
-          icon: 'pi pi-comments',
-          section: 'complaints',
-        },
-        {
-          id: 'suggestions',
-          label: 'Buzón de Sugerencias',
-          icon: 'pi pi-lightbulb',
-          section: 'suggestions',
-        },
-      ],
-    },
-  ];
+  public isITEmployee = computed(() => {
+    const employee = this.store.currentEmployee();
+    if (!employee) return false;
+
+    const positionName = employee.position?.name?.toLowerCase() || '';
+    const departmentName = employee.department?.name?.toLowerCase() || '';
+
+    // Verificar si el cargo o departamento contiene palabras relacionadas con IT
+    const itKeywords = ['it', 'informática', 'informatica', 'sistemas', 'tecnología', 'tecnologia', 'ti', 'desarrollador', 'programador', 'developer'];
+    
+    return itKeywords.some(keyword => 
+      positionName.includes(keyword) || departmentName.includes(keyword)
+    );
+  });
+
+  public navSections = computed<NavSection[]>(() => {
+    const managementChildren: Array<{
+      id: string;
+      label: string;
+      icon: string;
+      section: string;
+    }> = [
+      {
+        id: 'disabilities',
+        label: 'Incapacidades',
+        icon: 'pi pi-file-plus',
+        section: 'disabilities',
+      },
+      {
+        id: 'vacations',
+        label: 'Vacaciones',
+        icon: 'pi pi-calendar-plus',
+        section: 'vacations',
+      },
+      {
+        id: 'compensatory',
+        label: 'Compensatorios',
+        icon: 'pi pi-clock',
+        section: 'compensatory',
+      },
+    ];
+
+    // Agregar Licencia Maternal si es mujer o si es de IT
+    const employee = this.store.currentEmployee();
+    if (employee?.gender === 'F' || this.isITEmployee()) {
+      managementChildren.push({
+        id: 'maternity',
+        label: 'Licencia Maternal',
+        icon: 'pi pi-heart',
+        section: 'maternity',
+      });
+    }
+
+    managementChildren.push(
+      {
+        id: 'documents',
+        label: 'Solicitar Documentos',
+        icon: 'pi pi-file-edit',
+        section: 'documents',
+      },
+      {
+        id: 'complaints',
+        label: 'Buzón de Quejas',
+        icon: 'pi pi-comments',
+        section: 'complaints',
+      },
+      {
+        id: 'suggestions',
+        label: 'Buzón de Sugerencias',
+        icon: 'pi pi-lightbulb',
+        section: 'suggestions',
+      }
+    );
+
+    return [
+      {
+        id: 'dashboard',
+        label: 'Dashboard',
+        icon: 'pi pi-home',
+        section: 'dashboard',
+      },
+      {
+        id: 'personal',
+        label: 'Mi Portal',
+        icon: 'pi pi-user',
+        children: [
+          {
+            id: 'profile',
+            label: 'Mi Perfil',
+            icon: 'pi pi-id-card',
+            section: 'profile',
+          },
+          {
+            id: 'timelogs',
+            label: 'Mis Marcaciones',
+            icon: 'pi pi-calendar-clock',
+            section: 'timelogs',
+          },
+          {
+            id: 'lates',
+            label: 'Mis Tardanzas',
+            icon: 'pi pi-clock',
+            section: 'lates',
+          },
+        ],
+      },
+      {
+        id: 'management',
+        label: 'Gestiones',
+        icon: 'pi pi-briefcase',
+        children: managementChildren,
+      },
+      {
+        id: 'calendar',
+        label: 'Calendario',
+        icon: 'pi pi-calendar',
+        section: 'calendar',
+      },
+    ];
+  });
 
   public items: MenuItem[] = [
     {
@@ -576,6 +633,22 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
 
   isMobileCategoryOpen(id: string): boolean {
     return !!this.mobileDropdowns()[id];
+  }
+
+  toggleDropdown(id: string) {
+    if (this.openDropdown() === id) {
+      this.openDropdown.set(null);
+      if (this.dropdownTimeout) {
+        clearTimeout(this.dropdownTimeout);
+        this.dropdownTimeout = null;
+      }
+    } else {
+      this.openDropdown.set(id);
+      if (this.dropdownTimeout) {
+        clearTimeout(this.dropdownTimeout);
+        this.dropdownTimeout = null;
+      }
+    }
   }
 
   openDropdownWithDelay(id: string) {

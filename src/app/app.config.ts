@@ -20,12 +20,23 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideAuth0 } from '@auth0/auth0-angular';
 import { definePreset } from '@primeng/themes';
 import { NgxSpinnerModule } from 'ngx-spinner';
-import { MessageService } from 'primeng/api';
+import { ConfirmationService, MessageService } from 'primeng/api';
 import { providePrimeNG } from 'primeng/config';
 import es from '../../public/i18n/es.json';
 import { appRoutes } from './app.routes';
 import { httpInterceptor } from './interceptors/http.interceptor';
 import { errorInterceptor } from './interceptors/error.interceptor';
+import { AuthStore } from './stores/auth.store';
+import { BanksStore } from './stores/banks.store';
+import { BranchesStore } from './stores/branches.store';
+import { CompaniesStore } from './stores/companies.store';
+import { DashboardStore } from './stores/dashboard.store';
+import { DepartmentsStore } from './stores/departments.store';
+import { EmployeesStore } from './stores/employees.store';
+import { JobApplicationsStore } from './stores/job-applications.store';
+import { PayrollsStore } from './stores/payrolls.store';
+import { PositionsStore } from './stores/positions.store';
+import { SchedulesStore } from './stores/schedules.store';
 registerLocaleData(localeEs, 'es-MX');
 
 const MyPreset = definePreset(Aura, {
@@ -81,8 +92,22 @@ export const appConfig: ApplicationConfig = {
     provideCharts(withDefaultRegisterables()),
     { provide: LOCALE_ID, useValue: 'es-MX' },
     MessageService,
+    ConfirmationService,
     importProvidersFrom(
       NgxSpinnerModule.forRoot({ type: 'ball-scale-multiple' })
     ),
+    // Stores proporcionados a nivel de aplicación
+    // Orden importante: stores base primero, luego los que dependen de ellos
+    AuthStore,
+    CompaniesStore,
+    BranchesStore,
+    DepartmentsStore,
+    PositionsStore,
+    BanksStore,
+    SchedulesStore,
+    PayrollsStore,
+    EmployeesStore,
+    JobApplicationsStore,
+    DashboardStore,
   ],
 };

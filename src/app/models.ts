@@ -36,6 +36,7 @@ export type Position = {
   schedule_approver: boolean;
   dashboard_access?: boolean;
   default_view?: string;
+  available_for_job_fair?: boolean;
 };
 
 export type Employee = {

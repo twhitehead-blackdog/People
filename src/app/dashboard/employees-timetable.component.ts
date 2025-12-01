@@ -93,6 +93,55 @@ import { EmployeeSchedulesFormComponent } from './employee-schedules-form.compon
           <div class="flex lg:flex-row flex-col gap-2 mb-2">
             <p-select
               fluid
+              [(ngModel)]="currentEmployee"
+              [options]="store.employeesList()"
+              appendTo="body"
+              optionValue="id"
+              placeholder="TODOS LOS EMPLEADOS"
+              filter
+              filterBy="first_name,father_name,mother_name,document_id,work_email"
+              showClear
+              class="w-full lg:w-auto flex-1 text-sm"
+            >
+              <ng-template #selectedItem let-selected>
+                <div class="flex flex-col">
+                  <span>{{ selected.first_name }} {{ selected.father_name }}</span>
+                  @if(selected.document_id || selected.work_email) {
+                    <span class="text-xs text-gray-400">
+                      @if(selected.document_id) {
+                        {{ selected.document_id }}
+                      }
+                      @if(selected.document_id && selected.work_email) {
+                        • 
+                      }
+                      @if(selected.work_email) {
+                        {{ selected.work_email }}
+                      }
+                    </span>
+                  }
+                </div>
+              </ng-template>
+              <ng-template let-item #item>
+                <div class="flex flex-col">
+                  <span>{{ item.first_name }} {{ item.father_name }}</span>
+                  @if(item.document_id || item.work_email) {
+                    <span class="text-xs text-gray-400">
+                      @if(item.document_id) {
+                        {{ item.document_id }}
+                      }
+                      @if(item.document_id && item.work_email) {
+                        • 
+                      }
+                      @if(item.work_email) {
+                        {{ item.work_email }}
+                      }
+                    </span>
+                  }
+                </div>
+              </ng-template>
+            </p-select>
+            <p-select
+              fluid
               [(ngModel)]="currentBranch"
               [options]="store.branches.entities()"
               [disabled]="disableBranch()"
@@ -366,6 +415,7 @@ export class EmployeesTimetableComponent implements OnInit {
 
   public currentBranch = model<string>();
   public currentPosition = model<string>();
+  public currentEmployee = model<string>();
   private dialog = inject(DialogService);
   private message = inject(MessageService);
   public currentEmployees = computed(() =>
@@ -393,6 +443,8 @@ export class EmployeesTimetableComponent implements OnInit {
       )
       .filter((employee) => {
         return (
+          (!this.currentEmployee() ||
+            employee.id === this.currentEmployee()) &&
           (!this.currentBranch() ||
             employee.branch_id === this.currentBranch()) &&
           (!this.currentPosition() ||

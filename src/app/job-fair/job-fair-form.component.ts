@@ -4,9 +4,12 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  DestroyRef,
   inject,
+  OnInit,
   signal,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   FormBuilder,
   FormGroup,
@@ -22,6 +25,7 @@ import { InputText } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
 import { Textarea } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
+import { firstValueFrom } from 'rxjs';
 import { PositionsStore } from '../stores/positions.store';
 
 @Component({
@@ -101,7 +105,8 @@ import { PositionsStore } from '../stores/positions.store';
           </div>
         </div>
 
-        <!-- Formulario -->
+        <!-- Formulario - Solo ocultar si hay éxito -->
+        @if (!isSuccess()) {
         <p-card class="job-fair-card animate-slide-up">
           <ng-template #title>
             <div class="flex items-center gap-3">
@@ -211,8 +216,11 @@ import { PositionsStore } from '../stores/positions.store';
                   pInputText
                   id="phone_number"
                   formControlName="phone_number"
-                  placeholder="+507 1234-5678"
+                  placeholder="(+507) 6666-6666"
                   class="w-full"
+                  (input)="formatPhoneNumber($event)"
+                  (focus)="onPhoneFocus($event)"
+                  maxlength="17"
                   [class.ng-invalid]="
                     applicationForm.get('phone_number')?.invalid &&
                     applicationForm.get('phone_number')?.touched
@@ -255,8 +263,8 @@ import { PositionsStore } from '../stores/positions.store';
               }
             </div>
 
-            <!-- Hoja de Vida -->
-            <div class="mb-4">
+            <!-- Hoja de Vida - DESHABILITADO TEMPORALMENTE -->
+            <!-- <div class="mb-4">
               <label
                 for="resume"
                 class="block text-sm font-medium text-gray-300 mb-2"
@@ -273,7 +281,7 @@ import { PositionsStore } from '../stores/positions.store';
                 chooseLabel="Seleccionar archivo"
                 (onSelect)="onFileSelect($event)"
                 (onClear)="onFileClear()"
-                [disabled]="isSubmitting()"
+                [disabled]="true"
               />
               @if (selectedFile()) {
               <div class="mt-2 text-sm text-gray-400">
@@ -285,7 +293,7 @@ import { PositionsStore } from '../stores/positions.store';
               && applicationForm.get('resume')?.touched ) {
               <small class="text-red-400">Debes adjuntar tu hoja de vida</small>
               }
-            </div>
+            </div> -->
 
             <!-- Información Adicional -->
             <div class="mb-4">
@@ -319,11 +327,12 @@ import { PositionsStore } from '../stores/positions.store';
                 label="Enviar Aplicación"
                 icon="pi pi-send"
                 [loading]="isSubmitting()"
-                [disabled]="applicationForm.invalid || !selectedFile()"
+                [disabled]="applicationForm.invalid"
               />
             </div>
           </form>
         </p-card>
+        }
 
         <!-- Mensaje de éxito -->
         @if (isSuccess()) {
@@ -602,12 +611,13 @@ import { PositionsStore } from '../stores/positions.store';
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class JobFairFormComponent {
+export class JobFairFormComponent implements OnInit {
   private fb = inject(FormBuilder);
   private http = inject(HttpClient);
   private router = inject(Router);
   private messageService = inject(MessageService);
   private positionsStore = inject(PositionsStore);
+  private destroyRef = inject(DestroyRef);
 
   public selectedFile = signal<File | null>(null);
   public isSubmitting = signal<boolean>(false);
@@ -616,22 +626,170 @@ export class JobFairFormComponent {
   // Posiciones disponibles para la feria de empleo
   public availablePositions = computed(() => {
     const allPositions = this.positionsStore.entities();
-    // Filtrar posiciones relevantes para la feria
-    const relevantPositions = [
-      'Gerente de Sucursal',
-      'Subgerente de Sucursal',
-      'Asesor de Ventas',
-      'Estilista',
-      'Veterinario',
-      'Administrativo',
-      'Ayudante General',
+
+    // Si no hay posiciones cargadas, retornar array vacío
+    if (allPositions.length === 0) {
+      console.log('No hay posiciones cargadas aún');
+      return [];
+    }
+
+    // Filtrar solo las posiciones que están disponibles para la feria de empleo
+    // Si available_for_job_fair es null o undefined, asumir que está disponible (true por defecto)
+    const availablePositions = allPositions.filter(
+      (pos) => pos.available_for_job_fair !== false
+    );
+
+    console.log('Total de posiciones cargadas:', allPositions.length);
+    console.log(
+      'Posiciones disponibles para feria:',
+      availablePositions.length
+    );
+    console.log(
+      'Posiciones disponibles:',
+      availablePositions.map((p) => p.name)
+    );
+
+    // Lista específica de nombres de posiciones que deben aparecer
+    const relevantPositionNames = [
+      // Gerencia
+      'gerente de tienda',
+      'gerente de sucursal',
+      'gerente',
+      'subgerente de tienda',
+      'subgerente de sucursal',
+      'subgerente',
+      // Ventas
+      'asesor de venta',
+      'asesor de ventas',
+      'asesor',
+      'vendedor',
+      'ventas',
+      // Servicios
+      'veterinario',
+      'estilista',
+      'peluquero',
+      // Administrativos - Contabilidad
+      'contabilidad',
+      'contador',
+      'asistente de contabilidad',
+      // Administrativos - Recursos Humanos
+      'recursos humanos',
+      'rrhh',
+      'asistente de recursos humanos',
+      'asistente de rrhh',
+      // Administrativos - Logística
+      'logística',
+      'logistica',
+      'logistico',
+      // Administrativos - Mercadeo
+      'mercadeo',
+      'marketing',
+      'mercadólogo',
+      // Administrativos - Finanzas
+      'finanzas',
+      'financiero',
+      'asistente de finanzas',
+      // Administrativos - General
+      'administrativo',
+      'asistente administrativo',
+      // Operativos
+      'ayudante',
+      'ayudante general',
+      'auxiliar',
     ];
 
-    return allPositions.filter((pos) =>
-      relevantPositions.some((relevant) =>
-        pos.name.toLowerCase().includes(relevant.toLowerCase())
-      )
+    // Palabras clave adicionales para búsqueda flexible
+    const keywords = [
+      // Gerencia
+      'gerente',
+      'subgerente',
+      // Ventas
+      'asesor',
+      'venta',
+      'vendedor',
+      // Servicios
+      'veterinario',
+      'estilista',
+      'peluquero',
+      // Administrativos
+      'contabilidad',
+      'contador',
+      'recursos humanos',
+      'rrhh',
+      'logística',
+      'logistica',
+      'logistico',
+      'mercadeo',
+      'marketing',
+      'mercadólogo',
+      'finanzas',
+      'financiero',
+      'administrativo',
+      // Operativos
+      'ayudante',
+      'auxiliar',
+    ];
+
+    // Normalizar nombres para comparación (sin acentos, minúsculas)
+    const normalize = (str: string) =>
+      str
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .trim();
+
+    // Filtrar posiciones que:
+    // 1. Coincidan exactamente con algún nombre relevante (normalizado)
+    // 2. O contengan alguna palabra clave
+    const filtered = availablePositions.filter((pos) => {
+      const normalizedName = normalize(pos.name);
+
+      // Verificar coincidencia exacta con nombres relevantes
+      const exactMatch = relevantPositionNames.some(
+        (relevantName) => normalizedName === normalize(relevantName)
+      );
+
+      // Verificar si contiene alguna palabra clave
+      const keywordMatch = keywords.some((keyword) =>
+        normalizedName.includes(normalize(keyword))
+      );
+
+      return exactMatch || keywordMatch;
+    });
+
+    console.log(
+      'Posiciones filtradas:',
+      filtered.length,
+      filtered.map((p) => p.name)
     );
+
+    // Para la feria de empleo, mostrar solo las posiciones disponibles (available_for_job_fair = true)
+    // Si hay posiciones filtradas, priorizarlas ordenándolas primero
+    let result: typeof availablePositions;
+    if (filtered.length > 0) {
+      // Combinar: primero las filtradas (relevantes), luego las demás disponibles
+      const filteredIds = new Set(filtered.map((p) => p.id));
+      const others = availablePositions.filter((p) => !filteredIds.has(p.id));
+      result = [...filtered, ...others];
+      console.log(
+        'Posiciones que se mostrarán (filtradas primero):',
+        result.length
+      );
+    } else {
+      // Si no hay coincidencias, mostrar todas las posiciones disponibles para feria
+      console.log(
+        'No se encontraron coincidencias, mostrando todas las posiciones disponibles:',
+        availablePositions.length
+      );
+      result = availablePositions;
+    }
+
+    // Ordenar alfabéticamente de A a Z por nombre
+    return result.sort((a, b) => {
+      const nameA = a.name.toLowerCase().trim();
+      const nameB = b.name.toLowerCase().trim();
+      return nameA.localeCompare(nameB, 'es', { sensitivity: 'base' });
+    });
   });
 
   public applicationForm: FormGroup = this.fb.group({
@@ -641,12 +799,28 @@ export class JobFairFormComponent {
     phone_number: ['', [Validators.required]],
     position_id: ['', [Validators.required]],
     additional_info: [''],
-    resume: [null, [Validators.required]],
+    resume: [null], // Validación deshabilitada temporalmente
   });
 
   constructor() {
-    // Cargar posiciones
+    // Cargar posiciones inmediatamente
     this.positionsStore.reloadItems();
+  }
+
+  ngOnInit() {
+    // Asegurar que las posiciones se carguen al inicializar
+    // Esperar un momento para que el store se inicialice
+    setTimeout(() => {
+      if (this.positionsStore.entities().length === 0) {
+        console.log('Cargando posiciones desde ngOnInit...');
+        this.positionsStore.reloadItems();
+      } else {
+        console.log(
+          'Posiciones ya cargadas:',
+          this.positionsStore.entities().length
+        );
+      }
+    }, 100);
   }
 
   onFileSelect(event: any) {
@@ -687,6 +861,55 @@ export class JobFairFormComponent {
     this.applicationForm.patchValue({ resume: null });
   }
 
+  onPhoneFocus(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const value = input.value || '';
+    // Si el campo está vacío, agregar el prefijo (+507)
+    if (!value || value.trim() === '') {
+      input.value = '(+507) ';
+      this.applicationForm.patchValue({ phone_number: '(+507) ' });
+    }
+  }
+
+  formatPhoneNumber(event: Event) {
+    const input = event.target as HTMLInputElement;
+    let value = input.value || '';
+
+    // Remover todo excepto números
+    const numbers = value.replace(/\D/g, '');
+
+    // Si empieza con 507, removerlo porque ya está en el prefijo
+    let cleanNumbers = numbers;
+    if (numbers.startsWith('507')) {
+      cleanNumbers = numbers.substring(3);
+    }
+
+    // Limitar a 8 dígitos (formato panameño)
+    if (cleanNumbers.length > 8) {
+      cleanNumbers = cleanNumbers.substring(0, 8);
+    }
+
+    // Formatear: (+507) XXXX-XXXX
+    let formatted = '(+507) ';
+    if (cleanNumbers.length > 0) {
+      if (cleanNumbers.length <= 4) {
+        formatted += cleanNumbers;
+      } else {
+        formatted +=
+          cleanNumbers.substring(0, 4) + '-' + cleanNumbers.substring(4);
+      }
+    }
+
+    // Actualizar el valor del input y del formulario
+    input.value = formatted;
+    this.applicationForm.patchValue({ phone_number: formatted });
+
+    // Mover el cursor al final
+    setTimeout(() => {
+      input.setSelectionRange(formatted.length, formatted.length);
+    }, 0);
+  }
+
   formatFileSize(bytes: number): string {
     if (bytes === 0) return '0 Bytes';
     const k = 1024;
@@ -695,8 +918,8 @@ export class JobFairFormComponent {
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
   }
 
-  async onSubmit() {
-    if (this.applicationForm.invalid || !this.selectedFile()) {
+  onSubmit() {
+    if (this.applicationForm.invalid) {
       this.messageService.add({
         severity: 'warn',
         summary: 'Formulario incompleto',
@@ -707,95 +930,146 @@ export class JobFairFormComponent {
 
     this.isSubmitting.set(true);
 
-    try {
-      // 1. Subir archivo a Supabase Storage
-      const resumeUrl = await this.uploadResume(this.selectedFile()!);
+    // 1. Subir archivo a Supabase Storage - DESHABILITADO TEMPORALMENTE
+    // const resumeUrl = await this.uploadResume(this.selectedFile()!);
 
-      // 2. Obtener nombre de la posición
-      const positionId = this.applicationForm.value.position_id;
-      const position = this.availablePositions().find(
-        (p) => p.id === positionId
-      );
-      const positionName = position?.name || '';
+    // 2. Obtener nombre de la posición
+    const positionId = this.applicationForm.value.position_id;
+    const position = this.availablePositions().find((p) => p.id === positionId);
+    const positionName = position?.name || '';
 
-      // 3. Crear aplicación en la base de datos
-      const applicationData = {
-        first_name: this.applicationForm.value.first_name,
-        last_name: this.applicationForm.value.last_name,
-        email: this.applicationForm.value.email,
-        phone_number: this.applicationForm.value.phone_number,
-        position_id: positionId,
-        position_name: positionName,
-        resume_url: resumeUrl.url,
-        resume_filename: this.selectedFile()!.name,
-        additional_info: this.applicationForm.value.additional_info || null,
-        status: 'pending',
-      };
+    // 3. Crear aplicación en la base de datos
+    // Usar la misma lógica que el formulario de incapacidades: confiar en el interceptor
+    const applicationData = {
+      first_name: this.applicationForm.value.first_name,
+      last_name: this.applicationForm.value.last_name,
+      email: this.applicationForm.value.email,
+      phone_number: this.applicationForm.value.phone_number,
+      position_id: positionId,
+      position_name: positionName,
+      resume_url: null, // Deshabilitado temporalmente
+      resume_filename: null, // Deshabilitado temporalmente
+      additional_info: this.applicationForm.value.additional_info || null,
+      status: 'pending',
+    };
 
-      const application = await this.http
-        .post<any>(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/job_applications`,
-          applicationData
-        )
-        .toPromise();
+    // Usar .subscribe() directamente como en uploadDisability() - confiar en el interceptor
+    // NO pasar headers explícitos, el interceptor los agregará automáticamente
+    console.log('📤 Enviando aplicación:', applicationData);
+    console.log(
+      '🔗 URL:',
+      `${process.env['ENV_SUPABASE_URL']}/rest/v1/job_applications`
+    );
 
-      // 4. Enviar notificaciones
-      await this.sendNotifications(applicationData);
+    this.http
+      .post(
+        `${process.env['ENV_SUPABASE_URL']}/rest/v1/job_applications`,
+        applicationData
+      )
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (response) => {
+          console.log('✅ Aplicación creada exitosamente:', response);
 
-      this.isSuccess.set(true);
-      this.messageService.add({
-        severity: 'success',
-        summary: '¡Éxito!',
-        detail: 'Tu aplicación ha sido enviada correctamente',
+          // 4. Enviar notificaciones (opcional, puede fallar sin afectar el éxito)
+          this.sendNotifications(applicationData).catch((err) => {
+            console.warn('Error enviando notificaciones:', err);
+          });
+
+          this.isSuccess.set(true);
+          this.messageService.add({
+            severity: 'success',
+            summary: '¡Éxito!',
+            detail: 'Tu aplicación ha sido enviada correctamente',
+          });
+          this.isSubmitting.set(false);
+        },
+        error: (error: any) => {
+          console.error('❌ Error submitting application:', error);
+          console.error('❌ Error status:', error?.status);
+          console.error('❌ Error message:', error?.message);
+          console.error('❌ Error error:', error?.error);
+          console.error('❌ Error completo:', JSON.stringify(error, null, 2));
+
+          this.isSuccess.set(false);
+
+          let errorMessage =
+            'Hubo un error al enviar tu aplicación. Por favor intenta nuevamente.';
+
+          if (error?.status === 401) {
+            errorMessage =
+              'Error de autenticación (401). Esto puede indicar que las políticas RLS no están configuradas correctamente. Por favor ejecuta el script SQL: database/migrations/recreate-job-applications-table.sql';
+          } else if (error?.error?.message) {
+            errorMessage = error.error.message;
+          } else if (error?.message) {
+            errorMessage = error.message;
+          } else if (error?.error?.error) {
+            errorMessage = error.error.error;
+          }
+
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: errorMessage,
+          });
+          this.isSubmitting.set(false);
+        },
       });
-    } catch (error: any) {
-      console.error('Error submitting application:', error);
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Error',
-        detail:
-          error.error?.message ||
-          'Hubo un error al enviar tu aplicación. Por favor intenta nuevamente.',
-      });
-    } finally {
-      this.isSubmitting.set(false);
-    }
   }
 
   private async uploadResume(
     file: File
   ): Promise<{ url: string; path: string }> {
     const timestamp = Date.now();
-    const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    // Mejorar sanitización: remover caracteres especiales y espacios, mantener solo alfanuméricos, guiones y puntos
+    const sanitizedName = file.name
+      .replace(/[^a-zA-Z0-9.-]/g, '_')
+      .replace(/_{2,}/g, '_') // Reemplazar múltiples guiones bajos por uno solo
+      .replace(/^_+|_+$/g, '') // Remover guiones bajos al inicio y final
+      .replace(/ /g, '_'); // Reemplazar espacios por guiones bajos
     const fileName = `${timestamp}_${sanitizedName}`;
     const filePath = `job-applications/${fileName}`;
 
-    // Subir a Supabase Storage usando FormData
-    const formData = new FormData();
-    formData.append('file', file);
-
     try {
-      const response = await this.http
-        .post<any>(
-          `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/job-applications/${fileName}`,
-          formData
-        )
-        .toPromise();
+      // Usar la misma lógica que el módulo de incapacidades que funciona correctamente
+      // Usar Service Role Key si está disponible, sino usar API Key pública
+      const storageKey =
+        process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'] ||
+        process.env['ENV_SUPABASE_API_KEY'] ||
+        '';
 
-      // Construir URL pública
+      // Upload to Supabase Storage using REST API (mismo método que incapacidades)
+      await firstValueFrom(
+        this.http.post(
+          `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/job-applications/${fileName}`,
+          file, // Enviar el archivo directamente como binario
+          {
+            headers: {
+              apikey: storageKey,
+              Authorization: `Bearer ${storageKey}`,
+              'Content-Type': file.type || 'application/octet-stream',
+              'x-upsert': 'true', // Permite sobrescribir si el archivo ya existe
+            },
+          }
+        )
+      );
+
+      // Get public URL for the uploaded file (mismo formato que incapacidades)
       const publicUrl = `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/public/job-applications/${fileName}`;
 
       return {
         url: publicUrl,
         path: filePath,
       };
-    } catch (error: any) {
-      // Si el bucket no existe, intentar crear la aplicación sin el archivo por ahora
-      // y registrar el error
-      console.error('Error uploading file to Supabase Storage:', error);
-      throw new Error(
-        'No se pudo subir el archivo. Por favor, contacta al administrador.'
-      );
+    } catch (uploadError: any) {
+      // Usar el mismo manejo de errores que el módulo de incapacidades
+      console.error('Error uploading file to storage:', uploadError);
+      const errorDetail =
+        uploadError?.error?.message ||
+        uploadError?.error?.error ||
+        uploadError?.message ||
+        'No se pudo subir el archivo. Verifica que el bucket existe y tiene las políticas correctas.';
+      throw new Error(errorDetail);
     }
   }
 

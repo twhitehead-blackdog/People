@@ -2,18 +2,23 @@ import { CurrencyPipe, DatePipe, NgClass } from '@angular/common';
 import { HttpClient, httpResource } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   computed,
   inject,
   signal,
+  TemplateRef,
+  ViewChild,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
+import { filter } from 'rxjs';
 import {
   addDays,
   differenceInMinutes,
   endOfMonth,
   format,
+  isSameMonth,
   startOfMonth,
 } from 'date-fns';
 import { MessageService } from 'primeng/api';
@@ -26,10 +31,12 @@ import { FileUpload } from 'primeng/fileupload';
 import { InputText } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
 import { TableModule } from 'primeng/table';
+import { TagModule } from 'primeng/tag';
 import { Textarea } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
+import { CalendarComponent, CalendarMarkerData } from '../calendar.component';
 import { Notification, TimeLogEnum } from '../models';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
@@ -40,6 +47,7 @@ import { EmployeesStore } from '../stores/employees.store';
   imports: [
     Card,
     TableModule,
+    TagModule,
     DatePipe,
     CurrencyPipe,
     Button,
@@ -54,10 +62,12 @@ import { EmployeesStore } from '../stores/employees.store';
     NgClass,
     Checkbox,
     Select,
+    CalendarComponent,
   ],
   providers: [MessageService],
   template: `
     <div class="portal-content">
+      <!-- Debug: Sección activa: {{ activeSection() }} -->
       <!-- Dashboard Section -->
       @if (activeSection() === 'dashboard') {
       <div id="dashboard" class="section-content">
@@ -861,6 +871,456 @@ import { EmployeesStore } from '../stores/employees.store';
       </div>
       }
 
+      <!-- Vacaciones Section -->
+      @if (activeSection() === 'vacations') {
+      <div id="vacations" class="section-content">
+        <p-card>
+          <ng-template #title>Solicitar Vacaciones</ng-template>
+          <ng-template #subtitle
+            >Solicita tus días de vacaciones</ng-template
+          >
+          <div class="flex flex-col gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm text-gray-400 mb-2"
+                  >Inicio de Vacaciones</label
+                >
+                <p-datepicker
+                  [(ngModel)]="vacationStartDate"
+                  appendTo="body"
+                  class="w-full"
+                  [minDate]="getCurrentDate()"
+                />
+              </div>
+              <div>
+                <label class="block text-sm text-gray-400 mb-2"
+                  >Fin de Vacaciones</label
+                >
+                <p-datepicker
+                  [(ngModel)]="vacationEndDate"
+                  appendTo="body"
+                  class="w-full"
+                  [minDate]="getCurrentDate()"
+                />
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm text-gray-400 mb-2"
+                >Descripción (opcional)</label
+              >
+              <textarea
+                id="vacation-notes"
+                pInputTextarea
+                [(ngModel)]="vacationNotes"
+                rows="3"
+                placeholder="Describe el motivo de las vacaciones..."
+                class="w-full"
+              ></textarea>
+            </div>
+            <div>
+              <label class="block text-sm text-gray-400 mb-2"
+                >Documento (opcional)</label
+              >
+              <p-fileUpload
+                mode="basic"
+                accept="image/*,.pdf"
+                maxFileSize="5000000"
+                [auto]="false"
+                chooseLabel="Seleccionar Archivo"
+                (onSelect)="onVacationFileSelect($event)"
+                class="w-full"
+              />
+              <p class="text-xs text-gray-500 mt-2">
+                Formatos permitidos: PDF, JPG, PNG (máx. 5MB)
+              </p>
+            </div>
+            <div class="flex justify-end">
+              <p-button
+                label="Enviar Solicitud"
+                icon="pi pi-send"
+                [loading]="submittingVacation()"
+                (click)="submitVacationRequest()"
+              />
+            </div>
+          </div>
+
+          <!-- Lista de vacaciones solicitadas -->
+          <div class="mt-6">
+            <h3 class="text-lg font-semibold text-white mb-4">
+              Mis Vacaciones
+            </h3>
+            <div class="overflow-x-auto">
+              <p-table
+                [value]="myVacations()"
+                [rows]="10"
+                paginator
+                [loading]="timeoffsApi.isLoading()"
+                styleClass="p-datatable-sm md:p-datatable-lg"
+                [scrollable]="true"
+                scrollHeight="400px"
+                [responsiveLayout]="'scroll'"
+              >
+                <ng-template #header>
+                  <tr>
+                    <th>Inicio de Vacaciones</th>
+                    <th>Fin de Vacaciones</th>
+                    <th>Días</th>
+                    <th>Estado</th>
+                    <th>Documento</th>
+                  </tr>
+                </ng-template>
+                <ng-template #body let-timeoff>
+                  <tr>
+                    <td>{{ timeoff.date_from | date : 'mediumDate' }}</td>
+                    <td>{{ timeoff.date_to | date : 'mediumDate' }}</td>
+                    <td>
+                      {{
+                        calculateDays(
+                          timeoff.date_from,
+                          timeoff.date_to
+                        )
+                      }}
+                    </td>
+                    <td>
+                      <span
+                        class="px-2 py-1 rounded text-xs font-semibold"
+                        [class.bg-yellow-500]="!timeoff.is_approved"
+                        [class.bg-green-500]="timeoff.is_approved"
+                      >
+                        {{ timeoff.is_approved ? 'Aprobado' : 'Pendiente' }}
+                      </span>
+                    </td>
+                    <td>
+                      @if(timeoff.document_url) {
+                      <p-button
+                        icon="pi pi-download"
+                        severity="secondary"
+                        size="small"
+                        (click)="downloadDocument(timeoff.document_url)"
+                        pTooltip="Descargar documento"
+                        tooltipPosition="top"
+                      />
+                      }
+                    </td>
+                  </tr>
+                </ng-template>
+                <ng-template #emptymessage>
+                  <tr>
+                    <td colspan="5" class="text-center py-8">
+                      <i class="pi pi-calendar-times text-4xl text-gray-500 mb-2"></i>
+                      <p class="text-gray-400 text-lg font-semibold">
+                        No tienes solicitudes de vacaciones
+                      </p>
+                    </td>
+                  </tr>
+                </ng-template>
+              </p-table>
+            </div>
+          </div>
+        </p-card>
+      </div>
+      }
+
+      <!-- Compensatorios Section -->
+      @if (activeSection() === 'compensatory') {
+      <div id="compensatory" class="section-content">
+        <p-card>
+          <ng-template #title>Solicitar Compensatorios</ng-template>
+          <ng-template #subtitle
+            >Solicita tus días compensatorios</ng-template
+          >
+          <div class="flex flex-col gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm text-gray-400 mb-2"
+                  >Inicio de Compensatorio</label
+                >
+                <p-datepicker
+                  [(ngModel)]="compensatoryStartDate"
+                  appendTo="body"
+                  class="w-full"
+                  [minDate]="getCurrentDate()"
+                />
+              </div>
+              <div>
+                <label class="block text-sm text-gray-400 mb-2"
+                  >Fin de Compensatorio</label
+                >
+                <p-datepicker
+                  [(ngModel)]="compensatoryEndDate"
+                  appendTo="body"
+                  class="w-full"
+                  [minDate]="getCurrentDate()"
+                />
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm text-gray-400 mb-2"
+                >Descripción (opcional)</label
+              >
+              <textarea
+                id="compensatory-notes"
+                pInputTextarea
+                [(ngModel)]="compensatoryNotes"
+                rows="3"
+                placeholder="Describe el motivo del compensatorio..."
+                class="w-full"
+              ></textarea>
+            </div>
+            <div>
+              <label class="block text-sm text-gray-400 mb-2"
+                >Documento (opcional)</label
+              >
+              <p-fileUpload
+                mode="basic"
+                accept="image/*,.pdf"
+                maxFileSize="5000000"
+                [auto]="false"
+                chooseLabel="Seleccionar Archivo"
+                (onSelect)="onCompensatoryFileSelect($event)"
+                class="w-full"
+              />
+              <p class="text-xs text-gray-500 mt-2">
+                Formatos permitidos: PDF, JPG, PNG (máx. 5MB)
+              </p>
+            </div>
+            <div class="flex justify-end">
+              <p-button
+                label="Enviar Solicitud"
+                icon="pi pi-send"
+                [loading]="submittingCompensatory()"
+                (click)="submitCompensatoryRequest()"
+              />
+            </div>
+          </div>
+
+          <!-- Lista de compensatorios solicitados -->
+          <div class="mt-6">
+            <h3 class="text-lg font-semibold text-white mb-4">
+              Mis Compensatorios
+            </h3>
+            <div class="overflow-x-auto">
+              <p-table
+                [value]="myCompensatory()"
+                [rows]="10"
+                paginator
+                [loading]="timeoffsApi.isLoading()"
+                styleClass="p-datatable-sm md:p-datatable-lg"
+                [scrollable]="true"
+                scrollHeight="400px"
+                [responsiveLayout]="'scroll'"
+              >
+                <ng-template #header>
+                  <tr>
+                    <th>Inicio de Compensatorio</th>
+                    <th>Fin de Compensatorio</th>
+                    <th>Días</th>
+                    <th>Estado</th>
+                    <th>Documento</th>
+                  </tr>
+                </ng-template>
+                <ng-template #body let-timeoff>
+                  <tr>
+                    <td>{{ timeoff.date_from | date : 'mediumDate' }}</td>
+                    <td>{{ timeoff.date_to | date : 'mediumDate' }}</td>
+                    <td>
+                      {{
+                        calculateDays(
+                          timeoff.date_from,
+                          timeoff.date_to
+                        )
+                      }}
+                    </td>
+                    <td>
+                      <span
+                        class="px-2 py-1 rounded text-xs font-semibold"
+                        [class.bg-yellow-500]="!timeoff.is_approved"
+                        [class.bg-green-500]="timeoff.is_approved"
+                      >
+                        {{ timeoff.is_approved ? 'Aprobado' : 'Pendiente' }}
+                      </span>
+                    </td>
+                    <td>
+                      @if(timeoff.document_url) {
+                      <p-button
+                        icon="pi pi-download"
+                        severity="secondary"
+                        size="small"
+                        (click)="downloadDocument(timeoff.document_url)"
+                        pTooltip="Descargar documento"
+                        tooltipPosition="top"
+                      />
+                      }
+                    </td>
+                  </tr>
+                </ng-template>
+                <ng-template #emptymessage>
+                  <tr>
+                    <td colspan="5" class="text-center py-8">
+                      <i class="pi pi-calendar-times text-4xl text-gray-500 mb-2"></i>
+                      <p class="text-gray-400 text-lg font-semibold">
+                        No tienes solicitudes de compensatorios
+                      </p>
+                    </td>
+                  </tr>
+                </ng-template>
+              </p-table>
+            </div>
+          </div>
+        </p-card>
+      </div>
+      }
+
+      <!-- Licencia Maternal Section -->
+      @if (activeSection() === 'maternity' && (currentEmployee()?.gender === 'F' || isITEmployee())) {
+      <div id="maternity" class="section-content">
+        <p-card>
+          <ng-template #title>Solicitar Licencia Maternal</ng-template>
+          <ng-template #subtitle
+            >Solicita tu licencia por maternidad</ng-template
+          >
+          <div class="flex flex-col gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm text-gray-400 mb-2"
+                  >Inicio de Licencia Maternal</label
+                >
+                <p-datepicker
+                  [(ngModel)]="maternityStartDate"
+                  appendTo="body"
+                  class="w-full"
+                  [minDate]="getCurrentDate()"
+                />
+              </div>
+              <div>
+                <label class="block text-sm text-gray-400 mb-2"
+                  >Fin de Licencia Maternal</label
+                >
+                <p-datepicker
+                  [(ngModel)]="maternityEndDate"
+                  appendTo="body"
+                  class="w-full"
+                  [minDate]="getCurrentDate()"
+                />
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm text-gray-400 mb-2"
+                >Descripción (opcional)</label
+              >
+              <textarea
+                id="maternity-notes"
+                pInputTextarea
+                [(ngModel)]="maternityNotes"
+                rows="3"
+                placeholder="Describe cualquier información adicional sobre tu licencia maternal..."
+                class="w-full"
+              ></textarea>
+            </div>
+            <div>
+              <label class="block text-sm text-gray-400 mb-2"
+                >Documento (opcional)</label
+              >
+              <p-fileUpload
+                mode="basic"
+                accept="image/*,.pdf"
+                maxFileSize="5000000"
+                [auto]="false"
+                chooseLabel="Seleccionar Archivo"
+                (onSelect)="onMaternityFileSelect($event)"
+                class="w-full"
+              />
+              <p class="text-xs text-gray-500 mt-2">
+                Formatos permitidos: PDF, JPG, PNG (máx. 5MB)
+              </p>
+            </div>
+            <div class="flex justify-end">
+              <p-button
+                label="Enviar Solicitud"
+                icon="pi pi-send"
+                [loading]="submittingMaternity()"
+                (click)="submitMaternityRequest()"
+              />
+            </div>
+          </div>
+
+          <!-- Lista de licencias maternales solicitadas -->
+          <div class="mt-6">
+            <h3 class="text-lg font-semibold text-white mb-4">
+              Mis Licencias Maternales
+            </h3>
+            <div class="overflow-x-auto">
+              <p-table
+                [value]="myMaternity()"
+                [rows]="10"
+                paginator
+                [loading]="timeoffsApi.isLoading()"
+                styleClass="p-datatable-sm md:p-datatable-lg"
+                [scrollable]="true"
+                scrollHeight="400px"
+                [responsiveLayout]="'scroll'"
+              >
+                <ng-template #header>
+                  <tr>
+                    <th>Inicio de Licencia</th>
+                    <th>Fin de Licencia</th>
+                    <th>Días</th>
+                    <th>Estado</th>
+                    <th>Documento</th>
+                  </tr>
+                </ng-template>
+                <ng-template #body let-timeoff>
+                  <tr>
+                    <td>{{ timeoff.date_from | date : 'mediumDate' }}</td>
+                    <td>{{ timeoff.date_to | date : 'mediumDate' }}</td>
+                    <td>
+                      {{
+                        calculateDays(
+                          timeoff.date_from,
+                          timeoff.date_to
+                        )
+                      }}
+                    </td>
+                    <td>
+                      <span
+                        class="px-2 py-1 rounded text-xs font-semibold"
+                        [class.bg-yellow-500]="!timeoff.is_approved"
+                        [class.bg-green-500]="timeoff.is_approved"
+                      >
+                        {{ timeoff.is_approved ? 'Aprobado' : 'Pendiente' }}
+                      </span>
+                    </td>
+                    <td>
+                      @if(timeoff.document_url) {
+                      <p-button
+                        icon="pi pi-download"
+                        severity="secondary"
+                        size="small"
+                        (click)="downloadDocument(timeoff.document_url)"
+                        pTooltip="Descargar documento"
+                        tooltipPosition="top"
+                      />
+                      }
+                    </td>
+                  </tr>
+                </ng-template>
+                <ng-template #emptymessage>
+                  <tr>
+                    <td colspan="5" class="text-center py-8">
+                      <i class="pi pi-calendar-times text-4xl text-gray-500 mb-2"></i>
+                      <p class="text-gray-400 text-lg font-semibold">
+                        No tienes solicitudes de licencia maternal
+                      </p>
+                    </td>
+                  </tr>
+                </ng-template>
+              </p-table>
+            </div>
+          </div>
+        </p-card>
+      </div>
+      }
+
       <!-- Solicitar Documentos Section -->
       @if (activeSection() === 'documents') {
       <div id="documents" class="section-content">
@@ -1481,6 +1941,99 @@ import { EmployeesStore } from '../stores/employees.store';
         </div>
       </div>
       }
+
+      <!-- Calendario Section -->
+      @if (activeSection() === 'calendar') {
+      <div id="calendar" class="section-content">
+        <p-card>
+          <ng-template #title>Calendario</ng-template>
+          <ng-template #subtitle
+            >Visualiza tus eventos, vacaciones, incapacidades y turnos</ng-template
+          >
+          <div class="flex flex-col gap-6">
+            <ng-template #markerTpl let-markers>
+              <div class="flex flex-wrap gap-1 justify-center">
+                @for (marker of markers; track marker.date) {
+                <div
+                  class="w-2 h-2 rounded-full"
+                  [ngClass]="marker.data.color"
+                  [pTooltip]="marker.data.title"
+                  tooltipPosition="top"
+                ></div>
+                }
+              </div>
+            </ng-template>
+            <pt-calendar
+              [markers]="calendarMarkers()"
+              [markerTpl]="markerTpl"
+              (monthChange)="onCalendarMonthChange($event)"
+            />
+
+            <!-- Leyenda -->
+            <div class="mt-4 p-4 bg-neutral-800 rounded-lg border border-neutral-700">
+              <h3 class="text-lg font-semibold text-white mb-3">Leyenda</h3>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div class="flex items-center gap-2">
+                  <div class="w-3 h-3 rounded-full bg-blue-500"></div>
+                  <span class="text-gray-300 text-sm">Vacaciones</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <div class="w-3 h-3 rounded-full bg-red-500"></div>
+                  <span class="text-gray-300 text-sm">Incapacidades</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <div class="w-3 h-3 rounded-full bg-green-500"></div>
+                  <span class="text-gray-300 text-sm">Compensatorios</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+                  <span class="text-gray-300 text-sm">Turnos Programados</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Eventos del mes -->
+            <div class="mt-4">
+              <h3 class="text-lg font-semibold text-white mb-3">
+                Eventos de este mes
+              </h3>
+              <div class="space-y-2">
+                @if (currentMonthEvents().length === 0) {
+                <p class="text-gray-400 text-center py-4">
+                  No hay eventos programados para este mes
+                </p>
+                } @else {
+                @for (event of currentMonthEvents(); track event.id) {
+                <div
+                  class="p-3 bg-neutral-800 rounded-lg border border-neutral-700 flex items-center gap-3"
+                >
+                  <div
+                    class="w-3 h-3 rounded-full flex-shrink-0"
+                    [ngClass]="event.color"
+                  ></div>
+                  <div class="flex-1">
+                    <p class="text-white font-medium">{{ event.title }}</p>
+                    <p class="text-gray-400 text-sm">
+                      {{ event.startDate | date : 'mediumDate' }}
+                      @if (event.endDate && event.endDate !== event.startDate) {
+                      - {{ event.endDate | date : 'mediumDate' }}
+                      }
+                    </p>
+                  </div>
+                  <p-tag
+                    [value]="event.status"
+                    [severity]="event.statusSeverity"
+                    [style]="{ 'font-size': '0.75rem' }"
+                  />
+                </div>
+                }
+                }
+              </div>
+            </div>
+          </div>
+        </p-card>
+      </div>
+      }
     </div>
 
     <!-- Dialog para conversación bidireccional -->
@@ -1946,9 +2499,25 @@ export class EmployeePortalComponent {
   private http = inject(HttpClient);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private cdr = inject(ChangeDetectorRef);
   private readonly companyEmailDomain = '@blackdogpanama.com';
 
   public currentEmployee = computed(() => this.store.currentEmployee());
+
+  public isITEmployee = computed(() => {
+    const employee = this.currentEmployee();
+    if (!employee) return false;
+
+    const positionName = employee.position?.name?.toLowerCase() || '';
+    const departmentName = employee.department?.name?.toLowerCase() || '';
+
+    // Verificar si el cargo o departamento contiene palabras relacionadas con IT
+    const itKeywords = ['it', 'informática', 'informatica', 'sistemas', 'tecnología', 'tecnologia', 'ti', 'desarrollador', 'programador', 'developer'];
+    
+    return itKeywords.some(keyword => 
+      positionName.includes(keyword) || departmentName.includes(keyword)
+    );
+  });
   public activeSection = signal<string>('dashboard');
   public showSalary = signal(false);
   public isAdmin = computed(() => this.store.isAdmin());
@@ -1959,10 +2528,22 @@ export class EmployeePortalComponent {
   });
 
   constructor() {
-    // Inicializar con el fragmento actual si existe
-    const currentFragment = this.route.snapshot.fragment;
-    if (currentFragment) {
-      this.activeSection.set(currentFragment);
+    // Cargar tipos de timeoff al inicializar
+    this.employees.fetchTimeOffTypes();
+    
+    // Función helper para obtener el fragmento de la URL
+    const getFragmentFromUrl = () => {
+      const url = this.router.url;
+      if (url.includes('#')) {
+        return url.split('#')[1];
+      }
+      return this.route.snapshot.fragment || null;
+    };
+
+    // Inicializar con el fragmento actual
+    const initialFragment = getFragmentFromUrl();
+    if (initialFragment) {
+      this.activeSection.set(initialFragment);
     } else {
       this.activeSection.set('dashboard');
     }
@@ -1971,6 +2552,7 @@ export class EmployeePortalComponent {
     this.route.fragment.subscribe((fragment) => {
       if (fragment) {
         this.activeSection.set(fragment);
+        this.cdr.markForCheck();
         // Hacer scroll a la sección después de un pequeño delay
         setTimeout(() => {
           const element = document.getElementById(fragment);
@@ -1978,8 +2560,23 @@ export class EmployeePortalComponent {
             element.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }
         }, 100);
-      } else {
-        this.activeSection.set('dashboard');
+      }
+    });
+
+    // También suscribirse a cambios de navegación para detectar cambios en la URL
+    this.router.events.pipe(
+      filter(event => event instanceof NavigationEnd)
+    ).subscribe(() => {
+      const fragment = getFragmentFromUrl();
+      if (fragment) {
+        this.activeSection.set(fragment);
+        this.cdr.markForCheck();
+      } else if (!this.route.snapshot.fragment) {
+        // Solo cambiar a dashboard si realmente no hay fragmento
+        if (this.activeSection() !== 'dashboard') {
+          this.activeSection.set('dashboard');
+          this.cdr.markForCheck();
+        }
       }
     });
   }
@@ -2222,6 +2819,32 @@ export class EmployeePortalComponent {
   public selectedFile = signal<File | null>(null);
   public uploadingDisability = signal(false);
 
+  // IDs de tipos de timeoff
+  private readonly VACATION_TYPE_ID = 'e7e63bb4-ca86-4091-85fa-c4da16545b49';
+  private readonly COMPENSATORY_TYPE_ID = 'f2d92995-96a0-414f-b64a-9823db776745';
+  private readonly MATERNITY_TYPE_ID = 'maternity-type-id'; // TODO: Reemplazar con el ID real del tipo de timeoff para licencia maternal
+
+  // Vacaciones signals
+  public vacationStartDate = signal<Date | null>(null);
+  public vacationEndDate = signal<Date | null>(null);
+  public vacationNotes = signal('');
+  public selectedVacationFile = signal<File | null>(null);
+  public submittingVacation = signal(false);
+
+  // Compensatorios signals
+  public compensatoryStartDate = signal<Date | null>(null);
+  public compensatoryEndDate = signal<Date | null>(null);
+  public compensatoryNotes = signal('');
+  public selectedCompensatoryFile = signal<File | null>(null);
+  public submittingCompensatory = signal(false);
+
+  // Licencia Maternal signals
+  public maternityStartDate = signal<Date | null>(null);
+  public maternityEndDate = signal<Date | null>(null);
+  public maternityNotes = signal('');
+  public selectedMaternityFile = signal<File | null>(null);
+  public submittingMaternity = signal(false);
+
   public disabilitiesApi = httpResource<any[]>(() => {
     if (!this.currentEmployee()?.id) return undefined;
     return {
@@ -2236,6 +2859,220 @@ export class EmployeePortalComponent {
   });
 
   public myDisabilities = computed(() => this.disabilitiesApi.value() ?? []);
+
+  // TimeOffs API
+  public timeoffsApi = httpResource<any[]>(() => {
+    if (!this.currentEmployee()?.id) return undefined;
+    return {
+      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`,
+      method: 'GET',
+      params: {
+        select: '*,type:timeoff_types(id,name)',
+        employee_id: `eq.${this.currentEmployee()!.id}`,
+        order: 'created_at.desc',
+      },
+    };
+  });
+
+  // Filtrar vacaciones y compensatorios
+  public myVacations = computed(() => {
+    const timeoffs = this.timeoffsApi.value() || [];
+    return timeoffs.filter(t => t.type_id === this.VACATION_TYPE_ID);
+  });
+
+  public myCompensatory = computed(() => {
+    const timeoffs = this.timeoffsApi.value() || [];
+    return timeoffs.filter(t => t.type_id === this.COMPENSATORY_TYPE_ID);
+  });
+
+  public myMaternity = computed(() => {
+    const timeoffs = this.timeoffsApi.value() || [];
+    return timeoffs.filter(t => t.type_id === this.MATERNITY_TYPE_ID);
+  });
+
+  // Calendar
+  public currentCalendarMonth = signal<Date>(new Date());
+
+  public calendarMarkers = computed<CalendarMarkerData[]>(() => {
+    const markers: CalendarMarkerData[] = [];
+
+    // Vacaciones
+    this.myVacations().forEach((vacation) => {
+      const startDate = new Date(vacation.date_from);
+      const endDate = new Date(vacation.date_to);
+      const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      
+      for (let i = 0; i < days; i++) {
+        const date = new Date(startDate);
+        date.setDate(date.getDate() + i);
+        markers.push({
+          date,
+          data: {
+            title: `Vacaciones${vacation.is_approved ? ' (Aprobada)' : ' (Pendiente)'}`,
+            color: 'bg-blue-500',
+            type: 'vacation',
+            id: vacation.id,
+          },
+        });
+      }
+    });
+
+    // Incapacidades
+    this.myDisabilities().forEach((disability) => {
+      const startDate = new Date(disability.start_date);
+      const endDate = new Date(disability.end_date);
+      const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      
+      for (let i = 0; i < days; i++) {
+        const date = new Date(startDate);
+        date.setDate(date.getDate() + i);
+        markers.push({
+          date,
+          data: {
+            title: `Incapacidad${disability.status === 'approved' ? ' (Aprobada)' : disability.status === 'rejected' ? ' (Rechazada)' : ' (Pendiente)'}`,
+            color: 'bg-red-500',
+            type: 'disability',
+            id: disability.id,
+          },
+        });
+      }
+    });
+
+    // Compensatorios
+    this.myCompensatory().forEach((compensatory) => {
+      const startDate = new Date(compensatory.date_from);
+      const endDate = new Date(compensatory.date_to);
+      const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      
+      for (let i = 0; i < days; i++) {
+        const date = new Date(startDate);
+        date.setDate(date.getDate() + i);
+        markers.push({
+          date,
+          data: {
+            title: `Compensatorio${compensatory.is_approved ? ' (Aprobado)' : ' (Pendiente)'}`,
+            color: 'bg-green-500',
+            type: 'compensatory',
+            id: compensatory.id,
+          },
+        });
+      }
+    });
+
+    // Turnos programados
+    const schedules = this.employeeSchedulesApi.value() ?? [];
+    schedules.forEach((schedule) => {
+      if (schedule.approved && schedule.start_date && schedule.end_date) {
+        const startDate = new Date(schedule.start_date);
+        const endDate = new Date(schedule.end_date);
+        const days = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        
+        for (let i = 0; i < days; i++) {
+          const date = new Date(startDate);
+          date.setDate(date.getDate() + i);
+          markers.push({
+            date,
+            data: {
+              title: `Turno: ${schedule.schedule?.name || 'Sin nombre'}`,
+              color: 'bg-yellow-500',
+              type: 'schedule',
+              id: schedule.id,
+            },
+          });
+        }
+      }
+    });
+
+    return markers;
+  });
+
+  public currentMonthEvents = computed(() => {
+    const currentMonth = this.currentCalendarMonth();
+    const monthStart = startOfMonth(currentMonth);
+    const monthEnd = endOfMonth(currentMonth);
+    const events: any[] = [];
+
+    // Vacaciones
+    this.myVacations().forEach((vacation) => {
+      const startDate = new Date(vacation.date_from);
+      const endDate = new Date(vacation.date_to);
+      if (startDate <= monthEnd && endDate >= monthStart) {
+        events.push({
+          id: `vacation-${vacation.id}`,
+          title: 'Vacaciones',
+          startDate,
+          endDate,
+          color: 'bg-blue-500',
+          status: vacation.is_approved ? 'Aprobada' : 'Pendiente',
+          statusSeverity: vacation.is_approved ? 'success' : 'warning',
+          type: 'vacation',
+        });
+      }
+    });
+
+    // Incapacidades
+    this.myDisabilities().forEach((disability) => {
+      const startDate = new Date(disability.start_date);
+      const endDate = new Date(disability.end_date);
+      if (startDate <= monthEnd && endDate >= monthStart) {
+        events.push({
+          id: `disability-${disability.id}`,
+          title: 'Incapacidad',
+          startDate,
+          endDate,
+          color: 'bg-red-500',
+          status: disability.status === 'approved' ? 'Aprobada' : disability.status === 'rejected' ? 'Rechazada' : 'Pendiente',
+          statusSeverity: disability.status === 'approved' ? 'success' : disability.status === 'rejected' ? 'danger' : 'warning',
+          type: 'disability',
+        });
+      }
+    });
+
+    // Compensatorios
+    this.myCompensatory().forEach((compensatory) => {
+      const startDate = new Date(compensatory.date_from);
+      const endDate = new Date(compensatory.date_to);
+      if (startDate <= monthEnd && endDate >= monthStart) {
+        events.push({
+          id: `compensatory-${compensatory.id}`,
+          title: 'Compensatorio',
+          startDate,
+          endDate,
+          color: 'bg-green-500',
+          status: compensatory.is_approved ? 'Aprobado' : 'Pendiente',
+          statusSeverity: compensatory.is_approved ? 'success' : 'warning',
+          type: 'compensatory',
+        });
+      }
+    });
+
+    // Turnos programados
+    const schedules = this.employeeSchedulesApi.value() ?? [];
+    schedules.forEach((schedule) => {
+      if (schedule.approved && schedule.start_date && schedule.end_date) {
+        const startDate = new Date(schedule.start_date);
+        const endDate = new Date(schedule.end_date);
+        if (startDate <= monthEnd && endDate >= monthStart) {
+          events.push({
+            id: `schedule-${schedule.id}`,
+            title: `Turno: ${schedule.schedule?.name || 'Sin nombre'}`,
+            startDate,
+            endDate,
+            color: 'bg-yellow-500',
+            status: 'Programado',
+            statusSeverity: 'info',
+            type: 'schedule',
+          });
+        }
+      }
+    });
+
+    return events.sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
+  });
+
+  public onCalendarMonthChange(date: Date) {
+    this.currentCalendarMonth.set(date);
+  }
 
   // Document Requests
   public documentType = signal('work_letter');
@@ -2533,6 +3370,18 @@ export class EmployeePortalComponent {
     this.selectedFile.set(event.files[0]);
   }
 
+  public onVacationFileSelect(event: any): void {
+    this.selectedVacationFile.set(event.files[0]);
+  }
+
+  public onCompensatoryFileSelect(event: any): void {
+    this.selectedCompensatoryFile.set(event.files[0]);
+  }
+
+  public onMaternityFileSelect(event: any): void {
+    this.selectedMaternityFile.set(event.files[0]);
+  }
+
   // Dashboard computed properties
   public daysWorkedThisMonth = computed(() => {
     const logs = this.myTimelogs();
@@ -2755,6 +3604,360 @@ export class EmployeePortalComponent {
         detail: 'No se pudo subir la incapacidad. Por favor intenta de nuevo.',
       });
       this.uploadingDisability.set(false);
+    }
+  }
+
+  public async submitVacationRequest(): Promise<void> {
+    if (!this.vacationStartDate() || !this.vacationEndDate()) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Campos Requeridos',
+        detail: 'Por favor completa las fechas de inicio y fin',
+      });
+      return;
+    }
+
+    this.submittingVacation.set(true);
+    try {
+      let documentUrl = '';
+
+      // Upload file to Supabase Storage if file is selected
+      if (this.selectedVacationFile()) {
+        const file = this.selectedVacationFile()!;
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${
+          this.currentEmployee()!.id
+        }/${Date.now()}.${fileExt}`;
+
+        // Upload to Supabase Storage using REST API
+        try {
+          const storageKey =
+            process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'] ||
+            process.env['ENV_SUPABASE_API_KEY'] ||
+            '';
+
+          await firstValueFrom(
+            this.http.post(
+              `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/timeoffs/${fileName}`,
+              file,
+              {
+                headers: {
+                  apikey: storageKey,
+                  Authorization: `Bearer ${storageKey}`,
+                  'Content-Type': file.type || 'application/octet-stream',
+                  'x-upsert': 'true',
+                },
+              }
+            )
+          );
+
+          documentUrl = `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/public/timeoffs/${fileName}`;
+        } catch (uploadError: any) {
+          console.error('Error uploading file to storage:', uploadError);
+          const errorDetail =
+            uploadError?.error?.message ||
+            uploadError?.error?.error ||
+            uploadError?.message ||
+            'No se pudo subir el archivo. Verifica que el bucket existe y tiene las políticas correctas.';
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error al Subir Archivo',
+            detail: errorDetail,
+          });
+          this.submittingVacation.set(false);
+          return;
+        }
+      }
+
+      const { v4: uuidv4 } = await import('uuid');
+      const timeoffData = {
+        id: uuidv4(),
+        employee_id: this.currentEmployee()!.id,
+        type_id: this.VACATION_TYPE_ID,
+        date_from: format(this.vacationStartDate()!, 'yyyy-MM-dd'),
+        date_to: format(this.vacationEndDate()!, 'yyyy-MM-dd'),
+        notes: this.vacationNotes() ? [this.vacationNotes()] : [],
+        document_url: documentUrl || null,
+        is_approved: false,
+      };
+
+      this.http
+        .post(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`,
+          timeoffData
+        )
+        .subscribe({
+          next: () => {
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Éxito',
+              detail: 'Solicitud de vacaciones enviada correctamente. Está pendiente de revisión.',
+            });
+
+            // Reset form
+            this.vacationStartDate.set(null);
+            this.vacationEndDate.set(null);
+            this.vacationNotes.set('');
+            this.selectedVacationFile.set(null);
+            this.timeoffsApi.reload();
+            this.submittingVacation.set(false);
+          },
+          error: (error) => {
+            console.error('Error submitting vacation request:', error);
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Error',
+              detail:
+                error.error?.message ||
+                'No se pudo enviar la solicitud. Intenta de nuevo.',
+            });
+            this.submittingVacation.set(false);
+          },
+        });
+    } catch (error: any) {
+      console.error('Unexpected error:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Ocurrió un error inesperado. Intenta de nuevo.',
+      });
+      this.submittingVacation.set(false);
+    }
+  }
+
+  public async submitCompensatoryRequest(): Promise<void> {
+    if (!this.compensatoryStartDate() || !this.compensatoryEndDate()) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Campos Requeridos',
+        detail: 'Por favor completa las fechas de inicio y fin',
+      });
+      return;
+    }
+
+    this.submittingCompensatory.set(true);
+    try {
+      let documentUrl = '';
+
+      // Upload file to Supabase Storage if file is selected
+      if (this.selectedCompensatoryFile()) {
+        const file = this.selectedCompensatoryFile()!;
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${
+          this.currentEmployee()!.id
+        }/${Date.now()}.${fileExt}`;
+
+        // Upload to Supabase Storage using REST API
+        try {
+          const storageKey =
+            process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'] ||
+            process.env['ENV_SUPABASE_API_KEY'] ||
+            '';
+
+          await firstValueFrom(
+            this.http.post(
+              `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/timeoffs/${fileName}`,
+              file,
+              {
+                headers: {
+                  apikey: storageKey,
+                  Authorization: `Bearer ${storageKey}`,
+                  'Content-Type': file.type || 'application/octet-stream',
+                  'x-upsert': 'true',
+                },
+              }
+            )
+          );
+
+          documentUrl = `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/public/timeoffs/${fileName}`;
+        } catch (uploadError: any) {
+          console.error('Error uploading file to storage:', uploadError);
+          const errorDetail =
+            uploadError?.error?.message ||
+            uploadError?.error?.error ||
+            uploadError?.message ||
+            'No se pudo subir el archivo. Verifica que el bucket existe y tiene las políticas correctas.';
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error al Subir Archivo',
+            detail: errorDetail,
+          });
+          this.submittingCompensatory.set(false);
+          return;
+        }
+      }
+
+      const { v4: uuidv4 } = await import('uuid');
+      const timeoffData = {
+        id: uuidv4(),
+        employee_id: this.currentEmployee()!.id,
+        type_id: this.COMPENSATORY_TYPE_ID,
+        date_from: format(this.compensatoryStartDate()!, 'yyyy-MM-dd'),
+        date_to: format(this.compensatoryEndDate()!, 'yyyy-MM-dd'),
+        notes: this.compensatoryNotes() ? [this.compensatoryNotes()] : [],
+        document_url: documentUrl || null,
+        is_approved: false,
+      };
+
+      this.http
+        .post(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`,
+          timeoffData
+        )
+        .subscribe({
+          next: () => {
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Éxito',
+              detail: 'Solicitud de compensatorio enviada correctamente. Está pendiente de revisión.',
+            });
+
+            // Reset form
+            this.compensatoryStartDate.set(null);
+            this.compensatoryEndDate.set(null);
+            this.compensatoryNotes.set('');
+            this.selectedCompensatoryFile.set(null);
+            this.timeoffsApi.reload();
+            this.submittingCompensatory.set(false);
+          },
+          error: (error) => {
+            console.error('Error submitting compensatory request:', error);
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Error',
+              detail:
+                error.error?.message ||
+                'No se pudo enviar la solicitud. Intenta de nuevo.',
+            });
+            this.submittingCompensatory.set(false);
+          },
+        });
+    } catch (error: any) {
+      console.error('Unexpected error:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Ocurrió un error inesperado. Intenta de nuevo.',
+      });
+      this.submittingCompensatory.set(false);
+    }
+  }
+
+  public async submitMaternityRequest(): Promise<void> {
+    if (!this.maternityStartDate() || !this.maternityEndDate()) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Campos Requeridos',
+        detail: 'Por favor completa las fechas de inicio y fin',
+      });
+      return;
+    }
+
+    this.submittingMaternity.set(true);
+    try {
+      let documentUrl = '';
+
+      // Upload file to Supabase Storage if file is selected
+      if (this.selectedMaternityFile()) {
+        const file = this.selectedMaternityFile()!;
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${
+          this.currentEmployee()!.id
+        }/${Date.now()}.${fileExt}`;
+
+        // Upload to Supabase Storage using REST API
+        try {
+          const storageKey =
+            process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'] ||
+            process.env['ENV_SUPABASE_API_KEY'] ||
+            '';
+
+          await firstValueFrom(
+            this.http.post(
+              `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/timeoffs/${fileName}`,
+              file,
+              {
+                headers: {
+                  apikey: storageKey,
+                  Authorization: `Bearer ${storageKey}`,
+                  'Content-Type': file.type || 'application/octet-stream',
+                  'x-upsert': 'true',
+                },
+              }
+            )
+          );
+
+          documentUrl = `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/public/timeoffs/${fileName}`;
+        } catch (uploadError: any) {
+          console.error('Error uploading file to storage:', uploadError);
+          const errorDetail =
+            uploadError?.error?.message ||
+            uploadError?.error?.error ||
+            uploadError?.message ||
+            'No se pudo subir el archivo. Verifica que el bucket existe y tiene las políticas correctas.';
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error al Subir Archivo',
+            detail: errorDetail,
+          });
+          this.submittingMaternity.set(false);
+          return;
+        }
+      }
+
+      const { v4: uuidv4 } = await import('uuid');
+      const timeoffData = {
+        id: uuidv4(),
+        employee_id: this.currentEmployee()!.id,
+        type_id: this.MATERNITY_TYPE_ID,
+        date_from: format(this.maternityStartDate()!, 'yyyy-MM-dd'),
+        date_to: format(this.maternityEndDate()!, 'yyyy-MM-dd'),
+        notes: this.maternityNotes() ? [this.maternityNotes()] : [],
+        document_url: documentUrl || null,
+        is_approved: false,
+      };
+
+      this.http
+        .post(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`,
+          timeoffData
+        )
+        .subscribe({
+          next: () => {
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Éxito',
+              detail: 'Solicitud de licencia maternal enviada correctamente. Está pendiente de revisión.',
+            });
+
+            // Reset form
+            this.maternityStartDate.set(null);
+            this.maternityEndDate.set(null);
+            this.maternityNotes.set('');
+            this.selectedMaternityFile.set(null);
+            this.timeoffsApi.reload();
+            this.submittingMaternity.set(false);
+          },
+          error: (error) => {
+            console.error('Error submitting maternity request:', error);
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Error',
+              detail:
+                error.error?.message ||
+                'No se pudo enviar la solicitud. Intenta de nuevo.',
+            });
+            this.submittingMaternity.set(false);
+          },
+        });
+    } catch (error: any) {
+      console.error('Unexpected error:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Ocurrió un error inesperado. Intenta de nuevo.',
+      });
+      this.submittingMaternity.set(false);
     }
   }
 

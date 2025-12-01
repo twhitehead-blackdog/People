@@ -98,8 +98,22 @@ export const DASHBOARD_ROUTES: Routes = [
               ),
           },
           {
+            path: 'job-applications',
+            loadComponent: () =>
+              import('./job-applications-list.component').then(
+                (x) => x.JobApplicationsListComponent
+              ),
+          },
+          {
             path: 'hr',
             children: [
+              {
+                path: 'requests',
+                loadComponent: () =>
+                  import('./hr-requests.component').then(
+                    (x) => x.HRRequestsComponent
+                  ),
+              },
               {
                 path: 'disabilities',
                 loadComponent: () =>
@@ -107,7 +121,7 @@ export const DASHBOARD_ROUTES: Routes = [
                     (x) => x.HRDisabilitiesComponent
                   ),
               },
-              { path: '', redirectTo: 'disabilities', pathMatch: 'full' },
+              { path: '', redirectTo: 'requests', pathMatch: 'full' },
             ],
           },
           { path: '', redirectTo: 'employees', pathMatch: 'full' },

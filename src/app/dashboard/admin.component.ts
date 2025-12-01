@@ -28,7 +28,7 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
             <!-- Título RRHH -->
             <div
               class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
-              [class.selected]="isActiveRoute('hr/disabilities')"
+              [class.selected]="isActiveRoute('hr/requests') || isActiveRoute('hr/disabilities') || isActiveRoute('job-applications')"
             >
               <i class="pi pi-users text-base"></i>
               <span>RRHH</span>
@@ -42,7 +42,27 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
               (mouseenter)="openDropdown('rrhh')"
               (mouseleave)="closeDropdown()"
             >
-              <!-- Incapacidades -->
+              <!-- Solicitudes RRHH (Unificado) -->
+              <a
+                routerLink="hr/requests"
+                class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
+                [class.bg-neutral-700]="isActiveRoute('hr/requests')"
+                [class.text-amber-300]="isActiveRoute('hr/requests')"
+              >
+                <i class="pi pi-briefcase text-sm"></i>
+                <span>Solicitudes RRHH</span>
+              </a>
+              <!-- Aplicaciones de Trabajo -->
+              <a
+                routerLink="job-applications"
+                class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
+                [class.bg-neutral-700]="isActiveRoute('job-applications')"
+                [class.text-amber-300]="isActiveRoute('job-applications')"
+              >
+                <i class="pi pi-file-edit text-sm"></i>
+                <span>Feria de Empleo</span>
+              </a>
+              <!-- Incapacidades (Legacy) -->
               <a
                 routerLink="hr/disabilities"
                 class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"

@@ -22,6 +22,8 @@ import { BranchesStore } from './branches.store';
 import { CompaniesStore } from './companies.store';
 import { DepartmentsStore } from './departments.store';
 import { EmployeesStore } from './employees.store';
+// JobApplicationsStore se inyecta directamente en los componentes que lo necesitan
+// import { JobApplicationsStore } from './job-applications.store';
 import { PayrollsStore } from './payrolls.store';
 import { PositionsStore } from './positions.store';
 import { SchedulesStore } from './schedules.store';
@@ -39,6 +41,8 @@ const initialState: State = {
 export const DashboardStore = signalStore(
   withState(initialState),
   withProps(() => ({
+    // Los stores se inyectan aquí y están disponibles para los componentes
+    // y para los computed properties
     companies: inject(CompaniesStore),
     employees: inject(EmployeesStore),
     branches: inject(BranchesStore),
