@@ -325,6 +325,7 @@ import { PositionsStore } from '../stores/positions.store';
                   mode="decimal"
                   [min]="0"
                   [max]="999999.99"
+                  [minFractionDigits]="2"
                   [maxFractionDigits]="2"
                   placeholder="0.00"
                   prefix="B/. "
@@ -1147,11 +1148,17 @@ export class JobFairFormComponent implements OnInit {
           } else if (error?.status === 400) {
             // Error 400 puede ser por columnas faltantes en la base de datos
             const errorMsg = error?.error?.message || '';
-            if (errorMsg.includes('Could not find') && (errorMsg.includes('column') || errorMsg.includes('corregimiento') || errorMsg.includes('province'))) {
+            if (
+              errorMsg.includes('Could not find') &&
+              (errorMsg.includes('column') ||
+                errorMsg.includes('corregimiento') ||
+                errorMsg.includes('province'))
+            ) {
               errorMessage =
                 'Error: Faltan columnas en la base de datos. Por favor ejecuta la migración SQL: database/migrations/add-fields-to-job-applications.sql en el SQL Editor de Supabase para agregar los campos: province, corregimiento, currently_working, salary_expectation';
             } else {
-              errorMessage = error?.error?.message || error?.message || errorMessage;
+              errorMessage =
+                error?.error?.message || error?.message || errorMessage;
             }
           } else if (error?.error?.message) {
             errorMessage = error.error.message;
