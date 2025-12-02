@@ -12,7 +12,6 @@ import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { DatePicker } from 'primeng/datepicker';
-import { InputText } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
 import { Tag } from 'primeng/tag';
 import { Textarea } from 'primeng/textarea';
@@ -33,7 +32,6 @@ import { JobApplicationsStore } from '../stores/job-applications.store';
     Card,
     Tag,
     Button,
-    InputText,
     Textarea,
     Select,
     DatePicker,

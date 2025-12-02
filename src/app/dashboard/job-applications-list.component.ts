@@ -1,9 +1,10 @@
-import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
+import { CurrencyPipe, DatePipe } from '@angular/common';
+import { HttpClient, httpResource } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   OnInit,
   signal,
@@ -20,11 +21,11 @@ import { Select } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { TabsModule } from 'primeng/tabs';
 import { Tag } from 'primeng/tag';
-import { ToggleSwitch } from 'primeng/toggleswitch';
 import { ToastModule } from 'primeng/toast';
+import { ToggleSwitch } from 'primeng/toggleswitch';
 import { TooltipModule } from 'primeng/tooltip';
-import { utils, writeFile } from 'xlsx';
 import { firstValueFrom } from 'rxjs';
+import { utils, writeFile } from 'xlsx';
 import { JobApplication, Position } from '../models';
 import { DashboardStore } from '../stores/dashboard.store';
 import { JobApplicationsStore } from '../stores/job-applications.store';
@@ -37,7 +38,6 @@ import { PositionsFormComponent } from './positions-form.component';
   selector: 'pt-job-applications-list',
   imports: [
     DatePipe,
-    DecimalPipe,
     CurrencyPipe,
     ReactiveFormsModule,
     FormsModule,
@@ -72,22 +72,22 @@ import { PositionsFormComponent } from './positions-form.component';
               Gestiona las aplicaciones recibidas de la Feria de Empleo
             </p>
           </div>
-          <div class="flex gap-2">
-            <p-button
-              icon="pi pi-refresh"
-              severity="secondary"
-              label="Actualizar"
-              (onClick)="refreshApplications()"
-              rounded
-              [loading]="jobApplicationsStore.isLoading()"
-            />
-            <p-button
-              icon="pi pi-file-excel"
-              severity="success"
-              label="Exportar"
-              (onClick)="exportToExcel()"
-              rounded
-            />
+          <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2">
+              <label class="text-sm text-gray-300">Feria Activa:</label>
+              <p-toggleswitch
+                [(ngModel)]="jobFairEnabled"
+                (ngModelChange)="onJobFairEnabledChange()"
+                [disabled]="isUpdatingJobFairStatus()"
+              />
+              <span
+                class="text-sm"
+                [class.text-green-400]="jobFairEnabled()"
+                [class.text-gray-400]="!jobFairEnabled()"
+              >
+                {{ jobFairEnabled() ? 'Activa' : 'Inactiva' }}
+              </span>
+            </div>
           </div>
         </div>
       </ng-template>
@@ -103,189 +103,243 @@ import { PositionsFormComponent } from './positions-form.component';
           </p-tab>
         </p-tablist>
         <p-tabpanel value="applications">
-            <p-table
-              #dt
+          <p-table
+            #dt
             [value]="filteredApplications()"
             [loading]="jobApplicationsStore.isLoading()"
             [paginator]="true"
             [rows]="10"
             [rowsPerPageOptions]="[10, 20, 50]"
-            [globalFilterFields]="['first_name', 'last_name', 'email', 'phone_number', 'province', 'corregimiento', 'position_name', 'status']"
+            [globalFilterFields]="[
+              'first_name',
+              'last_name',
+              'email',
+              'phone_number',
+              'province',
+              'corregimiento',
+              'position_name',
+              'status'
+            ]"
             paginatorDropdownAppendTo="body"
             [showCurrentPageReport]="true"
             currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} aplicaciones"
           >
-        <ng-template #caption>
-          <div class="flex gap-4 items-center flex-wrap">
-            <div class="flex gap-2 items-center">
-              <label class="text-sm text-gray-300">Filtrar por estado:</label>
-              <p-select
-                [options]="statusOptions"
-                [ngModel]="statusFilter.value"
-                (ngModelChange)="statusFilter.setValue($event)"
-                placeholder="Todos los estados"
-                [showClear]="true"
-                appendTo="body"
-                styleClass="w-48"
+            <ng-template #caption>
+              <div class="flex gap-4 items-center flex-wrap">
+                <div class="flex gap-2 items-center">
+                  <p-button
+                    icon="pi pi-refresh"
+                    severity="secondary"
+                    label="Actualizar"
+                    (onClick)="refreshApplications()"
+                    rounded
+                    [loading]="jobApplicationsStore.isLoading()"
+                  />
+                  <p-button
+                    icon="pi pi-file-excel"
+                    severity="success"
+                    label="Exportar"
+                    (onClick)="exportToExcel()"
+                    rounded
+                  />
+                </div>
+                <div class="flex gap-2 items-center">
+                  <label class="text-sm text-gray-300"
+                    >Filtrar por estado:</label
+                  >
+                  <p-select
+                    [options]="statusOptions"
+                    [ngModel]="statusFilter.value"
+                    (ngModelChange)="statusFilter.setValue($event)"
+                    placeholder="Todos los estados"
+                    [showClear]="true"
+                    appendTo="body"
+                    styleClass="w-48"
+                  />
+                </div>
+                <div class="flex gap-2 items-center">
+                  <label class="text-sm text-gray-300">Buscar:</label>
+                  <input
+                    pInputText
+                    type="text"
+                    (input)="
+                      dt.filterGlobal($any($event.target).value, 'contains')
+                    "
+                    placeholder="Buscar por nombre, email, posición..."
+                    class="w-64"
+                  />
+                </div>
+              </div>
+            </ng-template>
+            <ng-template #header>
+              <tr>
+                <th pSortableColumn="created_at">
+                  Fecha <p-sortIcon field="created_at" />
+                </th>
+                <th pSortableColumn="first_name">
+                  Nombre <p-sortIcon field="first_name" />
+                </th>
+                <th pSortableColumn="email">
+                  Email <p-sortIcon field="email" />
+                </th>
+                <th pSortableColumn="phone_number">Teléfono</th>
+                <th pSortableColumn="province" class="text-center">
+                  Residencia
+                </th>
+                <th>Laborando</th>
+                <th pSortableColumn="salary_expectation" class="text-center">
+                  Aspiración Salarial <p-sortIcon field="salary_expectation" />
+                </th>
+                <th pSortableColumn="position_name">
+                  Vacante <p-sortIcon field="position_name" />
+                </th>
+                <th pSortableColumn="status">
+                  Estado <p-sortIcon field="status" />
+                </th>
+                <th>CV</th>
+                <th>Acciones</th>
+              </tr>
+            </ng-template>
+            <ng-template #body let-application>
+              <tr class="hover:bg-neutral-800/50 transition-colors">
+                <td class="text-gray-300">
+                  {{ application.created_at | date : 'short' }}
+                </td>
+                <td class="font-medium text-white">
+                  {{ application.first_name }} {{ application.last_name }}
+                </td>
+                <td class="text-gray-300">{{ application.email }}</td>
+                <td class="text-gray-300">{{ application.phone_number }}</td>
+                <td class="text-gray-300 text-center">
+                  @if (application.province || application.corregimiento) {
+                  <div class="text-sm">
+                    @if (application.province) {
+                    <div>{{ application.province }}</div>
+                    } @if (application.corregimiento) {
+                    <div class="text-gray-400">
+                      {{ application.corregimiento }}
+                    </div>
+                    }
+                  </div>
+                  } @else {
+                  <span class="text-gray-500">-</span>
+                  }
+                </td>
+                <td class="text-center">
+                  @if (application.currently_working) {
+                  <p-tag value="Sí" severity="success" />
+                  } @else {
+                  <p-tag value="No" severity="secondary" />
+                  }
+                </td>
+                <td class="text-gray-300 text-center">
+                  @if (application.salary_expectation) {
+                  {{
+                    application.salary_expectation
+                      | currency : 'B/.' : 'symbol' : '1.2-2'
+                  }}
+                  } @else {
+                  <span class="text-gray-500">-</span>
+                  }
+                </td>
+                <td class="text-gray-300">
+                  {{
+                    application.position_name ||
+                      application.position?.name ||
+                      'N/A'
+                  }}
+                </td>
+                <td>
+                  <p-tag
+                    [value]="getStatusLabel(application.status)"
+                    [severity]="getStatusSeverity(application.status)"
+                  />
+                </td>
+                <td>
+                  @if (application.resume_url) {
+                  <p-button
+                    icon="pi pi-download"
+                    severity="info"
+                    text
+                    rounded
+                    (onClick)="downloadResume(application)"
+                    pTooltip="Descargar CV"
+                  />
+                  } @else {
+                  <span class="text-gray-500 text-sm">Sin CV</span>
+                  }
+                </td>
+                <td>
+                  <div class="flex gap-2">
+                    <p-button
+                      icon="pi pi-eye"
+                      severity="info"
+                      text
+                      rounded
+                      (onClick)="viewDetails(application)"
+                      pTooltip="Ver detalles"
+                    />
+                    <p-button
+                      icon="pi pi-pencil"
+                      severity="success"
+                      text
+                      rounded
+                      (onClick)="changeStatus(application)"
+                      pTooltip="Cambiar estado"
+                    />
+                  </div>
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template #emptymessage>
+              <tr>
+                <td [attr.colspan]="11" class="text-center py-8">
+                  <div class="flex flex-col items-center gap-2">
+                    <i class="pi pi-inbox text-4xl text-gray-500"></i>
+                    <p class="text-gray-400">No hay aplicaciones</p>
+                  </div>
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+        </p-tabpanel>
+        <p-tabpanel value="positions">
+          <div class="mb-4">
+            <p class="text-gray-300 text-sm mb-4">
+              Habilita o deshabilita las vacantes que aparecerán en el
+              formulario de Feria de Empleo. Solo las vacantes habilitadas serán
+              visibles para los candidatos.
+            </p>
+            <div class="flex gap-2 items-center flex-wrap mb-4">
+              <p-button
+                icon="pi pi-refresh"
+                severity="secondary"
+                label="Actualizar"
+                (onClick)="refreshPositions()"
+                rounded
+                [loading]="positionsStore.isLoading()"
               />
-            </div>
-            <div class="flex gap-2 items-center">
-              <label class="text-sm text-gray-300">Buscar:</label>
+              <p-button
+                icon="pi pi-plus-circle"
+                severity="success"
+                label="Añadir Vacante"
+                (onClick)="editPosition()"
+                rounded
+              />
               <input
                 pInputText
                 type="text"
-                (input)="dt.filterGlobal($any($event.target).value, 'contains')"
-                placeholder="Buscar por nombre, email, posición..."
+                #searchInput
+                (input)="
+                  positionsTable.filterGlobal(
+                    $any($event.target).value,
+                    'contains'
+                  )
+                "
+                placeholder="Buscar vacante..."
                 class="w-64"
               />
             </div>
-          </div>
-        </ng-template>
-        <ng-template #header>
-          <tr>
-            <th pSortableColumn="created_at">
-              Fecha <p-sortIcon field="created_at" />
-            </th>
-            <th pSortableColumn="first_name">
-              Nombre <p-sortIcon field="first_name" />
-            </th>
-            <th pSortableColumn="email">
-              Email <p-sortIcon field="email" />
-            </th>
-            <th pSortableColumn="phone_number">Teléfono</th>
-            <th pSortableColumn="province">Residencia</th>
-            <th>Laborando</th>
-            <th pSortableColumn="salary_expectation">
-              Aspiración Salarial <p-sortIcon field="salary_expectation" />
-            </th>
-            <th pSortableColumn="position_name">
-              Vacante <p-sortIcon field="position_name" />
-            </th>
-            <th pSortableColumn="status">
-              Estado <p-sortIcon field="status" />
-            </th>
-            <th>CV</th>
-            <th>Acciones</th>
-          </tr>
-        </ng-template>
-        <ng-template #body let-application>
-          <tr class="hover:bg-neutral-800/50 transition-colors">
-            <td class="text-gray-300">
-              {{ application.created_at | date : 'short' }}
-            </td>
-            <td class="font-medium text-white">
-              {{ application.first_name }} {{ application.last_name }}
-            </td>
-            <td class="text-gray-300">{{ application.email }}</td>
-            <td class="text-gray-300">{{ application.phone_number }}</td>
-            <td class="text-gray-300">
-              @if (application.province || application.corregimiento) {
-                <div class="text-sm">
-                  @if (application.province) {
-                    <div>{{ application.province }}</div>
-                  }
-                  @if (application.corregimiento) {
-                    <div class="text-gray-400">{{ application.corregimiento }}</div>
-                  }
-                </div>
-              } @else {
-                <span class="text-gray-500">-</span>
-              }
-            </td>
-            <td class="text-center">
-              @if (application.currently_working) {
-                <p-tag value="Sí" severity="success" />
-              } @else {
-                <p-tag value="No" severity="secondary" />
-              }
-            </td>
-            <td class="text-gray-300">
-              @if (application.salary_expectation) {
-                {{ application.salary_expectation | currency : 'B/.' : 'symbol' : '1.2-2' }}
-              } @else {
-                <span class="text-gray-500">-</span>
-              }
-            </td>
-            <td class="text-gray-300">
-              {{ application.position_name || application.position?.name || 'N/A' }}
-            </td>
-            <td>
-              <p-tag
-                [value]="getStatusLabel(application.status)"
-                [severity]="getStatusSeverity(application.status)"
-              />
-            </td>
-            <td>
-              @if (application.resume_url) {
-              <p-button
-                icon="pi pi-download"
-                severity="info"
-                text
-                rounded
-                (onClick)="downloadResume(application)"
-                pTooltip="Descargar CV"
-              />
-              } @else {
-              <span class="text-gray-500 text-sm">Sin CV</span>
-              }
-            </td>
-            <td>
-              <div class="flex gap-2">
-                <p-button
-                  icon="pi pi-eye"
-                  severity="info"
-                  text
-                  rounded
-                  (onClick)="viewDetails(application)"
-                  pTooltip="Ver detalles"
-                />
-                <p-button
-                  icon="pi pi-pencil"
-                  severity="success"
-                  text
-                  rounded
-                  (onClick)="changeStatus(application)"
-                  pTooltip="Cambiar estado"
-                />
-              </div>
-            </td>
-          </tr>
-        </ng-template>
-        <ng-template #emptymessage>
-          <tr>
-            <td [attr.colspan]="11" class="text-center py-8">
-              <div class="flex flex-col items-center gap-2">
-                <i class="pi pi-inbox text-4xl text-gray-500"></i>
-                <p class="text-gray-400">No hay aplicaciones</p>
-              </div>
-            </td>
-          </tr>
-        </ng-template>
-      </p-table>
-        </p-tabpanel>
-        <p-tabpanel value="positions">
-            <div class="mb-4">
-            <p class="text-gray-300 text-sm mb-4">
-              Habilita o deshabilita las vacantes que aparecerán en el formulario de Feria de Empleo.
-              Solo las vacantes habilitadas serán visibles para los candidatos.
-            </p>
-            <p-button
-              icon="pi pi-refresh"
-              severity="secondary"
-              label="Actualizar"
-              (onClick)="refreshPositions()"
-              rounded
-              [loading]="positionsStore.isLoading()"
-              class="mb-4"
-            />
-            <p-button
-              icon="pi pi-plus-circle"
-              severity="success"
-              label="Añadir Vacante"
-              (onClick)="editPosition()"
-              rounded
-              class="mb-4"
-            />
           </div>
           <p-table
             #positionsTable
@@ -297,17 +351,6 @@ import { PositionsFormComponent } from './positions-form.component';
             [globalFilterFields]="['name', 'department.name']"
             paginatorDropdownAppendTo="body"
           >
-            <ng-template #caption>
-              <div class="flex gap-2 items-center">
-                <input
-                  pInputText
-                  type="text"
-                  (input)="positionsTable.filterGlobal($any($event.target).value, 'contains')"
-                  placeholder="Buscar vacante..."
-                  class="w-64"
-                />
-              </div>
-            </ng-template>
             <ng-template #header>
               <tr>
                 <th pSortableColumn="name">
@@ -323,11 +366,15 @@ import { PositionsFormComponent } from './positions-form.component';
             <ng-template #body let-position>
               <tr class="hover:bg-neutral-800/50 transition-colors">
                 <td class="font-medium text-white">{{ position.name }}</td>
-                <td class="text-gray-300">{{ position.department?.name || 'N/A' }}</td>
+                <td class="text-gray-300">
+                  {{ position.department?.name || 'N/A' }}
+                </td>
                 <td>
                   <p-toggleswitch
                     [ngModel]="position.available_for_job_fair !== false"
-                    (ngModelChange)="togglePositionAvailability(position, $event)"
+                    (ngModelChange)="
+                      togglePositionAvailability(position, $event)
+                    "
                     [disabled]="isUpdatingPosition()"
                   />
                 </td>
@@ -383,6 +430,18 @@ export class JobApplicationsListComponent implements OnInit {
 
   public statusFilter = new FormControl<string | null>(null);
   public isUpdatingPosition = signal<boolean>(false);
+  public isUpdatingJobFairStatus = signal<boolean>(false);
+  public jobFairEnabled = signal<boolean>(true);
+
+  // API para cargar el estado de la feria desde settings
+  private jobFairSettingsApi = httpResource<any[]>(() => ({
+    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+    method: 'GET',
+    params: {
+      select: '*',
+      key: 'eq.job_fair_enabled',
+    },
+  }));
 
   public positions = computed(() => this.positionsStore.entities());
   public statusOptions = [
@@ -398,13 +457,24 @@ export class JobApplicationsListComponent implements OnInit {
   public filteredApplications = computed(() => {
     const status = this.statusFilter.value;
     const apps = this.applications();
-    
+
     if (!status) {
       return apps;
     }
-    
+
     return apps.filter((app) => app.status === status);
   });
+
+  constructor() {
+    // Cargar el estado de la feria desde settings
+    effect(() => {
+      const settings = this.jobFairSettingsApi.value();
+      if (settings && settings.length > 0) {
+        const setting = settings[0];
+        this.jobFairEnabled.set(setting.value === 'true');
+      }
+    });
+  }
 
   ngOnInit() {
     // Cargar aplicaciones al inicializar
@@ -414,6 +484,77 @@ export class JobApplicationsListComponent implements OnInit {
     // Cargar posiciones al inicializar
     if (this.positions().length === 0) {
       this.positionsStore.reloadItems();
+    }
+  }
+
+  async onJobFairEnabledChange() {
+    this.isUpdatingJobFairStatus.set(true);
+    try {
+      const newValue = this.jobFairEnabled() ? 'true' : 'false';
+
+      // Verificar si ya existe el setting
+      const existingSettings = await firstValueFrom(
+        this.http.get<any[]>(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+          {
+            params: {
+              select: 'id',
+              key: 'eq.job_fair_enabled',
+            },
+          }
+        )
+      );
+
+      if (existingSettings && existingSettings.length > 0) {
+        // Actualizar setting existente
+        await firstValueFrom(
+          this.http.patch(
+            `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+            { value: newValue },
+            {
+              params: {
+                id: `eq.${existingSettings[0].id}`,
+              },
+            }
+          )
+        );
+      } else {
+        // Crear nuevo setting
+        await firstValueFrom(
+          this.http.post(
+            `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+            {
+              key: 'job_fair_enabled',
+              value: newValue,
+              description: 'Estado de la Feria de Empleo',
+              category: 'job_fair',
+              is_encrypted: false,
+            }
+          )
+        );
+      }
+
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Estado actualizado',
+        detail: `La feria de empleo ha sido ${
+          this.jobFairEnabled() ? 'activada' : 'desactivada'
+        }`,
+      });
+
+      // Recargar settings
+      this.jobFairSettingsApi.reload();
+    } catch (error: any) {
+      console.error('Error actualizando estado de la feria:', error);
+      // Revertir el cambio
+      this.jobFairEnabled.set(!this.jobFairEnabled());
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo actualizar el estado de la feria',
+      });
+    } finally {
+      this.isUpdatingJobFairStatus.set(false);
     }
   }
 
@@ -456,7 +597,9 @@ export class JobApplicationsListComponent implements OnInit {
       this.messageService.add({
         severity: 'success',
         summary: 'Actualizado',
-        detail: `La vacante "${position.name}" ha sido ${isAvailable ? 'habilitada' : 'deshabilitada'} para la feria de empleo`,
+        detail: `La vacante "${position.name}" ha sido ${
+          isAvailable ? 'habilitada' : 'deshabilitada'
+        } para la feria de empleo`,
       });
     } catch (error: any) {
       console.error('Error updating position availability:', error);
@@ -514,7 +657,9 @@ export class JobApplicationsListComponent implements OnInit {
       this.messageService.add({
         severity: 'success',
         summary: 'Estado actualizado',
-        detail: `El estado ha sido cambiado a "${this.getStatusLabel(newStatus as any)}"`,
+        detail: `El estado ha sido cambiado a "${this.getStatusLabel(
+          newStatus as any
+        )}"`,
       });
 
       // Recargar aplicaciones
@@ -531,17 +676,20 @@ export class JobApplicationsListComponent implements OnInit {
 
   private generateResumeFileName(application: JobApplication): string {
     // Obtener nombre completo
-    const fullName = `${application.first_name || ''} ${application.last_name || ''}`.trim();
-    
+    const fullName = `${application.first_name || ''} ${
+      application.last_name || ''
+    }`.trim();
+
     // Obtener nombre del cargo
-    const positionName = application.position_name || application.position?.name || 'Sin Cargo';
-    
+    const positionName =
+      application.position_name || application.position?.name || 'Sin Cargo';
+
     // Obtener extensión del archivo original
     const originalFileName = application.resume_filename || '';
-    const fileExtension = originalFileName.includes('.') 
+    const fileExtension = originalFileName.includes('.')
       ? originalFileName.substring(originalFileName.lastIndexOf('.'))
       : '.pdf';
-    
+
     // Sanitizar nombres: remover caracteres especiales y espacios
     const sanitize = (str: string): string => {
       return str
@@ -551,10 +699,10 @@ export class JobApplicationsListComponent implements OnInit {
         .replace(/\s+/g, '_') // Reemplazar espacios con guión bajo
         .toLowerCase();
     };
-    
+
     const sanitizedName = sanitize(fullName);
     const sanitizedPosition = sanitize(positionName);
-    
+
     // Formato: Nombre_Apellido-Cargo.extensión
     return `${sanitizedName}-${sanitizedPosition}${fileExtension}`;
   }
@@ -603,7 +751,7 @@ export class JobApplicationsListComponent implements OnInit {
   exportToExcel() {
     try {
       const applications = this.filteredApplications();
-      
+
       if (applications.length === 0) {
         this.messageService.add({
           severity: 'warn',
@@ -615,18 +763,24 @@ export class JobApplicationsListComponent implements OnInit {
 
       // Preparar datos para Excel
       const data = applications.map((app) => ({
-        'Fecha': app.created_at ? new Date(app.created_at).toLocaleDateString('es-PA') : '',
-        'Nombre': `${app.first_name} ${app.last_name}`,
-        'Email': app.email,
-        'Teléfono': app.phone_number,
-        'Provincia': app.province || 'N/A',
-        'Corregimiento': app.corregimiento || 'N/A',
+        Fecha: app.created_at
+          ? new Date(app.created_at).toLocaleDateString('es-PA')
+          : '',
+        Nombre: `${app.first_name} ${app.last_name}`,
+        Email: app.email,
+        Teléfono: app.phone_number,
+        Provincia: app.province || 'N/A',
+        Corregimiento: app.corregimiento || 'N/A',
         'Laborando Actualmente': app.currently_working ? 'Sí' : 'No',
-        'Aspiración Salarial': app.salary_expectation ? `B/. ${app.salary_expectation.toFixed(2)}` : 'N/A',
-        'Vacante': app.position_name || app.position?.name || 'N/A',
-        'Estado': this.getStatusLabel(app.status),
-        'Fecha Entrevista': app.interview_date ? new Date(app.interview_date).toLocaleDateString('es-PA') : '',
-        'Notas': app.notes || '',
+        'Aspiración Salarial': app.salary_expectation
+          ? `B/. ${app.salary_expectation.toFixed(2)}`
+          : 'N/A',
+        Vacante: app.position_name || app.position?.name || 'N/A',
+        Estado: this.getStatusLabel(app.status),
+        'Fecha Entrevista': app.interview_date
+          ? new Date(app.interview_date).toLocaleDateString('es-PA')
+          : '',
+        Notas: app.notes || '',
         'Información Adicional': app.additional_info || '',
       }));
 
@@ -654,7 +808,9 @@ export class JobApplicationsListComponent implements OnInit {
       ws['!cols'] = colWidths;
 
       // Generar nombre de archivo con fecha
-      const fileName = `Aplicaciones_${new Date().toISOString().split('T')[0]}.xlsx`;
+      const fileName = `Aplicaciones_${
+        new Date().toISOString().split('T')[0]
+      }.xlsx`;
 
       // Descargar archivo
       writeFile(wb, fileName);
@@ -685,8 +841,13 @@ export class JobApplicationsListComponent implements OnInit {
     return labels[status] || status;
   }
 
-  getStatusSeverity(status: JobApplication['status']): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
-    const severities: Record<JobApplication['status'], 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'> = {
+  getStatusSeverity(
+    status: JobApplication['status']
+  ): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
+    const severities: Record<
+      JobApplication['status'],
+      'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'
+    > = {
       pending: 'warn',
       reviewed: 'info',
       contacted: 'info',
@@ -696,4 +857,3 @@ export class JobApplicationsListComponent implements OnInit {
     return severities[status] || 'secondary';
   }
 }
-

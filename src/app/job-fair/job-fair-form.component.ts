@@ -1,10 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, httpResource } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
   computed,
   DestroyRef,
+  effect,
   inject,
   OnInit,
   signal,
@@ -75,7 +76,7 @@ import { PositionsStore } from '../stores/positions.store';
           </h1>
           <p class="text-2xl md:text-3xl text-gray-200 mb-4 font-light">
             En Black Dog estamos creciendo y queremos que tú seas parte de
-            nuestro desarrollo en Panamá 🇵🇦
+            nuestro desarrollo en Panamá
           </p>
           <div class="max-w-3xl mx-auto">
             <p class="text-lg text-gray-300 mb-6 leading-relaxed">
@@ -109,8 +110,31 @@ import { PositionsStore } from '../stores/positions.store';
           </div>
         </div>
 
-        <!-- Formulario - Solo ocultar si hay éxito -->
-        @if (!isSuccess()) {
+        <!-- Mensaje si la feria está desactivada -->
+        @if (!jobFairEnabled() && !isSuccess()) {
+        <p-card class="job-fair-card animate-slide-up">
+          <div class="text-center py-12">
+            <i class="pi pi-ban text-6xl text-red-400 mb-4"></i>
+            <h2 class="text-3xl font-bold text-white mb-4">
+              Feria de Empleo Temporalmente Cerrada
+            </h2>
+            <p class="text-gray-300 text-lg mb-6 max-w-2xl mx-auto">
+              Lo sentimos, la Feria Virtual de Empleo se encuentra temporalmente
+              cerrada. Por favor, intenta nuevamente más tarde o contacta con
+              Recursos Humanos para más información.
+            </p>
+            <p-button
+              label="Volver al Inicio"
+              icon="pi pi-home"
+              (click)="goToLogin()"
+              class="mt-4"
+            />
+          </div>
+        </p-card>
+        }
+
+        <!-- Formulario - Solo mostrar si la feria está activa y no hay éxito -->
+        @if (jobFairEnabled() && !isSuccess()) {
         <p-card class="job-fair-card animate-slide-up">
           <ng-template #title>
             <div class="flex items-center gap-3">
@@ -237,61 +261,31 @@ import { PositionsStore } from '../stores/positions.store';
               </div>
             </div>
 
-            <!-- Provincia y Corregimiento -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-              <!-- Provincia -->
-              <div>
-                <label
-                  for="province"
-                  class="block text-sm font-medium text-gray-300 mb-2"
-                >
-                  Provincia <span class="text-red-400">*</span>
-                </label>
-                <p-select
-                  id="province"
-                  formControlName="province"
-                  [options]="provinces"
-                  placeholder="Selecciona una provincia"
-                  [showClear]="true"
-                  [filter]="true"
-                  class="w-full"
-                  [class.ng-invalid]="
-                    applicationForm.get('province')?.invalid &&
-                    applicationForm.get('province')?.touched
-                  "
-                />
-                @if ( applicationForm.get('province')?.invalid &&
-                applicationForm.get('province')?.touched ) {
-                <small class="text-red-400">La provincia es requerida</small>
-                }
-              </div>
-
-              <!-- Corregimiento -->
-              <div>
-                <label
-                  for="corregimiento"
-                  class="block text-sm font-medium text-gray-300 mb-2"
-                >
-                  Corregimiento <span class="text-red-400">*</span>
-                </label>
-                <input
-                  pInputText
-                  id="corregimiento"
-                  formControlName="corregimiento"
-                  placeholder="Ej: San Francisco"
-                  class="w-full"
-                  [class.ng-invalid]="
-                    applicationForm.get('corregimiento')?.invalid &&
-                    applicationForm.get('corregimiento')?.touched
-                  "
-                />
-                @if ( applicationForm.get('corregimiento')?.invalid &&
-                applicationForm.get('corregimiento')?.touched ) {
-                <small class="text-red-400"
-                  >El corregimiento es requerido</small
-                >
-                }
-              </div>
+            <!-- Lugar de Residencia -->
+            <div class="mb-4">
+              <label
+                for="residence"
+                class="block text-sm font-medium text-gray-300 mb-2"
+              >
+                Lugar de Residencia <span class="text-red-400">*</span>
+              </label>
+              <input
+                pInputText
+                id="residence"
+                formControlName="residence"
+                placeholder="Ej: Panamá, San Francisco..."
+                class="w-full"
+                [class.ng-invalid]="
+                  applicationForm.get('residence')?.invalid &&
+                  applicationForm.get('residence')?.touched
+                "
+              />
+              @if ( applicationForm.get('residence')?.invalid &&
+              applicationForm.get('residence')?.touched ) {
+              <small class="text-red-400"
+                >El lugar de residencia es requerido</small
+              >
+              }
             </div>
 
             <!-- Laborando Actualmente y Aspiración Salarial -->
@@ -327,7 +321,7 @@ import { PositionsStore } from '../stores/positions.store';
                   [max]="999999.99"
                   [minFractionDigits]="2"
                   [maxFractionDigits]="2"
-                  placeholder="0.00"
+                  placeholder="B/. 800.00"
                   prefix="B/. "
                   class="w-full"
                   [useGrouping]="true"
@@ -641,6 +635,17 @@ import { PositionsStore } from '../stores/positions.store';
       background: rgba(40, 40, 40, 0.95) !important;
     }
 
+    /* Espacio entre el botón de limpiar (X) y la flecha del dropdown en los selects */
+    ::ng-deep #position_id.p-select .p-select-clear-icon {
+      margin-right: 0.75rem !important;
+    }
+
+    ::ng-deep #position_id.p-select .p-select-trigger {
+      display: flex !important;
+      align-items: center !important;
+      gap: 0.5rem !important;
+    }
+
     ::ng-deep .p-fileupload-basic {
       background: rgba(30, 30, 30, 0.9) !important;
       border: 2px dashed rgba(251, 191, 36, 0.4) !important;
@@ -724,23 +729,17 @@ export class JobFairFormComponent implements OnInit {
   public selectedFile = signal<File | null>(null);
   public isSubmitting = signal<boolean>(false);
   public isSuccess = signal<boolean>(false);
+  public jobFairEnabled = signal<boolean>(true);
 
-  // Lista de provincias de Panamá
-  public provinces = [
-    'Bocas del Toro',
-    'Coclé',
-    'Colón',
-    'Chiriquí',
-    'Darién',
-    'Herrera',
-    'Los Santos',
-    'Panamá',
-    'Panamá Oeste',
-    'Veraguas',
-    'Guna Yala (Comarca)',
-    'Emberá-Wounaan (Comarca)',
-    'Ngäbe-Buglé (Comarca)',
-  ];
+  // API para verificar el estado de la feria
+  private jobFairSettingsApi = httpResource<any[]>(() => ({
+    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+    method: 'GET',
+    params: {
+      select: '*',
+      key: 'eq.job_fair_enabled',
+    },
+  }));
 
   // Posiciones disponibles para la feria de empleo
   public availablePositions = computed(() => {
@@ -916,8 +915,7 @@ export class JobFairFormComponent implements OnInit {
     last_name: ['', [Validators.required]],
     email: ['', [Validators.required, Validators.email]],
     phone_number: ['', [Validators.required]],
-    province: ['', [Validators.required]],
-    corregimiento: ['', [Validators.required]],
+    residence: ['', [Validators.required]],
     currently_working: [false],
     salary_expectation: [null],
     position_id: ['', [Validators.required]],
@@ -928,6 +926,18 @@ export class JobFairFormComponent implements OnInit {
   constructor() {
     // Cargar posiciones inmediatamente
     this.positionsStore.reloadItems();
+
+    // Cargar el estado de la feria desde settings
+    effect(() => {
+      const settings = this.jobFairSettingsApi.value();
+      if (settings && settings.length > 0) {
+        const setting = settings[0];
+        this.jobFairEnabled.set(setting.value === 'true');
+      } else {
+        // Por defecto, si no existe el setting, asumir que está activa
+        this.jobFairEnabled.set(true);
+      }
+    });
   }
 
   ngOnInit() {
@@ -1114,6 +1124,17 @@ export class JobFairFormComponent implements OnInit {
   }
 
   async onSubmit() {
+    // Verificar que la feria esté activa
+    if (!this.jobFairEnabled()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Feria Cerrada',
+        detail:
+          'La Feria de Empleo se encuentra temporalmente cerrada. Por favor intenta nuevamente más tarde.',
+      });
+      return;
+    }
+
     if (this.applicationForm.invalid) {
       this.messageService.add({
         severity: 'warn',
@@ -1179,8 +1200,8 @@ export class JobFairFormComponent implements OnInit {
       last_name: this.applicationForm.value.last_name,
       email: this.applicationForm.value.email,
       phone_number: this.applicationForm.value.phone_number,
-      province: this.applicationForm.value.province || null,
-      corregimiento: this.applicationForm.value.corregimiento || null,
+      province: this.applicationForm.value.residence || null,
+      corregimiento: null,
       currently_working: this.applicationForm.value.currently_working || false,
       salary_expectation: this.applicationForm.value.salary_expectation || null,
       position_id: positionId,
