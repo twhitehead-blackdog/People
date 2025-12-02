@@ -5,114 +5,76 @@ import {
   inject,
   OnInit,
 } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   FormControl,
   FormGroup,
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
+import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { InputText } from 'primeng/inputtext';
-import { v4 } from 'uuid';
-
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { MessageService } from 'primeng/api';
 import { Select } from 'primeng/select';
 import { ToggleSwitch } from 'primeng/toggleswitch';
-import { tap } from 'rxjs';
+import { iif } from 'rxjs';
+import { v4 } from 'uuid';
 import { markGroupDirty } from '../services/util.service';
 import { DashboardStore } from '../stores/dashboard.store';
 
 @Component({
   selector: 'pt-positions-form',
   imports: [ReactiveFormsModule, Button, InputText, Select, ToggleSwitch],
-  template: ` <form [formGroup]="form" (ngSubmit)="saveChanges()">
-    <div class="flex flex-col gap-4">
-      <div class="input-container">
-        <label for="name">Nombre</label>
-        <input type="text" pInputText id="name" formControlName="name" />
+  template: `
+    <form [formGroup]="form" (ngSubmit)="saveChanges()">
+      <div class="flex flex-col gap-4">
+        <div class="input-container">
+          <label for="name">Nombre</label>
+          <input type="text" id="name" pInputText formControlName="name" />
+        </div>
+        <div class="input-container">
+          <label for="department_id">Área</label>
+          <p-select
+            formControlName="department_id"
+            [options]="store.departments.entities()"
+            optionLabel="name"
+            optionValue="id"
+            placeholder="Seleccione un área"
+            showClear
+            appendTo="body"
+          />
+        </div>
+        <div class="flex items-center gap-2">
+          <p-toggleswitch
+            formControlName="available_for_job_fair"
+            inputId="available_for_job_fair"
+          />
+          <label for="available_for_job_fair"
+            >Disponible en Feria de Empleo</label
+          >
+        </div>
+        <div class="flex gap-4 items-center justify-end">
+          <p-button
+            label="Cancelar"
+            severity="secondary"
+            outlined
+            rounded
+            icon="pi pi-times"
+            (click)="dialogRef.close()"
+          />
+          <p-button
+            label="Guardar cambios"
+            type="submit"
+            rounded
+            icon="pi pi-save"
+            [loading]="store.positions.isLoading()"
+            [disabled]="form.invalid || form.pristine"
+          />
+        </div>
       </div>
-      <div class="input-container">
-        <label for="company"> Empresa</label>
-        <p-select
-          id="company"
-          appendTo="body"
-          [options]="store.companies.entities()"
-          optionValue="id"
-          optionLabel="name"
-          formControlName="company_id"
-          placeholder="Seleccione una empresa"
-        />
-      </div>
-      <div class="input-container">
-        <label for="department"> Area</label>
-        <p-select
-          id="department"
-          appendTo="body"
-          [options]="store.departments.entities()"
-          optionValue="id"
-          optionLabel="name"
-          formControlName="department_id"
-          placeholder="Seleccione un area"
-        />
-      </div>
-      <div class="flex items-center gap-2">
-        <p-toggleswitch formControlName="admin" inputId="admin" />
-        <label for="schedule_admin">Administrador</label>
-      </div>
-      <div class="flex items-center gap-2">
-        <p-toggleswitch
-          formControlName="schedule_admin"
-          inputId="schedule_admin"
-        />
-        <label for="schedule_admin">Administra horarios</label>
-      </div>
-      <div class="flex items-center gap-2">
-        <p-toggleswitch
-          formControlName="schedule_approver"
-          inputId="schedule_approver"
-        />
-        <label for="schedule_approver">Aprueba horarios</label>
-      </div>
-      <div class="flex items-center gap-2">
-        <p-toggleswitch
-          formControlName="dashboard_access"
-          inputId="dashboard_access"
-        />
-        <label for="dashboard_access">Acceso al dashboard</label>
-      </div>
-      <div class="input-container">
-        <label for="default_view">Vista predeterminada</label>
-        <p-select
-          id="default_view"
-          appendTo="body"
-          [options]="defaultViewOptions"
-          optionValue="value"
-          optionLabel="label"
-          formControlName="default_view"
-          placeholder="Seleccione una vista"
-        />
-      </div>
-      <div class="dialog-actions">
-        <p-button
-          label="Cancelar"
-          severity="secondary"
-          outlined
-          rounded
-          icon="pi pi-times"
-          (click)="dialog.close()"
-        />
-        <p-button
-          label="Guardar cambios"
-          type="submit"
-          rounded
-          icon="pi pi-save"
-          [loading]="store.positions.isLoading()"
-        />
-      </div>
-    </div>
-  </form>`,
+    </form>
+  `,
   styles: ``,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -127,87 +89,55 @@ export class PositionsFormComponent implements OnInit {
       nonNullable: true,
       validators: [Validators.required],
     }),
-    company_id: new FormControl('', {
-      nonNullable: true,
-      validators: [Validators.required],
-    }),
+    available_for_job_fair: new FormControl(false, { nonNullable: true }),
     admin: new FormControl(false, { nonNullable: true }),
     schedule_admin: new FormControl(false, { nonNullable: true }),
     schedule_approver: new FormControl(false, { nonNullable: true }),
     dashboard_access: new FormControl(false, { nonNullable: true }),
-    default_view: new FormControl('', { nonNullable: false }),
   });
-  
-  public defaultViewOptions = [
-    { label: 'Inicio', value: 'home' },
-    { label: 'Administración', value: 'admin' },
-    { label: 'Nómina', value: 'payroll' },
-    { label: 'Gestión de tiempo', value: 'time-management' },
-    { label: 'Reloj de marcación', value: 'timeclock' },
-    { label: 'Portal de empleado', value: 'employee-portal' },
-  ];
-  
+  public dialogRef = inject(DynamicDialogRef);
+  private dialog = inject(DynamicDialogConfig);
   public store = inject(DashboardStore);
-  public dialog = inject(DynamicDialogRef);
-  private dialogConfig = inject(DynamicDialogConfig);
   private messageService = inject(MessageService);
   private destroyRef = inject(DestroyRef);
 
   ngOnInit() {
-    const { position } = this.dialogConfig.data;
+    const { position } = this.dialog.data;
     if (position) {
-      this.form.patchValue(position);
+      this.form.patchValue({
+        ...position,
+        department_id: position.department_id || position.department?.id || '',
+      });
     }
   }
 
-  saveChanges() {
+  async saveChanges() {
     if (this.form.invalid) {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'Por favor, rellene todos los campos',
+        detail: 'Por favor, complete los campos requeridos',
       });
       markGroupDirty(this.form);
       return;
     }
-
     if (this.form.pristine) {
       this.messageService.add({
-        severity: 'warn',
-        summary: 'Advertencia',
-        detail: 'No se han realizado cambios',
+        severity: 'info',
+        detail: 'No se realizaron cambios',
+        summary: 'Info',
       });
+      this.dialogRef.close();
       return;
     }
-
-    const formValue = this.form.getRawValue();
-    // Convertir null o cadena vacía a undefined para default_view
-    const positionData = {
-      ...formValue,
-      default_view: formValue.default_view && formValue.default_view.trim() !== '' 
-        ? formValue.default_view 
-        : undefined,
-    };
-
-    if (this.dialogConfig.data.position) {
-      this.store.positions
-        .editItem(positionData)
-        .pipe(
-          tap(() => this.dialog.close()),
-          takeUntilDestroyed(this.destroyRef)
-        )
-        .subscribe();
-      return;
-    }
-
-    this.store.positions
-      .createItem(positionData)
-      .pipe(
-        tap(() => this.dialog.close()),
-        takeUntilDestroyed(this.destroyRef)
-      )
-      .subscribe();
-
-    return;
+    iif(
+      () => this.dialog.data.position,
+      this.store.positions.editItem(this.form.getRawValue()),
+      this.store.positions.createItem(this.form.getRawValue())
+    )
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.dialogRef.close();
+      });
   }
 }

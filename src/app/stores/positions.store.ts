@@ -1,13 +1,13 @@
-import { signalStore, withHooks } from '@ngrx/signals';
+import { signalStore } from '@ngrx/signals';
 import { Position } from '../models';
 import { withCustomEntities } from './entities.feature';
 
 export const PositionsStore = signalStore(
   withCustomEntities<Position>({
     name: 'positions',
-    query:
-      'id, name, department_id, company_id, department:departments(*), company:companies(*), admin, schedule_admin, schedule_approver, dashboard_access, default_view',
+    query: 'id,name,department_id,available_for_job_fair,department:departments(id, name)',
     order: 'name',
-  }),
-  withHooks({ onInit: ({ fetchItems }) => fetchItems() })
+  })
+  // Carga automática desactivada para evitar error 400 al iniciar
+  // Positions se cargará cuando se necesite (al abrir la página de positions)
 );

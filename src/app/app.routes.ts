@@ -38,5 +38,12 @@ export const appRoutes: Route[] = [
       import('./timeclock.component').then((x) => x.TimeclockComponent),
     canActivate: [timeclockKioskGuard],
   },
+  {
+    path: 'job-fair',
+    loadComponent: () =>
+      import('./job-fair/job-fair-form.component').then(
+        (x) => x.JobFairFormComponent
+      ),
+  },
   { path: '**', redirectTo: 'login', pathMatch: 'full' },
 ];

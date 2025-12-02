@@ -35,6 +35,7 @@ export type Position = {
   schedule_approver: boolean;
   dashboard_access?: boolean;
   default_view?: string;
+  available_for_job_fair?: boolean;
 };
 
 export type Employee = {
@@ -311,6 +312,29 @@ export type PayrollPaymentEmployeeItem = {
   amount: number;
   description: string;
   created_at?: Date;
+};
+
+export type JobApplication = {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone_number: string;
+  position_id?: string;
+  position?: Position;
+  position_name?: string;
+  province?: string;
+  corregimiento?: string;
+  currently_working?: boolean;
+  salary_expectation?: number;
+  resume_url?: string;
+  resume_filename?: string;
+  additional_info?: string;
+  status: 'pending' | 'reviewed' | 'contacted' | 'rejected' | 'hired';
+  interview_date?: Date;
+  notes?: string;
+  created_at?: Date;
+  updated_at?: Date;
 };
 
 export const colorVariants: Record<string, string> = {
