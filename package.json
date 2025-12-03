@@ -37,7 +37,7 @@
     "apexcharts": "^5.3.6",
     "chart.js": "^4.5.1",
     "crypto-js": "^4.2.0",
-    "date-fns": "4.1.0",
+    "date-fns": "^3.6.0",
     "date-fns-tz": "^3.2.0",
     "jsonwebtoken": "^9.0.2",
     "lodash": "^4.17.21",

@@ -3,10 +3,12 @@ import {
   ChangeDetectionStrategy,
   Component,
   inject,
+  OnInit,
   signal,
 } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
+import { filter, take } from 'rxjs';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { Toast } from 'primeng/toast';
@@ -754,11 +756,27 @@ import { Toast } from 'primeng/toast';
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   public auth = inject(AuthService);
   public router = inject(Router);
   public activeMode = signal<'dashboard' | 'kiosk'>('dashboard');
   public isFlying = signal<boolean>(false);
+
+  ngOnInit() {
+    // Verificar si hay una ruta guardada para redirigir después del login
+    this.auth.isAuthenticated$.pipe(
+      filter(isAuth => isAuth === true),
+      take(1)
+    ).subscribe(() => {
+      const returnUrl = localStorage.getItem('returnUrl');
+      if (returnUrl && returnUrl !== '/login') {
+        localStorage.removeItem('returnUrl');
+        this.router.navigateByUrl(returnUrl);
+      } else {
+        this.router.navigate(['/']);
+      }
+    });
+  }
 
   setMode(mode: 'dashboard' | 'kiosk') {
     this.activeMode.set(mode);

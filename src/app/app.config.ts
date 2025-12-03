@@ -74,6 +74,8 @@ export const appConfig: ApplicationConfig = {
         redirect_uri: process.env['ENV_APP_URL'],
         audience: process.env['ENV_AUTH0_AUDIENCE'] ?? '',
       },
+      cacheLocation: 'localstorage',
+      useRefreshTokens: true,
     }),
     providePrimeNG({
       theme: {
