@@ -61,48 +61,53 @@ import { EmployeeFormComponent } from './employee-form.component';
     <p-confirmDialog />
     <p-card>
       <ng-template #title>
-        <div class="flex items-center justify-between w-full">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
           <div>
-            <h2 class="m-0">Empleados</h2>
-            <p class="text-sm text-gray-400 m-0 mt-1">Listado de colaboradores de la empresa</p>
+            <h2 class="m-0 text-lg sm:text-xl">Empleados</h2>
+            <p class="text-xs sm:text-sm text-gray-400 m-0 mt-1">Listado de colaboradores de la empresa</p>
           </div>
-          <div class="flex gap-2">
+          <div class="flex flex-wrap gap-2">
             <p-button
               icon="pi pi-file-excel"
               severity="success"
-              label="XLS"
+              [label]="'XLS'"
               (onClick)="generateReport()"
               rounded
+              class="min-h-[44px]"
             />
             <p-button
               icon="pi pi-file-pdf"
               severity="warn"
-              label="PDF"
+              [label]="'PDF'"
               (onClick)="generateReport()"
               rounded
+              class="min-h-[44px]"
             />
             <p-button
               label="Nuevo"
               routerLink="new"
               icon="pi pi-plus-circle"
               rounded
+              class="min-h-[44px]"
             />
           </div>
         </div>
       </ng-template>
-      <p-table
-        #dt
-        [value]="this.filtered()"
-        [loading]="store.employees.isLoading()"
-        [paginator]="true"
-        [rows]="10"
-        [rowsPerPageOptions]="[5, 10, 20]"
-        [scrollable]="true"
-        dataKey="id"
-        paginatorDropdownAppendTo="body"
-        [showCurrentPageReport]="true"
-        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} empleados"
-      >
+      <div class="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+        <p-table
+          #dt
+          [value]="this.filtered()"
+          [loading]="store.employees.isLoading()"
+          [paginator]="true"
+          [rows]="10"
+          [rowsPerPageOptions]="[5, 10, 20]"
+          [scrollable]="true"
+          dataKey="id"
+          paginatorDropdownAppendTo="body"
+          [showCurrentPageReport]="false"
+          currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} empleados"
+          styleClass="min-w-full"
+        >
         <ng-template #caption>
           <div class="flex gap-2 items-center">
             <p-toggleswitch
@@ -369,13 +374,14 @@ import { EmployeeFormComponent } from './employee-form.component';
             </td>
             <td>{{ item.created_at | date : 'medium' }}</td>
             <td>
-              <div class="flex gap-1">
+              <div class="flex gap-1 sm:gap-2 flex-wrap">
                 <p-button
                   icon="pi pi-info-circle"
                   [routerLink]="item.id"
                   rounded
                   text
                   pTooltip="Ver detalles"
+                  class="min-w-[44px] min-h-[44px]"
                 />
                 <p-button
                   icon="pi pi-pen-to-square"
@@ -384,6 +390,7 @@ import { EmployeeFormComponent } from './employee-form.component';
                   text
                   severity="success"
                   pTooltip="Editar"
+                  class="min-w-[44px] min-h-[44px]"
                 />
                 @if (!item.has_portal_access) {
                   <p-button
@@ -394,12 +401,14 @@ import { EmployeeFormComponent } from './employee-form.component';
                     severity="info"
                     pTooltip="Invitar al Portal"
                     [loading]="invitingEmployeeId() === item.id"
+                    class="min-w-[44px] min-h-[44px]"
                   />
                 } @else {
                   <p-tag
                     value="Portal Activo"
                     severity="success"
                     icon="pi pi-check-circle"
+                    class="text-xs"
                   />
                 }
               </div>
@@ -415,7 +424,8 @@ import { EmployeeFormComponent } from './employee-form.component';
             }
           </tr>
         </ng-template>
-      </p-table>
+        </p-table>
+      </div>
     </p-card>
   `,
   styles: `

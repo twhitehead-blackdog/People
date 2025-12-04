@@ -9,15 +9,12 @@ import {
 } from '@angular/core';
 import {
   differenceInMinutes,
+  eachMonthOfInterval,
   endOfMonth,
   format,
-  startOfMonth,
-  startOfYear,
-  subMonths,
-  eachMonthOfInterval,
-  isBefore,
-  isAfter,
   parseISO,
+  startOfMonth,
+  subMonths,
 } from 'date-fns';
 import { BaseChartDirective } from 'ng2-charts';
 import { CardModule } from 'primeng/card';
@@ -40,18 +37,19 @@ import { EmployeesStore } from '../stores/employees.store';
   ],
   template: `
     <div class="dashboard-wrapper">
+      <!-- Overlay para móvil cuando el sidebar está abierto -->
+      @if (sidebarOpen()) {
+      <div class="sidebar-overlay md:hidden" (click)="toggleSidebar()"></div>
+      }
       <!-- Sidebar Navigation -->
       <aside class="dashboard-sidebar" [class.collapsed]="!sidebarOpen()">
         <div class="sidebar-header">
-          <h3 [class.hidden]="!sidebarOpen()">Navegación</h3>
           <button
-            class="sidebar-toggle"
+            class="sidebar-toggle min-w-[44px] min-h-[44px]"
             (click)="toggleSidebar()"
             [title]="sidebarOpen() ? 'Cerrar menú' : 'Abrir menú'"
           >
-            <i
-              [class]="sidebarOpen() ? 'pi pi-angle-left' : 'pi pi-angle-right'"
-            ></i>
+            <i [class]="sidebarOpen() ? 'pi pi-times' : 'pi pi-bars'"></i>
           </button>
         </div>
         <nav class="sidebar-nav">
@@ -115,6 +113,16 @@ import { EmployeesStore } from '../stores/employees.store';
           </button>
         </nav>
       </aside>
+
+      <!-- Botón flotante para abrir sidebar en móvil -->
+      <button
+        class="mobile-sidebar-toggle"
+        (click)="toggleSidebar()"
+        [class.hidden]="sidebarOpen()"
+        title="Abrir menú"
+      >
+        <i class="pi pi-bars"></i>
+      </button>
 
       <main class="dashboard-container">
         <!-- Resumen Ejecutivo -->
@@ -1041,7 +1049,7 @@ import { EmployeesStore } from '../stores/employees.store';
                 <div class="kpi-sublabel">Menos de 3 meses</div>
               </div>
             </div>
-            
+
             <!-- Rotación y Retención -->
             <div class="kpi-card">
               <div class="kpi-icon">
@@ -1073,7 +1081,7 @@ import { EmployeesStore } from '../stores/employees.store';
                 <div class="kpi-sublabel">Empleados retenidos</div>
               </div>
             </div>
-            
+
             <!-- Antigüedad y Estabilidad -->
             <div class="kpi-card">
               <div class="kpi-icon">
@@ -1091,11 +1099,13 @@ import { EmployeesStore } from '../stores/employees.store';
               </div>
               <div class="kpi-content">
                 <div class="kpi-label">Aniversarios Próximos</div>
-                <div class="kpi-value">{{ state.upcomingAnniversaries().length }}</div>
+                <div class="kpi-value">
+                  {{ state.upcomingAnniversaries().length }}
+                </div>
                 <div class="kpi-sublabel">Próximos 30 días</div>
               </div>
             </div>
-            
+
             <!-- Ausentismo y Licencias -->
             <div class="kpi-card">
               <div class="kpi-icon">
@@ -1117,7 +1127,7 @@ import { EmployeesStore } from '../stores/employees.store';
                 <div class="kpi-sublabel">Licencias activas</div>
               </div>
             </div>
-            
+
             <!-- Costos y Eficiencia -->
             <div class="kpi-card">
               <div class="kpi-icon">
@@ -1126,7 +1136,10 @@ import { EmployeesStore } from '../stores/employees.store';
               <div class="kpi-content">
                 <div class="kpi-label">Costo por Empleado</div>
                 <div class="kpi-value">
-                  {{ state.costPerEmployee() | currency : '$' : 'symbol' : '1.0-0' }}
+                  {{
+                    state.costPerEmployee()
+                      | currency : '$' : 'symbol' : '1.0-0'
+                  }}
                 </div>
                 <div class="kpi-sublabel">Costo promedio mensual</div>
               </div>
@@ -1137,11 +1150,13 @@ import { EmployeesStore } from '../stores/employees.store';
               </div>
               <div class="kpi-content">
                 <div class="kpi-label">Ratio de Eficiencia</div>
-                <div class="kpi-value">{{ state.peopleEfficiencyRatio() }}%</div>
+                <div class="kpi-value">
+                  {{ state.peopleEfficiencyRatio() }}%
+                </div>
                 <div class="kpi-sublabel">Eficiencia del personal</div>
               </div>
             </div>
-            
+
             <!-- Deudas y Finanzas -->
             <div class="kpi-card">
               <div class="kpi-icon">
@@ -1151,7 +1166,11 @@ import { EmployeesStore } from '../stores/employees.store';
                 <div class="kpi-label">Empleados con Deudas</div>
                 <div class="kpi-value">{{ state.employeesWithDebts() }}</div>
                 <div class="kpi-sublabel">
-                  Total: {{ state.totalDebtAmount() | currency : '$' : 'symbol' : '1.0-0' }}
+                  Total:
+                  {{
+                    state.totalDebtAmount()
+                      | currency : '$' : 'symbol' : '1.0-0'
+                  }}
                 </div>
               </div>
             </div>
@@ -2769,6 +2788,24 @@ import { EmployeesStore } from '../stores/employees.store';
       border-radius: 0.25rem;
     }
 
+    /* Overlay para móvil */
+    .sidebar-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 999;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
     /* Responsive */
     @media (max-width: 1024px) {
       .dashboard-sidebar {
@@ -2809,6 +2846,92 @@ import { EmployeesStore } from '../stores/employees.store';
       .dashboard-container {
         margin-left: 0;
         padding-top: 1rem;
+      }
+    }
+
+    /* Mejoras para móvil (menos de 768px) */
+    @media (max-width: 768px) {
+      .dashboard-sidebar {
+        width: 280px;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease-in-out;
+      }
+
+      .dashboard-sidebar:not(.collapsed) {
+        transform: translateX(0);
+      }
+
+      .dashboard-sidebar.collapsed {
+        transform: translateX(-100%);
+      }
+
+      /* Por defecto, el sidebar debe estar oculto en móvil */
+      .dashboard-sidebar {
+        transform: translateX(-100%);
+      }
+
+      .dashboard-sidebar:not(.collapsed) {
+        transform: translateX(0);
+      }
+
+      .dashboard-container {
+        margin-left: 0 !important;
+        padding: 1rem 0.75rem 2rem;
+      }
+
+      .sidebar-header {
+        padding: 1rem;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .sidebar-header h3 {
+        font-size: 1rem;
+      }
+
+      .nav-item {
+        min-height: 44px;
+        padding: 0.875rem 1rem;
+        font-size: 0.9375rem;
+      }
+
+      .nav-item span {
+        font-size: 0.875rem;
+      }
+
+      /* Botón flotante para abrir sidebar en móvil */
+      .mobile-sidebar-toggle {
+        position: fixed;
+        bottom: 1.5rem;
+        left: 1.5rem;
+        z-index: 998;
+        width: 3.5rem;
+        height: 3.5rem;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        border: none;
+        box-shadow: 0 4px 16px rgba(251, 191, 36, 0.4);
+        color: #000;
+        font-size: 1.25rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+      }
+
+      .mobile-sidebar-toggle:hover {
+        transform: scale(1.1);
+        box-shadow: 0 6px 20px rgba(251, 191, 36, 0.6);
+      }
+
+      .mobile-sidebar-toggle:active {
+        transform: scale(0.95);
+      }
+    }
+
+    @media (min-width: 769px) {
+      .mobile-sidebar-toggle {
+        display: none;
       }
     }
 
@@ -3429,13 +3552,19 @@ export class HomeComponent {
   public state = inject(DashboardStore);
   public employees = inject(EmployeesStore);
 
-  public sidebarOpen = signal(true);
+  // Inicializar sidebar como abierto en desktop, cerrado en móvil
+  public sidebarOpen = signal(
+    typeof window !== 'undefined' && window.innerWidth >= 769
+  );
   public activeSection = signal('executive');
 
   // Computed para contar cumpleañeros del mes
   // Only calculate when executive or events section is active
   public monthlyBirthdaysCount = computed(() => {
-    if (this.activeSection() !== 'executive' && this.activeSection() !== 'events') {
+    if (
+      this.activeSection() !== 'executive' &&
+      this.activeSection() !== 'events'
+    ) {
       return 0;
     }
     return this.state.birthDates().length;
@@ -3458,7 +3587,7 @@ export class HomeComponent {
     if (this.activeSection() !== 'executive') {
       return { hires: 0, exits: 0 };
     }
-    
+
     const now = new Date();
     const monthStart = startOfMonth(now);
     const monthEnd = endOfMonth(now);
@@ -3641,7 +3770,7 @@ export class HomeComponent {
         },
       },
       scales: {
-        x: { 
+        x: {
           display: false,
           grid: { display: false },
         },
@@ -3652,13 +3781,13 @@ export class HomeComponent {
         },
       },
       elements: {
-        line: { 
-          tension: 0.4, 
+        line: {
+          tension: 0.4,
           borderWidth: 3,
           borderJoinStyle: 'round',
           borderCapStyle: 'round',
         },
-        point: { 
+        point: {
           radius: 0,
           hoverRadius: 6,
           hitRadius: 10,
@@ -3671,7 +3800,7 @@ export class HomeComponent {
           const idx = active[0].index;
           const data: any = this.headcountChartData();
           const labels = data?.labels || [];
-          
+
           if (idx !== undefined && labels[idx]) {
             // Parse the month/year from label (e.g., "Ene 2024")
             const label = labels[idx];
@@ -3724,7 +3853,7 @@ export class HomeComponent {
         },
       },
       scales: {
-        x: { 
+        x: {
           display: false,
           grid: { display: false },
         },
@@ -3735,13 +3864,13 @@ export class HomeComponent {
         },
       },
       elements: {
-        line: { 
-          tension: 0.4, 
+        line: {
+          tension: 0.4,
           borderWidth: 3,
           borderJoinStyle: 'round',
           borderCapStyle: 'round',
         },
-        point: { 
+        point: {
           radius: 0,
           hoverRadius: 6,
           hitRadius: 10,
@@ -3826,7 +3955,7 @@ export class HomeComponent {
         },
       },
       scales: {
-        x: { 
+        x: {
           display: false,
           grid: { display: false },
         },
@@ -3837,13 +3966,13 @@ export class HomeComponent {
         },
       },
       elements: {
-        line: { 
-          tension: 0.4, 
+        line: {
+          tension: 0.4,
           borderWidth: 3,
           borderJoinStyle: 'round',
           borderCapStyle: 'round',
         },
-        point: { 
+        point: {
           radius: 0,
           hoverRadius: 6,
           hitRadius: 10,
@@ -3889,30 +4018,47 @@ export class HomeComponent {
     if (this.activeSection() !== 'executive') {
       return { labels: [], datasets: [] };
     }
-    
+
     const employees = this.employees.entities();
     const terminations = this.terminationsApi.value() ?? [];
     const now = new Date();
     const currentMonthStart = startOfMonth(now);
-    
+
     // Get the start of the current month and go back 24 months
     const endDate = startOfMonth(now);
     const startDate = subMonths(endDate, 23);
-    
+
     // Generate array of months
     const months = eachMonthOfInterval({ start: startDate, end: endDate });
-    
+
     // Calculate headcount for each month
     const data: number[] = [];
     const labels: string[] = [];
-    
+
     for (const month of months) {
       const monthStart = startOfMonth(month);
       const monthEnd = endOfMonth(month);
-      const monthStartTimestamp = new Date(monthStart.getFullYear(), monthStart.getMonth(), monthStart.getDate(), 0, 0, 0, 0).getTime();
-      const monthEndTimestamp = new Date(monthEnd.getFullYear(), monthEnd.getMonth(), monthEnd.getDate(), 23, 59, 59, 999).getTime();
-      const isCurrentOrFutureMonth = month.getTime() >= currentMonthStart.getTime();
-      
+      const monthStartTimestamp = new Date(
+        monthStart.getFullYear(),
+        monthStart.getMonth(),
+        monthStart.getDate(),
+        0,
+        0,
+        0,
+        0
+      ).getTime();
+      const monthEndTimestamp = new Date(
+        monthEnd.getFullYear(),
+        monthEnd.getMonth(),
+        monthEnd.getDate(),
+        23,
+        59,
+        59,
+        999
+      ).getTime();
+      const isCurrentOrFutureMonth =
+        month.getTime() >= currentMonthStart.getTime();
+
       // Count employees who were active at the end of this specific month/year
       const headcount = employees.filter((emp) => {
         // ============================================
@@ -3924,7 +4070,7 @@ export class HomeComponent {
           // Only count employees who are currently active
           return emp.is_active === true;
         }
-        
+
         // ============================================
         // CASE 2: PAST MONTHS
         // ============================================
@@ -3932,12 +4078,12 @@ export class HomeComponent {
         // An employee was active at the end of a past month if:
         // 1. They started on or before the last day of that month
         // 2. They were NOT terminated on or before the last day of that month
-        
+
         // If employee has no start_date, we cannot determine if they were active in past months
         if (!emp.start_date) {
           return false;
         }
-        
+
         // Parse start_date (handle both Date objects and ISO strings)
         let empStartDate: Date;
         try {
@@ -3952,21 +4098,24 @@ export class HomeComponent {
         } catch (error) {
           return false; // Failed to parse start_date
         }
-        
+
         // Normalize start_date to start of day for comparison
         const empStartTimestamp = new Date(
           empStartDate.getFullYear(),
           empStartDate.getMonth(),
           empStartDate.getDate(),
-          0, 0, 0, 0
+          0,
+          0,
+          0,
+          0
         ).getTime();
-        
+
         // Employee must have started on or before the last day of this month
         // If they started after this month, they cannot be counted
         if (empStartTimestamp > monthEndTimestamp) {
           return false;
         }
-        
+
         // Now check if employee was terminated before or during this month
         // Check termination date from terminations table first
         const termination = terminations.find((t) => t.employee_id === emp.id);
@@ -3979,15 +4128,18 @@ export class HomeComponent {
             } else if (typeof termDateValue === 'string') {
               termDate = parseISO(termDateValue);
             }
-            
+
             if (termDate) {
               const termDateTimestamp = new Date(
                 termDate.getFullYear(),
                 termDate.getMonth(),
                 termDate.getDate(),
-                0, 0, 0, 0
+                0,
+                0,
+                0,
+                0
               ).getTime();
-              
+
               // If terminated on or before the last day of this month, exclude
               if (termDateTimestamp <= monthEndTimestamp) {
                 return false;
@@ -3997,7 +4149,7 @@ export class HomeComponent {
             // Failed to parse termination date, continue to check end_date
           }
         }
-        
+
         // Check end_date field (some employees may have end_date instead of termination record)
         if (emp.end_date) {
           try {
@@ -4012,14 +4164,17 @@ export class HomeComponent {
               // (if end_date is invalid, we can't determine termination)
               return true;
             }
-            
+
             const empEndDateTimestamp = new Date(
               empEndDate.getFullYear(),
               empEndDate.getMonth(),
               empEndDate.getDate(),
-              0, 0, 0, 0
+              0,
+              0,
+              0,
+              0
             ).getTime();
-            
+
             // If end_date is on or before the last day of this month, exclude
             if (empEndDateTimestamp <= monthEndTimestamp) {
               return false;
@@ -4029,13 +4184,15 @@ export class HomeComponent {
             // (if end_date is invalid, we can't determine termination)
           }
         }
-        
+
         // Additional check: If employee is currently inactive and has no termination date,
         // they might have been terminated but the date wasn't recorded properly.
         // For past months, if they're inactive now and we can't find a termination date,
         // we should be conservative and exclude them if the month is recent (within last 12 months)
         // Otherwise, assume they were active if they passed all other checks
-        const monthsAgo = Math.floor((now.getTime() - monthEndTimestamp) / (1000 * 60 * 60 * 24 * 30));
+        const monthsAgo = Math.floor(
+          (now.getTime() - monthEndTimestamp) / (1000 * 60 * 60 * 24 * 30)
+        );
         if (!emp.is_active && monthsAgo <= 12) {
           // If employee is inactive and month is recent, and we couldn't find termination date,
           // they were likely terminated but date wasn't recorded - exclude them
@@ -4043,17 +4200,30 @@ export class HomeComponent {
             return false;
           }
         }
-        
+
         // Employee passed all checks:
         // - Started on or before the end of this month
         // - Was not terminated on or before the end of this month
         return true;
       }).length;
-      
+
       data.push(headcount);
-      
+
       // Format label as "Mes Año" (e.g., "Ene 2024")
-      const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+      const monthNames = [
+        'Ene',
+        'Feb',
+        'Mar',
+        'Abr',
+        'May',
+        'Jun',
+        'Jul',
+        'Ago',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dic',
+      ];
       const monthName = monthNames[month.getMonth()];
       const year = format(month, 'yyyy');
       labels.push(`${monthName} ${year}`);
@@ -4088,7 +4258,7 @@ export class HomeComponent {
     if (this.activeSection() !== 'executive') {
       return { labels: [], datasets: [] };
     }
-    
+
     const now = new Date();
     const year = now.getFullYear();
     const month = now.getMonth();
@@ -4265,6 +4435,10 @@ export class HomeComponent {
 
   public selectSection(sectionId: string): void {
     this.activeSection.set(sectionId);
+    // Cerrar sidebar en móvil después de seleccionar una sección
+    if (window.innerWidth < 769) {
+      this.sidebarOpen.set(false);
+    }
   }
 
   public toggleSidebar(): void {
@@ -4283,10 +4457,13 @@ export class HomeComponent {
   // Get monthly hires list
   // Only calculate when executive section is active or dialog is open
   public monthlyHiresList = computed(() => {
-    if (this.activeSection() !== 'executive' && !this.hiresExitsDialogVisible()) {
+    if (
+      this.activeSection() !== 'executive' &&
+      !this.hiresExitsDialogVisible()
+    ) {
       return [];
     }
-    
+
     const now = new Date();
     const monthStart = startOfMonth(now);
     const monthEnd = endOfMonth(now);
@@ -4317,10 +4494,13 @@ export class HomeComponent {
   // Get monthly exits list
   // Only calculate when executive section is active or dialog is open
   public monthlyExitsList = computed(() => {
-    if (this.activeSection() !== 'executive' && !this.hiresExitsDialogVisible()) {
+    if (
+      this.activeSection() !== 'executive' &&
+      !this.hiresExitsDialogVisible()
+    ) {
       return [];
     }
-    
+
     const now = new Date();
     const monthStart = startOfMonth(now);
     const monthEnd = endOfMonth(now);
@@ -4355,7 +4535,10 @@ export class HomeComponent {
     return `${d.getDate()} de ${this.getBirthdayMonth(d)}`;
   }
 
-  public openMonthHiresExitsDialog(monthLabel: string, monthIndex: number): void {
+  public openMonthHiresExitsDialog(
+    monthLabel: string,
+    monthIndex: number
+  ): void {
     this.selectedMonthLabel.set(monthLabel);
     this.selectedMonthIndex.set(monthIndex);
     this.monthHiresExitsDialogVisible.set(true);
@@ -4365,10 +4548,13 @@ export class HomeComponent {
   // Get hires list for selected month from headcount chart
   // Only calculate when executive section is active or dialog is open
   public selectedMonthHiresList = computed(() => {
-    if (this.activeSection() !== 'executive' && !this.monthHiresExitsDialogVisible()) {
+    if (
+      this.activeSection() !== 'executive' &&
+      !this.monthHiresExitsDialogVisible()
+    ) {
       return [];
     }
-    
+
     const monthIndex = this.selectedMonthIndex();
     if (monthIndex < 0) return [];
 
@@ -4378,12 +4564,25 @@ export class HomeComponent {
 
     // Parse month/year from label (e.g., "Ene 2024")
     const label = labels[monthIndex];
-    const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const monthNames = [
+      'Ene',
+      'Feb',
+      'Mar',
+      'Abr',
+      'May',
+      'Jun',
+      'Jul',
+      'Ago',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dic',
+    ];
     const parts = label.split(' ');
     const monthName = parts[0];
     const year = parseInt(parts[1]);
     const monthIndexNum = monthNames.indexOf(monthName);
-    
+
     if (monthIndexNum === -1 || isNaN(year)) return [];
 
     const monthStart = new Date(year, monthIndexNum, 1);
@@ -4394,9 +4593,10 @@ export class HomeComponent {
       .filter((x) => {
         if (!x.start_date) return false;
         const startDateValue: Date | string = x.start_date as any;
-        const startDate = startDateValue instanceof Date 
-          ? startDateValue 
-          : parseISO(startDateValue);
+        const startDate =
+          startDateValue instanceof Date
+            ? startDateValue
+            : parseISO(startDateValue);
         return startDate >= monthStart && startDate <= monthEnd;
       })
       .map((x) => ({
@@ -4419,10 +4619,13 @@ export class HomeComponent {
   // Get exits list for selected month from headcount chart
   // Only calculate when executive section is active or dialog is open
   public selectedMonthExitsList = computed(() => {
-    if (this.activeSection() !== 'executive' && !this.monthHiresExitsDialogVisible()) {
+    if (
+      this.activeSection() !== 'executive' &&
+      !this.monthHiresExitsDialogVisible()
+    ) {
       return [];
     }
-    
+
     const monthIndex = this.selectedMonthIndex();
     if (monthIndex < 0) return [];
 
@@ -4432,12 +4635,25 @@ export class HomeComponent {
 
     // Parse month/year from label (e.g., "Ene 2024")
     const label = labels[monthIndex];
-    const monthNames = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+    const monthNames = [
+      'Ene',
+      'Feb',
+      'Mar',
+      'Abr',
+      'May',
+      'Jun',
+      'Jul',
+      'Ago',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dic',
+    ];
     const parts = label.split(' ');
     const monthName = parts[0];
     const year = parseInt(parts[1]);
     const monthIndexNum = monthNames.indexOf(monthName);
-    
+
     if (monthIndexNum === -1 || isNaN(year)) return [];
 
     const monthStart = new Date(year, monthIndexNum, 1);
@@ -4448,13 +4664,29 @@ export class HomeComponent {
       .filter((t) => {
         if (!t.date) return false;
         const termDateValue: Date | string = t.date as any;
-        const terminationDate = termDateValue instanceof Date 
-          ? termDateValue 
-          : parseISO(termDateValue);
-        const termDateNormalized = new Date(terminationDate.getFullYear(), terminationDate.getMonth(), terminationDate.getDate());
-        const monthStartNormalized = new Date(monthStart.getFullYear(), monthStart.getMonth(), monthStart.getDate());
-        const monthEndNormalized = new Date(monthEnd.getFullYear(), monthEnd.getMonth(), monthEnd.getDate());
-        return termDateNormalized >= monthStartNormalized && termDateNormalized <= monthEndNormalized;
+        const terminationDate =
+          termDateValue instanceof Date
+            ? termDateValue
+            : parseISO(termDateValue);
+        const termDateNormalized = new Date(
+          terminationDate.getFullYear(),
+          terminationDate.getMonth(),
+          terminationDate.getDate()
+        );
+        const monthStartNormalized = new Date(
+          monthStart.getFullYear(),
+          monthStart.getMonth(),
+          monthStart.getDate()
+        );
+        const monthEndNormalized = new Date(
+          monthEnd.getFullYear(),
+          monthEnd.getMonth(),
+          monthEnd.getDate()
+        );
+        return (
+          termDateNormalized >= monthStartNormalized &&
+          termDateNormalized <= monthEndNormalized
+        );
       })
       .map((t) => ({
         date: t.date,
@@ -4465,8 +4697,10 @@ export class HomeComponent {
         if (!a.date || !b.date) return 0;
         const aDateValue: Date | string = a.date as any;
         const bDateValue: Date | string = b.date as any;
-        const aDate = aDateValue instanceof Date ? aDateValue : parseISO(aDateValue);
-        const bDate = bDateValue instanceof Date ? bDateValue : parseISO(bDateValue);
+        const aDate =
+          aDateValue instanceof Date ? aDateValue : parseISO(aDateValue);
+        const bDate =
+          bDateValue instanceof Date ? bDateValue : parseISO(bDateValue);
         return aDate.getTime() - bDate.getTime();
       });
   });
@@ -4476,14 +4710,16 @@ export class HomeComponent {
     if (this.activeSection() !== 'structure') {
       return [];
     }
-    return this.state.employeesByBranch().map((x) => x.branch?.name || 'Sin sucursal');
+    return this.state
+      .employeesByBranch()
+      .map((x) => x.branch?.name || 'Sin sucursal');
   });
 
   public branchData = computed(() => {
     if (this.activeSection() !== 'charts') {
       return [];
     }
-    
+
     const counts = this.state.employeesByBranch().map((x) => x.count);
     const colors = this.generateCorporateColors(counts.length);
     return [
@@ -4562,7 +4798,7 @@ export class HomeComponent {
     if (this.activeSection() !== 'executive') {
       return { labels: [], datasets: [] };
     }
-    
+
     const maleCount = this.state.countByGender()['M'] || 0;
     const femaleCount = this.state.countByGender()['F'] || 0;
     const total = maleCount + femaleCount;
@@ -4627,7 +4863,7 @@ export class HomeComponent {
     if (this.activeSection() !== 'executive') {
       return { labels: [], datasets: [] };
     }
-    
+
     const hires = this.monthlyHiresAndExits().hires;
     const exits = this.monthlyHiresAndExits().exits;
 
@@ -5041,7 +5277,7 @@ export class HomeComponent {
   // Hires and Exits Dialog
   public hiresExitsDialogVisible = signal(false);
   public hiresExitsTab = signal<'hires' | 'exits'>('hires');
-  
+
   // Month-specific Hires and Exits Dialog
   public monthHiresExitsDialogVisible = signal(false);
   public monthHiresExitsTab = signal<'hires' | 'exits'>('hires');

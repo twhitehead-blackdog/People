@@ -20,10 +20,10 @@ import { DepartmentsFormComponent } from './departments-form.component';
   template: `
     <p-card>
       <ng-template #title>
-        <div class="flex items-center justify-between w-full">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
           <div>
-            <h2 class="m-0">Areas</h2>
-            <p class="text-sm text-gray-400 m-0 mt-1">Listado de areas/departamentos de la empresa</p>
+            <h2 class="m-0 text-lg sm:text-xl">Areas</h2>
+            <p class="text-xs sm:text-sm text-gray-400 m-0 mt-1">Listado de areas/departamentos de la empresa</p>
           </div>
           <div class="flex gap-2">
             <p-button
@@ -31,16 +31,18 @@ import { DepartmentsFormComponent } from './departments-form.component';
               label="Nuevo"
               icon="pi pi-plus-circle"
               rounded
+              class="min-h-[44px]"
             />
           </div>
         </div>
       </ng-template>
-      <div>
+      <div class="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
         <p-table
           [value]="departments()"
           [paginator]="true"
           [rows]="5"
           [rowsPerPageOptions]="[5, 10, 20]"
+          styleClass="min-w-full"
         >
           <ng-template #header>
             <tr>
@@ -55,20 +57,24 @@ import { DepartmentsFormComponent } from './departments-form.component';
             <tr>
               <td>{{ item.name }}</td>
               <td>
-                <p-button
-                  severity="success"
-                  text
-                  rounded
-                  icon="pi pi-pen-to-square"
-                  (onClick)="editDepartment(item)"
-                />
-                <p-button
-                  severity="danger"
-                  text
-                  rounded
-                  icon="pi pi-trash"
-                  (onClick)="deleteDepartment(item.id)"
-                />
+                <div class="flex gap-1 sm:gap-2">
+                  <p-button
+                    severity="success"
+                    text
+                    rounded
+                    icon="pi pi-pen-to-square"
+                    (onClick)="editDepartment(item)"
+                    class="min-w-[44px] min-h-[44px]"
+                  />
+                  <p-button
+                    severity="danger"
+                    text
+                    rounded
+                    icon="pi pi-trash"
+                    (onClick)="deleteDepartment(item.id)"
+                    class="min-w-[44px] min-h-[44px]"
+                  />
+                </div>
               </td>
             </tr>
           </ng-template>

@@ -65,7 +65,7 @@ import { PositionsStore } from '../stores/positions.store';
             <img
               src="images/blackdog.png"
               alt="Black Dog Logo"
-              class="h-24 mx-auto mb-6 drop-shadow-2xl animate-logo-float"
+              class="h-16 sm:h-20 md:h-24 mx-auto mb-4 sm:mb-6 drop-shadow-2xl animate-logo-float"
             />
           </div>
           <div class="badge-container mb-6">
@@ -75,29 +75,35 @@ import { PositionsStore } from '../stores/positions.store';
             </span>
           </div>
           <h1
-            class="text-5xl md:text-6xl font-extrabold text-white mb-6 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 bg-clip-text text-transparent animate-gradient"
+            class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold text-white mb-4 sm:mb-6 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 bg-clip-text text-transparent animate-gradient"
           >
             Únete a Nuestro Equipo
           </h1>
-          <p class="text-2xl md:text-3xl text-gray-200 mb-4 font-light">
+          <p
+            class="text-lg sm:text-xl md:text-2xl lg:text-3xl text-gray-200 mb-3 sm:mb-4 font-light px-2"
+          >
             En Black Dog estamos creciendo y queremos que tú seas parte de
             nuestro desarrollo en Panamá
           </p>
           <div class="max-w-3xl mx-auto">
-            <p class="text-lg text-gray-300 mb-6 leading-relaxed">
+            <p
+              class="text-sm sm:text-base md:text-lg text-gray-300 mb-4 sm:mb-6 leading-relaxed px-2"
+            >
               Te invitamos a nuestra
               <strong class="text-amber-400">Feria Virtual de Empleo</strong>,
               donde podrás conocer las oportunidades laborales que tenemos para
               ti, aprender más sobre nuestra empresa y dar el siguiente paso en
               tu carrera profesional.
             </p>
-            <div class="highlight-box mb-6">
-              <p class="text-xl text-white font-semibold">
+            <div class="highlight-box mb-4 sm:mb-6">
+              <p
+                class="text-base sm:text-lg md:text-xl text-white font-semibold"
+              >
                 <i class="pi pi-bolt text-amber-400 mr-2"></i>
                 ¿Quieres formar parte de un equipo innovador y en constante
                 expansión?
               </p>
-              <p class="text-lg text-gray-200 mt-2">
+              <p class="text-sm sm:text-base md:text-lg text-gray-200 mt-2">
                 No te pierdas esta oportunidad. ¡Inscríbete ahora y sé parte del
                 crecimiento de Black Dog en Panamá!
               </p>
@@ -152,10 +158,12 @@ import { PositionsStore } from '../stores/positions.store';
                 <i class="pi pi-briefcase text-2xl"></i>
               </div>
               <div>
-                <h2 class="text-white text-2xl font-bold m-0">
+                <h2
+                  class="text-white text-lg sm:text-xl md:text-2xl font-bold m-0"
+                >
                   Formulario de Aplicación
                 </h2>
-                <p class="text-gray-400 text-sm m-0 mt-1">
+                <p class="text-gray-400 text-xs sm:text-sm m-0 mt-1">
                   Completa tus datos y únete a nuestro equipo
                 </p>
               </div>
@@ -425,13 +433,14 @@ import { PositionsStore } from '../stores/positions.store';
             </div>
 
             <!-- Botones -->
-            <div class="flex gap-4 justify-end">
+            <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-end">
               <p-button
                 label="Cancelar"
                 icon="pi pi-times"
                 severity="secondary"
                 (click)="onCancel()"
                 [disabled]="isSubmitting()"
+                class="w-full sm:w-auto min-h-[44px]"
               />
               <p-button
                 type="submit"
@@ -439,6 +448,7 @@ import { PositionsStore } from '../stores/positions.store';
                 icon="pi pi-send"
                 [loading]="isSubmitting()"
                 [disabled]="applicationForm.invalid"
+                class="w-full sm:w-auto min-h-[44px]"
               />
             </div>
           </form>

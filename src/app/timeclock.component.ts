@@ -1,5 +1,5 @@
 import { NgClass } from '@angular/common';
-import { HttpClient, httpResource, HttpParams } from '@angular/common/http';
+import { HttpClient, httpResource } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -13,14 +13,15 @@ import {
   signal,
   ViewChild,
 } from '@angular/core';
-import { Router } from '@angular/router';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   FormControl,
   FormGroup,
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { format, differenceInMinutes } from 'date-fns';
+import { Router } from '@angular/router';
+import { differenceInMinutes, format } from 'date-fns';
 import * as OTPAuth from 'otpauth';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
@@ -30,9 +31,16 @@ import { InputOtp } from 'primeng/inputotp';
 import { Select } from 'primeng/select';
 import { Toast } from 'primeng/toast';
 import { catchError, EMPTY, Observable, of } from 'rxjs';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { map, switchMap } from 'rxjs/operators';
-import { Branch, Company, Employee, TimelogType, EmployeeSchedule, Schedule, TimeLog, TimeLogEnum } from './models';
+import {
+  Branch,
+  Company,
+  Employee,
+  EmployeeSchedule,
+  Schedule,
+  TimeLog,
+  TimelogType,
+} from './models';
 import { TrimPipe } from './pipes/trim.pipe';
 import { IpMonitorService } from './services/ip-monitor.service';
 
@@ -71,23 +79,34 @@ import { IpMonitorService } from './services/ip-monitor.service';
       </ng-template>
     </p-confirmDialog>
     <p-toast />
-      <div
-        class="flex flex-col items-center justify-center animated-gradient-container"
-        style="width: 100%; position: relative; min-height: 100vh; overflow-y: auto; overflow-x: hidden;"
-      >
+    <div
+      class="flex flex-col items-center justify-center animated-gradient-container"
+      style="width: 100%; position: relative; min-height: 100vh; overflow-y: auto; overflow-x: hidden;"
+    >
       @if (!isKioskMode() || isIPValid()) {
       <div
         class="flex flex-col gap-2 md:gap-3 lg:gap-4 items-center px-3 md:px-6 relative z-10 timeclock-content"
         style="max-width: 600px; width: 100%; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem 0;"
       >
-        <img src="images/blackdog.png" class="h-12 md:h-16 lg:h-20 w-auto object-contain drop-shadow-2xl relative z-10" />
+        <img
+          src="images/blackdog.png"
+          class="h-12 md:h-16 lg:h-20 w-auto object-contain drop-shadow-2xl relative z-10"
+        />
         <p-card class="w-full timeclock-card relative z-10">
           <ng-template #title>
             <div class="flex flex-col gap-1 md:gap-2 items-center">
-              <div class="text-base md:text-lg lg:text-xl font-bold text-gray-100 text-center">Reloj de Marcación</div>
+              <div
+                class="text-base md:text-lg lg:text-xl font-bold text-gray-100 text-center"
+              >
+                Reloj de Marcación
+              </div>
               <!-- Clock Display inside card -->
-              <div class="flex flex-col items-center gap-0.5 bg-black/40 backdrop-blur-sm rounded-lg px-3 md:px-5 py-1.5 md:py-2 border border-yellow-500/40 shadow-lg clock-display">
-                <div class="text-xl md:text-2xl lg:text-3xl font-mono font-bold text-yellow-400 clock-time">
+              <div
+                class="flex flex-col items-center gap-0.5 bg-black/40 backdrop-blur-sm rounded-lg px-3 md:px-5 py-1.5 md:py-2 border border-yellow-500/40 shadow-lg clock-display"
+              >
+                <div
+                  class="text-xl md:text-2xl lg:text-3xl font-mono font-bold text-yellow-400 clock-time"
+                >
                   {{ formattedTime() }}
                 </div>
                 <div class="text-xs md:text-sm text-gray-300">
@@ -97,15 +116,21 @@ import { IpMonitorService } from './services/ip-monitor.service';
             </div>
           </ng-template>
           <ng-template #subtitle>
-            <div class="flex items-center justify-center gap-2 text-[#d2d2d2] text-xs md:text-sm font-semibold text-center">
+            <div
+              class="flex items-center justify-center gap-2 text-[#d2d2d2] text-xs md:text-sm font-semibold text-center"
+            >
               <i class="pi pi-building text-yellow-400"></i>
               <i class="pi pi-user text-yellow-400"></i>
               <span>Seleccione la sucursal y empleado</span>
             </div>
           </ng-template>
-          <form [formGroup]="form" class="flex flex-col gap-3 md:gap-4 items-center w-full" (keydown.enter)="onEnterKey($event)">
+          <form
+            [formGroup]="form"
+            class="flex flex-col gap-3 md:gap-4 items-center w-full"
+            (keydown.enter)="onEnterKey($event)"
+          >
             @if (!form.get('company_id')?.value) {
-              <div class="input-container w-full">
+            <div class="input-container w-full">
               <p-select
                 formControlName="company_id"
                 [options]="companiesResource.value()"
@@ -114,8 +139,8 @@ import { IpMonitorService } from './services/ip-monitor.service';
                 optionValue="id"
                 filter
                 filterBy="name"
-                  class="w-full"
-                  [styleClass]="'w-full'"
+                class="w-full"
+                [styleClass]="'w-full'"
               />
             </div>
             }
@@ -132,7 +157,13 @@ import { IpMonitorService } from './services/ip-monitor.service';
                 [styleClass]="'w-full'"
               />
             </div>
-            <div class="input-container w-full" [ngClass]="{'error-border': form.get('employee')?.invalid && form.get('employee')?.touched}">
+            <div
+              class="input-container w-full"
+              [ngClass]="{
+                'error-border':
+                  form.get('employee')?.invalid && form.get('employee')?.touched
+              }"
+            >
               <p-select
                 formControlName="employee"
                 [options]="employeesResource.value()"
@@ -162,45 +193,67 @@ import { IpMonitorService } from './services/ip-monitor.service';
                 [styleClass]="'w-full'"
               />
             </div>
-            
+
             <!-- PIN Input Section -->
-            <div class="w-full flex flex-col gap-0.5 items-center justify-center">
-              <label class="text-gray-300 font-medium text-xs md:text-sm text-center" style="margin-bottom: 3px;">
+            <div
+              class="w-full flex flex-col gap-0.5 items-center justify-center"
+            >
+              <label
+                class="text-gray-300 font-medium text-xs md:text-sm text-center"
+                style="margin-bottom: 3px;"
+              >
                 Ingrese su PIN
               </label>
               <div class="w-full flex justify-center items-center">
-            <p-inputOtp
+                <p-inputOtp
                   #otpInput
-              formControlName="otp"
-              [length]="6"
-              [integerOnly]="true"
+                  formControlName="otp"
+                  [length]="6"
+                  [integerOnly]="true"
                   (keydown.enter)="onEnterKey($event)"
                   (input)="onOtpInput($event)"
                   styleClass="p-inputotp-input"
-            />
+                />
               </div>
             </div>
 
             <!-- Submit Button -->
             <div class="w-full flex justify-center items-center">
-            <p-button
-                [disabled]="form.invalid || isProcessing() || !form.get('employee')?.value"
+              <p-button
+                [disabled]="
+                  form.invalid || isProcessing() || !form.get('employee')?.value
+                "
                 [loading]="isProcessing()"
-              (onClick)="validateOtp()"
+                (onClick)="validateOtp()"
                 [label]="isProcessing() ? 'Procesando...' : 'Marcar'"
-                [icon]="isProcessing() ? 'pi pi-spin pi-spinner' : 'pi pi-check-circle'"
-              size="large"
-              rounded
+                [icon]="
+                  isProcessing()
+                    ? 'pi pi-spin pi-spinner'
+                    : 'pi pi-check-circle'
+                "
+                size="large"
+                rounded
                 [styleClass]="'mark-button'"
-                [style]="{'background': form.invalid || !form.get('employee')?.value ? 'linear-gradient(135deg, #5d5d5d 0%, #4a4a4a 100%)' : 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)', 'border': 'none', 'box-shadow': form.invalid || !form.get('employee')?.value ? 'none' : '0 4px 15px rgba(251, 191, 36, 0.4)'}"
+                [style]="{
+                  background:
+                    form.invalid || !form.get('employee')?.value
+                      ? 'linear-gradient(135deg, #5d5d5d 0%, #4a4a4a 100%)'
+                      : 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+                  border: 'none',
+                  'box-shadow':
+                    form.invalid || !form.get('employee')?.value
+                      ? 'none'
+                      : '0 4px 15px rgba(251, 191, 36, 0.4)'
+                }"
               />
             </div>
-            
+
             <!-- Validation Messages -->
-            @if (form.get('employee')?.invalid && form.get('employee')?.touched) {
-              <div class="text-gray-400 text-xs text-center w-full mt-1">
-                Debe seleccionar un empleado para continuar.
-              </div>
+            @if (form.get('employee')?.invalid && form.get('employee')?.touched)
+            {
+            <div class="text-gray-400 text-xs text-center w-full mt-1">
+              Debe seleccionar un empleado para continuar.
+            </div>
             }
           </form>
         </p-card>
@@ -211,29 +264,56 @@ import { IpMonitorService } from './services/ip-monitor.service';
         class="flex flex-col gap-4 items-center px-3 md:px-6 relative z-10"
         style="max-width: 600px; width: 100%; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem 0;"
       >
-        <img src="images/blackdog.png" class="h-12 md:h-16 lg:h-20 w-auto object-contain drop-shadow-2xl relative z-10" />
+        <img
+          src="images/blackdog.png"
+          class="h-12 md:h-16 lg:h-20 w-auto object-contain drop-shadow-2xl relative z-10"
+        />
         <p-card class="w-full timeclock-card relative z-10">
           <ng-template pTemplate="title">
             <div class="flex flex-col gap-3 items-center">
               <div class="relative">
-                <div class="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-red-500/30 to-red-600/20 flex items-center justify-center shadow-lg shadow-red-500/20 border border-red-500/30 animate-pulse">
-                  <i class="pi pi-exclamation-triangle text-red-400 text-3xl md:text-4xl drop-shadow-lg"></i>
+                <div
+                  class="w-20 h-20 md:w-24 md:h-24 rounded-full bg-gradient-to-br from-red-500/30 to-red-600/20 flex items-center justify-center shadow-lg shadow-red-500/20 border border-red-500/30 animate-pulse"
+                >
+                  <i
+                    class="pi pi-exclamation-triangle text-red-400 text-3xl md:text-4xl drop-shadow-lg"
+                  ></i>
                 </div>
-                <div class="absolute inset-0 w-20 h-20 md:w-24 md:h-24 rounded-full bg-red-500/10 animate-ping"></div>
+                <div
+                  class="absolute inset-0 w-20 h-20 md:w-24 md:h-24 rounded-full bg-red-500/10 animate-ping"
+                ></div>
               </div>
-              <h1 class="text-xl md:text-2xl font-semibold text-white m-0 text-center">Acceso Restringido</h1>
+              <h1
+                class="text-xl md:text-2xl font-semibold text-white m-0 text-center"
+              >
+                Acceso Restringido
+              </h1>
             </div>
           </ng-template>
           <div class="space-y-4 text-gray-300 text-center">
-            <p class="text-base md:text-lg text-white font-medium">Dirección IP no autorizada</p>
-            <p class="text-sm md:text-base leading-relaxed">Tu dirección IP actual no está autorizada para usar el modo kiosko.</p>
+            <p class="text-base md:text-lg text-white font-medium">
+              Dirección IP no autorizada
+            </p>
+            <p class="text-sm md:text-base leading-relaxed">
+              Tu dirección IP actual no está autorizada para usar el modo
+              kiosko.
+            </p>
             @if (currentIP()) {
-              <div class="mt-4 p-3 bg-neutral-800/50 rounded-lg border border-neutral-700">
-                <p class="text-xs text-gray-400 mb-1">IP detectada:</p>
-                <p class="text-sm text-red-400 font-mono font-semibold text-center">{{ currentIP() }}</p>
-              </div>
+            <div
+              class="mt-4 p-3 bg-neutral-800/50 rounded-lg border border-neutral-700"
+            >
+              <p class="text-xs text-gray-400 mb-1">IP detectada:</p>
+              <p
+                class="text-sm text-red-400 font-mono font-semibold text-center"
+              >
+                {{ currentIP() }}
+              </p>
+            </div>
             }
-            <p class="text-xs md:text-sm text-gray-400 italic">Si cambias de red o tu IP cambia, el acceso será bloqueado automáticamente.</p>
+            <p class="text-xs md:text-sm text-gray-400 italic">
+              Si cambias de red o tu IP cambia, el acceso será bloqueado
+              automáticamente.
+            </p>
           </div>
         </p-card>
       </div>
@@ -579,7 +659,7 @@ export class TimeclockComponent implements OnDestroy {
   public isProcessing = signal<boolean>(false);
   public showKeypad = signal<boolean>(false);
   public currentTime = signal<Date>(new Date());
-  public availableTypes = signal<Array<{value: string, label: string}>>([]);
+  public availableTypes = signal<Array<{ value: string; label: string }>>([]);
   public isKioskMode = signal<boolean>(false);
   public isIPValid = signal<boolean>(true);
 
@@ -591,76 +671,91 @@ export class TimeclockComponent implements OnDestroy {
     // Detectar si está en modo kiosko
     const isKioskRoute = this.router.url.includes('/timeclock-kiosk');
     this.isKioskMode.set(isKioskRoute);
-    
+
     this.timeInterval = setInterval(() => {
       this.currentTime.set(new Date());
     }, 1000);
-    
+
     // Initialize available types
     this.availableTypes.set(this.types);
-    
+
     // Try to get real IP address using multiple methods
     this.detectIP();
-    
+
     // Si está en modo kiosko, monitorear la IP continuamente
     if (isKioskRoute) {
       this.setupKioskModeMonitoring();
     }
-    
+
     // Auto-select company and branch when data loads
-    effect(() => {
-      const companies = this.companiesResource.value();
-      const branches = this.branchesResource.value();
-      
-      // Auto-select "Black Dog Panamá" company if found
-      if (companies && companies.length > 0 && !this.form.get('company_id')?.value) {
-        // First try exact match for "Black Dog Panamá"
-        let blackDogCompany = companies.find(c => {
-          const name = c.name.toLowerCase();
-          return name === 'black dog panamá' || 
-                 name === 'blackdog panamá' ||
-                 name === 'black dog panama' ||
-                 name === 'blackdog panama';
-        });
-        
-        // If not found, try partial matches with both "black dog" and "panamá"
-        if (!blackDogCompany) {
-          blackDogCompany = companies.find(c => {
+    effect(
+      () => {
+        const companies = this.companiesResource.value();
+        const branches = this.branchesResource.value();
+
+        // Auto-select "Black Dog Panamá" company if found
+        if (
+          companies &&
+          companies.length > 0 &&
+          !this.form.get('company_id')?.value
+        ) {
+          // First try exact match for "Black Dog Panamá"
+          let blackDogCompany = companies.find((c) => {
             const name = c.name.toLowerCase();
-            return (name.includes('black dog') || name.includes('blackdog')) &&
-                   (name.includes('panamá') || name.includes('panama'));
+            return (
+              name === 'black dog panamá' ||
+              name === 'blackdog panamá' ||
+              name === 'black dog panama' ||
+              name === 'blackdog panama'
+            );
           });
-        }
-        
-        // Last resort: just look for "black dog" or "blackdog"
-        if (!blackDogCompany) {
-          blackDogCompany = companies.find(c => {
-            const name = c.name.toLowerCase();
-            return name.includes('black dog') || name.includes('blackdog');
-          });
-        }
-        
-        if (blackDogCompany) {
-          this.form.get('company_id')?.setValue(blackDogCompany.id);
-        }
-      }
-      
-      // Auto-select branch by IP if found (after company is selected)
-      const selectedCompanyId = this.form.get('company_id')?.value;
-      if (branches && branches.length > 0 && !this.form.get('branch_id')?.value) {
-        const currentIP = this.getIP();
-        if (currentIP && currentIP !== '127.0.0.1') {
-          // Find branch matching the IP
-          const matchingBranch = branches.find(b => b.ip === currentIP);
-          if (matchingBranch) {
-            this.form.get('branch_id')?.setValue(matchingBranch.id);
+
+          // If not found, try partial matches with both "black dog" and "panamá"
+          if (!blackDogCompany) {
+            blackDogCompany = companies.find((c) => {
+              const name = c.name.toLowerCase();
+              return (
+                (name.includes('black dog') || name.includes('blackdog')) &&
+                (name.includes('panamá') || name.includes('panama'))
+              );
+            });
+          }
+
+          // Last resort: just look for "black dog" or "blackdog"
+          if (!blackDogCompany) {
+            blackDogCompany = companies.find((c) => {
+              const name = c.name.toLowerCase();
+              return name.includes('black dog') || name.includes('blackdog');
+            });
+          }
+
+          if (blackDogCompany) {
+            this.form.get('company_id')?.setValue(blackDogCompany.id);
           }
         }
-      }
-    }, { injector: this.injector });
+
+        // Auto-select branch by IP if found (after company is selected)
+        const selectedCompanyId = this.form.get('company_id')?.value;
+        if (
+          branches &&
+          branches.length > 0 &&
+          !this.form.get('branch_id')?.value
+        ) {
+          const currentIP = this.getIP();
+          if (currentIP && currentIP !== '127.0.0.1') {
+            // Find branch matching the IP
+            const matchingBranch = branches.find((b) => b.ip === currentIP);
+            if (matchingBranch) {
+              this.form.get('branch_id')?.setValue(matchingBranch.id);
+            }
+          }
+        }
+      },
+      { injector: this.injector }
+    );
 
     // Auto-detect timelog type when employee is selected
-    this.form.get('employee')?.valueChanges.subscribe(employee => {
+    this.form.get('employee')?.valueChanges.subscribe((employee) => {
       this.onEmployeeSelected(employee);
     });
   }
@@ -670,34 +765,35 @@ export class TimeclockComponent implements OnDestroy {
    */
   private setupKioskModeMonitoring(): void {
     // Suscribirse al estado de validez de la IP
-    this.ipMonitor.isIPValid.pipe(
-      takeUntilDestroyed(this.destroyRef)
-    ).subscribe((isValid) => {
-      this.isIPValid.set(isValid);
-      
-      if (!isValid) {
-        // Mostrar alerta cuando la IP no es válida
-        this.message.add({
-          severity: 'error',
-          summary: 'Acceso Restringido',
-          detail: 'La dirección IP no está autorizada para usar el modo kiosko. El acceso ha sido bloqueado.',
-          life: 0, // No desaparece automáticamente
-          closable: true
-        });
-      } else {
-        // Limpiar mensajes de error si la IP vuelve a ser válida
-        this.message.clear();
-      }
-    });
-    
+    this.ipMonitor.isIPValid
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((isValid) => {
+        this.isIPValid.set(isValid);
+
+        if (!isValid) {
+          // Mostrar alerta cuando la IP no es válida
+          this.message.add({
+            severity: 'error',
+            summary: 'Acceso Restringido',
+            detail:
+              'La dirección IP no está autorizada para usar el modo kiosko. El acceso ha sido bloqueado.',
+            life: 0, // No desaparece automáticamente
+            closable: true,
+          });
+        } else {
+          // Limpiar mensajes de error si la IP vuelve a ser válida
+          this.message.clear();
+        }
+      });
+
     // También suscribirse a cambios de IP para detectar cambios de red
-    this.ipMonitor.currentIP.pipe(
-      takeUntilDestroyed(this.destroyRef)
-    ).subscribe((ip) => {
-      if (ip) {
-        this.currentIP.set(ip);
-      }
-    });
+    this.ipMonitor.currentIP
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((ip) => {
+        if (ip) {
+          this.currentIP.set(ip);
+        }
+      });
   }
 
   ngOnDestroy() {
@@ -713,72 +809,89 @@ export class TimeclockComponent implements OnDestroy {
   // Detect IP address using multiple methods
   private detectIP() {
     // Method 1: Try WebRTC (works even from localhost)
-    this.getIPViaWebRTC().then(ip => {
-      if (ip && ip !== '127.0.0.1' && ip !== '::1') {
-        this.currentIP.set(ip);
-        return;
-      }
-      
-      // Method 2: Try ipify.org (may have CORS issues in dev)
-      this.getIPViaHttp().then(ip => {
-        if (ip && ip !== '127.0.0.1') {
+    this.getIPViaWebRTC()
+      .then((ip) => {
+        if (ip && ip !== '127.0.0.1' && ip !== '::1') {
           this.currentIP.set(ip);
+          return;
         }
-      }).catch(() => {
-        // Method 3: Try alternative service
-        this.getIPViaAlternative().then(ip => {
-          if (ip && ip !== '127.0.0.1') {
-            this.currentIP.set(ip);
-          }
-        }).catch(() => {
-          // Keep default 127.0.0.1 if all methods fail
-        });
+
+        // Method 2: Try ipify.org (may have CORS issues in dev)
+        this.getIPViaHttp()
+          .then((ip) => {
+            if (ip && ip !== '127.0.0.1') {
+              this.currentIP.set(ip);
+            }
+          })
+          .catch(() => {
+            // Method 3: Try alternative service
+            this.getIPViaAlternative()
+              .then((ip) => {
+                if (ip && ip !== '127.0.0.1') {
+                  this.currentIP.set(ip);
+                }
+              })
+              .catch(() => {
+                // Keep default 127.0.0.1 if all methods fail
+              });
+          });
+      })
+      .catch(() => {
+        // If WebRTC fails, try HTTP methods
+        this.getIPViaHttp()
+          .then((ip) => {
+            if (ip && ip !== '127.0.0.1') {
+              this.currentIP.set(ip);
+            }
+          })
+          .catch(() => {
+            this.getIPViaAlternative()
+              .then((ip) => {
+                if (ip && ip !== '127.0.0.1') {
+                  this.currentIP.set(ip);
+                }
+              })
+              .catch(() => {
+                // Keep default
+              });
+          });
       });
-    }).catch(() => {
-      // If WebRTC fails, try HTTP methods
-      this.getIPViaHttp().then(ip => {
-        if (ip && ip !== '127.0.0.1') {
-          this.currentIP.set(ip);
-        }
-      }).catch(() => {
-        this.getIPViaAlternative().then(ip => {
-          if (ip && ip !== '127.0.0.1') {
-            this.currentIP.set(ip);
-          }
-        }).catch(() => {
-          // Keep default
-        });
-      });
-    });
   }
 
   // Method 1: Get IP via WebRTC (works from localhost)
   private getIPViaWebRTC(): Promise<string> {
     return new Promise((resolve, reject) => {
-      const RTCPeerConnection = (window as any).RTCPeerConnection || 
-                                (window as any).webkitRTCPeerConnection || 
-                                (window as any).mozRTCPeerConnection;
-      
+      const RTCPeerConnection =
+        (window as any).RTCPeerConnection ||
+        (window as any).webkitRTCPeerConnection ||
+        (window as any).mozRTCPeerConnection;
+
       if (!RTCPeerConnection) {
         reject(new Error('WebRTC not supported'));
         return;
       }
 
       const pc = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
       });
 
       const ips: string[] = [];
-      
+
       pc.createDataChannel('');
-      
+
       pc.onicecandidate = (event: any) => {
         if (event.candidate) {
           const candidate = event.candidate.candidate;
-          const match = candidate.match(/([0-9]{1,3}(\.[0-9]{1,3}){3}|[a-f0-9]{1,4}(:[a-f0-9]{1,4}){7})/);
+          const match = candidate.match(
+            /([0-9]{1,3}(\.[0-9]{1,3}){3}|[a-f0-9]{1,4}(:[a-f0-9]{1,4}){7})/
+          );
           if (match) {
             const ip = match[1];
-            if (ips.indexOf(ip) === -1 && !ip.startsWith('127.') && ip !== '::1') {
+            if (
+              ips.indexOf(ip) === -1 &&
+              !ip.startsWith('127.') &&
+              ip !== '::1'
+            ) {
               ips.push(ip);
             }
           }
@@ -817,24 +930,28 @@ export class TimeclockComponent implements OnDestroy {
   // Method 2: Get IP via HTTP (ipify.org)
   private getIPViaHttp(): Promise<string> {
     return new Promise((resolve, reject) => {
-      this.http.get<{ ip: string }>('https://api.ipify.org?format=json', {
-        headers: { 'Accept': 'application/json' }
-      }).subscribe({
-        next: (data) => resolve(data.ip),
-        error: () => reject(new Error('HTTP method failed'))
-      });
+      this.http
+        .get<{ ip: string }>('https://api.ipify.org?format=json', {
+          headers: { Accept: 'application/json' },
+        })
+        .subscribe({
+          next: (data) => resolve(data.ip),
+          error: () => reject(new Error('HTTP method failed')),
+        });
     });
   }
 
   // Method 3: Get IP via alternative service
   private getIPViaAlternative(): Promise<string> {
     return new Promise((resolve, reject) => {
-      this.http.get<{ ip: string }>('https://api64.ipify.org?format=json', {
-        headers: { 'Accept': 'application/json' }
-      }).subscribe({
-        next: (data) => resolve(data.ip),
-        error: () => reject(new Error('Alternative method failed'))
-      });
+      this.http
+        .get<{ ip: string }>('https://api64.ipify.org?format=json', {
+          headers: { Accept: 'application/json' },
+        })
+        .subscribe({
+          next: (data) => resolve(data.ip),
+          error: () => reject(new Error('Alternative method failed')),
+        });
     });
   }
 
@@ -849,24 +966,28 @@ export class TimeclockComponent implements OnDestroy {
 
     // Filter types based on last log
     // Allow exit at any point after entry (for emergencies)
-    let filtered: Array<{value: string, label: string}> = [];
-    
+    let filtered: Array<{ value: string; label: string }> = [];
+
     switch (lastType) {
       case 'entry':
         // Can do lunch_start or exit (for emergencies)
-        filtered = allTypes.filter(t => t.value === 'lunch_start' || t.value === 'exit');
+        filtered = allTypes.filter(
+          (t) => t.value === 'lunch_start' || t.value === 'exit'
+        );
         break;
       case 'lunch_start':
         // Can do lunch_end or exit (for emergencies)
-        filtered = allTypes.filter(t => t.value === 'lunch_end' || t.value === 'exit');
+        filtered = allTypes.filter(
+          (t) => t.value === 'lunch_end' || t.value === 'exit'
+        );
         break;
       case 'lunch_end':
         // Can do exit next
-        filtered = allTypes.filter(t => t.value === 'exit');
+        filtered = allTypes.filter((t) => t.value === 'exit');
         break;
       case 'exit':
         // Can start new day with entry
-        filtered = allTypes.filter(t => t.value === 'entry');
+        filtered = allTypes.filter((t) => t.value === 'entry');
         break;
       default:
         filtered = allTypes;
@@ -903,10 +1024,33 @@ export class TimeclockComponent implements OnDestroy {
 
   // Format date for display
   formattedDate = computed(() => {
-    const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-    const months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+    const days = [
+      'Domingo',
+      'Lunes',
+      'Martes',
+      'Miércoles',
+      'Jueves',
+      'Viernes',
+      'Sábado',
+    ];
+    const months = [
+      'enero',
+      'febrero',
+      'marzo',
+      'abril',
+      'mayo',
+      'junio',
+      'julio',
+      'agosto',
+      'septiembre',
+      'octubre',
+      'noviembre',
+      'diciembre',
+    ];
     const date = this.currentTime();
-    return `${days[date.getDay()]}, ${date.getDate()} de ${months[date.getMonth()]} de ${date.getFullYear()}`;
+    return `${days[date.getDay()]}, ${date.getDate()} de ${
+      months[date.getMonth()]
+    } de ${date.getFullYear()}`;
   });
 
   // Get IP - always returns a valid IP (localhost in dev)
@@ -918,9 +1062,9 @@ export class TimeclockComponent implements OnDestroy {
     const ip = this.getIP();
     // If IP is localhost (dev fallback), always allow
     if (ip === '127.0.0.1') return true;
-    return this.branchesResource
-      .value()
-      ?.some((branch) => branch.ip === ip) ?? true;
+    return (
+      this.branchesResource.value()?.some((branch) => branch.ip === ip) ?? true
+    );
   });
 
   public types = Object.entries(TimelogType).map(([key, value]) => ({
@@ -960,10 +1104,9 @@ export class TimeclockComponent implements OnDestroy {
   private getLastTimelog(employeeId: string): Observable<TimeLog | null> {
     const today = format(new Date(), 'yyyy-MM-dd');
     const todayStart = `${today}T00:00:00`;
-    
-    return this.http.get<TimeLog[]>(
-      `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`,
-      {
+
+    return this.http
+      .get<TimeLog[]>(`${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`, {
         params: {
           select: 'id,type,created_at',
           employee_id: `eq.${employeeId}`,
@@ -971,28 +1114,27 @@ export class TimeclockComponent implements OnDestroy {
           order: 'created_at.desc',
           limit: '1',
         },
-      }
-    ).pipe(
-      map(timelogs => {
-        if (!timelogs || timelogs.length === 0) {
-          return null;
-        }
-        const lastLog = timelogs[0];
-        // Verify it's from today
-        const logDate = format(new Date(lastLog.created_at), 'yyyy-MM-dd');
-        return logDate === today ? lastLog : null;
-      }),
-      catchError(() => of(null))
-    );
+      })
+      .pipe(
+        map((timelogs) => {
+          if (!timelogs || timelogs.length === 0) {
+            return null;
+          }
+          const lastLog = timelogs[0];
+          // Verify it's from today
+          const logDate = format(new Date(lastLog.created_at), 'yyyy-MM-dd');
+          return logDate === today ? lastLog : null;
+        }),
+        catchError(() => of(null))
+      );
   }
-
 
   // Determine next timelog type based on last entry
   private getNextTimelogType(lastType: string | null): string {
     if (!lastType) {
       return 'entry'; // First entry of the day
     }
-    
+
     // Determine next type in sequence
     switch (lastType) {
       case 'entry':
@@ -1009,37 +1151,47 @@ export class TimeclockComponent implements OnDestroy {
   }
 
   // Get employee schedule for today
-  private getEmployeeSchedule(employeeId: string): Observable<EmployeeSchedule | null> {
+  private getEmployeeSchedule(
+    employeeId: string
+  ): Observable<EmployeeSchedule | null> {
     const today = format(new Date(), 'yyyy-MM-dd');
-    return this.http.get<EmployeeSchedule[]>(
-      `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
-      {
-        params: {
-          select: '*,schedule:schedules(*)',
-          employee_id: `eq.${employeeId}`,
-          start_date: `lte.${today}`,
-          end_date: `gte.${today}`,
-        },
-      }
-    ).pipe(
-      map(schedules => schedules && schedules.length > 0 ? schedules[0] : null),
-      catchError((error) => {
-        console.error('Error getting employee schedule:', error);
-        return of(null);
-      })
-    );
+    return this.http
+      .get<EmployeeSchedule[]>(
+        `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+        {
+          params: {
+            select: '*,schedule:schedules(*)',
+            employee_id: `eq.${employeeId}`,
+            start_date: `lte.${today}`,
+            end_date: `gte.${today}`,
+          },
+        }
+      )
+      .pipe(
+        map((schedules) =>
+          schedules && schedules.length > 0 ? schedules[0] : null
+        ),
+        catchError((error) => {
+          console.error('Error getting employee schedule:', error);
+          return of(null);
+        })
+      );
   }
 
   // Calculate if entry is late
-  private calculateDelay(entryTime: Date, schedule: Schedule | undefined): number | null {
+  private calculateDelay(
+    entryTime: Date,
+    schedule: Schedule | undefined
+  ): number | null {
     if (!schedule || !schedule.entry_time || schedule.day_off) {
       return null;
     }
 
     const entryTimeStr = format(entryTime, 'HH:mm:ss');
-    const scheduleTimeStr = typeof schedule.entry_time === 'string' 
-      ? schedule.entry_time 
-      : format(new Date(schedule.entry_time), 'HH:mm:ss');
+    const scheduleTimeStr =
+      typeof schedule.entry_time === 'string'
+        ? schedule.entry_time
+        : format(new Date(schedule.entry_time), 'HH:mm:ss');
 
     const entryParts = entryTimeStr.split(':');
     const scheduleParts = scheduleTimeStr.split(':');
@@ -1048,7 +1200,12 @@ export class TimeclockComponent implements OnDestroy {
     entryDate.setHours(+entryParts[0], +entryParts[1], +entryParts[2] || 0, 0);
 
     const scheduleDate = new Date();
-    scheduleDate.setHours(+scheduleParts[0], +scheduleParts[1], +scheduleParts[2] || 0, 0);
+    scheduleDate.setHours(
+      +scheduleParts[0],
+      +scheduleParts[1],
+      +scheduleParts[2] || 0,
+      0
+    );
 
     const delay = differenceInMinutes(entryDate, scheduleDate);
 
@@ -1069,7 +1226,9 @@ export class TimeclockComponent implements OnDestroy {
     if (remainingMinutes === 0) {
       return `${hours} ${hours === 1 ? 'hora' : 'horas'}`;
     }
-    return `${hours} ${hours === 1 ? 'hora' : 'horas'} y ${remainingMinutes} ${remainingMinutes === 1 ? 'minuto' : 'minutos'}`;
+    return `${hours} ${hours === 1 ? 'hora' : 'horas'} y ${remainingMinutes} ${
+      remainingMinutes === 1 ? 'minuto' : 'minutos'
+    }`;
   }
 
   // Get lunch_start timelog for today
@@ -1077,16 +1236,19 @@ export class TimeclockComponent implements OnDestroy {
     const today = format(new Date(), 'yyyy-MM-dd');
     const todayStart = `${today}T00:00:00`;
     const todayEnd = `${today}T23:59:59`;
-    
+
     const url = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs?select=id,type,created_at&employee_id=eq.${employeeId}&type=eq.lunch_start&created_at=gte.${todayStart}&created_at=lte.${todayEnd}&order=created_at.desc&limit=1`;
-    
+
     return this.http.get<TimeLog[]>(url).pipe(
-      map(timelogs => {
+      map((timelogs) => {
         if (!timelogs || timelogs.length === 0) {
           return null;
         }
         const lunchStartLog = timelogs[0];
-        const logDate = format(new Date(lunchStartLog.created_at), 'yyyy-MM-dd');
+        const logDate = format(
+          new Date(lunchStartLog.created_at),
+          'yyyy-MM-dd'
+        );
         return logDate === today ? lunchStartLog : null;
       }),
       catchError(() => of(null))
@@ -1094,7 +1256,11 @@ export class TimeclockComponent implements OnDestroy {
   }
 
   // Calculate if lunch end is late based on actual lunch start time and schedule
-  private calculateLunchEndDifference(lunchEndTime: Date, lunchStartTime: Date | null, schedule: Schedule | undefined): number | null {
+  private calculateLunchEndDifference(
+    lunchEndTime: Date,
+    lunchStartTime: Date | null,
+    schedule: Schedule | undefined
+  ): number | null {
     if (!schedule || schedule.day_off) {
       return null;
     }
@@ -1103,28 +1269,39 @@ export class TimeclockComponent implements OnDestroy {
     if (lunchStartTime) {
       const actualDuration = differenceInMinutes(lunchEndTime, lunchStartTime);
       const expectedDuration = 60; // 1 hour lunch duration
-      
+
       // If they returned less than 1 hour after starting lunch, don't show late warning
       // (they're still within the lunch period)
       if (actualDuration < expectedDuration) {
         return null; // Don't show late warning if they're still within lunch time
       }
-      
+
       // If they took at least 1 hour, then check if they're late from scheduled time
       if (schedule.lunch_end_time) {
         const lunchEndTimeStr = format(lunchEndTime, 'HH:mm:ss');
-        const scheduleTimeStr = typeof schedule.lunch_end_time === 'string' 
-          ? schedule.lunch_end_time 
-          : format(new Date(schedule.lunch_end_time), 'HH:mm:ss');
+        const scheduleTimeStr =
+          typeof schedule.lunch_end_time === 'string'
+            ? schedule.lunch_end_time
+            : format(new Date(schedule.lunch_end_time), 'HH:mm:ss');
 
         const lunchEndParts = lunchEndTimeStr.split(':');
         const scheduleParts = scheduleTimeStr.split(':');
 
         const lunchEndDate = new Date();
-        lunchEndDate.setHours(+lunchEndParts[0], +lunchEndParts[1], +lunchEndParts[2] || 0, 0);
+        lunchEndDate.setHours(
+          +lunchEndParts[0],
+          +lunchEndParts[1],
+          +lunchEndParts[2] || 0,
+          0
+        );
 
         const scheduleDate = new Date();
-        scheduleDate.setHours(+scheduleParts[0], +scheduleParts[1], +scheduleParts[2] || 0, 0);
+        scheduleDate.setHours(
+          +scheduleParts[0],
+          +scheduleParts[1],
+          +scheduleParts[2] || 0,
+          0
+        );
 
         const difference = differenceInMinutes(lunchEndDate, scheduleDate);
 
@@ -1136,18 +1313,29 @@ export class TimeclockComponent implements OnDestroy {
     // Fallback: compare with schedule if no lunch_start found
     if (schedule.lunch_end_time) {
       const lunchEndTimeStr = format(lunchEndTime, 'HH:mm:ss');
-      const scheduleTimeStr = typeof schedule.lunch_end_time === 'string' 
-        ? schedule.lunch_end_time 
-        : format(new Date(schedule.lunch_end_time), 'HH:mm:ss');
+      const scheduleTimeStr =
+        typeof schedule.lunch_end_time === 'string'
+          ? schedule.lunch_end_time
+          : format(new Date(schedule.lunch_end_time), 'HH:mm:ss');
 
       const lunchEndParts = lunchEndTimeStr.split(':');
       const scheduleParts = scheduleTimeStr.split(':');
 
       const lunchEndDate = new Date();
-      lunchEndDate.setHours(+lunchEndParts[0], +lunchEndParts[1], +lunchEndParts[2] || 0, 0);
+      lunchEndDate.setHours(
+        +lunchEndParts[0],
+        +lunchEndParts[1],
+        +lunchEndParts[2] || 0,
+        0
+      );
 
       const scheduleDate = new Date();
-      scheduleDate.setHours(+scheduleParts[0], +scheduleParts[1], +scheduleParts[2] || 0, 0);
+      scheduleDate.setHours(
+        +scheduleParts[0],
+        +scheduleParts[1],
+        +scheduleParts[2] || 0,
+        0
+      );
 
       const difference = differenceInMinutes(lunchEndDate, scheduleDate);
 
@@ -1159,15 +1347,19 @@ export class TimeclockComponent implements OnDestroy {
   }
 
   // Calculate if exit is early or late
-  private calculateExitDifference(exitTime: Date, schedule: Schedule | undefined): { minutes: number; isEarly: boolean } | null {
+  private calculateExitDifference(
+    exitTime: Date,
+    schedule: Schedule | undefined
+  ): { minutes: number; isEarly: boolean } | null {
     if (!schedule || !schedule.exit_time || schedule.day_off) {
       return null;
     }
 
     const exitTimeStr = format(exitTime, 'HH:mm:ss');
-    const scheduleTimeStr = typeof schedule.exit_time === 'string' 
-      ? schedule.exit_time 
-      : format(new Date(schedule.exit_time), 'HH:mm:ss');
+    const scheduleTimeStr =
+      typeof schedule.exit_time === 'string'
+        ? schedule.exit_time
+        : format(new Date(schedule.exit_time), 'HH:mm:ss');
 
     const exitParts = exitTimeStr.split(':');
     const scheduleParts = scheduleTimeStr.split(':');
@@ -1176,7 +1368,12 @@ export class TimeclockComponent implements OnDestroy {
     exitDate.setHours(+exitParts[0], +exitParts[1], +exitParts[2] || 0, 0);
 
     const scheduleDate = new Date();
-    scheduleDate.setHours(+scheduleParts[0], +scheduleParts[1], +scheduleParts[2] || 0, 0);
+    scheduleDate.setHours(
+      +scheduleParts[0],
+      +scheduleParts[1],
+      +scheduleParts[2] || 0,
+      0
+    );
 
     const difference = differenceInMinutes(exitDate, scheduleDate);
 
@@ -1184,7 +1381,7 @@ export class TimeclockComponent implements OnDestroy {
     if (Math.abs(difference) > (schedule.minutes_tolerance || 0)) {
       return {
         minutes: Math.abs(difference),
-        isEarly: difference < 0
+        isEarly: difference < 0,
       };
     }
 
@@ -1239,7 +1436,7 @@ export class TimeclockComponent implements OnDestroy {
           this.form.get('type')?.setValue('entry');
           // Focus OTP input when employee is selected
           this.focusOtpInput();
-        }
+        },
       });
     } else {
       this.updateAvailableTypes(null);
@@ -1257,17 +1454,18 @@ export class TimeclockComponent implements OnDestroy {
   focusOtpInput() {
     // Focus first OTP input when employee is selected
     setTimeout(() => {
-      const firstInput = document.querySelector('.p-inputotp-input') as HTMLInputElement;
+      const firstInput = document.querySelector(
+        '.p-inputotp-input'
+      ) as HTMLInputElement;
       if (firstInput) {
         firstInput.focus();
       }
     }, 100);
   }
 
-
   validateOtp() {
     if (this.isProcessing()) return;
-    
+
     this.isProcessing.set(true);
     const { employee, otp, branch_id, company_id, type } =
       this.form.getRawValue();
@@ -1284,88 +1482,156 @@ export class TimeclockComponent implements OnDestroy {
         this.form.get('otp')?.reset();
         return;
       }
-      
-      const employeeName = `${employee.first_name} ${employee.father_name}`.trim();
-      this.processTimelog(employee.id, branch_id, company_id, type, employeeName);
+
+      const employeeName =
+        `${employee.first_name} ${employee.father_name}`.trim();
+      this.processTimelog(
+        employee.id,
+        branch_id,
+        company_id,
+        type,
+        employeeName
+      );
     } else {
       this.isProcessing.set(false);
     }
   }
 
-  private processTimelog(employeeId: string, branchId: string, companyId: string, type: string, employeeName: string) {
+  private processTimelog(
+    employeeId: string,
+    branchId: string,
+    companyId: string,
+    type: string,
+    employeeName: string
+  ) {
     const now = new Date();
-      this.http
-        .post(`${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`, {
+    this.http
+      .post(`${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`, {
         employee_id: employeeId,
         branch_id: branchId,
         company_id: companyId,
-          type,
+        type,
         ip: this.getIP(),
-          invalid_ip: !this.validIP(),
-        })
-        .pipe(
+        invalid_ip: !this.validIP(),
+      })
+      .pipe(
         switchMap(() => {
           // Check timing based on type
           if (type === 'entry') {
             return this.getEmployeeSchedule(employeeId).pipe(
-              map(schedule => {
+              map((schedule) => {
                 const delay = this.calculateDelay(now, schedule?.schedule);
                 return { delay, exitDiff: null, schedule, lunchEndDiff: null };
               }),
-              catchError(() => of({ delay: null, exitDiff: null, schedule: null, lunchEndDiff: null }))
+              catchError(() =>
+                of({
+                  delay: null,
+                  exitDiff: null,
+                  schedule: null,
+                  lunchEndDiff: null,
+                })
+              )
             );
           } else if (type === 'exit') {
             return this.getEmployeeSchedule(employeeId).pipe(
-              map(schedule => {
-                const exitDiff = this.calculateExitDifference(now, schedule?.schedule);
+              map((schedule) => {
+                const exitDiff = this.calculateExitDifference(
+                  now,
+                  schedule?.schedule
+                );
                 return { delay: null, exitDiff, schedule, lunchEndDiff: null };
               }),
-              catchError(() => of({ delay: null, exitDiff: null, schedule: null, lunchEndDiff: null }))
+              catchError(() =>
+                of({
+                  delay: null,
+                  exitDiff: null,
+                  schedule: null,
+                  lunchEndDiff: null,
+                })
+              )
             );
           } else if (type === 'lunch_end') {
             return this.getEmployeeSchedule(employeeId).pipe(
-              switchMap(schedule => {
+              switchMap((schedule) => {
                 if (!schedule) {
-                  return of({ delay: null, exitDiff: null, schedule: null, lunchEndDiff: null });
+                  return of({
+                    delay: null,
+                    exitDiff: null,
+                    schedule: null,
+                    lunchEndDiff: null,
+                  });
                 }
                 return this.getLunchStartTimelog(employeeId).pipe(
-                  map(lunchStartLog => {
-                    const lunchStartTime = lunchStartLog ? new Date(lunchStartLog.created_at) : null;
-                    const lunchEndDiff = this.calculateLunchEndDifference(now, lunchStartTime, schedule?.schedule);
-                    return { delay: null, exitDiff: null, schedule, lunchEndDiff };
+                  map((lunchStartLog) => {
+                    const lunchStartTime = lunchStartLog
+                      ? new Date(lunchStartLog.created_at)
+                      : null;
+                    const lunchEndDiff = this.calculateLunchEndDifference(
+                      now,
+                      lunchStartTime,
+                      schedule?.schedule
+                    );
+                    return {
+                      delay: null,
+                      exitDiff: null,
+                      schedule,
+                      lunchEndDiff,
+                    };
                   }),
                   catchError(() => {
                     // If error getting lunch_start, just use schedule comparison
-                    const lunchEndDiff = this.calculateLunchEndDifference(now, null, schedule?.schedule);
-                    return of({ delay: null, exitDiff: null, schedule, lunchEndDiff });
+                    const lunchEndDiff = this.calculateLunchEndDifference(
+                      now,
+                      null,
+                      schedule?.schedule
+                    );
+                    return of({
+                      delay: null,
+                      exitDiff: null,
+                      schedule,
+                      lunchEndDiff,
+                    });
                   })
                 );
               }),
-              catchError(() => of({ delay: null, exitDiff: null, schedule: null, lunchEndDiff: null }))
+              catchError(() =>
+                of({
+                  delay: null,
+                  exitDiff: null,
+                  schedule: null,
+                  lunchEndDiff: null,
+                })
+              )
             );
           }
-          return of({ delay: null, exitDiff: null, schedule: null, lunchEndDiff: null });
+          return of({
+            delay: null,
+            exitDiff: null,
+            schedule: null,
+            lunchEndDiff: null,
+          });
         }),
         catchError(() => {
           this.isProcessing.set(false);
-            this.message.add({
-              severity: 'error',
-              summary: 'Error',
-              detail: 'Algo salió mal, intente nuevamente',
-            });
-            return EMPTY;
-          })
-        )
-        .subscribe({
+          this.message.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Algo salió mal, intente nuevamente',
+          });
+          return EMPTY;
+        })
+      )
+      .subscribe({
         next: (result) => {
-          const typeLabel = this.types.find(t => t.value === type)?.label || type;
+          const typeLabel =
+            this.types.find((t) => t.value === type)?.label || type;
           let message = `<div style="text-align: center;">
             <div style="margin-bottom: 0.5rem;"><b>${typeLabel}</b> registrada exitosamente a las <b>${format(
             now,
             'h:mm:ss aaa'
           )}</b></div>
           </div>`;
-          
+
           // Add late warning for entry if applicable
           if (result.delay !== null && result.delay !== undefined) {
             const delayFormatted = this.formatTimeDifference(result.delay);
@@ -1377,10 +1643,12 @@ export class TimeclockComponent implements OnDestroy {
           } else if (type === 'entry') {
             message += `<br><div style="color: #10b981; font-weight: bold; text-align: center;">✓ Marcaste a tiempo</div>`;
           }
-          
+
           // Add early/late warning for exit if applicable
           if (result.exitDiff !== null && result.exitDiff !== undefined) {
-            const diffFormatted = this.formatTimeDifference(result.exitDiff.minutes);
+            const diffFormatted = this.formatTimeDifference(
+              result.exitDiff.minutes
+            );
             if (result.exitDiff.isEarly) {
               message += `<br><div style="color: #f59e0b; font-weight: bold; text-align: center;">😱 Saliste antes: ${diffFormatted} antes de la hora programada</div>`;
             } else {
@@ -1393,10 +1661,13 @@ export class TimeclockComponent implements OnDestroy {
           } else if (type === 'exit') {
             message += `<br><div style="color: #10b981; font-weight: bold; text-align: center;">✓ Saliste a tiempo</div>`;
           }
-          
+
           // Check lunch time for lunch_end
           if (type === 'lunch_end' && result.schedule?.schedule) {
-            const lunchEndDiff = result.lunchEndDiff !== null && result.lunchEndDiff !== undefined ? result.lunchEndDiff : null;
+            const lunchEndDiff =
+              result.lunchEndDiff !== null && result.lunchEndDiff !== undefined
+                ? result.lunchEndDiff
+                : null;
             if (lunchEndDiff !== null && lunchEndDiff > 0) {
               const diffFormatted = this.formatTimeDifference(lunchEndDiff);
               message += `<br><div style="color: #f59e0b; font-weight: bold; text-align: center;">⚠️ Regresaste tarde del almuerzo: ${diffFormatted} después de la hora programada</div>`;
@@ -1404,29 +1675,29 @@ export class TimeclockComponent implements OnDestroy {
               message += `<br><div style="color: #10b981; font-weight: bold; text-align: center;">✓ Regresaste a tiempo del almuerzo</div>`;
             }
           }
-          
+
           this.isProcessing.set(false);
-            this.confirmation.confirm({
+          this.confirmation.confirm({
             message,
-              key: 'confirm1',
-              header: 'Éxito',
-              icon: 'pi pi-check',
-              acceptLabel: 'Aceptar',
-              rejectVisible: false,
-              accept: () => {
-                this.form.get('otp')?.reset();
-                this.form.get('employee')?.reset();
+            key: 'confirm1',
+            header: 'Éxito',
+            icon: 'pi pi-check',
+            acceptLabel: 'Aceptar',
+            rejectVisible: false,
+            accept: () => {
+              this.form.get('otp')?.reset();
+              this.form.get('employee')?.reset();
               this.showKeypad.set(false);
-                if (!this.validIP()) {
-                  this.alertInvalidIP();
-                }
-              },
-            });
-          },
+              if (!this.validIP()) {
+                this.alertInvalidIP();
+              }
+            },
+          });
+        },
         error: () => {
           this.isProcessing.set(false);
-        }
-        });
+        },
+      });
   }
 
   private alertInvalidIP() {

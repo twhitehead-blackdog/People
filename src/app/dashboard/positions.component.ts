@@ -24,10 +24,10 @@ import { PositionsFormComponent } from './positions-form.component';
   template: `
     <p-card>
       <ng-template #title>
-        <div class="flex items-center justify-between w-full">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
           <div>
-            <h2 class="m-0">Cargos</h2>
-            <p class="text-sm text-gray-400 m-0 mt-1">Listado de cargos y posiciones de la empresa</p>
+            <h2 class="m-0 text-lg sm:text-xl">Cargos</h2>
+            <p class="text-xs sm:text-sm text-gray-400 m-0 mt-1">Listado de cargos y posiciones de la empresa</p>
           </div>
           <div class="flex gap-2">
             <p-button
@@ -35,19 +35,22 @@ import { PositionsFormComponent } from './positions-form.component';
               (click)="editPosition()"
               icon="pi pi-plus-circle"
               rounded
+              class="min-h-[44px]"
             />
           </div>
         </div>
       </ng-template>
-      <p-table
-        #dt
-        [value]="positions()"
-        [paginator]="true"
-        [rowsPerPageOptions]="[10, 20, 50]"
-        [rows]="10"
-        [globalFilterFields]="['name', 'department.name']"
-        paginatorDropdownAppendTo="body"
-      >
+      <div class="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+        <p-table
+          #dt
+          [value]="positions()"
+          [paginator]="true"
+          [rowsPerPageOptions]="[10, 20, 50]"
+          [rows]="10"
+          [globalFilterFields]="['name', 'department.name']"
+          paginatorDropdownAppendTo="body"
+          styleClass="min-w-full"
+        >
         <ng-template #caption>
           <div class="flex gap-2 items-center">
             <p-iconfield iconPosition="left" class="w-full md:w-auto">
@@ -140,27 +143,30 @@ import { PositionsFormComponent } from './positions-form.component';
             <td class="text-gray-300 text-sm">
               {{ getDefaultViewLabel(item.default_view) }}
             </td>
-            <td class="flex gap-2">
-              <p-button
-                severity="success"
-                text
-                rounded
-                icon="pi pi-pen-to-square"
-                (onClick)="editPosition(item)"
-                class="hover:shadow-md transition-all"
-              />
-              <p-button
-                severity="danger"
-                text
-                rounded
-                icon="pi pi-trash"
-                (onClick)="deletePosition(item.id)"
-                class="hover:shadow-md transition-all"
-              />
+            <td>
+              <div class="flex gap-1 sm:gap-2">
+                <p-button
+                  severity="success"
+                  text
+                  rounded
+                  icon="pi pi-pen-to-square"
+                  (onClick)="editPosition(item)"
+                  class="hover:shadow-md transition-all min-w-[44px] min-h-[44px]"
+                />
+                <p-button
+                  severity="danger"
+                  text
+                  rounded
+                  icon="pi pi-trash"
+                  (onClick)="deletePosition(item.id)"
+                  class="hover:shadow-md transition-all min-w-[44px] min-h-[44px]"
+                />
+              </div>
             </td>
           </tr>
         </ng-template>
-      </p-table>
+        </p-table>
+      </div>
     </p-card>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -62,9 +62,13 @@ export const appConfig: ApplicationConfig = {
       domain: process.env['ENV_AUTH0_DOMAIN'] ?? '',
       clientId: process.env['ENV_AUTH0_CLIENT_ID'] ?? '',
       authorizationParams: {
-        redirect_uri: process.env['ENV_APP_URL'],
+        // En desarrollo, siempre usar localhost para Auth0 (requisito de seguridad)
+        // El servidor escucha en 0.0.0.0 para permitir acceso desde dispositivos móviles
+        redirect_uri: process.env['ENV_APP_URL'] || 'http://localhost:4200',
         audience: process.env['ENV_AUTH0_AUDIENCE'] ?? '',
       },
+      useRefreshTokens: true,
+      cacheLocation: 'localstorage',
     }),
     providePrimeNG({
       theme: {

@@ -18,10 +18,10 @@ import { CompaniesFormComponent } from './companies-form.component';
   providers: [DynamicDialogRef, DialogService],
   template: `<p-card>
     <ng-template #title>
-      <div class="flex items-center justify-between w-full">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
         <div>
-          <h2 class="m-0">Empresas</h2>
-          <p class="text-sm text-gray-400 m-0 mt-1">Listado de empresas</p>
+          <h2 class="m-0 text-lg sm:text-xl">Empresas</h2>
+          <p class="text-xs sm:text-sm text-gray-400 m-0 mt-1">Listado de empresas</p>
         </div>
         <div class="flex gap-2">
           <p-button
@@ -29,16 +29,18 @@ import { CompaniesFormComponent } from './companies-form.component';
             icon="pi pi-plus-circle"
             rounded
             (onClick)="editCompany()"
+            class="min-h-[44px]"
           />
         </div>
       </div>
     </ng-template>
-    <div>
+    <div class="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
       <p-table
         [value]="companies()"
         [paginator]="true"
         [rows]="5"
         [rowsPerPageOptions]="[5, 10, 20]"
+        styleClass="min-w-full"
       >
         <ng-template #header>
           <tr>
@@ -58,20 +60,24 @@ import { CompaniesFormComponent } from './companies-form.component';
             <td>{{ item.phone_number }}</td>
             <td>{{ item.address }}</td>
             <td>
-              <p-button
-                severity="success"
-                text
-                round
-                icon="pi pi-pen-to-square"
-                (onClick)="editCompany(item)"
-              />
-              <p-button
-                severity="danger"
-                text
-                round
-                icon="pi pi-trash"
-                (onClick)="deleteCompany(item.id)"
-              />
+              <div class="flex gap-1 sm:gap-2">
+                <p-button
+                  severity="success"
+                  text
+                  round
+                  icon="pi pi-pen-to-square"
+                  (onClick)="editCompany(item)"
+                  class="min-w-[44px] min-h-[44px]"
+                />
+                <p-button
+                  severity="danger"
+                  text
+                  round
+                  icon="pi pi-trash"
+                  (onClick)="deleteCompany(item.id)"
+                  class="min-w-[44px] min-h-[44px]"
+                />
+              </div>
             </td>
           </tr>
         </ng-template>

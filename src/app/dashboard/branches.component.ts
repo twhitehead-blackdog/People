@@ -22,10 +22,10 @@ import { BranchesFormComponent } from './branches-form.component';
   template: `
     <p-card>
       <ng-template #title>
-        <div class="flex items-center justify-between w-full">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
           <div>
-            <h2 class="m-0">Sucursales</h2>
-            <p class="text-sm text-gray-400 m-0 mt-1">Listado de sucursales/localidades activas en la empresa</p>
+            <h2 class="m-0 text-lg sm:text-xl">Sucursales</h2>
+            <p class="text-xs sm:text-sm text-gray-400 m-0 mt-1">Listado de sucursales/localidades activas en la empresa</p>
           </div>
           <div class="flex gap-2">
             <p-button
@@ -33,16 +33,18 @@ import { BranchesFormComponent } from './branches-form.component';
               (click)="editBranch()"
               icon="pi pi-plus-circle"
               rounded
+              class="min-h-[44px]"
             />
           </div>
         </div>
       </ng-template>
-      <div>
+      <div class="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
         <p-table
           [value]="branches()"
           [paginator]="true"
           [rows]="5"
           [rowsPerPageOptions]="[5, 10, 20]"
+          styleClass="min-w-full"
         >
           <ng-template #header>
             <tr>
@@ -69,20 +71,24 @@ import { BranchesFormComponent } from './branches-form.component';
               <td>{{ item.address }}</td>
               <td>{{ item.ip }}</td>
               <td pFrozenColumn alignFrozen="right">
-                <p-button
-                  severity="success"
-                  icon="pi pi-pen-to-square"
-                  rounded
-                  text
-                  (onClick)="editBranch(item)"
-                />
-                <p-button
-                  severity="danger"
-                  icon="pi pi-trash"
-                  rounded
-                  text
-                  (onClick)="deleteBranch(item.id)"
-                />
+                <div class="flex gap-1 sm:gap-2">
+                  <p-button
+                    severity="success"
+                    icon="pi pi-pen-to-square"
+                    rounded
+                    text
+                    (onClick)="editBranch(item)"
+                    class="min-w-[44px] min-h-[44px]"
+                  />
+                  <p-button
+                    severity="danger"
+                    icon="pi pi-trash"
+                    rounded
+                    text
+                    (onClick)="deleteBranch(item.id)"
+                    class="min-w-[44px] min-h-[44px]"
+                  />
+                </div>
               </td>
             </tr>
           </ng-template>

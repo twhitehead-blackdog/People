@@ -59,16 +59,22 @@ import { EmployeePortalComponent } from './employee-portal.component';
     <p-toast />
     <p-confirmDialog />
     @let user = auth.user$ | async;
-    <div class=" h-screen flex flex-col">
+    <!-- Overlay para móvil cuando el menú está abierto -->
+    @if (!isCollapsed()) {
+    <div
+      class="fixed inset-0 bg-black/50 z-[999] md:hidden"
+      (click)="toggleMenu()"
+    ></div>
+    }
+    <div class="h-screen flex flex-col overflow-hidden">
       <nav
-        class="bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900 border-b border-neutral-700/50 w-full min-w-0 shadow-lg"
-        style="position: relative; z-index: 1000;"
+        class="bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900 border-b border-neutral-700/50 w-full min-w-0 shadow-lg relative z-[1000]"
       >
         <div class="mx-auto max-w-7xl px-2 sm:px-4 lg:px-6">
-          <div class="header-container h-16">
+          <div class="header-container h-14 md:h-16">
             <div class="header-logo">
               <a (click)="navigateTo('home')" class="flex items-center gap-2 group cursor-pointer">
-                <img src="images/blackdog.png" class="h-9 transition-transform duration-300 group-hover:scale-105" alt="People" />
+                <img src="images/blackdog.png" class="h-7 md:h-9 transition-transform duration-300 group-hover:scale-105" alt="People" />
               </a>
             </div>
             <div class="header-menu hidden md:block">
@@ -147,78 +153,86 @@ import { EmployeePortalComponent } from './employee-portal.component';
                 [icon]="isCollapsed() ? 'pi pi-bars' : 'pi pi-times'"
                 severity="secondary"
                 (onClick)="toggleMenu()"
-                class="text-white hover:bg-gray-700/50"
+                class="text-white hover:bg-gray-700/50 min-w-[44px] min-h-[44px]"
               />
             </div>
           </div>
         </div>
-        <div class="md:hidden border-t border-neutral-700/50 bg-neutral-800/90 backdrop-blur-sm" [class.hidden]="isCollapsed()">
+        <div
+          class="md:hidden border-t border-neutral-700/50 bg-neutral-800/95 backdrop-blur-sm absolute top-full left-0 right-0 max-h-[calc(100vh-3.5rem)] overflow-y-auto z-[1001] shadow-2xl"
+          [class.hidden]="isCollapsed()"
+        >
           <div class="space-y-1 px-2 pt-2 pb-3 sm:px-3">
             @if(store.isAdmin() && !store.hasPortalAccessOnly() && !store.hasTimeManagementAccess()) {
             <a
-              (click)="navigateTo('home')"
+              (click)="navigateTo('home'); toggleMenu()"
               [class.bg-gray-700]="isActiveRoute('home')"
               [class.text-white]="isActiveRoute('home')"
               [class.shadow-md]="isActiveRoute('home')"
-              class="rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
               ><i class="pi pi-home text-lg"></i> <span>Inicio</span></a
             >
             } @if(store.isAdmin() && !store.hasPortalAccessOnly()) {
             <a
-              (click)="navigateTo('admin')"
+              (click)="navigateTo('admin'); toggleMenu()"
               [class.bg-gray-700]="isActiveRoute('admin')"
               [class.text-white]="isActiveRoute('admin')"
               [class.shadow-md]="isActiveRoute('admin')"
-              class="rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
               ><i class="pi pi-building text-lg"></i> <span>Administración</span></a
             >
             } @if((store.isScheduleAdmin() && !store.hasPortalAccessOnly()) || store.hasTimeManagementAccess()) {
             <a
-              (click)="navigateTo('time-management')"
+              (click)="navigateTo('time-management'); toggleMenu()"
               [class.bg-gray-700]="isActiveRoute('time-management')"
               [class.text-white]="isActiveRoute('time-management')"
               [class.shadow-md]="isActiveRoute('time-management')"
-              class="rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
               ><i class="pi pi-calendar text-lg"></i> <span>Gestión de tiempo</span></a
             >
             } @if(store.isAdmin() && !store.hasPortalAccessOnly()) {
             <a
-              (click)="navigateTo('payroll')"
+              (click)="navigateTo('payroll'); toggleMenu()"
               [class.bg-gray-700]="isActiveRoute('payroll')"
               [class.text-white]="isActiveRoute('payroll')"
               [class.shadow-md]="isActiveRoute('payroll')"
-              class="rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
               ><i class="pi pi-money-bill text-lg"></i> <span>Nómina</span></a
             >
             }
             @if(!store.hasPortalAccessOnly() || store.hasTimeManagementAccess()) {
             <a
-              (click)="navigateTo('timeclock')"
+              (click)="navigateTo('timeclock'); toggleMenu()"
               [class.bg-gray-700]="isActiveRoute('timeclock')"
               [class.text-white]="isActiveRoute('timeclock')"
               [class.shadow-md]="isActiveRoute('timeclock')"
-              class="rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
               ><i class="pi pi-clock text-lg"></i> <span>Reloj de marcación</span></a
             >
             }
           </div>
           @if(user) {
           <div class="border-t border-gray-700/50 pt-4 pb-3 px-5">
-            <div class="flex items-center gap-3">
-              <div class="relative">
+            <p-menu #mobileMenu [model]="items()" popup [appendTo]="'body'" />
+            <div
+              class="flex items-center gap-3 cursor-pointer group px-2 py-2 rounded-lg hover:bg-gray-700/50 transition-all duration-200 touch-manipulation"
+              (click)="$event.stopPropagation(); mobileMenu.toggle($event)"
+            >
+              <div class="relative flex-shrink-0">
                 <div class="avatar-container">
                   <p-avatar [image]="user.picture" shape="circle" size="normal" />
                 </div>
                 <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-800"></div>
               </div>
-              <div class="flex-1">
-                <div class="text-base font-semibold text-white">
+              <div class="flex-1 min-w-0">
+                <div class="text-base font-semibold text-white truncate">
                   {{ currentEmployeeName() }}
                 </div>
-                <div class="text-sm text-gray-400">
+                <div class="text-sm text-gray-400 truncate">
                   {{ currentEmployeePosition() }}
                 </div>
               </div>
+              <i class="pi pi-chevron-down text-gray-400 group-hover:text-gray-300 transition-colors text-sm flex-shrink-0"></i>
             </div>
           </div>
           }
@@ -245,6 +259,14 @@ import { EmployeePortalComponent } from './employee-portal.component';
         border-radius: 0.5rem !important;
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
         padding: 0.5rem !important;
+        z-index: 1002 !important;
+      }
+
+      /* Asegurar que el menú móvil tenga z-index alto */
+      @media (max-width: 768px) {
+        ::ng-deep .p-menu {
+          z-index: 1002 !important;
+        }
       }
       
       ::ng-deep .p-menu .p-menuitem-link {
@@ -307,7 +329,13 @@ import { EmployeePortalComponent } from './employee-portal.component';
         display: flex;
         align-items: center;
         width: 100%;
-        gap: 1rem;
+        gap: 0.5rem;
+      }
+
+      @media (min-width: 768px) {
+        .header-container {
+          gap: 1rem;
+        }
       }
 
       .header-logo {
@@ -325,6 +353,54 @@ import { EmployeePortalComponent } from './employee-portal.component';
       .header-user {
         flex-shrink: 0;
         margin-left: auto;
+      }
+
+      /* Mobile menu improvements */
+      @media (max-width: 767px) {
+        .header-user {
+          display: none;
+        }
+
+        .header-menu {
+          display: none;
+        }
+      }
+
+      /* Touch-friendly improvements */
+      @media (max-width: 768px) {
+        .header-container a,
+        .header-container button {
+          min-height: 44px;
+          display: flex;
+          align-items: center;
+        }
+
+        /* Mejorar el menú móvil */
+        nav {
+          position: relative;
+        }
+
+        /* Asegurar que el contenido principal no se desplace cuando el menú está abierto */
+        nav + div {
+          position: relative;
+          z-index: 1;
+        }
+      }
+
+      /* Overlay para móvil */
+      @media (max-width: 768px) {
+        .fixed.inset-0.bg-black\\/50 {
+          animation: fadeIn 0.2s ease-in-out;
+        }
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
       }
       `,
   changeDetection: ChangeDetectionStrategy.OnPush,

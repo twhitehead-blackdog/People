@@ -504,6 +504,18 @@ import { WassengerService } from '../services/wassenger.service';
     ::ng-deep .p-tabs .p-tab {
       color: #9ca3af !important;
       padding: 0.75rem 1rem !important;
+      min-height: 44px;
+    }
+
+    @media (max-width: 768px) {
+      ::ng-deep .p-tabs .p-tab {
+        padding: 0.75rem 0.75rem !important;
+        font-size: 0.875rem;
+      }
+
+      ::ng-deep .p-tabs .p-tab i {
+        font-size: 0.875rem;
+      }
     }
     
     ::ng-deep .p-tabs .p-tab:hover {
@@ -515,6 +527,16 @@ import { WassengerService } from '../services/wassenger.service';
       border-bottom: 2px solid #fbbf24 !important;
     }
     
+    @media (max-width: 768px) {
+      .input-container {
+        width: 100%;
+      }
+
+      h3 {
+        font-size: 1rem !important;
+      }
+    }
+
     ::ng-deep .p-tabpanel {
       padding: 1.5rem 0 !important;
     }

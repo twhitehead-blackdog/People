@@ -49,9 +49,11 @@ import { EmployeesStore } from '../stores/employees.store';
     header="Marcaciones"
     subheader="Listado de marcaciones de empleados"
   >
-    <div class="flex items-center gap-4 mb-3">
+    <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-3">
       <div class="flex items-center gap-2">
-        <label for="delayed">Solo retrasos</label>
+        <label for="delayed" class="text-sm whitespace-nowrap"
+          >Solo retrasos</label
+        >
         <p-toggleSwitch
           inputId="delayed"
           [(ngModel)]="onlyDelayed"
@@ -60,7 +62,9 @@ import { EmployeesStore } from '../stores/employees.store';
         />
       </div>
       <div class="flex items-center gap-2">
-        <label for="errors">Solo errores</label>
+        <label for="errors" class="text-sm whitespace-nowrap"
+          >Solo errores</label
+        >
         <p-toggleSwitch
           inputId="errors"
           [(ngModel)]="onlyErrors"
@@ -69,7 +73,9 @@ import { EmployeesStore } from '../stores/employees.store';
         />
       </div>
       <div class="flex items-center gap-2">
-        <label for="earlyExit">Solo salida temprana</label>
+        <label for="earlyExit" class="text-sm whitespace-nowrap"
+          >Solo salida temprana</label
+        >
         <p-toggleSwitch
           inputId="earlyExit"
           [(ngModel)]="onlyEarlyExit"
@@ -77,14 +83,18 @@ import { EmployeesStore } from '../stores/employees.store';
           offLabel="Todos"
         />
       </div>
-      <div class="flex items-center gap-2">
-        <label for="lunchExceededToggle">Solo almuerzo excedido</label>
-        <p-toggleSwitch
-          inputId="lunchExceededToggle"
-          [(ngModel)]="onlyLunchExceeded"
-          onLabel="Solo almuerzo excedido"
-          offLabel="Todos"
-        />
+      <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+        <div class="flex items-center gap-2">
+          <label for="lunchExceededToggle" class="text-sm whitespace-nowrap"
+            >Solo almuerzo excedido</label
+          >
+          <p-toggleSwitch
+            inputId="lunchExceededToggle"
+            [(ngModel)]="onlyLunchExceeded"
+            onLabel="Solo almuerzo excedido"
+            offLabel="Todos"
+          />
+        </div>
         @if(onlyLunchExceeded()) {
         <p-select
           inputId="lunchExceeded"
@@ -95,7 +105,7 @@ import { EmployeesStore } from '../stores/employees.store';
           placeholder="Todos"
           showClear
           appendTo="body"
-          class="w-48"
+          class="w-full sm:w-48"
         />
         }
       </div>
@@ -148,251 +158,254 @@ import { EmployeesStore } from '../stores/employees.store';
     @if (hasError()) {
     <!-- Error handling, toast will be shown -->
     }
-    <p-table
-      [value]="filteredDaylogs()"
-      [rows]="25"
-      [rowsPerPageOptions]="[10, 25, 50, 100, 200]"
-      paginator
-      paginatorDropdownAppendTo="body"
-      showGridlines
-      stripedRows
-      [loading]="this.logs.isLoading()"
-      [scrollable]="true"
-      scrollHeight="600px"
-    >
-      <ng-template #header>
-        <tr>
-          <th>Empleado</th>
-          <th>Día</th>
-          <th>Horario</th>
-          <th>Entrada</th>
-          <th>Inicio de almuerzo</th>
-          <th>Fin de almuerzo</th>
-          <th>Salida</th>
-          <th>Horas Trabajadas</th>
-        </tr>
-      </ng-template>
-      <ng-template #body let-log>
-        <tr
-          [ngClass]="{
-            'bg-amber-50/10': log.alert,
-            'bg-red-50/10': log.scheduleError
-          }"
-        >
-          <td>
-            <div class="flex items-center gap-2">
-              {{ log.employee.first_name }} {{ log.employee.father_name }}
-              @if(log.scheduleError) {
-              <p-tag
-                value="Error de Horario"
-                severity="danger"
-                icon="pi pi-exclamation-triangle"
-                [pTooltip]="
-                  log.alert +
-                  ': El empleado trabajó pero está marcado como feriado/día libre. No hay horario válido para estas marcaciones. El gerente debe corregir la configuración.'
-                "
-                tooltipPosition="top"
-                [style]="{
-                  'min-width': maxEmployeeTagWidth(),
-                  display: 'inline-block',
-                  'text-align': 'center'
-                }"
-                styleClass="ml-2"
-              />
-              } @else if(log.alert) {
-              <p-tag
-                [value]="log.alert"
-                [severity]="getAlertSeverity(log.alert)"
-                [icon]="getAlertIcon(log.alert)"
-                [pTooltip]="getAlertTooltip(log.alert)"
-                tooltipPosition="top"
-                [style]="{
-                  'min-width': maxEmployeeTagWidth(),
-                  display: 'inline-block',
-                  'text-align': 'center'
-                }"
-                styleClass="ml-2"
-              />
-              }
-            </div>
-          </td>
-          <td>{{ log.day | date : 'mediumDate' }}</td>
-          <td>
-            <span
-              class="rounded text-sm px-2 py-1 font-semibold inline-block text-center"
-              [ngClass]="
-                log.schedule?.schedule
-                  ? colorVariants[log.schedule.schedule.color]
-                  : ''
-              "
-              [style]="{
-                'min-width': maxScheduleBadgeWidth(),
-                'text-align': 'center'
-              }"
-              >{{ log?.schedule?.schedule?.name || 'Sin horario' }}</span
-            >
-          </td>
-          <td>
-            <div class="flex gap-2 items-center">
-              @if(log.entry) {
-              <p-avatar
-                class="cursor-pointer"
-                shape="circle"
-                [label]="log.entry?.branch.short_name"
-                [pTooltip]="log.entry?.branch.name"
-                tooltipPosition="top"
-              />}
+    <div class="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+      <p-table
+        [value]="filteredDaylogs()"
+        [rows]="25"
+        [rowsPerPageOptions]="[10, 25, 50, 100, 200]"
+        paginator
+        paginatorDropdownAppendTo="body"
+        showGridlines
+        stripedRows
+        [loading]="this.logs.isLoading()"
+        [scrollable]="true"
+        [scrollHeight]="'calc(100vh - 400px)'"
+        styleClass="min-w-full"
+      >
+        <ng-template #header>
+          <tr>
+            <th>Empleado</th>
+            <th>Día</th>
+            <th>Horario</th>
+            <th>Entrada</th>
+            <th>Inicio de almuerzo</th>
+            <th>Fin de almuerzo</th>
+            <th>Salida</th>
+            <th>Horas Trabajadas</th>
+          </tr>
+        </ng-template>
+        <ng-template #body let-log>
+          <tr
+            [ngClass]="{
+              'bg-amber-50/10': log.alert,
+              'bg-red-50/10': log.scheduleError
+            }"
+          >
+            <td>
+              <div class="flex items-center gap-2">
+                {{ log.employee.first_name }} {{ log.employee.father_name }}
+                @if(log.scheduleError) {
+                <p-tag
+                  value="Error de Horario"
+                  severity="danger"
+                  icon="pi pi-exclamation-triangle"
+                  [pTooltip]="
+                    log.alert +
+                    ': El empleado trabajó pero está marcado como feriado/día libre. No hay horario válido para estas marcaciones. El gerente debe corregir la configuración.'
+                  "
+                  tooltipPosition="top"
+                  [style]="{
+                    'min-width': maxEmployeeTagWidth(),
+                    display: 'inline-block',
+                    'text-align': 'center'
+                  }"
+                  styleClass="ml-2"
+                />
+                } @else if(log.alert) {
+                <p-tag
+                  [value]="log.alert"
+                  [severity]="getAlertSeverity(log.alert)"
+                  [icon]="getAlertIcon(log.alert)"
+                  [pTooltip]="getAlertTooltip(log.alert)"
+                  tooltipPosition="top"
+                  [style]="{
+                    'min-width': maxEmployeeTagWidth(),
+                    display: 'inline-block',
+                    'text-align': 'center'
+                  }"
+                  styleClass="ml-2"
+                />
+                }
+              </div>
+            </td>
+            <td>{{ log.day | date : 'mediumDate' }}</td>
+            <td>
               <span
-                [ngClass]="{
-                  'text-red-500 font-semibold': log.delay
-                }"
-                >{{ log.entry?.date | date : 'hh:mm a' }}</span
-              >
-              @if(log.delay) {
-              <p-tag
-                [value]="'Retraso de ' + log.delay + ' min'"
-                severity="danger"
-                icon="pi pi-clock"
-                [pTooltip]="'El empleado llegó tarde al trabajo'"
-                tooltipPosition="top"
-                [style]="{
-                  'min-width': maxDelayTagWidth(),
-                  display: 'inline-block',
-                  'text-align': 'center'
-                }"
-                styleClass="ml-2"
-              />
-              }
-            </div>
-          </td>
-          <td>
-            <div class="flex gap-2 items-center">
-              @if(log.lunch_start) {
-              <p-avatar
-                shape="circle"
-                [label]="log.lunch_start?.branch.short_name"
-                [pTooltip]="log.lunch_start?.branch.name"
-                tooltipPosition="top"
-              />
-              }
-              {{ log.lunch_start?.date | date : 'hh:mm a' }}
-            </div>
-          </td>
-          <td>
-            <div class="flex gap-2 items-center">
-              @if(log.lunch_end) {
-              <p-avatar
-                shape="circle"
-                [label]="log.lunch_end?.branch.short_name"
-                [pTooltip]="log.lunch_end?.branch.name"
-                tooltipPosition="top"
-              />}
-              <span
-                [ngClass]="{
-                  'text-red-500 font-semibold': log.lunchExceeded
-                }"
-                >{{ log.lunch_end?.date | date : 'hh:mm a' }}</span
-              >
-              @if(log.lunchExceeded) {
-              <p-tag
-                [value]="'Almuerzo ' + log.lunchMinutes + ' min'"
-                severity="danger"
-                icon="pi pi-exclamation-triangle"
-                [pTooltip]="
-                  'El tiempo de almuerzo excede los 60 minutos permitidos'
+                class="rounded text-sm px-2 py-1 font-semibold inline-block text-center"
+                [ngClass]="
+                  log.schedule?.schedule
+                    ? colorVariants[log.schedule.schedule.color]
+                    : ''
                 "
-                tooltipPosition="top"
                 [style]="{
-                  'min-width': maxLunchTagWidth(),
-                  display: 'inline-block',
+                  'min-width': maxScheduleBadgeWidth(),
                   'text-align': 'center'
                 }"
-                styleClass="ml-2"
-              />
-              }
-            </div>
-          </td>
-          <td>
-            <div class="flex gap-2 items-center">
-              @if(log.exit) {
-              <p-avatar
-                shape="circle"
-                [label]="log.exit?.branch.short_name"
-                [pTooltip]="log.exit?.branch.name"
-                tooltipPosition="top"
-              />}
-              <span
-                [ngClass]="{
-                  'text-red-500 font-semibold': log.earlyExit
-                }"
-                >{{ log.exit?.date | date : 'hh:mm a' }}</span
+                >{{ log?.schedule?.schedule?.name || 'Sin horario' }}</span
               >
-              @if(log.earlyExit) {
-              <p-tag
-                value="Salida temprana"
-                severity="danger"
-                icon="pi pi-exclamation-triangle"
-                [pTooltip]="
-                  'El empleado salió antes del horario laboral establecido'
-                "
-                tooltipPosition="top"
-                [style]="{
-                  'min-width': maxExitTagWidth(),
-                  display: 'inline-block',
-                  'text-align': 'center'
-                }"
-                styleClass="ml-2"
-              />
-              }
-            </div>
-          </td>
-          <td>
-            <div class="flex gap-2 items-center">
-              <span
-                [ngClass]="{
-                  'text-red-500 font-semibold': log.insufficientHours,
-                  'text-green-500 font-semibold':
-                    !log.insufficientHours && log.totalHours
-                }"
-              >
-                {{ log.totalHours ? formatHours(log.totalHours) : '-' }}
-              </span>
-              @if(log.insufficientHours) {
-              <p-tag
-                value="Menos de 9h"
-                severity="danger"
-                icon="pi pi-clock"
-                [pTooltip]="
-                  'El empleado no cumplió las 9 horas requeridas en la empresa (ej: 7am-4pm, 8am-5pm, 11am-8pm)'
-                "
-                tooltipPosition="top"
-                [style]="{
-                  'min-width': maxHoursTagWidth(),
-                  display: 'inline-block',
-                  'text-align': 'center'
-                }"
-                styleClass="ml-2"
-              />
-              }
-            </div>
-          </td>
-        </tr>
-      </ng-template>
-      <ng-template #emptymessage>
-        <tr>
-          <td colspan="8">
-            <div class="flex flex-col items-center justify-center gap-4">
-              <p>No se encontraron registros</p>
-              <p-button
-                label="Limpiar"
-                icon="pi pi-refresh"
-                (click)="employeeId.set('')"
-              />
-            </div>
-          </td>
-        </tr>
-      </ng-template>
-    </p-table>
+            </td>
+            <td>
+              <div class="flex gap-2 items-center">
+                @if(log.entry) {
+                <p-avatar
+                  class="cursor-pointer"
+                  shape="circle"
+                  [label]="log.entry?.branch.short_name"
+                  [pTooltip]="log.entry?.branch.name"
+                  tooltipPosition="top"
+                />}
+                <span
+                  [ngClass]="{
+                    'text-red-500 font-semibold': log.delay
+                  }"
+                  >{{ log.entry?.date | date : 'hh:mm a' }}</span
+                >
+                @if(log.delay) {
+                <p-tag
+                  [value]="'Retraso de ' + log.delay + ' min'"
+                  severity="danger"
+                  icon="pi pi-clock"
+                  [pTooltip]="'El empleado llegó tarde al trabajo'"
+                  tooltipPosition="top"
+                  [style]="{
+                    'min-width': maxDelayTagWidth(),
+                    display: 'inline-block',
+                    'text-align': 'center'
+                  }"
+                  styleClass="ml-2"
+                />
+                }
+              </div>
+            </td>
+            <td>
+              <div class="flex gap-2 items-center">
+                @if(log.lunch_start) {
+                <p-avatar
+                  shape="circle"
+                  [label]="log.lunch_start?.branch.short_name"
+                  [pTooltip]="log.lunch_start?.branch.name"
+                  tooltipPosition="top"
+                />
+                }
+                {{ log.lunch_start?.date | date : 'hh:mm a' }}
+              </div>
+            </td>
+            <td>
+              <div class="flex gap-2 items-center">
+                @if(log.lunch_end) {
+                <p-avatar
+                  shape="circle"
+                  [label]="log.lunch_end?.branch.short_name"
+                  [pTooltip]="log.lunch_end?.branch.name"
+                  tooltipPosition="top"
+                />}
+                <span
+                  [ngClass]="{
+                    'text-red-500 font-semibold': log.lunchExceeded
+                  }"
+                  >{{ log.lunch_end?.date | date : 'hh:mm a' }}</span
+                >
+                @if(log.lunchExceeded) {
+                <p-tag
+                  [value]="'Almuerzo ' + log.lunchMinutes + ' min'"
+                  severity="danger"
+                  icon="pi pi-exclamation-triangle"
+                  [pTooltip]="
+                    'El tiempo de almuerzo excede los 60 minutos permitidos'
+                  "
+                  tooltipPosition="top"
+                  [style]="{
+                    'min-width': maxLunchTagWidth(),
+                    display: 'inline-block',
+                    'text-align': 'center'
+                  }"
+                  styleClass="ml-2"
+                />
+                }
+              </div>
+            </td>
+            <td>
+              <div class="flex gap-2 items-center">
+                @if(log.exit) {
+                <p-avatar
+                  shape="circle"
+                  [label]="log.exit?.branch.short_name"
+                  [pTooltip]="log.exit?.branch.name"
+                  tooltipPosition="top"
+                />}
+                <span
+                  [ngClass]="{
+                    'text-red-500 font-semibold': log.earlyExit
+                  }"
+                  >{{ log.exit?.date | date : 'hh:mm a' }}</span
+                >
+                @if(log.earlyExit) {
+                <p-tag
+                  value="Salida temprana"
+                  severity="danger"
+                  icon="pi pi-exclamation-triangle"
+                  [pTooltip]="
+                    'El empleado salió antes del horario laboral establecido'
+                  "
+                  tooltipPosition="top"
+                  [style]="{
+                    'min-width': maxExitTagWidth(),
+                    display: 'inline-block',
+                    'text-align': 'center'
+                  }"
+                  styleClass="ml-2"
+                />
+                }
+              </div>
+            </td>
+            <td>
+              <div class="flex gap-2 items-center">
+                <span
+                  [ngClass]="{
+                    'text-red-500 font-semibold': log.insufficientHours,
+                    'text-green-500 font-semibold':
+                      !log.insufficientHours && log.totalHours
+                  }"
+                >
+                  {{ log.totalHours ? formatHours(log.totalHours) : '-' }}
+                </span>
+                @if(log.insufficientHours) {
+                <p-tag
+                  value="Menos de 9h"
+                  severity="danger"
+                  icon="pi pi-clock"
+                  [pTooltip]="
+                    'El empleado no cumplió las 9 horas requeridas en la empresa (ej: 7am-4pm, 8am-5pm, 11am-8pm)'
+                  "
+                  tooltipPosition="top"
+                  [style]="{
+                    'min-width': maxHoursTagWidth(),
+                    display: 'inline-block',
+                    'text-align': 'center'
+                  }"
+                  styleClass="ml-2"
+                />
+                }
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+        <ng-template #emptymessage>
+          <tr>
+            <td colspan="8">
+              <div class="flex flex-col items-center justify-center gap-4">
+                <p>No se encontraron registros</p>
+                <p-button
+                  label="Limpiar"
+                  icon="pi pi-refresh"
+                  (click)="employeeId.set('')"
+                />
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </div>
   </p-card>`,
   styles: `
     ::ng-deep .p-tag .p-tag-icon {
