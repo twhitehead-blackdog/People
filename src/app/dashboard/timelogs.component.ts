@@ -126,10 +126,12 @@ import { EmployeesStore } from '../stores/employees.store';
       </div>
       <div class="input-container">
         <p-datepicker
-          placeholder="Fecha"
+          placeholder="Fecha o rango de fechas"
           selectionMode="range"
           appendTo="body"
           [(ngModel)]="dateRange"
+          [showIcon]="true"
+          dateFormat="dd/mm/yy"
         />
       </div>
 
@@ -460,6 +462,19 @@ export class TimelogsComponent {
   public branchId = model<string>();
   public store = inject(DashboardStore);
   public onlyDelayed = signal(false);
+
+  // Helper computed para normalizar el rango de fechas
+  // Si solo hay una fecha, usar esa misma fecha como inicio y fin
+  public normalizedDateRange = computed(() => {
+    const range = this.dateRange();
+    if (!range || range.length === 0) {
+      return { start: null, end: null };
+    }
+    const start = range[0];
+    const end = range[1] || range[0]; // Si no hay segunda fecha, usar la primera
+    return { start, end };
+  });
+
   public onlyErrors = signal(false);
   public onlyEarlyExit = signal(false);
   public onlyLunchExceeded = signal(false);
@@ -520,8 +535,7 @@ export class TimelogsComponent {
   );
 
   days = computed(() => {
-    const startDate = this.dateRange()?.[0];
-    const endDate = this.dateRange()?.[1];
+    const { start: startDate, end: endDate } = this.normalizedDateRange();
 
     if (!startDate || !endDate) {
       return [];
@@ -547,19 +561,24 @@ export class TimelogsComponent {
   });
 
   public schedules = httpResource<any[]>(() => {
+    const { start, end } = this.normalizedDateRange();
+    if (!start || !end) {
+      return undefined;
+    }
     return {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
       method: 'GET',
       params: {
         select: '*,schedule:schedules(*)',
-        start_date: `gte.${format(this.dateRange()[0], 'yyyy-MM-dd 06:00:00')}`,
-        end_date: `lte.${format(this.dateRange()[1], 'yyyy-MM-dd 06:00:00')}`,
+        start_date: `gte.${format(start, 'yyyy-MM-dd 06:00:00')}`,
+        end_date: `lte.${format(end, 'yyyy-MM-dd 06:00:00')}`,
       },
     };
   });
 
   public timeoffs = httpResource<any[]>(() => {
-    if (!this.dateRange()[0] || !this.dateRange()[1]) {
+    const { start, end } = this.normalizedDateRange();
+    if (!start || !end) {
       return undefined;
     }
     return {
@@ -568,22 +587,23 @@ export class TimelogsComponent {
       params: {
         select:
           'id,type_id,employee_id,date_from,date_to,is_approved,type:timeoff_types(id,name)',
-        date_from: `lte.${format(this.dateRange()[1], 'yyyy-MM-dd')}`,
-        date_to: `gte.${format(this.dateRange()[0], 'yyyy-MM-dd')}`,
+        date_from: `lte.${format(end, 'yyyy-MM-dd')}`,
+        date_to: `gte.${format(start, 'yyyy-MM-dd')}`,
         is_approved: 'eq.true',
       },
     };
   });
 
   public logs = httpResource<any[]>(() => {
-    if (!this.dateRange()[0] || !this.dateRange()[1]) {
+    const { start, end } = this.normalizedDateRange();
+    if (!start || !end) {
       return undefined;
     }
     return {
       url: `${
         process.env['ENV_SUPABASE_URL']
       }/rest/v1/timelogs?created_at=lte.${format(
-        addDays(this.dateRange()[1], 1),
+        addDays(end, 1),
         'yyyy-MM-dd 06:00:00'
       )}`,
       method: 'GET',
@@ -606,6 +626,10 @@ export class TimelogsComponent {
   });
 
   public queryParams = computed(() => {
+    const { start, end } = this.normalizedDateRange();
+    if (!start || !end) {
+      return {};
+    }
     const params: {
       select: string;
       created_at: string;
@@ -613,7 +637,7 @@ export class TimelogsComponent {
     } = {
       select:
         '*,employee:employees(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)',
-      created_at: `gte.${format(this.dateRange()[0], 'yyyy-MM-dd 06:00:00')}`,
+      created_at: `gte.${format(start, 'yyyy-MM-dd 06:00:00')}`,
     };
     if (this.employeeId()) {
       params['employee_id'] = `eq.${this.employeeId()}`;
@@ -1205,8 +1229,7 @@ export class TimelogsComponent {
     const filteredData = this.filteredDaylogs();
 
     // Obtener y normalizar el rango de fechas
-    const startDate = this.dateRange()?.[0];
-    const endDate = this.dateRange()?.[1];
+    const { start: startDate, end: endDate } = this.normalizedDateRange();
 
     if (!startDate || !endDate || filteredData.length === 0) {
       return [];
@@ -1411,10 +1434,17 @@ export class TimelogsComponent {
         ['Fecha de generación:', format(new Date(), 'dd/MM/yyyy HH:mm')],
         [
           'Período:',
-          `${format(this.dateRange()[0], 'dd/MM/yyyy')} - ${format(
-            this.dateRange()[1],
-            'dd/MM/yyyy'
-          )}`,
+          (() => {
+            const { start, end } = this.normalizedDateRange();
+            if (!start || !end) return 'Sin fecha';
+            if (start.getTime() === end.getTime()) {
+              return format(start, 'dd/MM/yyyy');
+            }
+            return `${format(start, 'dd/MM/yyyy')} - ${format(
+              end,
+              'dd/MM/yyyy'
+            )}`;
+          })(),
         ],
         ['Total de registros:', data.length],
         [''],
@@ -1429,16 +1459,25 @@ export class TimelogsComponent {
       utils.book_append_sheet(wb, ws, 'Marcaciones');
 
       // Generar nombre del archivo
+      const { start, end } = this.normalizedDateRange();
+      if (!start || !end) {
+        this.message.add({
+          severity: 'warn',
+          summary: 'Fecha requerida',
+          detail: 'Por favor selecciona un rango de fechas',
+        });
+        return;
+      }
       const name = this.selectedEmployee()
         ? trim(this.selectedEmployee()?.short_name.toUpperCase()).replace(
             ' ',
             '_'
           )
         : 'GLOBAL';
-      const fileName = `${name}_${format(
-        this.dateRange()[0],
+      const fileName = `${name}_${format(start, 'yyyyMMdd')}-${format(
+        end,
         'yyyyMMdd'
-      )}-${format(this.dateRange()[1], 'yyyyMMdd')}.xlsx`;
+      )}.xlsx`;
 
       writeFile(wb, fileName);
 

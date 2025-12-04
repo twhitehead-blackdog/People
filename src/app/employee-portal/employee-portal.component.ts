@@ -151,15 +151,27 @@ import { EmployeesStore } from '../stores/employees.store';
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-sm text-gray-400 m-0 mb-1">Salario Mensual</p>
-                  <p class="text-2xl font-bold text-green-400 m-0">
-                    {{ currentEmployee()?.monthly_salary | currency : '$' }}
+                  <p 
+                    class="text-2xl font-bold text-green-400 m-0 cursor-pointer hover:text-green-300 transition-colors"
+                    (click)="showSalary.set(!showSalary())"
+                    [title]="showSalary() ? 'Ocultar salario' : 'Click para ver salario'"
+                  >
+                    @if (showSalary()) {
+                      {{ currentEmployee()?.monthly_salary | currency : '$' }}
+                    } @else {
+                      <span class="text-gray-500">••••••</span>
+                    }
                   </p>
                   <p class="text-xs text-gray-500 m-0 mt-1">Base</p>
                 </div>
                 <div
-                  class="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center"
+                  class="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center cursor-pointer hover:bg-amber-500/30 transition-colors"
+                  (click)="showSalary.set(!showSalary())"
+                  [title]="showSalary() ? 'Ocultar salario' : 'Click para ver salario'"
                 >
-                  <i class="pi pi-money-bill text-amber-400 text-xl"></i>
+                  <i 
+                    [class]="showSalary() ? 'pi pi-eye-slash text-amber-400 text-xl' : 'pi pi-eye text-amber-400 text-xl'"
+                  ></i>
                 </div>
               </div>
             </p-card>
@@ -342,8 +354,19 @@ import { EmployeesStore } from '../stores/employees.store';
               </div>
               <div>
                 <label class="text-sm text-gray-400">Salario Mensual</label>
-                <p class="text-white font-semibold">
-                  {{ currentEmployee()?.monthly_salary | currency : '$' }}
+                <p 
+                  class="text-white font-semibold cursor-pointer hover:text-gray-300 transition-colors inline-flex items-center gap-2"
+                  (click)="showSalary.set(!showSalary())"
+                  [title]="showSalary() ? 'Ocultar salario' : 'Click para ver salario'"
+                >
+                  @if (showSalary()) {
+                    {{ currentEmployee()?.monthly_salary | currency : '$' }}
+                  } @else {
+                    <span class="text-gray-500">••••••</span>
+                  }
+                  <i 
+                    [class]="showSalary() ? 'pi pi-eye-slash text-gray-400 text-sm' : 'pi pi-eye text-gray-400 text-sm'"
+                  ></i>
                 </p>
               </div>
             </div>
@@ -1458,7 +1481,7 @@ export class EmployeePortalComponent {
     return workEmail.endsWith(this.companyEmailDomain);
   });
 
-  private approvalToastShown = signal(false);
+  public showSalary = signal(false);
 
   constructor() {
     // Inicializar con el fragmento actual si existe
@@ -1482,27 +1505,6 @@ export class EmployeePortalComponent {
         }, 100);
       } else {
         this.activeSection.set('dashboard');
-      }
-    });
-
-    // Mostrar toast de aprobación pendiente
-    effect(() => {
-      const employee = this.currentEmployee();
-      if (
-        employee &&
-        !this.approvalToastShown() &&
-        (employee.account_approved === false ||
-          employee.account_approved === null ||
-          employee.account_approved === undefined)
-      ) {
-        this.approvalToastShown.set(true);
-        this.messageService.add({
-          severity: 'warn',
-          summary: 'Cuenta en Espera de Aprobación',
-          detail:
-            'Tu cuenta está pendiente de aprobación por parte del administrador. Una vez aprobada, tendrás acceso completo al portal. Por favor, contacta a Recursos Humanos si tienes alguna pregunta.',
-          life: 5000,
-        });
       }
     });
   }

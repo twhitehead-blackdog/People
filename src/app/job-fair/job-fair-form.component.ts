@@ -26,14 +26,14 @@ import { Card } from 'primeng/card';
 import { FileUploadModule } from 'primeng/fileupload';
 import { InputNumber } from 'primeng/inputnumber';
 import { InputText } from 'primeng/inputtext';
-import { Select } from 'primeng/select';
 import { MultiSelectModule } from 'primeng/multiselect';
+import { Select } from 'primeng/select';
 import { Textarea } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { firstValueFrom } from 'rxjs';
-import { PositionsStore } from '../stores/positions.store';
 import { EmailService } from '../services/email.service';
+import { PositionsStore } from '../stores/positions.store';
 
 @Component({
   selector: 'pt-job-fair-form',
@@ -110,7 +110,10 @@ import { EmailService } from '../services/email.service';
               @if (interviewStartDate()) {
               <div class="info-badge">
                 <i class="pi pi-clock text-amber-400 mr-2"></i>
-                <span>Las entrevistas iniciarán el {{ formatInterviewDate(interviewStartDate()!) }}</span>
+                <span
+                  >Las entrevistas iniciarán el
+                  {{ formatInterviewDate(interviewStartDate()!) }}</span
+                >
               </div>
               }
             </div>
@@ -365,7 +368,9 @@ import { EmailService } from '../services/email.service';
               />
               @if ( applicationForm.get('position_ids')?.invalid &&
               applicationForm.get('position_ids')?.touched ) {
-              <small class="text-red-400">Debes seleccionar al menos una vacante</small>
+              <small class="text-red-400"
+                >Debes seleccionar al menos una vacante</small
+              >
               }
             </div>
 
@@ -936,7 +941,9 @@ export class JobFairFormComponent implements OnInit {
   });
 
   // Validador personalizado para asegurar que se seleccione al menos una posición
-  private atLeastOneValidator(control: AbstractControl): ValidationErrors | null {
+  private atLeastOneValidator(
+    control: AbstractControl
+  ): ValidationErrors | null {
     const value = control.value;
     if (!value || !Array.isArray(value) || value.length === 0) {
       return { required: true };
@@ -952,16 +959,20 @@ export class JobFairFormComponent implements OnInit {
     effect(() => {
       const settings = this.jobFairSettingsApi.value();
       if (settings && settings.length > 0) {
-        const enabledSetting = settings.find((s) => s.key === 'job_fair_enabled');
-        const dateSetting = settings.find((s) => s.key === 'job_fair_interview_start_date');
-        
+        const enabledSetting = settings.find(
+          (s) => s.key === 'job_fair_enabled'
+        );
+        const dateSetting = settings.find(
+          (s) => s.key === 'job_fair_interview_start_date'
+        );
+
         if (enabledSetting) {
           this.jobFairEnabled.set(enabledSetting.value === 'true');
         } else {
           // Por defecto, si no existe el setting, asumir que está activa
           this.jobFairEnabled.set(true);
         }
-        
+
         if (dateSetting && dateSetting.value) {
           // Convertir string YYYY-MM-DD a Date
           const date = new Date(dateSetting.value);
@@ -1407,9 +1418,14 @@ export class JobFairFormComponent implements OnInit {
     // 1. Enviar email de confirmación al candidato
     const candidateEmail = applicationData.email;
     const candidateName = `${applicationData.first_name} ${applicationData.last_name}`;
-    
-    const emailSubject = 'Confirmación de recepción – Feria de Empleo Black Dog';
-    
+
+    const emailSubject =
+      'Confirmación de recepción – Feria de Empleo Black Dog';
+
+    // Obtener la URL base de la aplicación para el logo
+    const appUrl = process.env['ENV_APP_URL'] || window.location.origin;
+    const logoUrl = `${appUrl}/images/blackdog.png`;
+
     // Plantilla HTML del email
     const emailHtml = `
       <!DOCTYPE html>
@@ -1421,7 +1437,7 @@ export class JobFairFormComponent implements OnInit {
       <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
         <div style="background-color: #1a1a1a; padding: 30px; border-radius: 8px;">
           <div style="text-align: center; margin-bottom: 30px;">
-            <img src="https://tu-dominio.com/images/blackdog.png" alt="Black Dog Logo" style="max-width: 150px; height: auto;">
+            <img src="${logoUrl}" alt="Black Dog Logo" style="max-width: 150px; height: auto;">
           </div>
           
           <h2 style="color: #FBBF24; margin-top: 0; margin-bottom: 20px;">
@@ -1455,7 +1471,7 @@ export class JobFairFormComponent implements OnInit {
       </body>
       </html>
     `;
-    
+
     // Versión texto plano del email
     const emailText = `Confirmación de recepción – Feria de Empleo Black Dog
 
@@ -1481,7 +1497,10 @@ Black Dog`;
           text: emailText,
         })
       );
-      console.log('✅ Email de confirmación enviado al candidato:', candidateEmail);
+      console.log(
+        '✅ Email de confirmación enviado al candidato:',
+        candidateEmail
+      );
     } catch (error: any) {
       console.error('❌ Error enviando email de confirmación:', error);
       // No fallar el proceso completo si el email falla
