@@ -1,4 +1,9 @@
 import express from 'express';
+import nodemailer from 'nodemailer';
+import dotenv from 'dotenv';
+
+// Cargar variables de entorno desde .env
+dotenv.config();
 
 // The Express app is exported so that it can be used by serverless Functions.
 export function app(): express.Express {
@@ -88,6 +93,97 @@ export function app(): express.Express {
     }
   });
 
+  // Endpoint para enviar emails
+  server.post('/api/email/send', async (req, res) => {
+    try {
+      const { to, subject, html, text } = req.body;
+      const smtpHost = process.env['ENV_SMTP_HOST'] || 'smtp.gmail.com';
+      const smtpPort = parseInt(process.env['ENV_SMTP_PORT'] || '587');
+      const smtpUser = process.env['ENV_SMTP_USER'];
+      const smtpPassword = process.env['ENV_SMTP_PASSWORD'];
+
+      if (!smtpUser || !smtpPassword) {
+        console.error('❌ Configuración SMTP faltante:', {
+          hasUser: !!smtpUser,
+          hasPassword: !!smtpPassword,
+          host: smtpHost,
+          port: smtpPort,
+        });
+        return res.status(500).json({
+          error: 'Email service not configured',
+          message: 'ENV_SMTP_USER o ENV_SMTP_PASSWORD no están configuradas. Por favor configura estas variables en tu archivo .env',
+        });
+      }
+
+      if (!to || !subject || !html) {
+        return res.status(400).json({
+          error: 'Missing required fields: to, subject, html',
+        });
+      }
+
+      // Crear transporter de nodemailer con SMTP genérico
+      const transporter = nodemailer.createTransport({
+        host: smtpHost,
+        port: smtpPort,
+        secure: smtpPort === 465, // true para 465, false para otros puertos
+        auth: {
+          user: smtpUser,
+          pass: smtpPassword,
+        },
+      });
+
+      // Preparar destinatarios (puede ser string o array)
+      const recipients = Array.isArray(to) ? to : [to];
+
+      // Enviar email
+      const info = await transporter.sendMail({
+        from: `Black Dog <${smtpUser}>`,
+        to: recipients.join(', '),
+        subject: subject,
+        html: html,
+        text: text || html.replace(/<[^>]*>/g, ''), // Convertir HTML a texto si no se proporciona
+      });
+
+      console.log('✅ Email enviado exitosamente:', {
+        to: recipients.join(', '),
+        messageId: info.messageId,
+      });
+      return res.json({ success: true, data: { messageId: info.messageId } });
+    } catch (error: any) {
+      console.error('❌ Error sending email:', error);
+      console.error('❌ Detalles del error:', {
+        message: error.message,
+        code: error.code,
+        command: error.command,
+        response: error.response,
+        responseCode: error.responseCode,
+        responseMessage: error.responseMessage,
+      });
+
+      // Mensaje de error más descriptivo
+      let errorMessage = 'Error desconocido al enviar el email';
+      if (error.code === 'EAUTH') {
+        errorMessage = 'Error de autenticación SMTP. Verifica ENV_SMTP_USER y ENV_SMTP_PASSWORD';
+      } else if (error.code === 'ECONNECTION') {
+        errorMessage = 'No se pudo conectar al servidor SMTP. Verifica ENV_SMTP_HOST y ENV_SMTP_PORT';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      return res.status(500).json({
+        error: 'Error interno del servidor',
+        message: errorMessage,
+        code: error.code,
+        details: process.env['NODE_ENV'] === 'development' ? {
+          code: error.code,
+          command: error.command,
+          responseCode: error.responseCode,
+          responseMessage: error.responseMessage,
+        } : undefined,
+      });
+    }
+  });
+
   // Health check endpoint
   server.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Server is running' });
@@ -156,6 +252,24 @@ export function app(): express.Express {
 
 function run(): void {
   const port = process.env['PORT'] || 4000;
+
+  // Verificar configuración SMTP al iniciar
+  const smtpHost = process.env['ENV_SMTP_HOST'] || 'smtp.gmail.com';
+  const smtpPort = process.env['ENV_SMTP_PORT'] || '587';
+  const smtpUser = process.env['ENV_SMTP_USER'];
+  const smtpPassword = process.env['ENV_SMTP_PASSWORD'];
+
+  console.log('📧 Configuración SMTP:', {
+    host: smtpHost,
+    port: smtpPort,
+    user: smtpUser ? `${smtpUser.substring(0, 3)}***` : 'NO CONFIGURADO',
+    hasPassword: !!smtpPassword,
+  });
+
+  if (!smtpUser || !smtpPassword) {
+    console.warn('⚠️  ADVERTENCIA: Variables SMTP no configuradas. El servicio de email no funcionará.');
+    console.warn('   Configura ENV_SMTP_USER y ENV_SMTP_PASSWORD en tu archivo .env');
+  }
 
   // Start up the Node server
   const server = app();

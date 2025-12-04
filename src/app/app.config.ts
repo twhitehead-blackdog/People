@@ -20,7 +20,7 @@ import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideAuth0 } from '@auth0/auth0-angular';
 import { definePreset } from '@primeng/themes';
 import { NgxSpinnerModule } from 'ngx-spinner';
-import { MessageService } from 'primeng/api';
+import { ConfirmationService, MessageService } from 'primeng/api';
 import { providePrimeNG } from 'primeng/config';
 import es from '../../public/i18n/es.json';
 import { appRoutes } from './app.routes';
@@ -82,12 +82,14 @@ export const appConfig: ApplicationConfig = {
     }),
     provideCharts(withDefaultRegisterables()),
     { provide: LOCALE_ID, useValue: 'es-MX' },
+    // Servicios de PrimeNG deben estar antes de los stores
     MessageService,
-    importProvidersFrom(
-      NgxSpinnerModule.forRoot({ type: 'ball-scale-multiple' })
-    ),
+    ConfirmationService,
     // Stores para el módulo de Feria de Empleo
     PositionsStore,
     JobApplicationsStore,
+    importProvidersFrom(
+      NgxSpinnerModule.forRoot({ type: 'ball-scale-multiple' })
+    ),
   ],
 };

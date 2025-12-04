@@ -320,9 +320,11 @@ export type JobApplication = {
   last_name: string;
   email: string;
   phone_number: string;
-  position_id?: string;
+  position_id?: string; // Mantener por compatibilidad
+  position_ids?: string[]; // Array de IDs de posiciones (múltiples selecciones)
   position?: Position;
-  position_name?: string;
+  positions?: Position[]; // Array de posiciones relacionadas
+  position_name?: string; // Mantener para compatibilidad, puede contener múltiples nombres separados por coma
   province?: string;
   corregimiento?: string;
   currently_working?: boolean;
@@ -333,6 +335,7 @@ export type JobApplication = {
   status: 'pending' | 'reviewed' | 'contacted' | 'rejected' | 'hired';
   interview_date?: Date;
   notes?: string;
+  is_favorite?: boolean; // Campo para marcar como favorito
   created_at?: Date;
   updated_at?: Date;
 };

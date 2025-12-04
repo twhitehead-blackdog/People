@@ -36,7 +36,12 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
 
   // Endpoints públicos que NO requieren autenticación de Auth0
   // /api/client-ip es usado por el modo kiosko que no requiere autenticación
-  if (req.url.includes('/api/client-ip') || req.url.includes('/api/health')) {
+  // /api/email/send es usado por el formulario público de feria de empleo
+  if (
+    req.url.includes('/api/client-ip') ||
+    req.url.includes('/api/health') ||
+    req.url.includes('/api/email/send')
+  ) {
     // Permitir peticiones sin autenticación
     return next(req);
   }

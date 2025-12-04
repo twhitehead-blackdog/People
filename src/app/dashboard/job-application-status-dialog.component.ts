@@ -1,7 +1,17 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
-import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+} from '@angular/core';
+import {
+  FormControl,
+  FormsModule,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { Button } from 'primeng/button';
+import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { Select } from 'primeng/select';
 import { JobApplication } from '../models';
 
@@ -12,28 +22,29 @@ import { JobApplication } from '../models';
     <div class="space-y-4">
       <p class="text-gray-300">
         Cambiar el estado de la aplicación de
-        <strong class="text-white">{{ application.first_name }} {{ application.last_name }}</strong>
+        <strong class="text-white"
+          >{{ application.first_name }} {{ application.last_name }}</strong
+        >
       </p>
       <div>
-        <label for="status" class="block text-sm font-medium text-gray-300 mb-2">
+        <label
+          for="status"
+          class="block text-sm font-medium text-gray-300 mb-2"
+        >
           Nuevo Estado
         </label>
         <p-select
           id="status"
           [formControl]="statusControl"
-          [options]="availableStatuses"
+          [options]="availableStatuses()"
           optionLabel="label"
-          optionValue="value"
+          optionValue="code"
           appendTo="body"
           class="w-full"
         />
       </div>
       <div class="flex gap-2 justify-end">
-        <p-button
-          label="Cancelar"
-          severity="secondary"
-          (onClick)="close()"
-        />
+        <p-button label="Cancelar" severity="secondary" (onClick)="close()" />
         <p-button
           label="Cambiar Estado"
           (onClick)="confirm()"
@@ -49,23 +60,31 @@ export class JobApplicationStatusDialogComponent {
   private ref = inject(DynamicDialogRef);
 
   public application: JobApplication = this.config.data.application;
-  
-  public statusOptions = [
-    { label: 'Pendiente', value: 'pending' },
-    { label: 'Revisada', value: 'reviewed' },
-    { label: 'Contactada', value: 'contacted' },
-    { label: 'Rechazada', value: 'rejected' },
-    { label: 'Contratada', value: 'hired' },
+
+  // Usar los estados dinámicos pasados desde el componente padre
+  public statusOptions: Array<{
+    code: string;
+    label: string;
+    severity?: string;
+  }> = this.config.data.statusOptions || [
+    { code: 'pending', label: 'Pendiente', severity: 'warn' },
+    { code: 'reviewed', label: 'Revisada', severity: 'info' },
+    { code: 'contacted', label: 'Contactada', severity: 'info' },
+    { code: 'rejected', label: 'Rechazada', severity: 'danger' },
+    { code: 'hired', label: 'Contratada', severity: 'success' },
   ];
 
-  public availableStatuses = this.statusOptions.filter(
-    (opt) => opt.value !== this.application.status
-  );
+  // Filtrar para excluir el estado actual
+  public availableStatuses = computed(() => {
+    return this.statusOptions.filter(
+      (opt: { code: string; label: string; severity?: string }) =>
+        opt.code !== this.application.status
+    );
+  });
 
-  public statusControl = new FormControl<JobApplication['status'] | null>(
-    null,
-    [Validators.required]
-  );
+  public statusControl = new FormControl<string | null>(null, [
+    Validators.required,
+  ]);
 
   confirm() {
     if (this.statusControl.valid && this.statusControl.value) {
@@ -77,4 +96,3 @@ export class JobApplicationStatusDialogComponent {
     this.ref.close(null);
   }
 }
-

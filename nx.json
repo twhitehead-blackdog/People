@@ -125,7 +125,12 @@
       "typeSeparator": "."
     }
   },
-  "defaultProject": "people"
+  "defaultProject": "people",
+  "pluginsConfig": {
+    "@nx/js": {
+      "analyzeSourceFiles": false
+    }
+  }
   // NX_CLOUD_ACCESS_TOKEN debe configurarse como variable de entorno
   // Ver .env.example para más información
 }

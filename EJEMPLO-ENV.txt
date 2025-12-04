@@ -16,6 +16,14 @@ ENV_AUTH0_AUDIENCE=https://people.api
 # Application
 ENV_APP_URL=http://localhost:4200
 
+# SMTP - Email service (configuración genérica para cualquier servidor SMTP)
+# Para Gmail: smtp.gmail.com, puerto 587 (TLS) o 465 (SSL)
+# Para otros servicios, consulta la documentación de tu proveedor
+ENV_SMTP_HOST=smtp.gmail.com
+ENV_SMTP_PORT=587
+ENV_SMTP_USER=tu-email@gmail.com
+ENV_SMTP_PASSWORD=tu-contraseña-o-app-password
+
 # ============================================
 # INSTRUCCIONES:
 # ============================================

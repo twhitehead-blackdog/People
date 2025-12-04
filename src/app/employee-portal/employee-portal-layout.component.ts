@@ -89,8 +89,8 @@ type NavSection = {
           <div class="flex h-16 items-center justify-between">
             <div class="flex items-center">
               <a
-                routerLink="/employee-portal"
-                class="shrink-0 flex items-center gap-2 group"
+                (click)="navigateToTimeclock()"
+                class="shrink-0 flex items-center gap-2 group cursor-pointer"
               >
                 <img
                   src="images/blackdog.png"
@@ -555,6 +555,10 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
     if (!this.isCollapsed()) {
       this.isCollapsed.set(true);
     }
+  }
+
+  navigateToTimeclock(): void {
+    this.router.navigate(['/timeclock']);
   }
 
   isActiveSection(section: string): boolean {

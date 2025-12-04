@@ -12,9 +12,11 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
+  AbstractControl,
   FormBuilder,
   FormGroup,
   ReactiveFormsModule,
+  ValidationErrors,
   Validators,
 } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -25,11 +27,13 @@ import { FileUploadModule } from 'primeng/fileupload';
 import { InputNumber } from 'primeng/inputnumber';
 import { InputText } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
+import { MultiSelectModule } from 'primeng/multiselect';
 import { Textarea } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { firstValueFrom } from 'rxjs';
 import { PositionsStore } from '../stores/positions.store';
+import { EmailService } from '../services/email.service';
 
 @Component({
   selector: 'pt-job-fair-form',
@@ -43,6 +47,7 @@ import { PositionsStore } from '../stores/positions.store';
     InputNumber,
     Textarea,
     Select,
+    MultiSelectModule,
     ToggleSwitch,
     FileUploadModule,
     ToastModule,
@@ -102,10 +107,12 @@ import { PositionsStore } from '../stores/positions.store';
                 <i class="pi pi-calendar text-amber-400 mr-2"></i>
                 <span>Las personas serán contactadas y atendidas por cita</span>
               </div>
+              @if (interviewStartDate()) {
               <div class="info-badge">
                 <i class="pi pi-clock text-amber-400 mr-2"></i>
-                <span>Las entrevistas iniciarán el jueves 4 de diciembre</span>
+                <span>Las entrevistas iniciarán el {{ formatInterviewDate(interviewStartDate()!) }}</span>
               </div>
+              }
             </div>
           </div>
         </div>
@@ -329,33 +336,36 @@ import { PositionsStore } from '../stores/positions.store';
               </div>
             </div>
 
-            <!-- Posición -->
+            <!-- Posiciones (múltiples selecciones) -->
             <div class="mb-4">
               <label
-                for="position_id"
+                for="position_ids"
                 class="block text-sm font-medium text-gray-300 mb-2"
               >
-                Vacante a la que aspiras <span class="text-red-400">*</span>
+                Vacantes a las que aspiras <span class="text-red-400">*</span>
               </label>
-              <p-select
-                id="position_id"
-                formControlName="position_id"
+              <p-multiSelect
+                id="position_ids"
+                formControlName="position_ids"
                 [options]="availablePositions()"
                 optionLabel="name"
                 optionValue="id"
-                placeholder="Selecciona una vacante"
+                placeholder="Selecciona una o más vacantes"
                 [showClear]="true"
                 [filter]="true"
                 filterBy="name"
+                [maxSelectedLabels]="3"
+                selectedItemsLabel="{0} vacantes seleccionadas"
                 class="w-full"
                 [class.ng-invalid]="
-                  applicationForm.get('position_id')?.invalid &&
-                  applicationForm.get('position_id')?.touched
+                  applicationForm.get('position_ids')?.invalid &&
+                  applicationForm.get('position_ids')?.touched
                 "
+                appendTo="body"
               />
-              @if ( applicationForm.get('position_id')?.invalid &&
-              applicationForm.get('position_id')?.touched ) {
-              <small class="text-red-400">Debes seleccionar una vacante</small>
+              @if ( applicationForm.get('position_ids')?.invalid &&
+              applicationForm.get('position_ids')?.touched ) {
+              <small class="text-red-400">Debes seleccionar al menos una vacante</small>
               }
             </div>
 
@@ -725,19 +735,21 @@ export class JobFairFormComponent implements OnInit {
   private messageService = inject(MessageService);
   private positionsStore = inject(PositionsStore);
   private destroyRef = inject(DestroyRef);
+  private emailService = inject(EmailService);
 
   public selectedFile = signal<File | null>(null);
   public isSubmitting = signal<boolean>(false);
   public isSuccess = signal<boolean>(false);
   public jobFairEnabled = signal<boolean>(true);
+  public interviewStartDate = signal<Date | null>(null);
 
-  // API para verificar el estado de la feria
+  // API para verificar el estado de la feria y fecha de entrevistas
   private jobFairSettingsApi = httpResource<any[]>(() => ({
     url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
     method: 'GET',
     params: {
       select: '*',
-      key: 'eq.job_fair_enabled',
+      key: `in.(job_fair_enabled,job_fair_interview_start_date)`,
     },
   }));
 
@@ -918,21 +930,45 @@ export class JobFairFormComponent implements OnInit {
     residence: ['', [Validators.required]],
     currently_working: [false],
     salary_expectation: [null],
-    position_id: ['', [Validators.required]],
+    position_ids: [[], [this.atLeastOneValidator]], // Array de IDs, al menos uno requerido
     additional_info: [''],
     resume: [null, [Validators.required]], // Requerido
   });
+
+  // Validador personalizado para asegurar que se seleccione al menos una posición
+  private atLeastOneValidator(control: AbstractControl): ValidationErrors | null {
+    const value = control.value;
+    if (!value || !Array.isArray(value) || value.length === 0) {
+      return { required: true };
+    }
+    return null;
+  }
 
   constructor() {
     // Cargar posiciones inmediatamente
     this.positionsStore.reloadItems();
 
-    // Cargar el estado de la feria desde settings
+    // Cargar el estado de la feria y fecha de entrevistas desde settings
     effect(() => {
       const settings = this.jobFairSettingsApi.value();
       if (settings && settings.length > 0) {
-        const setting = settings[0];
-        this.jobFairEnabled.set(setting.value === 'true');
+        const enabledSetting = settings.find((s) => s.key === 'job_fair_enabled');
+        const dateSetting = settings.find((s) => s.key === 'job_fair_interview_start_date');
+        
+        if (enabledSetting) {
+          this.jobFairEnabled.set(enabledSetting.value === 'true');
+        } else {
+          // Por defecto, si no existe el setting, asumir que está activa
+          this.jobFairEnabled.set(true);
+        }
+        
+        if (dateSetting && dateSetting.value) {
+          // Convertir string YYYY-MM-DD a Date
+          const date = new Date(dateSetting.value);
+          if (!isNaN(date.getTime())) {
+            this.interviewStartDate.set(date);
+          }
+        }
       } else {
         // Por defecto, si no existe el setting, asumir que está activa
         this.jobFairEnabled.set(true);
@@ -1049,6 +1085,16 @@ export class JobFairFormComponent implements OnInit {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+  }
+
+  formatInterviewDate(date: Date): string {
+    const options: Intl.DateTimeFormatOptions = {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    };
+    return date.toLocaleDateString('es-PA', options);
   }
 
   /**
@@ -1188,10 +1234,14 @@ export class JobFairFormComponent implements OnInit {
       }
     }
 
-    // 2. Obtener nombre de la posición
-    const positionId = this.applicationForm.value.position_id;
-    const position = this.availablePositions().find((p) => p.id === positionId);
-    const positionName = position?.name || '';
+    // 2. Obtener IDs y nombres de las posiciones seleccionadas
+    const positionIds = this.applicationForm.value.position_ids || [];
+    const selectedPositions = this.availablePositions().filter((p) =>
+      positionIds.includes(p.id)
+    );
+    const positionNames = selectedPositions.map((p) => p.name).join(', ');
+    // Mantener position_id para compatibilidad (primera posición seleccionada)
+    const firstPositionId = positionIds.length > 0 ? positionIds[0] : null;
 
     // 3. Crear aplicación en la base de datos
     // Usar la misma lógica que el formulario de incapacidades: confiar en el interceptor
@@ -1204,8 +1254,9 @@ export class JobFairFormComponent implements OnInit {
       corregimiento: null,
       currently_working: this.applicationForm.value.currently_working || false,
       salary_expectation: this.applicationForm.value.salary_expectation || null,
-      position_id: positionId,
-      position_name: positionName,
+      position_id: firstPositionId, // Mantener por compatibilidad
+      position_ids: positionIds, // Array de IDs de posiciones
+      position_name: positionNames, // Nombres separados por coma
       resume_url: resumeUrl,
       resume_filename: resumeFilename,
       additional_info: this.applicationForm.value.additional_info || null,
@@ -1305,14 +1356,19 @@ export class JobFairFormComponent implements OnInit {
     const filePath = `job-applications/${fileName}`;
 
     try {
-      // Usar la misma lógica que el módulo de incapacidades que funciona correctamente
-      // Usar Service Role Key si está disponible, sino usar API Key pública
-      const storageKey =
-        process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'] ||
-        process.env['ENV_SUPABASE_API_KEY'] ||
-        '';
+      // Priorizar Service Role Key para bypass RLS, sino usar API Key pública
+      // El Service Role Key bypassa todas las políticas RLS
+      const serviceRoleKey = process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'];
+      const apiKey = process.env['ENV_SUPABASE_API_KEY'] || '';
+      const storageKey = serviceRoleKey || apiKey;
 
-      // Upload to Supabase Storage using REST API (mismo método que incapacidades)
+      if (!storageKey) {
+        throw new Error('No se encontró ninguna clave de Supabase configurada');
+      }
+
+      // Upload to Supabase Storage using REST API
+      // Si usamos Service Role Key, bypassa RLS automáticamente
+      // Si usamos API Key pública, necesita que el bucket sea público y tenga políticas RLS correctas
       await firstValueFrom(
         this.http.post(
           `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/job-applications/${fileName}`,
@@ -1348,13 +1404,98 @@ export class JobFairFormComponent implements OnInit {
   }
 
   private async sendNotifications(applicationData: any): Promise<void> {
-    // Emails de destinatarios (Lia y el usuario)
+    // 1. Enviar email de confirmación al candidato
+    const candidateEmail = applicationData.email;
+    const candidateName = `${applicationData.first_name} ${applicationData.last_name}`;
+    
+    const emailSubject = 'Confirmación de recepción – Feria de Empleo Black Dog';
+    
+    // Plantilla HTML del email
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      </head>
+      <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <div style="background-color: #1a1a1a; padding: 30px; border-radius: 8px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <img src="https://tu-dominio.com/images/blackdog.png" alt="Black Dog Logo" style="max-width: 150px; height: auto;">
+          </div>
+          
+          <h2 style="color: #FBBF24; margin-top: 0; margin-bottom: 20px;">
+            Confirmación de recepción – Feria de Empleo Black Dog
+          </h2>
+          
+          <p style="color: #e5e7eb; margin-bottom: 15px;">
+            Estimado/a <strong>${candidateName}</strong>,
+          </p>
+          
+          <p style="color: #e5e7eb; margin-bottom: 15px;">
+            Gracias por postular a la Feria de Trabajo de Black Dog. Hemos recibido su información correctamente y será evaluada por nuestro equipo de Reclutamiento.
+          </p>
+          
+          <p style="color: #e5e7eb; margin-bottom: 15px;">
+            En caso de cumplir con los requisitos del puesto, nos estaremos comunicando con usted para coordinar los siguientes pasos del proceso.
+          </p>
+          
+          <p style="color: #e5e7eb; margin-bottom: 15px;">
+            Agradecemos su interés en formar parte de Black Dog y le deseamos el mayor de los éxitos.
+          </p>
+          
+          <p style="color: #e5e7eb; margin-top: 30px; margin-bottom: 5px;">
+            Atentamente,
+          </p>
+          <p style="color: #FBBF24; font-weight: bold; margin-top: 5px;">
+            Equipo de Reclutamiento<br>
+            Black Dog
+          </p>
+        </div>
+      </body>
+      </html>
+    `;
+    
+    // Versión texto plano del email
+    const emailText = `Confirmación de recepción – Feria de Empleo Black Dog
+
+Estimado/a ${candidateName},
+
+Gracias por postular a la Feria de Trabajo de Black Dog. Hemos recibido su información correctamente y será evaluada por nuestro equipo de Reclutamiento.
+
+En caso de cumplir con los requisitos del puesto, nos estaremos comunicando con usted para coordinar los siguientes pasos del proceso.
+
+Agradecemos su interés en formar parte de Black Dog y le deseamos el mayor de los éxitos.
+
+Atentamente,
+
+Equipo de Reclutamiento
+Black Dog`;
+
+    try {
+      await firstValueFrom(
+        this.emailService.sendEmail({
+          to: candidateEmail,
+          subject: emailSubject,
+          html: emailHtml,
+          text: emailText,
+        })
+      );
+      console.log('✅ Email de confirmación enviado al candidato:', candidateEmail);
+    } catch (error: any) {
+      console.error('❌ Error enviando email de confirmación:', error);
+      // No fallar el proceso completo si el email falla
+      // El formulario ya se guardó en la BD, solo falló la notificación
+    }
+
+    // 2. (Opcional) Enviar notificación interna a RRHH
+    // Esto se puede mantener como estaba o también enviar por email
     const recipients = [
-      'lia@blackdogpanama.com', // Reemplazar con el email real de Lia
-      'mercadeo@blackdogpanama.com', // Email del usuario
+      'lia@blackdogpanama.com',
+      'mercadeo@blackdogpanama.com',
     ];
 
-    const message = `Nueva aplicación de trabajo recibida:
+    const internalMessage = `Nueva aplicación de trabajo recibida:
 
 Nombre: ${applicationData.first_name} ${applicationData.last_name}
 Email: ${applicationData.email}
@@ -1364,9 +1505,9 @@ Fecha: ${new Date().toLocaleString('es-PA')}
 
 Revisa la aplicación en el sistema de gestión.`;
 
-    // Enviar notificaciones (por ahora solo log, se puede integrar con email service)
-    console.log('Notificación enviada:', message);
-    // TODO: Integrar con servicio de email o Wassenger
+    // Por ahora mantener el log, se puede implementar email interno después
+    console.log('Notificación interna:', internalMessage);
+    // TODO: Opcional - Enviar email interno a RRHH también
   }
 
   onCancel() {

@@ -195,25 +195,7 @@ import { EmployeesStore } from '../stores/employees.store';
                 </div>
               </p-card>
 
-              <!-- Salario Mensual -->
-              <p-card class="dashboard-stat-card">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <p class="text-sm text-gray-400 m-0 mb-1">
-                      Salario Mensual
-                    </p>
-                    <p class="text-2xl font-bold text-green-400 m-0">
-                      {{ currentEmployee()?.monthly_salary | currency : '$' }}
-                    </p>
-                    <p class="text-xs text-gray-500 m-0 mt-1">Base</p>
-                  </div>
-                  <div
-                    class="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center"
-                  >
-                    <i class="pi pi-money-bill text-amber-400 text-xl"></i>
-                  </div>
-                </div>
-              </p-card>
+              <!-- Salario Mensual oculto -->
             </div>
 
             <!-- Recent Activity and Quick Info -->
@@ -389,12 +371,7 @@ import { EmployeesStore } from '../stores/employees.store';
                     {{ currentEmployee()?.start_date | date : 'fullDate' }}
                   </p>
                 </div>
-                <div>
-                  <label class="text-sm text-gray-400">Salario Mensual</label>
-                  <p class="text-white font-semibold">
-                    {{ currentEmployee()?.monthly_salary | currency : '$' }}
-                  </p>
-                </div>
+                  <!-- Salario Mensual oculto -->
               </div>
 
               <!-- Información editable -->

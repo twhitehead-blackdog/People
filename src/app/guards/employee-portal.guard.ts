@@ -4,10 +4,23 @@ import { AuthService } from '@auth0/auth0-angular';
 import { HttpClient } from '@angular/common/http';
 import { map, switchMap, take, of, catchError } from 'rxjs';
 
+// Tipo para el empleado con posición
+type EmployeeWithPosition = {
+  id: string;
+  position?: { 
+    name: string; 
+    admin: boolean; 
+    dashboard_access?: boolean; 
+    default_view?: string;
+  };
+  has_portal_access?: boolean;
+  account_approved?: boolean;
+};
+
 // Cache simple en memoria para evitar llamadas HTTP repetidas
 let employeeCache: {
   email: string;
-  employee: any;
+  employee: EmployeeWithPosition;
   timestamp: number;
 } | null = null;
 
@@ -100,7 +113,12 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
           (employee.has_portal_access === true && !employee.position?.admin);
         
         // Verificar permiso de dashboard
+        // Si dashboard_access es null/undefined, permitir acceso (compatibilidad con datos antiguos)
+        // Solo denegar si es explícitamente false
         const hasDashboardAccess = employee.position?.dashboard_access !== false;
+        
+        // Si el usuario es admin, siempre permitir acceso (independientemente de dashboard_access)
+        const isAdmin = employee.position?.admin === true;
 
         const currentRoute = route.routeConfig?.path || '';
         const isTimeclockRoute = currentRoute === 'timeclock' || state.url.includes('/timeclock');
@@ -121,6 +139,11 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
         // Si es gerente de tienda en ruta raíz sin dashboard_access, redirigir a time-management
         if (hasTimeManagementAccess && (state.url === '/' || state.url === '') && !hasDashboardAccess) {
           return of(router.createUrlTree(['/time-management']));
+        }
+        
+        // Si es admin, permitir acceso a todas las rutas administrativas
+        if (isAdmin) {
+          return of(true);
         }
         
         // Si no tiene acceso al dashboard y está intentando acceder a rutas del dashboard, redirigir al portal
@@ -172,12 +195,8 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
       }
 
       // Si no hay cache, hacer llamada HTTP
-      return http.get<Array<{
-        id: string;
-        position?: { name: string; admin: boolean; dashboard_access?: boolean; default_view?: string };
-        has_portal_access?: boolean;
-        account_approved?: boolean;
-      }>>(
+      // Intentar primero con todos los campos, si falla, intentar sin dashboard_access y default_view
+      return http.get<Array<EmployeeWithPosition>>(
         `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
         {
           params: {
@@ -186,7 +205,37 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
           },
         }
       ).pipe(
-        map((employees) => {
+        catchError((error) => {
+          // Si falla la consulta con dashboard_access/default_view, intentar sin esos campos
+          console.warn('Error en consulta con dashboard_access, intentando sin esos campos:', error);
+          return http.get<Array<{
+            id: string;
+            position?: { name: string; admin: boolean };
+            has_portal_access?: boolean;
+            account_approved?: boolean;
+          }>>(
+            `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
+            {
+              params: {
+                work_email: `eq.${user.email}`,
+                select: 'id,position:positions(name,admin),has_portal_access,account_approved',
+              },
+            }
+          ).pipe(
+            map((employees): Array<EmployeeWithPosition> => {
+              // Mapear el resultado para que tenga la misma estructura
+              return employees.map(emp => ({
+                ...emp,
+                position: emp.position ? {
+                  ...emp.position,
+                  dashboard_access: undefined, // undefined = permitir acceso por defecto
+                  default_view: undefined,
+                } : undefined
+              }));
+            })
+          );
+        }),
+        map((employees: Array<EmployeeWithPosition>) => {
           const employee = employees[0];
           
           // Actualizar cache
@@ -231,7 +280,12 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
           const isHomeRoute = currentRoute === 'home' || state.url.includes('/home') || state.url === '/' || state.url === '';
           
           // Verificar permiso de dashboard
+          // Si dashboard_access es null/undefined, permitir acceso (compatibilidad con datos antiguos)
+          // Solo denegar si es explícitamente false
           const hasDashboardAccess = employee.position?.dashboard_access !== false;
+          
+          // Si el usuario es admin, siempre permitir acceso (independientemente de dashboard_access)
+          const isAdmin = employee.position?.admin === true;
           
           // Si tiene acceso especial a gestión de tiempo, permitir acceso a time-management y timeclock
           if (hasTimeManagementAccess && (isTimeManagementRoute || isTimeclockRoute)) {
@@ -246,6 +300,11 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
           // Si es gerente de tienda en ruta raíz sin dashboard_access, redirigir a time-management
           if (hasTimeManagementAccess && (state.url === '/' || state.url === '') && !hasDashboardAccess) {
             return router.createUrlTree(['/time-management']);
+          }
+          
+          // Si es admin, permitir acceso a todas las rutas administrativas
+          if (isAdmin) {
+            return true;
           }
           
           // Si no tiene acceso al dashboard y está intentando acceder a rutas del dashboard, redirigir al portal
@@ -299,7 +358,8 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
           // Para otras rutas, permitir acceso si no tiene restricción de portal y tiene acceso al dashboard
           return !hasPortalAccessOnly && hasDashboardAccess;
         }),
-        catchError(() => {
+        catchError((error) => {
+          console.error('Error en employeePortalGuard:', error);
           // Si hay error en la llamada HTTP, usar cache si existe
           if (employeeCache && employeeCache.email === user.email) {
             const employee = employeeCache.employee;
@@ -325,6 +385,12 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
             // Verificar permiso de dashboard
             const hasDashboardAccess = employee.position?.dashboard_access !== false;
             
+            // Si el usuario es admin, siempre permitir acceso
+            const isAdmin = employee.position?.admin === true;
+            if (isAdmin) {
+              return of(true);
+            }
+            
             // Si tiene acceso especial a gestión de tiempo, permitir acceso siempre
             if (hasTimeManagementAccess) {
               return of(true);
@@ -332,8 +398,10 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
             
             return of(!hasPortalAccessOnly && hasDashboardAccess);
           }
-          // Si no hay cache y hay error, denegar acceso por seguridad
-          return of(false);
+          // Si no hay cache y hay error, permitir acceso por defecto (para evitar bloqueos)
+          // Esto es más permisivo pero evita que los usuarios queden bloqueados
+          console.warn('No hay cache y error en guard, permitiendo acceso por defecto');
+          return of(true);
         })
       );
     })

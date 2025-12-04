@@ -98,6 +98,13 @@ export const DASHBOARD_ROUTES: Routes = [
               ),
           },
           {
+            path: 'job-applications',
+            loadComponent: () =>
+              import('./job-applications-list.component').then(
+                (x) => x.JobApplicationsListComponent
+              ),
+          },
+          {
             path: 'hr',
             children: [
               {

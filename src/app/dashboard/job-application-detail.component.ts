@@ -3,10 +3,12 @@ import { HttpClient } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   inject,
   OnInit,
   signal,
 } from '@angular/core';
+import { DomSanitizer, SafeResourceUrl, SafeUrl } from '@angular/platform-browser';
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { Button } from 'primeng/button';
@@ -15,6 +17,7 @@ import { DatePicker } from 'primeng/datepicker';
 import { Select } from 'primeng/select';
 import { Tag } from 'primeng/tag';
 import { Textarea } from 'primeng/textarea';
+import { Tooltip } from 'primeng/tooltip';
 import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 import { firstValueFrom } from 'rxjs';
@@ -35,6 +38,7 @@ import { JobApplicationsStore } from '../stores/job-applications.store';
     Textarea,
     Select,
     DatePicker,
+    Tooltip,
     ToastModule,
   ],
   providers: [MessageService],
@@ -125,21 +129,82 @@ import { JobApplicationsStore } from '../stores/job-applications.store';
       @if (application()?.resume_url) {
       <p-card>
         <ng-template #title>
-          <h3 class="m-0">Hoja de Vida</h3>
+          <div class="flex items-center justify-between w-full">
+            <h3 class="m-0">Hoja de Vida</h3>
+            <p-button
+              label="Descargar CV"
+              icon="pi pi-download"
+              (onClick)="downloadResume()"
+              severity="info"
+              [text]="true"
+              size="small"
+            />
+          </div>
         </ng-template>
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-gray-300 mb-2">
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <p class="text-gray-300 mb-0">
               <i class="pi pi-file mr-2"></i>
               {{ application()?.resume_filename || 'CV.pdf' }}
             </p>
+            <div class="flex items-center gap-2">
+              <p-button
+                icon="pi pi-search-minus"
+                (onClick)="zoomOut()"
+                [text]="true"
+                [rounded]="true"
+                severity="secondary"
+                size="small"
+                [disabled]="zoomLevel() <= 0.5"
+                pTooltip="Alejar"
+              />
+              <span class="text-sm text-gray-400 min-w-[60px] text-center">
+                {{ (zoomLevel() * 100).toFixed(0) }}%
+              </span>
+              <p-button
+                icon="pi pi-search-plus"
+                (onClick)="zoomIn()"
+                [text]="true"
+                [rounded]="true"
+                severity="secondary"
+                size="small"
+                [disabled]="zoomLevel() >= 2"
+                pTooltip="Acercar"
+              />
+              <p-button
+                label="Reset"
+                (onClick)="resetZoom()"
+                [text]="true"
+                severity="secondary"
+                size="small"
+                pTooltip="Restablecer zoom"
+              />
+            </div>
           </div>
-          <p-button
-            label="Descargar CV"
-            icon="pi pi-download"
-            (onClick)="downloadResume()"
-            severity="info"
-          />
+          <div class="border border-gray-700 rounded-lg overflow-hidden bg-gray-900">
+            <div class="overflow-auto max-h-[600px] bg-gray-800" style="padding: 20px;">
+              <div 
+                class="pdf-container"
+                [style.transform]="'scale(' + zoomLevel() + ')'"
+                [style.transform-origin]="'top left'"
+                style="width: 100%; min-height: 800px;"
+              >
+                <object
+                  [data]="pdfUrl()"
+                  type="application/pdf"
+                  class="w-full"
+                  style="min-height: 800px; border: none;"
+                >
+                  <p class="text-gray-400 p-4">
+                    No se puede mostrar el PDF. 
+                    <a [href]="pdfUrlForLink()" target="_blank" class="text-blue-400 underline">
+                      Abrir en nueva pestaña
+                    </a>
+                  </p>
+                </object>
+              </div>
+            </div>
+          </div>
         </div>
       </p-card>
       }
@@ -216,9 +281,30 @@ export class JobApplicationDetailComponent implements OnInit {
   private http = inject(HttpClient);
   private messageService = inject(MessageService);
   private jobApplicationsStore = inject(JobApplicationsStore);
+  private sanitizer = inject(DomSanitizer);
 
   public application = signal<JobApplication | null>(null);
   public isSaving = signal(false);
+  public zoomLevel = signal(1);
+  
+  // Signal computado para la URL del PDF sanitizada
+  public pdfUrl = computed(() => {
+    const app = this.application();
+    if (!app?.resume_url) {
+      return this.sanitizer.bypassSecurityTrustResourceUrl('');
+    }
+    const pdfUrl = `${app.resume_url}#toolbar=1&navpanes=1&scrollbar=1`;
+    return this.sanitizer.bypassSecurityTrustResourceUrl(pdfUrl);
+  });
+
+  // URL sanitizada para el enlace de fallback
+  public pdfUrlForLink = computed(() => {
+    const app = this.application();
+    if (!app?.resume_url) {
+      return this.sanitizer.bypassSecurityTrustUrl('');
+    }
+    return this.sanitizer.bypassSecurityTrustUrl(app.resume_url);
+  });
 
   public statusOptions = [
     { label: 'Pendiente', value: 'pending' },
@@ -383,6 +469,25 @@ export class JobApplicationDetailComponent implements OnInit {
       hired: 'success',
     };
     return severities[status] || 'secondary';
+  }
+
+
+  zoomIn() {
+    const current = this.zoomLevel();
+    if (current < 2) {
+      this.zoomLevel.set(Math.min(current + 0.25, 2));
+    }
+  }
+
+  zoomOut() {
+    const current = this.zoomLevel();
+    if (current > 0.5) {
+      this.zoomLevel.set(Math.max(current - 0.25, 0.5));
+    }
+  }
+
+  resetZoom() {
+    this.zoomLevel.set(1);
   }
 }
 

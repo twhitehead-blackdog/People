@@ -15,6 +15,7 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { DatePicker } from 'primeng/datepicker';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { InputText } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
@@ -27,11 +28,11 @@ import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
 import { utils, writeFile } from 'xlsx';
 import { JobApplication, Position } from '../models';
-import { DashboardStore } from '../stores/dashboard.store';
 import { JobApplicationsStore } from '../stores/job-applications.store';
 import { PositionsStore } from '../stores/positions.store';
 import { JobApplicationDetailComponent } from './job-application-detail.component';
 import { JobApplicationStatusDialogComponent } from './job-application-status-dialog.component';
+import { JobApplicationStatusesDialogComponent } from './job-application-statuses-dialog.component';
 import { PositionsFormComponent } from './positions-form.component';
 
 @Component({
@@ -52,12 +53,13 @@ import { PositionsFormComponent } from './positions-form.component';
     TooltipModule,
     ToastModule,
     ConfirmDialogModule,
+    DatePicker,
   ],
   providers: [
     DynamicDialogRef,
     DialogService,
     MessageService,
-    ConfirmationService,
+    ConfirmationService, // Necesario para que los stores puedan inyectarlo
     // JobApplicationsStore ahora está en app.config.ts
   ],
   template: `
@@ -72,7 +74,7 @@ import { PositionsFormComponent } from './positions-form.component';
               Gestiona las aplicaciones recibidas de la Feria de Empleo
             </p>
           </div>
-          <div class="flex items-center gap-4">
+          <div class="flex items-center gap-4 flex-wrap">
             <div class="flex items-center gap-2">
               <label class="text-sm text-gray-300">Feria Activa:</label>
               <p-toggleswitch
@@ -88,6 +90,29 @@ import { PositionsFormComponent } from './positions-form.component';
                 {{ jobFairEnabled() ? 'Activa' : 'Inactiva' }}
               </span>
             </div>
+            <div class="flex items-center gap-2">
+              <label class="text-sm text-gray-300"
+                >Inicio de Entrevistas:</label
+              >
+              <p-datepicker
+                [(ngModel)]="interviewStartDate"
+                (ngModelChange)="onInterviewStartDateChange()"
+                [showIcon]="true"
+                [disabled]="isUpdatingInterviewDate()"
+                dateFormat="dd/mm/yy"
+                placeholder="Seleccionar fecha"
+                appendTo="body"
+                styleClass="w-48"
+              />
+            </div>
+            <p-button
+              icon="pi pi-external-link"
+              label="Ver Formulario Público"
+              severity="secondary"
+              (onClick)="openJobFairForm()"
+              rounded
+              [outlined]="true"
+            />
           </div>
         </div>
       </ng-template>
@@ -116,7 +141,6 @@ import { PositionsFormComponent } from './positions-form.component';
               'email',
               'phone_number',
               'province',
-              'corregimiento',
               'position_name',
               'status'
             ]"
@@ -148,13 +172,23 @@ import { PositionsFormComponent } from './positions-form.component';
                     >Filtrar por estado:</label
                   >
                   <p-select
-                    [options]="statusOptions"
+                    [options]="statusOptions()"
                     [ngModel]="statusFilter.value"
                     (ngModelChange)="statusFilter.setValue($event)"
+                    optionLabel="label"
+                    optionValue="code"
                     placeholder="Todos los estados"
                     [showClear]="true"
                     appendTo="body"
                     styleClass="w-48"
+                  />
+                  <p-button
+                    icon="pi pi-cog"
+                    severity="secondary"
+                    text
+                    rounded
+                    (onClick)="manageStatuses()"
+                    pTooltip="Gestionar estados"
                   />
                 </div>
                 <div class="flex gap-2 items-center">
@@ -173,35 +207,72 @@ import { PositionsFormComponent } from './positions-form.component';
             </ng-template>
             <ng-template #header>
               <tr>
-                <th pSortableColumn="created_at">
+                <th
+                  style="width: 50px;"
+                  pSortableColumn="is_favorite"
+                  class="text-center"
+                >
+                  <p-sortIcon field="is_favorite" />
+                </th>
+                <th pSortableColumn="created_at" class="text-center">
                   Fecha <p-sortIcon field="created_at" />
                 </th>
-                <th pSortableColumn="first_name">
+                <th pSortableColumn="first_name" class="text-center">
                   Nombre <p-sortIcon field="first_name" />
                 </th>
-                <th pSortableColumn="email">
+                <th pSortableColumn="email" class="text-center">
                   Email <p-sortIcon field="email" />
                 </th>
-                <th pSortableColumn="phone_number">Teléfono</th>
-                <th pSortableColumn="province" class="text-center">
-                  Residencia
+                <th pSortableColumn="phone_number" class="text-center">
+                  Teléfono <p-sortIcon field="phone_number" />
                 </th>
-                <th>Laborando</th>
+                <th pSortableColumn="province" class="text-center">
+                  Residencia <p-sortIcon field="province" />
+                </th>
+                <th pSortableColumn="currently_working" class="text-center">
+                  Laborando <p-sortIcon field="currently_working" />
+                </th>
                 <th pSortableColumn="salary_expectation" class="text-center">
                   Aspiración Salarial <p-sortIcon field="salary_expectation" />
                 </th>
-                <th pSortableColumn="position_name">
+                <th pSortableColumn="position_name" class="text-center">
                   Vacante <p-sortIcon field="position_name" />
                 </th>
-                <th pSortableColumn="status">
+                <th pSortableColumn="status" class="text-center">
                   Estado <p-sortIcon field="status" />
                 </th>
-                <th>CV</th>
-                <th>Acciones</th>
+                <th class="text-center">CV</th>
+                <th class="text-center">Acciones</th>
               </tr>
             </ng-template>
             <ng-template #body let-application>
-              <tr class="hover:bg-neutral-800/50 transition-colors">
+              <tr
+                class="hover:bg-neutral-800/50 transition-colors cursor-pointer"
+                (click)="viewDetails(application)"
+              >
+                <td class="text-center">
+                  <button
+                    type="button"
+                    (click)="
+                      toggleFavorite(application); $event.stopPropagation()
+                    "
+                    class="p-1 hover:bg-neutral-700 rounded transition-colors"
+                    pTooltip="{{
+                      application.is_favorite
+                        ? 'Quitar de favoritos'
+                        : 'Marcar como favorito'
+                    }}"
+                  >
+                    <i
+                      class="pi"
+                      [class.pi-star-fill]="application.is_favorite"
+                      [class.pi-star]="!application.is_favorite"
+                      [class.text-yellow-400]="application.is_favorite"
+                      [class.text-gray-400]="!application.is_favorite"
+                      style="font-size: 1.25rem;"
+                    ></i>
+                  </button>
+                </td>
                 <td class="text-gray-300">
                   {{ application.created_at | date : 'short' }}
                 </td>
@@ -243,16 +314,33 @@ import { PositionsFormComponent } from './positions-form.component';
                   }
                 </td>
                 <td class="text-gray-300">
+                  @if (application.position_ids &&
+                  application.position_ids.length > 0) {
+                  <div class="flex flex-col gap-1">
+                    @for (positionId of application.position_ids; track
+                    positionId) {
+                    <span class="text-sm">
+                      {{ getPositionName(positionId) }}
+                    </span>
+                    }
+                  </div>
+                  } @else {
                   {{
                     application.position_name ||
                       application.position?.name ||
                       'N/A'
                   }}
+                  }
                 </td>
                 <td>
                   <p-tag
                     [value]="getStatusLabel(application.status)"
                     [severity]="getStatusSeverity(application.status)"
+                    [style]="{
+                      'min-width': maxStatusWidth(),
+                      display: 'inline-block',
+                      'text-align': 'center'
+                    }"
                   />
                 </td>
                 <td>
@@ -262,7 +350,9 @@ import { PositionsFormComponent } from './positions-form.component';
                     severity="info"
                     text
                     rounded
-                    (onClick)="downloadResume(application)"
+                    (onClick)="
+                      downloadResume(application); $event.stopPropagation()
+                    "
                     pTooltip="Descargar CV"
                   />
                   } @else {
@@ -270,30 +360,22 @@ import { PositionsFormComponent } from './positions-form.component';
                   }
                 </td>
                 <td>
-                  <div class="flex gap-2">
-                    <p-button
-                      icon="pi pi-eye"
-                      severity="info"
-                      text
-                      rounded
-                      (onClick)="viewDetails(application)"
-                      pTooltip="Ver detalles"
-                    />
-                    <p-button
-                      icon="pi pi-pencil"
-                      severity="success"
-                      text
-                      rounded
-                      (onClick)="changeStatus(application)"
-                      pTooltip="Cambiar estado"
-                    />
-                  </div>
+                  <p-button
+                    icon="pi pi-pencil"
+                    severity="success"
+                    text
+                    rounded
+                    (onClick)="
+                      changeStatus(application); $event.stopPropagation()
+                    "
+                    pTooltip="Cambiar estado"
+                  />
                 </td>
               </tr>
             </ng-template>
             <ng-template #emptymessage>
               <tr>
-                <td [attr.colspan]="11" class="text-center py-8">
+                <td [attr.colspan]="12" class="text-center py-8">
                   <div class="flex flex-col items-center gap-2">
                     <i class="pi pi-inbox text-4xl text-gray-500"></i>
                     <p class="text-gray-400">No hay aplicaciones</p>
@@ -356,20 +438,31 @@ import { PositionsFormComponent } from './positions-form.component';
                 <th pSortableColumn="name">
                   Vacante <p-sortIcon field="name" />
                 </th>
-                <th pSortableColumn="department.name">
+                <th
+                  pSortableColumn="department.name"
+                  class="text-center"
+                  style="vertical-align: middle;"
+                >
                   Área <p-sortIcon field="department.name" />
                 </th>
-                <th>Disponible en Feria</th>
-                <th>Acciones</th>
+                <th class="text-center" style="vertical-align: middle;">
+                  Disponible en Feria
+                </th>
+                <th class="text-center" style="vertical-align: middle;">
+                  Acciones
+                </th>
               </tr>
             </ng-template>
             <ng-template #body let-position>
               <tr class="hover:bg-neutral-800/50 transition-colors">
                 <td class="font-medium text-white">{{ position.name }}</td>
-                <td class="text-gray-300">
+                <td
+                  class="text-gray-300 text-center"
+                  style="vertical-align: middle;"
+                >
                   {{ position.department?.name || 'N/A' }}
                 </td>
-                <td>
+                <td class="text-center" style="vertical-align: middle;">
                   <p-toggleswitch
                     [ngModel]="position.available_for_job_fair !== false"
                     (ngModelChange)="
@@ -378,7 +471,7 @@ import { PositionsFormComponent } from './positions-form.component';
                     [disabled]="isUpdatingPosition()"
                   />
                 </td>
-                <td>
+                <td class="text-center" style="vertical-align: middle;">
                   <p-button
                     icon="pi pi-pen-to-square"
                     severity="success"
@@ -415,11 +508,17 @@ import { PositionsFormComponent } from './positions-form.component';
         padding: 0.75rem 1.5rem;
       }
     }
+
+    ::ng-deep .p-datatable {
+      .p-datatable-thead > tr > th {
+        text-align: center;
+        vertical-align: middle;
+      }
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class JobApplicationsListComponent implements OnInit {
-  readonly store = inject(DashboardStore);
   readonly jobApplicationsStore = inject(JobApplicationsStore);
   readonly positionsStore = inject(PositionsStore);
   private dialog = inject(DialogService);
@@ -431,7 +530,9 @@ export class JobApplicationsListComponent implements OnInit {
   public statusFilter = new FormControl<string | null>(null);
   public isUpdatingPosition = signal<boolean>(false);
   public isUpdatingJobFairStatus = signal<boolean>(false);
+  public isUpdatingInterviewDate = signal<boolean>(false);
   public jobFairEnabled = signal<boolean>(true);
+  public interviewStartDate = signal<Date | null>(null);
 
   // API para cargar el estado de la feria desde settings
   private jobFairSettingsApi = httpResource<any[]>(() => ({
@@ -439,18 +540,60 @@ export class JobApplicationsListComponent implements OnInit {
     method: 'GET',
     params: {
       select: '*',
-      key: 'eq.job_fair_enabled',
+      key: `in.(job_fair_enabled,job_fair_interview_start_date)`,
     },
   }));
 
   public positions = computed(() => this.positionsStore.entities());
-  public statusOptions = [
-    { label: 'Pendiente', value: 'pending' },
-    { label: 'Revisada', value: 'reviewed' },
-    { label: 'Contactada', value: 'contacted' },
-    { label: 'Rechazada', value: 'rejected' },
-    { label: 'Contratada', value: 'hired' },
-  ];
+
+  getPositionName(positionId: string): string {
+    const position = this.positions().find((p) => p.id === positionId);
+    return position?.name || 'N/A';
+  }
+
+  // API para cargar estados personalizados
+  private statusesApi = httpResource<any[]>(() => ({
+    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/job_application_statuses`,
+    method: 'GET',
+    params: {
+      select: '*',
+      is_active: 'eq.true',
+      order: 'display_order.asc',
+    },
+  }));
+
+  public statusOptions = computed(() => {
+    const statuses = this.statusesApi.value();
+    if (!statuses || statuses.length === 0) {
+      // Estados por defecto si no hay en BD
+      return [
+        { code: 'pending', label: 'Pendiente', severity: 'warn' },
+        { code: 'reviewed', label: 'Revisada', severity: 'info' },
+        { code: 'contacted', label: 'Contactada', severity: 'info' },
+        { code: 'rejected', label: 'Rechazada', severity: 'danger' },
+        { code: 'hired', label: 'Contratada', severity: 'success' },
+      ];
+    }
+    return statuses.map((s: any) => ({
+      code: s.code,
+      label: s.label,
+      severity: s.severity,
+    }));
+  });
+
+  // Calcular el ancho máximo basado en el label más largo
+  public maxStatusWidth = computed(() => {
+    const options = this.statusOptions();
+    if (options.length === 0) return '100px';
+
+    // Encontrar el label más largo
+    const maxLength = Math.max(...options.map((s) => s.label.length));
+
+    // Calcular ancho aproximado: cada carácter ~8px + padding ~24px
+    // Usar un mínimo de 100px para labels cortos
+    const calculatedWidth = Math.max(100, maxLength * 8 + 24);
+    return `${calculatedWidth}px`;
+  });
 
   public applications = computed(() => this.jobApplicationsStore.entities());
 
@@ -466,12 +609,28 @@ export class JobApplicationsListComponent implements OnInit {
   });
 
   constructor() {
-    // Cargar el estado de la feria desde settings
+    // Cargar el estado de la feria y fecha de entrevistas desde settings
     effect(() => {
       const settings = this.jobFairSettingsApi.value();
       if (settings && settings.length > 0) {
-        const setting = settings[0];
-        this.jobFairEnabled.set(setting.value === 'true');
+        const enabledSetting = settings.find(
+          (s) => s.key === 'job_fair_enabled'
+        );
+        const dateSetting = settings.find(
+          (s) => s.key === 'job_fair_interview_start_date'
+        );
+
+        if (enabledSetting) {
+          this.jobFairEnabled.set(enabledSetting.value === 'true');
+        }
+
+        if (dateSetting && dateSetting.value) {
+          // Convertir string YYYY-MM-DD a Date
+          const date = new Date(dateSetting.value);
+          if (!isNaN(date.getTime())) {
+            this.interviewStartDate.set(date);
+          }
+        }
       }
     });
   }
@@ -484,6 +643,83 @@ export class JobApplicationsListComponent implements OnInit {
     // Cargar posiciones al inicializar
     if (this.positions().length === 0) {
       this.positionsStore.reloadItems();
+    }
+    // Cargar estados personalizados
+    this.statusesApi.reload();
+  }
+
+  async onInterviewStartDateChange() {
+    this.isUpdatingInterviewDate.set(true);
+    try {
+      const dateValue = this.interviewStartDate();
+      const dateString = dateValue
+        ? dateValue.toISOString().split('T')[0] // Formato YYYY-MM-DD
+        : '';
+
+      // Verificar si ya existe el setting
+      const existingSettings = await firstValueFrom(
+        this.http.get<any[]>(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+          {
+            params: {
+              select: 'id',
+              key: 'eq.job_fair_interview_start_date',
+            },
+          }
+        )
+      );
+
+      if (existingSettings && existingSettings.length > 0) {
+        // Actualizar setting existente
+        await firstValueFrom(
+          this.http.patch(
+            `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+            { value: dateString },
+            {
+              params: {
+                id: `eq.${existingSettings[0].id}`,
+              },
+            }
+          )
+        );
+      } else {
+        // Crear nuevo setting
+        await firstValueFrom(
+          this.http.post(
+            `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+            {
+              key: 'job_fair_interview_start_date',
+              value: dateString,
+              description:
+                'Fecha de inicio de las entrevistas de la Feria de Empleo',
+              category: 'job_fair',
+              is_encrypted: false,
+            }
+          )
+        );
+      }
+
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Fecha actualizada',
+        detail: dateValue
+          ? `Fecha de inicio de entrevistas actualizada: ${dateValue.toLocaleDateString(
+              'es-PA'
+            )}`
+          : 'Fecha de inicio de entrevistas eliminada',
+      });
+
+      // Recargar settings
+      this.jobFairSettingsApi.reload();
+    } catch (error: any) {
+      console.error('Error actualizando fecha de entrevistas:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo actualizar la fecha de inicio de entrevistas',
+      });
+    } finally {
+      this.isUpdatingInterviewDate.set(false);
     }
   }
 
@@ -622,12 +858,20 @@ export class JobApplicationsListComponent implements OnInit {
     });
   }
 
+  openJobFairForm() {
+    const baseUrl = process.env['ENV_APP_URL'] || window.location.origin;
+    window.open(`${baseUrl}/job-fair`, '_blank');
+  }
+
   viewDetails(application: JobApplication) {
     this.dialog.open(JobApplicationDetailComponent, {
       header: `Aplicación de ${application.first_name} ${application.last_name}`,
       width: '90vw',
       style: { 'max-width': '1200px' },
       data: { application },
+      modal: true,
+      dismissableMask: true, // Permite cerrar haciendo click fuera
+      closeOnEscape: true, // Permite cerrar con ESC
     });
   }
 
@@ -635,7 +879,13 @@ export class JobApplicationsListComponent implements OnInit {
     const ref = this.dialog.open(JobApplicationStatusDialogComponent, {
       header: 'Cambiar Estado de Aplicación',
       width: '500px',
-      data: { application },
+      modal: true,
+      dismissableMask: true, // Permite cerrar haciendo click fuera
+      closeOnEscape: true, // Permite cerrar con ESC
+      data: {
+        application,
+        statusOptions: this.statusOptions(), // Pasar los estados dinámicos
+      },
     });
 
     ref.onClose.subscribe((newStatus: JobApplication['status'] | null) => {
@@ -770,7 +1020,6 @@ export class JobApplicationsListComponent implements OnInit {
         Email: app.email,
         Teléfono: app.phone_number,
         Provincia: app.province || 'N/A',
-        Corregimiento: app.corregimiento || 'N/A',
         'Laborando Actualmente': app.currently_working ? 'Sí' : 'No',
         'Aspiración Salarial': app.salary_expectation
           ? `B/. ${app.salary_expectation.toFixed(2)}`
@@ -796,7 +1045,6 @@ export class JobApplicationsListComponent implements OnInit {
         { wch: 30 }, // Email
         { wch: 15 }, // Teléfono
         { wch: 15 }, // Provincia
-        { wch: 15 }, // Corregimiento
         { wch: 20 }, // Laborando Actualmente
         { wch: 18 }, // Aspiración Salarial
         { wch: 25 }, // Vacante
@@ -831,29 +1079,68 @@ export class JobApplicationsListComponent implements OnInit {
   }
 
   getStatusLabel(status: JobApplication['status']): string {
-    const labels: Record<JobApplication['status'], string> = {
-      pending: 'Pendiente',
-      reviewed: 'Revisada',
-      contacted: 'Contactada',
-      rejected: 'Rechazada',
-      hired: 'Contratada',
-    };
-    return labels[status] || status;
+    const statusOption = this.statusOptions().find((s) => s.code === status);
+    return statusOption?.label || status;
   }
 
   getStatusSeverity(
     status: JobApplication['status']
   ): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
-    const severities: Record<
-      JobApplication['status'],
-      'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'
-    > = {
-      pending: 'warn',
-      reviewed: 'info',
-      contacted: 'info',
-      rejected: 'danger',
-      hired: 'success',
-    };
-    return severities[status] || 'secondary';
+    const statusOption = this.statusOptions().find((s) => s.code === status);
+    return (statusOption?.severity as any) || 'secondary';
+  }
+
+  manageStatuses() {
+    // Abrir diálogo para gestionar estados
+    const ref = this.dialog.open(JobApplicationStatusesDialogComponent, {
+      header: 'Gestionar Estados de Aplicaciones',
+      width: '800px',
+      modal: true,
+      dismissableMask: true, // Permite cerrar haciendo click fuera
+      closeOnEscape: true, // Permite cerrar con ESC
+    });
+
+    ref.onClose.subscribe((result: any) => {
+      // Recargar estados después de cerrar el diálogo
+      // Siempre recargar para asegurar que los nuevos estados estén disponibles
+      // Usar un delay más largo para asegurar que la petición HTTP se complete
+      setTimeout(() => {
+        this.statusesApi.reload();
+        // Forzar una segunda recarga después de un breve delay para asegurar que se actualice
+        setTimeout(() => {
+          this.statusesApi.reload();
+        }, 500);
+      }, 100);
+    });
+  }
+
+  async toggleFavorite(application: JobApplication) {
+    const newFavoriteValue = !application.is_favorite;
+    try {
+      await firstValueFrom(
+        this.http.patch(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/job_applications?id=eq.${application.id}`,
+          { is_favorite: newFavoriteValue }
+        )
+      );
+
+      // Actualizar el store local
+      this.jobApplicationsStore.reloadItems();
+
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Favorito actualizado',
+        detail: newFavoriteValue
+          ? 'Aplicación marcada como favorita'
+          : 'Aplicación removida de favoritos',
+      });
+    } catch (error: any) {
+      console.error('Error updating favorite:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo actualizar el estado de favorito',
+      });
+    }
   }
 }
