@@ -775,13 +775,13 @@ import { EmployeesStore } from '../stores/employees.store';
                     </td>
                     <td>
                       @if (disability.status === 'rejected' &&
-                      disability.rejection_comment) {
+                      (disability.rejection_comment || disability.review_notes)) {
                       <span
                         class="px-2 py-1 rounded text-xs font-semibold cursor-help"
                         [class.bg-yellow-500]="disability.status === 'pending'"
                         [class.bg-green-500]="disability.status === 'approved'"
                         [class.bg-red-500]="disability.status === 'rejected'"
-                        [pTooltip]="'Motivo: ' + disability.rejection_comment"
+                        [pTooltip]="'Motivo: ' + (disability.rejection_comment || disability.review_notes || 'Sin motivo especificado')"
                         tooltipPosition="top"
                       >
                         {{
@@ -1634,7 +1634,7 @@ export class EmployeePortalComponent {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_disabilities`,
       method: 'GET',
       params: {
-        select: '*,rejection_comment',
+        select: '*',
         employee_id: `eq.${this.currentEmployee()!.id}`,
         order: 'created_at.desc',
       },

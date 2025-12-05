@@ -1,4 +1,4 @@
-import { CurrencyPipe, DatePipe, NgClass } from '@angular/common';
+import { DatePipe, NgClass } from '@angular/common';
 import { HttpClient, httpResource } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
@@ -43,7 +43,6 @@ import { EmployeesStore } from '../stores/employees.store';
     TableModule,
     TagModule,
     DatePipe,
-    CurrencyPipe,
     Button,
     DatePicker,
     FormsModule,
@@ -772,7 +771,7 @@ import { EmployeesStore } from '../stores/employees.store';
                       </td>
                       <td>
                         @if (disability.status === 'rejected' &&
-                        disability.rejection_comment) {
+                        (disability.rejection_comment || disability.review_notes)) {
                         <span
                           class="px-2 py-1 rounded text-xs font-semibold cursor-help"
                           [class.bg-yellow-500]="
@@ -782,7 +781,7 @@ import { EmployeesStore } from '../stores/employees.store';
                             disability.status === 'approved'
                           "
                           [class.bg-red-500]="disability.status === 'rejected'"
-                          [pTooltip]="'Motivo: ' + disability.rejection_comment"
+                          [pTooltip]="'Motivo: ' + (disability.rejection_comment || disability.review_notes || 'Sin motivo especificado')"
                           tooltipPosition="top"
                         >
                           {{
@@ -1726,7 +1725,7 @@ export class EmployeePortalComponent {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_disabilities`,
       method: 'GET',
       params: {
-        select: '*,rejection_comment',
+        select: '*',
         employee_id: `eq.${this.currentEmployee()!.id}`,
         order: 'created_at.desc',
       },

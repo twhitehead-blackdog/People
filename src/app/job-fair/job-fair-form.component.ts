@@ -27,7 +27,6 @@ import { FileUploadModule } from 'primeng/fileupload';
 import { InputNumber } from 'primeng/inputnumber';
 import { InputText } from 'primeng/inputtext';
 import { MultiSelectModule } from 'primeng/multiselect';
-import { Select } from 'primeng/select';
 import { Textarea } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { ToggleSwitch } from 'primeng/toggleswitch';
@@ -46,7 +45,6 @@ import { PositionsStore } from '../stores/positions.store';
     InputText,
     InputNumber,
     Textarea,
-    Select,
     MultiSelectModule,
     ToggleSwitch,
     FileUploadModule,

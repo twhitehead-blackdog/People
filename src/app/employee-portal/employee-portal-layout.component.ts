@@ -10,8 +10,6 @@ import {
 import {
   NavigationEnd,
   Router,
-  RouterLink,
-  RouterLinkActive,
   RouterOutlet,
 } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
@@ -66,8 +64,6 @@ type NavSection = {
   ],
   imports: [
     RouterOutlet,
-    RouterLink,
-    RouterLinkActive,
     ToastModule,
     ConfirmDialogModule,
     MenuModule,

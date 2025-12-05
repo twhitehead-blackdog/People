@@ -191,7 +191,7 @@ export function app(): express.Express {
 
   // Endpoint para obtener la IP real del cliente
   // Funciona tanto en localhost como en producción/VPS
-  server.get('/api/client-ip', (req, res) => {
+  server.get('/api/client-ip', (req, res): void => {
     // Intentar obtener la IP real del cliente desde varios headers
     // X-Forwarded-For: usado por proxies y load balancers
     // X-Real-IP: usado por algunos proxies
@@ -245,6 +245,7 @@ export function app(): express.Express {
     }
     
     res.json({ ip: clientIP });
+    return;
   });
 
   return server;
