@@ -9,7 +9,7 @@ import {
   OnInit,
   signal,
 } from '@angular/core';
-import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { FormControl, FormsModule, ReactiveFormsModule, model } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
@@ -92,17 +92,18 @@ import { PositionsFormComponent } from './positions-form.component';
             </div>
             <div class="flex items-center gap-2">
               <label class="text-sm text-gray-300"
-                >Inicio de Entrevistas:</label
+                >Duración de la feria:</label
               >
               <p-datepicker
-                [(ngModel)]="interviewStartDate"
-                (ngModelChange)="onInterviewStartDateChange()"
+                [(ngModel)]="jobFairDateRange"
+                (ngModelChange)="onJobFairDateRangeChange()"
                 [showIcon]="true"
                 [disabled]="isUpdatingInterviewDate()"
                 dateFormat="dd/mm/yy"
-                placeholder="Seleccionar fecha"
+                selectionMode="range"
+                placeholder="Seleccionar rango de fechas"
                 appendTo="body"
-                styleClass="w-48"
+                styleClass="w-64"
               />
             </div>
             <p-button
@@ -532,7 +533,7 @@ export class JobApplicationsListComponent implements OnInit {
   public isUpdatingJobFairStatus = signal<boolean>(false);
   public isUpdatingInterviewDate = signal<boolean>(false);
   public jobFairEnabled = signal<boolean>(true);
-  public interviewStartDate = signal<Date | null>(null);
+  public jobFairDateRange = model<(Date | null)[]>([]);
 
   // API para cargar el estado de la feria desde settings
   private jobFairSettingsApi = httpResource<any[]>(() => ({
@@ -540,7 +541,7 @@ export class JobApplicationsListComponent implements OnInit {
     method: 'GET',
     params: {
       select: '*',
-      key: `in.(job_fair_enabled,job_fair_interview_start_date)`,
+      key: `in.(job_fair_enabled,job_fair_start_date,job_fair_end_date)`,
     },
   }));
 
@@ -624,12 +625,28 @@ export class JobApplicationsListComponent implements OnInit {
           this.jobFairEnabled.set(enabledSetting.value === 'true');
         }
 
-        if (dateSetting && dateSetting.value) {
-          // Convertir string YYYY-MM-DD a Date
-          const date = new Date(dateSetting.value);
-          if (!isNaN(date.getTime())) {
-            this.interviewStartDate.set(date);
-          }
+        // Cargar rango de fechas de la feria
+        const startDateSetting = settings.find(
+          (s) => s.key === 'job_fair_start_date'
+        );
+        const endDateSetting = settings.find(
+          (s) => s.key === 'job_fair_end_date'
+        );
+
+        const startDate = startDateSetting?.value
+          ? this.parseLocalDateString(startDateSetting.value)
+          : null;
+        const endDate = endDateSetting?.value
+          ? this.parseLocalDateString(endDateSetting.value)
+          : null;
+
+        if (startDate || endDate) {
+          this.jobFairDateRange.set([
+            startDate && !isNaN(startDate.getTime()) ? startDate : null,
+            endDate && !isNaN(endDate.getTime()) ? endDate : null,
+          ] as (Date | null)[]);
+        } else {
+          this.jobFairDateRange.set([]);
         }
       }
     });
@@ -648,50 +665,129 @@ export class JobApplicationsListComponent implements OnInit {
     this.statusesApi.reload();
   }
 
-  async onInterviewStartDateChange() {
+  async onJobFairDateRangeChange() {
     this.isUpdatingInterviewDate.set(true);
     try {
-      const dateValue = this.interviewStartDate();
-      const dateString = dateValue
-        ? dateValue.toISOString().split('T')[0] // Formato YYYY-MM-DD
+      const dateRange = this.jobFairDateRange();
+      if (!dateRange || dateRange.length === 0 || (!dateRange[0] && !dateRange[1])) {
+        // Si se limpió el rango, eliminar ambos settings
+        await this.clearJobFairDates();
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Duración eliminada',
+          detail: 'La duración de la feria ha sido eliminada',
+        });
+        this.jobFairSettingsApi.reload();
+        this.isUpdatingInterviewDate.set(false);
+        return;
+      }
+      
+      const [startDate, endDate] = dateRange;
+
+      // Normalizar las fechas para asegurar que estén en hora local a medianoche
+      let normalizedStartDate: Date | null = null;
+      let normalizedEndDate: Date | null = null;
+
+      if (startDate) {
+        normalizedStartDate = new Date(
+          startDate.getFullYear(),
+          startDate.getMonth(),
+          startDate.getDate()
+        );
+      }
+
+      if (endDate) {
+        normalizedEndDate = new Date(
+          endDate.getFullYear(),
+          endDate.getMonth(),
+          endDate.getDate()
+        );
+      }
+
+      // Actualizar el rango con las fechas normalizadas
+      this.jobFairDateRange.set([normalizedStartDate, normalizedEndDate]);
+
+      // Formatear fechas en zona horaria local
+      const startDateString = normalizedStartDate
+        ? this.formatDateToLocalString(normalizedStartDate)
+        : '';
+      const endDateString = normalizedEndDate
+        ? this.formatDateToLocalString(normalizedEndDate)
         : '';
 
-      // Verificar si ya existe el setting
-      const existingSettings = await firstValueFrom(
+      // Guardar fecha de inicio
+      const existingStartSettings = await firstValueFrom(
         this.http.get<any[]>(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
           {
             params: {
               select: 'id',
-              key: 'eq.job_fair_interview_start_date',
+              key: 'eq.job_fair_start_date',
             },
           }
         )
       );
 
-      if (existingSettings && existingSettings.length > 0) {
-        // Actualizar setting existente
+      if (existingStartSettings && existingStartSettings.length > 0) {
         await firstValueFrom(
           this.http.patch(
             `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
-            { value: dateString },
+            { value: startDateString },
             {
               params: {
-                id: `eq.${existingSettings[0].id}`,
+                id: `eq.${existingStartSettings[0].id}`,
               },
             }
           )
         );
-      } else {
-        // Crear nuevo setting
+      } else if (startDateString) {
         await firstValueFrom(
           this.http.post(
             `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
             {
-              key: 'job_fair_interview_start_date',
-              value: dateString,
-              description:
-                'Fecha de inicio de las entrevistas de la Feria de Empleo',
+              key: 'job_fair_start_date',
+              value: startDateString,
+              description: 'Fecha de inicio de la Feria de Empleo',
+              category: 'job_fair',
+              is_encrypted: false,
+            }
+          )
+        );
+      }
+
+      // Guardar fecha de fin
+      const existingEndSettings = await firstValueFrom(
+        this.http.get<any[]>(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+          {
+            params: {
+              select: 'id',
+              key: 'eq.job_fair_end_date',
+            },
+          }
+        )
+      );
+
+      if (existingEndSettings && existingEndSettings.length > 0) {
+        await firstValueFrom(
+          this.http.patch(
+            `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+            { value: endDateString },
+            {
+              params: {
+                id: `eq.${existingEndSettings[0].id}`,
+              },
+            }
+          )
+        );
+      } else if (endDateString) {
+        await firstValueFrom(
+          this.http.post(
+            `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+            {
+              key: 'job_fair_end_date',
+              value: endDateString,
+              description: 'Fecha de fin de la Feria de Empleo',
               category: 'job_fair',
               is_encrypted: false,
             }
@@ -701,25 +797,106 @@ export class JobApplicationsListComponent implements OnInit {
 
       this.messageService.add({
         severity: 'success',
-        summary: 'Fecha actualizada',
-        detail: dateValue
-          ? `Fecha de inicio de entrevistas actualizada: ${dateValue.toLocaleDateString(
-              'es-PA'
-            )}`
-          : 'Fecha de inicio de entrevistas eliminada',
+        summary: 'Duración actualizada',
+        detail:
+          startDateString && endDateString
+            ? `Duración de la feria actualizada: ${normalizedStartDate!.toLocaleDateString(
+                'es-PA'
+              )} - ${normalizedEndDate!.toLocaleDateString('es-PA')}`
+            : startDateString
+            ? `Fecha de inicio actualizada: ${normalizedStartDate!.toLocaleDateString(
+                'es-PA'
+              )}`
+            : 'Duración de la feria eliminada',
       });
 
       // Recargar settings
       this.jobFairSettingsApi.reload();
     } catch (error: any) {
-      console.error('Error actualizando fecha de entrevistas:', error);
+      console.error('Error actualizando duración de la feria:', error);
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'No se pudo actualizar la fecha de inicio de entrevistas',
+        detail: 'No se pudo actualizar la duración de la feria',
       });
     } finally {
       this.isUpdatingInterviewDate.set(false);
+    }
+  }
+
+  // Formatear fecha a string YYYY-MM-DD usando hora local (no UTC)
+  private formatDateToLocalString(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  // Parsear string YYYY-MM-DD a Date en zona horaria local (no UTC)
+  private parseLocalDateString(dateString: string): Date | null {
+    const parts = dateString.split('-');
+    if (parts.length !== 3) return null;
+    
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1; // Los meses en JS son 0-indexed
+    const day = parseInt(parts[2], 10);
+    
+    // Crear fecha en hora local (no UTC)
+    return new Date(year, month, day);
+  }
+
+  // Limpiar las fechas de la feria
+  private async clearJobFairDates(): Promise<void> {
+    const existingStartSettings = await firstValueFrom(
+      this.http.get<any[]>(
+        `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+        {
+          params: {
+            select: 'id',
+            key: 'eq.job_fair_start_date',
+          },
+        }
+      )
+    );
+
+    const existingEndSettings = await firstValueFrom(
+      this.http.get<any[]>(
+        `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+        {
+          params: {
+            select: 'id',
+            key: 'eq.job_fair_end_date',
+          },
+        }
+      )
+    );
+
+    if (existingStartSettings && existingStartSettings.length > 0) {
+      await firstValueFrom(
+        this.http.patch(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+          { value: '' },
+          {
+            params: {
+              id: `eq.${existingStartSettings[0].id}`,
+            },
+          }
+        )
+      );
+    }
+
+    if (existingEndSettings && existingEndSettings.length > 0) {
+      await firstValueFrom(
+        this.http.patch(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+          { value: '' },
+          {
+            params: {
+              id: `eq.${existingEndSettings[0].id}`,
+            },
+          }
+        )
+      );
     }
   }
 

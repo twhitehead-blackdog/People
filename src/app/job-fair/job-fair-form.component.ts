@@ -113,13 +113,22 @@ import { PositionsStore } from '../stores/positions.store';
                 <i class="pi pi-calendar text-amber-400 mr-2"></i>
                 <span>Las personas serán contactadas y atendidas por cita</span>
               </div>
-              @if (interviewStartDate()) {
+              @if (jobFairStartDate() || jobFairEndDate()) {
               <div class="info-badge">
-                <i class="pi pi-clock text-amber-400 mr-2"></i>
-                <span
-                  >Las entrevistas iniciarán el
-                  {{ formatInterviewDate(interviewStartDate()!) }}</span
-                >
+                <i class="pi pi-calendar text-amber-400 mr-2"></i>
+                <span>
+                  @if (jobFairStartDate() && jobFairEndDate()) {
+                    Duración de la feria: del
+                    {{ formatInterviewDate(jobFairStartDate()!) }} al
+                    {{ formatInterviewDate(jobFairEndDate()!) }}
+                  } @else if (jobFairStartDate()) {
+                    La feria inicia el
+                    {{ formatInterviewDate(jobFairStartDate()!) }}
+                  } @else if (jobFairEndDate()) {
+                    La feria termina el
+                    {{ formatInterviewDate(jobFairEndDate()!) }}
+                  }
+                </span>
               </div>
               }
             </div>
@@ -343,6 +352,8 @@ import { PositionsStore } from '../stores/positions.store';
                   prefix="B/. "
                   class="w-full"
                   [useGrouping]="true"
+                  [groupingSeparator]="','"
+                  [decimalSeparator]="'.'"
                 />
               </div>
             </div>
@@ -756,7 +767,8 @@ export class JobFairFormComponent implements OnInit {
   public isSubmitting = signal<boolean>(false);
   public isSuccess = signal<boolean>(false);
   public jobFairEnabled = signal<boolean>(true);
-  public interviewStartDate = signal<Date | null>(null);
+  public jobFairStartDate = signal<Date | null>(null);
+  public jobFairEndDate = signal<Date | null>(null);
 
   // API para verificar el estado de la feria y fecha de entrevistas
   private jobFairSettingsApi = httpResource<any[]>(() => ({
@@ -764,7 +776,7 @@ export class JobFairFormComponent implements OnInit {
     method: 'GET',
     params: {
       select: '*',
-      key: `in.(job_fair_enabled,job_fair_interview_start_date)`,
+      key: `in.(job_fair_enabled,job_fair_start_date,job_fair_end_date)`,
     },
   }));
 
@@ -972,10 +984,6 @@ export class JobFairFormComponent implements OnInit {
         const enabledSetting = settings.find(
           (s) => s.key === 'job_fair_enabled'
         );
-        const dateSetting = settings.find(
-          (s) => s.key === 'job_fair_interview_start_date'
-        );
-
         if (enabledSetting) {
           this.jobFairEnabled.set(enabledSetting.value === 'true');
         } else {
@@ -983,11 +991,25 @@ export class JobFairFormComponent implements OnInit {
           this.jobFairEnabled.set(true);
         }
 
-        if (dateSetting && dateSetting.value) {
-          // Convertir string YYYY-MM-DD a Date
-          const date = new Date(dateSetting.value);
-          if (!isNaN(date.getTime())) {
-            this.interviewStartDate.set(date);
+        // Cargar rango de fechas de la feria
+        const startDateSetting = settings.find(
+          (s) => s.key === 'job_fair_start_date'
+        );
+        const endDateSetting = settings.find(
+          (s) => s.key === 'job_fair_end_date'
+        );
+
+        if (startDateSetting && startDateSetting.value) {
+          const date = this.parseLocalDateString(startDateSetting.value);
+          if (date && !isNaN(date.getTime())) {
+            this.jobFairStartDate.set(date);
+          }
+        }
+
+        if (endDateSetting && endDateSetting.value) {
+          const date = this.parseLocalDateString(endDateSetting.value);
+          if (date && !isNaN(date.getTime())) {
+            this.jobFairEndDate.set(date);
           }
         }
       } else {
@@ -1109,13 +1131,20 @@ export class JobFairFormComponent implements OnInit {
   }
 
   formatInterviewDate(date: Date): string {
+    // Asegurar que la fecha se formatee usando componentes locales
+    const localDate = new Date(
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate()
+    );
     const options: Intl.DateTimeFormatOptions = {
       weekday: 'long',
       day: 'numeric',
       month: 'long',
       year: 'numeric',
+      timeZone: 'America/Panama', // Forzar zona horaria de Panamá
     };
-    return date.toLocaleDateString('es-PA', options);
+    return localDate.toLocaleDateString('es-PA', options);
   }
 
   /**
@@ -1545,5 +1574,18 @@ Revisa la aplicación en el sistema de gestión.`;
 
   goToLogin() {
     this.router.navigate(['/login']);
+  }
+
+  // Parsear string YYYY-MM-DD a Date en zona horaria local (no UTC)
+  private parseLocalDateString(dateString: string): Date | null {
+    const parts = dateString.split('-');
+    if (parts.length !== 3) return null;
+    
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1; // Los meses en JS son 0-indexed
+    const day = parseInt(parts[2], 10);
+    
+    // Crear fecha en hora local (no UTC)
+    return new Date(year, month, day);
   }
 }

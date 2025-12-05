@@ -240,6 +240,8 @@ import { JobApplicationsStore } from '../stores/job-applications.store';
                 [showIcon]="true"
                 appendTo="body"
                 placeholder="Seleccionar fecha"
+                [disabledDates]="[]"
+                [selectableDate]="isDateSelectable"
               />
             </div>
           </div>
@@ -489,5 +491,10 @@ export class JobApplicationDetailComponent implements OnInit {
   resetZoom() {
     this.zoomLevel.set(1);
   }
+
+  // Función para permitir seleccionar todas las fechas, incluyendo fines de semana
+  isDateSelectable = (date: Date): boolean => {
+    return true; // Permite todas las fechas, incluyendo sábados y domingos
+  };
 }
 
