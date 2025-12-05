@@ -9,7 +9,7 @@ import {
   OnInit,
   signal,
 } from '@angular/core';
-import { FormControl, FormsModule, ReactiveFormsModule, model } from '@angular/forms';
+import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
@@ -533,7 +533,7 @@ export class JobApplicationsListComponent implements OnInit {
   public isUpdatingJobFairStatus = signal<boolean>(false);
   public isUpdatingInterviewDate = signal<boolean>(false);
   public jobFairEnabled = signal<boolean>(true);
-  public jobFairDateRange = model<(Date | null)[]>([]);
+  public jobFairDateRange = signal<(Date | null)[]>([]);
 
   // API para cargar el estado de la feria desde settings
   private jobFairSettingsApi = httpResource<any[]>(() => ({

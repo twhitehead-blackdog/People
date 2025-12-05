@@ -241,7 +241,6 @@ import { JobApplicationsStore } from '../stores/job-applications.store';
                 appendTo="body"
                 placeholder="Seleccionar fecha"
                 [disabledDates]="[]"
-                [selectableDate]="isDateSelectable"
               />
             </div>
           </div>

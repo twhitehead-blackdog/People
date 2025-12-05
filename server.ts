@@ -1,6 +1,7 @@
 import express from 'express';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
+import path from 'path';
 
 // Cargar variables de entorno desde .env
 dotenv.config();
@@ -248,6 +249,25 @@ export function app(): express.Express {
     return;
   });
 
+  // Servir archivos estáticos del frontend Angular
+  const distFolder = path.join(__dirname, 'dist/people/browser');
+  
+  // Servir archivos estáticos (JS, CSS, imágenes, etc.)
+  server.use(express.static(distFolder));
+
+  // Catch-all route: enviar el index.html para cualquier ruta no API
+  // Esto permite que Angular Router maneje las rutas del frontend
+  server.get('*', (req, res) => {
+    // Ignorar rutas de API
+    if (req.path.startsWith('/api/')) {
+      res.status(404).json({ error: 'API endpoint not found' });
+      return;
+    }
+    
+    // Servir index.html para todas las demás rutas (SPA routing)
+    res.sendFile(path.join(distFolder, 'index.html'));
+  });
+
   return server;
 }
 
@@ -273,9 +293,61 @@ function run(): void {
   }
 
   // Start up the Node server
-  const server = app();
-  server.listen(port, () => {
+  const expressApp = app();
+  const server = expressApp.listen(port, () => {
     console.log(`Node Express server listening on http://localhost:${port}`);
+  });
+
+  // Configurar timeouts para evitar conexiones colgadas
+  server.keepAliveTimeout = 65000; // 65 segundos (un poco más que el default de nginx)
+  server.headersTimeout = 66000; // Debe ser mayor que keepAliveTimeout
+
+  // Graceful shutdown: Manejar señales de terminación
+  const gracefulShutdown = (signal: string) => {
+    console.log(`\n🛑 Recibida señal ${signal}. Iniciando cierre graceful...`);
+    
+    // Cerrar el servidor y rechazar nuevas conexiones
+    server.close((err) => {
+      if (err) {
+        console.error('❌ Error al cerrar el servidor:', err);
+        process.exit(1);
+      }
+      
+      console.log('✅ Servidor cerrado correctamente');
+      process.exit(0);
+    });
+
+    // Forzar cierre después de 10 segundos si no se cierra limpiamente
+    setTimeout(() => {
+      console.error('⚠️  Forzando cierre del servidor después de timeout');
+      process.exit(1);
+    }, 10000);
+  };
+
+  // Manejar señales de terminación
+  process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+  process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+  // Manejar errores no capturados
+  process.on('uncaughtException', (error) => {
+    console.error('❌ Uncaught Exception:', error);
+    gracefulShutdown('uncaughtException');
+  });
+
+  process.on('unhandledRejection', (reason, promise) => {
+    console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+    gracefulShutdown('unhandledRejection');
+  });
+
+  // Manejar errores del servidor
+  server.on('error', (error: any) => {
+    if (error.code === 'EADDRINUSE') {
+      console.error(`❌ Puerto ${port} ya está en uso`);
+      process.exit(1);
+    } else {
+      console.error('❌ Error del servidor:', error);
+      process.exit(1);
+    }
   });
 }
 
