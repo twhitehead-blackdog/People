@@ -350,8 +350,6 @@ import { PositionsStore } from '../stores/positions.store';
                   prefix="B/. "
                   class="w-full"
                   [useGrouping]="true"
-                  [groupingSeparator]="','"
-                  [decimalSeparator]="'.'"
                 />
               </div>
             </div>

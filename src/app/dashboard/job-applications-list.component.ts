@@ -9,7 +9,7 @@ import {
   OnInit,
   signal,
 } from '@angular/core';
-import { FormControl, FormsModule, ReactiveFormsModule, model } from '@angular/forms';
+import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
@@ -533,7 +533,7 @@ export class JobApplicationsListComponent implements OnInit {
   public isUpdatingJobFairStatus = signal<boolean>(false);
   public isUpdatingInterviewDate = signal<boolean>(false);
   public jobFairEnabled = signal<boolean>(true);
-  public jobFairDateRange = model<(Date | null)[]>([]);
+  public jobFairDateRange: (Date | null)[] | null = null;
 
   // API para cargar el estado de la feria desde settings
   private jobFairSettingsApi = httpResource<any[]>(() => ({
@@ -641,12 +641,12 @@ export class JobApplicationsListComponent implements OnInit {
           : null;
 
         if (startDate || endDate) {
-          this.jobFairDateRange.set([
+          this.jobFairDateRange = [
             startDate && !isNaN(startDate.getTime()) ? startDate : null,
             endDate && !isNaN(endDate.getTime()) ? endDate : null,
-          ] as (Date | null)[]);
+          ] as (Date | null)[];
         } else {
-          this.jobFairDateRange.set([]);
+          this.jobFairDateRange = null;
         }
       }
     });
@@ -668,7 +668,7 @@ export class JobApplicationsListComponent implements OnInit {
   async onJobFairDateRangeChange() {
     this.isUpdatingInterviewDate.set(true);
     try {
-      const dateRange = this.jobFairDateRange();
+      const dateRange = this.jobFairDateRange;
       if (!dateRange || dateRange.length === 0 || (!dateRange[0] && !dateRange[1])) {
         // Si se limpió el rango, eliminar ambos settings
         await this.clearJobFairDates();
@@ -705,7 +705,7 @@ export class JobApplicationsListComponent implements OnInit {
       }
 
       // Actualizar el rango con las fechas normalizadas
-      this.jobFairDateRange.set([normalizedStartDate, normalizedEndDate]);
+      this.jobFairDateRange = [normalizedStartDate, normalizedEndDate];
 
       // Formatear fechas en zona horaria local
       const startDateString = normalizedStartDate
