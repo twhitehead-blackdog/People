@@ -401,12 +401,12 @@ export class ProfileComponent implements OnInit {
   currentUser = this.authService.currentUser;
   isLoading = signal(false);
   
-  formData = signal<Partial<User>>({
+  formData: Partial<User> = {
     full_name: '',
     phone_number: '',
     document_id: '',
     address: '',
-  });
+  };
 
   avatarInitials = computed(() => {
     const user = this.currentUser();
@@ -435,12 +435,12 @@ export class ProfileComponent implements OnInit {
 
     const user = this.currentUser();
     if (user) {
-      this.formData.set({
+      this.formData = {
         full_name: user.full_name || '',
         phone_number: user.phone_number || '',
         document_id: user.document_id || '',
         address: user.address || '',
-      });
+      };
     }
 
     // TODO: Cargar estadísticas de adopciones del usuario
@@ -460,7 +460,7 @@ export class ProfileComponent implements OnInit {
   async onSubmit(): Promise<void> {
     this.isLoading.set(true);
 
-    const result = await this.authService.updateProfile(this.formData());
+    const result = await this.authService.updateProfile(this.formData);
 
     this.isLoading.set(false);
 
@@ -482,12 +482,12 @@ export class ProfileComponent implements OnInit {
   resetForm(): void {
     const user = this.currentUser();
     if (user) {
-      this.formData.set({
+      this.formData = {
         full_name: user.full_name || '',
         phone_number: user.phone_number || '',
         document_id: user.document_id || '',
         address: user.address || '',
-      });
+      };
     }
   }
 

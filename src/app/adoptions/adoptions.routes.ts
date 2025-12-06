@@ -11,7 +11,9 @@ export const ADOPTIONS_ROUTES: Routes = [
       {
         path: '',
         loadComponent: () =>
-          import('./adoptions-home.component').then((x) => x.AdoptionsHomeComponent),
+          import('./adoptions-home.component').then(
+            (x) => x.AdoptionsHomeComponent
+          ),
       },
       {
         path: 'adoptar/:id',
@@ -28,4 +30,3 @@ export const ADOPTIONS_ROUTES: Routes = [
     ],
   },
 ];
-

@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject } from '@angular/core';
+import { Component, inject, computed } from '@angular/core';
 import { Router } from '@angular/router';
 import { DemoModeService } from './demo-mode.service';
-import { DarkModeService } from './dark-mode.service';
+import { AuthService } from '../auth/auth.service';
 
 @Component({
   selector: 'pt-adoptions-header',
@@ -25,20 +25,6 @@ import { DarkModeService } from './dark-mode.service';
         </div>
 
         <div class="header-right">
-          <div class="dark-mode-toggle">
-            <label class="toggle-label">
-              <input
-                type="checkbox"
-                [checked]="isDarkMode()"
-                (change)="onToggleDarkMode($event)"
-                class="toggle-input"
-              />
-              <span class="toggle-slider"></span>
-              <span class="toggle-text">{{
-                isDarkMode() ? '🌙' : '☀️'
-              }}</span>
-            </label>
-          </div>
           <div class="demo-toggle">
             <label class="toggle-label">
               <input
@@ -320,10 +306,8 @@ import { DarkModeService } from './dark-mode.service';
 export class AdoptionsHeaderComponent {
   private router = inject(Router);
   private demoModeService = inject(DemoModeService);
-  private darkModeService = inject(DarkModeService);
   private authService = inject(AuthService);
   public useDemoData = this.demoModeService.useDemoData;
-  public isDarkMode = this.darkModeService.isDarkMode;
   public isAuthenticated = this.authService.isAuthenticated;
   public currentUser = this.authService.currentUser;
 
@@ -337,18 +321,13 @@ export class AdoptionsHeaderComponent {
     if (user?.full_name) {
       return user.full_name
         .split(' ')
-        .map(n => n[0])
+        .map((n: string) => n[0])
         .join('')
         .toUpperCase()
         .slice(0, 2);
     }
     return user?.email?.[0].toUpperCase() || 'U';
   });
-
-  public onToggleDarkMode(event: Event): void {
-    const checked = (event.target as HTMLInputElement).checked;
-    this.darkModeService.setDarkMode(checked);
-  }
 
   public onToggleDemo(event: Event): void {
     const checked = (event.target as HTMLInputElement).checked;
