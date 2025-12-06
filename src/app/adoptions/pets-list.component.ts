@@ -143,6 +143,7 @@ import { MatchFilters } from './adoptions-match.component';
     <p-dialog
       [(visible)]="showPetDetails"
       [modal]="true"
+      [dismissableMask]="true"
       [style]="{ width: '600px' }"
       header="Más Información"
     >
@@ -525,46 +526,24 @@ import { MatchFilters } from './adoptions-match.component';
       }
 
       .pet-details-dialog {
-        background: #ffffff;
         color: #000000;
-        padding: 1.5rem;
-        border-radius: 1.5rem;
       }
 
       .pet-details-dialog h3 {
         color: #fbbf24;
-        margin-bottom: 1.5rem;
-        font-size: 2rem;
-        font-weight: 700;
-        text-align: center;
-        padding-bottom: 1rem;
-        border-bottom: 2px solid rgba(251, 191, 36, 0.3);
+        margin-bottom: 1rem;
       }
 
       .pet-details-dialog p {
-        margin-bottom: 0.75rem;
-        color: #6b7280;
-        font-size: 0.95rem;
-        line-height: 1.6;
+        margin-bottom: 0.5rem;
+        color: rgb(209, 210, 212);
+        font-weight: 500;
+        font-size: 1rem;
       }
 
       .pet-details-dialog p strong {
-        color: #374151;
-        font-weight: 600;
-      }
-
-      ::ng-deep .p-dialog .p-dialog-content {
-        background: #ffffff !important;
-        color: #000000 !important;
-      }
-
-      ::ng-deep .p-dialog .p-dialog-header {
-        background: #ffffff !important;
-        border-bottom: 1px solid #e5e7eb !important;
-      }
-
-      ::ng-deep .p-dialog .p-dialog-header .p-dialog-title {
-        color: #374151 !important;
+        color: #fbbf24;
+        font-weight: 700;
       }
 
       ::ng-deep .pet-card p-button button {

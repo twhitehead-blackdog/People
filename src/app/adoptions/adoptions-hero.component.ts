@@ -17,11 +17,6 @@ import { CommonModule } from '@angular/common';
             Ayudamos a encontrar una familia para cada peludito.
           </p>
         </div>
-        <div class="hero-image">
-          <div class="dog-image-placeholder">
-            <span style="font-size: 8rem; opacity: 0.1;">🖼️</span>
-          </div>
-        </div>
       </div>
     </section>
   `,
@@ -38,14 +33,23 @@ import { CommonModule } from '@angular/common';
         position: relative;
         overflow: hidden;
         min-height: 600px;
+        transition: background 0.3s ease;
+      }
+
+      .adoptions-container.dark .hero-section,
+      :host-context(.adoptions-dark) .hero-section {
+        background: linear-gradient(
+          to right,
+          #000000 0%,
+          #000000 60%,
+          #1f2937 100%
+        );
       }
 
       .hero-content {
         max-width: 1400px;
         margin: 0 auto;
-        display: grid;
-        grid-template-columns: 2fr 1fr;
-        gap: 3rem;
+        display: flex;
         align-items: center;
         position: relative;
         z-index: 1;
@@ -56,6 +60,16 @@ import { CommonModule } from '@angular/common';
         display: flex;
         flex-direction: column;
         gap: 1.5rem;
+        position: relative;
+        z-index: 1;
+        flex: 1;
+        padding-right: 420px;
+      }
+
+      @media (max-width: 1024px) {
+        .hero-text {
+          padding-right: 0;
+        }
       }
 
       .house-icon {
@@ -79,6 +93,7 @@ import { CommonModule } from '@angular/common';
         margin: 0;
         text-transform: uppercase;
         letter-spacing: 0.02em;
+        max-width: 100%;
       }
 
       .hero-subtitle {
@@ -86,38 +101,12 @@ import { CommonModule } from '@angular/common';
         color: #ffffff;
         line-height: 1.6;
         margin: 0;
-        max-width: 600px;
-      }
-
-      .hero-image {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-      }
-
-      .dog-image-placeholder {
-        width: 100%;
-        height: 400px;
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 1rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        backdrop-filter: blur(10px);
+        max-width: 100%;
       }
 
       @media (max-width: 1024px) {
-        .hero-content {
-          grid-template-columns: 1fr;
-        }
-
         .hero-title {
           font-size: 2.5rem;
-        }
-
-        .hero-image {
-          display: none;
         }
       }
 

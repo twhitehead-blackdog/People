@@ -82,7 +82,7 @@ export interface MatchFilters {
         padding: 2rem;
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
         position: relative;
-        z-index: 10;
+        z-index: 20;
       }
 
       .match-header {

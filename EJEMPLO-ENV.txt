@@ -14,7 +14,7 @@ ENV_AUTH0_CLIENT_ID=abc123xyz456def789ghi012jkl345
 ENV_AUTH0_AUDIENCE=https://people.api
 
 # Application
-ENV_APP_URL=http://localhost:4200
+ENV_APP_URL=http://localhost:3000
 
 # ============================================
 # INSTRUCCIONES:

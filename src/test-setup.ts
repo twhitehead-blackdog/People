@@ -24,7 +24,7 @@ declare global {
 
 window.process = {
   env: {
-    ENV_APP_URL: 'http://localhost:4200',
+    ENV_APP_URL: 'http://localhost:3000',
     ENV_SUPABASE_URL: 'https://fsrptlzaqjkcutoiivjr.supabase.co',
     ENV_SUPABASE_API_KEY: 'your-public',
     ENV_SUPABASE_TOKEN: '',

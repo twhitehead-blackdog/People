@@ -65,14 +65,13 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
             break;
           case 401:
             errorSummary = 'Sesión Expirada';
-            errorMessage = 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.';
+            errorMessage = 'Tu sesión ha expirado. Por favor, recarga la página.';
             errorDetails.push('Tu token de autenticación es inválido o ha expirado');
-            // Invalidar cache del guard si existe
+            // Invalidar cache si existe
             if (typeof window !== 'undefined') {
               sessionStorage.clear();
               localStorage.removeItem('auth_token');
             }
-            router.navigate(['/login']);
             break;
           case 403:
             errorSummary = 'Sin Permisos';

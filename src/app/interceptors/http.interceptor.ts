@@ -1,12 +1,8 @@
 import { HttpInterceptorFn } from '@angular/common/http';
-import { inject } from '@angular/core';
-import { AuthService } from '@auth0/auth0-angular';
-import { switchMap } from 'rxjs';
 
 export const httpInterceptor: HttpInterceptorFn = (req, next) => {
   if (req.url.includes('supabase')) {
-    // Use Supabase API key directly for now
-    // TODO: Configure Supabase to accept Auth0 tokens or use service role for admin operations
+    // Use Supabase API key directly
     let headers = req.headers;
 
     // Solo agregar apikey si no está presente
@@ -51,22 +47,6 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
     return next(request);
   }
 
-  // Endpoints públicos que NO requieren autenticación de Auth0
-  // /api/client-ip es usado por el modo kiosko que no requiere autenticación
-  if (req.url.includes('/api/client-ip') || req.url.includes('/api/health')) {
-    // Permitir peticiones sin autenticación
-    return next(req);
-  }
-
-  // For non-Supabase requests, use Auth0 token
-  return inject(AuthService)
-    .getAccessTokenSilently()
-    .pipe(
-      switchMap((token) => {
-        const request = req.clone({
-          headers: req.headers.set('Authorization', `Bearer ${token}`),
-        });
-        return next(request);
-      })
-    );
+  // Para otras peticiones, continuar sin modificar
+  return next(req);
 };

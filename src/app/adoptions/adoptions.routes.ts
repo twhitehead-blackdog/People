@@ -20,6 +20,11 @@ export const ADOPTIONS_ROUTES: Routes = [
             (x) => x.AdoptionFormComponent
           ),
       },
+      {
+        path: 'profile',
+        loadComponent: () =>
+          import('../auth/profile.component').then((x) => x.ProfileComponent),
+      },
     ],
   },
 ];

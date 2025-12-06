@@ -40,8 +40,20 @@ import { Button } from 'primeng/button';
           ¡Te acompañamos en esta nueva etapa! Conoce un poco más sobre la adopción de perros y la adopción de gatos.
         </p>
         <div class="animate-banner">
-          <span class="animate-text">ANIMATE A ADOPTAR</span>
-          <div class="pet-silhouettes">🐕 🐈 🐶 🐱 🐈</div>
+          <div class="banner-content">
+            <div class="banner-text-wrapper">
+              <span class="animate-text">ANIMATE A ADOPTAR</span>
+              <div class="text-underline"></div>
+            </div>
+            <div class="pet-silhouettes">
+              <span class="pet-emoji pet-1">🐕</span>
+              <span class="pet-emoji pet-2">🐈</span>
+              <span class="pet-emoji pet-3">🐶</span>
+              <span class="pet-emoji pet-4">🐱</span>
+              <span class="pet-emoji pet-5">🐈</span>
+            </div>
+          </div>
+          <div class="banner-shine"></div>
         </div>
         <p-button
           label="FORMULARIO DE ADOPCIÓN"
@@ -116,7 +128,8 @@ import { Button } from 'primeng/button';
         transform: translateY(-50%);
         width: 400px;
         max-width: calc(100% - 4rem);
-        z-index: 10;
+        z-index: 20;
+        pointer-events: auto;
       }
 
       @media (max-width: 1024px) {
@@ -160,27 +173,156 @@ import { Button } from 'primeng/button';
       }
 
       .animate-banner {
-        background: #fbbf24;
-        padding: 1.5rem 2rem;
-        border-radius: 0.5rem;
+        background: linear-gradient(135deg, #fbbf24 0%, #fcd34d 50%, #fbbf24 100%);
+        background-size: 200% 100%;
+        padding: 2rem 3rem;
+        border-radius: 1rem;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 1rem;
         margin: 2rem auto;
-        max-width: 600px;
+        max-width: 700px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 8px 24px rgba(251, 191, 36, 0.4),
+                    0 0 0 2px rgba(0, 0, 0, 0.1);
+        animation: gradientShift 4s ease infinite;
+      }
+
+      .banner-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1.5rem;
+        position: relative;
+        z-index: 2;
+      }
+
+      .banner-text-wrapper {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
       }
 
       .animate-text {
-        font-size: 1.5rem;
-        font-weight: 700;
+        font-size: 2rem;
+        font-weight: 800;
         color: #000000;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: 0.1em;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        position: relative;
+        animation: textPulse 2s ease-in-out infinite;
+      }
+
+      .text-underline {
+        width: 80%;
+        height: 3px;
+        background: linear-gradient(90deg, transparent, #000000, transparent);
+        margin-top: 0.5rem;
+        border-radius: 2px;
+        animation: underlineExpand 2s ease-in-out infinite;
       }
 
       .pet-silhouettes {
-        font-size: 1.5rem;
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .pet-emoji {
+        font-size: 2rem;
+        display: inline-block;
+        animation: petBounce 2s ease-in-out infinite;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+        transition: transform 0.3s ease;
+      }
+
+      .pet-emoji:hover {
+        transform: scale(1.3) rotate(10deg);
+      }
+
+      .pet-1 {
+        animation-delay: 0s;
+      }
+
+      .pet-2 {
+        animation-delay: 0.2s;
+      }
+
+      .pet-3 {
+        animation-delay: 0.4s;
+      }
+
+      .pet-4 {
+        animation-delay: 0.6s;
+      }
+
+      .pet-5 {
+        animation-delay: 0.8s;
+      }
+
+      .banner-shine {
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: linear-gradient(
+          45deg,
+          transparent 30%,
+          rgba(255, 255, 255, 0.3) 50%,
+          transparent 70%
+        );
+        animation: shine 3s infinite;
+        pointer-events: none;
+      }
+
+      @keyframes gradientShift {
+        0%, 100% {
+          background-position: 0% center;
+        }
+        50% {
+          background-position: 100% center;
+        }
+      }
+
+      @keyframes textPulse {
+        0%, 100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.05);
+        }
+      }
+
+      @keyframes underlineExpand {
+        0%, 100% {
+          width: 60%;
+        }
+        50% {
+          width: 100%;
+        }
+      }
+
+      @keyframes petBounce {
+        0%, 100% {
+          transform: translateY(0) rotate(0deg);
+        }
+        50% {
+          transform: translateY(-10px) rotate(5deg);
+        }
+      }
+
+      @keyframes shine {
+        0% {
+          transform: translateX(-100%) translateY(-100%) rotate(45deg);
+        }
+        100% {
+          transform: translateX(100%) translateY(100%) rotate(45deg);
+        }
       }
 
       .navigation-tabs {
@@ -265,12 +407,24 @@ import { Button } from 'primeng/button';
         }
 
         .animate-banner {
-          flex-direction: column;
-          padding: 1rem;
+          padding: 1.5rem 1.5rem;
+          max-width: 100%;
+        }
+
+        .banner-content {
+          gap: 1rem;
         }
 
         .animate-text {
-          font-size: 1.25rem;
+          font-size: 1.5rem;
+        }
+
+        .pet-emoji {
+          font-size: 1.5rem;
+        }
+
+        .pet-silhouettes {
+          gap: 0.5rem;
         }
 
         .navigation-tabs {

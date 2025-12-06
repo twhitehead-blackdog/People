@@ -20,24 +20,12 @@
 
 /* You can add global styles to this file, and also import other style files */
 
-/* Forzar modo oscuro siempre */
 html,
-html.dark,
-body,
-body.dark {
-  height: 100%;
-  background-color: #000000 !important;
-  color-scheme: dark !important;
-}
-
-html {
-  color-scheme: dark !important;
-}
-
 body {
+  height: 100%;
   margin: 0;
-  background-color: #000000 !important;
-  color: #ffffff !important;
+  background-color: #ffffff;
+  color: #000000;
 }
 
 td,
