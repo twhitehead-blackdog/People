@@ -1,0 +1,500 @@
+import { Component, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
+
+interface FAQItem {
+  question: string;
+  answer: string;
+}
+
+@Component({
+  selector: 'pt-adoption-faq',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <div class="faq-section">
+      <div class="faq-container">
+        <div class="faq-image-container">
+          <div class="faq-image-wrapper">
+            <img
+              src="assets/dog2.jpg"
+              alt="Perro adoptado"
+              class="faq-image"
+            />
+            <div class="decorative-shapes">
+              <div class="shape shape-yellow-1"></div>
+              <div class="shape shape-yellow-2"></div>
+              <div class="shape shape-blue-1"></div>
+            </div>
+          </div>
+        </div>
+        <div class="faq-content">
+          <h2 class="faq-title">
+            PREGUNTAS FRECUENTES SOBRE ADOPCIÓN DE MASCOTAS
+          </h2>
+          <div class="faq-intro">
+            <p>
+              En Puppis conectamos humanos con su mascota. Sabemos la importancia
+              de que no haya ningún animal sin familia y por eso apoyamos y
+              ayudamos a rescatistas y fundaciones todos los días para lograrlo.
+            </p>
+            <p>
+              Si estás pensando sumar un amigo peludo tenés que saber el
+              compromiso que esto implica. No sólo será tu compañía sino un
+              integrante más de la familia. Por lo que te recomendamos planifiques
+              bien su llegada, asegúrate que todos estén de acuerdo y que en tu
+              edificio o casa se permitan mascotas. Tené en cuenta los gastos
+              mensuales relacionados, cuidados generales que necesitará para que se
+              encuentre saludable y cómodo y con quién dejarlo en caso de salir de
+              vacaciones.
+            </p>
+            <p class="faq-cta">
+              <strong
+                >Te dejamos acá un resumen de las preguntas que recibimos siempre
+                así te ayudamos a prepararte en lo que se viene</strong
+              >
+            </p>
+          </div>
+          <div class="faq-items">
+            @for (item of faqItems(); track $index) {
+            <div class="faq-item" [class.expanded]="expandedIndex() === $index">
+              <button
+                class="faq-question"
+                (click)="toggleFAQ($index)"
+                [attr.aria-expanded]="expandedIndex() === $index"
+              >
+                <span>{{ item.question }}</span>
+                <span class="faq-icon">{{
+                  expandedIndex() === $index ? '▼' : '▶'
+                }}</span>
+              </button>
+              @if (expandedIndex() === $index) {
+              <div class="faq-answer">
+                <p>{{ item.answer }}</p>
+              </div>
+              }
+            </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  `,
+  styles: [
+    `
+      .faq-section {
+        background: linear-gradient(135deg, #eff6ff 0%, #ffffff 50%, #f0fdf4 100%);
+        padding: 4rem 2rem;
+        max-width: 1400px;
+        margin: 0 auto;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .faq-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -50%;
+        width: 200%;
+        height: 100%;
+        background: repeating-linear-gradient(
+          45deg,
+          transparent,
+          transparent 50px,
+          rgba(251, 191, 36, 0.03) 50px,
+          rgba(251, 191, 36, 0.03) 100px
+        );
+        animation: slide 20s linear infinite;
+      }
+
+      @keyframes slide {
+        0% {
+          transform: translateX(0);
+        }
+        100% {
+          transform: translateX(50px);
+        }
+      }
+
+      .faq-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 3rem;
+        align-items: start;
+      }
+
+      .faq-image-container {
+        position: relative;
+      }
+
+      .faq-image-wrapper {
+        position: relative;
+        width: 100%;
+        height: 600px;
+        border-radius: 1rem;
+        overflow: hidden;
+        border: 3px solid transparent;
+        background: linear-gradient(white, white) padding-box,
+                    linear-gradient(135deg, #000000, #fbbf24, #374151) border-box;
+        box-shadow: 0 10px 40px rgba(30, 64, 175, 0.3),
+                    0 0 20px rgba(251, 191, 36, 0.2);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .faq-image-wrapper:hover {
+        transform: translateY(-8px) scale(1.02);
+        box-shadow: 0 20px 60px rgba(30, 64, 175, 0.5),
+                    0 0 40px rgba(251, 191, 36, 0.3);
+      }
+
+      .faq-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .faq-image-wrapper:hover .faq-image {
+        transform: scale(1.1);
+      }
+
+      .decorative-shapes {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+      }
+
+      .shape {
+        position: absolute;
+        border-radius: 50%;
+        opacity: 0.8;
+      }
+
+      .shape-yellow-1 {
+        width: 150px;
+        height: 150px;
+        background: #fbbf24;
+        top: 10%;
+        left: 5%;
+      }
+
+      .shape-yellow-2 {
+        width: 100px;
+        height: 100px;
+        background: #fbbf24;
+        bottom: 20%;
+        right: 10%;
+      }
+
+      .shape-blue-1 {
+        width: 80px;
+        height: 80px;
+        background: #374151;
+        top: 50%;
+        right: 5%;
+      }
+
+      .faq-content {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+      }
+
+      .faq-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #000000 0%, #374151 50%, #000000 100%);
+        background-size: 200% auto;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        animation: gradientShift 3s ease infinite;
+        text-shadow: 0 4px 20px rgba(30, 64, 175, 0.2);
+        position: relative;
+      }
+
+      .faq-title::after {
+        content: '';
+        position: absolute;
+        bottom: -10px;
+        left: 0;
+        width: 150px;
+        height: 4px;
+        background: linear-gradient(90deg, #1e40af, #fbbf24, #1e40af);
+        background-size: 200% 100%;
+        border-radius: 2px;
+        animation: shimmer 2s infinite;
+      }
+
+      @keyframes gradientShift {
+        0%, 100% {
+          background-position: 0% center;
+        }
+        50% {
+          background-position: 100% center;
+        }
+      }
+
+      @keyframes shimmer {
+        0% {
+          background-position: -200% 0;
+        }
+        100% {
+          background-position: 200% 0;
+        }
+      }
+
+      .faq-intro {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .faq-intro p {
+        font-size: 0.95rem;
+        color: #6b7280;
+        line-height: 1.7;
+        margin: 0;
+      }
+
+      .faq-cta {
+        margin-top: 0.5rem;
+      }
+
+      .faq-cta strong {
+        color: #374151;
+        font-weight: 600;
+      }
+
+      .faq-items {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin-top: 1rem;
+      }
+
+      .faq-item {
+        border: 2px solid transparent;
+        border-radius: 0.75rem;
+        overflow: hidden;
+        background: #ffffff;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+
+      .faq-item::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #1e40af, #fbbf24, #1e40af);
+        background-size: 200% 100%;
+        transform: scaleX(0);
+        transition: transform 0.3s ease;
+      }
+
+      .faq-item:hover {
+        border-color: rgba(30, 64, 175, 0.5);
+        box-shadow: 0 8px 24px rgba(30, 64, 175, 0.2);
+        transform: translateY(-2px);
+      }
+
+      .faq-item:hover::before {
+        transform: scaleX(1);
+        animation: shimmer 2s infinite;
+      }
+
+      .faq-item.expanded {
+        border-color: #374151;
+        box-shadow: 0 12px 32px rgba(30, 64, 175, 0.3),
+                    0 0 20px rgba(251, 191, 36, 0.2);
+        background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
+      }
+
+      .faq-item.expanded::before {
+        transform: scaleX(1);
+        animation: shimmer 2s infinite;
+      }
+
+      .faq-question {
+        width: 100%;
+        padding: 1.5rem 1.75rem;
+        background: transparent;
+        border: none;
+        text-align: left;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: #000000;
+        transition: all 0.3s ease;
+        position: relative;
+      }
+
+      .faq-question::after {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 4px;
+        height: 100%;
+        background: linear-gradient(180deg, #fbbf24, #374151);
+        transform: scaleY(0);
+        transition: transform 0.3s ease;
+      }
+
+      .faq-question:hover {
+        background: rgba(30, 64, 175, 0.05);
+        color: #374151;
+        padding-left: 2rem;
+      }
+
+      .faq-question:hover::after {
+        transform: scaleY(1);
+      }
+
+      .faq-item.expanded .faq-question {
+        background: rgba(30, 64, 175, 0.1);
+      }
+
+      .faq-item.expanded .faq-question::after {
+        transform: scaleY(1);
+      }
+
+      .faq-question span:first-child {
+        flex: 1;
+      }
+
+      .faq-icon {
+        font-size: 1rem;
+        color: #000000;
+        transition: all 0.3s ease;
+        background: rgba(30, 64, 175, 0.1);
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .faq-question:hover .faq-icon {
+        background: rgba(251, 191, 36, 0.2);
+        color: #fbbf24;
+        transform: scale(1.1);
+      }
+
+      .faq-item.expanded .faq-icon {
+        transform: rotate(90deg) scale(1.1);
+        background: rgba(251, 191, 36, 0.3);
+        color: #fbbf24;
+      }
+
+      .faq-answer {
+        padding: 0 1.5rem 1.5rem 1.5rem;
+        background: #ffffff;
+        animation: slideDown 0.3s ease;
+      }
+
+      .faq-answer p {
+        font-size: 0.95rem;
+        color: #6b7280;
+        line-height: 1.7;
+        margin: 0;
+      }
+
+      @keyframes slideDown {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @media (max-width: 1024px) {
+        .faq-container {
+          grid-template-columns: 1fr;
+          gap: 2rem;
+        }
+
+        .faq-image-wrapper {
+          height: 400px;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .faq-section {
+          padding: 2rem 1rem;
+        }
+
+        .faq-title {
+          font-size: 1.5rem;
+        }
+
+        .faq-image-wrapper {
+          height: 300px;
+        }
+
+        .faq-question {
+          padding: 1rem;
+          font-size: 0.875rem;
+        }
+
+        .faq-answer {
+          padding: 0 1rem 1rem 1rem;
+        }
+      }
+    `,
+  ],
+})
+export class AdoptionFAQComponent {
+  public expandedIndex = signal<number | null>(0);
+
+  public faqItems = signal<FAQItem[]>([
+    {
+      question: '¿De dónde provienen las mascotas que están publicadas en ésta Web?',
+      answer:
+        'Todas las mascotas que recibimos en nuestras tiendas son rescatadas. Son animales que se encontraban en situaciones de calle, abandono o maltrato. Gracias al trabajo de nuestro equipo, fundaciones y rescatistas logramos ayudarlas a recuperarse brindándoles un hogar de tránsito y toda la atención de especialistas. Estas mascotas ya están preparadas para iniciar una adaptación y poder integrar una nueva familia.',
+    },
+    {
+      question:
+        '¿Es necesario completar todo el Formulario y luego hacer una entrevista telefónica?',
+      answer:
+        'Sí, es necesario completar el formulario completo con toda la información solicitada. Una vez recibida tu solicitud, nuestro equipo se pondrá en contacto contigo para realizar una entrevista telefónica donde podremos conocer más sobre ti y tu hogar, y resolver cualquier duda que tengas sobre el proceso de adopción.',
+    },
+    {
+      question: '¿Cómo me preparo para la llegada de mi mascota?',
+      answer:
+        'Es importante preparar tu hogar antes de la llegada de tu nueva mascota. Asegúrate de tener un espacio cómodo para ella, comida adecuada, juguetes, y todos los elementos necesarios para su bienestar. También es recomendable que todos los miembros de la familia estén de acuerdo con la adopción y conozcan las responsabilidades que implica tener una mascota.',
+    },
+    {
+      question: '¿Cuáles son los cuidados que debe recibir mi mascota?',
+      answer:
+        'Tu mascota necesitará cuidados básicos como alimentación adecuada, agua fresca, ejercicio diario, atención veterinaria regular, vacunación, desparasitación, esterilización, y sobre todo mucho amor y paciencia durante el proceso de adaptación. Es importante comprometerse con su bienestar a largo plazo.',
+    },
+  ]);
+
+  public toggleFAQ(index: number): void {
+    if (this.expandedIndex() === index) {
+      this.expandedIndex.set(null);
+    } else {
+      this.expandedIndex.set(index);
+    }
+  }
+}
+
