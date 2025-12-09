@@ -1,5 +1,5 @@
-import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component } from '@angular/core';
 import { Button } from 'primeng/button';
 
 @Component({
@@ -9,7 +9,7 @@ import { Button } from 'primeng/button';
   template: `
     <div class="families-section">
       <div class="families-container">
-        <h2 class="families-title">FAMILIAS PUPPIS</h2>
+        <h2 class="families-title">FAMILIAS BLACK DOG</h2>
         <p class="families-subtitle">
           Gracias a nuestra campaña de Adopción Responsable estas familias
           reciben #AmorPuro.
@@ -44,7 +44,7 @@ import { Button } from 'primeng/button';
             <div class="family-story">
               <div class="certificate">
                 <div class="certificate-header">
-                  <span class="certificate-logo">Puppis</span>
+                  <span class="certificate-logo">Black Dog</span>
                   <span class="certificate-paw">🐾</span>
                 </div>
                 <div class="certificate-content">
@@ -76,10 +76,14 @@ import { Button } from 'primeng/button';
   styles: [
     `
       .families-section {
-        background: linear-gradient(135deg, #f9fafb 0%, #ffffff 50%, #fef3c7 100%);
-        padding: 4rem 2rem;
-        max-width: 1400px;
-        margin: 0 auto;
+        background: linear-gradient(
+          135deg,
+          #f9fafb 0%,
+          #ffffff 50%,
+          #fef3c7 100%
+        );
+        width: 100%;
+        padding: 4rem 0;
         position: relative;
         overflow: hidden;
       }
@@ -91,7 +95,11 @@ import { Button } from 'primeng/button';
         left: -10%;
         width: 600px;
         height: 600px;
-        background: radial-gradient(circle, rgba(55, 65, 81, 0.1) 0%, transparent 70%);
+        background: radial-gradient(
+          circle,
+          rgba(55, 65, 81, 0.1) 0%,
+          transparent 70%
+        );
         border-radius: 50%;
         animation: float 8s ease-in-out infinite;
       }
@@ -103,13 +111,18 @@ import { Button } from 'primeng/button';
         right: -10%;
         width: 500px;
         height: 500px;
-        background: radial-gradient(circle, rgba(251, 191, 36, 0.2) 0%, transparent 70%);
+        background: radial-gradient(
+          circle,
+          rgba(251, 191, 36, 0.2) 0%,
+          transparent 70%
+        );
         border-radius: 50%;
         animation: float 10s ease-in-out infinite reverse;
       }
 
       @keyframes float {
-        0%, 100% {
+        0%,
+        100% {
           transform: translateY(0) rotate(0deg);
         }
         50% {
@@ -122,12 +135,20 @@ import { Button } from 'primeng/button';
         flex-direction: column;
         align-items: center;
         gap: 2rem;
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 2rem;
       }
 
       .families-title {
         font-size: 3rem;
         font-weight: 700;
-        background: linear-gradient(135deg, #000000 0%, #374151 50%, #000000 100%);
+        background: linear-gradient(
+          135deg,
+          #000000 0%,
+          #374151 50%,
+          #000000 100%
+        );
         background-size: 200% auto;
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
@@ -156,7 +177,8 @@ import { Button } from 'primeng/button';
       }
 
       @keyframes gradientShift {
-        0%, 100% {
+        0%,
+        100% {
           background-position: 0% center;
         }
         50% {
@@ -212,26 +234,29 @@ import { Button } from 'primeng/button';
         border-radius: 1rem;
         overflow: hidden;
         background: #ffffff;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15),
-                    0 0 0 1px rgba(251, 191, 36, 0.1);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
         transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         border: 3px solid transparent;
         background-image: linear-gradient(white, white),
-                          linear-gradient(135deg, #000000, #fbbf24, #374151);
+          linear-gradient(135deg, #000000, #fbbf24, #374151);
         background-origin: border-box;
         background-clip: padding-box, border-box;
       }
 
       .family-card:hover .family-card-image {
-        box-shadow: 0 16px 48px rgba(251, 191, 36, 0.4),
-                    0 0 30px rgba(55, 65, 81, 0.3);
-        transform: scale(1.02);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        transform: scale(1.01);
       }
 
       .family-card-header {
         position: relative;
         padding: 2rem 1.5rem;
-        background: linear-gradient(135deg, #fbbf24 0%, #fcd34d 50%, #fbbf24 100%);
+        background: linear-gradient(
+          135deg,
+          #fbbf24 0%,
+          #fcd34d 50%,
+          #fbbf24 100%
+        );
         background-size: 200% 100%;
         display: flex;
         align-items: center;
@@ -248,7 +273,12 @@ import { Button } from 'primeng/button';
         left: -50%;
         width: 200%;
         height: 200%;
-        background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+        background: linear-gradient(
+          45deg,
+          transparent,
+          rgba(255, 255, 255, 0.3),
+          transparent
+        );
         animation: shine 3s infinite;
       }
 
@@ -322,18 +352,16 @@ import { Button } from 'primeng/button';
         overflow: hidden;
         border: 3px solid transparent;
         background-image: linear-gradient(white, white),
-                          linear-gradient(135deg, #fbbf24, #374151, #fbbf24);
+          linear-gradient(135deg, #fbbf24, #374151, #fbbf24);
         background-origin: border-box;
         background-clip: padding-box, border-box;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15),
-                    0 0 0 1px rgba(251, 191, 36, 0.1);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
         transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
       .family-card:hover .family-photo-container {
-        box-shadow: 0 16px 48px rgba(251, 191, 36, 0.4),
-                    0 0 30px rgba(55, 65, 81, 0.3);
-        transform: scale(1.02);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        transform: scale(1.01);
       }
 
       .family-photo {
@@ -360,21 +388,20 @@ import { Button } from 'primeng/button';
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 6px 20px rgba(251, 191, 36, 0.5),
-                    0 0 20px rgba(251, 191, 36, 0.3);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         animation: heartbeat 2s ease-in-out infinite;
         cursor: pointer;
       }
 
       .heart-icon:hover {
-        transform: translateX(-50%) scale(1.2);
-        box-shadow: 0 8px 30px rgba(251, 191, 36, 0.7),
-                    0 0 30px rgba(251, 191, 36, 0.5);
+        transform: translateX(-50%) scale(1.1);
+        box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
       }
 
       @keyframes heartbeat {
-        0%, 100% {
+        0%,
+        100% {
           transform: translateX(-50%) scale(1);
         }
         50% {
@@ -395,14 +422,13 @@ import { Button } from 'primeng/button';
         background: linear-gradient(135deg, #ffffff 0%, #fef3c7 100%);
         border: 3px solid transparent;
         background-image: linear-gradient(white, #fef3c7),
-                          linear-gradient(135deg, #000000, #fbbf24, #374151);
+          linear-gradient(135deg, #000000, #fbbf24, #374151);
         background-origin: border-box;
         background-clip: padding-box, border-box;
         border-radius: 0.75rem;
         padding: 2rem;
         text-align: center;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2),
-                    0 0 20px rgba(251, 191, 36, 0.2);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
         max-width: 300px;
         width: 100%;
         transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -417,14 +443,18 @@ import { Button } from 'primeng/button';
         left: -50%;
         width: 200%;
         height: 200%;
-        background: linear-gradient(45deg, transparent, rgba(251, 191, 36, 0.2), transparent);
+        background: linear-gradient(
+          45deg,
+          transparent,
+          rgba(251, 191, 36, 0.2),
+          transparent
+        );
         animation: shine 4s infinite;
       }
 
       .family-card:hover .certificate {
-        transform: scale(1.05) rotate(2deg);
-        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3),
-                    0 0 30px rgba(251, 191, 36, 0.3);
+        transform: scale(1.02);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
       }
 
       .certificate-header {
@@ -488,6 +518,14 @@ import { Button } from 'primeng/button';
       }
 
       @media (max-width: 1024px) {
+        .families-section {
+          padding: 3rem 0;
+        }
+
+        .families-container {
+          padding: 0 1.5rem;
+        }
+
         .families-cards {
           grid-template-columns: 1fr;
         }
@@ -495,7 +533,11 @@ import { Button } from 'primeng/button';
 
       @media (max-width: 768px) {
         .families-section {
-          padding: 2rem 1rem;
+          padding: 2rem 0;
+        }
+
+        .families-container {
+          padding: 0 1rem;
         }
 
         .families-title {
@@ -523,4 +565,3 @@ export class AdoptionFamiliesComponent {
     console.log('Compartir historia');
   }
 }
-

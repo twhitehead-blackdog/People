@@ -47,6 +47,7 @@ CREATE TABLE IF NOT EXISTS public.pets (
   is_vaccinated BOOLEAN NOT NULL DEFAULT false,
   is_sterilized BOOLEAN NOT NULL DEFAULT false,
   is_available BOOLEAN NOT NULL DEFAULT true,
+  personality TEXT[], -- Array de rasgos de personalidad
   photos TEXT[], -- Array de URLs de fotos
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -75,6 +76,7 @@ CREATE TABLE IF NOT EXISTS public.adoption_applications (
   has_children BOOLEAN NOT NULL DEFAULT false,
   children_info TEXT,
   living_situation TEXT,
+  personality TEXT[], -- Array de rasgos de personalidad preferidos
   status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'completed')),
   notes TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),

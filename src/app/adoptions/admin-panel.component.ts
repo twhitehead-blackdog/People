@@ -8,6 +8,7 @@ import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { DialogModule } from 'primeng/dialog';
 import { SelectModule } from 'primeng/select';
+import { MultiSelectModule } from 'primeng/multiselect';
 import { InputText } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
 import { TableModule } from 'primeng/table';
@@ -33,6 +34,7 @@ import {
     InputText,
     TextareaModule,
     SelectModule,
+    MultiSelectModule,
     TagModule,
     ToastModule,
     Card,
@@ -333,6 +335,22 @@ import {
           ></textarea>
         </div>
 
+        <div class="form-group">
+          <label for="personality">Personalidad</label>
+          <p-multiSelect
+            id="personality"
+            name="personality"
+            [(ngModel)]="petForm.personality"
+            [options]="personalityOptions"
+            placeholder="Seleccione una o más opciones..."
+            [displaySelectedLabel]="true"
+            [maxSelectedLabels]="3"
+            [showToggleAll]="false"
+            [disabled]="isLoading()"
+            styleClass="w-full"
+          />
+        </div>
+
         <div class="form-row">
           <div class="form-group">
             <label for="health_status">Estado de Salud</label>
@@ -453,6 +471,19 @@ import {
                 [disabled]="isLoading()"
               />
               <span>Disponible para adopción</span>
+            </label>
+          </div>
+
+          <div class="form-group">
+            <label class="checkbox-label">
+              <input
+                type="checkbox"
+                [checked]="!petForm.is_available"
+                name="is_adopted"
+                [disabled]="isLoading()"
+                (change)="onAdoptedChange($event)"
+              />
+              <span>Marcar como adoptado</span>
             </label>
           </div>
         </div>
@@ -795,6 +826,7 @@ export class AdminPanelComponent implements OnInit {
     location_detail: '',
     foundation_id: '',
     photos: [],
+    personality: [],
     is_vaccinated: false,
     is_sterilized: false,
     is_available: true,
@@ -834,6 +866,20 @@ export class AdminPanelComponent implements OnInit {
     { label: 'Necesita atención especial', value: 'Necesita atención especial' },
     { label: 'Recuperación', value: 'Recuperación' },
   ]);
+
+  public personalityOptions = [
+    { label: 'Juguetón', value: 'jugueton' },
+    { label: 'Tranquilo', value: 'tranquilo' },
+    { label: 'Cariñoso', value: 'carinoso' },
+    { label: 'Independiente', value: 'independiente' },
+    { label: 'Sociable', value: 'sociable' },
+    { label: 'Activo', value: 'activo' },
+    { label: 'Protector', value: 'protector' },
+    { label: 'Tímido', value: 'timido' },
+    { label: 'Curioso', value: 'curioso' },
+    { label: 'Energético', value: 'energetico' },
+    { label: 'Dócil', value: 'docil' },
+  ];
 
   public foundations = computed(() => this.foundationsStore.entities());
 
@@ -886,11 +932,9 @@ export class AdminPanelComponent implements OnInit {
   }
 
   createExamplePets(): void {
-    console.log('🔵 [AdminPanel] createExamplePets llamado');
     this.isCreatingExamples.set(true);
     
     const foundationsList = this.foundations();
-    console.log('🔵 [AdminPanel] Fundaciones disponibles:', foundationsList.length);
     let foundationId: string;
 
     // Si no hay fundaciones, crear una de ejemplo primero
@@ -1045,6 +1089,7 @@ export class AdminPanelComponent implements OnInit {
       location_detail: pet.location_detail || '',
       foundation_id: pet.foundation_id,
       photos: pet.photos ? [...pet.photos] : [],
+      personality: pet.personality ? [...pet.personality] : [],
       is_vaccinated: pet.is_vaccinated,
       is_sterilized: pet.is_sterilized,
       is_available: pet.is_available,
@@ -1070,6 +1115,7 @@ export class AdminPanelComponent implements OnInit {
       location_detail: '',
       foundation_id: '',
       photos: [],
+      personality: [],
       is_vaccinated: false,
       is_sterilized: false,
       is_available: true,
@@ -1077,6 +1123,11 @@ export class AdminPanelComponent implements OnInit {
     this.photoUrls.set('');
     this.editingPet.set(null);
     this.showPetDialog.set(false);
+  }
+
+  onAdoptedChange(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    this.petForm.is_available = !target.checked;
   }
 
   updatePhotos(urlsText: string): void {
@@ -1116,12 +1167,32 @@ export class AdminPanelComponent implements OnInit {
 
     const pet = this.editingPet();
     if (pet) {
+      // Filtrar solo los campos válidos para la base de datos
+      const validFields: Partial<Pet> = {
+        id: pet.id,
+        name: this.petForm.name,
+        species: this.petForm.species,
+        gender: this.petForm.gender,
+        size: this.petForm.size,
+        age: this.petForm.age,
+        breed: this.petForm.breed || undefined,
+        color: this.petForm.color || undefined,
+        weight: this.petForm.weight,
+        description: this.petForm.description || undefined,
+        health_status: this.petForm.health_status || undefined,
+        location_type: this.petForm.location_type || undefined,
+        location_detail: this.petForm.location_detail || undefined,
+        foundation_id: this.petForm.foundation_id,
+        photos: this.petForm.photos && this.petForm.photos.length > 0 ? this.petForm.photos : undefined,
+        personality: this.petForm.personality && this.petForm.personality.length > 0 ? this.petForm.personality : undefined,
+        is_vaccinated: this.petForm.is_vaccinated,
+        is_sterilized: this.petForm.is_sterilized,
+        is_available: this.petForm.is_available,
+      };
+      
       // Actualizar mascota existente
       this.petsStore
-        .editItem({
-          ...pet,
-          ...this.petForm,
-        } as Pet)
+        .editItem(validFields as Pet)
         .subscribe({
           next: () => {
             this.messageService.add({
@@ -1142,8 +1213,30 @@ export class AdminPanelComponent implements OnInit {
           },
         });
     } else {
+      // Filtrar solo los campos válidos para la base de datos
+      const validFields: Partial<Pet> = {
+        name: this.petForm.name,
+        species: this.petForm.species,
+        gender: this.petForm.gender,
+        size: this.petForm.size,
+        age: this.petForm.age,
+        breed: this.petForm.breed || undefined,
+        color: this.petForm.color || undefined,
+        weight: this.petForm.weight,
+        description: this.petForm.description || undefined,
+        health_status: this.petForm.health_status || undefined,
+        location_type: this.petForm.location_type || undefined,
+        location_detail: this.petForm.location_detail || undefined,
+        foundation_id: this.petForm.foundation_id,
+        photos: this.petForm.photos && this.petForm.photos.length > 0 ? this.petForm.photos : undefined,
+        personality: this.petForm.personality && this.petForm.personality.length > 0 ? this.petForm.personality : undefined,
+        is_vaccinated: this.petForm.is_vaccinated,
+        is_sterilized: this.petForm.is_sterilized,
+        is_available: this.petForm.is_available,
+      };
+      
       // Crear nueva mascota
-      this.petsStore.createItem(this.petForm as Pet).subscribe({
+      this.petsStore.createItem(validFields as Pet).subscribe({
         next: () => {
           this.messageService.add({
             severity: 'success',

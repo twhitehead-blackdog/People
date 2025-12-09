@@ -51,15 +51,6 @@ const MyPreset = definePreset(Aura, {
   },
 });
 
-// Debug: Verificar variables de entorno de Auth0
-if (typeof window !== 'undefined') {
-  console.log('🔍 [Auth0 Config Debug] Variables de entorno:');
-  console.log('  - ENV_AUTH0_DOMAIN:', process.env['ENV_AUTH0_DOMAIN'] || 'NO DEFINIDO');
-  console.log('  - ENV_AUTH0_CLIENT_ID:', process.env['ENV_AUTH0_CLIENT_ID'] || 'NO DEFINIDO');
-  console.log('  - ENV_AUTH0_AUDIENCE:', process.env['ENV_AUTH0_AUDIENCE'] || 'NO DEFINIDO (esto está bien si no usas API)');
-  console.log('  - ENV_APP_URL:', process.env['ENV_APP_URL'] || 'NO DEFINIDO');
-  console.log('  - window.location.origin:', window.location.origin);
-}
 
 export const appConfig: ApplicationConfig = {
   providers: [
@@ -82,32 +73,19 @@ export const appConfig: ApplicationConfig = {
           const envUrl = process.env['ENV_APP_URL'];
           if (envUrl) {
             // Asegurar que no tenga barra final
-            const cleanUrl = envUrl.replace(/\/$/, '');
-            console.log('🔍 [Auth0 Config] redirect_uri desde ENV_APP_URL:', cleanUrl);
-            return cleanUrl;
+            return envUrl.replace(/\/$/, '');
           }
           
           // Fallback a window.location.origin si está disponible
           if (typeof window !== 'undefined' && window.location) {
-            const origin = window.location.origin;
-            console.log('🔍 [Auth0 Config] redirect_uri desde window.location.origin:', origin);
-            return origin;
+            return window.location.origin;
           }
           
           // Último fallback
-          const fallback = 'http://localhost:3000';
-          console.log('🔍 [Auth0 Config] redirect_uri usando fallback:', fallback);
-          return fallback;
+          return 'http://localhost:3000';
         })(),
         // Audience solo se incluye si está configurado (opcional para aplicaciones SPA)
-        ...(process.env['ENV_AUTH0_AUDIENCE'] ? (() => {
-          const audience = process.env['ENV_AUTH0_AUDIENCE'];
-          console.log('⚠️ [Auth0 Config] AUDIENCE CONFIGURADO:', audience);
-          return { audience };
-        })() : (() => {
-          console.log('✅ [Auth0 Config] No se usará audience (normal para SPA sin API)');
-          return {};
-        })()),
+        ...(process.env['ENV_AUTH0_AUDIENCE'] ? { audience: process.env['ENV_AUTH0_AUDIENCE'] } : {}),
       },
       useRefreshTokens: true,
       cacheLocation: 'localstorage',

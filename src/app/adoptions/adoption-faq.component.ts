@@ -33,7 +33,7 @@ interface FAQItem {
           </h2>
           <div class="faq-intro">
             <p>
-              En Puppis conectamos humanos con su mascota. Sabemos la importancia
+              En Black Dog conectamos humanos con su mascota. Sabemos la importancia
               de que no haya ningún animal sin familia y por eso apoyamos y
               ayudamos a rescatistas y fundaciones todos los días para lograrlo.
             </p>
@@ -83,9 +83,8 @@ interface FAQItem {
     `
       .faq-section {
         background: linear-gradient(135deg, #eff6ff 0%, #ffffff 50%, #f0fdf4 100%);
-        padding: 4rem 2rem;
-        max-width: 1400px;
-        margin: 0 auto;
+        width: 100%;
+        padding: 4rem 0;
         position: relative;
         overflow: hidden;
       }
@@ -101,8 +100,8 @@ interface FAQItem {
           45deg,
           transparent,
           transparent 50px,
-          rgba(251, 191, 36, 0.03) 50px,
-          rgba(251, 191, 36, 0.03) 100px
+          rgba(55, 65, 81, 0.02) 50px,
+          rgba(55, 65, 81, 0.02) 100px
         );
         animation: slide 20s linear infinite;
       }
@@ -121,6 +120,9 @@ interface FAQItem {
         grid-template-columns: 1fr 1fr;
         gap: 3rem;
         align-items: start;
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 2rem;
       }
 
       .faq-image-container {
@@ -135,16 +137,14 @@ interface FAQItem {
         overflow: hidden;
         border: 3px solid transparent;
         background: linear-gradient(white, white) padding-box,
-                    linear-gradient(135deg, #000000, #fbbf24, #374151) border-box;
-        box-shadow: 0 10px 40px rgba(30, 64, 175, 0.3),
-                    0 0 20px rgba(251, 191, 36, 0.2);
+                    linear-gradient(135deg, #000000, #374151, #6b7280) border-box;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
         transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
       .faq-image-wrapper:hover {
-        transform: translateY(-8px) scale(1.02);
-        box-shadow: 0 20px 60px rgba(30, 64, 175, 0.5),
-                    0 0 40px rgba(251, 191, 36, 0.3);
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
       }
 
       .faq-image {
@@ -155,7 +155,7 @@ interface FAQItem {
       }
 
       .faq-image-wrapper:hover .faq-image {
-        transform: scale(1.1);
+        transform: scale(1.05);
       }
 
       .decorative-shapes {
@@ -176,7 +176,7 @@ interface FAQItem {
       .shape-yellow-1 {
         width: 150px;
         height: 150px;
-        background: #fbbf24;
+        background: #6b7280;
         top: 10%;
         left: 5%;
       }
@@ -184,7 +184,7 @@ interface FAQItem {
       .shape-yellow-2 {
         width: 100px;
         height: 100px;
-        background: #fbbf24;
+        background: #9ca3af;
         bottom: 20%;
         right: 10%;
       }
@@ -226,7 +226,7 @@ interface FAQItem {
         left: 0;
         width: 150px;
         height: 4px;
-        background: linear-gradient(90deg, #1e40af, #fbbf24, #1e40af);
+        background: linear-gradient(90deg, #1e40af, #374151, #1e40af);
         background-size: 200% 100%;
         border-radius: 2px;
         animation: shimmer 2s infinite;
@@ -296,7 +296,7 @@ interface FAQItem {
         left: 0;
         right: 0;
         height: 3px;
-        background: linear-gradient(90deg, #1e40af, #fbbf24, #1e40af);
+        background: linear-gradient(90deg, #1e40af, #374151, #1e40af);
         background-size: 200% 100%;
         transform: scaleX(0);
         transition: transform 0.3s ease;
@@ -315,8 +315,7 @@ interface FAQItem {
 
       .faq-item.expanded {
         border-color: #374151;
-        box-shadow: 0 12px 32px rgba(30, 64, 175, 0.3),
-                    0 0 20px rgba(251, 191, 36, 0.2);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
         background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
       }
 
@@ -350,7 +349,7 @@ interface FAQItem {
         top: 0;
         width: 4px;
         height: 100%;
-        background: linear-gradient(180deg, #fbbf24, #374151);
+        background: linear-gradient(180deg, #1e40af, #374151);
         transform: scaleY(0);
         transition: transform 0.3s ease;
       }
@@ -391,15 +390,15 @@ interface FAQItem {
       }
 
       .faq-question:hover .faq-icon {
-        background: rgba(251, 191, 36, 0.2);
-        color: #fbbf24;
+        background: rgba(30, 64, 175, 0.2);
+        color: #1e40af;
         transform: scale(1.1);
       }
 
       .faq-item.expanded .faq-icon {
         transform: rotate(90deg) scale(1.1);
-        background: rgba(251, 191, 36, 0.3);
-        color: #fbbf24;
+        background: rgba(30, 64, 175, 0.3);
+        color: #1e40af;
       }
 
       .faq-answer {
@@ -427,32 +426,132 @@ interface FAQItem {
       }
 
       @media (max-width: 1024px) {
+        .faq-section {
+          padding: 3rem 0;
+        }
+
         .faq-container {
           grid-template-columns: 1fr;
           gap: 2rem;
+          padding: 0 1.5rem;
         }
 
         .faq-image-wrapper {
           height: 400px;
         }
+
+        .faq-title {
+          font-size: 2rem;
+        }
+
+        .faq-intro p {
+          font-size: 0.9rem;
+        }
       }
 
       @media (max-width: 768px) {
         .faq-section {
-          padding: 2rem 1rem;
+          padding: 2rem 0;
+        }
+
+        .faq-container {
+          padding: 0 1rem;
+        }
+
+        .faq-container {
+          gap: 1.5rem;
         }
 
         .faq-title {
           font-size: 1.5rem;
+          line-height: 1.3;
+        }
+
+        .faq-title::after {
+          width: 100px;
         }
 
         .faq-image-wrapper {
           height: 300px;
         }
 
-        .faq-question {
-          padding: 1rem;
+        .faq-content {
+          gap: 1.5rem;
+        }
+
+        .faq-intro {
+          gap: 0.75rem;
+        }
+
+        .faq-intro p {
           font-size: 0.875rem;
+          line-height: 1.6;
+        }
+
+        .faq-items {
+          gap: 0.75rem;
+        }
+
+        .faq-question {
+          padding: 1rem 1.25rem;
+          font-size: 0.875rem;
+        }
+
+        .faq-question:hover {
+          padding-left: 1.5rem;
+        }
+
+        .faq-answer {
+          padding: 0 1.25rem 1rem 1.25rem;
+        }
+
+        .faq-answer p {
+          font-size: 0.875rem;
+          line-height: 1.6;
+        }
+
+        .faq-icon {
+          width: 28px;
+          height: 28px;
+          font-size: 0.875rem;
+        }
+
+        .shape-yellow-1 {
+          width: 100px;
+          height: 100px;
+        }
+
+        .shape-yellow-2 {
+          width: 70px;
+          height: 70px;
+        }
+
+        .shape-blue-1 {
+          width: 60px;
+          height: 60px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .faq-section {
+          padding: 1.5rem 0;
+        }
+
+        .faq-container {
+          padding: 0 0.75rem;
+        }
+
+        .faq-title {
+          font-size: 1.25rem;
+        }
+
+        .faq-image-wrapper {
+          height: 250px;
+        }
+
+        .faq-question {
+          padding: 0.875rem 1rem;
+          font-size: 0.8125rem;
         }
 
         .faq-answer {

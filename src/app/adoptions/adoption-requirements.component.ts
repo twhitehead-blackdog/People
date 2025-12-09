@@ -1,5 +1,5 @@
-import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component } from '@angular/core';
 
 @Component({
   selector: 'pt-adoption-requirements',
@@ -28,9 +28,7 @@ import { CommonModule } from '@angular/common';
           <ol class="requirements-list">
             <li class="requirement-item">
               <span class="requirement-number">1</span>
-              <span class="requirement-text"
-                >Ser mayor de 21 años.</span
-              >
+              <span class="requirement-text">Ser mayor de 21 años.</span>
             </li>
             <li class="requirement-item">
               <span class="requirement-number">2</span>
@@ -69,10 +67,14 @@ import { CommonModule } from '@angular/common';
   styles: [
     `
       .requirements-section {
-        background: linear-gradient(135deg, #f9fafb 0%, #ffffff 50%, #f0f9ff 100%);
-        padding: 4rem 2rem;
-        max-width: 1400px;
-        margin: 0 auto;
+        background: linear-gradient(
+          135deg,
+          #f9fafb 0%,
+          #ffffff 50%,
+          #f0f9ff 100%
+        );
+        width: 100%;
+        padding: 4rem 0;
         position: relative;
         overflow: hidden;
       }
@@ -84,13 +86,18 @@ import { CommonModule } from '@angular/common';
         right: -10%;
         width: 500px;
         height: 500px;
-        background: radial-gradient(circle, rgba(251, 191, 36, 0.1) 0%, transparent 70%);
+        background: radial-gradient(
+          circle,
+          rgba(251, 191, 36, 0.1) 0%,
+          transparent 70%
+        );
         border-radius: 50%;
         animation: float 6s ease-in-out infinite;
       }
 
       @keyframes float {
-        0%, 100% {
+        0%,
+        100% {
           transform: translateY(0) rotate(0deg);
         }
         50% {
@@ -103,6 +110,9 @@ import { CommonModule } from '@angular/common';
         grid-template-columns: 1fr 1fr;
         gap: 3rem;
         align-items: center;
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 2rem;
       }
 
       .requirements-image-container {
@@ -117,16 +127,14 @@ import { CommonModule } from '@angular/common';
         overflow: hidden;
         border: 3px solid transparent;
         background: linear-gradient(white, white) padding-box,
-                    linear-gradient(135deg, #fbbf24, #374151, #fbbf24) border-box;
-        box-shadow: 0 10px 40px rgba(251, 191, 36, 0.3),
-                    0 0 20px rgba(30, 64, 175, 0.2);
+          linear-gradient(135deg, #fbbf24, #374151, #fbbf24) border-box;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
         transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
       .requirements-image-wrapper:hover {
-        transform: translateY(-8px) scale(1.02);
-        box-shadow: 0 20px 60px rgba(251, 191, 36, 0.5),
-                    0 0 40px rgba(30, 64, 175, 0.3);
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
       }
 
       .requirements-image {
@@ -137,7 +145,7 @@ import { CommonModule } from '@angular/common';
       }
 
       .requirements-image-wrapper:hover .requirements-image {
-        transform: scale(1.1);
+        transform: scale(1.05);
       }
 
       .decorative-shapes {
@@ -157,7 +165,8 @@ import { CommonModule } from '@angular/common';
       }
 
       @keyframes pulse {
-        0%, 100% {
+        0%,
+        100% {
           transform: scale(1);
           opacity: 0.8;
         }
@@ -208,7 +217,12 @@ import { CommonModule } from '@angular/common';
       .requirements-title {
         font-size: 2.5rem;
         font-weight: 700;
-        background: linear-gradient(135deg, #000000 0%, #374151 50%, #000000 100%);
+        background: linear-gradient(
+          135deg,
+          #000000 0%,
+          #374151 50%,
+          #000000 100%
+        );
         background-size: 200% auto;
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
@@ -235,7 +249,8 @@ import { CommonModule } from '@angular/common';
       }
 
       @keyframes gradientShift {
-        0%, 100% {
+        0%,
+        100% {
           background-position: 0% center;
         }
         50% {
@@ -289,8 +304,8 @@ import { CommonModule } from '@angular/common';
       .requirement-item:hover {
         border-color: rgba(251, 191, 36, 0.5);
         background: linear-gradient(135deg, #fffbeb 0%, #eff6ff 100%);
-        transform: translateX(8px);
-        box-shadow: 0 8px 24px rgba(251, 191, 36, 0.2);
+        transform: translateX(4px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
       }
 
       .requirement-item:hover::before {
@@ -309,16 +324,14 @@ import { CommonModule } from '@angular/common';
         justify-content: center;
         font-weight: 700;
         font-size: 1.125rem;
-        box-shadow: 0 4px 12px rgba(30, 64, 175, 0.4),
-                    0 0 0 3px rgba(251, 191, 36, 0.3);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         transition: all 0.3s ease;
         position: relative;
       }
 
       .requirement-item:hover .requirement-number {
-        transform: scale(1.15) rotate(5deg);
-        box-shadow: 0 6px 20px rgba(30, 64, 175, 0.6),
-                    0 0 0 4px rgba(251, 191, 36, 0.5);
+        transform: scale(1.1);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
         background: linear-gradient(135deg, #fbbf24 0%, #fcd34d 100%);
         color: #000000;
       }
@@ -332,9 +345,14 @@ import { CommonModule } from '@angular/common';
       }
 
       @media (max-width: 1024px) {
+        .requirements-section {
+          padding: 3rem 0;
+        }
+
         .requirements-container {
           grid-template-columns: 1fr;
           gap: 2rem;
+          padding: 0 1.5rem;
         }
 
         .requirements-image-wrapper {
@@ -344,7 +362,11 @@ import { CommonModule } from '@angular/common';
 
       @media (max-width: 768px) {
         .requirements-section {
-          padding: 2rem 1rem;
+          padding: 2rem 0;
+        }
+
+        .requirements-container {
+          padding: 0 1rem;
         }
 
         .requirements-title {
@@ -363,4 +385,3 @@ import { CommonModule } from '@angular/common';
   ],
 })
 export class AdoptionRequirementsComponent {}
-

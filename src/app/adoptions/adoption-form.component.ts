@@ -8,6 +8,7 @@ import { InputTextModule } from 'primeng/inputtext';
 import { Textarea } from 'primeng/textarea';
 import { CheckboxModule } from 'primeng/checkbox';
 import { DropdownModule } from 'primeng/dropdown';
+import { MultiSelectModule } from 'primeng/multiselect';
 import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 import { PetsStore } from '../stores/pets.store';
@@ -27,6 +28,7 @@ import { AdoptionApplication } from '../models';
     Textarea,
     CheckboxModule,
     DropdownModule,
+    MultiSelectModule,
     ToastModule,
   ],
   template: `
@@ -107,6 +109,17 @@ import { AdoptionApplication } from '../models';
                 [options]="livingSituationOptions"
                 formControlName="living_situation"
                 placeholder="Seleccione..."
+              />
+            </div>
+            <div class="form-field">
+              <label>Personalidad</label>
+              <p-multiSelect
+                [options]="personalityOptions"
+                formControlName="personality"
+                placeholder="Seleccione una o más opciones..."
+                [displaySelectedLabel]="true"
+                [maxSelectedLabels]="3"
+                [showToggleAll]="false"
               />
             </div>
             <div class="form-field checkbox-field">
@@ -294,6 +307,20 @@ export class AdoptionFormComponent implements OnInit {
     { label: 'Otro', value: 'otro' },
   ];
 
+  public personalityOptions = [
+    { label: 'Juguetón', value: 'jugueton' },
+    { label: 'Tranquilo', value: 'tranquilo' },
+    { label: 'Cariñoso', value: 'carinoso' },
+    { label: 'Independiente', value: 'independiente' },
+    { label: 'Sociable', value: 'sociable' },
+    { label: 'Activo', value: 'activo' },
+    { label: 'Protector', value: 'protector' },
+    { label: 'Tímido', value: 'timido' },
+    { label: 'Curioso', value: 'curioso' },
+    { label: 'Energético', value: 'energetico' },
+    { label: 'Dócil', value: 'docil' },
+  ];
+
   public adoptionForm: FormGroup = this.fb.group({
     applicant_name: ['', Validators.required],
     applicant_email: ['', [Validators.required, Validators.email]],
@@ -306,6 +333,7 @@ export class AdoptionFormComponent implements OnInit {
     has_children: [false],
     children_info: [''],
     living_situation: [''],
+    personality: [null],
   });
 
   ngOnInit(): void {
@@ -345,6 +373,7 @@ export class AdoptionFormComponent implements OnInit {
       has_children: formValue.has_children,
       children_info: formValue.children_info || undefined,
       living_situation: formValue.living_situation || undefined,
+      personality: formValue.personality && Array.isArray(formValue.personality) && formValue.personality.length > 0 ? formValue.personality : undefined,
       status: 'pending',
     };
 

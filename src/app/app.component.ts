@@ -23,14 +23,6 @@ export class AppComponent implements OnInit {
   private redirectTimeout: any = null;
 
   ngOnInit(): void {
-    // Log inicial para debugging
-    if (typeof window !== 'undefined') {
-      console.log('🔍 [AppComponent] Inicializando, URL actual:', window.location.href);
-      console.log('🔍 [AppComponent] Query params:', window.location.search);
-      console.log('🔍 [AppComponent] Hash:', window.location.hash);
-      console.log('🔍 [AppComponent] auth0_login_initiated:', sessionStorage.getItem('auth0_login_initiated'));
-    }
-    
     // Escuchar cambios de ruta para detectar cuando Auth0 redirige después del login
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd || event instanceof NavigationCancel),
@@ -41,17 +33,12 @@ export class AppComponent implements OnInit {
         return;
       }
 
-      console.log('🔍 [AppComponent] NavigationEnd detectado:', event.url);
-
       // Verificar si acabamos de volver del callback de Auth0
       const loginInitiated = typeof window !== 'undefined' 
         ? sessionStorage.getItem('auth0_login_initiated') === 'true'
         : false;
 
-      console.log('🔍 [AppComponent] loginInitiated:', loginInitiated, 'URL:', event.url);
-
       if (loginInitiated && (event.url === '/' || event.url === '/adoptions')) {
-        console.log('🔍 [AppComponent] Callback de Auth0 detectado, iniciando redirección...');
         // Limpiar el flag inmediatamente para evitar múltiples ejecuciones
         if (typeof window !== 'undefined') {
           sessionStorage.removeItem('auth0_login_initiated');
@@ -71,20 +58,15 @@ export class AppComponent implements OnInit {
   }
 
   private checkAndRedirectAfterLogin(): void {
-    console.log('🔍 [AppComponent] checkAndRedirectAfterLogin llamado');
-    
     if (this.hasHandledPostLoginRedirect) {
-      console.log('🔍 [AppComponent] Ya se manejó la redirección, ignorando...');
       return;
     }
 
     // Verificar si el usuario se acaba de autenticar
-    console.log('🔍 [AppComponent] Esperando que el usuario esté autenticado...');
     this.authWrapper.isAuthenticated$.pipe(
       filter(isAuth => isAuth),
       take(1)
     ).subscribe(() => {
-      console.log('✅ [AppComponent] Usuario autenticado detectado');
       // Esperar un poco más para que el usuario se sincronice en AuthWrapperService
       setTimeout(() => {
         if (this.hasHandledPostLoginRedirect) {
@@ -92,24 +74,19 @@ export class AppComponent implements OnInit {
         }
 
         const currentUrl = this.router.url;
-        console.log('🔍 [AppComponent] URL actual:', currentUrl);
-        console.log('🔍 [AppComponent] ¿Es admin?:', this.authWrapper.isAdmin());
         
         // Solo redirigir si estamos en la página principal
         if (currentUrl === '/' || currentUrl === '/adoptions') {
           if (this.authWrapper.isAdmin()) {
-            console.log('🔍 [AppComponent] Redirigiendo a /adoptions/admin');
             this.hasHandledPostLoginRedirect = true;
             // Usar navigateByUrl y capturar errores para evitar "Transition was skipped"
             this.router.navigateByUrl('/adoptions/admin').catch((error) => {
               // Ignorar errores de navegación si ya hay una en progreso
               // Esto es normal cuando hay múltiples navegaciones simultáneas
               if (error.name !== 'NavigationCancelingError' && error.name !== 'AbortError') {
-                console.warn('Error de navegación después del login:', error);
+                // Error silencioso
               }
             });
-          } else {
-            console.log('🔍 [AppComponent] Usuario no es admin, permaneciendo en:', currentUrl);
           }
           // Si no es admin, dejarlo en la página principal (no redirigir)
         }

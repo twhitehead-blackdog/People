@@ -181,7 +181,6 @@ export function withCustomEntities<T extends { id: EntityId }>({
             { params: { id: `eq.${request.id}` } }
           )
           .pipe(
-            tap(() => console.log('editItem')),
             tapResponse({
               next: () => {
                 patchState(

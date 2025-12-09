@@ -38,37 +38,39 @@ import { filter, take } from 'rxjs/operators';
       </div>
       
       <div class="adoption-plan-section">
-        <h2 class="plan-title">Descubre nuestro plan de adopciones responsables</h2>
-        <p class="plan-description">
-          ¡Te acompañamos en esta nueva etapa! Conoce un poco más sobre la adopción de perros y la adopción de gatos.
-        </p>
-        <div class="animate-banner">
-          <div class="banner-content">
-            <div class="banner-text-wrapper">
-              <span class="animate-text">ANIMATE A ADOPTAR</span>
-              <div class="text-underline"></div>
+        <div class="adoption-plan-section-inner">
+          <h2 class="plan-title">Descubre nuestro plan de adopciones responsables</h2>
+          <p class="plan-description">
+            ¡Te acompañamos en esta nueva etapa! Conoce un poco más sobre la adopción de perros y la adopción de gatos.
+          </p>
+          <div class="animate-banner">
+            <div class="banner-content">
+              <div class="banner-text-wrapper">
+                <span class="animate-text">ANIMATE A ADOPTAR</span>
+                <div class="text-underline"></div>
+              </div>
+              <div class="pet-silhouettes">
+                <span class="pet-emoji pet-1">🐕</span>
+                <span class="pet-emoji pet-2">🐈</span>
+                <span class="pet-emoji pet-3">🐶</span>
+                <span class="pet-emoji pet-4">🐱</span>
+                <span class="pet-emoji pet-5">🐈</span>
+              </div>
             </div>
-            <div class="pet-silhouettes">
-              <span class="pet-emoji pet-1">🐕</span>
-              <span class="pet-emoji pet-2">🐈</span>
-              <span class="pet-emoji pet-3">🐶</span>
-              <span class="pet-emoji pet-4">🐱</span>
-              <span class="pet-emoji pet-5">🐈</span>
-            </div>
+            <div class="banner-shine"></div>
           </div>
-          <div class="banner-shine"></div>
+          <p-button
+            label="FORMULARIO DE ADOPCIÓN"
+            [style]="{
+              background: '#fbbf24',
+              border: 'none',
+              color: '#000000',
+              fontWeight: 'bold',
+              padding: '1rem 2rem',
+              marginTop: '1.5rem'
+            }"
+          />
         </div>
-        <p-button
-          label="FORMULARIO DE ADOPCIÓN"
-          [style]="{
-            background: '#fbbf24',
-            border: 'none',
-            color: '#000000',
-            fontWeight: 'bold',
-            padding: '1rem 2rem',
-            marginTop: '1.5rem'
-          }"
-        />
       </div>
 
       <div class="navigation-tabs">
@@ -90,7 +92,7 @@ import { filter, take } from 'rxjs/operators';
         </a>
         <a href="#aliados" class="nav-tab" (click)="scrollToSection('aliados', $event)">
           <span class="tab-icon">🐾</span>
-          <span>ALIADOS PUPPIS</span>
+          <span>ALIADOS BLACK DOG</span>
         </a>
       </div>
 
@@ -153,10 +155,15 @@ import { filter, take } from 'rxjs/operators';
 
       .adoption-plan-section {
         background: #ffffff;
-        padding: 3rem 2rem;
+        width: 100%;
+        padding: 3rem 0;
         text-align: center;
+      }
+
+      .adoption-plan-section-inner {
         max-width: 1400px;
         margin: 0 auto;
+        padding: 0 2rem;
       }
 
       .plan-title {
@@ -402,7 +409,11 @@ import { filter, take } from 'rxjs/operators';
 
       @media (max-width: 768px) {
         .adoption-plan-section {
-          padding: 2rem 1rem;
+          padding: 2rem 0;
+        }
+
+        .adoption-plan-section-inner {
+          padding: 0 1rem;
         }
 
         .plan-title {

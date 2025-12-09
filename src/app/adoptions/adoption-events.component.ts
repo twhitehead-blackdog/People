@@ -1,5 +1,5 @@
-import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component } from '@angular/core';
 import { Button } from 'primeng/button';
 
 @Component({
@@ -74,7 +74,9 @@ import { Button } from 'primeng/button';
             </div>
             <div class="foundation-card">
               <h3 class="foundation-name">DogPack</h3>
-              <p class="foundation-address">Información de contacto disponible</p>
+              <p class="foundation-address">
+                Información de contacto disponible
+              </p>
               <div class="foundation-social">
                 <a href="#" class="social-link" aria-label="Facebook">📘</a>
                 <a href="#" class="social-link" aria-label="Instagram">📷</a>
@@ -88,10 +90,14 @@ import { Button } from 'primeng/button';
   styles: [
     `
       .events-section {
-        background: linear-gradient(135deg, #fef3c7 0%, #ffffff 50%, #dbeafe 100%);
-        padding: 4rem 2rem;
-        max-width: 1400px;
-        margin: 0 auto;
+        background: linear-gradient(
+          135deg,
+          #fef3c7 0%,
+          #ffffff 50%,
+          #dbeafe 100%
+        );
+        width: 100%;
+        padding: 4rem 0;
         position: relative;
         overflow: hidden;
       }
@@ -103,7 +109,11 @@ import { Button } from 'primeng/button';
         right: -100px;
         width: 400px;
         height: 400px;
-        background: radial-gradient(circle, rgba(251, 191, 36, 0.2) 0%, transparent 70%);
+        background: radial-gradient(
+          circle,
+          rgba(251, 191, 36, 0.2) 0%,
+          transparent 70%
+        );
         border-radius: 50%;
         animation: float 8s ease-in-out infinite;
       }
@@ -115,13 +125,18 @@ import { Button } from 'primeng/button';
         left: -150px;
         width: 500px;
         height: 500px;
-        background: radial-gradient(circle, rgba(30, 64, 175, 0.15) 0%, transparent 70%);
+        background: radial-gradient(
+          circle,
+          rgba(30, 64, 175, 0.15) 0%,
+          transparent 70%
+        );
         border-radius: 50%;
         animation: float 10s ease-in-out infinite reverse;
       }
 
       @keyframes float {
-        0%, 100% {
+        0%,
+        100% {
           transform: translateY(0) rotate(0deg);
         }
         50% {
@@ -134,6 +149,9 @@ import { Button } from 'primeng/button';
         grid-template-columns: 1fr 1fr;
         gap: 3rem;
         align-items: start;
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 2rem;
       }
 
       .events-content {
@@ -147,7 +165,12 @@ import { Button } from 'primeng/button';
       .events-title {
         font-size: 2.5rem;
         font-weight: 700;
-        background: linear-gradient(135deg, #000000 0%, #374151 50%, #000000 100%);
+        background: linear-gradient(
+          135deg,
+          #000000 0%,
+          #374151 50%,
+          #000000 100%
+        );
         background-size: 200% auto;
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
@@ -175,7 +198,8 @@ import { Button } from 'primeng/button';
       }
 
       @keyframes gradientShift {
-        0%, 100% {
+        0%,
+        100% {
           background-position: 0% center;
         }
         50% {
@@ -207,17 +231,15 @@ import { Button } from 'primeng/button';
         overflow: hidden;
         border: 3px solid transparent;
         background: linear-gradient(white, white) padding-box,
-                    linear-gradient(135deg, #fbbf24, #374151, #fbbf24) border-box;
-        box-shadow: 0 10px 40px rgba(251, 191, 36, 0.3),
-                    0 0 20px rgba(55, 65, 81, 0.2);
+          linear-gradient(135deg, #fbbf24, #374151, #fbbf24) border-box;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
         margin-top: 1rem;
         transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
       .events-image-container:hover {
-        transform: translateY(-8px) scale(1.02);
-        box-shadow: 0 20px 60px rgba(251, 191, 36, 0.5),
-                    0 0 40px rgba(30, 64, 175, 0.3);
+        transform: translateY(-4px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
       }
 
       .events-image {
@@ -228,7 +250,7 @@ import { Button } from 'primeng/button';
       }
 
       .events-image-container:hover .events-image {
-        transform: scale(1.1);
+        transform: scale(1.05);
       }
 
       .decorative-shapes {
@@ -313,9 +335,8 @@ import { Button } from 'primeng/button';
 
       .foundation-card:hover {
         border-color: rgba(55, 65, 81, 0.5);
-        box-shadow: 0 12px 32px rgba(55, 65, 81, 0.3),
-                    0 0 20px rgba(251, 191, 36, 0.2);
-        transform: translateY(-4px);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        transform: translateY(-2px);
         background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
       }
 
@@ -390,9 +411,14 @@ import { Button } from 'primeng/button';
       }
 
       @media (max-width: 1024px) {
+        .events-section {
+          padding: 3rem 0;
+        }
+
         .events-container {
           grid-template-columns: 1fr;
           gap: 2rem;
+          padding: 0 1.5rem;
         }
 
         .events-image-container {
@@ -403,7 +429,11 @@ import { Button } from 'primeng/button';
 
       @media (max-width: 768px) {
         .events-section {
-          padding: 2rem 1rem;
+          padding: 2rem 0;
+        }
+
+        .events-container {
+          padding: 0 1rem;
         }
 
         .events-title {
@@ -432,4 +462,3 @@ export class AdoptionEventsComponent {
     console.log('Navegar a ayuda');
   }
 }
-

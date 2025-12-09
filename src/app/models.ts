@@ -45,6 +45,7 @@ export type Pet = {
   is_vaccinated: boolean;
   is_sterilized: boolean;
   is_available: boolean;
+  personality?: string[];
   photos?: string[];
   created_at?: Date;
   updated_at?: Date;
@@ -65,6 +66,7 @@ export type AdoptionApplication = {
   has_children: boolean;
   children_info?: string;
   living_situation?: string;
+  personality?: string[];
   status: 'pending' | 'approved' | 'rejected' | 'completed';
   notes?: string;
   created_at?: Date;

@@ -27,18 +27,9 @@ export class AuthWrapperService {
   public currentUser = signal<User | null>(null);
 
   constructor() {
-    console.log('🔍 [AuthWrapperService] Inicializando servicio...');
-    
     // Sincronizar user$ de Auth0 con nuestro signal
     this.user$.subscribe((auth0User) => {
       if (auth0User) {
-        console.log('✅ [AuthWrapperService] Usuario de Auth0 recibido:', {
-          email: auth0User.email,
-          sub: auth0User.sub,
-          name: auth0User.name,
-          nickname: auth0User.nickname
-        });
-        
         const userEmail = (auth0User.email || '').toLowerCase();
         const isAdminEmail = this.ADMIN_EMAILS.some(
           (email) => userEmail === email.toLowerCase()
@@ -62,24 +53,10 @@ export class AuthWrapperService {
           role: isAdminEmail ? 'admin' : 'user',
         };
 
-        console.log('✅ [AuthWrapperService] Usuario procesado:', {
-          id: user.id,
-          email: user.email,
-          full_name: user.full_name,
-          role: user.role,
-          isAdmin: isAdminEmail
-        });
-
         this.currentUser.set(user);
       } else {
-        console.log('ℹ️ [AuthWrapperService] No hay usuario de Auth0');
         this.currentUser.set(null);
       }
-    });
-    
-    // Monitorear cambios en el estado de autenticación
-    this.isAuthenticated$.subscribe((isAuth) => {
-      console.log('🔍 [AuthWrapperService] Estado de autenticación:', isAuth);
     });
   }
 
