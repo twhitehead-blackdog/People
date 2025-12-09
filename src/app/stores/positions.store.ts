@@ -10,4 +10,5 @@ export const PositionsStore = signalStore(
   })
   // Carga automática desactivada para evitar error 400 al iniciar
   // Positions se cargará cuando se necesite (al abrir la página de positions)
+  // Las queries se adaptan automáticamente para usar naz_* cuando corresponde
 );

@@ -81,6 +81,13 @@ import { CompaniesFormComponent } from './companies-form.component';
             </td>
           </tr>
         </ng-template>
+        <ng-template #emptymessage>
+          <tr>
+            <td colspan="4" class="text-center py-8">
+              <p class="text-gray-400">No hay empresas registradas</p>
+            </td>
+          </tr>
+        </ng-template>
       </p-table>
     </div>
   </p-card>`,

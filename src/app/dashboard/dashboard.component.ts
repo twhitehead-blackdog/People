@@ -8,7 +8,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { RippleModule } from 'primeng/ripple';
 import { ToastModule } from 'primeng/toast';
 
-import { AsyncPipe } from '@angular/common';
+import { AsyncPipe, NgClass } from '@angular/common';
 import { AuthService } from '@auth0/auth0-angular';
 import { Avatar } from 'primeng/avatar';
 import { Button } from 'primeng/button';
@@ -24,6 +24,7 @@ import { PayrollsStore } from '../stores/payrolls.store';
 import { PositionsStore } from '../stores/positions.store';
 import { SchedulesStore } from '../stores/schedules.store';
 import { EmployeePortalComponent } from './employee-portal.component';
+import { OrganizationService } from '../services/organization.service';
 
 @Component({
   selector: 'pt-dashboard',
@@ -54,6 +55,7 @@ import { EmployeePortalComponent } from './employee-portal.component';
     AsyncPipe,
     MenuModule,
     EmployeePortalComponent,
+    NgClass,
   ],
   template: `
     <p-toast />
@@ -66,15 +68,16 @@ import { EmployeePortalComponent } from './employee-portal.component';
       (click)="toggleMenu()"
     ></div>
     }
-    <div class="h-screen flex flex-col overflow-hidden">
+    <div class="h-screen flex flex-col overflow-hidden" [ngClass]="{ 'naz-theme': isNaz() }">
       <nav
         class="bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900 border-b border-neutral-700/50 w-full min-w-0 shadow-lg relative z-[1000]"
+        [ngClass]="{ 'naz-nav': isNaz() }"
       >
         <div class="mx-auto max-w-7xl px-2 sm:px-4 lg:px-6">
           <div class="header-container h-14 md:h-16">
             <div class="header-logo">
               <a (click)="navigateTo('home')" class="flex items-center gap-2 group cursor-pointer">
-                <img src="images/blackdog.png" class="h-7 md:h-9 transition-transform duration-300 group-hover:scale-105" alt="People" />
+                <img [src]="logoPath()" class="h-7 md:h-9 transition-transform duration-300 group-hover:scale-105" alt="People" />
               </a>
             </div>
             <div class="header-menu hidden md:block">
@@ -402,6 +405,81 @@ import { EmployeePortalComponent } from './employee-portal.component';
           opacity: 1;
         }
       }
+
+      /* Tema Naz */
+      :host-context(.naz-theme) nav,
+      .naz-theme nav,
+      nav.naz-nav {
+        background: #000000 !important;
+        border-bottom-color: rgba(255, 255, 255, 0.10) !important;
+      }
+
+      :host-context(.naz-theme) .header-menu a,
+      .naz-theme .header-menu a {
+        color: #C6C2BF !important;
+      }
+
+      :host-context(.naz-theme) .header-menu a:hover,
+      .naz-theme .header-menu a:hover {
+        color: #FFFFFF !important;
+        background: rgba(255, 255, 255, 0.10) !important;
+      }
+
+      :host-context(.naz-theme) .header-menu a.selected,
+      .naz-theme .header-menu a.selected {
+        background: #0D0D0D !important;
+        color: #FFFFFF !important;
+        border-left-color: #FFFFFF !important;
+      }
+
+      :host-context(.naz-theme) .header-user,
+      .naz-theme .header-user {
+        color: #FFFFFF !important;
+      }
+
+      :host-context(.naz-theme) .header-user .text-gray-400,
+      .naz-theme .header-user .text-gray-400 {
+        color: #C6C2BF !important;
+      }
+
+      :host-context(.naz-theme) .md\\:hidden a,
+      .naz-theme .md\\:hidden a {
+        color: #C6C2BF !important;
+      }
+
+      :host-context(.naz-theme) .md\\:hidden a:hover,
+      .naz-theme .md\\:hidden a:hover {
+        color: #FFFFFF !important;
+        background: rgba(255, 255, 255, 0.10) !important;
+      }
+
+      :host-context(.naz-theme) .md\\:hidden a.bg-gray-700,
+      .naz-theme .md\\:hidden a.bg-gray-700 {
+        background: #0D0D0D !important;
+        color: #FFFFFF !important;
+      }
+
+      :host-context(.naz-theme) ::ng-deep .p-menu,
+      .naz-theme ::ng-deep .p-menu {
+        background: #0D0D0D !important;
+        border: 1px solid rgba(255, 255, 255, 0.10) !important;
+      }
+
+      :host-context(.naz-theme) ::ng-deep .p-menu .p-menuitem-link,
+      .naz-theme ::ng-deep .p-menu .p-menuitem-link {
+        color: #C6C2BF !important;
+      }
+
+      :host-context(.naz-theme) ::ng-deep .p-menu .p-menuitem-link:hover,
+      .naz-theme ::ng-deep .p-menu .p-menuitem-link:hover {
+        background: rgba(255, 255, 255, 0.10) !important;
+        color: #FFFFFF !important;
+      }
+
+      :host-context(.naz-theme) ::ng-deep .p-menu .p-menuitem-link .p-menuitem-icon,
+      .naz-theme ::ng-deep .p-menu .p-menuitem-link .p-menuitem-icon {
+        color: #FFFFFF !important;
+      }
       `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -413,6 +491,15 @@ export class DashboardComponent {
   public route = inject(ActivatedRoute);
   public currentRoute = signal('');
   public showEmployeePortalView = signal(false);
+  public organizationService = inject(OrganizationService);
+  
+  // Computed para verificar si es Naz
+  public isNaz = computed(() => this.organizationService.isNaz());
+  
+  // Logo dinámico según organización
+  public logoPath = computed(() => {
+    return this.isNaz() ? 'images/Naz_Logo.jpg' : 'images/blackdog.png';
+  });
 
   // Verificar si el usuario es soporte2@blackdogpanama.com
   // Memoized to avoid recalculation

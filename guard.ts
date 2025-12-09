@@ -29,6 +29,9 @@ export const authGuardFn: CanActivateFn = (_route: ActivatedRouteSnapshot) => {
           }
 
           const email = user.email.toLowerCase();
+          
+          // Buscar en ambas tablas: employees (Black Dog) y naz_employees (Naz)
+          // Primero intentar en employees
           const params = new HttpParams()
             .set('select', 'id')
             .set('or', `(work_email.eq.${email},email.eq.${email})`);
@@ -38,12 +41,49 @@ export const authGuardFn: CanActivateFn = (_route: ActivatedRouteSnapshot) => {
               params,
             })
             .pipe(
-              map((records) =>
-                records.length > 0
-                  ? true
-                  : router.createUrlTree(['/sin-acceso'])
-              ),
-              catchError(() => of(router.createUrlTree(['/sin-acceso'])))
+              switchMap((records) => {
+                // Si se encuentra en employees, permitir acceso
+                if (records.length > 0) {
+                  return of(true);
+                }
+                
+                // Si no se encuentra, buscar en naz_employees
+                const nazParams = new HttpParams()
+                  .set('select', 'id')
+                  .set('or', `(work_email.eq.${email},email.eq.${email})`);
+                
+                return http
+                  .get<Array<{ id: string }>>(`${supabaseUrl}/rest/v1/naz_employees`, {
+                    params: nazParams,
+                  })
+                  .pipe(
+                    map((nazRecords) =>
+                      nazRecords.length > 0
+                        ? true
+                        : router.createUrlTree(['/sin-acceso'])
+                    ),
+                    catchError(() => of(router.createUrlTree(['/sin-acceso'])))
+                  );
+              }),
+              catchError(() => {
+                // Si falla la consulta a employees, intentar directamente en naz_employees
+                const nazParams = new HttpParams()
+                  .set('select', 'id')
+                  .set('or', `(work_email.eq.${email},email.eq.${email})`);
+                
+                return http
+                  .get<Array<{ id: string }>>(`${supabaseUrl}/rest/v1/naz_employees`, {
+                    params: nazParams,
+                  })
+                  .pipe(
+                    map((nazRecords) =>
+                      nazRecords.length > 0
+                        ? true
+                        : router.createUrlTree(['/sin-acceso'])
+                    ),
+                    catchError(() => of(router.createUrlTree(['/sin-acceso'])))
+                  );
+              })
             );
         })
       );

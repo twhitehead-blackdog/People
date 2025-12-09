@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { BehaviorSubject, interval, catchError, map, of, switchMap, Observable } from 'rxjs';
 import { timeout } from 'rxjs/operators';
 import { Branch } from '../models';
+import { OrganizationService } from './organization.service';
 
 /**
  * Servicio para monitorear la IP del cliente en modo kiosko
@@ -15,6 +16,7 @@ import { Branch } from '../models';
 export class IpMonitorService {
   private http = inject(HttpClient);
   private router = inject(Router);
+  private organizationService = inject(OrganizationService);
   
   private currentIP$ = new BehaviorSubject<string | null>(null);
   private isIPValid$ = new BehaviorSubject<boolean>(true);
@@ -25,10 +27,23 @@ export class IpMonitorService {
   private ipRefreshIntervalTime = 60000; // Actualizar lista de IPs cada 60 segundos
 
   /**
+   * Verifica si es Naz (no requiere validación de IP)
+   */
+  private isNaz(): boolean {
+    return this.organizationService.isNaz();
+  }
+
+  /**
    * Inicia el monitoreo de IP
    * @param allowedIPs Lista de IPs permitidas
    */
   startMonitoring(allowedIPs: string[]): void {
+    // Si es Naz, no monitorear IP
+    if (this.isNaz()) {
+      this.isIPValid$.next(true);
+      return;
+    }
+
     this.allowedIPs = allowedIPs;
     
     // Verificar IP inicial
@@ -144,9 +159,15 @@ export class IpMonitorService {
    * Usa la misma lógica que validateInitialIP: servidor → WebRTC → HTTP
    */
   private checkIP() {
+    // Si es Naz, no verificar IP
+    if (this.isNaz()) {
+      return of({ allowed: true, ip: null });
+    }
+
     const previousIP = this.currentIP$.value;
     
     // Método 1: Intentar obtener IP desde nuestro servidor primero
+    // Si falla, usar WebRTC directamente sin intentar el servidor
     return this.http.get<{ ip: string }>('/api/client-ip').pipe(
       timeout(5000),
       map((response) => {
@@ -165,6 +186,10 @@ export class IpMonitorService {
       }),
       catchError((serverError) => {
         // Si el servidor falla o devuelve localhost, intentar WebRTC
+        // No mostrar error en consola si es Naz (no requiere validación de IP)
+        if (this.isNaz()) {
+          return of({ allowed: true, ip: null });
+        }
         return this.getLocalIPWithWebRTC().pipe(
           timeout(8000),
           map((localIP) => {
@@ -285,6 +310,11 @@ export class IpMonitorService {
    * @param allowedIPs Lista de IPs permitidas (opcional, si no se proporciona usa las configuradas)
    */
   validateInitialIP(allowedIPs?: string[]): Promise<{ allowed: boolean; ip: string | null }> {
+    // Si es Naz, permitir acceso sin validar IP
+    if (this.isNaz()) {
+      return Promise.resolve({ allowed: true, ip: null });
+    }
+
     // Si se proporcionan IPs, configurarlas primero
     if (allowedIPs && allowedIPs.length > 0) {
       this.allowedIPs = allowedIPs;
@@ -292,6 +322,7 @@ export class IpMonitorService {
     
     return new Promise((resolve) => {
       // Método 1: Intentar obtener IP desde nuestro servidor primero
+      // Si falla, usar WebRTC directamente sin intentar el servidor
       this.http.get<{ ip: string }>('/api/client-ip').pipe(
         timeout(10000),
         map((response) => {

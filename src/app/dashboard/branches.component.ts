@@ -92,6 +92,13 @@ import { BranchesFormComponent } from './branches-form.component';
               </td>
             </tr>
           </ng-template>
+          <ng-template #emptymessage>
+            <tr>
+              <td colspan="5" class="text-center py-8">
+                <p class="text-gray-400">No hay sucursales registradas</p>
+              </td>
+            </tr>
+          </ng-template>
         </p-table>
       </div>
     </p-card>

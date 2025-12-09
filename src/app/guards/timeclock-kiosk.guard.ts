@@ -3,18 +3,36 @@ import { CanActivateFn, Router, UrlTree } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { catchError, from, Observable, of, switchMap, timeout } from 'rxjs';
 import { IpMonitorService } from '../services/ip-monitor.service';
-import { Branch } from '../models';
+import { OrganizationService } from '../services/organization.service';
+import { Branch, NazBranch } from '../models';
 
 /**
  * Guard para el modo kiosko del reloj de marcaciones
- * Permite acceso sin autenticación pero valida la IP del cliente
- * Solo permite acceso desde IPs de sucursales activas configuradas en la base de datos
+ * Permite acceso sin autenticación pero valida la IP del cliente (solo para Black Dog)
+ * Para Naz, permite acceso sin validar IP
+ * Solo permite acceso desde IPs de sucursales activas configuradas en la base de datos (Black Dog)
  */
 export const timeclockKioskGuard: CanActivateFn = (route, state): Observable<boolean | UrlTree> => {
   const router = inject(Router);
   const http = inject(HttpClient);
   const ipMonitor = inject(IpMonitorService);
+  const organizationService = inject(OrganizationService);
 
+  // Detectar organización desde el parámetro 'org' de la URL
+  const orgParam = route.queryParams?.['org'] || new URLSearchParams(window.location.search).get('org');
+  const isNaz = orgParam === 'naz';
+  
+  // Establecer la organización en el servicio
+  if (orgParam === 'naz' || orgParam === 'blackdog') {
+    organizationService.setOrganization(orgParam as 'naz' | 'blackdog');
+  }
+
+  // Si es Naz, permitir acceso sin validar IP
+  if (isNaz) {
+    return of(true);
+  }
+
+  // Para Black Dog, validar IP como antes
   // Obtener IPs de sucursales activas desde la base de datos
   // El interceptor HTTP ya agrega los headers de Supabase automáticamente
   return http.get<Branch[]>(`${process.env['ENV_SUPABASE_URL']}/rest/v1/branches`, {

@@ -36,6 +36,8 @@ import { v4 } from 'uuid';
 import { Bank, Employee, UniformSize } from '../models';
 import { DashboardStore } from '../stores/dashboard.store';
 import { WassengerService } from '../services/wassenger.service';
+import { OrganizationService } from '../services/organization.service';
+import { getTableName } from '../utils/table-helper';
 
 @Component({
   selector: 'pt-employee-form',
@@ -636,6 +638,7 @@ export class EmployeeFormComponent implements OnInit {
 
   private confirmationService = inject(ConfirmationService);
   private wassengerService = inject(WassengerService);
+  private organizationService = inject(OrganizationService);
   currentSalary = toSignal(
     this.form.get('monthly_salary')!.valueChanges.pipe(debounceTime(500)),
     {
@@ -648,8 +651,9 @@ export class EmployeeFormComponent implements OnInit {
     if (!this.employee_id()) {
       return;
     }
+    const employeesTable = getTableName('employees', this.organizationService.isNaz());
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
+      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/${employeesTable}`,
       method: 'GET',
       params: {
         select:

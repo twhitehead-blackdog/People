@@ -1,4 +1,4 @@
-import { computed } from '@angular/core';
+import { computed, inject } from '@angular/core';
 import { tapResponse } from '@ngrx/operators';
 import {
   patchState,
@@ -6,12 +6,15 @@ import {
   withComputed,
   withHooks,
   withMethods,
+  withProps,
   withState,
 } from '@ngrx/signals';
 import { differenceInMonths } from 'date-fns';
 import { exhaustMap } from 'rxjs';
 import { Employee, Termination, TimeOff } from '../models';
 import { withCustomEntities } from './entities.feature';
+import { getTableName } from '../utils/table-helper';
+import { OrganizationService } from '../services/organization.service';
 
 type State = {
   timeoff_types: TimeOff[];
@@ -21,6 +24,8 @@ export const EmployeesStore = signalStore(
   withState<State>({ timeoff_types: [] }),
   withCustomEntities<Employee>({
     name: 'employees',
+    // Query base - se adaptará automáticamente para naz_* cuando corresponda
+    // Nota: naz_positions no tiene dashboard_access ni default_view, así que no los incluimos
     query:
       'id,first_name,middle_name,father_name,mother_name,birth_date,gender,start_date,monthly_salary,document_id,end_date,email,phone_number,is_active,uniform_size,company_id,branch_id,department_id,position_id,bank,account_number,bank_account_type,created_at,branch:branches(id, name, short_name),department:departments(id, name),position:positions(id, name, admin, schedule_admin, schedule_approver), address,work_email,has_portal_access,account_approved',
     detailsQuery:
@@ -51,6 +56,7 @@ export const EmployeesStore = signalStore(
   withMethods((state) => ({
     terminateEmployee(request: Termination) {
       patchState(state, { isLoading: true, error: null });
+      const employeesTable = getTableName('employees', state._orgService.isNaz());
       return state._http
         .post(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/terminations`,
@@ -59,7 +65,7 @@ export const EmployeesStore = signalStore(
         .pipe(
           exhaustMap(() =>
             state._http.patch(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
+              `${process.env['ENV_SUPABASE_URL']}/rest/v1/${employeesTable}`,
               { 
                 is_active: false,
                 end_date: request.date // Actualizar también el campo end_date con la fecha de terminación

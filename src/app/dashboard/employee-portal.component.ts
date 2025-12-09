@@ -34,6 +34,8 @@ import { firstValueFrom } from 'rxjs';
 import { TimeLogEnum } from '../models';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
+import { OrganizationService } from '../services/organization.service';
+import { getTableName } from '../utils/table-helper';
 
 @Component({
   selector: 'pt-employee-portal',
@@ -56,7 +58,7 @@ import { EmployeesStore } from '../stores/employees.store';
   ],
   providers: [MessageService],
   template: `
-    <div class="mx-2 sm:mx-4 md:mx-6 flex flex-col gap-4 py-4 sm:py-6">
+    <div class="mx-2 sm:mx-4 md:mx-6 flex flex-col gap-4 py-4 sm:py-6" [ngClass]="{ 'naz-theme': isNaz() }">
       <div class="flex items-center justify-between">
         <h1 class="text-xl sm:text-2xl font-bold text-white">
           <i class="pi pi-user mr-2"></i>
@@ -1556,6 +1558,134 @@ import { EmployeesStore } from '../stores/employees.store';
         gap: 1.5rem;
       }
     }
+
+    /* Tema Naz */
+    .naz-theme :host {
+      background: #000000 !important;
+    }
+
+    .naz-theme h1,
+    .naz-theme .text-white {
+      color: #FFFFFF !important;
+    }
+
+    .naz-theme .text-gray-400 {
+      color: #C6C2BF !important;
+    }
+
+    .naz-theme .text-gray-500 {
+      color: #7A7A7A !important;
+    }
+
+    .naz-theme ::ng-deep .p-card {
+      background: #0D0D0D !important;
+      border-color: rgba(255, 255, 255, 0.10) !important;
+      color: #FFFFFF !important;
+    }
+
+    .naz-theme ::ng-deep .p-card .p-card-title,
+    .naz-theme ::ng-deep .p-card .p-card-subtitle {
+      color: #FFFFFF !important;
+    }
+
+    .naz-theme ::ng-deep .p-tabs .p-tablist {
+      background: #0D0D0D !important;
+      border-color: rgba(255, 255, 255, 0.10) !important;
+    }
+
+    .naz-theme ::ng-deep .p-tabs .p-tab {
+      color: #C6C2BF !important;
+    }
+
+    .naz-theme ::ng-deep .p-tabs .p-tab.p-highlight {
+      color: #FFFFFF !important;
+      border-bottom-color: #FFFFFF !important;
+    }
+
+    .naz-theme ::ng-deep .p-datatable {
+      background: #0D0D0D !important;
+      color: #FFFFFF !important;
+    }
+
+    .naz-theme ::ng-deep .p-datatable .p-datatable-thead > tr > th {
+      background: #1A1A1A !important;
+      color: #FFFFFF !important;
+      border-color: rgba(255, 255, 255, 0.10) !important;
+    }
+
+    .naz-theme ::ng-deep .p-datatable .p-datatable-tbody > tr {
+      background: #0D0D0D !important;
+      color: #FFFFFF !important;
+      border-color: rgba(255, 255, 255, 0.10) !important;
+    }
+
+    .naz-theme ::ng-deep .p-datatable .p-datatable-tbody > tr > td {
+      color: #C6C2BF !important;
+    }
+
+    .naz-theme ::ng-deep .p-inputtext,
+    .naz-theme ::ng-deep .p-inputtextarea,
+    .naz-theme ::ng-deep .p-datepicker input {
+      background: #0D0D0D !important;
+      border-color: rgba(255, 255, 255, 0.10) !important;
+      color: #FFFFFF !important;
+    }
+
+    .naz-theme ::ng-deep .p-inputtext:focus,
+    .naz-theme ::ng-deep .p-inputtextarea:focus,
+    .naz-theme ::ng-deep .p-datepicker.p-focus input {
+      border-color: #FFFFFF !important;
+      box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.2) !important;
+    }
+
+    .naz-theme ::ng-deep .p-inputtext::placeholder,
+    .naz-theme ::ng-deep .p-inputtextarea::placeholder {
+      color: #7A7A7A !important;
+    }
+
+    .naz-theme ::ng-deep .p-button {
+      border-color: #FFFFFF !important;
+      color: #FFFFFF !important;
+      background: transparent !important;
+    }
+
+    .naz-theme ::ng-deep .p-button:hover {
+      background: #E5E2DF !important;
+      color: #000000 !important;
+    }
+
+    .naz-theme ::ng-deep .p-button.p-button-secondary {
+      background: #E5E2DF !important;
+      color: #000000 !important;
+      border-color: #E5E2DF !important;
+    }
+
+    .naz-theme ::ng-deep .p-button.p-button-secondary:hover {
+      background: #C6C2BF !important;
+    }
+
+    .naz-theme ::ng-deep .dashboard-welcome-card .p-card-body {
+      background: #0D0D0D !important;
+      border-color: rgba(255, 255, 255, 0.10) !important;
+    }
+
+    .naz-theme ::ng-deep .dashboard-stat-card .p-card-body {
+      background: #0D0D0D !important;
+      border-color: rgba(255, 255, 255, 0.10) !important;
+    }
+
+    .naz-theme ::ng-deep .bg-neutral-800 {
+      background: #0D0D0D !important;
+      border-color: rgba(255, 255, 255, 0.10) !important;
+    }
+
+    .naz-theme ::ng-deep [class*="bg-neutral-800/50"] {
+      background: rgba(13, 13, 13, 0.5) !important;
+    }
+
+    .naz-theme ::ng-deep [class*="border-neutral-700/50"] {
+      border-color: rgba(255, 255, 255, 0.10) !important;
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -1565,6 +1695,15 @@ export class EmployeePortalComponent {
   public messageService = inject(MessageService);
   private http = inject(HttpClient);
   private destroyRef = inject(DestroyRef);
+  public organizationService = inject(OrganizationService);
+
+  // Computed para verificar si es Naz
+  public isNaz = computed(() => this.organizationService.isNaz());
+  
+  // Helper para obtener nombre de tabla
+  private getTable(table: string): string {
+    return getTableName(table, this.isNaz());
+  }
 
   public currentEmployee = computed(() => this.store.currentEmployee());
 
@@ -1589,12 +1728,16 @@ export class EmployeePortalComponent {
       return undefined;
     }
     const employeeId = this.currentEmployee()!.id;
+    const isNaz = this.isNaz();
+    const timelogsTable = this.getTable('timelogs');
+    const employeesTable = this.getTable('employees');
+    const branchesTable = this.getTable('branches');
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`,
+      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/${timelogsTable}`,
       method: 'GET',
       params: {
         select:
-          '*,employee:employees(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)',
+          `*,employee:${employeesTable}(id,first_name,father_name, branch:${branchesTable}(id, name)),branch:${branchesTable}(id, name, short_name)`,
         employee_id: `eq.${employeeId}`,
         created_at: `gte.${format(this.dateRange()[0], 'yyyy-MM-dd 06:00:00')}`,
       },
@@ -1721,6 +1864,7 @@ export class EmployeePortalComponent {
 
   public disabilitiesApi = httpResource<any[]>(() => {
     if (!this.currentEmployee()?.id) return undefined;
+    // employee_disabilities es compartida entre ambas organizaciones
     return {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_disabilities`,
       method: 'GET',
@@ -2079,9 +2223,10 @@ export class EmployeePortalComponent {
       if (this.editPhone()) updateData.phone_number = this.editPhone().trim();
       if (this.editAddress()) updateData.address = this.editAddress().trim();
 
+      const employeesTable = this.getTable('employees');
       await firstValueFrom(
         this.http.patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees?id=eq.${
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/${employeesTable}?id=eq.${
             this.currentEmployee()!.id
           }`,
           updateData,

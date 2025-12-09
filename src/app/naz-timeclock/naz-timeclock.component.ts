@@ -33,26 +33,19 @@ import { Toast } from 'primeng/toast';
 import { catchError, EMPTY, Observable, of } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
 import {
-  Branch,
-  Company,
-  Employee,
-  EmployeeSchedule,
   NazBranch,
   NazCompany,
   NazEmployee,
   NazEmployeeSchedule,
   NazSchedule,
   NazTimeLog,
-  Schedule,
-  TimeLog,
   TimelogType,
-} from './models';
-import { TrimPipe } from './pipes/trim.pipe';
-import { IpMonitorService } from './services/ip-monitor.service';
-import { OrganizationService } from './services/organization.service';
+} from '../models';
+import { TrimPipe } from '../pipes/trim.pipe';
+import { IpMonitorService } from '../services/ip-monitor.service';
 
 @Component({
-  selector: 'pt-timeclock',
+  selector: 'pt-naz-timeclock',
   imports: [
     InputOtp,
     Select,
@@ -88,16 +81,15 @@ import { OrganizationService } from './services/organization.service';
     <p-toast />
     <div
       class="flex flex-col items-center justify-center animated-gradient-container"
-      [ngClass]="{ 'naz-theme': isNazCompany() }"
       style="width: 100%; position: relative; min-height: 100vh; overflow-y: auto; overflow-x: hidden;"
     >
-      @if (!isKioskMode() || isIPValid() || isNazCompany()) {
+      @if (!isKioskMode() || isIPValid()) {
       <div
         class="flex flex-col gap-2 md:gap-3 lg:gap-4 items-center px-3 md:px-6 relative z-10 timeclock-content"
         style="max-width: 600px; width: 100%; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem 0;"
       >
         <img
-          [src]="isNazCompany() ? 'images/Naz_Logo.jpg' : 'images/blackdog.png'"
+          src="images/blackdog.png"
           class="h-12 md:h-16 lg:h-20 w-auto object-contain drop-shadow-2xl relative z-10"
         />
         <p-card class="w-full timeclock-card relative z-10">
@@ -141,7 +133,7 @@ import { OrganizationService } from './services/organization.service';
             <div class="input-container w-full">
               <p-select
                 formControlName="company_id"
-                [options]="currentCompaniesResource()"
+                [options]="companiesResource.value()"
                 placeholder="Seleccionar empresa"
                 optionLabel="name"
                 optionValue="id"
@@ -155,7 +147,7 @@ import { OrganizationService } from './services/organization.service';
             <div class="input-container w-full">
               <p-select
                 formControlName="branch_id"
-                [options]="currentBranchesResource()"
+                [options]="branchesResource.value()"
                 placeholder="Seleccionar sucursal"
                 optionValue="id"
                 optionLabel="name"
@@ -174,7 +166,7 @@ import { OrganizationService } from './services/organization.service';
             >
               <p-select
                 formControlName="employee"
-                [options]="currentEmployeesResource()"
+                [options]="employeesResource.value()"
                 placeholder="Seleccionar empleado"
                 filter
                 filterBy="first_name,father_name"
@@ -273,7 +265,7 @@ import { OrganizationService } from './services/organization.service';
         style="max-width: 600px; width: 100%; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem 0;"
       >
         <img
-          [src]="isNazCompany() ? 'images/Naz_Logo.jpg' : 'images/blackdog.png'"
+          src="images/blackdog.png"
           class="h-12 md:h-16 lg:h-20 w-auto object-contain drop-shadow-2xl relative z-10"
         />
         <p-card class="w-full timeclock-card relative z-10">
@@ -652,122 +644,15 @@ import { OrganizationService } from './services/organization.service';
       animation: rotate 0.6s linear infinite;
     }
 
-    /* ============================================
-       TEMA NAZ - ESTILOS MINIMALISTAS PREMIUM
-       ============================================ */
-    
-    /* Fondo Naz - negro con animación de lava lamp plateada */
-    .naz-theme .animated-gradient-container {
-      background: #000000;
-      position: relative;
-      overflow: hidden;
-    }
-
-    /* Animación de lava lamp plateada para timeclock Naz */
-    .naz-theme .animated-gradient-container::before {
-      content: '';
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      min-height: 200vh;
-      background: 
-        repeating-linear-gradient(
-          45deg,
-          rgba(255, 255, 255, 0.5) 0%,
-          rgba(255, 255, 255, 0.6) 2%,
-          rgba(229, 226, 223, 0.65) 4%,
-          rgba(198, 194, 191, 0.55) 6%,
-          transparent 8%,
-          transparent 12%,
-          rgba(198, 194, 191, 0.5) 14%,
-          rgba(229, 226, 223, 0.6) 16%,
-          rgba(255, 255, 255, 0.55) 18%,
-          transparent 20%
-        ),
-        linear-gradient(
-          135deg,
-          rgba(255, 255, 255, 0.6) 0%,
-          rgba(229, 226, 223, 0.7) 25%,
-          rgba(198, 194, 191, 0.6) 50%,
-          rgba(229, 226, 223, 0.65) 75%,
-          rgba(255, 255, 255, 0.55) 100%
-        );
-      animation: silverLavaFlow 25s ease-in-out infinite;
-      z-index: 0;
-      filter: blur(25px);
-      pointer-events: none;
-    }
-
-    .naz-theme .animated-gradient-container::after {
-      content: '';
-      position: absolute;
-      top: -50%;
-      right: -50%;
-      width: 200%;
-      height: 200%;
-      min-height: 200vh;
-      background: 
-        repeating-linear-gradient(
-          -45deg,
-          rgba(229, 226, 223, 0.55) 0%,
-          rgba(255, 255, 255, 0.65) 2%,
-          rgba(198, 194, 191, 0.6) 4%,
-          rgba(229, 226, 223, 0.5) 6%,
-          transparent 8%,
-          transparent 12%,
-          rgba(255, 255, 255, 0.55) 14%,
-          rgba(198, 194, 191, 0.65) 16%,
-          rgba(229, 226, 223, 0.6) 18%,
-          transparent 20%
-        ),
-        linear-gradient(
-          -135deg,
-          rgba(198, 194, 191, 0.7) 0%,
-          rgba(229, 226, 223, 0.75) 30%,
-          rgba(255, 255, 255, 0.65) 60%,
-          rgba(198, 194, 191, 0.6) 100%
-        );
-      animation: silverLavaFlow 30s ease-in-out infinite reverse;
-      z-index: 0;
-      filter: blur(30px);
-      pointer-events: none;
-    }
-
-    @keyframes silverLavaFlow {
-      0% {
-        transform: translate(-20%, -20%) rotate(0deg) scale(1);
-        opacity: 0.9;
-      }
-      25% {
-        transform: translate(10%, 5%) rotate(5deg) scale(1.1);
-        opacity: 1;
-      }
-      50% {
-        transform: translate(5%, 15%) rotate(-3deg) scale(0.95);
-        opacity: 0.85;
-      }
-      75% {
-        transform: translate(-10%, 8%) rotate(4deg) scale(1.05);
-        opacity: 0.95;
-      }
-      100% {
-        transform: translate(-20%, -20%) rotate(0deg) scale(1);
-        opacity: 0.9;
-      }
-    }
-
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class TimeclockComponent implements OnDestroy {
+export class NazTimeclockComponent implements OnDestroy {
   private message = inject(MessageService);
   private confirmation = inject(ConfirmationService);
   private http = inject(HttpClient);
   private router = inject(Router);
   private ipMonitor = inject(IpMonitorService);
-  private organizationService = inject(OrganizationService);
   private destroyRef = inject(DestroyRef);
   // Get IP address - try multiple methods to get real IP even from localhost
   public currentIP = signal<string>('127.0.0.1');
@@ -777,24 +662,12 @@ export class TimeclockComponent implements OnDestroy {
   public availableTypes = signal<Array<{ value: string; label: string }>>([]);
   public isKioskMode = signal<boolean>(false);
   public isIPValid = signal<boolean>(true);
-  // Usar el servicio de organización como fuente principal
-  public isNazCompany = computed(() => this.organizationService.isNaz());
-  private employeesTable = computed(() =>
-    this.isNazCompany() ? 'naz_employees' : 'employees'
-  );
 
   private injector = inject(Injector);
   private timeInterval: any;
 
   // Update time every second
   constructor() {
-    // Detectar organización desde URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const orgParam = urlParams.get('org');
-    if (orgParam === 'naz' || orgParam === 'blackdog') {
-      this.organizationService.setOrganization(orgParam as 'naz' | 'blackdog');
-    }
-
     // Detectar si está en modo kiosko
     const isKioskRoute = this.router.url.includes('/timeclock-kiosk');
     this.isKioskMode.set(isKioskRoute);
@@ -809,100 +682,52 @@ export class TimeclockComponent implements OnDestroy {
     // Try to get real IP address using multiple methods
     this.detectIP();
 
-    // Si está en modo kiosko y NO es Naz, monitorear la IP continuamente
-    if (isKioskRoute && !this.isNazCompany()) {
+    // Si está en modo kiosko, monitorear la IP continuamente
+    if (isKioskRoute) {
       this.setupKioskModeMonitoring();
-    } else if (isKioskRoute && this.isNazCompany()) {
-      // Para Naz, siempre considerar la IP como válida
-      this.isIPValid.set(true);
     }
 
     // Auto-select company and branch when data loads
     effect(
       () => {
-        const isNaz = this.isNazCompany();
-        const companies = this.currentCompaniesResource();
-        const branches = this.currentBranchesResource();
+        const companies = this.companiesResource.value();
+        const branches = this.branchesResource.value();
 
-        // Auto-select company if not already selected
+        // Auto-select first Naz company if found
         if (
           companies &&
           companies.length > 0 &&
           !this.form.get('company_id')?.value
         ) {
-          let targetCompany: Company | NazCompany | undefined;
+          // Try to find a company with "naz" in the name (case insensitive)
+          let nazCompany = companies.find((c) => {
+            const name = c.name.toLowerCase();
+            return name.includes('naz');
+          });
 
-          if (isNaz) {
-            // For Naz: auto-select "Naz" company
-            targetCompany = companies.find((c: Company | NazCompany) =>
-              c.name.toLowerCase().includes('naz')
-            ) as NazCompany | undefined;
-          } else {
-            // For Black Dog: auto-select "Black Dog Panamá" company
-            // First try exact match for "Black Dog Panamá"
-            targetCompany = companies.find((c: Company | NazCompany) => {
-              const name = c.name.toLowerCase();
-              return (
-                name === 'black dog panamá' ||
-                name === 'blackdog panamá' ||
-                name === 'black dog panama' ||
-                name === 'blackdog panama'
-              );
-            }) as Company | undefined;
-
-            // If not found, try partial matches with both "black dog" and "panamá"
-            if (!targetCompany) {
-              targetCompany = companies.find((c: Company | NazCompany) => {
-                const name = c.name.toLowerCase();
-                return (
-                  (name.includes('black dog') || name.includes('blackdog')) &&
-                  (name.includes('panamá') || name.includes('panama'))
-                );
-              }) as Company | undefined;
-            }
-
-            // Last resort: just look for "black dog" or "blackdog"
-            if (!targetCompany) {
-              targetCompany = companies.find((c: Company | NazCompany) => {
-                const name = c.name.toLowerCase();
-                return name.includes('black dog') || name.includes('blackdog');
-              }) as Company | undefined;
-            }
+          // If not found, just select the first active company
+          if (!nazCompany) {
+            nazCompany = companies.find((c) => c.is_active) || companies[0];
           }
 
-          if (targetCompany) {
-            this.form.get('company_id')?.setValue(targetCompany.id);
+          if (nazCompany) {
+            this.form.get('company_id')?.setValue(nazCompany.id);
           }
         }
 
-        // Auto-select branch if not already selected
+        // Auto-select branch by IP if found (after company is selected)
         const selectedCompanyId = this.form.get('company_id')?.value;
         if (
           branches &&
           branches.length > 0 &&
           !this.form.get('branch_id')?.value
         ) {
-          if (isNaz) {
-            // For Naz: auto-select "Calle 50" branch
-            const calle50Branch = branches.find((b: Branch | NazBranch) => {
-              const name = b.name.toLowerCase();
-              return (
-                (name.includes('calle 50') || name.includes('calle50')) &&
-                (b as NazBranch).company_id === selectedCompanyId
-              );
-            }) as NazBranch | undefined;
-            if (calle50Branch) {
-              this.form.get('branch_id')?.setValue(calle50Branch.id);
-            }
-          } else {
-            // For Black Dog: auto-select branch by IP if found
-            const currentIP = this.getIP();
-            if (currentIP && currentIP !== '127.0.0.1') {
-              // Find branch matching the IP
-              const matchingBranch = branches.find((b: Branch | NazBranch) => b.ip === currentIP);
-              if (matchingBranch) {
-                this.form.get('branch_id')?.setValue(matchingBranch.id);
-              }
+          const currentIP = this.getIP();
+          if (currentIP && currentIP !== '127.0.0.1') {
+            // Find branch matching the IP
+            const matchingBranch = branches.find((b) => b.ip === currentIP);
+            if (matchingBranch) {
+              this.form.get('branch_id')?.setValue(matchingBranch.id);
             }
           }
         }
@@ -914,17 +739,6 @@ export class TimeclockComponent implements OnDestroy {
     this.form.get('employee')?.valueChanges.subscribe((employee) => {
       this.onEmployeeSelected(employee);
     });
-
-    // Clear employee selection when company changes
-    effect(
-      () => {
-        const companyId = this.form.get('company_id')?.value;
-        if (companyId) {
-          this.form.get('employee')?.reset();
-        }
-      },
-      { injector: this.injector }
-    );
   }
 
   /**
@@ -934,7 +748,7 @@ export class TimeclockComponent implements OnDestroy {
     // Suscribirse al estado de validez de la IP
     this.ipMonitor.isIPValid
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((isValid) => {
+      .subscribe((isValid: boolean) => {
         this.isIPValid.set(isValid);
 
         if (!isValid) {
@@ -956,7 +770,7 @@ export class TimeclockComponent implements OnDestroy {
     // También suscribirse a cambios de IP para detectar cambios de red
     this.ipMonitor.currentIP
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((ip) => {
+      .subscribe((ip: string | null) => {
         if (ip) {
           this.currentIP.set(ip);
         }
@@ -1226,15 +1040,12 @@ export class TimeclockComponent implements OnDestroy {
   });
 
   public validIP = computed(() => {
-    // Naz no tiene validación de IP
-    if (this.isNazCompany()) return true;
-    
     const ip = this.getIP();
     // If IP is localhost (dev fallback), always allow
     if (ip === '127.0.0.1') return true;
-    const branches = this.currentBranchesResource();
-    if (!branches) return true;
-    return branches.some((branch: Branch | NazBranch) => branch.ip === ip);
+    return (
+      this.branchesResource.value()?.some((branch) => branch.ip === ip) ?? true
+    );
   });
 
   public types = Object.entries(TimelogType).map(([key, value]) => ({
@@ -1242,26 +1053,7 @@ export class TimeclockComponent implements OnDestroy {
     label: value,
   }));
 
-  public companiesResource = httpResource<Company[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/companies`,
-    method: 'GET',
-    params: {
-      select: '*',
-      order: 'name',
-    },
-  }));
-
-  public branchesResource = httpResource<Branch[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/branches`,
-    method: 'GET',
-    params: {
-      select: '*',
-      order: 'name',
-    },
-  }));
-
-  // Resources for Naz
-  public nazCompaniesResource = httpResource<NazCompany[]>(() => ({
+  public companiesResource = httpResource<NazCompany[]>(() => ({
     url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/naz_companies`,
     method: 'GET',
     params: {
@@ -1270,7 +1062,7 @@ export class TimeclockComponent implements OnDestroy {
     },
   }));
 
-  public nazBranchesResource = httpResource<NazBranch[]>(() => ({
+  public branchesResource = httpResource<NazBranch[]>(() => ({
     url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/naz_branches`,
     method: 'GET',
     params: {
@@ -1279,31 +1071,7 @@ export class TimeclockComponent implements OnDestroy {
     },
   }));
 
-  // Computed signals to select the correct resource based on organization
-  public currentCompaniesResource = computed<Company[] | NazCompany[] | undefined>(() => {
-    return this.isNazCompany()
-      ? this.nazCompaniesResource.value()
-      : this.companiesResource.value();
-  });
-
-  public currentBranchesResource = computed<Branch[] | NazBranch[] | undefined>(() => {
-    return this.isNazCompany()
-      ? this.nazBranchesResource.value()
-      : this.branchesResource.value();
-  });
-
-  // Separate resources for regular employees and Naz employees
-  public employeesResource = httpResource<Partial<Employee>[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
-    method: 'GET',
-    params: {
-      select: 'id,first_name,father_name,code_uri',
-      order: 'father_name',
-      is_active: 'eq.true',
-    },
-  }));
-
-  public nazEmployeesResource = httpResource<Partial<NazEmployee>[]>(() => ({
+  public employeesResource = httpResource<Partial<NazEmployee>[]>(() => ({
     url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/naz_employees`,
     method: 'GET',
     params: {
@@ -1313,27 +1081,14 @@ export class TimeclockComponent implements OnDestroy {
     },
   }));
 
-  // Computed to select the correct resource based on company
-  public currentEmployeesResource = computed<
-    Partial<Employee | NazEmployee>[] | undefined
-  >(() => {
-    return this.isNazCompany()
-      ? this.nazEmployeesResource.value()
-      : this.employeesResource.value();
-  });
-
   // Get last timelog for an employee today to determine next type
-  private getLastTimelog(
-    employeeId: string
-  ): Observable<TimeLog | NazTimeLog | null> {
+  private getLastTimelog(employeeId: string): Observable<NazTimeLog | null> {
     const today = format(new Date(), 'yyyy-MM-dd');
     const todayStart = `${today}T00:00:00`;
-    const isNaz = this.isNazCompany();
-    const tableName = isNaz ? 'naz_timelogs' : 'timelogs';
 
     return this.http
-      .get<TimeLog[] | NazTimeLog[]>(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
+      .get<NazTimeLog[]>(
+        `${process.env['ENV_SUPABASE_URL']}/rest/v1/naz_timelogs`,
         {
           params: {
             select: 'id,type,created_at',
@@ -1382,18 +1137,14 @@ export class TimeclockComponent implements OnDestroy {
   // Get employee schedule for today
   private getEmployeeSchedule(
     employeeId: string
-  ): Observable<EmployeeSchedule | NazEmployeeSchedule | null> {
+  ): Observable<NazEmployeeSchedule | null> {
     const today = format(new Date(), 'yyyy-MM-dd');
-    const isNaz = this.isNazCompany();
-    const tableName = isNaz ? 'naz_employee_schedules' : 'employee_schedules';
-    const scheduleTable = isNaz ? 'naz_schedules' : 'schedules';
-
     return this.http
-      .get<EmployeeSchedule[] | NazEmployeeSchedule[]>(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
+      .get<NazEmployeeSchedule[]>(
+        `${process.env['ENV_SUPABASE_URL']}/rest/v1/naz_employee_schedules`,
         {
           params: {
-            select: `*,schedule:${scheduleTable}(*)`,
+            select: '*,schedule:naz_schedules(*)',
             employee_id: `eq.${employeeId}`,
             start_date: `lte.${today}`,
             end_date: `gte.${today}`,
@@ -1414,7 +1165,7 @@ export class TimeclockComponent implements OnDestroy {
   // Calculate if entry is late
   private calculateDelay(
     entryTime: Date,
-    schedule: Schedule | NazSchedule | undefined
+    schedule: NazSchedule | undefined
   ): number | null {
     if (!schedule || !schedule.entry_time || schedule.day_off) {
       return null;
@@ -1467,16 +1218,14 @@ export class TimeclockComponent implements OnDestroy {
   // Get lunch_start timelog for today
   private getLunchStartTimelog(
     employeeId: string
-  ): Observable<TimeLog | NazTimeLog | null> {
+  ): Observable<NazTimeLog | null> {
     const today = format(new Date(), 'yyyy-MM-dd');
     const todayStart = `${today}T00:00:00`;
     const todayEnd = `${today}T23:59:59`;
-    const isNaz = this.isNazCompany();
-    const tableName = isNaz ? 'naz_timelogs' : 'timelogs';
 
-    const url = `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}?select=id,type,created_at&employee_id=eq.${employeeId}&type=eq.lunch_start&created_at=gte.${todayStart}&created_at=lte.${todayEnd}&order=created_at.desc&limit=1`;
+    const url = `${process.env['ENV_SUPABASE_URL']}/rest/v1/naz_timelogs?select=id,type,created_at&employee_id=eq.${employeeId}&type=eq.lunch_start&created_at=gte.${todayStart}&created_at=lte.${todayEnd}&order=created_at.desc&limit=1`;
 
-    return this.http.get<TimeLog[] | NazTimeLog[]>(url).pipe(
+    return this.http.get<NazTimeLog[]>(url).pipe(
       map((timelogs) => {
         if (!timelogs || timelogs.length === 0) {
           return null;
@@ -1496,7 +1245,7 @@ export class TimeclockComponent implements OnDestroy {
   private calculateLunchEndDifference(
     lunchEndTime: Date,
     lunchStartTime: Date | null,
-    schedule: Schedule | NazSchedule | undefined
+    schedule: NazSchedule | undefined
   ): number | null {
     if (!schedule || schedule.day_off) {
       return null;
@@ -1586,7 +1335,7 @@ export class TimeclockComponent implements OnDestroy {
   // Calculate if exit is early or late
   private calculateExitDifference(
     exitTime: Date,
-    schedule: Schedule | NazSchedule | undefined
+    schedule: NazSchedule | undefined
   ): { minutes: number; isEarly: boolean } | null {
     if (!schedule || !schedule.exit_time || schedule.day_off) {
       return null;
@@ -1634,7 +1383,7 @@ export class TimeclockComponent implements OnDestroy {
       validators: [Validators.required],
       nonNullable: true,
     }),
-    employee: new FormControl<Employee | undefined>(undefined, {
+    employee: new FormControl<NazEmployee | undefined>(undefined, {
       validators: [Validators.required],
       nonNullable: true,
     }),
@@ -1657,7 +1406,7 @@ export class TimeclockComponent implements OnDestroy {
     }
   }
 
-  onEmployeeSelected(employee: Employee | undefined) {
+  onEmployeeSelected(employee: NazEmployee | undefined) {
     if (employee?.id) {
       this.getLastTimelog(employee.id).subscribe({
         next: (lastTimelog) => {
@@ -1742,21 +1491,14 @@ export class TimeclockComponent implements OnDestroy {
     employeeName: string
   ) {
     const now = new Date();
-    const isNaz = this.isNazCompany();
-    const tableName = isNaz ? 'naz_timelogs' : 'timelogs';
-    const invalidField = isNaz ? 'invalid_id' : 'invalid_ip';
-
-    // Para Naz, no validar IP (invalid_id siempre será false)
-    const invalidValue = isNaz ? false : !this.validIP();
-    
     this.http
-      .post(`${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`, {
+      .post(`${process.env['ENV_SUPABASE_URL']}/rest/v1/naz_timelogs`, {
         employee_id: employeeId,
         branch_id: branchId,
         company_id: companyId,
         type,
         ip: this.getIP(),
-        [invalidField]: invalidValue,
+        invalid_id: !this.validIP(),
       })
       .pipe(
         switchMap(() => {
@@ -1932,8 +1674,7 @@ export class TimeclockComponent implements OnDestroy {
               this.form.get('otp')?.reset();
               this.form.get('employee')?.reset();
               this.showKeypad.set(false);
-              // Solo validar IP si NO es Naz
-              if (!this.isNazCompany() && !this.validIP()) {
+              if (!this.validIP()) {
                 this.alertInvalidIP();
               }
             },

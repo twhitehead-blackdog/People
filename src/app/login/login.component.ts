@@ -2,6 +2,7 @@ import { NgClass } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   inject,
   signal,
 } from '@angular/core';
@@ -9,6 +10,7 @@ import { AuthService } from '@auth0/auth0-angular';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { Toast } from 'primeng/toast';
+import { OrganizationService } from '../services/organization.service';
 
 @Component({
   selector: 'pt-login',
@@ -16,6 +18,7 @@ import { Toast } from 'primeng/toast';
   template: `
     <div
       class="w-full h-screen flex flex-col items-center justify-center p-4 relative animated-gradient-container"
+      [ngClass]="{ 'naz-theme': isNaz() }"
       style="overflow: hidden;"
     >
       <p-toast />
@@ -23,22 +26,55 @@ import { Toast } from 'primeng/toast';
         class="login-container flex flex-col items-center justify-center w-full h-full relative z-10"
       >
         <div class="logo-wrapper mb-8 md:mb-12">
-          <img
-            src="images/blackdog.png"
-            class="logo-image"
-            alt="Black Dog Logo"
-          />
+          <div class="logo-selector-container">
+            <button
+              type="button"
+              class="arrow-button arrow-left"
+              (click)="previousOrganization()"
+              aria-label="Organización anterior"
+            >
+              <i class="pi pi-chevron-left"></i>
+            </button>
+            <div class="logo-container">
+              <img
+                [src]="logoPath()"
+                [class]="
+                  'logo-image ' + (isNaz() ? 'logo-naz' : 'logo-blackdog')
+                "
+                [alt]="isNaz() ? 'Naz Logo' : 'Black Dog Logo'"
+              />
+            </div>
+            <button
+              type="button"
+              class="arrow-button arrow-right"
+              (click)="nextOrganization()"
+              aria-label="Siguiente organización"
+            >
+              <i class="pi pi-chevron-right"></i>
+            </button>
+          </div>
         </div>
 
-        <p-card class="login-card">
+        <p-card class="login-card" [ngClass]="{ 'naz-card': isNaz() }">
           <ng-template #title>
             <div class="card-title-wrapper">
-              <div class="card-subtitle">Sistema de Gestión de Personal</div>
-              <div class="card-title">Iniciar sesión</div>
+              <div
+                [ngClass]="{ 'card-subtitle': true, 'naz-subtitle': isNaz() }"
+              >
+                Sistema de Gestión de Personal
+              </div>
+              <div [ngClass]="{ 'card-title': true, 'naz-title': isNaz() }">
+                Iniciar sesión
+              </div>
             </div>
           </ng-template>
           <ng-template #subtitle>
-            <div class="card-description">
+            <div
+              [ngClass]="{
+                'card-description': true,
+                'naz-description': isNaz()
+              }"
+            >
               Ingresa con tu cuenta para continuar
             </div>
           </ng-template>
@@ -53,7 +89,8 @@ import { Toast } from 'primeng/toast';
                   size="large"
                   [ngClass]="{
                     'switch-button-active': activeMode() === 'dashboard',
-                    fly: isFlying()
+                    fly: isFlying(),
+                    'naz-button': isNaz()
                   }"
                   styleClass="switch-button switch-button-dashboard"
                   [disabled]="isFlying()"
@@ -64,7 +101,8 @@ import { Toast } from 'primeng/toast';
                   icon="pi pi-desktop"
                   size="large"
                   [ngClass]="{
-                    'switch-button-active': activeMode() === 'kiosk'
+                    'switch-button-active': activeMode() === 'kiosk',
+                    'naz-button': isNaz()
                   }"
                   styleClass="switch-button switch-button-kiosk"
                 />
@@ -86,11 +124,212 @@ import { Toast } from 'primeng/toast';
     .login-container {
       padding: 2rem 1rem;
       min-height: 100vh;
+      position: relative;
     }
     
     @media (min-width: 768px) {
       .login-container {
         padding: 3rem 2rem;
+      }
+    }
+
+    /* ============================================
+       TEMA BLACK DOG - ESTILOS
+       ============================================ */
+    
+    /* Fondo Black Dog - gradiente oscuro */
+    .animated-gradient-container:not(.naz-theme) {
+      background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 25%, #000000 50%, #0d0d0d 75%, #2a2a2a 100%);
+    }
+
+    /* ============================================
+       TEMA NAZ - ESTILOS MINIMALISTAS PREMIUM
+       ============================================ */
+    
+    /* Fondo Naz - negro con animación de lava lamp plateada */
+    .naz-theme .animated-gradient-container {
+      background: #000000;
+      position: relative;
+      overflow: hidden;
+      min-height: 100vh;
+    }
+
+    /* Animación de lava lamp plateada - cubre toda la pantalla */
+    .naz-theme .animated-gradient-container::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      min-height: 200vh;
+      background: 
+        repeating-linear-gradient(
+          45deg,
+          rgba(255, 255, 255, 0.5) 0%,
+          rgba(255, 255, 255, 0.6) 2%,
+          rgba(229, 226, 223, 0.65) 4%,
+          rgba(198, 194, 191, 0.55) 6%,
+          transparent 8%,
+          transparent 12%,
+          rgba(198, 194, 191, 0.5) 14%,
+          rgba(229, 226, 223, 0.6) 16%,
+          rgba(255, 255, 255, 0.55) 18%,
+          transparent 20%
+        ),
+        linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.6) 0%,
+          rgba(229, 226, 223, 0.7) 25%,
+          rgba(198, 194, 191, 0.6) 50%,
+          rgba(229, 226, 223, 0.65) 75%,
+          rgba(255, 255, 255, 0.55) 100%
+        );
+      animation: silverLavaFlow 25s ease-in-out infinite;
+      z-index: 0;
+      filter: blur(25px);
+      pointer-events: none;
+    }
+
+    .naz-theme .animated-gradient-container::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -50%;
+      width: 200%;
+      height: 200%;
+      min-height: 200vh;
+      background: 
+        repeating-linear-gradient(
+          -45deg,
+          rgba(229, 226, 223, 0.55) 0%,
+          rgba(255, 255, 255, 0.65) 2%,
+          rgba(198, 194, 191, 0.6) 4%,
+          rgba(229, 226, 223, 0.5) 6%,
+          transparent 8%,
+          transparent 12%,
+          rgba(255, 255, 255, 0.55) 14%,
+          rgba(198, 194, 191, 0.65) 16%,
+          rgba(229, 226, 223, 0.6) 18%,
+          transparent 20%
+        ),
+        linear-gradient(
+          -135deg,
+          rgba(198, 194, 191, 0.7) 0%,
+          rgba(229, 226, 223, 0.75) 30%,
+          rgba(255, 255, 255, 0.65) 60%,
+          rgba(198, 194, 191, 0.6) 100%
+        );
+      animation: silverLavaFlow 30s ease-in-out infinite reverse;
+      z-index: 0;
+      filter: blur(30px);
+      pointer-events: none;
+    }
+
+    /* Animación de lava lamp plateada también en login-container para tema Naz */
+    .naz-theme .login-container {
+      background: transparent;
+      position: relative;
+      overflow: visible;
+    }
+
+    .naz-theme .login-container::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      min-height: 200vh;
+      background: 
+        repeating-linear-gradient(
+          45deg,
+          rgba(255, 255, 255, 0.5) 0%,
+          rgba(255, 255, 255, 0.6) 2%,
+          rgba(229, 226, 223, 0.65) 4%,
+          rgba(198, 194, 191, 0.55) 6%,
+          transparent 8%,
+          transparent 12%,
+          rgba(198, 194, 191, 0.5) 14%,
+          rgba(229, 226, 223, 0.6) 16%,
+          rgba(255, 255, 255, 0.55) 18%,
+          transparent 20%
+        ),
+        linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.6) 0%,
+          rgba(229, 226, 223, 0.7) 25%,
+          rgba(198, 194, 191, 0.6) 50%,
+          rgba(229, 226, 223, 0.65) 75%,
+          rgba(255, 255, 255, 0.55) 100%
+        );
+      animation: silverLavaFlow 25s ease-in-out infinite;
+      z-index: 0;
+      filter: blur(25px);
+      pointer-events: none;
+    }
+
+    .naz-theme .login-container::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -50%;
+      width: 200%;
+      height: 200%;
+      min-height: 200vh;
+      background: 
+        repeating-linear-gradient(
+          -45deg,
+          rgba(229, 226, 223, 0.55) 0%,
+          rgba(255, 255, 255, 0.65) 2%,
+          rgba(198, 194, 191, 0.6) 4%,
+          rgba(229, 226, 223, 0.5) 6%,
+          transparent 8%,
+          transparent 12%,
+          rgba(255, 255, 255, 0.55) 14%,
+          rgba(198, 194, 191, 0.65) 16%,
+          rgba(229, 226, 223, 0.6) 18%,
+          transparent 20%
+        ),
+        linear-gradient(
+          -135deg,
+          rgba(198, 194, 191, 0.7) 0%,
+          rgba(229, 226, 223, 0.75) 30%,
+          rgba(255, 255, 255, 0.65) 60%,
+          rgba(198, 194, 191, 0.6) 100%
+        );
+      animation: silverLavaFlow 30s ease-in-out infinite reverse;
+      z-index: 0;
+      filter: blur(30px);
+      pointer-events: none;
+    }
+
+    /* Asegurar que el contenido esté por encima de la animación */
+    .naz-theme .login-container > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    @keyframes silverLavaFlow {
+      0% {
+        transform: translate(-20%, -20%) rotate(0deg) scale(1);
+        opacity: 0.9;
+      }
+      25% {
+        transform: translate(10%, 5%) rotate(5deg) scale(1.1);
+        opacity: 1;
+      }
+      50% {
+        transform: translate(5%, 15%) rotate(-3deg) scale(0.95);
+        opacity: 0.85;
+      }
+      75% {
+        transform: translate(-10%, 8%) rotate(4deg) scale(1.05);
+        opacity: 0.95;
+      }
+      100% {
+        transform: translate(-20%, -20%) rotate(0deg) scale(1);
+        opacity: 0.9;
       }
     }
     
@@ -527,6 +766,7 @@ import { Toast } from 'primeng/toast';
         border: 1px solid transparent !important;
         box-shadow: none !important;
         color: #ffffff !important;
+
       }
 
       /* Iconos en móvil - mismo color para ambos botones activos */
@@ -680,13 +920,230 @@ import { Toast } from 'primeng/toast';
     .switch-button-dashboard:not(.fly) ::ng-deep .p-button {
       transform: translate(0, 0) rotate(0deg) scale(1);
     }
+
+    /* ============================================
+       SELECTOR DE ORGANIZACIÓN - FLECHAS Y LOGO
+       ============================================ */
+    .logo-selector-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+      width: 100%;
+    }
+
+    .logo-container {
+      flex-shrink: 0;
+    }
+
+    .arrow-button {
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: rgba(255, 255, 255, 0.7);
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      flex-shrink: 0;
+    }
+
+    .arrow-button:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.4);
+      color: rgba(255, 255, 255, 1);
+      transform: scale(1.1);
+    }
+
+    .arrow-button:active {
+      transform: scale(0.95);
+    }
+
+    .arrow-button i {
+      font-size: 1.25rem;
+    }
+
+    @media (max-width: 640px) {
+      .logo-selector-container {
+        gap: 1rem;
+      }
+
+      .arrow-button {
+        width: 2rem;
+        height: 2rem;
+      }
+
+      .arrow-button i {
+        font-size: 1rem;
+      }
+    }
+
+    /* ============================================
+       TEMA NAZ - ESTILOS MINIMALISTAS PREMIUM
+       ============================================ */
+    .naz-theme {
+      background: #000000 !important;
+    }
+
+    .naz-theme .animated-gradient-container {
+      background: #000000 !important;
+    }
+
+    /* Logo Naz */
+    .logo-naz {
+      filter: none !important;
+    }
+
+    /* Card Naz */
+    .naz-card {
+      background: #0D0D0D !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      box-shadow: none !important;
+      border-radius: 2px !important;
+    }
+
+    .naz-card ::ng-deep .p-card {
+      background: transparent !important;
+    }
+
+    /* Tipografía Naz */
+    .naz-subtitle {
+      color: #C6C2BF !important;
+      font-family: 'Inter', 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    }
+
+    .naz-title {
+      color: #FFFFFF !important;
+      font-family: 'Playfair Display', serif !important;
+      font-weight: 400 !important;
+    }
+
+    .naz-description {
+      color: #C6C2BF !important;
+      font-family: 'Inter', 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+    }
+
+    /* Botones Naz - Minimalistas */
+    .naz-theme .switch-button-active.naz-button ::ng-deep .p-button {
+      background: transparent !important;
+      border: 1px solid #FFFFFF !important;
+      color: #FFFFFF !important;
+      box-shadow: none !important;
+      text-shadow: none !important;
+    }
+
+    .naz-theme .switch-button-active.naz-button ::ng-deep .p-button:hover {
+      background: #E5E2DF !important;
+      color: #000000 !important;
+      border-color: #E5E2DF !important;
+    }
+
+    .naz-theme .switch-button-active.naz-button ::ng-deep .p-button-icon {
+      color: inherit !important;
+      filter: none !important;
+      text-shadow: none !important;
+    }
+
+    .naz-theme .switch-button-active.naz-button ::ng-deep .p-button:hover .p-button-icon {
+      color: #000000 !important;
+      filter: none !important;
+    }
+
+    /* Botones inactivos Naz */
+    .naz-theme .switch-button:not(.switch-button-active).naz-button ::ng-deep .p-button {
+      background: #E5E2DF !important;
+      border: 1px solid #E5E2DF !important;
+      color: #000000 !important;
+    }
+
+    .naz-theme .switch-button:not(.switch-button-active).naz-button ::ng-deep .p-button:hover {
+      background: rgba(229, 226, 223, 0.8) !important;
+      color: #000000 !important;
+    }
+
+    .naz-theme .switch-button:not(.switch-button-active).naz-button ::ng-deep .p-button-icon {
+      color: #000000 !important;
+    }
+
+    /* Eliminar efectos amarillos en tema Naz */
+    .naz-theme .switch-button ::ng-deep .p-button {
+      text-shadow: none !important;
+    }
+
+    .naz-theme .switch-button-active.switch-button-dashboard ::ng-deep .p-button {
+      background: transparent !important;
+      border: 1px solid #FFFFFF !important;
+      color: #FFFFFF !important;
+      box-shadow: none !important;
+    }
+
+    .naz-theme .switch-button-active.switch-button-dashboard ::ng-deep .p-button:hover {
+      background: #E5E2DF !important;
+      color: #000000 !important;
+      border-color: #E5E2DF !important;
+
+    }
+
+    .naz-theme .switch-button-active.switch-button-dashboard ::ng-deep .p-button-icon {
+      filter: none !important;
+      text-shadow: none !important;
+      color: inherit !important;
+    }
+
+    .naz-theme .switch-button:not(.switch-button-active) ::ng-deep .p-button:hover {
+      color: rgba(255, 255, 255, 0.9) !important;
+    }
+
+    .naz-theme .switch-button:not(.switch-button-active) ::ng-deep .p-button:hover .p-button-icon {
+      color: rgba(255, 255, 255, 0.9) !important;
+      filter: none !important;
+    }
+
+    /* Flechas en tema Naz */
+    .naz-theme .arrow-button {
+      border-color: rgba(255, 255, 255, 0.3);
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .naz-theme .arrow-button:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.5);
+      color: #FFFFFF;
+    }
+
+    /* Switch container Naz */
+    .naz-theme .switch-container {
+      background: rgba(13, 13, 13, 0.8) !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      box-shadow: none !important;
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LoginComponent {
   public auth = inject(AuthService);
+  public organizationService = inject(OrganizationService);
   public activeMode = signal<'dashboard' | 'kiosk'>('dashboard');
   public isFlying = signal<boolean>(false);
+
+  // Computed para verificar si es Naz
+  public isNaz = computed(() => this.organizationService.isNaz());
+
+  // Computed para obtener la ruta del logo
+  public logoPath = computed(() =>
+    this.isNaz() ? 'images/Naz_Logo.jpg' : 'images/blackdog.png'
+  );
+
+  nextOrganization() {
+    this.organizationService.nextOrganization();
+  }
+
+  previousOrganization() {
+    this.organizationService.previousOrganization();
+  }
 
   setMode(mode: 'dashboard' | 'kiosk') {
     this.activeMode.set(mode);
@@ -713,7 +1170,8 @@ export class LoginComponent {
   }
 
   openKioskMode() {
-    // Solo abrir el modo kiosko, sin cambiar el modo activo para evitar problemas visuales
-    window.open('/timeclock-kiosk', '_blank');
+    // Abrir el modo kiosko con el parámetro de organización
+    const org = this.organizationService.currentOrganization;
+    window.open(`/timeclock-kiosk?org=${org}`, '_blank');
   }
 }

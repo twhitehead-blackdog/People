@@ -1,13 +1,16 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { NgClass } from '@angular/common';
 import { CreditorsStore } from '../stores/creditors.store';
 import { PayrollStore } from '../stores/payroll.store';
+import { OrganizationService } from '../services/organization.service';
 
 @Component({
   selector: 'pt-payroll',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, NgClass],
   providers: [PayrollStore, CreditorsStore],
-  template: `<header class="bg-gradient-to-r from-neutral-800 via-neutral-700 to-neutral-800 border-b border-neutral-600/50 shadow-md">
+  template: `<div [ngClass]="{ 'naz-theme': isNaz() }">
+    <header class="bg-gradient-to-r from-neutral-800 via-neutral-700 to-neutral-800 border-b border-neutral-600/50 shadow-md" [ngClass]="{ 'naz-header': isNaz() }">
       <div
         class="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8 sticky top-0 z-10"
       >
@@ -53,12 +56,42 @@ import { PayrollStore } from '../stores/payroll.store';
         </div>
       </div>
     </header>
-    <main class="bg-neutral-900 min-h-screen">
+    <main class="bg-neutral-900 min-h-screen" [ngClass]="{ 'naz-main': isNaz() }">
       <div class="mx-auto px-4 py-6 sm:px-6 lg:px-8">
         <router-outlet />
       </div>
-    </main>`,
-  styles: ``,
+    </main>
+  </div>`,
+  styles: `
+    /* Tema Naz */
+    .naz-theme header.naz-header {
+      background: #000000 !important;
+      border-bottom-color: rgba(255, 255, 255, 0.10) !important;
+    }
+
+    .naz-theme .naz-header a {
+      color: #C6C2BF !important;
+    }
+
+    .naz-theme .naz-header a:hover {
+      color: #FFFFFF !important;
+      background: rgba(255, 255, 255, 0.10) !important;
+    }
+
+    .naz-theme .naz-header a[routerlinkactive] {
+      background: #0D0D0D !important;
+      color: #FFFFFF !important;
+    }
+
+    .naz-theme main.naz-main {
+      background: #000000 !important;
+    }
+  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class PayrollComponent {}
+export class PayrollComponent {
+  public organizationService = inject(OrganizationService);
+  
+  // Computed para verificar si es Naz
+  public isNaz = computed(() => this.organizationService.isNaz());
+}

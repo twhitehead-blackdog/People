@@ -353,3 +353,164 @@ export const colorVariants: Record<string, string> = {
   teal: 'bg-teal-300 text-teal-800',
   cyan: 'bg-cyan-300 text-cyan-800',
 };
+
+// ============================================
+// SISTEMA DE MARCACIONES INDEPENDIENTE PARA NAZ
+// ============================================
+
+export type NazCompany = {
+  id: string;
+  name: string;
+  address?: string;
+  phone_number?: string;
+  is_active: boolean;
+  created_at?: Date;
+};
+
+export type NazBranch = {
+  id: string;
+  name: string;
+  short_name?: string;
+  address?: string;
+  is_active: boolean;
+  ip?: string;
+  company_id?: string;
+  company?: NazCompany;
+  created_at?: Date;
+};
+
+export type NazDepartment = {
+  id: string;
+  name: string;
+  created_at?: Date;
+};
+
+export type NazPosition = {
+  id: string;
+  name: string;
+  department_id: string;
+  department?: NazDepartment;
+  schedule_admin: boolean;
+  admin: boolean;
+  schedule_approver: boolean;
+  created_at?: Date;
+};
+
+export type NazEmployee = {
+  id: string;
+  document_id: string;
+  first_name: string;
+  middle_name?: string;
+  father_name: string;
+  mother_name?: string;
+  birth_date?: Date;
+  gender: 'M' | 'F';
+  start_date: Date;
+  monthly_salary: number;
+  hourly_salary?: number;
+  branch_id: string;
+  branch?: NazBranch;
+  department_id: string;
+  department?: NazDepartment;
+  position_id: string;
+  position?: NazPosition;
+  email?: string;
+  work_email?: string;
+  phone_number?: string;
+  address?: string;
+  end_date?: Date;
+  is_active: boolean;
+  uniform_size?: UniformSize;
+  qr_code?: string;
+  code_uri?: string;
+  bank?: string;
+  account_number?: string;
+  bank_account_type?: 'Ahorros' | 'Corriente';
+  full_name?: string;
+  created_at?: Date;
+};
+
+export type NazSchedule = {
+  id: string;
+  name: string;
+  entry_time?: Date | string | null;
+  lunch_start_time?: Date | string | null;
+  lunch_end_time?: Date | string | null;
+  exit_time?: Date | string | null;
+  color?: string;
+  day_off: boolean;
+  minutes_tolerance: number;
+  min_lunch_minutes?: number;
+  max_lunch_minutes?: number;
+  created_at?: Date;
+};
+
+export type NazEmployeeSchedule = {
+  id: string;
+  employee_id: string;
+  employee?: NazEmployee;
+  branch_id?: string;
+  branch?: NazBranch;
+  schedule_id: string;
+  schedule?: NazSchedule;
+  start_date: Date;
+  end_date: Date;
+  approved?: boolean;
+  approved_at?: Date;
+  created_at?: Date;
+  updated_at?: Date;
+};
+
+export type NazTimeLog = {
+  id: string;
+  employee_id: string;
+  employee?: Partial<NazEmployee>;
+  company_id: string;
+  company?: NazCompany;
+  branch_id: string;
+  branch?: NazBranch;
+  type: TimeLogEnum;
+  ip?: string;
+  invalid_id?: boolean;
+  created_at: Date;
+};
+
+export type NazAttendanceSheet = {
+  id?: string;
+  employee_id: string;
+  employee?: NazEmployee;
+  base_salary: number;
+  branch_id?: string | null;
+  branch?: NazBranch;
+  schedule_id?: string | null;
+  schedule?: NazSchedule;
+  date: Date | string;
+  entry_time?: Date | null;
+  exit_time?: Date | null;
+  lunch_start_time?: Date | null;
+  lunch_end_time?: Date | null;
+  is_late: boolean;
+  is_sunday: boolean;
+  worked_hours: number;
+  late_hours: number;
+  overtime_hours: number;
+  absence_hours: number;
+  worked_hours_payment: number;
+  late_hours_payment: number;
+  holiday_payment: number;
+  sunday_payment: number;
+  absence_hours_payment: number;
+  is_holiday: boolean;
+  compensatory_hours?: number;
+  compensatory_hours_payment?: number;
+  is_justified: boolean;
+  justification_notes: string;
+  justification_cause?:
+    | 'NORMAL'
+    | 'PERSONAL'
+    | 'INJUSTIFICADA'
+    | 'JUSTIFICADA'
+    | 'COMPENSATORIO';
+  justified_hours?: number;
+  created_at?: Date;
+};

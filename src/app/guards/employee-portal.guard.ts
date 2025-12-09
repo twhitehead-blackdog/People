@@ -195,7 +195,7 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
       }
 
       // Si no hay cache, hacer llamada HTTP
-      // Intentar primero con todos los campos, si falla, intentar sin dashboard_access y default_view
+      // Buscar primero en employees (Black Dog), luego en naz_employees (Naz)
       return http.get<Array<EmployeeWithPosition>>(
         `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
         {
@@ -205,6 +205,40 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
           },
         }
       ).pipe(
+        switchMap((employees) => {
+          // Si se encuentra en employees, usar esos datos
+          if (employees && employees.length > 0) {
+            return of(employees);
+          }
+          
+          // Si no se encuentra, buscar en naz_employees
+          return http.get<Array<{
+            id: string;
+            position?: { name: string; admin: boolean };
+            has_portal_access?: boolean;
+            account_approved?: boolean;
+          }>>(
+            `${process.env['ENV_SUPABASE_URL']}/rest/v1/naz_employees`,
+            {
+              params: {
+                work_email: `eq.${user.email}`,
+                select: 'id,position:naz_positions(name,admin),has_portal_access,account_approved',
+              },
+            }
+          ).pipe(
+            map((nazEmployees): Array<EmployeeWithPosition> => {
+              // Mapear el resultado de Naz para que tenga la misma estructura
+              return nazEmployees.map(emp => ({
+                ...emp,
+                position: emp.position ? {
+                  ...emp.position,
+                  dashboard_access: undefined,
+                  default_view: undefined,
+                } : undefined
+              }));
+            })
+          );
+        }),
         catchError((error) => {
           // Si falla la consulta con dashboard_access/default_view, intentar sin esos campos
           console.warn('Error en consulta con dashboard_access, intentando sin esos campos:', error);
@@ -222,16 +256,45 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
               },
             }
           ).pipe(
-            map((employees): Array<EmployeeWithPosition> => {
-              // Mapear el resultado para que tenga la misma estructura
-              return employees.map(emp => ({
-                ...emp,
-                position: emp.position ? {
-                  ...emp.position,
-                  dashboard_access: undefined, // undefined = permitir acceso por defecto
-                  default_view: undefined,
-                } : undefined
-              }));
+            switchMap((employees) => {
+              // Si se encuentra en employees, usar esos datos
+              if (employees && employees.length > 0) {
+                return of(employees.map(emp => ({
+                  ...emp,
+                  position: emp.position ? {
+                    ...emp.position,
+                    dashboard_access: undefined,
+                    default_view: undefined,
+                  } : undefined
+                })));
+              }
+              
+              // Si no se encuentra, buscar en naz_employees
+              return http.get<Array<{
+                id: string;
+                position?: { name: string; admin: boolean };
+                has_portal_access?: boolean;
+                account_approved?: boolean;
+              }>>(
+                `${process.env['ENV_SUPABASE_URL']}/rest/v1/naz_employees`,
+                {
+                  params: {
+                    work_email: `eq.${user.email}`,
+                    select: 'id,position:naz_positions(name,admin),has_portal_access,account_approved',
+                  },
+                }
+              ).pipe(
+                map((nazEmployees): Array<EmployeeWithPosition> => {
+                  return nazEmployees.map(emp => ({
+                    ...emp,
+                    position: emp.position ? {
+                      ...emp.position,
+                      dashboard_access: undefined,
+                      default_view: undefined,
+                    } : undefined
+                  }));
+                })
+              );
             })
           );
         }),

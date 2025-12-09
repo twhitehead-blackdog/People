@@ -39,6 +39,13 @@ export const appRoutes: Route[] = [
     canActivate: [timeclockKioskGuard],
   },
   {
+    path: 'naz-timeclock',
+    loadChildren: () =>
+      import('./naz-timeclock/naz-timeclock.routes').then(
+        (x) => x.nazTimeclockRoutes
+      ),
+  },
+  {
     path: 'job-fair',
     loadComponent: () =>
       import('./job-fair/job-fair-form.component').then(

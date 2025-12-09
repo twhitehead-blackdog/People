@@ -27,6 +27,8 @@ import { utils, writeFile } from 'xlsx';
 import { Branch, colorVariants, Employee } from '../models';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
+import { OrganizationService } from '../services/organization.service';
+import { getTableName } from '../utils/table-helper';
 
 @Component({
   selector: 'pt-timelogs',
@@ -45,10 +47,11 @@ import { EmployeesStore } from '../stores/employees.store';
     NgClass,
     ToggleSwitch,
   ],
-  template: `<p-card
-    header="Marcaciones"
-    subheader="Listado de marcaciones de empleados"
-  >
+  template: `<div [ngClass]="{ 'naz-theme': isNaz() }">
+    <p-card
+      header="Marcaciones"
+      subheader="Listado de marcaciones de empleados"
+    >
     <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-3">
       <div class="flex items-center gap-2">
         <label for="delayed" class="text-sm whitespace-nowrap"
@@ -475,6 +478,15 @@ export class TimelogsComponent {
   public branchId = model<string>();
   public store = inject(DashboardStore);
   public onlyDelayed = signal(false);
+  public organizationService = inject(OrganizationService);
+  
+  // Computed para verificar si es Naz
+  public isNaz = computed(() => this.organizationService.isNaz());
+  
+  // Helper para obtener nombre de tabla
+  private getTable(table: string): string {
+    return getTableName(table, this.isNaz());
+  }
 
   // Helper computed para normalizar el rango de fechas
   // Si solo hay una fecha, usar esa misma fecha como inicio y fin
@@ -578,11 +590,13 @@ export class TimelogsComponent {
     if (!start || !end) {
       return undefined;
     }
+    const employeeSchedulesTable = this.getTable('employee_schedules');
+    const schedulesTable = this.getTable('schedules');
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/${employeeSchedulesTable}`,
       method: 'GET',
       params: {
-        select: '*,schedule:schedules(*)',
+        select: `*,schedule:${schedulesTable}(*)`,
         start_date: `gte.${format(start, 'yyyy-MM-dd 06:00:00')}`,
         end_date: `lte.${format(end, 'yyyy-MM-dd 06:00:00')}`,
       },
@@ -612,10 +626,11 @@ export class TimelogsComponent {
     if (!start || !end) {
       return undefined;
     }
+    const timelogsTable = this.getTable('timelogs');
     return {
       url: `${
         process.env['ENV_SUPABASE_URL']
-      }/rest/v1/timelogs?created_at=lte.${format(
+      }/rest/v1/${timelogsTable}?created_at=lte.${format(
         addDays(end, 1),
         'yyyy-MM-dd 06:00:00'
       )}`,
@@ -643,13 +658,15 @@ export class TimelogsComponent {
     if (!start || !end) {
       return {};
     }
+    const employeesTable = this.getTable('employees');
+    const branchesTable = this.getTable('branches');
     const params: {
       select: string;
       created_at: string;
       employee_id?: string;
     } = {
       select:
-        '*,employee:employees(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)',
+        `*,employee:${employeesTable}(id,first_name,father_name, branch:${branchesTable}(id, name)),branch:${branchesTable}(id, name, short_name)`,
       created_at: `gte.${format(start, 'yyyy-MM-dd 06:00:00')}`,
     };
     if (this.employeeId()) {

@@ -9,13 +9,17 @@ import {
   signal,
 } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { NgClass } from '@angular/common';
+import { OrganizationService } from '../services/organization.service';
 
 @Component({
   selector: 'pt-admin',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
-  template: `<header
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, NgClass],
+  template: `<div [ngClass]="{ 'naz-theme': isNaz() }">
+    <header
       class="bg-gradient-to-r from-neutral-800 via-neutral-700 to-neutral-800 border-b border-neutral-600/50 shadow-md"
+      [ngClass]="{ 'naz-header': isNaz() }"
     >
       <div class="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
         <div class="flex items-center justify-center gap-6">
@@ -204,15 +208,52 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
         </div>
       </div>
     </header>
-    <main class="bg-neutral-900 min-h-screen">
+    <main class="bg-neutral-900 min-h-screen" [ngClass]="{ 'naz-main': isNaz() }">
       <div class="mx-auto px-4 py-6 sm:px-6 lg:px-8">
         <router-outlet />
       </div>
-    </main>`,
+    </main>
+  </div>`,
   styles: `
     .selected {
       @apply bg-gradient-to-r from-gray-700/80 to-gray-600/80 text-white shadow-md transition-all duration-300 ease-in-out;
       border-left: 3px solid #FBBF24;
+    }
+
+    /* Tema Naz */
+    .naz-theme header.naz-header {
+      background: #000000 !important;
+      border-bottom-color: rgba(255, 255, 255, 0.10) !important;
+    }
+
+    .naz-theme .naz-header a,
+    .naz-theme .naz-header div {
+      color: #C6C2BF !important;
+    }
+
+    .naz-theme .naz-header a:hover,
+    .naz-theme .naz-header div:hover {
+      color: #FFFFFF !important;
+      background: rgba(255, 255, 255, 0.10) !important;
+    }
+
+    .naz-theme .naz-header .selected {
+      background: #0D0D0D !important;
+      color: #FFFFFF !important;
+      border-left-color: #FFFFFF !important;
+    }
+
+    .naz-theme .naz-header [class*="bg-neutral-700"] {
+      background: #0D0D0D !important;
+      color: #FFFFFF !important;
+    }
+
+    .naz-theme .naz-header [class*="text-amber-300"] {
+      color: #FFFFFF !important;
+    }
+
+    .naz-theme main.naz-main {
+      background: #000000 !important;
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -221,6 +262,10 @@ export class AdminComponent implements OnInit, OnDestroy {
   private http = inject(HttpClient);
   private refreshInterval?: number;
   private dropdownTimeout?: number;
+  public organizationService = inject(OrganizationService);
+  
+  // Computed para verificar si es Naz
+  public isNaz = computed(() => this.organizationService.isNaz());
 
   // Estado de los dropdowns
   public openDropdownId = signal<string | null>(null);

@@ -31,6 +31,8 @@ import { AgePipe } from '../pipes/age.pipe';
 import { DashboardStore } from '../stores/dashboard.store';
 import { WassengerService } from '../services/wassenger.service';
 import { EmployeeFormComponent } from './employee-form.component';
+import { OrganizationService } from '../services/organization.service';
+import { getTableName } from '../utils/table-helper';
 
 @Component({
   selector: 'pt-employee-list',
@@ -439,6 +441,7 @@ export class EmployeeListComponent implements OnInit {
   private messageService = inject(MessageService);
   private confirmationService = inject(ConfirmationService);
   private wassengerService = inject(WassengerService);
+  private organizationService = inject(OrganizationService);
 
   public invitingEmployeeId = signal<string | null>(null);
 
@@ -542,9 +545,10 @@ export class EmployeeListComponent implements OnInit {
         this.invitingEmployeeId.set(employee.id);
         try {
           // Actualizar el empleado para darle acceso al portal
+          const employeesTable = getTableName('employees', this.organizationService.isNaz());
           const updateResponse = await this.http
             .patch(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees?id=eq.${employee.id}`,
+              `${process.env['ENV_SUPABASE_URL']}/rest/v1/${employeesTable}?id=eq.${employee.id}`,
               { has_portal_access: true },
               {
                 headers: {
