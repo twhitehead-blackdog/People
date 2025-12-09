@@ -37,8 +37,11 @@ export type Pet = {
   gender: 'M' | 'F';
   size: 'small' | 'medium' | 'large';
   color?: string;
+  weight?: number; // Peso en kilogramos
   description?: string;
   health_status?: string;
+  location_type?: string; // Tipo de ubicación: Tienda, Sede, Hogar temporal, etc.
+  location_detail?: string; // Detalle de ubicación: "ME ENCUENTRO EN LA SEDE DE LAS VILLAS"
   is_vaccinated: boolean;
   is_sterilized: boolean;
   is_available: boolean;

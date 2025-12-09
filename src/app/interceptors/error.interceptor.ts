@@ -10,14 +10,69 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
-      let errorMessage = 'Ocurrió un error inesperado';
-      let errorSummary = 'Error';
-      let errorDetails: string[] = [];
-
-      // Obtener información básica del error
       const url = req.url;
       const method = req.method;
       const status = error.status || 0;
+
+      // Silenciar errores esperados que no requieren notificación al usuario
+      // 1. Errores 401 de Auth0 cuando no hay token (esperado si el usuario no está autenticado)
+      if (status === 401 && url.includes('auth0.com')) {
+        // Log detallado para debugging
+        console.group('⚠️ [Error Interceptor] Error 401 de Auth0 detectado');
+        console.log('URL:', url);
+        console.log('Método:', method);
+        console.log('Status:', status);
+        console.log('Status Text:', error.statusText);
+        console.log('Error completo:', error);
+        console.log('Error body (error.error):', error.error);
+        console.log('Error message:', error.message);
+        console.log('Headers de respuesta:', error.headers?.keys() ? Array.from(error.headers.keys()) : 'N/A');
+        
+        // Intentar parsear el error si es un string
+        if (typeof error.error === 'string') {
+          try {
+            const parsedError = JSON.parse(error.error);
+            console.log('Error parseado:', parsedError);
+          } catch (e) {
+            console.log('Error como string:', error.error);
+          }
+        }
+        
+        // Verificar si hay información en el body
+        if (error.error && typeof error.error === 'object') {
+          console.log('Detalles del error:', {
+            error: error.error.error,
+            error_description: error.error.error_description,
+            error_uri: error.error.error_uri
+          });
+        }
+        
+        console.log('URL actual del navegador:', window.location.href);
+        console.log('Query params:', window.location.search);
+        console.log('Hash:', window.location.hash);
+        console.groupEnd();
+        console.warn('⚠️ [Error Interceptor] Esto es normal si no hay API configurada en Auth0 o si el callback está fallando');
+        // No mostrar error ni log para peticiones de Auth0 sin token
+        // Esto es normal cuando el usuario no está autenticado
+        return throwError(() => error);
+      }
+
+      // 2. Errores 404 de tablas de Supabase que aún no existen (esperado durante desarrollo)
+      if (status === 404 && url.includes('supabase') && 
+          (url.includes('/pets') || url.includes('/foundations'))) {
+        // Solo log en consola una vez, no mostrar toast molesto
+        const tableName = url.includes('/pets') ? 'pets' : 'foundations';
+        const logKey = `supabase_404_${tableName}`;
+        if (!(window as any)[logKey]) {
+          console.warn(`⚠️ Tabla "${tableName}" no encontrada en Supabase. Esto es normal si las tablas aún no se han creado.`);
+          (window as any)[logKey] = true;
+        }
+        return throwError(() => error);
+      }
+
+      let errorMessage = 'Ocurrió un error inesperado';
+      let errorSummary = 'Error';
+      let errorDetails: string[] = [];
 
       // Agregar información del contexto
       errorDetails.push(`Método: ${method}`);

@@ -1,85 +1,49 @@
-import { Component, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterLink } from '@angular/router';
-import { FormsModule } from '@angular/forms';
-import { Button } from 'primeng/button';
-import { InputText } from 'primeng/inputtext';
-import { Password } from 'primeng/password';
+import { Component, inject, OnInit, signal } from '@angular/core';
+import { Router, RouterLink, ActivatedRoute } from '@angular/router';
+import { AuthService } from '@auth0/auth0-angular';
+import { AuthWrapperService } from './auth-wrapper.service';
 import { MessageService } from 'primeng/api';
+import { Button } from 'primeng/button';
 import { ToastModule } from 'primeng/toast';
-import { AuthService } from './auth.service';
+import { filter, take } from 'rxjs/operators';
 
 @Component({
   selector: 'pt-login',
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    RouterLink,
-    Button,
-    InputText,
-    Password,
-    ToastModule,
-  ],
+  imports: [CommonModule, RouterLink, Button, ToastModule],
   providers: [MessageService],
   template: `
     <p-toast />
     <div class="login-container">
+      <button
+        type="button"
+        class="back-button"
+        (click)="goHome()"
+        [disabled]="isLoading()"
+      >
+        <span class="back-icon">←</span>
+        <span>Regresar</span>
+      </button>
       <div class="login-card">
         <div class="login-header">
-          <img src="assets/1.svg" alt="Black Dog Logo" class="login-logo" />
+          <img
+            src="assets/1.svg"
+            alt="Black Dog Logo"
+            class="login-logo"
+            (click)="goHome()"
+          />
           <h1 class="login-title">Iniciar Sesión</h1>
           <p class="login-subtitle">Bienvenido de vuelta</p>
         </div>
 
-        <form (ngSubmit)="onSubmit()" class="login-form">
-          <div class="form-group">
-            <label for="email">Correo Electrónico</label>
-            <input
-              id="email"
-              type="email"
-              pInputText
-              [(ngModel)]="email"
-              name="email"
-              placeholder="tu@email.com"
-              required
-              [disabled]="isLoading()"
-              class="form-input"
-            />
-          </div>
-
-          <div class="form-group">
-            <label for="password">Contraseña</label>
-            <p-password
-              [(ngModel)]="password"
-              name="password"
-              [feedback]="false"
-              [toggleMask]="true"
-              placeholder="Ingresa tu contraseña"
-              [disabled]="isLoading()"
-              [inputStyle]="{ width: '100%' }"
-              styleClass="form-input"
-            />
-          </div>
-
-          <div class="form-options">
-            <label class="remember-me">
-              <input
-                type="checkbox"
-                [(ngModel)]="rememberMe"
-                name="rememberMe"
-                [disabled]="isLoading()"
-              />
-              <span>Recordarme</span>
-            </label>
-            <a href="#" class="forgot-password">¿Olvidaste tu contraseña?</a>
-          </div>
-
+        <div class="login-form">
           <p-button
-            type="submit"
+            type="button"
             label="Iniciar Sesión"
             [loading]="isLoading()"
-            [disabled]="!email || !password || isLoading()"
+            [disabled]="isLoading()"
+            (onClick)="signIn()"
             styleClass="login-button"
             [style]="{
               width: '100%',
@@ -88,14 +52,40 @@ import { AuthService } from './auth.service';
               color: '#000000',
               fontWeight: 'bold',
               padding: '0.75rem',
-              marginTop: '1rem'
+              marginTop: '0.5rem'
+            }"
+          />
+
+          <div class="divider">
+            <span>o</span>
+          </div>
+
+          <p-button
+            type="button"
+            label="Continuar con Google"
+            icon="pi pi-google"
+            (onClick)="signIn()"
+            [loading]="isLoading()"
+            [disabled]="isLoading()"
+            styleClass="google-button"
+            [style]="{
+              width: '100%',
+              background: '#ffffff',
+              border: '2px solid #e5e7eb',
+              color: '#000000',
+              fontWeight: '600',
+              padding: '0.75rem',
+              marginTop: '0.5rem'
             }"
           />
 
           <div class="register-link">
-            <p>¿No tienes una cuenta? <a routerLink="/auth/register">Regístrate aquí</a></p>
+            <p>
+              ¿No tienes una cuenta?
+              <a routerLink="/auth/register">Regístrate aquí</a>
+            </p>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   `,
@@ -108,6 +98,7 @@ import { AuthService } from './auth.service';
         justify-content: center;
         background: linear-gradient(135deg, #ffffff 0%, #f3f4f6 100%);
         padding: 2rem;
+        position: relative;
       }
 
       .login-card {
@@ -139,7 +130,57 @@ import { AuthService } from './auth.service';
       .login-logo {
         height: 80px;
         width: auto;
-        margin-bottom: 1rem;
+        margin: 0 auto 1rem auto;
+        display: block;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .login-logo:hover {
+        transform: scale(1.1);
+        filter: drop-shadow(0 4px 12px rgba(251, 191, 36, 0.4));
+      }
+
+      .back-button {
+        position: fixed;
+        top: 2rem;
+        left: 2rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: #f9fafb;
+        border: 2px solid #e5e7eb;
+        border-radius: 0.5rem;
+        padding: 0.5rem 1rem;
+        font-weight: 600;
+        color: #374151;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.875rem;
+        z-index: 1000;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .back-button:hover:not(:disabled) {
+        background: #fbbf24;
+        border-color: #fbbf24;
+        color: #000000;
+        transform: translateX(-4px);
+        box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+      }
+
+      .back-button:active:not(:disabled) {
+        transform: translateX(-2px);
+      }
+
+      .back-icon {
+        font-size: 1.25rem;
+        font-weight: 700;
+        transition: transform 0.3s ease;
+      }
+
+      .back-button:hover:not(:disabled) .back-icon {
+        transform: translateX(-2px);
       }
 
       .login-title {
@@ -177,6 +218,14 @@ import { AuthService } from './auth.service';
         width: 100%;
       }
 
+      ::ng-deep .form-input .p-password {
+        width: 100%;
+      }
+
+      ::ng-deep .form-input .p-password input {
+        width: 100% !important;
+      }
+
       .form-options {
         display: flex;
         justify-content: space-between;
@@ -192,7 +241,7 @@ import { AuthService } from './auth.service';
         color: #374151;
       }
 
-      .remember-me input[type="checkbox"] {
+      .remember-me input[type='checkbox'] {
         cursor: pointer;
       }
 
@@ -226,15 +275,105 @@ import { AuthService } from './auth.service';
         color: #000000;
       }
 
+      .divider {
+        display: flex;
+        align-items: center;
+        text-align: center;
+        margin: 0.75rem 0;
+        color: #6b7280;
+        font-size: 0.875rem;
+      }
+
+      .divider::before,
+      .divider::after {
+        content: '';
+        flex: 1;
+        border-bottom: 1px solid #e5e7eb;
+      }
+
+      .divider span {
+        padding: 0 1rem;
+        background: #ffffff;
+      }
+
+      ::ng-deep .google-button button {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        position: relative !important;
+        overflow: hidden !important;
+      }
+
+      ::ng-deep .google-button button::before {
+        content: '' !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: -100% !important;
+        width: 100% !important;
+        height: 100% !important;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(0, 0, 0, 0.05),
+          transparent
+        ) !important;
+        transition: left 0.5s !important;
+      }
+
+      ::ng-deep .google-button button:hover:not(:disabled) {
+        background: #f9fafb !important;
+        border-color: #d1d5db !important;
+        transform: translateY(-3px) scale(1.05) !important;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15) !important;
+      }
+
+      ::ng-deep .google-button button:hover:not(:disabled)::before {
+        left: 100% !important;
+      }
+
+      ::ng-deep .google-button button:active:not(:disabled) {
+        transform: translateY(-1px) scale(1.02) !important;
+      }
+
       ::ng-deep .login-button button {
-        transition: all 0.3s ease !important;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        position: relative !important;
+        overflow: hidden !important;
+        box-shadow: 0 2px 8px rgba(251, 191, 36, 0.3) !important;
+      }
+
+      ::ng-deep .login-button button::before {
+        content: '' !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: -100% !important;
+        width: 100% !important;
+        height: 100% !important;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.2),
+          transparent
+        ) !important;
+        transition: left 0.5s !important;
       }
 
       ::ng-deep .login-button button:hover:not(:disabled) {
         background: #000000 !important;
         color: #fbbf24 !important;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+        transform: translateY(-3px) scale(1.05) !important;
+        box-shadow: 0 8px 25px rgba(251, 191, 36, 0.6),
+          0 0 25px rgba(251, 191, 36, 0.4) !important;
+      }
+
+      ::ng-deep .login-button button:hover:not(:disabled)::before {
+        left: 100% !important;
+      }
+
+      ::ng-deep .login-button button:active:not(:disabled) {
+        transform: translateY(-1px) scale(1.02) !important;
       }
 
       @media (max-width: 768px) {
@@ -249,54 +388,51 @@ import { AuthService } from './auth.service';
         .login-title {
           font-size: 1.5rem;
         }
+
+        .back-button {
+          top: 1rem;
+          left: 1rem;
+          padding: 0.4rem 0.75rem;
+          font-size: 0.75rem;
+        }
+
+        .back-icon {
+          font-size: 1rem;
+        }
       }
     `,
   ],
 })
-export class LoginComponent {
-  private authService = inject(AuthService);
+export class LoginComponent implements OnInit {
+  private auth0 = inject(AuthService);
+  private authWrapper = inject(AuthWrapperService);
   private router = inject(Router);
+  private route = inject(ActivatedRoute);
   private messageService = inject(MessageService);
 
-  email = signal('');
-  password = signal('');
-  rememberMe = false;
   isLoading = signal(false);
+  isAuthenticated$ = this.auth0.isAuthenticated$;
 
-  async onSubmit(): Promise<void> {
-    if (!this.email() || !this.password()) {
-      this.messageService.add({
-        severity: 'warn',
-        summary: 'Campos requeridos',
-        detail: 'Por favor completa todos los campos',
-      });
-      return;
-    }
+  ngOnInit(): void {
+    // No redirigir automáticamente si ya está autenticado
+    // El usuario puede navegar libremente, solo necesita login para adoptar
+    // La redirección después del login se maneja en el callback de Auth0
+  }
 
+  signIn(): void {
     this.isLoading.set(true);
-
-    const result = await this.authService.login(this.email(), this.password());
-
-    this.isLoading.set(false);
-
-    if (result.success) {
-      this.messageService.add({
-        severity: 'success',
-        summary: '¡Bienvenido!',
-        detail: 'Has iniciado sesión correctamente',
-      });
-      
-      // Redirigir al perfil o a la página principal
-      setTimeout(() => {
-        this.router.navigate(['/adoptions/profile']);
-      }, 500);
-    } else {
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Error al iniciar sesión',
-        detail: result.error || 'Credenciales inválidas',
-      });
+    // Marcar que estamos iniciando sesión para detectar el callback
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem('auth0_login_initiated', 'true');
     }
+    this.auth0.loginWithRedirect({
+      authorizationParams: {
+        screen_hint: 'login',
+      },
+    });
+  }
+
+  goHome(): void {
+    this.router.navigate(['/adoptions']);
   }
 }
-

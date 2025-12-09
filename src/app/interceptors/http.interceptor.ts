@@ -1,4 +1,7 @@
 import { HttpInterceptorFn } from '@angular/common/http';
+import { inject } from '@angular/core';
+import { AuthService } from '@auth0/auth0-angular';
+import { switchMap, catchError, take } from 'rxjs/operators';
 
 export const httpInterceptor: HttpInterceptorFn = (req, next) => {
   if (req.url.includes('supabase')) {
@@ -47,6 +50,48 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
     return next(request);
   }
 
-  // Para otras peticiones, continuar sin modificar
-  return next(req);
+  // No intentar obtener token de Auth0 para peticiones de Auth0 (evita error circular)
+  if (req.url.includes('auth0.com')) {
+    return next(req);
+  }
+
+  // For non-Supabase, non-Auth0 requests, use Auth0 token (only if user is authenticated)
+  const auth = inject(AuthService);
+  
+  // Verificar si el usuario está autenticado antes de intentar obtener el token
+  return auth.isAuthenticated$.pipe(
+    take(1),
+    switchMap((isAuthenticated) => {
+      if (!isAuthenticated) {
+        // Usuario no autenticado, continuar sin token
+        return next(req);
+      }
+      
+      // Usuario autenticado, intentar obtener el token
+      console.log('🔍 [HTTP Interceptor] Usuario autenticado, intentando obtener token de Auth0...');
+      return auth.getAccessTokenSilently().pipe(
+        switchMap((token) => {
+          console.log('✅ [HTTP Interceptor] Token obtenido exitosamente, longitud:', token?.length || 0);
+          let headers = req.headers;
+          if (token) {
+            headers = headers.set('Authorization', `Bearer ${token}`);
+          }
+          const request = req.clone({ headers });
+          return next(request);
+        }),
+        catchError((error) => {
+          // Si falla obtener el token (401, etc.), continuar sin Authorization header
+          // Esto es normal si el token expiró o hay un problema de configuración
+          console.error('❌ [HTTP Interceptor] Error al obtener token de Auth0:', {
+            error: error,
+            message: error?.message,
+            status: error?.status,
+            url: req.url,
+            method: req.method
+          });
+          return next(req);
+        })
+      );
+    })
+  );
 };

@@ -1,13 +1,13 @@
-import { CommonModule } from '@angular/common';
-import { Component, inject, computed } from '@angular/core';
+import { AsyncPipe, CommonModule } from '@angular/common';
+import { Component, computed, inject } from '@angular/core';
 import { Router } from '@angular/router';
+import { AuthWrapperService } from '../auth/auth-wrapper.service';
 import { DemoModeService } from './demo-mode.service';
-import { AuthService } from '../auth/auth.service';
 
 @Component({
   selector: 'pt-adoptions-header',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, AsyncPipe],
   template: `
     <header class="adoptions-header">
       <div class="header-top">
@@ -39,15 +39,23 @@ import { AuthService } from '../auth/auth.service';
               }}</span>
             </label>
           </div>
-          @if (isAuthenticated()) {
-            <div class="user-menu">
-              <button class="user-button" (click)="goToProfile()" type="button">
-                <span class="user-avatar">{{ userInitials() }}</span>
-                <span class="user-name">{{ userName() }}</span>
-              </button>
-            </div>
+          @if (isAuthenticated$ | async) {
+          <div class="user-menu">
+            @if (isAdmin()) {
+            <button class="admin-button" type="button" (click)="goToAdmin()">
+              <span>⚙️</span>
+              Panel Admin
+            </button>
+            }
+            <button class="user-button" (click)="goToProfile()" type="button">
+              <span class="user-avatar">{{ userInitials() }}</span>
+              <span class="user-name">{{ userName() }}</span>
+            </button>
+          </div>
           } @else {
-            <button class="login-button" type="button" (click)="goToLogin()">Iniciar Sesión</button>
+          <button class="login-button" type="button" (click)="goToLogin()">
+            Iniciar Sesión
+          </button>
           }
         </div>
       </div>
@@ -110,7 +118,8 @@ import { AuthService } from '../auth/auth.service';
       }
 
       @keyframes logoFloat {
-        0%, 100% {
+        0%,
+        100% {
           transform: translateY(0);
         }
         50% {
@@ -212,6 +221,69 @@ import { AuthService } from '../auth/auth.service';
         transform: translateY(0) scale(1.02);
       }
 
+      .user-menu {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .admin-button {
+        background: #374151;
+        border: none;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        color: #ffffff;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.875rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .admin-button:hover {
+        background: #1f2937;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      }
+
+      .user-button {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .user-button:hover {
+        background: #f3f4f6;
+        border-color: #fbbf24;
+      }
+
+      .user-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: #fbbf24;
+        color: #000000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 0.875rem;
+      }
+
+      .user-name {
+        font-weight: 600;
+        color: #000000;
+        font-size: 0.875rem;
+      }
+
       .dark-mode-toggle {
         display: flex;
         align-items: center;
@@ -306,18 +378,26 @@ import { AuthService } from '../auth/auth.service';
 export class AdoptionsHeaderComponent {
   private router = inject(Router);
   private demoModeService = inject(DemoModeService);
-  private authService = inject(AuthService);
+  private auth = inject(AuthWrapperService);
   public useDemoData = this.demoModeService.useDemoData;
-  public isAuthenticated = this.authService.isAuthenticated;
-  public currentUser = this.authService.currentUser;
+  public isAuthenticated$ = this.auth.isAuthenticated$;
+  public user$ = this.auth.user$;
+
+  public isAdmin = computed(() => this.auth.isAdmin());
 
   public userName = computed(() => {
-    const user = this.currentUser();
-    return user?.full_name || user?.email?.split('@')[0] || 'Usuario';
+    const user = this.auth.currentUser();
+    if (user?.full_name) {
+      return user.full_name;
+    }
+    if (user?.email) {
+      return user.email.split('@')[0];
+    }
+    return 'Usuario';
   });
 
   public userInitials = computed(() => {
-    const user = this.currentUser();
+    const user = this.auth.currentUser();
     if (user?.full_name) {
       return user.full_name
         .split(' ')
@@ -326,7 +406,10 @@ export class AdoptionsHeaderComponent {
         .toUpperCase()
         .slice(0, 2);
     }
-    return user?.email?.[0].toUpperCase() || 'U';
+    if (user?.email) {
+      return user.email[0].toUpperCase();
+    }
+    return 'U';
   });
 
   public onToggleDemo(event: Event): void {
@@ -349,5 +432,9 @@ export class AdoptionsHeaderComponent {
 
   public goToProfile(): void {
     this.router.navigate(['/adoptions/profile']);
+  }
+
+  public goToAdmin(): void {
+    this.router.navigate(['/adoptions/admin']);
   }
 }

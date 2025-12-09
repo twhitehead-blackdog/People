@@ -30,8 +30,9 @@ Write-Host "1. ENV_SUPABASE_URL - URL de tu proyecto Supabase" -ForegroundColor 
 Write-Host "2. ENV_SUPABASE_API_KEY - API Key publica de Supabase" -ForegroundColor White
 Write-Host "3. ENV_AUTH0_DOMAIN - Dominio de Auth0" -ForegroundColor White
 Write-Host "4. ENV_AUTH0_CLIENT_ID - Client ID de Auth0" -ForegroundColor White
-Write-Host "5. ENV_AUTH0_AUDIENCE - Audience de Auth0 API" -ForegroundColor White
-Write-Host "6. ENV_APP_URL - URL de la aplicacion (default: http://localhost:4200)" -ForegroundColor White
+Write-Host "5. ENV_AUTH0_CLIENT_SECRET - Client Secret de Auth0 (OPCIONAL - solo para backend)" -ForegroundColor Yellow
+Write-Host "6. ENV_AUTH0_AUDIENCE - Audience de Auth0 API" -ForegroundColor White
+Write-Host "7. ENV_APP_URL - URL de la aplicacion (default: http://localhost:4200)" -ForegroundColor White
 Write-Host ""
 
 # Cargar variables desde .env si existe

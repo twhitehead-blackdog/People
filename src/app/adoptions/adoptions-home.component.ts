@@ -1,5 +1,6 @@
-import { Component, signal, inject } from '@angular/core';
+import { Component, signal, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { AdoptionsHeroComponent } from './adoptions-hero.component';
 import { AdoptionsMatchComponent, MatchFilters } from './adoptions-match.component';
 import { PetsListComponent } from './pets-list.component';
@@ -9,7 +10,9 @@ import { AdoptionEventsComponent } from './adoption-events.component';
 import { AdoptionFamiliesComponent } from './adoption-families.component';
 import { Pet, Foundation } from '../models';
 import { DemoModeService } from './demo-mode.service';
+import { AuthWrapperService } from '../auth/auth-wrapper.service';
 import { Button } from 'primeng/button';
+import { filter, take } from 'rxjs/operators';
 
 @Component({
   selector: 'pt-adoptions-home',
@@ -444,14 +447,21 @@ import { Button } from 'primeng/button';
     `,
   ],
 })
-export class AdoptionsHomeComponent {
+export class AdoptionsHomeComponent implements OnInit {
   private demoModeService = inject(DemoModeService);
+  private authWrapper = inject(AuthWrapperService);
+  private router = inject(Router);
   public currentFilters = signal<MatchFilters | null>(null);
   public useDemoData = this.demoModeService.useDemoData;
   public demoPets = signal<Pet[]>([]);
 
   constructor() {
     this.initializeDemoData();
+  }
+
+  ngOnInit(): void {
+    // No redirigir automáticamente desde la página principal
+    // La redirección a admin solo ocurre después del login
   }
 
   private initializeDemoData(): void {

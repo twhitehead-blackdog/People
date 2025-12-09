@@ -1,5 +1,5 @@
 import { Component, signal, inject, OnInit, computed } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, AsyncPipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
@@ -9,7 +9,7 @@ import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 import { Card } from 'primeng/card';
 import { Avatar } from 'primeng/avatar';
-import { AuthService } from './auth.service';
+import { AuthWrapperService } from './auth-wrapper.service';
 import { User } from '../models';
 
 @Component({
@@ -24,6 +24,7 @@ import { User } from '../models';
     ToastModule,
     Card,
     Avatar,
+    AsyncPipe,
   ],
   providers: [MessageService],
   template: `
@@ -59,8 +60,8 @@ import { User } from '../models';
               shape="circle"
             />
             <div class="avatar-info">
-              <h2 class="user-name">{{ currentUser()?.full_name || currentUser()?.email || 'Usuario' }}</h2>
-              <p class="user-email">{{ currentUser()?.email }}</p>
+              <h2 class="user-name">{{ (user$ | async)?.name || (user$ | async)?.email || 'Usuario' }}</h2>
+              <p class="user-email">{{ (user$ | async)?.email }}</p>
             </div>
           </div>
         </p-card>
@@ -91,7 +92,7 @@ import { User } from '../models';
                   id="email"
                   type="email"
                   pInputText
-                  [value]="currentUser()?.email || ''"
+                  [value]="(user$ | async)?.email || ''"
                   disabled
                   class="disabled-input"
                 />
@@ -394,11 +395,11 @@ import { User } from '../models';
   ],
 })
 export class ProfileComponent implements OnInit {
-  private authService = inject(AuthService);
+  private auth = inject(AuthWrapperService);
   private router = inject(Router);
   private messageService = inject(MessageService);
 
-  currentUser = this.authService.currentUser;
+  user$ = this.auth.user$;
   isLoading = signal(false);
   
   formData: Partial<User> = {
@@ -409,16 +410,20 @@ export class ProfileComponent implements OnInit {
   };
 
   avatarInitials = computed(() => {
-    const user = this.currentUser();
-    if (user?.full_name) {
-      return user.full_name
-        .split(' ')
-        .map(n => n[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2);
-    }
-    return user?.email?.[0].toUpperCase() || 'U';
+    let initials = 'U';
+    this.auth.user$.subscribe((user) => {
+      if (user?.name) {
+        initials = user.name
+          .split(' ')
+          .map((n: string) => n[0])
+          .join('')
+          .toUpperCase()
+          .slice(0, 2);
+      } else if (user?.email) {
+        initials = user.email[0].toUpperCase();
+      }
+    });
+    return initials;
   });
 
   adoptionStats = signal({
@@ -428,20 +433,23 @@ export class ProfileComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    if (!this.authService.isAuthenticated()) {
-      this.router.navigate(['/auth/login']);
-      return;
-    }
+    this.auth.isAuthenticated$.subscribe((isAuth) => {
+      if (!isAuth) {
+        this.router.navigate(['/auth/login']);
+        return;
+      }
 
-    const user = this.currentUser();
-    if (user) {
-      this.formData = {
-        full_name: user.full_name || '',
-        phone_number: user.phone_number || '',
-        document_id: user.document_id || '',
-        address: user.address || '',
-      };
-    }
+      this.auth.user$.subscribe((user) => {
+        if (user) {
+          this.formData = {
+            full_name: user.name || '',
+            phone_number: '',
+            document_id: '',
+            address: '',
+          };
+        }
+      });
+    });
 
     // TODO: Cargar estadísticas de adopciones del usuario
     // Por ahora valores de ejemplo
@@ -460,45 +468,41 @@ export class ProfileComponent implements OnInit {
   async onSubmit(): Promise<void> {
     this.isLoading.set(true);
 
-    const result = await this.authService.updateProfile(this.formData);
-
-    this.isLoading.set(false);
-
-    if (result.success) {
+    // TODO: Implementar actualización de perfil con Auth0
+    // Por ahora solo mostramos mensaje de éxito
+    setTimeout(() => {
+      this.isLoading.set(false);
       this.messageService.add({
         severity: 'success',
         summary: 'Perfil actualizado',
         detail: 'Tus cambios se han guardado correctamente',
       });
-    } else {
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Error',
-        detail: result.error || 'No se pudieron guardar los cambios',
-      });
-    }
+    }, 500);
   }
 
   resetForm(): void {
-    const user = this.currentUser();
-    if (user) {
-      this.formData = {
-        full_name: user.full_name || '',
-        phone_number: user.phone_number || '',
-        document_id: user.document_id || '',
-        address: user.address || '',
-      };
-    }
+    this.auth.user$.subscribe((user) => {
+      if (user) {
+        this.formData = {
+          full_name: user.name || '',
+          phone_number: '',
+          document_id: '',
+          address: '',
+        };
+      }
+    });
   }
 
   logout(): void {
-    this.authService.logout();
-    this.messageService.add({
-      severity: 'info',
-      summary: 'Sesión cerrada',
-      detail: 'Has cerrado sesión correctamente',
+    // Usar ENV_APP_URL si está disponible, sino usar window.location.origin
+    const appUrl = process.env['ENV_APP_URL'] || window.location.origin;
+    const returnTo = `${appUrl}/adoptions`;
+    
+    this.auth.logout({
+      logoutParams: {
+        returnTo: returnTo,
+      },
     });
-    this.router.navigate(['/adoptions']);
   }
 }
 

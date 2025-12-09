@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject, input, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { AuthService } from '@auth0/auth0-angular';
 import { Button } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { TagModule } from 'primeng/tag';
@@ -263,10 +264,9 @@ import { MatchFilters } from './adoptions-match.component';
       }
 
       .pet-card:hover {
-        box-shadow: 0 12px 40px rgba(251, 191, 36, 0.4),
-          0 0 30px rgba(251, 191, 36, 0.2);
-        transform: translateY(-4px) scale(1.01);
-        border-color: rgba(251, 191, 36, 0.6);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+        transform: translateY(-2px);
+        border-color: rgba(251, 191, 36, 0.5);
       }
 
       .pet-image-container {
@@ -282,15 +282,13 @@ import { MatchFilters } from './adoptions-match.component';
         object-fit: cover;
         border-radius: 0.75rem;
         border: 4px solid #fbbf24;
-        box-shadow: 0 8px 24px rgba(251, 191, 36, 0.4),
-          inset 0 0 20px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         transition: all 0.4s ease;
       }
 
       .pet-card:hover .pet-image {
-        transform: scale(1.05);
-        box-shadow: 0 12px 32px rgba(251, 191, 36, 0.6),
-          inset 0 0 25px rgba(0, 0, 0, 0.4);
+        transform: scale(1.02);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
         border-color: #fcd34d;
       }
 
@@ -302,8 +300,7 @@ import { MatchFilters } from './adoptions-match.component';
         position: relative;
         overflow: hidden;
         border: 4px solid #fbbf24;
-        box-shadow: 0 8px 24px rgba(251, 191, 36, 0.4),
-          inset 0 0 20px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       }
 
       .topographic-pattern {
@@ -337,17 +334,15 @@ import { MatchFilters } from './adoptions-match.component';
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 4px 12px rgba(251, 191, 36, 0.5),
-          0 0 15px rgba(251, 191, 36, 0.3);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         z-index: 10;
         transition: all 0.3s ease;
         cursor: pointer;
       }
 
       .heart-icon:hover {
-        transform: scale(1.2) rotate(10deg);
-        box-shadow: 0 6px 20px rgba(251, 191, 36, 0.7),
-          0 0 25px rgba(251, 191, 36, 0.5);
+        transform: scale(1.1);
+        box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
       }
 
       .pet-info {
@@ -572,9 +567,8 @@ import { MatchFilters } from './adoptions-match.component';
       ::ng-deep .pet-card p-button button:hover:not(:disabled) {
         background: #000000 !important;
         color: #fbbf24 !important;
-        transform: translateY(-3px) scale(1.05) !important;
-        box-shadow: 0 8px 25px rgba(251, 191, 36, 0.6),
-          0 0 25px rgba(251, 191, 36, 0.4) !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
       }
 
       ::ng-deep .pet-card p-button button:hover:not(:disabled)::before {
@@ -620,6 +614,7 @@ export class PetsListComponent {
   public petsStore = inject(PetsStore);
   public foundationsStore = inject(FoundationsStore);
   private router = inject(Router);
+  private authService = inject(AuthService);
 
   public filters = input<MatchFilters | null>(null);
   public useDemoData = input<boolean>(false);
@@ -712,6 +707,12 @@ export class PetsListComponent {
   }
 
   public openAdoptionForm(pet: Pet): void {
-    this.router.navigate(['/adoptions/adoptar', pet.id]);
+    this.authService.isAuthenticated$.subscribe((isAuth) => {
+      if (!isAuth) {
+        this.router.navigate(['/auth/login']);
+        return;
+      }
+      this.router.navigate(['/adoptions/adoptar', pet.id]);
+    });
   }
 }
