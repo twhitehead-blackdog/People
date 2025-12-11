@@ -270,6 +270,7 @@ export type EmployeeSchedule = {
   approved?: boolean;
   updated_at?: Date;
   approved_at?: Date;
+  company_id?: string;
 };
 
 export type PayrollDebt = {

@@ -24,6 +24,7 @@ import { Employee } from '../models';
 import { AgePipe } from '../pipes/age.pipe';
 import { SeniorityPipe } from '../pipes/seniority.pipe';
 import { WassengerService } from '../services/wassenger.service';
+import { OrganizationService } from '../services/organization.service';
 import { BanksStore } from '../stores/banks.store';
 import { EmployeesStore } from '../stores/employees.store';
 import { EmployeeFormComponent } from './employee-form.component';
@@ -773,6 +774,7 @@ export class EmployeeDetailComponent implements OnInit {
   private messageService = inject(MessageService);
   private confirmationService = inject(ConfirmationService);
   private wassengerService = inject(WassengerService);
+  private organizationService = inject(OrganizationService);
 
   public employee_id = signal<string | null>(null);
   public inviting = signal(false);
@@ -784,16 +786,27 @@ export class EmployeeDetailComponent implements OnInit {
     if (!id) {
       return undefined;
     }
+    const companyId = this.organizationService.getCurrentCompanyId();
+    
+    // Usar tablas compartidas con relaciones
+    const selectQuery = `id, department:departments(id, name), branch:branches(id, name), position:positions(id, name), company:companies(id, name), first_name,father_name, middle_name, mother_name,document_id, email, phone_number, address, birth_date, start_date, branch_id, department_id, position_id, gender, uniform_size, is_active, work_email, monthly_salary, hourly_salary, qr_code, code_uri, bank, account_number, bank_account_type, company_id, has_portal_access`;
+    
+    const params: any = {
+      select: selectQuery,
+      limit: '1',
+      order: 'father_name',
+      id: `eq.${id}`,
+    };
+    
+    // Agregar filtro por company_id
+    if (companyId) {
+      params.company_id = `eq.${companyId}`;
+    }
+    
     return {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
       method: 'GET',
-      params: {
-        select:
-          'id, department:departments(id, name), branch:branches(id, name), position:positions(id, name), company:companies(id, name), first_name,father_name, middle_name, mother_name,document_id, email, phone_number, address, birth_date, start_date, branch_id, department_id, position_id, company_id, gender, uniform_size, is_active, work_email, monthly_salary, hourly_salary, qr_code, code_uri, bank, account_number, bank_account_type, has_portal_access',
-        limit: '1',
-        order: 'father_name',
-        id: `eq.${id}`,
-      },
+      params,
     };
   });
   public currentEmployee = computed(() => this.employee.value()?.[0]);
@@ -915,11 +928,20 @@ export class EmployeeDetailComponent implements OnInit {
         this.inviting.set(true);
         try {
           // Actualizar el empleado para darle acceso al portal
+          const companyId = this.organizationService.getCurrentCompanyId();
+          const params: any = { id: `eq.${employee.id}` };
+          
+          // Agregar filtro por company_id para seguridad
+          if (companyId) {
+            params.company_id = `eq.${companyId}`;
+          }
+          
           await this.http
             .patch(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees?id=eq.${employee.id}`,
+              `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
               { has_portal_access: true },
               {
+                params,
                 headers: {
                   'Content-Type': 'application/json',
                   Prefer: 'return=representation',

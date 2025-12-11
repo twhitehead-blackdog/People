@@ -10,6 +10,7 @@ import {
 import { AccordionModule } from 'primeng/accordion';
 import { PayrollPayment, PayrollPaymentEmployee } from '../models';
 import { DashboardStore } from '../stores/dashboard.store';
+import { OrganizationService } from '../services/organization.service';
 
 import * as pdfMake from 'pdfmake/build/pdfmake.js';
 import * as pdfFonts from 'pdfmake/build/vfs_fonts.js';
@@ -23,7 +24,7 @@ import { Button } from 'primeng/button';
     <h1
       class="text-2xl font-bold text-gray-700 dark:text-gray-200 text-center uppercase"
     >
-      BO Capital, S.A.
+      {{ companyName() }}
     </h1>
     <h2 class="text-2xl font-bold text-gray-700 dark:text-gray-200 text-center">
       Planilla Quincenal
@@ -157,18 +158,29 @@ export class PayrollSummaryComponent {
       id: `eq.${this.payment_id()}`,
     },
   }));
+  public organizationService = inject(OrganizationService);
+  
+  public companyName = computed(() => {
+    return this.organizationService.isNaz() ? 'Naz' : 'BO Capital, S.A.';
+  });
+
   public completed = httpResource<PayrollPaymentEmployee[]>(() => {
     if (!this.payment_id()) {
       return undefined;
     }
+    const companyId = this.organizationService.getCurrentCompanyId();
+    const params: any = {
+      select: `*, items:payroll_payment_employee_items(*), employee:employees(id, first_name, father_name, document_id, branch:branches(id, name))`,
+      payroll_payment_id: `eq.${this.payment_id()}`,
+    };
+    
+    // Nota: payroll_payment_employees no tiene company_id directamente, pero podemos filtrar por employee.company_id
+    // Por ahora, dejamos que el filtro se haga a través de la relación employee si es necesario
+    
     return {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/payroll_payment_employees`,
       method: 'GET',
-      params: {
-        select:
-          '*, items:payroll_payment_employee_items(*), employee:employees(id, first_name, father_name, document_id, branch:branches(id, name))',
-        payroll_payment_id: `eq.${this.payment_id()}`,
-      },
+      params,
     };
   });
 
@@ -261,7 +273,7 @@ export class PayrollSummaryComponent {
       pageSize: 'LEGAL',
       pageOrientation: 'landscape',
       header: {
-        text: `BO Capital, S.A. / ${
+        text: `${this.companyName()} / ${
           this.payroll.value()?.[0]?.payroll?.name || ''
         }`,
         style: 'header1',

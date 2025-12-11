@@ -16,6 +16,7 @@ import { InputText } from 'primeng/inputtext';
 import { TableModule } from 'primeng/table';
 import { PayrollEmployee } from '../models';
 import { EmployeesStore } from '../stores/employees.store';
+import { OrganizationService } from '../services/organization.service';
 import { PayrollEmployeesFormComponent } from './payroll-employees-form.component';
 
 /**
@@ -129,6 +130,7 @@ import { PayrollEmployeesFormComponent } from './payroll-employees-form.componen
 export class PayrollEmployeesComponent {
   public payrollId = input.required<string>();
   public employeesStore = inject(EmployeesStore);
+  public organizationService = inject(OrganizationService);
 
   // Validar y sanitizar input de filtros
   public onFilterInput(event: Event, table: any): void {
@@ -143,15 +145,22 @@ export class PayrollEmployeesComponent {
     
     table.filterGlobal(value, 'contains');
   }
-  public employees = httpResource<PayrollEmployee[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_payrolls`,
-    method: 'GET',
-    params: {
-      select:
-        '*, employee:employees(id, first_name, father_name, monthly_salary, hourly_salary)',
+  public employees = httpResource<PayrollEmployee[]>(() => {
+    const companyId = this.organizationService.getCurrentCompanyId();
+    const params: any = {
+      select: `*, employee:employees(id, first_name, father_name, monthly_salary, hourly_salary)`,
       payroll_id: `eq.${this.payrollId()}`,
-    },
-  }));
+    };
+    
+    // Nota: employee_payrolls no tiene company_id directamente, pero podemos filtrar por employee.company_id
+    // Por ahora, dejamos que el filtro se haga a través de la relación employee si es necesario
+    
+    return {
+      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_payrolls`,
+      method: 'GET',
+      params,
+    };
+  });
 
   private confirmationService = inject(ConfirmationService);
 

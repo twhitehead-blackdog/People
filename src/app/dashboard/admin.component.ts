@@ -34,7 +34,7 @@ import { OrganizationService } from '../services/organization.service';
               class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
               [class.selected]="
                 isActiveRoute('hr/disabilities') ||
-                isActiveRoute('job-applications')
+                (!isNaz() && isActiveRoute('job-applications'))
               "
             >
               <i class="pi pi-users text-base"></i>
@@ -60,7 +60,8 @@ import { OrganizationService } from '../services/organization.service';
                 <span>Incapacidades</span>
               </a>
 
-              <!-- Aplicaciones de Trabajo -->
+              <!-- Aplicaciones de Trabajo (solo para Black Dog) -->
+              @if (!isNaz()) {
               <a
                 routerLink="job-applications"
                 class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
@@ -70,6 +71,7 @@ import { OrganizationService } from '../services/organization.service';
                 <i class="pi pi-briefcase text-sm"></i>
                 <span>Aplicaciones de Trabajo</span>
               </a>
+              }
             </div>
           </div>
 

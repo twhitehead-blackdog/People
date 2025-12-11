@@ -13,7 +13,6 @@ import { differenceInMonths } from 'date-fns';
 import { exhaustMap } from 'rxjs';
 import { Employee, Termination, TimeOff } from '../models';
 import { withCustomEntities } from './entities.feature';
-import { getTableName } from '../utils/table-helper';
 import { OrganizationService } from '../services/organization.service';
 
 type State = {
@@ -27,7 +26,7 @@ export const EmployeesStore = signalStore(
     // Query base - se adaptará automáticamente para naz_* cuando corresponda
     // Nota: naz_positions no tiene dashboard_access ni default_view, así que no los incluimos
     query:
-      'id,first_name,middle_name,father_name,mother_name,birth_date,gender,start_date,monthly_salary,document_id,end_date,email,phone_number,is_active,uniform_size,company_id,branch_id,department_id,position_id,bank,account_number,bank_account_type,created_at,branch:branches(id, name, short_name),department:departments(id, name),position:positions(id, name, admin, schedule_admin, schedule_approver), address,work_email,has_portal_access,account_approved',
+      'id,first_name,middle_name,father_name,mother_name,birth_date,gender,start_date,monthly_salary,document_id,end_date,email,phone_number,is_active,uniform_size,company_id,branch_id,department_id,position_id,bank,account_number,bank_account_type,created_at,branch:branches(id, name, short_name),department:departments(id, name),position:positions(id, name, admin, schedule_admin, schedule_approver, dashboard_access, default_view), address,work_email,has_portal_access,account_approved',
     detailsQuery:
       '*, branch:branches(*), department:departments(*), position:positions(*)',
   }),
@@ -56,7 +55,14 @@ export const EmployeesStore = signalStore(
   withMethods((state) => ({
     terminateEmployee(request: Termination) {
       patchState(state, { isLoading: true, error: null });
-      const employeesTable = getTableName('employees', state._orgService.isNaz());
+      const companyId = state._orgService.getCurrentCompanyId();
+      const params: any = { id: `eq.${request.employee_id}` };
+      
+      // Agregar filtro por company_id para seguridad
+      if (companyId) {
+        params.company_id = `eq.${companyId}`;
+      }
+      
       return state._http
         .post(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/terminations`,
@@ -65,13 +71,13 @@ export const EmployeesStore = signalStore(
         .pipe(
           exhaustMap(() =>
             state._http.patch(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/${employeesTable}`,
+              `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
               { 
                 is_active: false,
                 end_date: request.date // Actualizar también el campo end_date con la fecha de terminación
               },
               {
-                params: { id: `eq.${request.employee_id}` },
+                params,
               }
             )
           ),

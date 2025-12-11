@@ -22,6 +22,7 @@ import { iif } from 'rxjs';
 import { v4 } from 'uuid';
 import { markGroupDirty } from '../services/util.service';
 import { DashboardStore } from '../stores/dashboard.store';
+import { OrganizationService } from '../services/organization.service';
 
 @Component({
   selector: 'pt-positions-form',
@@ -45,6 +46,7 @@ import { DashboardStore } from '../stores/dashboard.store';
             appendTo="body"
           />
         </div>
+        @if (!organizationService.isNaz()) {
         <div class="flex items-center gap-2">
           <p-toggleswitch
             formControlName="available_for_job_fair"
@@ -54,6 +56,16 @@ import { DashboardStore } from '../stores/dashboard.store';
             >Disponible en Feria de Empleo</label
           >
         </div>
+        }
+        @if (!organizationService.isNaz()) {
+        <div class="flex items-center gap-2">
+          <p-toggleswitch
+            formControlName="dashboard_access"
+            inputId="dashboard_access"
+          />
+          <label for="dashboard_access">Acceso al Dashboard</label>
+        </div>
+        }
         <div class="flex gap-4 items-center justify-end">
           <p-button
             label="Cancelar"
@@ -100,6 +112,7 @@ export class PositionsFormComponent implements OnInit {
   public store = inject(DashboardStore);
   private messageService = inject(MessageService);
   private destroyRef = inject(DestroyRef);
+  public organizationService = inject(OrganizationService);
 
   ngOnInit() {
     const { position } = this.dialog.data;
@@ -130,10 +143,18 @@ export class PositionsFormComponent implements OnInit {
       this.dialogRef.close();
       return;
     }
+    // Filtrar campos que no existen en naz_positions si es Naz
+    const formValue = this.form.getRawValue();
+    let dataToSave: any = formValue;
+    if (this.organizationService.isNaz()) {
+      const { available_for_job_fair, dashboard_access, ...filteredData } = formValue;
+      dataToSave = filteredData;
+    }
+    
     iif(
       () => this.dialog.data.position,
-      this.store.positions.editItem(this.form.getRawValue()),
-      this.store.positions.createItem(this.form.getRawValue())
+      this.store.positions.editItem(dataToSave),
+      this.store.positions.createItem(dataToSave)
     )
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {

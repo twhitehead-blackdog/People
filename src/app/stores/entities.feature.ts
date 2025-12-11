@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { computed, inject } from '@angular/core';
 import { tapResponse } from '@ngrx/operators';
 import {
@@ -23,7 +23,7 @@ import { differenceInSeconds } from 'date-fns';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { filter, Observable, pipe, switchMap, tap } from 'rxjs';
 import { OrganizationService } from '../services/organization.service';
-import { getTableName } from '../utils/table-helper';
+import { getTableNameFromService } from '../utils/table-helper';
 
 type State = {
   error: any;
@@ -43,42 +43,84 @@ export function withCustomEntities<T extends { id: EntityId }>({
   detailsQuery?: string;
   order?: string;
 }) {
-  // Helper para adaptar queries que contienen referencias a otras tablas
-  const adaptQuery = (q: string, isNaz: boolean, tableName: string): string => {
-    if (!isNaz) return q;
-
-    // payrolls es una tabla compartida, no tiene versión naz_*
-    // No adaptar sus queries
-    if (tableName === 'payrolls') return q;
-
-    let adapted = q
-      .replace(/branch:branches/g, 'branch:naz_branches')
-      .replace(/department:departments/g, 'department:naz_departments')
-      .replace(/position:positions/g, 'position:naz_positions')
-      .replace(/schedule:schedules/g, 'schedule:naz_schedules')
-      .replace(/company:companies/g, 'company:naz_companies');
-
-    // naz_positions no tiene dashboard_access ni default_view
-    // Remover estos campos de las queries cuando se adapten para naz_positions
-    adapted = adapted.replace(/position:naz_positions\([^)]*\)/g, (match) => {
-      // Remover dashboard_access y default_view si están presentes
-      let cleaned = match
-        .replace(/dashboard_access[,\s]*/g, '')
-        .replace(/default_view[,\s]*/g, '')
-        .replace(/,\s*,/g, ',') // Limpiar comas dobles
-        .replace(/\(,/g, '(') // Limpiar comas al inicio
-        .replace(/,\s*\)/g, ')'); // Limpiar comas al final
-
-      // Si después de limpiar solo queda position:naz_positions(), usar solo los campos básicos
-      if (cleaned === 'position:naz_positions()') {
-        cleaned =
-          'position:naz_positions(id,name,admin,schedule_admin,schedule_approver)';
-      }
-
-      return cleaned;
-    });
-
-    return adapted;
+  // Helper para agregar filtro de company_id a los parámetros de query
+  const addCompanyFilter = (params: any, companyId: string | null, tableName: string, orgService: OrganizationService): any => {
+    if (!companyId) {
+      return params;
+    }
+    
+    // Las tablas de Naz NO tienen company_id, así que no agregar el filtro
+    if (orgService.isNaz() && tableName.startsWith('naz_')) {
+      return params;
+    }
+    
+    // Tablas que tienen company_id y deben filtrarse (solo para Black Dog)
+    const tablesWithCompanyId = [
+      'employees',
+      'branches',
+      'departments',
+      'positions',
+      'schedules',
+      'employee_schedules',
+      'attendance_sheets',
+      'timelogs',
+      'payrolls',
+      'banks',
+      'creditors'
+    ];
+    
+    if (tablesWithCompanyId.includes(tableName)) {
+      return {
+        ...params,
+        company_id: `eq.${companyId}`
+      };
+    }
+    
+    return params;
+  };
+  
+  // Helper para limpiar query de campos opcionales que pueden no existir y adaptar relaciones
+  const cleanQuery = (q: string, tableName: string, orgService: OrganizationService): string => {
+    let cleaned = q;
+    const isNaz = orgService.isNaz();
+    
+    // Si es Naz, adaptar las relaciones en la query
+    if (isNaz && tableName.startsWith('naz_')) {
+      // Reemplazar relaciones de tablas normales por naz_*
+      cleaned = cleaned.replace(/branch:branches\(/g, 'branch:naz_branches(');
+      cleaned = cleaned.replace(/department:departments\(/g, 'department:naz_departments(');
+      cleaned = cleaned.replace(/position:positions\(/g, 'position:naz_positions(');
+      cleaned = cleaned.replace(/company:companies\(/g, 'company:naz_companies(');
+      
+      // Remover company_id del select (las tablas de Naz no tienen este campo)
+      cleaned = cleaned.replace(/company_id,?\s*/g, '');
+      
+      // Remover campos que no existen en naz_positions
+      cleaned = cleaned.replace(/dashboard_access,?\s*/g, '');
+      cleaned = cleaned.replace(/default_view,?\s*/g, '');
+      cleaned = cleaned.replace(/available_for_job_fair,?\s*/g, '');
+      
+      // Limpiar comas dobles o comas seguidas de espacios y paréntesis
+      cleaned = cleaned.replace(/,\s*,/g, ','); // Comas dobles
+      cleaned = cleaned.replace(/,\s*\)/g, ')'); // Coma antes de paréntesis de cierre
+      cleaned = cleaned.replace(/\(\s*,/g, '('); // Coma después de paréntesis de apertura
+      cleaned = cleaned.replace(/,\s*,/g, ','); // Otra vez por si acaso
+    }
+    
+    // positions puede no tener estos campos si fueron agregados después
+    // (mantener compatibilidad con tablas que no los tienen)
+    if (tableName === 'positions' || tableName === 'naz_positions') {
+      // No remover, solo asegurar que la query funcione
+      // Los campos opcionales se manejarán en el backend
+    }
+    
+    // employees puede no tener use_timelog o week_hours en algunos casos
+    if (tableName === 'employees' || tableName === 'naz_employees') {
+      // No remover, solo asegurar que la query funcione
+      // Los campos opcionales se manejarán en el backend
+    }
+    
+    return cleaned;
   };
   return signalStoreFeature(
     withState<State>({
@@ -109,9 +151,11 @@ export function withCustomEntities<T extends { id: EntityId }>({
       }),
     })),
     withMethods((state) => {
-      // Helper para obtener el nombre de tabla correcto
-      const getTable = () => getTableName(name, state._orgService.isNaz());
-      const isNaz = () => state._orgService.isNaz();
+      // Helper para obtener el company_id actual
+      const getCurrentCompanyId = () => state._orgService.getCurrentCompanyId();
+      
+      // Obtener el nombre correcto de la tabla según la organización
+      const getTable = () => getTableNameFromService(name, state._orgService);
 
       return {
         selectEntity: (id: EntityId) => {
@@ -120,10 +164,17 @@ export function withCustomEntities<T extends { id: EntityId }>({
             return;
           }
           const tableName = getTable();
-          const adaptedDetailsQuery = adaptQuery(detailsQuery, isNaz(), name);
+          const cleanedQuery = cleanQuery(detailsQuery, tableName, state._orgService);
+          const companyId = getCurrentCompanyId();
+          const params = addCompanyFilter(
+            { id: `eq.${id}`, select: cleanedQuery },
+            companyId,
+            tableName,
+            state._orgService
+          );
           state._http
             .get<T>(`${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`, {
-              params: { id: `eq.${id}`, select: adaptedDetailsQuery },
+              params,
             })
             .pipe(
               tapResponse({
@@ -149,21 +200,29 @@ export function withCustomEntities<T extends { id: EntityId }>({
             tap(() => patchState(state, { isLoading: true, error: null })),
             switchMap(() => {
               const tableName = getTable();
-              const adaptedQuery = adaptQuery(query, isNaz(), name);
+              const companyId = getCurrentCompanyId();
+              const cleanedQuery = cleanQuery(query, tableName, state._orgService);
+              const params = addCompanyFilter(
+                { select: cleanedQuery, order: order },
+                companyId,
+                tableName,
+                state._orgService
+              );
+              
               return state._http
                 .get<T[]>(
                   `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
-                  {
-                    params: { select: adaptedQuery, order: order },
-                  }
+                  { params }
                 )
                 .pipe(
                   tapResponse({
-                    next: (entities) =>
+                    next: (entities) => {
                       patchState(state, setAllEntities(entities), {
                         lastUpdated: new Date(),
-                      }),
-                    error: (error) => {
+                      });
+                    },
+                    error: (error: unknown) => {
+                      console.error(`[${name}] Error fetching items:`, error);
                       patchState(state, { error });
                     },
                     finalize: () => patchState(state, { isLoading: false }),
@@ -184,13 +243,18 @@ export function withCustomEntities<T extends { id: EntityId }>({
             }),
             switchMap(() => {
               const tableName = getTable();
-              const adaptedQuery = adaptQuery(query, isNaz(), name);
+              const companyId = getCurrentCompanyId();
+              const cleanedQuery = cleanQuery(query, tableName, state._orgService);
+              const params = addCompanyFilter(
+                { select: cleanedQuery, order: order },
+                companyId,
+                tableName,
+                state._orgService
+              );
               return state._http
                 .get<T[]>(
                   `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
-                  {
-                    params: { select: adaptedQuery, order: order },
-                  }
+                  { params }
                 )
                 .pipe(
                   tapResponse({
@@ -210,12 +274,51 @@ export function withCustomEntities<T extends { id: EntityId }>({
         createItem(request: T): Observable<T[]> {
           patchState(state, { isLoading: true, error: null });
           const tableName = getTable();
-          const adaptedQuery = adaptQuery(query, isNaz(), name);
+          const companyId = getCurrentCompanyId();
+          const cleanedQuery = cleanQuery(query, tableName, state._orgService);
+          
+          // Asegurar que company_id esté presente en el request (solo para Black Dog)
+          let requestData: any = { ...request };
+          
+          // Agregar company_id si la tabla lo requiere y no está presente (solo para Black Dog)
+          const tablesRequiringCompanyId = [
+            'employees',
+            'branches',
+            'departments',
+            'positions',
+            'schedules',
+            'employee_schedules',
+            'attendance_sheets',
+            'timelogs',
+            'payrolls'
+          ];
+          
+          // Solo agregar company_id si NO es una tabla de Naz
+          if (!state._orgService.isNaz() && tablesRequiringCompanyId.includes(name) && companyId) {
+            requestData.company_id = companyId;
+          }
+          
+          // Para banks y creditors, company_id es opcional (puede ser NULL para compartidos)
+          // Solo para Black Dog
+          if (!state._orgService.isNaz() && (name === 'banks' || name === 'creditors') && companyId) {
+            // Solo agregar si no está presente (permitir NULL para compartidos)
+            if (!requestData.company_id) {
+              requestData.company_id = companyId;
+            }
+          }
+          
+          const params = addCompanyFilter(
+            { select: cleanedQuery },
+            companyId,
+            tableName,
+            state._orgService
+          );
+          
           return state._http
             .post<T[]>(
               `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
-              request,
-              { params: { select: adaptedQuery } }
+              requestData,
+              { params }
             )
             .pipe(
               tapResponse({
@@ -244,11 +347,45 @@ export function withCustomEntities<T extends { id: EntityId }>({
         editItem(request: T) {
           patchState(state, { isLoading: true, error: null });
           const tableName = getTable();
+          const companyId = getCurrentCompanyId();
+          
+          // Asegurar que company_id esté presente en el request si es requerido
+          let requestData: any = { ...request };
+          
+          // Agregar company_id si la tabla lo requiere y no está presente
+          const tablesRequiringCompanyId = [
+            'employees',
+            'branches',
+            'departments',
+            'positions',
+            'schedules',
+            'employee_schedules',
+            'attendance_sheets',
+            'timelogs',
+            'payrolls'
+          ];
+          
+          // Solo agregar company_id si NO es una tabla de Naz
+          if (!state._orgService.isNaz() && tablesRequiringCompanyId.includes(name) && companyId) {
+            // No sobrescribir company_id si ya está presente (permitir cambios)
+            // Pero asegurar que no se pueda cambiar a otra organización
+            if (!requestData.company_id) {
+              requestData.company_id = companyId;
+            }
+          }
+          
+          const params = addCompanyFilter(
+            { id: `eq.${request.id}` },
+            companyId,
+            tableName,
+            state._orgService
+          );
+          
           return state._http
             .patch(
               `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
-              request,
-              { params: { id: `eq.${request.id}` } }
+              requestData,
+              { params }
             )
             .pipe(
               tap(() => console.log('editItem')),
@@ -300,12 +437,17 @@ export function withCustomEntities<T extends { id: EntityId }>({
             accept: () => {
               patchState(state, { isLoading: true, error: null });
               const tableName = getTable();
+              const companyId = getCurrentCompanyId();
+              const params = addCompanyFilter(
+                { id: `eq.${id}` },
+                companyId,
+                tableName,
+                state._orgService
+              );
               state._http
                 .delete(
                   `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
-                  {
-                    params: { id: `eq.${id}` },
-                  }
+                  { params }
                 )
                 .pipe(
                   tapResponse({

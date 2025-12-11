@@ -383,3 +383,151 @@ th {
     -webkit-overflow-scrolling: touch;
   }
 }
+
+/* ============================================
+   TEMA NAZ - CAMBIAR AMARILLOS A GRISES
+   ============================================ */
+
+/* Cambiar colores amarillos de PrimeNG a grises cuando el tema Naz está activo */
+.naz-theme,
+:host-context(.naz-theme) {
+  /* Paginator */
+  .p-paginator .p-paginator-dropdown:hover {
+    border-color: #C6C2BF !important;
+  }
+
+  .p-paginator .p-paginator-dropdown:focus {
+    border-color: #C6C2BF !important;
+    box-shadow: 0 0 0 0.2rem rgba(198, 194, 191, 0.2) !important;
+  }
+
+  .p-paginator .p-dropdown-panel {
+    border: 1px solid rgba(198, 194, 191, 0.3) !important;
+  }
+
+  .p-paginator .p-dropdown-panel .p-dropdown-items .p-dropdown-item:hover {
+    background: rgba(198, 194, 191, 0.1) !important;
+    color: #C6C2BF !important;
+  }
+
+  .p-paginator .p-dropdown-panel .p-dropdown-items .p-dropdown-item.p-highlight {
+    background: rgba(198, 194, 191, 0.2) !important;
+    color: #C6C2BF !important;
+  }
+
+  /* PrimeNG Primary Colors - Cambiar amarillos a grises */
+  ::ng-deep .p-button.p-button-primary {
+    background: #C6C2BF !important;
+    border-color: #C6C2BF !important;
+    color: #000000 !important;
+  }
+
+  ::ng-deep .p-button.p-button-primary:hover {
+    background: #E5E2DF !important;
+    border-color: #E5E2DF !important;
+  }
+
+  ::ng-deep .p-button.p-button-primary:focus {
+    box-shadow: 0 0 0 0.2rem rgba(198, 194, 191, 0.2) !important;
+  }
+
+  /* Input focus */
+  ::ng-deep .p-inputtext:focus,
+  ::ng-deep .p-inputtextarea:focus,
+  ::ng-deep .p-datepicker.p-focus input,
+  ::ng-deep .p-select:not(.p-disabled).p-focus .p-select-label,
+  ::ng-deep .p-multiselect:not(.p-disabled).p-focus .p-multiselect-label {
+    border-color: #C6C2BF !important;
+    box-shadow: 0 0 0 0.2rem rgba(198, 194, 191, 0.2) !important;
+  }
+
+  /* Tabs */
+  ::ng-deep .p-tabview .p-tabview-nav li .p-tabview-nav-link.p-highlight {
+    border-color: #C6C2BF !important;
+    color: #C6C2BF !important;
+  }
+
+  ::ng-deep .p-tabview .p-tabview-nav li .p-tabview-nav-link:not(.p-disabled):focus {
+    box-shadow: 0 0 0 0.2rem rgba(198, 194, 191, 0.2) !important;
+  }
+
+  /* Checkbox y Radio */
+  ::ng-deep .p-checkbox .p-checkbox-box.p-highlight,
+  ::ng-deep .p-radiobutton .p-radiobutton-box.p-highlight {
+    background: #C6C2BF !important;
+    border-color: #C6C2BF !important;
+  }
+
+  ::ng-deep .p-checkbox .p-checkbox-box.p-highlight:focus,
+  ::ng-deep .p-radiobutton .p-radiobutton-box.p-highlight:focus {
+    box-shadow: 0 0 0 0.2rem rgba(198, 194, 191, 0.2) !important;
+  }
+
+  /* Toast */
+  ::ng-deep .p-toast .p-toast-message.p-toast-message-success {
+    background: rgba(198, 194, 191, 0.1) !important;
+    border-left: 4px solid #C6C2BF !important;
+  }
+
+  /* ProgressBar */
+  ::ng-deep .p-progressbar .p-progressbar-value {
+    background: #C6C2BF !important;
+  }
+
+  /* Calendar */
+  ::ng-deep .p-datepicker .p-datepicker-header .p-datepicker-prev:focus,
+  ::ng-deep .p-datepicker .p-datepicker-header .p-datepicker-next:focus {
+    box-shadow: 0 0 0 0.2rem rgba(198, 194, 191, 0.2) !important;
+  }
+
+  ::ng-deep .p-datepicker table td > span.p-highlight {
+    background: #C6C2BF !important;
+    color: #000000 !important;
+  }
+
+  /* Select/Dropdown */
+  ::ng-deep .p-select:not(.p-disabled):hover .p-select-label,
+  ::ng-deep .p-multiselect:not(.p-disabled):hover .p-multiselect-label {
+    border-color: #C6C2BF !important;
+  }
+
+  /* Slider */
+  ::ng-deep .p-slider .p-slider-handle {
+    background: #C6C2BF !important;
+    border-color: #C6C2BF !important;
+  }
+
+  ::ng-deep .p-slider .p-slider-range {
+    background: #C6C2BF !important;
+  }
+
+  /* Rating */
+  ::ng-deep .p-rating .p-rating-icon.p-rating-icon-active {
+    color: #C6C2BF !important;
+  }
+
+  /* Toggle Switch */
+  ::ng-deep .p-toggleswitch.p-toggleswitch-checked .p-toggleswitch-slider {
+    background: #C6C2BF !important;
+  }
+
+  ::ng-deep .p-toggleswitch.p-toggleswitch-checked .p-toggleswitch-slider:focus {
+    box-shadow: 0 0 0 0.2rem rgba(198, 194, 191, 0.2) !important;
+  }
+
+  /* Link */
+  ::ng-deep a {
+    color: #C6C2BF !important;
+  }
+
+  ::ng-deep a:hover {
+    color: #E5E2DF !important;
+  }
+
+  /* Mobile tap highlight */
+  @media (max-width: 768px) {
+    * {
+      -webkit-tap-highlight-color: rgba(198, 194, 191, 0.2) !important;
+    }
+  }
+}

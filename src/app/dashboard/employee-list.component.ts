@@ -32,7 +32,6 @@ import { DashboardStore } from '../stores/dashboard.store';
 import { WassengerService } from '../services/wassenger.service';
 import { EmployeeFormComponent } from './employee-form.component';
 import { OrganizationService } from '../services/organization.service';
-import { getTableName } from '../utils/table-helper';
 
 @Component({
   selector: 'pt-employee-list',
@@ -545,12 +544,20 @@ export class EmployeeListComponent implements OnInit {
         this.invitingEmployeeId.set(employee.id);
         try {
           // Actualizar el empleado para darle acceso al portal
-          const employeesTable = getTableName('employees', this.organizationService.isNaz());
+          const companyId = this.organizationService.getCurrentCompanyId();
+          const params: any = { id: `eq.${employee.id}` };
+          
+          // Agregar filtro por company_id para seguridad
+          if (companyId) {
+            params.company_id = `eq.${companyId}`;
+          }
+          
           const updateResponse = await this.http
             .patch(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/${employeesTable}?id=eq.${employee.id}`,
+              `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
               { has_portal_access: true },
               {
+                params,
                 headers: {
                   'Content-Type': 'application/json',
                   'Prefer': 'return=representation',

@@ -28,6 +28,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
 import { utils, writeFile } from 'xlsx';
 import { JobApplication, Position } from '../models';
+import { OrganizationService } from '../services/organization.service';
 import { JobApplicationsStore } from '../stores/job-applications.store';
 import { PositionsStore } from '../stores/positions.store';
 import { JobApplicationDetailComponent } from './job-application-detail.component';
@@ -527,6 +528,7 @@ export class JobApplicationsListComponent implements OnInit {
   private confirmationService = inject(ConfirmationService);
   private http = inject(HttpClient);
   private router = inject(Router);
+  private organizationService = inject(OrganizationService);
 
   public statusFilter = new FormControl<string | null>(null);
   public isUpdatingPosition = signal<boolean>(false);
@@ -997,10 +999,30 @@ export class JobApplicationsListComponent implements OnInit {
   async togglePositionAvailability(position: Position, isAvailable: boolean) {
     this.isUpdatingPosition.set(true);
     try {
+      const isNaz = this.organizationService.isNaz();
+      // available_for_job_fair no existe en naz_positions, solo aplicar si no es Naz
+      if (isNaz) {
+        this.messageService.add({
+          severity: 'warn',
+          summary: 'No disponible',
+          detail: 'Esta funcionalidad no está disponible para Naz',
+        });
+        this.isUpdatingPosition.set(false);
+        return;
+      }
+      const companyId = this.organizationService.getCurrentCompanyId();
+      const params: any = { id: `eq.${position.id}` };
+      
+      // Agregar filtro por company_id para seguridad
+      if (companyId) {
+        params.company_id = `eq.${companyId}`;
+      }
+      
       await firstValueFrom(
         this.http.patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/positions?id=eq.${position.id}`,
-          { available_for_job_fair: isAvailable }
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/positions`,
+          { available_for_job_fair: isAvailable },
+          { params }
         )
       );
 

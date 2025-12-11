@@ -27,6 +27,7 @@ import { iif } from 'rxjs';
 import { v4 } from 'uuid';
 import { colorVariants } from '../models';
 import { TrimPipe } from '../pipes/trim.pipe';
+import { OrganizationService } from '../services/organization.service';
 import { DashboardStore } from '../stores/dashboard.store';
 
 @Component({
@@ -167,6 +168,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
   public loading = signal<boolean>(false);
   private http = inject(HttpClient);
   private message = inject(MessageService);
+  private organizationService = inject(OrganizationService);
   public colorVariants = colorVariants;
   public store = inject(DashboardStore);
   private destroyRef = inject(DestroyRef);
@@ -232,16 +234,31 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       this.loading.set(false);
       return;
     }
+    const companyId = this.organizationService.getCurrentCompanyId();
+    
+    // Asegurar que company_id esté presente en el request
+    const requestData: any = { ...value };
+    if (companyId && !requestData.company_id) {
+      requestData.company_id = companyId;
+    }
+    
     const createRequest = this.http.post(
       `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
-      value
+      requestData
     );
+    
+    const updateData: any = { ...this.form.getRawValue() };
+    if (companyId && !updateData.company_id) {
+      updateData.company_id = companyId;
+    }
+    
     const updateRequest = this.http.patch(
       `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
-      this.form.getRawValue(),
+      updateData,
       {
         params: {
           id: `eq.${value.id}`,
+          ...(companyId ? { company_id: `eq.${companyId}` } : {}),
         },
       }
     );

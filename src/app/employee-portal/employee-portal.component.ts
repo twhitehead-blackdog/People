@@ -30,6 +30,7 @@ import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
 import { TimeLogEnum } from '../models';
+import { OrganizationService } from '../services/organization.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
 
@@ -1471,6 +1472,7 @@ export class EmployeePortalComponent {
   private http = inject(HttpClient);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private organizationService = inject(OrganizationService);
   private readonly companyEmailDomain = '@blackdogpanama.com';
 
   public currentEmployee = computed(() => this.store.currentEmployee());
@@ -1530,15 +1532,22 @@ export class EmployeePortalComponent {
       return undefined;
     }
     const employeeId = this.currentEmployee()!.id;
+    const companyId = this.organizationService.getCurrentCompanyId();
+    const params: any = {
+      select: `*,employee:employees(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)`,
+      employee_id: `eq.${employeeId}`,
+      created_at: `gte.${format(this.dateRange()[0], 'yyyy-MM-dd 06:00:00')}`,
+    };
+    
+    // Agregar filtro por company_id
+    if (companyId) {
+      params.company_id = `eq.${companyId}`;
+    }
+    
     return {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`,
       method: 'GET',
-      params: {
-        select:
-          '*,employee:employees(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)',
-        employee_id: `eq.${employeeId}`,
-        created_at: `gte.${format(this.dateRange()[0], 'yyyy-MM-dd 06:00:00')}`,
-      },
+      params,
     };
   });
 
@@ -1865,13 +1874,20 @@ export class EmployeePortalComponent {
       if (this.editPhone()) updateData.phone_number = this.editPhone();
       if (this.editAddress()) updateData.address = this.editAddress();
 
+      const companyId = this.organizationService.getCurrentCompanyId();
+      const params: any = { id: `eq.${this.currentEmployee()!.id}` };
+      
+      // Agregar filtro por company_id para seguridad
+      if (companyId) {
+        params.company_id = `eq.${companyId}`;
+      }
+      
       await this.http
         .patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees?id=eq.${
-            this.currentEmployee()!.id
-          }`,
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
           updateData,
           {
+            params,
             headers: {
               'Content-Type': 'application/json',
               Prefer: 'return=representation',

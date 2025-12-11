@@ -35,7 +35,6 @@ import { TimeLogEnum } from '../models';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
 import { OrganizationService } from '../services/organization.service';
-import { getTableName } from '../utils/table-helper';
 
 @Component({
   selector: 'pt-employee-portal',
@@ -1560,8 +1559,112 @@ import { getTableName } from '../utils/table-helper';
     }
 
     /* Tema Naz */
-    .naz-theme :host {
+    .naz-theme {
       background: #000000 !important;
+      position: relative;
+      overflow: hidden;
+      min-height: 100vh;
+    }
+
+    /* Animación de lava lamp plateada para employee-portal Naz */
+    .naz-theme::before {
+      content: '';
+      position: fixed;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      min-height: 200vh;
+      background: 
+        repeating-linear-gradient(
+          45deg,
+          rgba(255, 255, 255, 0.5) 0%,
+          rgba(255, 255, 255, 0.6) 2%,
+          rgba(229, 226, 223, 0.65) 4%,
+          rgba(198, 194, 191, 0.55) 6%,
+          transparent 8%,
+          transparent 12%,
+          rgba(198, 194, 191, 0.5) 14%,
+          rgba(229, 226, 223, 0.6) 16%,
+          rgba(255, 255, 255, 0.55) 18%,
+          transparent 20%
+        ),
+        linear-gradient(
+          135deg,
+          rgba(255, 255, 255, 0.6) 0%,
+          rgba(229, 226, 223, 0.7) 25%,
+          rgba(198, 194, 191, 0.6) 50%,
+          rgba(229, 226, 223, 0.65) 75%,
+          rgba(255, 255, 255, 0.55) 100%
+        );
+      animation: silverLavaFlow 25s ease-in-out infinite;
+      z-index: 0;
+      filter: blur(25px);
+      pointer-events: none;
+    }
+
+    .naz-theme::after {
+      content: '';
+      position: fixed;
+      top: -50%;
+      right: -50%;
+      width: 200%;
+      height: 200%;
+      min-height: 200vh;
+      background: 
+        repeating-linear-gradient(
+          -45deg,
+          rgba(229, 226, 223, 0.55) 0%,
+          rgba(255, 255, 255, 0.65) 2%,
+          rgba(198, 194, 191, 0.6) 4%,
+          rgba(229, 226, 223, 0.5) 6%,
+          transparent 8%,
+          transparent 12%,
+          rgba(255, 255, 255, 0.55) 14%,
+          rgba(198, 194, 191, 0.65) 16%,
+          rgba(229, 226, 223, 0.6) 18%,
+          transparent 20%
+        ),
+        linear-gradient(
+          -135deg,
+          rgba(198, 194, 191, 0.7) 0%,
+          rgba(229, 226, 223, 0.75) 30%,
+          rgba(255, 255, 255, 0.65) 60%,
+          rgba(198, 194, 191, 0.6) 100%
+        );
+      animation: silverLavaFlow 30s ease-in-out infinite reverse;
+      z-index: 0;
+      filter: blur(30px);
+      pointer-events: none;
+    }
+
+    @keyframes silverLavaFlow {
+      0% {
+        transform: translate(-20%, -20%) rotate(0deg) scale(1);
+        opacity: 0.9;
+      }
+      25% {
+        transform: translate(10%, 5%) rotate(5deg) scale(1.1);
+        opacity: 1;
+      }
+      50% {
+        transform: translate(5%, 15%) rotate(-3deg) scale(0.95);
+        opacity: 0.85;
+      }
+      75% {
+        transform: translate(-10%, 8%) rotate(4deg) scale(1.05);
+        opacity: 0.95;
+      }
+      100% {
+        transform: translate(-20%, -20%) rotate(0deg) scale(1);
+        opacity: 0.9;
+      }
+    }
+
+    /* Asegurar que el contenido esté por encima de la animación */
+    .naz-theme > * {
+      position: relative;
+      z-index: 1;
     }
 
     .naz-theme h1,
@@ -1700,12 +1803,68 @@ export class EmployeePortalComponent {
   // Computed para verificar si es Naz
   public isNaz = computed(() => this.organizationService.isNaz());
   
-  // Helper para obtener nombre de tabla
-  private getTable(table: string): string {
-    return getTableName(table, this.isNaz());
+  // Helper para agregar filtro de company_id a los parámetros
+  private addCompanyFilter(params: any, tableName: string): any {
+    const companyId = this.organizationService.getCurrentCompanyId();
+    if (!companyId) {
+      return params;
+    }
+    
+    // Tablas que tienen company_id y deben filtrarse
+    const tablesWithCompanyId = [
+      'employees',
+      'branches',
+      'departments',
+      'positions',
+      'schedules',
+      'employee_schedules',
+      'attendance_sheets',
+      'timelogs'
+    ];
+    
+    if (tablesWithCompanyId.includes(tableName)) {
+      return {
+        ...params,
+        company_id: `eq.${companyId}`
+      };
+    }
+    
+    return params;
   }
 
-  public currentEmployee = computed(() => this.store.currentEmployee());
+  public currentEmployee = computed(() => {
+    const employee = this.store.currentEmployee();
+    const isNaz = this.isNaz();
+    const companyId = this.organizationService.getCurrentCompanyId();
+    
+    // #region agent log
+    const employeeAny = employee as any;
+    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'employee-portal.component.ts:1835',message:'currentEmployee computed',data:{hasEmployee:!!employee,employeeId:employee?.id,employeeCompanyId:employeeAny?.company_id,isNaz,companyId,companyIdsMatch:employeeAny?.company_id===companyId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
+    
+    // DEBUG: Log cuando currentEmployee cambia
+    if (employee) {
+      const employeeAny = employee as any;
+      console.log('=== DEBUG EMPLOYEE PORTAL ===');
+      console.log('currentEmployee encontrado:', employee);
+      console.log('currentEmployee id:', employee.id);
+      console.log('currentEmployee company_id:', employeeAny?.company_id);
+      console.log('currentEmployee position:', employee.position);
+      console.log('currentEmployee position dashboard_access:', employee.position?.dashboard_access);
+      console.log('currentEmployee position admin:', employee.position?.admin);
+      console.log('currentEmployee has_portal_access:', employee.has_portal_access);
+      console.log('isNaz:', isNaz);
+      console.log('companyId from service:', companyId);
+      console.log('================================');
+    } else {
+      console.log('=== DEBUG EMPLOYEE PORTAL ===');
+      console.log('currentEmployee es null/undefined');
+      console.log('store.currentEmployee():', this.store.currentEmployee());
+      console.log('employees.entities().length:', this.employees.entities().length);
+      console.log('================================');
+    }
+    return employee;
+  });
 
   // Get current date for template
   public getCurrentDate(): Date {
@@ -1728,24 +1887,47 @@ export class EmployeePortalComponent {
       return undefined;
     }
     const employeeId = this.currentEmployee()!.id;
+    const companyId = this.organizationService.getCurrentCompanyId();
     const isNaz = this.isNaz();
-    const timelogsTable = this.getTable('timelogs');
-    const employeesTable = this.getTable('employees');
-    const branchesTable = this.getTable('branches');
+    const currentEmployee = this.currentEmployee();
+    const currentEmployeeAny = currentEmployee as any;
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'employee-portal.component.ts:1878',message:'Querying timelogs - company_id check',data:{isNaz,companyId,employeeId,employeeCompanyId:currentEmployeeAny?.company_id,dateRange:[this.dateRange()[0]?.toISOString(),this.dateRange()[1]?.toISOString()]},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    
+    const params: any = {
+      select: `*,employee:employees(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)`,
+      employee_id: `eq.${employeeId}`,
+      created_at: `gte.${format(this.dateRange()[0], 'yyyy-MM-dd 06:00:00')}`,
+    };
+    
+    // Agregar filtro por company_id
+    if (companyId) {
+      params.company_id = `eq.${companyId}`;
+    }
+    
+    // Usar la tabla correcta según la organización
+    const tableName = isNaz ? 'naz_timelogs' : 'timelogs';
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'employee-portal.component.ts:1890',message:'Timelogs query params before request',data:{isNaz,tableName,url:`${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,params},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/${timelogsTable}`,
+      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
       method: 'GET',
-      params: {
-        select:
-          `*,employee:${employeesTable}(id,first_name,father_name, branch:${branchesTable}(id, name)),branch:${branchesTable}(id, name, short_name)`,
-        employee_id: `eq.${employeeId}`,
-        created_at: `gte.${format(this.dateRange()[0], 'yyyy-MM-dd 06:00:00')}`,
-      },
+      params,
     };
   });
 
   public myTimelogs = computed(() => {
     const logs = this.timelogsApi.value() ?? [];
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'employee-portal.component.ts:1908',message:'Processing timelogs results',data:{logsCount:logs.length,isNaz:this.isNaz(),companyId:this.organizationService.getCurrentCompanyId(),sampleLog:logs[0]},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    
     // Process logs similar to timelogs component
     // Filtrar logs sin fecha válida antes de procesar
     const processedLogs = logs
@@ -2223,14 +2405,20 @@ export class EmployeePortalComponent {
       if (this.editPhone()) updateData.phone_number = this.editPhone().trim();
       if (this.editAddress()) updateData.address = this.editAddress().trim();
 
-      const employeesTable = this.getTable('employees');
+      const companyId = this.organizationService.getCurrentCompanyId();
+      const params: any = { id: `eq.${this.currentEmployee()!.id}` };
+      
+      // Agregar filtro por company_id para seguridad
+      if (companyId) {
+        params.company_id = `eq.${companyId}`;
+      }
+      
       await firstValueFrom(
         this.http.patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/${employeesTable}?id=eq.${
-            this.currentEmployee()!.id
-          }`,
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
           updateData,
           {
+            params,
             headers: {
               'Content-Type': 'application/json',
               Prefer: 'return=representation',

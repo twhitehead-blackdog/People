@@ -22,6 +22,15 @@ export function getTableName(table: string, isNaz: boolean): string {
     'employee_schedules': 'naz_employee_schedules',
     'timelogs': 'naz_timelogs',
     'attendance_sheets': 'naz_attendance_sheets',
+    'payrolls': 'naz_payrolls',
+    'payroll_deductions': 'naz_payroll_deductions',
+    'employee_payrolls': 'naz_employee_payrolls',
+    'payroll_payments': 'naz_payroll_payments',
+    'payroll_debts': 'naz_payroll_debts',
+    'payroll_payment_employees': 'naz_payroll_payment_employees',
+    'payroll_payment_employee_items': 'naz_payroll_payment_employee_items',
+    'creditors': 'naz_creditors',
+    'banks': 'naz_banks',
   };
   
   return nazTableMap[table] || table;

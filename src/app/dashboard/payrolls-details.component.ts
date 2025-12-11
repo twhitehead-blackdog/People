@@ -1,8 +1,9 @@
 import { httpResource } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
 import { Skeleton } from 'primeng/skeleton';
 import { TabsModule } from 'primeng/tabs';
 import { Payroll } from '../models';
+import { OrganizationService } from '../services/organization.service';
 import { PayrollDebtsComponent } from './payroll-debts.component';
 import { PayrollDeductionsComponent } from './payroll-deductions.component';
 import { PayrollEmployeesComponent } from './payroll-employees.component';
@@ -115,13 +116,24 @@ import { PayrollPaymentsComponent } from './payroll-payments.component';
 })
 export class PayrollsDetailsComponent {
   public payroll_id = input.required<string>();
-  public payroll = httpResource<Payroll[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/payrolls`,
-    method: 'GET',
-    params: {
-      select:
-        '*, company:companies(*), employees:employee_payrolls(*), deductions:payroll_deductions(*)',
+  private organizationService = inject(OrganizationService);
+  
+  public payroll = httpResource<Payroll[]>(() => {
+    const companyId = this.organizationService.getCurrentCompanyId();
+    const params: any = {
+      select: `*, company:companies(*), employees:employee_payrolls(*), deductions:payroll_deductions(*)`,
       id: `eq.${this.payroll_id()}`,
-    },
-  }));
+    };
+    
+    // Agregar filtro por company_id
+    if (companyId) {
+      params.company_id = `eq.${companyId}`;
+    }
+    
+    return {
+      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/payrolls`,
+      method: 'GET',
+      params,
+    };
+  });
 }

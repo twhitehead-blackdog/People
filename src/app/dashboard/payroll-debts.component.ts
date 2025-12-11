@@ -21,6 +21,7 @@ import { TableModule } from 'primeng/table';
 import { PayrollDebt } from '../models';
 import { CreditorsStore } from '../stores/creditors.store';
 import { EmployeesStore } from '../stores/employees.store';
+import { OrganizationService } from '../services/organization.service';
 import { PayrollDebtsFormComponent } from './payroll-debts-form.component';
 
 @Component({
@@ -160,16 +161,24 @@ import { PayrollDebtsFormComponent } from './payroll-debts-form.component';
 export class PayrollDebtsComponent implements OnInit {
   public employees = inject(EmployeesStore);
   public creditors = inject(CreditorsStore);
+  public organizationService = inject(OrganizationService);
   public payrollId = input.required<string>();
-  public debts = httpResource<PayrollDebt[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/payroll_debts`,
-    method: 'GET',
-    params: {
-      select:
-        '*, employee:employees(id, first_name, father_name, payroll:employee_payrolls(*)), creditor:creditors(*)',
+  public debts = httpResource<PayrollDebt[]>(() => {
+    const companyId = this.organizationService.getCurrentCompanyId();
+    const params: any = {
+      select: `*, employee:employees(id, first_name, father_name, payroll:employee_payrolls(*)), creditor:creditors(*)`,
       payroll_id: `eq.${this.payrollId()}`,
-    },
-  }));
+    };
+    
+    // Nota: payroll_debts no tiene company_id directamente, pero podemos filtrar por employee.company_id
+    // Por ahora, dejamos que el filtro se haga a través de la relación employee si es necesario
+    
+    return {
+      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/payroll_debts`,
+      method: 'GET',
+      params,
+    };
+  });
 
   private filterService = inject(FilterService);
 

@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, effect, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { Router, RouterOutlet, NavigationEnd, ActivatedRoute } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { AccordionModule } from 'primeng/accordion';
@@ -24,7 +24,8 @@ import { PayrollsStore } from '../stores/payrolls.store';
 import { PositionsStore } from '../stores/positions.store';
 import { SchedulesStore } from '../stores/schedules.store';
 import { EmployeePortalComponent } from './employee-portal.component';
-import { OrganizationService } from '../services/organization.service';
+import { OrganizationService, Organization } from '../services/organization.service';
+import { HttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'pt-dashboard',
@@ -82,14 +83,14 @@ import { OrganizationService } from '../services/organization.service';
             </div>
             <div class="header-menu hidden md:block">
               <div class="flex items-baseline space-x-1">
-                  @if(store.isAdmin() && !store.hasPortalAccessOnly() && !store.hasTimeManagementAccess()) {
+                  @if(store.hasDashboardAccess() && store.isAdmin() && !store.hasPortalAccessOnly() && !store.hasTimeManagementAccess()) {
                   <a
                     (click)="navigateTo('home')"
                     [class.selected]="isActiveRoute('home')"
                     class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
                     ><i class="pi pi-home text-base"></i> <span>Inicio</span></a
                   >
-                  } @if(store.isAdmin() && !store.hasPortalAccessOnly()) {
+                  } @if(store.hasDashboardAccess() && store.isAdmin() && !store.hasPortalAccessOnly()) {
                   <a
                     (click)="navigateTo('admin')"
                     [class.selected]="isActiveRoute('admin')"
@@ -97,7 +98,7 @@ import { OrganizationService } from '../services/organization.service';
                   >
                     <i class="pi pi-building text-base"></i> <span>Administración</span></a
                   >
-                  } @if(store.isAdmin() && !store.hasPortalAccessOnly()) {
+                  } @if(store.hasDashboardAccess() && store.isAdmin() && !store.hasPortalAccessOnly()) {
                   <a
                     (click)="navigateTo('payroll')"
                     [class.selected]="isActiveRoute('payroll')"
@@ -105,7 +106,7 @@ import { OrganizationService } from '../services/organization.service';
                   >
                     <i class="pi pi-money-bill text-base"></i> <span>Nómina</span></a
                   >
-                  } @if((store.isScheduleAdmin() && !store.hasPortalAccessOnly()) || store.hasTimeManagementAccess()) {
+                  } @if(store.hasDashboardAccess() && ((store.isScheduleAdmin() && !store.hasPortalAccessOnly()) || store.hasTimeManagementAccess())) {
                   <a
                     (click)="navigateTo('time-management')"
                     [class.selected]="isActiveRoute('time-management')"
@@ -113,7 +114,7 @@ import { OrganizationService } from '../services/organization.service';
                     ><i class="pi pi-calendar text-base"></i> <span>Gestión de tiempo</span></a
                   >
                   }
-                  @if(!store.hasPortalAccessOnly() || store.hasTimeManagementAccess()) {
+                  @if(store.hasDashboardAccess() && (!store.hasPortalAccessOnly() || store.hasTimeManagementAccess())) {
                   <a
                     (click)="navigateTo('timeclock')"
                     [class.selected]="isActiveRoute('timeclock')"
@@ -166,7 +167,7 @@ import { OrganizationService } from '../services/organization.service';
           [class.hidden]="isCollapsed()"
         >
           <div class="space-y-1 px-2 pt-2 pb-3 sm:px-3">
-            @if(store.isAdmin() && !store.hasPortalAccessOnly() && !store.hasTimeManagementAccess()) {
+            @if(store.hasDashboardAccess() && store.isAdmin() && !store.hasPortalAccessOnly() && !store.hasTimeManagementAccess()) {
             <a
               (click)="navigateTo('home'); toggleMenu()"
               [class.bg-gray-700]="isActiveRoute('home')"
@@ -175,7 +176,7 @@ import { OrganizationService } from '../services/organization.service';
               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
               ><i class="pi pi-home text-lg"></i> <span>Inicio</span></a
             >
-            } @if(store.isAdmin() && !store.hasPortalAccessOnly()) {
+            } @if(store.hasDashboardAccess() && store.isAdmin() && !store.hasPortalAccessOnly()) {
             <a
               (click)="navigateTo('admin'); toggleMenu()"
               [class.bg-gray-700]="isActiveRoute('admin')"
@@ -184,7 +185,7 @@ import { OrganizationService } from '../services/organization.service';
               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
               ><i class="pi pi-building text-lg"></i> <span>Administración</span></a
             >
-            } @if((store.isScheduleAdmin() && !store.hasPortalAccessOnly()) || store.hasTimeManagementAccess()) {
+            } @if(store.hasDashboardAccess() && ((store.isScheduleAdmin() && !store.hasPortalAccessOnly()) || store.hasTimeManagementAccess())) {
             <a
               (click)="navigateTo('time-management'); toggleMenu()"
               [class.bg-gray-700]="isActiveRoute('time-management')"
@@ -193,7 +194,7 @@ import { OrganizationService } from '../services/organization.service';
               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
               ><i class="pi pi-calendar text-lg"></i> <span>Gestión de tiempo</span></a
             >
-            } @if(store.isAdmin() && !store.hasPortalAccessOnly()) {
+            } @if(store.hasDashboardAccess() && store.isAdmin() && !store.hasPortalAccessOnly()) {
             <a
               (click)="navigateTo('payroll'); toggleMenu()"
               [class.bg-gray-700]="isActiveRoute('payroll')"
@@ -203,7 +204,7 @@ import { OrganizationService } from '../services/organization.service';
               ><i class="pi pi-money-bill text-lg"></i> <span>Nómina</span></a
             >
             }
-            @if(!store.hasPortalAccessOnly() || store.hasTimeManagementAccess()) {
+            @if(store.hasDashboardAccess() && (!store.hasPortalAccessOnly() || store.hasTimeManagementAccess())) {
             <a
               (click)="navigateTo('timeclock'); toggleMenu()"
               [class.bg-gray-700]="isActiveRoute('timeclock')"
@@ -492,6 +493,18 @@ export class DashboardComponent {
   public currentRoute = signal('');
   public showEmployeePortalView = signal(false);
   public organizationService = inject(OrganizationService);
+  public http = inject(HttpClient);
+  public branchesStore = inject(BranchesStore);
+  public employeesStore = inject(EmployeesStore);
+  public positionsStore = inject(PositionsStore);
+  public departmentsStore = inject(DepartmentsStore);
+  public companiesStore = inject(CompaniesStore);
+  public schedulesStore = inject(SchedulesStore);
+  public banksStore = inject(BanksStore);
+  public payrollsStore = inject(PayrollsStore);
+  
+  // Signal para la IP actual
+  private currentIP = signal<string | null>(null);
   
   // Computed para verificar si es Naz
   public isNaz = computed(() => this.organizationService.isNaz());
@@ -523,7 +536,60 @@ export class DashboardComponent {
     return employee?.position?.name || 'Sin cargo';
   });
 
+  // Determinar si se puede cambiar la organización (solo para soporte2@blackdogpanama.com)
+  public canChangeOrganization = computed(() => {
+    // Solo soporte2@blackdogpanama.com puede cambiar de organización
+    return this.isSupportUser();
+  });
+
+  // Track de la organización anterior para detectar cambios
+  private previousOrganization: Organization | null = null;
+
   constructor() {
+    // Obtener IP actual al inicializar
+    this.fetchCurrentIP();
+    
+    // Inicializar organización anterior
+    this.previousOrganization = this.organizationService.currentOrganization;
+    
+    // Recargar datos cuando cambia la organización
+    effect(() => {
+      const currentOrg = this.organizationService.currentOrganization;
+      const currentCompanyId = this.organizationService.getCurrentCompanyId();
+      
+      // Solo recargar si el company_id está listo, hay un cambio real y no es la primera vez
+      if (
+        this.organizationService.companyIdsReady() && 
+        currentCompanyId &&
+        this.previousOrganization !== null &&
+        this.previousOrganization !== currentOrg
+      ) {
+        console.log('🔄 Organización cambió de', this.previousOrganization, 'a', currentOrg, 'company_id:', currentCompanyId);
+        console.log('🔄 Recargando todos los datos...');
+        
+        // Recargar todos los stores
+        this.employeesStore.reloadItems();
+        this.branchesStore.reloadItems();
+        this.positionsStore.reloadItems();
+        this.departmentsStore.reloadItems();
+        this.companiesStore.reloadItems();
+        this.schedulesStore.reloadItems();
+        this.banksStore.reloadItems();
+        this.payrollsStore.reloadItems();
+        
+        // Recargar empleado actual
+        this.store.auth.getCurrentEmployee();
+        
+        // Actualizar organización anterior
+        this.previousOrganization = currentOrg;
+        
+        console.log('✅ Datos recargados para organización:', currentOrg);
+      } else if (this.previousOrganization === null) {
+        // Primera vez, solo guardar la organización actual
+        this.previousOrganization = currentOrg;
+      }
+    });
+    
     // La redirección se maneja en el guard para evitar conflictos de navegación
     // Track current route for active state
     this.router.events
@@ -542,6 +608,45 @@ export class DashboardComponent {
     const segments = url.split('/').filter((s: string) => s);
     const route = segments.length > 0 ? segments[segments.length - 1] : 'home';
     this.currentRoute.set(route);
+
+    // DEBUG: Log de valores para depuración
+    setTimeout(() => {
+      console.log('=== DEBUG DASHBOARD ===');
+      console.log('isNaz():', this.organizationService.isNaz());
+      console.log('auth.currentEmployeeId():', this.store.auth.currentEmployeeId());
+      console.log('employees.entities().length:', this.store.employees.entities().length);
+      console.log('employees.entities() (todos):', this.store.employees.entities());
+      console.log('IDs de empleados cargados:', this.store.employees.entities().map(e => e.id));
+      console.log('hasDashboardAccess:', this.store.hasDashboardAccess());
+      console.log('isAdmin:', this.store.isAdmin());
+      console.log('hasPortalAccessOnly:', this.store.hasPortalAccessOnly());
+      console.log('hasTimeManagementAccess:', this.store.hasTimeManagementAccess());
+      console.log('currentEmployee:', this.store.currentEmployee());
+      console.log('currentEmployee position:', this.store.currentEmployee()?.position);
+      console.log('currentEmployee position dashboard_access:', this.store.currentEmployee()?.position?.dashboard_access);
+      console.log('currentEmployee position admin:', this.store.currentEmployee()?.position?.admin);
+      console.log('currentEmployee has_portal_access:', this.store.currentEmployee()?.has_portal_access);
+      console.log('showEmployeePortalView:', this.showEmployeePortalView());
+      
+      // Buscar el empleado manualmente
+      const employeeId = this.store.auth.currentEmployeeId();
+      if (employeeId) {
+        const foundEmployee = this.store.employees.entities().find(e => e.id === employeeId);
+        console.log('🔍 Buscando empleado con ID:', employeeId);
+        console.log('Empleado encontrado manualmente:', foundEmployee);
+        if (!foundEmployee) {
+          console.log('❌ PROBLEMA: El ID del empleado no coincide con ningún empleado cargado');
+          console.log('Esto significa que AuthStore y EmployeesStore están usando tablas diferentes');
+        } else {
+          console.log('✅ Empleado encontrado!');
+          console.log('Empleado position:', foundEmployee.position);
+          console.log('Empleado position dashboard_access:', foundEmployee.position?.dashboard_access);
+        }
+      } else {
+        console.log('⚠️ auth.currentEmployeeId() es null/undefined');
+      }
+      console.log('========================');
+    }, 2000); // Esperar 2 segundos para que los datos se carguen
   }
 
   navigateTo(route: string) {
@@ -626,6 +731,17 @@ export class DashboardComponent {
       });
     }
 
+    // Agregar opción de cambiar organización solo si es oficina central
+    if (this.canChangeOrganization()) {
+      items.push({
+        label: this.organizationService.isNaz() ? 'Cambiar a Black Dog' : 'Cambiar a Naz',
+        icon: 'pi pi-refresh',
+        command: () => {
+          this.organizationService.toggleOrganization();
+        },
+      });
+    }
+
     items.push(
       {
         separator: true,
@@ -650,5 +766,97 @@ export class DashboardComponent {
 
   toggleCompany(companyId: string | null) {
     this.store.toggleCompany(companyId);
+  }
+
+  /**
+   * Obtiene la IP actual del cliente
+   */
+  private fetchCurrentIP(): void {
+    // Intentar obtener IP desde el servidor
+    this.http.get<{ ip: string }>('/api/client-ip').subscribe({
+      next: (response) => {
+        if (response?.ip) {
+          this.currentIP.set(response.ip.trim());
+        }
+      },
+      error: () => {
+        // Si falla, intentar obtener IP vía WebRTC como fallback
+        this.getIPViaWebRTC().then((ip) => {
+          this.currentIP.set(ip);
+        }).catch(() => {
+          // Si todo falla, usar localhost como fallback
+          this.currentIP.set('127.0.0.1');
+        });
+      },
+    });
+  }
+
+  /**
+   * Obtiene IP vía WebRTC (fallback)
+   */
+  private getIPViaWebRTC(): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const RTCPeerConnection =
+        (window as any).RTCPeerConnection ||
+        (window as any).webkitRTCPeerConnection ||
+        (window as any).mozRTCPeerConnection;
+
+      if (!RTCPeerConnection) {
+        reject(new Error('WebRTC not supported'));
+        return;
+      }
+
+      const pc = new RTCPeerConnection({
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+      });
+
+      const ips: string[] = [];
+
+      pc.createDataChannel('');
+
+      pc.onicecandidate = (event: any) => {
+        if (event.candidate) {
+          const candidate = event.candidate.candidate;
+          const match = candidate.match(
+            /([0-9]{1,3}(\.[0-9]{1,3}){3}|[a-f0-9]{1,4}(:[a-f0-9]{1,4}){7})/
+          );
+          if (match) {
+            const ip = match[1];
+            if (
+              ips.indexOf(ip) === -1 &&
+              !ip.startsWith('127.') &&
+              ip !== '::1'
+            ) {
+              ips.push(ip);
+            }
+          }
+        } else {
+          if (ips.length > 0) {
+            pc.close();
+            resolve(ips[0]);
+          } else {
+            pc.close();
+            reject(new Error('No IP found'));
+          }
+        }
+      };
+
+      pc.createOffer()
+        .then((offer: any) => pc.setLocalDescription(offer))
+        .catch((err: any) => {
+          pc.close();
+          reject(err);
+        });
+
+      setTimeout(() => {
+        if (ips.length > 0) {
+          pc.close();
+          resolve(ips[0]);
+        } else {
+          pc.close();
+          reject(new Error('WebRTC timeout'));
+        }
+      }, 3000);
+    });
   }
 }

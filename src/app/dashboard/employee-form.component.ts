@@ -37,7 +37,6 @@ import { Bank, Employee, UniformSize } from '../models';
 import { DashboardStore } from '../stores/dashboard.store';
 import { WassengerService } from '../services/wassenger.service';
 import { OrganizationService } from '../services/organization.service';
-import { getTableName } from '../utils/table-helper';
 
 @Component({
   selector: 'pt-employee-form',
@@ -443,6 +442,7 @@ import { getTableName } from '../utils/table-helper';
                   placeholder="dd/mm/yyyy"
                 />
               </div>
+              @if (!organizationService.isNaz()) {
               <div class="input-container">
                 <label for="week_hours">Horas semanales</label>
                 <p-inputNumber
@@ -459,6 +459,7 @@ import { getTableName } from '../utils/table-helper';
                   inputId="use_timelog"
                 />
               </div>
+              }
               </div>
             </div>
           </p-tabpanel>
@@ -554,13 +555,25 @@ export class EmployeeFormComponent implements OnInit {
   ];
   public accountTypes = ['Ahorros', 'Corriente'];
 
-  public banks = httpResource<Bank[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/banks`,
-    method: 'GET',
-    params: {
+  public banks = httpResource<Bank[]>(() => {
+    const companyId = this.organizationService.getCurrentCompanyId();
+    const params: any = {
       select: 'id,name',
-    },
-  }));
+    };
+    
+    // Agregar filtro por company_id si está disponible (banks puede tener company_id NULL para compartidos)
+    if (companyId) {
+      // Permitir bancos compartidos (company_id IS NULL) o del company_id actual
+      // Esto requiere una query más compleja, por ahora solo filtramos por company_id si existe
+      params.company_id = `eq.${companyId}`;
+    }
+    
+    return {
+      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/banks`,
+      method: 'GET',
+      params,
+    };
+  });
   public employee_id = input<string>();
   private injector = inject(Injector);
   private message = inject(MessageService);
@@ -617,7 +630,8 @@ export class EmployeeFormComponent implements OnInit {
     is_active: new FormControl(true, { nonNullable: true }),
     company_id: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required],
+      // company_id no es requerido para naz_employees
+      validators: [],
     }),
     work_email: new FormControl('', { nonNullable: true }),
     monthly_salary: new FormControl(0, { nonNullable: true }),
@@ -631,14 +645,15 @@ export class EmployeeFormComponent implements OnInit {
     }),
     week_hours: new FormControl(0, {
       nonNullable: true,
-      validators: [Validators.min(40), Validators.max(60)],
+      // Los validadores se ajustarán dinámicamente según si es Naz o no
+      validators: [],
     }),
     use_timelog: new FormControl(false, { nonNullable: true }),
   });
 
   private confirmationService = inject(ConfirmationService);
   private wassengerService = inject(WassengerService);
-  private organizationService = inject(OrganizationService);
+  public organizationService = inject(OrganizationService);
   currentSalary = toSignal(
     this.form.get('monthly_salary')!.valueChanges.pipe(debounceTime(500)),
     {
@@ -651,22 +666,68 @@ export class EmployeeFormComponent implements OnInit {
     if (!this.employee_id()) {
       return;
     }
-    const employeesTable = getTableName('employees', this.organizationService.isNaz());
+    const companyId = this.organizationService.getCurrentCompanyId();
+    
+    // Construir la query base - incluir todos los campos (week_hours y use_timelog son opcionales)
+    const selectQuery = 'id,first_name,father_name, middle_name, mother_name, document_id, email, phone_number, address, birth_date, start_date, branch_id, department_id, position_id, gender, uniform_size, is_active, company_id, work_email, monthly_salary, hourly_salary, qr_code, code_uri, bank, account_number, bank_account_type, week_hours, use_timelog';
+    
+    const params: any = {
+      select: selectQuery,
+      limit: '1',
+      order: 'father_name',
+      is_active: 'eq.true',
+      id: `eq.${this.employee_id()}`,
+    };
+    
+    // Agregar filtro por company_id
+    if (companyId) {
+      params.company_id = `eq.${companyId}`;
+    }
+    
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/${employeesTable}`,
+      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
       method: 'GET',
-      params: {
-        select:
-          'id,first_name,father_name, middle_name, mother_name, document_id, email, phone_number, address, birth_date, start_date, branch_id, department_id, position_id, gender, uniform_size, is_active, company_id, work_email, monthly_salary, hourly_salary, qr_code, code_uri, bank, account_number, bank_account_type, week_hours, use_timelog',
-        limit: '1',
-        order: 'father_name',
-        is_active: 'eq.true',
-        id: `eq.${this.employee_id()}`,
-      },
+      params,
     };
   });
 
   ngOnInit() {
+    // Cargar datos necesarios para los dropdowns
+    this.store.positions.fetchItems();
+    this.store.departments.fetchItems();
+    this.store.companies.fetchItems();
+    this.store.branches.fetchItems();
+    
+    // Ajustar validaciones según si es Naz o no
+    effect(() => {
+      const isNaz = this.organizationService.isNaz();
+      
+      // Ajustar validación de company_id
+      const companyControl = this.form.get('company_id');
+      if (companyControl) {
+        if (isNaz) {
+          companyControl.clearValidators();
+        } else {
+          companyControl.setValidators([Validators.required]);
+        }
+        companyControl.updateValueAndValidity({ emitEvent: false });
+      }
+      
+      // Ajustar validación de week_hours
+      const weekHoursControl = this.form.get('week_hours');
+      if (weekHoursControl) {
+        if (isNaz) {
+          // En Naz, week_hours no existe, así que no debe tener validadores
+          weekHoursControl.clearValidators();
+          weekHoursControl.setValue(0, { emitEvent: false });
+        } else {
+          // En Black Dog, week_hours debe estar entre 40 y 60
+          weekHoursControl.setValidators([Validators.min(40), Validators.max(60)]);
+        }
+        weekHoursControl.updateValueAndValidity({ emitEvent: false });
+      }
+    }, { injector: this.injector });
+    
     effect(
       () => {
         const employee = this.currentEmployee.value()?.[0];
@@ -701,13 +762,42 @@ export class EmployeeFormComponent implements OnInit {
     this.form.markAsUntouched();
   }
 
+  private getFieldLabel(fieldName: string): string {
+    const labels: Record<string, string> = {
+      'first_name': 'Nombre',
+      'father_name': 'Apellido Paterno',
+      'document_id': 'Cédula de Identidad',
+      'gender': 'Sexo',
+      'branch_id': 'Sucursal',
+      'department_id': 'Área',
+      'position_id': 'Cargo',
+      'start_date': 'Fecha de Inicio',
+      'company_id': 'Empresa',
+    };
+    return labels[fieldName] || fieldName;
+  }
+
   saveChanges() {
     const { pristine, invalid } = this.form;
     if (invalid) {
+      // Obtener los campos inválidos para mostrar un mensaje más específico
+      const invalidFields: string[] = [];
+      Object.keys(this.form.controls).forEach(key => {
+        const control = this.form.get(key);
+        if (control && control.invalid) {
+          const fieldName = this.getFieldLabel(key);
+          invalidFields.push(fieldName);
+        }
+      });
+      
+      const errorMessage = invalidFields.length > 0 
+        ? `Por favor complete los siguientes campos requeridos: ${invalidFields.join(', ')}`
+        : 'Formulario inválido. Por favor complete todos los campos requeridos.';
+      
       this.message.add({
         severity: 'error',
         summary: 'No se guardaron cambios',
-        detail: 'Formulario invalido',
+        detail: errorMessage,
       });
       markGroupDirty(this.form);
       return;
@@ -723,8 +813,20 @@ export class EmployeeFormComponent implements OnInit {
     if (!this.employee_id()) {
       // Es un empleado nuevo
       this.addTimeclockQR();
-      this.store.employees.createItem(this.form.getRawValue()).subscribe({
+      
+      // Filtrar campos que no existen en naz_employees si es Naz
+      const formValue = this.form.getRawValue();
+      let dataToSave: any = formValue;
+      if (this.organizationService.isNaz()) {
+        const { use_timelog, week_hours, company_id, ...filteredData } = formValue;
+        dataToSave = filteredData;
+      }
+      
+      this.store.employees.createItem(dataToSave).subscribe({
         next: () => {
+          // Recargar la lista de empleados
+          this.store.employees.reloadItems();
+          
           // Después de crear, preguntar si quiere invitar por Wassenger
           const formValue = this.form.getRawValue();
           if (formValue.phone_number && formValue.work_email) {
@@ -752,12 +854,50 @@ export class EmployeeFormComponent implements OnInit {
                     }
                   });
               },
+              reject: () => {
+                // Navegar de vuelta a la lista después de rechazar
+                this.router.navigate(['/admin/employees']);
+              },
             });
+          } else {
+            // Si no hay datos para Wassenger, navegar directamente
+            this.router.navigate(['/admin/employees']);
           }
+        },
+        error: (error) => {
+          console.error('Error al crear empleado:', error);
+          this.message.add({
+            severity: 'error',
+            summary: 'Error al guardar',
+            detail: error?.error?.message || 'Ocurrió un error al crear el empleado. Por favor intente nuevamente.',
+          });
         },
       });
     } else {
-      this.store.employees.editItem(this.form.getRawValue()).subscribe();
+      // Filtrar campos que no existen en naz_employees si es Naz
+      const formValue = this.form.getRawValue();
+      let dataToSave: any = formValue;
+      if (this.organizationService.isNaz()) {
+        const { use_timelog, week_hours, company_id, ...filteredData } = formValue;
+        dataToSave = filteredData;
+      }
+      
+      this.store.employees.editItem(dataToSave).subscribe({
+        next: () => {
+          // Recargar la lista de empleados
+          this.store.employees.reloadItems();
+          // Navegar de vuelta a la lista después de editar
+          this.router.navigate(['/admin/employees']);
+        },
+        error: (error) => {
+          console.error('Error al actualizar empleado:', error);
+          this.message.add({
+            severity: 'error',
+            summary: 'Error al guardar',
+            detail: error?.error?.message || 'Ocurrió un error al actualizar el empleado. Por favor intente nuevamente.',
+          });
+        },
+      });
     }
   }
 

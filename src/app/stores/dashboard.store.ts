@@ -123,6 +123,11 @@ export const DashboardStore = signalStore(
           return true;
         }
 
+        // Si tiene dashboard_access = true, NO es solo portal access
+        if (employee?.position?.dashboard_access === true) {
+          return false;
+        }
+
         // Verificación original: si tiene has_portal_access y no es admin
         return (
           employee?.has_portal_access === true && !employee?.position?.admin
@@ -144,6 +149,14 @@ export const DashboardStore = signalStore(
           (pos) => positionName.toLowerCase().includes(pos.toLowerCase())
         );
       });
+      
+      const hasDashboardAccess = computed(() => {
+        const employee = currentEmployee();
+        // Si dashboard_access es null/undefined, permitir acceso (compatibilidad con datos antiguos)
+        // Solo denegar si es explícitamente false
+        return employee?.position?.dashboard_access !== false;
+      });
+      
       const isScheduleApprover = computed(
         () => currentEmployee()?.position?.schedule_approver
       );
@@ -812,6 +825,7 @@ export const DashboardStore = signalStore(
         isScheduleAdmin,
         isScheduleApprover,
         hasTimeManagementAccess,
+        hasDashboardAccess,
         currentBranch,
         monthlyBudget,
         countByGender,

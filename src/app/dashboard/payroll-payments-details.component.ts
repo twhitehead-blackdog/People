@@ -21,6 +21,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { OrganizationService } from '../services/organization.service';
 import {
   addDays,
   differenceInMinutes,
@@ -374,6 +375,7 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
   public currentEmployee = model<string>();
   public loading = signal(false);
   private message = inject(MessageService);
+  private organizationService = inject(OrganizationService);
   public absenceCauses = [
     { value: 'PERSONAL', label: 'Personal' },
     { value: 'INJUSTIFICADA', label: 'Injustificada' },
@@ -761,22 +763,28 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
     if (!this.payment.value()?.[0]) {
       return undefined;
     }
-    return {
-      url: `${
-        process.env['ENV_SUPABASE_URL']
-      }/rest/v1/timelogs?created_at=lte.${format(
+    const companyId = this.organizationService.getCurrentCompanyId();
+    const params: any = {
+      select: `*, employee:employees(id, first_name, father_name), branch:branches(id, name)`,
+      created_at: `gte.${format(
+        addDays(this.payment.value()![0].start_date, 1),
+        'yyyy-MM-dd 06:00:00'
+      )}`,
+      created_at_lte: `lte.${format(
         addDays(this.payment.value()![0].end_date, 1),
         'yyyy-MM-dd 23:59:59'
       )}`,
+    };
+    
+    // Agregar filtro por company_id
+    if (companyId) {
+      params.company_id = `eq.${companyId}`;
+    }
+    
+    return {
+      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`,
       method: 'GET',
-      params: {
-        select:
-          '*, employee:employees(id, first_name, father_name), branch:branches(id, name)',
-        created_at: `gte.${format(
-          addDays(this.payment.value()![0].start_date, 1),
-          'yyyy-MM-dd 06:00:00'
-        )}`,
-      },
+      params,
     };
   });
 
@@ -784,20 +792,28 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
     if (!this.payment.value()?.[0]) {
       return undefined;
     }
+    const companyId = this.organizationService.getCurrentCompanyId();
+    const params: any = {
+      select: `*,schedule:schedules(*)`,
+      start_date: `gte.${format(
+        this.payment.value()![0].start_date,
+        'yyyy-MM-dd 06:00:00'
+      )}`,
+      end_date: `lte.${format(
+        addDays(this.payment.value()![0].end_date, 1),
+        'yyyy-MM-dd 23:59:59'
+      )}`,
+    };
+    
+    // Agregar filtro por company_id
+    if (companyId) {
+      params.company_id = `eq.${companyId}`;
+    }
+    
     return {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
       method: 'GET',
-      params: {
-        select: '*,schedule:schedules(*)',
-        start_date: `gte.${format(
-          this.payment.value()![0].start_date,
-          'yyyy-MM-dd 06:00:00'
-        )}`,
-        end_date: `lte.${format(
-          addDays(this.payment.value()![0].end_date, 1),
-          'yyyy-MM-dd 23:59:59'
-        )}`,
-      },
+      params,
     };
   });
   public currentAttendanceSheets = computed(() =>

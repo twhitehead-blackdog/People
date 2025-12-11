@@ -22,6 +22,7 @@ import { Select } from 'primeng/select';
 import { iif } from 'rxjs';
 import { markGroupDirty } from '../services/util.service';
 import { DashboardStore } from '../stores/dashboard.store';
+import { OrganizationService } from '../services/organization.service';
 
 @Component({
   selector: 'pt-departments-form',
@@ -32,6 +33,7 @@ import { DashboardStore } from '../stores/dashboard.store';
         <label for="name">Nombre</label>
         <input type="text" id="name" pInputText formControlName="name" />
       </div>
+      @if (!organizationService.isNaz()) {
       <div class="input-container">
         <label for="company_id">Empresa</label>
         <p-select
@@ -44,6 +46,7 @@ import { DashboardStore } from '../stores/dashboard.store';
           appendTo="body"
         />
       </div>
+      }
       <div class="flex gap-4 items-center justify-end">
         <p-button
           label="Cancelar"
@@ -68,6 +71,13 @@ import { DashboardStore } from '../stores/dashboard.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DepartmentsFormComponent implements OnInit {
+  public dialogRef = inject(DynamicDialogRef);
+  private dialog = inject(DynamicDialogConfig);
+  public store = inject(DashboardStore);
+  private messageService = inject(MessageService);
+  private destroyRef = inject(DestroyRef);
+  public organizationService = inject(OrganizationService);
+  
   form = new FormGroup({
     id: new FormControl(v4(), { nonNullable: true }),
     name: new FormControl('', {
@@ -76,14 +86,10 @@ export class DepartmentsFormComponent implements OnInit {
     }),
     company_id: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required],
+      // company_id no es requerido para naz_departments (no existe ese campo)
+      validators: [],
     }),
   });
-  public dialogRef = inject(DynamicDialogRef);
-  private dialog = inject(DynamicDialogConfig);
-  public store = inject(DashboardStore);
-  private messageService = inject(MessageService);
-  private destroyRef = inject(DestroyRef);
 
   ngOnInit() {
     const { department } = this.dialog.data;
@@ -93,11 +99,23 @@ export class DepartmentsFormComponent implements OnInit {
   }
 
   async saveChanges() {
-    if (this.form.invalid) {
+    // Validar que el nombre esté presente (requerido para ambas tablas)
+    if (!this.form.get('name')?.value || this.form.get('name')?.value.trim() === '') {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'Por favor, complete los campos requeridos',
+        detail: 'Por favor, ingrese el nombre del departamento',
+      });
+      markGroupDirty(this.form);
+      return;
+    }
+    
+    // Validar company_id solo si NO es Naz
+    if (!this.organizationService.isNaz() && !this.form.get('company_id')?.value) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Por favor, seleccione una empresa',
       });
       markGroupDirty(this.form);
       return;
@@ -111,14 +129,43 @@ export class DepartmentsFormComponent implements OnInit {
       this.dialogRef.close();
       return;
     }
+    // Filtrar company_id si es Naz (naz_departments no tiene este campo)
+    const formValue = this.form.getRawValue();
+    let dataToSave: any = formValue;
+    if (this.organizationService.isNaz()) {
+      const { company_id, ...filteredData } = formValue;
+      dataToSave = filteredData;
+    }
+    
     iif(
       () => this.dialog.data.department,
-      this.store.departments.editItem(this.form.getRawValue()),
-      this.store.departments.createItem(this.form.getRawValue())
+      this.store.departments.editItem(dataToSave),
+      this.store.departments.createItem(dataToSave)
     )
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => {
-        this.dialogRef.close();
+      .subscribe({
+        next: () => {
+          this.dialogRef.close();
+        },
+        error: (error) => {
+          console.error('Error al guardar departamento:', error);
+          let errorMessage = 'Error al guardar el departamento';
+          
+          // Manejar error de constraint único
+          if (error?.error?.code === '23505' || error?.error?.message?.includes('duplicate key')) {
+            errorMessage = `Ya existe un departamento con el nombre "${this.form.get('name')?.value}". Por favor, use un nombre diferente.`;
+          } else if (error?.error?.message) {
+            errorMessage = error.error.message;
+          } else if (error?.message) {
+            errorMessage = error.message;
+          }
+          
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: errorMessage,
+          });
+        }
       });
   }
 }

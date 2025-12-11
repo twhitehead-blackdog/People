@@ -78,16 +78,16 @@ BEGIN
         RAISE WARNING '❌ naz_positions NO tiene foreign keys';
     END IF;
     
-    -- Foreign keys en naz_employees (debería tener 3: branch_id, department_id, position_id)
+    -- Foreign keys en naz_employees (debería tener 3 o 4: branch_id, department_id, position_id, y opcionalmente company_id)
     SELECT COUNT(*) INTO fk_count
     FROM information_schema.table_constraints 
     WHERE constraint_type = 'FOREIGN KEY'
     AND table_name = 'naz_employees';
     
     IF fk_count >= 3 THEN
-        RAISE NOTICE '✅ naz_employees tiene % foreign key(s) (esperado: 3)', fk_count;
+        RAISE NOTICE '✅ naz_employees tiene % foreign key(s) (mínimo esperado: 3)', fk_count;
     ELSE
-        RAISE WARNING '❌ naz_employees tiene solo % foreign key(s) (esperado: 3)', fk_count;
+        RAISE WARNING '❌ naz_employees tiene solo % foreign key(s) (esperado: mínimo 3)', fk_count;
     END IF;
 END $$;
 
@@ -128,7 +128,44 @@ BEGIN
     END IF;
 END $$;
 
--- 5. Contar registros en cada tabla
+-- 5. Verificar columnas requeridas en naz_employees
+DO $$
+BEGIN
+    RAISE NOTICE '';
+    RAISE NOTICE '=== VERIFICANDO COLUMNAS EN naz_employees ===';
+    
+    -- Verificar company_id
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'naz_employees' AND column_name = 'company_id'
+    ) THEN
+        RAISE NOTICE '✅ company_id existe';
+    ELSE
+        RAISE WARNING '❌ company_id NO existe - Ejecuta add-missing-columns-to-naz-employees.sql';
+    END IF;
+    
+    -- Verificar has_portal_access
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'naz_employees' AND column_name = 'has_portal_access'
+    ) THEN
+        RAISE NOTICE '✅ has_portal_access existe';
+    ELSE
+        RAISE WARNING '❌ has_portal_access NO existe - Ejecuta add-missing-columns-to-naz-employees.sql';
+    END IF;
+    
+    -- Verificar account_approved
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'naz_employees' AND column_name = 'account_approved'
+    ) THEN
+        RAISE NOTICE '✅ account_approved existe';
+    ELSE
+        RAISE WARNING '❌ account_approved NO existe - Ejecuta add-missing-columns-to-naz-employees.sql';
+    END IF;
+END $$;
+
+-- 6. Contar registros en cada tabla
 DO $$
 DECLARE
     count_companies INTEGER;
@@ -160,8 +197,10 @@ END $$;
 -- RESUMEN
 -- ============================================
 -- Si todas las verificaciones pasan pero aún tienes error 400:
--- 1. Refresca el esquema en Supabase Dashboard
--- 2. Ve a Database > Relationships y verifica que aparezcan las relaciones
--- 3. Si las relaciones no aparecen, ejecuta fix-naz-foreign-keys-relationships.sql
+-- 1. Ejecuta add-missing-columns-to-naz-employees.sql para agregar las columnas faltantes
+-- 2. Refresca el esquema en Supabase Dashboard
+-- 3. Ve a Database > Relationships y verifica que aparezcan las relaciones
+-- 4. Si las relaciones no aparecen, ejecuta fix-naz-foreign-keys-relationships.sql
 -- ============================================
+
 

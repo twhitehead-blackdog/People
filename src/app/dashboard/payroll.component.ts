@@ -15,7 +15,7 @@ import { OrganizationService } from '../services/organization.service';
         class="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8 sticky top-0 z-10"
       >
         <div class="block w-full overflow-x-auto">
-          <div class="flex gap-2 min-w-max">
+          <div class="flex gap-2 min-w-max justify-center">
             <a
               routerLink="payrolls"
               class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"

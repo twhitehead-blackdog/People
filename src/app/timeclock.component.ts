@@ -110,10 +110,10 @@ import { OrganizationService } from './services/organization.service';
               </div>
               <!-- Clock Display inside card -->
               <div
-                class="flex flex-col items-center gap-0.5 bg-black/40 backdrop-blur-sm rounded-lg px-3 md:px-5 py-1.5 md:py-2 border border-yellow-500/40 shadow-lg clock-display"
+                class="flex flex-col items-center gap-0.5 bg-black/40 backdrop-blur-sm rounded-lg px-3 md:px-5 py-1.5 md:py-2 border border-gray-500/40 shadow-lg clock-display"
               >
                 <div
-                  class="text-xl md:text-2xl lg:text-3xl font-mono font-bold text-yellow-400 clock-time"
+                  class="text-xl md:text-2xl lg:text-3xl font-mono font-bold text-gray-300 clock-time"
                 >
                   {{ formattedTime() }}
                 </div>
@@ -127,8 +127,8 @@ import { OrganizationService } from './services/organization.service';
             <div
               class="flex items-center justify-center gap-2 text-[#d2d2d2] text-xs md:text-sm font-semibold text-center"
             >
-              <i class="pi pi-building text-yellow-400"></i>
-              <i class="pi pi-user text-yellow-400"></i>
+              <i class="pi pi-building text-gray-400"></i>
+              <i class="pi pi-user text-gray-400"></i>
               <span>Seleccione la sucursal y empleado</span>
             </div>
           </ng-template>
@@ -151,7 +151,7 @@ import { OrganizationService } from './services/organization.service';
                 [styleClass]="'w-full'"
               />
             </div>
-            }
+            } @if (canChangeBranch()) {
             <div class="input-container w-full">
               <p-select
                 formControlName="branch_id"
@@ -165,6 +165,7 @@ import { OrganizationService } from './services/organization.service';
                 [styleClass]="'w-full'"
               />
             </div>
+            }
             <div
               class="input-container w-full"
               [ngClass]="{
@@ -246,12 +247,12 @@ import { OrganizationService } from './services/organization.service';
                   background:
                     form.invalid || !form.get('employee')?.value
                       ? 'linear-gradient(135deg, #5d5d5d 0%, #4a4a4a 100%)'
-                      : 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+                      : 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)',
                   border: 'none',
                   'box-shadow':
                     form.invalid || !form.get('employee')?.value
                       ? 'none'
-                      : '0 4px 15px rgba(251, 191, 36, 0.4)'
+                      : '0 4px 15px rgba(107, 114, 128, 0.4)'
                 }"
               />
             </div>
@@ -351,26 +352,26 @@ import { OrganizationService } from './services/organization.service';
     }
     
     .animated-gradient-container::-webkit-scrollbar-thumb {
-      background: linear-gradient(180deg, rgba(251, 191, 36, 0.6) 0%, rgba(251, 191, 36, 0.4) 100%);
+      background: linear-gradient(180deg, rgba(107, 114, 128, 0.6) 0%, rgba(107, 114, 128, 0.4) 100%);
       border-radius: 10px;
       border: 2px solid rgba(0, 0, 0, 0.2);
-      box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+      box-shadow: 0 0 10px rgba(107, 114, 128, 0.3);
       transition: all 0.3s ease;
     }
     
     .animated-gradient-container::-webkit-scrollbar-thumb:hover {
-      background: linear-gradient(180deg, rgba(251, 191, 36, 0.8) 0%, rgba(251, 191, 36, 0.6) 100%);
-      box-shadow: 0 0 15px rgba(251, 191, 36, 0.5);
+      background: linear-gradient(180deg, rgba(107, 114, 128, 0.8) 0%, rgba(107, 114, 128, 0.6) 100%);
+      box-shadow: 0 0 15px rgba(107, 114, 128, 0.5);
     }
     
     .animated-gradient-container::-webkit-scrollbar-thumb:active {
-      background: linear-gradient(180deg, rgba(251, 191, 36, 1) 0%, rgba(251, 191, 36, 0.8) 100%);
+      background: linear-gradient(180deg, rgba(107, 114, 128, 1) 0%, rgba(107, 114, 128, 0.8) 100%);
     }
     
     /* Firefox scrollbar */
     .animated-gradient-container {
       scrollbar-width: thin;
-      scrollbar-color: rgba(251, 191, 36, 0.6) rgba(0, 0, 0, 0.3);
+      scrollbar-color: rgba(107, 114, 128, 0.6) rgba(0, 0, 0, 0.3);
     }
     
     .timeclock-content {
@@ -422,9 +423,9 @@ import { OrganizationService } from './services/organization.service';
     
     
     .timeclock-card {
-      border: 2px solid rgba(251, 191, 36, 0.5) !important;
+      border: 2px solid rgba(107, 114, 128, 0.5) !important;
       border-radius: 12px !important;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(251, 191, 36, 0.2) !important;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(107, 114, 128, 0.2) !important;
       backdrop-filter: blur(10px);
       background: rgba(17, 24, 39, 0.95) !important;
       animation: cardEntrance 0.25s ease-out;
@@ -464,20 +465,20 @@ import { OrganizationService } from './services/organization.service';
     }
     
     .clock-display {
-      border: 1px solid rgba(251, 191, 36, 0.5) !important;
+      border: 1px solid rgba(107, 114, 128, 0.5) !important;
     }
     
     .clock-time {
-      text-shadow: 0 0 10px rgba(251, 191, 36, 0.8);
+      text-shadow: 0 0 10px rgba(107, 114, 128, 0.8);
       animation: clockPulse 2s ease-in-out infinite;
     }
     
     @keyframes clockPulse {
       0%, 100% {
-        text-shadow: 0 0 10px rgba(251, 191, 36, 0.8);
+        text-shadow: 0 0 10px rgba(107, 114, 128, 0.8);
       }
       50% {
-        text-shadow: 0 0 20px rgba(251, 191, 36, 1), 0 0 30px rgba(251, 191, 36, 0.6);
+        text-shadow: 0 0 20px rgba(107, 114, 128, 1), 0 0 30px rgba(107, 114, 128, 0.6);
       }
     }
     
@@ -496,12 +497,12 @@ import { OrganizationService } from './services/organization.service';
     
     .timeclock-card ::ng-deep .p-select .p-select-trigger {
       border-radius: 8px !important;
-      border: 2px solid rgba(251, 191, 36, 0.5) !important;
+      border: 2px solid rgba(107, 114, 128, 0.5) !important;
     }
     
     .timeclock-card ::ng-deep .p-select:focus-within .p-select-trigger {
-      border-color: rgba(251, 191, 36, 0.8) !important;
-      box-shadow: 0 0 10px rgba(251, 191, 36, 0.3) !important;
+      border-color: rgba(107, 114, 128, 0.8) !important;
+      box-shadow: 0 0 10px rgba(107, 114, 128, 0.3) !important;
     }
     
     .error-border ::ng-deep .p-select .p-select-trigger {
@@ -528,22 +529,22 @@ import { OrganizationService } from './services/organization.service';
       max-width: 45px !important;
       height: 38px !important;
       font-size: 0.95rem !important;
-      border: 2px solid rgba(251, 191, 36, 0.5) !important;
+      border: 2px solid rgba(107, 114, 128, 0.5) !important;
       border-radius: 8px !important;
       background: rgba(31, 41, 55, 0.8) !important;
-      color: #fbbf24 !important;
+      color: #9ca3af !important;
       font-weight: bold !important;
       flex: 0 0 auto !important;
     }
     
     .timeclock-card ::ng-deep .p-inputotp-input:focus {
-      border-color: rgba(251, 191, 36, 0.9) !important;
-      box-shadow: 0 0 15px rgba(251, 191, 36, 0.4) !important;
+      border-color: rgba(107, 114, 128, 0.9) !important;
+      box-shadow: 0 0 15px rgba(107, 114, 128, 0.4) !important;
       outline: none !important;
     }
     
     .timeclock-card ::ng-deep .p-inputotp-input:not(:placeholder-shown) {
-      border-color: rgba(251, 191, 36, 0.7) !important;
+      border-color: rgba(107, 114, 128, 0.7) !important;
     }
     
     @media (max-width: 768px) {
@@ -630,7 +631,7 @@ import { OrganizationService } from './services/organization.service';
     
     .timeclock-card ::ng-deep .p-button:not(:disabled):hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 25px rgba(251, 191, 36, 0.6) !important;
+      box-shadow: 0 6px 25px rgba(107, 114, 128, 0.6) !important;
       filter: brightness(1.1);
     }
     
@@ -899,7 +900,9 @@ export class TimeclockComponent implements OnDestroy {
             const currentIP = this.getIP();
             if (currentIP && currentIP !== '127.0.0.1') {
               // Find branch matching the IP
-              const matchingBranch = branches.find((b: Branch | NazBranch) => b.ip === currentIP);
+              const matchingBranch = branches.find(
+                (b: Branch | NazBranch) => b.ip === currentIP
+              );
               if (matchingBranch) {
                 this.form.get('branch_id')?.setValue(matchingBranch.id);
               }
@@ -1228,7 +1231,7 @@ export class TimeclockComponent implements OnDestroy {
   public validIP = computed(() => {
     // Naz no tiene validación de IP
     if (this.isNazCompany()) return true;
-    
+
     const ip = this.getIP();
     // If IP is localhost (dev fallback), always allow
     if (ip === '127.0.0.1') return true;
@@ -1280,16 +1283,51 @@ export class TimeclockComponent implements OnDestroy {
   }));
 
   // Computed signals to select the correct resource based on organization
-  public currentCompaniesResource = computed<Company[] | NazCompany[] | undefined>(() => {
+  public currentCompaniesResource = computed<
+    Company[] | NazCompany[] | undefined
+  >(() => {
     return this.isNazCompany()
       ? this.nazCompaniesResource.value()
       : this.companiesResource.value();
   });
 
-  public currentBranchesResource = computed<Branch[] | NazBranch[] | undefined>(() => {
-    return this.isNazCompany()
-      ? this.nazBranchesResource.value()
-      : this.branchesResource.value();
+  public currentBranchesResource = computed<Branch[] | NazBranch[] | undefined>(
+    () => {
+      return this.isNazCompany()
+        ? this.nazBranchesResource.value()
+        : this.branchesResource.value();
+    }
+  );
+
+  // Determinar si se puede cambiar la sucursal (solo si es oficina central)
+  public canChangeBranch = computed(() => {
+    const currentIP = this.getIP();
+    if (!currentIP || currentIP === '127.0.0.1') {
+      return true; // Permitir cambio si no se puede detectar la IP
+    }
+
+    const branches = this.currentBranchesResource();
+    if (!branches || branches.length === 0) {
+      return true; // Permitir cambio si no hay sucursales cargadas
+    }
+
+    // Buscar la sucursal que coincide con la IP actual
+    const matchingBranch = branches.find(
+      (b: Branch | NazBranch) => b.ip === currentIP
+    );
+
+    if (!matchingBranch) {
+      return true; // Permitir cambio si no hay sucursal que coincida con la IP
+    }
+
+    // Verificar si la sucursal es oficina central
+    const branchName = matchingBranch.name.toLowerCase();
+    const isCentralOffice =
+      branchName.includes('oficina central') ||
+      branchName.includes('central') ||
+      branchName.includes('oficina');
+
+    return isCentralOffice;
   });
 
   // Separate resources for regular employees and Naz employees
@@ -1706,6 +1744,12 @@ export class TimeclockComponent implements OnDestroy {
     this.isProcessing.set(true);
     const { employee, otp, branch_id, company_id, type } =
       this.form.getRawValue();
+    
+    // #region agent log
+    const serviceCompanyId = this.organizationService.getCurrentCompanyId();
+    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'timeclock.component.ts:1741',message:'validateOtp - company_id check',data:{isNaz:this.isNazCompany(),companyIdFromForm:company_id,companyIdFromService:serviceCompanyId,employeeId:employee?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    
     if (employee?.code_uri) {
       const totp = OTPAuth.URI.parse(employee.code_uri);
       const validation = totp.validate({ token: otp });
@@ -1722,10 +1766,18 @@ export class TimeclockComponent implements OnDestroy {
 
       const employeeName =
         `${employee.first_name} ${employee.father_name}`.trim();
+      
+      // Usar el company_id del servicio si está disponible, sino el del formulario
+      const finalCompanyId = serviceCompanyId || company_id;
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'timeclock.component.ts:1763',message:'Using final company_id for timelog',data:{finalCompanyId,companyIdFromForm:company_id,companyIdFromService:serviceCompanyId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
+      
       this.processTimelog(
         employee.id,
         branch_id,
-        company_id,
+        finalCompanyId,
         type,
         employeeName
       );
@@ -1748,7 +1800,12 @@ export class TimeclockComponent implements OnDestroy {
 
     // Para Naz, no validar IP (invalid_id siempre será false)
     const invalidValue = isNaz ? false : !this.validIP();
-    
+
+    // #region agent log
+    const currentCompanyIdFromService = this.organizationService.getCurrentCompanyId();
+    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'timeclock.component.ts:1789',message:'Creating timelog - company_id check',data:{isNaz,tableName,companyIdFromForm:companyId,companyIdFromService:currentCompanyIdFromService,employeeId,branchId,type},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+
     this.http
       .post(`${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`, {
         employee_id: employeeId,

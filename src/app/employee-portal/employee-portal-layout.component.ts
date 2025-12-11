@@ -7,11 +7,7 @@ import {
   OnInit,
   signal,
 } from '@angular/core';
-import {
-  NavigationEnd,
-  Router,
-  RouterOutlet,
-} from '@angular/router';
+import { NavigationEnd, Router, RouterOutlet } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
 import { ConfirmationService, MenuItem, MessageService } from 'primeng/api';
 import { AvatarModule } from 'primeng/avatar';
@@ -21,6 +17,7 @@ import { MenuModule } from 'primeng/menu';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { filter, Subscription } from 'rxjs';
+import { OrganizationService } from '../services/organization.service';
 import { AuthStore } from '../stores/auth.store';
 import { BanksStore } from '../stores/banks.store';
 import { BranchesStore } from '../stores/branches.store';
@@ -89,9 +86,11 @@ type NavSection = {
                 class="shrink-0 flex items-center gap-2 group cursor-pointer"
               >
                 <img
-                  src="images/blackdog.png"
+                  [src]="
+                    isNaz() ? 'images/Naz_Logo.jpg' : 'images/blackdog.png'
+                  "
                   class="h-9 transition-transform duration-300 group-hover:scale-105"
-                  alt="People"
+                  [alt]="isNaz() ? 'Naz Logo' : 'Black Dog Logo'"
                 />
               </a>
               <div class="hidden md:block">
@@ -330,6 +329,12 @@ type NavSection = {
         @apply bg-gradient-to-r from-gray-700/80 to-gray-600/80 text-white shadow-md transition-all duration-300 ease-in-out;
         border-left: 3px solid #fbbf24;
       }
+      
+      /* Tema Naz - cambiar amarillo a gris */
+      :host-context(.naz-theme) .selected,
+      .naz-theme .selected {
+        border-left-color: #C6C2BF !important;
+      }
 
       ::ng-deep .p-menu {
         background: #1f2937 !important;
@@ -337,6 +342,12 @@ type NavSection = {
         border-radius: 0.5rem !important;
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
         padding: 0.5rem !important;
+      }
+      
+      /* Tema Naz - cambiar amarillo a gris en menú */
+      :host-context(.naz-theme) ::ng-deep .p-menu,
+      .naz-theme ::ng-deep .p-menu {
+        border: 1px solid rgba(198, 194, 191, 0.2) !important;
       }
 
       ::ng-deep .p-menu .p-menuitem-link {
@@ -347,6 +358,12 @@ type NavSection = {
 
       ::ng-deep .p-menu .p-menuitem-link:hover {
         background: rgba(251, 191, 36, 0.1) !important;
+      }
+      
+      /* Tema Naz - hover gris */
+      :host-context(.naz-theme) ::ng-deep .p-menu .p-menuitem-link:hover,
+      .naz-theme ::ng-deep .p-menu .p-menuitem-link:hover {
+        background: rgba(198, 194, 191, 0.1) !important;
       }
 
       ::ng-deep .p-menu .p-menuitem-link .p-menuitem-text {
@@ -359,6 +376,18 @@ type NavSection = {
 
       ::ng-deep .p-menu .p-menuitem-link .p-menuitem-icon {
         color: #fbbf24 !important;
+      }
+      
+      /* Tema Naz - iconos grises */
+      :host-context(.naz-theme) ::ng-deep .p-menu .p-menuitem-link .p-menuitem-icon,
+      .naz-theme ::ng-deep .p-menu .p-menuitem-link .p-menuitem-icon {
+        color: #C6C2BF !important;
+      }
+      
+      /* Tema Naz - hover iconos blancos */
+      :host-context(.naz-theme) ::ng-deep .p-menu .p-menuitem-link:hover .p-menuitem-icon,
+      .naz-theme ::ng-deep .p-menu .p-menuitem-link:hover .p-menuitem-icon {
+        color: #FFFFFF !important;
       }
 
       /* Avatar Container Styles */
@@ -419,6 +448,17 @@ type NavSection = {
         border-color: #fbbf24 !important;
         box-shadow: 0 0 0 0.2rem rgba(251, 191, 36, 0.2) !important;
       }
+      
+      /* Tema Naz - focus gris */
+      :host-context(.naz-theme) ::ng-deep textarea.p-inputtextarea:focus,
+      :host-context(.naz-theme) ::ng-deep .p-inputtextarea:focus,
+      :host-context(.naz-theme) ::ng-deep textarea[pinputtextarea]:focus,
+      .naz-theme ::ng-deep textarea.p-inputtextarea:focus,
+      .naz-theme ::ng-deep .p-inputtextarea:focus,
+      .naz-theme ::ng-deep textarea[pinputtextarea]:focus {
+        border-color: #C6C2BF !important;
+        box-shadow: 0 0 0 0.2rem rgba(198, 194, 191, 0.2) !important;
+      }
 
       ::ng-deep textarea.p-inputtextarea::placeholder,
       ::ng-deep .p-inputtextarea::placeholder,
@@ -438,6 +478,9 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
   public auth = inject(AuthService);
   public router = inject(Router);
   public store = inject(DashboardStore);
+  public organizationService = inject(OrganizationService);
+
+  public isNaz = computed(() => this.organizationService.isNaz());
 
   public isCollapsed = signal(true);
   public currentFragment = signal<string | null>(null);

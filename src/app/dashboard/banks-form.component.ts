@@ -16,7 +16,7 @@ import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { InputText } from 'primeng/inputtext';
-import { iif } from 'rxjs';
+import { catchError, EMPTY, iif } from 'rxjs';
 import { v4 } from 'uuid';
 import { markGroupDirty } from '../services/util.service';
 import { DashboardStore } from '../stores/dashboard.store';
@@ -91,7 +91,25 @@ export class BanksFormComponent implements OnInit {
       this.store.banks.editItem(this.form.getRawValue()),
       this.store.banks.createItem(this.form.getRawValue())
     )
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({ next: () => this.ref.close() });
+      .pipe(
+        catchError((error) => {
+          console.error('Error al guardar banco:', error);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: error?.error?.message || error?.message || 'Ocurrió un error al guardar el banco. Por favor intente nuevamente.',
+          });
+          // Retornar EMPTY para evitar que el error se propague y cause que se salga del sistema
+          return EMPTY;
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe({ 
+        next: () => {
+          // Recargar la lista después de crear/editar
+          this.store.banks.reloadItems();
+          this.ref.close();
+        }
+      });
   }
 }

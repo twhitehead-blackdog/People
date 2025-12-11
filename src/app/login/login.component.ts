@@ -3,14 +3,17 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
 import { AuthService } from '@auth0/auth0-angular';
+import { HttpClient } from '@angular/common/http';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { Toast } from 'primeng/toast';
 import { OrganizationService } from '../services/organization.service';
+import { Branch } from '../models';
 
 @Component({
   selector: 'pt-login',
@@ -27,14 +30,16 @@ import { OrganizationService } from '../services/organization.service';
       >
         <div class="logo-wrapper mb-8 md:mb-12">
           <div class="logo-selector-container">
-            <button
-              type="button"
-              class="arrow-button arrow-left"
-              (click)="previousOrganization()"
-              aria-label="Organización anterior"
-            >
-              <i class="pi pi-chevron-left"></i>
-            </button>
+            @if (canChangeOrganization()) {
+              <button
+                type="button"
+                class="arrow-button arrow-left"
+                (click)="previousOrganization()"
+                aria-label="Organización anterior"
+              >
+                <i class="pi pi-chevron-left"></i>
+              </button>
+            }
             <div class="logo-container">
               <img
                 [src]="logoPath()"
@@ -44,14 +49,16 @@ import { OrganizationService } from '../services/organization.service';
                 [alt]="isNaz() ? 'Naz Logo' : 'Black Dog Logo'"
               />
             </div>
-            <button
-              type="button"
-              class="arrow-button arrow-right"
-              (click)="nextOrganization()"
-              aria-label="Siguiente organización"
-            >
-              <i class="pi pi-chevron-right"></i>
-            </button>
+            @if (canChangeOrganization()) {
+              <button
+                type="button"
+                class="arrow-button arrow-right"
+                (click)="nextOrganization()"
+                aria-label="Siguiente organización"
+              >
+                <i class="pi pi-chevron-right"></i>
+              </button>
+            }
           </div>
         </div>
 
@@ -602,8 +609,8 @@ import { OrganizationService } from '../services/organization.service';
       color: rgba(255, 255, 255, 0.7) !important;
     }
 
-    /* Hover en botones inactivos - cambiar a amarillo */
-    .switch-button:not(.switch-button-active) ::ng-deep .p-button:hover {
+    /* Hover en botones inactivos - cambiar a amarillo (solo Black Dog) */
+    .switch-button:not(.switch-button-active):not(.naz-button) ::ng-deep .p-button:hover {
       color: rgba(251, 191, 36, 0.95) !important;
       background: transparent !important;
       text-shadow: none !important;
@@ -611,8 +618,23 @@ import { OrganizationService } from '../services/organization.service';
       transform: translateY(-1px);
     }
 
-    .switch-button:not(.switch-button-active) ::ng-deep .p-button:hover .p-button-icon {
+    .switch-button:not(.switch-button-active):not(.naz-button) ::ng-deep .p-button:hover .p-button-icon {
       color: rgba(251, 191, 36, 0.9) !important;
+      transform: scale(1.05);
+      filter: none !important;
+    }
+    
+    /* Hover en botones inactivos Naz - cambiar a gris */
+    .naz-theme .switch-button:not(.switch-button-active) ::ng-deep .p-button:hover {
+      color: rgba(198, 194, 191, 0.95) !important;
+      background: transparent !important;
+      text-shadow: none !important;
+      box-shadow: none !important;
+      transform: translateY(-1px);
+    }
+
+    .naz-theme .switch-button:not(.switch-button-active) ::ng-deep .p-button:hover .p-button-icon {
+      color: rgba(198, 194, 191, 0.9) !important;
       transform: scale(1.05);
       filter: none !important;
     }
@@ -638,8 +660,8 @@ import { OrganizationService } from '../services/organization.service';
       z-index: 2 !important;
     }
     
-    /* Botón activo de Dashboard - fondo amarillo sólido */
-    .switch-button-active.switch-button-dashboard ::ng-deep .p-button {
+    /* Botón activo de Dashboard - fondo amarillo sólido (solo Black Dog) */
+    .switch-button-active.switch-button-dashboard:not(.naz-button) ::ng-deep .p-button {
       background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
       border: none !important;
       box-shadow: 
@@ -653,8 +675,21 @@ import { OrganizationService } from '../services/organization.service';
         0 0 8px rgba(0, 0, 0, 0.2) !important;
     }
     
-    /* Botón activo de Kiosko - mismo estilo pero sin fondo amarillo */
-    .switch-button-active.switch-button-kiosk ::ng-deep .p-button {
+    /* Botón activo de Dashboard Naz - fondo gris */
+    .naz-theme .switch-button-active.switch-button-dashboard ::ng-deep .p-button {
+      background: linear-gradient(135deg, #C6C2BF 0%, #E5E2DF 100%) !important;
+      border: 1px solid #FFFFFF !important;
+      box-shadow: 
+        0 4px 16px rgba(198, 194, 191, 0.3),
+        0 2px 8px rgba(198, 194, 191, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.1) !important;
+      color: #000000 !important;
+      text-shadow: none !important;
+    }
+    
+    /* Botón activo de Kiosko - mismo estilo pero sin fondo amarillo (solo Black Dog) */
+    .switch-button-active.switch-button-kiosk:not(.naz-button) ::ng-deep .p-button {
       background: transparent !important;
       border: 1px solid transparent !important;
       box-shadow: none !important;
@@ -663,9 +698,18 @@ import { OrganizationService } from '../services/organization.service';
         0 1px 2px rgba(0, 0, 0, 0.3),
         0 0 8px rgba(251, 191, 36, 0.3) !important;
     }
+    
+    /* Botón activo de Kiosko Naz */
+    .naz-theme .switch-button-active.switch-button-kiosk ::ng-deep .p-button {
+      background: transparent !important;
+      border: 1px solid #FFFFFF !important;
+      box-shadow: none !important;
+      color: #FFFFFF !important;
+      text-shadow: none !important;
+    }
 
-    /* Iconos de botones activos - mismo estilo para ambos */
-    .switch-button-active ::ng-deep .p-button-icon {
+    /* Iconos de botones activos - mismo estilo para ambos (solo Black Dog) */
+    .switch-button-active:not(.naz-button) ::ng-deep .p-button-icon {
       font-size: 1.125rem !important;
       margin-right: 1rem !important;
       color: #ffffff !important;
@@ -675,15 +719,26 @@ import { OrganizationService } from '../services/organization.service';
       flex-shrink: 0 !important;
     }
 
-    /* Asegurar que el icono de Kiosko activo tenga el mismo estilo */
-    .switch-button-active.switch-button-kiosk ::ng-deep .p-button-icon {
+    /* Asegurar que el icono de Kiosko activo tenga el mismo estilo (solo Black Dog) */
+    .switch-button-active.switch-button-kiosk:not(.naz-button) ::ng-deep .p-button-icon {
       color: #ffffff !important;
       transform: scale(1.1);
       filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.5));
     }
+    
+    /* Iconos de botones activos Naz - sin efectos amarillos */
+    .naz-theme .switch-button-active ::ng-deep .p-button-icon {
+      font-size: 1.125rem !important;
+      margin-right: 1rem !important;
+      color: inherit !important;
+      transform: scale(1.1);
+      filter: none !important;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      flex-shrink: 0 !important;
+    }
 
-    /* Hover en botones activos - mismo efecto para ambos */
-    .switch-button-active ::ng-deep .p-button:hover {
+    /* Hover en botones activos - mismo efecto para ambos (solo Black Dog) */
+    .switch-button-active:not(.naz-button) ::ng-deep .p-button:hover {
       color: #ffffff !important;
       text-shadow: 
         0 1px 2px rgba(0, 0, 0, 0.3),
@@ -691,14 +746,14 @@ import { OrganizationService } from '../services/organization.service';
       transform: translateY(-1px);
     }
 
-    .switch-button-active ::ng-deep .p-button:hover .p-button-icon {
+    .switch-button-active:not(.naz-button) ::ng-deep .p-button:hover .p-button-icon {
       color: #ffffff !important;
       transform: scale(1.15);
       filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.7));
     }
 
-    /* Asegurar que el hover de Kiosko activo tenga el mismo efecto */
-    .switch-button-active.switch-button-kiosk ::ng-deep .p-button:hover {
+    /* Asegurar que el hover de Kiosko activo tenga el mismo efecto (solo Black Dog) */
+    .switch-button-active.switch-button-kiosk:not(.naz-button) ::ng-deep .p-button:hover {
       color: #ffffff !important;
       text-shadow: 
         0 1px 2px rgba(0, 0, 0, 0.3),
@@ -706,10 +761,23 @@ import { OrganizationService } from '../services/organization.service';
       transform: translateY(-1px);
     }
 
-    .switch-button-active.switch-button-kiosk ::ng-deep .p-button:hover .p-button-icon {
+    .switch-button-active.switch-button-kiosk:not(.naz-button) ::ng-deep .p-button:hover .p-button-icon {
       color: #ffffff !important;
       transform: scale(1.15);
       filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.7));
+    }
+    
+    /* Hover en botones activos Naz */
+    .naz-theme .switch-button-active ::ng-deep .p-button:hover {
+      color: inherit !important;
+      text-shadow: none !important;
+      transform: translateY(-1px);
+    }
+
+    .naz-theme .switch-button-active ::ng-deep .p-button:hover .p-button-icon {
+      color: inherit !important;
+      transform: scale(1.15);
+      filter: none !important;
     }
 
     .switch-button ::ng-deep .p-button:active {
@@ -750,14 +818,24 @@ import { OrganizationService } from '../services/organization.service';
         padding: 0.875rem 2rem !important;
       }
 
-      /* Dashboard activo en móvil - fondo amarillo */
-      .switch-button-active.switch-button-dashboard ::ng-deep .p-button {
+      /* Dashboard activo en móvil - fondo amarillo (solo Black Dog) */
+      .switch-button-active.switch-button-dashboard:not(.naz-button) ::ng-deep .p-button {
         background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
         border: none !important;
         box-shadow: 
           0 4px 12px rgba(251, 191, 36, 0.3),
           0 2px 6px rgba(251, 191, 36, 0.2) !important;
         color: #ffffff !important;
+      }
+      
+      /* Dashboard activo en móvil Naz - fondo gris */
+      .naz-theme .switch-button-active.switch-button-dashboard ::ng-deep .p-button {
+        background: linear-gradient(135deg, #C6C2BF 0%, #E5E2DF 100%) !important;
+        border: 1px solid #FFFFFF !important;
+        box-shadow: 
+          0 4px 12px rgba(198, 194, 191, 0.2),
+          0 2px 6px rgba(198, 194, 191, 0.15) !important;
+        color: #000000 !important;
       }
 
       /* Kiosko activo en móvil - mismo tamaño pero sin fondo amarillo */
@@ -1126,8 +1204,56 @@ import { OrganizationService } from '../services/organization.service';
 export class LoginComponent {
   public auth = inject(AuthService);
   public organizationService = inject(OrganizationService);
+  public http = inject(HttpClient);
   public activeMode = signal<'dashboard' | 'kiosk'>('dashboard');
   public isFlying = signal<boolean>(false);
+
+  // Signal para la IP actual
+  private currentIP = signal<string | null>(null);
+  
+  // Signal para las sucursales
+  private branches = signal<Branch[]>([]);
+
+  // Signal para el email del usuario (si está autenticado)
+  private userEmail = signal<string | null>(null);
+
+  // Computed para verificar si es soporte2@blackdogpanama.com
+  public isSupportUser = computed(() => {
+    const email = this.userEmail();
+    return email === 'soporte2@blackdogpanama.com';
+  });
+
+  // Computed para verificar si se puede cambiar de organización
+  public canChangeOrganization = computed(() => {
+    // Si es soporte2@blackdogpanama.com, siempre permitir cambio
+    if (this.isSupportUser()) {
+      return true;
+    }
+
+    const ip = this.currentIP();
+    
+    // Si no se puede detectar la IP o es localhost, permitir cambio
+    if (!ip || ip === '127.0.0.1') {
+      return true;
+    }
+
+    // Obtener sucursales
+    const branchesList = this.branches();
+    if (!branchesList || branchesList.length === 0) {
+      return true; // Permitir cambio si no hay sucursales cargadas
+    }
+
+    // Verificar si la IP actual coincide con alguna sucursal
+    const matchingBranch = branchesList.find((branch) => branch.ip && branch.ip.trim() === ip);
+    
+    // Si hay una sucursal que coincide con la IP, NO permitir cambiar organización
+    if (matchingBranch) {
+      return false;
+    }
+
+    // Si no hay coincidencia, permitir cambio
+    return true;
+  });
 
   // Computed para verificar si es Naz
   public isNaz = computed(() => this.organizationService.isNaz());
@@ -1137,12 +1263,51 @@ export class LoginComponent {
     this.isNaz() ? 'images/Naz_Logo.jpg' : 'images/blackdog.png'
   );
 
+  constructor() {
+    // Obtener email del usuario si está autenticado
+    this.auth.user$.subscribe((user) => {
+      if (user?.email) {
+        this.userEmail.set(user.email.toLowerCase());
+      }
+    });
+
+    // Obtener IP y sucursales al inicializar
+    this.fetchCurrentIP();
+    this.fetchBranches();
+    
+    // Forzar Black Dog si estamos en una IP de sucursal (excepto para soporte2)
+    effect(() => {
+      const ip = this.currentIP();
+      const canChange = this.canChangeOrganization();
+      const isSupport = this.isSupportUser();
+      
+      // No forzar si es soporte2
+      if (isSupport) {
+        return;
+      }
+      
+      if (!canChange && ip && ip !== '127.0.0.1') {
+        // Si no se puede cambiar y estamos en una IP de sucursal, forzar Black Dog
+        if (this.organizationService.isNaz()) {
+          this.organizationService.setOrganization('blackdog');
+          console.log('🔒 Forzando Black Dog por IP de sucursal:', ip);
+        }
+      }
+    });
+  }
+
   nextOrganization() {
+    console.log('🔄 Cambiando a siguiente organización desde login');
     this.organizationService.nextOrganization();
+    const currentCompanyId = this.organizationService.getCurrentCompanyId();
+    console.log('✅ Company ID actual después del cambio:', currentCompanyId);
   }
 
   previousOrganization() {
+    console.log('🔄 Cambiando a organización anterior desde login');
     this.organizationService.previousOrganization();
+    const currentCompanyId = this.organizationService.getCurrentCompanyId();
+    console.log('✅ Company ID actual después del cambio:', currentCompanyId);
   }
 
   setMode(mode: 'dashboard' | 'kiosk') {
@@ -1165,7 +1330,30 @@ export class LoginComponent {
     }, 900);
   }
 
-  signIn() {
+  async signIn() {
+    // Esperar a que los company_ids estén listos
+    console.log('⏳ Esperando a que los company_ids estén listos...');
+    await this.organizationService.waitForCompanyIds();
+    
+    const currentCompanyId = this.organizationService.getCurrentCompanyId();
+    const currentOrg = this.organizationService.currentOrganization;
+    
+    if (!currentCompanyId) {
+      console.error('❌ No se pudo obtener company_id. Usando organización por defecto.');
+      // Asegurar que al menos tengamos una organización
+      if (!currentOrg) {
+        this.organizationService.setOrganization('blackdog');
+      }
+      // Intentar sincronizar de nuevo
+      const retryCompanyId = this.organizationService.getCurrentCompanyId();
+      if (retryCompanyId) {
+        console.log('✅ Company ID obtenido después de establecer organización por defecto:', retryCompanyId);
+      }
+    }
+    
+    const finalCompanyId = this.organizationService.getCurrentCompanyId();
+    const finalOrg = this.organizationService.currentOrganization;
+    console.log('🚀 Iniciando sesión con organización:', finalOrg, 'company_id:', finalCompanyId);
     this.auth.loginWithRedirect({});
   }
 
@@ -1173,5 +1361,123 @@ export class LoginComponent {
     // Abrir el modo kiosko con el parámetro de organización
     const org = this.organizationService.currentOrganization;
     window.open(`/timeclock-kiosk?org=${org}`, '_blank');
+  }
+
+  /**
+   * Obtiene la IP actual del cliente
+   */
+  private fetchCurrentIP(): void {
+    // Intentar obtener IP desde el servidor
+    this.http.get<{ ip: string }>('/api/client-ip').subscribe({
+      next: (response) => {
+        if (response?.ip) {
+          const ip = response.ip.trim();
+          this.currentIP.set(ip);
+          console.log('📍 IP detectada en login:', ip);
+        }
+      },
+      error: () => {
+        // Si falla, intentar obtener IP vía WebRTC como fallback
+        this.getIPViaWebRTC().then((ip) => {
+          this.currentIP.set(ip);
+          console.log('📍 IP detectada vía WebRTC:', ip);
+        }).catch(() => {
+          // Si todo falla, usar localhost como fallback
+          this.currentIP.set('127.0.0.1');
+        });
+      },
+    });
+  }
+
+  /**
+   * Obtiene las sucursales desde la base de datos
+   */
+  private fetchBranches(): void {
+    this.http.get<Branch[]>(
+      `${process.env['ENV_SUPABASE_URL']}/rest/v1/branches`,
+      {
+        params: {
+          select: 'ip',
+          is_active: 'eq.true',
+        },
+      }
+    ).subscribe({
+      next: (branches) => {
+        this.branches.set(branches);
+        console.log('📍 Sucursales cargadas:', branches.length);
+      },
+      error: (error) => {
+        console.error('Error obteniendo sucursales:', error);
+      },
+    });
+  }
+
+  /**
+   * Obtiene IP vía WebRTC (fallback)
+   */
+  private getIPViaWebRTC(): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const RTCPeerConnection =
+        (window as any).RTCPeerConnection ||
+        (window as any).webkitRTCPeerConnection ||
+        (window as any).mozRTCPeerConnection;
+
+      if (!RTCPeerConnection) {
+        reject(new Error('WebRTC not supported'));
+        return;
+      }
+
+      const pc = new RTCPeerConnection({
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+      });
+
+      const ips: string[] = [];
+
+      pc.createDataChannel('');
+
+      pc.onicecandidate = (event: any) => {
+        if (event.candidate) {
+          const candidate = event.candidate.candidate;
+          const match = candidate.match(
+            /([0-9]{1,3}(\.[0-9]{1,3}){3}|[a-f0-9]{1,4}(:[a-f0-9]{1,4}){7})/
+          );
+          if (match) {
+            const ip = match[1];
+            if (
+              ips.indexOf(ip) === -1 &&
+              !ip.startsWith('127.') &&
+              ip !== '::1'
+            ) {
+              ips.push(ip);
+            }
+          }
+        } else {
+          if (ips.length > 0) {
+            pc.close();
+            resolve(ips[0]);
+          } else {
+            pc.close();
+            reject(new Error('No IP found'));
+          }
+        }
+      };
+
+      pc.createOffer()
+        .then((offer: any) => pc.setLocalDescription(offer))
+        .catch((err: any) => {
+          pc.close();
+          reject(err);
+        });
+
+      setTimeout(() => {
+        if (ips.length > 0) {
+          pc.close();
+          resolve(ips[0]);
+        } else {
+          pc.close();
+          reject(new Error('WebRTC timeout'));
+        }
+      }, 3000);
+    });
   }
 }

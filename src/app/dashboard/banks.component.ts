@@ -31,6 +31,7 @@ import { BanksFormComponent } from './banks-form.component';
     </ng-template>
     <p-table
       [value]="store.banks.entities()"
+      [loading]="store.banks.isLoading()"
       [paginator]="true"
       [rows]="10"
       [rowsPerPageOptions]="[10, 20, 50]"
@@ -82,12 +83,22 @@ export class BanksComponent {
   public ref = inject(DynamicDialogRef);
   public dialogService = inject(DialogService);
 
+  constructor() {
+    // Asegurar que los bancos se carguen al inicializar el componente
+    this.store.banks.fetchItems();
+  }
+
   editBank(bank?: Bank) {
-    this.ref = this.dialogService.open(BanksFormComponent, {
+    const ref = this.dialogService.open(BanksFormComponent, {
       width: '36rem',
       data: { bank },
       header: 'Datos del banco',
       modal: true,
+    });
+    
+    // Recargar la lista cuando se cierre el diálogo
+    ref.onClose.subscribe(() => {
+      this.store.banks.reloadItems();
     });
   }
 }

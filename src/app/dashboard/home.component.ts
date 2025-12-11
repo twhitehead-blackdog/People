@@ -22,6 +22,7 @@ import { DialogModule } from 'primeng/dialog';
 import { TooltipModule } from 'primeng/tooltip';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
+import { OrganizationService } from '../services/organization.service';
 
 @Component({
   selector: 'pt-home',
@@ -3551,6 +3552,7 @@ import { EmployeesStore } from '../stores/employees.store';
 export class HomeComponent {
   public state = inject(DashboardStore);
   public employees = inject(EmployeesStore);
+  private organizationService = inject(OrganizationService);
 
   // Inicializar sidebar como abierto en desktop, cerrado en móvil
   public sidebarOpen = signal(
@@ -3694,7 +3696,14 @@ export class HomeComponent {
     // Include 'type' field in select to ensure it's available in the response
     // IMPORTANTE: Agregar limit=10000 para obtener todos los registros del mes (Supabase limita a 1000 por defecto)
     // El interceptor HTTP agregará el header Range automáticamente para peticiones a timelogs
-    const url = `${baseUrl}/rest/v1/timelogs?select=created_at,employee_id,type,employee:employees(first_name,father_name)&type=eq.entry&created_at=gte.${from}&created_at=lte.${to}&order=created_at.asc&limit=10000`;
+    const companyId = this.organizationService.getCurrentCompanyId();
+    let url = `${baseUrl}/rest/v1/timelogs?select=created_at,employee_id,type,employee:employees(first_name,father_name)&type=eq.entry&created_at=gte.${from}&created_at=lte.${to}&order=created_at.asc&limit=10000`;
+    
+    // Agregar filtro por company_id
+    if (companyId) {
+      url += `&company_id=eq.${companyId}`;
+    }
+    
     // Debug logs removed for production
     return {
       url,
@@ -3714,7 +3723,14 @@ export class HomeComponent {
     // Query employee schedules that overlap with the current month
     // A schedule overlaps if: start_date <= month_end AND end_date >= month_start
     // Esto captura TODOS los horarios que se solapan con cualquier día del mes
-    const url = `${baseUrl}/rest/v1/employee_schedules?select=*,schedule:schedules(*)&start_date=lte.${monthEnd}&end_date=gte.${monthStart}`;
+    const companyId = this.organizationService.getCurrentCompanyId();
+    let url = `${baseUrl}/rest/v1/employee_schedules?select=*,schedule:schedules(*)&start_date=lte.${monthEnd}&end_date=gte.${monthStart}`;
+    
+    // Agregar filtro por company_id
+    if (companyId) {
+      url += `&company_id=eq.${companyId}`;
+    }
+    
     // Debug logs removed for production
     return {
       url,

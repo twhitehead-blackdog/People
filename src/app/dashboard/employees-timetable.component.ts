@@ -44,6 +44,7 @@ import { Tooltip } from 'primeng/tooltip';
 import { catchError, EMPTY } from 'rxjs';
 import { colorVariants, EmployeeSchedule } from '../models';
 import { DashboardStore } from '../stores/dashboard.store';
+import { OrganizationService } from '../services/organization.service';
 import { EmployeeSchedulesFormComponent } from './employee-schedules-form.component';
 
 @Component({
@@ -285,6 +286,7 @@ export class EmployeesTimetableComponent implements OnInit {
   public disableBranch = signal(true);
   private http = inject(HttpClient);
   private confirm = inject(ConfirmationService);
+  private organizationService = inject(OrganizationService);
   public injector = inject(Injector);
   public start = computed(() => {
     if (isMonday(this.currentDate())) {
@@ -405,15 +407,25 @@ export class EmployeesTimetableComponent implements OnInit {
       }))
   );
 
-  public schedulesResource = httpResource<EmployeeSchedule[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
-    method: 'GET',
-    params: {
-      select: '*,schedule:schedules(*), branch:branches(id, name, short_name)',
+  public schedulesResource = httpResource<EmployeeSchedule[]>(() => {
+    const companyId = this.organizationService.getCurrentCompanyId();
+    const params: any = {
+      select: `*,schedule:schedules(*), branch:branches(id, name, short_name)`,
       start_date: `lte.${format(this.end(), 'yyyy-MM-dd')}`,
       end_date: `gte.${format(this.start(), 'yyyy-MM-dd')}`,
-    },
-  }));
+    };
+    
+    // Agregar filtro por company_id
+    if (companyId) {
+      params.company_id = `eq.${companyId}`;
+    }
+    
+    return {
+      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+      method: 'GET',
+      params,
+    };
+  });
 
   public shifts = computed(() =>
     this.schedulesResource
@@ -526,12 +538,18 @@ export class EmployeesTimetableComponent implements OnInit {
         severity: 'danger',
       },
       accept: () => {
+        const companyId = this.organizationService.getCurrentCompanyId();
+        const params: any = { id: `eq.${id}` };
+        
+        // Agregar filtro por company_id para seguridad
+        if (companyId) {
+          params.company_id = `eq.${companyId}`;
+        }
+        
         this.http
           .delete(
             `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
-            {
-              params: { id: `eq.${id}` },
-            }
+            { params }
           )
           .pipe(
             catchError((error) => {
@@ -573,11 +591,19 @@ export class EmployeesTimetableComponent implements OnInit {
         severity: 'success',
       },
       accept: () => {
+        const companyId = this.organizationService.getCurrentCompanyId();
+        const params: any = { id: `eq.${id}` };
+        
+        // Agregar filtro por company_id para seguridad
+        if (companyId) {
+          params.company_id = `eq.${companyId}`;
+        }
+        
         this.http
           .patch(
             `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
             { approved: true },
-            { params: { id: `eq.${id}` } }
+            { params }
           )
           .pipe(
             catchError((error) => {

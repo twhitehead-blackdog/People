@@ -28,7 +28,6 @@ import { Branch, colorVariants, Employee } from '../models';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
 import { OrganizationService } from '../services/organization.service';
-import { getTableName } from '../utils/table-helper';
 
 @Component({
   selector: 'pt-timelogs',
@@ -483,9 +482,33 @@ export class TimelogsComponent {
   // Computed para verificar si es Naz
   public isNaz = computed(() => this.organizationService.isNaz());
   
-  // Helper para obtener nombre de tabla
-  private getTable(table: string): string {
-    return getTableName(table, this.isNaz());
+  // Helper para agregar filtro de company_id a los parámetros
+  private addCompanyFilter(params: any, tableName: string): any {
+    const companyId = this.organizationService.getCurrentCompanyId();
+    if (!companyId) {
+      return params;
+    }
+    
+    // Tablas que tienen company_id y deben filtrarse
+    const tablesWithCompanyId = [
+      'employees',
+      'branches',
+      'departments',
+      'positions',
+      'schedules',
+      'employee_schedules',
+      'attendance_sheets',
+      'timelogs'
+    ];
+    
+    if (tablesWithCompanyId.includes(tableName)) {
+      return {
+        ...params,
+        company_id: `eq.${companyId}`
+      };
+    }
+    
+    return params;
   }
 
   // Helper computed para normalizar el rango de fechas
@@ -590,16 +613,15 @@ export class TimelogsComponent {
     if (!start || !end) {
       return undefined;
     }
-    const employeeSchedulesTable = this.getTable('employee_schedules');
-    const schedulesTable = this.getTable('schedules');
+    const params = this.addCompanyFilter({
+      select: `*,schedule:schedules(*)`,
+      start_date: `gte.${format(start, 'yyyy-MM-dd 06:00:00')}`,
+      end_date: `lte.${format(end, 'yyyy-MM-dd 06:00:00')}`,
+    }, 'employee_schedules');
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/${employeeSchedulesTable}`,
+      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
       method: 'GET',
-      params: {
-        select: `*,schedule:${schedulesTable}(*)`,
-        start_date: `gte.${format(start, 'yyyy-MM-dd 06:00:00')}`,
-        end_date: `lte.${format(end, 'yyyy-MM-dd 06:00:00')}`,
-      },
+      params,
     };
   });
 
@@ -626,16 +648,12 @@ export class TimelogsComponent {
     if (!start || !end) {
       return undefined;
     }
-    const timelogsTable = this.getTable('timelogs');
+    const params = this.addCompanyFilter(this.queryParams(), 'timelogs');
+    params.created_at = `lte.${format(addDays(end, 1), 'yyyy-MM-dd 06:00:00')}`;
     return {
-      url: `${
-        process.env['ENV_SUPABASE_URL']
-      }/rest/v1/${timelogsTable}?created_at=lte.${format(
-        addDays(end, 1),
-        'yyyy-MM-dd 06:00:00'
-      )}`,
+      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`,
       method: 'GET',
-      params: this.queryParams(),
+      params,
     };
   });
 
@@ -658,15 +676,13 @@ export class TimelogsComponent {
     if (!start || !end) {
       return {};
     }
-    const employeesTable = this.getTable('employees');
-    const branchesTable = this.getTable('branches');
     const params: {
       select: string;
       created_at: string;
       employee_id?: string;
     } = {
       select:
-        `*,employee:${employeesTable}(id,first_name,father_name, branch:${branchesTable}(id, name)),branch:${branchesTable}(id, name, short_name)`,
+        `*,employee:employees(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)`,
       created_at: `gte.${format(start, 'yyyy-MM-dd 06:00:00')}`,
     };
     if (this.employeeId()) {

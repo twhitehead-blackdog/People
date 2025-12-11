@@ -5,8 +5,8 @@ import { withCustomEntities } from './entities.feature';
 export const PayrollsStore = signalStore(
   withCustomEntities<Payroll>({
     name: 'payrolls',
-    // payrolls es una tabla compartida, no tiene versión naz_*
-    // La foreign key siempre apunta a companies
+    // payrolls ahora tiene versión naz_* (naz_payrolls)
+    // La foreign key apunta a companies o naz_companies según la organización
     query: '*, company:companies(*)',
   }),
   withHooks({

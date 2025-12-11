@@ -18,6 +18,7 @@ import { catchError, EMPTY } from 'rxjs';
 import { CalendarComponent } from '../calendar.component';
 import { colorVariants, EmployeeSchedule } from '../models';
 import { TimePipe } from '../pipes/time.pipe';
+import { OrganizationService } from '../services/organization.service';
 import { EmployeeSchedulesFormComponent } from './employee-schedules-form.component';
 @Component({
   selector: 'pt-employee-schedules',
@@ -103,6 +104,7 @@ export class EmployeeSchedulesComponent {
   private http = inject(HttpClient);
   private message = inject(MessageService);
   private confirm = inject(ConfirmationService);
+  private organizationService = inject(OrganizationService);
 
   public employeeSchedules = computed(() =>
     this.resourceSchedules
@@ -118,13 +120,23 @@ export class EmployeeSchedulesComponent {
   private dialog = inject(DialogService);
   public colorVariants = colorVariants;
 
-  private resourceSchedules = httpResource<EmployeeSchedule[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
-    params: {
-      select: '*,schedule:schedules(*),branch:branches(*)',
+  private resourceSchedules = httpResource<EmployeeSchedule[]>(() => {
+    const companyId = this.organizationService.getCurrentCompanyId();
+    const params: any = {
+      select: `*,schedule:schedules(*),branch:branches(*)`,
       employee_id: `eq.${this.employeeId()}`,
-    },
-  }));
+    };
+    
+    // Agregar filtro por company_id
+    if (companyId) {
+      params.company_id = `eq.${companyId}`;
+    }
+    
+    return {
+      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+      params,
+    };
+  });
 
   public editSchedule({
     employee_id,
@@ -159,12 +171,18 @@ export class EmployeeSchedulesComponent {
         severity: 'danger',
       },
       accept: () => {
+        const companyId = this.organizationService.getCurrentCompanyId();
+        const params: any = { id: `eq.${id}` };
+        
+        // Agregar filtro por company_id para seguridad
+        if (companyId) {
+          params.company_id = `eq.${companyId}`;
+        }
+        
         this.http
           .delete(
             `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
-            {
-              params: { id: `eq.${id}` },
-            }
+            { params }
           )
           .pipe(
             catchError((error) => {
