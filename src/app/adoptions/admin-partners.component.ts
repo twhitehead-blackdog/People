@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { PhosphorIconComponent } from '../shared/phosphor-icon.component';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
@@ -29,6 +30,7 @@ import { PartnersStore } from '../stores/partners.store';
     TagModule,
     ToastModule,
     Card,
+    PhosphorIconComponent,
   ],
   providers: [MessageService],
   template: `
@@ -38,7 +40,6 @@ import { PartnersStore } from '../stores/partners.store';
         <h2>Gestión de Aliados</h2>
         <p-button
           label="Nuevo Aliado"
-          icon="pi pi-plus"
           (onClick)="openNewPartnerDialog()"
           [style]="{
             background: '#fbbf24',
@@ -46,7 +47,11 @@ import { PartnersStore } from '../stores/partners.store';
             color: '#000000',
             fontWeight: 'bold'
           }"
-        />
+        >
+          <ng-template pTemplate="icon">
+            <ph-icon name="plus" [size]="18" color="currentColor" weight="regular"></ph-icon>
+          </ng-template>
+        </p-button>
       </div>
 
       <p-card>
@@ -124,36 +129,58 @@ import { PartnersStore } from '../stores/partners.store';
               <td>
                 <div class="action-buttons">
                   <p-button
-                    icon="pi pi-pencil"
                     [text]="true"
                     severity="info"
                     (onClick)="openEditDialog(partner)"
                     [style]="{ marginRight: '0.5rem' }"
                     title="Editar"
-                  />
+                  >
+                    <ng-template pTemplate="icon">
+                      <ph-icon name="pencil" [size]="18" color="currentColor" weight="regular"></ph-icon>
+                    </ng-template>
+                  </p-button>
                   <p-button
-                    [icon]="partner.is_featured ? 'pi pi-star-fill' : 'pi pi-star'"
                     [text]="true"
                     [severity]="partner.is_featured ? 'warn' : 'secondary'"
                     (onClick)="toggleFeatured(partner)"
                     [style]="{ marginRight: '0.5rem' }"
                     [title]="partner.is_featured ? 'Quitar destacado' : 'Destacar'"
-                  />
+                  >
+                    <ng-template pTemplate="icon">
+                      <ph-icon 
+                        [name]="'star'" 
+                        [size]="18" 
+                        [weight]="partner.is_featured ? 'fill' : 'regular'"
+                        color="currentColor"
+                      ></ph-icon>
+                    </ng-template>
+                  </p-button>
                   <p-button
-                    [icon]="partner.is_active ? 'pi pi-eye-slash' : 'pi pi-eye'"
                     [text]="true"
                     [severity]="partner.is_active ? 'warn' : 'success'"
                     (onClick)="toggleActive(partner)"
                     [style]="{ marginRight: '0.5rem' }"
                     [title]="partner.is_active ? 'Desactivar' : 'Activar'"
-                  />
+                  >
+                    <ng-template pTemplate="icon">
+                      <ph-icon 
+                        [name]="partner.is_active ? 'eye-slash' : 'eye'" 
+                        [size]="18" 
+                        color="currentColor" 
+                        weight="regular"
+                      ></ph-icon>
+                    </ng-template>
+                  </p-button>
                   <p-button
-                    icon="pi pi-trash"
                     [text]="true"
                     severity="danger"
                     (onClick)="deletePartner(partner)"
                     title="Eliminar"
-                  />
+                  >
+                    <ng-template pTemplate="icon">
+                      <ph-icon name="trash" [size]="18" color="currentColor" weight="regular"></ph-icon>
+                    </ng-template>
+                  </p-button>
                 </div>
               </td>
             </tr>

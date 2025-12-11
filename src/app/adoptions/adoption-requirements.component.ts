@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
+import { AdoptionRequirementsStore } from '../stores/adoption-requirements.store';
 
 @Component({
   selector: 'pt-adoption-requirements',
@@ -25,41 +26,24 @@ import { Component } from '@angular/core';
         </div>
         <div class="requirements-content">
           <h2 class="requirements-title">REQUISITOS PARA ADOPTAR</h2>
-          <ol class="requirements-list">
-            <li class="requirement-item">
-              <span class="requirement-number">1</span>
-              <span class="requirement-text">Ser mayor de 21 años.</span>
-            </li>
-            <li class="requirement-item">
-              <span class="requirement-number">2</span>
-              <span class="requirement-text"
-                >Amar a las mascotas y poder dedicarle el tiempo que
-                necesite.</span
-              >
-            </li>
-            <li class="requirement-item">
-              <span class="requirement-number">3</span>
-              <span class="requirement-text"
-                >Querer sumar un integrante a tu vida por el resto de la suya,
-                sin importar los cambios que se presenten.</span
-              >
-            </li>
-            <li class="requirement-item">
-              <span class="requirement-number">4</span>
-              <span class="requirement-text"
-                >Estar bien predispuesto: te pedimos cargues tu solicitud,
-                realices una entrevista con el especialista y respondas a
-                nuestro contacto.</span
-              >
-            </li>
-            <li class="requirement-item">
-              <span class="requirement-number">5</span>
-              <span class="requirement-text"
-                >Comprometerse con el cuidado, la salud y la castración de la
-                mascota.</span
-              >
-            </li>
-          </ol>
+          @if (requirementsStore.isLoading()) {
+            <div class="loading-state">
+              <p>Cargando requisitos...</p>
+            </div>
+          } @else if (activeRequirements().length === 0) {
+            <div class="empty-state">
+              <p>No hay requisitos disponibles en este momento.</p>
+            </div>
+          } @else {
+            <ol class="requirements-list">
+              @for (requirement of activeRequirements(); track requirement.id) {
+                <li class="requirement-item">
+                  <span class="requirement-number">{{ requirement.order }}</span>
+                  <span class="requirement-text">{{ requirement.description }}</span>
+                </li>
+              }
+            </ol>
+          }
         </div>
       </div>
     </div>
@@ -344,6 +328,19 @@ import { Component } from '@angular/core';
         padding-top: 0.5rem;
       }
 
+      .loading-state,
+      .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #6b7280;
+      }
+
+      .loading-state p,
+      .empty-state p {
+        margin: 0;
+        font-size: 1rem;
+      }
+
       @media (max-width: 1024px) {
         .requirements-section {
           padding: 3rem 0;
@@ -384,4 +381,14 @@ import { Component } from '@angular/core';
     `,
   ],
 })
-export class AdoptionRequirementsComponent {}
+export class AdoptionRequirementsComponent {
+  public requirementsStore = inject(AdoptionRequirementsStore);
+
+  // Obtener solo los requisitos activos, ordenados por el campo 'order'
+  public activeRequirements = computed(() => {
+    return this.requirementsStore
+      .entities()
+      .filter((req) => req.is_active)
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+  });
+}

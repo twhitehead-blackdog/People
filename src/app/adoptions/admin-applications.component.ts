@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { PhosphorIconComponent } from '../shared/phosphor-icon.component';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -35,6 +36,7 @@ type AdoptionApplicationsStoreWithCustomMethods = InstanceType<
     TagModule,
     ToastModule,
     Card,
+    PhosphorIconComponent,
   ],
   providers: [MessageService],
   template: `
@@ -122,37 +124,49 @@ type AdoptionApplicationsStoreWithCustomMethods = InstanceType<
               <td>
                 <div class="action-buttons">
                   <p-button
-                    icon="pi pi-eye"
                     [text]="true"
                     severity="info"
                     (onClick)="viewDetails(application)"
                     [style]="{ marginRight: '0.5rem' }"
                     title="Ver detalles"
-                  />
+                  >
+                    <ng-template pTemplate="icon">
+                      <ph-icon name="eye" [size]="18" color="currentColor" weight="regular"></ph-icon>
+                    </ng-template>
+                  </p-button>
                   @if (application.status === 'pending') {
                   <p-button
-                    icon="pi pi-check"
                     [text]="true"
                     severity="success"
                     (onClick)="approveApplication(application)"
                     [style]="{ marginRight: '0.5rem' }"
                     title="Aprobar"
-                  />
+                  >
+                    <ng-template pTemplate="icon">
+                      <ph-icon name="check" [size]="18" color="currentColor" weight="regular"></ph-icon>
+                    </ng-template>
+                  </p-button>
                   <p-button
-                    icon="pi pi-times"
                     [text]="true"
                     severity="danger"
                     (onClick)="rejectApplication(application)"
                     title="Rechazar"
-                  />
+                  >
+                    <ng-template pTemplate="icon">
+                      <ph-icon name="x" [size]="18" color="currentColor" weight="regular"></ph-icon>
+                    </ng-template>
+                  </p-button>
                   } @if (application.status === 'approved') {
                   <p-button
-                    icon="pi pi-check-circle"
                     [text]="true"
                     severity="info"
                     (onClick)="completeApplication(application)"
                     title="Marcar como completada"
-                  />
+                  >
+                    <ng-template pTemplate="icon">
+                      <ph-icon name="check-circle" [size]="18" color="currentColor" weight="regular"></ph-icon>
+                    </ng-template>
+                  </p-button>
                   }
                 </div>
               </td>

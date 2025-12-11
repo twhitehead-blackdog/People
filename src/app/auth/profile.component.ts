@@ -11,6 +11,7 @@ import { Card } from 'primeng/card';
 import { Avatar } from 'primeng/avatar';
 import { AuthWrapperService } from './auth-wrapper.service';
 import { User } from '../models';
+import { PhosphorIconComponent } from '../shared/phosphor-icon.component';
 
 @Component({
   selector: 'pt-profile',
@@ -25,6 +26,7 @@ import { User } from '../models';
     Card,
     Avatar,
     AsyncPipe,
+    PhosphorIconComponent,
   ],
   providers: [MessageService],
   template: `
@@ -34,7 +36,6 @@ import { User } from '../models';
         <h1 class="profile-title">Mi Perfil</h1>
         <p-button
           label="Cerrar Sesión"
-          icon="pi pi-sign-out"
           severity="secondary"
           (onClick)="logout()"
           [style]="{
@@ -42,7 +43,11 @@ import { User } from '../models';
             border: 'none',
             color: '#ffffff'
           }"
-        />
+        >
+          <ng-template pTemplate="icon">
+            <ph-icon name="sign-out" [size]="18" color="currentColor" weight="regular"></ph-icon>
+          </ng-template>
+        </p-button>
       </div>
 
       <div class="profile-content">

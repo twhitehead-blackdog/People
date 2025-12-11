@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { PhosphorIconComponent } from '../shared/phosphor-icon.component';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
@@ -31,6 +32,7 @@ import { FAQStore } from '../stores/faq.store';
     TagModule,
     ToastModule,
     Card,
+    PhosphorIconComponent,
   ],
   providers: [MessageService],
   template: `
@@ -40,7 +42,6 @@ import { FAQStore } from '../stores/faq.store';
         <h2>Gestión de Preguntas Frecuentes</h2>
         <p-button
           label="Nueva Pregunta"
-          icon="pi pi-plus"
           (onClick)="openNewFAQDialog()"
           [style]="{
             background: '#fbbf24',
@@ -48,7 +49,11 @@ import { FAQStore } from '../stores/faq.store';
             color: '#000000',
             fontWeight: 'bold'
           }"
-        />
+        >
+          <ng-template pTemplate="icon">
+            <ph-icon name="plus" [size]="18" color="currentColor" weight="regular"></ph-icon>
+          </ng-template>
+        </p-button>
       </div>
 
       <p-card>
@@ -111,28 +116,42 @@ import { FAQStore } from '../stores/faq.store';
               <td>
                 <div class="action-buttons">
                   <p-button
-                    icon="pi pi-pencil"
                     [text]="true"
                     severity="info"
                     (onClick)="openEditDialog(faq)"
                     [style]="{ marginRight: '0.5rem' }"
                     title="Editar"
-                  />
+                  >
+                    <ng-template pTemplate="icon">
+                      <ph-icon name="pencil" [size]="18" color="currentColor" weight="regular"></ph-icon>
+                    </ng-template>
+                  </p-button>
                   <p-button
-                    [icon]="faq.is_active ? 'pi pi-eye-slash' : 'pi pi-eye'"
                     [text]="true"
                     [severity]="faq.is_active ? 'warn' : 'success'"
                     (onClick)="toggleActive(faq)"
                     [style]="{ marginRight: '0.5rem' }"
                     [title]="faq.is_active ? 'Desactivar' : 'Activar'"
-                  />
+                  >
+                    <ng-template pTemplate="icon">
+                      <ph-icon 
+                        [name]="faq.is_active ? 'eye-slash' : 'eye'" 
+                        [size]="18" 
+                        color="currentColor" 
+                        weight="regular"
+                      ></ph-icon>
+                    </ng-template>
+                  </p-button>
                   <p-button
-                    icon="pi pi-trash"
                     [text]="true"
                     severity="danger"
                     (onClick)="deleteFAQ(faq)"
                     title="Eliminar"
-                  />
+                  >
+                    <ng-template pTemplate="icon">
+                      <ph-icon name="trash" [size]="18" color="currentColor" weight="regular"></ph-icon>
+                    </ng-template>
+                  </p-button>
                 </div>
               </td>
             </tr>

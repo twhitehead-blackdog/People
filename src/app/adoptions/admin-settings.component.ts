@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { PhosphorIconComponent } from '../shared/phosphor-icon.component';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
@@ -33,6 +34,7 @@ import { SystemSettingsStore } from '../stores/system-settings.store';
     ToastModule,
     Card,
     CheckboxModule,
+    PhosphorIconComponent,
   ],
   providers: [MessageService],
   template: `
@@ -42,7 +44,6 @@ import { SystemSettingsStore } from '../stores/system-settings.store';
         <h2>Configuración del Sistema</h2>
         <p-button
           label="Nueva Configuración"
-          icon="pi pi-plus"
           (onClick)="openNewSettingDialog()"
           [style]="{
             background: '#fbbf24',
@@ -50,7 +51,11 @@ import { SystemSettingsStore } from '../stores/system-settings.store';
             color: '#000000',
             fontWeight: 'bold'
           }"
-        />
+        >
+          <ng-template pTemplate="icon">
+            <ph-icon name="plus" [size]="18" color="currentColor" weight="regular"></ph-icon>
+          </ng-template>
+        </p-button>
       </div>
 
       @for (category of categories(); track category) {
@@ -113,20 +118,26 @@ import { SystemSettingsStore } from '../stores/system-settings.store';
                 <td>
                   <div class="action-buttons">
                     <p-button
-                      icon="pi pi-pencil"
                       [text]="true"
                       severity="info"
                       (onClick)="openEditDialog(setting)"
                       [style]="{ marginRight: '0.5rem' }"
                       title="Editar"
-                    />
+                    >
+                      <ng-template pTemplate="icon">
+                        <ph-icon name="pencil" [size]="18" color="currentColor" weight="regular"></ph-icon>
+                      </ng-template>
+                    </p-button>
                     <p-button
-                      icon="pi pi-trash"
                       [text]="true"
                       severity="danger"
                       (onClick)="deleteSetting(setting)"
                       title="Eliminar"
-                    />
+                    >
+                      <ng-template pTemplate="icon">
+                        <ph-icon name="trash" [size]="18" color="currentColor" weight="regular"></ph-icon>
+                      </ng-template>
+                    </p-button>
                   </div>
                 </td>
               </tr>
@@ -143,11 +154,12 @@ import { SystemSettingsStore } from '../stores/system-settings.store';
       @if (settingsStore.entities().length === 0) {
         <p-card>
           <div class="empty-state">
-            <span class="empty-icon">⚙️</span>
+            <span class="empty-icon">
+              <ph-icon name="gear" [size]="48" color="#6b7280" weight="regular"></ph-icon>
+            </span>
             <p>No hay configuraciones definidas</p>
             <p-button
               label="Crear Primera Configuración"
-              icon="pi pi-plus"
               (onClick)="openNewSettingDialog()"
               [style]="{
                 background: '#fbbf24',
@@ -156,7 +168,11 @@ import { SystemSettingsStore } from '../stores/system-settings.store';
                 fontWeight: 'bold',
                 marginTop: '1rem'
               }"
-            />
+            >
+              <ng-template pTemplate="icon">
+                <ph-icon name="plus" [size]="18" color="currentColor" weight="regular"></ph-icon>
+              </ng-template>
+            </p-button>
           </div>
         </p-card>
       }

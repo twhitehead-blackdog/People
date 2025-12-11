@@ -1,10 +1,7 @@
-import { Component, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-
-interface FAQItem {
-  question: string;
-  answer: string;
-}
+import { FAQStore } from '../stores/faq.store';
+import { FAQItem as FAQItemModel } from '../models';
 
 @Component({
   selector: 'pt-adoption-faq',
@@ -54,27 +51,37 @@ interface FAQItem {
               >
             </p>
           </div>
-          <div class="faq-items">
-            @for (item of faqItems(); track $index) {
-            <div class="faq-item" [class.expanded]="expandedIndex() === $index">
-              <button
-                class="faq-question"
-                (click)="toggleFAQ($index)"
-                [attr.aria-expanded]="expandedIndex() === $index"
-              >
-                <span>{{ item.question }}</span>
-                <span class="faq-icon">{{
-                  expandedIndex() === $index ? '▼' : '▶'
-                }}</span>
-              </button>
-              @if (expandedIndex() === $index) {
-              <div class="faq-answer">
-                <p>{{ item.answer }}</p>
+          @if (faqStore.isLoading()) {
+            <div class="loading-state">
+              <p>Cargando preguntas frecuentes...</p>
+            </div>
+          } @else if (activeFAQItems().length === 0) {
+            <div class="empty-state">
+              <p>No hay preguntas frecuentes disponibles en este momento.</p>
+            </div>
+          } @else {
+            <div class="faq-items">
+              @for (item of activeFAQItems(); track item.id; let i = $index) {
+              <div class="faq-item" [class.expanded]="expandedIndex() === i">
+                <button
+                  class="faq-question"
+                  (click)="toggleFAQ(i)"
+                  [attr.aria-expanded]="expandedIndex() === i"
+                >
+                  <span>{{ item.question }}</span>
+                  <span class="faq-icon">{{
+                    expandedIndex() === i ? '▼' : '▶'
+                  }}</span>
+                </button>
+                @if (expandedIndex() === i) {
+                <div class="faq-answer">
+                  <p>{{ item.answer }}</p>
+                </div>
+                }
               </div>
               }
             </div>
-            }
-          </div>
+          }
         </div>
       </div>
     </div>
@@ -414,6 +421,19 @@ interface FAQItem {
         margin: 0;
       }
 
+      .loading-state,
+      .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #6b7280;
+      }
+
+      .loading-state p,
+      .empty-state p {
+        margin: 0;
+        font-size: 1rem;
+      }
+
       @keyframes slideDown {
         from {
           opacity: 0;
@@ -562,31 +582,16 @@ interface FAQItem {
   ],
 })
 export class AdoptionFAQComponent {
+  public faqStore = inject(FAQStore);
   public expandedIndex = signal<number | null>(0);
 
-  public faqItems = signal<FAQItem[]>([
-    {
-      question: '¿De dónde provienen las mascotas que están publicadas en ésta Web?',
-      answer:
-        'Todas las mascotas que recibimos en nuestras tiendas son rescatadas. Son animales que se encontraban en situaciones de calle, abandono o maltrato. Gracias al trabajo de nuestro equipo, fundaciones y rescatistas logramos ayudarlas a recuperarse brindándoles un hogar de tránsito y toda la atención de especialistas. Estas mascotas ya están preparadas para iniciar una adaptación y poder integrar una nueva familia.',
-    },
-    {
-      question:
-        '¿Es necesario completar todo el Formulario y luego hacer una entrevista telefónica?',
-      answer:
-        'Sí, es necesario completar el formulario completo con toda la información solicitada. Una vez recibida tu solicitud, nuestro equipo se pondrá en contacto contigo para realizar una entrevista telefónica donde podremos conocer más sobre ti y tu hogar, y resolver cualquier duda que tengas sobre el proceso de adopción.',
-    },
-    {
-      question: '¿Cómo me preparo para la llegada de mi mascota?',
-      answer:
-        'Es importante preparar tu hogar antes de la llegada de tu nueva mascota. Asegúrate de tener un espacio cómodo para ella, comida adecuada, juguetes, y todos los elementos necesarios para su bienestar. También es recomendable que todos los miembros de la familia estén de acuerdo con la adopción y conozcan las responsabilidades que implica tener una mascota.',
-    },
-    {
-      question: '¿Cuáles son los cuidados que debe recibir mi mascota?',
-      answer:
-        'Tu mascota necesitará cuidados básicos como alimentación adecuada, agua fresca, ejercicio diario, atención veterinaria regular, vacunación, desparasitación, esterilización, y sobre todo mucho amor y paciencia durante el proceso de adaptación. Es importante comprometerse con su bienestar a largo plazo.',
-    },
-  ]);
+  // Obtener solo las preguntas activas, ordenadas por el campo 'order'
+  public activeFAQItems = computed(() => {
+    return this.faqStore
+      .entities()
+      .filter((faq) => faq.is_active)
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+  });
 
   public toggleFAQ(index: number): void {
     if (this.expandedIndex() === index) {

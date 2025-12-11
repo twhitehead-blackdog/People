@@ -1,88 +1,192 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
-import { Button } from 'primeng/button';
+import { Component, computed, inject, ViewChild, ElementRef, signal, AfterViewInit, ChangeDetectorRef } from '@angular/core';
+import { EventsStore } from '../stores/events.store';
+import { Event } from '../models';
 
 @Component({
   selector: 'pt-adoption-events',
   standalone: true,
-  imports: [CommonModule, Button],
+  imports: [CommonModule],
   template: `
     <div class="events-section">
       <div class="events-container">
         <div class="events-content">
-          <h2 class="events-title">NO HAY EVENTOS PRÓXIMOS</h2>
-          <p class="events-message">
-            Estate atento a nuestras redes para más información.
-          </p>
-          <div class="events-image-container">
-            <img
-              src="assets/dog3.jpg"
-              alt="Perro y gato juntos"
-              class="events-image"
-            />
-            <div class="decorative-shapes">
-              <div class="shape shape-yellow-1"></div>
-              <div class="shape shape-yellow-2"></div>
-              <div class="shape shape-blue-1"></div>
+          <h2 class="events-title">EVENTOS</h2>
+          @if (eventsStore.isLoading()) {
+            <div class="loading-state">
+              <p>Cargando eventos...</p>
             </div>
-          </div>
-        </div>
-        <div class="events-actions">
-          <div class="action-buttons">
-            <p-button
-              label="🤝 FUNDACIONES"
-              [style]="{
-                background: '#ffffff',
-                border: '2px solid #fbbf24',
-                color: '#000000',
-                fontWeight: 'bold',
-                padding: '1rem 2rem',
-                width: '100%',
-                marginBottom: '1rem'
-              }"
-              (onClick)="navigateToFoundations()"
-            />
-            <p-button
-              label="❤️ QUIERO AYUDAR"
-              [style]="{
-                background: '#ffffff',
-                border: '2px solid #fbbf24',
-                color: '#000000',
-                fontWeight: 'bold',
-                padding: '1rem 2rem',
-                width: '100%'
-              }"
-              (onClick)="navigateToHelp()"
-            />
-          </div>
-          <div class="foundations-list">
-            <div class="foundation-card">
-              <h3 class="foundation-name">Milagrinos</h3>
-              <p class="foundation-address">
-                via suba cota km 7 vereda chorrillos sector 3
-              </p>
-              <a
-                href="https://www.facebook.com/fundacionmilagrinos"
-                target="_blank"
-                class="foundation-link"
-                >https://www.facebook.com/fundacionmilagrinos</a
-              >
-              <div class="foundation-social">
-                <a href="#" class="social-link" aria-label="Facebook">📘</a>
-                <a href="#" class="social-link" aria-label="Instagram">📷</a>
+          } @else if (allEvents().length === 0) {
+            <p class="events-message">
+              No hay eventos disponibles. Estate atento a nuestras redes para más información.
+            </p>
+            <div class="events-image-container">
+              <img
+                src="assets/dog3.jpg"
+                alt="Perro y gato juntos"
+                class="events-image"
+              />
+              <div class="decorative-shapes">
+                <div class="shape shape-yellow-1"></div>
+                <div class="shape shape-yellow-2"></div>
+                <div class="shape shape-blue-1"></div>
               </div>
             </div>
-            <div class="foundation-card">
-              <h3 class="foundation-name">DogPack</h3>
-              <p class="foundation-address">
-                Información de contacto disponible
-              </p>
-              <div class="foundation-social">
-                <a href="#" class="social-link" aria-label="Facebook">📘</a>
-                <a href="#" class="social-link" aria-label="Instagram">📷</a>
+          } @else {
+            <div class="events-carousel-container">
+              <div class="events-carousel-wrapper">
+                @if (shouldShowLeftArrowSignal()) {
+                  <button 
+                    class="carousel-nav-button carousel-prev" 
+                    (click)="scrollCarousel('left')"
+                    aria-label="Anterior"
+                  >
+                    ‹
+                  </button>
+                }
+                <div class="events-carousel" #carouselElement (scroll)="onCarouselScroll()">
+                  @if (pastEvents().length > 0) {
+                    <div class="carousel-section past-events">
+                      @for (event of pastEvents(); track event.id) {
+                        <div 
+                          class="event-card" 
+                          [class.active]="isClosestToToday(event)"
+                          (click)="centerEventCard($event)"
+                          [attr.data-event-date]="getEventDateString(event.event_date)"
+                          #eventCard
+                        >
+                          @if (event.image_url) {
+                            <div class="event-image">
+                              <img [src]="event.image_url" [alt]="event.title" />
+                            </div>
+                          }
+                          <div class="event-content">
+                            <div class="event-header">
+                              <h3 class="event-title">{{ event.title }}</h3>
+                            </div>
+                            @if (event.description) {
+                              <p class="event-description">{{ event.description }}</p>
+                            }
+                            <div class="event-details">
+                              <div class="event-detail-item">
+                                <span class="detail-icon">📅</span>
+                                <span class="detail-text">{{ formatEventDate(event.event_date) }}</span>
+                              </div>
+                              @if (event.event_time) {
+                                <div class="event-detail-item">
+                                  <span class="detail-icon">🕐</span>
+                                  <span class="detail-text">{{ event.event_time }}</span>
+                                </div>
+                              }
+                              @if (event.location) {
+                                <div class="event-detail-item">
+                                  <span class="detail-icon">📍</span>
+                                  <span class="detail-text">{{ event.location }}</span>
+                                </div>
+                                <div class="event-type-badge-container">
+                                  <span class="event-type-badge" [class]="'type-' + event.event_type">
+                                    {{ getEventTypeLabel(event.event_type) }}
+                                  </span>
+                                </div>
+                              }
+                              @if (event.foundation) {
+                                <div class="event-detail-item">
+                                  <span class="detail-icon">🏢</span>
+                                  <span class="detail-text">{{ event.foundation.name }}</span>
+                                </div>
+                              }
+                            </div>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  }
+                  @if (upcomingEvents().length > 0) {
+                    <div class="carousel-section upcoming-events">
+                      @for (event of upcomingEvents(); track event.id) {
+                        <div 
+                          class="event-card" 
+                          [class.active]="isClosestToToday(event)"
+                          (click)="centerEventCard($event)"
+                          [attr.data-event-date]="getEventDateString(event.event_date)"
+                          #eventCard
+                        >
+                          @if (event.image_url) {
+                            <div class="event-image">
+                              <img [src]="event.image_url" [alt]="event.title" />
+                            </div>
+                          }
+                          <div class="event-content">
+                            <div class="event-header">
+                              <h3 class="event-title">{{ event.title }}</h3>
+                            </div>
+                            @if (event.description) {
+                              <p class="event-description">{{ event.description }}</p>
+                            }
+                            <div class="event-details">
+                              <div class="event-detail-item">
+                                <span class="detail-icon">📅</span>
+                                <span class="detail-text">{{ formatEventDate(event.event_date) }}</span>
+                              </div>
+                              @if (event.event_time) {
+                                <div class="event-detail-item">
+                                  <span class="detail-icon">🕐</span>
+                                  <span class="detail-text">{{ event.event_time }}</span>
+                                </div>
+                              }
+                              @if (event.location) {
+                                <div class="event-detail-item">
+                                  <span class="detail-icon">📍</span>
+                                  <span class="detail-text">{{ event.location }}</span>
+                                </div>
+                                <div class="event-type-badge-container">
+                                  <span class="event-type-badge" [class]="'type-' + event.event_type">
+                                    {{ getEventTypeLabel(event.event_type) }}
+                                  </span>
+                                </div>
+                              } @else {
+                                <div class="event-type-badge-container">
+                                  <span class="event-type-badge" [class]="'type-' + event.event_type">
+                                    {{ getEventTypeLabel(event.event_type) }}
+                                  </span>
+                                </div>
+                              }
+                              @if (event.foundation) {
+                                <div class="event-detail-item">
+                                  <span class="detail-icon">🏢</span>
+                                  <span class="detail-text">{{ event.foundation.name }}</span>
+                                </div>
+                              }
+                            </div>
+                            @if (event.registration_url) {
+                              <a
+                                [href]="event.registration_url"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="event-register-link"
+                                (click)="$event.stopPropagation()"
+                              >
+                                Registrarse →
+                              </a>
+                            }
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+                @if (shouldShowRightArrowSignal()) {
+                  <button 
+                    class="carousel-nav-button carousel-next" 
+                    (click)="scrollCarousel('right')"
+                    aria-label="Siguiente"
+                  >
+                    ›
+                  </button>
+                }
               </div>
             </div>
-          </div>
+          }
         </div>
       </div>
     </div>
@@ -145,10 +249,6 @@ import { Button } from 'primeng/button';
       }
 
       .events-container {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 3rem;
-        align-items: start;
         max-width: 1400px;
         margin: 0 auto;
         padding: 0 2rem;
@@ -160,6 +260,15 @@ import { Button } from 'primeng/button';
         align-items: center;
         text-align: center;
         gap: 1.5rem;
+        width: 100%;
+      }
+
+      .action-buttons-header {
+        display: flex;
+        gap: 1rem;
+        width: 100%;
+        max-width: 600px;
+        margin-bottom: 1rem;
       }
 
       .events-title {
@@ -220,6 +329,296 @@ import { Button } from 'primeng/button';
         font-size: 1rem;
         color: #6b7280;
         margin: 0;
+      }
+
+      .loading-state,
+      .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #6b7280;
+      }
+
+      .events-carousel-container {
+        width: 100%;
+        position: relative;
+      }
+
+      .carousel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding: 0 1rem;
+      }
+
+      .carousel-section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #374151;
+        margin: 0;
+      }
+
+      .carousel-section-title.upcoming-title {
+        color: #fbbf24;
+      }
+
+      .events-carousel-wrapper {
+        position: relative;
+        width: 100%;
+      }
+
+      .events-carousel {
+        display: flex;
+        gap: 2rem;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-behavior: smooth;
+        scrollbar-width: thin;
+        scrollbar-color: #fbbf24 #f3f4f6;
+        padding: 1rem;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      .events-carousel::-webkit-scrollbar {
+        height: 8px;
+      }
+
+      .events-carousel::-webkit-scrollbar-track {
+        background: #f3f4f6;
+        border-radius: 4px;
+      }
+
+      .events-carousel::-webkit-scrollbar-thumb {
+        background: #fbbf24;
+        border-radius: 4px;
+      }
+
+      .events-carousel::-webkit-scrollbar-thumb:hover {
+        background: #f59e0b;
+      }
+
+      .carousel-section {
+        display: flex;
+        gap: 2rem;
+        min-width: fit-content;
+      }
+
+      .carousel-section.past-events {
+        flex-shrink: 0;
+      }
+
+      .carousel-section.upcoming-events {
+        flex-shrink: 0;
+      }
+
+      .carousel-nav-button {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: #ffffff;
+        border: 2px solid #fbbf24;
+        color: #000000;
+        font-size: 2rem;
+        font-weight: bold;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+
+      .carousel-nav-button:hover:not(:disabled) {
+        background: #fbbf24;
+        transform: translateY(-50%) scale(1.1);
+        box-shadow: 0 6px 16px rgba(251, 191, 36, 0.4);
+      }
+
+      .carousel-nav-button:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+      }
+
+      .carousel-prev {
+        left: -25px;
+      }
+
+      .carousel-next {
+        right: -25px;
+      }
+
+      .events-list {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+        width: 100%;
+        max-width: 800px;
+      }
+
+      .event-card {
+        background: #ffffff;
+        border: 2px solid transparent;
+        border-radius: 1rem;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        min-width: 350px;
+        max-width: 400px;
+        flex-shrink: 0;
+      }
+
+      .event-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #fbbf24, #374151, #fbbf24);
+        background-size: 200% 100%;
+        transform: scaleX(0);
+        transition: transform 0.3s ease;
+      }
+
+      .event-card:hover {
+        border-color: rgba(251, 191, 36, 0.5);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        transform: translateY(-4px);
+      }
+
+      .event-card:hover::before {
+        transform: scaleX(1);
+        animation: shimmer 2s infinite;
+      }
+
+      .event-image {
+        width: 100%;
+        height: 250px;
+        overflow: hidden;
+        background: #f3f4f6;
+      }
+
+      .event-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .event-card:hover .event-image img {
+        transform: scale(1.1);
+      }
+
+      .event-content {
+        padding: 1.5rem;
+      }
+
+      .event-header {
+        margin-bottom: 1rem;
+      }
+
+      .event-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #000000;
+        margin: 0;
+      }
+
+      .event-type-badge-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-top: 0.75rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .event-type-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        font-size: 0.875rem;
+        white-space: nowrap;
+        display: inline-block;
+      }
+
+      .event-type-badge.type-adoption_fair {
+        background: #d1fae5;
+        color: #065f46;
+      }
+
+      .event-type-badge.type-workshop {
+        background: #dbeafe;
+        color: #1e40af;
+      }
+
+      .event-type-badge.type-campaign {
+        background: #fef3c7;
+        color: #92400e;
+      }
+
+      .event-type-badge.type-fundraiser {
+        background: #fce7f3;
+        color: #9f1239;
+      }
+
+      .event-type-badge.type-other {
+        background: #e5e7eb;
+        color: #374151;
+      }
+
+      .event-description {
+        font-size: 1rem;
+        color: #6b7280;
+        line-height: 1.6;
+        margin: 0 0 1rem 0;
+      }
+
+      .event-details {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+      }
+
+      .event-detail-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 0.875rem;
+        color: #374151;
+      }
+
+      .detail-icon {
+        font-size: 1.25rem;
+        flex-shrink: 0;
+      }
+
+      .detail-text {
+        flex: 1;
+        word-wrap: break-word;
+      }
+
+      .event-register-link {
+        display: inline-block;
+        padding: 0.75rem 1.5rem;
+        background: #fbbf24;
+        color: #000000;
+        text-decoration: none;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        margin-top: 0.5rem;
+      }
+
+      .event-register-link:hover {
+        background: #f59e0b;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
       }
 
       .events-image-container {
@@ -292,123 +691,6 @@ import { Button } from 'primeng/button';
         right: 5%;
       }
 
-      .events-actions {
-        display: flex;
-        flex-direction: column;
-        gap: 2rem;
-      }
-
-      .action-buttons {
-        display: flex;
-        flex-direction: column;
-      }
-
-      .foundations-list {
-        display: flex;
-        flex-direction: column;
-        gap: 1.5rem;
-      }
-
-      .foundation-card {
-        background: #ffffff;
-        border: 2px solid transparent;
-        border-radius: 0.75rem;
-        padding: 1.5rem;
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
-        overflow: hidden;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-      }
-
-      .foundation-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, #000000, #fbbf24, #000000);
-        background-size: 200% 100%;
-        transform: scaleX(0);
-        transition: transform 0.3s ease;
-      }
-
-      .foundation-card:hover {
-        border-color: rgba(55, 65, 81, 0.5);
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-        transform: translateY(-2px);
-        background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
-      }
-
-      .foundation-card:hover::before {
-        transform: scaleX(1);
-        animation: shimmer 2s infinite;
-      }
-
-      .foundation-name {
-        font-size: 1.5rem;
-        font-weight: 700;
-        background: linear-gradient(135deg, #000000 0%, #374151 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        margin: 0 0 0.75rem 0;
-        transition: all 0.3s ease;
-      }
-
-      .foundation-card:hover .foundation-name {
-        background: linear-gradient(135deg, #fbbf24 0%, #fcd34d 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-      }
-
-      .foundation-address {
-        font-size: 0.875rem;
-        color: #6b7280;
-        margin: 0 0 0.75rem 0;
-        line-height: 1.5;
-      }
-
-      .foundation-link {
-        display: block;
-        font-size: 0.875rem;
-        color: #000000;
-        text-decoration: none;
-        margin-bottom: 0.75rem;
-        word-break: break-all;
-      }
-
-      .foundation-link:hover {
-        text-decoration: underline;
-      }
-
-      .foundation-social {
-        display: flex;
-        gap: 0.75rem;
-        margin-top: 0.75rem;
-      }
-
-      .social-link {
-        font-size: 1.25rem;
-        text-decoration: none;
-        transition: transform 0.2s;
-      }
-
-      .social-link:hover {
-        transform: scale(1.2);
-      }
-
-      ::ng-deep .events-actions p-button button {
-        transition: all 0.3s ease !important;
-      }
-
-      ::ng-deep .events-actions p-button button:hover {
-        background: #fbbf24 !important;
-        color: #000000 !important;
-        transform: translateY(-2px) !important;
-        box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3) !important;
-      }
 
       @media (max-width: 1024px) {
         .events-section {
@@ -416,14 +698,27 @@ import { Button } from 'primeng/button';
         }
 
         .events-container {
-          grid-template-columns: 1fr;
-          gap: 2rem;
           padding: 0 1.5rem;
         }
 
         .events-image-container {
           max-width: 100%;
           height: 350px;
+        }
+      }
+
+      @media (max-width: 1024px) {
+        .events-list {
+          max-width: 100%;
+        }
+
+        .event-header {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .event-type-badge {
+          align-self: flex-start;
         }
       }
 
@@ -434,6 +729,7 @@ import { Button } from 'primeng/button';
 
         .events-container {
           padding: 0 1rem;
+          grid-template-columns: 1fr;
         }
 
         .events-title {
@@ -444,14 +740,319 @@ import { Button } from 'primeng/button';
           height: 300px;
         }
 
-        .foundation-card {
+
+        .events-carousel {
+          padding: 0.5rem;
+          gap: 1rem;
+        }
+
+        .event-card {
+          min-width: 280px;
+          max-width: 320px;
+        }
+
+        .carousel-nav-button {
+          width: 40px;
+          height: 40px;
+          font-size: 1.5rem;
+        }
+
+        .carousel-prev {
+          left: -20px;
+        }
+
+        .carousel-next {
+          right: -20px;
+        }
+
+        .carousel-header {
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 0.5rem;
+        }
+
+        .events-list {
+          gap: 1.5rem;
+        }
+
+        .event-card {
+          border-radius: 0.75rem;
+        }
+
+        .event-content {
           padding: 1rem;
+        }
+
+        .event-title {
+          font-size: 1.25rem;
+        }
+
+        .event-image {
+          height: 200px;
+        }
+
+        .event-details {
+          gap: 0.5rem;
+        }
+
+        .event-register-link {
+          width: 100%;
+          text-align: center;
         }
       }
     `,
   ],
 })
-export class AdoptionEventsComponent {
+export class AdoptionEventsComponent implements AfterViewInit {
+  @ViewChild('carouselElement', { static: false }) carouselElement!: ElementRef<HTMLDivElement>;
+  
+  public eventsStore = inject(EventsStore);
+  private cdr = inject(ChangeDetectorRef);
+  public canScrollLeftSignal = signal(false);
+  public canScrollRightSignal = signal(true);
+  public shouldShowLeftArrowSignal = signal(false);
+  public shouldShowRightArrowSignal = signal(false);
+  private closestEventCard: HTMLElement | null = null;
+
+  // Obtener todos los eventos activos
+  public allEvents = computed(() => {
+    return this.eventsStore
+      .entities()
+      .filter((event) => event.is_active)
+      .sort((a, b) => {
+        const dateA = typeof a.event_date === 'string' ? new Date(a.event_date) : a.event_date;
+        const dateB = typeof b.event_date === 'string' ? new Date(b.event_date) : b.event_date;
+        return dateA.getTime() - dateB.getTime();
+      });
+  });
+
+  // Eventos pasados (izquierda) - ordenados descendente (más recientes primero)
+  public pastEvents = computed(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return this.allEvents()
+      .filter((event) => {
+        const eventDate = typeof event.event_date === 'string' 
+          ? new Date(event.event_date) 
+          : event.event_date;
+        eventDate.setHours(0, 0, 0, 0);
+        return eventDate < today;
+      })
+      .reverse(); // Más recientes primero
+  });
+
+  // Eventos futuros (derecha) - ordenados ascendente (próximos primero)
+  public upcomingEvents = computed(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    return this.allEvents()
+      .filter((event) => {
+        const eventDate = typeof event.event_date === 'string' 
+          ? new Date(event.event_date) 
+          : event.event_date;
+        eventDate.setHours(0, 0, 0, 0);
+        return eventDate >= today;
+      });
+  });
+
+  ngAfterViewInit(): void {
+    // Usar setTimeout para diferir la actualización después de que Angular complete la detección de cambios
+    setTimeout(() => {
+      this.centerClosestEvent();
+      this.updateScrollButtons();
+      this.updateArrowVisibility();
+      this.cdr.detectChanges();
+    }, 0);
+  }
+
+  // Encontrar y centrar el evento más cercano a hoy
+  private centerClosestEvent(): void {
+    if (!this.carouselElement?.nativeElement) return;
+    
+    const carousel = this.carouselElement.nativeElement;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    let closestCard: HTMLElement | null = null;
+    let closestDiff = Infinity;
+    
+    // Buscar en eventos pasados (más reciente)
+    const pastCards = carousel.querySelectorAll('.past-events .event-card');
+    pastCards.forEach((card) => {
+      const eventDateStr = (card as HTMLElement).dataset['eventDate'];
+      if (eventDateStr) {
+        const eventDate = new Date(eventDateStr);
+        eventDate.setHours(0, 0, 0, 0);
+        const diff = Math.abs(today.getTime() - eventDate.getTime());
+        if (diff < closestDiff) {
+          closestDiff = diff;
+          closestCard = card as HTMLElement;
+        }
+      }
+    });
+    
+    // Buscar en eventos futuros (más próximo)
+    const upcomingCards = carousel.querySelectorAll('.upcoming-events .event-card');
+    upcomingCards.forEach((card) => {
+      const eventDateStr = (card as HTMLElement).dataset['eventDate'];
+      if (eventDateStr) {
+        const eventDate = new Date(eventDateStr);
+        eventDate.setHours(0, 0, 0, 0);
+        const diff = Math.abs(today.getTime() - eventDate.getTime());
+        if (diff < closestDiff) {
+          closestDiff = diff;
+          closestCard = card as HTMLElement;
+        }
+      }
+    });
+    
+    if (closestCard) {
+      this.closestEventCard = closestCard;
+      setTimeout(() => {
+        this.scrollToCard(closestCard!);
+      }, 100);
+    }
+  }
+
+  public isClosestToToday(event: Event): boolean {
+    if (!this.closestEventCard) return false;
+    const eventDate = typeof event.event_date === 'string' 
+      ? new Date(event.event_date) 
+      : event.event_date;
+    const cardDateStr = this.closestEventCard.dataset['eventDate'];
+    if (!cardDateStr) return false;
+    const cardDate = new Date(cardDateStr);
+    return eventDate.getTime() === cardDate.getTime();
+  }
+
+  public centerEventCard(event: MouseEvent): void {
+    const card = (event.currentTarget as HTMLElement);
+    this.closestEventCard = card;
+    this.scrollToCard(card);
+  }
+
+  private scrollToCard(card: HTMLElement): void {
+    if (!this.carouselElement?.nativeElement) return;
+    
+    const carousel = this.carouselElement.nativeElement;
+    const cardRect = card.getBoundingClientRect();
+    const carouselRect = carousel.getBoundingClientRect();
+    const cardLeft = card.offsetLeft;
+    const cardWidth = card.offsetWidth;
+    const carouselWidth = carousel.clientWidth;
+    
+    // Calcular la posición para centrar la card
+    const scrollPosition = cardLeft - (carouselWidth / 2) + (cardWidth / 2);
+    
+    carousel.scrollTo({
+      left: scrollPosition,
+      behavior: 'smooth'
+    });
+    
+    setTimeout(() => this.updateScrollButtons(), 300);
+  }
+
+  public scrollCarousel(direction: 'left' | 'right'): void {
+    if (!this.carouselElement?.nativeElement) return;
+    
+    const carousel = this.carouselElement.nativeElement;
+    const scrollAmount = carousel.clientWidth * 0.8; // Scroll 80% del ancho visible
+    
+    if (direction === 'left') {
+      carousel.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+    } else {
+      carousel.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+    
+    // Actualizar botones después de un breve delay
+    setTimeout(() => {
+      this.updateScrollButtons();
+      this.updateArrowVisibility();
+    }, 300);
+  }
+
+  public onCarouselScroll(): void {
+    this.updateScrollButtons();
+    this.updateArrowVisibility();
+  }
+
+  private updateScrollButtons(): void {
+    if (!this.carouselElement?.nativeElement) return;
+    
+    const carousel = this.carouselElement.nativeElement;
+    const canScrollLeft = carousel.scrollLeft > 0;
+    const canScrollRight = 
+      carousel.scrollLeft < carousel.scrollWidth - carousel.clientWidth - 10; // 10px de margen
+    
+    this.canScrollLeftSignal.set(canScrollLeft);
+    this.canScrollRightSignal.set(canScrollRight);
+  }
+
+  private updateArrowVisibility(): void {
+    if (!this.carouselElement?.nativeElement) {
+      this.shouldShowLeftArrowSignal.set(false);
+      this.shouldShowRightArrowSignal.set(false);
+      return;
+    }
+    
+    const carousel = this.carouselElement.nativeElement;
+    const totalPastEvents = this.pastEvents().length;
+    const totalUpcomingEvents = this.upcomingEvents().length;
+    const scrollRight = carousel.scrollWidth - carousel.scrollLeft - carousel.clientWidth;
+    
+    // Actualizar signals de forma asíncrona para evitar ExpressionChangedAfterItHasBeenCheckedError
+    setTimeout(() => {
+      this.shouldShowLeftArrowSignal.set(totalPastEvents >= 3 && carousel.scrollLeft > 0);
+      this.shouldShowRightArrowSignal.set(totalUpcomingEvents >= 3 && scrollRight > 50);
+    }, 0);
+  }
+
+  public shouldShowLeftArrow(): boolean {
+    return this.shouldShowLeftArrowSignal();
+  }
+
+  public shouldShowRightArrow(): boolean {
+    return this.shouldShowRightArrowSignal();
+  }
+
+  public canScrollLeft(): boolean {
+    return this.canScrollLeftSignal();
+  }
+
+  public canScrollRight(): boolean {
+    return this.canScrollRightSignal();
+  }
+
+  public getEventTypeLabel(type: string): string {
+    const labels: Record<string, string> = {
+      adoption_fair: 'Feria de Adopción',
+      workshop: 'Taller',
+      campaign: 'Campaña',
+      fundraiser: 'Recaudación',
+      other: 'Otro',
+    };
+    return labels[type] || type;
+  }
+
+  public formatEventDate(date: Date | string | undefined): string {
+    if (!date) return 'Fecha por confirmar';
+    const d = typeof date === 'string' ? new Date(date) : date;
+    return d.toLocaleDateString('es-ES', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  }
+
+  public getEventDateString(date: Date | string | undefined): string {
+    if (!date) return '';
+    const d = typeof date === 'string' ? new Date(date) : date;
+    return d.toISOString().split('T')[0]; // Formato YYYY-MM-DD
+  }
+
   public navigateToFoundations(): void {
     // Implementar navegación a fundaciones
     console.log('Navegar a fundaciones');

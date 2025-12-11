@@ -31,6 +31,18 @@ import { errorInterceptor } from './interceptors/error.interceptor';
 import { FoundationsStore } from './stores/foundations.store';
 import { PetsStore } from './stores/pets.store';
 import { AdoptionApplicationsStore } from './stores/adoption-applications.store';
+import { AdoptionRequirementsStore } from './stores/adoption-requirements.store';
+import { FAQStore } from './stores/faq.store';
+import { EventsStore } from './stores/events.store';
+import { AdoptiveFamiliesStore } from './stores/adoptive-families.store';
+import { PartnersStore } from './stores/partners.store';
+import { PetInterestsStore } from './stores/pet-interests.store';
+import { AuditLogsStore } from './stores/audit-logs.store';
+import { AdminUsersStore } from './stores/admin-users.store';
+import { SystemSettingsStore } from './stores/system-settings.store';
+import { PersonalityTraitsStore } from './stores/personality-traits.store';
+// Importar web components de Phosphor Icons para registrarlos globalmente
+import '@phosphor-icons/webcomponents';
 registerLocaleData(localeEs, 'es-MX');
 
 const MyPreset = definePreset(Aura, {
@@ -115,5 +127,15 @@ export const appConfig: ApplicationConfig = {
     FoundationsStore,
     PetsStore,
     AdoptionApplicationsStore,
+    AdoptionRequirementsStore,
+    FAQStore,
+    EventsStore,
+    AdoptiveFamiliesStore,
+    PartnersStore,
+    PetInterestsStore,
+    AuditLogsStore,
+    AdminUsersStore,
+    SystemSettingsStore,
+    PersonalityTraitsStore,
   ],
 };

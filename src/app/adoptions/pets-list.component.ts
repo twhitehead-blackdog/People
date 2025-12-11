@@ -86,10 +86,12 @@ import { MatchFilters } from './adoptions-match.component';
                       }
                     </span>
                   </div>
+                  @if (pet.location_detail) {
                   <div class="pet-location-info">
                     <span class="plus-icon">➕</span>
-                    <span>ME ENCUENTRO EN LA SEDE DE LAS VILLAS</span>
+                    <span>{{ pet.location_detail }}</span>
                   </div>
+                  }
                   <p-button
                     label="PREGUNTAR POR MI"
                     [style]="{
@@ -136,19 +138,22 @@ import { MatchFilters } from './adoptions-match.component';
                       >{{ pet.age ? pet.age.toFixed(1) : '0.4' }} años</span
                     >
                   </div>
+                  @if (pet.location_type) {
                   <div class="detail-row">
                     <span class="detail-label">En:</span>
-                    <span class="detail-value">Tienda</span>
+                    <span class="detail-value">{{ pet.location_type }}</span>
                   </div>
+                  }
                   <div class="detail-row">
                     <span class="detail-label">Ubicación:</span>
                     <span class="detail-value">{{
-                      pet.foundation?.name || 'Bogota'
+                      pet.foundation?.name || 'Sin ubicación'
                     }}</span>
                   </div>
+                  @if (pet.location_detail || pet.foundation?.name) {
                   <div class="map-container-small">
                     <iframe
-                      [src]="getSafeMapUrl('Calle 50 San Francisco')"
+                      [src]="getSafeMapUrl(pet)"
                       width="100%"
                       height="200"
                       style="border:0; border-radius: 0.5rem;"
@@ -157,6 +162,7 @@ import { MatchFilters } from './adoptions-match.component';
                       referrerpolicy="no-referrer-when-downgrade"
                     ></iframe>
                   </div>
+                  }
                 </div>
               </div>
             </div>
@@ -205,8 +211,29 @@ import { MatchFilters } from './adoptions-match.component';
         </p>
         } @if (selectedPet()!.is_vaccinated) {
         <p><strong>Vacunado:</strong> Sí</p>
-        } @if (selectedPet()!.is_sterilized) {
+        }         @if (selectedPet()!.is_sterilized) {
         <p><strong>Esterilizado:</strong> Sí</p>
+        }
+        @if (selectedPet()!.personality; as personality) {
+          @if (personality.length > 0) {
+            <p>
+              <strong>Personalidad:</strong>
+              <span class="personality-tags-dialog">
+                @for (trait of personality; track trait) {
+                  <span class="personality-tag-dialog">{{ getPersonalityLabel(trait) }}</span>
+                }
+              </span>
+            </p>
+          }
+        }
+        @if (selectedPet()!.location_type) {
+        <p><strong>Ubicación (Tipo):</strong> {{ selectedPet()!.location_type }}</p>
+        }
+        @if (selectedPet()!.location_detail) {
+        <p><strong>Ubicación (Detalle):</strong> {{ selectedPet()!.location_detail }}</p>
+        }
+        @if (selectedPet()!.weight) {
+        <p><strong>Peso:</strong> {{ selectedPet()!.weight }} Kg</p>
         }
       </div>
       }
@@ -535,6 +562,23 @@ import { MatchFilters } from './adoptions-match.component';
         font-style: italic;
       }
 
+      .personality-tags-dialog {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+      }
+
+      .personality-tag-dialog {
+        padding: 0.25rem 0.75rem;
+        background: rgba(251, 191, 36, 0.15);
+        color: #6b7280;
+        border-radius: 0.25rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        border: 1px solid rgba(251, 191, 36, 0.3);
+      }
+
       .pet-location-info {
         display: flex;
         align-items: center;
@@ -811,13 +855,26 @@ export class PetsListComponent {
     return labels[value] || value;
   }
 
-  public getSafeMapUrl(address: string): SafeResourceUrl {
-    return this.sanitizer.bypassSecurityTrustResourceUrl(this.getMapIframeUrl(address));
+  public getSafeMapUrl(pet: Pet): SafeResourceUrl {
+    return this.sanitizer.bypassSecurityTrustResourceUrl(this.getMapIframeUrl(pet));
   }
 
-  public getMapIframeUrl(address: string): string {
+  public getMapIframeUrl(pet: Pet): string {
+    // Verificar si tenemos coordenadas específicas
+    const coords = this.getMapCoordinates(pet);
+    if (coords) {
+      // Usar coordenadas directamente con zoom estático y fijo
+      // bbox más pequeño = zoom más cercano (0.002 es un zoom medio-cercano)
+      const bbox = `${coords.lon - 0.002},${coords.lat - 0.002},${coords.lon + 0.002},${coords.lat + 0.002}`;
+      return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${coords.lat},${coords.lon}`;
+    }
+
+    // Si no hay coordenadas, usar geocodificación
+    const address = this.getMapAddress(pet);
+    const cacheKey = `address_${address}`;
+    
     // Verificar si ya tenemos la URL del mapa en cache
-    const cached = this.mapUrls()[address];
+    const cached = this.mapUrls()[cacheKey];
     if (cached) {
       return cached;
     }
@@ -825,7 +882,7 @@ export class PetsListComponent {
     // Cargar el mapa de forma asíncrona
     this.loadMapForAddress(address).then(url => {
       const currentUrls = { ...this.mapUrls() };
-      currentUrls[address] = url;
+      currentUrls[cacheKey] = url;
       this.mapUrls.set(currentUrls);
     });
 
@@ -881,14 +938,38 @@ export class PetsListComponent {
   }
 
   public getWeight(pet: Pet): number {
-    // TODO: Agregar campo weight al modelo Pet
-    // Por ahora retornamos un valor por defecto basado en el tamaño
+    if (pet.weight) {
+      return pet.weight;
+    }
+    // Valor por defecto basado en el tamaño si no hay peso
     const weightMap: Record<string, number> = {
       small: 1,
       medium: 5,
       large: 15,
     };
     return weightMap[pet.size] || 1;
+  }
+
+  public getMapAddress(pet: Pet): string {
+    // Priorizar location_detail, luego foundation name, luego fallback
+    if (pet.location_detail) {
+      return pet.location_detail;
+    }
+    if (pet.foundation?.name) {
+      return pet.foundation.name;
+    }
+    return 'Panamá, Panamá'; // Fallback genérico
+  }
+
+  public getMapCoordinates(pet: Pet): { lat: number; lon: number } | null {
+    // Coordenadas específicas para Black Dog en Calle 50
+    if (pet.foundation?.name && pet.foundation.name.toLowerCase().includes('black dog')) {
+      return { lat: 8.992360, lon: -79.505932 };
+    }
+    
+    // Si hay location_detail, intentar geocodificar
+    // Por ahora retornamos null para usar geocodificación
+    return null;
   }
 
   public sharePet(pet: Pet, event: Event): void {

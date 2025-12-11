@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { PhosphorIconComponent } from './phosphor-icon.component';
 import { Component, EventEmitter, inject, input, OnInit, output, signal } from '@angular/core';
 import { ImageUploadService, UploadResult } from '../services/image-upload.service';
 import { Button } from 'primeng/button';
@@ -17,7 +18,7 @@ export interface PhotoItem {
 @Component({
   selector: 'pt-photo-gallery',
   standalone: true,
-  imports: [CommonModule, Button, ProgressBarModule, ToastModule],
+  imports: [CommonModule, Button, ProgressBarModule, ToastModule, PhosphorIconComponent],
   providers: [MessageService],
   template: `
     <p-toast />
@@ -47,7 +48,9 @@ export interface PhotoItem {
         />
         @if (photos().length === 0) {
           <div class="drop-zone-content">
-            <div class="drop-icon">📷</div>
+            <div class="drop-icon">
+              <ph-icon name="camera" [size]="48" color="#6b7280" weight="regular"></ph-icon>
+            </div>
             <p class="drop-text">Arrastra imágenes aquí</p>
             <p class="drop-hint">o haz clic para seleccionar</p>
             <p class="drop-formats">Formatos: JPG, PNG, GIF, WEBP (máx. 10MB)</p>
@@ -67,7 +70,9 @@ export interface PhotoItem {
                   }
                   @if (photo.error) {
                     <div class="error-overlay">
-                      <span class="error-icon">⚠️</span>
+                      <span class="error-icon">
+                        <ph-icon name="warning" [size]="24" color="#ef4444" weight="fill"></ph-icon>
+                      </span>
                       <p class="error-text">{{ photo.error }}</p>
                     </div>
                   }
@@ -84,7 +89,7 @@ export interface PhotoItem {
                       title="Eliminar"
                       [disabled]="photo.uploading"
                     >
-                      🗑️
+                      <ph-icon name="trash" [size]="18" color="currentColor" weight="regular"></ph-icon>
                     </button>
                     @if (i > 0) {
                       <button
@@ -93,7 +98,7 @@ export interface PhotoItem {
                         title="Mover izquierda"
                         [disabled]="photo.uploading"
                       >
-                        ←
+                        <ph-icon name="arrow-left" [size]="18" color="currentColor" weight="regular"></ph-icon>
                       </button>
                     }
                     @if (i < photos().length - 1) {
@@ -103,7 +108,7 @@ export interface PhotoItem {
                         title="Mover derecha"
                         [disabled]="photo.uploading"
                       >
-                        →
+                        <ph-icon name="arrow-right" [size]="18" color="currentColor" weight="regular"></ph-icon>
                       </button>
                     }
                   </div>
@@ -116,7 +121,9 @@ export interface PhotoItem {
             @if (photos().length < maxPhotos()) {
               <div class="photo-item add-photo" (click)="fileInput.click()">
                 <div class="add-photo-content">
-                  <span class="add-icon">➕</span>
+                  <span class="add-icon">
+                    <ph-icon name="plus" [size]="32" color="#6b7280" weight="regular"></ph-icon>
+                  </span>
                   <p class="add-text">Agregar foto</p>
                 </div>
               </div>
@@ -137,10 +144,13 @@ export interface PhotoItem {
             label="Limpiar todo"
             severity="secondary"
             [text]="true"
-            icon="pi pi-trash"
             (onClick)="clearAll()"
             [disabled]="hasUploading()"
-          />
+          >
+            <ng-template pTemplate="icon">
+              <ph-icon name="trash" [size]="18" color="currentColor" weight="regular"></ph-icon>
+            </ng-template>
+          </p-button>
         </div>
       }
     </div>

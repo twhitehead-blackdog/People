@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { PhosphorIconComponent } from '../shared/phosphor-icon.component';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
@@ -33,6 +34,7 @@ import { PersonalityTraitsStore } from '../stores/personality-traits.store';
     ToastModule,
     Card,
     CheckboxModule,
+    PhosphorIconComponent,
   ],
   providers: [MessageService],
   template: `
@@ -42,7 +44,6 @@ import { PersonalityTraitsStore } from '../stores/personality-traits.store';
         <h2>Gestión de Rasgos de Personalidad</h2>
         <p-button
           label="Nuevo Rasgo"
-          icon="pi pi-plus"
           (onClick)="openNewTraitDialog()"
           [style]="{
             background: '#fbbf24',
@@ -50,7 +51,11 @@ import { PersonalityTraitsStore } from '../stores/personality-traits.store';
             color: '#000000',
             fontWeight: 'bold'
           }"
-        />
+        >
+          <ng-template pTemplate="icon">
+            <ph-icon name="plus" [size]="18" color="currentColor" weight="regular"></ph-icon>
+          </ng-template>
+        </p-button>
       </div>
 
       @for (category of categories(); track category) {
@@ -107,28 +112,42 @@ import { PersonalityTraitsStore } from '../stores/personality-traits.store';
                 <td>
                   <div class="action-buttons">
                     <p-button
-                      icon="pi pi-pencil"
                       [text]="true"
                       severity="info"
                       (onClick)="openEditDialog(trait)"
                       [style]="{ marginRight: '0.5rem' }"
                       title="Editar"
-                    />
+                    >
+                      <ng-template pTemplate="icon">
+                        <ph-icon name="pencil" [size]="18" color="currentColor" weight="regular"></ph-icon>
+                      </ng-template>
+                    </p-button>
                     <p-button
-                      [icon]="trait.is_active ? 'pi pi-eye-slash' : 'pi pi-eye'"
                       [text]="true"
                       [severity]="trait.is_active ? 'warn' : 'success'"
                       (onClick)="toggleActive(trait)"
                       [style]="{ marginRight: '0.5rem' }"
                       [title]="trait.is_active ? 'Desactivar' : 'Activar'"
-                    />
+                    >
+                      <ng-template pTemplate="icon">
+                        <ph-icon 
+                          [name]="trait.is_active ? 'eye-slash' : 'eye'" 
+                          [size]="18" 
+                          color="currentColor" 
+                          weight="regular"
+                        ></ph-icon>
+                      </ng-template>
+                    </p-button>
                     <p-button
-                      icon="pi pi-trash"
                       [text]="true"
                       severity="danger"
                       (onClick)="deleteTrait(trait)"
                       title="Eliminar"
-                    />
+                    >
+                      <ng-template pTemplate="icon">
+                        <ph-icon name="trash" [size]="18" color="currentColor" weight="regular"></ph-icon>
+                      </ng-template>
+                    </p-button>
                   </div>
                 </td>
               </tr>
@@ -149,7 +168,6 @@ import { PersonalityTraitsStore } from '../stores/personality-traits.store';
             <p>No hay rasgos de personalidad definidos</p>
             <p-button
               label="Crear Primer Rasgo"
-              icon="pi pi-plus"
               (onClick)="openNewTraitDialog()"
               [style]="{
                 background: '#fbbf24',
@@ -158,7 +176,11 @@ import { PersonalityTraitsStore } from '../stores/personality-traits.store';
                 fontWeight: 'bold',
                 marginTop: '1rem'
               }"
-            />
+            >
+              <ng-template pTemplate="icon">
+                <ph-icon name="plus" [size]="18" color="currentColor" weight="regular"></ph-icon>
+              </ng-template>
+            </p-button>
           </div>
         </p-card>
       }

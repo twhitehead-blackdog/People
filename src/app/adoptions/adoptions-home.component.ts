@@ -1,5 +1,6 @@
 import { Component, signal, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { PhosphorIconComponent } from '../shared/phosphor-icon.component';
 import { Router } from '@angular/router';
 import { AdoptionsHeroComponent } from './adoptions-hero.component';
 import { AdoptionsMatchComponent, MatchFilters } from './adoptions-match.component';
@@ -27,6 +28,7 @@ import { filter, take } from 'rxjs/operators';
     AdoptionEventsComponent,
     AdoptionFamiliesComponent,
     Button,
+    PhosphorIconComponent,
   ],
   template: `
     <div class="adoptions-home">
@@ -50,48 +52,82 @@ import { filter, take } from 'rxjs/operators';
                 <div class="text-underline"></div>
               </div>
               <div class="pet-silhouettes">
-                <span class="pet-emoji pet-1">🐕</span>
-                <span class="pet-emoji pet-2">🐈</span>
-                <span class="pet-emoji pet-3">🐶</span>
-                <span class="pet-emoji pet-4">🐱</span>
-                <span class="pet-emoji pet-5">🐈</span>
+                <span class="pet-emoji pet-1"><ph-icon name="dog" [size]="32" color="#000000" weight="regular"></ph-icon></span>
+                <span class="pet-emoji pet-2"><ph-icon name="cat" [size]="32" color="#000000" weight="regular"></ph-icon></span>
+                <span class="pet-emoji pet-3"><ph-icon name="dog" [size]="32" color="#000000" weight="regular"></ph-icon></span>
+                <span class="pet-emoji pet-4"><ph-icon name="cat" [size]="32" color="#000000" weight="regular"></ph-icon></span>
+                <span class="pet-emoji pet-5"><ph-icon name="cat" [size]="32" color="#000000" weight="regular"></ph-icon></span>
               </div>
             </div>
             <div class="banner-shine"></div>
           </div>
-          <p-button
-            label="FORMULARIO DE ADOPCIÓN"
-            [style]="{
-              background: '#fbbf24',
-              border: 'none',
-              color: '#000000',
-              fontWeight: 'bold',
-              padding: '1rem 2rem',
-              marginTop: '1.5rem'
-            }"
-          />
+          <div class="adoption-buttons-row">
+            <p-button
+              label="FUNDACIONES"
+              [style]="{
+                background: '#ffffff',
+                border: '2px solid #fbbf24',
+                color: '#000000',
+                fontWeight: 'bold',
+                padding: '1rem 2rem',
+                flex: '1'
+              }"
+              (onClick)="navigateToFoundations()"
+            >
+              <ng-template pTemplate="icon">
+                <ph-icon name="handshake" [size]="18" color="currentColor" weight="regular"></ph-icon>
+              </ng-template>
+            </p-button>
+            <p-button
+              label="FORMULARIO DE ADOPCIÓN"
+              [style]="{
+                background: '#fbbf24',
+                border: 'none',
+                color: '#000000',
+                fontWeight: 'bold',
+                padding: '1rem 2rem',
+                flex: '1'
+              }"
+            />
+            <p-button
+              label="QUIERO AYUDAR"
+              [style]="{
+                background: '#ffffff',
+                border: '2px solid #fbbf24',
+                color: '#000000',
+                fontWeight: 'bold',
+                padding: '1rem 2rem',
+                flex: '1'
+              }"
+              (onClick)="navigateToHelp()"
+            >
+              <ng-template pTemplate="icon">
+                <ph-icon name="heart" [size]="18" color="currentColor" weight="fill"></ph-icon>
+              </ng-template>
+            </p-button>
+          </div>
         </div>
       </div>
 
       <div class="navigation-tabs">
         <a href="#requisitos" class="nav-tab" (click)="scrollToSection('requisitos', $event)">
-          <span class="tab-icon">📄</span>
+          <span class="tab-icon"><ph-icon name="file-text" [size]="24" color="currentColor" weight="regular"></ph-icon></span>
           <span>REQUISITOS DE ADOPCIÓN</span>
         </a>
         <a href="#faq" class="nav-tab" (click)="scrollToSection('faq', $event)">
-          <span class="tab-icon">❓</span>
+          <span class="tab-icon"><ph-icon name="question" [size]="24" color="currentColor" weight="regular"></ph-icon></span>
           <span>PREGUNTAS FRECUENTES</span>
         </a>
         <a href="#eventos" class="nav-tab" (click)="scrollToSection('eventos', $event)">
-          <span class="tab-icon">📅</span>
+          <span class="tab-icon"><ph-icon name="calendar" [size]="24" color="currentColor" weight="regular"></ph-icon></span>
           <span>CALENDARIO</span>
         </a>
         <a href="#familias" class="nav-tab" (click)="scrollToSection('familias', $event)">
-          <span class="tab-icon">🏠</span>
+          <span class="tab-icon"><ph-icon name="house" [size]="24" color="currentColor" weight="regular"></ph-icon></span>
           <span>FAMILIAS</span>
         </a>
         <a href="#aliados" class="nav-tab" (click)="scrollToSection('aliados', $event)">
-          <span class="tab-icon">🐾</span>
+          <span class="tab-icon"><ph-icon name="paw-print" [size]="24" color="currentColor" weight="regular"></ph-icon></span>
           <span>ALIADOS BLACK DOG</span>
         </a>
       </div>
@@ -180,6 +216,18 @@ import { filter, take } from 'rxjs/operators';
         max-width: 800px;
         margin-left: auto;
         margin-right: auto;
+      }
+
+      .adoption-buttons-row {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1.5rem;
+        width: 100%;
+        max-width: 1000px;
+        margin-left: auto;
+        margin-right: auto;
+        justify-content: center;
+        align-items: center;
       }
 
       .animate-banner {
@@ -441,6 +489,11 @@ import { filter, take } from 'rxjs/operators';
           gap: 0.5rem;
         }
 
+        .adoption-buttons-row {
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+
         .navigation-tabs {
           padding: 1rem;
           gap: 0.5rem;
@@ -612,6 +665,16 @@ export class AdoptionsHomeComponent implements OnInit {
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
+  }
+
+  public navigateToFoundations(): void {
+    // Implementar navegación a fundaciones
+    console.log('Navegar a fundaciones');
+  }
+
+  public navigateToHelp(): void {
+    // Implementar navegación a ayuda
+    console.log('Navegar a ayuda');
   }
 }
 

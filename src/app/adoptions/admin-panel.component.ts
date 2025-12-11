@@ -9,6 +9,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
 import { AdoptionApplicationsStore } from '../stores/adoption-applications.store';
 import { AdminApplicationsComponent } from './admin-applications.component';
 import { AdminDashboardComponent } from './admin-dashboard.component';
+import { AdminDashboardV2Component } from './admin-dashboard-v2.component';
 import { AdminEventsComponent } from './admin-events.component';
 import { AdminFamiliesComponent } from './admin-families.component';
 import { AdminFAQComponent } from './admin-faq.component';
@@ -21,6 +22,7 @@ import { AdminRequirementsComponent } from './admin-requirements.component';
 import { AdminUsersComponent } from './admin-users.component';
 import { AdminSettingsComponent } from './admin-settings.component';
 import { AdminPersonalitiesComponent } from './admin-personalities.component';
+import { PhosphorIconComponent } from '../shared/phosphor-icon.component';
 
 @Component({
   selector: 'pt-admin-panel',
@@ -34,6 +36,7 @@ import { AdminPersonalitiesComponent } from './admin-personalities.component';
     AdminApplicationsComponent,
     AdminFoundationsComponent,
     AdminDashboardComponent,
+    AdminDashboardV2Component,
     AdminRequirementsComponent,
     AdminFAQComponent,
     AdminEventsComponent,
@@ -44,6 +47,7 @@ import { AdminPersonalitiesComponent } from './admin-personalities.component';
     AdminUsersComponent,
     AdminSettingsComponent,
     AdminPersonalitiesComponent,
+    PhosphorIconComponent,
   ],
   providers: [MessageService],
   template: `
@@ -57,77 +61,139 @@ import { AdminPersonalitiesComponent } from './admin-personalities.component';
         [(activeIndex)]="activeTabIndex"
         (onChange)="onTabChange($event)"
       >
-        <p-tabPanel header="Dashboard" leftIcon="pi pi-chart-bar">
+        <p-tabPanel header="Dashboard">
+          <ng-template pTemplate="header">
+            <ph-icon name="chart-line" [size]="18" color="#fbbf24" weight="regular" style="margin-right: 0.5rem;"></ph-icon>
+            Dashboard
+          </ng-template>
           <ng-template pTemplate="content">
             <pt-admin-dashboard />
           </ng-template>
         </p-tabPanel>
-        <p-tabPanel header="Mascotas" leftIcon="pi pi-paw">
+        <p-tabPanel header="Dashboard 2.0">
+          <ng-template pTemplate="header">
+            <ph-icon name="chart-bar" [size]="18" color="#fbbf24" weight="regular" style="margin-right: 0.5rem;"></ph-icon>
+            Dashboard 2.0
+          </ng-template>
+          <ng-template pTemplate="content">
+            <pt-admin-dashboard-v2 />
+          </ng-template>
+        </p-tabPanel>
+        <p-tabPanel header="Mascotas">
+          <ng-template pTemplate="header">
+            <ph-icon name="paw-print" [size]="18" color="#fbbf24" weight="fill" style="margin-right: 0.5rem;"></ph-icon>
+            Mascotas
+          </ng-template>
           <ng-template pTemplate="content">
             <pt-admin-pets />
           </ng-template>
         </p-tabPanel>
-        <p-tabPanel
-          [header]="applicationsTabHeader()"
-          leftIcon="pi pi-file-edit"
-        >
+        <p-tabPanel [header]="applicationsTabHeader()">
+          <ng-template pTemplate="header">
+            <ph-icon name="file-text" [size]="18" color="#fbbf24" weight="regular" style="margin-right: 0.5rem;"></ph-icon>
+            {{ applicationsTabHeader() }}
+          </ng-template>
           <ng-template pTemplate="content">
             <pt-admin-applications />
           </ng-template>
         </p-tabPanel>
-        <p-tabPanel header="Fundaciones" leftIcon="pi pi-building">
+        <p-tabPanel header="Fundaciones">
+          <ng-template pTemplate="header">
+            <ph-icon name="building" [size]="18" color="#fbbf24" weight="regular" style="margin-right: 0.5rem;"></ph-icon>
+            Fundaciones
+          </ng-template>
           <ng-template pTemplate="content">
             <pt-admin-foundations />
           </ng-template>
         </p-tabPanel>
-        <p-tabPanel header="Requisitos" leftIcon="pi pi-list-check">
+        <p-tabPanel header="Requisitos">
+          <ng-template pTemplate="header">
+            <ph-icon name="list-checks" [size]="18" color="#fbbf24" weight="regular" style="margin-right: 0.5rem;"></ph-icon>
+            Requisitos
+          </ng-template>
           <ng-template pTemplate="content">
             <pt-admin-requirements />
           </ng-template>
         </p-tabPanel>
-        <p-tabPanel header="FAQ" leftIcon="pi pi-question-circle">
+        <p-tabPanel header="FAQ">
+          <ng-template pTemplate="header">
+            <ph-icon name="question" [size]="18" color="#fbbf24" weight="regular" style="margin-right: 0.5rem;"></ph-icon>
+            FAQ
+          </ng-template>
           <ng-template pTemplate="content">
             <pt-admin-faq />
           </ng-template>
         </p-tabPanel>
-        <p-tabPanel header="Eventos" leftIcon="pi pi-calendar">
+        <p-tabPanel header="Eventos">
+          <ng-template pTemplate="header">
+            <ph-icon name="calendar" [size]="18" color="#fbbf24" weight="regular" style="margin-right: 0.5rem;"></ph-icon>
+            Eventos
+          </ng-template>
           <ng-template pTemplate="content">
             <pt-admin-events />
           </ng-template>
         </p-tabPanel>
-        <p-tabPanel header="Familias" leftIcon="pi pi-users">
+        <p-tabPanel header="Familias">
+          <ng-template pTemplate="header">
+            <ph-icon name="users" [size]="18" color="#fbbf24" weight="regular" style="margin-right: 0.5rem;"></ph-icon>
+            Familias
+          </ng-template>
           <ng-template pTemplate="content">
             <pt-admin-families />
           </ng-template>
         </p-tabPanel>
-        <p-tabPanel header="Aliados" leftIcon="pi pi-handshake">
+        <p-tabPanel header="Aliados">
+          <ng-template pTemplate="header">
+            <ph-icon name="handshake" [size]="18" color="#fbbf24" weight="regular" style="margin-right: 0.5rem;"></ph-icon>
+            Aliados
+          </ng-template>
           <ng-template pTemplate="content">
             <pt-admin-partners />
           </ng-template>
         </p-tabPanel>
-        <p-tabPanel header="Intereses" leftIcon="pi pi-heart">
+        <p-tabPanel header="Intereses">
+          <ng-template pTemplate="header">
+            <ph-icon name="heart" [size]="18" color="#fbbf24" weight="fill" style="margin-right: 0.5rem;"></ph-icon>
+            Intereses
+          </ng-template>
           <ng-template pTemplate="content">
             <pt-admin-interests />
           </ng-template>
         </p-tabPanel>
         @if (canViewAuditLogs()) {
-          <p-tabPanel header="Auditoría" leftIcon="pi pi-history">
+          <p-tabPanel header="Auditoría">
+            <ng-template pTemplate="header">
+              <ph-icon name="clock" [size]="18" color="#fbbf24" weight="regular" style="margin-right: 0.5rem;"></ph-icon>
+              Auditoría
+            </ng-template>
             <ng-template pTemplate="content">
               <pt-admin-audit-logs />
             </ng-template>
           </p-tabPanel>
         }
-        <p-tabPanel header="Usuarios" leftIcon="pi pi-user">
+        <p-tabPanel header="Usuarios">
+          <ng-template pTemplate="header">
+            <ph-icon name="user" [size]="18" color="#fbbf24" weight="regular" style="margin-right: 0.5rem;"></ph-icon>
+            Usuarios
+          </ng-template>
           <ng-template pTemplate="content">
             <pt-admin-users />
           </ng-template>
         </p-tabPanel>
-        <p-tabPanel header="Configuración" leftIcon="pi pi-cog">
+        <p-tabPanel header="Configuración">
+          <ng-template pTemplate="header">
+            <ph-icon name="gear" [size]="18" color="#fbbf24" weight="regular" style="margin-right: 0.5rem;"></ph-icon>
+            Configuración
+          </ng-template>
           <ng-template pTemplate="content">
             <pt-admin-settings />
           </ng-template>
         </p-tabPanel>
-        <p-tabPanel header="Personalidades" leftIcon="pi pi-heart-fill">
+        <p-tabPanel header="Personalidades">
+          <ng-template pTemplate="header">
+            <ph-icon name="star" [size]="18" color="#fbbf24" weight="fill" style="margin-right: 0.5rem;"></ph-icon>
+            Personalidades
+          </ng-template>
           <ng-template pTemplate="content">
             <pt-admin-personalities />
           </ng-template>
@@ -280,19 +346,20 @@ export class AdminPanelComponent implements OnInit {
         const canViewAudit = this.canViewAuditLogs();
         const tabMap: Record<string, number> = {
           dashboard: 0,
-          pets: 1,
-          applications: 2,
-          foundations: 3,
-          requirements: 4,
-          faq: 5,
-          events: 6,
-          families: 7,
-          partners: 8,
-          interests: 9,
-          audit: canViewAudit ? 10 : -1, // -1 si no puede ver auditoría
-          users: canViewAudit ? 11 : 10,
-          settings: canViewAudit ? 12 : 11,
-          personalities: canViewAudit ? 13 : 12,
+          'dashboard-v2': 1,
+          pets: 2,
+          applications: 3,
+          foundations: 4,
+          requirements: 5,
+          faq: 6,
+          events: 7,
+          families: 8,
+          partners: 9,
+          interests: 10,
+          audit: canViewAudit ? 11 : -1, // -1 si no puede ver auditoría
+          users: canViewAudit ? 12 : 11,
+          settings: canViewAudit ? 13 : 12,
+          personalities: canViewAudit ? 14 : 13,
         };
         const tabIndex = tabMap[params['tab']];
         if (tabIndex !== undefined && tabIndex >= 0) {
@@ -314,6 +381,7 @@ export class AdminPanelComponent implements OnInit {
     const canViewAudit = this.canViewAuditLogs();
     const tabNames = [
       'dashboard',
+      'dashboard-v2',
       'pets',
       'applications',
       'foundations',

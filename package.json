@@ -31,6 +31,7 @@
     "@ngrx/operators": "20.0.0",
     "@ngrx/signals": "20.0.0",
     "@nx/angular": "21.3.7",
+    "@phosphor-icons/webcomponents": "^2.1.5",
     "@primeng/themes": "19.0.9",
     "@primeuix/themes": "^1.2.1",
     "@supabase/supabase-js": "^2.87.1",

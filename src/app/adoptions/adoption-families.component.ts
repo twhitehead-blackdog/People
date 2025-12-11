@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { Button } from 'primeng/button';
+import { AdoptiveFamiliesStore } from '../stores/adoptive-families.store';
 
 @Component({
   selector: 'pt-adoption-families',
@@ -14,48 +15,118 @@ import { Button } from 'primeng/button';
           Gracias a nuestra campaña de Adopción Responsable estas familias
           reciben #AmorPuro.
         </p>
-        <div class="families-cards">
-          <div class="family-card">
-            <div class="family-card-image">
-              <div class="family-card-header">
-                <div class="header-shape header-shape-yellow"></div>
-                <h3 class="header-text">CUÉNTANOS TU HISTORIA</h3>
-                <div class="header-shape header-shape-gray"></div>
-              </div>
-              <div class="family-card-content">
-                <img
-                  src="assets/cat1.jpg"
-                  alt="Gato con comida"
-                  class="family-pet-image"
-                />
-                <div class="heart-icon">💛</div>
+        @if (familiesStore.isLoading()) {
+          <div class="loading-state">
+            <p>Cargando familias...</p>
+          </div>
+        } @else if (featuredFamilies().length === 0) {
+          <div class="families-cards">
+            <div class="family-card">
+              <div class="family-card-image">
+                <div class="family-card-header">
+                  <div class="header-shape header-shape-yellow"></div>
+                  <h3 class="header-text">CUÉNTANOS TU HISTORIA</h3>
+                  <div class="header-shape header-shape-gray"></div>
+                </div>
+                <div class="family-card-content">
+                  <img
+                    src="assets/cat1.jpg"
+                    alt="Gato con comida"
+                    class="family-pet-image"
+                  />
+                  <div class="heart-icon">💛</div>
+                </div>
               </div>
             </div>
           </div>
-          <div class="family-card">
-            <div class="family-photo-container">
-              <img
-                src="assets/cat2.jpg"
-                alt="Familia con gato adoptado"
-                class="family-photo"
-              />
-              <div class="heart-icon">💛</div>
-            </div>
-            <div class="family-story">
-              <div class="certificate">
-                <div class="certificate-header">
-                  <span class="certificate-logo">Black Dog</span>
-                  <span class="certificate-paw">🐾</span>
+        } @else {
+          <div class="families-cards">
+            @for (family of featuredFamilies(); track family.id) {
+              <div class="family-card">
+                @if (family.photo_url) {
+                  <div class="family-photo-container">
+                    <img
+                      [src]="family.photo_url"
+                      [alt]="family.family_name"
+                      class="family-photo"
+                      (error)="onImageError($event)"
+                    />
+                    <div class="heart-icon">💛</div>
+                  </div>
+                } @else if (family.pet && family.pet.photos && family.pet.photos.length > 0) {
+                  <div class="family-photo-container">
+                    <img
+                      [src]="family.pet.photos[0]"
+                      [alt]="family.pet.name || 'Mascota'"
+                      class="family-photo"
+                      (error)="onImageError($event)"
+                    />
+                    <div class="heart-icon">💛</div>
+                  </div>
+                } @else {
+                  <div class="family-card-image">
+                    <div class="family-card-header">
+                      <div class="header-shape header-shape-yellow"></div>
+                      <h3 class="header-text">{{ family.family_name }}</h3>
+                      <div class="header-shape header-shape-gray"></div>
+                    </div>
+                    <div class="family-card-content">
+                      <img
+                        src="assets/cat1.jpg"
+                        [alt]="family.family_name"
+                        class="family-pet-image"
+                      />
+                      <div class="heart-icon">💛</div>
+                    </div>
+                  </div>
+                }
+                <div class="family-story">
+                  <div class="certificate">
+                    <div class="certificate-header">
+                      <span class="certificate-logo">Black Dog</span>
+                      <span class="certificate-paw">🐾</span>
+                    </div>
+                    <div class="certificate-content">
+                      <p class="certificate-name">{{ family.contact_name }}</p>
+                      <p class="certificate-pet">{{ family.pet_name || family.pet?.name || 'Familia Adoptiva' }}</p>
+                      @if (family.story) {
+                        <p class="certificate-story">{{ family.story.length > 100 ? (family.story.substring(0, 100) + '...') : family.story }}</p>
+                      }
+                    </div>
+                    <div class="certificate-footer">
+                      @if (family.pet?.species === 'dog') {
+                        🐕
+                      } @else if (family.pet?.species === 'cat') {
+                        🐱
+                      } @else {
+                        🐾
+                      }
+                    </div>
+                  </div>
                 </div>
-                <div class="certificate-content">
-                  <p class="certificate-name">Camila Mou</p>
-                  <p class="certificate-pet">Mia</p>
-                </div>
-                <div class="certificate-footer">🐱</div>
               </div>
-            </div>
+            }
+            @if (featuredFamilies().length < 2) {
+              <div class="family-card">
+                <div class="family-card-image">
+                  <div class="family-card-header">
+                    <div class="header-shape header-shape-yellow"></div>
+                    <h3 class="header-text">CUÉNTANOS TU HISTORIA</h3>
+                    <div class="header-shape header-shape-gray"></div>
+                  </div>
+                  <div class="family-card-content">
+                    <img
+                      src="assets/cat1.jpg"
+                      alt="Gato con comida"
+                      class="family-pet-image"
+                    />
+                    <div class="heart-icon">💛</div>
+                  </div>
+                </div>
+              </div>
+            }
           </div>
-        </div>
+        }
         <div class="families-cta">
           <p-button
             label="¡Cuéntanos tu historia!"
@@ -493,13 +564,29 @@ import { Button } from 'primeng/button';
         font-size: 1.75rem;
         font-weight: 700;
         color: #000000;
-        margin: 0;
+        margin: 0 0 0.5rem 0;
         position: relative;
         z-index: 1;
       }
 
+      .certificate-story {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin: 0.5rem 0 0 0;
+        line-height: 1.5;
+        position: relative;
+        z-index: 1;
+        font-style: italic;
+      }
+
       .certificate-footer {
         font-size: 2rem;
+      }
+
+      .loading-state {
+        text-align: center;
+        padding: 2rem;
+        color: #6b7280;
       }
 
       .families-cta {
@@ -560,8 +647,23 @@ import { Button } from 'primeng/button';
   ],
 })
 export class AdoptionFamiliesComponent {
+  public familiesStore = inject(AdoptiveFamiliesStore);
+
+  public featuredFamilies = computed(() => {
+    return this.familiesStore
+      .entities()
+      .filter((family) => family.is_active && family.is_featured)
+      .slice(0, 6); // Mostrar máximo 6 familias destacadas
+  });
+
+  public onImageError(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    img.src = 'assets/cat1.jpg'; // Imagen por defecto
+  }
+
   public shareStory(): void {
     // Implementar funcionalidad para compartir historia
     console.log('Compartir historia');
+    // Aquí se podría abrir un formulario o redirigir a una página de contacto
   }
 }
