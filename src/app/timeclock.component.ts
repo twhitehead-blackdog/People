@@ -1434,15 +1434,25 @@ export class TimeclockComponent implements OnDestroy {
   });
 
   // Separate resources for regular employees and Naz employees
-  public employeesResource = httpResource<Partial<Employee>[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
-    method: 'GET',
-    params: {
+  public employeesResource = httpResource<Partial<Employee>[]>(() => {
+    const companyId = this.organizationService.getCurrentCompanyId();
+    const params: any = {
       select: 'id,first_name,father_name,code_uri',
       order: 'father_name',
       is_active: 'eq.true',
-    },
-  }));
+    };
+    
+    // Para Black Dog, filtrar por company_id para evitar duplicados
+    if (!this.isNazCompany() && companyId) {
+      params.company_id = `eq.${companyId}`;
+    }
+    
+    return {
+      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
+      method: 'GET',
+      params,
+    };
+  });
 
   public nazEmployeesResource = httpResource<Partial<NazEmployee>[]>(() => ({
     url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/naz_employees`,
@@ -1458,9 +1468,21 @@ export class TimeclockComponent implements OnDestroy {
   public currentEmployeesResource = computed<
     Partial<Employee | NazEmployee>[] | undefined
   >(() => {
-    return this.isNazCompany()
+    const employees = this.isNazCompany()
       ? this.nazEmployeesResource.value()
       : this.employeesResource.value();
+    
+    if (!employees) return undefined;
+    
+    // Deduplicar por id para evitar empleados duplicados
+    const uniqueEmployees = new Map<string, Partial<Employee | NazEmployee>>();
+    employees.forEach((emp) => {
+      if (emp.id && !uniqueEmployees.has(emp.id)) {
+        uniqueEmployees.set(emp.id, emp);
+      }
+    });
+    
+    return Array.from(uniqueEmployees.values());
   });
 
   // Get last timelog for an employee today to determine next type
@@ -1848,10 +1870,7 @@ export class TimeclockComponent implements OnDestroy {
     const { employee, otp, branch_id, company_id, type } =
       this.form.getRawValue();
     
-    // #region agent log
     const serviceCompanyId = this.organizationService.getCurrentCompanyId();
-    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'timeclock.component.ts:1741',message:'validateOtp - company_id check',data:{isNaz:this.isNazCompany(),companyIdFromForm:company_id,companyIdFromService:serviceCompanyId,employeeId:employee?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
     
     if (employee?.code_uri) {
       const totp = OTPAuth.URI.parse(employee.code_uri);
@@ -1872,10 +1891,6 @@ export class TimeclockComponent implements OnDestroy {
       
       // Usar el company_id del servicio si está disponible, sino el del formulario
       const finalCompanyId = serviceCompanyId || company_id;
-      
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'timeclock.component.ts:1763',message:'Using final company_id for timelog',data:{finalCompanyId,companyIdFromForm:company_id,companyIdFromService:serviceCompanyId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-      // #endregion
       
       this.processTimelog(
         employee.id,
@@ -1903,11 +1918,6 @@ export class TimeclockComponent implements OnDestroy {
 
     // Para Naz, no validar IP (invalid_id siempre será false)
     const invalidValue = isNaz ? false : !this.validIP();
-
-    // #region agent log
-    const currentCompanyIdFromService = this.organizationService.getCurrentCompanyId();
-    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'timeclock.component.ts:1789',message:'Creating timelog - company_id check',data:{isNaz,tableName,companyIdFromForm:companyId,companyIdFromService:currentCompanyIdFromService,employeeId,branchId,type},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
 
     this.http
       .post(`${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`, {

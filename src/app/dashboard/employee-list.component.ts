@@ -11,7 +11,11 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { ConfirmationService, FilterService, MessageService } from 'primeng/api';
+import {
+  ConfirmationService,
+  FilterService,
+  MessageService,
+} from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
@@ -22,16 +26,16 @@ import { Select } from 'primeng/select';
 import { Skeleton } from 'primeng/skeleton';
 import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
+import { ToastModule } from 'primeng/toast';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { TooltipModule } from 'primeng/tooltip';
-import { ToastModule } from 'primeng/toast';
 import { utils, writeFile } from 'xlsx';
 import { Column, Employee, ExportColumn } from '../models';
 import { AgePipe } from '../pipes/age.pipe';
-import { DashboardStore } from '../stores/dashboard.store';
-import { WassengerService } from '../services/wassenger.service';
-import { EmployeeFormComponent } from './employee-form.component';
 import { OrganizationService } from '../services/organization.service';
+import { WassengerService } from '../services/wassenger.service';
+import { DashboardStore } from '../stores/dashboard.store';
+import { EmployeeFormComponent } from './employee-form.component';
 
 @Component({
   selector: 'pt-employee-list',
@@ -56,16 +60,25 @@ import { OrganizationService } from '../services/organization.service';
     ToastModule,
     ConfirmDialogModule,
   ],
-  providers: [DynamicDialogRef, DialogService, MessageService, ConfirmationService],
+  providers: [
+    DynamicDialogRef,
+    DialogService,
+    MessageService,
+    ConfirmationService,
+  ],
   template: `
     <p-toast />
     <p-confirmDialog />
     <p-card>
       <ng-template #title>
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
+        <div
+          class="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3"
+        >
           <div>
             <h2 class="m-0 text-lg sm:text-xl">Empleados</h2>
-            <p class="text-xs sm:text-sm text-gray-400 m-0 mt-1">Listado de colaboradores de la empresa</p>
+            <p class="text-xs sm:text-sm text-gray-400 m-0 mt-1">
+              Listado de colaboradores de la empresa
+            </p>
           </div>
           <div class="flex flex-wrap gap-2">
             <p-button
@@ -109,291 +122,278 @@ import { OrganizationService } from '../services/organization.service';
           currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} empleados"
           styleClass="min-w-full"
         >
-        <ng-template #caption>
-          <div class="flex gap-2 items-center">
-            <p-toggleswitch
-              [formControl]="inactiveToggle"
-              inputId="active"
-            />
-            <label for="active">Incluir inactivos</label>
-          </div>
-        </ng-template>
-        <ng-template #header>
-          <tr>
-            <th style="width:22%" pSortableColumn="short_name" pFrozenColumn>
-              Nombre <p-sortIcon field="short_name" />
-            </th>
-            @if (inactiveValue()) {
-            <th pSortableColumn="is_active">
-              Status
-              <p-sortIcon field="is_active" />
-            </th>
-            }
-            <th pSortableColumn="document_id">
-              Cedula<p-sortIcon field="document_id" />
-            </th>
-            <th pSortableColumn="branch.name">
-              Sucursal <p-sortIcon field="branch" />
-            </th>
-            <th pSortableColumn="department.name">
-              Area <p-sortIcon field="department" />
-            </th>
-            <th pSortableColumn="position.name">
-              Cargo <p-sortIcon field="position" />
-            </th>
-            <th pSortableColumn="monthly_salary">
-              Salario <p-sortIcon field="salary" />
-            </th>
-            <th pSortableColumn="uniform_size">
-              Talla <p-sortIcon field="size" />
-            </th>
-            <th pSortableColumn="start_date">
-              Fecha de inicio <p-sortIcon field="start_date" />
-            </th>
-            <th pSortableColumn="probatory">
-              Probatorio <p-sortIcon field="probatory" />
-            </th>
-            <th pSortableColumn="birth_date">
-              Fecha de nacimiento <p-sortIcon field="birth_date" />
-            </th>
-            <th pSortableColumn="gender">Sexo <p-sortIcon field="gender" /></th>
-            <th pSortableColumn="created_at">
-              Creado <p-sortIcon field="created_at" />
-            </th>
-            <th></th>
-          </tr>
-          <tr>
-            <th pFrozenColumn>
-              <p-columnFilter
-                type="text"
-                field="short_name"
-                placeholder="Buscar por nombre"
-                ariaLabel="Filter Name"
-              />
-            </th>
-            @if (inactiveValue()) {
-            <th></th>
-            }
-            <th>
-              <p-columnFilter
-                type="text"
-                field="document_id"
-                placeholder="Buscar por Nro. Doc"
-                ariaLabel="Filter Document"
-              />
-            </th>
-            <th>
-              <p-columnFilter
-                field="branch"
-                matchMode="custom-filter"
-                [showMenu]="false"
-              >
-                <ng-template
-                  pTemplate="filter"
-                  let-value
-                  let-filter="filterCallback"
-                >
-                  <p-multiSelect
-                    [ngModel]="value"
-                    [options]="store.branches.entities()"
-                    placeholder="TODOS"
-                    (onChange)="filter($event.value)"
-                    optionLabel="name"
-                    appendTo="body"
-                  />
-                </ng-template>
-              </p-columnFilter>
-            </th>
-            <th>
-              <p-columnFilter
-                field="department"
-                matchMode="custom-filter"
-                [showMenu]="false"
-              >
-                <ng-template
-                  pTemplate="filter"
-                  let-value
-                  let-filter="filterCallback"
-                >
-                  <p-multiSelect
-                    [ngModel]="value"
-                    [options]="store.departments.entities()"
-                    placeholder="TODOS"
-                    (onChange)="filter($event.value)"
-                    optionLabel="name"
-                    appendTo="body"
-                  />
-                </ng-template>
-              </p-columnFilter>
-            </th>
-            <th>
-              <p-columnFilter
-                field="position"
-                matchMode="custom-filter"
-                [showMenu]="false"
-              >
-                <ng-template
-                  pTemplate="filter"
-                  let-value
-                  let-filter="filterCallback"
-                >
-                  <p-multiSelect
-                    [ngModel]="value"
-                    [options]="store.positions.entities()"
-                    placeholder="TODOS"
-                    (onChange)="filter($event.value)"
-                    optionLabel="name"
-                    appendTo="body"
-                  />
-                </ng-template>
-              </p-columnFilter>
-            </th>
-            <th></th>
-            <th></th>
-            <th></th>
-            <th>
-              <p-columnFilter
-                field="probatory"
-                matchMode="equals"
-                [showMatchModes]="false"
-                [showOperator]="false"
-                [showAddButton]="false"
-                [showApplyButton]="false"
-                [showClearButton]="false"
-              >
-                <ng-template
-                  pTemplate="filter"
-                  let-value
-                  let-filter="filterCallback"
-                >
-                  <p-select
-                    [options]="probatories"
-                    [ngModel]="value"
-                    (onChange)="filter($event.value)"
-                    placeholder="Elija uno"
-                    [showClear]="true"
-                  >
-                    <ng-template let-option #item>
-                      <p-tag
-                        [value]="option.value ? 'PROBATORIO' : 'NORMAL'"
-                        [severity]="option.value ? 'danger' : 'secondary'"
-                      />
-                    </ng-template>
-                  </p-select>
-                </ng-template>
-              </p-columnFilter>
-            </th>
-            <th></th>
-            <th>
-              <p-columnFilter
-                field="gender"
-                matchMode="equals"
-                [showMatchModes]="false"
-                [showOperator]="false"
-                [showAddButton]="false"
-                [showApplyButton]="false"
-                [showClearButton]="false"
-              >
-                <ng-template
-                  pTemplate="filter"
-                  let-value
-                  let-filter="filterCallback"
-                >
-                  <p-select
-                    [options]="genders"
-                    [ngModel]="value"
-                    (onChange)="filter($event.value)"
-                    placeholder="Elija uno"
-                    [showClear]="true"
-                  >
-                    <ng-template let-option #item>
-                      <div class="flex items-center gap-2">
-                        <i
-                          [ngClass]="
-                            option.value === 'M' ? 'pi pi-mars' : 'pi pi-venus'
-                          "
-                        ></i>
-                        {{ option.label }}
-                      </div>
-                    </ng-template>
-                  </p-select>
-                </ng-template>
-              </p-columnFilter>
-            </th>
-            <th></th>
-            <th></th>
-          </tr>
-        </ng-template>
-        <ng-template #body let-item let-columns="columns">
-          <tr>
-            <td pFrozenColumn>
-              <a
-                [routerLink]="item.id"
-                class="text-primary-700 font-semibold hover:underline"
-                >{{ item.short_name }}</a
-              >
-            </td>
-            @if (inactiveValue()) {
-            <td>
-              <p-tag
-                [severity]="item.is_active ? 'success' : 'danger'"
-                [value]="item.is_active ? 'ACTIVO' : 'INACTIVO'"
-              />
-            </td>
-
-            }
-            <td>{{ item.document_id }}</td>
-            <td [class.text-red-600]="!item.branch">
-              {{ item.branch?.name || 'SIN SUCURSAL' }}
-            </td>
-            <td>{{ item.department?.name || 'SIN AREA' }}</td>
-            <td>{{ item.position?.name || 'SIN CARGO' }}</td>
-            <td>{{ item.monthly_salary | currency : '$' }}</td>
-            <td>{{ item.uniform_size }}</td>
-            <td>{{ item.start_date | date : 'mediumDate' }}</td>
-            <td>
-              @if (item.probatory) {
-              <p-tag severity="danger" value="PROBATORIO" />
+          <ng-template #caption>
+            <div class="flex gap-2 items-center">
+              <p-toggleswitch [formControl]="inactiveToggle" inputId="active" />
+              <label for="active">Incluir inactivos</label>
+            </div>
+          </ng-template>
+          <ng-template #header>
+            <tr>
+              <th pSortableColumn="id">Número<p-sortIcon field="id" /></th>
+              <th pSortableColumn="short_name">
+                Nombre<p-sortIcon field="short_name" />
+              </th>
+              @if (inactiveValue()) {
+              <th pSortableColumn="is_active">
+                Status<p-sortIcon field="is_active" />
+              </th>
               }
-            </td>
-            <td>
-              {{ item.birth_date | date : 'mediumDate' }} ({{
-                item.birth_date | age
-              }})
-            </td>
-            <td>
-              <span class="flex items-center gap-2">
-                <i
-                  [ngClass]="
-                    item.gender === 'M'
-                      ? 'pi pi-mars text-sky-600 dark:text-sky-400'
-                      : 'pi pi-venus text-pink-600 dark:text-pink-400'
-                  "
-                ></i>
-                {{ item.gender === 'M' ? 'Masculino' : 'Femenino' }}
-              </span>
-            </td>
-            <td>{{ item.created_at | date : 'medium' }}</td>
-            <td>
-              <div class="flex gap-1 sm:gap-2 flex-wrap">
-                <p-button
-                  icon="pi pi-info-circle"
+              <th pSortableColumn="document_id">
+                Cedula<p-sortIcon field="document_id" />
+              </th>
+              <th pSortableColumn="branch.name">
+                Sucursal<p-sortIcon field="branch.name" />
+              </th>
+              <th pSortableColumn="department.name">
+                Area<p-sortIcon field="department.name" />
+              </th>
+              <th
+                style="width: 10%; max-width: 120px;"
+                pSortableColumn="position.name"
+              >
+                Cargo<p-sortIcon field="position.name" />
+              </th>
+              <th pSortableColumn="monthly_salary">
+                Salario<p-sortIcon field="monthly_salary" />
+              </th>
+              <th pSortableColumn="uniform_size">
+                Talla<p-sortIcon field="uniform_size" />
+              </th>
+              <th pSortableColumn="start_date">
+                Fecha de inicio<p-sortIcon field="start_date" />
+              </th>
+              <th pSortableColumn="birth_date">
+                Fecha de nacimiento<p-sortIcon field="birth_date" />
+              </th>
+              <th pSortableColumn="gender">
+                Sexo<p-sortIcon field="gender" />
+              </th>
+              <th pSortableColumn="created_at">
+                Creado<p-sortIcon field="created_at" />
+              </th>
+              <th></th>
+            </tr>
+            <tr>
+              <th>
+                <p-columnFilter
+                  type="text"
+                  field="id"
+                  placeholder="Buscar por número"
+                  ariaLabel="Filter Number"
+                  matchMode="contains"
+                  [showMenu]="false"
+                  [showApplyButton]="false"
+                  [showClearButton]="true"
+                />
+              </th>
+              <th>
+                <p-columnFilter
+                  type="text"
+                  field="short_name"
+                  placeholder="Buscar por nombre"
+                  ariaLabel="Filter Name"
+                  matchMode="contains"
+                  [showMenu]="false"
+                  [showApplyButton]="false"
+                  [showClearButton]="true"
+                />
+              </th>
+              @if (inactiveValue()) {
+              <th></th>
+              }
+              <th>
+                <p-columnFilter
+                  type="text"
+                  field="document_id"
+                  placeholder="Buscar por Nro. Doc"
+                  ariaLabel="Filter Document"
+                  matchMode="contains"
+                  [showMenu]="false"
+                  [showApplyButton]="false"
+                  [showClearButton]="true"
+                />
+              </th>
+              <th>
+                <p-columnFilter
+                  field="branch"
+                  matchMode="custom-filter"
+                  [showMenu]="false"
+                >
+                  <ng-template
+                    pTemplate="filter"
+                    let-value
+                    let-filter="filterCallback"
+                  >
+                    <p-multiSelect
+                      [ngModel]="value"
+                      [options]="store.branches.entities()"
+                      placeholder="TODOS"
+                      (onChange)="filter($event.value)"
+                      optionLabel="name"
+                      appendTo="body"
+                    />
+                  </ng-template>
+                </p-columnFilter>
+              </th>
+              <th>
+                <p-columnFilter
+                  field="department"
+                  matchMode="custom-filter"
+                  [showMenu]="false"
+                >
+                  <ng-template
+                    pTemplate="filter"
+                    let-value
+                    let-filter="filterCallback"
+                  >
+                    <p-multiSelect
+                      [ngModel]="value"
+                      [options]="store.departments.entities()"
+                      placeholder="TODOS"
+                      (onChange)="filter($event.value)"
+                      optionLabel="name"
+                      appendTo="body"
+                    />
+                  </ng-template>
+                </p-columnFilter>
+              </th>
+              <th>
+                <p-columnFilter
+                  field="position"
+                  matchMode="custom-filter"
+                  [showMenu]="false"
+                >
+                  <ng-template
+                    pTemplate="filter"
+                    let-value
+                    let-filter="filterCallback"
+                  >
+                    <p-multiSelect
+                      [ngModel]="value"
+                      [options]="store.positions.entities()"
+                      placeholder="TODOS"
+                      (onChange)="filter($event.value)"
+                      optionLabel="name"
+                      appendTo="body"
+                    />
+                  </ng-template>
+                </p-columnFilter>
+              </th>
+              <th></th>
+              <th></th>
+              <th></th>
+              <th></th>
+              <th>
+                <p-columnFilter
+                  field="gender"
+                  matchMode="equals"
+                  [showMatchModes]="false"
+                  [showOperator]="false"
+                  [showAddButton]="false"
+                  [showApplyButton]="false"
+                  [showClearButton]="false"
+                >
+                  <ng-template
+                    pTemplate="filter"
+                    let-value
+                    let-filter="filterCallback"
+                  >
+                    <p-select
+                      [options]="genders"
+                      [ngModel]="value"
+                      (onChange)="filter($event.value)"
+                      placeholder="Elija uno"
+                      [showClear]="true"
+                    >
+                      <ng-template let-option #item>
+                        <div class="flex items-center gap-2">
+                          <i
+                            [ngClass]="
+                              option.value === 'M'
+                                ? 'pi pi-mars'
+                                : 'pi pi-venus'
+                            "
+                          ></i>
+                          {{ option.label }}
+                        </div>
+                      </ng-template>
+                    </p-select>
+                  </ng-template>
+                </p-columnFilter>
+              </th>
+              <th></th>
+              <th></th>
+            </tr>
+          </ng-template>
+          <ng-template #body let-item let-columns="columns">
+            <tr>
+              <td>{{ item.id }}</td>
+              <td>
+                <a
                   [routerLink]="item.id"
-                  rounded
-                  text
-                  pTooltip="Ver detalles"
-                  class="min-w-[44px] min-h-[44px]"
+                  class="text-primary-700 font-semibold hover:underline"
+                  >{{ item.short_name }}</a
+                >
+              </td>
+              @if (inactiveValue()) {
+              <td>
+                <p-tag
+                  [severity]="item.is_active ? 'success' : 'danger'"
+                  [value]="item.is_active ? 'ACTIVO' : 'INACTIVO'"
                 />
-                <p-button
-                  icon="pi pi-pen-to-square"
-                  [routerLink]="[item.id, 'edit']"
-                  rounded
-                  text
-                  severity="success"
-                  pTooltip="Editar"
-                  class="min-w-[44px] min-h-[44px]"
-                />
-                @if (!item.has_portal_access) {
+              </td>
+
+              }
+              <td>{{ item.document_id }}</td>
+              <td [class.text-red-600]="!item.branch">
+                {{ item.branch?.name || 'SIN SUCURSAL' }}
+              </td>
+              <td>{{ item.department?.name || 'SIN AREA' }}</td>
+              <td class="position-cell">
+                {{ item.position?.name || 'SIN CARGO' }}
+              </td>
+              <td>{{ item.monthly_salary | currency : '$' }}</td>
+              <td>{{ item.uniform_size }}</td>
+              <td>{{ item.start_date | date : 'mediumDate' }}</td>
+              <td>
+                {{ item.birth_date | date : 'mediumDate' }} ({{
+                  item.birth_date | age
+                }})
+              </td>
+              <td>
+                <span class="flex items-center gap-2">
+                  <i
+                    [ngClass]="
+                      item.gender === 'M'
+                        ? 'pi pi-mars text-sky-600 dark:text-sky-400'
+                        : 'pi pi-venus text-pink-600 dark:text-pink-400'
+                    "
+                  ></i>
+                  {{ item.gender === 'M' ? 'Masculino' : 'Femenino' }}
+                </span>
+              </td>
+              <td>{{ item.created_at | date : 'medium' }}</td>
+              <td>
+                <div class="flex gap-1 sm:gap-2 flex-nowrap">
+                  <p-button
+                    icon="pi pi-info-circle"
+                    [routerLink]="item.id"
+                    rounded
+                    text
+                    pTooltip="Ver detalles"
+                    class="min-w-[44px] min-h-[44px]"
+                  />
+                  <p-button
+                    icon="pi pi-pen-to-square"
+                    [routerLink]="[item.id, 'edit']"
+                    rounded
+                    text
+                    severity="success"
+                    pTooltip="Editar"
+                    class="min-w-[44px] min-h-[44px]"
+                  />
+                  @if (!item.has_portal_access) {
                   <p-button
                     icon="pi pi-user-plus"
                     (click)="inviteToPortal(item)"
@@ -404,34 +404,158 @@ import { OrganizationService } from '../services/organization.service';
                     [loading]="invitingEmployeeId() === item.id"
                     class="min-w-[44px] min-h-[44px]"
                   />
-                } @else {
+                  } @else {
                   <p-tag
                     value="Portal Activo"
                     severity="success"
                     icon="pi pi-check-circle"
                     class="text-xs"
                   />
-                }
-              </div>
-            </td>
-          </tr>
-        </ng-template>
-        <ng-template #loadingbody>
-          <tr style="height: 5rem">
-            @for (col of dt.columns; track $index) {
-            <td [attr.colspan]="col">
-              <p-skeleton shape="circle" size="5rem" class="mx-auto" />
-            </td>
-            }
-          </tr>
-        </ng-template>
+                  }
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template #loadingbody>
+            <tr style="height: 5rem">
+              @for (col of dt.columns; track $index) {
+              <td [attr.colspan]="col">
+                <p-skeleton shape="circle" size="5rem" class="mx-auto" />
+              </td>
+              }
+            </tr>
+          </ng-template>
         </p-table>
       </div>
     </p-card>
   `,
   styles: `
-    
-    `,
+    /* Estilos para mantener dimensiones uniformes y consistentes */
+    :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td {
+      padding: 0.5rem 0.75rem !important;
+      vertical-align: middle !important;
+      line-height: 1.4 !important;
+      height: 3rem !important;
+      min-height: 3rem !important;
+      max-height: 3rem !important;
+      box-sizing: border-box !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      white-space: nowrap !important;
+    }
+
+    /* Excepción: columna Cargo puede tener múltiples líneas */
+    :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td.position-cell {
+      white-space: normal !important;
+      word-wrap: break-word !important;
+      word-break: break-word !important;
+      overflow-wrap: break-word !important;
+      line-height: 1.4 !important;
+      max-height: none !important;
+      height: auto !important;
+      min-height: 3rem !important;
+      vertical-align: middle !important;
+      overflow: visible !important;
+      text-overflow: clip !important;
+      padding: 0.5rem 0.75rem !important;
+    }
+
+    :host ::ng-deep .p-datatable .p-datatable-tbody > tr {
+      height: auto !important;
+      min-height: 3rem !important;
+      box-sizing: border-box !important;
+    }
+
+    /* Centrar elementos dentro de las celdas */
+    :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td > .flex {
+      align-items: center !important;
+      white-space: normal !important;
+    }
+
+    /* Última columna - iconos horizontalmente, sin flex-wrap */
+    :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td:last-child {
+      white-space: nowrap !important;
+      overflow: visible !important;
+    }
+
+    :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td:last-child > .flex {
+      flex-wrap: nowrap !important;
+      white-space: nowrap !important;
+    }
+
+    /* Header uniforme */
+    :host ::ng-deep .p-datatable .p-datatable-thead > tr > th {
+      padding: 0.75rem !important;
+      vertical-align: middle !important;
+      box-sizing: border-box !important;
+      height: auto !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      white-space: nowrap !important;
+    }
+
+    /* Columna Cargo - ancho limitado y permite múltiples líneas */
+    :host ::ng-deep .p-datatable .p-datatable-thead > tr > th[psortablecolumn="position.name"] {
+      width: 10% !important;
+      max-width: 120px !important;
+      min-width: 80px !important;
+      white-space: normal !important;
+      word-wrap: break-word !important;
+    }
+
+    /* Estilos de columnas ordenables */
+    :host ::ng-deep .p-datatable .p-datatable-thead > tr > th.p-datatable-sortable-column {
+      cursor: pointer !important;
+      user-select: none !important;
+      transition: background-color 0.2s ease !important;
+      position: relative !important;
+    }
+
+    /* Espaciado entre texto e icono */
+    :host ::ng-deep .p-datatable .p-datatable-thead > tr > th.p-datatable-sortable-column .p-sortable-column-icon {
+      margin-left: 0.25rem !important;
+    }
+
+    :host ::ng-deep .p-datatable .p-datatable-thead > tr > th.p-datatable-sortable-column:hover {
+      background-color: rgba(255, 255, 255, 0.05) !important;
+    }
+
+    /* Estilo cuando la columna está activa (ordenada) - Igual que "Nombre" */
+    :host ::ng-deep .p-datatable .p-datatable-thead > tr > th.p-datatable-sortable-column.p-highlight,
+    :host ::ng-deep .p-datatable .p-datatable-thead > tr > th.p-datatable-sortable-column.p-datatable-column-sorted {
+      background-color: rgba(107, 114, 128, 0.3) !important;
+      color: #e5e7eb !important;
+    }
+
+    /* Animación de iconos de ordenamiento */
+    :host ::ng-deep .p-datatable .p-datatable-thead > tr > th.p-datatable-sortable-column .p-sortable-column-icon {
+      transition: transform 0.2s ease, opacity 0.2s ease !important;
+      opacity: 0.5 !important;
+      display: inline-block !important;
+    }
+
+    :host ::ng-deep .p-datatable .p-datatable-thead > tr > th.p-datatable-sortable-column.p-highlight .p-sortable-column-icon {
+      opacity: 1 !important;
+    }
+
+    :host ::ng-deep .p-datatable .p-datatable-thead > tr > th.p-datatable-sortable-column.p-highlight[aria-sort="ascending"] .p-sortable-column-icon {
+      transform: rotate(0deg) !important;
+    }
+
+    :host ::ng-deep .p-datatable .p-datatable-thead > tr > th.p-datatable-sortable-column.p-highlight[aria-sort="descending"] .p-sortable-column-icon {
+      transform: rotate(180deg) !important;
+    }
+
+    /* Enlaces con ellipsis */
+    :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td a {
+      display: inline-block;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EmployeeListComponent implements OnInit {
@@ -529,7 +653,8 @@ export class EmployeeListComponent implements OnInit {
       this.messageService.add({
         severity: 'warn',
         summary: 'Datos incompletos',
-        detail: 'El empleado debe tener email laboral y teléfono para ser invitado al portal',
+        detail:
+          'El empleado debe tener email laboral y teléfono para ser invitado al portal',
       });
       return;
     }
@@ -546,12 +671,12 @@ export class EmployeeListComponent implements OnInit {
           // Actualizar el empleado para darle acceso al portal
           const companyId = this.organizationService.getCurrentCompanyId();
           const params: any = { id: `eq.${employee.id}` };
-          
+
           // Agregar filtro por company_id para seguridad
           if (companyId) {
             params.company_id = `eq.${companyId}`;
           }
-          
+
           const updateResponse = await this.http
             .patch(
               `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
@@ -560,7 +685,7 @@ export class EmployeeListComponent implements OnInit {
                 params,
                 headers: {
                   'Content-Type': 'application/json',
-                  'Prefer': 'return=representation',
+                  Prefer: 'return=representation',
                 },
               }
             )
