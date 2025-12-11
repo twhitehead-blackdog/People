@@ -88,7 +88,7 @@ import { OrganizationService } from './services/organization.service';
     <p-toast />
     <div
       class="flex flex-col items-center justify-center animated-gradient-container"
-      [ngClass]="{ 'naz-theme': isNazCompany() }"
+      [ngClass]="{ 'naz-theme': isNazCompany(), 'blackdog-theme': isBlackDogCompany() }"
       style="width: 100%; position: relative; min-height: 100vh; overflow-y: auto; overflow-x: hidden;"
     >
       @if (!isKioskMode() || isIPValid() || isNazCompany()) {
@@ -110,10 +110,12 @@ import { OrganizationService } from './services/organization.service';
               </div>
               <!-- Clock Display inside card -->
               <div
-                class="flex flex-col items-center gap-0.5 bg-black/40 backdrop-blur-sm rounded-lg px-3 md:px-5 py-1.5 md:py-2 border border-gray-500/40 shadow-lg clock-display"
+                class="flex flex-col items-center gap-0.5 bg-black/40 backdrop-blur-sm rounded-lg px-3 md:px-5 py-1.5 md:py-2 border shadow-lg clock-display"
+                [ngClass]="isBlackDogCompany() ? 'border-yellow-500/40' : 'border-gray-500/40'"
               >
                 <div
-                  class="text-xl md:text-2xl lg:text-3xl font-mono font-bold text-gray-300 clock-time"
+                  class="text-xl md:text-2xl lg:text-3xl font-mono font-bold clock-time"
+                  [ngClass]="isBlackDogCompany() ? 'text-yellow-400' : 'text-gray-300'"
                 >
                   {{ formattedTime() }}
                 </div>
@@ -127,8 +129,8 @@ import { OrganizationService } from './services/organization.service';
             <div
               class="flex items-center justify-center gap-2 text-[#d2d2d2] text-xs md:text-sm font-semibold text-center"
             >
-              <i class="pi pi-building text-gray-400"></i>
-              <i class="pi pi-user text-gray-400"></i>
+              <i [ngClass]="isBlackDogCompany() ? 'pi pi-building text-yellow-400' : 'pi pi-building text-gray-400'"></i>
+              <i [ngClass]="isBlackDogCompany() ? 'pi pi-user text-yellow-400' : 'pi pi-user text-gray-400'"></i>
               <span>Seleccione la sucursal y empleado</span>
             </div>
           </ng-template>
@@ -247,11 +249,15 @@ import { OrganizationService } from './services/organization.service';
                   background:
                     form.invalid || !form.get('employee')?.value
                       ? 'linear-gradient(135deg, #5d5d5d 0%, #4a4a4a 100%)'
+                      : isBlackDogCompany()
+                      ? 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)'
                       : 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)',
                   border: 'none',
                   'box-shadow':
                     form.invalid || !form.get('employee')?.value
                       ? 'none'
+                      : isBlackDogCompany()
+                      ? '0 4px 15px rgba(251, 191, 36, 0.4)'
                       : '0 4px 15px rgba(107, 114, 128, 0.4)'
                 }"
               />
@@ -759,6 +765,102 @@ import { OrganizationService } from './services/organization.service';
       }
     }
 
+    /* ============================================
+       TEMA BLACK DOG - ESTILOS AMARILLOS
+       ============================================ */
+    
+    /* Aplicar colores amarillos cuando es Black Dog */
+    .blackdog-theme .timeclock-card {
+      border: 2px solid rgba(251, 191, 36, 0.5) !important;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(251, 191, 36, 0.2) !important;
+    }
+    
+    .blackdog-theme .timeclock-card ::ng-deep .p-card-body {
+      background: rgba(17, 24, 39, 0.95) !important;
+      border-radius: 12px !important;
+    }
+    
+    .blackdog-theme .clock-display {
+      border: 1px solid rgba(251, 191, 36, 0.5) !important;
+    }
+    
+    .blackdog-theme .clock-time {
+      color: #fbbf24 !important;
+      text-shadow: 0 0 10px rgba(251, 191, 36, 0.8);
+      animation: clockPulseYellow 2s ease-in-out infinite;
+    }
+    
+    @keyframes clockPulseYellow {
+      0%, 100% {
+        text-shadow: 0 0 10px rgba(251, 191, 36, 0.8);
+      }
+      50% {
+        text-shadow: 0 0 20px rgba(251, 191, 36, 1), 0 0 30px rgba(251, 191, 36, 0.6);
+      }
+    }
+    
+    .blackdog-theme .timeclock-card ::ng-deep .p-select .p-select-trigger {
+      border: 2px solid rgba(251, 191, 36, 0.5) !important;
+    }
+    
+    .blackdog-theme .timeclock-card ::ng-deep .p-select:focus-within .p-select-trigger {
+      border-color: rgba(251, 191, 36, 0.8) !important;
+      box-shadow: 0 0 10px rgba(251, 191, 36, 0.3) !important;
+    }
+    
+    .blackdog-theme .timeclock-card ::ng-deep .p-inputotp-input {
+      border: 2px solid rgba(251, 191, 36, 0.5) !important;
+      color: #fbbf24 !important;
+    }
+    
+    .blackdog-theme .timeclock-card ::ng-deep .p-inputotp-input:focus {
+      border-color: rgba(251, 191, 36, 0.9) !important;
+      box-shadow: 0 0 15px rgba(251, 191, 36, 0.4) !important;
+    }
+    
+    .blackdog-theme .timeclock-card ::ng-deep .p-inputotp-input:not(:placeholder-shown) {
+      border-color: rgba(251, 191, 36, 0.7) !important;
+    }
+    
+    .blackdog-theme .timeclock-card ::ng-deep .p-button:not(:disabled):hover {
+      box-shadow: 0 6px 25px rgba(251, 191, 36, 0.6) !important;
+    }
+    
+    .blackdog-theme .timeclock-card ::ng-deep .mark-button button {
+      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
+      box-shadow: 0 4px 15px rgba(251, 191, 36, 0.4) !important;
+    }
+    
+    .blackdog-theme .timeclock-card ::ng-deep .mark-button button:disabled {
+      background: linear-gradient(135deg, #5d5d5d 0%, #4a4a4a 100%) !important;
+      box-shadow: none !important;
+    }
+    
+    /* Scrollbar amarillo para Black Dog */
+    .blackdog-theme .animated-gradient-container::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, rgba(251, 191, 36, 0.6) 0%, rgba(251, 191, 36, 0.4) 100%);
+      box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+    }
+    
+    .blackdog-theme .animated-gradient-container::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(180deg, rgba(251, 191, 36, 0.8) 0%, rgba(251, 191, 36, 0.6) 100%);
+      box-shadow: 0 0 15px rgba(251, 191, 36, 0.5);
+    }
+    
+    .blackdog-theme .animated-gradient-container::-webkit-scrollbar-thumb:active {
+      background: linear-gradient(180deg, rgba(251, 191, 36, 1) 0%, rgba(251, 191, 36, 0.8) 100%);
+    }
+    
+    .blackdog-theme .animated-gradient-container {
+      scrollbar-color: rgba(251, 191, 36, 0.6) rgba(0, 0, 0, 0.3);
+    }
+    
+    /* Iconos amarillos para Black Dog */
+    .blackdog-theme .pi-building,
+    .blackdog-theme .pi-user {
+      color: #fbbf24 !important;
+    }
+
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -780,6 +882,7 @@ export class TimeclockComponent implements OnDestroy {
   public isIPValid = signal<boolean>(true);
   // Usar el servicio de organización como fuente principal
   public isNazCompany = computed(() => this.organizationService.isNaz());
+  public isBlackDogCompany = computed(() => this.organizationService.isBlackDog());
   private employeesTable = computed(() =>
     this.isNazCompany() ? 'naz_employees' : 'employees'
   );

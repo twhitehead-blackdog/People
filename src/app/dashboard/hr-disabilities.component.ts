@@ -1,24 +1,26 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { httpResource } from '@angular/common/http';
-import { MessageService } from 'primeng/api';
-import { ConfirmationService } from 'primeng/api';
 import { DatePipe } from '@angular/common';
-import { format, differenceInDays } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { TableModule } from 'primeng/table';
+import { HttpClient, httpResource } from '@angular/common/http';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
-import { TagModule } from 'primeng/tag';
-import { TooltipModule } from 'primeng/tooltip';
-import { InputTextModule } from 'primeng/inputtext';
-import { DropdownModule } from 'primeng/dropdown';
 import { CalendarModule } from 'primeng/calendar';
-import { ToastModule } from 'primeng/toast';
+import { CardModule } from 'primeng/card';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DialogModule } from 'primeng/dialog';
-import { CardModule } from 'primeng/card';
+import { DropdownModule } from 'primeng/dropdown';
+import { InputTextModule } from 'primeng/inputtext';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
-import { FormsModule } from '@angular/forms';
+import { TableModule } from 'primeng/table';
+import { TagModule } from 'primeng/tag';
+import { ToastModule } from 'primeng/toast';
+import { TooltipModule } from 'primeng/tooltip';
 import { OrganizationService } from '../services/organization.service';
 
 interface Disability {
@@ -69,9 +71,12 @@ interface Disability {
       <!-- Header -->
       <div class="flex items-center justify-between">
         <div>
-          <h2 class="text-2xl font-bold text-white m-0">Gestión de Incapacidades</h2>
+          <h2 class="text-2xl font-bold text-white m-0">
+            Gestión de Incapacidades
+          </h2>
           <p class="text-sm text-gray-400 m-0 mt-1">
-            Revisa, aprueba o rechaza las incapacidades enviadas por los empleados
+            Revisa, aprueba o rechaza las incapacidades enviadas por los
+            empleados
           </p>
         </div>
         <div class="flex items-center gap-3">
@@ -92,7 +97,9 @@ interface Disability {
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm text-gray-400 m-0">Total</p>
-              <p class="text-2xl font-bold text-white m-0 mt-1">{{ totalCount() }}</p>
+              <p class="text-2xl font-bold text-white m-0 mt-1">
+                {{ totalCount() }}
+              </p>
             </div>
             <i class="pi pi-file text-3xl text-gray-500"></i>
           </div>
@@ -101,7 +108,9 @@ interface Disability {
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm text-gray-400 m-0">Pendientes</p>
-              <p class="text-2xl font-bold text-yellow-400 m-0 mt-1">{{ pendingCount() }}</p>
+              <p class="text-2xl font-bold text-yellow-400 m-0 mt-1">
+                {{ pendingCount() }}
+              </p>
             </div>
             <i class="pi pi-clock text-3xl text-yellow-500"></i>
           </div>
@@ -110,7 +119,9 @@ interface Disability {
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm text-gray-400 m-0">Aprobadas</p>
-              <p class="text-2xl font-bold text-green-400 m-0 mt-1">{{ approvedCount() }}</p>
+              <p class="text-2xl font-bold text-green-400 m-0 mt-1">
+                {{ approvedCount() }}
+              </p>
             </div>
             <i class="pi pi-check-circle text-3xl text-green-500"></i>
           </div>
@@ -119,7 +130,9 @@ interface Disability {
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm text-gray-400 m-0">Rechazadas</p>
-              <p class="text-2xl font-bold text-red-400 m-0 mt-1">{{ rejectedCount() }}</p>
+              <p class="text-2xl font-bold text-red-400 m-0 mt-1">
+                {{ rejectedCount() }}
+              </p>
             </div>
             <i class="pi pi-times-circle text-3xl text-red-500"></i>
           </div>
@@ -130,7 +143,9 @@ interface Disability {
       <p-card class="bg-neutral-800 border-neutral-700">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-300 mb-2">Buscar</label>
+            <label class="block text-sm font-medium text-gray-300 mb-2"
+              >Buscar</label
+            >
             <input
               type="text"
               pInputText
@@ -141,7 +156,9 @@ interface Disability {
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-300 mb-2">Estado</label>
+            <label class="block text-sm font-medium text-gray-300 mb-2"
+              >Estado</label
+            >
             <p-dropdown
               [options]="statusOptions"
               [(ngModel)]="selectedStatus"
@@ -152,7 +169,9 @@ interface Disability {
             />
           </div>
           <div>
-            <label class="block text-sm font-medium text-gray-300 mb-2">Fecha Inicio</label>
+            <label class="block text-sm font-medium text-gray-300 mb-2"
+              >Fecha Inicio</label
+            >
             <p-calendar
               [(ngModel)]="dateRange"
               selectionMode="range"
@@ -180,139 +199,150 @@ interface Disability {
       <!-- Tabla -->
       <p-card class="bg-neutral-800 border-neutral-700">
         @if (disabilitiesApi.isLoading()) {
-          <div class="flex justify-center items-center py-12">
-            <p-progressSpinner />
-          </div>
+        <div class="flex justify-center items-center py-12">
+          <p-progressSpinner />
+        </div>
         } @else {
-          <p-table
-            [value]="filteredDisabilities()"
-            [paginator]="true"
-            [rows]="10"
-            [rowsPerPageOptions]="[10, 25, 50]"
-            [globalFilterFields]="['employee.first_name', 'employee.father_name', 'employee.work_email', 'description']"
-            styleClass="p-datatable-striped"
-            [tableStyle]="{ 'min-width': '50rem' }"
-          >
-            <ng-template #emptymessage>
-              <tr>
-                <td colspan="8" class="text-center py-4">No se encontraron incapacidades</td>
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="header">
-              <tr>
-                <th style="width: 200px">Empleado</th>
-                <th style="width: 120px">Fecha Inicio</th>
-                <th style="width: 120px">Fecha Fin</th>
-                <th style="width: 100px">Días</th>
-                <th>Descripción</th>
-                <th style="width: 120px">Estado</th>
-                <th style="width: 100px">Documento</th>
-                <th style="width: 200px">Acciones</th>
-              </tr>
-            </ng-template>
-            <ng-template pTemplate="body" let-disability>
-              <tr>
-                <td>
-                  <div class="flex flex-col">
-                    <span class="font-medium text-white">
-                      {{ disability.employee?.first_name }} {{ disability.employee?.father_name }}
-                    </span>
-                    <span class="text-xs text-gray-400">
-                      {{ disability.employee?.work_email }}
-                    </span>
-                    @if (disability.employee?.position?.name) {
-                      <span class="text-xs text-gray-500">
-                        {{ disability.employee.position.name }}
-                      </span>
-                    }
-                  </div>
-                </td>
-                <td>
-                  <span class="text-sm text-gray-300">
-                    {{ disability.start_date | date : 'dd/MM/yyyy' }}
+        <p-table
+          [value]="filteredDisabilities()"
+          [paginator]="true"
+          [rows]="10"
+          [rowsPerPageOptions]="[10, 25, 50]"
+          [globalFilterFields]="[
+            'employee.first_name',
+            'employee.father_name',
+            'employee.work_email',
+            'description'
+          ]"
+          styleClass="p-datatable-striped"
+          [tableStyle]="{ 'min-width': '50rem' }"
+        >
+          <ng-template #emptymessage>
+            <tr>
+              <td colspan="8" class="text-center py-4">
+                No se encontraron incapacidades
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="header">
+            <tr>
+              <th style="width: 200px">Empleado</th>
+              <th style="width: 120px">Fecha Inicio</th>
+              <th style="width: 120px">Fecha Fin</th>
+              <th style="width: 100px">Días</th>
+              <th>Descripción</th>
+              <th style="width: 120px">Estado</th>
+              <th style="width: 100px">Documento</th>
+              <th style="width: 200px">Acciones</th>
+            </tr>
+          </ng-template>
+          <ng-template pTemplate="body" let-disability>
+            <tr>
+              <td>
+                <div class="flex flex-col">
+                  <span class="font-medium text-white">
+                    {{ disability.employee?.first_name }}
+                    {{ disability.employee?.father_name }}
                   </span>
-                </td>
-                <td>
-                  <span class="text-sm text-gray-300">
-                    {{ disability.end_date | date : 'dd/MM/yyyy' }}
+                  <span class="text-xs text-gray-400">
+                    {{ disability.employee?.work_email }}
                   </span>
-                </td>
-                <td>
-                  <span class="text-sm font-medium text-white">
-                    {{ calculateDays(disability.start_date, disability.end_date) }} días
+                  @if (disability.employee?.position?.name) {
+                  <span class="text-xs text-gray-500">
+                    {{ disability.employee.position.name }}
                   </span>
-                </td>
-                <td>
-                  @if (disability.description) {
-                    <span
-                      class="text-sm text-gray-300 cursor-help"
-                      [pTooltip]="disability.description"
-                      tooltipPosition="top"
-                      [style.max-width.px]="200"
-                      [style.display]="'inline-block'"
-                      [style.overflow]="'hidden'"
-                      [style.text-overflow]="'ellipsis'"
-                      [style.white-space]="'nowrap'"
-                    >
-                      {{ disability.description }}
-                    </span>
-                  } @else {
-                    <span class="text-gray-500 text-sm">-</span>
                   }
-                </td>
-                <td>
-                  <p-tag
-                    [value]="getStatusLabel(disability.status)"
-                    [severity]="getStatusSeverity(disability.status)"
+                </div>
+              </td>
+              <td>
+                <span class="text-sm text-gray-300">
+                  {{ disability.start_date | date : 'dd/MM/yyyy' }}
+                </span>
+              </td>
+              <td>
+                <span class="text-sm text-gray-300">
+                  {{ disability.end_date | date : 'dd/MM/yyyy' }}
+                </span>
+              </td>
+              <td>
+                <span class="text-sm font-medium text-white">
+                  {{
+                    calculateDays(disability.start_date, disability.end_date)
+                  }}
+                  días
+                </span>
+              </td>
+              <td>
+                @if (disability.description) {
+                <span
+                  class="text-sm text-gray-300 cursor-help"
+                  [pTooltip]="disability.description"
+                  tooltipPosition="top"
+                  [style.max-width.px]="200"
+                  [style.display]="'inline-block'"
+                  [style.overflow]="'hidden'"
+                  [style.text-overflow]="'ellipsis'"
+                  [style.white-space]="'nowrap'"
+                >
+                  {{ disability.description }}
+                </span>
+                } @else {
+                <span class="text-gray-500 text-sm">-</span>
+                }
+              </td>
+              <td>
+                <p-tag
+                  [value]="getStatusLabel(disability.status)"
+                  [severity]="getStatusSeverity(disability.status)"
+                />
+              </td>
+              <td>
+                @if (disability.document_url) {
+                <p-button
+                  icon="pi pi-download"
+                  [text]="true"
+                  severity="secondary"
+                  (onClick)="downloadDocument(disability.document_url!)"
+                  pTooltip="Descargar documento"
+                  tooltipPosition="top"
+                />
+                } @else {
+                <span class="text-gray-500 text-sm">-</span>
+                }
+              </td>
+              <td>
+                <div class="flex gap-2">
+                  @if (disability.status === 'pending') {
+                  <p-button
+                    icon="pi pi-check"
+                    [text]="true"
+                    severity="success"
+                    (onClick)="approveDisability(disability)"
+                    pTooltip="Aprobar"
+                    tooltipPosition="top"
                   />
-                </td>
-                <td>
-                  @if (disability.document_url) {
-                    <p-button
-                      icon="pi pi-download"
-                      [text]="true"
-                      severity="secondary"
-                      (onClick)="downloadDocument(disability.document_url!)"
-                      pTooltip="Descargar documento"
-                      tooltipPosition="top"
-                    />
-                  } @else {
-                    <span class="text-gray-500 text-sm">-</span>
+                  <p-button
+                    icon="pi pi-times"
+                    [text]="true"
+                    severity="danger"
+                    (onClick)="rejectDisability(disability)"
+                    pTooltip="Rechazar"
+                    tooltipPosition="top"
+                  />
                   }
-                </td>
-                <td>
-                  <div class="flex gap-2">
-                    @if (disability.status === 'pending') {
-                      <p-button
-                        icon="pi pi-check"
-                        [text]="true"
-                        severity="success"
-                        (onClick)="approveDisability(disability)"
-                        pTooltip="Aprobar"
-                        tooltipPosition="top"
-                      />
-                      <p-button
-                        icon="pi pi-times"
-                        [text]="true"
-                        severity="danger"
-                        (onClick)="rejectDisability(disability)"
-                        pTooltip="Rechazar"
-                        tooltipPosition="top"
-                      />
-                    }
-                    <p-button
-                      icon="pi pi-eye"
-                      [text]="true"
-                      severity="info"
-                      (onClick)="viewDetails(disability)"
-                      pTooltip="Ver detalles"
-                      tooltipPosition="top"
-                    />
-                  </div>
-                </td>
-              </tr>
-            </ng-template>
-          </p-table>
+                  <p-button
+                    icon="pi pi-eye"
+                    [text]="true"
+                    severity="info"
+                    (onClick)="viewDetails(disability)"
+                    pTooltip="Ver detalles"
+                    tooltipPosition="top"
+                  />
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
         }
       </p-card>
     </div>
@@ -327,79 +357,102 @@ interface Disability {
       [resizable]="false"
     >
       @if (selectedDisability()) {
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-400 mb-1">Empleado</label>
-            <p class="text-white">
-              {{ selectedDisability()!.employee?.first_name }}
-              {{ selectedDisability()!.employee?.father_name }}
-              {{ selectedDisability()!.employee?.mother_name }}
-            </p>
-            <p class="text-sm text-gray-400">
-              {{ selectedDisability()!.employee?.work_email }}
-            </p>
-            @if (selectedDisability()!.employee?.position?.name) {
-              <p class="text-sm text-gray-500">
-                {{ selectedDisability()!.employee?.position?.name }}
-              </p>
-            }
-            @if (selectedDisability()!.employee?.branch?.name) {
-              <p class="text-sm text-gray-500">
-                Sucursal: {{ selectedDisability()!.employee?.branch?.name }}
-              </p>
-            }
-          </div>
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1">Fecha Inicio</label>
-              <p class="text-white">
-                {{ selectedDisability()!.start_date | date : 'dd/MM/yyyy' }}
-              </p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1">Fecha Fin</label>
-              <p class="text-white">
-                {{ selectedDisability()!.end_date | date : 'dd/MM/yyyy' }}
-              </p>
-            </div>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-400 mb-1">Duración</label>
-            <p class="text-white">
-              {{ calculateDays(selectedDisability()!.start_date, selectedDisability()!.end_date) }} días
-            </p>
-          </div>
-          @if (selectedDisability()!.description) {
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1">Descripción</label>
-              <p class="text-white whitespace-pre-wrap">{{ selectedDisability()!.description }}</p>
-            </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-1"
+            >Empleado</label
+          >
+          <p class="text-white">
+            {{ selectedDisability()!.employee?.first_name }}
+            {{ selectedDisability()!.employee?.father_name }}
+            {{ selectedDisability()!.employee?.mother_name }}
+          </p>
+          <p class="text-sm text-gray-400">
+            {{ selectedDisability()!.employee?.work_email }}
+          </p>
+          @if (selectedDisability()!.employee?.position?.name) {
+          <p class="text-sm text-gray-500">
+            {{ selectedDisability()!.employee?.position?.name }}
+          </p>
+          } @if (selectedDisability()!.employee?.branch?.name) {
+          <p class="text-sm text-gray-500">
+            Sucursal: {{ selectedDisability()!.employee?.branch?.name }}
+          </p>
           }
+        </div>
+        <div class="grid grid-cols-2 gap-4">
           <div>
-            <label class="block text-sm font-medium text-gray-400 mb-1">Estado</label>
-            <p-tag
-              [value]="getStatusLabel(selectedDisability()!.status)"
-              [severity]="getStatusSeverity(selectedDisability()!.status)"
-            />
-          </div>
-          @if (selectedDisability()!.document_url) {
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1">Documento</label>
-              <p-button
-                icon="pi pi-download"
-                label="Descargar Documento"
-                (onClick)="downloadDocument(selectedDisability()!.document_url!)"
-                class="w-full"
-              />
-            </div>
-          }
-          <div>
-            <label class="block text-sm font-medium text-gray-400 mb-1">Fecha de Creación</label>
+            <label class="block text-sm font-medium text-gray-400 mb-1"
+              >Fecha Inicio</label
+            >
             <p class="text-white">
-              {{ selectedDisability()!.created_at | date : 'dd/MM/yyyy HH:mm' }}
+              {{ selectedDisability()!.start_date | date : 'dd/MM/yyyy' }}
+            </p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-400 mb-1"
+              >Fecha Fin</label
+            >
+            <p class="text-white">
+              {{ selectedDisability()!.end_date | date : 'dd/MM/yyyy' }}
             </p>
           </div>
         </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-1"
+            >Duración</label
+          >
+          <p class="text-white">
+            {{
+              calculateDays(
+                selectedDisability()!.start_date,
+                selectedDisability()!.end_date
+              )
+            }}
+            días
+          </p>
+        </div>
+        @if (selectedDisability()!.description) {
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-1"
+            >Descripción</label
+          >
+          <p class="text-white whitespace-pre-wrap">
+            {{ selectedDisability()!.description }}
+          </p>
+        </div>
+        }
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-1"
+            >Estado</label
+          >
+          <p-tag
+            [value]="getStatusLabel(selectedDisability()!.status)"
+            [severity]="getStatusSeverity(selectedDisability()!.status)"
+          />
+        </div>
+        @if (selectedDisability()!.document_url) {
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-1"
+            >Documento</label
+          >
+          <p-button
+            icon="pi pi-download"
+            label="Descargar Documento"
+            (onClick)="downloadDocument(selectedDisability()!.document_url!)"
+            class="w-full"
+          />
+        </div>
+        }
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-1"
+            >Fecha de Creación</label
+          >
+          <p class="text-white">
+            {{ selectedDisability()!.created_at | date : 'dd/MM/yyyy HH:mm' }}
+          </p>
+        </div>
+      </div>
       }
     </p-dialog>
   `,
@@ -464,11 +517,11 @@ export class HRDisabilitiesComponent {
       select: `*,employee:employees(id,first_name,father_name,mother_name,work_email,position:positions(name),branch:branches(name))`,
       order: 'created_at.desc',
     };
-    
+
     // Nota: employee_disabilities no tiene company_id directamente, pero podemos filtrar por employee.company_id
     // Por ahora, dejamos que el filtro se haga a través de la relación employee
     // Si necesitamos filtrar, podríamos agregar un filtro adicional
-    
+
     return {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_disabilities`,
       method: 'GET',
@@ -494,14 +547,20 @@ export class HRDisabilitiesComponent {
 
   // Estadísticas
   public totalCount = computed(() => this.disabilitiesApi.value()?.length || 0);
-  public pendingCount = computed(() =>
-    this.disabilitiesApi.value()?.filter((d) => d.status === 'pending').length || 0
+  public pendingCount = computed(
+    () =>
+      this.disabilitiesApi.value()?.filter((d) => d.status === 'pending')
+        .length || 0
   );
-  public approvedCount = computed(() =>
-    this.disabilitiesApi.value()?.filter((d) => d.status === 'approved').length || 0
+  public approvedCount = computed(
+    () =>
+      this.disabilitiesApi.value()?.filter((d) => d.status === 'approved')
+        .length || 0
   );
-  public rejectedCount = computed(() =>
-    this.disabilitiesApi.value()?.filter((d) => d.status === 'rejected').length || 0
+  public rejectedCount = computed(
+    () =>
+      this.disabilitiesApi.value()?.filter((d) => d.status === 'rejected')
+        .length || 0
   );
 
   // Incapacidades filtradas
@@ -512,10 +571,16 @@ export class HRDisabilitiesComponent {
     const search = this.searchText().toLowerCase();
     if (search) {
       disabilities = disabilities.filter((d) => {
-        const employeeName = `${d.employee?.first_name || ''} ${d.employee?.father_name || ''}`.toLowerCase();
+        const employeeName = `${d.employee?.first_name || ''} ${
+          d.employee?.father_name || ''
+        }`.toLowerCase();
         const email = d.employee?.work_email?.toLowerCase() || '';
         const description = d.description?.toLowerCase() || '';
-        return employeeName.includes(search) || email.includes(search) || description.includes(search);
+        return (
+          employeeName.includes(search) ||
+          email.includes(search) ||
+          description.includes(search)
+        );
       });
     }
 
@@ -556,8 +621,13 @@ export class HRDisabilitiesComponent {
     return labels[status] || status;
   }
 
-  public getStatusSeverity(status: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
-    const severities: Record<string, 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'> = {
+  public getStatusSeverity(
+    status: string
+  ): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
+    const severities: Record<
+      string,
+      'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'
+    > = {
       pending: 'warn',
       approved: 'success',
       rejected: 'danger',
@@ -608,7 +678,10 @@ export class HRDisabilitiesComponent {
     });
   }
 
-  private updateDisabilityStatus(id: string, status: 'approved' | 'rejected'): void {
+  private updateDisabilityStatus(
+    id: string,
+    status: 'approved' | 'rejected'
+  ): void {
     this.http
       .patch(
         `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_disabilities?id=eq.${id}`,
@@ -619,7 +692,9 @@ export class HRDisabilitiesComponent {
           this.messageService.add({
             severity: 'success',
             summary: 'Éxito',
-            detail: `Incapacidad ${status === 'approved' ? 'aprobada' : 'rechazada'} correctamente`,
+            detail: `Incapacidad ${
+              status === 'approved' ? 'aprobada' : 'rechazada'
+            } correctamente`,
           });
           this.disabilitiesApi.reload();
         },
@@ -633,4 +708,3 @@ export class HRDisabilitiesComponent {
       });
   }
 }
-
