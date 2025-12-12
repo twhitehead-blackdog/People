@@ -55,8 +55,9 @@ import { SchedulesStore } from '../stores/schedules.store';
         />
       </div>
       <div class="input-container">
-        <label for="formatted-hour">Hora inicio almuerzo</label>
+        <label for="lunch_start_time">Hora inicio almuerzo</label>
         <p-datepicker
+          inputId="lunch_start_time"
           timeOnly
           formControlName="lunch_start_time"
           hourFormat="12"
@@ -64,8 +65,9 @@ import { SchedulesStore } from '../stores/schedules.store';
         />
       </div>
       <div class="input-container">
-        <label for="formatted-hour">Hora fin almuerzo</label>
+        <label for="lunch_end_time">Hora fin almuerzo</label>
         <p-datepicker
+          inputId="lunch_end_time"
           timeOnly
           formControlName="lunch_end_time"
           hourFormat="12"
@@ -73,8 +75,9 @@ import { SchedulesStore } from '../stores/schedules.store';
         />
       </div>
       <div class="input-container">
-        <label for="formatted-hour">Hora salida</label>
+        <label for="exit_time">Hora salida</label>
         <p-datepicker
+          inputId="exit_time"
           timeOnly
           formControlName="exit_time"
           hourFormat="12"
@@ -100,6 +103,7 @@ import { SchedulesStore } from '../stores/schedules.store';
       <div class="input-container">
         <label for="color">Color</label>
         <p-select
+          inputId="color"
           formControlName="color"
           [options]="colors"
           optionValue="key"

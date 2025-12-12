@@ -39,16 +39,9 @@ DECLARE
     v_max_correlative INTEGER;
     v_next_number TEXT;
 BEGIN
-    -- Obtener los company_ids de Naz y Black Dog
-    SELECT id INTO v_naz_company_id 
-    FROM companies 
-    WHERE name ILIKE '%naz%' 
-    LIMIT 1;
-    
-    SELECT id INTO v_blackdog_company_id 
-    FROM companies 
-    WHERE name ILIKE '%black%dog%' OR name ILIKE '%blackdog%'
-    LIMIT 1;
+    -- Obtener los company_ids de Naz y Blackdog usando las funciones helper
+    v_naz_company_id := get_naz_company_id();
+    v_blackdog_company_id := get_blackdog_company_id();
     
     -- Determinar el prefijo basado en company_id
     IF p_company_id = v_naz_company_id THEN
@@ -96,18 +89,11 @@ DECLARE
     v_correlative INTEGER;
     v_employee_number TEXT;
 BEGIN
-    -- Obtener company_ids
-    SELECT id INTO v_naz_company_id 
-    FROM companies 
-    WHERE name ILIKE '%naz%' 
-    LIMIT 1;
+    -- Obtener company_ids usando las funciones helper
+    v_naz_company_id := get_naz_company_id();
+    v_blackdog_company_id := get_blackdog_company_id();
     
-    SELECT id INTO v_blackdog_company_id 
-    FROM companies 
-    WHERE name ILIKE '%black%dog%' OR name ILIKE '%blackdog%'
-    LIMIT 1;
-    
-    -- Procesar empleados de Black Dog primero
+    -- Procesar empleados de Blackdog primero
     v_correlative := 0;
     FOR v_emp IN 
         SELECT id, company_id 

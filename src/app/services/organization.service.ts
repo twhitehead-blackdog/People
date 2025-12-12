@@ -98,41 +98,78 @@ export class OrganizationService {
       }
       
       // Obtener company_id de Naz
+      // Buscar que contenga "naz" (case-insensitive)
       const nazResponse = await firstValueFrom(
-        this.http.get<{ id: string }[]>(
+        this.http.get<{ id: string; name: string }[]>(
           `${baseUrl}/rest/v1/companies`,
           {
             params: {
-              select: 'id',
+              select: 'id,name',
               name: `ilike.%naz%`,
-              limit: '1'
+              limit: '10',
+              order: 'created_at.asc'
             }
           }
         )
       );
       
       if (nazResponse && nazResponse.length > 0) {
-        this._nazCompanyId = nazResponse[0].id;
-        console.log('✅ Company ID de Naz cargado:', this._nazCompanyId);
+        // Priorizar coincidencia exacta "Naz", si no existe usar la primera que contenga "naz"
+        const exactMatch = nazResponse.find(c => c.name.toLowerCase().trim() === 'naz');
+        const nazCompany = exactMatch || nazResponse[0];
+        if (nazCompany) {
+          this._nazCompanyId = nazCompany.id;
+          console.log('✅ Company ID de Naz cargado:', this._nazCompanyId, 'nombre:', nazCompany.name);
+        }
       }
       
-      // Obtener company_id de Black Dog
+      // Obtener company_id de Blackdog
+      // Buscar "blackdog" (sin espacio entre black y dog) o "blackdog panamá"
       const bdResponse = await firstValueFrom(
-        this.http.get<{ id: string }[]>(
+        this.http.get<{ id: string; name: string }[]>(
           `${baseUrl}/rest/v1/companies`,
           {
             params: {
-              select: 'id',
-              name: `ilike.%black%dog%`,
-              limit: '1'
+              select: 'id,name',
+              name: `ilike.%blackdog%`,
+              limit: '10',
+              order: 'created_at.asc'
             }
           }
         )
       );
       
       if (bdResponse && bdResponse.length > 0) {
-        this._blackdogCompanyId = bdResponse[0].id;
-        console.log('✅ Company ID de Black Dog cargado:', this._blackdogCompanyId);
+        // Usar la primera coincidencia (ya está ordenada por created_at)
+        const blackdogCompany = bdResponse[0];
+        this._blackdogCompanyId = blackdogCompany.id;
+        console.log('✅ Company ID de Blackdog cargado:', this._blackdogCompanyId, 'nombre:', blackdogCompany.name);
+      } else {
+        // Si no encuentra con "blackdog", intentar con "black" y "dog" separados
+        const bdResponse2 = await firstValueFrom(
+          this.http.get<{ id: string; name: string }[]>(
+            `${baseUrl}/rest/v1/companies`,
+            {
+              params: {
+                select: 'id,name',
+                name: `ilike.%black%`,
+                limit: '10',
+                order: 'created_at.asc'
+              }
+            }
+          )
+        );
+        
+        if (bdResponse2 && bdResponse2.length > 0) {
+          // Buscar la que también contenga "dog"
+          const blackdogMatch = bdResponse2.find(c => 
+            c.name.toLowerCase().includes('dog')
+          );
+          if (blackdogMatch) {
+            this._blackdogCompanyId = blackdogMatch.id;
+            console.log('✅ Company ID de Blackdog cargado (búsqueda alternativa):', this._blackdogCompanyId, 'nombre:', blackdogMatch.name);
+          }
+        }
       }
       
       // Marcar como listo ANTES de sincronizar para que el effect pueda funcionar

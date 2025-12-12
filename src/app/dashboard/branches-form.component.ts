@@ -49,6 +49,7 @@ import { DashboardStore } from '../stores/dashboard.store';
       <div class="input-container">
         <label for="company_id">Empresa</label>
         <p-select
+          inputId="company_id"
           formControlName="company_id"
           [options]="store.companies.entities()"
           optionLabel="name"
@@ -63,7 +64,7 @@ import { DashboardStore } from '../stores/dashboard.store';
       </div>
       <div class="input-container">
         <label for="address">Direccion</label>
-        <textarea pTextarea formControlName="address"></textarea>
+        <textarea pTextarea formControlName="address" id="address"></textarea>
       </div>
       <div class="flex items-center gap-2">
         <p-toggleswitch formControlName="is_active" inputId="active" />

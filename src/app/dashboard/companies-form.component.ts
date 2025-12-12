@@ -34,11 +34,11 @@ import { DashboardStore } from '../stores/dashboard.store';
       </div>
       <div class="input-container">
         <label for="address">Direccion</label>
-        <textarea pTextarea formControlName="address"></textarea>
+        <textarea pTextarea formControlName="address" id="address"></textarea>
       </div>
       <div class="input-container">
-        <label for="address">Nro. de Telefono</label>
-        <input pInputText type="tel" formControlName="phone_number" />
+        <label for="phone_number">Nro. de Telefono</label>
+        <input pInputText type="tel" formControlName="phone_number" id="phone_number" />
       </div>
       <div class="flex items-center gap-2">
         <p-toggleswitch formControlName="is_active" inputId="active" />

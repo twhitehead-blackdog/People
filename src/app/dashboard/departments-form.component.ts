@@ -37,6 +37,7 @@ import { OrganizationService } from '../services/organization.service';
       <div class="input-container">
         <label for="company_id">Empresa</label>
         <p-select
+          inputId="company_id"
           formControlName="company_id"
           [options]="store.companies.entities()"
           optionLabel="name"
@@ -86,7 +87,7 @@ export class DepartmentsFormComponent implements OnInit {
     }),
     company_id: new FormControl('', {
       nonNullable: true,
-      // company_id no es requerido para naz_departments (no existe ese campo)
+      // company_id es requerido siempre
       validators: [],
     }),
   });
@@ -110,8 +111,8 @@ export class DepartmentsFormComponent implements OnInit {
       return;
     }
     
-    // Validar company_id solo si NO es Naz
-    if (!this.organizationService.isNaz() && !this.form.get('company_id')?.value) {
+    // Validar company_id siempre
+    if (!this.form.get('company_id')?.value) {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
@@ -129,13 +130,9 @@ export class DepartmentsFormComponent implements OnInit {
       this.dialogRef.close();
       return;
     }
-    // Filtrar company_id si es Naz (naz_departments no tiene este campo)
+    // Ya no se filtran campos, todo se guarda (tablas compartidas)
     const formValue = this.form.getRawValue();
-    let dataToSave: any = formValue;
-    if (this.organizationService.isNaz()) {
-      const { company_id, ...filteredData } = formValue;
-      dataToSave = filteredData;
-    }
+    const dataToSave: any = formValue;
     
     iif(
       () => this.dialog.data.department,

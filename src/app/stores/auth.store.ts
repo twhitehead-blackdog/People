@@ -35,28 +35,22 @@ export const AuthStore = signalStore(
         switchMap(() => _auth.user$),
         filter((user) => !!user),
         switchMap((user) => {
-          // Determinar la tabla correcta según la organización
-          const isNaz = _orgService.isNaz();
-          const tableName = getTableNameFromService('employees', _orgService);
-          const positionTableName = getTableNameFromService('positions', _orgService);
+          // Ya no hay tablas naz_*, todo es por company_id en tablas compartidas
+          const tableName = 'employees';
+          const positionTableName = 'positions';
           
-          // Para Naz, usar naz_positions, para Black Dog usar positions
-          const positionSelect = isNaz 
-            ? `position:naz_positions(id, name, admin, schedule_admin, schedule_approver)`
-            : `position:positions(id, name, admin, schedule_admin, schedule_approver, dashboard_access, default_view)`;
+          // Usar positions siempre (tabla compartida)
+          const positionSelect = `position:positions(id, name, admin, schedule_admin, schedule_approver, dashboard_access, default_view)`;
           
           const params: any = {
             work_email: `eq.${user.email}`,
             select: `id,company_id,first_name,father_name,${positionSelect}`
           };
           
-          // Para employees (Black Dog), agregar filtro por company_id si está disponible
-          // Para naz_employees, no hay company_id, así que no agregamos el filtro
-          if (!isNaz) {
-            const companyId = _orgService.getCurrentCompanyId();
-            if (companyId) {
-              params.company_id = `eq.${companyId}`;
-            }
+          // Siempre agregar filtro por company_id
+          const companyId = _orgService.getCurrentCompanyId();
+          if (companyId) {
+            params.company_id = `eq.${companyId}`;
           }
           
           return _http
@@ -80,34 +74,8 @@ export const AuthStore = signalStore(
             )
             .pipe(
               switchMap((resp) => {
-                // Si no se encuentra en la tabla actual, intentar en la otra tabla como fallback
-                if (!resp || resp.length === 0) {
-                  const fallbackTableName = isNaz ? 'employees' : 'naz_employees';
-                  const fallbackPositionTable = isNaz ? 'positions' : 'naz_positions';
-                  const fallbackPositionSelect = isNaz
-                    ? `position:positions(id, name, admin, schedule_admin, schedule_approver, dashboard_access, default_view)`
-                    : `position:naz_positions(id, name, admin, schedule_admin, schedule_approver)`;
-                  
-                  const fallbackParams: any = {
-                    work_email: `eq.${user.email}`,
-                    select: `id,company_id,first_name,father_name,${fallbackPositionSelect}`
-                  };
-                  
-                  if (fallbackTableName === 'employees') {
-                    const companyId = _orgService.getCurrentCompanyId();
-                    if (companyId) {
-                      fallbackParams.company_id = `eq.${companyId}`;
-                    }
-                  }
-                  
-                  return _http.get<typeof resp>(
-                    `${process.env['ENV_SUPABASE_URL']}/rest/v1/${fallbackTableName}`,
-                    { params: fallbackParams }
-                  ).pipe(
-                    catchError(() => of([]))
-                  );
-                }
-                return of(resp);
+                // Ya no hay fallback a naz_*, solo retornar la respuesta
+                return of(resp || []);
               }),
               tapResponse({
                 next: (resp) => {

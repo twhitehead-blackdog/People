@@ -46,6 +46,7 @@ import { colorVariants, EmployeeSchedule } from '../models';
 import { DashboardStore } from '../stores/dashboard.store';
 import { OrganizationService } from '../services/organization.service';
 import { EmployeeSchedulesFormComponent } from './employee-schedules-form.component';
+import { AddEmployeeToBranchDialogComponent } from './add-employee-to-branch-dialog.component';
 
 @Component({
   selector: 'pt-employees-timetable',
@@ -143,6 +144,18 @@ import { EmployeeSchedulesFormComponent } from './employee-schedules-form.compon
                 class="w-full lg:w-auto whitespace-nowrap text-sm"
               />
             </div>
+            @if(store.isAdmin() || (store.isScheduleAdmin() && currentBranch()) || (isHRDepartment() && currentBranch())) {
+            <p-button
+              label="¿No aparece un empleado?"
+              icon="pi pi-user-plus"
+              severity="help"
+              outlined
+              rounded
+              size="small"
+              class="w-full lg:w-auto"
+              (onClick)="openAddEmployeeDialog()"
+            />
+            }
           </div>
         </ng-template>
         <ng-template #header>
@@ -295,6 +308,13 @@ export class EmployeesTimetableComponent implements OnInit {
   private confirm = inject(ConfirmationService);
   private organizationService = inject(OrganizationService);
   public injector = inject(Injector);
+
+  public isHRDepartment = computed(() => {
+    const currentEmp = this.store.currentEmployee();
+    const deptName = currentEmp?.department?.name?.toLowerCase() || '';
+    return deptName.includes('recursos humanos') || deptName.includes('rrhh') || deptName.includes('hr');
+  });
+
   public start = computed(() => {
     if (isMonday(this.currentDate())) {
       return startOfDay(this.currentDate());
@@ -379,10 +399,39 @@ export class EmployeesTimetableComponent implements OnInit {
   public employeeSearch = model<string>('');
   private dialog = inject(DialogService);
   private message = inject(MessageService);
-  public currentEmployees = computed(() =>
-    this.store.employees
+  public currentEmployees = computed(() => {
+    const employees = this.store.employees
       .employeesList()
-      .filter((employee) => employee.is_active)
+      .filter((employee) => employee.is_active);
+
+    // Si es gerente de tienda (schedule_admin pero no admin), filtrar estrictamente por su sucursal
+    const isManager = this.store.isScheduleAdmin() && !this.store.isAdmin();
+    const managerBranchId = isManager ? this.store.currentBranch()?.id : null;
+
+    return employees
+      .filter((employee) => {
+        // Si es gerente, solo mostrar empleados de su sucursal
+        if (isManager && managerBranchId) {
+          if (employee.branch_id !== managerBranchId) {
+            return false;
+          }
+        }
+
+        // Filtro por búsqueda de nombre
+        const searchTerm = this.employeeSearch()?.toLowerCase().trim() || '';
+        const matchesSearch = !searchTerm || 
+          `${employee.first_name} ${employee.father_name}`.toLowerCase().includes(searchTerm) ||
+          employee.first_name.toLowerCase().includes(searchTerm) ||
+          employee.father_name.toLowerCase().includes(searchTerm);
+        
+        // Filtro por sucursal (selector manual)
+        const matchesBranch = !this.currentBranch() || employee.branch_id === this.currentBranch();
+        
+        // Filtro por puesto
+        const matchesPosition = !this.currentPosition() || employee.position_id === this.currentPosition();
+        
+        return matchesSearch && matchesBranch && matchesPosition;
+      })
       .map(
         ({
           id,
@@ -402,27 +451,11 @@ export class EmployeesTimetableComponent implements OnInit {
           position_id,
         })
       )
-      .filter((employee) => {
-        // Filtro por búsqueda de nombre
-        const searchTerm = this.employeeSearch()?.toLowerCase().trim() || '';
-        const matchesSearch = !searchTerm || 
-          `${employee.first_name} ${employee.father_name}`.toLowerCase().includes(searchTerm) ||
-          employee.first_name.toLowerCase().includes(searchTerm) ||
-          employee.father_name.toLowerCase().includes(searchTerm);
-        
-        // Filtro por sucursal
-        const matchesBranch = !this.currentBranch() || employee.branch_id === this.currentBranch();
-        
-        // Filtro por puesto
-        const matchesPosition = !this.currentPosition() || employee.position_id === this.currentPosition();
-        
-        return matchesSearch && matchesBranch && matchesPosition;
-      })
       .map((employee) => ({
         ...employee,
         days: this.days(),
-      }))
-  );
+      }));
+  });
 
   public schedulesResource = httpResource<EmployeeSchedule[]>(() => {
     const companyId = this.organizationService.getCurrentCompanyId();
@@ -495,7 +528,17 @@ export class EmployeesTimetableComponent implements OnInit {
           this.disableBranch.set(false);
           return;
         }
-        this.currentBranch.set(this.store.currentBranch()?.id);
+        // Si es schedule_admin (gerente de tienda) pero no admin, forzar su sucursal
+        if (this.store.isScheduleAdmin() && !this.store.isAdmin()) {
+          const managerBranch = this.store.currentBranch()?.id;
+          if (managerBranch) {
+            this.currentBranch.set(managerBranch);
+            this.disableBranch.set(true); // Bloquear cambio de sucursal
+          }
+        } else {
+          // Para otros usuarios no-admin, también filtrar por sucursal
+          this.currentBranch.set(this.store.currentBranch()?.id);
+        }
       },
       { injector: this.injector }
     );
@@ -645,5 +688,50 @@ export class EmployeesTimetableComponent implements OnInit {
           });
       },
     });
+  }
+
+  public openAddEmployeeDialog() {
+    // Si es admin o HR, permitir seleccionar la sucursal
+    const isAdminOrHR = this.store.isAdmin() || this.isHRDepartment();
+    let targetBranch = this.store.currentBranch();
+
+    // Si es gerente de tienda (no admin, no HR), debe tener sucursal asignada
+    if (!isAdminOrHR) {
+      if (!targetBranch) {
+        this.message.add({
+          severity: 'warn',
+          summary: 'Advertencia',
+          detail: 'No tienes una sucursal asignada',
+        });
+        return;
+      }
+    } else {
+      // Para Admin o HR, usar la sucursal del filtro si está seleccionada, sino undefined
+      if (this.currentBranch()) {
+        const branchId = this.currentBranch();
+        targetBranch = this.store.branches.entities().find(b => b.id === branchId) || undefined;
+      } else {
+        targetBranch = undefined;
+      }
+    }
+
+    this.dialog
+      .open(AddEmployeeToBranchDialogComponent, {
+        header: 'Añadir empleado a sucursal',
+        width: '500px',
+        data: {
+          branchId: targetBranch?.id || null,
+          branchName: targetBranch?.name || '',
+          canSelectBranch: isAdminOrHR, // Permitir seleccionar solo si es Admin o HR
+        },
+        modal: true,
+      })
+      .onClose.subscribe((added) => {
+        if (added) {
+          // Recargar lista de empleados y recursos relacionados inmediatamente
+          this.store.employees.fetchItems();
+          this.schedulesResource.reload();
+        }
+      });
   }
 }

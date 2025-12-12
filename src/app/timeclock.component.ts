@@ -883,9 +883,8 @@ export class TimeclockComponent implements OnDestroy {
   // Usar el servicio de organización como fuente principal
   public isNazCompany = computed(() => this.organizationService.isNaz());
   public isBlackDogCompany = computed(() => this.organizationService.isBlackDog());
-  private employeesTable = computed(() =>
-    this.isNazCompany() ? 'naz_employees' : 'employees'
-  );
+  // Ya no hay tablas naz_*, todo es por company_id
+  private employeesTable = computed(() => 'employees');
 
   private injector = inject(Injector);
   private timeInterval: any;
@@ -938,13 +937,13 @@ export class TimeclockComponent implements OnDestroy {
 
           if (isNaz) {
             // For Naz: auto-select "Naz" company
-            targetCompany = companies.find((c: Company | NazCompany) =>
+            targetCompany = companies.find((c: Company) =>
               c.name.toLowerCase().includes('naz')
-            ) as NazCompany | undefined;
+            ) as Company | undefined;
           } else {
             // For Black Dog: auto-select "Black Dog Panamá" company
             // First try exact match for "Black Dog Panamá"
-            targetCompany = companies.find((c: Company | NazCompany) => {
+            targetCompany = companies.find((c: Company) => {
               const name = c.name.toLowerCase();
               return (
                 name === 'black dog panamá' ||
@@ -956,7 +955,7 @@ export class TimeclockComponent implements OnDestroy {
 
             // If not found, try partial matches with both "black dog" and "panamá"
             if (!targetCompany) {
-              targetCompany = companies.find((c: Company | NazCompany) => {
+              targetCompany = companies.find((c: Company) => {
                 const name = c.name.toLowerCase();
                 return (
                   (name.includes('black dog') || name.includes('blackdog')) &&
@@ -967,7 +966,7 @@ export class TimeclockComponent implements OnDestroy {
 
             // Last resort: just look for "black dog" or "blackdog"
             if (!targetCompany) {
-              targetCompany = companies.find((c: Company | NazCompany) => {
+              targetCompany = companies.find((c: Company) => {
                 const name = c.name.toLowerCase();
                 return name.includes('black dog') || name.includes('blackdog');
               }) as Company | undefined;
@@ -988,13 +987,13 @@ export class TimeclockComponent implements OnDestroy {
         ) {
           if (isNaz) {
             // For Naz: auto-select "Calle 50" branch
-            const calle50Branch = branches.find((b: Branch | NazBranch) => {
+            const calle50Branch = branches.find((b: Branch) => {
               const name = b.name.toLowerCase();
               return (
                 (name.includes('calle 50') || name.includes('calle50')) &&
-                (b as NazBranch).company_id === selectedCompanyId
+                b.company_id === selectedCompanyId
               );
-            }) as NazBranch | undefined;
+            }) as Branch | undefined;
             if (calle50Branch) {
               this.form.get('branch_id')?.setValue(calle50Branch.id);
             }
@@ -1004,7 +1003,7 @@ export class TimeclockComponent implements OnDestroy {
             if (currentIP && currentIP !== '127.0.0.1') {
               // Find branch matching the IP
               const matchingBranch = branches.find(
-                (b: Branch | NazBranch) => b.ip === currentIP
+                (b: Branch) => b.ip === currentIP
               );
               if (matchingBranch) {
                 this.form.get('branch_id')?.setValue(matchingBranch.id);
@@ -1067,6 +1066,17 @@ export class TimeclockComponent implements OnDestroy {
           this.currentIP.set(ip);
         }
       });
+
+    // Resetear formulario cuando cambia la organización
+    effect(() => {
+      const isNaz = this.isNazCompany();
+      // Resetear empleado, branch y company cuando cambia la organización
+      // Esto evita usar valores de una organización en la otra
+      this.form.get('employee')?.reset();
+      this.form.get('branch_id')?.reset();
+      this.form.get('company_id')?.reset();
+      this.form.get('otp')?.reset();
+    });
   }
 
   ngOnDestroy() {
@@ -1366,39 +1376,25 @@ export class TimeclockComponent implements OnDestroy {
     },
   }));
 
-  // Resources for Naz
-  public nazCompaniesResource = httpResource<NazCompany[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/naz_companies`,
-    method: 'GET',
-    params: {
-      select: '*',
-      order: 'name',
-    },
-  }));
-
-  public nazBranchesResource = httpResource<NazBranch[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/naz_branches`,
-    method: 'GET',
-    params: {
-      select: '*',
-      order: 'name',
-    },
-  }));
-
   // Computed signals to select the correct resource based on organization
+  // Ya no se usan tablas naz_*, todo es por company_id
   public currentCompaniesResource = computed<
-    Company[] | NazCompany[] | undefined
+    Company[] | undefined
   >(() => {
-    return this.isNazCompany()
-      ? this.nazCompaniesResource.value()
-      : this.companiesResource.value();
+    return this.companiesResource.value();
   });
 
-  public currentBranchesResource = computed<Branch[] | NazBranch[] | undefined>(
+  public currentBranchesResource = computed<Branch[] | undefined>(
     () => {
-      return this.isNazCompany()
-        ? this.nazBranchesResource.value()
-        : this.branchesResource.value();
+      const branches = this.branchesResource.value();
+      if (!branches) return undefined;
+      
+      // Filtrar branches por company_id actual si está disponible
+      const companyId = this.organizationService.getCurrentCompanyId();
+      if (companyId) {
+        return branches.filter(b => b.company_id === companyId);
+      }
+      return branches;
     }
   );
 
@@ -1442,8 +1438,8 @@ export class TimeclockComponent implements OnDestroy {
       is_active: 'eq.true',
     };
     
-    // Para Black Dog, filtrar por company_id para evitar duplicados
-    if (!this.isNazCompany() && companyId) {
+    // Filtrar por company_id siempre (ya no hay tablas naz_*)
+    if (companyId) {
       params.company_id = `eq.${companyId}`;
     }
     
@@ -1454,28 +1450,16 @@ export class TimeclockComponent implements OnDestroy {
     };
   });
 
-  public nazEmployeesResource = httpResource<Partial<NazEmployee>[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/naz_employees`,
-    method: 'GET',
-    params: {
-      select: 'id,first_name,father_name,code_uri',
-      order: 'father_name',
-      is_active: 'eq.true',
-    },
-  }));
-
-  // Computed to select the correct resource based on company
+  // Computed to select employees - ya no se usan tablas naz_*
   public currentEmployeesResource = computed<
-    Partial<Employee | NazEmployee>[] | undefined
+    Partial<Employee>[] | undefined
   >(() => {
-    const employees = this.isNazCompany()
-      ? this.nazEmployeesResource.value()
-      : this.employeesResource.value();
+    const employees = this.employeesResource.value();
     
     if (!employees) return undefined;
     
     // Deduplicar por id para evitar empleados duplicados
-    const uniqueEmployees = new Map<string, Partial<Employee | NazEmployee>>();
+    const uniqueEmployees = new Map<string, Partial<Employee>>();
     employees.forEach((emp) => {
       if (emp.id && !uniqueEmployees.has(emp.id)) {
         uniqueEmployees.set(emp.id, emp);
@@ -1488,24 +1472,27 @@ export class TimeclockComponent implements OnDestroy {
   // Get last timelog for an employee today to determine next type
   private getLastTimelog(
     employeeId: string
-  ): Observable<TimeLog | NazTimeLog | null> {
+  ): Observable<TimeLog | null> {
     const today = format(new Date(), 'yyyy-MM-dd');
     const todayStart = `${today}T00:00:00`;
-    const isNaz = this.isNazCompany();
-    const tableName = isNaz ? 'naz_timelogs' : 'timelogs';
+    const companyId = this.organizationService.getCurrentCompanyId();
+    const params: any = {
+      select: 'id,type,created_at',
+      employee_id: `eq.${employeeId}`,
+      created_at: `gte.${todayStart}`,
+      order: 'created_at.desc',
+      limit: '1',
+    };
+    
+    // Filtrar por company_id
+    if (companyId) {
+      params.company_id = `eq.${companyId}`;
+    }
 
     return this.http
-      .get<TimeLog[] | NazTimeLog[]>(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
-        {
-          params: {
-            select: 'id,type,created_at',
-            employee_id: `eq.${employeeId}`,
-            created_at: `gte.${todayStart}`,
-            order: 'created_at.desc',
-            limit: '1',
-          },
-        }
+      .get<TimeLog[]>(
+        `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`,
+        { params }
       )
       .pipe(
         map((timelogs) => {
@@ -1545,23 +1532,25 @@ export class TimeclockComponent implements OnDestroy {
   // Get employee schedule for today
   private getEmployeeSchedule(
     employeeId: string
-  ): Observable<EmployeeSchedule | NazEmployeeSchedule | null> {
+  ): Observable<EmployeeSchedule | null> {
     const today = format(new Date(), 'yyyy-MM-dd');
-    const isNaz = this.isNazCompany();
-    const tableName = isNaz ? 'naz_employee_schedules' : 'employee_schedules';
-    const scheduleTable = isNaz ? 'naz_schedules' : 'schedules';
+    const companyId = this.organizationService.getCurrentCompanyId();
+    const params: any = {
+      select: '*,schedule:schedules(*)',
+      employee_id: `eq.${employeeId}`,
+      start_date: `lte.${today}`,
+      end_date: `gte.${today}`,
+    };
+    
+    // Filtrar por company_id
+    if (companyId) {
+      params.company_id = `eq.${companyId}`;
+    }
 
     return this.http
-      .get<EmployeeSchedule[] | NazEmployeeSchedule[]>(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
-        {
-          params: {
-            select: `*,schedule:${scheduleTable}(*)`,
-            employee_id: `eq.${employeeId}`,
-            start_date: `lte.${today}`,
-            end_date: `gte.${today}`,
-          },
-        }
+      .get<EmployeeSchedule[]>(
+        `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+        { params }
       )
       .pipe(
         map((schedules) =>
@@ -1630,16 +1619,29 @@ export class TimeclockComponent implements OnDestroy {
   // Get lunch_start timelog for today
   private getLunchStartTimelog(
     employeeId: string
-  ): Observable<TimeLog | NazTimeLog | null> {
+  ): Observable<TimeLog | null> {
     const today = format(new Date(), 'yyyy-MM-dd');
     const todayStart = `${today}T00:00:00`;
     const todayEnd = `${today}T23:59:59`;
-    const isNaz = this.isNazCompany();
-    const tableName = isNaz ? 'naz_timelogs' : 'timelogs';
+    const companyId = this.organizationService.getCurrentCompanyId();
+    const params: any = {
+      select: 'id,type,created_at',
+      employee_id: `eq.${employeeId}`,
+      type: 'eq.lunch_start',
+      and: `(created_at.gte.${todayStart},created_at.lte.${todayEnd})`,
+      order: 'created_at.desc',
+      limit: '1',
+    };
+    
+    // Filtrar por company_id
+    if (companyId) {
+      params.company_id = `eq.${companyId}`;
+    }
 
-    const url = `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}?select=id,type,created_at&employee_id=eq.${employeeId}&type=eq.lunch_start&created_at=gte.${todayStart}&created_at=lte.${todayEnd}&order=created_at.desc&limit=1`;
-
-    return this.http.get<TimeLog[] | NazTimeLog[]>(url).pipe(
+    return this.http.get<TimeLog[]>(
+      `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`,
+      { params }
+    ).pipe(
       map((timelogs) => {
         if (!timelogs || timelogs.length === 0) {
           return null;
@@ -1870,7 +1872,114 @@ export class TimeclockComponent implements OnDestroy {
     const { employee, otp, branch_id, company_id, type } =
       this.form.getRawValue();
     
+    const isNaz = this.isNazCompany();
     const serviceCompanyId = this.organizationService.getCurrentCompanyId();
+    
+    // Validar que los datos sean correctos para la organización
+    if (!employee || !employee.id) {
+      this.isProcessing.set(false);
+      this.message.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Por favor seleccione un empleado',
+      });
+      return;
+    }
+
+    if (!branch_id) {
+      this.isProcessing.set(false);
+      this.message.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Por favor seleccione una sucursal',
+      });
+      return;
+    }
+
+    // Ya no hay tablas naz_*, todo es por company_id en tablas compartidas
+    // Para Black Dog, usar el del servicio o formulario
+    let finalCompanyId: string | null = null;
+    
+    if (isNaz) {
+      // Para Naz, priorizar el company_id del formulario (que es de naz_companies)
+      // Si no hay, buscar en la lista de naz_companies
+      finalCompanyId = company_id || null;
+      
+      if (!finalCompanyId) {
+        const companies = this.currentCompaniesResource();
+        if (companies && companies.length > 0) {
+          // Buscar la compañía "Naz" en companies
+          const nazCompany = companies.find((c: Company) =>
+            c.name.toLowerCase().includes('naz')
+          ) as Company | undefined;
+          
+          if (nazCompany) {
+            finalCompanyId = nazCompany.id;
+            // Auto-seleccionar en el formulario
+            this.form.get('company_id')?.setValue(nazCompany.id);
+          }
+        }
+      }
+    } else {
+      // Para Black Dog, usar el del servicio o formulario
+      finalCompanyId = company_id || serviceCompanyId || null;
+    }
+    
+    if (!finalCompanyId) {
+      this.isProcessing.set(false);
+      this.message.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Por favor seleccione una compañía',
+      });
+      return;
+    }
+
+    // Verificar que el empleado, branch y company sean de las tablas correctas
+    const employees = this.currentEmployeesResource();
+    const branches = this.currentBranchesResource();
+    const companies = this.currentCompaniesResource();
+
+    // Verificar que el empleado seleccionado esté en la lista correcta
+    if (employees && !employees.some(e => e.id === employee.id)) {
+      this.isProcessing.set(false);
+      this.message.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'El empleado seleccionado no es válido para esta organización. Por favor, seleccione un empleado válido.',
+      });
+      this.form.get('employee')?.reset();
+      return;
+    }
+
+    // Verificar que el branch esté en la lista correcta
+    if (branches && !branches.some(b => b.id === branch_id)) {
+      this.isProcessing.set(false);
+      this.message.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'La sucursal seleccionada no es válida para esta organización. Por favor, seleccione una sucursal válida.',
+      });
+      this.form.get('branch_id')?.reset();
+      return;
+    }
+
+    // Verificar que el company esté en la lista correcta (solo si hay lista cargada)
+    if (companies && companies.length > 0 && !companies.some(c => c.id === finalCompanyId)) {
+      console.warn('⚠️ Company ID no encontrado en lista:', {
+        finalCompanyId,
+        companiesList: companies.map(c => ({ id: c.id, name: c.name })),
+        isNaz
+      });
+      this.isProcessing.set(false);
+      this.message.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: `La compañía seleccionada (${finalCompanyId.substring(0, 8)}...) no es válida para esta organización. Por favor, seleccione una compañía válida de la lista.`,
+      });
+      this.form.get('company_id')?.reset();
+      return;
+    }
     
     if (employee?.code_uri) {
       const totp = OTPAuth.URI.parse(employee.code_uri);
@@ -1889,8 +1998,16 @@ export class TimeclockComponent implements OnDestroy {
       const employeeName =
         `${employee.first_name} ${employee.father_name}`.trim();
       
-      // Usar el company_id del servicio si está disponible, sino el del formulario
-      const finalCompanyId = serviceCompanyId || company_id;
+      // Log de depuración antes de procesar
+      console.log('📝 Intentando marcar timelog:', {
+        isNaz: this.isNazCompany(),
+        employee_id: employee.id,
+        branch_id: branch_id,
+        company_id: finalCompanyId,
+        type,
+        employeeName,
+        tableName: 'timelogs'
+      });
       
       this.processTimelog(
         employee.id,
@@ -1912,18 +2029,43 @@ export class TimeclockComponent implements OnDestroy {
     employeeName: string
   ) {
     const now = new Date();
-    const isNaz = this.isNazCompany();
-    const tableName = isNaz ? 'naz_timelogs' : 'timelogs';
-    const invalidField = isNaz ? 'invalid_id' : 'invalid_ip';
+    // Ya no se usan tablas naz_*, todo es por company_id
+    const tableName = 'timelogs';
+    const invalidField = 'invalid_ip';
 
-    // Para Naz, no validar IP (invalid_id siempre será false)
-    const invalidValue = isNaz ? false : !this.validIP();
+    // Validar IP normalmente
+    const invalidValue = !this.validIP();
+
+    // Asegurar que el company_id sea correcto para la organización actual
+    const serviceCompanyId = this.organizationService.getCurrentCompanyId();
+    const finalCompanyId = companyId || serviceCompanyId;
+
+    // Validar que branch_id y company_id sean válidos
+    if (!branchId || !finalCompanyId) {
+      this.isProcessing.set(false);
+      this.message.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: `Por favor seleccione una sucursal y compañía válidas. Branch: ${branchId}, Company: ${finalCompanyId}, Service Company: ${serviceCompanyId}`,
+      });
+      return;
+    }
+
+    // Log adicional antes de enviar
+    console.log('📤 Enviando POST a', tableName, 'con:', {
+      employee_id: employeeId,
+      branch_id: branchId,
+      company_id: finalCompanyId,
+      type,
+      invalidField,
+      invalidValue
+    });
 
     this.http
       .post(`${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`, {
         employee_id: employeeId,
         branch_id: branchId,
-        company_id: companyId,
+        company_id: finalCompanyId,
         type,
         ip: this.getIP(),
         [invalidField]: invalidValue,
@@ -2025,13 +2167,48 @@ export class TimeclockComponent implements OnDestroy {
             lunchEndDiff: null,
           });
         }),
-        catchError(() => {
+        catchError((error) => {
           this.isProcessing.set(false);
+          const isNaz = this.isNazCompany();
+          console.error('Error al procesar timelog:', error);
+          console.error('Datos enviados:', {
+            employee_id: employeeId,
+            branch_id: branchId,
+            company_id: finalCompanyId,
+            type,
+            tableName,
+            isNaz
+          });
+          
+          let errorMessage = 'Algo salió mal, intente nuevamente';
+          
+          // Manejar errores específicos
+          if (error?.status === 409) {
+            errorMessage = `Error: El empleado (${employeeId.substring(0, 8)}...), sucursal (${branchId.substring(0, 8)}...) o compañía (${finalCompanyId.substring(0, 8)}...) seleccionados no existen en la tabla ${tableName}. Verifique que los datos sean correctos para ${isNaz ? 'Naz' : 'Black Dog'}.`;
+          } else if (error?.status === 422) {
+            const details = error?.error?.details || error?.error?.message || 'Los datos proporcionados no son válidos';
+            errorMessage = `Error: ${details}. Por favor, verifique la información.`;
+          } else if (error?.error?.message) {
+            errorMessage = `Error: ${error.error.message}`;
+          } else if (error?.message) {
+            errorMessage = `Error: ${error.message}`;
+          }
+          
           this.message.add({
             severity: 'error',
             summary: 'Error',
-            detail: 'Algo salió mal, intente nuevamente',
+            detail: errorMessage,
+            life: 10000, // Mostrar por 10 segundos para que se pueda leer
           });
+          
+          // Resetear el formulario si hay un error de constraint (409)
+          if (error?.status === 409) {
+            this.form.get('employee')?.reset();
+            this.form.get('branch_id')?.reset();
+            this.form.get('company_id')?.reset();
+            this.form.get('otp')?.reset();
+          }
+          
           return EMPTY;
         })
       )

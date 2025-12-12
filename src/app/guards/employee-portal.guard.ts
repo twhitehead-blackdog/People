@@ -3,6 +3,7 @@ import { CanActivateFn, Router, UrlTree } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
 import { HttpClient } from '@angular/common/http';
 import { map, switchMap, take, of, catchError } from 'rxjs';
+import { OrganizationService } from '../services/organization.service';
 
 // Tipo para el empleado con posición
 type EmployeeWithPosition = {
@@ -50,6 +51,7 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
   const router = inject(Router);
   const authService = inject(AuthService);
   const http = inject(HttpClient);
+  const orgService = inject(OrganizationService);
 
   // Lista de correos con acceso completo (super admins)
   const superAdminEmails = ['mercadeo@blackdogpanama.com'];
@@ -195,50 +197,22 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
       }
 
       // Si no hay cache, hacer llamada HTTP
-      // Buscar primero en employees (Black Dog), luego en naz_employees (Naz)
+      // Ya no hay tablas naz_*, todo es por company_id en employees
+      const companyId = orgService.getCurrentCompanyId();
+      const params: any = {
+        work_email: `eq.${user.email}`,
+        select: 'id,position:positions(name,admin,dashboard_access,default_view),has_portal_access,account_approved',
+      };
+      
+      // Filtrar por company_id si está disponible
+      if (companyId) {
+        params.company_id = `eq.${companyId}`;
+      }
+      
       return http.get<Array<EmployeeWithPosition>>(
         `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
-        {
-          params: {
-            work_email: `eq.${user.email}`,
-            select: 'id,position:positions(name,admin,dashboard_access,default_view),has_portal_access,account_approved',
-          },
-        }
+        { params }
       ).pipe(
-        switchMap((employees) => {
-          // Si se encuentra en employees, usar esos datos
-          if (employees && employees.length > 0) {
-            return of(employees);
-          }
-          
-          // Si no se encuentra, buscar en naz_employees
-          return http.get<Array<{
-            id: string;
-            position?: { name: string; admin: boolean };
-            has_portal_access?: boolean;
-            account_approved?: boolean;
-          }>>(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/naz_employees`,
-            {
-              params: {
-                work_email: `eq.${user.email}`,
-                select: 'id,position:naz_positions(name,admin),has_portal_access,account_approved',
-              },
-            }
-          ).pipe(
-            map((nazEmployees): Array<EmployeeWithPosition> => {
-              // Mapear el resultado de Naz para que tenga la misma estructura
-              return nazEmployees.map(emp => ({
-                ...emp,
-                position: emp.position ? {
-                  ...emp.position,
-                  dashboard_access: undefined,
-                  default_view: undefined,
-                } : undefined
-              }));
-            })
-          );
-        }),
         catchError((error) => {
           // Si falla la consulta con dashboard_access/default_view, intentar sin esos campos
           console.warn('Error en consulta con dashboard_access, intentando sin esos campos:', error);
@@ -269,32 +243,8 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
                 })));
               }
               
-              // Si no se encuentra, buscar en naz_employees
-              return http.get<Array<{
-                id: string;
-                position?: { name: string; admin: boolean };
-                has_portal_access?: boolean;
-                account_approved?: boolean;
-              }>>(
-                `${process.env['ENV_SUPABASE_URL']}/rest/v1/naz_employees`,
-                {
-                  params: {
-                    work_email: `eq.${user.email}`,
-                    select: 'id,position:naz_positions(name,admin),has_portal_access,account_approved',
-                  },
-                }
-              ).pipe(
-                map((nazEmployees): Array<EmployeeWithPosition> => {
-                  return nazEmployees.map(emp => ({
-                    ...emp,
-                    position: emp.position ? {
-                      ...emp.position,
-                      dashboard_access: undefined,
-                      default_view: undefined,
-                    } : undefined
-                  }));
-                })
-              );
+              // Si no hay empleados, retornar array vacío
+              return of([]);
             })
           );
         }),

@@ -1246,8 +1246,23 @@ export class LoginComponent {
     // Verificar si la IP actual coincide con alguna sucursal
     const matchingBranch = branchesList.find((branch) => branch.ip && branch.ip.trim() === ip);
     
-    // Si hay una sucursal que coincide con la IP, NO permitir cambiar organización
+    // Si hay una sucursal que coincide con la IP
     if (matchingBranch) {
+      // Verificar si es oficina central (nombre contiene "central" o "oficina central")
+      const branchName = matchingBranch.name?.toLowerCase() || '';
+      const branchShortName = matchingBranch.short_name?.toLowerCase() || '';
+      const isCentralOffice = 
+        branchName.includes('central') || 
+        branchName.includes('oficina central') ||
+        branchShortName.includes('central') ||
+        branchShortName.includes('oficina central');
+      
+      // Si es oficina central, permitir cambio
+      if (isCentralOffice) {
+        return true;
+      }
+      
+      // Si no es oficina central, NO permitir cambiar organización
       return false;
     }
 

@@ -44,17 +44,13 @@ export function withCustomEntities<T extends { id: EntityId }>({
   order?: string;
 }) {
   // Helper para agregar filtro de company_id a los parámetros de query
+  // Ya no hay tablas naz_*, todo se filtra por company_id
   const addCompanyFilter = (params: any, companyId: string | null, tableName: string, orgService: OrganizationService): any => {
     if (!companyId) {
       return params;
     }
     
-    // Las tablas de Naz NO tienen company_id, así que no agregar el filtro
-    if (orgService.isNaz() && tableName.startsWith('naz_')) {
-      return params;
-    }
-    
-    // Tablas que tienen company_id y deben filtrarse (solo para Black Dog)
+    // Tablas que tienen company_id y deben filtrarse siempre
     const tablesWithCompanyId = [
       'employees',
       'branches',
@@ -64,10 +60,20 @@ export function withCustomEntities<T extends { id: EntityId }>({
       'employee_schedules',
       'attendance_sheets',
       'timelogs',
-      'payrolls',
-      'banks',
-      'creditors'
+      'payrolls'
     ];
+    
+    // Bancos y creditors pueden tener company_id NULL (compartidos)
+    // Para estos, necesitamos incluir tanto los del company_id como los compartidos (NULL)
+    if (tableName === 'banks' || tableName === 'creditors') {
+      // PostgREST/Supabase no soporta OR directo en query params simples
+      // Necesitamos usar un enfoque diferente: cargar con OR usando paréntesis
+      // La sintaxis sería: or=(company_id.is.null,company_id.eq.{companyId})
+      return {
+        ...params,
+        or: `(company_id.is.null,company_id.eq.${companyId})`
+      };
+    }
     
     if (tablesWithCompanyId.includes(tableName)) {
       return {
@@ -79,43 +85,23 @@ export function withCustomEntities<T extends { id: EntityId }>({
     return params;
   };
   
-  // Helper para limpiar query de campos opcionales que pueden no existir y adaptar relaciones
+  // Helper para limpiar query de campos opcionales que pueden no existir
+  // Ya no hay tablas naz_*, todo es por company_id en tablas compartidas
   const cleanQuery = (q: string, tableName: string, orgService: OrganizationService): string => {
     let cleaned = q;
-    const isNaz = orgService.isNaz();
     
-    // Si es Naz, adaptar las relaciones en la query
-    if (isNaz && tableName.startsWith('naz_')) {
-      // Reemplazar relaciones de tablas normales por naz_*
-      cleaned = cleaned.replace(/branch:branches\(/g, 'branch:naz_branches(');
-      cleaned = cleaned.replace(/department:departments\(/g, 'department:naz_departments(');
-      cleaned = cleaned.replace(/position:positions\(/g, 'position:naz_positions(');
-      cleaned = cleaned.replace(/company:companies\(/g, 'company:naz_companies(');
-      
-      // Remover company_id del select (las tablas de Naz no tienen este campo)
-      cleaned = cleaned.replace(/company_id,?\s*/g, '');
-      
-      // Remover campos que no existen en naz_positions
-      cleaned = cleaned.replace(/dashboard_access,?\s*/g, '');
-      cleaned = cleaned.replace(/default_view,?\s*/g, '');
-      cleaned = cleaned.replace(/available_for_job_fair,?\s*/g, '');
-      
-      // Limpiar comas dobles o comas seguidas de espacios y paréntesis
-      cleaned = cleaned.replace(/,\s*,/g, ','); // Comas dobles
-      cleaned = cleaned.replace(/,\s*\)/g, ')'); // Coma antes de paréntesis de cierre
-      cleaned = cleaned.replace(/\(\s*,/g, '('); // Coma después de paréntesis de apertura
-      cleaned = cleaned.replace(/,\s*,/g, ','); // Otra vez por si acaso
-    }
+    // Ya no necesitamos adaptar relaciones para naz_* porque todo usa tablas compartidas
+    // Solo limpiar campos que pueden no existir en algunas versiones
     
     // positions puede no tener estos campos si fueron agregados después
     // (mantener compatibilidad con tablas que no los tienen)
-    if (tableName === 'positions' || tableName === 'naz_positions') {
+    if (tableName === 'positions') {
       // No remover, solo asegurar que la query funcione
       // Los campos opcionales se manejarán en el backend
     }
     
     // employees puede no tener use_timelog o week_hours en algunos casos
-    if (tableName === 'employees' || tableName === 'naz_employees') {
+    if (tableName === 'employees') {
       // No remover, solo asegurar que la query funcione
       // Los campos opcionales se manejarán en el backend
     }

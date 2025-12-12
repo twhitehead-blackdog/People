@@ -82,12 +82,22 @@ export class CreditorsComponent {
   private ref = inject(DynamicDialogRef);
   private dialogService = inject(DialogService);
 
+  constructor() {
+    // Asegurar que los acreedores se carguen al inicializar el componente
+    this.store.creditors.fetchItems();
+  }
+
   editCreditor(creditor?: Creditor) {
     this.ref = this.dialogService.open(CreditorsFormComponent, {
       width: '36rem',
       data: { creditor },
       header: 'Datos del accreedor',
       modal: true,
+    });
+    
+    // Recargar la lista cuando se cierre el diálogo
+    this.ref.onClose.subscribe(() => {
+      this.store.creditors.reloadItems();
     });
   }
 }

@@ -37,6 +37,7 @@ import { OrganizationService } from '../services/organization.service';
         <div class="input-container">
           <label for="department_id">Área</label>
           <p-select
+            inputId="department_id"
             formControlName="department_id"
             [options]="store.departments.entities()"
             optionLabel="name"
@@ -143,13 +144,9 @@ export class PositionsFormComponent implements OnInit {
       this.dialogRef.close();
       return;
     }
-    // Filtrar campos que no existen en naz_positions si es Naz
+    // Ya no se filtran campos, todo se guarda (tablas compartidas)
     const formValue = this.form.getRawValue();
-    let dataToSave: any = formValue;
-    if (this.organizationService.isNaz()) {
-      const { available_for_job_fair, dashboard_access, ...filteredData } = formValue;
-      dataToSave = filteredData;
-    }
+    const dataToSave: any = formValue;
     
     iif(
       () => this.dialog.data.position,

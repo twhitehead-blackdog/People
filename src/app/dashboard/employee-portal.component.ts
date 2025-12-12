@@ -1897,8 +1897,8 @@ export class EmployeePortalComponent {
       params.company_id = `eq.${companyId}`;
     }
     
-    // Usar la tabla correcta según la organización
-    const tableName = isNaz ? 'naz_timelogs' : 'timelogs';
+    // Ya no hay tablas naz_*, todo es por company_id
+    const tableName = 'timelogs';
     
     return {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,

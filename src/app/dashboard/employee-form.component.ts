@@ -336,7 +336,20 @@ import { firstValueFrom } from 'rxjs';
                     appendTo="body"
                     filter
                     placeholder="Seleccione un banco"
-                  />
+                  >
+                    <ng-template pTemplate="selectedItem" let-selected>
+                      @if(selected && typeof selected === 'object') {
+                        {{ selected.name }}
+                      } @else if(selected) {
+                        {{ getBankName(selected) }}
+                      } @else {
+                        Seleccione un banco
+                      }
+                    </ng-template>
+                    <ng-template let-item pTemplate="item">
+                      {{ item.name }}
+                    </ng-template>
+                  </p-select>
                 </div>
                 <div class="input-container">
                   <label for="account_number">Número de Cuenta</label>
@@ -564,13 +577,13 @@ export class EmployeeFormComponent implements OnInit {
     const companyId = this.organizationService.getCurrentCompanyId();
     const params: any = {
       select: 'id,name',
+      order: 'name',
     };
     
-    // Agregar filtro por company_id si está disponible (banks puede tener company_id NULL para compartidos)
+    // Permitir bancos compartidos (company_id IS NULL) o del company_id actual
     if (companyId) {
-      // Permitir bancos compartidos (company_id IS NULL) o del company_id actual
-      // Esto requiere una query más compleja, por ahora solo filtramos por company_id si existe
-      params.company_id = `eq.${companyId}`;
+      // Usar or para incluir bancos compartidos (NULL) o del company_id actual
+      params.or = `(company_id.is.null,company_id.eq.${companyId})`;
     }
     
     return {
@@ -636,7 +649,7 @@ export class EmployeeFormComponent implements OnInit {
     is_active: new FormControl(true, { nonNullable: true }),
     company_id: new FormControl('', {
       nonNullable: true,
-      // company_id no es requerido para naz_employees
+      // company_id es requerido siempre
       validators: [],
     }),
     work_email: new FormControl('', { nonNullable: true }),
@@ -745,6 +758,20 @@ export class EmployeeFormComponent implements OnInit {
       },
       { injector: this.injector }
     );
+    // Effect para actualizar el banco cuando se carguen los bancos
+    effect(
+      () => {
+        const employee = this.currentEmployee.value()?.[0];
+        const banks = this.banks.value();
+        if (employee?.bank && banks && banks.length > 0) {
+          const bankExists = banks.some(b => b.id === employee.bank);
+          if (bankExists) {
+            this.form.get('bank')?.setValue(employee.bank, { emitEvent: false });
+          }
+        }
+      },
+      { injector: this.injector }
+    );
     effect(
       () => {
         this.form.get('hourly_salary')?.patchValue(this.hourlySalary());
@@ -764,8 +791,25 @@ export class EmployeeFormComponent implements OnInit {
     this.form
       .get('start_date')
       ?.patchValue(toDate(employee.start_date, { timeZone: 'America/Panama' }));
+    
+    // Asegurar que el banco se establezca correctamente cuando los bancos estén cargados
+    if (employee.bank && this.banks.value()) {
+      const bankExists = this.banks.value()?.some(b => b.id === employee.bank);
+      if (bankExists) {
+        this.form.get('bank')?.setValue(employee.bank);
+      }
+    }
+    
     this.form.markAsPristine();
     this.form.markAsUntouched();
+  }
+
+  getBankName(bankId: string | null | undefined): string {
+    if (!bankId) return '';
+    const banksList = this.banks.value();
+    if (!banksList) return bankId;
+    const bank = banksList.find(b => b.id === bankId);
+    return bank?.name || bankId;
   }
 
   private getFieldLabel(fieldName: string): string {
@@ -820,13 +864,9 @@ export class EmployeeFormComponent implements OnInit {
       // Es un empleado nuevo
       this.addTimeclockQR();
       
-      // Filtrar campos que no existen en naz_employees si es Naz
+      // Ya no se filtran campos, todo se guarda (tablas compartidas)
       const formValue = this.form.getRawValue();
-      let dataToSave: any = formValue;
-      if (this.organizationService.isNaz()) {
-        const { use_timelog, week_hours, company_id, ...filteredData } = formValue;
-        dataToSave = filteredData;
-      }
+      const dataToSave: any = formValue;
       
       // Generar número de empleado automáticamente
       this.generateEmployeeNumber(dataToSave.company_id).then((employeeNumber) => {
@@ -892,13 +932,9 @@ export class EmployeeFormComponent implements OnInit {
         });
       });
     } else {
-      // Filtrar campos que no existen en naz_employees si es Naz
+      // Ya no se filtran campos, todo se guarda (tablas compartidas)
       const formValue = this.form.getRawValue();
-      let dataToSave: any = formValue;
-      if (this.organizationService.isNaz()) {
-        const { use_timelog, week_hours, company_id, ...filteredData } = formValue;
-        dataToSave = filteredData;
-      }
+      const dataToSave: any = formValue;
       
       this.store.employees.editItem(dataToSave).subscribe({
         next: () => {
@@ -963,7 +999,7 @@ export class EmployeeFormComponent implements OnInit {
       const orgService = this.organizationService;
       const isNaz = orgService.isNaz();
       
-      // Si es Naz, usar prefijo NZ directamente (naz_employees no tiene company_id)
+      // Determinar prefijo basado en company_id
       // Si es Black Dog, obtener company_id y determinar prefijo
       let prefix: string;
       
@@ -975,8 +1011,8 @@ export class EmployeeFormComponent implements OnInit {
         prefix = getEmployeeNumberPrefix(companyId || null, nazCompanyId, blackdogCompanyId);
       }
       
-      // Determinar el nombre de la tabla
-      const tableName = isNaz ? 'naz_employees' : 'employees';
+      // Ya no hay tablas naz_*, todo es por company_id
+      const tableName = 'employees';
       
       // Obtener todos los números de empleado existentes mediante una llamada HTTP directa
       // Solo necesitamos employee_number, no todos los campos

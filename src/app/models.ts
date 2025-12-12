@@ -15,6 +15,7 @@ export type Branch = {
   is_active: boolean;
   created_at?: Date;
   ip: string;
+  company_id?: string;
 };
 
 export type Department = {

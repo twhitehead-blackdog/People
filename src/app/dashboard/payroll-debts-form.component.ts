@@ -40,7 +40,7 @@ import { PayrollsStore } from '../stores/payrolls.store';
       <div class="input-container">
         <label for="employee">Empleado</label>
         <p-select
-          id="employee"
+          inputId="employee"
           fluid
           formControlName="employee_id"
           [options]="employees.activeEmployees()"
@@ -55,7 +55,7 @@ import { PayrollsStore } from '../stores/payrolls.store';
       <div class="input-container">
         <label for="payroll">Planilla</label>
         <p-select
-          id="payroll"
+          inputId="payroll"
           formControlName="payroll_id"
           fluid
           [options]="store.entities()"
@@ -70,7 +70,7 @@ import { PayrollsStore } from '../stores/payrolls.store';
       <div class="input-container">
         <label for="creditor">Acreedor</label>
         <p-select
-          id="creditor"
+          inputId="creditor"
           formControlName="creditor_id"
           fluid
           [options]="creditors.entities()"
@@ -115,7 +115,7 @@ import { PayrollsStore } from '../stores/payrolls.store';
       <div class="input-container">
         <label for="start_date">Fecha de inicio</label>
         <p-datepicker
-          id="start_date"
+          inputId="start_date"
           formControlName="start_date"
           showIcon
           appendTo="body"
@@ -124,7 +124,7 @@ import { PayrollsStore } from '../stores/payrolls.store';
       <div class="input-container">
         <label for="due_date">Fecha de vencimiento</label>
         <p-datepicker
-          id="due_date"
+          inputId="due_date"
           formControlName="due_date"
           showIcon
           appendTo="body"

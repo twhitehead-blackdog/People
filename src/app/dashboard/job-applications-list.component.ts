@@ -999,17 +999,8 @@ export class JobApplicationsListComponent implements OnInit {
   async togglePositionAvailability(position: Position, isAvailable: boolean) {
     this.isUpdatingPosition.set(true);
     try {
-      const isNaz = this.organizationService.isNaz();
-      // available_for_job_fair no existe en naz_positions, solo aplicar si no es Naz
-      if (isNaz) {
-        this.messageService.add({
-          severity: 'warn',
-          summary: 'No disponible',
-          detail: 'Esta funcionalidad no está disponible para Naz',
-        });
-        this.isUpdatingPosition.set(false);
-        return;
-      }
+      // Ya no hay restricciones para Naz, todo funciona igual
+      // (comentado porque ahora todas las tablas son compartidas)
       const companyId = this.organizationService.getCurrentCompanyId();
       const params: any = { id: `eq.${position.id}` };
       

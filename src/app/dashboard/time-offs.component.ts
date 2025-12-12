@@ -33,7 +33,7 @@ import { EmployeesStore } from '../stores/employees.store';
   template: `<form [formGroup]="form" (ngSubmit)="saveChanges()">
     <div class="flex flex-col md:grid grid-cols-2 gap-4">
       <div class="input-container">
-        <label for="employee_id">Empleado</label>
+        <label for="employee">Empleado</label>
         <p-select
           formControlName="employee_id"
           inputId="employee"
@@ -63,12 +63,11 @@ import { EmployeesStore } from '../stores/employees.store';
         />
       </div>
       <div class="input-container">
-        <label for="star_date">Duracion</label>
+        <label for="start_date">Duracion</label>
         <p-datepicker
-          formControlName="start_date"
+          formControlName="dateRange"
           inputId="start_date"
           selectionMode="range"
-          formControlName="dateRange"
           appendTo="body"
         />
       </div>
@@ -78,7 +77,7 @@ import { EmployeesStore } from '../stores/employees.store';
       </div>
       <div class="input-container md:col-span-2">
         <label for="notes">Comentarios</label>
-        <textarea pTextarea formControlName="notes" rows="4"></textarea>
+        <textarea pTextarea formControlName="notes" id="notes" rows="4"></textarea>
       </div>
     </div>
     <div class="dialog-actions">
