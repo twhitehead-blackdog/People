@@ -36,11 +36,12 @@ import { markGroupDirty } from '../services/util.service';
       <div class="flex flex-col md:grid md:grid-cols-2 gap-4">
         <div class="input-container">
           <label for="name">Nombre</label>
-          <input pInputText formControlName="name" />
+          <input pInputText formControlName="name" id="name" />
         </div>
         <div class="input-container">
           <label for="value">Valor</label>
           <p-inputnumber
+            id="value"
             formControlName="value"
             mode="decimal"
             minFractionDigits="2"
@@ -50,6 +51,7 @@ import { markGroupDirty } from '../services/util.service';
         <div class="input-container">
           <label for="calculation_type">Tipo de Calculo</label>
           <p-select
+            inputId="calculation_type"
             formControlName="calculation_type"
             [options]="calculationTypes"
             optionLabel="name"
@@ -60,6 +62,7 @@ import { markGroupDirty } from '../services/util.service';
         <div class="input-container">
           <label for="min_salary">Salario Minimo</label>
           <p-inputnumber
+            id="min_salary"
             formControlName="min_salary"
             mode="currency"
             currency="USD"
@@ -69,7 +72,7 @@ import { markGroupDirty } from '../services/util.service';
         </div>
         <div class="input-container">
           <label for="income_tax">Impuesto sobre la renta</label>
-          <p-toggleSwitch formControlName="income_tax" />
+          <p-toggleSwitch formControlName="income_tax" inputId="income_tax" />
         </div>
       </div>
       <div class="dialog-actions pt-1">

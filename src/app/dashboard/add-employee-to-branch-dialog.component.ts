@@ -27,6 +27,7 @@ import { DashboardStore } from '../stores/dashboard.store';
       <div class="input-container">
         <label for="employee">Buscar empleado</label>
         <p-select
+          inputId="employee"
           [(ngModel)]="selectedEmployee"
           [options]="availableEmployees()"
           optionValue="id"
@@ -78,6 +79,7 @@ import { DashboardStore } from '../stores/dashboard.store';
         <div class="input-container">
           <label for="branch">Seleccionar sucursal</label>
           <p-select
+            inputId="branch"
             [(ngModel)]="selectedBranch"
             [options]="store.branches.entities()"
             optionValue="id"

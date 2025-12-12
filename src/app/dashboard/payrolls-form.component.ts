@@ -33,11 +33,12 @@ import { DashboardStore } from '../stores/dashboard.store';
     >
       <div class="input-container">
         <label for="name">Nombre</label>
-        <input pInputText formControlName="name" />
+        <input pInputText formControlName="name" id="name" />
       </div>
       <div class="input-container">
         <label for="company">Empresa</label>
         <p-select
+          inputId="company"
           formControlName="company_id"
           [options]="store.companies.entities()"
           optionLabel="name"

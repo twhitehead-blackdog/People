@@ -34,6 +34,7 @@ import { EmployeesStore } from '../stores/employees.store';
         <div class="input-container">
           <label for="employee_id">Empleado</label>
           <p-select
+            inputId="employee_id"
             formControlName="employee_id"
             label="Empleado"
             [options]="employees.activeEmployees()"
@@ -48,6 +49,7 @@ import { EmployeesStore } from '../stores/employees.store';
         <div class="input-container">
           <label for="monthly_salary">Salario Mensual</label>
           <p-inputnumber
+            id="monthly_salary"
             formControlName="monthly_salary"
             mode="currency"
             currency="USD"
@@ -58,6 +60,7 @@ import { EmployeesStore } from '../stores/employees.store';
         <div class="input-container">
           <label for="hourly_salary">Salario por Hora</label>
           <p-inputnumber
+            id="hourly_salary"
             formControlName="hourly_salary"
             mode="currency"
             currency="USD"

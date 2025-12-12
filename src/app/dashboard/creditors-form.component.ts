@@ -28,7 +28,7 @@ import { PayrollStore } from '../stores/payroll.store';
     <form [formGroup]="form" (ngSubmit)="saveChanges()">
       <div class="input-container">
         <label for="name">Nombre</label>
-        <input pInputText formControlName="name" />
+        <input pInputText formControlName="name" id="name" />
       </div>
       <div class="dialog-actions pt-4">
         <p-button

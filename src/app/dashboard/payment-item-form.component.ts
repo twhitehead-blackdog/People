@@ -39,7 +39,7 @@ import { Select } from 'primeng/select';
         <div class="input-container">
           <label for="type">Tipo</label>
           <p-select
-            id="type"
+            inputId="type"
             formControlName="type"
             optionLabel="name"
             optionValue="value"

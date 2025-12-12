@@ -25,7 +25,7 @@ import { markGroupDirty } from '../services/util.service';
       <div class="input-container">
         <label for="cause">Causa</label>
         <p-select
-          id="cause"
+          inputId="cause"
           fluid
           formControlName="cause"
           optionLabel="label"

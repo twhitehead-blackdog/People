@@ -221,7 +221,7 @@ import { JobApplicationsStore } from '../stores/job-applications.store';
                 Estado
               </label>
               <p-select
-                id="status"
+                inputId="status"
                 formControlName="status"
                 [options]="statusOptions"
                 optionLabel="label"
@@ -234,7 +234,7 @@ import { JobApplicationsStore } from '../stores/job-applications.store';
                 Fecha de Entrevista
               </label>
               <p-datepicker
-                id="interview_date"
+                inputId="interview_date"
                 formControlName="interview_date"
                 iconDisplay="input"
                 [showIcon]="true"

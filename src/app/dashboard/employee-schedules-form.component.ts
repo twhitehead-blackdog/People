@@ -47,6 +47,7 @@ import { DashboardStore } from '../stores/dashboard.store';
       <div class="input-container">
         <label for="employee_id">Empleado</label>
         <p-select
+          inputId="employee_id"
           formControlName="employee_id"
           [options]="store.employees.employeesList()"
           optionValue="id"
@@ -66,6 +67,7 @@ import { DashboardStore } from '../stores/dashboard.store';
       <div class="input-container">
         <label for="schedule_id">Turno</label>
         <p-select
+          inputId="schedule_id"
           [options]="store.schedules.entities()"
           optionLabel="name"
           optionValue="id"
@@ -98,15 +100,16 @@ import { DashboardStore } from '../stores/dashboard.store';
 
       <div class="input-container">
         <label for="start_date">Fecha inicio</label>
-        <p-datepicker formControlName="start_date" appendTo="body" />
+        <p-datepicker inputId="start_date" formControlName="start_date" appendTo="body" />
       </div>
       <div class="input-container">
         <label for="end_date">Fecha fin</label>
-        <p-datepicker formControlName="end_date" appendTo="body" />
+        <p-datepicker inputId="end_date" formControlName="end_date" appendTo="body" />
       </div>
       <div class="input-container">
         <label for="branch_id">Sucursal</label>
         <p-select
+          inputId="branch_id"
           formControlName="branch_id"
           [options]="store.branches.entities()"
           optionLabel="name"
