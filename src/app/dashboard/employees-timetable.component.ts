@@ -319,7 +319,8 @@ export class EmployeesTimetableComponent implements OnInit {
     {
       let current = this.start();
       const dayList: { date: Date; day: number; shift: any }[] = [];
-      while (isBefore(current, this.end())) {
+      // Iterar exactamente 7 días (lunes a domingo) para asegurar que se incluyan todos los días
+      for (let i = 0; i < 7; i++) {
         dayList.push({
           date: current,
           day: getDate(current),

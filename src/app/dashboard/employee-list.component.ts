@@ -505,7 +505,7 @@ import { EmployeeFormComponent } from './employee-form.component';
       letter-spacing: 0.05em !important;
       color: #e5e7eb !important;
       text-transform: uppercase !important;
-      background-color: rgba(31, 41, 55, 0.95) !important;
+      background-color: #474747 !important;
       border-bottom: 2px solid rgba(107, 114, 128, 0.6) !important;
       padding: 1rem 0.75rem !important;
     }
@@ -515,12 +515,12 @@ import { EmployeeFormComponent } from './employee-form.component';
       color: #ffffff !important;
       cursor: pointer !important;
       transition: all 0.2s ease !important;
-      background-color: rgba(17, 24, 39, 0.95) !important;
+      background-color: #474747 !important;
     }
 
     :host ::ng-deep .p-datatable .p-datatable-thead > tr:last-child > th.p-datatable-sortable-column:hover {
-      background-color: rgba(55, 65, 81, 1) !important;
-      color: #60a5fa !important;
+      background-color: rgba(249, 115, 22, 0.2) !important; /* Naranja con opacidad */
+      color: #fbbf24 !important; /* Amarillo/naranja claro para el texto */
     }
 
     /* Columna Cargo - ancho limitado y permite múltiples líneas */
@@ -546,7 +546,8 @@ import { EmployeeFormComponent } from './employee-form.component';
     }
 
     :host ::ng-deep .p-datatable .p-datatable-thead > tr > th.p-datatable-sortable-column:hover {
-      background-color: rgba(255, 255, 255, 0.05) !important;
+      background-color: rgba(249, 115, 22, 0.15) !important;
+      color: #fbbf24 !important;
     }
 
     /* Estilo cuando la columna está activa (ordenada) - Igual que "Nombre" */
@@ -583,6 +584,8 @@ import { EmployeeFormComponent } from './employee-form.component';
       text-overflow: ellipsis;
       white-space: nowrap;
       vertical-align: middle;
+      text-align: center !important;
+      margin: 0 auto;
     }
 
     /* Centrar columna de número (primera columna en encabezados, primera columna en body) */
@@ -591,16 +594,6 @@ import { EmployeeFormComponent } from './employee-form.component';
       text-align: center !important;
     }
 
-    /* Excepciones: Alineación izquierda para enlaces de nombres */
-    :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td:nth-child(2) {
-      text-align: left !important;
-    }
-
-    :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td:nth-child(2) a {
-      display: inline-block;
-      width: 100%;
-      text-align: left;
-    }
 
     /* Reducir ancho del input de búsqueda de número (primera fila = filtros, primera columna) */
     :host ::ng-deep .p-datatable .p-datatable-thead > tr:first-child > th:first-child p-columnfilter input.p-inputtext {
