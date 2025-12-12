@@ -106,7 +106,7 @@ import { HttpClient } from '@angular/common/http';
                   >
                     <i class="pi pi-money-bill text-base"></i> <span>Nómina</span></a
                   >
-                  } @if(store.hasDashboardAccess() && ((store.isScheduleAdmin() && !store.hasPortalAccessOnly()) || store.hasTimeManagementAccess())) {
+                  } @if(store.hasDashboardAccess() && ((store.isAdmin() || (store.isScheduleAdmin() && !store.hasPortalAccessOnly())) || store.hasTimeManagementAccess())) {
                   <a
                     (click)="navigateTo('time-management')"
                     [class.selected]="isActiveRoute('time-management')"
@@ -185,7 +185,7 @@ import { HttpClient } from '@angular/common/http';
               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
               ><i class="pi pi-building text-lg"></i> <span>Administración</span></a
             >
-            } @if(store.hasDashboardAccess() && ((store.isScheduleAdmin() && !store.hasPortalAccessOnly()) || store.hasTimeManagementAccess())) {
+            } @if(store.hasDashboardAccess() && ((store.isAdmin() || (store.isScheduleAdmin() && !store.hasPortalAccessOnly())) || store.hasTimeManagementAccess())) {
             <a
               (click)="navigateTo('time-management'); toggleMenu()"
               [class.bg-gray-700]="isActiveRoute('time-management')"

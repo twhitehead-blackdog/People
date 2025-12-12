@@ -76,6 +76,7 @@ export type Employee = {
   debts?: PayrollDebt[];
   has_portal_access?: boolean;
   account_approved?: boolean;
+  total_lunch_exceeded_minutes?: number;
 };
 
 export type TimeOffType = {
@@ -355,7 +356,103 @@ export const colorVariants: Record<string, string> = {
   pink: 'bg-pink-300 text-pink-800',
   teal: 'bg-teal-300 text-teal-800',
   cyan: 'bg-cyan-300 text-cyan-800',
+  // Colores adicionales recomendados
+  emerald: 'bg-emerald-300 text-emerald-800',
+  lime: 'bg-lime-300 text-lime-800',
+  amber: 'bg-amber-300 text-amber-800',
+  rose: 'bg-rose-300 text-rose-800',
+  violet: 'bg-violet-300 text-violet-800',
+  fuchsia: 'bg-fuchsia-300 text-fuchsia-800',
+  blue: 'bg-blue-300 text-blue-800',
+  stone: 'bg-stone-300 text-stone-800',
+  neutral: 'bg-neutral-300 text-neutral-800',
+  zinc: 'bg-zinc-300 text-zinc-800',
+  gray: 'bg-gray-300 text-gray-800',
 };
+
+// Función helper para obtener el estilo de color de un schedule
+// Maneja tanto colores recomendados (de colorVariants) como colores RGB personalizados
+export function getScheduleColorStyle(
+  color: string | undefined | null
+): string {
+  if (!color) return '';
+
+  // Si el color está en colorVariants, retornar la clase Tailwind
+  if (colorVariants[color]) {
+    return colorVariants[color];
+  }
+
+  // Si es un color RGB personalizado, retornar estilo inline
+  if (color.startsWith('rgb(')) {
+    return '';
+  }
+
+  // Si es hex, convertir a RGB
+  if (color.startsWith('#')) {
+    const rgb = hexToRgb(color);
+    return '';
+  }
+
+  return '';
+}
+
+// Función helper para obtener el estilo inline de color (para colores personalizados)
+export function getScheduleColorInlineStyle(
+  color: string | undefined | null
+): { [key: string]: string } | null {
+  if (!color) return null;
+
+  // Si el color está en colorVariants, no necesita estilo inline
+  if (colorVariants[color]) {
+    return null;
+  }
+
+  // Si es un color RGB personalizado
+  if (color.startsWith('rgb(')) {
+    return {
+      'background-color': color,
+      color: getTextColorForRgb(color),
+    };
+  }
+
+  // Si es hex, convertir a RGB
+  if (color.startsWith('#')) {
+    const rgb = hexToRgb(color);
+    return {
+      'background-color': rgb,
+      color: getTextColorForRgb(rgb),
+    };
+  }
+
+  return null;
+}
+
+// Convertir Hex a RGB
+function hexToRgb(hex: string): string {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  if (!result) return 'rgb(59, 130, 246)';
+
+  const r = parseInt(result[1], 16);
+  const g = parseInt(result[2], 16);
+  const b = parseInt(result[3], 16);
+
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+// Determinar color de texto según el fondo RGB
+function getTextColorForRgb(rgb: string): string {
+  const match = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+  if (!match) return '#000000';
+
+  const r = parseInt(match[1], 10);
+  const g = parseInt(match[2], 10);
+  const b = parseInt(match[3], 10);
+
+  // Calcular luminosidad
+  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+  return luminance > 0.5 ? '#000000' : '#ffffff';
+}
 
 // ============================================
 // SISTEMA DE MARCACIONES INDEPENDIENTE PARA NAZ

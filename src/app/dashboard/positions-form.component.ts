@@ -20,9 +20,9 @@ import { Select } from 'primeng/select';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { iif } from 'rxjs';
 import { v4 } from 'uuid';
+import { OrganizationService } from '../services/organization.service';
 import { markGroupDirty } from '../services/util.service';
 import { DashboardStore } from '../stores/dashboard.store';
-import { OrganizationService } from '../services/organization.service';
 
 @Component({
   selector: 'pt-positions-form',
@@ -57,8 +57,7 @@ import { OrganizationService } from '../services/organization.service';
             >Disponible en Feria de Empleo</label
           >
         </div>
-        }
-        @if (!organizationService.isNaz()) {
+        } @if (!organizationService.isNaz()) {
         <div class="flex items-center gap-2">
           <p-toggleswitch
             formControlName="dashboard_access"
@@ -119,8 +118,14 @@ export class PositionsFormComponent implements OnInit {
     const { position } = this.dialog.data;
     if (position) {
       this.form.patchValue({
-        ...position,
+        id: position.id,
+        name: position.name || '',
         department_id: position.department_id || position.department?.id || '',
+        available_for_job_fair: position.available_for_job_fair || false,
+        admin: position.admin || false,
+        schedule_admin: position.schedule_admin || false,
+        schedule_approver: position.schedule_approver || false,
+        dashboard_access: position.dashboard_access || false,
       });
     }
   }
@@ -147,7 +152,7 @@ export class PositionsFormComponent implements OnInit {
     // Ya no se filtran campos, todo se guarda (tablas compartidas)
     const formValue = this.form.getRawValue();
     const dataToSave: any = formValue;
-    
+
     iif(
       () => this.dialog.data.position,
       this.store.positions.editItem(dataToSave),

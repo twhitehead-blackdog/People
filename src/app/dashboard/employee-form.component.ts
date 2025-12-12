@@ -1,4 +1,4 @@
-import { httpResource, HttpClient } from '@angular/common/http';
+import { HttpClient, httpResource } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -30,18 +30,17 @@ import { Select } from 'primeng/select';
 import { Skeleton } from 'primeng/skeleton';
 import { TabsModule } from 'primeng/tabs';
 import QRCode from 'qrcode';
-import { debounceTime } from 'rxjs';
+import { debounceTime, firstValueFrom } from 'rxjs';
 import { markGroupDirty } from 'src/app/services/util.service';
 import { v4 } from 'uuid';
 import { Bank, Employee, UniformSize } from '../models';
-import { DashboardStore } from '../stores/dashboard.store';
-import { WassengerService } from '../services/wassenger.service';
 import { OrganizationService } from '../services/organization.service';
-import { 
-  generateNextEmployeeNumber, 
-  getEmployeeNumberPrefix 
+import { WassengerService } from '../services/wassenger.service';
+import { DashboardStore } from '../stores/dashboard.store';
+import {
+  generateNextEmployeeNumber,
+  getEmployeeNumberPrefix,
 } from '../utils/employee-number.utils';
-import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'pt-employee-form',
@@ -135,7 +134,9 @@ import { firstValueFrom } from 'rxjs';
             <div class="space-y-6">
               <!-- Información Básica -->
               <div class="border-b border-neutral-700 pb-4">
-                <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <h3
+                  class="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+                >
                   <i class="pi pi-id-card text-amber-400"></i>
                   Información Básica
                 </h3>
@@ -228,7 +229,9 @@ import { firstValueFrom } from 'rxjs';
 
               <!-- Estado del Empleado -->
               <div class="border-b border-neutral-700 pb-4">
-                <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <h3
+                  class="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+                >
                   <i class="pi pi-check-circle text-amber-400"></i>
                   Estado
                 </h3>
@@ -238,17 +241,21 @@ import { firstValueFrom } from 'rxjs';
                     [binary]="true"
                     inputId="is_active"
                   />
-                  <label for="is_active" class="text-gray-300">Empleado Activo</label>
+                  <label for="is_active" class="text-gray-300"
+                    >Empleado Activo</label
+                  >
                 </div>
               </div>
             </div>
           </p-tabpanel>
-          
+
           <p-tabpanel value="1">
             <div class="space-y-6">
               <!-- Información de Contacto -->
               <div class="border-b border-neutral-700 pb-4">
-                <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <h3
+                  class="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+                >
                   <i class="pi pi-envelope text-amber-400"></i>
                   Correos Electrónicos
                 </h3>
@@ -278,7 +285,9 @@ import { firstValueFrom } from 'rxjs';
 
               <!-- Teléfono -->
               <div class="border-b border-neutral-700 pb-4">
-                <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <h3
+                  class="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+                >
                   <i class="pi pi-phone text-amber-400"></i>
                   Teléfono
                 </h3>
@@ -298,7 +307,9 @@ import { firstValueFrom } from 'rxjs';
 
               <!-- Dirección -->
               <div>
-                <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                <h3
+                  class="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+                >
                   <i class="pi pi-map-marker text-amber-400"></i>
                   Dirección
                 </h3>
@@ -317,10 +328,12 @@ import { firstValueFrom } from 'rxjs';
               </div>
             </div>
           </p-tabpanel>
-          
+
           <p-tabpanel value="2">
             <div class="space-y-6">
-              <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <h3
+                class="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+              >
                 <i class="pi pi-university text-amber-400"></i>
                 Información Bancaria
               </h3>
@@ -339,12 +352,10 @@ import { firstValueFrom } from 'rxjs';
                   >
                     <ng-template pTemplate="selectedItem" let-selected>
                       @if(selected && typeof selected === 'object') {
-                        {{ selected.name }}
+                      {{ selected.name }}
                       } @else if(selected) {
-                        {{ getBankName(selected) }}
-                      } @else {
-                        Seleccione un banco
-                      }
+                      {{ getBankName(selected) }}
+                      } @else { Seleccione un banco }
                     </ng-template>
                     <ng-template let-item pTemplate="item">
                       {{ item.name }}
@@ -376,108 +387,121 @@ import { firstValueFrom } from 'rxjs';
           </p-tabpanel>
           <p-tabpanel value="3">
             <div class="space-y-6">
-              <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+              <h3
+                class="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+              >
                 <i class="pi pi-building text-amber-400"></i>
                 Información Laboral
               </h3>
               <div class="flex flex-col md:grid grid-cols-4 md:gap-4">
-              <div class="input-container">
-                <label for="company">Empresa</label>
-                <p-select
-                  [options]="store.companies.entities()"
-                  optionLabel="name"
-                  optionValue="id"
-                  inputId="company"
-                  formControlName="company_id"
-                  placeholder="Seleccione una empresa"
-                  appendTo="body"
-                />
-              </div>
-              <div class="input-container">
-                <label for="position">Cargo</label>
-                <p-select
-                  [options]="store.positions.entities()"
-                  optionLabel="name"
-                  optionValue="id"
-                  inputId="position"
-                  formControlName="position_id"
-                  appendTo="body"
-                  placeholder="Seleccione un cargo"
-                />
-              </div>
-              <div class="input-container">
-                <label for="department">Area</label>
-                <p-select
-                  [options]="store.departments.entities()"
-                  optionLabel="name"
-                  optionValue="id"
-                  inputId="department"
-                  formControlName="department_id"
-                  appendTo="body"
-                  placeholder="Seleccione un area"
-                />
-              </div>
-              <div class="input-container">
-                <label for="branch">Sucursal</label>
-                <p-select
-                  [options]="store.branches.entities()"
-                  optionLabel="name"
-                  optionValue="id"
-                  inputId="branch"
-                  formControlName="branch_id"
-                  placeholder="Seleccione una sucursal"
-                  appendTo="body"
-                />
-              </div>
-              <div class="input-container">
-                <label for="salary">Salario mensual</label>
-                <p-inputNumber
-                  mode="currency"
-                  currency="USD"
-                  formControlName="monthly_salary"
-                  id="salary"
-                  placeholder="Salario mensual"
-                />
-              </div>
-              <div class="input-container">
-                <label for="hourly_salary">Salario por hora</label>
-                <p-inputNumber
-                  mode="currency"
-                  currency="USD"
-                  formControlName="hourly_salary"
-                  id="hourly_salary"
-                  placeholder="Salario por hora"
-                />
-              </div>
-              <div class="input-container">
-                <label for="start_date">Fecha de inicio</label>
-                <p-datepicker
-                  inputId="start_date"
-                  formControlName="start_date"
-                  iconDisplay="input"
-                  [showIcon]="true"
-                  appendTo="body"
-                  placeholder="dd/mm/yyyy"
-                />
-              </div>
-              @if (!organizationService.isNaz()) {
-              <div class="input-container">
-                <label for="week_hours">Horas semanales</label>
-                <p-inputNumber
-                  formControlName="week_hours"
-                  id="week_hours"
-                  placeholder="Horas semanales"
-                />
-              </div>
-              <div class="input-container">
-                <label for="use_timelog">Marca reloj </label>
-                <p-checkbox
-                  [binary]="true"
-                  formControlName="use_timelog"
-                  inputId="use_timelog"
-                />
-              </div>
-              }
+                <div class="input-container">
+                  <label for="employee_number">Número de Empleado</label>
+                  <input
+                    type="text"
+                    id="employee_number"
+                    pInputText
+                    formControlName="employee_number"
+                    placeholder="Ej: BD0001, NZ0001"
+                    [maxlength]="10"
+                  />
+                </div>
+                <div class="input-container">
+                  <label for="company">Empresa</label>
+                  <p-select
+                    [options]="store.companies.entities()"
+                    optionLabel="name"
+                    optionValue="id"
+                    inputId="company"
+                    formControlName="company_id"
+                    placeholder="Seleccione una empresa"
+                    appendTo="body"
+                  />
+                </div>
+                <div class="input-container">
+                  <label for="position">Cargo</label>
+                  <p-select
+                    [options]="store.positions.entities()"
+                    optionLabel="name"
+                    optionValue="id"
+                    inputId="position"
+                    formControlName="position_id"
+                    appendTo="body"
+                    placeholder="Seleccione un cargo"
+                  />
+                </div>
+                <div class="input-container">
+                  <label for="department">Area</label>
+                  <p-select
+                    [options]="store.departments.entities()"
+                    optionLabel="name"
+                    optionValue="id"
+                    inputId="department"
+                    formControlName="department_id"
+                    appendTo="body"
+                    placeholder="Seleccione un area"
+                  />
+                </div>
+                <div class="input-container">
+                  <label for="branch">Sucursal</label>
+                  <p-select
+                    [options]="store.branches.entities()"
+                    optionLabel="name"
+                    optionValue="id"
+                    inputId="branch"
+                    formControlName="branch_id"
+                    placeholder="Seleccione una sucursal"
+                    appendTo="body"
+                  />
+                </div>
+                <div class="input-container">
+                  <label for="salary">Salario mensual</label>
+                  <p-inputNumber
+                    mode="currency"
+                    currency="USD"
+                    formControlName="monthly_salary"
+                    id="salary"
+                    placeholder="Salario mensual"
+                  />
+                </div>
+                <div class="input-container">
+                  <label for="hourly_salary">Salario por hora</label>
+                  <p-inputNumber
+                    mode="currency"
+                    currency="USD"
+                    formControlName="hourly_salary"
+                    id="hourly_salary"
+                    placeholder="Salario por hora"
+                  />
+                </div>
+                <div class="input-container">
+                  <label for="start_date">Fecha de inicio</label>
+                  <p-datepicker
+                    inputId="start_date"
+                    formControlName="start_date"
+                    iconDisplay="input"
+                    [showIcon]="true"
+                    appendTo="body"
+                    placeholder="dd/mm/yyyy"
+                  />
+                </div>
+                @if (!organizationService.isNaz()) {
+                <div class="input-container">
+                  <label for="week_hours">Horas semanales</label>
+                  <p-inputNumber
+                    formControlName="week_hours"
+                    id="week_hours"
+                    placeholder="Horas semanales"
+                  />
+                </div>
+                <div class="input-container">
+                  <label for="use_timelog">Marca reloj </label>
+                  <p-checkbox
+                    [binary]="true"
+                    formControlName="use_timelog"
+                    inputId="use_timelog"
+                  />
+                </div>
+                }
               </div>
             </div>
           </p-tabpanel>
@@ -569,7 +593,7 @@ export class EmployeeFormComponent implements OnInit {
   public sizes = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL'];
   public genderOptions = [
     { label: 'Masculino', value: 'M' },
-    { label: 'Femenino', value: 'F' }
+    { label: 'Femenino', value: 'F' },
   ];
   public accountTypes = ['Ahorros', 'Corriente'];
 
@@ -579,13 +603,13 @@ export class EmployeeFormComponent implements OnInit {
       select: 'id,name',
       order: 'name',
     };
-    
+
     // Permitir bancos compartidos (company_id IS NULL) o del company_id actual
     if (companyId) {
       // Usar or para incluir bancos compartidos (NULL) o del company_id actual
       params.or = `(company_id.is.null,company_id.eq.${companyId})`;
     }
-    
+
     return {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/banks`,
       method: 'GET',
@@ -668,6 +692,7 @@ export class EmployeeFormComponent implements OnInit {
       validators: [],
     }),
     use_timelog: new FormControl(false, { nonNullable: true }),
+    employee_number: new FormControl('', { nonNullable: true }),
   });
 
   private confirmationService = inject(ConfirmationService);
@@ -686,10 +711,11 @@ export class EmployeeFormComponent implements OnInit {
       return;
     }
     const companyId = this.organizationService.getCurrentCompanyId();
-    
+
     // Construir la query base - incluir todos los campos (week_hours y use_timelog son opcionales)
-    const selectQuery = 'id,first_name,father_name, middle_name, mother_name, document_id, email, phone_number, address, birth_date, start_date, branch_id, department_id, position_id, gender, uniform_size, is_active, company_id, work_email, monthly_salary, hourly_salary, qr_code, code_uri, bank, account_number, bank_account_type, week_hours, use_timelog';
-    
+    const selectQuery =
+      'id,first_name,father_name, middle_name, mother_name, document_id, email, phone_number, address, birth_date, start_date, branch_id, department_id, position_id, gender, uniform_size, is_active, company_id, work_email, monthly_salary, hourly_salary, qr_code, code_uri, bank, account_number, bank_account_type, week_hours, use_timelog, employee_number';
+
     const params: any = {
       select: selectQuery,
       limit: '1',
@@ -697,12 +723,12 @@ export class EmployeeFormComponent implements OnInit {
       is_active: 'eq.true',
       id: `eq.${this.employee_id()}`,
     };
-    
+
     // Agregar filtro por company_id
     if (companyId) {
       params.company_id = `eq.${companyId}`;
     }
-    
+
     return {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
       method: 'GET',
@@ -716,37 +742,43 @@ export class EmployeeFormComponent implements OnInit {
     this.store.departments.fetchItems();
     this.store.companies.fetchItems();
     this.store.branches.fetchItems();
-    
+
     // Ajustar validaciones según si es Naz o no
-    effect(() => {
-      const isNaz = this.organizationService.isNaz();
-      
-      // Ajustar validación de company_id
-      const companyControl = this.form.get('company_id');
-      if (companyControl) {
-        if (isNaz) {
-          companyControl.clearValidators();
-        } else {
-          companyControl.setValidators([Validators.required]);
+    effect(
+      () => {
+        const isNaz = this.organizationService.isNaz();
+
+        // Ajustar validación de company_id
+        const companyControl = this.form.get('company_id');
+        if (companyControl) {
+          if (isNaz) {
+            companyControl.clearValidators();
+          } else {
+            companyControl.setValidators([Validators.required]);
+          }
+          companyControl.updateValueAndValidity({ emitEvent: false });
         }
-        companyControl.updateValueAndValidity({ emitEvent: false });
-      }
-      
-      // Ajustar validación de week_hours
-      const weekHoursControl = this.form.get('week_hours');
-      if (weekHoursControl) {
-        if (isNaz) {
-          // En Naz, week_hours no existe, así que no debe tener validadores
-          weekHoursControl.clearValidators();
-          weekHoursControl.setValue(0, { emitEvent: false });
-        } else {
-          // En Black Dog, week_hours debe estar entre 40 y 60
-          weekHoursControl.setValidators([Validators.min(40), Validators.max(60)]);
+
+        // Ajustar validación de week_hours
+        const weekHoursControl = this.form.get('week_hours');
+        if (weekHoursControl) {
+          if (isNaz) {
+            // En Naz, week_hours no existe, así que no debe tener validadores
+            weekHoursControl.clearValidators();
+            weekHoursControl.setValue(0, { emitEvent: false });
+          } else {
+            // En Black Dog, week_hours debe estar entre 40 y 60
+            weekHoursControl.setValidators([
+              Validators.min(40),
+              Validators.max(60),
+            ]);
+          }
+          weekHoursControl.updateValueAndValidity({ emitEvent: false });
         }
-        weekHoursControl.updateValueAndValidity({ emitEvent: false });
-      }
-    }, { injector: this.injector });
-    
+      },
+      { injector: this.injector }
+    );
+
     effect(
       () => {
         const employee = this.currentEmployee.value()?.[0];
@@ -764,9 +796,11 @@ export class EmployeeFormComponent implements OnInit {
         const employee = this.currentEmployee.value()?.[0];
         const banks = this.banks.value();
         if (employee?.bank && banks && banks.length > 0) {
-          const bankExists = banks.some(b => b.id === employee.bank);
+          const bankExists = banks.some((b) => b.id === employee.bank);
           if (bankExists) {
-            this.form.get('bank')?.setValue(employee.bank, { emitEvent: false });
+            this.form
+              .get('bank')
+              ?.setValue(employee.bank, { emitEvent: false });
           }
         }
       },
@@ -791,15 +825,17 @@ export class EmployeeFormComponent implements OnInit {
     this.form
       .get('start_date')
       ?.patchValue(toDate(employee.start_date, { timeZone: 'America/Panama' }));
-    
+
     // Asegurar que el banco se establezca correctamente cuando los bancos estén cargados
     if (employee.bank && this.banks.value()) {
-      const bankExists = this.banks.value()?.some(b => b.id === employee.bank);
+      const bankExists = this.banks
+        .value()
+        ?.some((b) => b.id === employee.bank);
       if (bankExists) {
         this.form.get('bank')?.setValue(employee.bank);
       }
     }
-    
+
     this.form.markAsPristine();
     this.form.markAsUntouched();
   }
@@ -808,21 +844,21 @@ export class EmployeeFormComponent implements OnInit {
     if (!bankId) return '';
     const banksList = this.banks.value();
     if (!banksList) return bankId;
-    const bank = banksList.find(b => b.id === bankId);
+    const bank = banksList.find((b) => b.id === bankId);
     return bank?.name || bankId;
   }
 
   private getFieldLabel(fieldName: string): string {
     const labels: Record<string, string> = {
-      'first_name': 'Nombre',
-      'father_name': 'Apellido Paterno',
-      'document_id': 'Cédula de Identidad',
-      'gender': 'Sexo',
-      'branch_id': 'Sucursal',
-      'department_id': 'Área',
-      'position_id': 'Cargo',
-      'start_date': 'Fecha de Inicio',
-      'company_id': 'Empresa',
+      first_name: 'Nombre',
+      father_name: 'Apellido Paterno',
+      document_id: 'Cédula de Identidad',
+      gender: 'Sexo',
+      branch_id: 'Sucursal',
+      department_id: 'Área',
+      position_id: 'Cargo',
+      start_date: 'Fecha de Inicio',
+      company_id: 'Empresa',
     };
     return labels[fieldName] || fieldName;
   }
@@ -832,18 +868,21 @@ export class EmployeeFormComponent implements OnInit {
     if (invalid) {
       // Obtener los campos inválidos para mostrar un mensaje más específico
       const invalidFields: string[] = [];
-      Object.keys(this.form.controls).forEach(key => {
+      Object.keys(this.form.controls).forEach((key) => {
         const control = this.form.get(key);
         if (control && control.invalid) {
           const fieldName = this.getFieldLabel(key);
           invalidFields.push(fieldName);
         }
       });
-      
-      const errorMessage = invalidFields.length > 0 
-        ? `Por favor complete los siguientes campos requeridos: ${invalidFields.join(', ')}`
-        : 'Formulario inválido. Por favor complete todos los campos requeridos.';
-      
+
+      const errorMessage =
+        invalidFields.length > 0
+          ? `Por favor complete los siguientes campos requeridos: ${invalidFields.join(
+              ', '
+            )}`
+          : 'Formulario inválido. Por favor complete todos los campos requeridos.';
+
       this.message.add({
         severity: 'error',
         summary: 'No se guardaron cambios',
@@ -863,79 +902,146 @@ export class EmployeeFormComponent implements OnInit {
     if (!this.employee_id()) {
       // Es un empleado nuevo
       this.addTimeclockQR();
-      
+
       // Ya no se filtran campos, todo se guarda (tablas compartidas)
       const formValue = this.form.getRawValue();
       const dataToSave: any = formValue;
-      
-      // Generar número de empleado automáticamente
-      this.generateEmployeeNumber(dataToSave.company_id).then((employeeNumber) => {
-        dataToSave.employee_number = employeeNumber;
-        
-        this.store.employees.createItem(dataToSave).subscribe({
-        next: () => {
-          // Recargar la lista de empleados
-          this.store.employees.reloadItems();
-          
-          // Después de crear, preguntar si quiere invitar por Wassenger
-          const formValue = this.form.getRawValue();
-          if (formValue.phone_number && formValue.work_email) {
-            this.confirmationService.confirm({
-              message: `¿Deseas enviar una invitación por Wassenger a ${formValue.first_name} ${formValue.father_name}?`,
-              header: 'Invitación por Wassenger',
-              icon: 'pi pi-comments',
-              acceptLabel: 'Sí, enviar',
-              rejectLabel: 'No, después',
-              accept: () => {
-                const employeeName = `${formValue.first_name} ${formValue.father_name}`;
-                this.wassengerService
-                  .sendEmployeeInvitation(
-                    employeeName,
-                    formValue.phone_number,
-                    formValue.work_email
-                  )
-                  .then((success) => {
-                    if (success) {
-                      this.message.add({
-                        severity: 'success',
-                        summary: 'Invitación enviada',
-                        detail: 'La invitación se envió correctamente por Wassenger',
-                      });
-                    }
+
+      // Generar número de empleado automáticamente solo si no se proporcionó uno
+      if (
+        !dataToSave.employee_number ||
+        dataToSave.employee_number.trim() === ''
+      ) {
+        this.generateEmployeeNumber(dataToSave.company_id)
+          .then((employeeNumber) => {
+            dataToSave.employee_number = employeeNumber;
+
+            this.store.employees.createItem(dataToSave).subscribe({
+              next: () => {
+                // Recargar la lista de empleados
+                this.store.employees.reloadItems();
+
+                // Después de crear, preguntar si quiere invitar por Wassenger
+                const formValue = this.form.getRawValue();
+                if (formValue.phone_number && formValue.work_email) {
+                  this.confirmationService.confirm({
+                    message: `¿Deseas enviar una invitación por Wassenger a ${formValue.first_name} ${formValue.father_name}?`,
+                    header: 'Invitación por Wassenger',
+                    icon: 'pi pi-comments',
+                    acceptLabel: 'Sí, enviar',
+                    rejectLabel: 'No, después',
+                    accept: () => {
+                      const employeeName = `${formValue.first_name} ${formValue.father_name}`;
+                      this.wassengerService
+                        .sendEmployeeInvitation(
+                          employeeName,
+                          formValue.phone_number,
+                          formValue.work_email
+                        )
+                        .then((success) => {
+                          if (success) {
+                            this.message.add({
+                              severity: 'success',
+                              summary: 'Invitación enviada',
+                              detail:
+                                'La invitación se envió correctamente por Wassenger',
+                            });
+                          }
+                        });
+                    },
+                    reject: () => {
+                      // Navegar de vuelta a la lista después de rechazar
+                      this.router.navigate(['/admin/employees']);
+                    },
                   });
+                } else {
+                  // Si no hay datos para Wassenger, navegar directamente
+                  this.router.navigate(['/admin/employees']);
+                }
               },
-              reject: () => {
-                // Navegar de vuelta a la lista después de rechazar
-                this.router.navigate(['/admin/employees']);
+              error: (error) => {
+                console.error('Error al crear empleado:', error);
+                this.message.add({
+                  severity: 'error',
+                  summary: 'Error al guardar',
+                  detail:
+                    error?.error?.message ||
+                    'Ocurrió un error al crear el empleado. Por favor intente nuevamente.',
+                });
               },
             });
-          } else {
-            // Si no hay datos para Wassenger, navegar directamente
-            this.router.navigate(['/admin/employees']);
-          }
-        },
-        error: (error) => {
-          console.error('Error al crear empleado:', error);
-          this.message.add({
-            severity: 'error',
-            summary: 'Error al guardar',
-            detail: error?.error?.message || 'Ocurrió un error al crear el empleado. Por favor intente nuevamente.',
+          })
+          .catch((error) => {
+            console.error('Error al generar número de empleado:', error);
+            this.message.add({
+              severity: 'error',
+              summary: 'Error',
+              detail:
+                'No se pudo generar el número de empleado. Por favor intente nuevamente.',
+            });
           });
-        },
-      });
-      }).catch((error) => {
-        console.error('Error al generar número de empleado:', error);
-        this.message.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'No se pudo generar el número de empleado. Por favor intente nuevamente.',
+      } else {
+        // Si ya hay un número de empleado, guardar directamente
+        this.store.employees.createItem(dataToSave).subscribe({
+          next: () => {
+            // Recargar la lista de empleados
+            this.store.employees.reloadItems();
+
+            // Después de crear, preguntar si quiere invitar por Wassenger
+            const formValue = this.form.getRawValue();
+            if (formValue.phone_number && formValue.work_email) {
+              this.confirmationService.confirm({
+                message: `¿Deseas enviar una invitación por Wassenger a ${formValue.first_name} ${formValue.father_name}?`,
+                header: 'Invitación por Wassenger',
+                icon: 'pi pi-comments',
+                acceptLabel: 'Sí, enviar',
+                rejectLabel: 'No, después',
+                accept: () => {
+                  const employeeName = `${formValue.first_name} ${formValue.father_name}`;
+                  this.wassengerService
+                    .sendEmployeeInvitation(
+                      employeeName,
+                      formValue.phone_number,
+                      formValue.work_email
+                    )
+                    .then((success) => {
+                      if (success) {
+                        this.message.add({
+                          severity: 'success',
+                          summary: 'Invitación enviada',
+                          detail:
+                            'La invitación se envió correctamente por Wassenger',
+                        });
+                      }
+                    });
+                },
+                reject: () => {
+                  // Navegar de vuelta a la lista después de rechazar
+                  this.router.navigate(['/admin/employees']);
+                },
+              });
+            } else {
+              // Si no hay datos para Wassenger, navegar directamente
+              this.router.navigate(['/admin/employees']);
+            }
+          },
+          error: (error) => {
+            console.error('Error al crear empleado:', error);
+            this.message.add({
+              severity: 'error',
+              summary: 'Error al guardar',
+              detail:
+                error?.error?.message ||
+                'Ocurrió un error al crear el empleado. Por favor intente nuevamente.',
+            });
+          },
         });
-      });
+      }
     } else {
       // Ya no se filtran campos, todo se guarda (tablas compartidas)
       const formValue = this.form.getRawValue();
       const dataToSave: any = formValue;
-      
+
       this.store.employees.editItem(dataToSave).subscribe({
         next: () => {
           // Recargar la lista de empleados
@@ -948,7 +1054,9 @@ export class EmployeeFormComponent implements OnInit {
           this.message.add({
             severity: 'error',
             summary: 'Error al guardar',
-            detail: error?.error?.message || 'Ocurrió un error al actualizar el empleado. Por favor intente nuevamente.',
+            detail:
+              error?.error?.message ||
+              'Ocurrió un error al actualizar el empleado. Por favor intente nuevamente.',
           });
         },
       });
@@ -994,48 +1102,54 @@ export class EmployeeFormComponent implements OnInit {
   /**
    * Genera el siguiente número de empleado disponible basado en el company_id o organización
    */
-  private async generateEmployeeNumber(companyId: string | undefined): Promise<string> {
+  private async generateEmployeeNumber(
+    companyId: string | undefined
+  ): Promise<string> {
     try {
       const orgService = this.organizationService;
       const isNaz = orgService.isNaz();
-      
+
       // Determinar prefijo basado en company_id
       // Si es Black Dog, obtener company_id y determinar prefijo
       let prefix: string;
-      
+
       if (isNaz) {
         prefix = 'NZ';
       } else {
         const nazCompanyId = orgService.getNazCompanyId();
         const blackdogCompanyId = orgService.getBlackdogCompanyId();
-        prefix = getEmployeeNumberPrefix(companyId || null, nazCompanyId, blackdogCompanyId);
+        prefix = getEmployeeNumberPrefix(
+          companyId || null,
+          nazCompanyId,
+          blackdogCompanyId
+        );
       }
-      
+
       // Ya no hay tablas naz_*, todo es por company_id
       const tableName = 'employees';
-      
+
       // Obtener todos los números de empleado existentes mediante una llamada HTTP directa
       // Solo necesitamos employee_number, no todos los campos
       const params: any = {
         select: 'employee_number',
       };
-      
+
       // Para Black Dog, agregar filtro por company_id si está disponible
       if (!isNaz && companyId) {
         params.company_id = `eq.${companyId}`;
       }
-      
+
       const employees = await firstValueFrom(
         this.http.get<Array<{ employee_number: string | null }>>(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
           { params }
         )
       );
-      
+
       const existingNumbers = (employees || [])
         .map((emp: { employee_number: string | null }) => emp.employee_number)
         .filter((num: string | null): num is string => !!num);
-      
+
       // Generar el siguiente número
       return generateNextEmployeeNumber(existingNumbers, prefix);
     } catch (error) {

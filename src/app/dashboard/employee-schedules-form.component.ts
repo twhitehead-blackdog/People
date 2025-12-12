@@ -1,4 +1,4 @@
-import { NgClass } from '@angular/common';
+import { NgClass, NgStyle } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
@@ -25,7 +25,10 @@ import { SelectModule } from 'primeng/select';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { iif } from 'rxjs';
 import { v4 } from 'uuid';
-import { colorVariants } from '../models';
+import {
+  colorVariants,
+  getScheduleColorInlineStyle as getColorStyle,
+} from '../models';
 import { TrimPipe } from '../pipes/trim.pipe';
 import { OrganizationService } from '../services/organization.service';
 import { DashboardStore } from '../stores/dashboard.store';
@@ -40,6 +43,7 @@ import { DashboardStore } from '../stores/dashboard.store';
     ReactiveFormsModule,
     TrimPipe,
     NgClass,
+    NgStyle,
     ToggleSwitch,
   ],
   template: `<form [formGroup]="form" (ngSubmit)="saveChanges()">
@@ -79,7 +83,12 @@ import { DashboardStore } from '../stores/dashboard.store';
             <div class="flex items-center ">
               <div
                 class="px-3 py-1.5 text-sm rounded"
-                [ngClass]="colorVariants[item.color]"
+                [ngClass]="colorVariants[item.color] || ''"
+                [ngStyle]="
+                  !colorVariants[item.color]
+                    ? getScheduleColorInlineStyle(item.color)
+                    : null
+                "
               >
                 {{ item.name }}
               </div>
@@ -89,7 +98,12 @@ import { DashboardStore } from '../stores/dashboard.store';
             <div class="flex items-center ">
               <div
                 class="text-sm rounded p-1"
-                [ngClass]="colorVariants[selected.color]"
+                [ngClass]="colorVariants[selected.color] || ''"
+                [ngStyle]="
+                  !colorVariants[selected.color]
+                    ? getScheduleColorInlineStyle(selected.color)
+                    : null
+                "
               >
                 {{ selected.name }}
               </div>
@@ -100,11 +114,19 @@ import { DashboardStore } from '../stores/dashboard.store';
 
       <div class="input-container">
         <label for="start_date">Fecha inicio</label>
-        <p-datepicker inputId="start_date" formControlName="start_date" appendTo="body" />
+        <p-datepicker
+          inputId="start_date"
+          formControlName="start_date"
+          appendTo="body"
+        />
       </div>
       <div class="input-container">
         <label for="end_date">Fecha fin</label>
-        <p-datepicker inputId="end_date" formControlName="end_date" appendTo="body" />
+        <p-datepicker
+          inputId="end_date"
+          formControlName="end_date"
+          appendTo="body"
+        />
       </div>
       <div class="input-container">
         <label for="branch_id">Sucursal</label>
@@ -173,6 +195,9 @@ export class EmployeeSchedulesFormComponent implements OnInit {
   private message = inject(MessageService);
   private organizationService = inject(OrganizationService);
   public colorVariants = colorVariants;
+  public getScheduleColorInlineStyle(color: string | undefined | null) {
+    return getColorStyle(color);
+  }
   public store = inject(DashboardStore);
   private destroyRef = inject(DestroyRef);
 
@@ -238,23 +263,23 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       return;
     }
     const companyId = this.organizationService.getCurrentCompanyId();
-    
+
     // Asegurar que company_id esté presente en el request
     const requestData: any = { ...value };
     if (companyId && !requestData.company_id) {
       requestData.company_id = companyId;
     }
-    
+
     const createRequest = this.http.post(
       `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
       requestData
     );
-    
+
     const updateData: any = { ...this.form.getRawValue() };
     if (companyId && !updateData.company_id) {
       updateData.company_id = companyId;
     }
-    
+
     const updateRequest = this.http.patch(
       `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
       updateData,

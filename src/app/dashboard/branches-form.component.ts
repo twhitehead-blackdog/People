@@ -122,7 +122,15 @@ export class BranchesFormComponent implements OnInit {
   ngOnInit() {
     const { branch } = this.dialogConfig.data;
     if (branch) {
-      this.form.patchValue(branch);
+      this.form.patchValue({
+        id: branch.id,
+        name: branch.name || '',
+        short_name: branch.short_name || '',
+        company_id: branch.company_id || branch.company?.id || '',
+        ip: branch.ip || '',
+        address: branch.address || '',
+        is_active: branch.is_active !== undefined ? branch.is_active : true,
+      });
     }
   }
 

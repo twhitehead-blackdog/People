@@ -1,4 +1,4 @@
-import { NgClass } from '@angular/common';
+import { NgClass, NgStyle } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -9,72 +9,81 @@ import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { TableModule } from 'primeng/table';
-import { colorVariants, Schedule } from '../models';
+import {
+  colorVariants,
+  getScheduleColorInlineStyle as getColorStyle,
+  Schedule,
+} from '../models';
 import { TimePipe } from '../pipes/time.pipe';
 import { SchedulesStore } from '../stores/schedules.store';
 import { SchedulesFormComponent } from './schedules-form.component';
 
 @Component({
   selector: 'pt-schedules',
-  imports: [Card, TableModule, Button, TimePipe, NgClass],
+  imports: [Card, TableModule, Button, TimePipe, NgClass, NgStyle],
   providers: [DynamicDialogRef, DialogService],
   template: `<p-card>
-      <ng-template #title>
-        <div class="flex items-center justify-between w-full">
-          <div>
-            <h2 class="m-0">Horarios</h2>
-            <p class="text-sm text-gray-400 m-0 mt-1">Listado de horarios y turnos disponibles</p>
-          </div>
-          <div class="flex gap-2">
-            <p-button
-              label="Nuevo"
-              icon="pi pi-plus-circle"
-              (onClick)="editSchedule()"
-              rounded
-            />
-          </div>
+    <ng-template #title>
+      <div class="flex items-center justify-between w-full">
+        <div>
+          <h2 class="m-0">Horarios</h2>
+          <p class="text-sm text-gray-400 m-0 mt-1">
+            Listado de horarios y turnos disponibles
+          </p>
         </div>
+        <div class="flex gap-2">
+          <p-button
+            label="Nuevo"
+            icon="pi pi-plus-circle"
+            (onClick)="editSchedule()"
+            rounded
+          />
+        </div>
+      </div>
+    </ng-template>
+    <p-table
+      [value]="schedules()"
+      [rows]="10"
+      [rowsPerPageOptions]="[10, 20, 50]"
+      sortField="entry_time"
+      paginator
+      paginatorDropdownAppendTo="body"
+    >
+      <ng-template #header>
+        <tr>
+          <th pSortableColumn="name">Nombre<p-sortIcon field="name" /></th>
+          <th>Color</th>
+          <th pSortableColumn="entry_time">
+            Inicio<p-sortIcon field="entry_time" />
+          </th>
+          <th pSortableColumn="lunch_start_time">
+            Inicio de almuerzo<p-sortIcon field="lunch_start_time" />
+          </th>
+          <th pSortableColumn="lunch_end_time">
+            Fin de almuerzo<p-sortIcon field="lunch_end_time" />
+          </th>
+          <th pSortableColumn="exit_time">
+            Fin<p-sortIcon field="exit_time" />
+          </th>
+          <th pSortableColumn="minutes_tolerance">
+            Tolerancia<p-sortIcon field="minutes_tolerance" />
+          </th>
+          <th>Libre</th>
+          <th></th>
+        </tr>
       </ng-template>
-      <p-table
-        [value]="schedules()"
-        [rows]="10"
-        [rowsPerPageOptions]="[10, 20, 50]"
-        sortField="entry_time"
-        paginator
-        paginatorDropdownAppendTo="body"
-      >
-        <ng-template #header>
-          <tr>
-            <th pSortableColumn="name">
-              Nombre<p-sortIcon field="name" />
-            </th>
-            <th>Color</th>
-            <th pSortableColumn="entry_time">
-              Inicio<p-sortIcon field="entry_time" />
-            </th>
-            <th pSortableColumn="lunch_start_time">
-              Inicio de almuerzo<p-sortIcon field="lunch_start_time" />
-            </th>
-            <th pSortableColumn="lunch_end_time">
-              Fin de almuerzo<p-sortIcon field="lunch_end_time" />
-            </th>
-            <th pSortableColumn="exit_time">
-              Fin<p-sortIcon field="exit_time" />
-            </th>
-            <th pSortableColumn="minutes_tolerance">
-              Tolerancia<p-sortIcon field="minutes_tolerance" />
-            </th>
-            <th>Libre</th>
-            <th></th>
-          </tr>
-        </ng-template>
       <ng-template #body let-schedule>
         <tr>
           <td>{{ schedule.name }}</td>
           <td>
             <span
               class="rounded-full h-7 w-7 flex items-center justify-center ring-2 ring-neutral-700 hover:ring-amber-400/50 transition-all"
-              [ngClass]="colorVariants[schedule.color]"
+              [ngClass]="colorVariants[schedule.color] || ''"
+              [ngStyle]="
+                !colorVariants[schedule.color]
+                  ? getScheduleColorInlineStyle(schedule.color)
+                  : null
+              "
               ><i class="pi pi-check text-xs"></i
             ></span>
           </td>
@@ -99,12 +108,7 @@ import { SchedulesFormComponent } from './schedules-form.component';
                 rounded
                 (onClick)="editSchedule(schedule)"
               />
-              <p-button
-                severity="danger"
-                icon="pi pi-trash"
-                text
-                rounded
-              />
+              <p-button severity="danger" icon="pi pi-trash" text rounded />
             </div>
           </td>
         </tr>
@@ -125,6 +129,10 @@ export class SchedulesComponent {
     key,
     value,
   }));
+
+  getScheduleColorInlineStyle(color: string | undefined | null) {
+    return getColorStyle(color);
+  }
 
   editSchedule(schedule?: Schedule) {
     this.ref = this.dialogService.open(SchedulesFormComponent, {

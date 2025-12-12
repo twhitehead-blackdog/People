@@ -20,9 +20,9 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MessageService } from 'primeng/api';
 import { Select } from 'primeng/select';
 import { iif } from 'rxjs';
+import { OrganizationService } from '../services/organization.service';
 import { markGroupDirty } from '../services/util.service';
 import { DashboardStore } from '../stores/dashboard.store';
-import { OrganizationService } from '../services/organization.service';
 
 @Component({
   selector: 'pt-departments-form',
@@ -78,7 +78,7 @@ export class DepartmentsFormComponent implements OnInit {
   private messageService = inject(MessageService);
   private destroyRef = inject(DestroyRef);
   public organizationService = inject(OrganizationService);
-  
+
   form = new FormGroup({
     id: new FormControl(v4(), { nonNullable: true }),
     name: new FormControl('', {
@@ -95,13 +95,20 @@ export class DepartmentsFormComponent implements OnInit {
   ngOnInit() {
     const { department } = this.dialog.data;
     if (department) {
-      this.form.patchValue(department);
+      this.form.patchValue({
+        id: department.id,
+        name: department.name || '',
+        company_id: department.company_id || department.company?.id || '',
+      });
     }
   }
 
   async saveChanges() {
     // Validar que el nombre esté presente (requerido para ambas tablas)
-    if (!this.form.get('name')?.value || this.form.get('name')?.value.trim() === '') {
+    if (
+      !this.form.get('name')?.value ||
+      this.form.get('name')?.value.trim() === ''
+    ) {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
@@ -110,7 +117,7 @@ export class DepartmentsFormComponent implements OnInit {
       markGroupDirty(this.form);
       return;
     }
-    
+
     // Validar company_id siempre
     if (!this.form.get('company_id')?.value) {
       this.messageService.add({
@@ -133,7 +140,7 @@ export class DepartmentsFormComponent implements OnInit {
     // Ya no se filtran campos, todo se guarda (tablas compartidas)
     const formValue = this.form.getRawValue();
     const dataToSave: any = formValue;
-    
+
     iif(
       () => this.dialog.data.department,
       this.store.departments.editItem(dataToSave),
@@ -147,22 +154,27 @@ export class DepartmentsFormComponent implements OnInit {
         error: (error) => {
           console.error('Error al guardar departamento:', error);
           let errorMessage = 'Error al guardar el departamento';
-          
+
           // Manejar error de constraint único
-          if (error?.error?.code === '23505' || error?.error?.message?.includes('duplicate key')) {
-            errorMessage = `Ya existe un departamento con el nombre "${this.form.get('name')?.value}". Por favor, use un nombre diferente.`;
+          if (
+            error?.error?.code === '23505' ||
+            error?.error?.message?.includes('duplicate key')
+          ) {
+            errorMessage = `Ya existe un departamento con el nombre "${
+              this.form.get('name')?.value
+            }". Por favor, use un nombre diferente.`;
           } else if (error?.error?.message) {
             errorMessage = error.error.message;
           } else if (error?.message) {
             errorMessage = error.message;
           }
-          
+
           this.messageService.add({
             severity: 'error',
             summary: 'Error',
             detail: errorMessage,
           });
-        }
+        },
       });
   }
 }

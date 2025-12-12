@@ -39,10 +39,7 @@ import {
   EmployeeSchedule,
   NazBranch,
   NazCompany,
-  NazEmployee,
-  NazEmployeeSchedule,
   NazSchedule,
-  NazTimeLog,
   Schedule,
   TimeLog,
   TimelogType,
@@ -88,7 +85,10 @@ import { OrganizationService } from './services/organization.service';
     <p-toast />
     <div
       class="flex flex-col items-center justify-center animated-gradient-container"
-      [ngClass]="{ 'naz-theme': isNazCompany(), 'blackdog-theme': isBlackDogCompany() }"
+      [ngClass]="{
+        'naz-theme': isNazCompany(),
+        'blackdog-theme': isBlackDogCompany()
+      }"
       style="width: 100%; position: relative; min-height: 100vh; overflow-y: auto; overflow-x: hidden;"
     >
       @if (!isKioskMode() || isIPValid() || isNazCompany()) {
@@ -111,11 +111,17 @@ import { OrganizationService } from './services/organization.service';
               <!-- Clock Display inside card -->
               <div
                 class="flex flex-col items-center gap-0.5 bg-black/40 backdrop-blur-sm rounded-lg px-3 md:px-5 py-1.5 md:py-2 border shadow-lg clock-display"
-                [ngClass]="isBlackDogCompany() ? 'border-yellow-500/40' : 'border-gray-500/40'"
+                [ngClass]="
+                  isBlackDogCompany()
+                    ? 'border-yellow-500/40'
+                    : 'border-gray-500/40'
+                "
               >
                 <div
                   class="text-xl md:text-2xl lg:text-3xl font-mono font-bold clock-time"
-                  [ngClass]="isBlackDogCompany() ? 'text-yellow-400' : 'text-gray-300'"
+                  [ngClass]="
+                    isBlackDogCompany() ? 'text-yellow-400' : 'text-gray-300'
+                  "
                 >
                   {{ formattedTime() }}
                 </div>
@@ -129,8 +135,20 @@ import { OrganizationService } from './services/organization.service';
             <div
               class="flex items-center justify-center gap-2 text-[#d2d2d2] text-xs md:text-sm font-semibold text-center"
             >
-              <i [ngClass]="isBlackDogCompany() ? 'pi pi-building text-yellow-400' : 'pi pi-building text-gray-400'"></i>
-              <i [ngClass]="isBlackDogCompany() ? 'pi pi-user text-yellow-400' : 'pi pi-user text-gray-400'"></i>
+              <i
+                [ngClass]="
+                  isBlackDogCompany()
+                    ? 'pi pi-building text-yellow-400'
+                    : 'pi pi-building text-gray-400'
+                "
+              ></i>
+              <i
+                [ngClass]="
+                  isBlackDogCompany()
+                    ? 'pi pi-user text-yellow-400'
+                    : 'pi pi-user text-gray-400'
+                "
+              ></i>
               <span>Seleccione la sucursal y empleado</span>
             </div>
           </ng-template>
@@ -882,7 +900,9 @@ export class TimeclockComponent implements OnDestroy {
   public isIPValid = signal<boolean>(true);
   // Usar el servicio de organización como fuente principal
   public isNazCompany = computed(() => this.organizationService.isNaz());
-  public isBlackDogCompany = computed(() => this.organizationService.isBlackDog());
+  public isBlackDogCompany = computed(() =>
+    this.organizationService.isBlackDog()
+  );
   // Ya no hay tablas naz_*, todo es por company_id
   private employeesTable = computed(() => 'employees');
 
@@ -1378,25 +1398,21 @@ export class TimeclockComponent implements OnDestroy {
 
   // Computed signals to select the correct resource based on organization
   // Ya no se usan tablas naz_*, todo es por company_id
-  public currentCompaniesResource = computed<
-    Company[] | undefined
-  >(() => {
+  public currentCompaniesResource = computed<Company[] | undefined>(() => {
     return this.companiesResource.value();
   });
 
-  public currentBranchesResource = computed<Branch[] | undefined>(
-    () => {
-      const branches = this.branchesResource.value();
-      if (!branches) return undefined;
-      
-      // Filtrar branches por company_id actual si está disponible
-      const companyId = this.organizationService.getCurrentCompanyId();
-      if (companyId) {
-        return branches.filter(b => b.company_id === companyId);
-      }
-      return branches;
+  public currentBranchesResource = computed<Branch[] | undefined>(() => {
+    const branches = this.branchesResource.value();
+    if (!branches) return undefined;
+
+    // Filtrar branches por company_id actual si está disponible
+    const companyId = this.organizationService.getCurrentCompanyId();
+    if (companyId) {
+      return branches.filter((b) => b.company_id === companyId);
     }
-  );
+    return branches;
+  });
 
   // Determinar si se puede cambiar la sucursal (solo si es oficina central)
   public canChangeBranch = computed(() => {
@@ -1437,12 +1453,12 @@ export class TimeclockComponent implements OnDestroy {
       order: 'father_name',
       is_active: 'eq.true',
     };
-    
+
     // Filtrar por company_id siempre (ya no hay tablas naz_*)
     if (companyId) {
       params.company_id = `eq.${companyId}`;
     }
-    
+
     return {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
       method: 'GET',
@@ -1451,28 +1467,26 @@ export class TimeclockComponent implements OnDestroy {
   });
 
   // Computed to select employees - ya no se usan tablas naz_*
-  public currentEmployeesResource = computed<
-    Partial<Employee>[] | undefined
-  >(() => {
-    const employees = this.employeesResource.value();
-    
-    if (!employees) return undefined;
-    
-    // Deduplicar por id para evitar empleados duplicados
-    const uniqueEmployees = new Map<string, Partial<Employee>>();
-    employees.forEach((emp) => {
-      if (emp.id && !uniqueEmployees.has(emp.id)) {
-        uniqueEmployees.set(emp.id, emp);
-      }
-    });
-    
-    return Array.from(uniqueEmployees.values());
-  });
+  public currentEmployeesResource = computed<Partial<Employee>[] | undefined>(
+    () => {
+      const employees = this.employeesResource.value();
+
+      if (!employees) return undefined;
+
+      // Deduplicar por id para evitar empleados duplicados
+      const uniqueEmployees = new Map<string, Partial<Employee>>();
+      employees.forEach((emp) => {
+        if (emp.id && !uniqueEmployees.has(emp.id)) {
+          uniqueEmployees.set(emp.id, emp);
+        }
+      });
+
+      return Array.from(uniqueEmployees.values());
+    }
+  );
 
   // Get last timelog for an employee today to determine next type
-  private getLastTimelog(
-    employeeId: string
-  ): Observable<TimeLog | null> {
+  private getLastTimelog(employeeId: string): Observable<TimeLog | null> {
     const today = format(new Date(), 'yyyy-MM-dd');
     const todayStart = `${today}T00:00:00`;
     const companyId = this.organizationService.getCurrentCompanyId();
@@ -1483,17 +1497,16 @@ export class TimeclockComponent implements OnDestroy {
       order: 'created_at.desc',
       limit: '1',
     };
-    
+
     // Filtrar por company_id
     if (companyId) {
       params.company_id = `eq.${companyId}`;
     }
 
     return this.http
-      .get<TimeLog[]>(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`,
-        { params }
-      )
+      .get<TimeLog[]>(`${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`, {
+        params,
+      })
       .pipe(
         map((timelogs) => {
           if (!timelogs || timelogs.length === 0) {
@@ -1541,7 +1554,7 @@ export class TimeclockComponent implements OnDestroy {
       start_date: `lte.${today}`,
       end_date: `gte.${today}`,
     };
-    
+
     // Filtrar por company_id
     if (companyId) {
       params.company_id = `eq.${companyId}`;
@@ -1617,9 +1630,7 @@ export class TimeclockComponent implements OnDestroy {
   }
 
   // Get lunch_start timelog for today
-  private getLunchStartTimelog(
-    employeeId: string
-  ): Observable<TimeLog | null> {
+  private getLunchStartTimelog(employeeId: string): Observable<TimeLog | null> {
     const today = format(new Date(), 'yyyy-MM-dd');
     const todayStart = `${today}T00:00:00`;
     const todayEnd = `${today}T23:59:59`;
@@ -1632,120 +1643,64 @@ export class TimeclockComponent implements OnDestroy {
       order: 'created_at.desc',
       limit: '1',
     };
-    
+
     // Filtrar por company_id
     if (companyId) {
       params.company_id = `eq.${companyId}`;
     }
 
-    return this.http.get<TimeLog[]>(
-      `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`,
-      { params }
-    ).pipe(
-      map((timelogs) => {
-        if (!timelogs || timelogs.length === 0) {
-          return null;
-        }
-        const lunchStartLog = timelogs[0];
-        const logDate = format(
-          new Date(lunchStartLog.created_at),
-          'yyyy-MM-dd'
-        );
-        return logDate === today ? lunchStartLog : null;
-      }),
-      catchError(() => of(null))
-    );
+    return this.http
+      .get<TimeLog[]>(`${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`, {
+        params,
+      })
+      .pipe(
+        map((timelogs) => {
+          if (!timelogs || timelogs.length === 0) {
+            return null;
+          }
+          const lunchStartLog = timelogs[0];
+          const logDate = format(
+            new Date(lunchStartLog.created_at),
+            'yyyy-MM-dd'
+          );
+          return logDate === today ? lunchStartLog : null;
+        }),
+        catchError(() => of(null))
+      );
   }
 
-  // Calculate if lunch end is late based on actual lunch start time and schedule
+  // Calculate if lunch end exceeds 60 minutes based on actual lunch duration only
+  // No longer compares with scheduled time - only validates duration
   private calculateLunchEndDifference(
     lunchEndTime: Date,
     lunchStartTime: Date | null,
-    schedule: Schedule | NazSchedule | undefined
-  ): number | null {
-    if (!schedule || schedule.day_off) {
+    schedule: Schedule | NazSchedule | undefined | null
+  ): { exceededMinutes: number; shouldShowWarning: boolean } | null {
+    // Si no hay lunch_start, no podemos calcular
+    if (!lunchStartTime) {
       return null;
     }
 
-    // If we have the actual lunch start time, verify duration first
-    if (lunchStartTime) {
-      const actualDuration = differenceInMinutes(lunchEndTime, lunchStartTime);
-      const expectedDuration = 60; // 1 hour lunch duration
+    // Calcular duración real del almuerzo
+    const actualDuration = differenceInMinutes(lunchEndTime, lunchStartTime);
+    const expectedDuration = 60; // 1 hora
 
-      // If they returned less than 1 hour after starting lunch, don't show late warning
-      // (they're still within the lunch period)
-      if (actualDuration < expectedDuration) {
-        return null; // Don't show late warning if they're still within lunch time
-      }
-
-      // If they took at least 1 hour, then check if they're late from scheduled time
-      if (schedule.lunch_end_time) {
-        const lunchEndTimeStr = format(lunchEndTime, 'HH:mm:ss');
-        const scheduleTimeStr =
-          typeof schedule.lunch_end_time === 'string'
-            ? schedule.lunch_end_time
-            : format(new Date(schedule.lunch_end_time), 'HH:mm:ss');
-
-        const lunchEndParts = lunchEndTimeStr.split(':');
-        const scheduleParts = scheduleTimeStr.split(':');
-
-        const lunchEndDate = new Date();
-        lunchEndDate.setHours(
-          +lunchEndParts[0],
-          +lunchEndParts[1],
-          +lunchEndParts[2] || 0,
-          0
-        );
-
-        const scheduleDate = new Date();
-        scheduleDate.setHours(
-          +scheduleParts[0],
-          +scheduleParts[1],
-          +scheduleParts[2] || 0,
-          0
-        );
-
-        const difference = differenceInMinutes(lunchEndDate, scheduleDate);
-
-        // Only return positive difference (late), ignore early returns
-        return difference > 0 ? difference : null;
-      }
+    // Si el almuerzo duró menos de 60 minutos, no hay exceso
+    if (actualDuration < expectedDuration) {
+      return null;
     }
 
-    // Fallback: compare with schedule if no lunch_start found
-    if (schedule.lunch_end_time) {
-      const lunchEndTimeStr = format(lunchEndTime, 'HH:mm:ss');
-      const scheduleTimeStr =
-        typeof schedule.lunch_end_time === 'string'
-          ? schedule.lunch_end_time
-          : format(new Date(schedule.lunch_end_time), 'HH:mm:ss');
+    // Calcular minutos excedidos
+    const exceededMinutes = actualDuration - expectedDuration;
 
-      const lunchEndParts = lunchEndTimeStr.split(':');
-      const scheduleParts = scheduleTimeStr.split(':');
+    // Solo mostrar advertencia si excede más de 5 minutos
+    // Si es 5 minutos o menos, solo acumular (shouldShowWarning = false)
+    const shouldShowWarning = exceededMinutes > 5;
 
-      const lunchEndDate = new Date();
-      lunchEndDate.setHours(
-        +lunchEndParts[0],
-        +lunchEndParts[1],
-        +lunchEndParts[2] || 0,
-        0
-      );
-
-      const scheduleDate = new Date();
-      scheduleDate.setHours(
-        +scheduleParts[0],
-        +scheduleParts[1],
-        +scheduleParts[2] || 0,
-        0
-      );
-
-      const difference = differenceInMinutes(lunchEndDate, scheduleDate);
-
-      // Only return positive difference (late), ignore early returns
-      return difference > 0 ? difference : null;
-    }
-
-    return null;
+    return {
+      exceededMinutes,
+      shouldShowWarning,
+    };
   }
 
   // Calculate if exit is early or late
@@ -1871,10 +1826,10 @@ export class TimeclockComponent implements OnDestroy {
     this.isProcessing.set(true);
     const { employee, otp, branch_id, company_id, type } =
       this.form.getRawValue();
-    
+
     const isNaz = this.isNazCompany();
     const serviceCompanyId = this.organizationService.getCurrentCompanyId();
-    
+
     // Validar que los datos sean correctos para la organización
     if (!employee || !employee.id) {
       this.isProcessing.set(false);
@@ -1899,12 +1854,12 @@ export class TimeclockComponent implements OnDestroy {
     // Ya no hay tablas naz_*, todo es por company_id en tablas compartidas
     // Para Black Dog, usar el del servicio o formulario
     let finalCompanyId: string | null = null;
-    
+
     if (isNaz) {
       // Para Naz, priorizar el company_id del formulario (que es de naz_companies)
       // Si no hay, buscar en la lista de naz_companies
       finalCompanyId = company_id || null;
-      
+
       if (!finalCompanyId) {
         const companies = this.currentCompaniesResource();
         if (companies && companies.length > 0) {
@@ -1912,7 +1867,7 @@ export class TimeclockComponent implements OnDestroy {
           const nazCompany = companies.find((c: Company) =>
             c.name.toLowerCase().includes('naz')
           ) as Company | undefined;
-          
+
           if (nazCompany) {
             finalCompanyId = nazCompany.id;
             // Auto-seleccionar en el formulario
@@ -1924,7 +1879,7 @@ export class TimeclockComponent implements OnDestroy {
       // Para Black Dog, usar el del servicio o formulario
       finalCompanyId = company_id || serviceCompanyId || null;
     }
-    
+
     if (!finalCompanyId) {
       this.isProcessing.set(false);
       this.message.add({
@@ -1941,46 +1896,55 @@ export class TimeclockComponent implements OnDestroy {
     const companies = this.currentCompaniesResource();
 
     // Verificar que el empleado seleccionado esté en la lista correcta
-    if (employees && !employees.some(e => e.id === employee.id)) {
+    if (employees && !employees.some((e) => e.id === employee.id)) {
       this.isProcessing.set(false);
       this.message.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'El empleado seleccionado no es válido para esta organización. Por favor, seleccione un empleado válido.',
+        detail:
+          'El empleado seleccionado no es válido para esta organización. Por favor, seleccione un empleado válido.',
       });
       this.form.get('employee')?.reset();
       return;
     }
 
     // Verificar que el branch esté en la lista correcta
-    if (branches && !branches.some(b => b.id === branch_id)) {
+    if (branches && !branches.some((b) => b.id === branch_id)) {
       this.isProcessing.set(false);
       this.message.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'La sucursal seleccionada no es válida para esta organización. Por favor, seleccione una sucursal válida.',
+        detail:
+          'La sucursal seleccionada no es válida para esta organización. Por favor, seleccione una sucursal válida.',
       });
       this.form.get('branch_id')?.reset();
       return;
     }
 
     // Verificar que el company esté en la lista correcta (solo si hay lista cargada)
-    if (companies && companies.length > 0 && !companies.some(c => c.id === finalCompanyId)) {
+    if (
+      companies &&
+      companies.length > 0 &&
+      !companies.some((c) => c.id === finalCompanyId)
+    ) {
       console.warn('⚠️ Company ID no encontrado en lista:', {
         finalCompanyId,
-        companiesList: companies.map(c => ({ id: c.id, name: c.name })),
-        isNaz
+        companiesList: companies.map((c) => ({ id: c.id, name: c.name })),
+        isNaz,
       });
       this.isProcessing.set(false);
       this.message.add({
         severity: 'error',
         summary: 'Error',
-        detail: `La compañía seleccionada (${finalCompanyId.substring(0, 8)}...) no es válida para esta organización. Por favor, seleccione una compañía válida de la lista.`,
+        detail: `La compañía seleccionada (${finalCompanyId.substring(
+          0,
+          8
+        )}...) no es válida para esta organización. Por favor, seleccione una compañía válida de la lista.`,
       });
       this.form.get('company_id')?.reset();
       return;
     }
-    
+
     if (employee?.code_uri) {
       const totp = OTPAuth.URI.parse(employee.code_uri);
       const validation = totp.validate({ token: otp });
@@ -1997,7 +1961,7 @@ export class TimeclockComponent implements OnDestroy {
 
       const employeeName =
         `${employee.first_name} ${employee.father_name}`.trim();
-      
+
       // Log de depuración antes de procesar
       console.log('📝 Intentando marcar timelog:', {
         isNaz: this.isNazCompany(),
@@ -2006,9 +1970,9 @@ export class TimeclockComponent implements OnDestroy {
         company_id: finalCompanyId,
         type,
         employeeName,
-        tableName: 'timelogs'
+        tableName: 'timelogs',
       });
-      
+
       this.processTimelog(
         employee.id,
         branch_id,
@@ -2058,7 +2022,7 @@ export class TimeclockComponent implements OnDestroy {
       company_id: finalCompanyId,
       type,
       invalidField,
-      invalidValue
+      invalidValue,
     });
 
     this.http
@@ -2107,48 +2071,34 @@ export class TimeclockComponent implements OnDestroy {
               )
             );
           } else if (type === 'lunch_end') {
-            return this.getEmployeeSchedule(employeeId).pipe(
-              switchMap((schedule) => {
-                if (!schedule) {
-                  return of({
+            return this.getLunchStartTimelog(employeeId).pipe(
+              map((lunchStartLog) => {
+                if (!lunchStartLog) {
+                  return {
                     delay: null,
                     exitDiff: null,
                     schedule: null,
                     lunchEndDiff: null,
-                  });
+                    lunchExceededMinutes: null,
+                  };
                 }
-                return this.getLunchStartTimelog(employeeId).pipe(
-                  map((lunchStartLog) => {
-                    const lunchStartTime = lunchStartLog
-                      ? new Date(lunchStartLog.created_at)
-                      : null;
-                    const lunchEndDiff = this.calculateLunchEndDifference(
-                      now,
-                      lunchStartTime,
-                      schedule?.schedule
-                    );
-                    return {
-                      delay: null,
-                      exitDiff: null,
-                      schedule,
-                      lunchEndDiff,
-                    };
-                  }),
-                  catchError(() => {
-                    // If error getting lunch_start, just use schedule comparison
-                    const lunchEndDiff = this.calculateLunchEndDifference(
-                      now,
-                      null,
-                      schedule?.schedule
-                    );
-                    return of({
-                      delay: null,
-                      exitDiff: null,
-                      schedule,
-                      lunchEndDiff,
-                    });
-                  })
+
+                const lunchStartTime = new Date(lunchStartLog.created_at);
+                const result = this.calculateLunchEndDifference(
+                  now,
+                  lunchStartTime,
+                  null // Ya no necesitamos el schedule
                 );
+
+                return {
+                  delay: null,
+                  exitDiff: null,
+                  schedule: null,
+                  lunchEndDiff: result?.shouldShowWarning
+                    ? result.exceededMinutes
+                    : null,
+                  lunchExceededMinutes: result?.exceededMinutes || 0,
+                };
               }),
               catchError(() =>
                 of({
@@ -2156,6 +2106,7 @@ export class TimeclockComponent implements OnDestroy {
                   exitDiff: null,
                   schedule: null,
                   lunchEndDiff: null,
+                  lunchExceededMinutes: null,
                 })
               )
             );
@@ -2165,6 +2116,7 @@ export class TimeclockComponent implements OnDestroy {
             exitDiff: null,
             schedule: null,
             lunchEndDiff: null,
+            lunchExceededMinutes: null,
           });
         }),
         catchError((error) => {
@@ -2177,30 +2129,44 @@ export class TimeclockComponent implements OnDestroy {
             company_id: finalCompanyId,
             type,
             tableName,
-            isNaz
+            isNaz,
           });
-          
+
           let errorMessage = 'Algo salió mal, intente nuevamente';
-          
+
           // Manejar errores específicos
           if (error?.status === 409) {
-            errorMessage = `Error: El empleado (${employeeId.substring(0, 8)}...), sucursal (${branchId.substring(0, 8)}...) o compañía (${finalCompanyId.substring(0, 8)}...) seleccionados no existen en la tabla ${tableName}. Verifique que los datos sean correctos para ${isNaz ? 'Naz' : 'Black Dog'}.`;
+            errorMessage = `Error: El empleado (${employeeId.substring(
+              0,
+              8
+            )}...), sucursal (${branchId.substring(
+              0,
+              8
+            )}...) o compañía (${finalCompanyId.substring(
+              0,
+              8
+            )}...) seleccionados no existen en la tabla ${tableName}. Verifique que los datos sean correctos para ${
+              isNaz ? 'Naz' : 'Black Dog'
+            }.`;
           } else if (error?.status === 422) {
-            const details = error?.error?.details || error?.error?.message || 'Los datos proporcionados no son válidos';
+            const details =
+              error?.error?.details ||
+              error?.error?.message ||
+              'Los datos proporcionados no son válidos';
             errorMessage = `Error: ${details}. Por favor, verifique la información.`;
           } else if (error?.error?.message) {
             errorMessage = `Error: ${error.error.message}`;
           } else if (error?.message) {
             errorMessage = `Error: ${error.message}`;
           }
-          
+
           this.message.add({
             severity: 'error',
             summary: 'Error',
             detail: errorMessage,
             life: 10000, // Mostrar por 10 segundos para que se pueda leer
           });
-          
+
           // Resetear el formulario si hay un error de constraint (409)
           if (error?.status === 409) {
             this.form.get('employee')?.reset();
@@ -2208,7 +2174,7 @@ export class TimeclockComponent implements OnDestroy {
             this.form.get('company_id')?.reset();
             this.form.get('otp')?.reset();
           }
-          
+
           return EMPTY;
         })
       )
@@ -2254,17 +2220,62 @@ export class TimeclockComponent implements OnDestroy {
           }
 
           // Check lunch time for lunch_end
-          if (type === 'lunch_end' && result.schedule?.schedule) {
+          if (type === 'lunch_end') {
             const lunchEndDiff =
-              result.lunchEndDiff !== null && result.lunchEndDiff !== undefined
+              'lunchEndDiff' in result &&
+              result.lunchEndDiff !== null &&
+              result.lunchEndDiff !== undefined
                 ? result.lunchEndDiff
                 : null;
+            const lunchExceededMinutes =
+              'lunchExceededMinutes' in result &&
+              result.lunchExceededMinutes !== null &&
+              result.lunchExceededMinutes !== undefined
+                ? result.lunchExceededMinutes
+                : null;
+
             if (lunchEndDiff !== null && lunchEndDiff > 0) {
+              // Mostrar advertencia solo si excede más de 5 minutos
               const diffFormatted = this.formatTimeDifference(lunchEndDiff);
-              message += `<br><div style="color: #f59e0b; font-weight: bold; text-align: center;">⚠️ Regresaste tarde del almuerzo: ${diffFormatted} después de la hora programada</div>`;
+              message += `<br><div style="color: #f59e0b; font-weight: bold; text-align: center;">⚠️ Retraso de ${diffFormatted} en el almuerzo</div>`;
+            } else if (
+              lunchExceededMinutes !== null &&
+              lunchExceededMinutes > 0 &&
+              lunchExceededMinutes <= 5
+            ) {
+              // Si excedió pero menos de 5 minutos, solo confirmar sin advertencia
+              message += `<br><div style="color: #10b981; font-weight: bold; text-align: center;">✓ Regresaste del almuerzo</div>`;
             } else {
-              message += `<br><div style="color: #10b981; font-weight: bold; text-align: center;">✓ Regresaste a tiempo del almuerzo</div>`;
+              message += `<br><div style="color: #10b981; font-weight: bold; text-align: center;">✓ Regresaste del almuerzo</div>`;
             }
+          }
+
+          // Si es lunch_end y hay tiempo excedido, acumularlo
+          if (
+            type === 'lunch_end' &&
+            'lunchExceededMinutes' in result &&
+            result.lunchExceededMinutes &&
+            result.lunchExceededMinutes > 0
+          ) {
+            // Llamar a la función SQL para incrementar el tiempo excedido de forma segura
+            this.http
+              .post(
+                `${process.env['ENV_SUPABASE_URL']}/rest/v1/rpc/increment_lunch_exceeded_minutes`,
+                {
+                  p_employee_id: employeeId,
+                  p_minutes: result.lunchExceededMinutes,
+                }
+              )
+              .pipe(
+                catchError((error) => {
+                  console.error(
+                    'Error al actualizar tiempo excedido acumulado:',
+                    error
+                  );
+                  return EMPTY;
+                })
+              )
+              .subscribe();
           }
 
           this.isProcessing.set(false);

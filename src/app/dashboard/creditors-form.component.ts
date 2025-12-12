@@ -64,7 +64,10 @@ export class CreditorsFormComponent implements OnInit {
   ngOnInit(): void {
     const { creditor } = this.dialogConfig.data;
     if (creditor) {
-      this.form.patchValue(creditor);
+      this.form.patchValue({
+        id: creditor.id,
+        name: creditor.name || '',
+      });
     }
   }
 

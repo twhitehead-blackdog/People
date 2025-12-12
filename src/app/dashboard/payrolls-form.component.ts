@@ -82,7 +82,11 @@ export class PayrollsFormComponent implements OnInit {
   ngOnInit(): void {
     const { payroll } = this.dialogConfig.data;
     if (payroll) {
-      this.form.patchValue(payroll);
+      this.form.patchValue({
+        id: payroll.id,
+        name: payroll.name || '',
+        company_id: payroll.company_id || payroll.company?.id || '',
+      });
     }
   }
 

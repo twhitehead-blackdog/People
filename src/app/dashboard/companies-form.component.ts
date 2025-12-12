@@ -38,7 +38,12 @@ import { DashboardStore } from '../stores/dashboard.store';
       </div>
       <div class="input-container">
         <label for="phone_number">Nro. de Telefono</label>
-        <input pInputText type="tel" formControlName="phone_number" id="phone_number" />
+        <input
+          pInputText
+          type="tel"
+          formControlName="phone_number"
+          id="phone_number"
+        />
       </div>
       <div class="flex items-center gap-2">
         <p-toggleswitch formControlName="is_active" inputId="active" />
@@ -86,7 +91,13 @@ export class CompaniesFormComponent implements OnInit {
   ngOnInit() {
     const { company } = this.dialog.data;
     if (company) {
-      this.form.patchValue(company);
+      this.form.patchValue({
+        id: company.id,
+        name: company.name || '',
+        address: company.address || '',
+        phone_number: company.phone_number || '',
+        is_active: company.is_active !== undefined ? company.is_active : true,
+      });
     }
   }
 

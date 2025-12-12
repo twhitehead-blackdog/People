@@ -64,7 +64,10 @@ export class BanksFormComponent implements OnInit {
   ngOnInit(): void {
     const { bank } = this.dialog.data;
     if (bank) {
-      this.form.patchValue(bank);
+      this.form.patchValue({
+        id: bank.id,
+        name: bank.name || '',
+      });
     }
   }
   saveChanges() {
@@ -97,19 +100,22 @@ export class BanksFormComponent implements OnInit {
           this.messageService.add({
             severity: 'error',
             summary: 'Error',
-            detail: error?.error?.message || error?.message || 'Ocurrió un error al guardar el banco. Por favor intente nuevamente.',
+            detail:
+              error?.error?.message ||
+              error?.message ||
+              'Ocurrió un error al guardar el banco. Por favor intente nuevamente.',
           });
           // Retornar EMPTY para evitar que el error se propague y cause que se salga del sistema
           return EMPTY;
         }),
         takeUntilDestroyed(this.destroyRef)
       )
-      .subscribe({ 
+      .subscribe({
         next: () => {
           // Recargar la lista después de crear/editar
           this.store.banks.reloadItems();
           this.ref.close();
-        }
+        },
       });
   }
 }

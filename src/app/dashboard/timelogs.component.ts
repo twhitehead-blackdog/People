@@ -1,4 +1,4 @@
-import { DatePipe, NgClass } from '@angular/common';
+import { DatePipe, NgClass, NgStyle } from '@angular/common';
 import { httpResource } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
@@ -24,10 +24,15 @@ import { ToastModule } from 'primeng/toast';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { TooltipModule } from 'primeng/tooltip';
 import { utils, writeFile } from 'xlsx';
-import { Branch, colorVariants, Employee } from '../models';
+import {
+  Branch,
+  colorVariants,
+  Employee,
+  getScheduleColorInlineStyle as getColorStyle,
+} from '../models';
+import { OrganizationService } from '../services/organization.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
-import { OrganizationService } from '../services/organization.service';
 
 @Component({
   selector: 'pt-timelogs',
@@ -44,6 +49,7 @@ import { OrganizationService } from '../services/organization.service';
     Avatar,
     ToastModule,
     NgClass,
+    NgStyle,
     ToggleSwitch,
   ],
   template: `<div [ngClass]="{ 'naz-theme': isNaz() }">
@@ -51,364 +57,408 @@ import { OrganizationService } from '../services/organization.service';
       header="Marcaciones"
       subheader="Listado de marcaciones de empleados"
     >
-    <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-3">
-      <div class="flex items-center gap-2">
-        <label for="delayed" class="text-sm whitespace-nowrap"
-          >Solo retrasos</label
-        >
-        <p-toggleSwitch
-          inputId="delayed"
-          [(ngModel)]="onlyDelayed"
-          onLabel="Solo retrasos"
-          offLabel="Todos"
-        />
-      </div>
-      <div class="flex items-center gap-2">
-        <label for="errors" class="text-sm whitespace-nowrap"
-          >Solo errores</label
-        >
-        <p-toggleSwitch
-          inputId="errors"
-          [(ngModel)]="onlyErrors"
-          onLabel="Solo errores"
-          offLabel="Todos"
-        />
-      </div>
-      <div class="flex items-center gap-2">
-        <label for="earlyExit" class="text-sm whitespace-nowrap"
-          >Solo salida temprana</label
-        >
-        <p-toggleSwitch
-          inputId="earlyExit"
-          [(ngModel)]="onlyEarlyExit"
-          onLabel="Solo salida temprana"
-          offLabel="Todos"
-        />
-      </div>
-      <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+      <div
+        class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-3"
+      >
         <div class="flex items-center gap-2">
-          <label for="lunchExceededToggle" class="text-sm whitespace-nowrap"
-            >Solo almuerzo excedido</label
+          <label for="delayed" class="text-sm whitespace-nowrap"
+            >Solo retrasos</label
           >
           <p-toggleSwitch
-            inputId="lunchExceededToggle"
-            [(ngModel)]="onlyLunchExceeded"
-            onLabel="Solo almuerzo excedido"
+            inputId="delayed"
+            [(ngModel)]="onlyDelayed"
+            onLabel="Solo retrasos"
             offLabel="Todos"
           />
         </div>
-        @if(onlyLunchExceeded()) {
-        <p-select
-          inputId="lunchExceeded"
-          [(ngModel)]="lunchExceededRange"
-          [options]="lunchExceededOptions"
-          optionLabel="label"
-          optionValue="value"
-          placeholder="Todos"
-          showClear
-          appendTo="body"
-          class="w-full sm:w-48"
-        />
-        }
-      </div>
-    </div>
-    <div class="flex flex-col md:flex-row gap-3 items-center mb-3">
-      <div class="input-container">
-        <p-select
-          [options]="activeEmployeesList()"
-          optionLabel="short_name"
-          optionValue="id"
-          placeholder="--TODOS--"
-          filter
-          showClear
-          appendTo="body"
-          [(ngModel)]="employeeId"
-        />
-      </div>
-      <div class="input-container">
-        <p-select
-          placeholder="--TODAS LAS SUCURSALES--"
-          [(ngModel)]="branchId"
-          [options]="store.branches.entities()"
-          optionLabel="name"
-          optionValue="id"
-          showClear
-          appendTo="body"
-        />
-      </div>
-      <div class="input-container">
-        <p-datepicker
-          placeholder="Fecha o rango de fechas"
-          selectionMode="range"
-          appendTo="body"
-          [(ngModel)]="dateRange"
-          [showIcon]="true"
-          dateFormat="dd/mm/yy"
-        />
-      </div>
-
-      <div>
-        <p-button
-          icon="pi pi-file-excel"
-          [loading]="loading()"
-          (click)="generateReport()"
-          severity="success"
-          [disabled]="timelogsReport().length === 0"
-        />
-      </div>
-    </div>
-    @if (hasError()) {
-    <!-- Error handling, toast will be shown -->
-    }
-    <div class="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
-      <p-table
-        [value]="filteredDaylogs()"
-        [rows]="25"
-        [rowsPerPageOptions]="[10, 25, 50, 100, 200]"
-        paginator
-        paginatorDropdownAppendTo="body"
-        showGridlines
-        stripedRows
-        [loading]="this.logs.isLoading()"
-        [scrollable]="true"
-        [scrollHeight]="'calc(100vh - 400px)'"
-        styleClass="min-w-full"
-      >
-        <ng-template #header>
-          <tr>
-            <th>Empleado</th>
-            <th>Día</th>
-            <th>Horario</th>
-            <th>Entrada</th>
-            <th>Inicio de almuerzo</th>
-            <th>Fin de almuerzo</th>
-            <th>Salida</th>
-            <th>Horas Trabajadas</th>
-          </tr>
-        </ng-template>
-        <ng-template #body let-log>
-          <tr
-            [ngClass]="{
-              'bg-amber-50/10': log.alert,
-              'bg-red-50/10': log.scheduleError
-            }"
+        <div class="flex items-center gap-2">
+          <label for="errors" class="text-sm whitespace-nowrap"
+            >Solo errores</label
           >
-            <td>
-              <div class="flex items-center gap-2">
-                {{ log.employee.first_name }} {{ log.employee.father_name }}
-                @if(log.scheduleError) {
-                <p-tag
-                  value="Error de Horario"
-                  severity="danger"
-                  icon="pi pi-exclamation-triangle"
-                  [pTooltip]="
-                    log.alert +
-                    ': El empleado trabajó pero está marcado como feriado/día libre. No hay horario válido para estas marcaciones. El gerente debe corregir la configuración.'
+          <p-toggleSwitch
+            inputId="errors"
+            [(ngModel)]="onlyErrors"
+            onLabel="Solo errores"
+            offLabel="Todos"
+          />
+        </div>
+        <div class="flex items-center gap-2">
+          <label for="earlyExit" class="text-sm whitespace-nowrap"
+            >Solo salida temprana</label
+          >
+          <p-toggleSwitch
+            inputId="earlyExit"
+            [(ngModel)]="onlyEarlyExit"
+            onLabel="Solo salida temprana"
+            offLabel="Todos"
+          />
+        </div>
+        <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+          <div class="flex items-center gap-2">
+            <label for="lunchExceededToggle" class="text-sm whitespace-nowrap"
+              >Solo almuerzo excedido</label
+            >
+            <p-toggleSwitch
+              inputId="lunchExceededToggle"
+              [(ngModel)]="onlyLunchExceeded"
+              onLabel="Solo almuerzo excedido"
+              offLabel="Todos"
+            />
+          </div>
+          @if(employeeId() && selectedEmployeeLunchExceeded() !== null) {
+          <div class="flex items-center gap-2">
+            <span class="text-sm text-gray-500">Total excedido:</span>
+            @if(selectedEmployeeLunchExceeded()! > 0) {
+            <p-tag
+              severity="warn"
+              [value]="
+                formatLunchExceededTotal(selectedEmployeeLunchExceeded()!)
+              "
+              icon="pi pi-clock"
+              styleClass="text-xs"
+            />
+            } @else {
+            <span class="text-sm text-gray-500">0</span>
+            }
+          </div>
+          } @if(onlyLunchExceeded()) {
+          <p-select
+            inputId="lunchExceeded"
+            [(ngModel)]="lunchExceededRange"
+            [options]="lunchExceededOptions"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Todos"
+            showClear
+            appendTo="body"
+            class="w-full sm:w-48"
+          />
+          }
+        </div>
+      </div>
+      <div class="flex flex-col md:flex-row gap-3 items-center mb-3">
+        <div class="input-container">
+          <p-select
+            [options]="activeEmployeesList()"
+            optionLabel="short_name"
+            optionValue="id"
+            placeholder="--TODOS--"
+            filter
+            showClear
+            appendTo="body"
+            [(ngModel)]="employeeId"
+          />
+        </div>
+        <div class="input-container">
+          <p-select
+            placeholder="--TODAS LAS SUCURSALES--"
+            [(ngModel)]="branchId"
+            [options]="store.branches.entities()"
+            optionLabel="name"
+            optionValue="id"
+            showClear
+            appendTo="body"
+          />
+        </div>
+        <div class="input-container">
+          <p-datepicker
+            placeholder="Fecha o rango de fechas"
+            selectionMode="range"
+            appendTo="body"
+            [(ngModel)]="dateRange"
+            [showIcon]="true"
+            dateFormat="dd/mm/yy"
+          />
+        </div>
+
+        <div>
+          <p-button
+            icon="pi pi-file-excel"
+            [loading]="loading()"
+            (click)="generateReport()"
+            severity="success"
+            [disabled]="timelogsReport().length === 0"
+          />
+        </div>
+      </div>
+      @if (hasError()) {
+      <!-- Error handling, toast will be shown -->
+      }
+      <div class="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+        <p-table
+          [value]="filteredDaylogs()"
+          [rows]="25"
+          [rowsPerPageOptions]="[10, 25, 50, 100, 200]"
+          paginator
+          paginatorDropdownAppendTo="body"
+          showGridlines
+          stripedRows
+          [loading]="this.logs.isLoading()"
+          [scrollable]="true"
+          [scrollHeight]="'calc(100vh - 400px)'"
+          styleClass="min-w-full"
+        >
+          <ng-template #header>
+            <tr>
+              <th>Empleado</th>
+              <th>Día</th>
+              <th>Horario</th>
+              <th>Entrada</th>
+              <th>Inicio de almuerzo</th>
+              <th>Fin de almuerzo</th>
+              <th>Salida</th>
+              <th>Horas Trabajadas</th>
+            </tr>
+          </ng-template>
+          <ng-template #body let-log>
+            <tr
+              [ngClass]="{
+                'bg-amber-50/10': log.alert,
+                'bg-red-50/10': log.scheduleError
+              }"
+            >
+              <td>
+                <div class="flex flex-col gap-1">
+                  <div class="flex items-center gap-2">
+                    {{ log.employee.first_name }} {{ log.employee.father_name }}
+                    @if(log.scheduleError) {
+                    <p-tag
+                      value="Error de Horario"
+                      severity="danger"
+                      icon="pi pi-exclamation-triangle"
+                      [pTooltip]="
+                        log.alert +
+                        ': El empleado trabajó pero está marcado como feriado/día libre. No hay horario válido para estas marcaciones. El gerente debe corregir la configuración.'
+                      "
+                      tooltipPosition="top"
+                      [style]="{
+                        'min-width': maxEmployeeTagWidth(),
+                        display: 'inline-block',
+                        'text-align': 'center'
+                      }"
+                      styleClass="ml-2"
+                    />
+                    } @else if(log.alert) {
+                    <p-tag
+                      [value]="log.alert"
+                      [severity]="getAlertSeverity(log.alert)"
+                      [icon]="getAlertIcon(log.alert)"
+                      [pTooltip]="getAlertTooltip(log.alert)"
+                      tooltipPosition="top"
+                      [style]="{
+                        'min-width': maxEmployeeTagWidth(),
+                        display: 'inline-block',
+                        'text-align': 'center'
+                      }"
+                      styleClass="ml-2"
+                    />
+                    }
+                  </div>
+                </div>
+              </td>
+              <td>{{ log.day | date : 'mediumDate' }}</td>
+              <td>
+                <span
+                  class="rounded text-sm px-2 py-1 font-semibold inline-flex items-center justify-center gap-1"
+                  [ngClass]="
+                    (log.schedule?.schedule?.color &&
+                    colorVariants[log.schedule.schedule.color]
+                      ? colorVariants[log.schedule.schedule.color]
+                      : '') +
+                    (log.schedule && log.schedule.approved === false
+                      ? ' opacity-60'
+                      : '')
                   "
-                  tooltipPosition="top"
-                  [style]="{
-                    'min-width': maxEmployeeTagWidth(),
-                    display: 'inline-block',
-                    'text-align': 'center'
-                  }"
-                  styleClass="ml-2"
-                />
-                } @else if(log.alert) {
-                <p-tag
-                  [value]="log.alert"
-                  [severity]="getAlertSeverity(log.alert)"
-                  [icon]="getAlertIcon(log.alert)"
-                  [pTooltip]="getAlertTooltip(log.alert)"
-                  tooltipPosition="top"
-                  [style]="{
-                    'min-width': maxEmployeeTagWidth(),
-                    display: 'inline-block',
-                    'text-align': 'center'
-                  }"
-                  styleClass="ml-2"
-                />
-                }
-              </div>
-            </td>
-            <td>{{ log.day | date : 'mediumDate' }}</td>
-            <td>
-              <span
-                class="rounded text-sm px-2 py-1 font-semibold inline-block text-center"
-                [ngClass]="
-                  log.schedule?.schedule
-                    ? colorVariants[log.schedule.schedule.color]
-                    : ''
-                "
-                [style]="{
-                  'min-width': maxScheduleBadgeWidth(),
-                  'text-align': 'center'
-                }"
-                >{{ log?.schedule?.schedule?.name || 'Sin horario' }}</span
-              >
-            </td>
-            <td>
-              <div class="flex gap-2 items-center">
-                @if(log.entry) {
-                <p-avatar
-                  class="cursor-pointer"
-                  shape="circle"
-                  [label]="log.entry?.branch.short_name"
-                  [pTooltip]="log.entry?.branch.name"
-                  tooltipPosition="top"
-                />}
-                <span
-                  [ngClass]="{
-                    'text-red-500 font-semibold': log.delay
-                  }"
-                  >{{ log.entry?.date | date : 'hh:mm a' }}</span
-                >
-                @if(log.delay) {
-                <p-tag
-                  [value]="'Retraso de ' + log.delay + ' min'"
-                  severity="danger"
-                  icon="pi pi-clock"
-                  [pTooltip]="'El empleado llegó tarde al trabajo'"
-                  tooltipPosition="top"
-                  [style]="{
-                    'min-width': maxDelayTagWidth(),
-                    display: 'inline-block',
-                    'text-align': 'center'
-                  }"
-                  styleClass="ml-2"
-                />
-                }
-              </div>
-            </td>
-            <td>
-              <div class="flex gap-2 items-center">
-                @if(log.lunch_start) {
-                <p-avatar
-                  shape="circle"
-                  [label]="log.lunch_start?.branch.short_name"
-                  [pTooltip]="log.lunch_start?.branch.name"
-                  tooltipPosition="top"
-                />
-                }
-                {{ log.lunch_start?.date | date : 'hh:mm a' }}
-              </div>
-            </td>
-            <td>
-              <div class="flex gap-2 items-center">
-                @if(log.lunch_end) {
-                <p-avatar
-                  shape="circle"
-                  [label]="log.lunch_end?.branch.short_name"
-                  [pTooltip]="log.lunch_end?.branch.name"
-                  tooltipPosition="top"
-                />}
-                <span
-                  [ngClass]="{
-                    'text-red-500 font-semibold': log.lunchExceeded
-                  }"
-                  >{{ log.lunch_end?.date | date : 'hh:mm a' }}</span
-                >
-                @if(log.lunchExceeded) {
-                <p-tag
-                  [value]="'Almuerzo ' + log.lunchMinutes + ' min'"
-                  severity="danger"
-                  icon="pi pi-exclamation-triangle"
-                  [pTooltip]="
-                    'El tiempo de almuerzo excede los 60 minutos permitidos'
+                  [ngStyle]="
+                    log.schedule?.schedule?.color &&
+                    !colorVariants[log.schedule.schedule.color]
+                      ? getScheduleColorInlineStyle(log.schedule.schedule.color)
+                      : null
                   "
-                  tooltipPosition="top"
                   [style]="{
-                    'min-width': maxLunchTagWidth(),
-                    display: 'inline-block',
+                    'min-width': maxScheduleBadgeWidth(),
                     'text-align': 'center'
                   }"
-                  styleClass="ml-2"
-                />
-                }
-              </div>
-            </td>
-            <td>
-              <div class="flex gap-2 items-center">
-                @if(log.exit) {
-                <p-avatar
-                  shape="circle"
-                  [label]="log.exit?.branch.short_name"
-                  [pTooltip]="log.exit?.branch.name"
+                  [pTooltip]="getScheduleTooltip(log.schedule)"
                   tooltipPosition="top"
-                />}
-                <span
-                  [ngClass]="{
-                    'text-red-500 font-semibold': log.earlyExit
-                  }"
-                  >{{ log.exit?.date | date : 'hh:mm a' }}</span
-                >
-                @if(log.earlyExit) {
-                <p-tag
-                  value="Salida temprana"
-                  severity="danger"
-                  icon="pi pi-exclamation-triangle"
-                  [pTooltip]="
-                    'El empleado salió antes del horario laboral establecido'
-                  "
-                  tooltipPosition="top"
-                  [style]="{
-                    'min-width': maxExitTagWidth(),
-                    display: 'inline-block',
-                    'text-align': 'center'
-                  }"
-                  styleClass="ml-2"
-                />
-                }
-              </div>
-            </td>
-            <td>
-              <div class="flex gap-2 items-center">
-                <span
-                  [ngClass]="{
-                    'text-red-500 font-semibold': log.insufficientHours,
-                    'text-green-500 font-semibold':
-                      !log.insufficientHours && log.totalHours
-                  }"
-                >
-                  {{ log.totalHours ? formatHours(log.totalHours) : '-' }}
+                  >{{ log?.schedule?.schedule?.name || 'Sin horario' }}
+                  @if(log.schedule && log.schedule.approved === false) {
+                  <i
+                    class="pi pi-exclamation-circle text-yellow-200 text-[10px] animate-pulse flex-shrink-0 drop-shadow-[0_0_4px_rgba(251,191,36,0.8)]"
+                  ></i>
+                  } @else if(log.schedule && log.schedule.approved === true) {
+                  <i
+                    class="pi pi-check-circle text-green-400 text-[10px] flex-shrink-0"
+                  ></i>
+                  }
                 </span>
-                @if(log.insufficientHours) {
-                <p-tag
-                  value="Menos de 9h"
-                  severity="danger"
-                  icon="pi pi-clock"
-                  [pTooltip]="
-                    'El empleado no cumplió las 9 horas requeridas en la empresa (ej: 7am-4pm, 8am-5pm, 11am-8pm)'
-                  "
-                  tooltipPosition="top"
-                  [style]="{
-                    'min-width': maxHoursTagWidth(),
-                    display: 'inline-block',
-                    'text-align': 'center'
-                  }"
-                  styleClass="ml-2"
-                />
-                }
-              </div>
-            </td>
-          </tr>
-        </ng-template>
-        <ng-template #emptymessage>
-          <tr>
-            <td colspan="8">
-              <div class="flex flex-col items-center justify-center gap-4">
-                <p>No se encontraron registros</p>
-                <p-button
-                  label="Limpiar"
-                  icon="pi pi-refresh"
-                  (click)="employeeId.set('')"
-                />
-              </div>
-            </td>
-          </tr>
-        </ng-template>
-      </p-table>
-    </div>
-  </p-card>`,
+              </td>
+              <td>
+                <div class="flex gap-2 items-center">
+                  @if(log.entry) {
+                  <p-avatar
+                    class="cursor-pointer"
+                    shape="circle"
+                    [label]="log.entry?.branch.short_name"
+                    [pTooltip]="log.entry?.branch.name"
+                    tooltipPosition="top"
+                  />}
+                  <span
+                    [ngClass]="{
+                      'text-red-500 font-semibold': log.delay
+                    }"
+                    >{{ log.entry?.date | date : 'hh:mm a' }}</span
+                  >
+                  @if(log.delay) {
+                  <p-tag
+                    [value]="'Retraso de ' + log.delay + ' min'"
+                    severity="danger"
+                    icon="pi pi-clock"
+                    [pTooltip]="'El empleado llegó tarde al trabajo'"
+                    tooltipPosition="top"
+                    [style]="{
+                      'min-width': maxDelayTagWidth(),
+                      display: 'inline-block',
+                      'text-align': 'center'
+                    }"
+                    styleClass="ml-2"
+                  />
+                  }
+                </div>
+              </td>
+              <td>
+                <div class="flex gap-2 items-center">
+                  @if(log.lunch_start) {
+                  <p-avatar
+                    shape="circle"
+                    [label]="log.lunch_start?.branch.short_name"
+                    [pTooltip]="log.lunch_start?.branch.name"
+                    tooltipPosition="top"
+                  />
+                  }
+                  {{ log.lunch_start?.date | date : 'hh:mm a' }}
+                </div>
+              </td>
+              <td>
+                <div class="flex gap-2 items-center">
+                  @if(log.lunch_end) {
+                  <p-avatar
+                    shape="circle"
+                    [label]="log.lunch_end?.branch.short_name"
+                    [pTooltip]="log.lunch_end?.branch.name"
+                    tooltipPosition="top"
+                  />}
+                  <span
+                    [ngClass]="{
+                      'text-red-500 font-semibold': log.lunchExceeded
+                    }"
+                    >{{ log.lunch_end?.date | date : 'hh:mm a' }}</span
+                  >
+                  @if(log.lunchExceeded && log.lunchMinutes) {
+                  <p-tag
+                    [value]="'Almuerzo +' + (log.lunchMinutes - 60) + ' min'"
+                    severity="danger"
+                    icon="pi pi-exclamation-triangle"
+                    [pTooltip]="
+                      'El tiempo de almuerzo excede los 60 minutos permitidos por ' +
+                      (log.lunchMinutes - 60) +
+                      ' minutos'
+                    "
+                    tooltipPosition="top"
+                    [style]="{
+                      'min-width': maxLunchTagWidth(),
+                      display: 'inline-block',
+                      'text-align': 'center'
+                    }"
+                    styleClass="ml-2"
+                  />
+                  }
+                </div>
+              </td>
+              <td>
+                <div class="flex gap-2 items-center">
+                  @if(log.exit) {
+                  <p-avatar
+                    shape="circle"
+                    [label]="log.exit?.branch.short_name"
+                    [pTooltip]="log.exit?.branch.name"
+                    tooltipPosition="top"
+                  />}
+                  <span
+                    [ngClass]="{
+                      'text-red-500 font-semibold': log.earlyExit
+                    }"
+                    >{{ log.exit?.date | date : 'hh:mm a' }}</span
+                  >
+                  @if(log.earlyExit) {
+                  <p-tag
+                    value="Salida temprana"
+                    severity="danger"
+                    icon="pi pi-exclamation-triangle"
+                    [pTooltip]="
+                      'El empleado salió antes del horario laboral establecido'
+                    "
+                    tooltipPosition="top"
+                    [style]="{
+                      'min-width': maxExitTagWidth(),
+                      display: 'inline-block',
+                      'text-align': 'center'
+                    }"
+                    styleClass="ml-2"
+                  />
+                  }
+                </div>
+              </td>
+              <td>
+                <div class="flex gap-2 items-center">
+                  <span
+                    [ngClass]="{
+                      'text-red-500 font-semibold': log.insufficientHours,
+                      'text-green-500 font-semibold':
+                        !log.insufficientHours && log.totalHours
+                    }"
+                  >
+                    {{ log.totalHours ? formatHours(log.totalHours) : '-' }}
+                  </span>
+                  @if(log.insufficientHours) {
+                  <p-tag
+                    value="Menos de 9h"
+                    severity="danger"
+                    icon="pi pi-clock"
+                    [pTooltip]="
+                      'El empleado no cumplió las 9 horas requeridas en la empresa (ej: 7am-4pm, 8am-5pm, 11am-8pm)'
+                    "
+                    tooltipPosition="top"
+                    [style]="{
+                      'min-width': maxHoursTagWidth(),
+                      display: 'inline-block',
+                      'text-align': 'center'
+                    }"
+                    styleClass="ml-2"
+                  />
+                  }
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+          <ng-template #emptymessage>
+            <tr>
+              <td colspan="8">
+                <div class="flex flex-col items-center justify-center gap-4">
+                  <p>No se encontraron registros</p>
+                  <p-button
+                    label="Limpiar"
+                    icon="pi pi-refresh"
+                    (click)="employeeId.set('')"
+                  />
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+        </p-table>
+      </div>
+    </p-card>
+  </div>`,
   styles: `
     ::ng-deep .p-tag .p-tag-icon {
       margin-right: 0.5rem;
@@ -478,17 +528,17 @@ export class TimelogsComponent {
   public store = inject(DashboardStore);
   public onlyDelayed = signal(false);
   public organizationService = inject(OrganizationService);
-  
+
   // Computed para verificar si es Naz
   public isNaz = computed(() => this.organizationService.isNaz());
-  
+
   // Helper para agregar filtro de company_id a los parámetros
   private addCompanyFilter(params: any, tableName: string): any {
     const companyId = this.organizationService.getCurrentCompanyId();
     if (!companyId) {
       return params;
     }
-    
+
     // Tablas que tienen company_id y deben filtrarse
     const tablesWithCompanyId = [
       'employees',
@@ -498,16 +548,16 @@ export class TimelogsComponent {
       'schedules',
       'employee_schedules',
       'attendance_sheets',
-      'timelogs'
+      'timelogs',
     ];
-    
+
     if (tablesWithCompanyId.includes(tableName)) {
       return {
         ...params,
-        company_id: `eq.${companyId}`
+        company_id: `eq.${companyId}`,
       };
     }
-    
+
     return params;
   }
 
@@ -582,6 +632,15 @@ export class TimelogsComponent {
     this.employees.employeesList().find((x) => x.id === this.employeeId())
   );
 
+  // Computed para obtener el tiempo total excedido del empleado seleccionado
+  public selectedEmployeeLunchExceeded = computed(() => {
+    const employee = this.selectedEmployee();
+    if (!employee) {
+      return null;
+    }
+    return employee.total_lunch_exceeded_minutes ?? null;
+  });
+
   days = computed(() => {
     const { start: startDate, end: endDate } = this.normalizedDateRange();
 
@@ -613,11 +672,14 @@ export class TimelogsComponent {
     if (!start || !end) {
       return undefined;
     }
-    const params = this.addCompanyFilter({
-      select: `*,schedule:schedules(*)`,
-      start_date: `gte.${format(start, 'yyyy-MM-dd 06:00:00')}`,
-      end_date: `lte.${format(end, 'yyyy-MM-dd 06:00:00')}`,
-    }, 'employee_schedules');
+    const params = this.addCompanyFilter(
+      {
+        select: `*,approved,schedule:schedules(*)`,
+        start_date: `gte.${format(start, 'yyyy-MM-dd 06:00:00')}`,
+        end_date: `lte.${format(end, 'yyyy-MM-dd 06:00:00')}`,
+      },
+      'employee_schedules'
+    );
     return {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
       method: 'GET',
@@ -681,8 +743,7 @@ export class TimelogsComponent {
       created_at: string;
       employee_id?: string;
     } = {
-      select:
-        `*,employee:employees(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)`,
+      select: `*,employee:employees(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)`,
       created_at: `gte.${format(start, 'yyyy-MM-dd 06:00:00')}`,
     };
     if (this.employeeId()) {
@@ -755,10 +816,14 @@ export class TimelogsComponent {
     // Obtener empleados únicos que tienen logs en el rango o que están activos
     const uniqueEmployees = new Map<string, Partial<Employee>>();
 
-    // Primero agregar empleados que tienen logs
+    // Primero agregar empleados que tienen logs, pero usar datos completos de employeesList
     filteredLogs.forEach((log) => {
       if (log.employee?.id && !uniqueEmployees.has(log.employee.id)) {
-        uniqueEmployees.set(log.employee.id, log.employee);
+        // Buscar el empleado completo en employeesList para obtener total_lunch_exceeded_minutes
+        const fullEmployee = this.employees
+          .employeesList()
+          .find((emp) => emp.id === log.employee.id);
+        uniqueEmployees.set(log.employee.id, fullEmployee || log.employee);
       }
     });
 
@@ -1264,6 +1329,29 @@ export class TimelogsComponent {
     }
   }
 
+  public formatLunchExceededTotal(minutes: number): string {
+    if (minutes === 0) {
+      return '0';
+    }
+    if (minutes < 60) {
+      return `${minutes} min`;
+    }
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
+  }
+
+  public getScheduleColorInlineStyle(color: string | undefined | null) {
+    return getColorStyle(color);
+  }
+
+  public getScheduleTooltip(schedule: any): string | undefined {
+    if (schedule && schedule.approved === false) {
+      return 'Horario pendiente de aprobación';
+    }
+    return undefined;
+  }
+
   formatHours(hours: number): string {
     const h = Math.floor(hours);
     const m = Math.round((hours - h) * 60);
@@ -1319,8 +1407,9 @@ export class TimelogsComponent {
     // Mapear datos ya ordenados
     const mappedData = sortedAndFilteredData.map((x) => {
       const lunchMinutes = x.lunchMinutes || 0;
+      const exceededMinutes = lunchMinutes > 60 ? lunchMinutes - 60 : 0;
       const lunchExceeded = x.lunchExceeded
-        ? `EXCEDIDO (${lunchMinutes} min)`
+        ? `EXCEDIDO (+${exceededMinutes} min)`
         : lunchMinutes > 0
         ? `${lunchMinutes} min`
         : '';
@@ -1376,7 +1465,8 @@ export class TimelogsComponent {
             finAlmuerzo += ` (${x.lunch_end.branch.short_name})`;
           }
           if (x.lunchExceeded && x.lunchMinutes) {
-            finAlmuerzo += ` Almuerzo ${x.lunchMinutes} min`;
+            const exceededMinutes = x.lunchMinutes - 60;
+            finAlmuerzo += ` Almuerzo +${exceededMinutes} min`;
           }
         } catch (error) {
           finAlmuerzo = 'SIN MARCA';

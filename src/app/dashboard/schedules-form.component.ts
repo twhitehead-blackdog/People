@@ -1,4 +1,4 @@
-import { NgClass } from '@angular/common';
+import { NgClass, NgStyle } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -19,7 +19,6 @@ import { DatePicker } from 'primeng/datepicker';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { InputNumber } from 'primeng/inputnumber';
 import { InputText } from 'primeng/inputtext';
-import { Select } from 'primeng/select';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { v4 } from 'uuid';
 import { colorVariants } from '../models';
@@ -35,8 +34,8 @@ import { SchedulesStore } from '../stores/schedules.store';
     InputNumber,
     Button,
     ToggleSwitch,
-    Select,
     NgClass,
+    NgStyle,
   ],
   template: `<form [formGroup]="form" (ngSubmit)="saveChanges()">
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -98,30 +97,68 @@ import { SchedulesStore } from '../stores/schedules.store';
       </div>
       <div class="flex items-center mt-2 gap-2">
         <p-toggleswitch formControlName="no_tolerance" inputId="no_tolerance" />
-        <label for="no_tolerance">Sin tiempo de gracia (horario estricto)</label>
-      </div>
-      <div class="input-container">
-        <label for="color">Color</label>
-        <p-select
-          inputId="color"
-          formControlName="color"
-          [options]="colors"
-          optionValue="key"
-          appendTo="body"
+        <label for="no_tolerance"
+          >Sin tiempo de gracia (horario estricto)</label
         >
-          <ng-template #item let-color>
-            <span
-              class="rounded h-6 w-full flex items-center justify-center"
-              [ngClass]="colorVariants[color.key]"
-            ></span>
-          </ng-template>
-          <ng-template #selectedItem let-color>
-            <span
-              class="rounded h-6 w-full flex items-center justify-center"
-              [ngClass]="colorVariants[color.key]"
-            ></span>
-          </ng-template>
-        </p-select>
+      </div>
+      <div class="input-container col-span-2 md:col-span-4">
+        <label for="color">Color</label>
+        <div class="flex flex-col gap-3">
+          <!-- Colores recomendados -->
+          <div class="flex flex-wrap gap-2">
+            @for(color of recommendedColors; track color.key) {
+            <button
+              type="button"
+              class="rounded h-10 w-10 flex items-center justify-center transition-all hover:scale-110 hover:ring-2 hover:ring-offset-2 ring-neutral-400"
+              [ngClass]="[
+                colorVariants[color.key],
+                form.get('color')?.value === color.key
+                  ? 'ring-2 ring-offset-2 ring-neutral-600 scale-110'
+                  : ''
+              ]"
+              (click)="selectRecommendedColor(color.key)"
+              [title]="color.name"
+            >
+              @if(form.get('color')?.value === color.key) {
+              <i class="pi pi-check text-xs"></i>
+              }
+            </button>
+            }
+          </div>
+
+          <!-- Selector RGB personalizado -->
+          <div class="flex items-center gap-3 border-t pt-3">
+            <label for="custom-color" class="text-sm whitespace-nowrap"
+              >Color personalizado (RGB):</label
+            >
+            <input
+              type="color"
+              id="custom-color"
+              class="h-10 w-20 rounded cursor-pointer"
+              [value]="getCustomColorValue()"
+              (input)="onCustomColorChange($event)"
+            />
+            <input
+              type="text"
+              pInputText
+              placeholder="rgb(255, 0, 0)"
+              class="flex-1"
+              [value]="getCustomColorText()"
+              (input)="onCustomColorTextChange($event)"
+            />
+            @if(isCustomColor()) {
+            <button
+              type="button"
+              class="rounded h-10 w-10 flex items-center justify-center transition-all hover:scale-110 ring-2 ring-offset-2 ring-neutral-600"
+              [style.background-color]="getCustomColorValue()"
+              [style.color]="getTextColorForBackground(getCustomColorValue())"
+              title="Color seleccionado"
+            >
+              <i class="pi pi-check text-xs"></i>
+            </button>
+            }
+          </div>
+        </div>
       </div>
       <div class="flex items-center mt-2 gap-2">
         <p-toggleswitch formControlName="day_off" inputId="day_off" />
@@ -177,10 +214,36 @@ export class SchedulesFormComponent implements OnInit {
     value,
   }));
 
+  // Colores recomendados con nombres descriptivos
+  public recommendedColors = [
+    { key: 'slate', name: 'Gris pizarra' },
+    { key: 'yellow', name: 'Amarillo' },
+    { key: 'green', name: 'Verde' },
+    { key: 'sky', name: 'Cielo' },
+    { key: 'indigo', name: 'Índigo' },
+    { key: 'orange', name: 'Naranja' },
+    { key: 'purple', name: 'Morado' },
+    { key: 'red', name: 'Rojo' },
+    { key: 'pink', name: 'Rosa' },
+    { key: 'teal', name: 'Verde azulado' },
+    { key: 'cyan', name: 'Cian' },
+    { key: 'emerald', name: 'Esmeralda' },
+    { key: 'lime', name: 'Lima' },
+    { key: 'amber', name: 'Ámbar' },
+    { key: 'rose', name: 'Rosa intenso' },
+    { key: 'violet', name: 'Violeta' },
+    { key: 'fuchsia', name: 'Fucsia' },
+    { key: 'blue', name: 'Azul' },
+    { key: 'stone', name: 'Piedra' },
+    { key: 'neutral', name: 'Neutral' },
+    { key: 'zinc', name: 'Zinc' },
+    { key: 'gray', name: 'Gris' },
+  ];
+
   ngOnInit() {
     const { schedule } = this.dialog.data;
     if (schedule) {
-      const { id, name, minutes_tolerance, color } = schedule;
+      const { id, name, minutes_tolerance, color, day_off } = schedule;
       let { entry_time, lunch_end_time, lunch_start_time, exit_time } =
         schedule;
       entry_time = this.setTime(entry_time);
@@ -191,9 +254,10 @@ export class SchedulesFormComponent implements OnInit {
       this.form.patchValue({
         id,
         name,
-        color,
-        minutes_tolerance,
+        color: color || '',
+        minutes_tolerance: minutes_tolerance || 0,
         no_tolerance,
+        day_off: day_off || false,
         entry_time,
         lunch_end_time,
         lunch_start_time,
@@ -262,5 +326,155 @@ export class SchedulesFormComponent implements OnInit {
     date.setMinutes(Number(minutes));
     date.setSeconds(0);
     return date;
+  }
+
+  // Seleccionar color recomendado
+  selectRecommendedColor(colorKey: string) {
+    this.form.patchValue({ color: colorKey });
+  }
+
+  // Verificar si el color actual es personalizado (RGB)
+  isCustomColor(): boolean {
+    const currentColor = this.form.get('color')?.value;
+    if (!currentColor) return false;
+    // Si no está en los colores recomendados, es personalizado
+    return !this.recommendedColors.some((c) => c.key === currentColor);
+  }
+
+  // Obtener valor RGB del color personalizado para el input color
+  getCustomColorValue(): string {
+    const currentColor = this.form.get('color')?.value;
+    if (!currentColor) return '#3b82f6'; // Azul por defecto
+
+    // Si es un color recomendado, convertir a hex
+    if (!this.isCustomColor()) {
+      return this.colorKeyToHex(currentColor);
+    }
+
+    // Si es RGB, convertir a hex
+    if (currentColor.startsWith('rgb(')) {
+      return this.rgbToHex(currentColor);
+    }
+
+    // Si ya es hex, retornar
+    if (currentColor.startsWith('#')) {
+      return currentColor;
+    }
+
+    return '#3b82f6';
+  }
+
+  // Obtener texto RGB del color personalizado
+  getCustomColorText(): string {
+    const currentColor = this.form.get('color')?.value;
+    if (!currentColor) return '';
+
+    if (this.isCustomColor()) {
+      if (currentColor.startsWith('rgb(')) {
+        return currentColor;
+      }
+      if (currentColor.startsWith('#')) {
+        return this.hexToRgb(currentColor);
+      }
+    }
+
+    return '';
+  }
+
+  // Manejar cambio del input color
+  onCustomColorChange(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const hexColor = input.value;
+    const rgbColor = this.hexToRgb(hexColor);
+    this.form.patchValue({ color: rgbColor });
+  }
+
+  // Manejar cambio del input de texto RGB
+  onCustomColorTextChange(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const value = input.value.trim();
+
+    // Validar formato RGB
+    const rgbRegex = /^rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/;
+    if (rgbRegex.test(value)) {
+      this.form.patchValue({ color: value });
+    }
+  }
+
+  // Convertir color key a hex (aproximado)
+  private colorKeyToHex(colorKey: string): string {
+    const colorMap: Record<string, string> = {
+      slate: '#cbd5e1',
+      yellow: '#fde047',
+      green: '#86efac',
+      sky: '#7dd3fc',
+      indigo: '#a5b4fc',
+      orange: '#fdba74',
+      purple: '#c4b5fd',
+      red: '#fca5a5',
+      pink: '#f9a8d4',
+      teal: '#5eead4',
+      cyan: '#67e8f9',
+      emerald: '#6ee7b7',
+      lime: '#bef264',
+      amber: '#fcd34d',
+      rose: '#fda4af',
+      violet: '#c4b5fd',
+      fuchsia: '#f0abfc',
+      blue: '#93c5fd',
+      stone: '#d6d3d1',
+      neutral: '#d4d4d4',
+      zinc: '#d4d4d8',
+      gray: '#d1d5db',
+    };
+    return colorMap[colorKey] || '#3b82f6';
+  }
+
+  // Convertir RGB a Hex
+  private rgbToHex(rgb: string): string {
+    const match = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+    if (!match) return '#3b82f6';
+
+    const r = parseInt(match[1], 10);
+    const g = parseInt(match[2], 10);
+    const b = parseInt(match[3], 10);
+
+    return (
+      '#' +
+      [r, g, b]
+        .map((x) => {
+          const hex = x.toString(16);
+          return hex.length === 1 ? '0' + hex : hex;
+        })
+        .join('')
+    );
+  }
+
+  // Convertir Hex a RGB
+  private hexToRgb(hex: string): string {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if (!result) return 'rgb(59, 130, 246)';
+
+    const r = parseInt(result[1], 16);
+    const g = parseInt(result[2], 16);
+    const b = parseInt(result[3], 16);
+
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+
+  // Determinar color de texto según el fondo
+  public getTextColorForBackground(hexColor: string): string {
+    const rgb = this.hexToRgb(hexColor);
+    const match = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+    if (!match) return '#000000';
+
+    const r = parseInt(match[1], 10);
+    const g = parseInt(match[2], 10);
+    const b = parseInt(match[3], 10);
+
+    // Calcular luminosidad
+    const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+
+    return luminance > 0.5 ? '#000000' : '#ffffff';
   }
 }

@@ -325,6 +325,11 @@ import { EmployeeFormComponent } from './employee-form.component';
               <th pSortableColumn="created_at">
                 Creado<p-sortIcon field="created_at" />
               </th>
+              <th pSortableColumn="total_lunch_exceeded_minutes">
+                Almuerzo Excedido<p-sortIcon
+                  field="total_lunch_exceeded_minutes"
+                />
+              </th>
               <th></th>
             </tr>
           </ng-template>
@@ -376,6 +381,22 @@ import { EmployeeFormComponent } from './employee-form.component';
                 </span>
               </td>
               <td>{{ item.created_at | date : 'medium' }}</td>
+              <td>
+                @if(item.total_lunch_exceeded_minutes !== undefined &&
+                item.total_lunch_exceeded_minutes !== null) {
+                @if(item.total_lunch_exceeded_minutes > 0) {
+                <p-tag
+                  severity="warn"
+                  [value]="
+                    formatLunchExceeded(item.total_lunch_exceeded_minutes)
+                  "
+                />
+                } @else {
+                <span class="text-gray-500">0</span>
+                } } @else {
+                <span class="text-gray-500">0</span>
+                }
+              </td>
               <td>
                 <div class="flex gap-1 sm:gap-2 flex-nowrap">
                   <p-button
@@ -737,6 +758,18 @@ export class EmployeeListComponent implements OnInit {
       width: '90vw',
       data: { employee },
     });
+  }
+
+  public formatLunchExceeded(minutes: number): string {
+    if (minutes === 0) {
+      return '0';
+    }
+    if (minutes < 60) {
+      return `${minutes} min`;
+    }
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
   }
 
   generateReport() {

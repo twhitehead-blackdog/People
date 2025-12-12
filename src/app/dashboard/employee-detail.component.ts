@@ -23,8 +23,8 @@ import { TabsModule } from 'primeng/tabs';
 import { Employee } from '../models';
 import { AgePipe } from '../pipes/age.pipe';
 import { SeniorityPipe } from '../pipes/seniority.pipe';
-import { WassengerService } from '../services/wassenger.service';
 import { OrganizationService } from '../services/organization.service';
+import { WassengerService } from '../services/wassenger.service';
 import { BanksStore } from '../stores/banks.store';
 import { EmployeesStore } from '../stores/employees.store';
 import { EmployeeFormComponent } from './employee-form.component';
@@ -463,6 +463,34 @@ import { TimeOffsComponent } from './time-offs.component';
                       </span>
                     </dd>
                   </div>
+                  <div
+                    class="flex flex-col p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
+                  >
+                    <dt
+                      class="text-xs font-semibold text-amber-400 mb-1 uppercase tracking-wide"
+                    >
+                      Tiempo Total Excedido de Almuerzo
+                    </dt>
+                    <dd class="text-sm text-gray-200 font-medium">
+                      @if(currentEmployee(); as employee) {
+                      @if(employee.total_lunch_exceeded_minutes !== undefined &&
+                      employee.total_lunch_exceeded_minutes !== null) {
+                      @if(employee.total_lunch_exceeded_minutes > 0) {
+                      <p-tag
+                        severity="warn"
+                        [value]="
+                          formatLunchExceeded(
+                            employee.total_lunch_exceeded_minutes
+                          )
+                        "
+                      />
+                      } @else {
+                      <span class="text-gray-500">0</span>
+                      } } @else {
+                      <span class="text-gray-500">0</span>
+                      } }
+                    </dd>
+                  </div>
                 </div>
               </p-card>
             </div>
@@ -787,22 +815,22 @@ export class EmployeeDetailComponent implements OnInit {
       return undefined;
     }
     const companyId = this.organizationService.getCurrentCompanyId();
-    
+
     // Usar tablas compartidas con relaciones
-    const selectQuery = `id, department:departments(id, name), branch:branches(id, name), position:positions(id, name), company:companies(id, name), first_name,father_name, middle_name, mother_name,document_id, email, phone_number, address, birth_date, start_date, branch_id, department_id, position_id, gender, uniform_size, is_active, work_email, monthly_salary, hourly_salary, qr_code, code_uri, bank, account_number, bank_account_type, company_id, has_portal_access`;
-    
+    const selectQuery = `id, department:departments(id, name), branch:branches(id, name), position:positions(id, name), company:companies(id, name), first_name,father_name, middle_name, mother_name,document_id, email, phone_number, address, birth_date, start_date, branch_id, department_id, position_id, gender, uniform_size, is_active, work_email, monthly_salary, hourly_salary, qr_code, code_uri, bank, account_number, bank_account_type, company_id, has_portal_access, total_lunch_exceeded_minutes`;
+
     const params: any = {
       select: selectQuery,
       limit: '1',
       order: 'father_name',
       id: `eq.${id}`,
     };
-    
+
     // Agregar filtro por company_id
     if (companyId) {
       params.company_id = `eq.${companyId}`;
     }
-    
+
     return {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
       method: 'GET',
@@ -930,12 +958,12 @@ export class EmployeeDetailComponent implements OnInit {
           // Actualizar el empleado para darle acceso al portal
           const companyId = this.organizationService.getCurrentCompanyId();
           const params: any = { id: `eq.${employee.id}` };
-          
+
           // Agregar filtro por company_id para seguridad
           if (companyId) {
             params.company_id = `eq.${companyId}`;
           }
-          
+
           await this.http
             .patch(
               `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
@@ -990,5 +1018,17 @@ export class EmployeeDetailComponent implements OnInit {
         }
       },
     });
+  }
+
+  public formatLunchExceeded(minutes: number): string {
+    if (minutes === 0) {
+      return '0';
+    }
+    if (minutes < 60) {
+      return `${minutes} minutos`;
+    }
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return mins > 0 ? `${hours} horas ${mins} minutos` : `${hours} horas`;
   }
 }
