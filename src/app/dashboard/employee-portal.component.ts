@@ -1837,10 +1837,6 @@ export class EmployeePortalComponent {
     const isNaz = this.isNaz();
     const companyId = this.organizationService.getCurrentCompanyId();
     
-    // #region agent log
-    const employeeAny = employee as any;
-    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'employee-portal.component.ts:1835',message:'currentEmployee computed',data:{hasEmployee:!!employee,employeeId:employee?.id,employeeCompanyId:employeeAny?.company_id,isNaz,companyId,companyIdsMatch:employeeAny?.company_id===companyId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-    // #endregion
     
     // DEBUG: Log cuando currentEmployee cambia
     if (employee) {
@@ -1889,12 +1885,6 @@ export class EmployeePortalComponent {
     const employeeId = this.currentEmployee()!.id;
     const companyId = this.organizationService.getCurrentCompanyId();
     const isNaz = this.isNaz();
-    const currentEmployee = this.currentEmployee();
-    const currentEmployeeAny = currentEmployee as any;
-    
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'employee-portal.component.ts:1878',message:'Querying timelogs - company_id check',data:{isNaz,companyId,employeeId,employeeCompanyId:currentEmployeeAny?.company_id,dateRange:[this.dateRange()[0]?.toISOString(),this.dateRange()[1]?.toISOString()]},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
     
     const params: any = {
       select: `*,employee:employees(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)`,
@@ -1910,10 +1900,6 @@ export class EmployeePortalComponent {
     // Usar la tabla correcta según la organización
     const tableName = isNaz ? 'naz_timelogs' : 'timelogs';
     
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'employee-portal.component.ts:1890',message:'Timelogs query params before request',data:{isNaz,tableName,url:`${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,params},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
-    
     return {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
       method: 'GET',
@@ -1923,10 +1909,6 @@ export class EmployeePortalComponent {
 
   public myTimelogs = computed(() => {
     const logs = this.timelogsApi.value() ?? [];
-    
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'employee-portal.component.ts:1908',message:'Processing timelogs results',data:{logsCount:logs.length,isNaz:this.isNaz(),companyId:this.organizationService.getCurrentCompanyId(),sampleLog:logs[0]},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
     
     // Process logs similar to timelogs component
     // Filtrar logs sin fecha válida antes de procesar

@@ -46,11 +46,6 @@ export class OrganizationService {
   // Getter para obtener el company_id actual
   public getCurrentCompanyId(): string | null {
     const companyId = this._currentCompanyId();
-    // #region agent log
-    if (typeof window !== 'undefined') {
-      fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'organization.service.ts:44',message:'getCurrentCompanyId called',data:{companyId,isNaz:this.isNaz(),currentOrg:this._currentOrganization()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-    }
-    // #endregion
     return companyId;
   }
 

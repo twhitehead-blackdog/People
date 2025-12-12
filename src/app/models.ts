@@ -40,6 +40,7 @@ export type Position = {
 
 export type Employee = {
   id: string;
+  employee_number?: string; // Número de empleado formato: BD0001, NZ0001
   document_id: string;
   first_name: string;
   middle_name: string;
@@ -399,6 +400,7 @@ export type NazPosition = {
 
 export type NazEmployee = {
   id: string;
+  employee_number?: string; // Número de empleado formato: NZ0001
   document_id: string;
   first_name: string;
   middle_name?: string;

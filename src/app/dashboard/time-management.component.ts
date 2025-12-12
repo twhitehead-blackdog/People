@@ -9,9 +9,9 @@ import { OrganizationService } from '../services/organization.service';
   imports: [RouterLink, RouterLinkActive, RouterOutlet, NgClass],
   template: `<div [ngClass]="{ 'naz-theme': isNaz() }">
     <header class="bg-gradient-to-r from-neutral-800 via-neutral-700 to-neutral-800 border-b border-neutral-600/50 shadow-md" [ngClass]="{ 'naz-header': isNaz() }">
-      <div class="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
+      <div class="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8 text-center">
         <div class="block w-full overflow-x-auto">
-          <div class="flex gap-2 min-w-max">
+          <div class="flex gap-2 min-w-max justify-center items-center">
             @if (store.isAdmin()) {
             <a
               routerLink="timelogs"

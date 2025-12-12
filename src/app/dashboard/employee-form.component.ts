@@ -1,4 +1,4 @@
-import { httpResource } from '@angular/common/http';
+import { httpResource, HttpClient } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -37,6 +37,11 @@ import { Bank, Employee, UniformSize } from '../models';
 import { DashboardStore } from '../stores/dashboard.store';
 import { WassengerService } from '../services/wassenger.service';
 import { OrganizationService } from '../services/organization.service';
+import { 
+  generateNextEmployeeNumber, 
+  getEmployeeNumberPrefix 
+} from '../utils/employee-number.utils';
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'pt-employee-form',
@@ -579,6 +584,7 @@ export class EmployeeFormComponent implements OnInit {
   private message = inject(MessageService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private http = inject(HttpClient);
   public form = new FormGroup({
     id: new FormControl(v4(), { nonNullable: true }),
     first_name: new FormControl('', {
@@ -822,7 +828,11 @@ export class EmployeeFormComponent implements OnInit {
         dataToSave = filteredData;
       }
       
-      this.store.employees.createItem(dataToSave).subscribe({
+      // Generar número de empleado automáticamente
+      this.generateEmployeeNumber(dataToSave.company_id).then((employeeNumber) => {
+        dataToSave.employee_number = employeeNumber;
+        
+        this.store.employees.createItem(dataToSave).subscribe({
         next: () => {
           // Recargar la lista de empleados
           this.store.employees.reloadItems();
@@ -872,6 +882,14 @@ export class EmployeeFormComponent implements OnInit {
             detail: error?.error?.message || 'Ocurrió un error al crear el empleado. Por favor intente nuevamente.',
           });
         },
+      });
+      }).catch((error) => {
+        console.error('Error al generar número de empleado:', error);
+        this.message.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'No se pudo generar el número de empleado. Por favor intente nuevamente.',
+        });
       });
     } else {
       // Filtrar campos que no existen en naz_employees si es Naz
@@ -935,5 +953,62 @@ export class EmployeeFormComponent implements OnInit {
       }
       this.form.patchValue({ qr_code: qrCode, code_uri: uri });
     });
+  }
+
+  /**
+   * Genera el siguiente número de empleado disponible basado en el company_id o organización
+   */
+  private async generateEmployeeNumber(companyId: string | undefined): Promise<string> {
+    try {
+      const orgService = this.organizationService;
+      const isNaz = orgService.isNaz();
+      
+      // Si es Naz, usar prefijo NZ directamente (naz_employees no tiene company_id)
+      // Si es Black Dog, obtener company_id y determinar prefijo
+      let prefix: string;
+      
+      if (isNaz) {
+        prefix = 'NZ';
+      } else {
+        const nazCompanyId = orgService.getNazCompanyId();
+        const blackdogCompanyId = orgService.getBlackdogCompanyId();
+        prefix = getEmployeeNumberPrefix(companyId || null, nazCompanyId, blackdogCompanyId);
+      }
+      
+      // Determinar el nombre de la tabla
+      const tableName = isNaz ? 'naz_employees' : 'employees';
+      
+      // Obtener todos los números de empleado existentes mediante una llamada HTTP directa
+      // Solo necesitamos employee_number, no todos los campos
+      const params: any = {
+        select: 'employee_number',
+      };
+      
+      // Para Black Dog, agregar filtro por company_id si está disponible
+      if (!isNaz && companyId) {
+        params.company_id = `eq.${companyId}`;
+      }
+      
+      const employees = await firstValueFrom(
+        this.http.get<Array<{ employee_number: string | null }>>(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
+          { params }
+        )
+      );
+      
+      const existingNumbers = (employees || [])
+        .map((emp: { employee_number: string | null }) => emp.employee_number)
+        .filter((num: string | null): num is string => !!num);
+      
+      // Generar el siguiente número
+      return generateNextEmployeeNumber(existingNumbers, prefix);
+    } catch (error) {
+      console.error('Error generando número de empleado:', error);
+      // Fallback: usar prefijo genérico con timestamp
+      const timestamp = Date.now().toString().slice(-4);
+      const orgService = this.organizationService;
+      const prefix = orgService.isNaz() ? 'NZ' : 'BD';
+      return `${prefix}${timestamp}`;
+    }
   }
 }

@@ -7,7 +7,7 @@ export const NazEmployeesStore = signalStore(
   withCustomEntities<NazEmployee>({
     name: 'naz_employees',
     query:
-      'id,first_name,middle_name,father_name,mother_name,birth_date,gender,start_date,monthly_salary,document_id,end_date,email,work_email,phone_number,is_active,uniform_size,branch_id,department_id,position_id,bank,account_number,bank_account_type,created_at,qr_code,code_uri,branch:naz_branches(id, name, short_name),department:naz_departments(id, name),position:naz_positions(id, name), address,full_name,hourly_salary',
+      'id,employee_number,first_name,middle_name,father_name,mother_name,birth_date,gender,start_date,monthly_salary,document_id,end_date,email,work_email,phone_number,is_active,uniform_size,branch_id,department_id,position_id,bank,account_number,bank_account_type,created_at,qr_code,code_uri,branch:naz_branches(id, name, short_name),department:naz_departments(id, name),position:naz_positions(id, name), address,full_name,hourly_salary',
     detailsQuery:
       '*, branch:naz_branches(*), department:naz_departments(*), position:naz_positions(*)',
   }),

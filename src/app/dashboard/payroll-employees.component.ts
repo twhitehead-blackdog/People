@@ -15,8 +15,8 @@ import { InputIcon } from 'primeng/inputicon';
 import { InputText } from 'primeng/inputtext';
 import { TableModule } from 'primeng/table';
 import { PayrollEmployee } from '../models';
-import { EmployeesStore } from '../stores/employees.store';
 import { OrganizationService } from '../services/organization.service';
+import { EmployeesStore } from '../stores/employees.store';
 import { PayrollEmployeesFormComponent } from './payroll-employees-form.component';
 
 /**
@@ -32,7 +32,15 @@ import { PayrollEmployeesFormComponent } from './payroll-employees-form.componen
  */
 @Component({
   selector: 'pt-payroll-employees',
-  imports: [TableModule, Button, CurrencyPipe, IconField, InputIcon, InputText, Card],
+  imports: [
+    TableModule,
+    Button,
+    CurrencyPipe,
+    IconField,
+    InputIcon,
+    InputText,
+    Card,
+  ],
   providers: [DynamicDialogRef, DialogService],
   template: `
     <p-card>
@@ -40,7 +48,9 @@ import { PayrollEmployeesFormComponent } from './payroll-employees-form.componen
         <div class="flex items-center justify-between w-full">
           <div>
             <h2 class="m-0">Empleados</h2>
-            <p class="text-sm text-gray-400 m-0 mt-1">Gestión de empleados en la planilla</p>
+            <p class="text-sm text-gray-400 m-0 mt-1">
+              Gestión de empleados en la planilla
+            </p>
           </div>
           <div class="flex gap-2">
             <p-button
@@ -53,75 +63,75 @@ import { PayrollEmployeesFormComponent } from './payroll-employees-form.componen
         </div>
       </ng-template>
       <p-table
-      #dt2
-      [value]="employees.value() || []"
-      [loading]="employees.isLoading()"
-      [paginator]="true"
-      [rows]="10"
-      [rowsPerPageOptions]="[10, 25, 50]"
-      [globalFilterFields]="['employee.first_name', 'employee.father_name']"
-      [scrollable]="true"
-      dataKey="id"
-      paginatorDropdownAppendTo="body"
-      [showCurrentPageReport]="true"
-      currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} empleados"
-    >
-      <ng-template pTemplate="caption">
-        <div class="flex gap-2 items-center">
-          <p-iconfield iconPosition="left">
-            <p-inputicon>
-              <i class="pi pi-search"></i>
-            </p-inputicon>
-            <input
-              pInputText
-              type="text"
-              (input)="onFilterInput($event, dt2)"
-              placeholder="Buscar por nombre"
-            />
-          </p-iconfield>
-        </div>
-      </ng-template>
-      <ng-template pTemplate="header">
-        <tr>
-          <th pSortableColumn="employee.first_name" pSortIcon>
-            Nombre <p-sortIcon field="employee.first_name" />
-          </th>
-          <th pSortableColumn="monthly_salary" pSortIcon>
-            Salario Mensual <p-sortIcon field="monthly_salary" />
-          </th>
-          <th pSortableColumn="hourly_salary" pSortIcon>
-            Salario por Hora <p-sortIcon field="hourly_salary" />
-          </th>
-          <th></th>
-        </tr>
-      </ng-template>
-      <ng-template pTemplate="body" let-employee>
-        <tr>
-          <td>
-            {{ employee.employee?.first_name }}
-            {{ employee.employee?.father_name }}
-          </td>
-          <td>{{ employee?.monthly_salary | currency : '$' }}</td>
-          <td>{{ employee?.hourly_salary | currency : '$' }}</td>
-          <td>
-            <p-button
-              icon="pi pi-pencil"
-              rounded
-              text
-              severity="success"
-              (onClick)="editEmployee(employee)"
-            />
-            <p-button
-              icon="pi pi-trash"
-              rounded
-              text
-              severity="danger"
-              (onClick)="deleteEmployee(employee)"
-            />
-          </td>
-        </tr>
-      </ng-template>
-    </p-table>
+        #dt2
+        [value]="employees.value() || []"
+        [loading]="employees.isLoading()"
+        [paginator]="true"
+        [rows]="10"
+        [rowsPerPageOptions]="[10, 25, 50]"
+        [globalFilterFields]="['employee.first_name', 'employee.father_name']"
+        [scrollable]="true"
+        dataKey="id"
+        paginatorDropdownAppendTo="body"
+        [showCurrentPageReport]="true"
+        currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} empleados"
+      >
+        <ng-template pTemplate="caption">
+          <div class="flex gap-2 items-center">
+            <p-iconfield iconPosition="left">
+              <p-inputicon>
+                <i class="pi pi-search"></i>
+              </p-inputicon>
+              <input
+                pInputText
+                type="text"
+                (input)="onFilterInput($event, dt2)"
+                placeholder="Buscar"
+              />
+            </p-iconfield>
+          </div>
+        </ng-template>
+        <ng-template pTemplate="header">
+          <tr>
+            <th pSortableColumn="employee.first_name" pSortIcon>
+              Nombre <p-sortIcon field="employee.first_name" />
+            </th>
+            <th pSortableColumn="monthly_salary" pSortIcon>
+              Salario Mensual <p-sortIcon field="monthly_salary" />
+            </th>
+            <th pSortableColumn="hourly_salary" pSortIcon>
+              Salario por Hora <p-sortIcon field="hourly_salary" />
+            </th>
+            <th></th>
+          </tr>
+        </ng-template>
+        <ng-template pTemplate="body" let-employee>
+          <tr>
+            <td>
+              {{ employee.employee?.first_name }}
+              {{ employee.employee?.father_name }}
+            </td>
+            <td>{{ employee?.monthly_salary | currency : '$' }}</td>
+            <td>{{ employee?.hourly_salary | currency : '$' }}</td>
+            <td>
+              <p-button
+                icon="pi pi-pencil"
+                rounded
+                text
+                severity="success"
+                (onClick)="editEmployee(employee)"
+              />
+              <p-button
+                icon="pi pi-trash"
+                rounded
+                text
+                severity="danger"
+                (onClick)="deleteEmployee(employee)"
+              />
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
     </p-card>
   `,
   styles: ``,
@@ -136,13 +146,13 @@ export class PayrollEmployeesComponent {
   public onFilterInput(event: Event, table: any): void {
     const input = event.target as HTMLInputElement;
     if (!input) return;
-    
+
     // Sanitizar input: remover caracteres peligrosos y limitar longitud
     let value = input.value || '';
     // Remover caracteres de control y limitar a 200 caracteres
     // eslint-disable-next-line no-control-regex
     value = value.replace(/[\x00-\x1F\x7F]/g, '').substring(0, 200);
-    
+
     table.filterGlobal(value, 'contains');
   }
   public employees = httpResource<PayrollEmployee[]>(() => {
@@ -151,10 +161,10 @@ export class PayrollEmployeesComponent {
       select: `*, employee:employees(id, first_name, father_name, monthly_salary, hourly_salary)`,
       payroll_id: `eq.${this.payrollId()}`,
     };
-    
+
     // Nota: employee_payrolls no tiene company_id directamente, pero podemos filtrar por employee.company_id
     // Por ahora, dejamos que el filtro se haga a través de la relación employee si es necesario
-    
+
     return {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_payrolls`,
       method: 'GET',

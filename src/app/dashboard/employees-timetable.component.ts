@@ -92,6 +92,13 @@ import { EmployeeSchedulesFormComponent } from './employee-schedules-form.compon
       >
         <ng-template #caption>
           <div class="flex lg:flex-row flex-col gap-2 mb-2">
+            <input
+              pInputText
+              type="text"
+              [(ngModel)]="employeeSearch"
+              placeholder="Buscar empleado por nombre..."
+              class="w-full lg:w-auto flex-1 text-sm"
+            />
             <p-select
               fluid
               [(ngModel)]="currentBranch"
@@ -368,6 +375,7 @@ export class EmployeesTimetableComponent implements OnInit {
 
   public currentBranch = model<string>();
   public currentPosition = model<string>();
+  public employeeSearch = model<string>('');
   private dialog = inject(DialogService);
   private message = inject(MessageService);
   public currentEmployees = computed(() =>
@@ -394,12 +402,20 @@ export class EmployeesTimetableComponent implements OnInit {
         })
       )
       .filter((employee) => {
-        return (
-          (!this.currentBranch() ||
-            employee.branch_id === this.currentBranch()) &&
-          (!this.currentPosition() ||
-            employee.position_id === this.currentPosition())
-        );
+        // Filtro por búsqueda de nombre
+        const searchTerm = this.employeeSearch()?.toLowerCase().trim() || '';
+        const matchesSearch = !searchTerm || 
+          `${employee.first_name} ${employee.father_name}`.toLowerCase().includes(searchTerm) ||
+          employee.first_name.toLowerCase().includes(searchTerm) ||
+          employee.father_name.toLowerCase().includes(searchTerm);
+        
+        // Filtro por sucursal
+        const matchesBranch = !this.currentBranch() || employee.branch_id === this.currentBranch();
+        
+        // Filtro por puesto
+        const matchesPosition = !this.currentPosition() || employee.position_id === this.currentPosition();
+        
+        return matchesSearch && matchesBranch && matchesPosition;
       })
       .map((employee) => ({
         ...employee,

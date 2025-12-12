@@ -130,56 +130,11 @@ import { EmployeeFormComponent } from './employee-form.component';
           </ng-template>
           <ng-template #header>
             <tr>
-              <th pSortableColumn="id">Número<p-sortIcon field="id" /></th>
-              <th pSortableColumn="short_name">
-                Nombre<p-sortIcon field="short_name" />
-              </th>
-              @if (inactiveValue()) {
-              <th pSortableColumn="is_active">
-                Status<p-sortIcon field="is_active" />
-              </th>
-              }
-              <th pSortableColumn="document_id">
-                Cedula<p-sortIcon field="document_id" />
-              </th>
-              <th pSortableColumn="branch.name">
-                Sucursal<p-sortIcon field="branch.name" />
-              </th>
-              <th pSortableColumn="department.name">
-                Area<p-sortIcon field="department.name" />
-              </th>
-              <th
-                style="width: 10%; max-width: 120px;"
-                pSortableColumn="position.name"
-              >
-                Cargo<p-sortIcon field="position.name" />
-              </th>
-              <th pSortableColumn="monthly_salary">
-                Salario<p-sortIcon field="monthly_salary" />
-              </th>
-              <th pSortableColumn="uniform_size">
-                Talla<p-sortIcon field="uniform_size" />
-              </th>
-              <th pSortableColumn="start_date">
-                Fecha de inicio<p-sortIcon field="start_date" />
-              </th>
-              <th pSortableColumn="birth_date">
-                Fecha de nacimiento<p-sortIcon field="birth_date" />
-              </th>
-              <th pSortableColumn="gender">
-                Sexo<p-sortIcon field="gender" />
-              </th>
-              <th pSortableColumn="created_at">
-                Creado<p-sortIcon field="created_at" />
-              </th>
-              <th></th>
-            </tr>
-            <tr>
               <th>
                 <p-columnFilter
                   type="text"
-                  field="id"
-                  placeholder="Buscar por número"
+                  field="employee_number"
+                  placeholder="Número"
                   ariaLabel="Filter Number"
                   matchMode="contains"
                   [showMenu]="false"
@@ -206,7 +161,7 @@ import { EmployeeFormComponent } from './employee-form.component';
                 <p-columnFilter
                   type="text"
                   field="document_id"
-                  placeholder="Buscar por Nro. Doc"
+                  placeholder="Buscar por Cédula"
                   ariaLabel="Filter Document"
                   matchMode="contains"
                   [showMenu]="false"
@@ -325,10 +280,57 @@ import { EmployeeFormComponent } from './employee-form.component';
               <th></th>
               <th></th>
             </tr>
+            <tr>
+              <th pSortableColumn="employee_number">
+                Número<p-sortIcon field="employee_number" />
+              </th>
+              <th pSortableColumn="short_name">
+                Nombre<p-sortIcon field="short_name" />
+              </th>
+              @if (inactiveValue()) {
+              <th pSortableColumn="is_active">
+                Status<p-sortIcon field="is_active" />
+              </th>
+              }
+              <th pSortableColumn="document_id">
+                Cedula<p-sortIcon field="document_id" />
+              </th>
+              <th pSortableColumn="branch.name">
+                Sucursal<p-sortIcon field="branch.name" />
+              </th>
+              <th pSortableColumn="department.name">
+                Area<p-sortIcon field="department.name" />
+              </th>
+              <th
+                style="width: 10%; max-width: 120px;"
+                pSortableColumn="position.name"
+              >
+                Cargo<p-sortIcon field="position.name" />
+              </th>
+              <th pSortableColumn="monthly_salary">
+                Salario<p-sortIcon field="monthly_salary" />
+              </th>
+              <th pSortableColumn="uniform_size">
+                Talla<p-sortIcon field="uniform_size" />
+              </th>
+              <th pSortableColumn="start_date">
+                Fecha de inicio<p-sortIcon field="start_date" />
+              </th>
+              <th pSortableColumn="birth_date">
+                Fecha de nacimiento<p-sortIcon field="birth_date" />
+              </th>
+              <th pSortableColumn="gender">
+                Sexo<p-sortIcon field="gender" />
+              </th>
+              <th pSortableColumn="created_at">
+                Creado<p-sortIcon field="created_at" />
+              </th>
+              <th></th>
+            </tr>
           </ng-template>
           <ng-template #body let-item let-columns="columns">
             <tr>
-              <td>{{ item.id }}</td>
+              <td>{{ item.employee_number || item.id }}</td>
               <td>
                 <a
                   [routerLink]="item.id"
@@ -442,6 +444,7 @@ import { EmployeeFormComponent } from './employee-form.component';
       overflow: hidden !important;
       text-overflow: ellipsis !important;
       white-space: nowrap !important;
+      text-align: center !important;
     }
 
     /* Excepción: columna Cargo puede tener múltiples líneas */
@@ -492,6 +495,32 @@ import { EmployeeFormComponent } from './employee-form.component';
       overflow: hidden !important;
       text-overflow: ellipsis !important;
       white-space: nowrap !important;
+      text-align: center !important;
+    }
+
+    /* Títulos de columnas más llamativos (segunda fila con los títulos) */
+    :host ::ng-deep .p-datatable .p-datatable-thead > tr:last-child > th {
+      font-weight: 700 !important;
+      font-size: 0.9rem !important;
+      letter-spacing: 0.05em !important;
+      color: #e5e7eb !important;
+      text-transform: uppercase !important;
+      background-color: rgba(31, 41, 55, 0.95) !important;
+      border-bottom: 2px solid rgba(107, 114, 128, 0.6) !important;
+      padding: 1rem 0.75rem !important;
+    }
+
+    /* Títulos de columnas ordenables aún más destacados */
+    :host ::ng-deep .p-datatable .p-datatable-thead > tr:last-child > th.p-datatable-sortable-column {
+      color: #ffffff !important;
+      cursor: pointer !important;
+      transition: all 0.2s ease !important;
+      background-color: rgba(17, 24, 39, 0.95) !important;
+    }
+
+    :host ::ng-deep .p-datatable .p-datatable-thead > tr:last-child > th.p-datatable-sortable-column:hover {
+      background-color: rgba(55, 65, 81, 1) !important;
+      color: #60a5fa !important;
     }
 
     /* Columna Cargo - ancho limitado y permite múltiples líneas */
@@ -554,6 +583,78 @@ import { EmployeeFormComponent } from './employee-form.component';
       text-overflow: ellipsis;
       white-space: nowrap;
       vertical-align: middle;
+    }
+
+    /* Centrar columna de número (primera columna en encabezados, primera columna en body) */
+    :host ::ng-deep .p-datatable .p-datatable-thead > tr:last-child > th:first-child,
+    :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td:first-child {
+      text-align: center !important;
+    }
+
+    /* Excepciones: Alineación izquierda para enlaces de nombres */
+    :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td:nth-child(2) {
+      text-align: left !important;
+    }
+
+    :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td:nth-child(2) a {
+      display: inline-block;
+      width: 100%;
+      text-align: left;
+    }
+
+    /* Reducir ancho del input de búsqueda de número (primera fila = filtros, primera columna) */
+    :host ::ng-deep .p-datatable .p-datatable-thead > tr:first-child > th:first-child p-columnfilter input.p-inputtext {
+      max-width: 100px !important;
+      width: 100px !important;
+      box-sizing: border-box !important;
+    }
+
+    :host ::ng-deep .p-datatable .p-datatable-thead > tr:first-child > th:first-child p-columnfilter {
+      max-width: 100px !important;
+      width: 100px !important;
+    }
+
+    :host ::ng-deep .p-datatable .p-datatable-thead > tr:first-child > th:first-child .p-datatable-filter {
+      max-width: 100px !important;
+      width: 100px !important;
+    }
+
+    /* Limitar ancho de input de filtro para nombre (primera fila = filtros, segunda columna) */
+    :host ::ng-deep .p-datatable .p-datatable-thead > tr:first-child > th:nth-child(2) p-columnfilter input.p-inputtext {
+      max-width: 150px !important;
+      width: 150px !important;
+      box-sizing: border-box !important;
+    }
+
+    /* También limitar el contenedor del filtro para nombre */
+    :host ::ng-deep .p-datatable .p-datatable-thead > tr:first-child > th:nth-child(2) p-columnfilter {
+      max-width: 150px !important;
+      width: 150px !important;
+    }
+
+    /* Limitar el div contenedor del filtro inline para nombre */
+    :host ::ng-deep .p-datatable .p-datatable-thead > tr:first-child > th:nth-child(2) .p-datatable-filter {
+      max-width: 150px !important;
+      width: 150px !important;
+    }
+
+    /* Input de cédula más estrecho - ajustar índice según si hay columna de status */
+    :host ::ng-deep .p-datatable .p-datatable-thead > tr:nth-child(2) > th:nth-child(4) p-columnfilter input.p-inputtext {
+      max-width: 120px !important;
+      width: 120px !important;
+      box-sizing: border-box !important;
+    }
+
+    /* Contenedor del filtro de cédula más estrecho */
+    :host ::ng-deep .p-datatable .p-datatable-thead > tr:nth-child(2) > th:nth-child(4) p-columnfilter {
+      max-width: 120px !important;
+      width: 120px !important;
+    }
+
+    /* Div contenedor del filtro de cédula más estrecho */
+    :host ::ng-deep .p-datatable .p-datatable-thead > tr:nth-child(2) > th:nth-child(4) .p-datatable-filter {
+      max-width: 120px !important;
+      width: 120px !important;
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -631,6 +732,10 @@ export class EmployeeListComponent implements OnInit {
     );
     this.store.employees.clearSelectedEntity();
     this.store.employees.fetchItems();
+    // Cargar posiciones, branches y departments para los filtros
+    this.store.positions.fetchItems();
+    this.store.branches.fetchItems();
+    this.store.departments.fetchItems();
   }
 
   editEmployee(employee?: Employee) {
