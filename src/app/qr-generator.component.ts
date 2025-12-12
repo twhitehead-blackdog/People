@@ -22,6 +22,7 @@ import { Employee } from './models';
         <div class="input-container">
           <label for="employee">Empleado</label>
           <p-dropdown
+            inputId="employee"
             [(ngModel)]="employee"
             [options]="employees.value()"
             placeholder="Seleccionar empleado"
