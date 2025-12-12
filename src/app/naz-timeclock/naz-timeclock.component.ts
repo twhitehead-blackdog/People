@@ -33,16 +33,17 @@ import { Toast } from 'primeng/toast';
 import { catchError, EMPTY, Observable, of } from 'rxjs';
 import { map, switchMap } from 'rxjs/operators';
 import {
-  NazBranch,
-  NazCompany,
-  NazEmployee,
-  NazEmployeeSchedule,
-  NazSchedule,
-  NazTimeLog,
+  Branch,
+  Company,
+  Employee,
+  EmployeeSchedule,
+  Schedule,
+  TimeLog,
   TimelogType,
 } from '../models';
 import { TrimPipe } from '../pipes/trim.pipe';
 import { IpMonitorService } from '../services/ip-monitor.service';
+import { OrganizationService } from '../services/organization.service';
 
 @Component({
   selector: 'pt-naz-timeclock',
@@ -89,7 +90,7 @@ import { IpMonitorService } from '../services/ip-monitor.service';
         style="max-width: 600px; width: 100%; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem 0;"
       >
         <img
-          src="images/blackdog.png"
+          [src]="isNazCompany() ? 'images/Naz_Logo.jpg' : 'images/blackdog.png'"
           class="h-12 md:h-16 lg:h-20 w-auto object-contain drop-shadow-2xl relative z-10"
         />
         <p-card class="w-full timeclock-card relative z-10">
@@ -147,7 +148,7 @@ import { IpMonitorService } from '../services/ip-monitor.service';
             <div class="input-container w-full">
               <p-select
                 formControlName="branch_id"
-                [options]="branchesResource.value()"
+                [options]="currentBranchesResource()"
                 placeholder="Seleccionar sucursal"
                 optionValue="id"
                 optionLabel="name"
@@ -265,7 +266,7 @@ import { IpMonitorService } from '../services/ip-monitor.service';
         style="max-width: 600px; width: 100%; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem 0;"
       >
         <img
-          src="images/blackdog.png"
+          [src]="isNazCompany() ? 'images/Naz_Logo.jpg' : 'images/blackdog.png'"
           class="h-12 md:h-16 lg:h-20 w-auto object-contain drop-shadow-2xl relative z-10"
         />
         <p-card class="w-full timeclock-card relative z-10">
@@ -654,6 +655,7 @@ export class NazTimeclockComponent implements OnDestroy {
   private router = inject(Router);
   private ipMonitor = inject(IpMonitorService);
   private destroyRef = inject(DestroyRef);
+  private organizationService = inject(OrganizationService);
   // Get IP address - try multiple methods to get real IP even from localhost
   public currentIP = signal<string>('127.0.0.1');
   public isProcessing = signal<boolean>(false);
@@ -663,11 +665,17 @@ export class NazTimeclockComponent implements OnDestroy {
   public isKioskMode = signal<boolean>(false);
   public isIPValid = signal<boolean>(true);
 
+  // Computed para verificar si es Naz
+  public isNazCompany = computed(() => this.organizationService.isNaz());
+
   private injector = inject(Injector);
   private timeInterval: any;
 
   // Update time every second
   constructor() {
+    // Configurar organización como Naz para esta ruta
+    this.organizationService.setOrganization('naz');
+
     // Detectar si está en modo kiosko
     const isKioskRoute = this.router.url.includes('/timeclock-kiosk');
     this.isKioskMode.set(isKioskRoute);
@@ -682,8 +690,11 @@ export class NazTimeclockComponent implements OnDestroy {
     // Try to get real IP address using multiple methods
     this.detectIP();
 
-    // Si está en modo kiosko, monitorear la IP continuamente
-    if (isKioskRoute) {
+    // Para Naz, siempre considerar la IP como válida (no hay validación estricta)
+    if (this.organizationService.isNaz()) {
+      this.isIPValid.set(true);
+    } else if (isKioskRoute) {
+      // Si está en modo kiosko y NO es Naz, monitorear la IP continuamente
       this.setupKioskModeMonitoring();
     }
 
@@ -691,7 +702,7 @@ export class NazTimeclockComponent implements OnDestroy {
     effect(
       () => {
         const companies = this.companiesResource.value();
-        const branches = this.branchesResource.value();
+        const branches = this.currentBranchesResource();
 
         // Auto-select first Naz company if found
         if (
@@ -717,15 +728,18 @@ export class NazTimeclockComponent implements OnDestroy {
 
         // Auto-select branch by IP if found (after company is selected)
         const selectedCompanyId = this.form.get('company_id')?.value;
+        const filteredBranches = this.currentBranchesResource();
         if (
-          branches &&
-          branches.length > 0 &&
+          filteredBranches &&
+          filteredBranches.length > 0 &&
           !this.form.get('branch_id')?.value
         ) {
           const currentIP = this.getIP();
           if (currentIP && currentIP !== '127.0.0.1') {
             // Find branch matching the IP
-            const matchingBranch = branches.find((b) => b.ip === currentIP);
+            const matchingBranch = filteredBranches.find(
+              (b) => b.ip === currentIP
+            );
             if (matchingBranch) {
               this.form.get('branch_id')?.setValue(matchingBranch.id);
             }
@@ -1040,12 +1054,13 @@ export class NazTimeclockComponent implements OnDestroy {
   });
 
   public validIP = computed(() => {
+    // Naz no tiene validación de IP estricta
     const ip = this.getIP();
     // If IP is localhost (dev fallback), always allow
     if (ip === '127.0.0.1') return true;
-    return (
-      this.branchesResource.value()?.some((branch) => branch.ip === ip) ?? true
-    );
+    const branches = this.currentBranchesResource();
+    if (!branches) return true;
+    return branches.some((branch) => branch.ip === ip);
   });
 
   public types = Object.entries(TimelogType).map(([key, value]) => ({
@@ -1053,8 +1068,9 @@ export class NazTimeclockComponent implements OnDestroy {
     label: value,
   }));
 
-  public companiesResource = httpResource<NazCompany[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/naz_companies`,
+  // Ya no hay tablas naz_*, todo es por company_id en tablas compartidas
+  public companiesResource = httpResource<Company[]>(() => ({
+    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/companies`,
     method: 'GET',
     params: {
       select: '*',
@@ -1062,8 +1078,8 @@ export class NazTimeclockComponent implements OnDestroy {
     },
   }));
 
-  public branchesResource = httpResource<NazBranch[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/naz_branches`,
+  public branchesResource = httpResource<Branch[]>(() => ({
+    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/branches`,
     method: 'GET',
     params: {
       select: '*',
@@ -1071,34 +1087,61 @@ export class NazTimeclockComponent implements OnDestroy {
     },
   }));
 
-  public employeesResource = httpResource<Partial<NazEmployee>[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/naz_employees`,
-    method: 'GET',
-    params: {
+  // Computed para filtrar branches por company_id actual
+  public currentBranchesResource = computed<Branch[] | undefined>(() => {
+    const branches = this.branchesResource.value();
+    if (!branches) return undefined;
+
+    const companyId = this.organizationService.getCurrentCompanyId();
+    if (companyId) {
+      return branches.filter((b) => b.company_id === companyId);
+    }
+    return branches;
+  });
+
+  public employeesResource = httpResource<Partial<Employee>[]>(() => {
+    const companyId = this.organizationService.getCurrentCompanyId();
+    const params: any = {
       select: 'id,first_name,father_name,code_uri',
       order: 'father_name',
       is_active: 'eq.true',
-    },
-  }));
+    };
+
+    // Filtrar por company_id siempre (ya no hay tablas naz_*)
+    if (companyId) {
+      params.company_id = `eq.${companyId}`;
+    }
+
+    return {
+      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
+      method: 'GET',
+      params,
+    };
+  });
 
   // Get last timelog for an employee today to determine next type
-  private getLastTimelog(employeeId: string): Observable<NazTimeLog | null> {
+  private getLastTimelog(employeeId: string): Observable<TimeLog | null> {
     const today = format(new Date(), 'yyyy-MM-dd');
     const todayStart = `${today}T00:00:00`;
+    const companyId = this.organizationService.getCurrentCompanyId();
+
+    const params: any = {
+      select: 'id,type,created_at',
+      employee_id: `eq.${employeeId}`,
+      created_at: `gte.${todayStart}`,
+      order: 'created_at.desc',
+      limit: '1',
+    };
+
+    // Filtrar por company_id siempre (ya no hay tablas naz_*)
+    if (companyId) {
+      params.company_id = `eq.${companyId}`;
+    }
 
     return this.http
-      .get<NazTimeLog[]>(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/naz_timelogs`,
-        {
-          params: {
-            select: 'id,type,created_at',
-            employee_id: `eq.${employeeId}`,
-            created_at: `gte.${todayStart}`,
-            order: 'created_at.desc',
-            limit: '1',
-          },
-        }
-      )
+      .get<TimeLog[]>(`${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`, {
+        params,
+      })
       .pipe(
         map((timelogs) => {
           if (!timelogs || timelogs.length === 0) {
@@ -1137,19 +1180,26 @@ export class NazTimeclockComponent implements OnDestroy {
   // Get employee schedule for today
   private getEmployeeSchedule(
     employeeId: string
-  ): Observable<NazEmployeeSchedule | null> {
+  ): Observable<EmployeeSchedule | null> {
     const today = format(new Date(), 'yyyy-MM-dd');
+    const companyId = this.organizationService.getCurrentCompanyId();
+
+    const params: any = {
+      select: '*,schedule:schedules(*)',
+      employee_id: `eq.${employeeId}`,
+      start_date: `lte.${today}`,
+      end_date: `gte.${today}`,
+    };
+
+    // Filtrar por company_id siempre (ya no hay tablas naz_*)
+    if (companyId) {
+      params.company_id = `eq.${companyId}`;
+    }
+
     return this.http
-      .get<NazEmployeeSchedule[]>(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/naz_employee_schedules`,
-        {
-          params: {
-            select: '*,schedule:naz_schedules(*)',
-            employee_id: `eq.${employeeId}`,
-            start_date: `lte.${today}`,
-            end_date: `gte.${today}`,
-          },
-        }
+      .get<EmployeeSchedule[]>(
+        `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+        { params }
       )
       .pipe(
         map((schedules) =>
@@ -1165,7 +1215,7 @@ export class NazTimeclockComponent implements OnDestroy {
   // Calculate if entry is late
   private calculateDelay(
     entryTime: Date,
-    schedule: NazSchedule | undefined
+    schedule: Schedule | undefined
   ): number | null {
     if (!schedule || !schedule.entry_time || schedule.day_off) {
       return null;
@@ -1216,16 +1266,21 @@ export class NazTimeclockComponent implements OnDestroy {
   }
 
   // Get lunch_start timelog for today
-  private getLunchStartTimelog(
-    employeeId: string
-  ): Observable<NazTimeLog | null> {
+  private getLunchStartTimelog(employeeId: string): Observable<TimeLog | null> {
     const today = format(new Date(), 'yyyy-MM-dd');
     const todayStart = `${today}T00:00:00`;
     const todayEnd = `${today}T23:59:59`;
+    const companyId = this.organizationService.getCurrentCompanyId();
 
-    const url = `${process.env['ENV_SUPABASE_URL']}/rest/v1/naz_timelogs?select=id,type,created_at&employee_id=eq.${employeeId}&type=eq.lunch_start&created_at=gte.${todayStart}&created_at=lte.${todayEnd}&order=created_at.desc&limit=1`;
+    // Construir URL con parámetros correctos para PostgREST
+    let url = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs?select=id,type,created_at&employee_id=eq.${employeeId}&type=eq.lunch_start&created_at=gte.${todayStart}&created_at=lte.${todayEnd}&order=created_at.desc&limit=1`;
 
-    return this.http.get<NazTimeLog[]>(url).pipe(
+    // Filtrar por company_id siempre (ya no hay tablas naz_*)
+    if (companyId) {
+      url += `&company_id=eq.${companyId}`;
+    }
+
+    return this.http.get<TimeLog[]>(url).pipe(
       map((timelogs) => {
         if (!timelogs || timelogs.length === 0) {
           return null;
@@ -1245,7 +1300,7 @@ export class NazTimeclockComponent implements OnDestroy {
   private calculateLunchEndDifference(
     lunchEndTime: Date,
     lunchStartTime: Date | null,
-    schedule: NazSchedule | undefined
+    schedule: Schedule | undefined
   ): number | null {
     if (!schedule || schedule.day_off) {
       return null;
@@ -1335,7 +1390,7 @@ export class NazTimeclockComponent implements OnDestroy {
   // Calculate if exit is early or late
   private calculateExitDifference(
     exitTime: Date,
-    schedule: NazSchedule | undefined
+    schedule: Schedule | undefined
   ): { minutes: number; isEarly: boolean } | null {
     if (!schedule || !schedule.exit_time || schedule.day_off) {
       return null;
@@ -1383,7 +1438,7 @@ export class NazTimeclockComponent implements OnDestroy {
       validators: [Validators.required],
       nonNullable: true,
     }),
-    employee: new FormControl<NazEmployee | undefined>(undefined, {
+    employee: new FormControl<Employee | undefined>(undefined, {
       validators: [Validators.required],
       nonNullable: true,
     }),
@@ -1406,7 +1461,7 @@ export class NazTimeclockComponent implements OnDestroy {
     }
   }
 
-  onEmployeeSelected(employee: NazEmployee | undefined) {
+  onEmployeeSelected(employee: Employee | undefined) {
     if (employee?.id) {
       this.getLastTimelog(employee.id).subscribe({
         next: (lastTimelog) => {
@@ -1491,14 +1546,15 @@ export class NazTimeclockComponent implements OnDestroy {
     employeeName: string
   ) {
     const now = new Date();
+    // Ya no se usan tablas naz_*, todo es por company_id
     this.http
-      .post(`${process.env['ENV_SUPABASE_URL']}/rest/v1/naz_timelogs`, {
+      .post(`${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`, {
         employee_id: employeeId,
         branch_id: branchId,
         company_id: companyId,
         type,
         ip: this.getIP(),
-        invalid_id: !this.validIP(),
+        invalid_ip: !this.validIP(), // Campo cambió de invalid_id a invalid_ip
       })
       .pipe(
         switchMap(() => {
