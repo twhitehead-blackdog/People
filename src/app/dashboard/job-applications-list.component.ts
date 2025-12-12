@@ -619,9 +619,6 @@ export class JobApplicationsListComponent implements OnInit {
         const enabledSetting = settings.find(
           (s) => s.key === 'job_fair_enabled'
         );
-        const dateSetting = settings.find(
-          (s) => s.key === 'job_fair_interview_start_date'
-        );
 
         if (enabledSetting) {
           this.jobFairEnabled.set(enabledSetting.value === 'true');
@@ -717,84 +714,128 @@ export class JobApplicationsListComponent implements OnInit {
         ? this.formatDateToLocalString(normalizedEndDate)
         : '';
 
-      // Guardar fecha de inicio
-      const existingStartSettings = await firstValueFrom(
-        this.http.get<any[]>(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
-          {
-            params: {
-              select: 'id',
-              key: 'eq.job_fair_start_date',
-            },
-          }
-        )
-      );
-
-      if (existingStartSettings && existingStartSettings.length > 0) {
-        await firstValueFrom(
-          this.http.patch(
+      // Guardar fecha de inicio usando UPSERT (más robusto con RLS)
+      if (startDateString) {
+        // Primero intentar actualizar si existe
+        const existingStartSettings = await firstValueFrom(
+          this.http.get<any[]>(
             `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
-            { value: startDateString },
             {
               params: {
-                id: `eq.${existingStartSettings[0].id}`,
+                select: 'id',
+                key: 'eq.job_fair_start_date',
               },
             }
           )
         );
-      } else if (startDateString) {
-        await firstValueFrom(
-          this.http.post(
+
+        if (existingStartSettings && existingStartSettings.length > 0) {
+          // Actualizar existente usando PATCH con id en URL
+          await firstValueFrom(
+            this.http.patch(
+              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingStartSettings[0].id}`,
+              { value: startDateString }
+            )
+          );
+        } else {
+          // Crear nuevo usando POST
+          await firstValueFrom(
+            this.http.post(
+              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+              {
+                key: 'job_fair_start_date',
+                value: startDateString,
+                description: 'Fecha de inicio de la Feria de Empleo',
+                category: 'job_fair',
+                is_encrypted: false,
+              }
+            )
+          );
+        }
+      } else {
+        // Si no hay fecha, limpiar el setting existente
+        const existingStartSettings = await firstValueFrom(
+          this.http.get<any[]>(
             `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
             {
-              key: 'job_fair_start_date',
-              value: startDateString,
-              description: 'Fecha de inicio de la Feria de Empleo',
-              category: 'job_fair',
-              is_encrypted: false,
+              params: {
+                select: 'id',
+                key: 'eq.job_fair_start_date',
+              },
             }
           )
         );
+
+        if (existingStartSettings && existingStartSettings.length > 0) {
+          await firstValueFrom(
+            this.http.patch(
+              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingStartSettings[0].id}`,
+              { value: '' }
+            )
+          );
+        }
       }
 
-      // Guardar fecha de fin
-      const existingEndSettings = await firstValueFrom(
-        this.http.get<any[]>(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
-          {
-            params: {
-              select: 'id',
-              key: 'eq.job_fair_end_date',
-            },
-          }
-        )
-      );
-
-      if (existingEndSettings && existingEndSettings.length > 0) {
-        await firstValueFrom(
-          this.http.patch(
+      // Guardar fecha de fin usando UPSERT (más robusto con RLS)
+      if (endDateString) {
+        // Primero intentar actualizar si existe
+        const existingEndSettings = await firstValueFrom(
+          this.http.get<any[]>(
             `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
-            { value: endDateString },
             {
               params: {
-                id: `eq.${existingEndSettings[0].id}`,
+                select: 'id',
+                key: 'eq.job_fair_end_date',
               },
             }
           )
         );
-      } else if (endDateString) {
-        await firstValueFrom(
-          this.http.post(
+
+        if (existingEndSettings && existingEndSettings.length > 0) {
+          // Actualizar existente usando PATCH con id en URL
+          await firstValueFrom(
+            this.http.patch(
+              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingEndSettings[0].id}`,
+              { value: endDateString }
+            )
+          );
+        } else {
+          // Crear nuevo usando POST
+          await firstValueFrom(
+            this.http.post(
+              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+              {
+                key: 'job_fair_end_date',
+                value: endDateString,
+                description: 'Fecha de fin de la Feria de Empleo',
+                category: 'job_fair',
+                is_encrypted: false,
+              }
+            )
+          );
+        }
+      } else {
+        // Si no hay fecha, limpiar el setting existente
+        const existingEndSettings = await firstValueFrom(
+          this.http.get<any[]>(
             `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
             {
-              key: 'job_fair_end_date',
-              value: endDateString,
-              description: 'Fecha de fin de la Feria de Empleo',
-              category: 'job_fair',
-              is_encrypted: false,
+              params: {
+                select: 'id',
+                key: 'eq.job_fair_end_date',
+              },
             }
           )
         );
+
+        if (existingEndSettings && existingEndSettings.length > 0) {
+          await firstValueFrom(
+            this.http.patch(
+              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingEndSettings[0].id}`,
+              { value: '' }
+            )
+          );
+        }
       }
 
       this.messageService.add({
@@ -876,13 +917,8 @@ export class JobApplicationsListComponent implements OnInit {
     if (existingStartSettings && existingStartSettings.length > 0) {
       await firstValueFrom(
         this.http.patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
-          { value: '' },
-          {
-            params: {
-              id: `eq.${existingStartSettings[0].id}`,
-            },
-          }
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingStartSettings[0].id}`,
+          { value: '' }
         )
       );
     }
@@ -890,13 +926,8 @@ export class JobApplicationsListComponent implements OnInit {
     if (existingEndSettings && existingEndSettings.length > 0) {
       await firstValueFrom(
         this.http.patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
-          { value: '' },
-          {
-            params: {
-              id: `eq.${existingEndSettings[0].id}`,
-            },
-          }
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingEndSettings[0].id}`,
+          { value: '' }
         )
       );
     }
@@ -921,20 +952,15 @@ export class JobApplicationsListComponent implements OnInit {
       );
 
       if (existingSettings && existingSettings.length > 0) {
-        // Actualizar setting existente
+        // Actualizar setting existente usando PATCH con id en URL
         await firstValueFrom(
           this.http.patch(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
-            { value: newValue },
-            {
-              params: {
-                id: `eq.${existingSettings[0].id}`,
-              },
-            }
+            `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingSettings[0].id}`,
+            { value: newValue }
           )
         );
       } else {
-        // Crear nuevo setting
+        // Crear nuevo setting usando POST
         await firstValueFrom(
           this.http.post(
             `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
