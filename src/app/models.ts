@@ -52,6 +52,84 @@ export type Pet = {
   updated_at?: Date;
 };
 
+export type PetBreed = {
+  id: string;
+  name: string;
+  species: 'dog' | 'cat' | 'other';
+  is_active: boolean;
+  display_order: number;
+  created_at?: Date;
+  updated_at?: Date;
+};
+
+export type UserPet = {
+  id: string;
+  user_id: string; // ID del usuario dueño
+  user?: User; // Relación con el usuario
+  name: string;
+  species: 'dog' | 'cat' | 'other';
+  breed_type: 'pure' | 'mixed' | 'none'; // Tipo: pura, mixta, sin raza
+  breed_primary?: string; // Raza principal (si es pura o mixta)
+  breed_secondary?: string; // Raza secundaria (si es mixta)
+  breed_percentage_primary?: number; // Porcentaje raza principal (0-100)
+  breed_percentage_secondary?: number; // Porcentaje raza secundaria (0-100)
+  birth_date?: Date | string; // Fecha de cumpleaños
+  age_years?: number; // Edad en años
+  age_months?: number; // Edad en meses (0-11)
+  gender: 'M' | 'F';
+  size: 'small' | 'medium' | 'large';
+  color?: string;
+  weight?: number; // Peso en kilogramos
+  description?: string;
+  health_status?: string;
+  personality?: string[];
+  photos?: string[];
+  is_vaccinated: boolean;
+  is_sterilized: boolean;
+  created_at?: Date;
+  updated_at?: Date;
+};
+
+export type PetMatch = {
+  id: string;
+  user_id: string; // ID del usuario dueño
+  user_pet_id?: string; // Referencia a mascota del perfil (opcional)
+  user_pet?: UserPet; // Relación con mascota del perfil
+  user?: User; // Relación con el usuario
+  pet_name: string;
+  species: 'dog' | 'cat' | 'other';
+  breed?: string; // Mantener para compatibilidad
+  breed_type?: 'pure' | 'mixed' | 'none'; // Tipo: pura, mixta, sin raza
+  breed_primary?: string; // Raza principal (si es pura o mixta)
+  breed_secondary?: string; // Raza secundaria (si es mixta)
+  breed_percentage_primary?: number; // Porcentaje raza principal (0-100)
+  breed_percentage_secondary?: number; // Porcentaje raza secundaria (0-100)
+  birth_date?: Date | string; // Fecha de cumpleaños
+  age?: number; // Mantener para compatibilidad
+  age_years?: number; // Edad en años
+  age_months?: number; // Edad en meses (0-11)
+  gender: 'M' | 'F';
+  size: 'small' | 'medium' | 'large';
+  color?: string;
+  weight?: number; // Peso en kilogramos
+  description?: string;
+  health_status?: string;
+  location?: string; // Ubicación de la mascota
+  contact_info?: {
+    email?: string;
+    phone?: string;
+    preferred_contact?: 'email' | 'phone' | 'both';
+  }; // Información de contacto del dueño
+  preferred_breed_match: 'same' | 'different' | 'both'; // Preferencia: misma raza, diferente, o ambas
+  personality?: string[];
+  photos?: string[];
+  is_vaccinated: boolean;
+  is_sterilized: boolean;
+  is_active: boolean; // Si la publicación está activa
+  created_at?: Date;
+  updated_at?: Date;
+};
+
 export type AdoptionApplication = {
   id: string;
   pet_id: string;

@@ -1,5 +1,5 @@
-import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component } from '@angular/core';
 
 @Component({
   selector: 'pt-adoptions-hero',
@@ -44,6 +44,52 @@ import { CommonModule } from '@angular/common';
           #000000 60%,
           #1f2937 100%
         );
+      }
+
+      .hero-logo-left {
+        position: absolute;
+        top: 2rem;
+        left: 2rem;
+        z-index: 10;
+      }
+
+      .logo-container {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        transition: transform 0.3s ease;
+      }
+
+      .logo-container:hover {
+        transform: scale(1.05);
+      }
+
+      .logo-icon-wrapper {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, #fdb022 0%, #fcd34d 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+      }
+
+      .logo-container:hover .logo-icon-wrapper {
+        transform: scale(1.1);
+      }
+
+      .logo-icon {
+        font-size: 1.5rem;
+        display: block;
+      }
+
+      .logo-text {
+        font-weight: 700;
+        font-size: 1.25rem;
+        color: #ffffff;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
       }
 
       .hero-content {
@@ -115,6 +161,24 @@ import { CommonModule } from '@angular/common';
           padding: 2rem 1rem;
         }
 
+        .hero-logo-left {
+          top: 1rem;
+          left: 1rem;
+        }
+
+        .logo-icon-wrapper {
+          width: 32px;
+          height: 32px;
+        }
+
+        .logo-icon {
+          font-size: 1.25rem;
+        }
+
+        .logo-text {
+          font-size: 1rem;
+        }
+
         .hero-title {
           font-size: 2rem;
         }
@@ -133,4 +197,3 @@ import { CommonModule } from '@angular/common';
   ],
 })
 export class AdoptionsHeroComponent {}
-

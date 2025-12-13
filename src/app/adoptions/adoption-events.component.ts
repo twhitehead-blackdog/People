@@ -1,7 +1,15 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, ViewChild, ElementRef, signal, AfterViewInit, ChangeDetectorRef } from '@angular/core';
-import { EventsStore } from '../stores/events.store';
+import {
+  AfterViewInit,
+  Component,
+  computed,
+  ElementRef,
+  inject,
+  signal,
+  ViewChild,
+} from '@angular/core';
 import { Event } from '../models';
+import { EventsStore } from '../stores/events.store';
 
 @Component({
   selector: 'pt-adoption-events',
@@ -13,179 +21,204 @@ import { Event } from '../models';
         <div class="events-content">
           <h2 class="events-title">EVENTOS</h2>
           @if (eventsStore.isLoading()) {
-            <div class="loading-state">
-              <p>Cargando eventos...</p>
-            </div>
+          <div class="loading-state">
+            <p>Cargando eventos...</p>
+          </div>
           } @else if (allEvents().length === 0) {
-            <p class="events-message">
-              No hay eventos disponibles. Estate atento a nuestras redes para más información.
-            </p>
-            <div class="events-image-container">
-              <img
-                src="assets/dog3.jpg"
-                alt="Perro y gato juntos"
-                class="events-image"
-              />
-              <div class="decorative-shapes">
-                <div class="shape shape-yellow-1"></div>
-                <div class="shape shape-yellow-2"></div>
-                <div class="shape shape-blue-1"></div>
-              </div>
+          <p class="events-message">
+            No hay eventos disponibles. Estate atento a nuestras redes para más
+            información.
+          </p>
+          <div class="events-image-container">
+            <img
+              src="assets/dog3.jpg"
+              alt="Perro y gato juntos"
+              class="events-image"
+            />
+            <div class="decorative-shapes">
+              <div class="shape shape-yellow-1"></div>
+              <div class="shape shape-yellow-2"></div>
+              <div class="shape shape-blue-1"></div>
             </div>
+          </div>
           } @else {
-            <div class="events-carousel-container">
-              <div class="events-carousel-wrapper">
-                @if (shouldShowLeftArrowSignal()) {
-                  <button 
-                    class="carousel-nav-button carousel-prev" 
-                    (click)="scrollCarousel('left')"
-                    aria-label="Anterior"
+          <div class="events-carousel-container">
+            <div class="events-carousel-wrapper">
+              @if (shouldShowLeftArrow()) {
+              <button
+                class="carousel-nav-button carousel-prev"
+                (click)="scrollCarousel('left')"
+                aria-label="Anterior"
+              >
+                ‹
+              </button>
+              }
+              <div
+                class="events-carousel"
+                #carouselElement
+                (scroll)="onCarouselScroll()"
+              >
+                @if (pastEvents().length > 0) {
+                <div class="carousel-section past-events">
+                  @for (event of pastEvents(); track event.id) {
+                  <div
+                    class="event-card"
+                    [class.active]="isClosestToToday(event)"
+                    (click)="centerEventCard($event)"
+                    [attr.data-event-date]="
+                      getEventDateString(event.event_date)
+                    "
+                    #eventCard
                   >
-                    ‹
-                  </button>
-                }
-                <div class="events-carousel" #carouselElement (scroll)="onCarouselScroll()">
-                  @if (pastEvents().length > 0) {
-                    <div class="carousel-section past-events">
-                      @for (event of pastEvents(); track event.id) {
-                        <div 
-                          class="event-card" 
-                          [class.active]="isClosestToToday(event)"
-                          (click)="centerEventCard($event)"
-                          [attr.data-event-date]="getEventDateString(event.event_date)"
-                          #eventCard
-                        >
-                          @if (event.image_url) {
-                            <div class="event-image">
-                              <img [src]="event.image_url" [alt]="event.title" />
-                            </div>
-                          }
-                          <div class="event-content">
-                            <div class="event-header">
-                              <h3 class="event-title">{{ event.title }}</h3>
-                            </div>
-                            @if (event.description) {
-                              <p class="event-description">{{ event.description }}</p>
-                            }
-                            <div class="event-details">
-                              <div class="event-detail-item">
-                                <span class="detail-icon">📅</span>
-                                <span class="detail-text">{{ formatEventDate(event.event_date) }}</span>
-                              </div>
-                              @if (event.event_time) {
-                                <div class="event-detail-item">
-                                  <span class="detail-icon">🕐</span>
-                                  <span class="detail-text">{{ event.event_time }}</span>
-                                </div>
-                              }
-                              @if (event.location) {
-                                <div class="event-detail-item">
-                                  <span class="detail-icon">📍</span>
-                                  <span class="detail-text">{{ event.location }}</span>
-                                </div>
-                                <div class="event-type-badge-container">
-                                  <span class="event-type-badge" [class]="'type-' + event.event_type">
-                                    {{ getEventTypeLabel(event.event_type) }}
-                                  </span>
-                                </div>
-                              }
-                              @if (event.foundation) {
-                                <div class="event-detail-item">
-                                  <span class="detail-icon">🏢</span>
-                                  <span class="detail-text">{{ event.foundation.name }}</span>
-                                </div>
-                              }
-                            </div>
-                          </div>
-                        </div>
-                      }
+                    @if (event.image_url) {
+                    <div class="event-image">
+                      <img [src]="event.image_url" [alt]="event.title" />
                     </div>
-                  }
-                  @if (upcomingEvents().length > 0) {
-                    <div class="carousel-section upcoming-events">
-                      @for (event of upcomingEvents(); track event.id) {
-                        <div 
-                          class="event-card" 
-                          [class.active]="isClosestToToday(event)"
-                          (click)="centerEventCard($event)"
-                          [attr.data-event-date]="getEventDateString(event.event_date)"
-                          #eventCard
-                        >
-                          @if (event.image_url) {
-                            <div class="event-image">
-                              <img [src]="event.image_url" [alt]="event.title" />
-                            </div>
-                          }
-                          <div class="event-content">
-                            <div class="event-header">
-                              <h3 class="event-title">{{ event.title }}</h3>
-                            </div>
-                            @if (event.description) {
-                              <p class="event-description">{{ event.description }}</p>
-                            }
-                            <div class="event-details">
-                              <div class="event-detail-item">
-                                <span class="detail-icon">📅</span>
-                                <span class="detail-text">{{ formatEventDate(event.event_date) }}</span>
-                              </div>
-                              @if (event.event_time) {
-                                <div class="event-detail-item">
-                                  <span class="detail-icon">🕐</span>
-                                  <span class="detail-text">{{ event.event_time }}</span>
-                                </div>
-                              }
-                              @if (event.location) {
-                                <div class="event-detail-item">
-                                  <span class="detail-icon">📍</span>
-                                  <span class="detail-text">{{ event.location }}</span>
-                                </div>
-                                <div class="event-type-badge-container">
-                                  <span class="event-type-badge" [class]="'type-' + event.event_type">
-                                    {{ getEventTypeLabel(event.event_type) }}
-                                  </span>
-                                </div>
-                              } @else {
-                                <div class="event-type-badge-container">
-                                  <span class="event-type-badge" [class]="'type-' + event.event_type">
-                                    {{ getEventTypeLabel(event.event_type) }}
-                                  </span>
-                                </div>
-                              }
-                              @if (event.foundation) {
-                                <div class="event-detail-item">
-                                  <span class="detail-icon">🏢</span>
-                                  <span class="detail-text">{{ event.foundation.name }}</span>
-                                </div>
-                              }
-                            </div>
-                            @if (event.registration_url) {
-                              <a
-                                [href]="event.registration_url"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                class="event-register-link"
-                                (click)="$event.stopPropagation()"
-                              >
-                                Registrarse →
-                              </a>
-                            }
-                          </div>
-                        </div>
+                    }
+                    <div class="event-content">
+                      <div class="event-header">
+                        <h3 class="event-title">{{ event.title }}</h3>
+                      </div>
+                      @if (event.description) {
+                      <p class="event-description">{{ event.description }}</p>
                       }
+                      <div class="event-details">
+                        <div class="event-detail-item">
+                          <span class="detail-icon">📅</span>
+                          <span class="detail-text">{{
+                            formatEventDate(event.event_date)
+                          }}</span>
+                        </div>
+                        @if (event.event_time) {
+                        <div class="event-detail-item">
+                          <span class="detail-icon">🕐</span>
+                          <span class="detail-text">{{
+                            event.event_time
+                          }}</span>
+                        </div>
+                        } @if (event.location) {
+                        <div class="event-detail-item">
+                          <span class="detail-icon">📍</span>
+                          <span class="detail-text">{{ event.location }}</span>
+                        </div>
+                        <div class="event-type-badge-container">
+                          <span
+                            class="event-type-badge"
+                            [class]="'type-' + event.event_type"
+                          >
+                            {{ getEventTypeLabel(event.event_type) }}
+                          </span>
+                        </div>
+                        } @if (event.foundation) {
+                        <div class="event-detail-item">
+                          <span class="detail-icon">🏢</span>
+                          <span class="detail-text">{{
+                            event.foundation.name
+                          }}</span>
+                        </div>
+                        }
+                      </div>
                     </div>
+                  </div>
                   }
                 </div>
-                @if (shouldShowRightArrowSignal()) {
-                  <button 
-                    class="carousel-nav-button carousel-next" 
-                    (click)="scrollCarousel('right')"
-                    aria-label="Siguiente"
+                } @if (upcomingEvents().length > 0) {
+                <div class="carousel-section upcoming-events">
+                  @for (event of upcomingEvents(); track event.id) {
+                  <div
+                    class="event-card"
+                    [class.active]="isClosestToToday(event)"
+                    (click)="centerEventCard($event)"
+                    [attr.data-event-date]="
+                      getEventDateString(event.event_date)
+                    "
+                    #eventCard
                   >
-                    ›
-                  </button>
+                    @if (event.image_url) {
+                    <div class="event-image">
+                      <img [src]="event.image_url" [alt]="event.title" />
+                    </div>
+                    }
+                    <div class="event-content">
+                      <div class="event-header">
+                        <h3 class="event-title">{{ event.title }}</h3>
+                      </div>
+                      @if (event.description) {
+                      <p class="event-description">{{ event.description }}</p>
+                      }
+                      <div class="event-details">
+                        <div class="event-detail-item">
+                          <span class="detail-icon">📅</span>
+                          <span class="detail-text">{{
+                            formatEventDate(event.event_date)
+                          }}</span>
+                        </div>
+                        @if (event.event_time) {
+                        <div class="event-detail-item">
+                          <span class="detail-icon">🕐</span>
+                          <span class="detail-text">{{
+                            event.event_time
+                          }}</span>
+                        </div>
+                        } @if (event.location) {
+                        <div class="event-detail-item">
+                          <span class="detail-icon">📍</span>
+                          <span class="detail-text">{{ event.location }}</span>
+                        </div>
+                        <div class="event-type-badge-container">
+                          <span
+                            class="event-type-badge"
+                            [class]="'type-' + event.event_type"
+                          >
+                            {{ getEventTypeLabel(event.event_type) }}
+                          </span>
+                        </div>
+                        } @else {
+                        <div class="event-type-badge-container">
+                          <span
+                            class="event-type-badge"
+                            [class]="'type-' + event.event_type"
+                          >
+                            {{ getEventTypeLabel(event.event_type) }}
+                          </span>
+                        </div>
+                        } @if (event.foundation) {
+                        <div class="event-detail-item">
+                          <span class="detail-icon">🏢</span>
+                          <span class="detail-text">{{
+                            event.foundation.name
+                          }}</span>
+                        </div>
+                        }
+                      </div>
+                      @if (event.registration_url) {
+                      <a
+                        [href]="event.registration_url"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="event-register-link"
+                        (click)="$event.stopPropagation()"
+                      >
+                        Registrarse →
+                      </a>
+                      }
+                    </div>
+                  </div>
+                  }
+                </div>
                 }
               </div>
+              @if (shouldShowRightArrow()) {
+              <button
+                class="carousel-nav-button carousel-next"
+                (click)="scrollCarousel('right')"
+                aria-label="Siguiente"
+              >
+                ›
+              </button>
+              }
             </div>
+          </div>
           }
         </div>
       </div>
@@ -691,7 +724,6 @@ import { Event } from '../models';
         right: 5%;
       }
 
-
       @media (max-width: 1024px) {
         .events-section {
           padding: 3rem 0;
@@ -739,7 +771,6 @@ import { Event } from '../models';
         .events-image-container {
           height: 300px;
         }
-
 
         .events-carousel {
           padding: 0.5rem;
@@ -804,14 +835,12 @@ import { Event } from '../models';
   ],
 })
 export class AdoptionEventsComponent implements AfterViewInit {
-  @ViewChild('carouselElement', { static: false }) carouselElement!: ElementRef<HTMLDivElement>;
-  
+  @ViewChild('carouselElement', { static: false })
+  carouselElement!: ElementRef<HTMLDivElement>;
+
   public eventsStore = inject(EventsStore);
-  private cdr = inject(ChangeDetectorRef);
   public canScrollLeftSignal = signal(false);
   public canScrollRightSignal = signal(true);
-  public shouldShowLeftArrowSignal = signal(false);
-  public shouldShowRightArrowSignal = signal(false);
   private closestEventCard: HTMLElement | null = null;
 
   // Obtener todos los eventos activos
@@ -820,8 +849,14 @@ export class AdoptionEventsComponent implements AfterViewInit {
       .entities()
       .filter((event) => event.is_active)
       .sort((a, b) => {
-        const dateA = typeof a.event_date === 'string' ? new Date(a.event_date) : a.event_date;
-        const dateB = typeof b.event_date === 'string' ? new Date(b.event_date) : b.event_date;
+        const dateA =
+          typeof a.event_date === 'string'
+            ? new Date(a.event_date)
+            : a.event_date;
+        const dateB =
+          typeof b.event_date === 'string'
+            ? new Date(b.event_date)
+            : b.event_date;
         return dateA.getTime() - dateB.getTime();
       });
   });
@@ -830,12 +865,13 @@ export class AdoptionEventsComponent implements AfterViewInit {
   public pastEvents = computed(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     return this.allEvents()
       .filter((event) => {
-        const eventDate = typeof event.event_date === 'string' 
-          ? new Date(event.event_date) 
-          : event.event_date;
+        const eventDate =
+          typeof event.event_date === 'string'
+            ? new Date(event.event_date)
+            : event.event_date;
         eventDate.setHours(0, 0, 0, 0);
         return eventDate < today;
       })
@@ -846,38 +882,33 @@ export class AdoptionEventsComponent implements AfterViewInit {
   public upcomingEvents = computed(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
-    return this.allEvents()
-      .filter((event) => {
-        const eventDate = typeof event.event_date === 'string' 
-          ? new Date(event.event_date) 
+
+    return this.allEvents().filter((event) => {
+      const eventDate =
+        typeof event.event_date === 'string'
+          ? new Date(event.event_date)
           : event.event_date;
-        eventDate.setHours(0, 0, 0, 0);
-        return eventDate >= today;
-      });
+      eventDate.setHours(0, 0, 0, 0);
+      return eventDate >= today;
+    });
   });
 
   ngAfterViewInit(): void {
-    // Usar setTimeout para diferir la actualización después de que Angular complete la detección de cambios
-    setTimeout(() => {
-      this.centerClosestEvent();
-      this.updateScrollButtons();
-      this.updateArrowVisibility();
-      this.cdr.detectChanges();
-    }, 0);
+    this.centerClosestEvent();
+    this.updateScrollButtons();
   }
 
   // Encontrar y centrar el evento más cercano a hoy
   private centerClosestEvent(): void {
     if (!this.carouselElement?.nativeElement) return;
-    
+
     const carousel = this.carouselElement.nativeElement;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     let closestCard: HTMLElement | null = null;
     let closestDiff = Infinity;
-    
+
     // Buscar en eventos pasados (más reciente)
     const pastCards = carousel.querySelectorAll('.past-events .event-card');
     pastCards.forEach((card) => {
@@ -892,9 +923,11 @@ export class AdoptionEventsComponent implements AfterViewInit {
         }
       }
     });
-    
+
     // Buscar en eventos futuros (más próximo)
-    const upcomingCards = carousel.querySelectorAll('.upcoming-events .event-card');
+    const upcomingCards = carousel.querySelectorAll(
+      '.upcoming-events .event-card'
+    );
     upcomingCards.forEach((card) => {
       const eventDateStr = (card as HTMLElement).dataset['eventDate'];
       if (eventDateStr) {
@@ -907,7 +940,7 @@ export class AdoptionEventsComponent implements AfterViewInit {
         }
       }
     });
-    
+
     if (closestCard) {
       this.closestEventCard = closestCard;
       setTimeout(() => {
@@ -918,9 +951,10 @@ export class AdoptionEventsComponent implements AfterViewInit {
 
   public isClosestToToday(event: Event): boolean {
     if (!this.closestEventCard) return false;
-    const eventDate = typeof event.event_date === 'string' 
-      ? new Date(event.event_date) 
-      : event.event_date;
+    const eventDate =
+      typeof event.event_date === 'string'
+        ? new Date(event.event_date)
+        : event.event_date;
     const cardDateStr = this.closestEventCard.dataset['eventDate'];
     if (!cardDateStr) return false;
     const cardDate = new Date(cardDateStr);
@@ -928,93 +962,88 @@ export class AdoptionEventsComponent implements AfterViewInit {
   }
 
   public centerEventCard(event: MouseEvent): void {
-    const card = (event.currentTarget as HTMLElement);
+    const card = event.currentTarget as HTMLElement;
     this.closestEventCard = card;
     this.scrollToCard(card);
   }
 
   private scrollToCard(card: HTMLElement): void {
     if (!this.carouselElement?.nativeElement) return;
-    
+
     const carousel = this.carouselElement.nativeElement;
     const cardRect = card.getBoundingClientRect();
     const carouselRect = carousel.getBoundingClientRect();
     const cardLeft = card.offsetLeft;
     const cardWidth = card.offsetWidth;
     const carouselWidth = carousel.clientWidth;
-    
+
     // Calcular la posición para centrar la card
-    const scrollPosition = cardLeft - (carouselWidth / 2) + (cardWidth / 2);
-    
+    const scrollPosition = cardLeft - carouselWidth / 2 + cardWidth / 2;
+
     carousel.scrollTo({
       left: scrollPosition,
-      behavior: 'smooth'
+      behavior: 'smooth',
     });
-    
+
     setTimeout(() => this.updateScrollButtons(), 300);
   }
 
   public scrollCarousel(direction: 'left' | 'right'): void {
     if (!this.carouselElement?.nativeElement) return;
-    
+
     const carousel = this.carouselElement.nativeElement;
     const scrollAmount = carousel.clientWidth * 0.8; // Scroll 80% del ancho visible
-    
+
     if (direction === 'left') {
       carousel.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
     } else {
       carousel.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
-    
+
     // Actualizar botones después de un breve delay
-    setTimeout(() => {
-      this.updateScrollButtons();
-      this.updateArrowVisibility();
-    }, 300);
+    setTimeout(() => this.updateScrollButtons(), 300);
   }
 
   public onCarouselScroll(): void {
     this.updateScrollButtons();
-    this.updateArrowVisibility();
   }
 
   private updateScrollButtons(): void {
     if (!this.carouselElement?.nativeElement) return;
-    
+
     const carousel = this.carouselElement.nativeElement;
     const canScrollLeft = carousel.scrollLeft > 0;
-    const canScrollRight = 
+    const canScrollRight =
       carousel.scrollLeft < carousel.scrollWidth - carousel.clientWidth - 10; // 10px de margen
-    
+
     this.canScrollLeftSignal.set(canScrollLeft);
     this.canScrollRightSignal.set(canScrollRight);
   }
 
-  private updateArrowVisibility(): void {
-    if (!this.carouselElement?.nativeElement) {
-      this.shouldShowLeftArrowSignal.set(false);
-      this.shouldShowRightArrowSignal.set(false);
-      return;
-    }
-    
-    const carousel = this.carouselElement.nativeElement;
-    const totalPastEvents = this.pastEvents().length;
-    const totalUpcomingEvents = this.upcomingEvents().length;
-    const scrollRight = carousel.scrollWidth - carousel.scrollLeft - carousel.clientWidth;
-    
-    // Actualizar signals de forma asíncrona para evitar ExpressionChangedAfterItHasBeenCheckedError
-    setTimeout(() => {
-      this.shouldShowLeftArrowSignal.set(totalPastEvents >= 3 && carousel.scrollLeft > 0);
-      this.shouldShowRightArrowSignal.set(totalUpcomingEvents >= 3 && scrollRight > 50);
-    }, 0);
-  }
-
   public shouldShowLeftArrow(): boolean {
-    return this.shouldShowLeftArrowSignal();
+    if (!this.carouselElement?.nativeElement) return false;
+    const carousel = this.carouselElement.nativeElement;
+    const visibleWidth = carousel.clientWidth;
+    const cardWidth = 400; // Ancho aproximado de una card + gap
+    const cardsVisible = Math.floor(visibleWidth / cardWidth);
+    const totalPastEvents = this.pastEvents().length;
+
+    // Mostrar flecha solo si hay 3 o más eventos pasados que no están visibles
+    return totalPastEvents >= 3 && carousel.scrollLeft > 0;
   }
 
   public shouldShowRightArrow(): boolean {
-    return this.shouldShowRightArrowSignal();
+    if (!this.carouselElement?.nativeElement) return false;
+    const carousel = this.carouselElement.nativeElement;
+    const visibleWidth = carousel.clientWidth;
+    const cardWidth = 400; // Ancho aproximado de una card + gap
+    const cardsVisible = Math.floor(visibleWidth / cardWidth);
+    const totalUpcomingEvents = this.upcomingEvents().length;
+    const scrollRight =
+      carousel.scrollWidth - carousel.scrollLeft - carousel.clientWidth;
+
+    // Mostrar flecha solo si hay 3 o más eventos futuros que no están visibles
+    return totalUpcomingEvents >= 3 && scrollRight > 50;
   }
 
   public canScrollLeft(): boolean {

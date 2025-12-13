@@ -1,5 +1,4 @@
 import { CommonModule } from '@angular/common';
-import { PhosphorIconComponent } from '../shared/phosphor-icon.component';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
@@ -10,7 +9,7 @@ import { ToastModule } from 'primeng/toast';
 @Component({
   selector: 'pt-register',
   standalone: true,
-  imports: [CommonModule, RouterLink, Button, ToastModule, PhosphorIconComponent],
+  imports: [CommonModule, RouterLink, Button, ToastModule],
   providers: [MessageService],
   template: `
     <p-toast />
@@ -21,9 +20,7 @@ import { ToastModule } from 'primeng/toast';
         (click)="goHome()"
         [disabled]="isLoading()"
       >
-        <span class="back-icon">
-          <ph-icon name="arrow-left" [size]="20" color="currentColor" weight="regular"></ph-icon>
-        </span>
+        <span class="back-icon">←</span>
         <span>Regresar</span>
       </button>
       <div class="register-card">
@@ -64,6 +61,7 @@ import { ToastModule } from 'primeng/toast';
           <p-button
             type="button"
             label="Registrarse con Google"
+            icon="pi pi-google"
             (onClick)="signUp()"
             [loading]="isLoading()"
             [disabled]="isLoading()"
@@ -77,11 +75,7 @@ import { ToastModule } from 'primeng/toast';
               padding: '0.75rem',
               marginTop: '0.5rem'
             }"
-          >
-            <ng-template pTemplate="icon">
-              <ph-icon name="google" [size]="18" color="currentColor" weight="regular"></ph-icon>
-            </ng-template>
-          </p-button>
+          />
 
           <div class="login-link">
             <p>

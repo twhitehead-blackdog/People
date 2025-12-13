@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { InputTextModule } from 'primeng/inputtext';
 import { Button } from 'primeng/button';
-import { PhosphorIconComponent } from '../shared/phosphor-icon.component';
 
 export interface MatchFilters {
   species: 'dog' | 'cat' | null;
@@ -13,7 +12,7 @@ export interface MatchFilters {
 @Component({
   selector: 'pt-adoptions-match',
   standalone: true,
-  imports: [CommonModule, FormsModule, InputTextModule, Button, PhosphorIconComponent],
+  imports: [CommonModule, FormsModule, InputTextModule, Button],
   template: `
     <div class="match-card">
       <div class="match-header">
@@ -31,7 +30,7 @@ export interface MatchFilters {
             [class.active]="selectedSpecies() === 'cat'"
             (click)="selectSpecies('cat')"
           >
-            <ph-icon name="cat" [size]="48" color="currentColor" weight="regular"></ph-icon>
+            <span style="font-size: 3rem;">🐈</span>
             <span>Gato</span>
           </button>
           <button
@@ -40,7 +39,7 @@ export interface MatchFilters {
             [class.active]="selectedSpecies() === 'dog'"
             (click)="selectSpecies('dog')"
           >
-            <ph-icon name="dog" [size]="48" color="currentColor" weight="regular"></ph-icon>
+            <span style="font-size: 3rem;">🐕</span>
             <span>Perro</span>
           </button>
         </div>
@@ -49,9 +48,7 @@ export interface MatchFilters {
           <p>¿DÓNDE VIVES?</p>
         </div>
         <div class="location-input-container">
-          <span class="location-icon">
-            <ph-icon name="map-pin" [size]="20" color="currentColor" weight="fill"></ph-icon>
-          </span>
+          <span class="location-icon">📍</span>
           <input
             type="text"
             pInputText

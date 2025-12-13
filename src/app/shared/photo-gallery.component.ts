@@ -1,5 +1,4 @@
 import { CommonModule } from '@angular/common';
-import { PhosphorIconComponent } from './phosphor-icon.component';
 import { Component, EventEmitter, inject, input, OnInit, output, signal } from '@angular/core';
 import { ImageUploadService, UploadResult } from '../services/image-upload.service';
 import { Button } from 'primeng/button';
@@ -18,7 +17,7 @@ export interface PhotoItem {
 @Component({
   selector: 'pt-photo-gallery',
   standalone: true,
-  imports: [CommonModule, Button, ProgressBarModule, ToastModule, PhosphorIconComponent],
+  imports: [CommonModule, Button, ProgressBarModule, ToastModule],
   providers: [MessageService],
   template: `
     <p-toast />
@@ -48,9 +47,7 @@ export interface PhotoItem {
         />
         @if (photos().length === 0) {
           <div class="drop-zone-content">
-            <div class="drop-icon">
-              <ph-icon name="camera" [size]="48" color="#6b7280" weight="regular"></ph-icon>
-            </div>
+            <div class="drop-icon">📷</div>
             <p class="drop-text">Arrastra imágenes aquí</p>
             <p class="drop-hint">o haz clic para seleccionar</p>
             <p class="drop-formats">Formatos: JPG, PNG, GIF, WEBP (máx. 10MB)</p>
@@ -70,9 +67,7 @@ export interface PhotoItem {
                   }
                   @if (photo.error) {
                     <div class="error-overlay">
-                      <span class="error-icon">
-                        <ph-icon name="warning" [size]="24" color="#ef4444" weight="fill"></ph-icon>
-                      </span>
+                      <span class="error-icon">⚠️</span>
                       <p class="error-text">{{ photo.error }}</p>
                     </div>
                   }
@@ -81,6 +76,8 @@ export interface PhotoItem {
                     [alt]="'Foto ' + (i + 1)"
                     class="photo-image"
                     (error)="onImageError(photo)"
+                    (click)="openCarousel(i)"
+                    style="cursor: pointer;"
                   />
                   <div class="photo-actions">
                     <button
@@ -89,7 +86,7 @@ export interface PhotoItem {
                       title="Eliminar"
                       [disabled]="photo.uploading"
                     >
-                      <ph-icon name="trash" [size]="18" color="currentColor" weight="regular"></ph-icon>
+                      🗑️
                     </button>
                     @if (i > 0) {
                       <button
@@ -98,7 +95,7 @@ export interface PhotoItem {
                         title="Mover izquierda"
                         [disabled]="photo.uploading"
                       >
-                        <ph-icon name="arrow-left" [size]="18" color="currentColor" weight="regular"></ph-icon>
+                        ←
                       </button>
                     }
                     @if (i < photos().length - 1) {
@@ -108,7 +105,7 @@ export interface PhotoItem {
                         title="Mover derecha"
                         [disabled]="photo.uploading"
                       >
-                        <ph-icon name="arrow-right" [size]="18" color="currentColor" weight="regular"></ph-icon>
+                        →
                       </button>
                     }
                   </div>
@@ -121,9 +118,7 @@ export interface PhotoItem {
             @if (photos().length < maxPhotos()) {
               <div class="photo-item add-photo" (click)="fileInput.click()">
                 <div class="add-photo-content">
-                  <span class="add-icon">
-                    <ph-icon name="plus" [size]="32" color="#6b7280" weight="regular"></ph-icon>
-                  </span>
+                  <span class="add-icon">➕</span>
                   <p class="add-text">Agregar foto</p>
                 </div>
               </div>
@@ -140,17 +135,66 @@ export interface PhotoItem {
               <span class="max-reached">(Máximo alcanzado)</span>
             }
           </p>
-          <p-button
-            label="Limpiar todo"
-            severity="secondary"
-            [text]="true"
-            (onClick)="clearAll()"
-            [disabled]="hasUploading()"
-          >
-            <ng-template pTemplate="icon">
-              <ph-icon name="trash" [size]="18" color="currentColor" weight="regular"></ph-icon>
-            </ng-template>
-          </p-button>
+          <div class="footer-actions">
+            <p-button
+              [label]="carouselMode() ? 'Vista Grid' : 'Vista Carrusel'"
+              [icon]="carouselMode() ? 'pi pi-th-large' : 'pi pi-images'"
+              severity="secondary"
+              [text]="true"
+              (onClick)="toggleCarouselMode()"
+            />
+            <p-button
+              label="Limpiar todo"
+              severity="secondary"
+              [text]="true"
+              icon="pi pi-trash"
+              (onClick)="clearAll()"
+              [disabled]="hasUploading()"
+            />
+          </div>
+        </div>
+      }
+
+      @if (carouselMode() && photos().length > 0) {
+        <div class="carousel-container" (click)="closeCarousel()">
+          <div class="carousel-content" (click)="$event.stopPropagation()">
+            <button class="carousel-close" (click)="closeCarousel()">✕</button>
+            <button
+              class="carousel-nav carousel-prev"
+              (click)="previousPhoto()"
+              [disabled]="currentCarouselIndex() === 0"
+            >
+              ‹
+            </button>
+            <div class="carousel-main-image">
+              <img
+                [src]="photos()[currentCarouselIndex()].url"
+                [alt]="'Foto ' + (currentCarouselIndex() + 1)"
+                class="carousel-image"
+              />
+              <div class="carousel-counter">
+                {{ currentCarouselIndex() + 1 }} / {{ photos().length }}
+              </div>
+            </div>
+            <button
+              class="carousel-nav carousel-next"
+              (click)="nextPhoto()"
+              [disabled]="currentCarouselIndex() === photos().length - 1"
+            >
+              ›
+            </button>
+            <div class="carousel-thumbnails">
+              @for (photo of photos(); track photo.url; let i = $index) {
+                <img
+                  [src]="photo.url"
+                  [alt]="'Miniatura ' + (i + 1)"
+                  class="carousel-thumbnail"
+                  [class.active]="i === currentCarouselIndex()"
+                  (click)="goToPhoto(i)"
+                />
+              }
+            </div>
+          </div>
         </div>
       }
     </div>
@@ -443,6 +487,151 @@ export interface PhotoItem {
         font-weight: 600;
       }
 
+      .footer-actions {
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .carousel-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.9);
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+      }
+
+      .carousel-content {
+        position: relative;
+        max-width: 90vw;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .carousel-close {
+        position: absolute;
+        top: -2.5rem;
+        right: 0;
+        background: transparent;
+        border: none;
+        color: #ffffff;
+        font-size: 2rem;
+        cursor: pointer;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: all 0.3s ease;
+      }
+
+      .carousel-close:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+
+      .carousel-main-image {
+        position: relative;
+        max-width: 100%;
+        max-height: 70vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .carousel-image {
+        max-width: 100%;
+        max-height: 70vh;
+        object-fit: contain;
+        border-radius: 0.5rem;
+      }
+
+      .carousel-counter {
+        position: absolute;
+        bottom: -2rem;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.7);
+        color: #ffffff;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+      }
+
+      .carousel-nav {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        color: #ffffff;
+        font-size: 3rem;
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+        z-index: 10;
+      }
+
+      .carousel-nav:hover:not(:disabled) {
+        background: rgba(255, 255, 255, 0.4);
+        transform: translateY(-50%) scale(1.1);
+      }
+
+      .carousel-nav:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+      }
+
+      .carousel-prev {
+        left: -80px;
+      }
+
+      .carousel-next {
+        right: -80px;
+      }
+
+      .carousel-thumbnails {
+        display: flex;
+        gap: 0.5rem;
+        overflow-x: auto;
+        padding: 0.5rem;
+        max-width: 100%;
+      }
+
+      .carousel-thumbnail {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        border-radius: 0.5rem;
+        cursor: pointer;
+        border: 3px solid transparent;
+        transition: all 0.3s ease;
+        opacity: 0.6;
+      }
+
+      .carousel-thumbnail:hover {
+        opacity: 1;
+        transform: scale(1.1);
+      }
+
+      .carousel-thumbnail.active {
+        border-color: #fbbf24;
+        opacity: 1;
+      }
+
       @media (max-width: 768px) {
         .photos-grid {
           grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
@@ -457,6 +646,38 @@ export interface PhotoItem {
           flex-direction: column;
           align-items: flex-start;
           gap: 0.5rem;
+        }
+
+        .footer-actions {
+          flex-direction: column;
+          width: 100%;
+        }
+
+        .carousel-container {
+          padding: 1rem;
+        }
+
+        .carousel-prev {
+          left: 0.5rem;
+        }
+
+        .carousel-next {
+          right: 0.5rem;
+        }
+
+        .carousel-nav {
+          width: 40px;
+          height: 40px;
+          font-size: 2rem;
+        }
+
+        .carousel-thumbnails {
+          gap: 0.25rem;
+        }
+
+        .carousel-thumbnail {
+          width: 60px;
+          height: 60px;
         }
       }
     `,
@@ -479,6 +700,8 @@ export class PhotoGalleryComponent implements OnInit {
   // State
   public photos = signal<PhotoItem[]>([]);
   public isDragOver = signal(false);
+  public carouselMode = signal(false);
+  public currentCarouselIndex = signal(0);
 
   ngOnInit(): void {
     // Inicializar con fotos existentes
@@ -668,6 +891,38 @@ export class PhotoGalleryComponent implements OnInit {
     return this.photos()
       .filter((p) => !p.uploading && !p.error)
       .map((p) => p.url);
+  }
+
+  public toggleCarouselMode(): void {
+    this.carouselMode.set(!this.carouselMode());
+    if (this.carouselMode()) {
+      this.currentCarouselIndex.set(0);
+    }
+  }
+
+  public openCarousel(index: number): void {
+    this.currentCarouselIndex.set(index);
+    this.carouselMode.set(true);
+  }
+
+  public closeCarousel(): void {
+    this.carouselMode.set(false);
+  }
+
+  public nextPhoto(): void {
+    if (this.currentCarouselIndex() < this.photos().length - 1) {
+      this.currentCarouselIndex.update((i) => i + 1);
+    }
+  }
+
+  public previousPhoto(): void {
+    if (this.currentCarouselIndex() > 0) {
+      this.currentCarouselIndex.update((i) => i - 1);
+    }
+  }
+
+  public goToPhoto(index: number): void {
+    this.currentCarouselIndex.set(index);
   }
 }
 

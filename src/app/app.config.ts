@@ -41,8 +41,9 @@ import { AuditLogsStore } from './stores/audit-logs.store';
 import { AdminUsersStore } from './stores/admin-users.store';
 import { SystemSettingsStore } from './stores/system-settings.store';
 import { PersonalityTraitsStore } from './stores/personality-traits.store';
-// Importar web components de Phosphor Icons para registrarlos globalmente
-import '@phosphor-icons/webcomponents';
+import { PetMatchesStore } from './stores/pet-matches.store';
+import { UserPetsStore } from './stores/user-pets.store';
+import { PetBreedsStore } from './stores/pet-breeds.store';
 registerLocaleData(localeEs, 'es-MX');
 
 const MyPreset = definePreset(Aura, {
@@ -137,5 +138,8 @@ export const appConfig: ApplicationConfig = {
     AdminUsersStore,
     SystemSettingsStore,
     PersonalityTraitsStore,
+    PetMatchesStore,
+    UserPetsStore,
+    PetBreedsStore,
   ],
 };

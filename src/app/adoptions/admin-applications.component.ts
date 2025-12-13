@@ -1,13 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { PhosphorIconComponent } from '../shared/phosphor-icon.component';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
-import { InputText } from 'primeng/inputtext';
+import { DialogModule } from 'primeng/dialog';
 import { SelectModule } from 'primeng/select';
+import { InputText } from 'primeng/inputtext';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
@@ -15,12 +15,8 @@ import { AdoptionApplication } from '../models';
 import { AdoptionApplicationsStore } from '../stores/adoption-applications.store';
 
 // Tipo extendido para incluir el método personalizado
-type AdoptionApplicationsStoreWithCustomMethods = InstanceType<
-  typeof AdoptionApplicationsStore
-> & {
-  updateApplicationStatus: (
-    request: AdoptionApplication
-  ) => import('rxjs').Observable<any>;
+type AdoptionApplicationsStoreWithCustomMethods = InstanceType<typeof AdoptionApplicationsStore> & {
+  updateApplicationStatus: (request: AdoptionApplication) => import('rxjs').Observable<any>;
 };
 
 @Component({
@@ -31,12 +27,12 @@ type AdoptionApplicationsStoreWithCustomMethods = InstanceType<
     FormsModule,
     Button,
     TableModule,
+    DialogModule,
     InputText,
     SelectModule,
     TagModule,
     ToastModule,
     Card,
-    PhosphorIconComponent,
   ],
   providers: [MessageService],
   template: `
@@ -62,11 +58,7 @@ type AdoptionApplicationsStoreWithCustomMethods = InstanceType<
           [paginator]="true"
           [rows]="10"
           [rowsPerPageOptions]="[10, 20, 50]"
-          [globalFilterFields]="[
-            'applicant_name',
-            'applicant_email',
-            'pet.name'
-          ]"
+          [globalFilterFields]="['applicant_name', 'applicant_email', 'pet.name']"
           styleClass="p-datatable-striped"
           [loading]="applicationsStore.isLoading()"
         >
@@ -87,6 +79,7 @@ type AdoptionApplicationsStoreWithCustomMethods = InstanceType<
                 placeholder="Filtrar por estado"
                 [showClear]="true"
                 styleClass="filter-select"
+                (onChange)="onStatusFilterChange()"
               />
             </div>
           </ng-template>
@@ -107,10 +100,7 @@ type AdoptionApplicationsStoreWithCustomMethods = InstanceType<
               <td>{{ application.applicant_email }}</td>
               <td>{{ application.applicant_phone }}</td>
               <td>
-                <span
-                  class="pet-name-link"
-                  (click)="viewPet(application.pet_id)"
-                >
+                <span class="pet-name-link" (click)="viewPet(application.pet_id)">
                   {{ application.pet?.name || 'N/A' }}
                 </span>
               </td>
@@ -124,49 +114,38 @@ type AdoptionApplicationsStoreWithCustomMethods = InstanceType<
               <td>
                 <div class="action-buttons">
                   <p-button
+                    icon="pi pi-eye"
                     [text]="true"
                     severity="info"
                     (onClick)="viewDetails(application)"
                     [style]="{ marginRight: '0.5rem' }"
                     title="Ver detalles"
-                  >
-                    <ng-template pTemplate="icon">
-                      <ph-icon name="eye" [size]="18" color="currentColor" weight="regular"></ph-icon>
-                    </ng-template>
-                  </p-button>
+                  />
                   @if (application.status === 'pending') {
                   <p-button
+                    icon="pi pi-check"
                     [text]="true"
                     severity="success"
                     (onClick)="approveApplication(application)"
                     [style]="{ marginRight: '0.5rem' }"
                     title="Aprobar"
-                  >
-                    <ng-template pTemplate="icon">
-                      <ph-icon name="check" [size]="18" color="currentColor" weight="regular"></ph-icon>
-                    </ng-template>
-                  </p-button>
+                  />
                   <p-button
+                    icon="pi pi-times"
                     [text]="true"
                     severity="danger"
                     (onClick)="rejectApplication(application)"
                     title="Rechazar"
-                  >
-                    <ng-template pTemplate="icon">
-                      <ph-icon name="x" [size]="18" color="currentColor" weight="regular"></ph-icon>
-                    </ng-template>
-                  </p-button>
-                  } @if (application.status === 'approved') {
+                  />
+                  }
+                  @if (application.status === 'approved') {
                   <p-button
+                    icon="pi pi-check-circle"
                     [text]="true"
                     severity="info"
                     (onClick)="completeApplication(application)"
                     title="Marcar como completada"
-                  >
-                    <ng-template pTemplate="icon">
-                      <ph-icon name="check-circle" [size]="18" color="currentColor" weight="regular"></ph-icon>
-                    </ng-template>
-                  </p-button>
+                  />
                   }
                 </div>
               </td>
@@ -329,23 +308,21 @@ export class AdminApplicationsComponent {
     return apps;
   });
 
-  public pendingCount = computed(
-    () =>
-      this.applicationsStore
-        .entities()
-        .filter((app) => app.status === 'pending').length
+  public pendingCount = computed(() =>
+    this.applicationsStore.entities().filter((app) => app.status === 'pending').length
   );
 
-  public approvedCount = computed(
-    () =>
-      this.applicationsStore
-        .entities()
-        .filter((app) => app.status === 'approved').length
+  public approvedCount = computed(() =>
+    this.applicationsStore.entities().filter((app) => app.status === 'approved').length
   );
 
   public onGlobalFilter(event: Event): void {
     const target = event.target as HTMLInputElement;
     this.globalFilterText.set(target.value);
+  }
+
+  public onStatusFilterChange(): void {
+    // El filtro se aplica automáticamente en el computed
   }
 
   public getStatusLabel(status: string): string {
@@ -358,20 +335,8 @@ export class AdminApplicationsComponent {
     return labels[status] || status;
   }
 
-  public getStatusSeverity(
-    status: string
-  ):
-    | 'success'
-    | 'info'
-    | 'warn'
-    | 'danger'
-    | 'secondary'
-    | 'contrast'
-    | undefined {
-    const severities: Record<
-      string,
-      'success' | 'info' | 'warn' | 'danger' | 'secondary' | undefined
-    > = {
+  public getStatusSeverity(status: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' | undefined {
+    const severities: Record<string, 'success' | 'info' | 'warn' | 'danger' | 'secondary' | undefined> = {
       pending: 'warn',
       approved: 'success',
       rejected: 'danger',
@@ -462,21 +427,16 @@ export class AdminApplicationsComponent {
       status: 'completed',
     };
     // Usar updateApplicationStatus para manejar la lógica especial cuando se completa
-    const store = this
-      .applicationsStore as AdoptionApplicationsStoreWithCustomMethods;
+    const store = this.applicationsStore as AdoptionApplicationsStoreWithCustomMethods;
     store.updateApplicationStatus(updated).subscribe({
       next: () => {
-        // Refrescar los items para asegurar que se actualice la vista
-        this.applicationsStore.reloadItems();
         this.messageService.add({
           severity: 'success',
           summary: 'Adopción completada',
-          detail:
-            'La adopción ha sido marcada como completada y la mascota ya no está disponible',
+          detail: 'La adopción ha sido marcada como completada y la mascota ya no está disponible',
         });
       },
-      error: (error) => {
-        console.error('Error al completar adopción:', error);
+      error: () => {
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
@@ -486,3 +446,4 @@ export class AdminApplicationsComponent {
     });
   }
 }
+

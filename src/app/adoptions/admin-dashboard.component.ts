@@ -1,5 +1,4 @@
 import { CommonModule } from '@angular/common';
-import { PhosphorIconComponent } from '../shared/phosphor-icon.component';
 import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
 import { Card } from 'primeng/card';
 import { Button } from 'primeng/button';
@@ -14,7 +13,7 @@ import { FoundationsStore } from '../stores/foundations.store';
 @Component({
   selector: 'pt-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, Card, Button, SplitButtonModule, PhosphorIconComponent],
+  imports: [CommonModule, Card, Button, SplitButtonModule],
   template: `
     <div class="dashboard-container">
       <div class="dashboard-header">
@@ -22,27 +21,21 @@ import { FoundationsStore } from '../stores/foundations.store';
         <div class="header-actions">
           <p-splitButton
             label="Exportar"
+            icon="pi pi-download"
             (onClick)="exportStatistics('pdf')"
             [model]="exportMenuItems()"
             severity="success"
             [style]="{ marginRight: '0.5rem' }"
-          >
-            <ng-template pTemplate="icon">
-              <ph-icon name="download" [size]="18" color="currentColor" weight="regular"></ph-icon>
-            </ng-template>
-          </p-splitButton>
+          />
           <p-button
             label="Forzar Actualización"
+            icon="pi pi-refresh"
             (onClick)="refreshStatistics()"
             [loading]="isRefreshing()"
             severity="secondary"
             [style]="{ fontSize: '0.875rem' }"
             title="Las estadísticas se actualizan automáticamente. Usa este botón para forzar una actualización inmediata."
-          >
-            <ng-template pTemplate="icon">
-              <ph-icon name="refresh" [size]="18" color="currentColor" weight="regular"></ph-icon>
-            </ng-template>
-          </p-button>
+          />
         </div>
       </div>
 
@@ -51,9 +44,7 @@ import { FoundationsStore } from '../stores/foundations.store';
         <!-- Métricas de Mascotas -->
         <p-card class="metric-card">
           <div class="metric-content">
-            <div class="metric-icon">
-              <ph-icon name="paw-print" [size]="32" color="#fbbf24" weight="regular"></ph-icon>
-            </div>
+            <div class="metric-icon">🐾</div>
             <div class="metric-info">
               <span class="metric-label">Total Mascotas</span>
               <span class="metric-value">{{ stats.pets.total }}</span>
@@ -63,9 +54,7 @@ import { FoundationsStore } from '../stores/foundations.store';
 
         <p-card class="metric-card available">
           <div class="metric-content">
-            <div class="metric-icon">
-              <ph-icon name="check-circle" [size]="32" color="#10b981" weight="fill"></ph-icon>
-            </div>
+            <div class="metric-icon">✅</div>
             <div class="metric-info">
               <span class="metric-label">Disponibles</span>
               <span class="metric-value">{{ stats.pets.available }}</span>
@@ -75,9 +64,7 @@ import { FoundationsStore } from '../stores/foundations.store';
 
         <p-card class="metric-card adopted">
           <div class="metric-content">
-            <div class="metric-icon">
-              <ph-icon name="heart" [size]="32" color="#ef4444" weight="fill"></ph-icon>
-            </div>
+            <div class="metric-icon">❤️</div>
             <div class="metric-info">
               <span class="metric-label">Adoptadas</span>
               <span class="metric-value">{{ stats.pets.adopted }}</span>
@@ -87,9 +74,7 @@ import { FoundationsStore } from '../stores/foundations.store';
 
         <p-card class="metric-card rate">
           <div class="metric-content">
-            <div class="metric-icon">
-              <ph-icon name="chart-bar" [size]="32" color="#3b82f6" weight="regular"></ph-icon>
-            </div>
+            <div class="metric-icon">📊</div>
             <div class="metric-info">
               <span class="metric-label">Tasa de Adopción</span>
               <span class="metric-value">{{ stats.adoptionRate }}%</span>
@@ -100,9 +85,7 @@ import { FoundationsStore } from '../stores/foundations.store';
         <!-- Métricas de Solicitudes -->
         <p-card class="metric-card">
           <div class="metric-content">
-            <div class="metric-icon">
-              <ph-icon name="file-text" [size]="32" color="#6366f1" weight="regular"></ph-icon>
-            </div>
+            <div class="metric-icon">📝</div>
             <div class="metric-info">
               <span class="metric-label">Total Solicitudes</span>
               <span class="metric-value">{{ stats.applications.total }}</span>
@@ -112,9 +95,7 @@ import { FoundationsStore } from '../stores/foundations.store';
 
         <p-card class="metric-card pending">
           <div class="metric-content">
-            <div class="metric-icon">
-              <ph-icon name="hourglass" [size]="32" color="#f59e0b" weight="regular"></ph-icon>
-            </div>
+            <div class="metric-icon">⏳</div>
             <div class="metric-info">
               <span class="metric-label">Pendientes</span>
               <span class="metric-value">{{ stats.applications.pending }}</span>
@@ -124,9 +105,7 @@ import { FoundationsStore } from '../stores/foundations.store';
 
         <p-card class="metric-card approved">
           <div class="metric-content">
-            <div class="metric-icon">
-              <ph-icon name="check-circle" [size]="32" color="#10b981" weight="fill"></ph-icon>
-            </div>
+            <div class="metric-icon">✅</div>
             <div class="metric-info">
               <span class="metric-label">Aprobadas</span>
               <span class="metric-value">{{ stats.applications.approved }}</span>
@@ -136,9 +115,7 @@ import { FoundationsStore } from '../stores/foundations.store';
 
         <p-card class="metric-card completed">
           <div class="metric-content">
-            <div class="metric-icon">
-              <ph-icon name="confetti" [size]="32" color="#fbbf24" weight="regular"></ph-icon>
-            </div>
+            <div class="metric-icon">🎉</div>
             <div class="metric-info">
               <span class="metric-label">Completadas</span>
               <span class="metric-value">{{ stats.applications.completed }}</span>
@@ -148,9 +125,7 @@ import { FoundationsStore } from '../stores/foundations.store';
 
         <p-card class="metric-card time">
           <div class="metric-content">
-            <div class="metric-icon">
-              <ph-icon name="clock" [size]="32" color="#8b5cf6" weight="regular"></ph-icon>
-            </div>
+            <div class="metric-icon">⏱️</div>
             <div class="metric-info">
               <span class="metric-label">Tiempo Promedio</span>
               <span class="metric-value">{{ stats.averageTimeToAdoption }} días</span>
@@ -547,9 +522,6 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/c0122114-0a18-454b-b40e-dcae99b0f576',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin-dashboard.component.ts:524',message:'AdminDashboardComponent ngOnInit',data:{petsCount:this.petsStore.entities().length,applicationsCount:this.applicationsStore.entities().length,foundationsCount:this.foundationsStore.entities().length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
-    // #endregion
     // Las estadísticas se calculan automáticamente con el computed signal
   }
 

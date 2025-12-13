@@ -71,10 +71,11 @@ import { Button } from 'primeng/button';
               <p-button
                 label="Suscribirse"
                 [style]="{
-                  background: '#fbbf24',
+                  background: 'linear-gradient(to right, #FDB022, #fcd34d)',
                   border: 'none',
                   color: '#000000',
-                  fontWeight: 'bold'
+                  fontWeight: 'bold',
+                  boxShadow: '0 2px 8px rgba(253, 176, 34, 0.3)'
                 }"
                 (onClick)="subscribe()"
               />
@@ -104,8 +105,8 @@ import { Button } from 'primeng/button';
 
       <div class="footer-bottom">
         <div class="footer-bottom-content">
-          <p class="copyright">
-            © 2025, Black Dog Panamá Tecnología de Shopify.
+            <p class="copyright">
+            © 2025, Black Dog Panamá 🐕 Hecho con 💝 para las mascotas
           </p>
           <div class="payment-methods">
             <span class="payment-label">Métodos de pago:</span>
@@ -122,8 +123,8 @@ import { Button } from 'primeng/button';
   styles: [
     `
       .adoptions-footer {
-        background: #ffffff;
-        border-top: 1px solid #e5e7eb;
+        background: linear-gradient(135deg, #1f2937 0%, #000000 50%, #1f2937 100%);
+        border-top: 4px solid #FDB022;
         padding: 3rem 2rem 1rem;
         margin-top: 4rem;
       }
@@ -147,7 +148,7 @@ import { Button } from 'primeng/button';
       .footer-title {
         font-size: 1.125rem;
         font-weight: 700;
-        color: #000000;
+        color: #FDB022;
         margin: 0;
         text-transform: uppercase;
         letter-spacing: 0.05em;
@@ -168,7 +169,7 @@ import { Button } from 'primeng/button';
       .logo-text {
         font-size: 1.25rem;
         font-weight: 700;
-        color: #000000;
+        color: #ffffff;
         letter-spacing: 0.05em;
       }
 
@@ -182,9 +183,13 @@ import { Button } from 'primeng/button';
       .phone,
       .hours p {
         font-size: 0.875rem;
-        color: #374151;
+        color: #d1d5db;
         line-height: 1.6;
         margin: 0;
+      }
+
+      .phone {
+        color: #FDB022;
       }
 
       .phone {
@@ -194,9 +199,15 @@ import { Button } from 'primeng/button';
       }
 
       .phone a {
-        color: #000000;
-        text-decoration: underline;
+        color: #FDB022;
+        text-decoration: none;
         font-weight: 600;
+        transition: color 0.3s ease;
+      }
+
+      .phone a:hover {
+        color: #fcd34d;
+        text-decoration: underline;
       }
 
       .footer-nav {
@@ -206,14 +217,14 @@ import { Button } from 'primeng/button';
       }
 
       .footer-link {
-        color: #374151;
+        color: #d1d5db;
         text-decoration: none;
         font-size: 0.875rem;
-        transition: color 0.2s;
+        transition: color 0.3s ease;
       }
 
       .footer-link:hover {
-        color: #fbbf24;
+        color: #FDB022;
       }
 
       .newsletter {
@@ -224,7 +235,7 @@ import { Button } from 'primeng/button';
 
       .newsletter-text {
         font-size: 0.875rem;
-        color: #374151;
+        color: #d1d5db;
         line-height: 1.6;
         margin: 0;
       }
@@ -252,8 +263,21 @@ import { Button } from 'primeng/button';
         padding-right: 1rem;
         padding-top: 0.75rem;
         padding-bottom: 0.75rem;
-        border: 1px solid #d1d5db;
-        border-radius: 0.5rem;
+        border: 2px solid rgba(253, 176, 34, 0.3);
+        border-radius: 0.75rem;
+        background: #1f2937;
+        color: #ffffff;
+        transition: all 0.3s ease;
+      }
+
+      .newsletter-input:focus {
+        border-color: #FDB022;
+        box-shadow: 0 0 0 3px rgba(253, 176, 34, 0.2);
+        outline: none;
+      }
+
+      .newsletter-input::placeholder {
+        color: #9ca3af;
       }
 
       .privacy-text {
@@ -270,7 +294,7 @@ import { Button } from 'primeng/button';
       .social-title {
         font-size: 0.875rem;
         font-weight: 700;
-        color: #000000;
+        color: #FDB022;
         margin: 0 0 0.75rem 0;
         text-transform: uppercase;
       }
@@ -284,13 +308,14 @@ import { Button } from 'primeng/button';
         width: 40px;
         height: 40px;
         border-radius: 50%;
-        background: #f3f4f6;
+        background: rgba(31, 41, 55, 1);
+        border: 2px solid rgba(253, 176, 34, 0.3);
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #000000;
+        color: #FDB022;
         text-decoration: none;
-        transition: all 0.2s;
+        transition: all 0.3s ease;
         font-size: 1.25rem;
       }
 
@@ -299,15 +324,17 @@ import { Button } from 'primeng/button';
       }
 
       .social-icon:hover {
-        background: #fbbf24;
+        background: #FDB022;
+        border-color: #FDB022;
         color: #000000;
         transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(253, 176, 34, 0.5);
       }
 
       .footer-bottom {
         margin-top: 2rem;
         padding-top: 2rem;
-        border-top: 1px solid #e5e7eb;
+        border-top: 1px solid rgba(107, 114, 128, 0.3);
       }
 
       .footer-bottom-content {
@@ -320,7 +347,7 @@ import { Button } from 'primeng/button';
 
       .copyright {
         font-size: 0.875rem;
-        color: #6b7280;
+        color: #9ca3af;
         margin: 0;
       }
 
@@ -336,7 +363,7 @@ import { Button } from 'primeng/button';
 
       .payment-label {
         font-size: 0.875rem;
-        color: #6b7280;
+        color: #9ca3af;
       }
 
       .payment-icons {

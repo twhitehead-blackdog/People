@@ -23,7 +23,6 @@ import {
   EditableOption,
 } from '../shared/editable-select.component';
 import { PhotoGalleryComponent } from '../shared/photo-gallery.component';
-import { PhosphorIconComponent } from '../shared/phosphor-icon.component';
 
 @Component({
   selector: 'pt-admin-pets',
@@ -45,7 +44,6 @@ import { PhosphorIconComponent } from '../shared/phosphor-icon.component';
     Card,
     EditableSelectComponent,
     PhotoGalleryComponent,
-    PhosphorIconComponent,
   ],
   template: `
     <p-toast />
@@ -57,6 +55,7 @@ import { PhosphorIconComponent } from '../shared/phosphor-icon.component';
         <div class="header-actions">
           <p-button
             label="Crear Ejemplos"
+            icon="pi pi-database"
             (onClick)="createExamplePets()"
             [loading]="isCreatingExamples()"
             [disabled]="isCreatingExamples()"
@@ -68,13 +67,10 @@ import { PhosphorIconComponent } from '../shared/phosphor-icon.component';
               fontWeight: 'bold',
               marginRight: '0.75rem'
             }"
-          >
-            <ng-template pTemplate="icon">
-              <ph-icon name="database" [size]="18" color="currentColor" weight="regular"></ph-icon>
-            </ng-template>
-          </p-button>
+          />
           <p-button
             label="Nueva Mascota"
+            icon="pi pi-plus"
             (onClick)="openNewPetDialog()"
             [style]="{
               background: '#fbbf24',
@@ -82,11 +78,7 @@ import { PhosphorIconComponent } from '../shared/phosphor-icon.component';
               color: '#000000',
               fontWeight: 'bold'
             }"
-          >
-            <ng-template pTemplate="icon">
-              <ph-icon name="plus" [size]="18" color="currentColor" weight="regular"></ph-icon>
-            </ng-template>
-          </p-button>
+          />
         </div>
       </div>
 
@@ -253,12 +245,9 @@ import { PhosphorIconComponent } from '../shared/phosphor-icon.component';
                         label="Limpiar Filtros"
                         severity="secondary"
                         [text]="true"
+                        icon="pi pi-times"
                         (onClick)="clearAdvancedFilters()"
-                      >
-                        <ng-template pTemplate="icon">
-                          <ph-icon name="x" [size]="18" color="currentColor" weight="regular"></ph-icon>
-                        </ng-template>
-                      </p-button>
+                      />
                     </div>
                   </div>
                 </div>
@@ -296,69 +285,44 @@ import { PhosphorIconComponent } from '../shared/phosphor-icon.component';
               <td>
                 <div class="action-buttons">
                   <p-button
+                    icon="pi pi-eye"
                     [text]="true"
                     severity="info"
                     (onClick)="showPreview(pet)"
                     [style]="{ marginRight: '0.5rem' }"
                     title="Vista Previa"
-                  >
-                    <ng-template pTemplate="icon">
-                      <ph-icon name="image" [size]="18" color="currentColor" weight="regular"></ph-icon>
-                    </ng-template>
-                  </p-button>
+                  />
                   <p-button
+                    icon="pi pi-copy"
                     [text]="true"
                     severity="secondary"
                     (onClick)="duplicatePet(pet)"
                     [style]="{ marginRight: '0.5rem' }"
                     title="Duplicar"
-                  >
-                    <ng-template pTemplate="icon">
-                      <ph-icon name="copy" [size]="18" color="currentColor" weight="regular"></ph-icon>
-                    </ng-template>
-                  </p-button>
+                  />
                   <p-button
+                    icon="pi pi-pencil"
                     [text]="true"
                     severity="info"
                     (onClick)="openEditDialog(pet)"
                     [style]="{ marginRight: '0.5rem' }"
                     title="Editar"
-                  >
-                    <ng-template pTemplate="icon">
-                      <ph-icon name="pencil" [size]="18" color="currentColor" weight="regular"></ph-icon>
-                    </ng-template>
-                  </p-button>
+                  />
                   <p-button
+                    [icon]="(pet.is_archived === true) ? 'pi pi-folder' : 'pi pi-save'"
                     [text]="true"
                     [severity]="(pet.is_archived === true) ? 'warn' : 'secondary'"
                     (onClick)="toggleArchive(pet)"
                     [style]="{ marginRight: '0.5rem' }"
                     [title]="(pet.is_archived === true) ? 'Desarchivar' : 'Archivar'"
-                  >
-                    <ng-template pTemplate="icon">
-                      <ph-icon 
-                        [name]="(pet.is_archived === true) ? 'folder-open' : 'archive'" 
-                        [size]="18" 
-                        color="currentColor" 
-                        weight="regular"
-                      ></ph-icon>
-                    </ng-template>
-                  </p-button>
+                  />
                   <p-button
+                    [icon]="pet.is_available ? 'pi pi-check' : 'pi pi-times'"
                     [text]="true"
                     [severity]="pet.is_available ? 'success' : 'warn'"
                     (onClick)="toggleAvailability(pet)"
                     title="Cambiar Disponibilidad"
-                  >
-                    <ng-template pTemplate="icon">
-                      <ph-icon 
-                        [name]="pet.is_available ? 'check-circle' : 'x'" 
-                        [size]="18" 
-                        color="currentColor" 
-                        weight="regular"
-                      ></ph-icon>
-                    </ng-template>
-                  </p-button>
+                  />
                 </div>
               </td>
             </tr>

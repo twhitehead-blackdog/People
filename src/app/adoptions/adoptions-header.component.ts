@@ -1,5 +1,5 @@
 import { AsyncPipe, CommonModule } from '@angular/common';
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { AuthWrapperService } from '../auth/auth-wrapper.service';
 import { DemoModeService } from './demo-mode.service';
@@ -19,8 +19,14 @@ import { DemoModeService } from './demo-mode.service';
 
         <div class="header-center">
           <nav class="header-nav">
-            <a href="#" class="nav-link active">Tienda</a>
-            <a href="#" class="nav-link">Servicios</a>
+            <a href="#" class="nav-link" [class.active]="true">
+              Tienda
+              <span class="nav-underline"></span>
+            </a>
+            <a href="#" class="nav-link">
+              Servicios
+              <span class="nav-underline"></span>
+            </a>
           </nav>
         </div>
 
@@ -40,18 +46,19 @@ import { DemoModeService } from './demo-mode.service';
             </label>
           </div>
           @if (isAuthenticated$ | async) {
-          <div class="user-menu">
-            @if (isAdmin()) {
-            <button class="admin-button" type="button" (click)="goToAdmin()">
-              <span>⚙️</span>
-              Panel Admin
-            </button>
-            }
-            <button class="user-button" (click)="goToProfile()" type="button">
-              <span class="user-avatar">{{ userInitials() }}</span>
-              <span class="user-name">{{ userName() }}</span>
-            </button>
+          <div class="status-indicator">
+            <div class="status-dot"></div>
+            <span class="status-text">Online</span>
           </div>
+          @if (isAdmin()) {
+          <button class="admin-button" type="button" (click)="goToAdmin()">
+            Panel Admin
+          </button>
+          }
+          <button class="user-button" (click)="goToProfile()" type="button">
+            <span class="user-avatar">{{ userInitials() }}</span>
+            <span class="user-name">{{ userName() }}</span>
+          </button>
           } @else {
           <button class="login-button" type="button" (click)="goToLogin()">
             Iniciar Sesión
@@ -64,18 +71,19 @@ import { DemoModeService } from './demo-mode.service';
   styles: [
     `
       .adoptions-header {
-        background: #ffffff;
-        border-bottom: 1px solid #e5e7eb;
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
         position: sticky;
         top: 0;
         z-index: 1000;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         transition: background-color 0.3s ease, border-color 0.3s ease;
       }
 
       .adoptions-container.dark .adoptions-header,
       :host-context(.adoptions-dark) .adoptions-header {
-        background: #1f2937;
+        background: rgba(31, 41, 55, 0.8);
         border-bottom-color: #374151;
       }
 
@@ -104,27 +112,33 @@ import { DemoModeService } from './demo-mode.service';
         transform: scale(1.05);
       }
 
-      .logo-icon {
-        height: 80px;
-        width: auto;
-        object-fit: contain;
+      .logo-icon-wrapper {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, #fdb022 0%, #fcd34d 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         transition: all 0.3s ease;
-        animation: logoFloat 3s ease-in-out infinite;
       }
 
-      .logo-container:hover .logo-icon {
+      .logo-container:hover .logo-icon-wrapper {
         transform: scale(1.1);
-        filter: drop-shadow(0 4px 12px rgba(55, 65, 81, 0.4));
       }
 
-      @keyframes logoFloat {
-        0%,
-        100% {
-          transform: translateY(0);
-        }
-        50% {
-          transform: translateY(-5px);
-        }
+      .logo-icon {
+        font-size: 1.5rem;
+        display: block;
+      }
+
+      .logo-text {
+        font-weight: 700;
+        font-size: 1.25rem;
+        background: linear-gradient(to right, #000000 0%, #374151 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
       }
 
       .header-center {
@@ -146,7 +160,27 @@ import { DemoModeService } from './demo-mode.service';
         font-size: 1rem;
         padding: 0.5rem 1rem;
         border-radius: 0.5rem;
-        transition: background 0.2s, color 0.2s;
+        transition: color 0.3s ease;
+        position: relative;
+      }
+
+      .nav-underline {
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background: #fdb022;
+        transition: width 0.3s ease;
+      }
+
+      .nav-link:hover .nav-underline,
+      .nav-link.active .nav-underline {
+        width: 100%;
+      }
+
+      .nav-link:hover {
+        color: #fdb022;
       }
 
       .adoptions-container.dark .nav-link,
@@ -154,18 +188,9 @@ import { DemoModeService } from './demo-mode.service';
         color: #ffffff;
       }
 
-      .nav-link:hover {
-        background: rgba(0, 0, 0, 0.1);
-      }
-
       .adoptions-container.dark .nav-link:hover,
       :host-context(.adoptions-dark) .nav-link:hover {
-        background: rgba(255, 255, 255, 0.1);
-      }
-
-      .nav-link.active {
-        background: #fbbf24;
-        color: #000000;
+        color: #fdb022;
       }
 
       .header-right {
@@ -174,8 +199,41 @@ import { DemoModeService } from './demo-mode.service';
         gap: 1rem;
       }
 
+      .status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: #f0fdf4;
+        padding: 0.375rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.875rem;
+      }
+
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #22c55e;
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      .status-text {
+        color: #15803d;
+        font-weight: 500;
+      }
+
       .login-button {
-        background: #fbbf24;
+        background: linear-gradient(to right, #fdb022 0%, #fcd34d 100%);
         border: none;
         padding: 0.75rem 1.5rem;
         border-radius: 0.5rem;
@@ -186,7 +244,7 @@ import { DemoModeService } from './demo-mode.service';
         font-size: 1rem;
         position: relative;
         overflow: hidden;
-        box-shadow: 0 2px 8px rgba(251, 191, 36, 0.3);
+        box-shadow: 0 2px 8px rgba(253, 176, 34, 0.3);
       }
 
       .login-button::before {
@@ -206,11 +264,9 @@ import { DemoModeService } from './demo-mode.service';
       }
 
       .login-button:hover {
-        background: #000000;
-        color: #fbbf24;
+        background: linear-gradient(to right, #fdb022 0.9, #fcd34d 0.9);
         transform: translateY(-2px) scale(1.05);
-        box-shadow: 0 8px 20px rgba(251, 191, 36, 0.5),
-          0 0 20px rgba(251, 191, 36, 0.3);
+        box-shadow: 0 4px 12px rgba(253, 176, 34, 0.5);
       }
 
       .login-button:hover::before {
@@ -228,60 +284,71 @@ import { DemoModeService } from './demo-mode.service';
       }
 
       .admin-button {
-        background: #374151;
+        background: linear-gradient(to right, #fdb022 0%, #fcd34d 100%);
         border: none;
         padding: 0.75rem 1.5rem;
         border-radius: 0.5rem;
         font-weight: 600;
-        color: #ffffff;
+        color: #000000;
         cursor: pointer;
         transition: all 0.3s ease;
         font-size: 0.875rem;
         display: flex;
         align-items: center;
         gap: 0.5rem;
+        box-shadow: 0 2px 8px rgba(253, 176, 34, 0.3);
       }
 
       .admin-button:hover {
-        background: #1f2937;
+        background: linear-gradient(to right, #fdb022 0.9, #fcd34d 0.9);
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 4px 12px rgba(253, 176, 34, 0.5);
       }
 
       .user-button {
         display: flex;
         align-items: center;
         gap: 0.75rem;
-        background: #f9fafb;
-        border: 1px solid #e5e7eb;
+        background: linear-gradient(to right, #fdb022 0%, #fcd34d 100%);
+        border: none;
         padding: 0.5rem 1rem;
-        border-radius: 0.5rem;
+        border-radius: 9999px;
         cursor: pointer;
         transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(253, 176, 34, 0.3);
       }
 
       .user-button:hover {
-        background: #f3f4f6;
-        border-color: #fbbf24;
+        box-shadow: 0 4px 12px rgba(253, 176, 34, 0.5);
+        transform: translateY(-2px);
       }
 
       .user-avatar {
-        width: 36px;
-        height: 36px;
+        width: 32px;
+        height: 32px;
         border-radius: 50%;
-        background: #fbbf24;
-        color: #000000;
+        background: #000000;
+        color: #fdb022;
         display: flex;
         align-items: center;
         justify-content: center;
         font-weight: 700;
-        font-size: 0.875rem;
+        font-size: 0.75rem;
       }
 
       .user-name {
         font-weight: 600;
         color: #000000;
         font-size: 0.875rem;
+      }
+
+      @media (max-width: 640px) {
+        .user-name {
+          display: none;
+        }
+        .status-indicator {
+          display: none;
+        }
       }
 
       .dark-mode-toggle {
@@ -382,6 +449,7 @@ export class AdoptionsHeaderComponent {
   public useDemoData = this.demoModeService.useDemoData;
   public isAuthenticated$ = this.auth.isAuthenticated$;
   public user$ = this.auth.user$;
+  public showServicesMenu = signal(false);
 
   public isAdmin = computed(() => this.auth.isAdmin());
 
@@ -436,5 +504,10 @@ export class AdoptionsHeaderComponent {
 
   public goToAdmin(): void {
     this.router.navigate(['/adoptions/admin']);
+  }
+
+  public goToBuscoPareja(): void {
+    this.showServicesMenu.set(false);
+    this.router.navigate(['/adoptions/busco-pareja']);
   }
 }

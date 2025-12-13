@@ -1,5 +1,4 @@
 import { CommonModule } from '@angular/common';
-import { PhosphorIconComponent } from '../shared/phosphor-icon.component';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
@@ -27,7 +26,6 @@ import { AuditLogsStore } from '../stores/audit-logs.store';
     TagModule,
     ToastModule,
     Card,
-    PhosphorIconComponent,
   ],
   template: `
     <p-toast />
@@ -135,15 +133,12 @@ import { AuditLogsStore } from '../stores/audit-logs.store';
               <td>
                 <div class="table-cell-content">
                   <p-button
+                    icon="pi pi-eye"
                     [text]="true"
                     severity="info"
                     (onClick)="viewLogDetails(log)"
                     title="Ver detalles"
-                  >
-                    <ng-template pTemplate="icon">
-                      <ph-icon name="eye" [size]="18" color="currentColor" weight="regular"></ph-icon>
-                    </ng-template>
-                  </p-button>
+                  />
                 </div>
               </td>
             </tr>

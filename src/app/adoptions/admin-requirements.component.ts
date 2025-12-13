@@ -1,5 +1,4 @@
 import { CommonModule } from '@angular/common';
-import { PhosphorIconComponent } from '../shared/phosphor-icon.component';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
@@ -30,7 +29,6 @@ import { AdoptionRequirementsStore } from '../stores/adoption-requirements.store
     TagModule,
     ToastModule,
     Card,
-    PhosphorIconComponent,
   ],
   providers: [MessageService],
   template: `
@@ -40,6 +38,7 @@ import { AdoptionRequirementsStore } from '../stores/adoption-requirements.store
         <h2>Gestión de Requisitos de Adopción</h2>
         <p-button
           label="Nuevo Requisito"
+          icon="pi pi-plus"
           (onClick)="openNewRequirementDialog()"
           [style]="{
             background: '#fbbf24',
@@ -47,11 +46,7 @@ import { AdoptionRequirementsStore } from '../stores/adoption-requirements.store
             color: '#000000',
             fontWeight: 'bold'
           }"
-        >
-          <ng-template pTemplate="icon">
-            <ph-icon name="plus" [size]="18" color="currentColor" weight="regular"></ph-icon>
-          </ng-template>
-        </p-button>
+        />
       </div>
 
       <p-card>
@@ -104,42 +99,28 @@ import { AdoptionRequirementsStore } from '../stores/adoption-requirements.store
               <td>
                 <div class="action-buttons">
                   <p-button
+                    icon="pi pi-pencil"
                     [text]="true"
                     severity="info"
                     (onClick)="openEditDialog(requirement)"
                     [style]="{ marginRight: '0.5rem' }"
                     title="Editar"
-                  >
-                    <ng-template pTemplate="icon">
-                      <ph-icon name="pencil" [size]="18" color="currentColor" weight="regular"></ph-icon>
-                    </ng-template>
-                  </p-button>
+                  />
                   <p-button
+                    [icon]="requirement.is_active ? 'pi pi-eye-slash' : 'pi pi-eye'"
                     [text]="true"
                     [severity]="requirement.is_active ? 'warn' : 'success'"
                     (onClick)="toggleActive(requirement)"
                     [style]="{ marginRight: '0.5rem' }"
                     [title]="requirement.is_active ? 'Desactivar' : 'Activar'"
-                  >
-                    <ng-template pTemplate="icon">
-                      <ph-icon 
-                        [name]="requirement.is_active ? 'eye-slash' : 'eye'" 
-                        [size]="18" 
-                        color="currentColor" 
-                        weight="regular"
-                      ></ph-icon>
-                    </ng-template>
-                  </p-button>
+                  />
                   <p-button
+                    icon="pi pi-trash"
                     [text]="true"
                     severity="danger"
                     (onClick)="deleteRequirement(requirement)"
                     title="Eliminar"
-                  >
-                    <ng-template pTemplate="icon">
-                      <ph-icon name="trash" [size]="18" color="currentColor" weight="regular"></ph-icon>
-                    </ng-template>
-                  </p-button>
+                  />
                 </div>
               </td>
             </tr>

@@ -1,0 +1,35 @@
+[33mcommit fa66d531321843ae33bee0b20d0b21f1b3aa666f[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32madopciones[m[33m, [m[1;31morigin/adopciones[m[33m)[m
+Author: Diego Arauz <diegof.arauz@itse.ac.pa>
+Date:   Tue Dec 9 17:05:12 2025 -0500
+
+    feat: agregar campo personalidad, mapa de ubicación y contador de interés funcional
+    
+    - Agregado campo personalidad con selección múltiple en formulario de adopción
+    - Agregado campo personalidad en formulario de crear/editar mascota
+    - Agregada opción para marcar mascota como adoptada en editar
+    - Implementado contador real de personas interesadas basado en solicitudes
+    - Registro automático de interés al hacer clic en 'PREGUNTAR POR MI' (solo usuarios autenticados)
+    - Agregado mapa de OpenStreetMap en tarjetas de mascotas mostrando ubicación
+    - Mejorado tooltip de tamaño con información detallada
+    - Mostrar rasgos de personalidad reales en tarjetas de mascotas
+    - Limpieza de console.log innecesarios
+    - Actualizado schema SQL con campo personality
+    - Auto-marcar mascota como no disponible al completar adopción
+
+ src/app/adoptions/admin-panel.component.ts         | 107 [32m++++[m[31m-[m
+ src/app/adoptions/adoption-events.component.ts     |  75 [32m+++[m[31m-[m
+ src/app/adoptions/adoption-families.component.ts   | 123 [32m++++[m[31m--[m
+ src/app/adoptions/adoption-faq.component.ts        | 151 [32m+++++[m[31m--[m
+ src/app/adoptions/adoption-form.component.ts       |  29 [32m++[m
+ .../adoptions/adoption-requirements.component.ts   |  79 [32m++[m[31m--[m
+ src/app/adoptions/adoptions-home.component.ts      |  73 [32m++[m[31m--[m
+ src/app/adoptions/pets-list.component.ts           | 472 [32m++++++++++++++++[m[31m-----[m
+ src/app/app.component.ts                           |  25 [32m+[m[31m-[m
+ src/app/app.config.ts                              |  30 [32m+[m[31m-[m
+ src/app/auth/auth-wrapper.service.ts               |  23 [31m-[m
+ src/app/models.ts                                  |   2 [32m+[m
+ src/app/stores/adoption-applications.store.ts      |  38 [32m+[m[31m-[m
+ src/app/stores/entities.feature.ts                 |   1 [31m-[m
+ supabase/adoptions-schema.sql                      |   2 [32m+[m
+ supabase/migration-add-personality.sql             |  17 [32m+[m
+ 16 files changed, 899 insertions(+), 348 deletions(-)

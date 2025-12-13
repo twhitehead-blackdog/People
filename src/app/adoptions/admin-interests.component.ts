@@ -1,5 +1,4 @@
 import { CommonModule } from '@angular/common';
-import { PhosphorIconComponent } from '../shared/phosphor-icon.component';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
@@ -31,7 +30,6 @@ import { PetsStore } from '../stores/pets.store';
     TagModule,
     ToastModule,
     Card,
-    PhosphorIconComponent,
   ],
   providers: [MessageService],
   template: `
@@ -140,42 +138,28 @@ import { PetsStore } from '../stores/pets.store';
               <td>
                 <div class="action-buttons">
                   <p-button
+                    icon="pi pi-pencil"
                     [text]="true"
                     severity="info"
                     (onClick)="openEditDialog(interest)"
                     [style]="{ marginRight: '0.5rem' }"
                     title="Editar"
-                  >
-                    <ng-template pTemplate="icon">
-                      <ph-icon name="pencil" [size]="18" color="currentColor" weight="regular"></ph-icon>
-                    </ng-template>
-                  </p-button>
+                  />
                   <p-button
+                    [icon]="interest.status === 'active' ? 'pi pi-check' : 'pi pi-refresh'"
                     [text]="true"
                     [severity]="interest.status === 'active' ? 'success' : 'secondary'"
                     (onClick)="markAsContacted(interest)"
                     [style]="{ marginRight: '0.5rem' }"
                     [title]="interest.status === 'active' ? 'Marcar como Contactado' : 'Marcar como Activo'"
-                  >
-                    <ng-template pTemplate="icon">
-                      <ph-icon 
-                        [name]="interest.status === 'active' ? 'check' : 'refresh'" 
-                        [size]="18" 
-                        color="currentColor" 
-                        weight="regular"
-                      ></ph-icon>
-                    </ng-template>
-                  </p-button>
+                  />
                   <p-button
+                    icon="pi pi-trash"
                     [text]="true"
                     severity="danger"
                     (onClick)="deleteInterest(interest)"
                     title="Eliminar"
-                  >
-                    <ng-template pTemplate="icon">
-                      <ph-icon name="trash" [size]="18" color="currentColor" weight="regular"></ph-icon>
-                    </ng-template>
-                  </p-button>
+                  />
                 </div>
               </td>
             </tr>

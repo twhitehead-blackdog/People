@@ -1,5 +1,4 @@
 import { CommonModule } from '@angular/common';
-import { PhosphorIconComponent } from '../shared/phosphor-icon.component';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
@@ -30,7 +29,6 @@ import { AdminUsersStore } from '../stores/admin-users.store';
     ToastModule,
     Card,
     CheckboxModule,
-    PhosphorIconComponent,
   ],
   providers: [MessageService],
   template: `
@@ -40,6 +38,7 @@ import { AdminUsersStore } from '../stores/admin-users.store';
         <h2>Gestión de Usuarios Administradores</h2>
         <p-button
           label="Nuevo Usuario"
+          icon="pi pi-plus"
           (onClick)="openNewUserDialog()"
           [style]="{
             background: '#fbbf24',
@@ -47,11 +46,7 @@ import { AdminUsersStore } from '../stores/admin-users.store';
             color: '#000000',
             fontWeight: 'bold'
           }"
-        >
-          <ng-template pTemplate="icon">
-            <ph-icon name="plus" [size]="18" color="currentColor" weight="regular"></ph-icon>
-          </ng-template>
-        </p-button>
+        />
       </div>
 
       <p-card>
@@ -124,42 +119,28 @@ import { AdminUsersStore } from '../stores/admin-users.store';
               <td>
                 <div class="action-buttons">
                   <p-button
+                    icon="pi pi-pencil"
                     [text]="true"
                     severity="info"
                     (onClick)="openEditDialog(user)"
                     [style]="{ marginRight: '0.5rem' }"
                     title="Editar"
-                  >
-                    <ng-template pTemplate="icon">
-                      <ph-icon name="pencil" [size]="18" color="currentColor" weight="regular"></ph-icon>
-                    </ng-template>
-                  </p-button>
+                  />
                   <p-button
+                    [icon]="user.is_active ? 'pi pi-eye-slash' : 'pi pi-eye'"
                     [text]="true"
                     [severity]="user.is_active ? 'warn' : 'success'"
                     (onClick)="toggleActive(user)"
                     [style]="{ marginRight: '0.5rem' }"
                     [title]="user.is_active ? 'Desactivar' : 'Activar'"
-                  >
-                    <ng-template pTemplate="icon">
-                      <ph-icon 
-                        [name]="user.is_active ? 'eye-slash' : 'eye'" 
-                        [size]="18" 
-                        color="currentColor" 
-                        weight="regular"
-                      ></ph-icon>
-                    </ng-template>
-                  </p-button>
+                  />
                   <p-button
+                    icon="pi pi-trash"
                     [text]="true"
                     severity="danger"
                     (onClick)="deleteUser(user)"
                     title="Eliminar"
-                  >
-                    <ng-template pTemplate="icon">
-                      <ph-icon name="trash" [size]="18" color="currentColor" weight="regular"></ph-icon>
-                    </ng-template>
-                  </p-button>
+                  />
                 </div>
               </td>
             </tr>

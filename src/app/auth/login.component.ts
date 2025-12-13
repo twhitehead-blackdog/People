@@ -1,5 +1,4 @@
 import { CommonModule } from '@angular/common';
-import { PhosphorIconComponent } from '../shared/phosphor-icon.component';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
@@ -12,7 +11,7 @@ import { filter, take } from 'rxjs/operators';
 @Component({
   selector: 'pt-login',
   standalone: true,
-  imports: [CommonModule, RouterLink, Button, ToastModule, PhosphorIconComponent],
+  imports: [CommonModule, RouterLink, Button, ToastModule],
   providers: [MessageService],
   template: `
     <p-toast />
@@ -23,9 +22,7 @@ import { filter, take } from 'rxjs/operators';
         (click)="goHome()"
         [disabled]="isLoading()"
       >
-        <span class="back-icon">
-          <ph-icon name="arrow-left" [size]="20" color="currentColor" weight="regular"></ph-icon>
-        </span>
+        <span class="back-icon">←</span>
         <span>Regresar</span>
       </button>
       <div class="login-card">
@@ -66,6 +63,7 @@ import { filter, take } from 'rxjs/operators';
           <p-button
             type="button"
             label="Continuar con Google"
+            icon="pi pi-google"
             (onClick)="signIn()"
             [loading]="isLoading()"
             [disabled]="isLoading()"
@@ -79,11 +77,7 @@ import { filter, take } from 'rxjs/operators';
               padding: '0.75rem',
               marginTop: '0.5rem'
             }"
-          >
-            <ng-template pTemplate="icon">
-              <ph-icon name="google" [size]="18" color="currentColor" weight="regular"></ph-icon>
-            </ng-template>
-          </p-button>
+          />
 
           <div class="register-link">
             <p>

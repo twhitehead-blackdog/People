@@ -10,8 +10,8 @@ import { ToastModule } from 'primeng/toast';
 import { Card } from 'primeng/card';
 import { Avatar } from 'primeng/avatar';
 import { AuthWrapperService } from './auth-wrapper.service';
-import { User } from '../models';
-import { PhosphorIconComponent } from '../shared/phosphor-icon.component';
+import { User, UserPet } from '../models';
+import { UserPetsStore } from '../stores/user-pets.store';
 
 @Component({
   selector: 'pt-profile',
@@ -26,7 +26,6 @@ import { PhosphorIconComponent } from '../shared/phosphor-icon.component';
     Card,
     Avatar,
     AsyncPipe,
-    PhosphorIconComponent,
   ],
   providers: [MessageService],
   template: `
@@ -36,6 +35,7 @@ import { PhosphorIconComponent } from '../shared/phosphor-icon.component';
         <h1 class="profile-title">Mi Perfil</h1>
         <p-button
           label="Cerrar Sesión"
+          icon="pi pi-sign-out"
           severity="secondary"
           (onClick)="logout()"
           [style]="{
@@ -43,11 +43,7 @@ import { PhosphorIconComponent } from '../shared/phosphor-icon.component';
             border: 'none',
             color: '#ffffff'
           }"
-        >
-          <ng-template pTemplate="icon">
-            <ph-icon name="sign-out" [size]="18" color="currentColor" weight="regular"></ph-icon>
-          </ng-template>
-        </p-button>
+        />
       </div>
 
       <div class="profile-content">
@@ -195,6 +191,94 @@ import { PhosphorIconComponent } from '../shared/phosphor-icon.component';
               <span class="stat-label">Pendientes</span>
               <span class="stat-value stat-pending">{{ adoptionStats().pending }}</span>
             </div>
+          </div>
+        </p-card>
+
+        <p-card class="profile-pets-card">
+          <ng-template pTemplate="header">
+            <div class="pets-header">
+              <h3 class="form-title">Mis Mascotas</h3>
+              <p-button
+                label="Añadir Mascota"
+                icon="pi pi-plus"
+                (onClick)="goToAddPet()"
+                [style]="{
+                  background: '#fbbf24',
+                  border: 'none',
+                  color: '#000000',
+                  fontWeight: 'bold'
+                }"
+              />
+            </div>
+          </ng-template>
+          <div class="pets-content">
+            @if (myPets().length === 0) {
+              <div class="empty-pets">
+                <span class="empty-icon">🐾</span>
+                <p class="empty-text">No tienes mascotas registradas aún</p>
+                <p-button
+                  label="Añadir mi Primera Mascota"
+                  icon="pi pi-plus"
+                  (onClick)="goToAddPet()"
+                  [style]="{
+                    background: '#fbbf24',
+                    border: 'none',
+                    color: '#000000',
+                    fontWeight: 'bold',
+                    marginTop: '1rem'
+                  }"
+                />
+              </div>
+            } @else {
+              <div class="pets-grid">
+                @for (pet of myPets(); track pet.id) {
+                  <div class="pet-card">
+                    <div class="pet-image">
+                      @if (pet.photos && pet.photos.length > 0) {
+                        <img [src]="pet.photos[0]" [alt]="pet.name" />
+                      } @else {
+                        <div class="pet-placeholder">
+                          <span class="placeholder-icon">{{ pet.species === 'dog' ? '🐕' : pet.species === 'cat' ? '🐱' : '🐾' }}</span>
+                        </div>
+                      }
+                    </div>
+                    <div class="pet-info">
+                      <h4 class="pet-name">{{ pet.name }}</h4>
+                      <p class="pet-details">
+                        {{ getSpeciesLabel(pet.species) }} • {{ pet.gender === 'M' ? 'Macho' : 'Hembra' }} • {{ getSizeLabel(pet.size) }}
+                      </p>
+                      @if (pet.breed_type === 'pure' && pet.breed_primary) {
+                        <p class="pet-breed">⭐ {{ pet.breed_primary }}</p>
+                      } @else if (pet.breed_type === 'mixed' && pet.breed_primary && pet.breed_secondary) {
+                        <p class="pet-breed">🔀 {{ pet.breed_primary }} / {{ pet.breed_secondary }}</p>
+                      } @else {
+                        <p class="pet-breed">🐾 Sin raza específica</p>
+                      }
+                    </div>
+                    <div class="pet-actions">
+                      <p-button
+                        label="Editar"
+                        icon="pi pi-pencil"
+                        severity="secondary"
+                        [text]="true"
+                        (onClick)="editPet(pet.id)"
+                      />
+                      <p-button
+                        label="Publicar en Busco Pareja"
+                        icon="pi pi-heart"
+                        (onClick)="publishPetMatch(pet.id)"
+                        [style]="{
+                          background: '#fbbf24',
+                          border: 'none',
+                          color: '#000000',
+                          fontWeight: 'bold'
+                        }"
+                      />
+                    </div>
+                  </div>
+                }
+              </div>
+            }
           </div>
         </p-card>
       </div>
@@ -392,20 +476,144 @@ import { PhosphorIconComponent } from '../shared/phosphor-icon.component';
           grid-template-columns: 1fr;
         }
 
-        .form-actions {
-          flex-direction: column;
-        }
+      .form-actions {
+        flex-direction: column;
       }
-    `,
+    }
+
+    .profile-pets-card {
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    .pets-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .pets-content {
+      padding: 1.5rem;
+    }
+
+    .empty-pets {
+      text-align: center;
+      padding: 3rem 1rem;
+    }
+
+    .empty-icon {
+      font-size: 4rem;
+      display: block;
+      margin-bottom: 1rem;
+    }
+
+    .empty-text {
+      font-size: 1.125rem;
+      color: #6b7280;
+      margin: 0 0 1rem 0;
+    }
+
+    .pets-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .pet-card {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 0.75rem;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .pet-card:hover {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      transform: translateY(-2px);
+    }
+
+    .pet-image {
+      width: 100%;
+      height: 200px;
+      overflow: hidden;
+      background: #f9fafb;
+    }
+
+    .pet-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .pet-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #fbbf24 0%, #fcd34d 100%);
+    }
+
+    .placeholder-icon {
+      font-size: 4rem;
+    }
+
+    .pet-info {
+      padding: 1rem;
+    }
+
+    .pet-name {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #000000;
+      margin: 0 0 0.5rem 0;
+    }
+
+    .pet-details {
+      font-size: 0.875rem;
+      color: #6b7280;
+      margin: 0 0 0.5rem 0;
+    }
+
+    .pet-breed {
+      font-size: 0.875rem;
+      color: #374151;
+      margin: 0;
+      font-weight: 500;
+    }
+
+    .pet-actions {
+      display: flex;
+      gap: 0.5rem;
+      padding: 1rem;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    @media (max-width: 768px) {
+      .pets-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+      }
+
+      .pets-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  `,
   ],
 })
 export class ProfileComponent implements OnInit {
   private auth = inject(AuthWrapperService);
   private router = inject(Router);
   private messageService = inject(MessageService);
+  private userPetsStore = inject(UserPetsStore);
 
   user$ = this.auth.user$;
   isLoading = signal(false);
+  myPets = this.userPetsStore.myPets;;
   
   formData: Partial<User> = {
     full_name: '',
@@ -455,6 +663,9 @@ export class ProfileComponent implements OnInit {
         }
       });
     });
+
+    // Cargar mascotas del usuario
+    this.userPetsStore.fetchItems();
 
     // TODO: Cargar estadísticas de adopciones del usuario
     // Por ahora valores de ejemplo
@@ -507,6 +718,38 @@ export class ProfileComponent implements OnInit {
       logoutParams: {
         returnTo: returnTo,
       },
+    });
+  }
+
+  goToAddPet(): void {
+    this.router.navigate(['/adoptions/profile/mascotas/nueva']);
+  }
+
+  getSpeciesLabel(species: string): string {
+    const labels: Record<string, string> = {
+      dog: 'Perro',
+      cat: 'Gato',
+      other: 'Otro',
+    };
+    return labels[species] || species;
+  }
+
+  getSizeLabel(size: string): string {
+    const labels: Record<string, string> = {
+      small: 'Pequeño',
+      medium: 'Mediano',
+      large: 'Grande',
+    };
+    return labels[size] || size;
+  }
+
+  editPet(petId: string): void {
+    this.router.navigate(['/adoptions/profile/mascotas', petId, 'editar']);
+  }
+
+  publishPetMatch(petId: string): void {
+    this.router.navigate(['/adoptions/busco-pareja/publicar'], {
+      queryParams: { petId },
     });
   }
 }

@@ -1,5 +1,4 @@
 import { CommonModule } from '@angular/common';
-import { PhosphorIconComponent } from '../shared/phosphor-icon.component';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
@@ -29,7 +28,6 @@ import { PetsStore } from '../stores/pets.store';
     TagModule,
     ToastModule,
     Card,
-    PhosphorIconComponent,
   ],
   providers: [MessageService],
   template: `
@@ -39,6 +37,7 @@ import { PetsStore } from '../stores/pets.store';
         <h2>Gestión de Fundaciones</h2>
         <p-button
           label="Nueva Fundación"
+          icon="pi pi-plus"
           (onClick)="openNewFoundationDialog()"
           [style]="{
             background: '#fbbf24',
@@ -46,11 +45,7 @@ import { PetsStore } from '../stores/pets.store';
             color: '#000000',
             fontWeight: 'bold'
           }"
-        >
-          <ng-template pTemplate="icon">
-            <ph-icon name="plus" [size]="18" color="currentColor" weight="regular"></ph-icon>
-          </ng-template>
-        </p-button>
+        />
       </div>
 
       <p-card>
@@ -101,42 +96,28 @@ import { PetsStore } from '../stores/pets.store';
               <td>
                 <div class="action-buttons">
                   <p-button
+                    icon="pi pi-pencil"
                     [text]="true"
                     severity="info"
                     (onClick)="openEditDialog(foundation)"
                     [style]="{ marginRight: '0.5rem' }"
                     title="Editar"
-                  >
-                    <ng-template pTemplate="icon">
-                      <ph-icon name="pencil" [size]="18" color="currentColor" weight="regular"></ph-icon>
-                    </ng-template>
-                  </p-button>
+                  />
                   <p-button
+                    [icon]="foundation.is_active ? 'pi pi-eye-slash' : 'pi pi-eye'"
                     [text]="true"
                     [severity]="foundation.is_active ? 'warn' : 'success'"
                     (onClick)="toggleActive(foundation)"
                     [style]="{ marginRight: '0.5rem' }"
                     [title]="foundation.is_active ? 'Desactivar' : 'Activar'"
-                  >
-                    <ng-template pTemplate="icon">
-                      <ph-icon 
-                        [name]="foundation.is_active ? 'eye-slash' : 'eye'" 
-                        [size]="18" 
-                        color="currentColor" 
-                        weight="regular"
-                      ></ph-icon>
-                    </ng-template>
-                  </p-button>
+                  />
                   <p-button
+                    icon="pi pi-trash"
                     [text]="true"
                     severity="danger"
                     (onClick)="deleteFoundation(foundation)"
                     title="Eliminar"
-                  >
-                    <ng-template pTemplate="icon">
-                      <ph-icon name="trash" [size]="18" color="currentColor" weight="regular"></ph-icon>
-                    </ng-template>
-                  </p-button>
+                  />
                 </div>
               </td>
             </tr>
