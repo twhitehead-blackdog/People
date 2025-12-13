@@ -1,6 +1,7 @@
 import { AsyncPipe, CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { NavigationEnd, Router } from '@angular/router';
+import { filter } from 'rxjs/operators';
 import { AuthWrapperService } from '../auth/auth-wrapper.service';
 import { DemoModeService } from './demo-mode.service';
 
@@ -19,14 +20,44 @@ import { DemoModeService } from './demo-mode.service';
 
         <div class="header-center">
           <nav class="header-nav">
-            <a href="#" class="nav-link" [class.active]="true">
+            <a
+              href="https://www.blackdogpanama.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="nav-link"
+            >
               Tienda
               <span class="nav-underline"></span>
             </a>
-            <a href="#" class="nav-link">
-              Servicios
-              <span class="nav-underline"></span>
-            </a>
+            <div
+              class="nav-dropdown"
+              (mouseenter)="showServicesMenu.set(true)"
+              (mouseleave)="showServicesMenu.set(false)"
+            >
+              <a href="#" class="nav-link" [class.active]="isServicesActive()">
+                Servicios
+                <span class="nav-underline"></span>
+                <span class="dropdown-arrow">▼</span>
+              </a>
+              @if (showServicesMenu()) {
+              <div class="dropdown-menu">
+                <a
+                  href="/adoptions"
+                  class="dropdown-item"
+                  (click)="navigateToAdoptions($event)"
+                >
+                  🐾 Adopción
+                </a>
+                <a
+                  href="/adoptions/busco-pareja"
+                  class="dropdown-item"
+                  (click)="navigateToBuscoPareja($event)"
+                >
+                  💕 Busco Pareja
+                </a>
+              </div>
+              }
+            </div>
           </nav>
         </div>
 
@@ -128,7 +159,9 @@ import { DemoModeService } from './demo-mode.service';
       }
 
       .logo-icon {
-        font-size: 1.5rem;
+        height: 80px;
+        width: auto;
+        object-fit: contain;
         display: block;
       }
 
@@ -191,6 +224,83 @@ import { DemoModeService } from './demo-mode.service';
       .adoptions-container.dark .nav-link:hover,
       :host-context(.adoptions-dark) .nav-link:hover {
         color: #fdb022;
+      }
+
+      .nav-dropdown {
+        position: relative;
+      }
+
+      .dropdown-arrow {
+        font-size: 0.75rem;
+        margin-left: 0.25rem;
+        transition: transform 0.3s ease;
+      }
+
+      .nav-dropdown:hover .dropdown-arrow {
+        transform: rotate(180deg);
+      }
+
+      .dropdown-menu {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        margin-top: 0.5rem;
+        background: #ffffff;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        min-width: 200px;
+        z-index: 1000;
+        overflow: hidden;
+        animation: slideDown 0.2s ease;
+      }
+
+      @keyframes slideDown {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .dropdown-item {
+        display: block;
+        padding: 0.75rem 1rem;
+        color: #000000;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 0.9375rem;
+        transition: all 0.2s ease;
+        border-bottom: 1px solid #f3f4f6;
+      }
+
+      .dropdown-item:last-child {
+        border-bottom: none;
+      }
+
+      .dropdown-item:hover {
+        background: #fbbf24;
+        color: #000000;
+      }
+
+      .adoptions-container.dark .dropdown-menu,
+      :host-context(.adoptions-dark) .dropdown-menu {
+        background: #1f2937;
+        border: 1px solid #374151;
+      }
+
+      .adoptions-container.dark .dropdown-item,
+      :host-context(.adoptions-dark) .dropdown-item {
+        color: #ffffff;
+        border-bottom-color: #374151;
+      }
+
+      .adoptions-container.dark .dropdown-item:hover,
+      :host-context(.adoptions-dark) .dropdown-item:hover {
+        background: #fbbf24;
+        color: #000000;
       }
 
       .header-right {
@@ -450,6 +560,30 @@ export class AdoptionsHeaderComponent {
   public isAuthenticated$ = this.auth.isAuthenticated$;
   public user$ = this.auth.user$;
   public showServicesMenu = signal(false);
+  public currentUrl = signal<string>('');
+
+  constructor() {
+    // Detectar cambios en la ruta
+    this.router.events
+      .pipe(filter((event) => event instanceof NavigationEnd))
+      .subscribe((event) => {
+        if (event instanceof NavigationEnd) {
+          this.currentUrl.set(event.urlAfterRedirects);
+        }
+      });
+    // Establecer la URL inicial
+    this.currentUrl.set(this.router.url);
+  }
+
+  public isServicesActive = computed(() => {
+    const url = this.currentUrl();
+    return (
+      this.showServicesMenu() ||
+      url === '/adoptions' ||
+      url.startsWith('/adoptions/busco-pareja') ||
+      url.startsWith('/adoptions/profile')
+    );
+  });
 
   public isAdmin = computed(() => this.auth.isAdmin());
 
@@ -507,6 +641,18 @@ export class AdoptionsHeaderComponent {
   }
 
   public goToBuscoPareja(): void {
+    this.showServicesMenu.set(false);
+    this.router.navigate(['/adoptions/busco-pareja']);
+  }
+
+  public navigateToAdoptions(event: Event): void {
+    event.preventDefault();
+    this.showServicesMenu.set(false);
+    this.router.navigate(['/adoptions']);
+  }
+
+  public navigateToBuscoPareja(event: Event): void {
+    event.preventDefault();
     this.showServicesMenu.set(false);
     this.router.navigate(['/adoptions/busco-pareja']);
   }
