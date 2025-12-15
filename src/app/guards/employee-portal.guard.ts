@@ -54,7 +54,7 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
   const orgService = inject(OrganizationService);
 
   // Lista de correos con acceso completo (super admins)
-  const superAdminEmails = ['mercadeo@blackdogpanama.com'];
+  const superAdminEmails = ['mercadeo@blackdogpanama.com', 'soporte2@blackdogpanama.com'];
   
   // Lista de cargos que solo tienen acceso al portal (no al reloj de marcaciones)
   const portalOnlyPositions = [

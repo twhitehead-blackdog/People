@@ -215,6 +215,12 @@ export const DASHBOARD_ROUTES: Routes = [
         loadComponent: () =>
           import('./employee-portal.component').then((x) => x.EmployeePortalComponent),
       },
+      {
+        path: 'branch-manager',
+        loadComponent: () =>
+          import('./branch-manager.component').then((x) => x.BranchManagerComponent),
+        canActivate: [employeePortalGuard],
+      },
     ],
   },
 ];

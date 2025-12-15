@@ -86,7 +86,7 @@ import { PayrollEmployeesFormComponent } from './payroll-employees-form.componen
                 pInputText
                 type="text"
                 (input)="onFilterInput($event, dt2)"
-                placeholder="Buscar"
+                placeholder="Buscar por nombre"
               />
             </p-iconfield>
           </div>

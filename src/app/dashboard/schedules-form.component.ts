@@ -214,30 +214,28 @@ export class SchedulesFormComponent implements OnInit {
     value,
   }));
 
-  // Colores recomendados con nombres descriptivos
+  // Colores recomendados con nombres descriptivos (20 colores variados)
   public recommendedColors = [
-    { key: 'slate', name: 'Gris pizarra' },
-    { key: 'yellow', name: 'Amarillo' },
+    { key: 'blue', name: 'Azul' },
+    { key: 'blue-400', name: 'Azul medio' },
+    { key: 'blue-500', name: 'Azul intenso' },
     { key: 'green', name: 'Verde' },
-    { key: 'sky', name: 'Cielo' },
-    { key: 'indigo', name: 'Índigo' },
+    { key: 'green-400', name: 'Verde medio' },
+    { key: 'green-500', name: 'Verde intenso' },
+    { key: 'yellow', name: 'Amarillo' },
+    { key: 'yellow-400', name: 'Amarillo medio' },
     { key: 'orange', name: 'Naranja' },
-    { key: 'purple', name: 'Morado' },
+    { key: 'orange-400', name: 'Naranja medio' },
     { key: 'red', name: 'Rojo' },
+    { key: 'red-400', name: 'Rojo medio' },
+    { key: 'purple', name: 'Morado' },
+    { key: 'purple-400', name: 'Morado medio' },
     { key: 'pink', name: 'Rosa' },
+    { key: 'pink-400', name: 'Rosa medio' },
     { key: 'teal', name: 'Verde azulado' },
     { key: 'cyan', name: 'Cian' },
-    { key: 'emerald', name: 'Esmeralda' },
-    { key: 'lime', name: 'Lima' },
+    { key: 'indigo', name: 'Índigo' },
     { key: 'amber', name: 'Ámbar' },
-    { key: 'rose', name: 'Rosa intenso' },
-    { key: 'violet', name: 'Violeta' },
-    { key: 'fuchsia', name: 'Fucsia' },
-    { key: 'blue', name: 'Azul' },
-    { key: 'stone', name: 'Piedra' },
-    { key: 'neutral', name: 'Neutral' },
-    { key: 'zinc', name: 'Zinc' },
-    { key: 'gray', name: 'Gris' },
   ];
 
   ngOnInit() {

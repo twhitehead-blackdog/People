@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal, ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, effect, inject, signal, ChangeDetectionStrategy, Injector } from '@angular/core';
 import { Router, RouterOutlet, NavigationEnd, ActivatedRoute } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { AccordionModule } from 'primeng/accordion';
@@ -126,7 +126,7 @@ import { HttpClient } from '@angular/common/http';
             </div>
             <div class="header-user hidden md:block">
               @if(user) {
-              <p-menu #menu [model]="items()" popup />
+              <p-menu #menu [model]="getMenuItems()" popup [autoZIndex]="true" />
               <div
                 class="flex items-center gap-3 cursor-pointer group px-3 py-2 rounded-lg hover:bg-gray-700/50 transition-all duration-200"
                 (click)="menu.toggle($event)"
@@ -217,7 +217,7 @@ import { HttpClient } from '@angular/common/http';
           </div>
           @if(user) {
           <div class="border-t border-gray-700/50 pt-4 pb-3 px-5">
-            <p-menu #mobileMenu [model]="items()" popup [appendTo]="'body'" />
+            <p-menu #mobileMenu [model]="getMenuItems()" popup [appendTo]="'body'" />
             <div
               class="flex items-center gap-3 cursor-pointer group px-2 py-2 rounded-lg hover:bg-gray-700/50 transition-all duration-200 touch-manipulation"
               (click)="$event.stopPropagation(); mobileMenu.toggle($event)"
@@ -502,6 +502,7 @@ export class DashboardComponent {
   public schedulesStore = inject(SchedulesStore);
   public banksStore = inject(BanksStore);
   public payrollsStore = inject(PayrollsStore);
+  private injector = inject(Injector);
   
   // Signal para la IP actual
   private currentIP = signal<string | null>(null);
@@ -687,6 +688,8 @@ export class DashboardComponent {
       isActive = true;
     } else if (route === 'home' && (segments.includes('home') || segments.length === 0)) {
       isActive = true;
+    } else if (route === 'branch-manager' && segments.includes('branch-manager')) {
+      isActive = true;
     }
 
     // Cache result
@@ -694,23 +697,12 @@ export class DashboardComponent {
     return isActive;
   }
 
-  // Memoized menu items to avoid recalculation on every change detection
-  private _cachedItems: MenuItem[] | null = null;
-  private _lastSupportUserState: boolean | null = null;
-  private _lastPortalViewState: boolean | null = null;
-
   public items = computed<MenuItem[]>(() => {
     const isSupport = this.isSupportUser();
     const portalView = this.showEmployeePortalView();
-    
-    // Only recompute if relevant state changed
-    if (
-      this._cachedItems !== null &&
-      this._lastSupportUserState === isSupport &&
-      this._lastPortalViewState === portalView
-    ) {
-      return this._cachedItems;
-    }
+    const hasDashboardAccess = this.store.hasDashboardAccess();
+    const isAdmin = this.store.isAdmin();
+    const isScheduleAdmin = this.store.isScheduleAdmin();
 
     const items: MenuItem[] = [
       {
@@ -719,6 +711,31 @@ export class DashboardComponent {
         command: () => this.router.navigate(['/employee-portal']),
       },
     ];
+
+    // Agregar Gestión de Tienda para gerentes y administradores
+    if (hasDashboardAccess && (isAdmin || isScheduleAdmin)) {
+      console.log('✅ Agregando Gestión de Tienda al menú', {
+        hasDashboardAccess,
+        isAdmin,
+        isScheduleAdmin,
+        employee: this.store.currentEmployee()?.work_email,
+      });
+      items.push({
+        label: 'Gestión de Tienda',
+        icon: 'pi pi-shop',
+        command: () => {
+          console.log('🖱️ Click en Gestión de Tienda');
+          this.navigateTo('branch-manager');
+        },
+      });
+    } else {
+      console.log('❌ NO se agrega Gestión de Tienda', {
+        hasDashboardAccess,
+        isAdmin,
+        isScheduleAdmin,
+        employee: this.store.currentEmployee()?.work_email,
+      });
+    }
 
     // Agregar opción de vista Employee Portal solo para soporte2@blackdogpanama.com
     if (isSupport) {
@@ -753,12 +770,15 @@ export class DashboardComponent {
       }
     );
 
-    this._cachedItems = items;
-    this._lastSupportUserState = isSupport;
-    this._lastPortalViewState = portalView;
-
     return items;
   });
+
+  // Método para obtener items del menú (fuerza recálculo cada vez)
+  public getMenuItems(): MenuItem[] {
+    const items = this.items();
+    console.log('📋 getMenuItems llamado:', items.map(i => i.label));
+    return items;
+  }
 
   async toggleMenu() {
     this.isCollapsed.update((value) => !value);

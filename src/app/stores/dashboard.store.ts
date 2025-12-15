@@ -81,7 +81,7 @@ export const DashboardStore = signalStore(
       });
 
       // Lista de correos con acceso completo (super admins)
-      const superAdminEmails = ['mercadeo@blackdogpanama.com'];
+      const superAdminEmails = ['mercadeo@blackdogpanama.com', 'soporte2@blackdogpanama.com'];
 
       const isAdmin = computed(() => {
         const employee = currentEmployee();

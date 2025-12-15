@@ -29,6 +29,7 @@ import { InputText } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
 import { Skeleton } from 'primeng/skeleton';
 import { TabsModule } from 'primeng/tabs';
+import { FormsModule } from '@angular/forms';
 import QRCode from 'qrcode';
 import { debounceTime, firstValueFrom } from 'rxjs';
 import { markGroupDirty } from 'src/app/services/util.service';
@@ -293,13 +294,101 @@ import {
                 </h3>
                 <div class="flex flex-col md:grid grid-cols-2 md:gap-4">
                   <div class="input-container">
-                    <label for="phone_number">Número de Teléfono</label>
+                    <label for="phone_number">Número de Teléfono Personal</label>
+                    <div class="flex gap-2">
+                      <p-select
+                        [options]="countryCodes"
+                        optionLabel="label"
+                        optionValue="value"
+                        formControlName="phone_country_code"
+                        [style]="{ width: '140px', flexShrink: 0 }"
+                        appendTo="body"
+                      />
+                      <input
+                        type="text"
+                        id="phone_number"
+                        pInputText
+                        formControlName="phone_number"
+                        placeholder="1234-5678"
+                        [style]="{ maxWidth: '200px' }"
+                        (blur)="formatPhoneNumber('phone_number')"
+                      />
+                    </div>
+                  </div>
+                  <div class="input-container">
+                    <label for="work_phone_number">Número de Teléfono Laboral</label>
+                    <div class="flex gap-2">
+                      <p-select
+                        [options]="countryCodes"
+                        optionLabel="label"
+                        optionValue="value"
+                        formControlName="work_phone_country_code"
+                        [style]="{ width: '140px', flexShrink: 0 }"
+                        appendTo="body"
+                      />
+                      <input
+                        type="text"
+                        id="work_phone_number"
+                        pInputText
+                        formControlName="work_phone_number"
+                        placeholder="1234-5678"
+                        [style]="{ maxWidth: '200px' }"
+                        (blur)="formatPhoneNumber('work_phone_number')"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Contacto de Emergencia -->
+              <div class="border-b border-neutral-700 pb-4">
+                <h3
+                  class="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+                >
+                  <i class="pi pi-exclamation-triangle text-amber-400"></i>
+                  Contacto de Emergencia
+                </h3>
+                <div class="flex flex-col md:grid grid-cols-3 md:gap-4">
+                  <div class="input-container">
+                    <label for="emergency_contact_name">Nombre del Contacto</label>
                     <input
                       type="text"
-                      id="phone_number"
+                      id="emergency_contact_name"
                       pInputText
-                      formControlName="phone_number"
-                      placeholder="+507 1234-5678"
+                      formControlName="emergency_contact_name"
+                      placeholder="Nombre completo"
+                    />
+                  </div>
+                  <div class="input-container">
+                    <label for="emergency_contact_phone">Número de Teléfono</label>
+                    <div class="flex gap-2">
+                      <p-select
+                        [options]="countryCodes"
+                        optionLabel="label"
+                        optionValue="value"
+                        formControlName="emergency_contact_phone_country_code"
+                        [style]="{ width: '140px', flexShrink: 0 }"
+                        appendTo="body"
+                      />
+                      <input
+                        type="text"
+                        id="emergency_contact_phone"
+                        pInputText
+                        formControlName="emergency_contact_phone"
+                        placeholder="1234-5678"
+                        [style]="{ maxWidth: '200px' }"
+                        (blur)="formatEmergencyContactPhone()"
+                      />
+                    </div>
+                  </div>
+                  <div class="input-container">
+                    <label for="emergency_contact_relationship">Relación</label>
+                    <p-select
+                      inputId="emergency_contact_relationship"
+                      [options]="emergencyContactRelationships"
+                      formControlName="emergency_contact_relationship"
+                      appendTo="body"
+                      placeholder="Seleccione la relación"
                     />
                   </div>
                 </div>
@@ -395,17 +484,6 @@ import {
               </h3>
               <div class="flex flex-col md:grid grid-cols-4 md:gap-4">
                 <div class="input-container">
-                  <label for="employee_number">Número de Empleado</label>
-                  <input
-                    type="text"
-                    id="employee_number"
-                    pInputText
-                    formControlName="employee_number"
-                    placeholder="Ej: BD0001, NZ0001"
-                    [maxlength]="10"
-                  />
-                </div>
-                <div class="input-container">
                   <label for="company">Empresa</label>
                   <p-select
                     [options]="store.companies.entities()"
@@ -482,6 +560,27 @@ import {
                     [showIcon]="true"
                     appendTo="body"
                     placeholder="dd/mm/yyyy"
+                  />
+                </div>
+                <div class="input-container">
+                  <label for="end_date">Fecha de salida</label>
+                  <p-datepicker
+                    inputId="end_date"
+                    formControlName="end_date"
+                    iconDisplay="input"
+                    [showIcon]="true"
+                    appendTo="body"
+                    placeholder="dd/mm/yyyy"
+                  />
+                </div>
+                <div class="input-container">
+                  <label for="total_lunch_exceeded_minutes">Total Excedido de Almuerzo (minutos)</label>
+                  <p-inputNumber
+                    formControlName="total_lunch_exceeded_minutes"
+                    id="total_lunch_exceeded_minutes"
+                    placeholder="Minutos excedidos"
+                    [min]="0"
+                    [showButtons]="true"
                   />
                 </div>
                 @if (!organizationService.isNaz()) {
@@ -596,6 +695,37 @@ export class EmployeeFormComponent implements OnInit {
     { label: 'Femenino', value: 'F' },
   ];
   public accountTypes = ['Ahorros', 'Corriente'];
+  public emergencyContactRelationships = [
+    'Pareja',
+    'Familiar',
+    'Amigo',
+    'Padre',
+    'Madre',
+    'Hermano',
+    'Hermana',
+    'Hijo',
+    'Hija',
+    'Otro',
+  ];
+
+  public countryCodes = [
+    { label: '+507', value: '+507' }, // Panamá (predeterminado)
+    { label: '+1', value: '+1' }, // USA/Canadá
+    { label: '+52', value: '+52' }, // México
+    { label: '+57', value: '+57' }, // Colombia
+    { label: '+51', value: '+51' }, // Perú
+    { label: '+56', value: '+56' }, // Chile
+    { label: '+54', value: '+54' }, // Argentina
+    { label: '+58', value: '+58' }, // Venezuela
+    { label: '+593', value: '+593' }, // Ecuador
+    { label: '+595', value: '+595' }, // Paraguay
+    { label: '+591', value: '+591' }, // Bolivia
+    { label: '+506', value: '+506' }, // Costa Rica
+    { label: '+504', value: '+504' }, // Honduras
+    { label: '+502', value: '+502' }, // Guatemala
+    { label: '+503', value: '+503' }, // El Salvador
+    { label: '+505', value: '+505' }, // Nicaragua
+  ];
 
   public banks = httpResource<Bank[]>(() => {
     const companyId = this.organizationService.getCurrentCompanyId();
@@ -644,11 +774,18 @@ export class EmployeeFormComponent implements OnInit {
     phone_number: new FormControl('', {
       nonNullable: true,
     }),
+    work_phone_number: new FormControl('', { nonNullable: true }),
     address: new FormControl('', { nonNullable: true }),
+    emergency_contact_name: new FormControl('', { nonNullable: true }),
+    emergency_contact_phone: new FormControl('', { nonNullable: true }),
+    emergency_contact_relationship: new FormControl('', { nonNullable: true }),
     birth_date: new FormControl<Date | undefined>(undefined, {
       nonNullable: true,
     }),
     start_date: new FormControl<Date>(new Date(), {
+      nonNullable: true,
+    }),
+    end_date: new FormControl<Date | undefined>(undefined, {
       nonNullable: true,
     }),
     branch_id: new FormControl('', {
@@ -692,7 +829,12 @@ export class EmployeeFormComponent implements OnInit {
       validators: [],
     }),
     use_timelog: new FormControl(false, { nonNullable: true }),
-    employee_number: new FormControl('', { nonNullable: true }),
+    total_lunch_exceeded_minutes: new FormControl<number | undefined>(undefined, {
+      nonNullable: true,
+    }),
+    phone_country_code: new FormControl('+507', { nonNullable: true }),
+    work_phone_country_code: new FormControl('+507', { nonNullable: true }),
+    emergency_contact_phone_country_code: new FormControl('+507', { nonNullable: true }),
   });
 
   private confirmationService = inject(ConfirmationService);
@@ -714,7 +856,7 @@ export class EmployeeFormComponent implements OnInit {
 
     // Construir la query base - incluir todos los campos (week_hours y use_timelog son opcionales)
     const selectQuery =
-      'id,first_name,father_name, middle_name, mother_name, document_id, email, phone_number, address, birth_date, start_date, branch_id, department_id, position_id, gender, uniform_size, is_active, company_id, work_email, monthly_salary, hourly_salary, qr_code, code_uri, bank, account_number, bank_account_type, week_hours, use_timelog, employee_number';
+      'id,first_name,father_name, middle_name, mother_name, document_id, email, phone_number, work_phone_number, address, emergency_contact_name, emergency_contact_phone, emergency_contact_relationship, birth_date, start_date, end_date, branch_id, department_id, position_id, gender, uniform_size, is_active, company_id, work_email, monthly_salary, hourly_salary, qr_code, code_uri, bank, account_number, bank_account_type, week_hours, use_timelog, total_lunch_exceeded_minutes';
 
     const params: any = {
       select: selectQuery,
@@ -825,6 +967,34 @@ export class EmployeeFormComponent implements OnInit {
     this.form
       .get('start_date')
       ?.patchValue(toDate(employee.start_date, { timeZone: 'America/Panama' }));
+    if (employee.end_date) {
+      this.form
+        .get('end_date')
+        ?.patchValue(
+          toDate(employee.end_date, { timeZone: 'America/Panama' })
+        );
+    }
+
+    // Separar código de país del número de teléfono personal
+    if (employee.phone_number) {
+      const { countryCode, number } = this.parsePhoneNumber(employee.phone_number);
+      this.form.get('phone_country_code')?.setValue(countryCode || '+507');
+      this.form.get('phone_number')?.setValue(number || '');
+    }
+
+    // Separar código de país del número de teléfono laboral
+    if (employee.work_phone_number) {
+      const { countryCode, number } = this.parsePhoneNumber(employee.work_phone_number);
+      this.form.get('work_phone_country_code')?.setValue(countryCode || '+507');
+      this.form.get('work_phone_number')?.setValue(number || '');
+    }
+
+    // Separar código de país del número de teléfono del contacto de emergencia
+    if (employee.emergency_contact_phone) {
+      const { countryCode, number } = this.parsePhoneNumber(employee.emergency_contact_phone);
+      this.form.get('emergency_contact_phone_country_code')?.setValue(countryCode || '+507');
+      this.form.get('emergency_contact_phone')?.setValue(number || '');
+    }
 
     // Asegurar que el banco se establezca correctamente cuando los bancos estén cargados
     if (employee.bank && this.banks.value()) {
@@ -861,6 +1031,97 @@ export class EmployeeFormComponent implements OnInit {
       company_id: 'Empresa',
     };
     return labels[fieldName] || fieldName;
+  }
+
+  // Parsear número de teléfono para separar código de país
+  private parsePhoneNumber(phone: string): { countryCode: string; number: string } {
+    if (!phone) return { countryCode: '+507', number: '' };
+    
+    // Buscar código de país conocido al inicio
+    for (const code of this.countryCodes.map(c => c.value)) {
+      if (phone.startsWith(code)) {
+        return {
+          countryCode: code,
+          number: phone.substring(code.length).trim()
+        };
+      }
+    }
+    
+    // Si no se encuentra código conocido, asumir +507
+    if (phone.startsWith('+')) {
+      // Extraer código manualmente (primeros 1-4 dígitos después del +)
+      const match = phone.match(/^(\+\d{1,4})\s*(.+)$/);
+      if (match) {
+        return { countryCode: match[1], number: match[2] };
+      }
+    }
+    
+    return { countryCode: '+507', number: phone };
+  }
+
+  // Formatear número de teléfono al perder el foco
+  formatPhoneNumber(fieldName: 'phone_number' | 'work_phone_number') {
+    const numberControl = this.form.get(fieldName);
+    const codeControl = this.form.get(
+      fieldName === 'phone_number' ? 'phone_country_code' : 'work_phone_country_code'
+    );
+    
+    if (numberControl && codeControl) {
+      const number = numberControl.value?.trim() || '';
+      const code = codeControl.value || '+507';
+      
+      // Si el número ya tiene el código, separarlo
+      if (number.startsWith('+')) {
+        const parsed = this.parsePhoneNumber(number);
+        codeControl.setValue(parsed.countryCode);
+        numberControl.setValue(parsed.number);
+      }
+    }
+  }
+
+  // Combinar código de país con número de teléfono
+  private combinePhoneNumber(fieldName: 'phone_number' | 'work_phone_number'): string {
+    const numberControl = this.form.get(fieldName);
+    const codeControl = this.form.get(
+      fieldName === 'phone_number' ? 'phone_country_code' : 'work_phone_country_code'
+    );
+    
+    const number = numberControl?.value?.trim() || '';
+    const code = codeControl?.value || '+507';
+    
+    if (!number) return '';
+    
+    return `${code} ${number}`.trim();
+  }
+
+  // Formatear teléfono del contacto de emergencia
+  formatEmergencyContactPhone() {
+    const numberControl = this.form.get('emergency_contact_phone');
+    const codeControl = this.form.get('emergency_contact_phone_country_code');
+    
+    if (numberControl && codeControl) {
+      const number = numberControl.value?.trim() || '';
+      
+      // Si el número ya tiene el código, separarlo
+      if (number.startsWith('+')) {
+        const parsed = this.parsePhoneNumber(number);
+        codeControl.setValue(parsed.countryCode);
+        numberControl.setValue(parsed.number);
+      }
+    }
+  }
+
+  // Combinar código de país con número de teléfono del contacto de emergencia
+  private combineEmergencyContactPhone(): string {
+    const numberControl = this.form.get('emergency_contact_phone');
+    const codeControl = this.form.get('emergency_contact_phone_country_code');
+    
+    const number = numberControl?.value?.trim() || '';
+    const code = codeControl?.value || '+507';
+    
+    if (!number) return '';
+    
+    return `${code} ${number}`.trim();
   }
 
   saveChanges() {
@@ -905,142 +1166,101 @@ export class EmployeeFormComponent implements OnInit {
 
       // Ya no se filtran campos, todo se guarda (tablas compartidas)
       const formValue = this.form.getRawValue();
-      const dataToSave: any = formValue;
+      const dataToSave: any = {
+        ...formValue,
+        // Combinar código de país con número de teléfono
+        phone_number: this.combinePhoneNumber('phone_number'),
+        work_phone_number: this.combinePhoneNumber('work_phone_number'),
+        emergency_contact_phone: this.combineEmergencyContactPhone(),
+      };
+      // Eliminar campos internos de código de país
+      delete dataToSave.phone_country_code;
+      delete dataToSave.work_phone_country_code;
+      delete dataToSave.emergency_contact_phone_country_code;
 
-      // Generar número de empleado automáticamente solo si no se proporcionó uno
-      if (
-        !dataToSave.employee_number ||
-        dataToSave.employee_number.trim() === ''
-      ) {
-        this.generateEmployeeNumber(dataToSave.company_id)
-          .then((employeeNumber) => {
-            dataToSave.employee_number = employeeNumber;
+      // Generar número de empleado automáticamente
+      this.generateEmployeeNumber(dataToSave.company_id)
+        .then((employeeNumber) => {
+          dataToSave.employee_number = employeeNumber;
 
-            this.store.employees.createItem(dataToSave).subscribe({
-              next: () => {
-                // Recargar la lista de empleados
-                this.store.employees.reloadItems();
+          this.store.employees.createItem(dataToSave).subscribe({
+            next: () => {
+              // Recargar la lista de empleados
+              this.store.employees.reloadItems();
 
-                // Después de crear, preguntar si quiere invitar por Wassenger
-                const formValue = this.form.getRawValue();
-                if (formValue.phone_number && formValue.work_email) {
-                  this.confirmationService.confirm({
-                    message: `¿Deseas enviar una invitación por Wassenger a ${formValue.first_name} ${formValue.father_name}?`,
-                    header: 'Invitación por Wassenger',
-                    icon: 'pi pi-comments',
-                    acceptLabel: 'Sí, enviar',
-                    rejectLabel: 'No, después',
-                    accept: () => {
-                      const employeeName = `${formValue.first_name} ${formValue.father_name}`;
-                      this.wassengerService
-                        .sendEmployeeInvitation(
-                          employeeName,
-                          formValue.phone_number,
-                          formValue.work_email
-                        )
-                        .then((success) => {
-                          if (success) {
-                            this.message.add({
-                              severity: 'success',
-                              summary: 'Invitación enviada',
-                              detail:
-                                'La invitación se envió correctamente por Wassenger',
-                            });
-                          }
-                        });
-                    },
-                    reject: () => {
-                      // Navegar de vuelta a la lista después de rechazar
-                      this.router.navigate(['/admin/employees']);
-                    },
-                  });
-                } else {
-                  // Si no hay datos para Wassenger, navegar directamente
-                  this.router.navigate(['/admin/employees']);
-                }
-              },
-              error: (error) => {
-                console.error('Error al crear empleado:', error);
-                this.message.add({
-                  severity: 'error',
-                  summary: 'Error al guardar',
-                  detail:
-                    error?.error?.message ||
-                    'Ocurrió un error al crear el empleado. Por favor intente nuevamente.',
+              // Después de crear, preguntar si quiere invitar por Wassenger
+              const phoneNumber = this.combinePhoneNumber('phone_number');
+              if (phoneNumber && dataToSave.work_email) {
+                this.confirmationService.confirm({
+                  message: `¿Deseas enviar una invitación por Wassenger a ${dataToSave.first_name} ${dataToSave.father_name}?`,
+                  header: 'Invitación por Wassenger',
+                  icon: 'pi pi-comments',
+                  acceptLabel: 'Sí, enviar',
+                  rejectLabel: 'No, después',
+                  accept: () => {
+                    const employeeName = `${dataToSave.first_name} ${dataToSave.father_name}`;
+                    this.wassengerService
+                      .sendEmployeeInvitation(
+                        employeeName,
+                        phoneNumber,
+                        dataToSave.work_email
+                      )
+                      .then((success) => {
+                        if (success) {
+                          this.message.add({
+                            severity: 'success',
+                            summary: 'Invitación enviada',
+                            detail:
+                              'La invitación se envió correctamente por Wassenger',
+                          });
+                        }
+                      });
+                  },
+                  reject: () => {
+                    // Navegar de vuelta a la lista después de rechazar
+                    this.router.navigate(['/admin/employees']);
+                  },
                 });
-              },
-            });
-          })
-          .catch((error) => {
-            console.error('Error al generar número de empleado:', error);
-            this.message.add({
-              severity: 'error',
-              summary: 'Error',
-              detail:
-                'No se pudo generar el número de empleado. Por favor intente nuevamente.',
-            });
-          });
-      } else {
-        // Si ya hay un número de empleado, guardar directamente
-        this.store.employees.createItem(dataToSave).subscribe({
-          next: () => {
-            // Recargar la lista de empleados
-            this.store.employees.reloadItems();
-
-            // Después de crear, preguntar si quiere invitar por Wassenger
-            const formValue = this.form.getRawValue();
-            if (formValue.phone_number && formValue.work_email) {
-              this.confirmationService.confirm({
-                message: `¿Deseas enviar una invitación por Wassenger a ${formValue.first_name} ${formValue.father_name}?`,
-                header: 'Invitación por Wassenger',
-                icon: 'pi pi-comments',
-                acceptLabel: 'Sí, enviar',
-                rejectLabel: 'No, después',
-                accept: () => {
-                  const employeeName = `${formValue.first_name} ${formValue.father_name}`;
-                  this.wassengerService
-                    .sendEmployeeInvitation(
-                      employeeName,
-                      formValue.phone_number,
-                      formValue.work_email
-                    )
-                    .then((success) => {
-                      if (success) {
-                        this.message.add({
-                          severity: 'success',
-                          summary: 'Invitación enviada',
-                          detail:
-                            'La invitación se envió correctamente por Wassenger',
-                        });
-                      }
-                    });
-                },
-                reject: () => {
-                  // Navegar de vuelta a la lista después de rechazar
-                  this.router.navigate(['/admin/employees']);
-                },
+              } else {
+                // Si no hay datos para Wassenger, navegar directamente
+                this.router.navigate(['/admin/employees']);
+              }
+            },
+            error: (error) => {
+              console.error('Error al crear empleado:', error);
+              this.message.add({
+                severity: 'error',
+                summary: 'Error al guardar',
+                detail:
+                  error?.error?.message ||
+                  'Ocurrió un error al crear el empleado. Por favor intente nuevamente.',
               });
-            } else {
-              // Si no hay datos para Wassenger, navegar directamente
-              this.router.navigate(['/admin/employees']);
-            }
-          },
-          error: (error) => {
-            console.error('Error al crear empleado:', error);
-            this.message.add({
-              severity: 'error',
-              summary: 'Error al guardar',
-              detail:
-                error?.error?.message ||
-                'Ocurrió un error al crear el empleado. Por favor intente nuevamente.',
-            });
-          },
+            },
+          });
+        })
+        .catch((error) => {
+          console.error('Error al generar número de empleado:', error);
+          this.message.add({
+            severity: 'error',
+            summary: 'Error',
+            detail:
+              'No se pudo generar el número de empleado. Por favor intente nuevamente.',
+          });
         });
-      }
     } else {
       // Ya no se filtran campos, todo se guarda (tablas compartidas)
       const formValue = this.form.getRawValue();
-      const dataToSave: any = formValue;
+      const dataToSave: any = {
+        ...formValue,
+        // Combinar código de país con número de teléfono
+        phone_number: this.combinePhoneNumber('phone_number'),
+        work_phone_number: this.combinePhoneNumber('work_phone_number'),
+        emergency_contact_phone: this.combineEmergencyContactPhone(),
+      };
+      // Eliminar campos internos de código de país
+      delete dataToSave.phone_country_code;
+      delete dataToSave.work_phone_country_code;
+      delete dataToSave.emergency_contact_phone_country_code;
 
       this.store.employees.editItem(dataToSave).subscribe({
         next: () => {
