@@ -86,14 +86,14 @@ import { HttpClient } from '@angular/common/http';
                   @if(store.hasDashboardAccess() && store.isAdmin() && !store.hasPortalAccessOnly() && !store.hasTimeManagementAccess()) {
                   <a
                     (click)="navigateTo('home')"
-                    [class.selected]="isActiveRoute('home')"
+                    [class.selected]="isHomeActive()"
                     class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
                     ><i class="pi pi-home text-base"></i> <span>Inicio</span></a
                   >
                   } @if(store.hasDashboardAccess() && store.isAdmin() && !store.hasPortalAccessOnly()) {
                   <a
                     (click)="navigateTo('admin')"
-                    [class.selected]="isActiveRoute('admin')"
+                    [class.selected]="isAdminActive()"
                     class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
                   >
                     <i class="pi pi-building text-base"></i> <span>Administración</span></a
@@ -101,7 +101,7 @@ import { HttpClient } from '@angular/common/http';
                   } @if(store.hasDashboardAccess() && store.isAdmin() && !store.hasPortalAccessOnly()) {
                   <a
                     (click)="navigateTo('payroll')"
-                    [class.selected]="isActiveRoute('payroll')"
+                    [class.selected]="isPayrollActive()"
                     class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
                   >
                     <i class="pi pi-money-bill text-base"></i> <span>Nómina</span></a
@@ -109,7 +109,7 @@ import { HttpClient } from '@angular/common/http';
                   } @if(store.hasDashboardAccess() && ((store.isAdmin() || (store.isScheduleAdmin() && !store.hasPortalAccessOnly())) || store.hasTimeManagementAccess())) {
                   <a
                     (click)="navigateTo('time-management')"
-                    [class.selected]="isActiveRoute('time-management')"
+                    [class.selected]="isTimeManagementActive()"
                     class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
                     ><i class="pi pi-calendar text-base"></i> <span>Gestión de tiempo</span></a
                   >
@@ -117,7 +117,7 @@ import { HttpClient } from '@angular/common/http';
                   @if(store.hasDashboardAccess() && (!store.hasPortalAccessOnly() || store.hasTimeManagementAccess())) {
                   <a
                     (click)="navigateTo('timeclock')"
-                    [class.selected]="isActiveRoute('timeclock')"
+                    [class.selected]="isTimeclockActive()"
                     class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
                     ><i class="pi pi-clock text-base"></i> <span>Reloj de marcación</span></a
                   >
@@ -170,36 +170,36 @@ import { HttpClient } from '@angular/common/http';
             @if(store.hasDashboardAccess() && store.isAdmin() && !store.hasPortalAccessOnly() && !store.hasTimeManagementAccess()) {
             <a
               (click)="navigateTo('home'); toggleMenu()"
-              [class.bg-gray-700]="isActiveRoute('home')"
-              [class.text-white]="isActiveRoute('home')"
-              [class.shadow-md]="isActiveRoute('home')"
+              [class.bg-gray-700]="isHomeActive()"
+              [class.text-white]="isHomeActive()"
+              [class.shadow-md]="isHomeActive()"
               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
               ><i class="pi pi-home text-lg"></i> <span>Inicio</span></a
             >
             } @if(store.hasDashboardAccess() && store.isAdmin() && !store.hasPortalAccessOnly()) {
             <a
               (click)="navigateTo('admin'); toggleMenu()"
-              [class.bg-gray-700]="isActiveRoute('admin')"
-              [class.text-white]="isActiveRoute('admin')"
-              [class.shadow-md]="isActiveRoute('admin')"
+              [class.bg-gray-700]="isAdminActive()"
+              [class.text-white]="isAdminActive()"
+              [class.shadow-md]="isAdminActive()"
               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
               ><i class="pi pi-building text-lg"></i> <span>Administración</span></a
             >
             } @if(store.hasDashboardAccess() && ((store.isAdmin() || (store.isScheduleAdmin() && !store.hasPortalAccessOnly())) || store.hasTimeManagementAccess())) {
             <a
               (click)="navigateTo('time-management'); toggleMenu()"
-              [class.bg-gray-700]="isActiveRoute('time-management')"
-              [class.text-white]="isActiveRoute('time-management')"
-              [class.shadow-md]="isActiveRoute('time-management')"
+              [class.bg-gray-700]="isTimeManagementActive()"
+              [class.text-white]="isTimeManagementActive()"
+              [class.shadow-md]="isTimeManagementActive()"
               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
               ><i class="pi pi-calendar text-lg"></i> <span>Gestión de tiempo</span></a
             >
             } @if(store.hasDashboardAccess() && store.isAdmin() && !store.hasPortalAccessOnly()) {
             <a
               (click)="navigateTo('payroll'); toggleMenu()"
-              [class.bg-gray-700]="isActiveRoute('payroll')"
-              [class.text-white]="isActiveRoute('payroll')"
-              [class.shadow-md]="isActiveRoute('payroll')"
+              [class.bg-gray-700]="isPayrollActive()"
+              [class.text-white]="isPayrollActive()"
+              [class.shadow-md]="isPayrollActive()"
               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
               ><i class="pi pi-money-bill text-lg"></i> <span>Nómina</span></a
             >
@@ -207,9 +207,9 @@ import { HttpClient } from '@angular/common/http';
             @if(store.hasDashboardAccess() && (!store.hasPortalAccessOnly() || store.hasTimeManagementAccess())) {
             <a
               (click)="navigateTo('timeclock'); toggleMenu()"
-              [class.bg-gray-700]="isActiveRoute('timeclock')"
-              [class.text-white]="isActiveRoute('timeclock')"
-              [class.shadow-md]="isActiveRoute('timeclock')"
+              [class.bg-gray-700]="isTimeclockActive()"
+              [class.text-white]="isTimeclockActive()"
+              [class.shadow-md]="isTimeclockActive()"
               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
               ><i class="pi pi-clock text-lg"></i> <span>Reloj de marcación</span></a
             >
@@ -547,16 +547,28 @@ export class DashboardComponent {
   private previousOrganization: Organization | null = null;
 
   constructor() {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:549',message:'Constructor entry',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    
     // Obtener IP actual al inicializar
     this.fetchCurrentIP();
     
     // Inicializar organización anterior
     this.previousOrganization = this.organizationService.currentOrganization;
     
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:554',message:'Organization initialized',data:{previousOrg:this.previousOrganization},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    
     // Recargar datos cuando cambia la organización
     effect(() => {
       const currentOrg = this.organizationService.currentOrganization;
       const currentCompanyId = this.organizationService.getCurrentCompanyId();
+      
+      // #region agent log
+      fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:558',message:'Effect triggered',data:{currentOrg,currentCompanyId,previousOrg:this.previousOrganization,companyIdsReady:this.organizationService.companyIdsReady()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+      // #endregion
       
       // Solo recargar si el company_id está listo, hay un cambio real y no es la primera vez
       if (
@@ -565,6 +577,10 @@ export class DashboardComponent {
         this.previousOrganization !== null &&
         this.previousOrganization !== currentOrg
       ) {
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:567',message:'Organization changed - reloading',data:{from:this.previousOrganization,to:currentOrg,companyId:currentCompanyId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
+        
         console.log('🔄 Organización cambió de', this.previousOrganization, 'a', currentOrg, 'company_id:', currentCompanyId);
         console.log('🔄 Recargando todos los datos...');
         
@@ -584,10 +600,18 @@ export class DashboardComponent {
         // Actualizar organización anterior
         this.previousOrganization = currentOrg;
         
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:587',message:'Data reloaded',data:{organization:currentOrg},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
+        
         console.log('✅ Datos recargados para organización:', currentOrg);
       } else if (this.previousOrganization === null) {
         // Primera vez, solo guardar la organización actual
         this.previousOrganization = currentOrg;
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:590',message:'First time initialization',data:{organization:currentOrg},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+        // #endregion
       }
     });
     
@@ -598,16 +622,50 @@ export class DashboardComponent {
       .subscribe((event: any) => {
         const url = event.urlAfterRedirects || event.url;
         const segments = url.split('/').filter((s: string) => s);
-        // Si estamos en una ruta hija (ej: admin/employees), usar el primer segmento después de la raíz
-        // Si estamos en la raíz del dashboard, usar el segmento o 'home'
-        const route = segments.length > 0 ? segments[segments.length - 1] : 'home';
+        
+        // Detectar la ruta principal: buscar si alguno de los segmentos principales está presente
+        const mainRoutes = ['home', 'admin', 'payroll', 'time-management', 'timeclock', 'branch-manager'];
+        let route = 'home'; // default
+        
+        // Buscar la primera ruta principal que aparezca en los segmentos
+        for (const segment of segments) {
+          if (mainRoutes.includes(segment)) {
+            route = segment;
+            break;
+          }
+        }
+        
+        // Si no hay segmentos o no se encontró una ruta principal, usar 'home'
+        if (segments.length === 0) {
+          route = 'home';
+        }
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:604',message:'NavigationEnd event',data:{url,segments,route},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
+        
         this.currentRoute.set(route);
       });
     
     // Set initial route
     const url = this.router.url;
     const segments = url.split('/').filter((s: string) => s);
-    const route = segments.length > 0 ? segments[segments.length - 1] : 'home';
+    const mainRoutes = ['home', 'admin', 'payroll', 'time-management', 'timeclock', 'branch-manager'];
+    let route = 'home'; // default
+    
+    // Buscar la primera ruta principal que aparezca en los segmentos
+    for (const segment of segments) {
+      if (mainRoutes.includes(segment)) {
+        route = segment;
+        break;
+      }
+    }
+    
+    // Si no hay segmentos, usar 'home'
+    if (segments.length === 0) {
+      route = 'home';
+    }
+    
     this.currentRoute.set(route);
 
     // DEBUG: Log de valores para depuración
@@ -651,50 +709,68 @@ export class DashboardComponent {
   }
 
   navigateTo(route: string) {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:653',message:'navigateTo entry',data:{route,currentUrl:this.router.url},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
+    
     // Navigate relative to the current activated route (which is the dashboard component)
     this.router.navigate([route], { relativeTo: this.route });
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:656',message:'navigateTo exit',data:{route},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    // #endregion
   }
 
-  // Memoized route check to avoid recalculating on every change detection
-  private _routeCache = new Map<string, boolean>();
-  private _lastUrl = '';
+  // Computed signals para rutas activas - se actualizan solo cuando cambia la URL
+  // Usan currentRoute signal que se actualiza en el evento NavigationEnd
+  public isHomeActive = computed(() => {
+    const route = this.currentRoute();
+    return route === 'home' || route === '';
+  });
 
+  public isAdminActive = computed(() => {
+    const route = this.currentRoute();
+    return route === 'admin';
+  });
+
+  public isPayrollActive = computed(() => {
+    const route = this.currentRoute();
+    return route === 'payroll';
+  });
+
+  public isTimeManagementActive = computed(() => {
+    const route = this.currentRoute();
+    return route === 'time-management';
+  });
+
+  public isTimeclockActive = computed(() => {
+    const route = this.currentRoute();
+    return route === 'timeclock';
+  });
+
+  public isBranchManagerActive = computed(() => {
+    const route = this.currentRoute();
+    return route === 'branch-manager';
+  });
+
+  // Método legacy para compatibilidad (ahora usa computed signals internamente)
   isActiveRoute(route: string): boolean {
-    const url = this.router.url;
-    
-    // Use cache if URL hasn't changed
-    if (url === this._lastUrl && this._routeCache.has(route)) {
-      return this._routeCache.get(route)!;
+    switch (route) {
+      case 'home':
+        return this.isHomeActive();
+      case 'admin':
+        return this.isAdminActive();
+      case 'payroll':
+        return this.isPayrollActive();
+      case 'time-management':
+        return this.isTimeManagementActive();
+      case 'timeclock':
+        return this.isTimeclockActive();
+      case 'branch-manager':
+        return this.isBranchManagerActive();
+      default:
+        return false;
     }
-
-    // Clear cache if URL changed
-    if (url !== this._lastUrl) {
-      this._routeCache.clear();
-      this._lastUrl = url;
-    }
-
-    const segments = url.split('/').filter((s: string) => s);
-    let isActive = false;
-    
-    // Verificar si la ruta está en los segmentos de la URL
-    // Esto funciona tanto para rutas directas como subrutas
-    if (route === 'admin' && segments.includes('admin')) {
-      isActive = true;
-    } else if (route === 'payroll' && segments.includes('payroll')) {
-      isActive = true;
-    } else if (route === 'time-management' && segments.includes('time-management')) {
-      isActive = true;
-    } else if (route === 'timeclock' && segments.includes('timeclock')) {
-      isActive = true;
-    } else if (route === 'home' && (segments.includes('home') || segments.length === 0)) {
-      isActive = true;
-    } else if (route === 'branch-manager' && segments.includes('branch-manager')) {
-      isActive = true;
-    }
-
-    // Cache result
-    this._routeCache.set(route, isActive);
-    return isActive;
   }
 
   public items = computed<MenuItem[]>(() => {
@@ -775,13 +851,31 @@ export class DashboardComponent {
 
   // Método para obtener items del menú (fuerza recálculo cada vez)
   public getMenuItems(): MenuItem[] {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:777',message:'getMenuItems entry',data:{isSupport:this.isSupportUser(),hasDashboardAccess:this.store.hasDashboardAccess(),isAdmin:this.store.isAdmin()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
+    
     const items = this.items();
     console.log('📋 getMenuItems llamado:', items.map(i => i.label));
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:780',message:'getMenuItems exit',data:{itemCount:items.length,labels:items.map(i=>i.label)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+    // #endregion
+    
     return items;
   }
 
   async toggleMenu() {
+    // #region agent log
+    const beforeValue = this.isCollapsed();
+    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:783',message:'toggleMenu entry',data:{beforeValue},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
+    
     this.isCollapsed.update((value) => !value);
+    
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:785',message:'toggleMenu exit',data:{afterValue:this.isCollapsed()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+    // #endregion
   }
 
   toggleCompany(companyId: string | null) {
@@ -792,18 +886,34 @@ export class DashboardComponent {
    * Obtiene la IP actual del cliente
    */
   private fetchCurrentIP(): void {
+    // #region agent log
+    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:794',message:'fetchCurrentIP entry',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+    // #endregion
+    
     // Intentar obtener IP desde el servidor
     this.http.get<{ ip: string }>('/api/client-ip').subscribe({
       next: (response) => {
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:799',message:'fetchCurrentIP success',data:{ip:response?.ip},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+        // #endregion
         if (response?.ip) {
           this.currentIP.set(response.ip.trim());
         }
       },
-      error: () => {
+      error: (err) => {
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:805',message:'fetchCurrentIP error - trying WebRTC',data:{error:err?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+        // #endregion
         // Si falla, intentar obtener IP vía WebRTC como fallback
         this.getIPViaWebRTC().then((ip) => {
+          // #region agent log
+          fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:808',message:'fetchCurrentIP WebRTC success',data:{ip},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+          // #endregion
           this.currentIP.set(ip);
         }).catch(() => {
+          // #region agent log
+          fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:811',message:'fetchCurrentIP fallback to localhost',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+          // #endregion
           // Si todo falla, usar localhost como fallback
           this.currentIP.set('127.0.0.1');
         });

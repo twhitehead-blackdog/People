@@ -1530,6 +1530,8 @@ Black Dog`;
           subject: emailSubject,
           html: emailHtml,
           text: emailText,
+          fromEmail: undefined, // Usará el correo noreply configurado en el servidor
+          fromName: 'Black Dog - Feria de Empleo', // Nombre personalizado para la feria
         })
       );
       console.log(

@@ -51,13 +51,29 @@ export const DashboardStore = signalStore(
   })),
   withComputed(
     ({ employees, branches, companies, selectedCompanyId, auth }) => {
-      const headCount = computed(
-        () => employees.entities().filter((x) => x.is_active).length
-      );
+      const headCount = computed(() => {
+        const allEmployees = employees.entities();
+        const activeEmployees = allEmployees.filter((x) => x.is_active);
+        const result = activeEmployees.length;
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.store.ts:54',message:'headCount computed',data:{totalEmployees:allEmployees.length,activeEmployees:result},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'J'})}).catch(()=>{});
+        // #endregion
+        
+        return result;
+      });
 
-      const currentEmployee = computed(() =>
-        employees.entities().find((x) => x.id === auth.currentEmployeeId())
-      );
+      const currentEmployee = computed(() => {
+        const employeeId = auth.currentEmployeeId();
+        const allEmployees = employees.entities();
+        const found = allEmployees.find((x) => x.id === employeeId);
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.store.ts:59',message:'currentEmployee computed',data:{employeeId,totalEmployees:allEmployees.length,found:!!found,foundId:found?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
+        
+        return found;
+      });
 
       const monthlyBudget = computed(() => {
         const MAX_SALARY = 999999999; // Límite máximo para evitar overflow
@@ -85,19 +101,36 @@ export const DashboardStore = signalStore(
 
       const isAdmin = computed(() => {
         const employee = currentEmployee();
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.store.ts:86',message:'isAdmin computed entry',data:{hasEmployee:!!employee,workEmail:employee?.work_email,positionAdmin:employee?.position?.admin,hasPortalAccess:employee?.has_portal_access},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
+        
         // Verificar si es super admin por correo
         if (
           employee?.work_email &&
           superAdminEmails.includes(employee.work_email.toLowerCase())
         ) {
+          // #region agent log
+          fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.store.ts:93',message:'isAdmin - super admin by email',data:{result:true},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+          // #endregion
           return true;
         }
         // Si el empleado solo tiene acceso al portal, no es admin
         if (employee?.has_portal_access && !employee?.position?.admin) {
+          // #region agent log
+          fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.store.ts:97',message:'isAdmin - portal only, not admin',data:{result:false},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+          // #endregion
           return false;
         }
         // Verificar si es admin por posición
-        return employee?.position?.admin || false;
+        const result = employee?.position?.admin || false;
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.store.ts:100',message:'isAdmin computed exit',data:{result,positionAdmin:employee?.position?.admin},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
+        
+        return result;
       });
 
       // Lista de cargos que solo tienen acceso al portal (no al reloj de marcaciones)
@@ -152,9 +185,16 @@ export const DashboardStore = signalStore(
       
       const hasDashboardAccess = computed(() => {
         const employee = currentEmployee();
+        const dashboardAccess = employee?.position?.dashboard_access;
+        const result = dashboardAccess !== false;
+        
+        // #region agent log
+        fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.store.ts:153',message:'hasDashboardAccess computed',data:{hasEmployee:!!employee,dashboardAccess,result},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
+        
         // Si dashboard_access es null/undefined, permitir acceso (compatibilidad con datos antiguos)
         // Solo denegar si es explícitamente false
-        return employee?.position?.dashboard_access !== false;
+        return result;
       });
       
       const isScheduleApprover = computed(

@@ -1,6 +1,6 @@
+import dotenv from 'dotenv';
 import express from 'express';
 import nodemailer from 'nodemailer';
-import dotenv from 'dotenv';
 
 // Cargar variables de entorno desde .env
 dotenv.config();
@@ -15,12 +15,18 @@ export function app(): express.Express {
 
   // Middleware para parsear JSON
   server.use(express.json());
-  
+
   // CORS middleware para permitir requests desde el frontend
   server.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.header(
+      'Access-Control-Allow-Methods',
+      'GET, POST, PUT, DELETE, OPTIONS'
+    );
+    res.header(
+      'Access-Control-Allow-Headers',
+      'Origin, X-Requested-With, Content-Type, Accept, Authorization'
+    );
     if (req.method === 'OPTIONS') {
       res.sendStatus(200);
       return;
@@ -43,33 +49,44 @@ export function app(): express.Express {
       const cleanPhone = phoneNumber.replace(/[\s\-\(\)]/g, '');
 
       // Hacer solicitud a Wassenger desde el servidor (sin problemas de CORS)
-      const wassengerResponse = await fetch('https://api.wassenger.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          phone: cleanPhone,
-          message: message,
-        }),
-      });
+      const wassengerResponse = await fetch(
+        'https://api.wassenger.com/v1/messages',
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            phone: cleanPhone,
+            message: message,
+          }),
+        }
+      );
 
       let responseData: any;
       const contentType = wassengerResponse.headers.get('content-type');
-      
+
       try {
         // Leer el body como texto primero
         const textData = await wassengerResponse.text();
-        
-        if (contentType && contentType.includes('application/json') && textData) {
+
+        if (
+          contentType &&
+          contentType.includes('application/json') &&
+          textData
+        ) {
           try {
             responseData = JSON.parse(textData);
           } catch {
-            responseData = { message: textData || 'Error desconocido de Wassenger' };
+            responseData = {
+              message: textData || 'Error desconocido de Wassenger',
+            };
           }
         } else {
-          responseData = { message: textData || 'Error desconocido de Wassenger' };
+          responseData = {
+            message: textData || 'Error desconocido de Wassenger',
+          };
         }
       } catch (parseError) {
         // Si no se puede parsear la respuesta, usar un mensaje genérico
@@ -78,7 +95,10 @@ export function app(): express.Express {
 
       if (!wassengerResponse.ok) {
         return res.status(wassengerResponse.status).json({
-          error: responseData.message || responseData.error || 'Error al enviar mensaje por Wassenger',
+          error:
+            responseData.message ||
+            responseData.error ||
+            'Error al enviar mensaje por Wassenger',
           details: responseData,
         });
       }
@@ -96,11 +116,15 @@ export function app(): express.Express {
   // Endpoint para enviar emails
   server.post('/api/email/send', async (req, res) => {
     try {
-      const { to, subject, html, text } = req.body;
+      const { to, subject, html, text, fromEmail, fromName } = req.body;
       const smtpHost = process.env['ENV_SMTP_HOST'] || 'smtp.gmail.com';
       const smtpPort = parseInt(process.env['ENV_SMTP_PORT'] || '587');
       const smtpUser = process.env['ENV_SMTP_USER'];
       const smtpPassword = process.env['ENV_SMTP_PASSWORD'];
+
+      // Correo noreply para feria de empleo (opcional)
+      const noreplyEmail = process.env['ENV_SMTP_NOREPLY_EMAIL'] || smtpUser;
+      const noreplyName = process.env['ENV_SMTP_NOREPLY_NAME'] || 'Black Dog';
 
       if (!smtpUser || !smtpPassword) {
         console.error('❌ Configuración SMTP faltante:', {
@@ -111,7 +135,8 @@ export function app(): express.Express {
         });
         return res.status(500).json({
           error: 'Email service not configured',
-          message: 'ENV_SMTP_USER o ENV_SMTP_PASSWORD no están configuradas. Por favor configura estas variables en tu archivo .env',
+          message:
+            'ENV_SMTP_USER o ENV_SMTP_PASSWORD no están configuradas. Por favor configura estas variables en tu archivo .env',
         });
       }
 
@@ -121,7 +146,14 @@ export function app(): express.Express {
         });
       }
 
+      // Determinar el correo remitente
+      // Si se especifica fromEmail en el request, usarlo; sino usar noreplyEmail o smtpUser
+      const senderEmail = fromEmail || noreplyEmail || smtpUser;
+      const senderName = fromName || noreplyName;
+
       // Crear transporter de nodemailer con SMTP genérico
+      // Nota: El auth siempre usa smtpUser/smtpPassword (credenciales de autenticación)
+      // pero el remitente (from) puede ser diferente
       const transporter = nodemailer.createTransport({
         host: smtpHost,
         port: smtpPort,
@@ -137,7 +169,7 @@ export function app(): express.Express {
 
       // Enviar email
       const info = await transporter.sendMail({
-        from: `Black Dog <${smtpUser}>`,
+        from: `${senderName} <${senderEmail}>`,
         to: recipients.join(', '),
         subject: subject,
         html: html,
@@ -163,9 +195,11 @@ export function app(): express.Express {
       // Mensaje de error más descriptivo
       let errorMessage = 'Error desconocido al enviar el email';
       if (error.code === 'EAUTH') {
-        errorMessage = 'Error de autenticación SMTP. Verifica ENV_SMTP_USER y ENV_SMTP_PASSWORD';
+        errorMessage =
+          'Error de autenticación SMTP. Verifica ENV_SMTP_USER y ENV_SMTP_PASSWORD';
       } else if (error.code === 'ECONNECTION') {
-        errorMessage = 'No se pudo conectar al servidor SMTP. Verifica ENV_SMTP_HOST y ENV_SMTP_PORT';
+        errorMessage =
+          'No se pudo conectar al servidor SMTP. Verifica ENV_SMTP_HOST y ENV_SMTP_PORT';
       } else if (error.message) {
         errorMessage = error.message;
       }
@@ -174,12 +208,15 @@ export function app(): express.Express {
         error: 'Error interno del servidor',
         message: errorMessage,
         code: error.code,
-        details: process.env['NODE_ENV'] === 'development' ? {
-          code: error.code,
-          command: error.command,
-          responseCode: error.responseCode,
-          responseMessage: error.responseMessage,
-        } : undefined,
+        details:
+          process.env['NODE_ENV'] === 'development'
+            ? {
+                code: error.code,
+                command: error.command,
+                responseCode: error.responseCode,
+                responseMessage: error.responseMessage,
+              }
+            : undefined,
       });
     }
   });
@@ -198,16 +235,18 @@ export function app(): express.Express {
       // X-Real-IP: usado por algunos proxies
       // req.ip: IP directa de la conexión
       // req.connection.remoteAddress: IP de la conexión (legacy)
-      
+
       let clientIP: string | undefined;
-      
+
       // 1. Intentar desde X-Forwarded-For (puede tener múltiples IPs, tomar la primera)
       const forwardedFor = req.headers['x-forwarded-for'];
       if (forwardedFor) {
-        const ips = Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor;
+        const ips = Array.isArray(forwardedFor)
+          ? forwardedFor[0]
+          : forwardedFor;
         clientIP = ips.split(',')[0].trim();
       }
-      
+
       // 2. Intentar desde X-Real-IP
       if (!clientIP) {
         const realIP = req.headers['x-real-ip'];
@@ -215,46 +254,46 @@ export function app(): express.Express {
           clientIP = Array.isArray(realIP) ? realIP[0] : realIP;
         }
       }
-      
+
       // 3. Usar req.ip (Express confía en el proxy si está configurado)
       if (!clientIP && req.ip) {
         clientIP = req.ip;
       }
-      
+
       // 4. Usar req.connection.remoteAddress (fallback)
       if (!clientIP && req.socket.remoteAddress) {
         clientIP = req.socket.remoteAddress;
       }
-      
+
       // 5. Si es IPv6 localhost, convertir a IPv4
       if (clientIP === '::1' || clientIP === '::ffff:127.0.0.1') {
         clientIP = '127.0.0.1';
       }
-      
+
       // 6. Limpiar IPv6 mapped IPv4 (::ffff:192.168.1.1 -> 192.168.1.1)
       if (clientIP && clientIP.startsWith('::ffff:')) {
         clientIP = clientIP.substring(7);
       }
-      
+
       // Si no se pudo obtener la IP, devolver 200 con ip: null (no es un error crítico)
       // El cliente usará WebRTC como fallback
       if (!clientIP) {
-        res.status(200).json({ 
+        res.status(200).json({
           ip: null,
-          message: 'No se pudo determinar la IP del cliente, usar fallback'
+          message: 'No se pudo determinar la IP del cliente, usar fallback',
         });
         return;
       }
-      
+
       res.json({ ip: clientIP });
       return;
     } catch (error: any) {
       // Manejar cualquier error inesperado
       console.error('Error en /api/client-ip:', error);
-      res.status(200).json({ 
+      res.status(200).json({
         ip: null,
         error: 'Error al obtener IP del cliente',
-        message: error?.message || 'Error desconocido'
+        message: error?.message || 'Error desconocido',
       });
       return;
     }
@@ -280,8 +319,12 @@ function run(): void {
   });
 
   if (!smtpUser || !smtpPassword) {
-    console.warn('⚠️  ADVERTENCIA: Variables SMTP no configuradas. El servicio de email no funcionará.');
-    console.warn('   Configura ENV_SMTP_USER y ENV_SMTP_PASSWORD en tu archivo .env');
+    console.warn(
+      '⚠️  ADVERTENCIA: Variables SMTP no configuradas. El servicio de email no funcionará.'
+    );
+    console.warn(
+      '   Configura ENV_SMTP_USER y ENV_SMTP_PASSWORD en tu archivo .env'
+    );
   }
 
   // Start up the Node server

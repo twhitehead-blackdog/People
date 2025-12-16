@@ -7,6 +7,8 @@ export interface EmailData {
   subject: string;
   html: string;
   text?: string;
+  fromEmail?: string; // Correo remitente opcional (si no se especifica, usa el configurado en el servidor)
+  fromName?: string; // Nombre del remitente opcional
 }
 
 @Injectable({
