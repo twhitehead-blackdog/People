@@ -79,7 +79,7 @@ supabase db diff --schema public
 
 ```sql
 -- En base de datos ORIGEN
-SELECT table_name FROM information_schema.tables 
+SELECT table_name FROM information_schema.tables
 WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
 ORDER BY table_name;
 
@@ -119,4 +119,3 @@ ORDER BY tablename, indexname;
 - Usa `--schema-only` en pg_dump para evitar comparar datos
 - Guarda los resultados en archivos para comparación posterior
 - Usa herramientas de diff (como VS Code) para comparar archivos SQL exportados
-
