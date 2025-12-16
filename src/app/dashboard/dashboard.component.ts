@@ -565,8 +565,6 @@ export class DashboardComponent {
         this.previousOrganization !== null &&
         this.previousOrganization !== currentOrg
       ) {
-        console.log('🔄 Organización cambió de', this.previousOrganization, 'a', currentOrg, 'company_id:', currentCompanyId);
-        console.log('🔄 Recargando todos los datos...');
         
         // Recargar todos los stores
         this.employeesStore.reloadItems();
@@ -584,7 +582,6 @@ export class DashboardComponent {
         // Actualizar organización anterior
         this.previousOrganization = currentOrg;
         
-        console.log('✅ Datos recargados para organización:', currentOrg);
       } else if (this.previousOrganization === null) {
         // Primera vez, solo guardar la organización actual
         this.previousOrganization = currentOrg;
@@ -642,41 +639,16 @@ export class DashboardComponent {
 
     // DEBUG: Log de valores para depuración
     setTimeout(() => {
-      console.log('=== DEBUG DASHBOARD ===');
-      console.log('isNaz():', this.organizationService.isNaz());
-      console.log('auth.currentEmployeeId():', this.store.auth.currentEmployeeId());
-      console.log('employees.entities().length:', this.store.employees.entities().length);
-      console.log('employees.entities() (todos):', this.store.employees.entities());
-      console.log('IDs de empleados cargados:', this.store.employees.entities().map(e => e.id));
-      console.log('hasDashboardAccess:', this.store.hasDashboardAccess());
-      console.log('isAdmin:', this.store.isAdmin());
-      console.log('hasPortalAccessOnly:', this.store.hasPortalAccessOnly());
-      console.log('hasTimeManagementAccess:', this.store.hasTimeManagementAccess());
-      console.log('currentEmployee:', this.store.currentEmployee());
-      console.log('currentEmployee position:', this.store.currentEmployee()?.position);
-      console.log('currentEmployee position dashboard_access:', this.store.currentEmployee()?.position?.dashboard_access);
-      console.log('currentEmployee position admin:', this.store.currentEmployee()?.position?.admin);
-      console.log('currentEmployee has_portal_access:', this.store.currentEmployee()?.has_portal_access);
-      console.log('showEmployeePortalView:', this.showEmployeePortalView());
       
       // Buscar el empleado manualmente
       const employeeId = this.store.auth.currentEmployeeId();
       if (employeeId) {
         const foundEmployee = this.store.employees.entities().find(e => e.id === employeeId);
-        console.log('🔍 Buscando empleado con ID:', employeeId);
-        console.log('Empleado encontrado manualmente:', foundEmployee);
         if (!foundEmployee) {
-          console.log('❌ PROBLEMA: El ID del empleado no coincide con ningún empleado cargado');
-          console.log('Esto significa que AuthStore y EmployeesStore están usando tablas diferentes');
         } else {
-          console.log('✅ Empleado encontrado!');
-          console.log('Empleado position:', foundEmployee.position);
-          console.log('Empleado position dashboard_access:', foundEmployee.position?.dashboard_access);
         }
       } else {
-        console.log('⚠️ auth.currentEmployeeId() es null/undefined');
       }
-      console.log('========================');
     }, 2000); // Esperar 2 segundos para que los datos se carguen
   }
 
@@ -754,7 +726,6 @@ export class DashboardComponent {
 
     // Agregar Gestión de Tienda para gerentes y administradores
     if (hasDashboardAccess && (isAdmin || isScheduleAdmin)) {
-      console.log('✅ Agregando Gestión de Tienda al menú', {
         hasDashboardAccess,
         isAdmin,
         isScheduleAdmin,
@@ -816,7 +787,6 @@ export class DashboardComponent {
   // Método para obtener items del menú (fuerza recálculo cada vez)
   public getMenuItems(): MenuItem[] {
     const items = this.items();
-    console.log('📋 getMenuItems llamado:', items.map(i => i.label));
     return items;
   }
 
