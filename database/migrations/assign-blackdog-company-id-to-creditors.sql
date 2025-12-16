@@ -19,6 +19,28 @@ DECLARE
     oldest_id UUID;
 BEGIN
     -- ============================================
+    -- 0. VERIFICAR/CREAR COLUMNA company_id EN creditors
+    -- ============================================
+    RAISE NOTICE '0. Verificando columna company_id en creditors...';
+    
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'creditors' AND column_name = 'company_id'
+    ) THEN
+        RAISE NOTICE '   ⚠️ Columna company_id no existe, creándola...';
+        ALTER TABLE creditors 
+        ADD COLUMN company_id UUID REFERENCES companies(id) ON DELETE SET NULL;
+        
+        CREATE INDEX IF NOT EXISTS idx_creditors_company_id ON creditors(company_id);
+        
+        COMMENT ON COLUMN creditors.company_id IS 'ID de la empresa. NULL significa que el acreedor es compartido entre organizaciones';
+        
+        RAISE NOTICE '   ✅ Columna company_id creada en creditors';
+    ELSE
+        RAISE NOTICE '   ✅ Columna company_id ya existe en creditors';
+    END IF;
+    
+    -- ============================================
     -- 1. OBTENER EL COMPANY_ID DE BLACKDOG
     -- ============================================
     RAISE NOTICE '1. Obteniendo company_id de Blackdog...';

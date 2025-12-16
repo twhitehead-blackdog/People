@@ -19,6 +19,28 @@ DECLARE
     oldest_id UUID;
 BEGIN
     -- ============================================
+    -- 0. VERIFICAR/CREAR COLUMNA company_id EN banks
+    -- ============================================
+    RAISE NOTICE '0. Verificando columna company_id en banks...';
+    
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'banks' AND column_name = 'company_id'
+    ) THEN
+        RAISE NOTICE '   ⚠️ Columna company_id no existe, creándola...';
+        ALTER TABLE banks 
+        ADD COLUMN company_id UUID REFERENCES companies(id) ON DELETE SET NULL;
+        
+        CREATE INDEX IF NOT EXISTS idx_banks_company_id ON banks(company_id);
+        
+        COMMENT ON COLUMN banks.company_id IS 'ID de la empresa. NULL significa que el banco es compartido entre organizaciones';
+        
+        RAISE NOTICE '   ✅ Columna company_id creada en banks';
+    ELSE
+        RAISE NOTICE '   ✅ Columna company_id ya existe en banks';
+    END IF;
+    
+    -- ============================================
     -- 1. OBTENER EL COMPANY_ID DE BLACKDOG
     -- ============================================
     RAISE NOTICE '1. Obteniendo company_id de Blackdog...';
