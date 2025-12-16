@@ -24,6 +24,7 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { providePrimeNG } from 'primeng/config';
 import es from '../../public/i18n/es.json';
 import { appRoutes } from './app.routes';
+import { apiUrlInterceptor } from './interceptors/api-url.interceptor';
 import { httpInterceptor } from './interceptors/http.interceptor';
 import { errorInterceptor } from './interceptors/error.interceptor';
 import { JobApplicationsStore } from './stores/job-applications.store';
@@ -57,7 +58,7 @@ export const appConfig: ApplicationConfig = {
       withViewTransitions()
     ),
     provideAnimationsAsync(),
-    provideHttpClient(withInterceptors([httpInterceptor, errorInterceptor])),
+    provideHttpClient(withInterceptors([apiUrlInterceptor, httpInterceptor, errorInterceptor])),
     provideAuth0({
       domain: process.env['ENV_AUTH0_DOMAIN'] ?? '',
       clientId: process.env['ENV_AUTH0_CLIENT_ID'] ?? '',

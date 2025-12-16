@@ -303,7 +303,8 @@ export function app(): express.Express {
 }
 
 function run(): void {
-  const port = process.env['PORT'] || 4000;
+  // Railway asigna PORT automáticamente, usar 3000 como fallback para desarrollo local
+  const port = process.env['PORT'] || 3000;
 
   // Verificar configuración SMTP al iniciar
   const smtpHost = process.env['ENV_SMTP_HOST'] || 'smtp.gmail.com';
