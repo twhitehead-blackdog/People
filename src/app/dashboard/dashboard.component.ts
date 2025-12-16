@@ -636,20 +636,6 @@ export class DashboardComponent {
     }
     
     this.currentRoute.set(route);
-
-    // DEBUG: Log de valores para depuración
-    setTimeout(() => {
-      
-      // Buscar el empleado manualmente
-      const employeeId = this.store.auth.currentEmployeeId();
-      if (employeeId) {
-        const foundEmployee = this.store.employees.entities().find(e => e.id === employeeId);
-        if (!foundEmployee) {
-        } else {
-        }
-      } else {
-      }
-    }, 2000); // Esperar 2 segundos para que los datos se carguen
   }
 
   navigateTo(route: string) {
