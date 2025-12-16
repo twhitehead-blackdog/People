@@ -660,45 +660,6 @@ export class JobApplicationsListComponent implements OnInit {
     return apps.filter((app) => app.status === status);
   });
 
-  constructor() {
-    // Cargar el estado de la feria y fecha de entrevistas desde settings
-    effect(() => {
-      const settings = this.jobFairSettingsApi.value();
-      if (settings && settings.length > 0) {
-        const enabledSetting = settings.find(
-          (s) => s.key === 'job_fair_enabled'
-        );
-
-        if (enabledSetting) {
-          this.jobFairEnabled.set(enabledSetting.value === 'true');
-        }
-
-        // Cargar rango de fechas de la feria
-        const startDateSetting = settings.find(
-          (s) => s.key === 'job_fair_start_date'
-        );
-        const endDateSetting = settings.find(
-          (s) => s.key === 'job_fair_end_date'
-        );
-
-        const startDate = startDateSetting?.value
-          ? this.parseLocalDateString(startDateSetting.value)
-          : null;
-        const endDate = endDateSetting?.value
-          ? this.parseLocalDateString(endDateSetting.value)
-          : null;
-
-        if (startDate || endDate) {
-          this.jobFairDateRange = [
-            startDate && !isNaN(startDate.getTime()) ? startDate : null,
-            endDate && !isNaN(endDate.getTime()) ? endDate : null,
-          ] as (Date | null)[];
-        } else {
-          this.jobFairDateRange = null;
-        }
-      }
-    });
-  }
 
   ngOnInit() {
     // Cargar aplicaciones al inicializar
