@@ -45,6 +45,7 @@ sudo systemctl restart nginx
 ### 5. Configurar DNS
 
 En tu proveedor de DNS:
+
 - `stage.people.blackdogpanama.com` → IP del servidor
 - `people.blackdogpanama.com` → IP del servidor
 
@@ -86,4 +87,3 @@ docker-compose logs -f
 
 - Staging: https://stage.people.blackdogpanama.com
 - Producción: https://people.blackdogpanama.com
-

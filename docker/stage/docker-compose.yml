@@ -25,7 +25,13 @@ services:
     networks:
       - people_stage_network
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})",
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -41,13 +47,21 @@ services:
     depends_on:
       - backend
     ports:
-      - "18080:80"  # Puerto staging: 18080
+      - '18080:80' # Puerto staging: 18080
     volumes:
       - ./nginx-custom.conf:/etc/nginx/conf.d/custom.conf:ro
     networks:
       - people_stage_network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      test:
+        [
+          'CMD',
+          'wget',
+          '--quiet',
+          '--tries=1',
+          '--spider',
+          'http://localhost/health',
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -59,4 +73,3 @@ networks:
 volumes:
   logs:
     driver: local
-
