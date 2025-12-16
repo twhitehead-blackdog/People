@@ -8,6 +8,27 @@
 -- para cambiar el constraint a UNIQUE(name, company_id)
 -- ============================================
 
+-- ============================================
+-- FUNCIÓN HELPER: Obtener company_id de Blackdog
+-- ============================================
+CREATE OR REPLACE FUNCTION get_blackdog_company_id()
+RETURNS UUID AS $$
+DECLARE
+    bd_id UUID;
+BEGIN
+    SELECT id INTO bd_id
+    FROM companies
+    WHERE name ILIKE '%blackdog%'
+       OR (name ILIKE '%black%' AND name ILIKE '%dog%')
+    ORDER BY created_at ASC
+    LIMIT 1;
+    
+    RETURN bd_id;
+END;
+$$ LANGUAGE plpgsql STABLE;
+
+COMMENT ON FUNCTION get_blackdog_company_id() IS 'Retorna el UUID de la empresa Blackdog (Blackdog Panamá) para uso en migraciones';
+
 DO $$
 DECLARE
     blackdog_company_id UUID;
