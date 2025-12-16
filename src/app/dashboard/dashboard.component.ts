@@ -547,28 +547,16 @@ export class DashboardComponent {
   private previousOrganization: Organization | null = null;
 
   constructor() {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:549',message:'Constructor entry',data:{timestamp:Date.now()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
-    // #endregion
-    
     // Obtener IP actual al inicializar
     this.fetchCurrentIP();
     
     // Inicializar organización anterior
     this.previousOrganization = this.organizationService.currentOrganization;
     
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:554',message:'Organization initialized',data:{previousOrg:this.previousOrganization},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-    // #endregion
-    
     // Recargar datos cuando cambia la organización
     effect(() => {
       const currentOrg = this.organizationService.currentOrganization;
       const currentCompanyId = this.organizationService.getCurrentCompanyId();
-      
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:558',message:'Effect triggered',data:{currentOrg,currentCompanyId,previousOrg:this.previousOrganization,companyIdsReady:this.organizationService.companyIdsReady()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-      // #endregion
       
       // Solo recargar si el company_id está listo, hay un cambio real y no es la primera vez
       if (
@@ -577,10 +565,6 @@ export class DashboardComponent {
         this.previousOrganization !== null &&
         this.previousOrganization !== currentOrg
       ) {
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:567',message:'Organization changed - reloading',data:{from:this.previousOrganization,to:currentOrg,companyId:currentCompanyId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
-        
         console.log('🔄 Organización cambió de', this.previousOrganization, 'a', currentOrg, 'company_id:', currentCompanyId);
         console.log('🔄 Recargando todos los datos...');
         
@@ -600,18 +584,10 @@ export class DashboardComponent {
         // Actualizar organización anterior
         this.previousOrganization = currentOrg;
         
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:587',message:'Data reloaded',data:{organization:currentOrg},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
-        
         console.log('✅ Datos recargados para organización:', currentOrg);
       } else if (this.previousOrganization === null) {
         // Primera vez, solo guardar la organización actual
         this.previousOrganization = currentOrg;
-        
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:590',message:'First time initialization',data:{organization:currentOrg},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
-        // #endregion
       }
     });
     
@@ -639,10 +615,6 @@ export class DashboardComponent {
         if (segments.length === 0) {
           route = 'home';
         }
-        
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:604',message:'NavigationEnd event',data:{url,segments,route},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-        // #endregion
         
         this.currentRoute.set(route);
       });
@@ -709,16 +681,8 @@ export class DashboardComponent {
   }
 
   navigateTo(route: string) {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:653',message:'navigateTo entry',data:{route,currentUrl:this.router.url},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
-    
     // Navigate relative to the current activated route (which is the dashboard component)
     this.router.navigate([route], { relativeTo: this.route });
-    
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:656',message:'navigateTo exit',data:{route},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
-    // #endregion
   }
 
   // Computed signals para rutas activas - se actualizan solo cuando cambia la URL
@@ -851,31 +815,13 @@ export class DashboardComponent {
 
   // Método para obtener items del menú (fuerza recálculo cada vez)
   public getMenuItems(): MenuItem[] {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:777',message:'getMenuItems entry',data:{isSupport:this.isSupportUser(),hasDashboardAccess:this.store.hasDashboardAccess(),isAdmin:this.store.isAdmin()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
-    
     const items = this.items();
     console.log('📋 getMenuItems llamado:', items.map(i => i.label));
-    
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:780',message:'getMenuItems exit',data:{itemCount:items.length,labels:items.map(i=>i.label)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
-    
     return items;
   }
 
   async toggleMenu() {
-    // #region agent log
-    const beforeValue = this.isCollapsed();
-    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:783',message:'toggleMenu entry',data:{beforeValue},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-    // #endregion
-    
     this.isCollapsed.update((value) => !value);
-    
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:785',message:'toggleMenu exit',data:{afterValue:this.isCollapsed()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
-    // #endregion
   }
 
   toggleCompany(companyId: string | null) {
@@ -886,34 +832,18 @@ export class DashboardComponent {
    * Obtiene la IP actual del cliente
    */
   private fetchCurrentIP(): void {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:794',message:'fetchCurrentIP entry',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
-    // #endregion
-    
     // Intentar obtener IP desde el servidor
     this.http.get<{ ip: string }>('/api/client-ip').subscribe({
       next: (response) => {
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:799',message:'fetchCurrentIP success',data:{ip:response?.ip},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
-        // #endregion
         if (response?.ip) {
           this.currentIP.set(response.ip.trim());
         }
       },
       error: (err) => {
-        // #region agent log
-        fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:805',message:'fetchCurrentIP error - trying WebRTC',data:{error:err?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
-        // #endregion
         // Si falla, intentar obtener IP vía WebRTC como fallback
         this.getIPViaWebRTC().then((ip) => {
-          // #region agent log
-          fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:808',message:'fetchCurrentIP WebRTC success',data:{ip},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
-          // #endregion
           this.currentIP.set(ip);
         }).catch(() => {
-          // #region agent log
-          fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'dashboard.component.ts:811',message:'fetchCurrentIP fallback to localhost',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
-          // #endregion
           // Si todo falla, usar localhost como fallback
           this.currentIP.set('127.0.0.1');
         });

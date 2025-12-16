@@ -728,17 +728,12 @@ export class EmployeeFormComponent implements OnInit {
   ];
 
   public banks = httpResource<Bank[]>(() => {
-    const companyId = this.organizationService.getCurrentCompanyId();
+    // Cargar todos los bancos (compartidos y del company_id)
+    // El filtrado se hace en el store usando dos queries separadas
     const params: any = {
       select: 'id,name',
       order: 'name',
     };
-
-    // Permitir bancos compartidos (company_id IS NULL) o del company_id actual
-    if (companyId) {
-      // Usar or para incluir bancos compartidos (NULL) o del company_id actual
-      params.or = `(company_id.is.null,company_id.eq.${companyId})`;
-    }
 
     return {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/banks`,

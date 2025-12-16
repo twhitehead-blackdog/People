@@ -4450,32 +4450,15 @@ export class HomeComponent {
   ];
 
   public selectSection(sectionId: string): void {
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home.component.ts:4452',message:'selectSection entry',data:{sectionId,currentSection:this.activeSection(),windowWidth:window.innerWidth},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
-    // #endregion
-    
     this.activeSection.set(sectionId);
     // Cerrar sidebar en móvil después de seleccionar una sección
     if (window.innerWidth < 769) {
       this.sidebarOpen.set(false);
     }
-    
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home.component.ts:4458',message:'selectSection exit',data:{sectionId,newSection:this.activeSection()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'G'})}).catch(()=>{});
-    // #endregion
   }
 
   public toggleSidebar(): void {
-    // #region agent log
-    const beforeValue = this.sidebarOpen();
-    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home.component.ts:4460',message:'toggleSidebar entry',data:{beforeValue},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
-    // #endregion
-    
     this.sidebarOpen.update((value) => !value);
-    
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home.component.ts:4462',message:'toggleSidebar exit',data:{afterValue:this.sidebarOpen()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'H'})}).catch(()=>{});
-    // #endregion
   }
 
   public openBirthdaysDialog(): void {
@@ -4953,45 +4936,20 @@ export class HomeComponent {
 
   // Helper methods for gender data
   public getGenderCount(gender: 'M' | 'F'): number {
-    // #region agent log
-    const genderData = this.state.countByGender();
-    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home.component.ts:4938',message:'getGenderCount entry',data:{gender,genderData},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
-    // #endregion
-    
-    const result = this.state.countByGender()[gender] || 0;
-    
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home.component.ts:4940',message:'getGenderCount exit',data:{gender,result},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
-    // #endregion
-    
-    return result;
+    return this.state.countByGender()[gender] || 0;
   }
 
   public getGenderPercentage(gender: 'M' | 'F'): number {
-    // #region agent log
-    const genderData = this.state.countByGender();
-    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home.component.ts:4942',message:'getGenderPercentage entry',data:{gender,genderData},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
-    // #endregion
-    
     const maleCount = this.state.countByGender()['M'] || 0;
     const femaleCount = this.state.countByGender()['F'] || 0;
     const total = maleCount + femaleCount;
 
     if (total === 0) {
-      // #region agent log
-      fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home.component.ts:4947',message:'getGenderPercentage exit - total is 0',data:{gender,result:0},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
-      // #endregion
       return 0;
     }
 
     const count = gender === 'M' ? maleCount : femaleCount;
-    const result = Math.round((count / total) * 100);
-    
-    // #region agent log
-    fetch('http://127.0.0.1:7243/ingest/b7076fb6-20b6-4bb4-a285-daad8cbf1bf3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'home.component.ts:4951',message:'getGenderPercentage exit',data:{gender,maleCount,femaleCount,total,count,result},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'I'})}).catch(()=>{});
-    // #endregion
-    
-    return result;
+    return Math.round((count / total) * 100);
   }
 
   // Helper methods for hires/exits data
