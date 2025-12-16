@@ -6,6 +6,28 @@
 **Staging: ahí rompes, pruebas módulos, migraciones y scripts.**  
 **Cero sorpresas cuando subes a prod.**
 
+---
+
+## 🚂 Railway vs Hostinger
+
+Este proyecto soporta **ambos** sistemas de deployment:
+
+### Railway (Recomendado para desarrollo rápido)
+- ✅ Deploy automático desde GitHub
+- ✅ SSL automático
+- ✅ Menos configuración
+- 📁 Ver: `docker/RAILWAY-SETUP.md`
+- 📁 Variables: `docker/railway/`
+
+### Hostinger (Recomendado para producción con control total)
+- ✅ Control total del servidor
+- ✅ Más económico para alto tráfico
+- ✅ Configuración personalizada
+- 📁 Ver: `docker/HOSTINGER-SETUP.md`
+- 📁 Variables: `docker/stage/` y `docker/prod/`
+
+**Ambos pueden coexistir sin conflictos.**
+
 ## 🏗️ Arquitectura
 
 ```
