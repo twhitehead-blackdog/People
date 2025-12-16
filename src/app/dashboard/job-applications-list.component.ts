@@ -730,11 +730,16 @@ export class JobApplicationsListComponent implements OnInit {
         );
 
         if (existingStartSettings && existingStartSettings.length > 0) {
-          // Actualizar existente usando PATCH con id en URL
+          // Actualizar existente usando PATCH con params
           await firstValueFrom(
             this.http.patch(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingStartSettings[0].id}`,
-              { value: startDateString }
+              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+              { value: startDateString },
+              {
+                params: {
+                  id: `eq.${existingStartSettings[0].id}`,
+                },
+              }
             )
           );
         } else {
@@ -769,8 +774,13 @@ export class JobApplicationsListComponent implements OnInit {
         if (existingStartSettings && existingStartSettings.length > 0) {
           await firstValueFrom(
             this.http.patch(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingStartSettings[0].id}`,
-              { value: '' }
+              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+              { value: '' },
+              {
+                params: {
+                  id: `eq.${existingStartSettings[0].id}`,
+                },
+              }
             )
           );
         }
@@ -792,11 +802,16 @@ export class JobApplicationsListComponent implements OnInit {
         );
 
         if (existingEndSettings && existingEndSettings.length > 0) {
-          // Actualizar existente usando PATCH con id en URL
+          // Actualizar existente usando PATCH con params
           await firstValueFrom(
             this.http.patch(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingEndSettings[0].id}`,
-              { value: endDateString }
+              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+              { value: endDateString },
+              {
+                params: {
+                  id: `eq.${existingEndSettings[0].id}`,
+                },
+              }
             )
           );
         } else {
@@ -831,8 +846,13 @@ export class JobApplicationsListComponent implements OnInit {
         if (existingEndSettings && existingEndSettings.length > 0) {
           await firstValueFrom(
             this.http.patch(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingEndSettings[0].id}`,
-              { value: '' }
+              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+              { value: '' },
+              {
+                params: {
+                  id: `eq.${existingEndSettings[0].id}`,
+                },
+              }
             )
           );
         }
@@ -857,10 +877,11 @@ export class JobApplicationsListComponent implements OnInit {
       this.jobFairSettingsApi.reload();
     } catch (error: any) {
       console.error('Error actualizando duración de la feria:', error);
+      const errorMessage = error?.error?.message || error?.message || 'Error desconocido';
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'No se pudo actualizar la duración de la feria',
+        detail: `No se pudo actualizar la duración de la feria: ${errorMessage}`,
       });
     } finally {
       this.isUpdatingInterviewDate.set(false);
@@ -917,8 +938,13 @@ export class JobApplicationsListComponent implements OnInit {
     if (existingStartSettings && existingStartSettings.length > 0) {
       await firstValueFrom(
         this.http.patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingStartSettings[0].id}`,
-          { value: '' }
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+          { value: '' },
+          {
+            params: {
+              id: `eq.${existingStartSettings[0].id}`,
+            },
+          }
         )
       );
     }
@@ -926,8 +952,13 @@ export class JobApplicationsListComponent implements OnInit {
     if (existingEndSettings && existingEndSettings.length > 0) {
       await firstValueFrom(
         this.http.patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingEndSettings[0].id}`,
-          { value: '' }
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+          { value: '' },
+          {
+            params: {
+              id: `eq.${existingEndSettings[0].id}`,
+            },
+          }
         )
       );
     }
@@ -952,11 +983,16 @@ export class JobApplicationsListComponent implements OnInit {
       );
 
       if (existingSettings && existingSettings.length > 0) {
-        // Actualizar setting existente usando PATCH con id en URL
+        // Actualizar setting existente usando PATCH con params
         await firstValueFrom(
           this.http.patch(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingSettings[0].id}`,
-            { value: newValue }
+            `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+            { value: newValue },
+            {
+              params: {
+                id: `eq.${existingSettings[0].id}`,
+              },
+            }
           )
         );
       } else {
@@ -989,10 +1025,11 @@ export class JobApplicationsListComponent implements OnInit {
       console.error('Error actualizando estado de la feria:', error);
       // Revertir el cambio
       this.jobFairEnabled.set(!this.jobFairEnabled());
+      const errorMessage = error?.error?.message || error?.message || 'Error desconocido';
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'No se pudo actualizar el estado de la feria',
+        detail: `No se pudo actualizar el estado de la feria: ${errorMessage}`,
       });
     } finally {
       this.isUpdatingJobFairStatus.set(false);
