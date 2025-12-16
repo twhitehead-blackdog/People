@@ -1,0 +1,25 @@
+# ============================================
+# .dockerignore - Archivos a excluir del build
+# ============================================
+
+node_modules
+npm-debug.log
+dist
+.git
+.gitignore
+.env
+.env.*
+!.env.*.example
+*.log
+.DS_Store
+.vscode
+.idea
+coverage
+test-results
+*.md
+!docker/README.md
+nx.json
+project.json
+migrations.json
+graph.json
+

@@ -1,0 +1,62 @@
+# ============================================
+# Docker Compose - PRODUCCIÓN
+# ============================================
+# Ambiente de producción - NO TOCAR SIN PRUEBAS EN STAGING
+# ============================================
+
+version: '3.9'
+
+services:
+  # Backend (Express)
+  backend:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.backend
+    container_name: people_prod_backend
+    restart: always
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+    env_file:
+      - .env.prod
+    volumes:
+      - ../../server.ts:/app/server.ts:ro
+      - ./logs:/app/logs
+    networks:
+      - people_prod_network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend (Angular)
+  frontend:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile.frontend
+    container_name: people_prod_frontend
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"  # Puerto producción: 8080
+    volumes:
+      - ./nginx-custom.conf:/etc/nginx/conf.d/custom.conf:ro
+    networks:
+      - people_prod_network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  people_prod_network:
+    driver: bridge
+
+volumes:
+  logs:
+    driver: local
+
