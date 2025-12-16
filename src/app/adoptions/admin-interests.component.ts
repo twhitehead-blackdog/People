@@ -5,7 +5,7 @@ import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { DialogModule } from 'primeng/dialog';
-import { DropdownModule } from 'primeng/dropdown';
+import { SelectModule } from 'primeng/select';
 import { InputText } from 'primeng/inputtext';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
@@ -26,7 +26,7 @@ import { PetsStore } from '../stores/pets.store';
     DialogModule,
     InputText,
     TextareaModule,
-    DropdownModule,
+    SelectModule,
     TagModule,
     ToastModule,
     Card,
@@ -72,7 +72,7 @@ import { PetsStore } from '../stores/pets.store';
                 (input)="onGlobalFilter($event)"
                 class="search-input"
               />
-              <p-dropdown
+              <p-select
                 [(ngModel)]="selectedStatus"
                 [options]="statusOptions"
                 optionLabel="label"
@@ -228,7 +228,7 @@ import { PetsStore } from '../stores/pets.store';
 
         <div class="form-group">
           <label for="status">Estado *</label>
-          <p-dropdown
+          <p-select
             id="status"
             [(ngModel)]="interestForm.status"
             name="status"

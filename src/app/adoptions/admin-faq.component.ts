@@ -5,7 +5,7 @@ import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { DialogModule } from 'primeng/dialog';
-import { DropdownModule } from 'primeng/dropdown';
+import { SelectModule } from 'primeng/select';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { InputText } from 'primeng/inputtext';
 import { TableModule } from 'primeng/table';
@@ -27,7 +27,7 @@ import { FAQStore } from '../stores/faq.store';
     InputText,
     TextareaModule,
     InputNumberModule,
-    DropdownModule,
+    SelectModule,
     TagModule,
     ToastModule,
     Card,
@@ -176,7 +176,7 @@ import { FAQStore } from '../stores/faq.store';
 
         <div class="form-group">
           <label for="category">Categoría</label>
-          <p-dropdown
+          <p-select
             id="category"
             [(ngModel)]="faqForm.category"
             name="category"

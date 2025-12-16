@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, inject, input, OnInit, output, signal } from '@angular/core';
+import { Component, EventEmitter, inject, input, OnInit, output, signal, viewChild, ElementRef } from '@angular/core';
 import { ImageUploadService, UploadResult } from '../services/image-upload.service';
 import { Button } from 'primeng/button';
 import { ProgressBarModule } from 'primeng/progressbar';
@@ -33,9 +33,10 @@ export interface PhotoItem {
         [class.drag-over]="isDragOver()"
         [class.has-photos]="photos().length > 0"
         (dragover)="onDragOver($event)"
+        (dragenter)="onDragEnter($event)"
         (dragleave)="onDragLeave($event)"
         (drop)="onDrop($event)"
-        (click)="fileInput.click()"
+        (click)="onDropZoneClick($event)"
       >
         <input
           #fileInput
@@ -76,7 +77,7 @@ export interface PhotoItem {
                     [alt]="'Foto ' + (i + 1)"
                     class="photo-image"
                     (error)="onImageError(photo)"
-                    (click)="openCarousel(i)"
+                    (click)="openCarousel(i); $event.stopPropagation()"
                     style="cursor: pointer;"
                   />
                   <div class="photo-actions">
@@ -116,7 +117,7 @@ export interface PhotoItem {
               </div>
             }
             @if (photos().length < maxPhotos()) {
-              <div class="photo-item add-photo" (click)="fileInput.click()">
+              <div class="photo-item add-photo" (click)="fileInput.click(); $event.stopPropagation()">
                 <div class="add-photo-content">
                   <span class="add-icon">➕</span>
                   <p class="add-text">Agregar foto</p>
@@ -156,43 +157,59 @@ export interface PhotoItem {
       }
 
       @if (carouselMode() && photos().length > 0) {
-        <div class="carousel-container" (click)="closeCarousel()">
-          <div class="carousel-content" (click)="$event.stopPropagation()">
-            <button class="carousel-close" (click)="closeCarousel()">✕</button>
-            <button
-              class="carousel-nav carousel-prev"
-              (click)="previousPhoto()"
-              [disabled]="currentCarouselIndex() === 0"
-            >
-              ‹
+        <div class="carousel-preview">
+          <div class="carousel-preview-header">
+            <h4 class="carousel-preview-title">Vista Previa del Perfil</h4>
+            <button class="carousel-preview-close" (click)="toggleCarouselMode()" title="Cerrar vista previa">
+              ✕
             </button>
-            <div class="carousel-main-image">
-              <img
-                [src]="photos()[currentCarouselIndex()].url"
-                [alt]="'Foto ' + (currentCarouselIndex() + 1)"
-                class="carousel-image"
-              />
-              <div class="carousel-counter">
-                {{ currentCarouselIndex() + 1 }} / {{ photos().length }}
-              </div>
-            </div>
-            <button
-              class="carousel-nav carousel-next"
-              (click)="nextPhoto()"
-              [disabled]="currentCarouselIndex() === photos().length - 1"
-            >
-              ›
-            </button>
-            <div class="carousel-thumbnails">
-              @for (photo of photos(); track photo.url; let i = $index) {
+          </div>
+          <div class="carousel-preview-content">
+            <div class="carousel-main-wrapper">
+              <button
+                class="carousel-nav carousel-prev"
+                (click)="previousPhoto()"
+                [disabled]="currentCarouselIndex() === 0"
+                title="Foto anterior"
+              >
+                ‹
+              </button>
+              <div class="carousel-main-image">
                 <img
-                  [src]="photo.url"
-                  [alt]="'Miniatura ' + (i + 1)"
-                  class="carousel-thumbnail"
-                  [class.active]="i === currentCarouselIndex()"
-                  (click)="goToPhoto(i)"
+                  [src]="photos()[currentCarouselIndex()].url"
+                  [alt]="'Foto ' + (currentCarouselIndex() + 1)"
+                  class="carousel-image"
                 />
-              }
+                <div class="carousel-counter">
+                  {{ currentCarouselIndex() + 1 }} / {{ photos().length }}
+                </div>
+              </div>
+              <button
+                class="carousel-nav carousel-next"
+                (click)="nextPhoto()"
+                [disabled]="currentCarouselIndex() === photos().length - 1"
+                title="Foto siguiente"
+              >
+                ›
+              </button>
+            </div>
+            <div class="carousel-thumbnails-wrapper">
+              <div class="carousel-thumbnails">
+                @for (photo of photos(); track photo.url; let i = $index) {
+                  <div class="thumbnail-container">
+                    <img
+                      [src]="photo.url"
+                      [alt]="'Miniatura ' + (i + 1)"
+                      class="carousel-thumbnail"
+                      [class.active]="i === currentCarouselIndex()"
+                      (click)="goToPhoto(i)"
+                    />
+                    @if (i === 0) {
+                      <span class="thumbnail-badge">Principal</span>
+                    }
+                  </div>
+                }
+              </div>
             </div>
           </div>
         </div>
@@ -492,90 +509,110 @@ export interface PhotoItem {
         gap: 0.5rem;
       }
 
-      .carousel-container {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.9);
-        z-index: 1000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 2rem;
+      .carousel-preview {
+        border: 2px solid #e5e7eb;
+        border-radius: 1rem;
+        background: #ffffff;
+        padding: 1.5rem;
+        margin-top: 1rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
       }
 
-      .carousel-content {
-        position: relative;
-        max-width: 90vw;
-        max-height: 90vh;
+      .carousel-preview-header {
         display: flex;
-        flex-direction: column;
+        justify-content: space-between;
         align-items: center;
-        gap: 1rem;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #f3f4f6;
       }
 
-      .carousel-close {
-        position: absolute;
-        top: -2.5rem;
-        right: 0;
+      .carousel-preview-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #000000;
+        margin: 0;
+      }
+
+      .carousel-preview-close {
         background: transparent;
         border: none;
-        color: #ffffff;
-        font-size: 2rem;
+        color: #6b7280;
+        font-size: 1.5rem;
         cursor: pointer;
-        width: 40px;
-        height: 40px;
+        width: 32px;
+        height: 32px;
         display: flex;
         align-items: center;
         justify-content: center;
-        border-radius: 50%;
-        transition: all 0.3s ease;
+        border-radius: 0.5rem;
+        transition: all 0.2s ease;
       }
 
-      .carousel-close:hover {
-        background: rgba(255, 255, 255, 0.2);
+      .carousel-preview-close:hover {
+        background: #f3f4f6;
+        color: #000000;
+      }
+
+      .carousel-preview-content {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+
+      .carousel-main-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f9fafb;
+        border-radius: 0.75rem;
+        padding: 2rem;
+        min-height: 400px;
       }
 
       .carousel-main-image {
         position: relative;
         max-width: 100%;
-        max-height: 70vh;
+        max-height: 500px;
         display: flex;
         align-items: center;
         justify-content: center;
+        flex: 1;
       }
 
       .carousel-image {
         max-width: 100%;
-        max-height: 70vh;
+        max-height: 500px;
         object-fit: contain;
         border-radius: 0.5rem;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
       }
 
       .carousel-counter {
         position: absolute;
-        bottom: -2rem;
+        bottom: -1rem;
         left: 50%;
         transform: translateX(-50%);
-        background: rgba(0, 0, 0, 0.7);
-        color: #ffffff;
+        background: #fbbf24;
+        color: #000000;
         padding: 0.5rem 1rem;
-        border-radius: 0.5rem;
+        border-radius: 2rem;
         font-weight: 600;
+        font-size: 0.875rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
 
       .carousel-nav {
         position: absolute;
         top: 50%;
         transform: translateY(-50%);
-        background: rgba(255, 255, 255, 0.2);
-        border: none;
-        color: #ffffff;
-        font-size: 3rem;
-        width: 60px;
-        height: 60px;
+        background: #ffffff;
+        border: 2px solid #e5e7eb;
+        color: #374151;
+        font-size: 2rem;
+        width: 48px;
+        height: 48px;
         border-radius: 50%;
         cursor: pointer;
         display: flex;
@@ -583,53 +620,84 @@ export interface PhotoItem {
         justify-content: center;
         transition: all 0.3s ease;
         z-index: 10;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
 
       .carousel-nav:hover:not(:disabled) {
-        background: rgba(255, 255, 255, 0.4);
+        background: #fbbf24;
+        border-color: #fbbf24;
+        color: #000000;
         transform: translateY(-50%) scale(1.1);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
       }
 
       .carousel-nav:disabled {
         opacity: 0.3;
         cursor: not-allowed;
+        background: #f3f4f6;
       }
 
       .carousel-prev {
-        left: -80px;
+        left: 1rem;
       }
 
       .carousel-next {
-        right: -80px;
+        right: 1rem;
+      }
+
+      .carousel-thumbnails-wrapper {
+        overflow-x: auto;
+        padding: 0.5rem 0;
       }
 
       .carousel-thumbnails {
         display: flex;
-        gap: 0.5rem;
-        overflow-x: auto;
+        gap: 0.75rem;
+        justify-content: center;
         padding: 0.5rem;
-        max-width: 100%;
+      }
+
+      .thumbnail-container {
+        position: relative;
+        flex-shrink: 0;
       }
 
       .carousel-thumbnail {
-        width: 80px;
-        height: 80px;
+        width: 100px;
+        height: 100px;
         object-fit: cover;
         border-radius: 0.5rem;
         cursor: pointer;
         border: 3px solid transparent;
         transition: all 0.3s ease;
         opacity: 0.6;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
 
       .carousel-thumbnail:hover {
         opacity: 1;
-        transform: scale(1.1);
+        transform: scale(1.05);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
       }
 
       .carousel-thumbnail.active {
         border-color: #fbbf24;
         opacity: 1;
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+      }
+
+      .thumbnail-badge {
+        position: absolute;
+        top: -0.5rem;
+        right: -0.5rem;
+        background: #fbbf24;
+        color: #000000;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.5rem;
+        font-size: 0.625rem;
+        font-weight: 700;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       }
 
       @media (max-width: 768px) {
@@ -653,31 +721,40 @@ export interface PhotoItem {
           width: 100%;
         }
 
-        .carousel-container {
+        .carousel-preview {
           padding: 1rem;
+        }
+
+        .carousel-main-wrapper {
+          min-height: 300px;
+          padding: 1rem;
+        }
+
+        .carousel-image {
+          max-height: 300px;
         }
 
         .carousel-prev {
           left: 0.5rem;
+          width: 40px;
+          height: 40px;
+          font-size: 1.5rem;
         }
 
         .carousel-next {
           right: 0.5rem;
-        }
-
-        .carousel-nav {
           width: 40px;
           height: 40px;
-          font-size: 2rem;
+          font-size: 1.5rem;
         }
 
         .carousel-thumbnails {
-          gap: 0.25rem;
+          gap: 0.5rem;
         }
 
         .carousel-thumbnail {
-          width: 60px;
-          height: 60px;
+          width: 70px;
+          height: 70px;
         }
       }
     `,
@@ -702,6 +779,7 @@ export class PhotoGalleryComponent implements OnInit {
   public isDragOver = signal(false);
   public carouselMode = signal(false);
   public currentCarouselIndex = signal(0);
+  public fileInputRef = viewChild<ElementRef<HTMLInputElement>>('fileInput');
 
   ngOnInit(): void {
     // Inicializar con fotos existentes
@@ -719,26 +797,74 @@ export class PhotoGalleryComponent implements OnInit {
     return this.photos().some((p) => p.uploading);
   }
 
+  private dragCounter = 0;
+
+  public onDragEnter(event: DragEvent): void {
+    event.preventDefault();
+    event.stopPropagation();
+    this.dragCounter++;
+    if (event.dataTransfer?.types.includes('Files')) {
+      this.isDragOver.set(true);
+    }
+  }
+
   public onDragOver(event: DragEvent): void {
     event.preventDefault();
     event.stopPropagation();
-    this.isDragOver.set(true);
+    if (event.dataTransfer) {
+      event.dataTransfer.dropEffect = 'copy';
+    }
+    if (event.dataTransfer?.types.includes('Files')) {
+      this.isDragOver.set(true);
+    }
   }
 
   public onDragLeave(event: DragEvent): void {
     event.preventDefault();
     event.stopPropagation();
-    this.isDragOver.set(false);
+    this.dragCounter--;
+    if (this.dragCounter === 0) {
+      this.isDragOver.set(false);
+    }
   }
 
   public onDrop(event: DragEvent): void {
     event.preventDefault();
     event.stopPropagation();
     this.isDragOver.set(false);
+    this.dragCounter = 0;
 
     const files = event.dataTransfer?.files;
     if (files && files.length > 0) {
       this.processFiles(Array.from(files));
+    }
+  }
+
+  public onDropZoneClick(event: MouseEvent): void {
+    // Solo abrir el selector de archivos si se hace click en el área vacía
+    // No abrir si se hace click en una foto o en un botón
+    const target = event.target as HTMLElement;
+    
+    // Si hay fotos, verificar que no se haga click en ellas
+    if (this.photos().length > 0) {
+      // Si se hace click en una foto, botón o en el grid, no hacer nada
+      if (
+        target.closest('.photo-item') ||
+        target.closest('.photo-actions') ||
+        target.closest('.action-btn') ||
+        target.closest('.add-photo') ||
+        target.closest('.photos-grid') ||
+        target.closest('.photo-image')
+      ) {
+        return;
+      }
+    }
+    
+    // Abrir el selector de archivos solo si se hace click en el área vacía
+    const fileInput = this.fileInputRef()?.nativeElement;
+    if (fileInput) {
+      event.stopPropagation();
+      fileInput.click();
     }
   }
 
@@ -902,11 +1028,9 @@ export class PhotoGalleryComponent implements OnInit {
 
   public openCarousel(index: number): void {
     this.currentCarouselIndex.set(index);
-    this.carouselMode.set(true);
-  }
-
-  public closeCarousel(): void {
-    this.carouselMode.set(false);
+    if (!this.carouselMode()) {
+      this.carouselMode.set(true);
+    }
   }
 
   public nextPhoto(): void {

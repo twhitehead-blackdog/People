@@ -58,16 +58,35 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       }
 
       // 2. Errores 404 de tablas de Supabase que aún no existen (esperado durante desarrollo)
-      if (status === 404 && url.includes('supabase') && 
-          (url.includes('/pets') || url.includes('/foundations'))) {
-        // Solo log en consola una vez, no mostrar toast molesto
-        const tableName = url.includes('/pets') ? 'pets' : 'foundations';
-        const logKey = `supabase_404_${tableName}`;
-        if (!(window as any)[logKey]) {
-          console.warn(`⚠️ Tabla "${tableName}" no encontrada en Supabase. Esto es normal si las tablas aún no se han creado.`);
-          (window as any)[logKey] = true;
-        }
+      const tablesToSilence = ['pets', 'foundations', 'personality_traits', 'pet_breeds', 'user_pets'];
+      const isTable404 = status === 404 && url.includes('supabase') && 
+          tablesToSilence.some(table => url.includes(`/${table}`));
+      
+      if (isTable404) {
+        // Silenciar completamente estos errores - son esperados durante desarrollo
+        // No mostrar ningún log ni toast
         return throwError(() => error);
+      }
+
+      // 3. Errores 400 de Storage de Supabase (pueden ser por permisos o configuración del bucket)
+      if (status === 400 && url.includes('supabase') && url.includes('/storage/v1/object/')) {
+        // Silenciar completamente estos errores - el componente manejará el error
+        return throwError(() => error);
+      }
+
+      // 4. Errores 400 de queries de Supabase con foreign keys que no existen
+      if (status === 400 && url.includes('supabase') && url.includes('/rest/v1/')) {
+        // Verificar si es un error de foreign key
+        const errorMsg = error.error?.message || error.error?.error || '';
+        if (errorMsg.includes('foreign key') || errorMsg.includes('relation') || errorMsg.includes('does not exist')) {
+          const logKey = 'supabase_fkey_400';
+          if (!(window as any)[logKey]) {
+            console.warn('⚠️ Error en query de Supabase. Puede ser por foreign keys o relaciones que no existen. Verifica el schema de la base de datos.');
+            (window as any)[logKey] = true;
+          }
+          // No mostrar toast ni log detallado para estos errores
+          return throwError(() => error);
+        }
       }
 
       let errorMessage = 'Ocurrió un error inesperado';
@@ -212,17 +231,26 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         closable: true,
       });
 
-      // Log completo del error en consola (siempre, no solo en desarrollo)
-      console.error('🚨 Error HTTP Detectado:', {
-        summary: errorSummary,
-        status: status,
-        method: method,
-        url: url,
-        message: error.message,
-        error: error.error,
-        details: errorDetails,
-        timestamp: new Date().toISOString(),
-      });
+      // Log completo del error en consola (solo si no es un error silenciado)
+      // No loguear errores que ya fueron silenciados arriba
+      const isSilencedError = 
+        (status === 404 && url.includes('supabase') && tablesToSilence.some(table => url.includes(`/${table}`))) ||
+        (status === 400 && url.includes('supabase') && url.includes('/storage/v1/object/')) ||
+        (status === 400 && url.includes('supabase') && url.includes('/rest/v1/') && 
+         (error.error?.message?.includes('foreign key') || error.error?.error?.includes('foreign key')));
+      
+      if (!isSilencedError) {
+        console.error('🚨 Error HTTP Detectado:', {
+          summary: errorSummary,
+          status: status,
+          method: method,
+          url: url,
+          message: error.message,
+          error: error.error,
+          details: errorDetails,
+          timestamp: new Date().toISOString(),
+        });
+      }
 
       // En producción, aquí se podría enviar el error a un servicio de tracking
       // como Sentry, Rollbar, etc.

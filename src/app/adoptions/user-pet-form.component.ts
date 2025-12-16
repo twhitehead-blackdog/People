@@ -40,14 +40,39 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
   providers: [MessageService],
   template: `
     <p-toast />
-    <div class="user-pet-form-container">
-      <div class="form-header">
-        <h2 class="form-title">🐾 {{ isEditMode() ? 'Editar' : 'Añadir' }} Mascota</h2>
-        <p class="form-subtitle">
-          {{ isEditMode() ? 'Actualiza la información de tu mascota' : 'Completa el formulario con los detalles de tu mascota' }}
-        </p>
+    <div class="user-pet-form-section">
+      <!-- Hero Section -->
+      <div class="hero-section">
+        <div class="hero-background-elements">
+          <div class="animated-emoji emoji-1">🐕</div>
+          <div class="animated-emoji emoji-2">💕</div>
+          <div class="animated-emoji emoji-3">🐱</div>
+          <div class="animated-emoji emoji-4">✨</div>
+        </div>
+
+        <div class="hero-content">
+          <div class="hero-text">
+            <div class="hero-title-wrapper">
+              <div class="heart-icon-wrapper heart-1">
+                <span class="heart-icon">❤️</span>
+                <span class="sparkle-icon sparkle-1">✨</span>
+              </div>
+              <h1 class="hero-title">{{ isEditMode() ? 'EDITAR MASCOTA' : 'AÑADIR MASCOTA' }}</h1>
+              <div class="heart-icon-wrapper heart-2">
+                <span class="heart-icon">❤️</span>
+                <span class="sparkle-icon sparkle-2">✨</span>
+              </div>
+            </div>
+            
+            <p class="hero-subtitle">
+              {{ isEditMode() ? '💝 Actualiza la información de tu mascota 🐾' : '💝 Completa el formulario con los detalles de tu mascota 🐾' }}
+            </p>
+          </div>
+        </div>
       </div>
 
+      <!-- Form Container -->
+      <div class="user-pet-form-container">
       <form (ngSubmit)="savePet()" class="user-pet-form">
         <!-- Información Básica -->
         <div class="form-section">
@@ -199,28 +224,15 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
             />
           </div>
 
-          <div class="form-row">
-            <div class="form-group checkbox-group">
-              <p-checkbox
-                [(ngModel)]="petForm.is_vaccinated"
-                name="is_vaccinated"
-                [binary]="true"
-                inputId="is_vaccinated"
-                [disabled]="isLoading()"
-              />
-              <label for="is_vaccinated" class="checkbox-label">💉 Vacunado</label>
-            </div>
-
-            <div class="form-group checkbox-group">
-              <p-checkbox
-                [(ngModel)]="petForm.is_sterilized"
-                name="is_sterilized"
-                [binary]="true"
-                inputId="is_sterilized"
-                [disabled]="isLoading()"
-              />
-              <label for="is_sterilized" class="checkbox-label">✂️ Esterilizado</label>
-            </div>
+          <div class="form-group checkbox-group">
+            <p-checkbox
+              [(ngModel)]="petForm.is_vaccinated"
+              name="is_vaccinated"
+              [binary]="true"
+              inputId="is_vaccinated"
+              [disabled]="isLoading()"
+            />
+            <label for="is_vaccinated" class="checkbox-label">💉 Vacunado</label>
           </div>
         </div>
 
@@ -270,11 +282,13 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
             [loading]="isLoading()"
             [disabled]="isLoading()"
             [style]="{
-              background: '#fbbf24',
+              background: 'linear-gradient(to right, #374151, #FBBF24)',
               border: 'none',
               color: '#000000',
               fontWeight: 'bold',
-              padding: '0.75rem 2rem'
+              padding: '0.75rem 2rem',
+              borderRadius: '0.75rem',
+              boxShadow: '0 4px 16px rgba(251, 191, 36, 0.4)'
             }"
           />
           <p-button
@@ -284,41 +298,184 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
             (onClick)="cancel()"
             [disabled]="isLoading()"
             [style]="{
-              background: '#e5e7eb',
-              border: 'none',
+              background: '#ffffff',
+              border: '1px solid rgba(55, 65, 81, 0.3)',
               color: '#374151',
-              padding: '0.75rem 2rem'
+              fontWeight: '600',
+              padding: '0.75rem 2rem',
+              borderRadius: '0.75rem'
             }"
           />
         </div>
       </form>
+      </div>
     </div>
   `,
   styles: [
     `
+      .user-pet-form-section {
+        width: 100%;
+        background: linear-gradient(to bottom, #f0f2f5 0%, #ffffff 50%, #f0f2f5 100%);
+        min-height: 100vh;
+      }
+
+      /* Hero Section */
+      .hero-section {
+        background: linear-gradient(135deg, #374151 0%, #000000 50%, #374151 100%);
+        padding: 4rem 2rem;
+        position: relative;
+        overflow: hidden;
+        border-bottom: 4px solid #FBBF24;
+      }
+
+      .hero-background-elements {
+        position: absolute;
+        inset: 0;
+        overflow: hidden;
+        opacity: 0.2;
+        pointer-events: none;
+      }
+
+      .animated-emoji {
+        position: absolute;
+        font-size: 3rem;
+        animation: bounce 2s ease-in-out infinite;
+      }
+
+      .emoji-1 {
+        top: 2.5rem;
+        left: 2.5rem;
+        animation-delay: 0s;
+      }
+
+      .emoji-2 {
+        top: 5rem;
+        right: 5rem;
+        animation-delay: 0.5s;
+      }
+
+      .emoji-3 {
+        bottom: 5rem;
+        left: 25%;
+        animation-delay: 1s;
+      }
+
+      .emoji-4 {
+        bottom: 2.5rem;
+        right: 33%;
+        animation-delay: 1.5s;
+      }
+
+      @keyframes bounce {
+        0%, 100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-20px);
+        }
+      }
+
+      .hero-content {
+        max-width: 1280px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        z-index: 10;
+      }
+
+      .hero-text {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+        position: relative;
+        z-index: 10;
+        text-align: center;
+        max-width: 1024px;
+      }
+
+      .hero-title-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+      }
+
+      .heart-icon-wrapper {
+        position: relative;
+      }
+
+      .heart-icon {
+        font-size: 4rem;
+        display: block;
+        animation: pulse 2s ease-in-out infinite;
+      }
+
+      .heart-2 .heart-icon {
+        animation-delay: 0.5s;
+      }
+
+      .sparkle-icon {
+        position: absolute;
+        font-size: 2rem;
+        animation: spin 3s linear infinite;
+      }
+
+      .sparkle-1 {
+        top: -0.5rem;
+        right: -0.5rem;
+      }
+
+      .sparkle-2 {
+        bottom: -0.5rem;
+        left: -0.5rem;
+        animation-delay: 1s;
+      }
+
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      @keyframes pulse {
+        0%, 100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.1);
+        }
+      }
+
+      .hero-title {
+        font-size: 3rem;
+        font-weight: 700;
+        background: linear-gradient(to right, #FBBF24 0%, #ffffff 50%, #FBBF24 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        line-height: 1.2;
+        margin: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+      }
+
+      .hero-subtitle {
+        font-size: 1.25rem;
+        color: #FBBF24;
+        line-height: 1.6;
+        margin: 0;
+      }
+
       .user-pet-form-container {
         max-width: 900px;
         margin: 0 auto;
-        padding: 2rem;
-        background: #ffffff;
-      }
-
-      .form-header {
-        margin-bottom: 2rem;
-        text-align: center;
-      }
-
-      .form-title {
-        font-size: 2rem;
-        font-weight: 700;
-        color: #000000;
-        margin: 0 0 0.5rem 0;
-      }
-
-      .form-subtitle {
-        font-size: 1rem;
-        color: #6b7280;
-        margin: 0;
+        padding: 3rem 2rem;
       }
 
       .user-pet-form {
@@ -328,25 +485,44 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
       }
 
       .form-section {
-        background: #f9fafb;
         padding: 1.5rem;
-        border-radius: 0.75rem;
-        border: 1px solid #e5e7eb;
+        background: #ffffff;
+        border-radius: 1rem;
+        border: 1px solid rgba(55, 65, 81, 0.2);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        margin-bottom: 1.5rem;
+        transition: all 0.3s ease;
+      }
+
+      .form-section:hover {
+        border-color: rgba(251, 191, 36, 0.4);
+        box-shadow: 0 8px 24px rgba(251, 191, 36, 0.15);
+        transform: translateY(-2px);
       }
 
       .section-title {
         font-size: 1.25rem;
-        font-weight: 600;
-        color: #000000;
+        font-weight: 700;
+        background: linear-gradient(to right, #374151 0%, #FBBF24 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
         margin: 0 0 1.5rem 0;
         padding-bottom: 0.75rem;
-        border-bottom: 2px solid #fbbf24;
+        border-bottom: 2px solid rgba(251, 191, 36, 0.2);
       }
 
       .form-row {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 1rem;
+        margin-top: 1rem;
+      }
+
+      /* Espacio adicional después del selector de raza */
+      pt-breed-selector {
+        display: block;
+        margin-bottom: 2rem;
       }
 
       .form-group {
@@ -357,7 +533,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
 
       .form-group label {
         font-weight: 600;
-        color: #000000;
+        color: #374151;
         font-size: 0.875rem;
       }
 
@@ -370,20 +546,109 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
       .checkbox-label {
         margin: 0;
         cursor: pointer;
-        font-weight: 500;
+        font-weight: 600;
+        color: #000000;
+        font-size: 0.875rem;
+      }
+
+      .checkbox-label input[type='checkbox'] {
+        cursor: pointer;
       }
 
       .form-actions {
         display: flex;
         gap: 1rem;
         justify-content: flex-end;
-        padding-top: 1rem;
-        border-top: 2px solid #e5e7eb;
+        margin-top: 1rem;
+      }
+
+      /* Input styles to match theme */
+      ::ng-deep .user-pet-form-container .p-inputtext,
+      ::ng-deep .user-pet-form-container .p-inputtextarea,
+      ::ng-deep .user-pet-form-container .p-dropdown,
+      ::ng-deep .user-pet-form-container .p-multiselect {
+        border: 1px solid rgba(55, 65, 81, 0.2) !important;
+        border-radius: 0.5rem !important;
+        transition: all 0.3s ease !important;
+      }
+
+      ::ng-deep .user-pet-form-container .p-inputtext:focus,
+      ::ng-deep .user-pet-form-container .p-inputtextarea:focus,
+      ::ng-deep .user-pet-form-container .p-dropdown:focus,
+      ::ng-deep .user-pet-form-container .p-multiselect:focus {
+        border-color: #FBBF24 !important;
+        box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.1) !important;
+      }
+
+      /* Asegurar que los overlays de los selects tengan z-index alto */
+      ::ng-deep .p-dropdown-panel {
+        z-index: 1100 !important;
+      }
+
+      ::ng-deep .p-overlay {
+        z-index: 1100 !important;
+      }
+
+      ::ng-deep .p-multiselect-panel {
+        z-index: 1100 !important;
+      }
+
+      /* Button hover effects */
+      ::ng-deep .user-pet-form-container .form-actions p-button button {
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        position: relative !important;
+        overflow: hidden !important;
+      }
+
+      ::ng-deep .user-pet-form-container .form-actions p-button button::before {
+        content: '' !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: -100% !important;
+        width: 100% !important;
+        height: 100% !important;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent) !important;
+        transition: left 0.5s !important;
+      }
+
+      ::ng-deep .user-pet-form-container .form-actions p-button[style*='#fbbf24'] button:hover:not(:disabled) {
+        transform: translateY(-2px) scale(1.05) !important;
+        box-shadow: 0 8px 25px rgba(251, 191, 36, 0.6), 0 0 25px rgba(251, 191, 36, 0.4) !important;
+      }
+
+      ::ng-deep .user-pet-form-container .form-actions p-button[style*='#fbbf24'] button:hover:not(:disabled)::before {
+        left: 100% !important;
+      }
+
+      ::ng-deep .user-pet-form-container .form-actions p-button[style*='#e5e7eb'] button:hover:not(:disabled) {
+        background: rgba(55, 65, 81, 0.1) !important;
+        border-color: #374151 !important;
+        transform: translateY(-2px) !important;
       }
 
       @media (max-width: 768px) {
+        .hero-section {
+          padding: 2rem 1rem;
+        }
+
+        .hero-title {
+          font-size: 2rem;
+        }
+
+        .hero-subtitle {
+          font-size: 1rem;
+        }
+
+        .heart-icon {
+          font-size: 3rem;
+        }
+
+        .sparkle-icon {
+          font-size: 1.5rem;
+        }
+
         .user-pet-form-container {
-          padding: 1rem;
+          padding: 2rem 1rem;
         }
 
         .form-row {
@@ -439,9 +704,30 @@ export class UserPetFormComponent implements OnInit {
   ];
 
   public personalityOptions = computed(() => {
-    return this.personalityTraitsStore.entities().map((trait) => ({
+    const traits = this.personalityTraitsStore.activeTraits();
+    if (traits.length === 0) {
+      // Fallback a opciones estáticas si no hay datos en el store
+      return [
+        { label: 'Juguetón', value: 'jugueton' },
+        { label: 'Tranquilo', value: 'tranquilo' },
+        { label: 'Cariñoso', value: 'carinoso' },
+        { label: 'Independiente', value: 'independiente' },
+        { label: 'Sociable', value: 'sociable' },
+        { label: 'Activo', value: 'activo' },
+        { label: 'Protector', value: 'protector' },
+        { label: 'Tímido', value: 'timido' },
+        { label: 'Curioso', value: 'curioso' },
+        { label: 'Energético', value: 'energetico' },
+        { label: 'Dócil', value: 'docil' },
+        { label: 'Amigable', value: 'amigable' },
+        { label: 'Inteligente', value: 'inteligente' },
+        { label: 'Leal', value: 'leal' },
+        { label: 'Travieso', value: 'travieso' },
+      ];
+    }
+    return traits.map((trait) => ({
       label: trait.label,
-      value: trait.id,
+      value: trait.value || trait.id,
     }));
   });
 
@@ -449,6 +735,9 @@ export class UserPetFormComponent implements OnInit {
   public initialAgeData = signal<AgeData | null>(null);
 
   ngOnInit(): void {
+    // Cargar rasgos de personalidad
+    this.personalityTraitsStore.fetchItems();
+    
     const routePetId = this.route.snapshot.paramMap.get('id');
     if (routePetId) {
       this.petId.set(routePetId);

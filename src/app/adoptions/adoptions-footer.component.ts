@@ -1,8 +1,8 @@
-import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Component, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { InputTextModule } from 'primeng/inputtext';
 import { Button } from 'primeng/button';
+import { InputTextModule } from 'primeng/inputtext';
 
 @Component({
   selector: 'pt-adoptions-footer',
@@ -19,7 +19,6 @@ import { Button } from 'primeng/button';
               alt="Black Dog Logo"
               class="footer-logo"
             />
-            <span class="logo-text">BLACK DOG</span>
           </div>
           <div class="contact-details">
             <p class="address">
@@ -81,8 +80,8 @@ import { Button } from 'primeng/button';
               />
             </div>
             <p class="privacy-text">
-              Al hacer clic en el botón, aceptas la Política de Privacidad y
-              los Términos y Condiciones.
+              Al hacer clic en el botón, aceptas la Política de Privacidad y los
+              Términos y Condiciones.
             </p>
           </div>
 
@@ -105,7 +104,7 @@ import { Button } from 'primeng/button';
 
       <div class="footer-bottom">
         <div class="footer-bottom-content">
-            <p class="copyright">
+          <p class="copyright">
             © 2025, Black Dog Panamá 🐕 Hecho con 💝 para las mascotas
           </p>
           <div class="payment-methods">
@@ -123,10 +122,69 @@ import { Button } from 'primeng/button';
   styles: [
     `
       .adoptions-footer {
-        background: linear-gradient(135deg, #1f2937 0%, #000000 50%, #1f2937 100%);
-        border-top: 4px solid #FDB022;
-        padding: 3rem 2rem 1rem;
+        background: linear-gradient(
+          135deg,
+          #1f2937 0%,
+          #000000 50%,
+          #1f2937 100%
+        );
+        position: relative;
+        overflow: hidden;
+        border-top: 4px solid #fdb022;
+        padding: 4rem 2rem 1.5rem;
         margin-top: 4rem;
+      }
+
+      .adoptions-footer::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(253, 176, 34, 0.5),
+          transparent
+        );
+        animation: shimmer 3s ease-in-out infinite;
+      }
+
+      @keyframes shimmer {
+        0%,
+        100% {
+          opacity: 0.3;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+
+      .adoptions-footer::after {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 500px;
+        height: 500px;
+        background: radial-gradient(
+          circle,
+          rgba(253, 176, 34, 0.1) 0%,
+          transparent 70%
+        );
+        border-radius: 50%;
+        animation: float 6s ease-in-out infinite;
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translate(0, 0) scale(1);
+        }
+        50% {
+          transform: translate(-20px, -20px) scale(1.1);
+        }
       }
 
       .footer-content {
@@ -135,42 +193,125 @@ import { Button } from 'primeng/button';
         gap: 3rem;
         max-width: 1400px;
         margin: 0 auto;
-        padding-bottom: 2rem;
-        border-bottom: 1px solid #e5e7eb;
+        padding-bottom: 2.5rem;
+        border-bottom: 1px solid rgba(253, 176, 34, 0.2);
+        position: relative;
+        z-index: 1;
+      }
+
+      .footer-content::after {
+        content: '';
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(253, 176, 34, 0.6),
+          transparent
+        );
       }
 
       .footer-column {
         display: flex;
         flex-direction: column;
         gap: 1.5rem;
+        position: relative;
+      }
+
+      .footer-column::before {
+        content: '';
+        position: absolute;
+        left: -1rem;
+        top: 0;
+        bottom: 0;
+        width: 3px;
+        background: linear-gradient(
+          180deg,
+          transparent,
+          rgba(253, 176, 34, 0.3),
+          transparent
+        );
+        opacity: 0;
+        transition: opacity 0.3s ease;
+      }
+
+      .footer-column:first-child::before {
+        display: none;
+      }
+
+      .footer-column:hover::before {
+        opacity: 1;
       }
 
       .footer-title {
         font-size: 1.125rem;
         font-weight: 700;
-        color: #FDB022;
+        color: #fdb022;
         margin: 0;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: 0.1em;
+        position: relative;
+        display: inline-block;
+        padding-bottom: 0.5rem;
+      }
+
+      .footer-title::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 40px;
+        height: 2px;
+        background: linear-gradient(90deg, #fdb022, #fcd34d);
+        border-radius: 2px;
+        animation: expand 2s ease-in-out infinite;
+      }
+
+      @keyframes expand {
+        0%,
+        100% {
+          width: 40px;
+        }
+        50% {
+          width: 60px;
+        }
       }
 
       .logo-container {
         display: flex;
         align-items: center;
-        gap: 0.75rem;
+        justify-content: flex-start;
+        width: fit-content;
+        max-width: 100%;
+        position: relative;
+        padding: 1rem;
+        border-radius: 0.75rem;
+        background: rgba(253, 176, 34, 0.05);
+        border: 1px solid rgba(253, 176, 34, 0.1);
+        transition: all 0.3s ease;
+      }
+
+      .logo-container:hover {
+        background: rgba(253, 176, 34, 0.1);
+        border-color: rgba(253, 176, 34, 0.3);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(253, 176, 34, 0.2);
       }
 
       .footer-logo {
-        width: 40px;
-        height: 40px;
+        width: 280px;
+        height: 60px;
         object-fit: contain;
+        flex-shrink: 0;
+        filter: drop-shadow(0 2px 8px rgba(253, 176, 34, 0.3));
+        transition: filter 0.3s ease;
       }
 
-      .logo-text {
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: #ffffff;
-        letter-spacing: 0.05em;
+      .logo-container:hover .footer-logo {
+        filter: drop-shadow(0 4px 12px rgba(253, 176, 34, 0.5));
       }
 
       .contact-details {
@@ -186,45 +327,93 @@ import { Button } from 'primeng/button';
         color: #d1d5db;
         line-height: 1.6;
         margin: 0;
+        transition: color 0.3s ease;
       }
 
-      .phone {
-        color: #FDB022;
+      .address:hover,
+      .hours p:hover {
+        color: #fcd34d;
       }
 
       .phone {
         display: flex;
         align-items: center;
         gap: 0.5rem;
+        color: #fdb022;
+        padding: 0.5rem;
+        border-radius: 0.5rem;
+        transition: all 0.3s ease;
+      }
+
+      .phone:hover {
+        background: rgba(253, 176, 34, 0.1);
+        transform: translateX(5px);
       }
 
       .phone a {
-        color: #FDB022;
+        color: #fdb022;
         text-decoration: none;
         font-weight: 600;
-        transition: color 0.3s ease;
+        transition: all 0.3s ease;
+        position: relative;
+      }
+
+      .phone a::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 0;
+        height: 2px;
+        background: linear-gradient(90deg, #fdb022, #fcd34d);
+        transition: width 0.3s ease;
       }
 
       .phone a:hover {
         color: #fcd34d;
-        text-decoration: underline;
+      }
+
+      .phone a:hover::after {
+        width: 100%;
       }
 
       .footer-nav {
         display: flex;
         flex-direction: column;
-        gap: 0.75rem;
+        gap: 0.5rem;
       }
 
       .footer-link {
         color: #d1d5db;
         text-decoration: none;
         font-size: 0.875rem;
-        transition: color 0.3s ease;
+        transition: all 0.3s ease;
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.5rem;
+        position: relative;
+        display: inline-block;
+        width: fit-content;
+      }
+
+      .footer-link::before {
+        content: '→';
+        position: absolute;
+        left: -1rem;
+        opacity: 0;
+        transition: all 0.3s ease;
+        color: #fdb022;
       }
 
       .footer-link:hover {
-        color: #FDB022;
+        color: #fdb022;
+        background: rgba(253, 176, 34, 0.1);
+        transform: translateX(10px);
+        padding-left: 1.5rem;
+      }
+
+      .footer-link:hover::before {
+        opacity: 1;
+        left: 0.5rem;
       }
 
       .newsletter {
@@ -245,6 +434,17 @@ import { Button } from 'primeng/button';
         align-items: center;
         gap: 0.5rem;
         position: relative;
+        background: rgba(31, 41, 55, 0.5);
+        border-radius: 0.75rem;
+        padding: 0.25rem;
+        border: 2px solid rgba(253, 176, 34, 0.2);
+        transition: all 0.3s ease;
+      }
+
+      .newsletter-input-container:focus-within {
+        border-color: rgba(253, 176, 34, 0.5);
+        box-shadow: 0 0 0 4px rgba(253, 176, 34, 0.1),
+          0 4px 12px rgba(253, 176, 34, 0.2);
       }
 
       .newsletter-icon {
@@ -255,6 +455,7 @@ import { Button } from 'primeng/button';
         display: flex;
         align-items: center;
         height: 100%;
+        filter: drop-shadow(0 0 4px rgba(253, 176, 34, 0.5));
       }
 
       .newsletter-input {
@@ -263,16 +464,14 @@ import { Button } from 'primeng/button';
         padding-right: 1rem;
         padding-top: 0.75rem;
         padding-bottom: 0.75rem;
-        border: 2px solid rgba(253, 176, 34, 0.3);
-        border-radius: 0.75rem;
-        background: #1f2937;
+        border: none;
+        border-radius: 0.5rem;
+        background: transparent;
         color: #ffffff;
         transition: all 0.3s ease;
       }
 
       .newsletter-input:focus {
-        border-color: #FDB022;
-        box-shadow: 0 0 0 3px rgba(253, 176, 34, 0.2);
         outline: none;
       }
 
@@ -287,16 +486,70 @@ import { Button } from 'primeng/button';
         margin: 0;
       }
 
+      ::ng-deep .newsletter-input-container p-button button {
+        background: linear-gradient(to right, #fdb022, #fcd34d) !important;
+        border: none !important;
+        color: #000000 !important;
+        font-weight: bold !important;
+        box-shadow: 0 2px 8px rgba(253, 176, 34, 0.3) !important;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        position: relative !important;
+        overflow: hidden !important;
+      }
+
+      ::ng-deep .newsletter-input-container p-button button::before {
+        content: '' !important;
+        position: absolute !important;
+        top: 0 !important;
+        left: -100% !important;
+        width: 100% !important;
+        height: 100% !important;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.3),
+          transparent
+        ) !important;
+        transition: left 0.5s ease !important;
+      }
+
+      ::ng-deep
+        .newsletter-input-container
+        p-button
+        button:hover:not(:disabled) {
+        background: linear-gradient(to right, #fcd34d, #fdb022) !important;
+        transform: translateY(-2px) scale(1.05) !important;
+        box-shadow: 0 6px 20px rgba(253, 176, 34, 0.5),
+          0 0 30px rgba(253, 176, 34, 0.3) !important;
+      }
+
+      ::ng-deep
+        .newsletter-input-container
+        p-button
+        button:hover:not(:disabled)::before {
+        left: 100% !important;
+      }
+
+      ::ng-deep
+        .newsletter-input-container
+        p-button
+        button:active:not(:disabled) {
+        transform: translateY(0) scale(1.02) !important;
+      }
+
       .social-media {
         margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid rgba(253, 176, 34, 0.1);
       }
 
       .social-title {
         font-size: 0.875rem;
         font-weight: 700;
-        color: #FDB022;
-        margin: 0 0 0.75rem 0;
+        color: #fdb022;
+        margin: 0 0 1rem 0;
         text-transform: uppercase;
+        letter-spacing: 0.05em;
       }
 
       .social-icons {
@@ -305,36 +558,77 @@ import { Button } from 'primeng/button';
       }
 
       .social-icon {
-        width: 40px;
-        height: 40px;
+        width: 45px;
+        height: 45px;
         border-radius: 50%;
         background: rgba(31, 41, 55, 1);
         border: 2px solid rgba(253, 176, 34, 0.3);
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #FDB022;
+        color: #fdb022;
         text-decoration: none;
-        transition: all 0.3s ease;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         font-size: 1.25rem;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .social-icon::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(253, 176, 34, 0.2);
+        transform: translate(-50%, -50%);
+        transition: width 0.4s ease, height 0.4s ease;
       }
 
       .social-icon span {
         font-size: 1.25rem;
+        position: relative;
+        z-index: 1;
+        transition: transform 0.3s ease;
       }
 
       .social-icon:hover {
-        background: #FDB022;
-        border-color: #FDB022;
+        background: #fdb022;
+        border-color: #fdb022;
         color: #000000;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(253, 176, 34, 0.5);
+        transform: translateY(-4px) scale(1.1);
+        box-shadow: 0 6px 20px rgba(253, 176, 34, 0.6),
+          0 0 30px rgba(253, 176, 34, 0.4);
+      }
+
+      .social-icon:hover::before {
+        width: 100px;
+        height: 100px;
+      }
+
+      .social-icon:hover span {
+        transform: scale(1.2) rotate(5deg);
       }
 
       .footer-bottom {
         margin-top: 2rem;
         padding-top: 2rem;
-        border-top: 1px solid rgba(107, 114, 128, 0.3);
+        border-top: 1px solid rgba(253, 176, 34, 0.2);
+        position: relative;
+        z-index: 1;
+      }
+
+      .footer-bottom::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 100px;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, #fdb022, transparent);
       }
 
       .footer-bottom-content {
@@ -343,27 +637,44 @@ import { Button } from 'primeng/button';
         align-items: center;
         max-width: 1400px;
         margin: 0 auto;
+        gap: 2rem;
       }
 
       .copyright {
         font-size: 0.875rem;
         color: #9ca3af;
         margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
       }
 
       .copyright :global(span) {
         color: #fbbf24;
+        animation: pulse-heart 2s ease-in-out infinite;
+      }
+
+      @keyframes pulse-heart {
+        0%,
+        100% {
+          transform: scale(1);
+        }
+        50% {
+          transform: scale(1.2);
+        }
       }
 
       .payment-methods {
         display: flex;
         align-items: center;
         gap: 1rem;
+        flex-wrap: wrap;
       }
 
       .payment-label {
         font-size: 0.875rem;
         color: #9ca3af;
+        font-weight: 500;
       }
 
       .payment-icons {
@@ -374,10 +685,38 @@ import { Button } from 'primeng/button';
       .payment-icon {
         padding: 0.5rem 1rem;
         border: 1px solid #d1d5db;
-        border-radius: 0.25rem;
+        border-radius: 0.5rem;
         font-size: 0.75rem;
         font-weight: 600;
         color: #000000;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .payment-icon::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.2),
+          transparent
+        );
+        transition: left 0.5s ease;
+      }
+
+      .payment-icon:hover::before {
+        left: 100%;
+      }
+
+      .payment-icon:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
       }
 
       .payment-icon.visa {
@@ -409,6 +748,10 @@ import { Button } from 'primeng/button';
       }
 
       @media (max-width: 768px) {
+        .adoptions-footer {
+          padding: 3rem 1.5rem 1rem;
+        }
+
         .footer-content {
           grid-template-columns: 1fr;
           gap: 2rem;
@@ -418,6 +761,10 @@ import { Button } from 'primeng/button';
           flex-direction: column;
           gap: 1rem;
           text-align: center;
+        }
+
+        .payment-methods {
+          justify-content: center;
         }
       }
     `,
@@ -434,4 +781,3 @@ export class AdoptionsFooterComponent {
     }
   }
 }
-

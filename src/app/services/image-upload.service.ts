@@ -56,7 +56,7 @@ export class ImageUploadService {
     // Codificar el path para la URL
     const encodedPath = encodeURIComponent(filePath);
 
-    // URL del endpoint de Storage
+    // URL del endpoint de Storage (usar PUT para subir archivos)
     const uploadUrl = `${this.supabaseUrl}/storage/v1/object/${this.bucketName}/${encodedPath}`;
 
     // Leer el archivo como ArrayBuffer para enviarlo correctamente
@@ -66,9 +66,9 @@ export class ImageUploadService {
       reader.onload = () => {
         const arrayBuffer = reader.result as ArrayBuffer;
         
-        // Realizar la petición POST
+        // Realizar la petición PUT (método correcto para Supabase Storage)
         this.http
-          .post<{ Key: string; message?: string }>(
+          .put<{ Key: string; message?: string }>(
             uploadUrl,
             arrayBuffer,
             {
@@ -92,8 +92,35 @@ export class ImageUploadService {
               };
             }),
             catchError((error: HttpErrorResponse) => {
-              console.error('Error al subir imagen:', error);
-              const errorMessage = error.error?.message || error.message || 'Error desconocido al subir la imagen';
+              // No loguear el error aquí, el interceptor lo manejará
+              // Solo extraer el mensaje de error
+              let errorMessage = 'Error desconocido al subir la imagen';
+              
+              if (error.error) {
+                if (typeof error.error === 'string') {
+                  errorMessage = error.error;
+                } else if (error.error.message) {
+                  errorMessage = error.error.message;
+                } else if (error.error.error) {
+                  errorMessage = error.error.error;
+                }
+              } else if (error.message) {
+                errorMessage = error.message;
+              }
+              
+              // Mejorar mensajes de error según el código de estado
+              if (error.status === 400) {
+                errorMessage = 'No se pudo subir la imagen. Verifica que el bucket "pet-photos" exista y tenga las políticas de acceso configuradas correctamente.';
+              } else if (error.status === 401 || error.status === 403) {
+                errorMessage = 'No tienes permisos para subir imágenes. Verifica tu autenticación.';
+              } else if (error.status === 404) {
+                errorMessage = 'El bucket "pet-photos" no existe. Por favor, créalo en Supabase Storage.';
+              } else if (error.status === 413) {
+                errorMessage = 'El archivo es demasiado grande. El tamaño máximo es 10MB.';
+              } else if (error.status === 0) {
+                errorMessage = 'No se pudo conectar con el servidor. Verifica tu conexión a internet.';
+              }
+              
               return throwError(() => new Error(errorMessage));
             })
           )

@@ -55,13 +55,13 @@ export interface AgeData {
               />
             </div>
             <div class="age-input-group">
-              <label>Meses</label>
+              <label>Meses (0-11)</label>
               <p-inputNumber
                 [(ngModel)]="ageMonths"
                 [min]="0"
                 [max]="11"
                 placeholder="0"
-                (onInput)="onYearsMonthsChange()"
+                (onInput)="onMonthsInput($event)"
                 [style]="{ width: '100%' }"
               />
             </div>
@@ -192,6 +192,12 @@ export interface AgeData {
         font-size: 0.9375rem;
       }
 
+      .form-hint {
+        font-size: 0.75rem;
+        color: #6b7280;
+        margin-top: 0.25rem;
+      }
+
       @media (max-width: 768px) {
         .age-inputs {
           grid-template-columns: 1fr;
@@ -266,6 +272,24 @@ export class AgeSelectorComponent {
   }
 
   public onYearsMonthsChange(): void {
+    this.emitAgeChange();
+  }
+
+  public onMonthsInput(event: any): void {
+    // Asegurar que los meses no excedan 11
+    // El evento de p-inputNumber puede pasar el valor de diferentes formas
+    const value = event.value !== undefined ? event.value : (event.target?.value !== undefined ? Number(event.target.value) : this.ageMonths());
+    
+    if (value !== null && value !== undefined && !isNaN(value)) {
+      const numValue = Number(value);
+      if (numValue > 11) {
+        this.ageMonths.set(11);
+      } else if (numValue < 0) {
+        this.ageMonths.set(0);
+      } else {
+        this.ageMonths.set(Math.floor(numValue)); // Asegurar que sea un entero
+      }
+    }
     this.emitAgeChange();
   }
 

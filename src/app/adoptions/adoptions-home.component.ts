@@ -150,6 +150,8 @@ import { filter, take } from 'rxjs/operators';
       .adoptions-home {
         display: flex;
         flex-direction: column;
+        background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
+        min-height: 100vh;
       }
 
       .hero-section-wrapper {
@@ -184,32 +186,51 @@ import { filter, take } from 'rxjs/operators';
       }
 
       .adoption-plan-section {
-        background: #ffffff;
+        background: transparent;
         width: 100%;
-        padding: 3rem 0;
+        padding: 3rem 2rem;
         text-align: center;
       }
 
       .adoption-plan-section-inner {
         max-width: 1400px;
         margin: 0 auto;
-        padding: 0 2rem;
+        padding: 2rem;
+        background: #ffffff;
+        border: 1px solid #374151;
+        border-radius: 1rem;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .adoption-plan-section-inner::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #FBBF24 0%, #374151 50%, #FBBF24 100%);
       }
 
       .plan-title {
-        font-size: 2rem;
+        font-size: 2.5rem;
         font-weight: 700;
         color: #000000;
         margin: 0 0 1rem 0;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
       }
 
       .plan-description {
         font-size: 1.125rem;
-        color: #6b7280;
+        color: #374151;
         margin: 0 0 2rem 0;
         max-width: 800px;
         margin-left: auto;
         margin-right: auto;
+        font-weight: 500;
       }
 
       .adoption-buttons-row {
@@ -225,7 +246,7 @@ import { filter, take } from 'rxjs/operators';
       }
 
       .animate-banner {
-        background: linear-gradient(135deg, #fbbf24 0%, #fcd34d 50%, #fbbf24 100%);
+        background: linear-gradient(135deg, #FBBF24 0%, #fcd34d 50%, #FBBF24 100%);
         background-size: 200% 100%;
         padding: 2rem 3rem;
         border-radius: 1rem;
@@ -237,7 +258,7 @@ import { filter, take } from 'rxjs/operators';
         position: relative;
         overflow: hidden;
         box-shadow: 0 8px 24px rgba(251, 191, 36, 0.4),
-                    0 0 0 2px rgba(0, 0, 0, 0.1);
+                    0 0 0 1px #000000;
         animation: gradientShift 4s ease infinite;
       }
 
@@ -382,10 +403,10 @@ import { filter, take } from 'rxjs/operators';
         justify-content: center;
         gap: 1rem;
         padding: 2rem;
-        background: #ffffff;
+        background: transparent;
         flex-wrap: wrap;
         max-width: 1400px;
-        margin: 0 auto;
+        margin: 2rem auto;
       }
 
       .nav-tab {
@@ -393,19 +414,38 @@ import { filter, take } from 'rxjs/operators';
         flex-direction: column;
         align-items: center;
         gap: 0.5rem;
-        padding: 1rem 1.5rem;
+        padding: 1.5rem 1.5rem;
         text-decoration: none;
         color: #000000;
         font-weight: 600;
         font-size: 0.875rem;
-        border-radius: 0.5rem;
-        transition: background 0.2s;
+        border-radius: 1rem;
+        transition: all 0.3s ease;
         text-transform: uppercase;
         letter-spacing: 0.02em;
+        background: #ffffff;
+        border: 1px solid #374151;
+        box-shadow: 0 4px 12px rgba(55, 65, 81, 0.1);
+        position: relative;
+        overflow: hidden;
+        min-width: 140px;
+      }
+
+      .nav-tab::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #FBBF24 0%, #374151 50%, #FBBF24 100%);
       }
 
       .nav-tab:hover {
-        background: #f3f4f6;
+        background: rgba(251, 191, 36, 0.1);
+        border-color: #FBBF24;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(251, 191, 36, 0.3);
       }
 
       .tab-icon {
@@ -414,13 +454,68 @@ import { filter, take } from 'rxjs/operators';
 
       .section-anchor {
         scroll-margin-top: 2rem;
+        padding: 2rem 0;
+        position: relative;
+      }
+
+      /* Estilo para las secciones internas */
+      ::ng-deep .section-anchor > * {
+        background: #ffffff;
+        border: 1px solid #374151;
+        border-radius: 1rem;
+        padding: 2rem;
+        margin: 2rem auto;
+        max-width: 1400px;
+        box-shadow: 0 4px 12px rgba(55, 65, 81, 0.1);
+        position: relative;
+        overflow: hidden;
+      }
+
+      ::ng-deep .section-anchor > *::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #FBBF24 0%, #374151 50%, #FBBF24 100%);
+        border-radius: 1rem 1rem 0 0;
+        z-index: 1;
+      }
+
+      /* Eliminar cualquier pseudo-elemento al final */
+      ::ng-deep .section-anchor > *::after {
+        display: none !important;
+        content: none !important;
+      }
+
+      /* Eliminar elementos decorativos de los componentes internos al final */
+      ::ng-deep .section-anchor > * > *::after {
+        display: none !important;
+        content: none !important;
+      }
+
+      /* Asegurar que el contenido interno no se desborde */
+      ::ng-deep .section-anchor > * > * {
+        position: relative;
+        z-index: 0;
+      }
+
+      /* Asegurar que no haya bordes o líneas decorativas al final de las secciones */
+      ::ng-deep .section-anchor > * {
+        border-bottom: 1px solid #374151 !important;
+      }
+
+      ::ng-deep .section-anchor > *:last-child {
+        margin-bottom: 0 !important;
       }
 
       ::ng-deep .adoption-plan-section p-button button {
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        transition: all 0.3s ease !important;
         position: relative !important;
         overflow: hidden !important;
-        box-shadow: 0 2px 8px rgba(251, 191, 36, 0.3) !important;
+        box-shadow: 0 4px 12px rgba(55, 65, 81, 0.1) !important;
+        border: 1px solid #374151 !important;
       }
 
       ::ng-deep .adoption-plan-section p-button button::before {
@@ -435,10 +530,11 @@ import { filter, take } from 'rxjs/operators';
       }
 
       ::ng-deep .adoption-plan-section p-button button:hover {
-        background: #000000 !important;
-        color: #fbbf24 !important;
-        transform: translateY(-3px) scale(1.05) !important;
-        box-shadow: 0 8px 25px rgba(251, 191, 36, 0.6), 0 0 25px rgba(251, 191, 36, 0.4) !important;
+        background: #374151 !important;
+        color: #FBBF24 !important;
+        border-color: #FBBF24 !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 8px 24px rgba(251, 191, 36, 0.3) !important;
       }
 
       ::ng-deep .adoption-plan-section p-button button:hover::before {
@@ -446,7 +542,7 @@ import { filter, take } from 'rxjs/operators';
       }
 
       ::ng-deep .adoption-plan-section p-button button:active {
-        transform: translateY(-1px) scale(1.02) !important;
+        transform: translateY(0) !important;
       }
 
       @media (max-width: 768px) {

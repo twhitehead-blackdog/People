@@ -5,7 +5,7 @@ import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { DialogModule } from 'primeng/dialog';
-import { DropdownModule } from 'primeng/dropdown';
+import { SelectModule } from 'primeng/select';
 import { InputText } from 'primeng/inputtext';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
@@ -25,7 +25,7 @@ import { PartnersStore } from '../stores/partners.store';
     DialogModule,
     InputText,
     TextareaModule,
-    DropdownModule,
+    SelectModule,
     TagModule,
     ToastModule,
     Card,
@@ -195,7 +195,7 @@ import { PartnersStore } from '../stores/partners.store';
 
         <div class="form-group">
           <label for="partner_type">Tipo de Aliado *</label>
-          <p-dropdown
+          <p-select
             id="partner_type"
             [(ngModel)]="partnerForm.partner_type"
             name="partner_type"

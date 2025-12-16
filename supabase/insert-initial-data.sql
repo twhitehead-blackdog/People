@@ -1,16 +1,13 @@
 -- ============================================
--- Datos Iniciales: Razas de Perros y Gatos
--- Ejecuta este archivo después de pet-breeds-schema.sql
+-- Script para insertar datos iniciales en las tablas
+-- Ejecuta este archivo después de create-missing-tables.sql
 -- ============================================
 
--- Limpiar datos existentes (opcional, comentar si quieres mantener datos existentes)
--- DELETE FROM public.pet_breeds;
-
 -- ============================================
--- RAZAS DE PERROS
+-- RAZAS DE PERROS Y GATOS (pet_breeds)
 -- ============================================
 INSERT INTO public.pet_breeds (name, species, is_active, display_order) VALUES
--- Razas grandes
+-- Razas de perros grandes
 ('Labrador Retriever', 'dog', true, 1),
 ('Golden Retriever', 'dog', true, 2),
 ('Pastor Alemán', 'dog', true, 3),
@@ -32,7 +29,7 @@ INSERT INTO public.pet_breeds (name, species, is_active, display_order) VALUES
 ('Setter Irlandés', 'dog', true, 19),
 ('Braco Alemán', 'dog', true, 20),
 
--- Razas medianas
+-- Razas de perros medianas
 ('Beagle', 'dog', true, 21),
 ('Cocker Spaniel', 'dog', true, 22),
 ('Bulldog Francés', 'dog', true, 23),
@@ -54,7 +51,7 @@ INSERT INTO public.pet_breeds (name, species, is_active, display_order) VALUES
 ('Bull Terrier', 'dog', true, 39),
 ('Airedale Terrier', 'dog', true, 40),
 
--- Razas pequeñas
+-- Razas de perros pequeñas
 ('Chihuahua', 'dog', true, 41),
 ('Yorkshire Terrier', 'dog', true, 42),
 ('Pomerania', 'dog', true, 43),
@@ -76,20 +73,12 @@ INSERT INTO public.pet_breeds (name, species, is_active, display_order) VALUES
 ('Poodle Toy', 'dog', true, 59),
 ('Caniche', 'dog', true, 60),
 
--- Razas mixtas comunes (para referencia)
+-- Razas mixtas comunes
 ('Mestizo', 'dog', true, 100),
 ('Criollo', 'dog', true, 101),
-('Sin raza específica', 'dog', true, 102)
+('Sin raza específica', 'dog', true, 102),
 
-ON CONFLICT (name, species) DO UPDATE SET
-  is_active = EXCLUDED.is_active,
-  display_order = EXCLUDED.display_order;
-
--- ============================================
--- RAZAS DE GATOS
--- ============================================
-INSERT INTO public.pet_breeds (name, species, is_active, display_order) VALUES
--- Razas de pelo largo
+-- Razas de gatos de pelo largo
 ('Persa', 'cat', true, 1),
 ('Maine Coon', 'cat', true, 2),
 ('Ragdoll', 'cat', true, 3),
@@ -101,7 +90,7 @@ INSERT INTO public.pet_breeds (name, species, is_active, display_order) VALUES
 ('Exótico de Pelo Largo', 'cat', true, 9),
 ('Selkirk Rex', 'cat', true, 10),
 
--- Razas de pelo corto
+-- Razas de gatos de pelo corto
 ('British Shorthair', 'cat', true, 11),
 ('American Shorthair', 'cat', true, 12),
 ('Europeo', 'cat', true, 13),
@@ -123,7 +112,7 @@ INSERT INTO public.pet_breeds (name, species, is_active, display_order) VALUES
 ('Scottish Fold', 'cat', true, 29),
 ('American Curl', 'cat', true, 30),
 
--- Razas especiales
+-- Razas especiales de gatos
 ('Savannah', 'cat', true, 31),
 ('Maine Coon Polidáctilo', 'cat', true, 32),
 ('Van Turco', 'cat', true, 33),
@@ -145,9 +134,38 @@ ON CONFLICT (name, species) DO UPDATE SET
   is_active = EXCLUDED.is_active,
   display_order = EXCLUDED.display_order;
 
-COMMENT ON TABLE public.pet_breeds IS 'Catálogo de razas de perros y gatos - Datos iniciales insertados';
+-- ============================================
+-- RASGOS DE PERSONALIDAD (personality_traits)
+-- ============================================
+INSERT INTO public.personality_traits (label, value, description, icon, category, display_order, is_active) VALUES
+('Juguetón', 'jugueton', 'Le encanta jugar y estar activo', '🎾', 'actividad', 1, true),
+('Tranquilo', 'tranquilo', 'Es calmado y relajado', '😌', 'temperamento', 2, true),
+('Cariñoso', 'carinoso', 'Muy afectuoso y busca atención', '💕', 'social', 3, true),
+('Independiente', 'independiente', 'Prefiere hacer las cosas por su cuenta', '🦁', 'temperamento', 4, true),
+('Sociable', 'sociable', 'Se lleva bien con otros animales y personas', '👥', 'social', 5, true),
+('Activo', 'activo', 'Tiene mucha energía y necesita ejercicio', '⚡', 'actividad', 6, true),
+('Protector', 'protector', 'Cuida y protege a su familia', '🛡️', 'comportamiento', 7, true),
+('Tímido', 'timido', 'Es reservado y necesita tiempo para confiar', '🌙', 'temperamento', 8, true),
+('Curioso', 'curioso', 'Le gusta explorar y descubrir cosas nuevas', '🔍', 'comportamiento', 9, true),
+('Energético', 'energetico', 'Muy activo y lleno de vitalidad', '⚡', 'actividad', 10, true),
+('Dócil', 'docil', 'Es obediente y fácil de entrenar', '✨', 'comportamiento', 11, true),
+('Amigable', 'amigable', 'Se relaciona fácilmente con todos', '🤝', 'social', 12, true),
+('Travieso', 'travieso', 'Le gusta hacer travesuras', '😈', 'comportamiento', 13, true),
+('Inteligente', 'inteligente', 'Aprende rápido y es muy listo', '🧠', 'comportamiento', 14, true),
+('Leal', 'leal', 'Muy fiel a su familia', '❤️', 'social', 15, true),
+('Valiente', 'valiente', 'No tiene miedo y es audaz', '🦸', 'temperamento', 16, true),
+('Paciente', 'paciente', 'Es tolerante y calmado', '🧘', 'temperamento', 17, true),
+('Divertido', 'divertido', 'Tiene un gran sentido del humor', '😄', 'comportamiento', 18, true),
+('Elegante', 'elegante', 'Tiene movimientos y actitud refinados', '👑', 'temperamento', 19, true),
+('Aventurero', 'aventurero', 'Le encanta explorar nuevos lugares', '🗺️', 'actividad', 20, true)
 
-
+ON CONFLICT (value) DO UPDATE SET
+  label = EXCLUDED.label,
+  description = EXCLUDED.description,
+  icon = EXCLUDED.icon,
+  category = EXCLUDED.category,
+  display_order = EXCLUDED.display_order,
+  is_active = EXCLUDED.is_active;
 
 
 

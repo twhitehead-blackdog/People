@@ -109,7 +109,8 @@ export function withCustomEntities<T extends { id: EntityId }>({
           ),
           tap(() => {
             // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/c0122114-0a18-454b-b40e-dcae99b0f576',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'entities.feature.ts:110',message:'fetchItems - inicio',data:{entityName:name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+            // Silenciar errores de conexión al servicio de logging
+            fetch('http://127.0.0.1:7242/ingest/c0122114-0a18-454b-b40e-dcae99b0f576',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'entities.feature.ts:110',message:'fetchItems - inicio',data:{entityName:name},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{/* Silenciar errores de logging */});
             // #endregion
             patchState(state, { isLoading: true, error: null });
           }),
@@ -180,7 +181,7 @@ export function withCustomEntities<T extends { id: EntityId }>({
                 });
                 // Logging automático de auditoría
                 // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/c0122114-0a18-454b-b40e-dcae99b0f576',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'entities.feature.ts:177',message:'createItem - iniciando logging',data:{entityType:name,entityId:String(item[0].id)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                fetch('http://127.0.0.1:7242/ingest/c0122114-0a18-454b-b40e-dcae99b0f576',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'entities.feature.ts:177',message:'createItem - iniciando logging',data:{entityType:name,entityId:String(item[0].id)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{/* Silenciar errores de logging */});
                 // #endregion
                 state._audit.logAction(
                   name,
@@ -193,12 +194,12 @@ export function withCustomEntities<T extends { id: EntityId }>({
                 ).subscribe({
                   next: (log) => {
                     // #region agent log
-                    fetch('http://127.0.0.1:7242/ingest/c0122114-0a18-454b-b40e-dcae99b0f576',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'entities.feature.ts:189',message:'createItem - logging exitoso',data:{logId:log?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                    fetch('http://127.0.0.1:7242/ingest/c0122114-0a18-454b-b40e-dcae99b0f576',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'entities.feature.ts:189',message:'createItem - logging exitoso',data:{logId:log?.id},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{/* Silenciar errores de logging */});
                     // #endregion
                   },
                   error: (err) => {
                     // #region agent log
-                    fetch('http://127.0.0.1:7242/ingest/c0122114-0a18-454b-b40e-dcae99b0f576',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'entities.feature.ts:195',message:'createItem - error en logging',data:{error:err?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+                    fetch('http://127.0.0.1:7242/ingest/c0122114-0a18-454b-b40e-dcae99b0f576',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'entities.feature.ts:195',message:'createItem - error en logging',data:{error:err?.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{/* Silenciar errores de logging */});
                     // #endregion
                   }
                 });

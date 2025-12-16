@@ -5,7 +5,7 @@ import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { DialogModule } from 'primeng/dialog';
-import { DropdownModule } from 'primeng/dropdown';
+import { SelectModule } from 'primeng/select';
 import { InputText } from 'primeng/inputtext';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
@@ -26,7 +26,7 @@ import { PetsStore } from '../stores/pets.store';
     DialogModule,
     InputText,
     TextareaModule,
-    DropdownModule,
+    SelectModule,
     TagModule,
     ToastModule,
     Card,
@@ -238,7 +238,7 @@ import { PetsStore } from '../stores/pets.store';
         <div class="form-row">
           <div class="form-group">
             <label for="pet_id">Mascota Adoptada (Opcional)</label>
-            <p-dropdown
+            <p-select
               id="pet_id"
               [(ngModel)]="familyForm.pet_id"
               name="pet_id"

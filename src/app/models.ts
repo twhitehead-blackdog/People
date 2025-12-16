@@ -121,6 +121,10 @@ export type PetMatch = {
     preferred_contact?: 'email' | 'phone' | 'both';
   }; // Información de contacto del dueño
   preferred_breed_match: 'same' | 'different' | 'both'; // Preferencia: misma raza, diferente, o ambas
+  preferred_size?: 'small' | 'medium' | 'large'; // Tamaño preferido de la pareja
+  preferred_age_min?: number; // Edad mínima preferida (años)
+  preferred_age_max?: number; // Edad máxima preferida (años)
+  notify_if_has_pet?: boolean; // Notificar si ya tiene una mascota del género opuesto
   personality?: string[];
   photos?: string[];
   is_vaccinated: boolean;

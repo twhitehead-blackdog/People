@@ -5,13 +5,13 @@ import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { DialogModule } from 'primeng/dialog';
-import { DropdownModule } from 'primeng/dropdown';
+import { SelectModule } from 'primeng/select';
 import { InputText } from 'primeng/inputtext';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TextareaModule } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
-import { CalendarModule } from 'primeng/calendar';
+import { DatePickerModule } from 'primeng/datepicker';
 import { Event, Foundation } from '../models';
 import { EventsStore } from '../stores/events.store';
 import { FoundationsStore } from '../stores/foundations.store';
@@ -27,11 +27,11 @@ import { FoundationsStore } from '../stores/foundations.store';
     DialogModule,
     InputText,
     TextareaModule,
-    DropdownModule,
+    SelectModule,
     TagModule,
     ToastModule,
     Card,
-    CalendarModule,
+    DatePickerModule,
   ],
   providers: [MessageService],
   template: `
@@ -187,7 +187,7 @@ import { FoundationsStore } from '../stores/foundations.store';
         <div class="form-row">
           <div class="form-group">
             <label for="event_date">Fecha del Evento *</label>
-            <p-calendar
+            <p-datepicker
               id="event_date"
               [(ngModel)]="eventForm.event_date"
               name="event_date"
@@ -216,7 +216,7 @@ import { FoundationsStore } from '../stores/foundations.store';
         <div class="form-row">
           <div class="form-group">
             <label for="event_type">Tipo de Evento *</label>
-            <p-dropdown
+            <p-select
               id="event_type"
               [(ngModel)]="eventForm.event_type"
               name="event_type"
@@ -232,7 +232,7 @@ import { FoundationsStore } from '../stores/foundations.store';
 
           <div class="form-group">
             <label for="foundation_id">Fundación (Opcional)</label>
-            <p-dropdown
+            <p-select
               id="foundation_id"
               [(ngModel)]="eventForm.foundation_id"
               name="foundation_id"

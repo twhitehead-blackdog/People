@@ -2,17 +2,22 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Button } from 'primeng/button';
+import { ToastModule } from 'primeng/toast';
+import { MessageService } from 'primeng/api';
 import { PetMatch } from '../models';
 import { PetMatchesStore } from '../stores/pet-matches.store';
 import { AuthWrapperService } from '../auth/auth-wrapper.service';
+import { DemoModeService } from './demo-mode.service';
 import { PetMatchCardComponent } from './pet-match-card.component';
 import { PetMatchFiltersComponent, PetMatchFilters } from './pet-match-filters.component';
 
 @Component({
   selector: 'pt-pet-matches-section',
   standalone: true,
-  imports: [CommonModule, Button, PetMatchCardComponent, PetMatchFiltersComponent],
+  imports: [CommonModule, Button, ToastModule, PetMatchCardComponent, PetMatchFiltersComponent],
+  providers: [MessageService],
   template: `
+    <p-toast />
     <div class="pet-matches-section">
       <!-- Hero Section -->
       <div class="hero-section">
@@ -648,9 +653,17 @@ export class PetMatchesSectionComponent {
   private router = inject(Router);
   public petMatchesStore = inject(PetMatchesStore);
   private authWrapper = inject(AuthWrapperService);
+  private demoModeService = inject(DemoModeService);
+  private messageService = inject(MessageService);
 
+  public useDemoData = this.demoModeService.useDemoData;
   public currentFilters = signal<PetMatchFilters | null>(null);
   public activeTab = signal<'all' | 'dog' | 'cat'>('all');
+  public demoMatches = signal<PetMatch[]>([]);
+
+  constructor() {
+    this.initializeDemoData();
+  }
 
   public isAuthenticated = computed(() => {
     return this.authWrapper.currentUser() !== null;
@@ -671,7 +684,10 @@ export class PetMatchesSectionComponent {
   }
 
   public filteredMatches = computed(() => {
-    let matches = this.petMatchesStore.entities().filter((m) => m.is_active);
+    // Usar datos demo si el modo demo está activado, sino usar datos reales
+    let matches = this.useDemoData() 
+      ? this.demoMatches().filter((m) => m.is_active)
+      : this.petMatchesStore.entities().filter((m) => m.is_active);
 
     const filters = this.currentFilters();
     if (!filters) {
@@ -743,10 +759,306 @@ export class PetMatchesSectionComponent {
 
   public navigateToForm(): void {
     if (!this.isAuthenticated()) {
-      this.router.navigate(['/auth/login']);
+      this.messageService.add({
+        severity: 'info',
+        summary: 'Inicio de sesión requerido',
+        detail: 'Por favor inicia sesión para publicar tu mascota buscando pareja',
+        life: 3000
+      });
+      // Pequeño delay para que el usuario vea el mensaje antes de redirigir
+      setTimeout(() => {
+        this.router.navigate(['/auth/login'], {
+          queryParams: { returnUrl: '/adoptions/busco-pareja/publicar' }
+        });
+      }, 500);
       return;
     }
-    this.router.navigate(['/adoptions/busco-pareja/publicar']);
+    
+    // Navegar al formulario de publicación
+    this.router.navigate(['/adoptions/busco-pareja/publicar']).then((success) => {
+      if (success) {
+        this.messageService.add({
+          severity: 'success',
+          summary: '¡Vamos a publicar!',
+          detail: 'Completa el formulario para encontrar la pareja perfecta para tu mascota',
+          life: 3000
+        });
+      }
+    }).catch((error) => {
+      console.error('Error al navegar al formulario:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo abrir el formulario. Por favor intenta de nuevo.',
+        life: 3000
+      });
+    });
+  }
+
+  private initializeDemoData(): void {
+    const demoMatches: PetMatch[] = [
+      {
+        id: 'demo-match-1',
+        user_id: 'demo-user-1',
+        pet_name: 'Max',
+        species: 'dog',
+        breed: 'Golden Retriever',
+        breed_type: 'pure',
+        breed_primary: 'Golden Retriever',
+        age: 3,
+        age_years: 3,
+        age_months: 0,
+        gender: 'M',
+        size: 'large',
+        color: 'Dorado',
+        weight: 28,
+        description: 'Max es un perro muy cariñoso y juguetón. Le encanta jugar en el parque y está buscando una pareja para compartir aventuras. Es muy sociable y se lleva bien con otros perros.',
+        health_status: 'Saludable, vacunado y esterilizado',
+        location: 'Ciudad de Panamá, San Francisco',
+        contact_info: {
+          email: 'max.owner@demo.com',
+          phone: '+507 6123-4567',
+          preferred_contact: 'both'
+        },
+        preferred_breed_match: 'both',
+        personality: ['amigable', 'juguetón', 'sociable', 'activo'],
+        photos: ['assets/dog1.jpg'],
+        is_vaccinated: true,
+        is_sterilized: true,
+        is_active: true,
+        created_at: new Date('2024-01-15'),
+        updated_at: new Date('2024-01-15')
+      },
+      {
+        id: 'demo-match-2',
+        user_id: 'demo-user-2',
+        pet_name: 'Luna',
+        species: 'cat',
+        breed: 'Persa',
+        breed_type: 'pure',
+        breed_primary: 'Persa',
+        age: 2,
+        age_years: 2,
+        age_months: 4,
+        gender: 'F',
+        size: 'small',
+        color: 'Blanco y gris',
+        weight: 4,
+        description: 'Luna es una gata muy dulce y tranquila. Le encanta recibir mimos y está buscando un compañero felino para compartir su hogar. Es muy cariñosa y se adapta bien a nuevos ambientes.',
+        health_status: 'Saludable, vacunada y esterilizada',
+        location: 'Panamá, Bella Vista',
+        contact_info: {
+          email: 'luna.owner@demo.com',
+          phone: '+507 6234-5678',
+          preferred_contact: 'email'
+        },
+        preferred_breed_match: 'same',
+        personality: ['tranquila', 'cariñosa', 'dócil', 'curiosa'],
+        photos: ['assets/cat1.jpg'],
+        is_vaccinated: true,
+        is_sterilized: true,
+        is_active: true,
+        created_at: new Date('2024-01-20'),
+        updated_at: new Date('2024-01-20')
+      },
+      {
+        id: 'demo-match-3',
+        user_id: 'demo-user-3',
+        pet_name: 'Rocky',
+        species: 'dog',
+        breed: 'Bulldog Francés',
+        breed_type: 'pure',
+        breed_primary: 'Bulldog Francés',
+        age: 1,
+        age_years: 1,
+        age_months: 6,
+        gender: 'M',
+        size: 'small',
+        color: 'Atigrado',
+        weight: 12,
+        description: 'Rocky es un perrito muy enérgico y divertido. Aunque es pequeño, tiene mucha personalidad. Está buscando una pareja para jugar y hacer ejercicio juntos.',
+        health_status: 'Saludable, vacunado',
+        location: 'Panamá, El Cangrejo',
+        contact_info: {
+          email: 'rocky.owner@demo.com',
+          phone: '+507 6345-6789',
+          preferred_contact: 'phone'
+        },
+        preferred_breed_match: 'different',
+        personality: ['enérgico', 'divertido', 'juguetón', 'inteligente'],
+        photos: ['assets/dog2.jpg'],
+        is_vaccinated: true,
+        is_sterilized: false,
+        is_active: true,
+        created_at: new Date('2024-02-01'),
+        updated_at: new Date('2024-02-01')
+      },
+      {
+        id: 'demo-match-4',
+        user_id: 'demo-user-4',
+        pet_name: 'Mia',
+        species: 'cat',
+        breed: 'Siamés',
+        breed_type: 'pure',
+        breed_primary: 'Siamés',
+        age: 1,
+        age_years: 1,
+        age_months: 8,
+        gender: 'F',
+        size: 'small',
+        color: 'Crema y marrón',
+        weight: 3.5,
+        description: 'Mia es una gatita muy curiosa y activa. Le encanta explorar y jugar. Está buscando un compañero felino con quien compartir sus aventuras diarias.',
+        health_status: 'Saludable, vacunada y esterilizada',
+        location: 'Panamá, Obarrio',
+        contact_info: {
+          email: 'mia.owner@demo.com',
+          phone: '+507 6456-7890',
+          preferred_contact: 'both'
+        },
+        preferred_breed_match: 'both',
+        personality: ['curiosa', 'activa', 'juguetona', 'sociable'],
+        photos: ['assets/cat2.jpg'],
+        is_vaccinated: true,
+        is_sterilized: true,
+        is_active: true,
+        created_at: new Date('2024-02-10'),
+        updated_at: new Date('2024-02-10')
+      },
+      {
+        id: 'demo-match-5',
+        user_id: 'demo-user-5',
+        pet_name: 'Toby',
+        species: 'dog',
+        breed: 'Labrador',
+        breed_type: 'pure',
+        breed_primary: 'Labrador',
+        age: 4,
+        age_years: 4,
+        age_months: 2,
+        gender: 'M',
+        size: 'large',
+        color: 'Negro',
+        weight: 32,
+        description: 'Toby es un perro muy leal y protector. Es muy cariñoso con su familia y está buscando una pareja para formar una familia. Le encanta nadar y jugar al aire libre.',
+        health_status: 'Saludable, vacunado y esterilizado',
+        location: 'Panamá, Costa del Este',
+        contact_info: {
+          email: 'toby.owner@demo.com',
+          phone: '+507 6567-8901',
+          preferred_contact: 'email'
+        },
+        preferred_breed_match: 'same',
+        personality: ['leal', 'protector', 'cariñoso', 'activo'],
+        photos: ['assets/dog3.jpg'],
+        is_vaccinated: true,
+        is_sterilized: true,
+        is_active: true,
+        created_at: new Date('2024-02-15'),
+        updated_at: new Date('2024-02-15')
+      },
+      {
+        id: 'demo-match-6',
+        user_id: 'demo-user-6',
+        pet_name: 'Nina',
+        species: 'cat',
+        breed: 'Mestiza',
+        breed_type: 'mixed',
+        breed_primary: 'Persa',
+        breed_secondary: 'Siamés',
+        breed_percentage_primary: 60,
+        breed_percentage_secondary: 40,
+        age: 1,
+        age_years: 1,
+        age_months: 3,
+        gender: 'F',
+        size: 'small',
+        color: 'Tricolor',
+        weight: 3,
+        description: 'Nina es una gatita joven y muy juguetona. Es una mezcla de Persa y Siamés, lo que le da una personalidad única. Está buscando un compañero para jugar y crecer juntos.',
+        health_status: 'Saludable, vacunada y esterilizada',
+        location: 'Panamá, San Francisco',
+        contact_info: {
+          email: 'nina.owner@demo.com',
+          phone: '+507 6678-9012',
+          preferred_contact: 'both'
+        },
+        preferred_breed_match: 'both',
+        personality: ['juguetona', 'curiosa', 'cariñosa', 'activa'],
+        photos: ['assets/cat3.jpg'],
+        is_vaccinated: true,
+        is_sterilized: true,
+        is_active: true,
+        created_at: new Date('2024-02-20'),
+        updated_at: new Date('2024-02-20')
+      },
+      {
+        id: 'demo-match-7',
+        user_id: 'demo-user-7',
+        pet_name: 'Zeus',
+        species: 'dog',
+        breed: 'Pastor Alemán',
+        breed_type: 'pure',
+        breed_primary: 'Pastor Alemán',
+        age: 5,
+        age_years: 5,
+        age_months: 0,
+        gender: 'M',
+        size: 'large',
+        color: 'Negro y marrón',
+        weight: 35,
+        description: 'Zeus es un perro muy inteligente y entrenado. Es excelente con niños y está buscando una pareja para formar una familia. Le encanta hacer ejercicio y aprender nuevos trucos.',
+        health_status: 'Saludable, vacunado y esterilizado',
+        location: 'Panamá, Clayton',
+        contact_info: {
+          email: 'zeus.owner@demo.com',
+          phone: '+507 6789-0123',
+          preferred_contact: 'phone'
+        },
+        preferred_breed_match: 'both',
+        personality: ['inteligente', 'leal', 'protector', 'obediente'],
+        photos: ['assets/dog1.jpg'],
+        is_vaccinated: true,
+        is_sterilized: true,
+        is_active: true,
+        created_at: new Date('2024-02-25'),
+        updated_at: new Date('2024-02-25')
+      },
+      {
+        id: 'demo-match-8',
+        user_id: 'demo-user-8',
+        pet_name: 'Chloe',
+        species: 'cat',
+        breed: 'British Shorthair',
+        breed_type: 'pure',
+        breed_primary: 'British Shorthair',
+        age: 3,
+        age_years: 3,
+        age_months: 1,
+        gender: 'F',
+        size: 'medium',
+        color: 'Gris',
+        weight: 5,
+        description: 'Chloe es una gata muy tranquila y elegante. Le encanta descansar en lugares cómodos y recibir atención. Está buscando un compañero tranquilo con quien compartir su espacio.',
+        health_status: 'Saludable, vacunada y esterilizada',
+        location: 'Panamá, Punta Pacífica',
+        contact_info: {
+          email: 'chloe.owner@demo.com',
+          phone: '+507 6890-1234',
+          preferred_contact: 'email'
+        },
+        preferred_breed_match: 'same',
+        personality: ['tranquila', 'elegante', 'cariñosa', 'dócil'],
+        photos: ['assets/cat1.jpg'],
+        is_vaccinated: true,
+        is_sterilized: true,
+        is_active: true,
+        created_at: new Date('2024-03-01'),
+        updated_at: new Date('2024-03-01')
+      }
+    ];
+
+    this.demoMatches.set(demoMatches);
   }
 }
 

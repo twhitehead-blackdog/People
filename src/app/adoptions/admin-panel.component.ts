@@ -20,6 +20,7 @@ import { AdminRequirementsComponent } from './admin-requirements.component';
 import { AdminUsersComponent } from './admin-users.component';
 import { AdminSettingsComponent } from './admin-settings.component';
 import { AdminPersonalitiesComponent } from './admin-personalities.component';
+import { AdminPetMatchesComponent } from './admin-pet-matches.component';
 
 @Component({
   selector: 'pt-admin-panel',
@@ -42,17 +43,25 @@ import { AdminPersonalitiesComponent } from './admin-personalities.component';
     AdminUsersComponent,
     AdminSettingsComponent,
     AdminPersonalitiesComponent,
+    AdminPetMatchesComponent,
   ],
   providers: [MessageService],
   template: `
     <p-toast />
     <div class="admin-panel-container">
-      <div class="admin-header">
-        <h1 class="admin-title">Panel de Administración</h1>
+      <!-- Dashboard Header -->
+      <div class="dashboard-header">
+        <div class="header-left">
+          <h1 class="dashboard-title">Panel de Administración</h1>
+          <p class="dashboard-subtitle">Gestiona el contenido y configuración del sistema</p>
+        </div>
       </div>
 
-      <div class="admin-navigation">
-        <nav class="accordion-menu">
+      <!-- Dashboard Grid -->
+      <div class="dashboard-grid">
+        <!-- Sidebar Navigation -->
+        <div class="dashboard-sidebar">
+          <nav class="accordion-menu">
           <div class="menu-category" [class.active]="selectedCategory() === 'servicios'">
             <button 
               class="category-header"
@@ -65,8 +74,8 @@ import { AdminPersonalitiesComponent } from './admin-personalities.component';
             <div class="category-content" [class.open]="selectedCategory() === 'servicios'">
               <button 
                 class="menu-item"
-                [class.active]="activeTabIndex === -1"
-                (click)="navigateToService('busco-pareja')"
+                [class.active]="activeTabIndex === 14"
+                (click)="selectTab(14)"
               >
                 <span class="item-icon">💕</span>
                 <span class="item-label">Busco Pareja</span>
@@ -232,8 +241,11 @@ import { AdminPersonalitiesComponent } from './admin-personalities.component';
             </div>
           </div>
         </nav>
+        </div>
 
-        <div class="admin-content">
+        <!-- Main Content Area -->
+        <div class="dashboard-main">
+          <div class="admin-content">
           @if (activeTabIndex === -1) {
             <div class="service-redirect">
               <h2>Redirigiendo a Busco Pareja...</h2>
@@ -281,7 +293,10 @@ import { AdminPersonalitiesComponent } from './admin-personalities.component';
             @if (canViewAuditLogs()) {
               <pt-admin-personalities />
             }
+          } @else if (activeTabIndex === 14) {
+            <pt-admin-pet-matches />
           }
+          </div>
         </div>
       </div>
     </div>
@@ -289,66 +304,115 @@ import { AdminPersonalitiesComponent } from './admin-personalities.component';
   styles: [
     `
       .admin-panel-container {
-        max-width: 1400px;
-        margin: 0 auto;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
         padding: 2rem;
-        background: #ffffff;
-        min-height: calc(100vh - 200px);
-        position: relative;
-        overflow-x: hidden;
       }
 
-      .admin-header {
+      .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
         margin-bottom: 2rem;
-        padding-bottom: 1rem;
-        border-bottom: 2px solid #e5e7eb;
+        padding: 2rem;
+        background: linear-gradient(135deg, #000000 0%, #374151 100%);
+        border-radius: 1rem;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .dashboard-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(251, 191, 36, 0.1) 0%, transparent 70%);
+        border-radius: 50%;
+        transform: translate(30%, -30%);
+      }
+
+      .header-left {
         position: relative;
         z-index: 1;
       }
 
-      .admin-title {
-        font-size: 2.5rem;
+      .dashboard-title {
+        font-size: 3rem;
         font-weight: 700;
-        color: #000000;
-        margin: 0;
+        color: #FBBF24;
+        margin: 0 0 0.5rem 0;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
       }
 
-      .admin-navigation {
+      .dashboard-subtitle {
+        font-size: 1.125rem;
+        color: #ffffff;
+        margin: 0;
+        opacity: 0.9;
+      }
+
+      .dashboard-grid {
         display: grid;
-        grid-template-columns: 280px 1fr;
+        grid-template-columns: 320px 1fr;
         gap: 2rem;
-        margin-top: 2rem;
+        max-width: 1600px;
+        margin: 0 auto;
+      }
+
+      /* Sidebar */
+      .dashboard-sidebar {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
       }
 
       .accordion-menu {
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
-        background: #f9fafb;
-        padding: 1rem;
-        border-radius: 0.75rem;
-        border: 1px solid #e5e7eb;
-        height: fit-content;
+        background: #ffffff;
+        padding: 1.5rem;
+        border-radius: 1rem;
+        border: 1px solid #000000;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
         position: sticky;
         top: 2rem;
+        height: fit-content;
+      }
+
+      .accordion-menu::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #FBBF24 0%, #374151 50%, #FBBF24 100%);
       }
 
       .menu-category {
         border-radius: 0.5rem;
         overflow: hidden;
-        border: 1px solid #e5e7eb;
+        border: 1px solid #374151;
         background: #ffffff;
         transition: all 0.3s ease;
       }
 
       .menu-category:hover {
-        border-color: #fbbf24;
-        box-shadow: 0 2px 8px rgba(251, 191, 36, 0.2);
+        border-color: #FBBF24;
+        box-shadow: 0 4px 12px rgba(251, 191, 36, 0.2);
+        transform: translateX(2px);
       }
 
       .menu-category.active {
-        border-color: #fbbf24;
+        border-color: #FBBF24;
         box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+        background: rgba(251, 191, 36, 0.05);
       }
 
       .category-header {
@@ -369,6 +433,7 @@ import { AdminPersonalitiesComponent } from './admin-personalities.component';
 
       .category-header:hover {
         background: rgba(251, 191, 36, 0.1);
+        color: #000000;
       }
 
       .category-icon {
@@ -413,7 +478,7 @@ import { AdminPersonalitiesComponent } from './admin-personalities.component';
         font-weight: 500;
         color: #374151;
         text-align: left;
-        transition: all 0.2s ease;
+        transition: all 0.3s ease;
         border-top: 1px solid #f3f4f6;
         position: relative;
       }
@@ -421,22 +486,18 @@ import { AdminPersonalitiesComponent } from './admin-personalities.component';
       .menu-item:hover {
         background: rgba(251, 191, 36, 0.1);
         color: #000000;
+        transform: translateX(4px);
       }
 
       .menu-item.active {
         background: rgba(251, 191, 36, 0.15);
         color: #000000;
         font-weight: 600;
+        border-left: 3px solid #FBBF24;
       }
 
       .menu-item.active::before {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 3px;
-        background: #fbbf24;
+        display: none;
       }
 
       .item-icon {
@@ -459,12 +520,32 @@ import { AdminPersonalitiesComponent } from './admin-personalities.component';
         text-align: center;
       }
 
+      /* Main Content */
+      .dashboard-main {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+      }
+
       .admin-content {
         background: #ffffff;
-        border-radius: 0.75rem;
-        border: 1px solid #e5e7eb;
+        border-radius: 1rem;
+        border: 1px solid #374151;
         padding: 2rem;
         min-height: 600px;
+        box-shadow: 0 4px 12px rgba(55, 65, 81, 0.1);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .admin-content::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #FBBF24 0%, #374151 50%, #FBBF24 100%);
       }
 
       .service-redirect {
@@ -479,8 +560,16 @@ import { AdminPersonalitiesComponent } from './admin-personalities.component';
       }
 
       @media (max-width: 1024px) {
-        .admin-navigation {
+        .dashboard-grid {
           grid-template-columns: 1fr;
+        }
+
+        .dashboard-sidebar {
+          order: 2;
+        }
+
+        .dashboard-main {
+          order: 1;
         }
 
         .accordion-menu {
@@ -503,8 +592,19 @@ import { AdminPersonalitiesComponent } from './admin-personalities.component';
           padding: 1rem;
         }
 
-        .admin-title {
-          font-size: 1.75rem;
+        .dashboard-header {
+          padding: 1.5rem 1rem;
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 1rem;
+        }
+
+        .dashboard-title {
+          font-size: 2rem;
+        }
+
+        .dashboard-subtitle {
+          font-size: 1rem;
         }
 
         ::ng-deep .p-tabview-panels {
