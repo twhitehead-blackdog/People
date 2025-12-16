@@ -712,25 +712,12 @@ export class DashboardComponent {
 
     // Agregar Gestión de Tienda para gerentes y administradores
     if (hasDashboardAccess && (isAdmin || isScheduleAdmin)) {
-        hasDashboardAccess,
-        isAdmin,
-        isScheduleAdmin,
-        employee: this.store.currentEmployee()?.work_email,
-      });
       items.push({
         label: 'Gestión de Tienda',
         icon: 'pi pi-shop',
         command: () => {
-          console.log('🖱️ Click en Gestión de Tienda');
           this.navigateTo('branch-manager');
         },
-      });
-    } else {
-      console.log('❌ NO se agrega Gestión de Tienda', {
-        hasDashboardAccess,
-        isAdmin,
-        isScheduleAdmin,
-        employee: this.store.currentEmployee()?.work_email,
       });
     }
 
