@@ -355,6 +355,13 @@ export function withCustomEntities<T extends { id: EntityId }>({
                 tableName,
                 state._orgService
               );
+              
+              // Debug: Log para posiciones
+              if (tableName === 'positions') {
+                console.log('[PositionsStore] Cargando posiciones con params:', params);
+                console.log('[PositionsStore] Company ID:', companyId);
+              }
+              
               return state._http
                 .get<T[]>(
                   `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
@@ -362,11 +369,23 @@ export function withCustomEntities<T extends { id: EntityId }>({
                 )
                 .pipe(
                   tapResponse({
-                    next: (entities) =>
+                    next: (entities) => {
+                      // Debug: Log para posiciones
+                      if (tableName === 'positions') {
+                        console.log('[PositionsStore] Posiciones recibidas:', entities.length, entities);
+                        if (entities.length === 0) {
+                          console.warn('[PositionsStore] ⚠️ No se encontraron posiciones. Verificar que existan posiciones con company_id:', companyId);
+                        }
+                      }
                       patchState(state, setAllEntities(entities), {
                         lastUpdated: new Date(),
-                      }),
+                      });
+                    },
                     error: (error) => {
+                      // Debug: Log para posiciones
+                      if (tableName === 'positions') {
+                        console.error('[PositionsStore] ❌ Error cargando posiciones:', error);
+                      }
                       patchState(state, { error });
                     },
                     finalize: () => patchState(state, { isLoading: false }),

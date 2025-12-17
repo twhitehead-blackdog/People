@@ -875,10 +875,26 @@ export class EmployeeFormComponent implements OnInit {
 
   ngOnInit() {
     // Cargar datos necesarios para los dropdowns
+    console.log('[EmployeeForm] Cargando datos para dropdowns...');
+    console.log('[EmployeeForm] Company ID actual:', this.organizationService.getCurrentCompanyId());
+    console.log('[EmployeeForm] Es Naz:', this.organizationService.isNaz());
+    
     this.store.positions.fetchItems();
     this.store.departments.fetchItems();
     this.store.companies.fetchItems();
     this.store.branches.fetchItems();
+    
+    // Debug: Verificar posiciones cargadas
+    effect(
+      () => {
+        const positions = this.store.positions.entities();
+        console.log('[EmployeeForm] Posiciones cargadas:', positions.length, positions);
+        if (positions.length === 0) {
+          console.warn('[EmployeeForm] ⚠️ No hay posiciones disponibles. Verificar company_id y que existan posiciones en la base de datos.');
+        }
+      },
+      { injector: this.injector }
+    );
 
     // Ajustar validaciones según si es Naz o no
     effect(
