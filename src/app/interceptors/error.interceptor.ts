@@ -3,10 +3,12 @@ import { inject } from '@angular/core';
 import { catchError, throwError } from 'rxjs';
 import { MessageService } from 'primeng/api';
 import { Router } from '@angular/router';
+import { DiagnosticService } from '../services/diagnostic.service';
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const messageService = inject(MessageService);
   const router = inject(Router);
+  const diagnosticService = inject(DiagnosticService);
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
@@ -55,6 +57,18 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         detail: errorMessage,
         life: 5000,
       });
+
+      // Registrar error en el servicio de diagnóstico
+      diagnosticService.addHttpError(
+        req.url,
+        error.status,
+        errorMessage,
+        {
+          method: req.method,
+          headers: req.headers.keys(),
+          error: error.error,
+        }
+      );
 
       // Log del error en desarrollo
       if (typeof window !== 'undefined' && (window as any).isDevMode) {

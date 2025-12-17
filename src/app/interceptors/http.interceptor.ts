@@ -1,9 +1,13 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { AuthService } from '@auth0/auth0-angular';
-import { switchMap } from 'rxjs';
+import { switchMap, catchError } from 'rxjs';
+import { DiagnosticService } from '../services/diagnostic.service';
+import { throwError } from 'rxjs';
 
 export const httpInterceptor: HttpInterceptorFn = (req, next) => {
+  const diagnosticService = inject(DiagnosticService);
+
   if (req.url.includes('supabase')) {
     // Use Supabase API key directly for now
     // TODO: Configure Supabase to accept Auth0 tokens or use service role for admin operations
@@ -34,7 +38,31 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
     const request = req.clone({
       headers,
     });
-    return next(request);
+    return next(request).pipe(
+      catchError((error) => {
+        // Capturar errores de Supabase
+        if (error.status === 401 || error.status === 403) {
+          diagnosticService.addSupabaseError(
+            `Error de autenticación: ${error.status}`,
+            req.url,
+            error.error
+          );
+        } else if (error.status === 0 || !error.status) {
+          diagnosticService.addNetworkError(
+            req.url,
+            'No se pudo conectar a Supabase',
+            error
+          );
+        } else {
+          diagnosticService.addSupabaseError(
+            `Error ${error.status}: ${error.message || 'Error desconocido'}`,
+            req.url,
+            error.error
+          );
+        }
+        return throwError(() => error);
+      })
+    );
   }
 
   // Endpoints públicos que NO requieren autenticación de Auth0
@@ -58,6 +86,17 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
           headers: req.headers.set('Authorization', `Bearer ${token}`),
         });
         return next(request);
+      }),
+      catchError((error) => {
+        // Capturar errores de red para requests al backend
+        if (error.status === 0 || !error.status) {
+          diagnosticService.addNetworkError(
+            req.url,
+            'No se pudo conectar al servidor',
+            error
+          );
+        }
+        return throwError(() => error);
       })
     );
 };

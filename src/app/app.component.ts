@@ -6,15 +6,17 @@ import { filter, take } from 'rxjs';
 
 import { NgxSpinnerComponent, NgxSpinnerService } from 'ngx-spinner';
 import { OrganizationService } from './services/organization.service';
+import { DiagnosticPanelComponent } from './components/diagnostic-panel.component';
 
 @Component({
-  imports: [RouterOutlet, NgxSpinnerComponent],
+  imports: [RouterOutlet, NgxSpinnerComponent, DiagnosticPanelComponent],
   providers: [MessageService],
   selector: 'pt-root',
   template: ` <router-outlet />
     <ngx-spinner type="ball-scale-multiple" bdColor="rgba(0, 0, 0, 1)">
       <p class="text-white">Cargando...</p></ngx-spinner
-    >`,
+    >
+    <pt-diagnostic-panel />`,
   styles: ``,
 })
 export class AppComponent implements OnInit {
