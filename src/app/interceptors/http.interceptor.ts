@@ -7,12 +7,15 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
   if (req.url.includes('supabase')) {
     // Use Supabase API key directly for now
     // TODO: Configure Supabase to accept Auth0 tokens or use service role for admin operations
+    // Usar ENV_SUPABASE_ANON_KEY (nombre estándar) con fallback a ENV_SUPABASE_API_KEY
+    const supabaseKey = 
+      process.env['ENV_SUPABASE_ANON_KEY'] ?? 
+      process.env['ENV_SUPABASE_API_KEY'] ?? 
+      '';
+    
     let headers = req.headers
-      .set('apikey', process.env['ENV_SUPABASE_API_KEY'] ?? '')
-      .set(
-        'Authorization',
-        `Bearer ${process.env['ENV_SUPABASE_API_KEY'] ?? ''}`
-      );
+      .set('apikey', supabaseKey)
+      .set('Authorization', `Bearer ${supabaseKey}`);
 
     // No agregar Content-Type para Storage API (dejar que el navegador lo establezca con boundary)
     // No agregar Prefer para Storage API

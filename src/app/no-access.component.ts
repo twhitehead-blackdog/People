@@ -186,8 +186,8 @@ export class NoAccessComponent implements OnInit, OnDestroy {
           ip: 'not.is.null'
         },
         headers: {
-          'apikey': process.env['ENV_SUPABASE_API_KEY'] || '',
-          'Authorization': `Bearer ${process.env['ENV_SUPABASE_API_KEY'] || ''}`
+          'apikey': process.env['ENV_SUPABASE_ANON_KEY'] || process.env['ENV_SUPABASE_API_KEY'] || '',
+          'Authorization': `Bearer ${process.env['ENV_SUPABASE_ANON_KEY'] || process.env['ENV_SUPABASE_API_KEY'] || ''}`
         }
       }
     ).pipe(
