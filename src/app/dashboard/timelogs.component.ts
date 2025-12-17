@@ -716,12 +716,20 @@ export class TimelogsComponent {
     const queryParams = this.queryParams();
     const params = this.addCompanyFilter(queryParams, 'timelogs');
     params.created_at = `lte.${format(addDays(end, 1), 'yyyy-MM-dd 06:00:00')}`;
-    
+
     // Debug: Log para timelogs
     console.log('[TimelogsComponent] Cargando timelogs con params:', params);
-    console.log('[TimelogsComponent] Company ID:', this.organizationService.getCurrentCompanyId());
-    console.log('[TimelogsComponent] Rango de fechas:', format(start, 'yyyy-MM-dd'), 'a', format(end, 'yyyy-MM-dd'));
-    
+    console.log(
+      '[TimelogsComponent] Company ID:',
+      this.organizationService.getCurrentCompanyId()
+    );
+    console.log(
+      '[TimelogsComponent] Rango de fechas:',
+      format(start, 'yyyy-MM-dd'),
+      'a',
+      format(end, 'yyyy-MM-dd')
+    );
+
     return {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`,
       method: 'GET',
@@ -734,14 +742,14 @@ export class TimelogsComponent {
     const logsError = this.logs.error();
     const schedulesError = this.schedules.error();
     const timeoffsError = this.timeoffs.error();
-    
+
     if (logsError || schedulesError || timeoffsError) {
       console.error('[TimelogsComponent] ❌ Error cargando datos:', {
         logs: logsError,
         schedules: schedulesError,
         timeoffs: timeoffsError,
       });
-      
+
       this.message.add({
         severity: 'error',
         summary: 'Error al cargar datos',
@@ -752,7 +760,7 @@ export class TimelogsComponent {
     }
     return false;
   });
-  
+
   constructor() {
     // Debug: Effect para verificar datos cargados
     effect(
@@ -760,16 +768,52 @@ export class TimelogsComponent {
         const logsData = this.logs.value();
         const schedulesData = this.schedules.value();
         const timeoffsData = this.timeoffs.value();
+        const logsError = this.logs.error();
+        const schedulesError = this.schedules.error();
+        const timeoffsError = this.timeoffs.error();
 
-        console.log('[TimelogsComponent] Datos cargados:', {
-          timelogs: logsData?.length ?? 0,
-          employee_schedules: schedulesData?.length ?? 0,
-          timeoffs: timeoffsData?.length ?? 0,
+        const timelogsCount = logsData?.length ?? 0;
+        const schedulesCount = schedulesData?.length ?? 0;
+        const timeoffsCount = timeoffsData?.length ?? 0;
+
+        console.log('[TimelogsComponent] 📊 Datos cargados:', {
+          timelogs: timelogsCount,
+          employee_schedules: schedulesCount,
+          timeoffs: timeoffsCount,
         });
 
-        if (logsData && logsData.length === 0) {
+        if (logsError) {
+          console.error('[TimelogsComponent] ❌ Error cargando timelogs:', logsError);
+        }
+        if (schedulesError) {
+          console.error('[TimelogsComponent] ❌ Error cargando employee_schedules:', schedulesError);
+        }
+        if (timeoffsError) {
+          console.error('[TimelogsComponent] ❌ Error cargando timeoffs:', timeoffsError);
+        }
+
+        if (logsData && logsData.length === 0 && !logsError) {
           console.warn(
-            '[TimelogsComponent] ⚠️ No se encontraron timelogs. Verificar company_id y rango de fechas.'
+            '[TimelogsComponent] ⚠️ No se encontraron timelogs. Verificar:',
+            {
+              company_id: this.organizationService.getCurrentCompanyId(),
+              dateRange: this.dateRange(),
+              employeeId: this.employeeId() || 'Todos',
+            }
+          );
+        }
+
+        // Mostrar muestra de timelogs si hay datos
+        if (logsData && logsData.length > 0) {
+          console.log('[TimelogsComponent] ✅ Timelogs encontrados. Muestra (primeros 3):', 
+            logsData.slice(0, 3).map(log => ({
+              id: log.id,
+              employee_id: log.employee_id,
+              company_id: log.company_id,
+              type: log.type,
+              created_at: log.created_at,
+              employee: log.employee ? `${log.employee.first_name} ${log.employee.father_name}` : 'N/A',
+            }))
           );
         }
       },
