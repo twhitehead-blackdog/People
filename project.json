@@ -39,7 +39,8 @@
         "scripts": [],
         "plugins": [
           "plugins/env-var-plugin.js"
-        ]
+        ],
+        "viteConfig": "vite.config.ts"
       },
       "configurations": {
         "production": {
