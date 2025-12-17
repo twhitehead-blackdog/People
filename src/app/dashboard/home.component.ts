@@ -4,7 +4,9 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
+  Injector,
   signal,
 } from '@angular/core';
 import {
@@ -3728,9 +3730,16 @@ export class HomeComponent {
     // A schedule overlaps if: start_date <= month_end AND end_date >= month_start
     // Esto captura TODOS los horarios que se solapan con cualquier día del mes
     const companyId = this.organizationService.getCurrentCompanyId();
-    let url = `${baseUrl}/rest/v1/employee_schedules?select=*,schedule:schedules(*)&start_date=lte.${monthEnd}&end_date=gte.${monthStart}`;
+    
+    // IMPORTANTE: Filtrar employee_schedules por company_id
+    // Si employee_schedules tiene company_id, usar filtro directo
+    // Si no, necesitaríamos filtrar a través de employees, pero PostgREST no soporta eso fácilmente
+    // Por ahora, usar company_id directo (debe estar asignado según la migración)
+    let url = `${baseUrl}/rest/v1/employee_schedules?select=*,schedule:schedules(*),employee:employees(id,company_id)&start_date=lte.${monthEnd}&end_date=gte.${monthStart}`;
     
     // Agregar filtro por company_id
+    // NOTA: Si employee_schedules no tiene company_id asignado, esta consulta retornará 0 resultados
+    // En ese caso, necesitaríamos una consulta diferente o actualizar los registros en la BD
     if (companyId) {
       url += `&company_id=eq.${companyId}`;
     }
@@ -3745,6 +3754,46 @@ export class HomeComponent {
       method: 'GET',
     };
   });
+
+  private injector = inject(Injector);
+  
+  // Effect para verificar la respuesta de employeeSchedules
+  constructor() {
+    effect(() => {
+      const schedules = this.employeeSchedules.value();
+      const error = this.employeeSchedules.error();
+      const isLoading = this.employeeSchedules.isLoading();
+      const companyId = this.organizationService.getCurrentCompanyId();
+      
+      if (!isLoading) {
+        if (error) {
+          console.error('[HomeComponent] employeeSchedules - Error:', error);
+        } else if (schedules) {
+          console.log('[HomeComponent] employeeSchedules - Respuesta recibida:', schedules.length, 'schedules');
+          if (schedules.length === 0) {
+            console.warn('[HomeComponent] employeeSchedules - ⚠️ No hay schedules. Verificar:');
+            console.warn('  - Company ID:', companyId);
+            console.warn('  - URL completa:', `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules?select=*,schedule:schedules(*)&start_date=lte.${format(endOfMonth(new Date()), 'yyyy-MM-dd')}&end_date=gte.${format(startOfMonth(new Date()), 'yyyy-MM-dd')}&company_id=eq.${companyId}`);
+            console.warn('  - Posibles causas:');
+            console.warn('    1. No hay employee_schedules con este company_id');
+            console.warn('    2. Los schedules no se solapan con el mes actual');
+            console.warn('    3. Problema con políticas RLS en Supabase');
+          } else {
+            console.log('[HomeComponent] employeeSchedules - Muestra (primeros 3):', 
+              schedules.slice(0, 3).map(s => ({
+                id: s.id,
+                employee_id: s.employee_id,
+                company_id: s.company_id,
+                start_date: s.start_date,
+                end_date: s.end_date,
+                schedule: s.schedule ? { id: s.schedule.id, name: s.schedule.name } : null,
+              }))
+            );
+          }
+        }
+      }
+    }, { injector: this.injector });
+  }
 
   // Chart options specifically for headcount chart (shows month/year)
   public get headcountChartOptions(): any {
