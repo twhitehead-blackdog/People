@@ -189,44 +189,55 @@ import { EmployeesStore } from '../stores/employees.store';
                 </div>
               </ng-template>
               <div class="flex flex-col gap-3">
-                @if (recentTimelogs().length > 0) { @for (log of
-                recentTimelogs(); track log.day) {
+                @if (recentTimelogs().length > 0) { @for (event of
+                recentTimelogs(); track event.id) {
                 <div
-                  class="flex items-center justify-between p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
+                  class="flex items-center justify-between p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50 hover:bg-neutral-800/70 transition-colors"
                 >
                   <div class="flex items-center gap-3">
                     <div
                       class="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center"
                     >
-                      <i class="pi pi-clock text-amber-400"></i>
+                      <i [class]="'pi ' + event.icon + ' text-amber-400'"></i>
                     </div>
                     <div>
                       <p class="text-white font-semibold m-0">
-                        {{ log.day | date : 'mediumDate' }}
+                        {{ event.typeLabel }}
                       </p>
                       <p class="text-sm text-gray-400 m-0">
-                        Entrada:
-                        {{
-                          log.entry?.date
-                            ? (log.entry.date | date : 'hh:mm a')
-                            : 'Sin registro'
-                        }}
+                        {{ event.day | date : 'mediumDate' }} a las {{ event.time }}
+                        @if (event.branch?.name) {
+                          - {{ event.branch.name }}
+                        }
                       </p>
                     </div>
                   </div>
-                  @if (log.delay && typeof log.delay === 'number') {
-                  <span
-                    class="text-xs text-red-400 font-semibold px-2 py-1 rounded bg-red-500/20"
-                  >
-                    +{{ log.delay }} min
-                  </span>
-                  } @else {
-                  <span
-                    class="text-xs text-green-400 font-semibold px-2 py-1 rounded bg-green-500/20"
-                  >
-                    A tiempo
-                  </span>
-                  }
+                  <div class="flex flex-col items-end gap-1">
+                    <span
+                      class="text-xs text-gray-500 font-medium"
+                    >
+                      {{ event.date | date : 'short' }}
+                    </span>
+                    @if (event.type === 'entry') {
+                      <span
+                        class="text-xs text-green-400 font-semibold px-2 py-1 rounded bg-green-500/20"
+                      >
+                        Entrada
+                      </span>
+                    } @else if (event.type === 'exit') {
+                      <span
+                        class="text-xs text-blue-400 font-semibold px-2 py-1 rounded bg-blue-500/20"
+                      >
+                        Salida
+                      </span>
+                    } @else if (event.type === 'lunch_start' || event.type === 'lunch_end') {
+                      <span
+                        class="text-xs text-amber-400 font-semibold px-2 py-1 rounded bg-amber-500/20"
+                      >
+                        Almuerzo
+                      </span>
+                    }
+                  </div>
                 </div>
                 } } @else {
                 <p class="text-gray-400 text-center py-4">
@@ -1832,14 +1843,58 @@ export class EmployeePortalComponent {
   });
 
   public recentTimelogs = computed(() => {
-    const logs = this.myTimelogs();
+    // Obtener los timelogs crudos (sin agrupar por día)
+    const rawLogs = this.timelogsApi.value() ?? [];
     const sevenDaysAgo = addDays(new Date(), -7);
-    return logs
+    
+    // Filtrar por los últimos 7 días y convertir cada marcación en un evento individual
+    const recentEvents = rawLogs
       .filter((log) => {
-        const logDate = new Date(log.day);
+        const logDate = new Date(log.created_at);
         return logDate >= sevenDaysAgo;
       })
-      .slice(0, 5); // Últimos 5 días
+      .map((log) => {
+        const logDate = new Date(log.created_at);
+        let typeLabel = '';
+        let icon = 'pi-clock';
+        
+        switch (log.type) {
+          case 'entry':
+            typeLabel = 'Entrada';
+            icon = 'pi-sign-in';
+            break;
+          case 'lunch_start':
+            typeLabel = 'Inicio de Almuerzo';
+            icon = 'pi-utensils';
+            break;
+          case 'lunch_end':
+            typeLabel = 'Fin de Almuerzo';
+            icon = 'pi-utensils';
+            break;
+          case 'exit':
+            typeLabel = 'Salida';
+            icon = 'pi-sign-out';
+            break;
+          default:
+            typeLabel = 'Marcación';
+        }
+        
+        return {
+          id: log.id,
+          type: log.type,
+          typeLabel,
+          icon,
+          date: logDate,
+          day: format(logDate, 'yyyy-MM-dd'),
+          time: format(logDate, 'HH:mm'),
+          branch: log.branch,
+          created_at: log.created_at,
+        };
+      })
+      .sort((a, b) => b.date.getTime() - a.date.getTime()) // Más recientes primero
+      .slice(0, 10); // Últimas 10 marcaciones
+    
+    return recentEvents;
   });
 
   public recentTimelogsCount = computed(() => {
