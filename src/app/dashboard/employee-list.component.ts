@@ -36,6 +36,7 @@ import { OrganizationService } from '../services/organization.service';
 import { WassengerService } from '../services/wassenger.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeeFormComponent } from './employee-form.component';
+import { getEmployeeNumberPrefix } from '../utils/employee-number.utils';
 
 @Component({
   selector: 'pt-employee-list',
@@ -335,7 +336,7 @@ import { EmployeeFormComponent } from './employee-form.component';
           </ng-template>
           <ng-template #body let-item let-columns="columns">
             <tr>
-              <td>{{ item.employee_number || item.id }}</td>
+              <td>{{ getEmployeeDisplayNumber(item) }}</td>
               <td>
                 <a
                   [routerLink]="item.id"
@@ -770,6 +771,33 @@ export class EmployeeListComponent implements OnInit {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
+  }
+
+  public getEmployeeDisplayNumber(employee: Employee): string {
+    // Si el empleado ya tiene employee_number en formato BD0001, usarlo
+    if (employee.employee_number && /^[A-Z]{2}\d{4}$/.test(employee.employee_number)) {
+      return employee.employee_number;
+    }
+    
+    // Si no tiene employee_number, generar uno basado en el company_id
+    const companyId = this.organizationService.getCurrentCompanyId();
+    const nazCompanyId = this.organizationService['_nazCompanyId'];
+    const blackdogCompanyId = this.organizationService['_blackdogCompanyId'];
+    
+    const prefix = getEmployeeNumberPrefix(companyId, nazCompanyId, blackdogCompanyId);
+    
+    // Si no podemos determinar el prefijo, usar el ID como fallback
+    if (prefix === 'XX') {
+      return employee.id.substring(0, 8);
+    }
+    
+    // Generar un número basado en el ID del empleado (usar últimos 4 dígitos del UUID)
+    // Esto es temporal hasta que se asigne un employee_number real
+    const idDigits = employee.id.replace(/-/g, '').substring(0, 4);
+    const number = parseInt(idDigits, 16) % 10000; // Convertir a número y limitar a 4 dígitos
+    const formattedNumber = number.toString().padStart(4, '0');
+    
+    return `${prefix}${formattedNumber}`;
   }
 
   generateReport() {

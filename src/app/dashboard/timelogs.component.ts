@@ -210,6 +210,7 @@ import { EmployeesStore } from '../stores/employees.store';
               <th>Fin de almuerzo</th>
               <th>Salida</th>
               <th>Horas Trabajadas</th>
+              <th>Horas Extras</th>
             </tr>
           </ng-template>
           <ng-template #body let-log>
@@ -222,6 +223,9 @@ import { EmployeesStore } from '../stores/employees.store';
               <td>
                 <div class="flex flex-col gap-1">
                   <div class="flex items-center gap-2">
+                    @if(log.employee.employee_number) {
+                      <span class="text-xs text-gray-400 font-mono">{{ log.employee.employee_number }}</span>
+                    }
                     {{ log.employee.first_name }} {{ log.employee.father_name }}
                     @if(log.scheduleError) {
                     <p-tag
@@ -439,6 +443,18 @@ import { EmployeesStore } from '../stores/employees.store';
                     styleClass="ml-2"
                   />
                   }
+                </div>
+              </td>
+              <td>
+                <div class="flex gap-2 items-center">
+                  <span
+                    [ngClass]="{
+                      'text-green-500 font-semibold': log.overtimeHours && log.overtimeHours > 0,
+                      'text-gray-400': !log.overtimeHours || log.overtimeHours === 0
+                    }"
+                  >
+                    {{ log.overtimeHours ? formatHours(log.overtimeHours) : '-' }}
+                  </span>
                 </div>
               </td>
             </tr>
@@ -1007,6 +1023,7 @@ export class TimelogsComponent {
       earlyExit?: boolean;
       insufficientHours?: boolean;
       totalHours?: number;
+      overtimeHours?: number; // Horas extras (más de 9 horas totales)
       entry?: { date: Date; branch: Branch };
       lunch_start?: { date: Date; branch: Branch };
       lunch_end?: { date: Date; branch: Branch };
@@ -1041,6 +1058,7 @@ export class TimelogsComponent {
           earlyExit: false,
           insufficientHours: false,
           totalHours: undefined,
+          overtimeHours: undefined,
           entry: undefined,
           lunch_start: undefined,
           lunch_end: undefined,
@@ -1268,9 +1286,13 @@ export class TimelogsComponent {
                 const totalHours = totalMinutes / 60; // Horas totales en la empresa
                 acc[index].totalHours = totalHours;
 
-                // Debe cumplir 9 horas totales en la empresa (ej: 7am-4pm, 8am-5pm, 11am-8pm)
-                // Permitimos un margen de tolerancia de 5 minutos
+                // Calcular horas extras: más de 9 horas totales (8 horas de trabajo + 1 hora de almuerzo)
+                // 9 horas = 540 minutos
                 const requiredTotalMinutes = 540; // 9 horas totales (540 minutos)
+                const overtimeMinutes = totalMinutes > requiredTotalMinutes 
+                  ? totalMinutes - requiredTotalMinutes 
+                  : 0;
+                acc[index].overtimeHours = overtimeMinutes > 0 ? overtimeMinutes / 60 : 0;
 
                 if (totalMinutes < requiredTotalMinutes) {
                   acc[index].insufficientHours = true;
@@ -1307,6 +1329,14 @@ export class TimelogsComponent {
               // Validar que totalMinutes sea válido antes de dividir
               const totalHours = totalMinutes > 0 ? totalMinutes / 60 : 0;
               acc[index].totalHours = totalHours;
+              
+              // Calcular horas extras: más de 9 horas totales (8 horas de trabajo + 1 hora de almuerzo)
+              // 9 horas = 540 minutos
+              const requiredTotalMinutes = 540; // 9 horas totales (540 minutos)
+              const overtimeMinutes = totalMinutes > requiredTotalMinutes 
+                ? totalMinutes - requiredTotalMinutes 
+                : 0;
+              acc[index].overtimeHours = overtimeMinutes > 0 ? overtimeMinutes / 60 : 0;
             }
           } else {
             // Si no hay marcación pero hay schedule, calcular retraso si aplica
@@ -1594,6 +1624,9 @@ export class TimelogsComponent {
         ? `${lunchMinutes} min`
         : '';
       const totalHours = x.totalHours ? this.formatHours(x.totalHours) : '-';
+      const overtimeHours = x.overtimeHours && x.overtimeHours > 0 
+        ? this.formatHours(x.overtimeHours) 
+        : '-';
       const errors = [];
       if (x.scheduleError) errors.push('Error de Horario');
       if (x.lunchExceeded) errors.push('Almuerzo Excedido');
@@ -1701,6 +1734,7 @@ export class TimelogsComponent {
         'Fin de almuerzo': finAlmuerzo,
         Salida: salida,
         'Horas Trabajadas': totalHours,
+        'Horas Extras': overtimeHours,
         'Errores/Alertas': errors.length > 0 ? errors.join(', ') : 'Ninguno',
       };
     });
@@ -1734,6 +1768,7 @@ export class TimelogsComponent {
         { wch: 20 }, // Fin de almuerzo (incluye sucursal)
         { wch: 20 }, // Salida (incluye sucursal)
         { wch: 15 }, // Horas Trabajadas
+        { wch: 15 }, // Horas Extras
         { wch: 40 }, // Errores/Alertas
       ];
       ws['!cols'] = colWidths;
