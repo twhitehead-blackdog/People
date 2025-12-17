@@ -771,6 +771,9 @@ export class DashboardComponent {
         label: 'Cerrar sesion',
         icon: 'pi pi-sign-out',
         command: () => {
+          // Limpiar selección de organización antes de cerrar sesión
+          this.organizationService.clearOrganization();
+          
           if (this.bypassService.isBypassActive()) {
             // Si está en bypass, cerrar bypass y redirigir a login
             this.bypassService.logout();

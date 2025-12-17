@@ -310,6 +310,25 @@ export class OrganizationService {
       this.saveToStorage('blackdog');
     }
   }
+
+  /**
+   * Limpia la selección de organización (útil al cerrar sesión)
+   */
+  clearOrganization(): void {
+    console.log('🧹 Limpiando selección de organización...');
+    this._currentOrganization.set('blackdog'); // Resetear a Black Dog por defecto
+    this._currentCompanyId.set(null);
+    
+    // Limpiar localStorage
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.removeItem(this.STORAGE_KEY);
+        window.localStorage.removeItem(this.STORAGE_KEY_COMPANY_ID);
+      }
+    } catch (error) {
+      console.error('Error clearing organization from localStorage:', error);
+    }
+  }
   
   /**
    * Obtiene el company_id de Naz (para uso en migraciones)
