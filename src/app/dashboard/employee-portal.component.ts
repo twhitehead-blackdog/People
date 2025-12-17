@@ -1884,26 +1884,27 @@ export class EmployeePortalComponent {
     }
     const employeeId = this.currentEmployee()!.id;
     const companyId = this.organizationService.getCurrentCompanyId();
-    const isNaz = this.isNaz();
     
-    const params: any = {
-      select: `*,employee:employees(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)`,
-      employee_id: `eq.${employeeId}`,
-      created_at: `gte.${format(this.dateRange()[0], 'yyyy-MM-dd 06:00:00')}`,
-    };
+    // Construir URL manualmente para aplicar correctamente filtros gte y lte
+    const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`;
+    const startDate = format(this.dateRange()[0], "yyyy-MM-dd'T'06:00:00");
+    const endDate = format(addDays(this.dateRange()[1], 1), "yyyy-MM-dd'T'06:00:00");
+    const select = `*,employee:employees(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)`;
     
-    // Agregar filtro por company_id
+    let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
+    url += `&employee_id=eq.${employeeId}`;
+    url += `&created_at=gte.${startDate}`;
+    url += `&created_at=lte.${endDate}`;
+    
     if (companyId) {
-      params.company_id = `eq.${companyId}`;
+      url += `&company_id=eq.${companyId}`;
     }
     
-    // Ya no hay tablas naz_*, todo es por company_id
-    const tableName = 'timelogs';
+    url += `&order=created_at.asc`;
     
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
+      url,
       method: 'GET',
-      params,
     };
   });
 

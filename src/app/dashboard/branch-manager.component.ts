@@ -1036,21 +1036,28 @@ export class BranchManagerComponent {
     const dateStr = format(date, 'yyyy-MM-dd');
     const startOfDayStr = `${dateStr}T00:00:00`;
     const endOfDayStr = `${dateStr}T23:59:59`;
-    const params: any = {
-      select: `*,employee:employees(id,first_name,father_name)`,
-      and: `(created_at.gte.${startOfDayStr},created_at.lte.${endOfDayStr})`,
-      order: 'created_at.asc',
-    };
-    // Si hay sucursal seleccionada (o es gerente), filtrar por sucursal
+    
+    // Construir URL manualmente para aplicar correctamente filtros gte y lte
+    const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`;
+    const select = `*,employee:employees(id,first_name,father_name)`;
+    
+    let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
+    url += `&created_at=gte.${startOfDayStr}`;
+    url += `&created_at=lte.${endOfDayStr}`;
+    
     if (branchId) {
-      params.branch_id = `eq.${branchId}`;
+      url += `&branch_id=eq.${branchId}`;
     }
+    
     if (companyId) {
-      params.company_id = `eq.${companyId}`;
+      url += `&company_id=eq.${companyId}`;
     }
+    
+    url += `&order=created_at.asc`;
+    
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`,
-      params,
+      url,
+      method: 'GET',
     };
   });
 
@@ -1059,21 +1066,24 @@ export class BranchManagerComponent {
     const companyId = this.organizationService.getCurrentCompanyId();
     const start = this.weekStart();
     const end = this.weekEnd();
-    const params: any = {
-      select: `*,schedule:schedules(*), branch:branches(id, name, short_name)`,
-      start_date: `lte.${format(end, 'yyyy-MM-dd')}`,
-      end_date: `gte.${format(start, 'yyyy-MM-dd')}`,
-    };
     
-    // Agregar filtro por company_id
+    // Construir URL manualmente para asegurar que los filtros se apliquen correctamente
+    const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`;
+    const startDate = format(start, 'yyyy-MM-dd');
+    const endDate = format(end, 'yyyy-MM-dd');
+    const select = `*,schedule:schedules(*), branch:branches(id, name, short_name)`;
+    
+    let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
+    url += `&start_date=lte.${endDate}`;
+    url += `&end_date=gte.${startDate}`;
+    
     if (companyId) {
-      params.company_id = `eq.${companyId}`;
+      url += `&company_id=eq.${companyId}`;
     }
     
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+      url,
       method: 'GET',
-      params,
     };
   });
   

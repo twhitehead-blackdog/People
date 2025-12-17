@@ -675,18 +675,25 @@ export class TimelogsComponent {
     if (!start || !end) {
       return undefined;
     }
-    const params = this.addCompanyFilter(
-      {
-        select: `*,approved,schedule:schedules(*)`,
-        start_date: `gte.${format(start, 'yyyy-MM-dd 06:00:00')}`,
-        end_date: `lte.${format(end, 'yyyy-MM-dd 06:00:00')}`,
-      },
-      'employee_schedules'
-    );
+    
+    // Construir URL manualmente para asegurar que los filtros se apliquen correctamente
+    const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`;
+    const companyId = this.organizationService.getCurrentCompanyId();
+    const startDate = format(start, 'yyyy-MM-dd');
+    const endDate = format(end, 'yyyy-MM-dd');
+    const select = `*,approved,schedule:schedules(*)`;
+    
+    let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
+    url += `&start_date=gte.${startDate}`;
+    url += `&end_date=lte.${endDate}`;
+    
+    if (companyId) {
+      url += `&company_id=eq.${companyId}`;
+    }
+    
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+      url,
       method: 'GET',
-      params,
     };
   });
 

@@ -764,27 +764,32 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
       return undefined;
     }
     const companyId = this.organizationService.getCurrentCompanyId();
-    const params: any = {
-      select: `*, employee:employees(id, first_name, father_name), branch:branches(id, name)`,
-      created_at: `gte.${format(
-        addDays(this.payment.value()![0].start_date, 1),
-        'yyyy-MM-dd 06:00:00'
-      )}`,
-      created_at_lte: `lte.${format(
-        addDays(this.payment.value()![0].end_date, 1),
-        'yyyy-MM-dd 23:59:59'
-      )}`,
-    };
     
-    // Agregar filtro por company_id
+    // Construir URL manualmente para aplicar correctamente filtros gte y lte
+    const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`;
+    const startDate = format(
+      addDays(this.payment.value()![0].start_date, 1),
+      "yyyy-MM-dd'T'06:00:00"
+    );
+    const endDate = format(
+      addDays(this.payment.value()![0].end_date, 1),
+      "yyyy-MM-dd'T'23:59:59"
+    );
+    const select = `*, employee:employees(id, first_name, father_name), branch:branches(id, name)`;
+    
+    let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
+    url += `&created_at=gte.${startDate}`;
+    url += `&created_at=lte.${endDate}`;
+    
     if (companyId) {
-      params.company_id = `eq.${companyId}`;
+      url += `&company_id=eq.${companyId}`;
     }
     
+    url += `&order=created_at.asc`;
+    
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`,
+      url,
       method: 'GET',
-      params,
     };
   });
 
@@ -793,27 +798,30 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
       return undefined;
     }
     const companyId = this.organizationService.getCurrentCompanyId();
-    const params: any = {
-      select: `*,schedule:schedules(*)`,
-      start_date: `gte.${format(
-        this.payment.value()![0].start_date,
-        'yyyy-MM-dd 06:00:00'
-      )}`,
-      end_date: `lte.${format(
-        addDays(this.payment.value()![0].end_date, 1),
-        'yyyy-MM-dd 23:59:59'
-      )}`,
-    };
     
-    // Agregar filtro por company_id
+    // Construir URL manualmente para asegurar que los filtros se apliquen correctamente
+    const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`;
+    const startDate = format(
+      this.payment.value()![0].start_date,
+      'yyyy-MM-dd'
+    );
+    const endDate = format(
+      addDays(this.payment.value()![0].end_date, 1),
+      'yyyy-MM-dd'
+    );
+    const select = `*,schedule:schedules(*)`;
+    
+    let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
+    url += `&start_date=gte.${startDate}`;
+    url += `&end_date=lte.${endDate}`;
+    
     if (companyId) {
-      params.company_id = `eq.${companyId}`;
+      url += `&company_id=eq.${companyId}`;
     }
     
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+      url,
       method: 'GET',
-      params,
     };
   });
   public currentAttendanceSheets = computed(() =>
