@@ -27,6 +27,10 @@ export class DiagnosticService {
   constructor() {
     // Capturar errores de consola
     this.captureConsoleErrors();
+    // Capturar peticiones fetch directamente
+    this.captureFetchErrors();
+    // Monitorear recursos httpResource
+    this.monitorHttpResources();
   }
 
   /**
@@ -130,10 +134,8 @@ export class DiagnosticService {
         typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
       ).join(' ');
       
-      // Solo capturar warnings importantes
-      if (message.includes('Error') || message.includes('Failed') || message.includes('CORS')) {
-        this.addConsoleError(`WARNING: ${message}`, args.length > 1 ? args.slice(1) : undefined);
-      }
+      // Capturar TODOS los warnings (más agresivo)
+      this.addConsoleError(`WARNING: ${message}`, args.length > 1 ? args.slice(1) : undefined);
       originalWarn.apply(console, args);
     };
 
@@ -258,6 +260,156 @@ export class DiagnosticService {
     }
 
     return results;
+  }
+
+  /**
+   * Capturar errores de fetch directamente
+   */
+  private captureFetchErrors(): void {
+    if (typeof window === 'undefined') return;
+
+    const originalFetch = window.fetch;
+    const self = this;
+
+    window.fetch = async function(...args: Parameters<typeof fetch>): Promise<Response> {
+      const [url, options] = args;
+      const urlString = typeof url === 'string' ? url : url.toString();
+
+      try {
+        const response = await originalFetch.apply(this, args);
+        
+        // Si la respuesta no es exitosa, registrar el error
+        if (!response.ok) {
+          self.addHttpError(
+            urlString,
+            response.status,
+            `Fetch failed: ${response.statusText}`,
+            {
+              method: options?.method || 'GET',
+              statusText: response.statusText,
+              headers: Object.fromEntries(response.headers.entries()),
+            }
+          );
+        }
+
+        return response;
+      } catch (error: any) {
+        // Error de red (no se pudo conectar)
+        self.addNetworkError(
+          urlString,
+          error.message || 'Network request failed',
+          {
+            method: options?.method || 'GET',
+            error: error.toString(),
+          }
+        );
+        throw error;
+      }
+    };
+  }
+
+  /**
+   * Monitorear recursos httpResource de Angular
+   * Esto se ejecuta periódicamente para detectar errores
+   */
+  private monitorHttpResources(): void {
+    if (typeof window === 'undefined') return;
+
+    // Monitorear cada 2 segundos los recursos que pueden tener errores
+    setInterval(() => {
+      // Verificar si hay errores en la consola que no se capturaron
+      // Esto es un fallback para errores silenciados
+      this.checkForSilentErrors();
+    }, 2000);
+  }
+
+  /**
+   * Verificar errores silenciados
+   */
+  private checkForSilentErrors(): void {
+    // Solo verificar una vez cada 10 segundos para evitar spam
+    const lastCheck = (this as any).lastSilentCheck || 0;
+    const now = Date.now();
+    if (now - lastCheck < 10000) return;
+    (this as any).lastSilentCheck = now;
+
+    // Verificar variables de entorno críticas
+    const supabaseUrl = process.env['ENV_SUPABASE_URL'];
+    const supabaseKey = process.env['ENV_SUPABASE_ANON_KEY'];
+    const apiUrl = process.env['ENV_API_URL'];
+    const appUrl = process.env['ENV_APP_URL'];
+
+    // Solo agregar error si no existe ya uno similar
+    const existingErrors = this.errorsSubject.value;
+    const hasSupabaseUrlError = existingErrors.some(e => 
+      e.type === 'supabase' && e.message.includes('ENV_SUPABASE_URL')
+    );
+    const hasSupabaseKeyError = existingErrors.some(e => 
+      e.type === 'supabase' && e.message.includes('ENV_SUPABASE_ANON_KEY')
+    );
+    const hasApiUrlError = existingErrors.some(e => 
+      e.type === 'network' && e.message.includes('ENV_API_URL')
+    );
+    const hasAppUrlError = existingErrors.some(e => 
+      e.type === 'auth' && e.message.includes('ENV_APP_URL')
+    );
+
+    if (!supabaseUrl && !hasSupabaseUrlError) {
+      this.addError({
+        type: 'supabase',
+        message: 'ENV_SUPABASE_URL no está configurado',
+      });
+    }
+
+    if (!supabaseKey && !hasSupabaseKeyError) {
+      this.addError({
+        type: 'supabase',
+        message: 'ENV_SUPABASE_ANON_KEY no está configurado',
+      });
+    }
+
+    if (!apiUrl && !hasApiUrlError) {
+      this.addError({
+        type: 'network',
+        message: 'ENV_API_URL no está configurado',
+      });
+    }
+
+    if (!appUrl && !hasAppUrlError) {
+      this.addError({
+        type: 'auth',
+        message: 'ENV_APP_URL no está configurado',
+      });
+    }
+  }
+
+  /**
+   * Agregar error de httpResource
+   */
+  addHttpResourceError(url: string, error: any, resourceName?: string): void {
+    let errorType: DiagnosticError['type'] = 'http';
+    let message = 'Error en httpResource';
+
+    if (error.status === 0 || !error.status) {
+      errorType = 'network';
+      message = 'No se pudo conectar';
+    } else if (error.status === 401 || error.status === 403) {
+      errorType = 'supabase';
+      message = `Error de autenticación: ${error.status}`;
+    } else {
+      message = `HTTP ${error.status}: ${error.statusText || 'Error desconocido'}`;
+    }
+
+    this.addError({
+      type: errorType,
+      message: resourceName ? `${resourceName}: ${message}` : message,
+      url,
+      status: error.status,
+      details: {
+        error: error.error || error.message,
+        resourceName,
+      },
+    });
   }
 }
 

@@ -28,6 +28,14 @@ import { DiagnosticService, DiagnosticError } from '../services/diagnostic.servi
           </div>
           <div class="flex items-center gap-2">
             <p-button
+              icon="pi pi-bug"
+              [text]="true"
+              [rounded]="true"
+              severity="secondary"
+              (click)="testErrorCapture()"
+              title="Probar captura de errores"
+            />
+            <p-button
               icon="pi pi-refresh"
               [text]="true"
               [rounded]="true"
@@ -200,6 +208,35 @@ export class DiagnosticPanelComponent implements OnInit, OnDestroy {
 
   async checkServices(): Promise<void> {
     this.serviceStatus = await this.diagnosticService.checkServices();
+  }
+
+  testErrorCapture(): void {
+    // Probar captura de diferentes tipos de errores
+    this.diagnosticService.addHttpError(
+      'https://test.example.com/api/test',
+      404,
+      'Test: Error HTTP 404',
+      { test: true }
+    );
+    this.diagnosticService.addNetworkError(
+      'https://test.example.com/api/test',
+      'Test: Error de red',
+      { test: true }
+    );
+    this.diagnosticService.addSupabaseError(
+      'Test: Error de Supabase',
+      'https://test.supabase.co/rest/v1/test',
+      { test: true }
+    );
+    this.diagnosticService.addAuthError(
+      'Test: Error de Auth0',
+      { test: true }
+    );
+    this.diagnosticService.addConsoleError(
+      'Test: Error de consola',
+      { test: true },
+      'Test stack trace'
+    );
   }
 
   getErrorCount(type: DiagnosticError['type']): number {

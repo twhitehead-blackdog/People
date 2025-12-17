@@ -47,6 +47,7 @@ import {
 import { TrimPipe } from './pipes/trim.pipe';
 import { IpMonitorService } from './services/ip-monitor.service';
 import { OrganizationService } from './services/organization.service';
+import { DiagnosticService } from './services/diagnostic.service';
 
 @Component({
   selector: 'pt-timeclock',
@@ -890,6 +891,7 @@ export class TimeclockComponent implements OnDestroy {
   private ipMonitor = inject(IpMonitorService);
   private organizationService = inject(OrganizationService);
   private destroyRef = inject(DestroyRef);
+  private diagnosticService = inject(DiagnosticService);
   // Get IP address - try multiple methods to get real IP even from localhost
   public currentIP = signal<string>('127.0.0.1');
   public isProcessing = signal<boolean>(false);
@@ -939,6 +941,37 @@ export class TimeclockComponent implements OnDestroy {
       // Para Naz, siempre considerar la IP como válida
       this.isIPValid.set(true);
     }
+
+    // Monitorear errores de recursos httpResource
+    effect(() => {
+      const companiesError = this.companiesResource.error();
+      const branchesError = this.branchesResource.error();
+      const employeesError = this.employeesResource.error();
+
+      if (companiesError) {
+        this.diagnosticService.addHttpResourceError(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/companies`,
+          companiesError,
+          'companiesResource'
+        );
+      }
+
+      if (branchesError) {
+        this.diagnosticService.addHttpResourceError(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/branches`,
+          branchesError,
+          'branchesResource'
+        );
+      }
+
+      if (employeesError) {
+        this.diagnosticService.addHttpResourceError(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
+          employeesError,
+          'employeesResource'
+        );
+      }
+    });
 
     // Auto-select company and branch when data loads
     effect(
