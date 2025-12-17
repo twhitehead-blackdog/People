@@ -252,6 +252,41 @@ Guía completa para resolver problemas comunes en Railway.
 
 ---
 
+## 🔴 Frontend ejecuta `nx serve` en lugar de Nginx
+
+### Síntomas
+- Logs muestran: `> nx serve` o `> nx run people:serve:development`
+- El servicio se reinicia constantemente
+- Errores de memoria: `fatal error: all goroutines are asleep - deadlock!`
+- El servicio muestra "Killed" en los logs
+
+### Causa
+Railway está ejecutando `npm start` (que ejecuta `nx serve` en desarrollo) en lugar del comando del Dockerfile que debería ejecutar Nginx.
+
+### Soluciones
+
+1. **Verificar configuración de Railway**
+   - Ir a Railway → Proyecto → Servicio Frontend → "Settings"
+   - Buscar "Start Command" o "Command"
+   - **DEBE ESTAR VACÍO** o no existir
+   - Si hay un comando configurado, eliminarlo o dejarlo vacío
+   - Railway debe usar el `ENTRYPOINT` del Dockerfile
+
+2. **Verificar Dockerfile**
+   - El Dockerfile debe tener: `ENTRYPOINT ["nginx", "-g", "daemon off;"]`
+   - Verificar que el path del Dockerfile sea correcto: `docker/Dockerfile.frontend.railway`
+
+3. **Verificar que el build se complete**
+   - El build debe completarse exitosamente
+   - Verificar que no haya errores en la etapa de build
+   - El build debe crear archivos en `/app/dist/people/browser`
+
+4. **Redeploy después de cambios**
+   - Después de cambiar la configuración, hacer "Redeploy"
+   - Verificar que los logs muestren Nginx iniciando, no `nx serve`
+
+---
+
 ## 🔴 Service keeps restarting
 
 ### Síntomas
