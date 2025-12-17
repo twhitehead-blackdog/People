@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { SupabaseAuthService } from '../services/supabase-auth.service';
+import { AuthService } from '@auth0/auth0-angular';
 import { tapResponse } from '@ngrx/operators';
 import {
   patchState,
@@ -25,7 +25,7 @@ export const AuthStore = signalStore(
     currentEmployeeId: null,
   }),
   withProps(() => ({
-    _auth: inject(SupabaseAuthService),
+    _auth: inject(AuthService),
     _http: inject(HttpClient),
     _orgService: inject(OrganizationService),
     _bypass: inject(AuthBypassService),

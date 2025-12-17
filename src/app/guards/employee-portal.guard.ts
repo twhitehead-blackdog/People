@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router, UrlTree } from '@angular/router';
-import { SupabaseAuthService } from '../services/supabase-auth.service';
+import { AuthService } from '@auth0/auth0-angular';
 import { HttpClient } from '@angular/common/http';
 import { map, switchMap, take, of, catchError } from 'rxjs';
 import { OrganizationService } from '../services/organization.service';

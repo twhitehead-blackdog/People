@@ -7,7 +7,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { SupabaseAuthService } from '../services/supabase-auth.service';
+import { AuthService } from '@auth0/auth0-angular';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Button } from 'primeng/button';
@@ -1275,7 +1275,7 @@ import { Branch } from '../models';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LoginComponent {
-  public auth = inject(SupabaseAuthService);
+  public auth = inject(AuthService);
   public organizationService = inject(OrganizationService);
   public http = inject(HttpClient);
   public router = inject(Router);
@@ -1446,16 +1446,8 @@ export class LoginComponent {
     const finalOrg = this.organizationService.currentOrganization;
     console.log('🚀 Iniciando sesión con organización:', finalOrg, 'company_id:', finalCompanyId);
     
-    // Con Supabase Auth, necesitamos mostrar un formulario de login
-    // Por ahora, redirigir a un formulario de login o usar OAuth
-    // TODO: Implementar formulario de login con email/password o OAuth
-    // Por ahora, mostrar mensaje de que se necesita implementar el formulario
-    this.messageService.add({
-      severity: 'info',
-      summary: 'Login con Supabase',
-      detail: 'Por favor, implementa el formulario de login con email y contraseña',
-      life: 5000,
-    });
+    // Usar Auth0 para iniciar sesión
+    this.auth.loginWithRedirect();
   }
 
   openKioskMode() {
