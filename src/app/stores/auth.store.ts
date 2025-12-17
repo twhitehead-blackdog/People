@@ -11,10 +11,9 @@ import {
   withState,
 } from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
-import { filter, pipe, switchMap, catchError, merge, of } from 'rxjs';
-import { OrganizationService } from '../services/organization.service';
+import { filter, of, pipe, switchMap } from 'rxjs';
 import { AuthBypassService } from '../services/auth-bypass.service';
-import { getTableNameFromService } from '../utils/table-helper';
+import { OrganizationService } from '../services/organization.service';
 
 type State = {
   currentEmployeeId: string | null;
@@ -37,7 +36,10 @@ export const AuthStore = signalStore(
           // Si el bypass está activo, usar el usuario del bypass
           if (_bypass.isBypassActive()) {
             const bypassUser = _bypass.getCurrentUser();
-            console.log('🔓 [AuthStore] Usando bypass, usuario:', bypassUser?.email);
+            console.log(
+              '🔓 [AuthStore] Usando bypass, usuario:',
+              bypassUser?.email
+            );
             if (bypassUser) {
               // Retornar el usuario del bypass como Observable
               return of(bypassUser);
@@ -52,49 +54,52 @@ export const AuthStore = signalStore(
           // Ya no hay tablas naz_*, todo es por company_id en tablas compartidas
           const tableName = 'employees';
           const positionTableName = 'positions';
-          
+
           // Usar positions siempre (tabla compartida)
           const positionSelect = `position:positions(id, name, admin, schedule_admin, schedule_approver, dashboard_access, default_view)`;
-          
+
           const params: any = {
             work_email: `eq.${user.email}`,
-            select: `id,company_id,first_name,father_name,${positionSelect}`
+            select: `id,company_id,first_name,father_name,${positionSelect}`,
           };
-          
+
           // Siempre agregar filtro por company_id
           const companyId = _orgService.getCurrentCompanyId();
           if (companyId) {
             params.company_id = `eq.${companyId}`;
           }
-          
+
           return _http
-            .get<{ 
-              id: string; 
-              company_id?: string;
-              first_name?: string;
-              father_name?: string;
-              position?: { 
+            .get<
+              {
                 id: string;
-                name: string;
-                admin: boolean;
-                schedule_admin?: boolean;
-                schedule_approver?: boolean;
-                dashboard_access?: boolean;
-                default_view?: string;
-              };
-            }[]>(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
-              { params }
-            )
+                company_id?: string;
+                first_name?: string;
+                father_name?: string;
+                position?: {
+                  id: string;
+                  name: string;
+                  admin: boolean;
+                  schedule_admin?: boolean;
+                  schedule_approver?: boolean;
+                  dashboard_access?: boolean;
+                  default_view?: string;
+                };
+              }[]
+            >(`${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`, {
+              params,
+            })
             .pipe(
               switchMap((resp) => {
                 // Si no se encuentra el empleado con el company_id actual, buscar sin filtro de company_id
                 // Esto permite encontrar al empleado aunque esté en otra organización
                 if (!resp || resp.length === 0) {
-                  console.warn('⚠️ Empleado no encontrado con company_id actual, buscando sin filtro...');
+                  console.warn(
+                    '⚠️ Empleado no encontrado con company_id actual, buscando sin filtro...'
+                  );
                   const paramsWithoutCompany = {
                     work_email: `eq.${user.email}`,
-                    select: `id,company_id,first_name,father_name,${positionSelect}`
+                    select: `id,company_id,first_name,father_name,${positionSelect}`,
                   };
                   return _http.get<typeof resp>(
                     `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
@@ -108,35 +113,73 @@ export const AuthStore = signalStore(
                   if (resp && resp.length > 0) {
                     const employee = resp[0];
                     patchState(state, { currentEmployeeId: employee.id });
-                    
+
                     const currentCompanyId = _orgService.getCurrentCompanyId();
                     const nazCompanyId = _orgService.getNazCompanyId();
-                    const blackdogCompanyId = _orgService.getBlackdogCompanyId();
-                    
-                    // Si el empleado encontrado tiene un company_id diferente al actual,
-                    // actualizar la organización para que coincida
+                    const blackdogCompanyId =
+                      _orgService.getBlackdogCompanyId();
+
+                    // Solo actualizar la organización automáticamente si:
+                    // 1. No hay company_id seleccionado (primera vez/login)
+                    // 2. O si el empleado pertenece a la organización actual (coincidencia)
+                    // NO cambiar si el usuario ha seleccionado manualmente una organización diferente
                     if (employee.company_id) {
-                      if (employee.company_id === nazCompanyId && currentCompanyId !== nazCompanyId) {
-                        console.log('🔄 Empleado pertenece a Naz, actualizando organización...');
-                        _orgService.setOrganization('naz');
-                      } else if (employee.company_id === blackdogCompanyId && currentCompanyId !== blackdogCompanyId) {
-                        console.log('🔄 Empleado pertenece a Black Dog, actualizando organización...');
-                        _orgService.setOrganization('blackdog');
-                      } else if (!currentCompanyId) {
-                        // Si no hay company_id seleccionado, usar el del empleado
+                      // Verificar si hay una organización guardada en localStorage (selección manual del usuario)
+                      const savedOrg = _orgService.currentOrganization;
+                      const hasManualSelection = savedOrg && currentCompanyId;
+                      
+                      if (!currentCompanyId) {
+                        // Primera vez/login: usar el company_id del empleado
                         if (employee.company_id === nazCompanyId) {
                           _orgService.setOrganization('naz');
-                          console.log('✅ Organización establecida desde empleado: Naz');
+                          console.log(
+                            '✅ Organización establecida desde empleado: Naz'
+                          );
                         } else if (employee.company_id === blackdogCompanyId) {
                           _orgService.setOrganization('blackdog');
-                          console.log('✅ Organización establecida desde empleado: Black Dog');
+                          console.log(
+                            '✅ Organización establecida desde empleado: Black Dog'
+                          );
+                        }
+                      } else if (!hasManualSelection) {
+                        // Si no hay selección manual previa, actualizar según el empleado
+                        if (
+                          employee.company_id === nazCompanyId &&
+                          currentCompanyId !== nazCompanyId
+                        ) {
+                          console.log(
+                            '🔄 Empleado pertenece a Naz, actualizando organización...'
+                          );
+                          _orgService.setOrganization('naz');
+                        } else if (
+                          employee.company_id === blackdogCompanyId &&
+                          currentCompanyId !== blackdogCompanyId
+                        ) {
+                          console.log(
+                            '🔄 Empleado pertenece a Black Dog, actualizando organización...'
+                          );
+                          _orgService.setOrganization('blackdog');
+                        } else {
+                          console.log(
+                            '✅ Manteniendo company_id seleccionado:',
+                            currentCompanyId
+                          );
                         }
                       } else {
-                        console.log('✅ Manteniendo company_id seleccionado:', currentCompanyId);
+                        // Hay una selección manual del usuario: respetarla y NO cambiar automáticamente
+                        console.log(
+                          '✅ Respetando selección manual del usuario:',
+                          savedOrg,
+                          'company_id:',
+                          currentCompanyId
+                        );
                       }
                     }
                   } else {
-                    console.warn('⚠️ No se encontró empleado con el email:', user.email);
+                    console.warn(
+                      '⚠️ No se encontró empleado con el email:',
+                      user.email
+                    );
                   }
                 },
                 error: (error) => {

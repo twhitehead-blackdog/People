@@ -601,6 +601,12 @@ export class JobApplicationsListComponent implements OnInit {
   constructor() {
     // Cargar el estado de la feria y fecha de entrevistas desde settings
     effect(() => {
+      // No actualizar si estamos en medio de una actualización manual
+      if (this.isUpdatingJobFairStatus() || this.isUpdatingInterviewDate()) {
+        console.log('[DEBUG] Ignorando actualización de settings - actualización manual en progreso');
+        return;
+      }
+      
       const settings = this.jobFairSettingsApi.value();
       console.log('[DEBUG] Settings cargados desde API:', settings);
       
@@ -612,8 +618,11 @@ export class JobApplicationsListComponent implements OnInit {
 
         if (enabledSetting) {
           const enabledValue = enabledSetting.value === 'true';
-          console.log('[DEBUG] Estableciendo jobFairEnabled a:', enabledValue);
-          this.jobFairEnabled.set(enabledValue);
+          // Solo actualizar si el valor realmente cambió
+          if (this.jobFairEnabled() !== enabledValue) {
+            console.log('[DEBUG] Estableciendo jobFairEnabled a:', enabledValue);
+            this.jobFairEnabled.set(enabledValue);
+          }
         }
 
         // Cargar rango de fechas de la feria
@@ -634,12 +643,22 @@ export class JobApplicationsListComponent implements OnInit {
           : null;
         console.log('[DEBUG] Fechas parseadas - Inicio:', startDate, 'Fin:', endDate);
 
-        if (startDate || endDate) {
-          this.jobFairDateRange = [startDate, endDate];
+        // Solo actualizar si realmente cambió (evitar loops)
+        const currentRange = this.jobFairDateRange;
+        const newRange = (startDate || endDate) ? [startDate, endDate] : null;
+        
+        // Comparar fechas para evitar actualizaciones innecesarias
+        const rangesEqual = 
+          (!currentRange && !newRange) ||
+          (currentRange && newRange &&
+           currentRange[0]?.getTime() === newRange[0]?.getTime() &&
+           currentRange[1]?.getTime() === newRange[1]?.getTime());
+        
+        if (!rangesEqual) {
+          this.jobFairDateRange = newRange;
           console.log('[DEBUG] jobFairDateRange establecido a:', this.jobFairDateRange);
         } else {
-          this.jobFairDateRange = null;
-          console.log('[DEBUG] jobFairDateRange establecido a null (sin fechas)');
+          console.log('[DEBUG] jobFairDateRange sin cambios, manteniendo valor actual');
         }
       } else {
         console.log('[DEBUG] No se encontraron settings o array vacío');
@@ -692,7 +711,10 @@ export class JobApplicationsListComponent implements OnInit {
           summary: 'Duración eliminada',
           detail: 'La duración de la feria ha sido eliminada',
         });
-        this.jobFairSettingsApi.reload();
+        // Recargar después de un delay para evitar que el effect sobrescriba
+        setTimeout(() => {
+          this.jobFairSettingsApi.reload();
+        }, 500);
         this.isUpdatingInterviewDate.set(false);
         return;
       }
