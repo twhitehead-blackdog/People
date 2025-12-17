@@ -779,25 +779,9 @@ export class EmployeeListComponent implements OnInit {
       return employee.employee_number;
     }
     
-    // Si no tiene employee_number, generar uno basado en el company_id
-    const companyId = this.organizationService.getCurrentCompanyId();
-    const nazCompanyId = this.organizationService['_nazCompanyId'];
-    const blackdogCompanyId = this.organizationService['_blackdogCompanyId'];
-    
-    const prefix = getEmployeeNumberPrefix(companyId, nazCompanyId, blackdogCompanyId);
-    
-    // Si no podemos determinar el prefijo, usar el ID como fallback
-    if (prefix === 'XX') {
-      return employee.id.substring(0, 8);
-    }
-    
-    // Generar un número basado en el ID del empleado (usar últimos 4 dígitos del UUID)
-    // Esto es temporal hasta que se asigne un employee_number real
-    const idDigits = employee.id.replace(/-/g, '').substring(0, 4);
-    const number = parseInt(idDigits, 16) % 10000; // Convertir a número y limitar a 4 dígitos
-    const formattedNumber = number.toString().padStart(4, '0');
-    
-    return `${prefix}${formattedNumber}`;
+    // Si no tiene employee_number, mostrar solo los primeros 8 caracteres del ID como fallback
+    // El formato BD0001 debe asignarse desde la base de datos o al crear el empleado
+    return employee.id.substring(0, 8);
   }
 
   generateReport() {
