@@ -28,6 +28,7 @@ import { httpInterceptor } from './interceptors/http.interceptor';
 import { errorInterceptor } from './interceptors/error.interceptor';
 import { JobApplicationsStore } from './stores/job-applications.store';
 import { PositionsStore } from './stores/positions.store';
+import { SupabaseAuthService } from './services/supabase-auth.service';
 registerLocaleData(localeEs, 'es-MX');
 
 const MyPreset = definePreset(Aura, {
@@ -58,7 +59,8 @@ export const appConfig: ApplicationConfig = {
     ),
     provideAnimationsAsync(),
     provideHttpClient(withInterceptors([apiUrlInterceptor, httpInterceptor, errorInterceptor])),
-    // SupabaseAuthService se inicializa automáticamente (providedIn: 'root')
+    // Proporcionar explícitamente SupabaseAuthService para evitar problemas de inyección
+    SupabaseAuthService,
     providePrimeNG({
       theme: {
         preset: MyPreset,

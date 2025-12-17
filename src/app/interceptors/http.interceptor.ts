@@ -1,5 +1,5 @@
 import { HttpInterceptorFn, HttpErrorResponse } from '@angular/common/http';
-import { inject } from '@angular/core';
+import { inject, InjectFlags } from '@angular/core';
 import { SupabaseAuthService } from '../services/supabase-auth.service';
 import { switchMap, catchError, from } from 'rxjs';
 import { DiagnosticService } from '../services/diagnostic.service';
@@ -7,12 +7,20 @@ import { throwError } from 'rxjs';
 
 export const httpInterceptor: HttpInterceptorFn = (req, next) => {
   const diagnosticService = inject(DiagnosticService);
-  const supabaseAuth = inject(SupabaseAuthService);
+  
+  // Intentar inyectar SupabaseAuthService de forma segura
+  let supabaseAuth: SupabaseAuthService | null = null;
+  try {
+    supabaseAuth = inject(SupabaseAuthService, InjectFlags.Optional);
+  } catch (e) {
+    console.warn('⚠️ [HttpInterceptor] SupabaseAuthService no disponible:', e);
+  }
 
   if (req.url.includes('supabase')) {
     // Para peticiones a Supabase, usar el token de sesión del usuario si está autenticado
     // o la API key anónima como fallback
-    return from(supabaseAuth.getAccessToken()).pipe(
+    if (supabaseAuth) {
+      return from(supabaseAuth.getAccessToken()).pipe(
       switchMap((accessToken) => {
         // Usar token de sesión si está disponible, sino usar API key anónima
         const supabaseKey = 
@@ -66,8 +74,31 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
           );
         }
         return throwError(() => error);
-      })
-    );
+      });
+    } else {
+      // Si SupabaseAuthService no está disponible, usar API key anónima
+      const supabaseKey = 
+        process.env['ENV_SUPABASE_ANON_KEY'] ?? 
+        process.env['ENV_SUPABASE_API_KEY'] ?? 
+        '';
+      
+      let headers = req.headers
+        .set('apikey', supabaseKey)
+        .set('Authorization', `Bearer ${supabaseKey}`);
+
+      if (!req.url.includes('/storage/v1/')) {
+        headers = headers
+          .set('Prefer', 'return=representation')
+          .set('Content-Type', 'application/json');
+      }
+
+      if (req.url.includes('/timelogs') && req.url.includes('limit=10000')) {
+        headers = headers.set('Range', '0-9999');
+      }
+
+      const request = req.clone({ headers });
+      return next(request);
+    }
   }
 
   // Endpoints públicos que NO requieren autenticación
@@ -82,8 +113,9 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
     return next(req);
   }
 
-  // For non-Supabase requests, use Supabase token
-  return supabaseAuth.getAccessTokenSilently().pipe(
+  // For non-Supabase requests, use Supabase token if available
+  if (supabaseAuth) {
+    return supabaseAuth.getAccessTokenSilently().pipe(
     switchMap((token) => {
       const request = req.clone({
         headers: req.headers.set('Authorization', `Bearer ${token}`),
@@ -100,6 +132,9 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
         );
       }
       return throwError(() => error);
-    })
-  );
+    });
+  } else {
+    // Si SupabaseAuthService no está disponible, continuar sin token
+    return next(req);
+  }
 };
