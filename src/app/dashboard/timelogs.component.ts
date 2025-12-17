@@ -4,7 +4,9 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
+  Injector,
   model,
   signal,
 } from '@angular/core';
@@ -528,6 +530,7 @@ export class TimelogsComponent {
   public store = inject(DashboardStore);
   public onlyDelayed = signal(false);
   public organizationService = inject(OrganizationService);
+  private injector = inject(Injector);
 
   // Computed para verificar si es Naz
   public isNaz = computed(() => this.organizationService.isNaz());
@@ -710,8 +713,15 @@ export class TimelogsComponent {
     if (!start || !end) {
       return undefined;
     }
-    const params = this.addCompanyFilter(this.queryParams(), 'timelogs');
+    const queryParams = this.queryParams();
+    const params = this.addCompanyFilter(queryParams, 'timelogs');
     params.created_at = `lte.${format(addDays(end, 1), 'yyyy-MM-dd 06:00:00')}`;
+    
+    // Debug: Log para timelogs
+    console.log('[TimelogsComponent] Cargando timelogs con params:', params);
+    console.log('[TimelogsComponent] Company ID:', this.organizationService.getCurrentCompanyId());
+    console.log('[TimelogsComponent] Rango de fechas:', format(start, 'yyyy-MM-dd'), 'a', format(end, 'yyyy-MM-dd'));
+    
     return {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`,
       method: 'GET',
@@ -721,7 +731,17 @@ export class TimelogsComponent {
 
   // Computed para detectar errores en las peticiones HTTP
   public hasError = computed(() => {
-    if (this.logs.error() || this.schedules.error() || this.timeoffs.error()) {
+    const logsError = this.logs.error();
+    const schedulesError = this.schedules.error();
+    const timeoffsError = this.timeoffs.error();
+    
+    if (logsError || schedulesError || timeoffsError) {
+      console.error('[TimelogsComponent] ❌ Error cargando datos:', {
+        logs: logsError,
+        schedules: schedulesError,
+        timeoffs: timeoffsError,
+      });
+      
       this.message.add({
         severity: 'error',
         summary: 'Error al cargar datos',
@@ -732,6 +752,30 @@ export class TimelogsComponent {
     }
     return false;
   });
+  
+  constructor() {
+    // Debug: Effect para verificar datos cargados
+    effect(
+      () => {
+        const logsData = this.logs.value();
+        const schedulesData = this.schedules.value();
+        const timeoffsData = this.timeoffs.value();
+
+        console.log('[TimelogsComponent] Datos cargados:', {
+          timelogs: logsData?.length ?? 0,
+          employee_schedules: schedulesData?.length ?? 0,
+          timeoffs: timeoffsData?.length ?? 0,
+        });
+
+        if (logsData && logsData.length === 0) {
+          console.warn(
+            '[TimelogsComponent] ⚠️ No se encontraron timelogs. Verificar company_id y rango de fechas.'
+          );
+        }
+      },
+      { injector: this.injector }
+    );
+  }
 
   public queryParams = computed(() => {
     const { start, end } = this.normalizedDateRange();
