@@ -713,21 +713,41 @@ export class TimelogsComponent {
     if (!start || !end) {
       return undefined;
     }
-    const queryParams = this.queryParams();
-    const params = this.addCompanyFilter({ ...queryParams }, 'timelogs');
-    params.created_at = `lte.${format(addDays(end, 1), 'yyyy-MM-dd 06:00:00')}`;
+    
+    // Construir URL manualmente para tener control total sobre los filtros
+    // PostgREST/Supabase requiere construir la URL manualmente cuando hay múltiples filtros en el mismo campo
+    const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`;
+    const companyId = this.organizationService.getCurrentCompanyId();
+    const startDate = format(start, "yyyy-MM-dd'T'06:00:00");
+    const endDate = format(addDays(end, 1), "yyyy-MM-dd'T'06:00:00");
+    
+    // Construir select con relaciones
+    const select = `*,employee:employees(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)`;
+    
+    // Construir URL con todos los parámetros
+    let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
+    url += `&created_at=gte.${startDate}`;
+    url += `&created_at=lte.${endDate}`;
+    
+    if (this.employeeId()) {
+      url += `&employee_id=eq.${this.employeeId()}`;
+    }
+    
+    if (companyId) {
+      url += `&company_id=eq.${companyId}`;
+    }
+    
+    url += `&order=created_at.asc`;
 
     // Debug: Log para timelogs
-    console.log('[TimelogsComponent] Cargando timelogs con params:', JSON.stringify(params, null, 2));
-    console.log('[TimelogsComponent] Company ID:', this.organizationService.getCurrentCompanyId());
+    console.log('[TimelogsComponent] Cargando timelogs con URL:', url);
+    console.log('[TimelogsComponent] Company ID:', companyId);
     console.log('[TimelogsComponent] Rango de fechas:', format(start, 'yyyy-MM-dd'), 'a', format(end, 'yyyy-MM-dd'));
     console.log('[TimelogsComponent] Employee ID:', this.employeeId() || 'Todos');
-    console.log('[TimelogsComponent] URL completa:', `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`);
 
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`,
+      url,
       method: 'GET',
-      params,
     };
   });
 

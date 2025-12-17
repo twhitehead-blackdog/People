@@ -3704,7 +3704,11 @@ export class HomeComponent {
       url += `&company_id=eq.${companyId}`;
     }
     
-    // Debug logs removed for production
+    // Debug logs para verificar la consulta
+    console.log('[HomeComponent] latesFromTimelogs URL:', url);
+    console.log('[HomeComponent] Company ID:', companyId);
+    console.log('[HomeComponent] Date range:', from, 'to', to);
+    
     return {
       url,
       method: 'GET',
@@ -3731,7 +3735,11 @@ export class HomeComponent {
       url += `&company_id=eq.${companyId}`;
     }
     
-    // Debug logs removed for production
+    // Debug logs para verificar la consulta
+    console.log('[HomeComponent] employeeSchedules URL:', url);
+    console.log('[HomeComponent] employeeSchedules - Company ID:', companyId);
+    console.log('[HomeComponent] employeeSchedules - Month range:', monthStart, 'to', monthEnd);
+    
     return {
       url,
       method: 'GET',
@@ -4293,6 +4301,8 @@ export class HomeComponent {
     // Debug logs
     console.log('[HomeComponent] latesDailyChartData - Timelogs cargados:', timelogs.length);
     console.log('[HomeComponent] latesDailyChartData - Schedules cargados:', schedules.length);
+    console.log('[HomeComponent] latesDailyChartData - Company ID:', this.organizationService.getCurrentCompanyId());
+    
     if (timelogs.length > 0) {
       console.log('[HomeComponent] latesDailyChartData - Muestra de timelogs (primeros 3):', 
         timelogs.slice(0, 3).map(log => ({
@@ -4303,6 +4313,22 @@ export class HomeComponent {
           employee: log.employee ? `${log.employee.first_name} ${log.employee.father_name}` : 'N/A',
         }))
       );
+    }
+    
+    if (schedules.length > 0) {
+      console.log('[HomeComponent] latesDailyChartData - Muestra de schedules (primeros 3):', 
+        schedules.slice(0, 3).map(s => ({
+          id: s.id,
+          employee_id: s.employee_id,
+          start_date: s.start_date,
+          end_date: s.end_date,
+          schedule: s.schedule ? { id: s.schedule.id, name: s.schedule.name, entry_time: s.schedule.entry_time } : null,
+        }))
+      );
+    } else {
+      console.warn('[HomeComponent] latesDailyChartData - ⚠️ No hay schedules cargados. Verificar:');
+      console.warn('  - Company ID:', this.organizationService.getCurrentCompanyId());
+      console.warn('  - Error en employeeSchedules:', this.employeeSchedules.error());
     }
     const detailsByDate = new Map<
       string,
