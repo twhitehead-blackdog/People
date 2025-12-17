@@ -3,6 +3,7 @@
 ## ✅ Estado Actual
 
 Todo el código está listo para Railway:
+
 - ✅ Interceptor API URL configurado
 - ✅ Dockerfiles listos
 - ✅ Variables de entorno preparadas
@@ -57,6 +58,7 @@ Todo el código está listo para Railway:
    ```
 6. Ir a "Settings" → "Domains" → "Generate Domain"
 7. **Anotar el dominio del backend:** `https://people-dev-backend.railway.app`
+   backend-dev-production-5b38.up.railway.app
 
 ---
 
@@ -101,15 +103,15 @@ Todo el código está listo para Railway:
 3. Ir a "Settings"
 4. En "Allowed Callback URLs", agregar:
    ```
-   https://people-dev-frontend.railway.app
+   https://frontend-dev-production-c157.up.railway.app
    ```
 5. En "Allowed Logout URLs", agregar:
    ```
-   https://people-dev-frontend.railway.app
+   https://frontend-dev-production-c157.up.railway.app
    ```
 6. En "Allowed Web Origins", agregar:
    ```
-   https://people-dev-frontend.railway.app
+   https://frontend-dev-production-c157.up.railway.app
    ```
 7. Guardar cambios
 
@@ -117,17 +119,22 @@ Todo el código está listo para Railway:
 
 ### Paso 7: Probar Todo (10 minutos)
 
-1. Abrir `https://people-dev-frontend.railway.app`
-2. Probar login
-3. Verificar que las funcionalidades principales funcionen
-4. Abrir DevTools → Network
-5. Verificar que las llamadas a `/api/...` vayan al backend correcto
+**📖 Guía completa:** Ver `docker/railway/PASO-7-VERIFICACION.md`
+
+Resumen rápido:
+
+1. Abrir el dominio del frontend en el navegador
+2. Verificar que carga sin errores (F12 → Console)
+3. Probar login con Auth0
+4. Verificar que las llamadas a `/api/...` vayan al backend correcto (F12 → Network)
+5. Verificar que las funcionalidades principales funcionen
 
 ---
 
 ## 🎉 ¡Listo para Development!
 
 Una vez que Development funcione, puedes crear Production siguiendo los mismos pasos pero:
+
 - Proyecto: "People Production"
 - Branch: `main`
 - Variables de producción (ver `docker/railway/env.prod.example.txt`)
@@ -162,4 +169,3 @@ Una vez que Development funcione, puedes crear Production siguiendo los mismos p
 - Puedes hacer rollback fácilmente desde "Deployments"
 
 ¡Empieza con el Paso 1! 🚀
-

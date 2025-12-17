@@ -9,19 +9,21 @@
 -- 1. DEFINICIONES DE FUNCIONES
 -- ============================================
 SELECT 
-    '-- Función: ' || routine_name as comentario,
-    pg_get_functiondef(oid) as definicion
-FROM pg_proc
-WHERE pronamespace = 'public'::regnamespace
-AND proname IN (
-    'update_updated_at_column',
-    'update_complaint_last_message_at',
-    'sync_thread_id_to_messages',
-    'get_pos_config_names',
-    'handle_new_user',
-    'has_pos_access'
-)
-ORDER BY proname;
+    '-- Función: ' || p.proname as comentario,
+    pg_get_functiondef(p.oid) as definicion
+FROM pg_proc p
+JOIN pg_namespace n ON p.pronamespace = n.oid
+WHERE n.nspname = 'public'
+    AND p.prokind IN ('f', 'p')  -- Solo funciones y procedimientos, NO agregaciones
+    AND p.proname IN (
+        'update_updated_at_column',
+        'update_complaint_last_message_at',
+        'sync_thread_id_to_messages',
+        'get_pos_config_names',
+        'handle_new_user',
+        'has_pos_access'
+    )
+ORDER BY p.proname;
 
 -- ============================================
 -- 2. DEFINICIONES DE TRIGGERS
@@ -61,13 +63,14 @@ SELECT
 FROM pg_proc p
 JOIN pg_namespace n ON p.pronamespace = n.oid
 WHERE n.nspname = 'public'
-AND p.proname IN (
-    'update_updated_at_column',
-    'update_complaint_last_message_at',
-    'sync_thread_id_to_messages',
-    'get_pos_config_names',
-    'handle_new_user',
-    'has_pos_access'
-)
+    AND p.prokind IN ('f', 'p')  -- Solo funciones y procedimientos, NO agregaciones
+    AND p.proname IN (
+        'update_updated_at_column',
+        'update_complaint_last_message_at',
+        'sync_thread_id_to_messages',
+        'get_pos_config_names',
+        'handle_new_user',
+        'has_pos_access'
+    )
 ORDER BY p.proname;
 

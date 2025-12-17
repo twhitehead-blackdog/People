@@ -97,15 +97,25 @@ WHERE tc.constraint_type = 'CHECK'
 ORDER BY tc.table_name, tc.constraint_name;
 
 -- ============================================
--- 6. FUNCIONES
+-- 6. FUNCIONES (EXCLUYE FUNCIONES DE AGREGACIÓN Y DEL SISTEMA)
 -- ============================================
 SELECT
-    routine_name,
-    routine_type,
-    data_type as return_type
-FROM information_schema.routines
-WHERE routine_schema = 'public'
-ORDER BY routine_name;
+    p.proname as routine_name,
+    CASE 
+        WHEN p.prokind = 'f' THEN 'FUNCTION'
+        WHEN p.prokind = 'p' THEN 'PROCEDURE'
+        WHEN p.prokind = 'a' THEN 'AGGREGATE'
+        WHEN p.prokind = 'w' THEN 'WINDOW'
+        ELSE 'OTHER'
+    END as routine_type,
+    pg_get_function_result(p.oid) as return_type
+FROM pg_proc p
+JOIN pg_namespace n ON p.pronamespace = n.oid
+WHERE n.nspname = 'public'
+    AND p.prokind IN ('f', 'p')  -- Solo funciones y procedimientos, NO agregaciones
+    AND p.proname NOT LIKE 'pg_%'  -- Excluir funciones del sistema
+    AND p.proname NOT LIKE 'crypto_%'  -- Excluir funciones de crypto que pueden ser agregaciones
+ORDER BY p.proname;
 
 -- ============================================
 -- 7. TRIGGERS
