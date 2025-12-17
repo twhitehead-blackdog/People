@@ -44,7 +44,7 @@ export const AuthStore = signalStore(
             }
             console.warn('🔓 [AuthStore] Bypass activo pero no hay usuario');
           }
-          // Si no, usar Supabase Auth
+          // Si no, usar Auth0
           return _auth.user$;
         }),
         filter((user) => !!user),
@@ -88,7 +88,19 @@ export const AuthStore = signalStore(
             )
             .pipe(
               switchMap((resp) => {
-                // Ya no hay fallback a naz_*, solo retornar la respuesta
+                // Si no se encuentra el empleado con el company_id actual, buscar sin filtro de company_id
+                // Esto permite encontrar al empleado aunque esté en otra organización
+                if (!resp || resp.length === 0) {
+                  console.warn('⚠️ Empleado no encontrado con company_id actual, buscando sin filtro...');
+                  const paramsWithoutCompany = {
+                    work_email: `eq.${user.email}`,
+                    select: `id,company_id,first_name,father_name,${positionSelect}`
+                  };
+                  return _http.get<typeof resp>(
+                    `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
+                    { params: paramsWithoutCompany }
+                  );
+                }
                 return of(resp || []);
               }),
               tapResponse({
@@ -97,26 +109,34 @@ export const AuthStore = signalStore(
                     const employee = resp[0];
                     patchState(state, { currentEmployeeId: employee.id });
                     
-                    // Solo actualizar la organización si no hay una seleccionada previamente
-                    // (respetar la selección del usuario en el login)
                     const currentCompanyId = _orgService.getCurrentCompanyId();
+                    const nazCompanyId = _orgService.getNazCompanyId();
+                    const blackdogCompanyId = _orgService.getBlackdogCompanyId();
                     
-                    // Si no hay company_id seleccionado, usar el del empleado
-                    if (!currentCompanyId && employee.company_id) {
-                      const nazCompanyId = _orgService.getNazCompanyId();
-                      const blackdogCompanyId = _orgService.getBlackdogCompanyId();
-                      
-                      // Actualizar organización basada en company_id del empleado
-                      if (employee.company_id === nazCompanyId) {
+                    // Si el empleado encontrado tiene un company_id diferente al actual,
+                    // actualizar la organización para que coincida
+                    if (employee.company_id) {
+                      if (employee.company_id === nazCompanyId && currentCompanyId !== nazCompanyId) {
+                        console.log('🔄 Empleado pertenece a Naz, actualizando organización...');
                         _orgService.setOrganization('naz');
-                        console.log('✅ Organización establecida desde empleado: Naz');
-                      } else if (employee.company_id === blackdogCompanyId) {
+                      } else if (employee.company_id === blackdogCompanyId && currentCompanyId !== blackdogCompanyId) {
+                        console.log('🔄 Empleado pertenece a Black Dog, actualizando organización...');
                         _orgService.setOrganization('blackdog');
-                        console.log('✅ Organización establecida desde empleado: Black Dog');
+                      } else if (!currentCompanyId) {
+                        // Si no hay company_id seleccionado, usar el del empleado
+                        if (employee.company_id === nazCompanyId) {
+                          _orgService.setOrganization('naz');
+                          console.log('✅ Organización establecida desde empleado: Naz');
+                        } else if (employee.company_id === blackdogCompanyId) {
+                          _orgService.setOrganization('blackdog');
+                          console.log('✅ Organización establecida desde empleado: Black Dog');
+                        }
+                      } else {
+                        console.log('✅ Manteniendo company_id seleccionado:', currentCompanyId);
                       }
-                    } else if (currentCompanyId) {
-                      console.log('✅ Manteniendo company_id seleccionado en login:', currentCompanyId);
                     }
+                  } else {
+                    console.warn('⚠️ No se encontró empleado con el email:', user.email);
                   }
                 },
                 error: (error) => {
