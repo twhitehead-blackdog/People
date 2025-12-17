@@ -15,7 +15,8 @@ RUN apk add --no-cache python3 make g++
 COPY package*.json ./
 
 # Instalar dependencias (Railway necesita dev dependencies para tsx)
-RUN npm ci
+# Usar npm install con legacy-peer-deps para evitar conflictos
+RUN npm install --legacy-peer-deps || npm ci --legacy-peer-deps
 
 # Copiar código fuente
 COPY server.ts ./

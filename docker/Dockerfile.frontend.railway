@@ -15,7 +15,8 @@ COPY nx.json ./
 COPY tsconfig*.json ./
 
 # Instalar dependencias
-RUN npm ci
+# Usar npm install con legacy-peer-deps para evitar conflictos
+RUN npm install --legacy-peer-deps || npm ci --legacy-peer-deps
 
 # Copiar código fuente
 COPY . .
