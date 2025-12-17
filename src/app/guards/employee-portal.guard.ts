@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router, UrlTree } from '@angular/router';
-import { AuthService } from '@auth0/auth0-angular';
+import { SupabaseAuthService } from '../services/supabase-auth.service';
 import { HttpClient } from '@angular/common/http';
 import { map, switchMap, take, of, catchError } from 'rxjs';
 import { OrganizationService } from '../services/organization.service';
@@ -50,7 +50,7 @@ export function invalidateEmployeeCache(email?: string): void {
  */
 export const employeePortalGuard: CanActivateFn = (route, state) => {
   const router = inject(Router);
-  const authService = inject(AuthService);
+  const authService = inject(SupabaseAuthService);
   const http = inject(HttpClient);
   const orgService = inject(OrganizationService);
   const bypassService = inject(AuthBypassService);

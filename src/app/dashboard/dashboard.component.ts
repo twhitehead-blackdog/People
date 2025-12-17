@@ -9,7 +9,7 @@ import { RippleModule } from 'primeng/ripple';
 import { ToastModule } from 'primeng/toast';
 
 import { AsyncPipe, NgClass } from '@angular/common';
-import { AuthService } from '@auth0/auth0-angular';
+import { SupabaseAuthService } from '../services/supabase-auth.service';
 import { Avatar } from 'primeng/avatar';
 import { Button } from 'primeng/button';
 import { MenuModule } from 'primeng/menu';
@@ -490,7 +490,7 @@ import { map } from 'rxjs/operators';
 export class DashboardComponent {
   public isCollapsed = signal(true);
   public store = inject(DashboardStore);
-  public auth = inject(AuthService);
+  public auth = inject(SupabaseAuthService);
   public router = inject(Router);
   public route = inject(ActivatedRoute);
   public currentRoute = signal('');
@@ -777,7 +777,7 @@ export class DashboardComponent {
             this.router.navigate(['/login']);
           } else {
             // Si no, usar logout normal de Auth0
-            this.auth.logout();
+            this.auth.signOut();
           }
         },
       }

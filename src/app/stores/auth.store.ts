@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { AuthService } from '@auth0/auth0-angular';
+import { SupabaseAuthService } from '../services/supabase-auth.service';
 import { tapResponse } from '@ngrx/operators';
 import {
   patchState,
@@ -25,7 +25,7 @@ export const AuthStore = signalStore(
     currentEmployeeId: null,
   }),
   withProps(() => ({
-    _auth: inject(AuthService),
+    _auth: inject(SupabaseAuthService),
     _http: inject(HttpClient),
     _orgService: inject(OrganizationService),
     _bypass: inject(AuthBypassService),
@@ -44,7 +44,7 @@ export const AuthStore = signalStore(
             }
             console.warn('🔓 [AuthStore] Bypass activo pero no hay usuario');
           }
-          // Si no, usar Auth0
+          // Si no, usar Supabase Auth
           return _auth.user$;
         }),
         filter((user) => !!user),

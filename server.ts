@@ -1,6 +1,8 @@
 import dotenv from 'dotenv';
 import express from 'express';
 import nodemailer from 'nodemailer';
+import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 
 // Cargar variables de entorno desde .env
 dotenv.config();
