@@ -5,8 +5,8 @@
 # ============================================
 
 # Stage 1: Build
-# Usar versión específica para mejor compatibilidad y caché
-FROM node:20.11.0-alpine AS builder
+# Usar tag más común que Railway podría tener en caché
+FROM node:20-alpine3.19 AS builder
 
 WORKDIR /app
 
@@ -53,8 +53,8 @@ RUN echo "=== Verificando estructura del build ===" && \
     (find /app/dist/people -name "index.html" -type f || echo "WARNING: index.html not found yet")
 
 # Stage 2: Production
-# Usar versión específica para mejor compatibilidad y caché
-FROM nginx:1.25.3-alpine
+# Usar tag más común que Railway podría tener en caché
+FROM nginx:alpine3.19
 
 # Copiar archivos build
 # Angular con SSR genera dist/people/browser, sin SSR genera dist/people directamente
