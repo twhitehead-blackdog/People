@@ -105,7 +105,20 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
       (wget -qO- http://localhost:80/health 2>/dev/null | grep -q healthy) || \
       exit 1
 
+# Crear script de inicio para logging y verificación
+RUN echo '#!/bin/sh' > /docker-entrypoint.sh && \
+    echo 'echo "=== [$(date)] Iniciando Nginx ==="' >> /docker-entrypoint.sh && \
+    echo 'echo "=== [$(date)] Verificando archivos en /usr/share/nginx/html/ ==="' >> /docker-entrypoint.sh && \
+    echo 'ls -la /usr/share/nginx/html/ | head -10' >> /docker-entrypoint.sh && \
+    echo 'echo "=== [$(date)] Verificando index.html ==="' >> /docker-entrypoint.sh && \
+    echo 'test -f /usr/share/nginx/html/index.html && echo "✅ index.html existe" || echo "❌ index.html NO existe"' >> /docker-entrypoint.sh && \
+    echo 'echo "=== [$(date)] Verificando configuración de Nginx ==="' >> /docker-entrypoint.sh && \
+    echo 'nginx -t' >> /docker-entrypoint.sh && \
+    echo 'echo "=== [$(date)] Iniciando Nginx en modo foreground ==="' >> /docker-entrypoint.sh && \
+    echo 'exec nginx -g "daemon off;"' >> /docker-entrypoint.sh && \
+    chmod +x /docker-entrypoint.sh
+
 # Usar ENTRYPOINT para asegurar que Railway no sobrescriba el comando
 # Esto previene que Railway ejecute npm start automáticamente
-ENTRYPOINT ["nginx", "-g", "daemon off;"]
+ENTRYPOINT ["/docker-entrypoint.sh"]
 
