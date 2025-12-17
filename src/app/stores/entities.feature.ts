@@ -317,10 +317,11 @@ export function withCustomEntities<T extends { id: EntityId }>({
                 state._orgService
               );
 
-              // Para banks y creditors, hacer dos queries separadas y combinarlas
+              // Para banks, creditors y positions, hacer dos queries separadas y combinarlas
+              // Positions puede tener company_id NULL temporalmente (durante migración)
               if (
-                (tableName === 'banks' || tableName === 'creditors') &&
-                companyId
+                ((tableName === 'banks' || tableName === 'creditors' || tableName === 'positions') &&
+                companyId)
               ) {
                 const baseParams = { select: cleanedQuery, order: order };
 
