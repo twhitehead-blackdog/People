@@ -167,6 +167,7 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
         // Pero los gerentes de tienda no pueden tener 'home' como vista predeterminada
         if ((isHomeRoute || state.url === '/' || state.url === '') && employee.position?.default_view) {
           const defaultView = employee.position.default_view;
+          console.log('🔍 [Guard] Usuario tiene vista predeterminada:', defaultView);
           // Mapear la vista predeterminada a la ruta correcta
           const routeMap: Record<string, string> = {
             'home': '/home',
@@ -178,10 +179,18 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
           };
           // Si es gerente de tienda y la vista predeterminada es 'home', usar 'time-management' en su lugar
           if (hasTimeManagementAccess && defaultView === 'home') {
+            console.log('🔍 [Guard] Redirigiendo gerente de tienda a /time-management');
             return of(router.createUrlTree(['/time-management']));
           }
           const targetRoute = routeMap[defaultView] || '/home';
+          console.log('🔍 [Guard] Redirigiendo a vista predeterminada:', targetRoute);
           return of(router.createUrlTree([targetRoute]));
+        }
+        
+        // Si no tiene vista predeterminada y está en la ruta raíz, redirigir a home
+        if ((isHomeRoute || state.url === '/' || state.url === '') && !employee.position?.default_view) {
+          console.log('🔍 [Guard] Usuario sin vista predeterminada, redirigiendo a /home');
+          return of(router.createUrlTree(['/home']));
         }
 
         if (isPortalRoute) {
@@ -209,11 +218,13 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
         params.company_id = `eq.${companyId}`;
       }
       
+      console.log('🔍 [Guard] Buscando empleado:', { email: user.email, companyId, params });
       return http.get<Array<EmployeeWithPosition>>(
         `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
         { params }
       ).pipe(
         catchError((error) => {
+          console.error('🔴 [Guard] Error HTTP buscando empleado:', error);
           // Si falla la consulta con dashboard_access/default_view, intentar sin esos campos
           console.warn('Error en consulta con dashboard_access, intentando sin esos campos:', error);
           return http.get<Array<{

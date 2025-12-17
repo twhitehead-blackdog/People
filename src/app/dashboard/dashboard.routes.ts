@@ -9,7 +9,7 @@ export const DASHBOARD_ROUTES: Routes = [
     children: [
       {
         path: '',
-        redirectTo: 'timeclock',
+        redirectTo: 'home',
         pathMatch: 'full',
       },
       {
