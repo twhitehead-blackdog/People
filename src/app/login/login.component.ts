@@ -117,21 +117,21 @@ import { Branch } from '../models';
                   styleClass="switch-button switch-button-kiosk"
                 />
               </div>
-              <!-- Botón de Bypass para desarrollo -->
-              <div class="bypass-container mt-4">
-                <p-button
-                  label="🔓 Bypass: soporte2@gmail.com"
-                  (click)="loginWithBypass()"
-                  icon="pi pi-unlock"
-                  size="small"
-                  severity="warning"
-                  styleClass="bypass-button"
-                  [outlined]="true"
-                />
-                <p class="bypass-warning text-xs text-yellow-400 mt-2 text-center">
-                  ⚠️ Solo para desarrollo/testing
-                </p>
-              </div>
+            </div>
+            <!-- Botón de Bypass para desarrollo - Debajo de los otros botones -->
+            <div class="bypass-container">
+              <p-button
+                label="🔓 Bypass: soporte2@gmail.com"
+                (click)="loginWithBypass()"
+                icon="pi pi-unlock"
+                size="small"
+                severity="warning"
+                styleClass="bypass-button"
+                [outlined]="true"
+              />
+              <p class="bypass-warning text-xs text-yellow-400 mt-2 text-center">
+                ⚠️ Solo para desarrollo/testing
+              </p>
             </div>
           </ng-template>
         </p-card>
@@ -505,12 +505,15 @@ import { Branch } from '../models';
       padding-top: 1.5rem;
     }
 
-    /* Bypass Container */
+    /* Bypass Container - Debajo de los botones principales */
     .bypass-container {
       width: 100%;
-      margin-top: 1rem;
-      padding-top: 1rem;
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
       border-top: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
 
     .bypass-button ::ng-deep .p-button {
