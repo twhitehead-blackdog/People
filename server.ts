@@ -228,16 +228,17 @@ function run(): void {
   console.log('===================================');
 
   // Start up the Node server
-  const server = app();
+  const appInstance = app();
   
-  server.listen(port, host, () => {
+  // server.listen() devuelve un objeto Server de Node.js, no Express
+  const httpServer = appInstance.listen(port, host, () => {
     console.log(`✅ Node Express server listening on http://${host}:${port}`);
     console.log(`📁 Static files will be served from: ${join(process.cwd(), 'dist/people')}`);
     console.log(`🌐 Server is ready to accept connections`);
   });
 
-  // Manejo de errores del servidor
-  server.on('error', (error: NodeJS.ErrnoException) => {
+  // Manejo de errores del servidor HTTP
+  httpServer.on('error', (error: NodeJS.ErrnoException) => {
     if (error.syscall !== 'listen') {
       throw error;
     }
@@ -261,14 +262,14 @@ function run(): void {
   // Manejo de señales de terminación
   process.on('SIGTERM', () => {
     console.log('SIGTERM signal received: closing HTTP server');
-    server.close(() => {
+    httpServer.close(() => {
       console.log('HTTP server closed');
     });
   });
 
   process.on('SIGINT', () => {
     console.log('SIGINT signal received: closing HTTP server');
-    server.close(() => {
+    httpServer.close(() => {
       console.log('HTTP server closed');
       process.exit(0);
     });
