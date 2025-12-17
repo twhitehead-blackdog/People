@@ -17,9 +17,9 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
         // Usar token de sesión si está disponible, sino usar API key anónima
         const supabaseKey = 
           accessToken ||
-          process.env['ENV_SUPABASE_ANON_KEY'] ?? 
-          process.env['ENV_SUPABASE_API_KEY'] ?? 
-          '';
+          (process.env['ENV_SUPABASE_ANON_KEY'] ?? 
+           process.env['ENV_SUPABASE_API_KEY'] ?? 
+           '');
         
         let headers = req.headers
           .set('apikey', supabaseKey)
