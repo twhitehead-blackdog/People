@@ -453,21 +453,22 @@ export class EmployeesTimetableComponent implements OnInit {
 
   public schedulesResource = httpResource<EmployeeSchedule[]>(() => {
     const companyId = this.organizationService.getCurrentCompanyId();
-    const params: any = {
-      select: `*,schedule:schedules(*), branch:branches(id, name, short_name)`,
-      start_date: `lte.${format(this.end(), 'yyyy-MM-dd')}`,
-      end_date: `gte.${format(this.start(), 'yyyy-MM-dd')}`,
-    };
+    const startDate = format(this.start(), 'yyyy-MM-dd');
+    const endDate = format(this.end(), 'yyyy-MM-dd');
     
-    // Agregar filtro por company_id
+    // Construir URL manualmente para filtrar a través de employee.company_id
+    let url = `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules?select=*,schedule:schedules(*),branch:branches(id, name, short_name),employee:employees(id,company_id)`;
+    url += `&start_date=lte.${endDate}`;
+    url += `&end_date=gte.${startDate}`;
+    
+    // Filtrar a través de employees.company_id (funciona incluso si employee_schedules no tiene company_id)
     if (companyId) {
-      params.company_id = `eq.${companyId}`;
+      url += `&employee.company_id=eq.${companyId}`;
     }
     
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+      url,
       method: 'GET',
-      params,
     };
   });
 

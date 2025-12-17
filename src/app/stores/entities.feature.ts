@@ -98,6 +98,15 @@ export function withCustomEntities<T extends { id: EntityId }>({
       };
     }
 
+    // Schedules puede tener company_id NULL temporalmente (durante migración)
+    // Incluir tanto schedules con company_id como sin company_id para evitar problemas
+    if (tableName === 'schedules' && companyId) {
+      return {
+        ...params,
+        or: `(company_id.is.null,company_id.eq.${companyId})`,
+      };
+    }
+
     if (tablesWithCompanyId.includes(tableName)) {
       return {
         ...params,

@@ -811,12 +811,13 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
     );
     const select = `*,schedule:schedules(*)`;
     
-    let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
+    let url = `${baseUrl}?select=${encodeURIComponent(select)},employee:employees(id,company_id)`;
     url += `&start_date=gte.${startDate}`;
     url += `&end_date=lte.${endDate}`;
     
+    // Filtrar a través de employees.company_id (funciona incluso si employee_schedules no tiene company_id)
     if (companyId) {
-      url += `&company_id=eq.${companyId}`;
+      url += `&employee.company_id=eq.${companyId}`;
     }
     
     return {

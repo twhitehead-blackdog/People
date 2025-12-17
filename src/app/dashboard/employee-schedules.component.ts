@@ -122,19 +122,20 @@ export class EmployeeSchedulesComponent {
 
   private resourceSchedules = httpResource<EmployeeSchedule[]>(() => {
     const companyId = this.organizationService.getCurrentCompanyId();
-    const params: any = {
-      select: `*,schedule:schedules(*),branch:branches(*)`,
-      employee_id: `eq.${this.employeeId()}`,
-    };
+    const employeeId = this.employeeId();
     
-    // Agregar filtro por company_id
+    // Construir URL manualmente para poder usar filtro a través de employees
+    let url = `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules?select=*,schedule:schedules(*),branch:branches(*),employee:employees(id,company_id)`;
+    url += `&employee_id=eq.${employeeId}`;
+    
+    // Filtrar a través de employees.company_id (funciona incluso si employee_schedules no tiene company_id)
     if (companyId) {
-      params.company_id = `eq.${companyId}`;
+      url += `&employee.company_id=eq.${companyId}`;
     }
     
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
-      params,
+      url,
+      method: 'GET',
     };
   });
 

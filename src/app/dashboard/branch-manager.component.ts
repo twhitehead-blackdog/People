@@ -1073,12 +1073,13 @@ export class BranchManagerComponent {
     const endDate = format(end, 'yyyy-MM-dd');
     const select = `*,schedule:schedules(*), branch:branches(id, name, short_name)`;
     
-    let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
+    let url = `${baseUrl}?select=${encodeURIComponent(select)},employee:employees(id,company_id)`;
     url += `&start_date=lte.${endDate}`;
     url += `&end_date=gte.${startDate}`;
     
+    // Filtrar a través de employees.company_id (funciona incluso si employee_schedules no tiene company_id)
     if (companyId) {
-      url += `&company_id=eq.${companyId}`;
+      url += `&employee.company_id=eq.${companyId}`;
     }
     
     return {
