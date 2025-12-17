@@ -3,7 +3,7 @@ import { defineConfig } from 'vite';
 export default defineConfig({
   server: {
     allowedHosts: [
-      'people-production.up.railway.app',
+      'adoptions-production.up.railway.app',
       '.railway.app', // Permite todos los subdominios de Railway
       'localhost',
       '127.0.0.1',
@@ -11,4 +11,3 @@ export default defineConfig({
     host: '0.0.0.0',
   },
 });
-
