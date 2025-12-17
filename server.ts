@@ -164,7 +164,8 @@ export function app(): express.Express {
     server.get('*', (req, res) => {
       // No servir index.html para rutas de API (ya manejadas arriba)
       if (req.path.startsWith('/api/')) {
-        return res.status(404).json({ error: 'Not found' });
+        res.status(404).json({ error: 'Not found' });
+        return;
       }
       res.sendFile(join(distPath, 'index.html'));
     });
@@ -174,7 +175,7 @@ export function app(): express.Express {
 }
 
 function run(): void {
-  const port = process.env['PORT'] || 4000;
+  const port = parseInt(process.env['PORT'] || '4000', 10);
   const host = process.env['HOST'] || '0.0.0.0';
 
   // Start up the Node server
