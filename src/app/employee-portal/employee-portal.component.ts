@@ -1865,11 +1865,11 @@ export class EmployeePortalComponent {
             break;
           case 'lunch_start':
             typeLabel = 'Inicio de Almuerzo';
-            icon = 'pi-utensils';
+            icon = 'pi-arrow-right';
             break;
           case 'lunch_end':
             typeLabel = 'Fin de Almuerzo';
-            icon = 'pi-utensils';
+            icon = 'pi-arrow-left';
             break;
           case 'exit':
             typeLabel = 'Salida';
@@ -1892,7 +1892,7 @@ export class EmployeePortalComponent {
         };
       })
       .sort((a, b) => b.date.getTime() - a.date.getTime()) // Más recientes primero
-      .slice(0, 10); // Últimas 10 marcaciones
+      .slice(0, 4); // Últimas 4 marcaciones
     
     return recentEvents;
   });
