@@ -777,7 +777,7 @@ export class DashboardComponent {
             this.router.navigate(['/login']);
           } else {
             // Si no, usar logout normal de Auth0
-            this.auth.signOut();
+            this.auth.logout();
           }
         },
       }

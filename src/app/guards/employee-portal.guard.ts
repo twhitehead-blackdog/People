@@ -50,7 +50,7 @@ export function invalidateEmployeeCache(email?: string): void {
  */
 export const employeePortalGuard: CanActivateFn = (route, state) => {
   const router = inject(Router);
-  const authService = inject(SupabaseAuthService);
+  const authService = inject(AuthService);
   const http = inject(HttpClient);
   const orgService = inject(OrganizationService);
   const bypassService = inject(AuthBypassService);
@@ -85,7 +85,7 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
 
   return authService.user$.pipe(
     take(1),
-    switchMap((user) => {
+    switchMap((user: any) => {
       // Si no hay usuario de Auth0, verificar bypass como fallback
       if (!user) {
         if (bypassService.isBypassActive()) {
