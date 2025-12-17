@@ -4277,11 +4277,10 @@ export class HomeComponent {
   });
 
   // Daily lates for current month (sparkline like headcount), using Supabase if available
-  // Only calculate when executive section is active
+  // Calculate always (not just when executive section is active) so getMonthlyLates() can use it
   public latesDailyChartData = computed(() => {
-    if (this.activeSection() !== 'executive') {
-      return { labels: [], datasets: [] };
-    }
+    // Removed the activeSection check so it always calculates
+    // This allows getMonthlyLates() to work even if the section isn't active yet
 
     const now = new Date();
     const year = now.getFullYear();
@@ -5000,24 +4999,25 @@ export class HomeComponent {
   }
 
   public getMonthlyLates(): number {
-    const now = new Date();
-    const currentMonth = now.getMonth() + 1;
-    const currentYear = now.getFullYear();
-
     // PRIMARY: Usar directamente el total del gráfico (misma fuente que muestra el gráfico)
     // El gráfico ya excluye casos sin horario o con errores
+    // NOTA: latesDailyChartData solo se calcula cuando activeSection === 'executive'
+    // pero getMonthlyLates() se llama desde el template, así que necesitamos calcularlo siempre
     const chartData = this.latesDailyChartData();
     if (
       chartData &&
       chartData.datasets &&
       chartData.datasets[0] &&
-      chartData.datasets[0].data
+      chartData.datasets[0].data &&
+      chartData.datasets[0].data.length > 0
     ) {
       const totalFromChart = chartData.datasets[0].data.reduce(
         (sum: number, val: number) => sum + val,
         0
       );
-      return totalFromChart;
+      if (totalFromChart > 0) {
+        return totalFromChart;
+      }
     }
 
     // FALLBACK: Calculate from timelogs + schedules in real-time (misma lógica que el gráfico)
@@ -5029,6 +5029,8 @@ export class HomeComponent {
     console.log('[HomeComponent] getMonthlyLates - Timelogs cargados:', timelogs.length);
     console.log('[HomeComponent] getMonthlyLates - Schedules cargados:', schedules.length);
     console.log('[HomeComponent] getMonthlyLates - Company ID:', this.organizationService.getCurrentCompanyId());
+    console.log('[HomeComponent] getMonthlyLates - activeSection:', this.activeSection());
+    console.log('[HomeComponent] getMonthlyLates - Chart data available:', !!chartData);
 
     if (timelogs.length > 0 && schedules.length > 0) {
       let lateCount = 0;
@@ -5129,7 +5131,17 @@ export class HomeComponent {
         }
       }
 
+      console.log('[HomeComponent] getMonthlyLates - Tardanzas calculadas:', lateCount);
+      console.log('[HomeComponent] getMonthlyLates - Entradas sin schedule:', entriesWithoutSchedule);
+      console.log('[HomeComponent] getMonthlyLates - Entradas con errores de schedule:', entriesWithScheduleErrors);
+      console.log('[HomeComponent] getMonthlyLates - Entradas procesadas:', entriesProcessed);
       return lateCount;
+    } else {
+      console.warn('[HomeComponent] getMonthlyLates - ⚠️ No se pueden calcular tardanzas:');
+      console.warn('  - Timelogs:', timelogs.length);
+      console.warn('  - Schedules:', schedules.length);
+      console.warn('  - Error en latesFromTimelogs:', this.latesFromTimelogs.error());
+      console.warn('  - Error en employeeSchedules:', this.employeeSchedules.error());
     }
 
     return 0;
