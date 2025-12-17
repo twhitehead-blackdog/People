@@ -1,5 +1,6 @@
 import express from 'express';
 import { join } from 'path';
+import { existsSync } from 'fs';
 
 // The Express app is exported so that it can be used by serverless Functions.
 export function app(): express.Express {
@@ -157,31 +158,120 @@ export function app(): express.Express {
   const isProduction = process.env['NODE_ENV'] === 'production' || process.env['RAILWAY_ENVIRONMENT'] !== undefined;
   
   if (isProduction) {
-    // Servir archivos estáticos desde dist/people
-    server.use(express.static(distPath));
-    
-    // Servir index.html para todas las rutas no-API (SPA routing)
-    server.get('*', (req, res) => {
-      // No servir index.html para rutas de API (ya manejadas arriba)
-      if (req.path.startsWith('/api/')) {
-        res.status(404).json({ error: 'Not found' });
-        return;
-      }
-      res.sendFile(join(distPath, 'index.html'));
-    });
+    // Verificar que la ruta de dist existe
+    if (existsSync(distPath)) {
+      console.log(`Serving static files from: ${distPath}`);
+      // Servir archivos estáticos desde dist/people
+      server.use(express.static(distPath));
+      
+      // Servir index.html para todas las rutas no-API (SPA routing)
+      server.get('*', (req, res) => {
+        // No servir index.html para rutas de API (ya manejadas arriba)
+        if (req.path.startsWith('/api/')) {
+          res.status(404).json({ error: 'Not found' });
+          return;
+        }
+        const indexPath = join(distPath, 'index.html');
+        if (existsSync(indexPath)) {
+          res.sendFile(indexPath);
+        } else {
+          console.error(`index.html not found at: ${indexPath}`);
+          res.status(500).json({ error: 'Static files not found. Build may be incomplete.' });
+        }
+      });
+    } else {
+      console.warn(`WARNING: dist/people directory not found at: ${distPath}`);
+      console.warn('Static file serving disabled. API endpoints will still work.');
+      // Endpoint de fallback para rutas no-API cuando no hay build
+      server.get('*', (req, res) => {
+        if (req.path.startsWith('/api/')) {
+          res.status(404).json({ error: 'Not found' });
+        } else {
+          res.status(503).json({ 
+            error: 'Service temporarily unavailable',
+            message: 'Static files not built. Please run npm run build first.'
+          });
+        }
+      });
+    }
+  } else {
+    console.log('Development mode: Static file serving disabled');
   }
 
   return server;
 }
 
 function run(): void {
-  const port = parseInt(process.env['PORT'] || '4000', 10);
+  // Railway siempre proporciona PORT, es crítico usarlo
+  const portEnv = process.env['PORT'];
+  if (!portEnv) {
+    console.error('❌ ERROR: PORT environment variable is not set!');
+    console.error('Railway should automatically set PORT. This may indicate a configuration issue.');
+    process.exit(1);
+  }
+  
+  const port = parseInt(portEnv, 10);
+  if (isNaN(port) || port <= 0) {
+    console.error(`❌ ERROR: Invalid PORT value: ${portEnv}`);
+    process.exit(1);
+  }
+  
   const host = process.env['HOST'] || '0.0.0.0';
+
+  // Log información de diagnóstico
+  console.log('=== Server Startup Information ===');
+  console.log(`PORT from environment: ${portEnv} (parsed as: ${port})`);
+  console.log(`HOST from environment: ${process.env['HOST'] || 'not set (using default 0.0.0.0)'}`);
+  console.log(`NODE_ENV: ${process.env['NODE_ENV'] || 'not set'}`);
+  console.log(`RAILWAY_ENVIRONMENT: ${process.env['RAILWAY_ENVIRONMENT'] || 'not set'}`);
+  console.log(`Working directory: ${process.cwd()}`);
+  console.log('===================================');
 
   // Start up the Node server
   const server = app();
+  
   server.listen(port, host, () => {
-    console.log(`Node Express server listening on http://${host}:${port}`);
+    console.log(`✅ Node Express server listening on http://${host}:${port}`);
+    console.log(`📁 Static files will be served from: ${join(process.cwd(), 'dist/people')}`);
+    console.log(`🌐 Server is ready to accept connections`);
+  });
+
+  // Manejo de errores del servidor
+  server.on('error', (error: NodeJS.ErrnoException) => {
+    if (error.syscall !== 'listen') {
+      throw error;
+    }
+
+    const bind = typeof port === 'string' ? 'Pipe ' + port : 'Port ' + port;
+
+    switch (error.code) {
+      case 'EACCES':
+        console.error(`${bind} requires elevated privileges`);
+        process.exit(1);
+        break;
+      case 'EADDRINUSE':
+        console.error(`${bind} is already in use`);
+        process.exit(1);
+        break;
+      default:
+        throw error;
+    }
+  });
+
+  // Manejo de señales de terminación
+  process.on('SIGTERM', () => {
+    console.log('SIGTERM signal received: closing HTTP server');
+    server.close(() => {
+      console.log('HTTP server closed');
+    });
+  });
+
+  process.on('SIGINT', () => {
+    console.log('SIGINT signal received: closing HTTP server');
+    server.close(() => {
+      console.log('HTTP server closed');
+      process.exit(0);
+    });
   });
 }
 
