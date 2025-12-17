@@ -10,7 +10,7 @@ import { DiagnosticService, DiagnosticError } from '../services/diagnostic.servi
 @Component({
   selector: 'pt-diagnostic-panel',
   standalone: true,
-  imports: [CommonModule, Card, Button, ScrollPanel, Tag],
+  imports: [CommonModule, Button, ScrollPanel, Tag],
   template: `
     @if (isVisible) {
       <div

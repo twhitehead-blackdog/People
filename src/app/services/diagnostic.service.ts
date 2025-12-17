@@ -280,6 +280,12 @@ export class DiagnosticService {
         
         // Si la respuesta no es exitosa, registrar el error
         if (!response.ok) {
+          // Convertir headers a objeto (compatible con todos los navegadores)
+          const headersObj: Record<string, string> = {};
+          response.headers.forEach((value, key) => {
+            headersObj[key] = value;
+          });
+
           self.addHttpError(
             urlString,
             response.status,
@@ -287,7 +293,7 @@ export class DiagnosticService {
             {
               method: options?.method || 'GET',
               statusText: response.statusText,
-              headers: Object.fromEntries(response.headers.entries()),
+              headers: headersObj,
             }
           );
         }
