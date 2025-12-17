@@ -221,6 +221,21 @@ export function app(): express.Express {
     }
   });
 
+  // Root endpoint - información básica del servidor
+  server.get('/', (req, res) => {
+    res.json({
+      status: 'ok',
+      message: 'People API Server is running',
+      version: '1.0.0',
+      endpoints: {
+        health: '/api/health',
+        clientIp: '/api/client-ip',
+        wassenger: '/api/wassenger/send-message',
+        email: '/api/email/send'
+      }
+    });
+  });
+
   // Health check endpoint
   server.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Server is running' });
