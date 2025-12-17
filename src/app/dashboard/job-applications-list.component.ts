@@ -92,9 +92,7 @@ import { PositionsFormComponent } from './positions-form.component';
               </span>
             </div>
             <div class="flex items-center gap-2">
-              <label class="text-sm text-gray-300"
-                >Duración de la feria:</label
-              >
+              <label class="text-sm text-gray-300">Duración de la feria:</label>
               <p-datepicker
                 [(ngModel)]="jobFairDateRange"
                 (ngModelChange)="onJobFairDateRangeChange()"
@@ -603,24 +601,32 @@ export class JobApplicationsListComponent implements OnInit {
     effect(() => {
       // No actualizar si estamos en medio de una actualización manual
       if (this.isUpdatingJobFairStatus() || this.isUpdatingInterviewDate()) {
-        console.log('[DEBUG] Ignorando actualización de settings - actualización manual en progreso');
+        console.log(
+          '[DEBUG] Ignorando actualización de settings - actualización manual en progreso'
+        );
         return;
       }
-      
+
       const settings = this.jobFairSettingsApi.value();
       console.log('[DEBUG] Settings cargados desde API:', settings);
-      
+
       if (settings && settings.length > 0) {
         const enabledSetting = settings.find(
           (s) => s.key === 'job_fair_enabled'
         );
-        console.log('[DEBUG] Setting job_fair_enabled encontrado:', enabledSetting);
+        console.log(
+          '[DEBUG] Setting job_fair_enabled encontrado:',
+          enabledSetting
+        );
 
         if (enabledSetting) {
           const enabledValue = enabledSetting.value === 'true';
           // Solo actualizar si el valor realmente cambió
           if (this.jobFairEnabled() !== enabledValue) {
-            console.log('[DEBUG] Estableciendo jobFairEnabled a:', enabledValue);
+            console.log(
+              '[DEBUG] Estableciendo jobFairEnabled a:',
+              enabledValue
+            );
             this.jobFairEnabled.set(enabledValue);
           }
         }
@@ -635,30 +641,41 @@ export class JobApplicationsListComponent implements OnInit {
         console.log('[DEBUG] Setting job_fair_start_date:', startDateSetting);
         console.log('[DEBUG] Setting job_fair_end_date:', endDateSetting);
 
-        const startDate = startDateSetting?.value
+        const startDate = startDateSetting?.value && startDateSetting.value.trim() !== ''
           ? this.parseLocalDateString(startDateSetting.value)
           : null;
-        const endDate = endDateSetting?.value
+        const endDate = endDateSetting?.value && endDateSetting.value.trim() !== ''
           ? this.parseLocalDateString(endDateSetting.value)
           : null;
-        console.log('[DEBUG] Fechas parseadas - Inicio:', startDate, 'Fin:', endDate);
+        console.log(
+          '[DEBUG] Fechas parseadas - Inicio:',
+          startDate,
+          'Fin:',
+          endDate
+        );
 
         // Solo actualizar si realmente cambió (evitar loops)
         const currentRange = this.jobFairDateRange;
-        const newRange = (startDate || endDate) ? [startDate, endDate] : null;
-        
+        const newRange = startDate || endDate ? [startDate, endDate] : null;
+
         // Comparar fechas para evitar actualizaciones innecesarias
-        const rangesEqual = 
+        const rangesEqual =
           (!currentRange && !newRange) ||
-          (currentRange && newRange &&
-           currentRange[0]?.getTime() === newRange[0]?.getTime() &&
-           currentRange[1]?.getTime() === newRange[1]?.getTime());
-        
+          (currentRange &&
+            newRange &&
+            currentRange[0]?.getTime() === newRange[0]?.getTime() &&
+            currentRange[1]?.getTime() === newRange[1]?.getTime());
+
         if (!rangesEqual) {
           this.jobFairDateRange = newRange;
-          console.log('[DEBUG] jobFairDateRange establecido a:', this.jobFairDateRange);
+          console.log(
+            '[DEBUG] jobFairDateRange establecido a:',
+            this.jobFairDateRange
+          );
         } else {
-          console.log('[DEBUG] jobFairDateRange sin cambios, manteniendo valor actual');
+          console.log(
+            '[DEBUG] jobFairDateRange sin cambios, manteniendo valor actual'
+          );
         }
       } else {
         console.log('[DEBUG] No se encontraron settings o array vacío');
@@ -679,7 +696,6 @@ export class JobApplicationsListComponent implements OnInit {
     return apps.filter((app) => app.status === status);
   });
 
-
   ngOnInit() {
     // Cargar aplicaciones al inicializar
     if (this.applications().length === 0) {
@@ -696,13 +712,17 @@ export class JobApplicationsListComponent implements OnInit {
   async onJobFairDateRangeChange() {
     console.log('[DEBUG] onJobFairDateRangeChange - Iniciando...');
     console.log('[DEBUG] jobFairDateRange actual:', this.jobFairDateRange);
-    
+
     this.isUpdatingInterviewDate.set(true);
     try {
       const dateRange = this.jobFairDateRange;
       console.log('[DEBUG] dateRange recibido:', dateRange);
-      
-      if (!dateRange || dateRange.length === 0 || (!dateRange[0] && !dateRange[1])) {
+
+      if (
+        !dateRange ||
+        dateRange.length === 0 ||
+        (!dateRange[0] && !dateRange[1])
+      ) {
         // Si se limpió el rango, eliminar ambos settings
         console.log('[DEBUG] Rango vacío, limpiando fechas...');
         await this.clearJobFairDates();
@@ -718,7 +738,7 @@ export class JobApplicationsListComponent implements OnInit {
         this.isUpdatingInterviewDate.set(false);
         return;
       }
-      
+
       const [startDate, endDate] = dateRange;
       console.log('[DEBUG] Fecha inicio:', startDate);
       console.log('[DEBUG] Fecha fin:', endDate);
@@ -753,8 +773,13 @@ export class JobApplicationsListComponent implements OnInit {
       const endDateString = normalizedEndDate
         ? this.formatDateToLocalString(normalizedEndDate)
         : '';
-      
-      console.log('[DEBUG] Fechas formateadas - Inicio:', startDateString, 'Fin:', endDateString);
+
+      console.log(
+        '[DEBUG] Fechas formateadas - Inicio:',
+        startDateString,
+        'Fin:',
+        endDateString
+      );
 
       // Guardar fecha de inicio usando UPSERT (más robusto con RLS)
       if (startDateString) {
@@ -772,23 +797,27 @@ export class JobApplicationsListComponent implements OnInit {
           )
         );
 
-        console.log('[DEBUG] Settings de inicio existentes:', existingStartSettings);
-        
+        console.log(
+          '[DEBUG] Settings de inicio existentes:',
+          existingStartSettings
+        );
+
         if (existingStartSettings && existingStartSettings.length > 0) {
           // Actualizar existente usando PATCH con params
-          console.log('[DEBUG] Actualizando setting de inicio con ID:', existingStartSettings[0].id);
+          console.log(
+            '[DEBUG] Actualizando setting de inicio con ID:',
+            existingStartSettings[0].id
+          );
           const updateResult = await firstValueFrom(
             this.http.patch(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
-              { value: startDateString },
-              {
-                params: {
-                  id: `eq.${existingStartSettings[0].id}`,
-                },
-              }
+              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingStartSettings[0].id}`,
+              { value: startDateString }
             )
           );
-          console.log('[DEBUG] Resultado de actualización de inicio:', updateResult);
+          console.log(
+            '[DEBUG] Resultado de actualización de inicio:',
+            updateResult
+          );
         } else {
           // Crear nuevo usando POST
           console.log('[DEBUG] Creando nuevo setting de inicio...');
@@ -854,19 +883,20 @@ export class JobApplicationsListComponent implements OnInit {
 
         if (existingEndSettings && existingEndSettings.length > 0) {
           // Actualizar existente usando PATCH con params
-          console.log('[DEBUG] Actualizando setting de fin con ID:', existingEndSettings[0].id);
+          console.log(
+            '[DEBUG] Actualizando setting de fin con ID:',
+            existingEndSettings[0].id
+          );
           const updateResult = await firstValueFrom(
             this.http.patch(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
-              { value: endDateString },
-              {
-                params: {
-                  id: `eq.${existingEndSettings[0].id}`,
-                },
-              }
+              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingEndSettings[0].id}`,
+              { value: endDateString }
             )
           );
-          console.log('[DEBUG] Resultado de actualización de fin:', updateResult);
+          console.log(
+            '[DEBUG] Resultado de actualización de fin:',
+            updateResult
+          );
         } else {
           // Crear nuevo usando POST
           console.log('[DEBUG] Creando nuevo setting de fin...');
@@ -935,13 +965,17 @@ export class JobApplicationsListComponent implements OnInit {
         this.jobFairSettingsApi.reload();
       }, 500);
     } catch (error: any) {
-      console.error('[DEBUG] ❌ Error actualizando duración de la feria:', error);
+      console.error(
+        '[DEBUG] ❌ Error actualizando duración de la feria:',
+        error
+      );
       console.error('[DEBUG] Error completo:', JSON.stringify(error, null, 2));
       console.error('[DEBUG] Error status:', error?.status);
       console.error('[DEBUG] Error statusText:', error?.statusText);
       console.error('[DEBUG] Error error:', error?.error);
-      
-      const errorMessage = error?.error?.message || error?.message || 'Error desconocido';
+
+      const errorMessage =
+        error?.error?.message || error?.message || 'Error desconocido';
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
@@ -964,11 +998,11 @@ export class JobApplicationsListComponent implements OnInit {
   private parseLocalDateString(dateString: string): Date | null {
     const parts = dateString.split('-');
     if (parts.length !== 3) return null;
-    
+
     const year = parseInt(parts[0], 10);
     const month = parseInt(parts[1], 10) - 1; // Los meses en JS son 0-indexed
     const day = parseInt(parts[2], 10);
-    
+
     // Crear fecha en hora local (no UTC)
     return new Date(year, month, day);
   }
@@ -1002,13 +1036,8 @@ export class JobApplicationsListComponent implements OnInit {
     if (existingStartSettings && existingStartSettings.length > 0) {
       await firstValueFrom(
         this.http.patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
-          { value: '' },
-          {
-            params: {
-              id: `eq.${existingStartSettings[0].id}`,
-            },
-          }
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingStartSettings[0].id}`,
+          { value: '' }
         )
       );
     }
@@ -1016,13 +1045,8 @@ export class JobApplicationsListComponent implements OnInit {
     if (existingEndSettings && existingEndSettings.length > 0) {
       await firstValueFrom(
         this.http.patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
-          { value: '' },
-          {
-            params: {
-              id: `eq.${existingEndSettings[0].id}`,
-            },
-          }
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingEndSettings[0].id}`,
+          { value: '' }
         )
       );
     }
@@ -1031,7 +1055,7 @@ export class JobApplicationsListComponent implements OnInit {
   async onJobFairEnabledChange() {
     console.log('[DEBUG] onJobFairEnabledChange - Iniciando...');
     console.log('[DEBUG] jobFairEnabled actual:', this.jobFairEnabled());
-    
+
     this.isUpdatingJobFairStatus.set(true);
     try {
       const newValue = this.jobFairEnabled() ? 'true' : 'false';
@@ -1053,17 +1077,15 @@ export class JobApplicationsListComponent implements OnInit {
       console.log('[DEBUG] Settings existentes encontrados:', existingSettings);
 
       if (existingSettings && existingSettings.length > 0) {
-        // Actualizar setting existente usando PATCH con params
-        console.log('[DEBUG] Actualizando setting existente con ID:', existingSettings[0].id);
+        // Actualizar setting existente usando PATCH con filtro en la URL
+        console.log(
+          '[DEBUG] Actualizando setting existente con ID:',
+          existingSettings[0].id
+        );
         const updateResult = await firstValueFrom(
           this.http.patch(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
-            { value: newValue },
-            {
-              params: {
-                id: `eq.${existingSettings[0].id}`,
-              },
-            }
+            `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingSettings[0].id}`,
+            { value: newValue }
           )
         );
         console.log('[DEBUG] Resultado de actualización:', updateResult);
@@ -1105,11 +1127,12 @@ export class JobApplicationsListComponent implements OnInit {
       console.error('[DEBUG] Error status:', error?.status);
       console.error('[DEBUG] Error statusText:', error?.statusText);
       console.error('[DEBUG] Error error:', error?.error);
-      
+
       // Revertir el cambio
       console.log('[DEBUG] Revirtiendo cambio de jobFairEnabled...');
       this.jobFairEnabled.set(!this.jobFairEnabled());
-      const errorMessage = error?.error?.message || error?.message || 'Error desconocido';
+      const errorMessage =
+        error?.error?.message || error?.message || 'Error desconocido';
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
@@ -1150,12 +1173,12 @@ export class JobApplicationsListComponent implements OnInit {
       // (comentado porque ahora todas las tablas son compartidas)
       const companyId = this.organizationService.getCurrentCompanyId();
       const params: any = { id: `eq.${position.id}` };
-      
+
       // Agregar filtro por company_id para seguridad
       if (companyId) {
         params.company_id = `eq.${companyId}`;
       }
-      
+
       await firstValueFrom(
         this.http.patch(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/positions`,

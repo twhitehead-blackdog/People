@@ -119,16 +119,16 @@ export const AuthStore = signalStore(
                     const blackdogCompanyId =
                       _orgService.getBlackdogCompanyId();
 
-                    // Solo actualizar la organización automáticamente si:
-                    // 1. No hay company_id seleccionado (primera vez/login)
-                    // 2. O si el empleado pertenece a la organización actual (coincidencia)
-                    // NO cambiar si el usuario ha seleccionado manualmente una organización diferente
+                    // Solo actualizar la organización automáticamente en el login inicial
+                    // NO cambiar si el usuario ya tiene una organización seleccionada
+                    // (respetar selección manual del usuario)
                     if (employee.company_id) {
-                      // Verificar si hay una organización guardada en localStorage (selección manual del usuario)
-                      const savedOrg = _orgService.currentOrganization;
-                      const hasManualSelection = savedOrg && currentCompanyId;
+                      // Verificar si es la primera vez (no hay company_id en localStorage)
+                      const savedCompanyId = typeof window !== 'undefined' && window.localStorage
+                        ? window.localStorage.getItem('selected_company_id')
+                        : null;
                       
-                      if (!currentCompanyId) {
+                      if (!savedCompanyId) {
                         // Primera vez/login: usar el company_id del empleado
                         if (employee.company_id === nazCompanyId) {
                           _orgService.setOrganization('naz');
@@ -141,37 +141,17 @@ export const AuthStore = signalStore(
                             '✅ Organización establecida desde empleado: Black Dog'
                           );
                         }
-                      } else if (!hasManualSelection) {
-                        // Si no hay selección manual previa, actualizar según el empleado
-                        if (
-                          employee.company_id === nazCompanyId &&
-                          currentCompanyId !== nazCompanyId
-                        ) {
-                          console.log(
-                            '🔄 Empleado pertenece a Naz, actualizando organización...'
-                          );
-                          _orgService.setOrganization('naz');
-                        } else if (
-                          employee.company_id === blackdogCompanyId &&
-                          currentCompanyId !== blackdogCompanyId
-                        ) {
-                          console.log(
-                            '🔄 Empleado pertenece a Black Dog, actualizando organización...'
-                          );
-                          _orgService.setOrganization('blackdog');
-                        } else {
-                          console.log(
-                            '✅ Manteniendo company_id seleccionado:',
-                            currentCompanyId
-                          );
-                        }
                       } else {
-                        // Hay una selección manual del usuario: respetarla y NO cambiar automáticamente
+                        // Ya hay una selección previa: NO cambiar automáticamente
+                        // Respetar la selección del usuario (puede ser diferente al company_id del empleado)
                         console.log(
-                          '✅ Respetando selección manual del usuario:',
-                          savedOrg,
+                          '✅ Respetando selección del usuario:',
+                          _orgService.currentOrganization,
                           'company_id:',
-                          currentCompanyId
+                          currentCompanyId,
+                          '(empleado pertenece a:',
+                          employee.company_id === nazCompanyId ? 'Naz' : employee.company_id === blackdogCompanyId ? 'Black Dog' : 'otro',
+                          ')'
                         );
                       }
                     }
