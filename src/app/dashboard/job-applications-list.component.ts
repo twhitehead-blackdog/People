@@ -929,9 +929,11 @@ export class JobApplicationsListComponent implements OnInit {
             : 'Duración de la feria eliminada',
       });
 
-      // Recargar settings
-      console.log('[DEBUG] Recargando settings...');
-      this.jobFairSettingsApi.reload();
+      // Recargar settings después de un delay para evitar que el effect sobrescriba
+      console.log('[DEBUG] Recargando settings después de guardar...');
+      setTimeout(() => {
+        this.jobFairSettingsApi.reload();
+      }, 500);
     } catch (error: any) {
       console.error('[DEBUG] ❌ Error actualizando duración de la feria:', error);
       console.error('[DEBUG] Error completo:', JSON.stringify(error, null, 2));
@@ -1092,9 +1094,11 @@ export class JobApplicationsListComponent implements OnInit {
         }`,
       });
 
-      // Recargar settings
-      console.log('[DEBUG] Recargando settings...');
-      this.jobFairSettingsApi.reload();
+      // Recargar settings después de un delay para evitar que el effect sobrescriba
+      console.log('[DEBUG] Recargando settings después de guardar...');
+      setTimeout(() => {
+        this.jobFairSettingsApi.reload();
+      }, 500);
     } catch (error: any) {
       console.error('[DEBUG] ❌ Error actualizando estado de la feria:', error);
       console.error('[DEBUG] Error completo:', JSON.stringify(error, null, 2));
