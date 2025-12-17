@@ -26,6 +26,9 @@ import { SchedulesStore } from '../stores/schedules.store';
 import { EmployeePortalComponent } from './employee-portal.component';
 import { OrganizationService, Organization } from '../services/organization.service';
 import { HttpClient } from '@angular/common/http';
+import { AuthBypassService } from '../services/auth-bypass.service';
+import { combineLatest, of } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 @Component({
   selector: 'pt-dashboard',
@@ -61,7 +64,7 @@ import { HttpClient } from '@angular/common/http';
   template: `
     <p-toast />
     <p-confirmDialog />
-    @let user = auth.user$ | async;
+    @let user = currentUser$ | async;
     <!-- Overlay para móvil cuando el menú está abierto -->
     @if (!isCollapsed()) {
     <div
@@ -494,6 +497,7 @@ export class DashboardComponent {
   public showEmployeePortalView = signal(false);
   public organizationService = inject(OrganizationService);
   public http = inject(HttpClient);
+  public bypassService = inject(AuthBypassService);
   public branchesStore = inject(BranchesStore);
   public employeesStore = inject(EmployeesStore);
   public positionsStore = inject(PositionsStore);
@@ -536,6 +540,22 @@ export class DashboardComponent {
     const employee = this.store.currentEmployee();
     return employee?.position?.name || 'Sin cargo';
   });
+
+  // Observable combinado para obtener el usuario (bypass o Auth0)
+  // Usa switchMap para cambiar dinámicamente entre bypass y Auth0
+  public currentUser$ = combineLatest([
+    this.bypassService.user$,
+    this.auth.user$
+  ]).pipe(
+    map(([bypassUser, authUser]) => {
+      // Si el bypass está activo y tiene usuario, usar bypass
+      if (this.bypassService.isBypassActive() && bypassUser) {
+        return bypassUser;
+      }
+      // Si no, usar Auth0
+      return authUser;
+    })
+  );
 
   // Determinar si se puede cambiar la organización (solo para soporte2@blackdogpanama.com)
   public canChangeOrganization = computed(() => {
@@ -750,7 +770,16 @@ export class DashboardComponent {
       {
         label: 'Cerrar sesion',
         icon: 'pi pi-sign-out',
-        command: () => this.auth.logout(),
+        command: () => {
+          if (this.bypassService.isBypassActive()) {
+            // Si está en bypass, cerrar bypass y redirigir a login
+            this.bypassService.logout();
+            this.router.navigate(['/login']);
+          } else {
+            // Si no, usar logout normal de Auth0
+            this.auth.logout();
+          }
+        },
       }
     );
 

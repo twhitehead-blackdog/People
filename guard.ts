@@ -11,12 +11,18 @@ export const authGuardFn: CanActivateFn = (_route: ActivatedRouteSnapshot) => {
   const http = inject(HttpClient);
   const bypassService = inject(AuthBypassService);
 
-  // Verificar si el bypass está activo
+  // Verificar si el bypass está activo PRIMERO
   if (bypassService.isBypassActive()) {
     const user = bypassService.getCurrentUser();
+    console.log('🔓 [Guard] Bypass activo, usuario:', user?.email);
     if (user?.email) {
-      // Permitir acceso directo con bypass
+      // Con bypass, permitir acceso sin verificar en base de datos
+      // El bypass es para desarrollo/testing, así que confiamos en él
+      console.log('🔓 [Guard] Permitiendo acceso con bypass');
       return of(true);
+    } else {
+      console.warn('🔓 [Guard] Bypass activo pero no hay usuario, limpiando bypass');
+      bypassService.logout();
     }
   }
 

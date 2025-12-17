@@ -37,7 +37,12 @@ export const AuthStore = signalStore(
           // Si el bypass está activo, usar el usuario del bypass
           if (_bypass.isBypassActive()) {
             const bypassUser = _bypass.getCurrentUser();
-            return bypassUser ? of(bypassUser) : of(null);
+            console.log('🔓 [AuthStore] Usando bypass, usuario:', bypassUser?.email);
+            if (bypassUser) {
+              // Retornar el usuario del bypass como Observable
+              return of(bypassUser);
+            }
+            console.warn('🔓 [AuthStore] Bypass activo pero no hay usuario');
           }
           // Si no, usar Auth0
           return _auth.user$;

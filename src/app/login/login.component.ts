@@ -1579,8 +1579,13 @@ export class LoginComponent {
   loginWithBypass(): void {
     const email = 'soporte2@gmail.com';
     
+    console.log('🔓 [Login] Iniciando bypass para:', email);
+    
     // Iniciar sesión con bypass
     this.bypassService.loginWithBypass(email);
+    
+    // Establecer organización por defecto
+    this.organizationService.setOrganization('blackdog');
     
     // Mostrar mensaje
     this.messageService.add({
@@ -1590,9 +1595,14 @@ export class LoginComponent {
       life: 3000,
     });
 
-    // Redirigir al dashboard
+    // Activar animación
+    this.isFlying.set(true);
+
+    // Esperar un momento para que el bypass se active completamente
     setTimeout(() => {
-      this.router.navigate(['/']);
-    }, 500);
+      console.log('🔓 [Login] Redirigiendo al dashboard...');
+      // Usar window.location.href para forzar recarga completa y aplicar bypass
+      window.location.href = '/';
+    }, 300);
   }
 }

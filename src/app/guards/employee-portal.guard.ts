@@ -4,6 +4,7 @@ import { AuthService } from '@auth0/auth0-angular';
 import { HttpClient } from '@angular/common/http';
 import { map, switchMap, take, of, catchError } from 'rxjs';
 import { OrganizationService } from '../services/organization.service';
+import { AuthBypassService } from '../services/auth-bypass.service';
 
 // Tipo para el empleado con posición
 type EmployeeWithPosition = {
@@ -52,6 +53,7 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
   const authService = inject(AuthService);
   const http = inject(HttpClient);
   const orgService = inject(OrganizationService);
+  const bypassService = inject(AuthBypassService);
 
   // Lista de correos con acceso completo (super admins)
   const superAdminEmails = ['mercadeo@blackdogpanama.com', 'soporte2@blackdogpanama.com'];
@@ -70,9 +72,32 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
     'gerente de tienda',
   ];
 
+  // Verificar si el bypass está activo PRIMERO
+  if (bypassService.isBypassActive()) {
+    const bypassUser = bypassService.getCurrentUser();
+    console.log('🔓 [EmployeePortalGuard] Bypass activo, usuario:', bypassUser?.email);
+    if (bypassUser?.email) {
+      // Con bypass, dar acceso completo (como super admin)
+      console.log('🔓 [EmployeePortalGuard] Permitiendo acceso completo con bypass');
+      return of(true);
+    }
+  }
+
   return authService.user$.pipe(
     take(1),
     switchMap((user) => {
+      // Si no hay usuario de Auth0, verificar bypass como fallback
+      if (!user) {
+        if (bypassService.isBypassActive()) {
+          const bypassUser = bypassService.getCurrentUser();
+          if (bypassUser?.email) {
+            console.log('🔓 [EmployeePortalGuard] Usando bypass como fallback');
+            return of(true);
+          }
+        }
+        return of(false);
+      }
+
       // Verificar si el usuario actual es un super admin
       const userEmail = user?.email?.toLowerCase();
       
