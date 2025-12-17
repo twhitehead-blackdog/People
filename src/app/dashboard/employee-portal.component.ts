@@ -1868,8 +1868,9 @@ export class EmployeePortalComponent {
   }
 
   // Date range for timelogs
+  // Inicializar con rango que incluya los últimos 7 días para las marcaciones recientes
   public dateRange = signal<Date[]>([
-    startOfMonth(new Date()),
+    addDays(new Date(), -7), // Últimos 7 días para incluir marcaciones recientes
     endOfMonth(new Date()),
   ]);
 
@@ -1885,6 +1886,12 @@ export class EmployeePortalComponent {
     const employeeId = this.currentEmployee()!.id;
     const companyId = this.organizationService.getCurrentCompanyId();
     
+    // Asegurar que siempre tengamos un company_id válido
+    if (!companyId) {
+      console.warn('[EmployeePortal] No se encontró company_id, no se pueden cargar timelogs');
+      return undefined;
+    }
+    
     // Construir URL manualmente para aplicar correctamente filtros gte y lte
     const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`;
     const startDate = format(this.dateRange()[0], "yyyy-MM-dd'T'06:00:00");
@@ -1893,13 +1900,9 @@ export class EmployeePortalComponent {
     
     let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
     url += `&employee_id=eq.${employeeId}`;
+    url += `&company_id=eq.${companyId}`; // Siempre agregar filtro de company_id
     url += `&created_at=gte.${startDate}`;
     url += `&created_at=lte.${endDate}`;
-    
-    if (companyId) {
-      url += `&company_id=eq.${companyId}`;
-    }
-    
     url += `&order=created_at.asc`;
     
     return {

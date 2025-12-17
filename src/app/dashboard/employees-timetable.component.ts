@@ -16,16 +16,13 @@ import {
   addDays,
   addWeeks,
   endOfDay,
+  endOfWeek,
   format,
   getDate,
   isBefore,
-  isMonday,
-  isWeekend,
   isWithinInterval,
-  nextMonday,
-  nextSunday,
-  previousMonday,
   startOfDay,
+  startOfWeek,
   subWeeks,
 } from 'date-fns';
 import { toDate } from 'date-fns-tz';
@@ -316,16 +313,13 @@ export class EmployeesTimetableComponent implements OnInit {
   });
 
   public start = computed(() => {
-    if (isMonday(this.currentDate())) {
-      return startOfDay(this.currentDate());
-    }
-    if (isWeekend(this.currentDate())) {
-      return startOfDay(nextMonday(this.currentDate()));
-    }
-
-    return startOfDay(previousMonday(this.currentDate()));
+    // Usar startOfWeek con weekStartsOn: 0 para que comience en domingo
+    return startOfWeek(this.currentDate(), { weekStartsOn: 0 });
   });
-  public end = computed(() => endOfDay(nextSunday(this.start())));
+  public end = computed(() => {
+    // Usar endOfWeek con weekStartsOn: 0 para que termine en sábado
+    return endOfWeek(this.currentDate(), { weekStartsOn: 0 });
+  });
   currentWeek = computed(
     () =>
       format(this.start(), 'dd/MM/yyyy') +
@@ -339,7 +333,7 @@ export class EmployeesTimetableComponent implements OnInit {
     {
       let current = this.start();
       const dayList: { date: Date; day: number; shift: any }[] = [];
-      // Iterar exactamente 7 días (lunes a domingo) para asegurar que se incluyan todos los días
+      // Iterar exactamente 7 días (domingo a sábado) para asegurar que se incluyan todos los días
       for (let i = 0; i < 7; i++) {
         dayList.push({
           date: current,

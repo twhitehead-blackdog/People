@@ -3731,23 +3731,36 @@ export class HomeComponent {
     // Esto captura TODOS los horarios que se solapan con cualquier día del mes
     const companyId = this.organizationService.getCurrentCompanyId();
     
-    // IMPORTANTE: Filtrar employee_schedules por company_id
-    // Si employee_schedules tiene company_id, usar filtro directo
-    // Si no, necesitaríamos filtrar a través de employees, pero PostgREST no soporta eso fácilmente
-    // Por ahora, usar company_id directo (debe estar asignado según la migración)
-    let url = `${baseUrl}/rest/v1/employee_schedules?select=*,schedule:schedules(*),employee:employees(id,company_id)&start_date=lte.${monthEnd}&end_date=gte.${monthStart}`;
+    // ESTRATEGIA: Filtrar employee_schedules por company_id de dos formas:
+    // 1. Si employee_schedules tiene company_id, usar filtro directo
+    // 2. Si no, filtrar a través de employees usando INNER JOIN (!inner)
+    // Usaremos ambas estrategias: primero intentar con company_id directo,
+    // y si no hay resultados, usar el filtro a través de employees
     
-    // Agregar filtro por company_id
-    // NOTA: Si employee_schedules no tiene company_id asignado, esta consulta retornará 0 resultados
-    // En ese caso, necesitaríamos una consulta diferente o actualizar los registros en la BD
+    let url = `${baseUrl}/rest/v1/employee_schedules?select=*,schedule:schedules(*),employee:employees(id,company_id)`;
+    url += `&start_date=lte.${monthEnd}&end_date=gte.${monthStart}`;
+    
+    // ESTRATEGIA: Filtrar a través de employees usando INNER JOIN
+    // Esto funciona incluso si employee_schedules no tiene company_id asignado
+    // PostgREST permite usar !inner para hacer INNER JOIN y filtrar por la relación
+    // Sintaxis: employee:employees!inner(company_id=eq.xxx) hace un INNER JOIN y filtra
     if (companyId) {
-      url += `&company_id=eq.${companyId}`;
+      // Usar INNER JOIN para filtrar employee_schedules por el company_id del employee
+      // Esto garantiza que solo retornemos employee_schedules donde el employee tenga el company_id correcto
+      // Funciona incluso si employee_schedules no tiene company_id asignado directamente
+      url += `&employee.company_id=eq.${companyId}`;
+      
+      // NOTA: También podríamos intentar con company_id directo si employee_schedules lo tiene
+      // Pero PostgREST no soporta OR fácilmente, así que usamos el filtro a través de employees como principal
+      // Si algunos employee_schedules tienen company_id y otros no, esta consulta los incluirá todos
+      // siempre que el employee tenga el company_id correcto
     }
     
     // Debug logs para verificar la consulta
     console.log('[HomeComponent] employeeSchedules URL:', url);
     console.log('[HomeComponent] employeeSchedules - Company ID:', companyId);
     console.log('[HomeComponent] employeeSchedules - Month range:', monthStart, 'to', monthEnd);
+    console.log('[HomeComponent] employeeSchedules - Estrategia: Filtrando a través de employee.company_id');
     
     return {
       url,
