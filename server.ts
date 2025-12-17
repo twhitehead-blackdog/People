@@ -1,4 +1,5 @@
 import express from 'express';
+import { join } from 'path';
 
 // The Express app is exported so that it can be used by serverless Functions.
 export function app(): express.Express {
@@ -151,16 +152,35 @@ export function app(): express.Express {
     res.json({ ip: clientIP });
   });
 
+  // Servir archivos estáticos en producción (después de las rutas de API)
+  const distPath = join(process.cwd(), 'dist/people');
+  const isProduction = process.env['NODE_ENV'] === 'production' || process.env['RAILWAY_ENVIRONMENT'] !== undefined;
+  
+  if (isProduction) {
+    // Servir archivos estáticos desde dist/people
+    server.use(express.static(distPath));
+    
+    // Servir index.html para todas las rutas no-API (SPA routing)
+    server.get('*', (req, res) => {
+      // No servir index.html para rutas de API (ya manejadas arriba)
+      if (req.path.startsWith('/api/')) {
+        return res.status(404).json({ error: 'Not found' });
+      }
+      res.sendFile(join(distPath, 'index.html'));
+    });
+  }
+
   return server;
 }
 
 function run(): void {
   const port = process.env['PORT'] || 4000;
+  const host = process.env['HOST'] || '0.0.0.0';
 
   // Start up the Node server
   const server = app();
-  server.listen(port, () => {
-    console.log(`Node Express server listening on http://localhost:${port}`);
+  server.listen(port, host, () => {
+    console.log(`Node Express server listening on http://${host}:${port}`);
   });
 }
 

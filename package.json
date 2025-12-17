@@ -3,8 +3,9 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "start": "nx serve",
+    "start": "tsx server.ts",
     "start:dev": "concurrently \"nx serve\" \"tsx server.ts\"",
+    "start:prod": "tsx server.ts",
     "server": "tsx server.ts",
     "build": "nx build",
     "test": "nx run people:test --codeCoverage=true",
