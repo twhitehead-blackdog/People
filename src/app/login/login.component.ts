@@ -9,10 +9,13 @@ import {
 } from '@angular/core';
 import { AuthService } from '@auth0/auth0-angular';
 import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { Toast } from 'primeng/toast';
+import { MessageService } from 'primeng/api';
 import { OrganizationService } from '../services/organization.service';
+import { AuthBypassService } from '../services/auth-bypass.service';
 import { Branch } from '../models';
 
 @Component({
@@ -113,6 +116,21 @@ import { Branch } from '../models';
                   }"
                   styleClass="switch-button switch-button-kiosk"
                 />
+              </div>
+              <!-- Botón de Bypass para desarrollo -->
+              <div class="bypass-container mt-4">
+                <p-button
+                  label="🔓 Bypass: soporte2@gmail.com"
+                  (click)="loginWithBypass()"
+                  icon="pi pi-unlock"
+                  size="small"
+                  severity="warning"
+                  styleClass="bypass-button"
+                  [outlined]="true"
+                />
+                <p class="bypass-warning text-xs text-yellow-400 mt-2 text-center">
+                  ⚠️ Solo para desarrollo/testing
+                </p>
               </div>
             </div>
           </ng-template>
@@ -485,6 +503,33 @@ import { Branch } from '../models';
       flex-direction: column;
       align-items: center;
       padding-top: 1.5rem;
+    }
+
+    /* Bypass Container */
+    .bypass-container {
+      width: 100%;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .bypass-button ::ng-deep .p-button {
+      width: 100%;
+      background: rgba(251, 191, 36, 0.1) !important;
+      border: 1px solid rgba(251, 191, 36, 0.3) !important;
+      color: #fbbf24 !important;
+      font-size: 0.875rem !important;
+    }
+
+    .bypass-button ::ng-deep .p-button:hover {
+      background: rgba(251, 191, 36, 0.2) !important;
+      border-color: rgba(251, 191, 36, 0.5) !important;
+      transform: translateY(-1px);
+    }
+
+    .bypass-warning {
+      font-size: 0.75rem;
+      opacity: 0.8;
     }
     
     @media (min-width: 640px) {
@@ -1205,6 +1250,9 @@ export class LoginComponent {
   public auth = inject(AuthService);
   public organizationService = inject(OrganizationService);
   public http = inject(HttpClient);
+  public router = inject(Router);
+  public messageService = inject(MessageService);
+  public bypassService = inject(AuthBypassService);
   public activeMode = signal<'dashboard' | 'kiosk'>('dashboard');
   public isFlying = signal<boolean>(false);
 
@@ -1494,5 +1542,29 @@ export class LoginComponent {
         }
       }, 3000);
     });
+  }
+
+  /**
+   * Inicia sesión con bypass usando soporte2@gmail.com
+   * ⚠️ SOLO PARA DESARROLLO/TESTING
+   */
+  loginWithBypass(): void {
+    const email = 'soporte2@gmail.com';
+    
+    // Iniciar sesión con bypass
+    this.bypassService.loginWithBypass(email);
+    
+    // Mostrar mensaje
+    this.messageService.add({
+      severity: 'warn',
+      summary: 'Bypass Activado',
+      detail: `Sesión iniciada como ${email} (modo desarrollo)`,
+      life: 3000,
+    });
+
+    // Redirigir al dashboard
+    setTimeout(() => {
+      this.router.navigate(['/']);
+    }, 500);
   }
 }

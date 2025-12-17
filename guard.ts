@@ -3,11 +3,22 @@ import { ActivatedRouteSnapshot, CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { catchError, from, map, of, switchMap, take } from 'rxjs';
+import { AuthBypassService } from './src/app/services/auth-bypass.service';
 
 export const authGuardFn: CanActivateFn = (_route: ActivatedRouteSnapshot) => {
   const auth = inject(AuthService);
   const router = inject(Router);
   const http = inject(HttpClient);
+  const bypassService = inject(AuthBypassService);
+
+  // Verificar si el bypass está activo
+  if (bypassService.isBypassActive()) {
+    const user = bypassService.getCurrentUser();
+    if (user?.email) {
+      // Permitir acceso directo con bypass
+      return of(true);
+    }
+  }
 
   return from(auth.isAuthenticated$).pipe(
     take(1),

@@ -1,0 +1,170 @@
+[
+  {
+    "trigger_name": "on_auth_user_created",
+    "schema_name": "auth",
+    "table_name": "users",
+    "trigger_def": "CREATE TRIGGER on_auth_user_created AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION handle_new_user()",
+    "enabled_state": "enabled"
+  },
+  {
+    "trigger_name": "key_encrypt_secret_trigger_raw_key",
+    "schema_name": "pgsodium",
+    "table_name": "key",
+    "trigger_def": "CREATE TRIGGER key_encrypt_secret_trigger_raw_key BEFORE INSERT OR UPDATE OF raw_key ON pgsodium.key FOR EACH ROW EXECUTE FUNCTION pgsodium.key_encrypt_secret_raw_key()",
+    "enabled_state": "enabled"
+  },
+  {
+    "trigger_name": "update_complaint_last_message_trigger",
+    "schema_name": "public",
+    "table_name": "complaint_messages",
+    "trigger_def": "CREATE TRIGGER update_complaint_last_message_trigger AFTER INSERT ON complaint_messages FOR EACH ROW EXECUTE FUNCTION update_complaint_last_message_at()",
+    "enabled_state": "enabled"
+  },
+  {
+    "trigger_name": "update_complaint_messages_updated_at",
+    "schema_name": "public",
+    "table_name": "complaint_messages",
+    "trigger_def": "CREATE TRIGGER update_complaint_messages_updated_at BEFORE UPDATE ON complaint_messages FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()",
+    "enabled_state": "enabled"
+  },
+  {
+    "trigger_name": "sync_complaint_thread_id",
+    "schema_name": "public",
+    "table_name": "complaints",
+    "trigger_def": "CREATE TRIGGER sync_complaint_thread_id AFTER INSERT OR UPDATE OF thread_id ON complaints FOR EACH ROW EXECUTE FUNCTION sync_thread_id_to_messages()",
+    "enabled_state": "enabled"
+  },
+  {
+    "trigger_name": "update_complaints_updated_at",
+    "schema_name": "public",
+    "table_name": "complaints",
+    "trigger_def": "CREATE TRIGGER update_complaints_updated_at BEFORE UPDATE ON complaints FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()",
+    "enabled_state": "enabled"
+  },
+  {
+    "trigger_name": "update_document_requests_updated_at",
+    "schema_name": "public",
+    "table_name": "document_requests",
+    "trigger_def": "CREATE TRIGGER update_document_requests_updated_at BEFORE UPDATE ON document_requests FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()",
+    "enabled_state": "enabled"
+  },
+  {
+    "trigger_name": "update_emergency_contacts_updated_at",
+    "schema_name": "public",
+    "table_name": "emergency_contacts",
+    "trigger_def": "CREATE TRIGGER update_emergency_contacts_updated_at BEFORE UPDATE ON emergency_contacts FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()",
+    "enabled_state": "enabled"
+  },
+  {
+    "trigger_name": "update_employee_disabilities_updated_at",
+    "schema_name": "public",
+    "table_name": "employee_disabilities",
+    "trigger_def": "CREATE TRIGGER update_employee_disabilities_updated_at BEFORE UPDATE ON employee_disabilities FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()",
+    "enabled_state": "enabled"
+  },
+  {
+    "trigger_name": "update_employee_documents_updated_at",
+    "schema_name": "public",
+    "table_name": "employee_documents",
+    "trigger_def": "CREATE TRIGGER update_employee_documents_updated_at BEFORE UPDATE ON employee_documents FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()",
+    "enabled_state": "enabled"
+  },
+  {
+    "trigger_name": "update_employee_notes_updated_at",
+    "schema_name": "public",
+    "table_name": "employee_notes",
+    "trigger_def": "CREATE TRIGGER update_employee_notes_updated_at BEFORE UPDATE ON employee_notes FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()",
+    "enabled_state": "enabled"
+  },
+  {
+    "trigger_name": "update_employee_schedules_updated_at",
+    "schema_name": "public",
+    "table_name": "employee_schedules",
+    "trigger_def": "CREATE TRIGGER update_employee_schedules_updated_at BEFORE UPDATE ON employee_schedules FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()",
+    "enabled_state": "enabled"
+  },
+  {
+    "trigger_name": "update_employee_skills_updated_at",
+    "schema_name": "public",
+    "table_name": "employee_skills",
+    "trigger_def": "CREATE TRIGGER update_employee_skills_updated_at BEFORE UPDATE ON employee_skills FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()",
+    "enabled_state": "enabled"
+  },
+  {
+    "trigger_name": "update_job_application_statuses_updated_at",
+    "schema_name": "public",
+    "table_name": "job_application_statuses",
+    "trigger_def": "CREATE TRIGGER update_job_application_statuses_updated_at BEFORE UPDATE ON job_application_statuses FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()",
+    "enabled_state": "enabled"
+  },
+  {
+    "trigger_name": "update_job_applications_updated_at",
+    "schema_name": "public",
+    "table_name": "job_applications",
+    "trigger_def": "CREATE TRIGGER update_job_applications_updated_at BEFORE UPDATE ON job_applications FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()",
+    "enabled_state": "enabled"
+  },
+  {
+    "trigger_name": "update_settings_updated_at",
+    "schema_name": "public",
+    "table_name": "settings",
+    "trigger_def": "CREATE TRIGGER update_settings_updated_at BEFORE UPDATE ON settings FOR EACH ROW EXECUTE FUNCTION update_updated_at_column()",
+    "enabled_state": "enabled"
+  },
+  {
+    "trigger_name": "tr_check_filters",
+    "schema_name": "realtime",
+    "table_name": "subscription",
+    "trigger_def": "CREATE TRIGGER tr_check_filters BEFORE INSERT OR UPDATE ON realtime.subscription FOR EACH ROW EXECUTE FUNCTION realtime.subscription_check_filters()",
+    "enabled_state": "enabled"
+  },
+  {
+    "trigger_name": "enforce_bucket_name_length_trigger",
+    "schema_name": "storage",
+    "table_name": "buckets",
+    "trigger_def": "CREATE TRIGGER enforce_bucket_name_length_trigger BEFORE INSERT OR UPDATE OF name ON storage.buckets FOR EACH ROW EXECUTE FUNCTION storage.enforce_bucket_name_length()",
+    "enabled_state": "enabled"
+  },
+  {
+    "trigger_name": "objects_delete_delete_prefix",
+    "schema_name": "storage",
+    "table_name": "objects",
+    "trigger_def": "CREATE TRIGGER objects_delete_delete_prefix AFTER DELETE ON storage.objects FOR EACH ROW EXECUTE FUNCTION storage.delete_prefix_hierarchy_trigger()",
+    "enabled_state": "enabled"
+  },
+  {
+    "trigger_name": "objects_insert_create_prefix",
+    "schema_name": "storage",
+    "table_name": "objects",
+    "trigger_def": "CREATE TRIGGER objects_insert_create_prefix BEFORE INSERT ON storage.objects FOR EACH ROW EXECUTE FUNCTION storage.objects_insert_prefix_trigger()",
+    "enabled_state": "enabled"
+  },
+  {
+    "trigger_name": "objects_update_create_prefix",
+    "schema_name": "storage",
+    "table_name": "objects",
+    "trigger_def": "CREATE TRIGGER objects_update_create_prefix BEFORE UPDATE ON storage.objects FOR EACH ROW WHEN (new.name <> old.name OR new.bucket_id <> old.bucket_id) EXECUTE FUNCTION storage.objects_update_prefix_trigger()",
+    "enabled_state": "enabled"
+  },
+  {
+    "trigger_name": "update_objects_updated_at",
+    "schema_name": "storage",
+    "table_name": "objects",
+    "trigger_def": "CREATE TRIGGER update_objects_updated_at BEFORE UPDATE ON storage.objects FOR EACH ROW EXECUTE FUNCTION storage.update_updated_at_column()",
+    "enabled_state": "enabled"
+  },
+  {
+    "trigger_name": "prefixes_create_hierarchy",
+    "schema_name": "storage",
+    "table_name": "prefixes",
+    "trigger_def": "CREATE TRIGGER prefixes_create_hierarchy BEFORE INSERT ON storage.prefixes FOR EACH ROW WHEN (pg_trigger_depth() < 1) EXECUTE FUNCTION storage.prefixes_insert_trigger()",
+    "enabled_state": "enabled"
+  },
+  {
+    "trigger_name": "prefixes_delete_hierarchy",
+    "schema_name": "storage",
+    "table_name": "prefixes",
+    "trigger_def": "CREATE TRIGGER prefixes_delete_hierarchy AFTER DELETE ON storage.prefixes FOR EACH ROW EXECUTE FUNCTION storage.delete_prefix_hierarchy_trigger()",
+    "enabled_state": "enabled"
+  }
+]

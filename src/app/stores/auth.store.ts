@@ -11,9 +11,9 @@ import {
   withState,
 } from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
-import { filter, pipe, switchMap, catchError } from 'rxjs';
-import { of } from 'rxjs';
+import { filter, pipe, switchMap, catchError, merge, of } from 'rxjs';
 import { OrganizationService } from '../services/organization.service';
+import { AuthBypassService } from '../services/auth-bypass.service';
 import { getTableNameFromService } from '../utils/table-helper';
 
 type State = {
@@ -28,11 +28,20 @@ export const AuthStore = signalStore(
     _auth: inject(AuthService),
     _http: inject(HttpClient),
     _orgService: inject(OrganizationService),
+    _bypass: inject(AuthBypassService),
   })),
-  withMethods(({ _auth, _http, _orgService, ...state }) => ({
+  withMethods(({ _auth, _http, _orgService, _bypass, ...state }) => ({
     getCurrentEmployee: rxMethod<void>(
       pipe(
-        switchMap(() => _auth.user$),
+        switchMap(() => {
+          // Si el bypass está activo, usar el usuario del bypass
+          if (_bypass.isBypassActive()) {
+            const bypassUser = _bypass.getCurrentUser();
+            return bypassUser ? of(bypassUser) : of(null);
+          }
+          // Si no, usar Auth0
+          return _auth.user$;
+        }),
         filter((user) => !!user),
         switchMap((user) => {
           // Ya no hay tablas naz_*, todo es por company_id en tablas compartidas
