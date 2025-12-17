@@ -20,6 +20,7 @@ import { Select } from 'primeng/select';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { tap } from 'rxjs';
 import { DashboardStore } from '../stores/dashboard.store';
+import { OrganizationService } from '../services/organization.service';
 
 @Component({
   selector: 'pt-branches-form',
@@ -118,6 +119,7 @@ export class BranchesFormComponent implements OnInit {
   public dialog = inject(DynamicDialogRef);
   private dialogConfig = inject(DynamicDialogConfig);
   public store = inject(DashboardStore);
+  private organizationService = inject(OrganizationService);
 
   ngOnInit() {
     const { branch } = this.dialogConfig.data;
@@ -133,8 +135,7 @@ export class BranchesFormComponent implements OnInit {
       });
     } else {
       // Si es una nueva sucursal, establecer automáticamente el company_id actual
-      const organizationService = inject(OrganizationService);
-      const currentCompanyId = organizationService.getCurrentCompanyId();
+      const currentCompanyId = this.organizationService.getCurrentCompanyId();
       if (currentCompanyId) {
         this.form.patchValue({
           company_id: currentCompanyId,
