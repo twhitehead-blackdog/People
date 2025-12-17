@@ -1173,6 +1173,14 @@ export class EmployeeFormComponent implements OnInit {
       delete dataToSave.work_phone_country_code;
       delete dataToSave.emergency_contact_phone_country_code;
 
+      // Si no tiene company_id, establecer automáticamente el company_id actual
+      if (!dataToSave.company_id) {
+        const currentCompanyId = this.organizationService.getCurrentCompanyId();
+        if (currentCompanyId) {
+          dataToSave.company_id = currentCompanyId;
+        }
+      }
+
       // Generar número de empleado automáticamente
       this.generateEmployeeNumber(dataToSave.company_id)
         .then((employeeNumber) => {

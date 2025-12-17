@@ -131,6 +131,15 @@ export class BranchesFormComponent implements OnInit {
         address: branch.address || '',
         is_active: branch.is_active !== undefined ? branch.is_active : true,
       });
+    } else {
+      // Si es una nueva sucursal, establecer automáticamente el company_id actual
+      const organizationService = inject(OrganizationService);
+      const currentCompanyId = organizationService.getCurrentCompanyId();
+      if (currentCompanyId) {
+        this.form.patchValue({
+          company_id: currentCompanyId,
+        });
+      }
     }
   }
 

@@ -100,6 +100,14 @@ export class DepartmentsFormComponent implements OnInit {
         name: department.name || '',
         company_id: department.company_id || department.company?.id || '',
       });
+    } else {
+      // Si es un nuevo departamento, establecer automáticamente el company_id actual
+      const currentCompanyId = this.organizationService.getCurrentCompanyId();
+      if (currentCompanyId) {
+        this.form.patchValue({
+          company_id: currentCompanyId,
+        });
+      }
     }
   }
 
