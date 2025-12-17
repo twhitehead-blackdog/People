@@ -1544,11 +1544,14 @@ export class EmployeePortalComponent {
     const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`;
     const startDate = format(this.dateRange()[0], "yyyy-MM-dd'T'06:00:00");
     const endDate = format(addDays(this.dateRange()[1], 1), "yyyy-MM-dd'T'06:00:00");
-    const select = `*,employee:employees(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)`;
+    const select = `*,employee:employees(id,first_name,father_name,company_id, branch:branches(id, name)),branch:branches(id, name, short_name)`;
     
     let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
     url += `&employee_id=eq.${employeeId}`;
-    url += `&company_id=eq.${companyId}`; // Siempre agregar filtro de company_id
+    // Filtrar a través de employee.company_id (funciona incluso si timelogs no tiene company_id)
+    if (companyId) {
+      url += `&employee.company_id=eq.${companyId}`;
+    }
     url += `&created_at=gte.${startDate}`;
     url += `&created_at=lte.${endDate}`;
     url += `&order=created_at.asc`;
