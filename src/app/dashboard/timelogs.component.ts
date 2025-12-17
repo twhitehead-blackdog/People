@@ -714,21 +714,14 @@ export class TimelogsComponent {
       return undefined;
     }
     const queryParams = this.queryParams();
-    const params = this.addCompanyFilter(queryParams, 'timelogs');
+    const params = this.addCompanyFilter({ ...queryParams }, 'timelogs');
     params.created_at = `lte.${format(addDays(end, 1), 'yyyy-MM-dd 06:00:00')}`;
 
     // Debug: Log para timelogs
-    console.log('[TimelogsComponent] Cargando timelogs con params:', params);
-    console.log(
-      '[TimelogsComponent] Company ID:',
-      this.organizationService.getCurrentCompanyId()
-    );
-    console.log(
-      '[TimelogsComponent] Rango de fechas:',
-      format(start, 'yyyy-MM-dd'),
-      'a',
-      format(end, 'yyyy-MM-dd')
-    );
+    console.log('[TimelogsComponent] Cargando timelogs con params:', JSON.stringify(params, null, 2));
+    console.log('[TimelogsComponent] Company ID:', this.organizationService.getCurrentCompanyId());
+    console.log('[TimelogsComponent] Rango de fechas:', format(start, 'yyyy-MM-dd'), 'a', format(end, 'yyyy-MM-dd'));
+    console.log('[TimelogsComponent] Employee ID:', this.employeeId() || 'Todos');
 
     return {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`,
