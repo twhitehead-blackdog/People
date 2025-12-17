@@ -17,6 +17,7 @@ import Aura from '@primeng/themes/aura';
 import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
+import { provideAuth0 } from '@auth0/auth0-angular';
 import { definePreset } from '@primeng/themes';
 import { NgxSpinnerModule } from 'ngx-spinner';
 import { ConfirmationService, MessageService } from 'primeng/api';
@@ -28,7 +29,6 @@ import { httpInterceptor } from './interceptors/http.interceptor';
 import { errorInterceptor } from './interceptors/error.interceptor';
 import { JobApplicationsStore } from './stores/job-applications.store';
 import { PositionsStore } from './stores/positions.store';
-import { SupabaseAuthService } from './services/supabase-auth.service';
 registerLocaleData(localeEs, 'es-MX');
 
 const MyPreset = definePreset(Aura, {
@@ -59,8 +59,18 @@ export const appConfig: ApplicationConfig = {
     ),
     provideAnimationsAsync(),
     provideHttpClient(withInterceptors([apiUrlInterceptor, httpInterceptor, errorInterceptor])),
-    // Proporcionar explícitamente SupabaseAuthService para evitar problemas de inyección
-    SupabaseAuthService,
+    provideAuth0({
+      domain: process.env['ENV_AUTH0_DOMAIN'] ?? '',
+      clientId: process.env['ENV_AUTH0_CLIENT_ID'] ?? '',
+      authorizationParams: {
+        // En desarrollo, siempre usar localhost para Auth0 (requisito de seguridad)
+        // El servidor escucha en 0.0.0.0 para permitir acceso desde dispositivos móviles
+        redirect_uri: process.env['ENV_APP_URL'] || 'http://localhost:4200',
+        audience: process.env['ENV_AUTH0_AUDIENCE'] ?? '',
+      },
+      useRefreshTokens: true,
+      cacheLocation: 'localstorage',
+    }),
     providePrimeNG({
       theme: {
         preset: MyPreset,
