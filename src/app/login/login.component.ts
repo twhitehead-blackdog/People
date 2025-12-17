@@ -518,16 +518,19 @@ import { Branch } from '../models';
 
     .bypass-button ::ng-deep .p-button {
       width: 100%;
-      background: rgba(251, 191, 36, 0.1) !important;
-      border: 1px solid rgba(251, 191, 36, 0.3) !important;
-      color: #fbbf24 !important;
+      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
+      border: 1px solid #fbbf24 !important;
+      color: #000000 !important;
       font-size: 0.875rem !important;
+      font-weight: 600 !important;
     }
 
     .bypass-button ::ng-deep .p-button:hover {
-      background: rgba(251, 191, 36, 0.2) !important;
-      border-color: rgba(251, 191, 36, 0.5) !important;
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+      border-color: #f59e0b !important;
+      color: #000000 !important;
       transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4) !important;
     }
 
     .bypass-warning {
