@@ -99,8 +99,11 @@ COPY docker/nginx-frontend-railway.conf /etc/nginx/conf.d/default.conf
 EXPOSE 80
 
 # Healthcheck para Railway
+# Usar wget (instalado en nginx:alpine) o curl como fallback
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:80/health || exit 1
+  CMD wget --no-verbose --tries=1 --spider http://localhost:80/health 2>/dev/null || \
+      (wget -qO- http://localhost:80/health 2>/dev/null | grep -q healthy) || \
+      exit 1
 
 # Usar ENTRYPOINT para asegurar que Railway no sobrescriba el comando
 # Esto previene que Railway ejecute npm start automáticamente
