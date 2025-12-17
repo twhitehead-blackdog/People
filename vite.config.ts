@@ -2,12 +2,14 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
   server: {
-    allowedHosts: [
-      'adoptions-production.up.railway.app',
-      '.railway.app', // Permite todos los subdominios de Railway
-      'localhost',
-      '127.0.0.1',
-    ],
+    allowedHosts: true, // Permite todos los hosts (incluye Railway)
     host: '0.0.0.0',
+    strictPort: false,
+  },
+  preview: {
+    host: '0.0.0.0',
+    port: 3000,
+    strictPort: false,
+    allowedHosts: true,
   },
 });
