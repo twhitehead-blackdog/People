@@ -1320,8 +1320,10 @@ export class TimelogsComponent {
   });
 
   public filteredDaylogs = computed(() => {
+    const dayLogsData = this.dayLogs();
+    
     // Filtrar manteniendo el mismo orden que dayLogs
-    const filtered = this.dayLogs().filter((x) => {
+    const filtered = dayLogsData.filter((x) => {
       if (this.onlyDelayed()) {
         return x.delay !== undefined;
       }
