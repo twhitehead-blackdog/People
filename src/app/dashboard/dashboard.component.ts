@@ -1,18 +1,39 @@
-import { Component, computed, effect, inject, signal, ChangeDetectionStrategy, Injector } from '@angular/core';
-import { Router, RouterOutlet, NavigationEnd, ActivatedRoute } from '@angular/router';
-import { filter } from 'rxjs/operators';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  Injector,
+  signal,
+} from '@angular/core';
+import {
+  ActivatedRoute,
+  NavigationEnd,
+  Router,
+  RouterOutlet,
+} from '@angular/router';
 import { AccordionModule } from 'primeng/accordion';
 import { ConfirmationService, MenuItem, MessageService } from 'primeng/api';
 import { CardModule } from 'primeng/card';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { RippleModule } from 'primeng/ripple';
 import { ToastModule } from 'primeng/toast';
+import { filter } from 'rxjs/operators';
 
 import { AsyncPipe, NgClass } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import { AuthService } from '@auth0/auth0-angular';
 import { Avatar } from 'primeng/avatar';
 import { Button } from 'primeng/button';
 import { MenuModule } from 'primeng/menu';
+import { combineLatest } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { AuthBypassService } from '../services/auth-bypass.service';
+import {
+  Organization,
+  OrganizationService,
+} from '../services/organization.service';
 import { AuthStore } from '../stores/auth.store';
 import { BanksStore } from '../stores/banks.store';
 import { BranchesStore } from '../stores/branches.store';
@@ -24,11 +45,6 @@ import { PayrollsStore } from '../stores/payrolls.store';
 import { PositionsStore } from '../stores/positions.store';
 import { SchedulesStore } from '../stores/schedules.store';
 import { EmployeePortalComponent } from './employee-portal.component';
-import { OrganizationService, Organization } from '../services/organization.service';
-import { HttpClient } from '@angular/common/http';
-import { AuthBypassService } from '../services/auth-bypass.service';
-import { combineLatest, of } from 'rxjs';
-import { map } from 'rxjs/operators';
 
 @Component({
   selector: 'pt-dashboard',
@@ -72,7 +88,10 @@ import { map } from 'rxjs/operators';
       (click)="toggleMenu()"
     ></div>
     }
-    <div class="h-screen flex flex-col overflow-hidden" [ngClass]="{ 'naz-theme': isNaz() }">
+    <div
+      class="h-screen flex flex-col overflow-hidden"
+      [ngClass]="{ 'naz-theme': isNaz() }"
+    >
       <nav
         class="bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900 border-b border-neutral-700/50 w-full min-w-0 shadow-lg relative z-[1000]"
         [ngClass]="{ 'naz-nav': isNaz() }"
@@ -80,75 +99,110 @@ import { map } from 'rxjs/operators';
         <div class="mx-auto max-w-7xl px-2 sm:px-4 lg:px-6">
           <div class="header-container h-14 md:h-16">
             <div class="header-logo">
-              <a (click)="navigateTo('home')" class="flex items-center gap-2 group cursor-pointer">
-                <img [src]="logoPath()" class="h-7 md:h-9 transition-transform duration-300 group-hover:scale-105" alt="People" />
+              <a
+                (click)="navigateTo('home')"
+                class="flex items-center gap-2 group cursor-pointer"
+              >
+                <img
+                  [src]="logoPath()"
+                  class="h-7 md:h-9 transition-transform duration-300 group-hover:scale-105"
+                  alt="People"
+                />
               </a>
             </div>
             <div class="header-menu hidden md:block">
               <div class="flex items-baseline space-x-1">
-                  @if(store.hasDashboardAccess() && store.isAdmin() && !store.hasPortalAccessOnly() && !store.hasTimeManagementAccess()) {
-                  <a
-                    (click)="navigateTo('home')"
-                    [class.selected]="isHomeActive()"
-                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
-                    ><i class="pi pi-home text-base"></i> <span>Inicio</span></a
-                  >
-                  } @if(store.hasDashboardAccess() && store.isAdmin() && !store.hasPortalAccessOnly()) {
-                  <a
-                    (click)="navigateTo('admin')"
-                    [class.selected]="isAdminActive()"
-                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
-                  >
-                    <i class="pi pi-building text-base"></i> <span>Administración</span></a
-                  >
-                  } @if(store.hasDashboardAccess() && store.isAdmin() && !store.hasPortalAccessOnly()) {
-                  <a
-                    (click)="navigateTo('payroll')"
-                    [class.selected]="isPayrollActive()"
-                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
-                  >
-                    <i class="pi pi-money-bill text-base"></i> <span>Nómina</span></a
-                  >
-                  } @if(store.hasDashboardAccess() && ((store.isAdmin() || (store.isScheduleAdmin() && !store.hasPortalAccessOnly())) || store.hasTimeManagementAccess())) {
-                  <a
-                    (click)="navigateTo('time-management')"
-                    [class.selected]="isTimeManagementActive()"
-                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
-                    ><i class="pi pi-calendar text-base"></i> <span>Gestión de tiempo</span></a
-                  >
-                  }
-                  @if(store.hasDashboardAccess() && (!store.hasPortalAccessOnly() || store.hasTimeManagementAccess())) {
-                  <a
-                    (click)="navigateTo('timeclock')"
-                    [class.selected]="isTimeclockActive()"
-                    class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
-                    ><i class="pi pi-clock text-base"></i> <span>Reloj de marcación</span></a
-                  >
-                  }
-                </div>
+                @if(store.hasDashboardAccess() && store.isAdmin() &&
+                !store.hasPortalAccessOnly() &&
+                !store.hasTimeManagementAccess()) {
+                <a
+                  (click)="navigateTo('home')"
+                  [class.selected]="isHomeActive()"
+                  class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
+                  ><i class="pi pi-home text-base"></i> <span>Inicio</span></a
+                >
+                } @if(store.hasDashboardAccess() && store.isAdmin() &&
+                !store.hasPortalAccessOnly()) {
+                <a
+                  (click)="navigateTo('admin')"
+                  [class.selected]="isAdminActive()"
+                  class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
+                >
+                  <i class="pi pi-building text-base"></i>
+                  <span>Administración</span></a
+                >
+                } @if(store.hasDashboardAccess() && store.isAdmin() &&
+                !store.hasPortalAccessOnly()) {
+                <a
+                  (click)="navigateTo('payroll')"
+                  [class.selected]="isPayrollActive()"
+                  class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
+                >
+                  <i class="pi pi-money-bill text-base"></i>
+                  <span>Nómina</span></a
+                >
+                } @if(store.hasDashboardAccess() && ((store.isAdmin() ||
+                (store.isScheduleAdmin() && !store.hasPortalAccessOnly())) ||
+                store.hasTimeManagementAccess())) {
+                <a
+                  (click)="navigateTo('time-management')"
+                  [class.selected]="isTimeManagementActive()"
+                  class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
+                  ><i class="pi pi-calendar text-base"></i>
+                  <span>Gestión de tiempo</span></a
+                >
+                } @if(store.hasDashboardAccess() &&
+                (!store.hasPortalAccessOnly() ||
+                store.hasTimeManagementAccess())) {
+                <a
+                  (click)="navigateTo('timeclock')"
+                  [class.selected]="isTimeclockActive()"
+                  class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
+                  ><i class="pi pi-clock text-base"></i>
+                  <span>Reloj de marcación</span></a
+                >
+                }
+              </div>
             </div>
             <div class="header-user hidden md:block">
               @if(user) {
-              <p-menu #menu [model]="getMenuItems()" popup [autoZIndex]="true" />
+              <p-menu
+                #menu
+                [model]="getMenuItems()"
+                popup
+                [autoZIndex]="true"
+              />
               <div
                 class="flex items-center gap-3 cursor-pointer group px-3 py-2 rounded-lg hover:bg-gray-700/50 transition-all duration-200"
                 (click)="menu.toggle($event)"
               >
                 <div class="relative flex-shrink-0">
                   <div class="avatar-container">
-                    <p-avatar [image]="user?.picture" shape="circle" size="normal" />
+                    <p-avatar
+                      [image]="user?.picture"
+                      shape="circle"
+                      size="normal"
+                    />
                   </div>
-                  <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-800"></div>
+                  <div
+                    class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-800"
+                  ></div>
                 </div>
                 <div class="flex flex-col min-w-0 flex-1">
-                  <div class="text-sm font-semibold text-white group-hover:text-gray-100 transition-colors truncate">
+                  <div
+                    class="text-sm font-semibold text-white group-hover:text-gray-100 transition-colors truncate"
+                  >
                     {{ currentEmployeeName() }}
                   </div>
-                  <div class="text-xs text-gray-400 group-hover:text-gray-300 transition-colors truncate">
+                  <div
+                    class="text-xs text-gray-400 group-hover:text-gray-300 transition-colors truncate"
+                  >
                     {{ currentEmployeePosition() }}
                   </div>
                 </div>
-                <i class="pi pi-chevron-down text-gray-400 group-hover:text-gray-300 transition-colors text-xs flex-shrink-0"></i>
+                <i
+                  class="pi pi-chevron-down text-gray-400 group-hover:text-gray-300 transition-colors text-xs flex-shrink-0"
+                ></i>
               </div>
 
               }
@@ -170,7 +224,8 @@ import { map } from 'rxjs/operators';
           [class.hidden]="isCollapsed()"
         >
           <div class="space-y-1 px-2 pt-2 pb-3 sm:px-3">
-            @if(store.hasDashboardAccess() && store.isAdmin() && !store.hasPortalAccessOnly() && !store.hasTimeManagementAccess()) {
+            @if(store.hasDashboardAccess() && store.isAdmin() &&
+            !store.hasPortalAccessOnly() && !store.hasTimeManagementAccess()) {
             <a
               (click)="navigateTo('home'); toggleMenu()"
               [class.bg-gray-700]="isHomeActive()"
@@ -179,25 +234,31 @@ import { map } from 'rxjs/operators';
               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
               ><i class="pi pi-home text-lg"></i> <span>Inicio</span></a
             >
-            } @if(store.hasDashboardAccess() && store.isAdmin() && !store.hasPortalAccessOnly()) {
+            } @if(store.hasDashboardAccess() && store.isAdmin() &&
+            !store.hasPortalAccessOnly()) {
             <a
               (click)="navigateTo('admin'); toggleMenu()"
               [class.bg-gray-700]="isAdminActive()"
               [class.text-white]="isAdminActive()"
               [class.shadow-md]="isAdminActive()"
               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
-              ><i class="pi pi-building text-lg"></i> <span>Administración</span></a
+              ><i class="pi pi-building text-lg"></i>
+              <span>Administración</span></a
             >
-            } @if(store.hasDashboardAccess() && ((store.isAdmin() || (store.isScheduleAdmin() && !store.hasPortalAccessOnly())) || store.hasTimeManagementAccess())) {
+            } @if(store.hasDashboardAccess() && ((store.isAdmin() ||
+            (store.isScheduleAdmin() && !store.hasPortalAccessOnly())) ||
+            store.hasTimeManagementAccess())) {
             <a
               (click)="navigateTo('time-management'); toggleMenu()"
               [class.bg-gray-700]="isTimeManagementActive()"
               [class.text-white]="isTimeManagementActive()"
               [class.shadow-md]="isTimeManagementActive()"
               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
-              ><i class="pi pi-calendar text-lg"></i> <span>Gestión de tiempo</span></a
+              ><i class="pi pi-calendar text-lg"></i>
+              <span>Gestión de tiempo</span></a
             >
-            } @if(store.hasDashboardAccess() && store.isAdmin() && !store.hasPortalAccessOnly()) {
+            } @if(store.hasDashboardAccess() && store.isAdmin() &&
+            !store.hasPortalAccessOnly()) {
             <a
               (click)="navigateTo('payroll'); toggleMenu()"
               [class.bg-gray-700]="isPayrollActive()"
@@ -206,30 +267,42 @@ import { map } from 'rxjs/operators';
               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
               ><i class="pi pi-money-bill text-lg"></i> <span>Nómina</span></a
             >
-            }
-            @if(store.hasDashboardAccess() && (!store.hasPortalAccessOnly() || store.hasTimeManagementAccess())) {
+            } @if(store.hasDashboardAccess() && (!store.hasPortalAccessOnly() ||
+            store.hasTimeManagementAccess())) {
             <a
               (click)="navigateTo('timeclock'); toggleMenu()"
               [class.bg-gray-700]="isTimeclockActive()"
               [class.text-white]="isTimeclockActive()"
               [class.shadow-md]="isTimeclockActive()"
               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
-              ><i class="pi pi-clock text-lg"></i> <span>Reloj de marcación</span></a
+              ><i class="pi pi-clock text-lg"></i>
+              <span>Reloj de marcación</span></a
             >
             }
           </div>
           @if(user) {
           <div class="border-t border-gray-700/50 pt-4 pb-3 px-5">
-            <p-menu #mobileMenu [model]="getMenuItems()" popup [appendTo]="'body'" />
+            <p-menu
+              #mobileMenu
+              [model]="getMenuItems()"
+              popup
+              [appendTo]="'body'"
+            />
             <div
               class="flex items-center gap-3 cursor-pointer group px-2 py-2 rounded-lg hover:bg-gray-700/50 transition-all duration-200 touch-manipulation"
               (click)="$event.stopPropagation(); mobileMenu.toggle($event)"
             >
               <div class="relative flex-shrink-0">
                 <div class="avatar-container">
-                  <p-avatar [image]="user.picture" shape="circle" size="normal" />
+                  <p-avatar
+                    [image]="user.picture"
+                    shape="circle"
+                    size="normal"
+                  />
                 </div>
-                <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-800"></div>
+                <div
+                  class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-800"
+                ></div>
               </div>
               <div class="flex-1 min-w-0">
                 <div class="text-base font-semibold text-white truncate">
@@ -239,7 +312,9 @@ import { map } from 'rxjs/operators';
                   {{ currentEmployeePosition() }}
                 </div>
               </div>
-              <i class="pi pi-chevron-down text-gray-400 group-hover:text-gray-300 transition-colors text-sm flex-shrink-0"></i>
+              <i
+                class="pi pi-chevron-down text-gray-400 group-hover:text-gray-300 transition-colors text-sm flex-shrink-0"
+              ></i>
             </div>
           </div>
           }
@@ -247,9 +322,9 @@ import { map } from 'rxjs/operators';
       </nav>
       <div class="flex-1 overflow-y-auto">
         @if(showEmployeePortalView()) {
-          <pt-employee-portal />
+        <pt-employee-portal />
         } @else {
-          <router-outlet />
+        <router-outlet />
         }
       </div>
     </div>
@@ -507,13 +582,13 @@ export class DashboardComponent {
   public banksStore = inject(BanksStore);
   public payrollsStore = inject(PayrollsStore);
   private injector = inject(Injector);
-  
+
   // Signal para la IP actual
   private currentIP = signal<string | null>(null);
-  
+
   // Computed para verificar si es Naz
   public isNaz = computed(() => this.organizationService.isNaz());
-  
+
   // Logo dinámico según organización
   public logoPath = computed(() => {
     return this.isNaz() ? 'images/Naz_Logo.jpg' : 'images/blackdog.png';
@@ -545,7 +620,7 @@ export class DashboardComponent {
   // Usa switchMap para cambiar dinámicamente entre bypass y Auth0
   public currentUser$ = combineLatest([
     this.bypassService.user$,
-    this.auth.user$
+    this.auth.user$,
   ]).pipe(
     map(([bypassUser, authUser]) => {
       // Si el bypass está activo y tiene usuario, usar bypass
@@ -569,23 +644,22 @@ export class DashboardComponent {
   constructor() {
     // Obtener IP actual al inicializar
     this.fetchCurrentIP();
-    
+
     // Inicializar organización anterior
     this.previousOrganization = this.organizationService.currentOrganization;
-    
+
     // Recargar datos cuando cambia la organización
     effect(() => {
       const currentOrg = this.organizationService.currentOrganization;
       const currentCompanyId = this.organizationService.getCurrentCompanyId();
-      
+
       // Solo recargar si el company_id está listo, hay un cambio real y no es la primera vez
       if (
-        this.organizationService.companyIdsReady() && 
+        this.organizationService.companyIdsReady() &&
         currentCompanyId &&
         this.previousOrganization !== null &&
         this.previousOrganization !== currentOrg
       ) {
-        
         // Recargar todos los stores
         this.employeesStore.reloadItems();
         this.branchesStore.reloadItems();
@@ -595,31 +669,37 @@ export class DashboardComponent {
         this.schedulesStore.reloadItems();
         this.banksStore.reloadItems();
         this.payrollsStore.reloadItems();
-        
+
         // Recargar empleado actual
         this.store.auth.getCurrentEmployee();
-        
+
         // Actualizar organización anterior
         this.previousOrganization = currentOrg;
-        
       } else if (this.previousOrganization === null) {
         // Primera vez, solo guardar la organización actual
         this.previousOrganization = currentOrg;
       }
     });
-    
+
     // La redirección se maneja en el guard para evitar conflictos de navegación
     // Track current route for active state
     this.router.events
-      .pipe(filter(event => event instanceof NavigationEnd))
+      .pipe(filter((event) => event instanceof NavigationEnd))
       .subscribe((event: any) => {
         const url = event.urlAfterRedirects || event.url;
         const segments = url.split('/').filter((s: string) => s);
-        
+
         // Detectar la ruta principal: buscar si alguno de los segmentos principales está presente
-        const mainRoutes = ['home', 'admin', 'payroll', 'time-management', 'timeclock', 'branch-manager'];
+        const mainRoutes = [
+          'home',
+          'admin',
+          'payroll',
+          'time-management',
+          'timeclock',
+          'branch-manager',
+        ];
         let route = 'home'; // default
-        
+
         // Buscar la primera ruta principal que aparezca en los segmentos
         for (const segment of segments) {
           if (mainRoutes.includes(segment)) {
@@ -627,21 +707,28 @@ export class DashboardComponent {
             break;
           }
         }
-        
+
         // Si no hay segmentos o no se encontró una ruta principal, usar 'home'
         if (segments.length === 0) {
           route = 'home';
         }
-        
+
         this.currentRoute.set(route);
       });
-    
+
     // Set initial route
     const url = this.router.url;
     const segments = url.split('/').filter((s: string) => s);
-    const mainRoutes = ['home', 'admin', 'payroll', 'time-management', 'timeclock', 'branch-manager'];
+    const mainRoutes = [
+      'home',
+      'admin',
+      'payroll',
+      'time-management',
+      'timeclock',
+      'branch-manager',
+    ];
     let route = 'home'; // default
-    
+
     // Buscar la primera ruta principal que aparezca en los segmentos
     for (const segment of segments) {
       if (mainRoutes.includes(segment)) {
@@ -649,12 +736,12 @@ export class DashboardComponent {
         break;
       }
     }
-    
+
     // Si no hay segmentos, usar 'home'
     if (segments.length === 0) {
       route = 'home';
     }
-    
+
     this.currentRoute.set(route);
   }
 
@@ -747,7 +834,7 @@ export class DashboardComponent {
         label: portalView ? 'Vista Completa' : 'Vista Employee Portal',
         icon: portalView ? 'pi pi-th-large' : 'pi pi-id-card',
         command: () => {
-          this.showEmployeePortalView.update(v => !v);
+          this.showEmployeePortalView.update((v) => !v);
         },
       });
     }
@@ -755,7 +842,9 @@ export class DashboardComponent {
     // Agregar opción de cambiar organización solo si es oficina central
     if (this.canChangeOrganization()) {
       items.push({
-        label: this.organizationService.isNaz() ? 'Cambiar a Black Dog' : 'Cambiar a Naz',
+        label: this.organizationService.isNaz()
+          ? 'Cambiar a Black Dog'
+          : 'Cambiar a Naz',
         icon: 'pi pi-refresh',
         command: () => {
           this.organizationService.toggleOrganization();
@@ -773,7 +862,7 @@ export class DashboardComponent {
         command: () => {
           // Limpiar selección de organización antes de cerrar sesión
           this.organizationService.clearOrganization();
-          
+
           if (this.bypassService.isBypassActive()) {
             // Si está en bypass, cerrar bypass y redirigir a login
             this.bypassService.logout();
@@ -816,12 +905,14 @@ export class DashboardComponent {
       },
       error: (err) => {
         // Si falla, intentar obtener IP vía WebRTC como fallback
-        this.getIPViaWebRTC().then((ip) => {
-          this.currentIP.set(ip);
-        }).catch(() => {
-          // Si todo falla, usar localhost como fallback
-          this.currentIP.set('127.0.0.1');
-        });
+        this.getIPViaWebRTC()
+          .then((ip) => {
+            this.currentIP.set(ip);
+          })
+          .catch(() => {
+            // Si todo falla, usar localhost como fallback
+            this.currentIP.set('127.0.0.1');
+          });
       },
     });
   }

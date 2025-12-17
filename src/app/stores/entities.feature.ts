@@ -228,8 +228,10 @@ export function withCustomEntities<T extends { id: EntityId }>({
               // porque PostgREST tiene problemas con la sintaxis or= en algunos casos
               // Positions puede tener company_id NULL temporalmente (durante migración)
               if (
-                ((tableName === 'banks' || tableName === 'creditors' || tableName === 'positions') &&
-                companyId)
+                (tableName === 'banks' ||
+                  tableName === 'creditors' ||
+                  tableName === 'positions') &&
+                companyId
               ) {
                 const baseParams = { select: cleanedQuery, order: order };
 
@@ -320,8 +322,10 @@ export function withCustomEntities<T extends { id: EntityId }>({
               // Para banks, creditors y positions, hacer dos queries separadas y combinarlas
               // Positions puede tener company_id NULL temporalmente (durante migración)
               if (
-                ((tableName === 'banks' || tableName === 'creditors' || tableName === 'positions') &&
-                companyId)
+                (tableName === 'banks' ||
+                  tableName === 'creditors' ||
+                  tableName === 'positions') &&
+                companyId
               ) {
                 const baseParams = { select: cleanedQuery, order: order };
 
@@ -366,13 +370,16 @@ export function withCustomEntities<T extends { id: EntityId }>({
                 tableName,
                 state._orgService
               );
-              
+
               // Debug: Log para posiciones
               if (tableName === 'positions') {
-                console.log('[PositionsStore] Cargando posiciones con params:', params);
+                console.log(
+                  '[PositionsStore] Cargando posiciones con params:',
+                  params
+                );
                 console.log('[PositionsStore] Company ID:', companyId);
               }
-              
+
               return state._http
                 .get<T[]>(
                   `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
@@ -383,9 +390,16 @@ export function withCustomEntities<T extends { id: EntityId }>({
                     next: (entities) => {
                       // Debug: Log para posiciones
                       if (tableName === 'positions') {
-                        console.log('[PositionsStore] Posiciones recibidas:', entities.length, entities);
+                        console.log(
+                          '[PositionsStore] Posiciones recibidas:',
+                          entities.length,
+                          entities
+                        );
                         if (entities.length === 0) {
-                          console.warn('[PositionsStore] ⚠️ No se encontraron posiciones. Verificar que existan posiciones con company_id:', companyId);
+                          console.warn(
+                            '[PositionsStore] ⚠️ No se encontraron posiciones. Verificar que existan posiciones con company_id:',
+                            companyId
+                          );
                         }
                       }
                       patchState(state, setAllEntities(entities), {
@@ -395,7 +409,10 @@ export function withCustomEntities<T extends { id: EntityId }>({
                     error: (error) => {
                       // Debug: Log para posiciones
                       if (tableName === 'positions') {
-                        console.error('[PositionsStore] ❌ Error cargando posiciones:', error);
+                        console.error(
+                          '[PositionsStore] ❌ Error cargando posiciones:',
+                          error
+                        );
                       }
                       patchState(state, { error });
                     },

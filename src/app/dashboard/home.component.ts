@@ -4289,6 +4289,21 @@ export class HomeComponent {
     const namesByDate = new Map<string, string[]>();
     const timelogs = this.latesFromTimelogs.value() ?? [];
     const schedules = this.employeeSchedules.value() ?? [];
+    
+    // Debug logs
+    console.log('[HomeComponent] latesDailyChartData - Timelogs cargados:', timelogs.length);
+    console.log('[HomeComponent] latesDailyChartData - Schedules cargados:', schedules.length);
+    if (timelogs.length > 0) {
+      console.log('[HomeComponent] latesDailyChartData - Muestra de timelogs (primeros 3):', 
+        timelogs.slice(0, 3).map(log => ({
+          id: log.id,
+          employee_id: log.employee_id,
+          type: log.type,
+          created_at: log.created_at,
+          employee: log.employee ? `${log.employee.first_name} ${log.employee.father_name}` : 'N/A',
+        }))
+      );
+    }
     const detailsByDate = new Map<
       string,
       {
@@ -4983,6 +4998,11 @@ export class HomeComponent {
     // Este cálculo excluye casos sin horario o con errores
     const timelogs = this.latesFromTimelogs.value() ?? [];
     const schedules = this.employeeSchedules.value() ?? [];
+    
+    // Debug logs
+    console.log('[HomeComponent] getMonthlyLates - Timelogs cargados:', timelogs.length);
+    console.log('[HomeComponent] getMonthlyLates - Schedules cargados:', schedules.length);
+    console.log('[HomeComponent] getMonthlyLates - Company ID:', this.organizationService.getCurrentCompanyId());
 
     if (timelogs.length > 0 && schedules.length > 0) {
       let lateCount = 0;

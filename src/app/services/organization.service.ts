@@ -1,8 +1,6 @@
-import { Injectable, signal, computed, effect } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { computed, effect, Injectable, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import { map } from 'rxjs/operators';
 
 export type Organization = 'blackdog' | 'naz';
 
@@ -12,17 +10,19 @@ export type Organization = 'blackdog' | 'naz';
 export class OrganizationService {
   private readonly STORAGE_KEY = 'selected_organization';
   private readonly STORAGE_KEY_COMPANY_ID = 'selected_company_id';
-  
+
   // Signal reactivo para la organización actual
   private _currentOrganization = signal<Organization>(this.loadFromStorage());
-  
+
   // Cache para company_id de Naz y Black Dog
   private _nazCompanyId: string | null = null;
   private _blackdogCompanyId: string | null = null;
-  
+
   // Signal para el company_id actual
-  private _currentCompanyId = signal<string | null>(this.loadCompanyIdFromStorage());
-  
+  private _currentCompanyId = signal<string | null>(
+    this.loadCompanyIdFromStorage()
+  );
+
   // Signal para saber si los company_ids están listos
   private _companyIdsReady = signal<boolean>(false);
 
@@ -31,18 +31,20 @@ export class OrganizationService {
     const currentCompanyId = this._currentCompanyId();
     return currentCompanyId !== null && currentCompanyId === this._nazCompanyId;
   });
-  
+
   // Computed para verificar si es Black Dog (basado en company_id)
   public isBlackDog = computed(() => {
     const currentCompanyId = this._currentCompanyId();
-    return currentCompanyId !== null && currentCompanyId === this._blackdogCompanyId;
+    return (
+      currentCompanyId !== null && currentCompanyId === this._blackdogCompanyId
+    );
   });
 
   // Getter para obtener la organización actual
   public get currentOrganization(): Organization {
     return this._currentOrganization();
   }
-  
+
   // Getter para obtener el company_id actual
   public getCurrentCompanyId(): string | null {
     const companyId = this._currentCompanyId();
@@ -53,12 +55,12 @@ export class OrganizationService {
   public get currentOrganization$() {
     return this._currentOrganization.asReadonly();
   }
-  
+
   // Signal para suscripciones reactivas del company_id
   public get currentCompanyId$() {
     return this._currentCompanyId.asReadonly();
   }
-  
+
   // Getter público para saber si los company_ids están listos
   public get companyIdsReady() {
     return this._companyIdsReady.asReadonly();
@@ -70,10 +72,10 @@ export class OrganizationService {
     if (saved) {
       this._currentOrganization.set(saved);
     }
-    
+
     // Inicializar company_ids de Naz y Black Dog
     this.initializeCompanyIds();
-    
+
     // Sincronizar company_id cuando cambia la organización
     // Solo sincronizar si los company_ids ya están listos
     effect(() => {
@@ -84,7 +86,7 @@ export class OrganizationService {
       }
     });
   }
-  
+
   /**
    * Inicializa los company_id de Naz y Black Dog desde la base de datos
    */
@@ -96,7 +98,7 @@ export class OrganizationService {
         this._companyIdsReady.set(true); // Marcar como listo aunque falle
         return;
       }
-      
+
       // Obtener company_id de Naz
       // Buscar que contenga "naz" (case-insensitive)
       const nazResponse = await firstValueFrom(
@@ -107,22 +109,29 @@ export class OrganizationService {
               select: 'id,name',
               name: `ilike.%naz%`,
               limit: '10',
-              order: 'created_at.asc'
-            }
+              order: 'created_at.asc',
+            },
           }
         )
       );
-      
+
       if (nazResponse && nazResponse.length > 0) {
         // Priorizar coincidencia exacta "Naz", si no existe usar la primera que contenga "naz"
-        const exactMatch = nazResponse.find(c => c.name.toLowerCase().trim() === 'naz');
+        const exactMatch = nazResponse.find(
+          (c) => c.name.toLowerCase().trim() === 'naz'
+        );
         const nazCompany = exactMatch || nazResponse[0];
         if (nazCompany) {
           this._nazCompanyId = nazCompany.id;
-          console.log('✅ Company ID de Naz cargado:', this._nazCompanyId, 'nombre:', nazCompany.name);
+          console.log(
+            '✅ Company ID de Naz cargado:',
+            this._nazCompanyId,
+            'nombre:',
+            nazCompany.name
+          );
         }
       }
-      
+
       // Obtener company_id de Blackdog
       // Buscar "blackdog" (sin espacio entre black y dog) o "blackdog panamá"
       const bdResponse = await firstValueFrom(
@@ -133,17 +142,22 @@ export class OrganizationService {
               select: 'id,name',
               name: `ilike.%blackdog%`,
               limit: '10',
-              order: 'created_at.asc'
-            }
+              order: 'created_at.asc',
+            },
           }
         )
       );
-      
+
       if (bdResponse && bdResponse.length > 0) {
         // Usar la primera coincidencia (ya está ordenada por created_at)
         const blackdogCompany = bdResponse[0];
         this._blackdogCompanyId = blackdogCompany.id;
-        console.log('✅ Company ID de Blackdog cargado:', this._blackdogCompanyId, 'nombre:', blackdogCompany.name);
+        console.log(
+          '✅ Company ID de Blackdog cargado:',
+          this._blackdogCompanyId,
+          'nombre:',
+          blackdogCompany.name
+        );
       } else {
         // Si no encuentra con "blackdog", intentar con "black" y "dog" separados
         const bdResponse2 = await firstValueFrom(
@@ -154,28 +168,33 @@ export class OrganizationService {
                 select: 'id,name',
                 name: `ilike.%black%`,
                 limit: '10',
-                order: 'created_at.asc'
-              }
+                order: 'created_at.asc',
+              },
             }
           )
         );
-        
+
         if (bdResponse2 && bdResponse2.length > 0) {
           // Buscar la que también contenga "dog"
-          const blackdogMatch = bdResponse2.find(c => 
+          const blackdogMatch = bdResponse2.find((c) =>
             c.name.toLowerCase().includes('dog')
           );
           if (blackdogMatch) {
             this._blackdogCompanyId = blackdogMatch.id;
-            console.log('✅ Company ID de Blackdog cargado (búsqueda alternativa):', this._blackdogCompanyId, 'nombre:', blackdogMatch.name);
+            console.log(
+              '✅ Company ID de Blackdog cargado (búsqueda alternativa):',
+              this._blackdogCompanyId,
+              'nombre:',
+              blackdogMatch.name
+            );
           }
         }
       }
-      
+
       // Marcar como listo ANTES de sincronizar para que el effect pueda funcionar
       this._companyIdsReady.set(true);
       console.log('✅ Company IDs inicializados correctamente');
-      
+
       // Sincronizar company_id actual después de obtener los IDs
       // Esto se ejecutará después de marcar como listo para que el effect también pueda ejecutarse
       this.syncCompanyIdFromOrganization(this._currentOrganization());
@@ -185,7 +204,7 @@ export class OrganizationService {
       this._companyIdsReady.set(true);
     }
   }
-  
+
   /**
    * Espera a que los company_ids estén listos
    * Útil para asegurar que estén cargados antes de proceder
@@ -194,11 +213,11 @@ export class OrganizationService {
     if (this._companyIdsReady()) {
       return Promise.resolve();
     }
-    
+
     // Esperar hasta que estén listos (máximo 5 segundos)
     return new Promise((resolve) => {
       let timeoutId: ReturnType<typeof setTimeout> | null = null;
-      
+
       const checkInterval = setInterval(() => {
         if (this._companyIdsReady()) {
           clearInterval(checkInterval);
@@ -209,19 +228,21 @@ export class OrganizationService {
           resolve();
         }
       }, 100);
-      
+
       // Timeout de seguridad
       timeoutId = setTimeout(() => {
         clearInterval(checkInterval);
         // Solo mostrar warning si realmente no están listos
         if (!this._companyIdsReady()) {
-          console.warn('⚠️ Timeout esperando company_ids, continuando de todas formas');
+          console.warn(
+            '⚠️ Timeout esperando company_ids, continuando de todas formas'
+          );
         }
         resolve();
       }, 5000);
     });
   }
-  
+
   /**
    * Sincroniza el company_id actual basado en la organización seleccionada
    */
@@ -230,9 +251,9 @@ export class OrganizationService {
     if (!this._companyIdsReady()) {
       return;
     }
-    
+
     let companyId: string | null = null;
-    
+
     if (org === 'naz' && this._nazCompanyId) {
       companyId = this._nazCompanyId;
       console.log('🔄 Sincronizando company_id para Naz:', companyId);
@@ -240,19 +261,27 @@ export class OrganizationService {
       companyId = this._blackdogCompanyId;
       console.log('🔄 Sincronizando company_id para Black Dog:', companyId);
     }
-    
+
     if (companyId) {
       this._currentCompanyId.set(companyId);
       this.saveCompanyIdToStorage(companyId);
-      console.log('✅ Company ID actualizado:', companyId, 'para organización:', org);
+      console.log(
+        '✅ Company ID actualizado:',
+        companyId,
+        'para organización:',
+        org
+      );
     } else {
       // Solo mostrar warning si los company_ids están listos pero no se encontró el ID
       if (this._companyIdsReady()) {
-        console.warn('⚠️ No se pudo obtener company_id para organización:', org);
+        console.warn(
+          '⚠️ No se pudo obtener company_id para organización:',
+          org
+        );
       }
     }
   }
-  
+
   /**
    * Carga el company_id desde localStorage
    */
@@ -260,7 +289,7 @@ export class OrganizationService {
     if (typeof window === 'undefined' || !window.localStorage) {
       return null;
     }
-    
+
     try {
       return localStorage.getItem(this.STORAGE_KEY_COMPANY_ID);
     } catch (error) {
@@ -268,7 +297,7 @@ export class OrganizationService {
       return null;
     }
   }
-  
+
   /**
    * Guarda el company_id en localStorage
    */
@@ -276,7 +305,7 @@ export class OrganizationService {
     if (typeof window === 'undefined' || !window.localStorage) {
       return;
     }
-    
+
     try {
       localStorage.setItem(this.STORAGE_KEY_COMPANY_ID, companyId);
     } catch (error) {
@@ -293,14 +322,14 @@ export class OrganizationService {
     this.saveToStorage(org);
     // syncCompanyIdFromOrganization se ejecutará automáticamente por el effect
   }
-  
+
   /**
    * Establece el company_id directamente (útil para migración)
    */
   setCompanyId(companyId: string): void {
     this._currentCompanyId.set(companyId);
     this.saveCompanyIdToStorage(companyId);
-    
+
     // Actualizar organización basada en company_id
     if (companyId === this._nazCompanyId) {
       this._currentOrganization.set('naz');
@@ -318,7 +347,7 @@ export class OrganizationService {
     console.log('🧹 Limpiando selección de organización...');
     this._currentOrganization.set('blackdog'); // Resetear a Black Dog por defecto
     this._currentCompanyId.set(null);
-    
+
     // Limpiar localStorage
     try {
       if (typeof window !== 'undefined' && window.localStorage) {
@@ -329,14 +358,14 @@ export class OrganizationService {
       console.error('Error clearing organization from localStorage:', error);
     }
   }
-  
+
   /**
    * Obtiene el company_id de Naz (para uso en migraciones)
    */
   public getNazCompanyId(): string | null {
     return this._nazCompanyId;
   }
-  
+
   /**
    * Obtiene el company_id de Black Dog (para uso en migraciones)
    */
@@ -348,7 +377,8 @@ export class OrganizationService {
    * Alterna entre Black Dog y Naz
    */
   toggleOrganization(): void {
-    const next = this._currentOrganization() === 'blackdog' ? 'naz' : 'blackdog';
+    const next =
+      this._currentOrganization() === 'blackdog' ? 'naz' : 'blackdog';
     this.setOrganization(next);
   }
 
@@ -373,7 +403,7 @@ export class OrganizationService {
     if (typeof window === 'undefined' || !window.localStorage) {
       return 'blackdog'; // Default
     }
-    
+
     try {
       const saved = localStorage.getItem(this.STORAGE_KEY);
       if (saved === 'naz' || saved === 'blackdog') {
@@ -382,7 +412,7 @@ export class OrganizationService {
     } catch (error) {
       console.error('Error loading organization from localStorage:', error);
     }
-    
+
     return 'blackdog'; // Default
   }
 
@@ -393,7 +423,7 @@ export class OrganizationService {
     if (typeof window === 'undefined' || !window.localStorage) {
       return;
     }
-    
+
     try {
       localStorage.setItem(this.STORAGE_KEY, org);
     } catch (error) {
@@ -401,4 +431,3 @@ export class OrganizationService {
     }
   }
 }
-

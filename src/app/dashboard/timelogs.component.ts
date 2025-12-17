@@ -722,6 +722,7 @@ export class TimelogsComponent {
     console.log('[TimelogsComponent] Company ID:', this.organizationService.getCurrentCompanyId());
     console.log('[TimelogsComponent] Rango de fechas:', format(start, 'yyyy-MM-dd'), 'a', format(end, 'yyyy-MM-dd'));
     console.log('[TimelogsComponent] Employee ID:', this.employeeId() || 'Todos');
+    console.log('[TimelogsComponent] URL completa:', `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`);
 
     return {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`,
@@ -810,6 +811,13 @@ export class TimelogsComponent {
               employee: log.employee ? `${log.employee.first_name} ${log.employee.father_name}` : 'N/A',
               branch: log.branch ? log.branch.name : 'N/A',
             }))
+          );
+          console.log('[TimelogsComponent] 📊 Distribución por company_id:', 
+            logsData.reduce((acc: any, log: any) => {
+              const cid = log.company_id || 'NULL';
+              acc[cid] = (acc[cid] || 0) + 1;
+              return acc;
+            }, {})
           );
           
           // Verificar si hay timelogs con company_id diferente

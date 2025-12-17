@@ -29,7 +29,6 @@ import { InputText } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
 import { Skeleton } from 'primeng/skeleton';
 import { TabsModule } from 'primeng/tabs';
-import { FormsModule } from '@angular/forms';
 import QRCode from 'qrcode';
 import { debounceTime, firstValueFrom } from 'rxjs';
 import { markGroupDirty } from 'src/app/services/util.service';
@@ -294,7 +293,9 @@ import {
                 </h3>
                 <div class="flex flex-col md:grid grid-cols-2 md:gap-4">
                   <div class="input-container">
-                    <label for="phone_number">Número de Teléfono Personal</label>
+                    <label for="phone_number"
+                      >Número de Teléfono Personal</label
+                    >
                     <div class="flex gap-2">
                       <p-select
                         [options]="countryCodes"
@@ -316,7 +317,9 @@ import {
                     </div>
                   </div>
                   <div class="input-container">
-                    <label for="work_phone_number">Número de Teléfono Laboral</label>
+                    <label for="work_phone_number"
+                      >Número de Teléfono Laboral</label
+                    >
                     <div class="flex gap-2">
                       <p-select
                         [options]="countryCodes"
@@ -350,7 +353,9 @@ import {
                 </h3>
                 <div class="flex flex-col md:grid grid-cols-3 md:gap-4">
                   <div class="input-container">
-                    <label for="emergency_contact_name">Nombre del Contacto</label>
+                    <label for="emergency_contact_name"
+                      >Nombre del Contacto</label
+                    >
                     <input
                       type="text"
                       id="emergency_contact_name"
@@ -360,7 +365,9 @@ import {
                     />
                   </div>
                   <div class="input-container">
-                    <label for="emergency_contact_phone">Número de Teléfono</label>
+                    <label for="emergency_contact_phone"
+                      >Número de Teléfono</label
+                    >
                     <div class="flex gap-2">
                       <p-select
                         [options]="countryCodes"
@@ -574,7 +581,9 @@ import {
                   />
                 </div>
                 <div class="input-container">
-                  <label for="total_lunch_exceeded_minutes">Total Excedido de Almuerzo (minutos)</label>
+                  <label for="total_lunch_exceeded_minutes"
+                    >Total Excedido de Almuerzo (minutos)</label
+                  >
                   <p-inputNumber
                     formControlName="total_lunch_exceeded_minutes"
                     id="total_lunch_exceeded_minutes"
@@ -824,12 +833,17 @@ export class EmployeeFormComponent implements OnInit {
       validators: [],
     }),
     use_timelog: new FormControl(false, { nonNullable: true }),
-    total_lunch_exceeded_minutes: new FormControl<number | undefined>(undefined, {
-      nonNullable: true,
-    }),
+    total_lunch_exceeded_minutes: new FormControl<number | undefined>(
+      undefined,
+      {
+        nonNullable: true,
+      }
+    ),
     phone_country_code: new FormControl('+507', { nonNullable: true }),
     work_phone_country_code: new FormControl('+507', { nonNullable: true }),
-    emergency_contact_phone_country_code: new FormControl('+507', { nonNullable: true }),
+    emergency_contact_phone_country_code: new FormControl('+507', {
+      nonNullable: true,
+    }),
   });
 
   private confirmationService = inject(ConfirmationService);
@@ -876,21 +890,30 @@ export class EmployeeFormComponent implements OnInit {
   ngOnInit() {
     // Cargar datos necesarios para los dropdowns
     console.log('[EmployeeForm] Cargando datos para dropdowns...');
-    console.log('[EmployeeForm] Company ID actual:', this.organizationService.getCurrentCompanyId());
+    console.log(
+      '[EmployeeForm] Company ID actual:',
+      this.organizationService.getCurrentCompanyId()
+    );
     console.log('[EmployeeForm] Es Naz:', this.organizationService.isNaz());
-    
+
     this.store.positions.fetchItems();
     this.store.departments.fetchItems();
     this.store.companies.fetchItems();
     this.store.branches.fetchItems();
-    
+
     // Debug: Verificar posiciones cargadas
     effect(
       () => {
         const positions = this.store.positions.entities();
-        console.log('[EmployeeForm] Posiciones cargadas:', positions.length, positions);
+        console.log(
+          '[EmployeeForm] Posiciones cargadas:',
+          positions.length,
+          positions
+        );
         if (positions.length === 0) {
-          console.warn('[EmployeeForm] ⚠️ No hay posiciones disponibles. Verificar company_id y que existan posiciones en la base de datos.');
+          console.warn(
+            '[EmployeeForm] ⚠️ No hay posiciones disponibles. Verificar company_id y que existan posiciones en la base de datos.'
+          );
         }
       },
       { injector: this.injector }
@@ -981,29 +1004,35 @@ export class EmployeeFormComponent implements OnInit {
     if (employee.end_date) {
       this.form
         .get('end_date')
-        ?.patchValue(
-          toDate(employee.end_date, { timeZone: 'America/Panama' })
-        );
+        ?.patchValue(toDate(employee.end_date, { timeZone: 'America/Panama' }));
     }
 
     // Separar código de país del número de teléfono personal
     if (employee.phone_number) {
-      const { countryCode, number } = this.parsePhoneNumber(employee.phone_number);
+      const { countryCode, number } = this.parsePhoneNumber(
+        employee.phone_number
+      );
       this.form.get('phone_country_code')?.setValue(countryCode || '+507');
       this.form.get('phone_number')?.setValue(number || '');
     }
 
     // Separar código de país del número de teléfono laboral
     if (employee.work_phone_number) {
-      const { countryCode, number } = this.parsePhoneNumber(employee.work_phone_number);
+      const { countryCode, number } = this.parsePhoneNumber(
+        employee.work_phone_number
+      );
       this.form.get('work_phone_country_code')?.setValue(countryCode || '+507');
       this.form.get('work_phone_number')?.setValue(number || '');
     }
 
     // Separar código de país del número de teléfono del contacto de emergencia
     if (employee.emergency_contact_phone) {
-      const { countryCode, number } = this.parsePhoneNumber(employee.emergency_contact_phone);
-      this.form.get('emergency_contact_phone_country_code')?.setValue(countryCode || '+507');
+      const { countryCode, number } = this.parsePhoneNumber(
+        employee.emergency_contact_phone
+      );
+      this.form
+        .get('emergency_contact_phone_country_code')
+        ?.setValue(countryCode || '+507');
       this.form.get('emergency_contact_phone')?.setValue(number || '');
     }
 
@@ -1045,19 +1074,22 @@ export class EmployeeFormComponent implements OnInit {
   }
 
   // Parsear número de teléfono para separar código de país
-  private parsePhoneNumber(phone: string): { countryCode: string; number: string } {
+  private parsePhoneNumber(phone: string): {
+    countryCode: string;
+    number: string;
+  } {
     if (!phone) return { countryCode: '+507', number: '' };
-    
+
     // Buscar código de país conocido al inicio
-    for (const code of this.countryCodes.map(c => c.value)) {
+    for (const code of this.countryCodes.map((c) => c.value)) {
       if (phone.startsWith(code)) {
         return {
           countryCode: code,
-          number: phone.substring(code.length).trim()
+          number: phone.substring(code.length).trim(),
         };
       }
     }
-    
+
     // Si no se encuentra código conocido, asumir +507
     if (phone.startsWith('+')) {
       // Extraer código manualmente (primeros 1-4 dígitos después del +)
@@ -1066,7 +1098,7 @@ export class EmployeeFormComponent implements OnInit {
         return { countryCode: match[1], number: match[2] };
       }
     }
-    
+
     return { countryCode: '+507', number: phone };
   }
 
@@ -1074,13 +1106,15 @@ export class EmployeeFormComponent implements OnInit {
   formatPhoneNumber(fieldName: 'phone_number' | 'work_phone_number') {
     const numberControl = this.form.get(fieldName);
     const codeControl = this.form.get(
-      fieldName === 'phone_number' ? 'phone_country_code' : 'work_phone_country_code'
+      fieldName === 'phone_number'
+        ? 'phone_country_code'
+        : 'work_phone_country_code'
     );
-    
+
     if (numberControl && codeControl) {
       const number = numberControl.value?.trim() || '';
       const code = codeControl.value || '+507';
-      
+
       // Si el número ya tiene el código, separarlo
       if (number.startsWith('+')) {
         const parsed = this.parsePhoneNumber(number);
@@ -1091,17 +1125,21 @@ export class EmployeeFormComponent implements OnInit {
   }
 
   // Combinar código de país con número de teléfono
-  private combinePhoneNumber(fieldName: 'phone_number' | 'work_phone_number'): string {
+  private combinePhoneNumber(
+    fieldName: 'phone_number' | 'work_phone_number'
+  ): string {
     const numberControl = this.form.get(fieldName);
     const codeControl = this.form.get(
-      fieldName === 'phone_number' ? 'phone_country_code' : 'work_phone_country_code'
+      fieldName === 'phone_number'
+        ? 'phone_country_code'
+        : 'work_phone_country_code'
     );
-    
+
     const number = numberControl?.value?.trim() || '';
     const code = codeControl?.value || '+507';
-    
+
     if (!number) return '';
-    
+
     return `${code} ${number}`.trim();
   }
 
@@ -1109,10 +1147,10 @@ export class EmployeeFormComponent implements OnInit {
   formatEmergencyContactPhone() {
     const numberControl = this.form.get('emergency_contact_phone');
     const codeControl = this.form.get('emergency_contact_phone_country_code');
-    
+
     if (numberControl && codeControl) {
       const number = numberControl.value?.trim() || '';
-      
+
       // Si el número ya tiene el código, separarlo
       if (number.startsWith('+')) {
         const parsed = this.parsePhoneNumber(number);
@@ -1126,12 +1164,12 @@ export class EmployeeFormComponent implements OnInit {
   private combineEmergencyContactPhone(): string {
     const numberControl = this.form.get('emergency_contact_phone');
     const codeControl = this.form.get('emergency_contact_phone_country_code');
-    
+
     const number = numberControl?.value?.trim() || '';
     const code = codeControl?.value || '+507';
-    
+
     if (!number) return '';
-    
+
     return `${code} ${number}`.trim();
   }
 
