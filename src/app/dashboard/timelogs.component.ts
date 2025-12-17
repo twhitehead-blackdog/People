@@ -861,6 +861,7 @@ export class TimelogsComponent {
     const endDate = this.dateRange()?.[1];
 
     if (!startDate || !endDate) {
+      console.log('[TimelogsComponent] ⚠️ dayLogs: No hay rango de fechas');
       return [];
     }
 
@@ -878,6 +879,14 @@ export class TimelogsComponent {
     const schedulesData = this.schedules.value() ?? [];
     const timeoffsData = this.timeoffs.value() ?? [];
     const daysList = this.days();
+    
+    console.log('[TimelogsComponent] 📊 dayLogs - Datos de entrada:', {
+      timelogs: logsData.length,
+      employee_schedules: schedulesData.length,
+      timeoffs: timeoffsData.length,
+      days: daysList.length,
+      dateRange: `${dateRangeStart} a ${dateRangeEnd}`,
+    });
 
     // Validar que daysList esté completo y ordenado
     if (
