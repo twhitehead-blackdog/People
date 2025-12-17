@@ -60,7 +60,7 @@ export const AuthStore = signalStore(
 
           const params: any = {
             work_email: `eq.${user.email}`,
-            select: `id,company_id,first_name,father_name,${positionSelect}`,
+            select: `id,company_id,first_name,father_name,work_email,${positionSelect}`,
           };
 
           // Siempre agregar filtro por company_id
@@ -76,6 +76,7 @@ export const AuthStore = signalStore(
                 company_id?: string;
                 first_name?: string;
                 father_name?: string;
+                work_email?: string;
                 position?: {
                   id: string;
                   name: string;
@@ -99,7 +100,7 @@ export const AuthStore = signalStore(
                   );
                   const paramsWithoutCompany = {
                     work_email: `eq.${user.email}`,
-                    select: `id,company_id,first_name,father_name,${positionSelect}`,
+                    select: `id,company_id,first_name,father_name,work_email,${positionSelect}`,
                   };
                   return _http.get<typeof resp>(
                     `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
@@ -119,17 +120,26 @@ export const AuthStore = signalStore(
                     const blackdogCompanyId =
                       _orgService.getBlackdogCompanyId();
 
+                    // Verificar si el empleado es admin (puede ver todas las organizaciones)
+                    const isAdmin = employee.position?.admin || false;
+                    const superAdminEmails = ['mercadeo@blackdogpanama.com', 'soporte2@blackdogpanama.com'];
+                    const isSuperAdmin = employee.work_email && 
+                      superAdminEmails.includes(employee.work_email.toLowerCase());
+                    const canAccessAllOrgs = isAdmin || isSuperAdmin;
+
                     // Solo actualizar la organización automáticamente en el login inicial
                     // NO cambiar si el usuario ya tiene una organización seleccionada
                     // (respetar selección manual del usuario)
+                    // Si es admin, siempre respetar su selección (puede trabajar con cualquier organización)
                     if (employee.company_id) {
                       // Verificar si es la primera vez (no hay company_id en localStorage)
-                      const savedCompanyId = typeof window !== 'undefined' && window.localStorage
-                        ? window.localStorage.getItem('selected_company_id')
-                        : null;
-                      
-                      if (!savedCompanyId) {
-                        // Primera vez/login: usar el company_id del empleado
+                      const savedCompanyId =
+                        typeof window !== 'undefined' && window.localStorage
+                          ? window.localStorage.getItem('selected_company_id')
+                          : null;
+
+                      if (!savedCompanyId && !canAccessAllOrgs) {
+                        // Primera vez/login y NO es admin: usar el company_id del empleado
                         if (employee.company_id === nazCompanyId) {
                           _orgService.setOrganization('naz');
                           console.log(
@@ -142,18 +152,39 @@ export const AuthStore = signalStore(
                           );
                         }
                       } else {
-                        // Ya hay una selección previa: NO cambiar automáticamente
+                        // Ya hay una selección previa O es admin: NO cambiar automáticamente
                         // Respetar la selección del usuario (puede ser diferente al company_id del empleado)
-                        console.log(
-                          '✅ Respetando selección del usuario:',
-                          _orgService.currentOrganization,
-                          'company_id:',
-                          currentCompanyId,
-                          '(empleado pertenece a:',
-                          employee.company_id === nazCompanyId ? 'Naz' : employee.company_id === blackdogCompanyId ? 'Black Dog' : 'otro',
-                          ')'
-                        );
+                        // Los admins pueden trabajar con cualquier organización
+                        if (canAccessAllOrgs) {
+                          console.log(
+                            '✅ Respetando selección del admin:',
+                            _orgService.currentOrganization,
+                            'company_id:',
+                            currentCompanyId,
+                            '(admin puede trabajar con cualquier organización)'
+                          );
+                        } else {
+                          console.log(
+                            '✅ Respetando selección del usuario:',
+                            _orgService.currentOrganization,
+                            'company_id:',
+                            currentCompanyId,
+                            '(empleado pertenece a:',
+                            employee.company_id === nazCompanyId
+                              ? 'Naz'
+                              : employee.company_id === blackdogCompanyId
+                              ? 'Black Dog'
+                              : 'otro',
+                            ')'
+                          );
+                        }
                       }
+                    } else if (canAccessAllOrgs) {
+                      // Empleado sin company_id pero es admin: respetar selección guardada
+                      console.log(
+                        '✅ Admin sin company_id asignado, respetando selección:',
+                        _orgService.currentOrganization
+                      );
                     }
                   } else {
                     console.warn(
