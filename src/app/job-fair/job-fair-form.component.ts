@@ -33,6 +33,8 @@ import { ToggleSwitch } from 'primeng/toggleswitch';
 import { firstValueFrom } from 'rxjs';
 import { EmailService } from '../services/email.service';
 import { PositionsStore } from '../stores/positions.store';
+import { OrganizationService } from '../services/organization.service';
+import { HttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'pt-job-fair-form',
@@ -758,6 +760,7 @@ export class JobFairFormComponent implements OnInit {
   private positionsStore = inject(PositionsStore);
   private destroyRef = inject(DestroyRef);
   private emailService = inject(EmailService);
+  private orgService = inject(OrganizationService);
 
   public selectedFile = signal<File | null>(null);
   public isSubmitting = signal<boolean>(false);
@@ -765,6 +768,7 @@ export class JobFairFormComponent implements OnInit {
   public jobFairEnabled = signal<boolean>(true);
   public jobFairStartDate = signal<Date | null>(null);
   public jobFairEndDate = signal<Date | null>(null);
+  public jobFairPositions = signal<any[]>([]);
 
   // API para verificar el estado de la feria y fecha de entrevistas
   private jobFairSettingsApi = httpResource<any[]>(() => ({
@@ -778,7 +782,11 @@ export class JobFairFormComponent implements OnInit {
 
   // Posiciones disponibles para la feria de empleo
   public availablePositions = computed(() => {
-    const allPositions = this.positionsStore.entities();
+    // Usar las posiciones de Black Dog cargadas específicamente para la feria
+    // Si no hay posiciones cargadas, usar el store como fallback
+    const jobFairPos = this.jobFairPositions();
+    const storePos = this.positionsStore.entities();
+    const allPositions = jobFairPos.length > 0 ? jobFairPos : storePos;
 
     // Si no hay posiciones cargadas, retornar array vacío
     if (allPositions.length === 0) {
@@ -970,8 +978,9 @@ export class JobFairFormComponent implements OnInit {
   }
 
   constructor() {
-    // Cargar posiciones inmediatamente
-    this.positionsStore.reloadItems();
+    // Cargar posiciones de Black Dog para la feria de empleo
+    // La feria de empleo es solo para Black Dog, no para Naz
+    this.loadJobFairPositions();
 
     // Cargar el estado de la feria y fecha de entrevistas desde settings
     effect(() => {
@@ -1019,16 +1028,49 @@ export class JobFairFormComponent implements OnInit {
     // Asegurar que las posiciones se carguen al inicializar
     // Esperar un momento para que el store se inicialice
     setTimeout(() => {
-      if (this.positionsStore.entities().length === 0) {
-        console.log('Cargando posiciones desde ngOnInit...');
-        this.positionsStore.reloadItems();
-      } else {
-        console.log(
-          'Posiciones ya cargadas:',
-          this.positionsStore.entities().length
-        );
-      }
+      this.loadJobFairPositions();
     }, 100);
+  }
+
+  /**
+   * Carga las posiciones de Black Dog para la feria de empleo
+   * La feria de empleo es solo para Black Dog, no para Naz
+   */
+  private async loadJobFairPositions(): Promise<void> {
+    try {
+      const blackdogCompanyId = this.orgService.getBlackdogCompanyId();
+      if (!blackdogCompanyId) {
+        console.warn('⚠️ No se encontró company_id de Black Dog, cargando todas las posiciones...');
+        this.positionsStore.reloadItems();
+        return;
+      }
+
+      // Cargar posiciones de Black Dog directamente
+      const positions = await firstValueFrom(
+        this.http.get<any[]>(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/positions`,
+          {
+            params: {
+              select: 'id,name,department_id,available_for_job_fair,admin,schedule_admin,schedule_approver,dashboard_access,default_view,department:departments(id, name)',
+              company_id: `eq.${blackdogCompanyId}`,
+              order: 'name',
+            },
+          }
+        )
+      );
+
+      // Actualizar el store con las posiciones de Black Dog
+      // Necesitamos acceder al método interno del store para actualizar las entidades
+      // Por ahora, usaremos un enfoque diferente: cargar directamente y usar computed
+      console.log('✅ Posiciones de Black Dog cargadas para feria:', positions.length);
+      
+      // Guardar las posiciones en un signal local para usar en availablePositions
+      this.jobFairPositions.set(positions);
+    } catch (error) {
+      console.error('❌ Error cargando posiciones de Black Dog:', error);
+      // Fallback: cargar desde el store normal
+      this.positionsStore.reloadItems();
+    }
   }
 
   onFileSelect(event: any) {
