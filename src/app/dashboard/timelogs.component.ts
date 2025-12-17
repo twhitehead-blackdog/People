@@ -1013,8 +1013,15 @@ export class TimelogsComponent {
       });
     });
 
+    console.log('[TimelogsComponent] 📊 dayLogs - Antes de procesar:', {
+      filteredLogs: filteredLogs.length,
+      uniqueEmployees: uniqueEmployees.size,
+      daysList: daysList.length,
+      accInicial: acc.length,
+    });
+    
     // Ahora procesar los logs para actualizar los registros creados
-    return (
+    const result = (
       filteredLogs
         .reduce<
           {
@@ -1298,6 +1305,18 @@ export class TimelogsComponent {
           return dayStr >= dateRangeStart && dayStr <= dateRangeEnd;
         })
     );
+    
+    console.log('[TimelogsComponent] ✅ dayLogs - Procesamiento completado:', {
+      totalRegistros: result.length,
+      conEntrada: result.filter(x => x.entry).length,
+      conSalida: result.filter(x => x.exit).length,
+      conAlmuerzo: result.filter(x => x.lunch_start && x.lunch_end).length,
+      conErrores: result.filter(x => x.scheduleError).length,
+      conAlertas: result.filter(x => x.alert).length,
+      conMarcaciones: result.filter(x => x.entry || x.lunch_start || x.exit).length,
+    });
+    
+    return result;
   });
 
   public filteredDaylogs = computed(() => {
@@ -1349,6 +1368,17 @@ export class TimelogsComponent {
     });
 
     // Retornar los datos filtrados en el mismo orden (ya están ordenados por dayLogs)
+    console.log('[TimelogsComponent] ✅ filteredDaylogs - Filtrado completado:', {
+      totalAntes: dayLogsData.length,
+      totalDespues: filtered.length,
+      filtrosAplicados: {
+        onlyDelayed: this.onlyDelayed(),
+        onlyErrors: this.onlyErrors(),
+        onlyEarlyExit: this.onlyEarlyExit(),
+        onlyLunchExceeded: this.onlyLunchExceeded(),
+      },
+    });
+    
     return filtered;
   });
 
