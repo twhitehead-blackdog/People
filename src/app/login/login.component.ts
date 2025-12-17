@@ -90,48 +90,50 @@ import { Branch } from '../models';
           </ng-template>
 
           <ng-template #footer>
-            <div class="card-footer">
-              <div class="switch-container">
-                <p-button
-                  label="Entrar al dashboard"
-                  (click)="launchButton()"
-                  icon="pi pi-sign-in"
-                  size="large"
-                  [ngClass]="{
-                    'switch-button-active': activeMode() === 'dashboard',
-                    fly: isFlying(),
-                    'naz-button': isNaz()
-                  }"
-                  styleClass="switch-button switch-button-dashboard"
-                  [disabled]="isFlying()"
-                />
-                <p-button
-                  label="Modo Kiosko"
-                  (click)="openKioskMode()"
-                  icon="pi pi-desktop"
-                  size="large"
-                  [ngClass]="{
-                    'switch-button-active': activeMode() === 'kiosk',
-                    'naz-button': isNaz()
-                  }"
-                  styleClass="switch-button switch-button-kiosk"
-                />
+            <div class="card-footer-wrapper">
+              <div class="card-footer">
+                <div class="switch-container">
+                  <p-button
+                    label="Entrar al dashboard"
+                    (click)="launchButton()"
+                    icon="pi pi-sign-in"
+                    size="large"
+                    [ngClass]="{
+                      'switch-button-active': activeMode() === 'dashboard',
+                      fly: isFlying(),
+                      'naz-button': isNaz()
+                    }"
+                    styleClass="switch-button switch-button-dashboard"
+                    [disabled]="isFlying()"
+                  />
+                  <p-button
+                    label="Modo Kiosko"
+                    (click)="openKioskMode()"
+                    icon="pi pi-desktop"
+                    size="large"
+                    [ngClass]="{
+                      'switch-button-active': activeMode() === 'kiosk',
+                      'naz-button': isNaz()
+                    }"
+                    styleClass="switch-button switch-button-kiosk"
+                  />
+                </div>
               </div>
-            </div>
-            <!-- Botón de Bypass para desarrollo - Debajo de los otros botones -->
-            <div class="bypass-container">
-              <p-button
-                label="🔓 Bypass: soporte2@gmail.com"
-                (click)="loginWithBypass()"
-                icon="pi pi-unlock"
-                size="small"
-                severity="warn"
-                styleClass="bypass-button"
-                [outlined]="true"
-              />
-              <p class="bypass-warning text-xs text-yellow-400 mt-2 text-center">
-                ⚠️ Solo para desarrollo/testing
-              </p>
+              <!-- Botón de Bypass para desarrollo - Debajo de los otros botones -->
+              <div class="bypass-container">
+                <p-button
+                  label="🔓 Bypass: soporte2@gmail.com"
+                  (click)="loginWithBypass()"
+                  icon="pi pi-unlock"
+                  size="small"
+                  severity="warn"
+                  styleClass="bypass-button"
+                  [outlined]="true"
+                />
+                <p class="bypass-warning text-xs text-yellow-400 mt-2 text-center">
+                  ⚠️ Solo para desarrollo/testing
+                </p>
+              </div>
             </div>
           </ng-template>
         </p-card>
@@ -413,7 +415,7 @@ import { Branch } from '../models';
       backdrop-filter: blur(20px) saturate(180%);
       -webkit-backdrop-filter: blur(20px) saturate(180%);
       background: rgba(20, 20, 20, 0.75) !important;
-      overflow: hidden;
+      overflow: visible;
     }
     
     .login-card ::ng-deep .p-card {
@@ -424,11 +426,21 @@ import { Branch } from '../models';
     
     .login-card ::ng-deep .p-card-body {
       padding: 2rem 1.5rem !important;
+      overflow: visible !important;
+    }
+
+    .login-card ::ng-deep .p-card-footer {
+      padding: 0 1.5rem 1.5rem 1.5rem !important;
+      overflow: visible !important;
     }
     
     @media (min-width: 768px) {
       .login-card ::ng-deep .p-card-body {
         padding: 2.5rem 2rem !important;
+      }
+
+      .login-card ::ng-deep .p-card-footer {
+        padding: 0 2rem 2rem 2rem !important;
       }
     }
     
@@ -497,12 +509,21 @@ import { Branch } from '../models';
       }
     }
     
+    /* Card Footer Wrapper */
+    .card-footer-wrapper {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
     /* Card Footer */
     .card-footer {
       display: flex;
       flex-direction: column;
       align-items: center;
       padding-top: 1.5rem;
+      width: 100%;
     }
 
     /* Bypass Container - Debajo de los botones principales */
@@ -510,6 +531,7 @@ import { Branch } from '../models';
       width: 100%;
       margin-top: 1.5rem;
       padding-top: 1.5rem;
+      padding-bottom: 1rem;
       border-top: 1px solid rgba(255, 255, 255, 0.1);
       display: flex;
       flex-direction: column;
