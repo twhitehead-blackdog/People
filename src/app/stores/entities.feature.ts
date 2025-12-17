@@ -55,6 +55,15 @@ export function withCustomEntities<T extends { id: EntityId }>({
       return params;
     }
 
+    // Tablas que NO tienen company_id (entidades principales)
+    // Estas tablas no deben filtrarse por company_id
+    const tablesWithoutCompanyId = ['companies'];
+
+    // Si la tabla no tiene company_id, no agregar filtro
+    if (tablesWithoutCompanyId.includes(tableName)) {
+      return params;
+    }
+
     // Tablas que tienen company_id y deben filtrarse siempre
     const tablesWithCompanyId = [
       'employees',

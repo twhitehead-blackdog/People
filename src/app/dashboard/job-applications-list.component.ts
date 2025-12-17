@@ -641,12 +641,14 @@ export class JobApplicationsListComponent implements OnInit {
         console.log('[DEBUG] Setting job_fair_start_date:', startDateSetting);
         console.log('[DEBUG] Setting job_fair_end_date:', endDateSetting);
 
-        const startDate = startDateSetting?.value && startDateSetting.value.trim() !== ''
-          ? this.parseLocalDateString(startDateSetting.value)
-          : null;
-        const endDate = endDateSetting?.value && endDateSetting.value.trim() !== ''
-          ? this.parseLocalDateString(endDateSetting.value)
-          : null;
+        const startDate =
+          startDateSetting?.value && startDateSetting.value.trim() !== ''
+            ? this.parseLocalDateString(startDateSetting.value)
+            : null;
+        const endDate =
+          endDateSetting?.value && endDateSetting.value.trim() !== ''
+            ? this.parseLocalDateString(endDateSetting.value)
+            : null;
         console.log(
           '[DEBUG] Fechas parseadas - Inicio:',
           startDate,
@@ -808,16 +810,31 @@ export class JobApplicationsListComponent implements OnInit {
             '[DEBUG] Actualizando setting de inicio con ID:',
             existingStartSettings[0].id
           );
-          const updateResult = await firstValueFrom(
-            this.http.patch(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingStartSettings[0].id}`,
-              { value: startDateString }
-            )
-          );
-          console.log(
-            '[DEBUG] Resultado de actualización de inicio:',
-            updateResult
-          );
+          try {
+            const updateResult = await firstValueFrom(
+              this.http.patch(
+                `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingStartSettings[0].id}`,
+                { value: startDateString },
+                {
+                  params: {
+                    select: '*',
+                  },
+                }
+              )
+            );
+            console.log(
+              '[DEBUG] Resultado de actualización de inicio:',
+              updateResult
+            );
+            if (Array.isArray(updateResult) && updateResult.length === 0) {
+              console.warn(
+                '[DEBUG] ⚠️ PATCH de fecha inicio retornó array vacío.'
+              );
+            }
+          } catch (error: any) {
+            console.error('[DEBUG] ❌ Error actualizando fecha inicio:', error);
+            throw error;
+          }
         } else {
           // Crear nuevo usando POST
           console.log('[DEBUG] Creando nuevo setting de inicio...');
@@ -852,13 +869,8 @@ export class JobApplicationsListComponent implements OnInit {
         if (existingStartSettings && existingStartSettings.length > 0) {
           await firstValueFrom(
             this.http.patch(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
-              { value: '' },
-              {
-                params: {
-                  id: `eq.${existingStartSettings[0].id}`,
-                },
-              }
+              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingStartSettings[0].id}`,
+              { value: '' }
             )
           );
         }
@@ -887,16 +899,31 @@ export class JobApplicationsListComponent implements OnInit {
             '[DEBUG] Actualizando setting de fin con ID:',
             existingEndSettings[0].id
           );
-          const updateResult = await firstValueFrom(
-            this.http.patch(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingEndSettings[0].id}`,
-              { value: endDateString }
-            )
-          );
-          console.log(
-            '[DEBUG] Resultado de actualización de fin:',
-            updateResult
-          );
+          try {
+            const updateResult = await firstValueFrom(
+              this.http.patch(
+                `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingEndSettings[0].id}`,
+                { value: endDateString },
+                {
+                  params: {
+                    select: '*',
+                  },
+                }
+              )
+            );
+            console.log(
+              '[DEBUG] Resultado de actualización de fin:',
+              updateResult
+            );
+            if (Array.isArray(updateResult) && updateResult.length === 0) {
+              console.warn(
+                '[DEBUG] ⚠️ PATCH de fecha fin retornó array vacío.'
+              );
+            }
+          } catch (error: any) {
+            console.error('[DEBUG] ❌ Error actualizando fecha fin:', error);
+            throw error;
+          }
         } else {
           // Crear nuevo usando POST
           console.log('[DEBUG] Creando nuevo setting de fin...');
@@ -931,11 +958,11 @@ export class JobApplicationsListComponent implements OnInit {
         if (existingEndSettings && existingEndSettings.length > 0) {
           await firstValueFrom(
             this.http.patch(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingEndSettings[0].id}`,
               { value: '' },
               {
                 params: {
-                  id: `eq.${existingEndSettings[0].id}`,
+                  select: '*',
                 },
               }
             )
@@ -1082,13 +1109,28 @@ export class JobApplicationsListComponent implements OnInit {
           '[DEBUG] Actualizando setting existente con ID:',
           existingSettings[0].id
         );
-        const updateResult = await firstValueFrom(
-          this.http.patch(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingSettings[0].id}`,
-            { value: newValue }
-          )
-        );
-        console.log('[DEBUG] Resultado de actualización:', updateResult);
+        try {
+          const updateResult = await firstValueFrom(
+            this.http.patch(
+              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingSettings[0].id}`,
+              { value: newValue },
+              {
+                params: {
+                  select: '*',
+                },
+              }
+            )
+          );
+          console.log('[DEBUG] Resultado de actualización:', updateResult);
+          if (Array.isArray(updateResult) && updateResult.length === 0) {
+            console.warn(
+              '[DEBUG] ⚠️ PATCH retornó array vacío. Verificar RLS o que el registro exista.'
+            );
+          }
+        } catch (error: any) {
+          console.error('[DEBUG] ❌ Error en PATCH:', error);
+          throw error;
+        }
       } else {
         // Crear nuevo setting usando POST
         console.log('[DEBUG] Creando nuevo setting...');
