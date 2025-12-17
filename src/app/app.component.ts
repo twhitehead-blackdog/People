@@ -7,6 +7,7 @@ import { filter, take } from 'rxjs';
 import { NgxSpinnerComponent, NgxSpinnerService } from 'ngx-spinner';
 import { OrganizationService } from './services/organization.service';
 import { DiagnosticPanelComponent } from './components/diagnostic-panel.component';
+import { DiagnosticService } from './services/diagnostic.service';
 
 @Component({
   imports: [RouterOutlet, NgxSpinnerComponent, DiagnosticPanelComponent],
@@ -24,8 +25,13 @@ export class AppComponent implements OnInit {
   private router = inject(Router);
   private auth = inject(AuthService);
   private organizationService = inject(OrganizationService);
+  private diagnosticService = inject(DiagnosticService);
 
   ngOnInit() {
+    // Inicializar servicio de diagnóstico temprano
+    // Esto asegura que capture errores desde el inicio
+    console.log('🔍 [App] Inicializando aplicación...');
+    
     // Forzar modo oscuro siempre y prevenir flash de fondo blanco
     if (typeof document !== 'undefined') {
       document.documentElement.classList.add('dark');

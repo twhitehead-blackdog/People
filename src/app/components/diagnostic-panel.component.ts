@@ -161,11 +161,16 @@ export class DiagnosticPanelComponent implements OnInit, OnDestroy {
   };
 
   ngOnInit(): void {
+    console.log('🔍 [Diagnóstico] Panel inicializado');
+    
     // Suscribirse a cambios de visibilidad
     this.diagnosticService.isVisible$
       .pipe(takeUntil(this.destroy$))
       .subscribe(visible => {
         this.isVisible = visible;
+        if (visible) {
+          console.log('🔍 [Diagnóstico] Panel visible, errores actuales:', this.diagnosticService.getErrors().length);
+        }
       });
 
     // Suscribirse a errores
@@ -174,12 +179,29 @@ export class DiagnosticPanelComponent implements OnInit, OnDestroy {
       .subscribe(errors => {
         this.errors = errors;
         this.errorCount = errors.length;
+        if (errors.length > 0) {
+          console.log('🔍 [Diagnóstico] Nuevo error capturado:', errors[0].message);
+        }
       });
 
     // Agregar listener de teclado
     if (typeof window !== 'undefined') {
       window.addEventListener('keydown', this.handleKeyPress);
     }
+
+    // Verificar estado inicial después de un segundo
+    setTimeout(() => {
+      const initialErrors = this.diagnosticService.getErrors();
+      console.log('🔍 [Diagnóstico] Errores iniciales:', initialErrors.length);
+      if (initialErrors.length === 0) {
+        // Agregar un mensaje informativo si no hay errores
+        this.diagnosticService.addError({
+          type: 'other',
+          message: '✅ Panel de diagnóstico activo - Esperando errores...',
+          details: { status: 'ready' },
+        });
+      }
+    }, 1000);
   }
 
   ngOnDestroy(): void {

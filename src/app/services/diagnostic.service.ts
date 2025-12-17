@@ -25,12 +25,28 @@ export class DiagnosticService {
   private maxErrors = 100; // Mantener solo los últimos 100 errores
 
   constructor() {
+    // Log de inicialización
+    if (typeof window !== 'undefined') {
+      console.log('🔍 [Diagnóstico] Servicio inicializado');
+    }
+    
     // Capturar errores de consola
     this.captureConsoleErrors();
     // Capturar peticiones fetch directamente
     this.captureFetchErrors();
     // Monitorear recursos httpResource
     this.monitorHttpResources();
+    
+    // Agregar un error de prueba al inicializar (solo en desarrollo)
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      setTimeout(() => {
+        this.addError({
+          type: 'other',
+          message: '✅ Panel de diagnóstico funcionando correctamente',
+          details: { initialized: true },
+        });
+      }, 1000);
+    }
   }
 
   /**
@@ -119,29 +135,36 @@ export class DiagnosticService {
 
     const originalError = console.error;
     const originalWarn = console.warn;
+    const self = this;
 
-    console.error = (...args: any[]) => {
+    console.error = function(...args: any[]) {
       const message = args.map(arg => 
         typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
       ).join(' ');
       
-      this.addConsoleError(message, args.length > 1 ? args.slice(1) : undefined);
+      // No capturar nuestros propios mensajes de diagnóstico
+      if (!message.includes('[Diagnóstico]')) {
+        self.addConsoleError(message, args.length > 1 ? args.slice(1) : undefined);
+      }
       originalError.apply(console, args);
     };
 
-    console.warn = (...args: any[]) => {
+    console.warn = function(...args: any[]) {
       const message = args.map(arg => 
         typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
       ).join(' ');
       
-      // Capturar TODOS los warnings (más agresivo)
-      this.addConsoleError(`WARNING: ${message}`, args.length > 1 ? args.slice(1) : undefined);
+      // No capturar nuestros propios mensajes de diagnóstico
+      if (!message.includes('[Diagnóstico]')) {
+        // Capturar TODOS los warnings (más agresivo)
+        self.addConsoleError(`WARNING: ${message}`, args.length > 1 ? args.slice(1) : undefined);
+      }
       originalWarn.apply(console, args);
     };
 
     // Capturar errores no manejados
     window.addEventListener('error', (event) => {
-      this.addConsoleError(
+      self.addConsoleError(
         event.message,
         {
           filename: event.filename,
@@ -154,12 +177,14 @@ export class DiagnosticService {
 
     // Capturar promesas rechazadas
     window.addEventListener('unhandledrejection', (event) => {
-      this.addConsoleError(
+      self.addConsoleError(
         `Unhandled Promise Rejection: ${event.reason}`,
         event.reason,
         event.reason?.stack
       );
     });
+
+    console.log('🔍 [Diagnóstico] Captura de errores de consola configurada');
   }
 
   /**
@@ -312,6 +337,8 @@ export class DiagnosticService {
         throw error;
       }
     };
+
+    console.log('🔍 [Diagnóstico] Captura de errores de fetch configurada');
   }
 
   /**
