@@ -125,7 +125,7 @@ import { Branch } from '../models';
                 (click)="loginWithBypass()"
                 icon="pi pi-unlock"
                 size="small"
-                severity="warning"
+                severity="warn"
                 styleClass="bypass-button"
                 [outlined]="true"
               />
