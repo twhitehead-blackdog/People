@@ -60,26 +60,32 @@ FROM nginx:alpine
 COPY --from=builder /app/dist/people /tmp/dist-people
 
 # Mover archivos a la ubicación correcta según la estructura generada
-RUN echo "=== Verificando estructura copiada ===" && \
+# Agregar timestamp para evitar caché y siempre mostrar logs
+RUN echo "=== [$(date)] Verificando estructura copiada ===" && \
     ls -la /tmp/dist-people/ && \
-    echo "=== Buscando index.html ===" && \
+    echo "=== [$(date)] Buscando index.html ===" && \
     find /tmp/dist-people -name "index.html" -type f && \
     if [ -d /tmp/dist-people/browser ] && [ -f /tmp/dist-people/browser/index.html ]; then \
-      echo "✅ Using SSR build structure (browser folder)"; \
+      echo "✅ [$(date)] Using SSR build structure (browser folder)"; \
       cp -r /tmp/dist-people/browser/* /usr/share/nginx/html/; \
+      echo "✅ [$(date)] Archivos copiados desde browser/"; \
     elif [ -f /tmp/dist-people/index.html ]; then \
-      echo "✅ Using standard build structure"; \
+      echo "✅ [$(date)] Using standard build structure"; \
       cp -r /tmp/dist-people/* /usr/share/nginx/html/; \
+      echo "✅ [$(date)] Archivos copiados desde dist/people/"; \
     else \
-      echo "❌ ERROR: index.html not found in build output!"; \
-      echo "=== Contenido completo de /tmp/dist-people/ ==="; \
+      echo "❌ [$(date)] ERROR: index.html not found in build output!"; \
+      echo "=== [$(date)] Contenido completo de /tmp/dist-people/ ==="; \
       ls -laR /tmp/dist-people/; \
       exit 1; \
     fi && \
-    echo "=== Limpiando temporal ===" && \
+    echo "=== [$(date)] Limpiando temporal ===" && \
     rm -rf /tmp/dist-people && \
-    echo "=== Verificando archivos finales en Nginx ===" && \
-    ls -la /usr/share/nginx/html/ | head -20
+    echo "=== [$(date)] Verificando archivos finales en Nginx ===" && \
+    ls -la /usr/share/nginx/html/ | head -20 && \
+    echo "=== [$(date)] Total de archivos: $(ls -1 /usr/share/nginx/html/ | wc -l)" && \
+    echo "=== [$(date)] Verificando index.html ===" && \
+    ls -lh /usr/share/nginx/html/index.html
 
 # Verificar que index.html existe
 RUN test -f /usr/share/nginx/html/index.html || (echo "❌ ERROR: index.html not found in final location!" && ls -la /usr/share/nginx/html/ && exit 1) && \
