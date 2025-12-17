@@ -798,16 +798,38 @@ export class TimelogsComponent {
 
         // Mostrar muestra de timelogs si hay datos
         if (logsData && logsData.length > 0) {
-          console.log('[TimelogsComponent] ✅ Timelogs encontrados. Muestra (primeros 3):', 
-            logsData.slice(0, 3).map(log => ({
+          console.log('[TimelogsComponent] ✅ Timelogs encontrados:', timelogsCount);
+          console.log('[TimelogsComponent] 📋 Muestra (primeros 5):', 
+            logsData.slice(0, 5).map(log => ({
               id: log.id,
               employee_id: log.employee_id,
               company_id: log.company_id,
+              branch_id: log.branch_id,
               type: log.type,
               created_at: log.created_at,
               employee: log.employee ? `${log.employee.first_name} ${log.employee.father_name}` : 'N/A',
+              branch: log.branch ? log.branch.name : 'N/A',
             }))
           );
+          
+          // Verificar si hay timelogs con company_id diferente
+          const currentCompanyId = this.organizationService.getCurrentCompanyId();
+          const wrongCompanyId = logsData.filter(log => log.company_id !== currentCompanyId);
+          if (wrongCompanyId.length > 0) {
+            console.warn('[TimelogsComponent] ⚠️ Timelogs con company_id incorrecto:', wrongCompanyId.length);
+            console.warn('  - Company ID esperado:', currentCompanyId);
+            console.warn('  - Timelogs con company_id diferente:', wrongCompanyId.slice(0, 3).map(log => ({
+              id: log.id,
+              company_id: log.company_id,
+              employee_id: log.employee_id,
+            })));
+          }
+        } else if (!logsError) {
+          console.warn('[TimelogsComponent] ⚠️ No se encontraron timelogs');
+          console.warn('  - Verificar que existan timelogs en la base de datos para:');
+          console.warn('    * Company ID:', this.organizationService.getCurrentCompanyId());
+          console.warn('    * Rango de fechas:', this.dateRange());
+          console.warn('    * Employee ID:', this.employeeId() || 'Todos');
         }
       },
       { injector: this.injector }
