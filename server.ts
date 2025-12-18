@@ -29,12 +29,14 @@ export function app(): express.Express {
   });
 
   // Logging de peticiones para debugging (solo en producción para Railway)
-  if (isProduction) {
-    server.use((req, res, next) => {
+  // IMPORTANTE: Este middleware debe estar ANTES de los endpoints de health check
+  // para que podamos ver todas las peticiones entrantes
+  server.use((req, res, next) => {
+    if (isProduction) {
       console.log(`📥 ${req.method} ${req.path} - ${new Date().toISOString()}`);
-      next();
-    });
-  }
+    }
+    next();
+  });
 
   // Endpoint proxy para Wassenger (evita problemas de CORS)
   server.post('/api/wassenger/send-message', async (req, res) => {
@@ -105,7 +107,8 @@ export function app(): express.Express {
   // Railway hace health checks en /health
   server.get('/health', (req, res) => {
     console.log('✅ Health check recibido en /health');
-    res.json({ 
+    console.log(`   Headers: ${JSON.stringify(req.headers)}`);
+    res.status(200).json({ 
       status: 'ok', 
       message: 'Server is running', 
       timestamp: new Date().toISOString(),
