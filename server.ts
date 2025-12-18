@@ -154,15 +154,27 @@ export function app(): express.Express {
   });
 
   // Servir archivos estáticos en producción (después de las rutas de API)
+  // Angular con SSR genera archivos en dist/people/browser
   const distPath = join(process.cwd(), 'dist/people');
+  const browserPath = join(distPath, 'browser');
   const isProduction = process.env['NODE_ENV'] === 'production' || process.env['RAILWAY_ENVIRONMENT'] !== undefined;
   
   if (isProduction) {
-    // Verificar que la ruta de dist existe
-    if (existsSync(distPath)) {
-      console.log(`Serving static files from: ${distPath}`);
-      // Servir archivos estáticos desde dist/people
-      server.use(express.static(distPath));
+    // Verificar primero si existe browser/ (estructura con SSR)
+    let staticPath = browserPath;
+    let indexPath = join(browserPath, 'index.html');
+    
+    if (!existsSync(browserPath)) {
+      // Si no existe browser/, intentar directamente en dist/people
+      staticPath = distPath;
+      indexPath = join(distPath, 'index.html');
+    }
+    
+    // Verificar que la ruta de archivos estáticos existe
+    if (existsSync(staticPath)) {
+      console.log(`Serving static files from: ${staticPath}`);
+      // Servir archivos estáticos
+      server.use(express.static(staticPath));
       
       // Servir index.html para todas las rutas no-API (SPA routing)
       server.get('*', (req, res) => {
@@ -171,16 +183,18 @@ export function app(): express.Express {
           res.status(404).json({ error: 'Not found' });
           return;
         }
-        const indexPath = join(distPath, 'index.html');
+        
         if (existsSync(indexPath)) {
           res.sendFile(indexPath);
         } else {
           console.error(`index.html not found at: ${indexPath}`);
+          console.error(`Tried paths: ${browserPath}, ${distPath}`);
           res.status(500).json({ error: 'Static files not found. Build may be incomplete.' });
         }
       });
     } else {
-      console.warn(`WARNING: dist/people directory not found at: ${distPath}`);
+      console.warn(`WARNING: Static files directory not found at: ${staticPath}`);
+      console.warn(`Also checked: ${browserPath}`);
       console.warn('Static file serving disabled. API endpoints will still work.');
       // Endpoint de fallback para rutas no-API cuando no hay build
       server.get('*', (req, res) => {
