@@ -534,6 +534,9 @@ export class JobApplicationsListComponent implements OnInit {
   public isUpdatingInterviewDate = signal<boolean>(false);
   public jobFairEnabled = signal<boolean>(true);
   public jobFairDateRange: (Date | null)[] | null = null;
+  
+  // Timestamp de la última actualización manual para evitar que el effect se ejecute inmediatamente
+  private lastManualUpdateTimestamp = 0;
 
   // API para cargar el estado de la feria desde settings
   private jobFairSettingsApi = httpResource<any[]>(() => ({
@@ -648,6 +651,16 @@ export class JobApplicationsListComponent implements OnInit {
       if (this.isUpdatingJobFairStatus() || this.isUpdatingInterviewDate()) {
         console.log(
           '[DEBUG] ⏸️ Ignorando actualización de settings - actualización manual en progreso'
+        );
+        return;
+      }
+      
+      // No actualizar si acabamos de hacer un cambio manual recientemente (últimos 3 segundos)
+      // Esto previene ciclos infinitos en Railway donde el timing puede ser diferente
+      const timeSinceLastUpdate = Date.now() - this.lastManualUpdateTimestamp;
+      if (timeSinceLastUpdate < 3000) {
+        console.log(
+          `[DEBUG] ⏸️ Ignorando actualización de settings - cambio manual reciente (hace ${timeSinceLastUpdate}ms)`
         );
         return;
       }
@@ -1130,33 +1143,27 @@ export class JobApplicationsListComponent implements OnInit {
             : 'Duración de la feria eliminada',
       });
 
-      // Recargar settings después de un delay para evitar que el effect sobrescriba
-      // IMPORTANTE: Mantener isUpdatingInterviewDate en true durante el reload
-      // para que el effect no interfiera
-      console.log('[DEBUG] ⏰ Programando recarga de settings en 500ms...');
+      // Registrar timestamp de la actualización manual
+      this.lastManualUpdateTimestamp = Date.now();
+      console.log('[DEBUG] 📝 Timestamp de actualización manual registrado:', this.lastManualUpdateTimestamp);
+
+      // NO hacer reload explícito - esto puede causar ciclos infinitos en Railway
+      // En su lugar, simplemente esperar un tiempo antes de permitir que el effect se ejecute
+      // El effect se ejecutará naturalmente cuando detecte cambios en la API
+      console.log('[DEBUG] ⏰ Esperando antes de permitir que effect se ejecute...');
       console.log(
         '[DEBUG]   - Estado actual isUpdatingInterviewDate:',
         this.isUpdatingInterviewDate()
       );
+      
+      // Esperar un tiempo suficiente para que la petición se complete y se estabilice
+      // En Railway, las peticiones pueden ser más lentas, así que aumentamos el delay
       setTimeout(() => {
-        console.log('[DEBUG] 🔄 Ejecutando reload de settings...');
         console.log(
-          '[DEBUG]   - Estado isUpdatingInterviewDate antes del reload:',
-          this.isUpdatingInterviewDate()
+          '[DEBUG] ✅ Permitiendo que effect se ejecute nuevamente (después de 2 segundos)'
         );
-        // Asegurar que isUpdatingInterviewDate sigue en true durante el reload
-        this.isUpdatingInterviewDate.set(true);
-        this.jobFairSettingsApi.reload();
-        console.log('[DEBUG]   - Reload ejecutado, esperando respuesta...');
-
-        // Esperar un poco más antes de permitir que el effect se ejecute
-        setTimeout(() => {
-          console.log(
-            '[DEBUG] ✅ Permitiendo que effect se ejecute nuevamente'
-          );
-          this.isUpdatingInterviewDate.set(false);
-        }, 300);
-      }, 500);
+        this.isUpdatingInterviewDate.set(false);
+      }, 2000); // Aumentado a 2 segundos para Railway
     } catch (error: any) {
       console.error(
         '[DEBUG] ❌ Error actualizando duración de la feria:',
@@ -1339,33 +1346,27 @@ export class JobApplicationsListComponent implements OnInit {
         }`,
       });
 
-      // Recargar settings después de un delay para evitar que el effect sobrescriba
-      // IMPORTANTE: Mantener isUpdatingJobFairStatus en true durante el reload
-      // para que el effect no interfiera
-      console.log('[DEBUG] ⏰ Programando recarga de settings en 500ms...');
+      // Registrar timestamp de la actualización manual
+      this.lastManualUpdateTimestamp = Date.now();
+      console.log('[DEBUG] 📝 Timestamp de actualización manual registrado:', this.lastManualUpdateTimestamp);
+
+      // NO hacer reload explícito - esto puede causar ciclos infinitos en Railway
+      // En su lugar, simplemente esperar un tiempo antes de permitir que el effect se ejecute
+      // El effect se ejecutará naturalmente cuando detecte cambios en la API
+      console.log('[DEBUG] ⏰ Esperando antes de permitir que effect se ejecute...');
       console.log(
         '[DEBUG]   - Estado actual isUpdatingJobFairStatus:',
         this.isUpdatingJobFairStatus()
       );
+      
+      // Esperar un tiempo suficiente para que la petición se complete y se estabilice
+      // En Railway, las peticiones pueden ser más lentas, así que aumentamos el delay
       setTimeout(() => {
-        console.log('[DEBUG] 🔄 Ejecutando reload de settings...');
         console.log(
-          '[DEBUG]   - Estado isUpdatingJobFairStatus antes del reload:',
-          this.isUpdatingJobFairStatus()
+          '[DEBUG] ✅ Permitiendo que effect se ejecute nuevamente (después de 2 segundos)'
         );
-        // Asegurar que isUpdatingJobFairStatus sigue en true durante el reload
-        this.isUpdatingJobFairStatus.set(true);
-        this.jobFairSettingsApi.reload();
-        console.log('[DEBUG]   - Reload ejecutado, esperando respuesta...');
-
-        // Esperar un poco más antes de permitir que el effect se ejecute
-        setTimeout(() => {
-          console.log(
-            '[DEBUG] ✅ Permitiendo que effect se ejecute nuevamente'
-          );
-          this.isUpdatingJobFairStatus.set(false);
-        }, 300);
-      }, 500);
+        this.isUpdatingJobFairStatus.set(false);
+      }, 2000); // Aumentado a 2 segundos para Railway
     } catch (error: any) {
       console.error('[DEBUG] ❌ Error actualizando estado de la feria:', error);
       console.error('[DEBUG] Error completo:', JSON.stringify(error, null, 2));
