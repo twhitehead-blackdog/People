@@ -1362,16 +1362,8 @@ export class EmployeeFormComponent implements OnInit {
               });
             },
           });
-        })
-        .catch((error) => {
-          console.error('Error al generar número de empleado:', error);
-          this.message.add({
-            severity: 'error',
-            summary: 'Error',
-            detail:
-              'No se pudo generar el número de empleado. Por favor intente nuevamente.',
-          });
-        });
+  }
+
     } else {
       // Ya no se filtran campos, todo se guarda (tablas compartidas)
       const formValue = this.form.getRawValue();
