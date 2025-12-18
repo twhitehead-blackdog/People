@@ -9,10 +9,14 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
   const diagnosticService = inject(DiagnosticService);
 
   if (req.url.includes('supabase')) {
-    // Para peticiones a settings, usar service_role key para bypassar RLS
+    // Para peticiones a settings y job_applications (formulario público), 
+    // usar service_role key para bypassar RLS
     // Para otras peticiones, usar anon key
     const isSettingsRequest = req.url.includes('/rest/v1/settings');
-    const supabaseKey = isSettingsRequest
+    const isJobApplicationsRequest = req.url.includes('/rest/v1/job_applications');
+    const needsServiceRoleKey = isSettingsRequest || isJobApplicationsRequest;
+    
+    const supabaseKey = needsServiceRoleKey
       ? (process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'] ?? 
          process.env['ENV_SUPABASE_TOKEN'] ?? 
          process.env['ENV_SUPABASE_ANON_KEY'] ?? 
@@ -22,9 +26,10 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
          process.env['ENV_SUPABASE_API_KEY'] ?? 
          '');
     
-    // Si es una petición a settings y no hay key disponible, mostrar error más claro
-    if (isSettingsRequest && !supabaseKey) {
-      console.error('[ERROR] No se encontró ENV_SUPABASE_SERVICE_ROLE_KEY para peticiones a settings. ' +
+    // Si es una petición que necesita service role key y no hay disponible, mostrar error más claro
+    if (needsServiceRoleKey && !supabaseKey) {
+      console.error('[ERROR] No se encontró ENV_SUPABASE_SERVICE_ROLE_KEY para peticiones a ' +
+        (isSettingsRequest ? 'settings' : 'job_applications') + '. ' +
         'Por favor, agrega esta variable a tu archivo .env y reinicia la aplicación.');
     }
     
