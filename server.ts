@@ -101,7 +101,18 @@ export function app(): express.Express {
     }
   });
 
-  // Health check endpoint (debe estar antes de los archivos estáticos)
+  // Health check endpoints (debe estar antes de los archivos estáticos)
+  // Railway hace health checks en /health
+  server.get('/health', (req, res) => {
+    console.log('✅ Health check recibido en /health');
+    res.json({ 
+      status: 'ok', 
+      message: 'Server is running', 
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    });
+  });
+
   server.get('/api/health', (req, res) => {
     console.log('✅ Health check recibido en /api/health');
     res.json({ 
