@@ -334,7 +334,7 @@ interface Metric {
           <div class="space-y-4">
             <div class="grid grid-cols-2 gap-2">
               <p-dropdown
-                [options]="employeeOptions"
+                [options]="employeeOptions()"
                 [(ngModel)]="selectedEmployee"
                 placeholder="Trabajadores"
                 class="w-full"
