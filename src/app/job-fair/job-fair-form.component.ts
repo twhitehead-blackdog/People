@@ -1371,7 +1371,13 @@ export class JobFairFormComponent implements OnInit {
 
           // 4. Enviar notificaciones (opcional, puede fallar sin afectar el éxito)
           this.sendNotifications(applicationData).catch((err) => {
-            console.warn('Error enviando notificaciones:', err);
+            // El formulario ya se guardó exitosamente, solo falló el envío de correo
+            const isTimeout = err?.error?.code === 'ETIMEDOUT' || err?.error?.message?.includes('timeout');
+            if (isTimeout) {
+              console.warn('⚠️ No se pudo enviar el email de confirmación (timeout SMTP). La aplicación se guardó correctamente.');
+            } else {
+              console.warn('⚠️ No se pudo enviar el email de confirmación. La aplicación se guardó correctamente.');
+            }
           });
 
           this.isSuccess.set(true);
@@ -1581,9 +1587,18 @@ Black Dog`;
         candidateEmail
       );
     } catch (error: any) {
-      console.error('❌ Error enviando email de confirmación:', error);
       // No fallar el proceso completo si el email falla
       // El formulario ya se guardó en la BD, solo falló la notificación
+      const errorMessage = error?.error?.message || error?.message || 'Error desconocido';
+      const isTimeout = error?.error?.code === 'ETIMEDOUT' || errorMessage.includes('timeout');
+      
+      if (isTimeout) {
+        console.warn('⚠️ No se pudo enviar el email de confirmación (timeout de conexión SMTP). La aplicación se guardó correctamente.');
+        console.warn('   Esto puede deberse a problemas de red o configuración SMTP en el servidor.');
+      } else {
+        console.warn('⚠️ No se pudo enviar el email de confirmación. La aplicación se guardó correctamente.');
+      }
+      // No lanzar el error - el formulario ya se guardó exitosamente
     }
 
     // 2. (Opcional) Enviar notificación interna a RRHH
