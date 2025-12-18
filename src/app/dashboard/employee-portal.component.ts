@@ -22,6 +22,7 @@ import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { DatePicker } from 'primeng/datepicker';
 import { DialogModule } from 'primeng/dialog';
+import { DropdownModule } from 'primeng/dropdown';
 import { FileUpload } from 'primeng/fileupload';
 import { InputText } from 'primeng/inputtext';
 import { TableModule } from 'primeng/table';
@@ -46,6 +47,7 @@ import { OrganizationService } from '../services/organization.service';
     DatePipe,
     Button,
     DatePicker,
+    DropdownModule,
     FormsModule,
     InputText,
     Textarea,
@@ -73,33 +75,23 @@ import { OrganizationService } from '../services/organization.service';
             Dashboard
           </p-tab>
           <p-tab value="1">
+            <i class="pi pi-briefcase mr-2"></i>
+            <span class="hidden sm:inline">Gestiones</span>
+            <span class="sm:hidden">Gestiones</span>
+          </p-tab>
+          <p-tab value="2">
             <i class="pi pi-user mr-2"></i>
             Mi Perfil
           </p-tab>
-          <p-tab value="2">
+          <p-tab value="3">
             <i class="pi pi-calendar-clock mr-2"></i>
             <span class="hidden sm:inline">Mis Marcaciones</span>
             <span class="sm:hidden">Marcaciones</span>
           </p-tab>
-          <p-tab value="3">
+          <p-tab value="4">
             <i class="pi pi-clock mr-2"></i>
             <span class="hidden sm:inline">Mis Tardanzas</span>
             <span class="sm:hidden">Tardanzas</span>
-          </p-tab>
-          <p-tab value="4">
-            <i class="pi pi-file-plus mr-2"></i>
-            <span class="hidden sm:inline">Incapacidades</span>
-            <span class="sm:hidden">Incap.</span>
-          </p-tab>
-          <p-tab value="5">
-            <i class="pi pi-file-edit mr-2"></i>
-            <span class="hidden sm:inline">Solicitar Documentos</span>
-            <span class="sm:hidden">Documentos</span>
-          </p-tab>
-          <p-tab value="6">
-            <i class="pi pi-comments mr-2"></i>
-            <span class="hidden sm:inline">Buzón de Quejas</span>
-            <span class="sm:hidden">Quejas</span>
           </p-tab>
         </p-tablist>
 
@@ -316,8 +308,441 @@ import { OrganizationService } from '../services/organization.service';
           }
         </p-tabpanel>
 
-        <!-- Tab 1: Mi Perfil -->
+        <!-- Tab 1: Gestiones -->
         <p-tabpanel value="1">
+          <div class="flex flex-col gap-6">
+            <div>
+              <h2 class="text-2xl font-bold text-white mb-2">Gestiones</h2>
+              <p class="text-gray-400">
+                Accede a todos los formularios y solicitudes disponibles
+              </p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <!-- Incapacidades -->
+              <p-card class="gestion-card" (click)="openGestionForm('disabilities')">
+                <div class="gestion-card-content">
+                  <div class="gestion-card-icon">
+                    <i class="pi pi-file-plus"></i>
+                  </div>
+                  <h3 class="gestion-card-title">Incapacidades</h3>
+                  <p class="gestion-card-description">
+                    Sube documentos de incapacidad médica
+                  </p>
+                </div>
+              </p-card>
+
+              <!-- Solicitar Documentos -->
+              <p-card class="gestion-card" (click)="openGestionForm('documents')">
+                <div class="gestion-card-content">
+                  <div class="gestion-card-icon">
+                    <i class="pi pi-file-edit"></i>
+                  </div>
+                  <h3 class="gestion-card-title">Solicitar Documentos</h3>
+                  <p class="gestion-card-description">
+                    Solicita cartas de trabajo u otros documentos
+                  </p>
+                </div>
+              </p-card>
+
+              <!-- Buzón de Quejas -->
+              <p-card class="gestion-card" (click)="openGestionForm('complaints')">
+                <div class="gestion-card-content">
+                  <div class="gestion-card-icon">
+                    <i class="pi pi-comments"></i>
+                  </div>
+                  <h3 class="gestion-card-title">Buzón de Quejas</h3>
+                  <p class="gestion-card-description">
+                    Expresa tus inquietudes de forma anónima
+                  </p>
+                </div>
+              </p-card>
+
+              <!-- Solicitar Vacaciones -->
+              <p-card class="gestion-card" (click)="openGestionForm('vacations')">
+                <div class="gestion-card-content">
+                  <div class="gestion-card-icon">
+                    <i class="pi pi-calendar-plus"></i>
+                  </div>
+                  <h3 class="gestion-card-title">Solicitar Vacaciones</h3>
+                  <p class="gestion-card-description">
+                    Solicita tus días de vacaciones
+                  </p>
+                </div>
+              </p-card>
+
+              <!-- Solicitar Licencia -->
+              <p-card class="gestion-card" (click)="openGestionForm('license')">
+                <div class="gestion-card-content">
+                  <div class="gestion-card-icon">
+                    <i class="pi pi-calendar"></i>
+                  </div>
+                  <h3 class="gestion-card-title">Solicitar Licencia</h3>
+                  <p class="gestion-card-description">
+                    Solicita una licencia sin goce de sueldo
+                  </p>
+                </div>
+              </p-card>
+
+              <!-- Solicitar Permiso Personal -->
+              <p-card class="gestion-card" (click)="openGestionForm('personal')">
+                <div class="gestion-card-content">
+                  <div class="gestion-card-icon">
+                    <i class="pi pi-user"></i>
+                  </div>
+                  <h3 class="gestion-card-title">Permiso Personal</h3>
+                  <p class="gestion-card-description">
+                    Solicita un permiso por asuntos personales
+                  </p>
+                </div>
+              </p-card>
+
+              <!-- Solicitar Licencia de Maternidad -->
+              <p-card class="gestion-card" (click)="openGestionForm('maternity')">
+                <div class="gestion-card-content">
+                  <div class="gestion-card-icon">
+                    <i class="pi pi-heart"></i>
+                  </div>
+                  <h3 class="gestion-card-title">Licencia de Maternidad</h3>
+                  <p class="gestion-card-description">
+                    Solicita tu licencia de maternidad pagada
+                  </p>
+                </div>
+              </p-card>
+            </div>
+          </div>
+
+          <!-- Formularios modales -->
+          @if (activeGestionForm()) {
+          <p-dialog
+            [(visible)]="showGestionDialog()"
+            [modal]="true"
+            [style]="{ width: '90vw', maxWidth: '800px' }"
+            [header]="getGestionFormTitle()"
+            [draggable]="false"
+            [resizable]="false"
+            (onHide)="closeGestionForm()"
+          >
+            @if (activeGestionForm() === 'disabilities') {
+            <!-- Formulario de Incapacidades -->
+            <div class="gestion-form-content">
+              <div class="flex flex-col gap-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm text-gray-400 mb-2"
+                      >Inicio de Incapacidad</label
+                    >
+                    <p-datepicker
+                      [(ngModel)]="disabilityStartDate"
+                      appendTo="body"
+                      class="w-full"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-sm text-gray-400 mb-2"
+                      >Fin de Incapacidad</label
+                    >
+                    <p-datepicker
+                      [(ngModel)]="disabilityEndDate"
+                      appendTo="body"
+                      class="w-full"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-sm text-gray-400 mb-2"
+                    >Descripción (opcional)</label
+                  >
+                  <textarea
+                    id="disability-description"
+                    pInputTextarea
+                    [(ngModel)]="disabilityDescription"
+                    rows="3"
+                    placeholder="Describe el motivo de la incapacidad..."
+                    class="w-full"
+                  ></textarea>
+                </div>
+                <div>
+                  <label class="block text-sm text-gray-400 mb-2"
+                    >Documento de Incapacidad</label
+                  >
+                  <p-fileUpload
+                    mode="basic"
+                    accept="image/*,.pdf"
+                    maxFileSize="5000000"
+                    [auto]="false"
+                    chooseLabel="Seleccionar Archivo"
+                    (onSelect)="onFileSelect($event)"
+                    class="w-full"
+                  />
+                  <p class="text-xs text-gray-500 mt-2">
+                    Formatos permitidos: PDF, JPG, PNG (máx. 5MB)
+                  </p>
+                </div>
+                <div class="flex justify-end gap-2">
+                  <p-button
+                    label="Cancelar"
+                    severity="secondary"
+                    outlined
+                    (click)="closeGestionForm()"
+                  />
+                  <p-button
+                    label="Subir Incapacidad"
+                    icon="pi pi-upload"
+                    [loading]="uploadingDisability()"
+                    (click)="uploadDisability(); closeGestionForm()"
+                  />
+                </div>
+              </div>
+            </div>
+            } @else if (activeGestionForm() === 'documents') {
+            <!-- Formulario de Solicitar Documentos -->
+            <div class="gestion-form-content">
+              <div class="flex flex-col gap-4">
+                <div>
+                  <label class="block text-sm text-gray-400 mb-2"
+                    >Tipo de Documento</label
+                  >
+                  <select pInputText [(ngModel)]="documentType" class="w-full">
+                    <option value="work_letter">Carta de Trabajo</option>
+                    <option value="salary_certificate">
+                      Certificado de Salario
+                    </option>
+                    <option value="employment_certificate">
+                      Certificado de Empleo
+                    </option>
+                    <option value="other">Otro</option>
+                  </select>
+                </div>
+                @if(documentType() === 'other') {
+                <div>
+                  <label class="block text-sm text-gray-400 mb-2"
+                    >Especificar Documento</label
+                  >
+                  <input
+                    pInputText
+                    [(ngModel)]="customDocumentType"
+                    placeholder="Describe el documento que necesitas"
+                    class="w-full"
+                  />
+                </div>
+                }
+                <div>
+                  <label class="block text-sm text-gray-400 mb-2"
+                    >Motivo o Uso del Documento</label
+                  >
+                  <textarea
+                    pInputTextarea
+                    [(ngModel)]="documentReason"
+                    rows="3"
+                    placeholder="Ej: Para trámite bancario, visa, etc."
+                    class="w-full"
+                  ></textarea>
+                </div>
+                <div>
+                  <label class="block text-sm text-gray-400 mb-2"
+                    >Fecha Requerida (opcional)</label
+                  >
+                  <p-datepicker
+                    [(ngModel)]="documentRequiredDate"
+                    appendTo="body"
+                    class="w-full"
+                  />
+                </div>
+                <div class="flex justify-end gap-2">
+                  <p-button
+                    label="Cancelar"
+                    severity="secondary"
+                    outlined
+                    (click)="closeGestionForm()"
+                  />
+                  <p-button
+                    label="Solicitar Documento"
+                    icon="pi pi-send"
+                    [loading]="submittingDocument()"
+                    (click)="submitDocumentRequest(); closeGestionForm()"
+                  />
+                </div>
+              </div>
+            </div>
+            } @else if (activeGestionForm() === 'complaints') {
+            <!-- Formulario de Buzón de Quejas -->
+            <div class="gestion-form-content">
+              <div class="flex flex-col gap-4">
+                <div
+                  class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4"
+                >
+                  <div class="flex items-start gap-3">
+                    <i class="pi pi-info-circle text-yellow-400 text-xl"></i>
+                    <div class="flex-1">
+                      <p class="text-yellow-300 font-semibold mb-2">
+                        Tu privacidad está protegida
+                      </p>
+                      <p class="text-sm text-gray-300">
+                        Todas las quejas son completamente anónimas. Tu identidad
+                        no será revelada a menos que lo autorices explícitamente.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-sm text-gray-400 mb-2"
+                    >Categoría</label
+                  >
+                  <select
+                    pInputText
+                    [ngModel]="complaintCategory()"
+                    (ngModelChange)="complaintCategory.set($event)"
+                    class="w-full"
+                  >
+                    <option value="work_environment">Ambiente Laboral</option>
+                    <option value="harassment">Acoso o Discriminación</option>
+                    <option value="safety">Seguridad</option>
+                    <option value="management">Supervisión/Gerencia</option>
+                    <option value="benefits">Beneficios</option>
+                    <option value="other">Otro</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="block text-sm text-gray-400 mb-2"
+                    >Describe tu queja o sugerencia</label
+                  >
+                  <textarea
+                    pTextarea
+                    [ngModel]="complaintText()"
+                    (ngModelChange)="complaintText.set($event)"
+                    rows="6"
+                    placeholder="Describe detalladamente tu queja, sugerencia o inquietud..."
+                    class="w-full"
+                  ></textarea>
+                </div>
+                <div class="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="allowContact"
+                    [ngModel]="allowContact()"
+                    (ngModelChange)="allowContact.set($event)"
+                  />
+                  <label for="allowContact" class="text-sm text-gray-300"
+                    >Permitir que RRHH me contacte para seguimiento
+                    (opcional)</label
+                  >
+                </div>
+                @if(allowContact()) {
+                <div>
+                  <label class="block text-sm text-gray-400 mb-2"
+                    >Forma de Contacto Preferida</label
+                  >
+                  <select
+                    pInputText
+                    [ngModel]="contactMethod()"
+                    (ngModelChange)="contactMethod.set($event)"
+                    class="w-full"
+                  >
+                    <option value="email">Email</option>
+                    <option value="phone">Teléfono</option>
+                    <option value="meeting">Reunión Presencial</option>
+                  </select>
+                </div>
+                }
+                <div class="flex justify-end gap-2">
+                  <p-button
+                    label="Cancelar"
+                    severity="secondary"
+                    outlined
+                    (click)="closeGestionForm()"
+                  />
+                  <p-button
+                    label="Enviar Queja"
+                    icon="pi pi-send"
+                    severity="warn"
+                    [loading]="submittingComplaint()"
+                    [disabled]="!canSubmitComplaint() || submittingComplaint()"
+                    (click)="submitComplaint(); closeGestionForm()"
+                  />
+                </div>
+              </div>
+            </div>
+            } @else if (activeGestionForm() === 'vacations' || activeGestionForm() === 'license' || activeGestionForm() === 'personal' || activeGestionForm() === 'maternity') {
+            <!-- Formulario de Vacaciones/Licencias -->
+            <div class="gestion-form-content">
+              <div class="flex flex-col gap-4">
+                <div>
+                  <label class="block text-sm text-gray-400 mb-2"
+                    >Tipo de Solicitud</label
+                  >
+                  <p-dropdown
+                    [options]="timeoffTypes()"
+                    [(ngModel)]="selectedTimeoffType"
+                    optionLabel="name"
+                    optionValue="id"
+                    placeholder="Selecciona el tipo"
+                    class="w-full"
+                    [disabled]="true"
+                  />
+                  <input
+                    type="hidden"
+                    [value]="getTimeoffTypeIdForForm()"
+                    #timeoffTypeInput
+                  />
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-sm text-gray-400 mb-2"
+                      >Fecha Inicio</label
+                    >
+                    <p-datepicker
+                      [(ngModel)]="timeoffStartDate"
+                      appendTo="body"
+                      class="w-full"
+                    />
+                  </div>
+                  <div>
+                    <label class="block text-sm text-gray-400 mb-2"
+                      >Fecha Fin</label
+                    >
+                    <p-datepicker
+                      [(ngModel)]="timeoffEndDate"
+                      appendTo="body"
+                      class="w-full"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-sm text-gray-400 mb-2"
+                    >Notas (opcional)</label
+                  >
+                  <textarea
+                    pInputTextarea
+                    [(ngModel)]="timeoffNotes"
+                    rows="3"
+                    placeholder="Agrega cualquier información adicional..."
+                    class="w-full"
+                  ></textarea>
+                </div>
+                <div class="flex justify-end gap-2">
+                  <p-button
+                    label="Cancelar"
+                    severity="secondary"
+                    outlined
+                    (click)="closeGestionForm()"
+                  />
+                  <p-button
+                    label="Enviar Solicitud"
+                    icon="pi pi-send"
+                    [loading]="submittingTimeoff()"
+                    (click)="submitTimeoffRequest(); closeGestionForm()"
+                  />
+                </div>
+              </div>
+            </div>
+            }
+          </p-dialog>
+          }
+        </p-tabpanel>
+
+        <!-- Tab 2: Mi Perfil -->
+        <p-tabpanel value="2">
           <p-card>
             <ng-template #title>
               <div class="flex items-center justify-between w-full">
@@ -476,8 +901,8 @@ import { OrganizationService } from '../services/organization.service';
           </p-card>
         </p-tabpanel>
 
-        <!-- Tab 2: Mis Marcaciones -->
-        <p-tabpanel value="2">
+        <!-- Tab 3: Mis Marcaciones -->
+        <p-tabpanel value="3">
           <p-card>
             <ng-template #title>Registro de Marcaciones</ng-template>
             <ng-template #subtitle
@@ -603,8 +1028,8 @@ import { OrganizationService } from '../services/organization.service';
           </p-card>
         </p-tabpanel>
 
-        <!-- Tab 3: Mis Tardanzas -->
-        <p-tabpanel value="3">
+        <!-- Tab 4: Mis Tardanzas -->
+        <p-tabpanel value="4">
           <p-card>
             <div class="overflow-x-auto">
               <p-table
@@ -663,8 +1088,8 @@ import { OrganizationService } from '../services/organization.service';
           </p-card>
         </p-tabpanel>
 
-        <!-- Tab 4: Incapacidades -->
-        <p-tabpanel value="4">
+        <!-- Tab 4: Incapacidades (mantener para compatibilidad, pero redirigir a Gestiones) -->
+        <p-tabpanel value="4" style="display: none;">
           <p-card class="bg-neutral-800 border-neutral-700">
             <ng-template #title>Subir Incapacidad</ng-template>
             <ng-template #subtitle
@@ -834,8 +1259,8 @@ import { OrganizationService } from '../services/organization.service';
           </p-card>
         </p-tabpanel>
 
-        <!-- Tab 5: Solicitar Documentos -->
-        <p-tabpanel value="5">
+        <!-- Tab 5: Solicitar Documentos (mantener para compatibilidad, pero redirigir a Gestiones) -->
+        <p-tabpanel value="5" style="display: none;">
           <p-card>
             <ng-template #title>Solicitar Documentos</ng-template>
             <ng-template #subtitle
@@ -968,8 +1393,8 @@ import { OrganizationService } from '../services/organization.service';
           </p-card>
         </p-tabpanel>
 
-        <!-- Tab 6: Buzón de Quejas -->
-        <p-tabpanel value="6">
+        <!-- Tab 6: Buzón de Quejas (mantener para compatibilidad, pero redirigir a Gestiones) -->
+        <p-tabpanel value="6" style="display: none;">
           <p-card>
             <ng-template #title>Buzón de Quejas Anónimas</ng-template>
             <ng-template #subtitle
@@ -1290,6 +1715,61 @@ import { OrganizationService } from '../services/organization.service';
     <p-toast />
   `,
   styles: `
+    /* Estilos para tarjetas de Gestiones */
+    ::ng-deep .gestion-card {
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: #1f2937 !important;
+      border: 1px solid #374151 !important;
+    }
+
+    ::ng-deep .gestion-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+      border-color: #3b82f6 !important;
+    }
+
+    .gestion-card-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 1.5rem;
+    }
+
+    .gestion-card-icon {
+      width: 64px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1rem;
+      border-radius: 50%;
+      background: rgba(59, 130, 246, 0.1);
+    }
+
+    .gestion-card-icon i {
+      font-size: 2rem;
+      color: #3b82f6;
+    }
+
+    .gestion-card-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: #ffffff;
+      margin: 0 0 0.5rem 0;
+    }
+
+    .gestion-card-description {
+      font-size: 0.875rem;
+      color: #9ca3af;
+      margin: 0;
+      line-height: 1.4;
+    }
+
+    .gestion-form-content {
+      padding: 1rem 0;
+    }
     :host {
       display: block;
       background: #000000;
@@ -2078,6 +2558,29 @@ export class EmployeePortalComponent {
   public submittingComplaint = signal(false);
   public responseDialogVisible = signal(false);
   public selectedComplaint = signal<any>(null);
+
+  // Gestiones - Formularios
+  public activeGestionForm = signal<string | null>(null);
+  public showGestionDialog = signal(false);
+
+  // Timeoff Types API
+  public timeoffTypesApi = httpResource<any[]>(() => ({
+    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoff_types`,
+    method: 'GET',
+    params: {
+      select: '*',
+      order: 'name.asc',
+    },
+  }));
+
+  public timeoffTypes = computed(() => this.timeoffTypesApi.value() ?? []);
+
+  // Timeoff Request
+  public selectedTimeoffType = signal<string | null>(null);
+  public timeoffStartDate = signal<Date | null>(null);
+  public timeoffEndDate = signal<Date | null>(null);
+  public timeoffNotes = signal<string>('');
+  public submittingTimeoff = signal(false);
 
   // Computed: Validación del formulario de quejas
   public canSubmitComplaint = computed(() => {
@@ -2949,6 +3452,159 @@ export class EmployeePortalComponent {
     this.replyMessage.set('');
     // Recargar quejas para actualizar contadores
     this.complaintsApi.reload();
+  }
+
+  // Gestiones - Funciones para manejar formularios
+  public openGestionForm(formType: string): void {
+    this.activeGestionForm.set(formType);
+    this.showGestionDialog.set(true);
+    
+    // Pre-seleccionar el tipo de timeoff según el formulario
+    if (formType === 'vacations' || formType === 'license' || formType === 'personal' || formType === 'maternity') {
+      const types = this.timeoffTypes();
+      let typeName = '';
+      if (formType === 'vacations') typeName = 'Vacaciones';
+      else if (formType === 'license') typeName = 'Licencia';
+      else if (formType === 'personal') typeName = 'Permiso Personal';
+      else if (formType === 'maternity') typeName = 'Licencia de Maternidad';
+      
+      const foundType = types.find(t => t.name.toLowerCase().includes(typeName.toLowerCase()));
+      if (foundType) {
+        this.selectedTimeoffType.set(foundType.id);
+      }
+    }
+  }
+
+  public closeGestionForm(): void {
+    this.showGestionDialog.set(false);
+    this.activeGestionForm.set(null);
+    // Reset form fields
+    this.timeoffStartDate.set(null);
+    this.timeoffEndDate.set(null);
+    this.timeoffNotes.set('');
+    this.selectedTimeoffType.set(null);
+  }
+
+  public getGestionFormTitle(): string {
+    const form = this.activeGestionForm();
+    const titles: Record<string, string> = {
+      disabilities: 'Subir Incapacidad',
+      documents: 'Solicitar Documentos',
+      complaints: 'Buzón de Quejas',
+      vacations: 'Solicitar Vacaciones',
+      license: 'Solicitar Licencia',
+      personal: 'Solicitar Permiso Personal',
+      maternity: 'Solicitar Licencia de Maternidad',
+    };
+    return titles[form || ''] || 'Formulario';
+  }
+
+  public getTimeoffTypeIdForForm(): string | null {
+    const form = this.activeGestionForm();
+    const types = this.timeoffTypes();
+    
+    if (!form || !types.length) return null;
+    
+    let typeName = '';
+    if (form === 'vacations') typeName = 'Vacaciones';
+    else if (form === 'license') typeName = 'Licencia';
+    else if (form === 'personal') typeName = 'Permiso Personal';
+    else if (form === 'maternity') typeName = 'Licencia de Maternidad';
+    
+    const foundType = types.find(t => 
+      t.name.toLowerCase().includes(typeName.toLowerCase())
+    );
+    
+    return foundType?.id || this.selectedTimeoffType() || null;
+  }
+
+  public submitTimeoffRequest(): void {
+    if (!this.currentEmployee()?.id) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo identificar al empleado',
+      });
+      return;
+    }
+
+    const typeId = this.getTimeoffTypeIdForForm();
+    if (!typeId) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Por favor selecciona un tipo de solicitud',
+      });
+      return;
+    }
+
+    if (!this.timeoffStartDate() || !this.timeoffEndDate()) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Por favor completa las fechas de inicio y fin',
+      });
+      return;
+    }
+
+    if (this.timeoffStartDate()! > this.timeoffEndDate()!) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'La fecha de inicio no puede ser posterior a la fecha de fin',
+      });
+      return;
+    }
+
+    this.submittingTimeoff.set(true);
+
+    const timeoffData = {
+      type_id: typeId,
+      employee_id: this.currentEmployee()!.id,
+      date_from: format(this.timeoffStartDate()!, 'yyyy-MM-dd'),
+      date_to: format(this.timeoffEndDate()!, 'yyyy-MM-dd'),
+      notes: this.timeoffNotes() ? [this.timeoffNotes()] : [],
+      is_approved: false,
+    };
+
+    this.http
+      .post(
+        `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`,
+        timeoffData,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Prefer: 'return=representation',
+          },
+        }
+      )
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Solicitud Enviada',
+            detail: 'Tu solicitud ha sido enviada y será revisada por RRHH',
+          });
+          this.submittingTimeoff.set(false);
+          // Reset form
+          this.timeoffStartDate.set(null);
+          this.timeoffEndDate.set(null);
+          this.timeoffNotes.set('');
+        },
+        error: (error: any) => {
+          console.error('Error submitting timeoff:', error);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail:
+              error?.error?.message ||
+              error?.message ||
+              'No se pudo enviar la solicitud. Por favor intenta de nuevo.',
+          });
+          this.submittingTimeoff.set(false);
+        },
+      });
   }
 
   public async sendReply(): Promise<void> {

@@ -45,197 +45,180 @@ interface Metric {
     FormsModule,
   ],
   template: `
-    <div class="space-y-6">
-      <!-- Header -->
-      <div class="flex items-center justify-between">
-        <div>
-          <h2 class="text-2xl font-bold text-white m-0">Tiempo</h2>
-          <p class="text-sm text-gray-400 m-0 mt-1">
-            Gestión de tiempo y asistencia de trabajadores
-          </p>
-        </div>
-      </div>
+    <div class="hr-time-dashboard-container">
+      <!-- Tarjetas de Acciones -->
+      <div class="action-cards-grid">
 
       <!-- Tarjetas de Acciones -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- Registrar eventualidad -->
         <p-card class="action-card">
-          <div class="flex flex-col items-center text-center p-4">
-            <div class="mb-4">
-              <i class="pi pi-file-edit text-4xl text-blue-500"></i>
+          <div class="action-card-content">
+            <div class="action-card-icon">
+              <i class="pi pi-file-edit"></i>
             </div>
-            <h3 class="text-lg font-semibold text-white mb-2">
+            <h3 class="action-card-title">
               Registrar eventualidad
             </h3>
-            <p class="text-sm text-gray-400 mb-4">
+            <p class="action-card-description">
               Ingrese las salidas laborales de sus trabajadores.
             </p>
             <p-button
               label="Registrar"
-              icon="pi pi-plus"
               (onClick)="navigateToEventuality()"
-              class="w-full"
+              class="action-card-button"
             />
           </div>
         </p-card>
 
         <!-- Conectar dispositivo -->
         <p-card class="action-card">
-          <div class="flex flex-col items-center text-center p-4">
-            <div class="mb-4">
-              <i class="pi pi-mobile text-4xl text-blue-500"></i>
+          <div class="action-card-content">
+            <div class="action-card-icon">
+              <i class="pi pi-mobile"></i>
             </div>
-            <h3 class="text-lg font-semibold text-white mb-2">
+            <h3 class="action-card-title">
               Conectar dispositivo
             </h3>
-            <p class="text-sm text-gray-400 mb-4">
+            <p class="action-card-description">
               Ingrese el código de cinco dígitos que aparece en la app.
             </p>
             <p-button
               label="Conectar"
-              icon="pi pi-link"
               (onClick)="navigateToConnectDevice()"
-              class="w-full"
+              class="action-card-button"
             />
           </div>
         </p-card>
 
         <!-- Incidencias -->
         <p-card class="action-card">
-          <div class="flex flex-col items-center text-center p-4">
-            <div class="mb-4">
-              <i class="pi pi-file-check text-4xl text-blue-500"></i>
+          <div class="action-card-content">
+            <div class="action-card-icon">
+              <i class="pi pi-file-check"></i>
             </div>
-            <h3 class="text-lg font-semibold text-white mb-2">Incidencias</h3>
-            <p class="text-sm text-gray-400 mb-4">
+            <h3 class="action-card-title">Incidencias</h3>
+            <p class="action-card-description">
               Aprobar o rechazar incidencias de sus trabajadores.
             </p>
             <p-button
               label="Ver"
-              icon="pi pi-eye"
               (onClick)="navigateToIncidents()"
-              class="w-full"
+              class="action-card-button"
             />
           </div>
         </p-card>
 
         <!-- Asistencia -->
         <p-card class="action-card">
-          <div class="flex flex-col items-center text-center p-4">
-            <div class="mb-4">
-              <i class="pi pi-users text-4xl text-blue-500"></i>
+          <div class="action-card-content">
+            <div class="action-card-icon">
+              <i class="pi pi-users"></i>
             </div>
-            <h3 class="text-lg font-semibold text-white mb-2">Asistencia</h3>
-            <p class="text-sm text-gray-400 mb-4">
+            <h3 class="action-card-title">Asistencia</h3>
+            <p class="action-card-description">
               Vea el tablero de marcaciones de sus trabajadores en tiempo real.
             </p>
             <p-button
               label="Ver"
-              icon="pi pi-eye"
               (onClick)="navigateToAttendance()"
-              class="w-full"
+              class="action-card-button"
             />
           </div>
         </p-card>
 
         <!-- Inactivar trabajador -->
         <p-card class="action-card">
-          <div class="flex flex-col items-center text-center p-4">
-            <div class="mb-4">
-              <i class="pi pi-user-minus text-4xl text-blue-500"></i>
+          <div class="action-card-content">
+            <div class="action-card-icon">
+              <i class="pi pi-user-minus"></i>
             </div>
-            <h3 class="text-lg font-semibold text-white mb-2">
+            <h3 class="action-card-title">
               Inactivar trabajador
             </h3>
-            <p class="text-sm text-gray-400 mb-4">
+            <p class="action-card-description">
               Inactive trabajadores que ya no están en su organización.
             </p>
             <p-button
               label="Inactivar"
-              icon="pi pi-ban"
               (onClick)="navigateToDeactivate()"
-              class="w-full"
+              class="action-card-button"
             />
           </div>
         </p-card>
 
         <!-- Reportes -->
         <p-card class="action-card">
-          <div class="flex flex-col items-center text-center p-4">
-            <div class="mb-4">
-              <i class="pi pi-chart-line text-4xl text-blue-500"></i>
+          <div class="action-card-content">
+            <div class="action-card-icon">
+              <i class="pi pi-chart-line"></i>
             </div>
-            <h3 class="text-lg font-semibold text-white mb-2">Reportes</h3>
-            <p class="text-sm text-gray-400 mb-4">
+            <h3 class="action-card-title">Reportes</h3>
+            <p class="action-card-description">
               Consulte reportes de incidencias y saldos de sus trabajadores.
             </p>
             <p-button
               label="Ver"
-              icon="pi pi-eye"
               (onClick)="navigateToReports()"
-              class="w-full"
+              class="action-card-button"
             />
           </div>
         </p-card>
 
         <!-- Saldos laborales -->
         <p-card class="action-card">
-          <div class="flex flex-col items-center text-center p-4">
-            <div class="mb-4">
-              <i class="pi pi-wallet text-4xl text-blue-500"></i>
+          <div class="action-card-content">
+            <div class="action-card-icon">
+              <i class="pi pi-wallet"></i>
             </div>
-            <h3 class="text-lg font-semibold text-white mb-2">
+            <h3 class="action-card-title">
               Saldos laborales
             </h3>
-            <p class="text-sm text-gray-400 mb-4">
+            <p class="action-card-description">
               Vea los saldos de horas y días a favor de sus trabajadores.
             </p>
             <p-button
               label="Ver"
-              icon="pi pi-eye"
               (onClick)="navigateToBalances()"
-              class="w-full"
+              class="action-card-button"
             />
           </div>
         </p-card>
 
         <!-- Preparar interfaz -->
         <p-card class="action-card">
-          <div class="flex flex-col items-center text-center p-4">
-            <div class="mb-4">
-              <i class="pi pi-cog text-4xl text-blue-500"></i>
+          <div class="action-card-content">
+            <div class="action-card-icon">
+              <i class="pi pi-cog"></i>
             </div>
-            <h3 class="text-lg font-semibold text-white mb-2">
+            <h3 class="action-card-title">
               Preparar interfaz
             </h3>
-            <p class="text-sm text-gray-400 mb-4">
+            <p class="action-card-description">
               Revise incidencias y prepare su data para pagar su nómina.
             </p>
             <p-button
               label="Ver"
-              icon="pi pi-eye"
               (onClick)="navigateToPrepare()"
-              class="w-full"
+              class="action-card-button"
             />
           </div>
         </p-card>
       </div>
 
       <!-- Paneles Inferiores -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="bottom-panels-grid">
         <!-- Panel de Solicitudes -->
         <p-card class="requests-panel">
           <ng-template #header>
-            <div class="flex items-center justify-between w-full">
-              <h3 class="text-lg font-semibold text-white m-0">
+            <div class="panel-header">
+              <h3 class="panel-title">
                 Solicitudes
               </h3>
               <p-button
                 label="Abrir"
-                icon="pi pi-external-link"
-                [text]="true"
                 (onClick)="navigateToRequests()"
-                class="text-blue-500"
+                class="panel-open-button"
               />
             </div>
           </ng-template>
@@ -251,19 +234,16 @@ interface Metric {
             } @else {
             @for (request of requests(); track request.id) {
             <div class="request-item">
-              <div class="flex items-start gap-3">
-                <div
-                  class="w-2 h-2 rounded-full mt-2"
-                  [class.bg-purple-500]="true"
-                ></div>
-                <div class="flex-1">
-                  <div class="text-sm font-medium text-white">
+              <div class="request-item-content">
+                <div class="request-dot"></div>
+                <div class="request-info">
+                  <div class="request-employee-name">
                     {{ request.employee_name }}
                   </div>
-                  <div class="text-xs text-gray-400 mt-1">
+                  <div class="request-type">
                     {{ request.type }}
                   </div>
-                  <div class="text-xs text-gray-500 mt-1">
+                  <div class="request-dates">
                     {{ request.duration }} - {{ request.start_date }} a
                     {{ request.end_date }}
                   </div>
@@ -278,39 +258,36 @@ interface Metric {
         <!-- Panel de Métricas -->
         <p-card class="metrics-panel">
           <ng-template #header>
-            <div class="flex items-center justify-between w-full">
-              <h3 class="text-lg font-semibold text-white m-0">Métricas</h3>
-              <div class="flex items-center gap-2 text-xs">
-                <div class="flex items-center gap-1">
-                  <div class="w-3 h-3 rounded-full bg-gray-500"></div>
-                  <span class="text-gray-400">Ciclo previo</span>
+            <div class="panel-header">
+              <h3 class="panel-title">Métricas</h3>
+              <div class="metrics-legend">
+                <div class="legend-item">
+                  <div class="legend-dot legend-dot-gray"></div>
+                  <span class="legend-label">Ciclo previo</span>
                 </div>
-                <div class="flex items-center gap-1">
-                  <div class="w-3 h-3 rounded-full bg-red-500"></div>
-                  <span class="text-gray-400">Ciclo actual</span>
+                <div class="legend-item">
+                  <div class="legend-dot legend-dot-red"></div>
+                  <span class="legend-label">Ciclo actual</span>
                 </div>
               </div>
             </div>
           </ng-template>
           <div class="metrics-chart">
             @if (chartData()) {
-            <canvas
-              baseChart
-              type="bar"
-              [data]="chartData()!"
-              [options]="chartOptions"
-              [style]="{ height: '300px' }"
-            ></canvas>
-            } @else {
-            <div class="flex items-center justify-center h-[300px]">
-              <div class="text-center">
-                <div class="text-2xl font-bold text-gray-400 mb-2">
-                  Coming soon!
-                </div>
-                <div class="text-sm text-gray-500">
-                  Las métricas estarán disponibles próximamente
-                </div>
+            <div class="chart-wrapper">
+              <canvas
+                baseChart
+                type="bar"
+                [data]="chartData()!"
+                [options]="chartOptions"
+              ></canvas>
+              <div class="coming-soon-overlay">
+                <div class="coming-soon-text">Coming soon!</div>
               </div>
+            </div>
+            } @else {
+            <div class="coming-soon-container">
+              <div class="coming-soon-text">Coming soon!</div>
             </div>
             }
           </div>
@@ -319,20 +296,20 @@ interface Metric {
         <!-- Panel de Métrica de Trabajadores -->
         <p-card class="employee-metrics-panel">
           <ng-template #header>
-            <div class="flex items-center justify-between w-full">
-              <h3 class="text-lg font-semibold text-white m-0">
+            <div class="panel-header">
+              <h3 class="panel-title">
                 Métrica de Trabajadores
               </h3>
               <button
-                class="w-6 h-6 rounded-full bg-blue-500 flex items-center justify-center hover:bg-blue-600 transition-colors"
+                class="refresh-button"
                 (click)="refreshEmployeeMetrics()"
               >
-                <i class="pi pi-refresh text-xs text-white"></i>
+                <i class="pi pi-refresh"></i>
               </button>
             </div>
           </ng-template>
-          <div class="space-y-4">
-            <div class="grid grid-cols-2 gap-2">
+          <div class="employee-metrics-content">
+            <div class="employee-metrics-filters">
               <p-dropdown
                 [options]="employeeOptions()"
                 [(ngModel)]="selectedEmployee"
@@ -349,16 +326,16 @@ interface Metric {
             <div class="employee-metrics-list">
               @for (metric of employeeMetrics(); track metric.name) {
               <div class="metric-item">
-                <div class="flex items-center gap-3">
-                  <i [class]="'pi ' + metric.icon + ' text-blue-500'"></i>
-                  <span class="text-sm text-gray-300 flex-1">
+                <div class="metric-item-content">
+                  <i [class]="'pi ' + metric.icon + ' metric-icon'"></i>
+                  <span class="metric-name">
                     {{ metric.name }}
                   </span>
                   <span
-                    class="text-sm font-medium"
-                    [class.text-red-500]="metric.status === 'bad'"
-                    [class.text-green-500]="metric.status === 'good'"
-                    [class.text-gray-500]="metric.status === 'neutral'"
+                    class="metric-value"
+                    [class.metric-value-bad]="metric.status === 'bad'"
+                    [class.metric-value-good]="metric.status === 'good'"
+                    [class.metric-value-neutral]="metric.status === 'neutral'"
                   >
                     {{ metric.value }}
                   </span>
@@ -372,25 +349,146 @@ interface Metric {
     </div>
   `,
   styles: `
+    /* Contenedor principal con fondo azul claro */
+    .hr-time-dashboard-container {
+      background: #E3F2FD;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    /* Grid de tarjetas de acciones */
+    .action-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    @media (max-width: 1024px) {
+      .action-cards-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .action-cards-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Tarjetas de acciones - fondo blanco */
     ::ng-deep .action-card {
-      background: #1f2937 !important;
-      border: 1px solid #374151 !important;
+      background: #ffffff !important;
+      border: 1px solid #e0e0e0 !important;
+      border-radius: 8px !important;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
       transition: all 0.2s ease;
     }
 
     ::ng-deep .action-card:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-      border-color: #3b82f6 !important;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
     }
 
+    .action-card-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 1.5rem;
+    }
+
+    .action-card-icon {
+      width: 64px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1rem;
+    }
+
+    .action-card-icon i {
+      font-size: 3rem;
+      color: #2196F3;
+    }
+
+    .action-card-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #212121;
+      margin: 0 0 0.5rem 0;
+    }
+
+    .action-card-description {
+      font-size: 0.875rem;
+      color: #757575;
+      margin: 0 0 1rem 0;
+      line-height: 1.4;
+    }
+
+    ::ng-deep .action-card-button {
+      width: 100%;
+      background: #2196F3 !important;
+      border-color: #2196F3 !important;
+      color: #ffffff !important;
+    }
+
+    ::ng-deep .action-card-button:hover {
+      background: #1976D2 !important;
+      border-color: #1976D2 !important;
+    }
+
+    /* Grid de paneles inferiores */
+    .bottom-panels-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 1024px) {
+      .bottom-panels-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* Paneles - fondo blanco */
     ::ng-deep .requests-panel,
     ::ng-deep .metrics-panel,
     ::ng-deep .employee-metrics-panel {
-      background: #1f2937 !important;
-      border: 1px solid #374151 !important;
+      background: #ffffff !important;
+      border: 1px solid #e0e0e0 !important;
+      border-radius: 8px !important;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
     }
 
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+    }
+
+    .panel-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: #212121;
+      margin: 0;
+    }
+
+    ::ng-deep .panel-open-button {
+      background: #2196F3 !important;
+      border-color: #2196F3 !important;
+      color: #ffffff !important;
+      padding: 0.5rem 1rem !important;
+      font-size: 0.875rem !important;
+    }
+
+    ::ng-deep .panel-open-button:hover {
+      background: #1976D2 !important;
+      border-color: #1976D2 !important;
+    }
+
+    /* Panel de Solicitudes */
     .requests-list {
       max-height: 400px;
       overflow-y: auto;
@@ -398,15 +496,150 @@ interface Metric {
 
     .request-item {
       padding: 0.75rem 0;
-      border-bottom: 1px solid #374151;
+      border-bottom: 1px solid #e0e0e0;
     }
 
     .request-item:last-child {
       border-bottom: none;
     }
 
+    .request-item-content {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+
+    .request-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #9C27B0;
+      margin-top: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .request-info {
+      flex: 1;
+    }
+
+    .request-employee-name {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #212121;
+    }
+
+    .request-type {
+      font-size: 0.75rem;
+      color: #757575;
+      margin-top: 0.25rem;
+    }
+
+    .request-dates {
+      font-size: 0.75rem;
+      color: #9e9e9e;
+      margin-top: 0.25rem;
+    }
+
+    /* Panel de Métricas */
+    .metrics-legend {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      font-size: 0.75rem;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .legend-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+
+    .legend-dot-gray {
+      background: #9e9e9e;
+    }
+
+    .legend-dot-red {
+      background: #f44336;
+    }
+
+    .legend-label {
+      color: #757575;
+    }
+
     .metrics-chart {
       min-height: 300px;
+      position: relative;
+    }
+
+    .chart-wrapper {
+      position: relative;
+      height: 300px;
+    }
+
+    .coming-soon-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .coming-soon-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 300px;
+    }
+
+    .coming-soon-text {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #9e9e9e;
+    }
+
+    /* Panel de Métrica de Trabajadores */
+    .refresh-button {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #2196F3;
+      border: none;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .refresh-button:hover {
+      background: #1976D2;
+    }
+
+    .refresh-button i {
+      font-size: 0.75rem;
+    }
+
+    .employee-metrics-content {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .employee-metrics-filters {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
     }
 
     .employee-metrics-list {
@@ -416,11 +649,46 @@ interface Metric {
 
     .metric-item {
       padding: 0.75rem 0;
-      border-bottom: 1px solid #374151;
+      border-bottom: 1px solid #e0e0e0;
     }
 
     .metric-item:last-child {
       border-bottom: none;
+    }
+
+    .metric-item-content {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .metric-icon {
+      font-size: 1rem;
+      color: #2196F3;
+      width: 20px;
+    }
+
+    .metric-name {
+      font-size: 0.875rem;
+      color: #424242;
+      flex: 1;
+    }
+
+    .metric-value {
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    .metric-value-bad {
+      color: #f44336;
+    }
+
+    .metric-value-good {
+      color: #4caf50;
+    }
+
+    .metric-value-neutral {
+      color: #9e9e9e;
     }
 
     ::ng-deep .p-card .p-card-body {
@@ -428,9 +696,18 @@ interface Metric {
     }
 
     ::ng-deep .p-card .p-card-header {
-      background: transparent !important;
-      border-bottom: 1px solid #374151 !important;
+      background: #ffffff !important;
+      border-bottom: 1px solid #e0e0e0 !important;
       padding: 1rem 1.5rem !important;
+    }
+
+    /* Ajustes para dropdowns */
+    ::ng-deep .p-dropdown {
+      width: 100%;
+    }
+
+    ::ng-deep .p-dropdown .p-dropdown-label {
+      color: #212121;
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -480,23 +757,32 @@ export class HRTimeDashboardComponent {
       },
       tooltip: {
         enabled: true,
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        titleColor: '#ffffff',
+        bodyColor: '#ffffff',
       },
     },
     scales: {
       x: {
         ticks: {
-          color: '#9ca3af',
+          color: '#757575',
+          font: {
+            size: 12,
+          },
         },
         grid: {
-          color: '#374151',
+          color: '#e0e0e0',
         },
       },
       y: {
         ticks: {
-          color: '#9ca3af',
+          color: '#757575',
+          font: {
+            size: 12,
+          },
         },
         grid: {
-          color: '#374151',
+          color: '#e0e0e0',
         },
       },
     },
