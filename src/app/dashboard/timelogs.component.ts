@@ -1290,10 +1290,16 @@ export class TimelogsComponent {
                 // Calcular horas extras: más de 9 horas totales (8 horas de trabajo + 1 hora de almuerzo)
                 // 9 horas = 540 minutos
                 const requiredTotalMinutes = 540; // 9 horas totales (540 minutos)
-                const overtimeMinutes = totalMinutes > requiredTotalMinutes 
+                const overtimeByTotalTime = totalMinutes > requiredTotalMinutes 
                   ? totalMinutes - requiredTotalMinutes 
                   : 0;
-                acc[index].overtimeHours = overtimeMinutes > 0 ? overtimeMinutes / 60 : 0;
+                
+                // Calcular minutos excedidos del almuerzo (más de 60 minutos)
+                const lunchExceededMinutes = lunchTime > 60 ? lunchTime - 60 : 0;
+                
+                // Sumar horas extras por tiempo total + minutos excedidos de almuerzo
+                const totalOvertimeMinutes = overtimeByTotalTime + lunchExceededMinutes;
+                acc[index].overtimeHours = totalOvertimeMinutes > 0 ? totalOvertimeMinutes / 60 : 0;
 
                 if (totalMinutes < requiredTotalMinutes) {
                   acc[index].insufficientHours = true;
@@ -1334,10 +1340,16 @@ export class TimelogsComponent {
               // Calcular horas extras: más de 9 horas totales (8 horas de trabajo + 1 hora de almuerzo)
               // 9 horas = 540 minutos
               const requiredTotalMinutes = 540; // 9 horas totales (540 minutos)
-              const overtimeMinutes = totalMinutes > requiredTotalMinutes 
+              const overtimeByTotalTime = totalMinutes > requiredTotalMinutes 
                 ? totalMinutes - requiredTotalMinutes 
                 : 0;
-              acc[index].overtimeHours = overtimeMinutes > 0 ? overtimeMinutes / 60 : 0;
+              
+              // Calcular minutos excedidos del almuerzo (más de 60 minutos)
+              const lunchExceededMinutes = lunchTime > 60 ? lunchTime - 60 : 0;
+              
+              // Sumar horas extras por tiempo total + minutos excedidos de almuerzo
+              const totalOvertimeMinutes = overtimeByTotalTime + lunchExceededMinutes;
+              acc[index].overtimeHours = totalOvertimeMinutes > 0 ? totalOvertimeMinutes / 60 : 0;
             }
           } else {
             // Si no hay marcación pero hay schedule, calcular retraso si aplica
