@@ -98,9 +98,10 @@ export class TimeManagementComponent {
   }
 
   // Manejar cambio de pestaña
-  public onTabChange(tabValue: string): void {
-    this.activeTab.set(tabValue);
+  public onTabChange(tabValue: string | number): void {
+    const tabValueStr = String(tabValue);
+    this.activeTab.set(tabValueStr);
     // Navegar a la ruta correspondiente sin recargar
-    this.router.navigate([tabValue], { relativeTo: this.route, replaceUrl: true });
+    this.router.navigate([tabValueStr], { relativeTo: this.route, replaceUrl: true });
   }
 }
