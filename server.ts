@@ -25,6 +25,15 @@ export function app(): express.Express {
     next();
   });
 
+  // Logging de peticiones para debugging (solo en producción para Railway)
+  const isProduction = process.env['NODE_ENV'] === 'production' || process.env['RAILWAY_ENVIRONMENT'] !== undefined;
+  if (isProduction) {
+    server.use((req, res, next) => {
+      console.log(`📥 ${req.method} ${req.path} - ${new Date().toISOString()}`);
+      next();
+    });
+  }
+
   // Endpoint proxy para Wassenger (evita problemas de CORS)
   server.post('/api/wassenger/send-message', async (req, res) => {
     try {
@@ -90,9 +99,14 @@ export function app(): express.Express {
     }
   });
 
-  // Health check endpoint
+  // Health check endpoint (debe estar antes de los archivos estáticos)
   server.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', message: 'Server is running' });
+    res.json({ 
+      status: 'ok', 
+      message: 'Server is running', 
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    });
   });
 
   // Endpoint para obtener la IP real del cliente
@@ -247,7 +261,11 @@ function run(): void {
   // server.listen() devuelve un objeto Server de Node.js, no Express
   const httpServer = appInstance.listen(port, host, () => {
     console.log(`✅ Node Express server listening on http://${host}:${port}`);
-    console.log(`📁 Static files will be served from: ${join(process.cwd(), 'dist/people')}`);
+    // Determinar la ruta real de archivos estáticos
+    const distPath = join(process.cwd(), 'dist/people');
+    const browserPath = join(distPath, 'browser');
+    const actualPath = require('fs').existsSync(browserPath) ? browserPath : distPath;
+    console.log(`📁 Static files will be served from: ${actualPath}`);
     console.log(`🌐 Server is ready to accept connections`);
   });
 
@@ -287,6 +305,21 @@ function run(): void {
       console.log('HTTP server closed');
       process.exit(0);
     });
+  });
+
+  // Manejo de errores no capturados
+  process.on('uncaughtException', (error: Error) => {
+    console.error('❌ Uncaught Exception:', error);
+    console.error('Stack:', error.stack);
+    httpServer.close(() => {
+      process.exit(1);
+    });
+  });
+
+  process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
+    console.error('❌ Unhandled Rejection at:', promise);
+    console.error('Reason:', reason);
+    // No salir del proceso, solo loguear
   });
 }
 
