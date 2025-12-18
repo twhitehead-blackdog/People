@@ -509,7 +509,7 @@ import {
                     id="employee_number"
                     pInputText
                     formControlName="employee_number"
-                    placeholder=""
+                    placeholder="Escriba el número de empleado"
                     [style]="{ fontFamily: 'monospace' }"
                     maxlength="6"
                   />
