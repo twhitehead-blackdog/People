@@ -11,18 +11,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import {
-  addDays,
-  differenceInMinutes,
-  eachDayOfInterval,
-  endOfMonth,
-  endOfWeek,
-  format,
-  isSameMonth,
-  isToday,
-  startOfMonth,
-  startOfWeek,
-} from 'date-fns';
+import { addDays, differenceInMinutes, format, startOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { trim } from 'lodash';
 import { MessageService } from 'primeng/api';
@@ -32,7 +21,6 @@ import { Card } from 'primeng/card';
 import { DatePicker } from 'primeng/datepicker';
 import { Select } from 'primeng/select';
 import { TableModule } from 'primeng/table';
-import { TabsModule } from 'primeng/tabs';
 import { Tag } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { ToggleSwitch } from 'primeng/toggleswitch';
@@ -58,7 +46,6 @@ import { EmployeesStore } from '../stores/employees.store';
     FormsModule,
     DatePipe,
     TableModule,
-    TabsModule,
     Tag,
     TooltipModule,
     Avatar,
@@ -199,220 +186,7 @@ import { EmployeesStore } from '../stores/employees.store';
       @if (hasError()) {
       <!-- Error handling, toast will be shown -->
       }
-      
-      <p-tabs value="0" scrollable>
-        <p-tablist>
-          <p-tab value="0">
-            <i class="pi pi-calendar-clock mr-2"></i>
-            <span class="hidden sm:inline">Mis Marcaciones</span>
-            <span class="sm:hidden">Marcaciones</span>
-          </p-tab>
-        </p-tablist>
-
-        <!-- Tab 0: Mis Marcaciones (Calendario) -->
-        <p-tabpanel value="0">
-          @if (!employeeId()) {
-            <div class="flex flex-col items-center justify-center py-12">
-              <i class="pi pi-user-minus text-4xl text-gray-500 mb-4"></i>
-              <p class="text-gray-400 text-lg mb-2">Selecciona un empleado</p>
-              <p class="text-gray-500 text-sm">Por favor selecciona un empleado del filtro superior para ver su calendario de marcaciones</p>
-            </div>
-          } @else if (logs.isLoading()) {
-            <div class="flex items-center justify-center py-12">
-              <i class="pi pi-spin pi-spinner text-4xl text-amber-400"></i>
-            </div>
-          } @else {
-            <!-- Calendario -->
-            <div class="calendar-container">
-              <!-- Controles de navegación del calendario -->
-              <div class="flex items-center justify-between mb-4">
-                <div>
-                  <h3 class="text-xl font-bold text-white m-0">Calendario de Marcaciones</h3>
-                  <p class="text-sm text-gray-400 m-0 mt-1">
-                    {{ calendarMonth() | date : 'MMMM yyyy' }}
-                  </p>
-                </div>
-                <div class="flex items-center gap-2">
-                  <p-button
-                    icon="pi pi-chevron-left"
-                    severity="secondary"
-                    text
-                    rounded
-                    (onClick)="previousMonth()"
-                    [title]="'Mes anterior'"
-                  />
-                  <p-button
-                    label="Hoy"
-                    severity="secondary"
-                    outlined
-                    size="small"
-                    (onClick)="goToToday()"
-                  />
-                  <p-button
-                    icon="pi pi-chevron-right"
-                    severity="secondary"
-                    text
-                    rounded
-                    (onClick)="nextMonth()"
-                    [title]="'Mes siguiente'"
-                  />
-                </div>
-              </div>
-
-              <!-- Días de la semana -->
-              <div class="calendar-weekdays">
-                <div class="calendar-weekday">Lun</div>
-                <div class="calendar-weekday">Mar</div>
-                <div class="calendar-weekday">Mié</div>
-                <div class="calendar-weekday">Jue</div>
-                <div class="calendar-weekday">Vie</div>
-                <div class="calendar-weekday">Sáb</div>
-                <div class="calendar-weekday">Dom</div>
-              </div>
-
-              <!-- Días del calendario -->
-              <div class="calendar-grid">
-                @for (day of calendarDays(); track day.getTime()) {
-                  @let log = getLogForDay(day);
-                  @let isCurrentMonth = checkSameMonth(day, calendarMonth());
-                  @let isTodayDate = checkIsToday(day);
-                  @let hasEntry = log?.entry;
-                  @let hasExit = log?.exit;
-                  @let hasDelay = log?.delay && typeof log?.delay === 'number';
-                  @let workedHours = log?.entry && log?.exit ? calculateWorkedHours(log.entry.date, log.exit.date) : null;
-                  @let hasError = log?.scheduleError || log?.alert;
-                  
-                  <div
-                    class="calendar-day"
-                    [class.calendar-day-other-month]="!isCurrentMonth"
-                    [class.calendar-day-today]="isTodayDate"
-                    [class.calendar-day-has-data]="hasEntry || hasExit"
-                    [class.calendar-day-complete]="hasEntry && hasExit && !hasError"
-                    [class.calendar-day-incomplete]="hasEntry && !hasExit"
-                    [class.calendar-day-error]="hasError"
-                  >
-                    <!-- Número del día -->
-                    <div class="calendar-day-number">
-                      {{ day.getDate() }}
-                    </div>
-
-                    <!-- Contenido del día -->
-                    @if (isCurrentMonth && log) {
-                      <div class="calendar-day-content">
-                        <!-- Entrada -->
-                        @if (hasEntry) {
-                          <div class="calendar-time-entry" [class.calendar-time-delay]="hasDelay">
-                            <i class="pi pi-sign-in text-xs"></i>
-                            <span class="text-xs font-semibold">
-                              {{ log.entry.date | date : 'HH:mm' }}
-                            </span>
-                            @if (hasDelay) {
-                              <span class="calendar-delay-badge">{{ log.delay }}m</span>
-                            }
-                          </div>
-                        }
-
-                        <!-- Almuerzo -->
-                        @if (log.lunch_start || log.lunch_end) {
-                          <div class="calendar-time-lunch" [class.calendar-time-exceeded]="log.lunchExceeded">
-                            <i class="pi pi-clock text-xs"></i>
-                            @if (log.lunch_start && log.lunch_end) {
-                              <span class="text-xs">
-                                {{ log.lunch_start.date | date : 'HH:mm' }} - 
-                                {{ log.lunch_end.date | date : 'HH:mm' }}
-                              </span>
-                            } @else if (log.lunch_start) {
-                              <span class="text-xs">Almuerzo: {{ log.lunch_start.date | date : 'HH:mm' }}</span>
-                            }
-                            @if (log.lunchExceeded && log.lunchMinutes) {
-                              <span class="calendar-exceeded-badge">+{{ log.lunchMinutes - 60 }}m</span>
-                            }
-                          </div>
-                        }
-
-                        <!-- Salida -->
-                        @if (hasExit) {
-                          <div class="calendar-time-exit" [class.calendar-time-early]="log.earlyExit">
-                            <i class="pi pi-sign-out text-xs"></i>
-                            <span class="text-xs font-semibold">
-                              {{ log.exit.date | date : 'HH:mm' }}
-                            </span>
-                            @if (log.earlyExit) {
-                              <span class="calendar-early-badge">Temprana</span>
-                            }
-                          </div>
-                        }
-
-                        <!-- Horas trabajadas -->
-                        @if (workedHours) {
-                          <div class="calendar-hours-worked" [class.calendar-hours-insufficient]="log.insufficientHours">
-                            <i class="pi pi-hourglass text-xs"></i>
-                            <span class="text-xs font-bold">{{ workedHours }}</span>
-                            @if (log.insufficientHours) {
-                              <span class="calendar-insufficient-badge">Menos de 9h</span>
-                            }
-                          </div>
-                        }
-
-                        <!-- Errores/Alertas -->
-                        @if (hasError) {
-                          <div class="calendar-day-error-indicator">
-                            <i class="pi pi-exclamation-triangle text-xs"></i>
-                            <span class="text-xs">{{ log.alert || 'Error' }}</span>
-                          </div>
-                        }
-
-                        <!-- Estado del día -->
-                        @if (!hasEntry && !hasExit) {
-                          <div class="calendar-day-empty">
-                            <i class="pi pi-minus text-xs"></i>
-                            <span class="text-xs">Sin marcación</span>
-                          </div>
-                        } @else if (hasEntry && !hasExit) {
-                          <div class="calendar-day-warning">
-                            <i class="pi pi-exclamation-triangle text-xs"></i>
-                            <span class="text-xs">Sin salida</span>
-                          </div>
-                        }
-                      </div>
-                    } @else if (isCurrentMonth && !log) {
-                      <div class="calendar-day-empty">
-                        <i class="pi pi-minus text-xs"></i>
-                        <span class="text-xs">Sin datos</span>
-                      </div>
-                    }
-                  </div>
-                }
-              </div>
-            </div>
-
-            <!-- Leyenda -->
-            <div class="calendar-legend mt-6 pt-6 border-t border-neutral-700">
-              <div class="flex flex-wrap gap-4 justify-center text-sm">
-                <div class="flex items-center gap-2">
-                  <div class="w-4 h-4 rounded bg-green-500/30 border border-green-500/50"></div>
-                  <span class="text-gray-300">Día completo</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <div class="w-4 h-4 rounded bg-yellow-500/30 border border-yellow-500/50"></div>
-                  <span class="text-gray-300">Día incompleto</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <div class="w-4 h-4 rounded bg-red-500/30 border border-red-500/50"></div>
-                  <span class="text-gray-300">Con retraso/error</span>
-                </div>
-                <div class="flex items-center gap-2">
-                  <div class="w-4 h-4 rounded bg-neutral-700 border border-neutral-600"></div>
-                  <span class="text-gray-300">Sin marcación</span>
-                </div>
-              </div>
-            </div>
-          }
-        </p-tabpanel>
-      </p-tabs>
-      
-      <!-- Tabla original (oculta, solo para exportar) -->
-      <div class="hidden">
+      <div class="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
         <p-table
           [value]="filteredDaylogs()"
           [rows]="25"
@@ -450,7 +224,9 @@ import { EmployeesStore } from '../stores/employees.store';
                 <div class="flex flex-col gap-1">
                   <div class="flex items-center gap-2">
                     @if(log.employee.employee_number) {
-                      <span class="text-xs text-gray-400 font-mono">{{ log.employee.employee_number }}</span>
+                    <span class="text-xs text-gray-400 font-mono">{{
+                      log.employee.employee_number
+                    }}</span>
                     }
                     {{ log.employee.first_name }} {{ log.employee.father_name }}
                     @if(log.scheduleError) {
@@ -675,11 +451,15 @@ import { EmployeesStore } from '../stores/employees.store';
                 <div class="flex gap-2 items-center">
                   <span
                     [ngClass]="{
-                      'text-green-500 font-semibold': log.overtimeHours && log.overtimeHours > 0,
-                      'text-gray-400': !log.overtimeHours || log.overtimeHours === 0
+                      'text-green-500 font-semibold':
+                        log.overtimeHours && log.overtimeHours > 0,
+                      'text-gray-400':
+                        !log.overtimeHours || log.overtimeHours === 0
                     }"
                   >
-                    {{ log.overtimeHours ? formatHours(log.overtimeHours) : '-' }}
+                    {{
+                      log.overtimeHours ? formatHours(log.overtimeHours) : '-'
+                    }}
                   </span>
                 </div>
               </td>
@@ -706,283 +486,6 @@ import { EmployeesStore } from '../stores/employees.store';
   styles: `
     ::ng-deep .p-tag .p-tag-icon {
       margin-right: 0.5rem;
-    }
-
-    /* Estilos del Calendario de Marcaciones */
-    .calendar-container {
-      width: 100%;
-      margin-top: 1.5rem;
-    }
-
-    .calendar-weekdays {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 0.5rem;
-      margin-bottom: 0.5rem;
-    }
-
-    .calendar-weekday {
-      text-align: center;
-      font-weight: 600;
-      font-size: 0.875rem;
-      color: #9ca3af;
-      padding: 0.75rem 0.5rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-
-    .calendar-grid {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 0.5rem;
-    }
-
-    .calendar-day {
-      min-height: 140px;
-      background: #1f2937;
-      border: 1px solid #374151;
-      border-radius: 0.5rem;
-      padding: 0.75rem;
-      display: flex;
-      flex-direction: column;
-      transition: all 0.2s ease;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .calendar-day:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(251, 191, 36, 0.2);
-      border-color: #fbbf24;
-    }
-
-    .calendar-day-other-month {
-      opacity: 0.4;
-      background: #111827;
-    }
-
-    .calendar-day-today {
-      border: 2px solid #fbbf24;
-      box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.1);
-    }
-
-    .calendar-day-today .calendar-day-number {
-      background: #fbbf24;
-      color: #212121;
-      font-weight: 700;
-    }
-
-    .calendar-day-complete {
-      background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%);
-      border-color: rgba(34, 197, 94, 0.3);
-    }
-
-    .calendar-day-incomplete {
-      background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(251, 191, 36, 0.05) 100%);
-      border-color: rgba(251, 191, 36, 0.3);
-    }
-
-    .calendar-day-error {
-      background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%);
-      border-color: rgba(239, 68, 68, 0.3);
-    }
-
-    .calendar-day-number {
-      font-size: 1rem;
-      font-weight: 600;
-      color: #ffffff;
-      margin-bottom: 0.5rem;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 28px;
-      height: 28px;
-      border-radius: 50%;
-      background: rgba(251, 191, 36, 0.1);
-    }
-
-    .calendar-day-content {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 0.375rem;
-      font-size: 0.75rem;
-    }
-
-    .calendar-time-entry,
-    .calendar-time-exit,
-    .calendar-time-lunch,
-    .calendar-hours-worked {
-      display: flex;
-      align-items: center;
-      gap: 0.375rem;
-      padding: 0.25rem 0.5rem;
-      border-radius: 0.25rem;
-      background: rgba(59, 130, 246, 0.1);
-      border: 1px solid rgba(59, 130, 246, 0.2);
-      color: #93c5fd;
-    }
-
-    .calendar-time-entry {
-      background: rgba(34, 197, 94, 0.1);
-      border-color: rgba(34, 197, 94, 0.2);
-      color: #86efac;
-    }
-
-    .calendar-time-entry.calendar-time-delay {
-      background: rgba(239, 68, 68, 0.1);
-      border-color: rgba(239, 68, 68, 0.3);
-      color: #fca5a5;
-    }
-
-    .calendar-time-exit {
-      background: rgba(59, 130, 246, 0.1);
-      border-color: rgba(59, 130, 246, 0.2);
-      color: #93c5fd;
-    }
-
-    .calendar-time-exit.calendar-time-early {
-      background: rgba(239, 68, 68, 0.1);
-      border-color: rgba(239, 68, 68, 0.3);
-      color: #fca5a5;
-    }
-
-    .calendar-time-lunch {
-      background: rgba(251, 191, 36, 0.1);
-      border-color: rgba(251, 191, 36, 0.2);
-      color: #fcd34d;
-    }
-
-    .calendar-time-lunch.calendar-time-exceeded {
-      background: rgba(239, 68, 68, 0.1);
-      border-color: rgba(239, 68, 68, 0.3);
-      color: #fca5a5;
-    }
-
-    .calendar-hours-worked {
-      background: rgba(168, 85, 247, 0.1);
-      border-color: rgba(168, 85, 247, 0.2);
-      color: #c4b5fd;
-      margin-top: auto;
-      font-weight: 600;
-    }
-
-    .calendar-hours-worked.calendar-hours-insufficient {
-      background: rgba(239, 68, 68, 0.1);
-      border-color: rgba(239, 68, 68, 0.3);
-      color: #fca5a5;
-    }
-
-    .calendar-delay-badge,
-    .calendar-exceeded-badge,
-    .calendar-early-badge,
-    .calendar-insufficient-badge {
-      background: rgba(239, 68, 68, 0.3);
-      color: #fee2e2;
-      padding: 0.125rem 0.375rem;
-      border-radius: 0.25rem;
-      font-size: 0.625rem;
-      font-weight: 700;
-      margin-left: auto;
-    }
-
-    .calendar-day-empty {
-      display: flex;
-      align-items: center;
-      gap: 0.375rem;
-      padding: 0.25rem 0.5rem;
-      color: #6b7280;
-      font-size: 0.75rem;
-      margin-top: auto;
-    }
-
-    .calendar-day-warning {
-      display: flex;
-      align-items: center;
-      gap: 0.375rem;
-      padding: 0.25rem 0.5rem;
-      border-radius: 0.25rem;
-      background: rgba(251, 191, 36, 0.1);
-      border: 1px solid rgba(251, 191, 36, 0.2);
-      color: #fcd34d;
-      font-size: 0.75rem;
-      margin-top: auto;
-    }
-
-    .calendar-day-error-indicator {
-      display: flex;
-      align-items: center;
-      gap: 0.375rem;
-      padding: 0.25rem 0.5rem;
-      border-radius: 0.25rem;
-      background: rgba(239, 68, 68, 0.1);
-      border: 1px solid rgba(239, 68, 68, 0.3);
-      color: #fca5a5;
-      font-size: 0.75rem;
-      margin-top: auto;
-    }
-
-    .calendar-legend {
-      display: flex;
-      justify-content: center;
-      padding-top: 1.5rem;
-      margin-top: 1.5rem;
-    }
-
-    /* Responsive para calendario */
-    @media (max-width: 768px) {
-      .calendar-day {
-        min-height: 100px;
-        padding: 0.5rem;
-      }
-
-      .calendar-day-content {
-        gap: 0.25rem;
-      }
-
-      .calendar-time-entry,
-      .calendar-time-exit,
-      .calendar-time-lunch,
-      .calendar-hours-worked {
-        font-size: 0.625rem;
-        padding: 0.125rem 0.375rem;
-      }
-
-      .calendar-day-number {
-        font-size: 0.875rem;
-        width: 24px;
-        height: 24px;
-      }
-
-      .calendar-weekday {
-        font-size: 0.75rem;
-        padding: 0.5rem 0.25rem;
-      }
-    }
-
-    @media (max-width: 640px) {
-      .calendar-day {
-        min-height: 80px;
-        padding: 0.375rem;
-      }
-
-      .calendar-day-content {
-        gap: 0.125rem;
-      }
-
-      .calendar-time-entry,
-      .calendar-time-exit,
-      .calendar-time-lunch,
-      .calendar-hours-worked {
-        font-size: 0.5rem;
-        padding: 0.125rem 0.25rem;
-      }
-
-      .calendar-day-number {
-        font-size: 0.75rem;
-        width: 20px;
-        height: 20px;
-      }
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -1050,71 +553,6 @@ export class TimelogsComponent {
   public onlyDelayed = signal(false);
   public organizationService = inject(OrganizationService);
   private injector = inject(Injector);
-
-  // Calendario - mes actual seleccionado
-  public calendarMonth = signal<Date>(new Date());
-
-  // Generar días del calendario
-  public calendarDays = computed(() => {
-    const monthStart = startOfMonth(this.calendarMonth());
-    const monthEnd = endOfMonth(this.calendarMonth());
-    const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 }); // Lunes
-    const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 }); // Domingo
-
-    return eachDayOfInterval({ start: calendarStart, end: calendarEnd });
-  });
-
-  // Obtener log para un día específico del empleado seleccionado
-  public getLogForDay(day: Date): any {
-    if (!this.employeeId()) {
-      return null;
-    }
-    const dayStr = format(day, 'yyyy-MM-dd');
-    const logs = this.dayLogs();
-    return logs.find(
-      (log) => log.day === dayStr && log.employee.id === this.employeeId()
-    );
-  }
-
-  // Navegación del calendario
-  public previousMonth(): void {
-    const current = this.calendarMonth();
-    const newMonth = new Date(current.getFullYear(), current.getMonth() - 1, 1);
-    this.calendarMonth.set(newMonth);
-    // Actualizar dateRange para el nuevo mes
-    this.dateRange.set([startOfMonth(newMonth), endOfMonth(newMonth)]);
-  }
-
-  public nextMonth(): void {
-    const current = this.calendarMonth();
-    const newMonth = new Date(current.getFullYear(), current.getMonth() + 1, 1);
-    this.calendarMonth.set(newMonth);
-    // Actualizar dateRange para el nuevo mes
-    this.dateRange.set([startOfMonth(newMonth), endOfMonth(newMonth)]);
-  }
-
-  public goToToday(): void {
-    const today = new Date();
-    this.calendarMonth.set(today);
-    this.dateRange.set([startOfMonth(today), endOfMonth(today)]);
-  }
-
-  // Helper methods for template (wrapper methods to use date-fns functions)
-  public checkSameMonth(day: Date, month: Date): boolean {
-    return isSameMonth(day, month);
-  }
-
-  public checkIsToday(day: Date): boolean {
-    return isToday(day);
-  }
-
-  // Calcular horas trabajadas para el calendario
-  public calculateWorkedHours(entryDate: Date, exitDate: Date): string {
-    const minutes = differenceInMinutes(exitDate, entryDate);
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours}h ${mins}m`;
-  }
 
   // Computed para verificar si es Naz
   public isNaz = computed(() => this.organizationService.isNaz());
@@ -1259,23 +697,25 @@ export class TimelogsComponent {
     if (!start || !end) {
       return undefined;
     }
-    
+
     // Construir URL manualmente para asegurar que los filtros se apliquen correctamente
     const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`;
     const companyId = this.organizationService.getCurrentCompanyId();
     const startDate = format(start, 'yyyy-MM-dd');
     const endDate = format(end, 'yyyy-MM-dd');
     const select = `*,approved,schedule:schedules(*)`;
-    
-    let url = `${baseUrl}?select=${encodeURIComponent(select)},employee:employees(id,company_id)`;
+
+    let url = `${baseUrl}?select=${encodeURIComponent(
+      select
+    )},employee:employees(id,company_id)`;
     url += `&start_date=gte.${startDate}`;
     url += `&end_date=lte.${endDate}`;
-    
+
     // Filtrar a través de employees.company_id (funciona incluso si employee_schedules no tiene company_id)
     if (companyId) {
       url += `&employee.company_id=eq.${companyId}`;
     }
-    
+
     return {
       url,
       method: 'GET',
@@ -1305,41 +745,49 @@ export class TimelogsComponent {
     if (!start || !end) {
       return undefined;
     }
-    
+
     // Construir URL manualmente para tener control total sobre los filtros
     // PostgREST/Supabase requiere construir la URL manualmente cuando hay múltiples filtros en el mismo campo
     const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`;
     const companyId = this.organizationService.getCurrentCompanyId();
     const startDate = format(start, "yyyy-MM-dd'T'06:00:00");
     const endDate = format(addDays(end, 1), "yyyy-MM-dd'T'06:00:00");
-    
+
     // Construir select con relaciones (solo empleados activos)
     const select = `*,employee:employees!inner(id,first_name,father_name,is_active,branch:branches(id, name)),branch:branches(id, name, short_name)`;
-    
+
     // Construir URL con todos los parámetros
     let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
     url += `&created_at=gte.${startDate}`;
     url += `&created_at=lte.${endDate}`;
-    
+
     // Filtrar solo empleados activos
     url += `&employee.is_active=eq.true`;
-    
+
     if (this.employeeId()) {
       url += `&employee_id=eq.${this.employeeId()}`;
     }
-    
+
     // Filtrar a través de employees.company_id (funciona incluso si timelogs no tiene company_id)
     if (companyId) {
       url += `&employee.company_id=eq.${companyId}`;
     }
-    
+
     url += `&order=created_at.asc`;
 
     // Debug: Log para timelogs
     console.log('[TimelogsComponent] Cargando timelogs con URL:', url);
     console.log('[TimelogsComponent] Company ID:', companyId);
-    console.log('[TimelogsComponent] Rango de fechas:', format(start, 'yyyy-MM-dd'), 'a', format(end, 'yyyy-MM-dd'));
-    console.log('[TimelogsComponent] Employee ID:', this.employeeId() || 'Todos');
+    console.log(
+      '[TimelogsComponent] Rango de fechas:',
+      format(start, 'yyyy-MM-dd'),
+      'a',
+      format(end, 'yyyy-MM-dd')
+    );
+    console.log(
+      '[TimelogsComponent] Employee ID:',
+      this.employeeId() || 'Todos'
+    );
 
     return {
       url,
@@ -1372,25 +820,6 @@ export class TimelogsComponent {
   });
 
   constructor() {
-    // Sincronizar calendarMonth con dateRange
-    effect(
-      () => {
-        const range = this.dateRange();
-        if (range && range.length > 0 && range[0]) {
-          const firstDate = range[0];
-          const currentMonth = this.calendarMonth();
-          // Solo actualizar si el mes es diferente
-          if (
-            firstDate.getMonth() !== currentMonth.getMonth() ||
-            firstDate.getFullYear() !== currentMonth.getFullYear()
-          ) {
-            this.calendarMonth.set(new Date(firstDate.getFullYear(), firstDate.getMonth(), 1));
-          }
-        }
-      },
-      { injector: this.injector }
-    );
-
     // Debug: Effect para verificar datos cargados
     effect(
       () => {
@@ -1412,13 +841,22 @@ export class TimelogsComponent {
         });
 
         if (logsError) {
-          console.error('[TimelogsComponent] ❌ Error cargando timelogs:', logsError);
+          console.error(
+            '[TimelogsComponent] ❌ Error cargando timelogs:',
+            logsError
+          );
         }
         if (schedulesError) {
-          console.error('[TimelogsComponent] ❌ Error cargando employee_schedules:', schedulesError);
+          console.error(
+            '[TimelogsComponent] ❌ Error cargando employee_schedules:',
+            schedulesError
+          );
         }
         if (timeoffsError) {
-          console.error('[TimelogsComponent] ❌ Error cargando timeoffs:', timeoffsError);
+          console.error(
+            '[TimelogsComponent] ❌ Error cargando timeoffs:',
+            timeoffsError
+          );
         }
 
         if (logsData && logsData.length === 0 && !logsError) {
@@ -1434,43 +872,64 @@ export class TimelogsComponent {
 
         // Mostrar muestra de timelogs si hay datos
         if (logsData && logsData.length > 0) {
-          console.log('[TimelogsComponent] ✅ Timelogs encontrados:', timelogsCount);
-          console.log('[TimelogsComponent] 📋 Muestra (primeros 5):', 
-            logsData.slice(0, 5).map(log => ({
+          console.log(
+            '[TimelogsComponent] ✅ Timelogs encontrados:',
+            timelogsCount
+          );
+          console.log(
+            '[TimelogsComponent] 📋 Muestra (primeros 5):',
+            logsData.slice(0, 5).map((log) => ({
               id: log.id,
               employee_id: log.employee_id,
               company_id: log.company_id,
               branch_id: log.branch_id,
               type: log.type,
               created_at: log.created_at,
-              employee: log.employee ? `${log.employee.first_name} ${log.employee.father_name}` : 'N/A',
+              employee: log.employee
+                ? `${log.employee.first_name} ${log.employee.father_name}`
+                : 'N/A',
               branch: log.branch ? log.branch.name : 'N/A',
             }))
           );
-          console.log('[TimelogsComponent] 📊 Distribución por company_id:', 
+          console.log(
+            '[TimelogsComponent] 📊 Distribución por company_id:',
             logsData.reduce((acc: any, log: any) => {
               const cid = log.company_id || 'NULL';
               acc[cid] = (acc[cid] || 0) + 1;
               return acc;
             }, {})
           );
-          
+
           // Verificar si hay timelogs con company_id diferente
-          const currentCompanyId = this.organizationService.getCurrentCompanyId();
-          const wrongCompanyId = logsData.filter(log => log.company_id !== currentCompanyId);
+          const currentCompanyId =
+            this.organizationService.getCurrentCompanyId();
+          const wrongCompanyId = logsData.filter(
+            (log) => log.company_id !== currentCompanyId
+          );
           if (wrongCompanyId.length > 0) {
-            console.warn('[TimelogsComponent] ⚠️ Timelogs con company_id incorrecto:', wrongCompanyId.length);
+            console.warn(
+              '[TimelogsComponent] ⚠️ Timelogs con company_id incorrecto:',
+              wrongCompanyId.length
+            );
             console.warn('  - Company ID esperado:', currentCompanyId);
-            console.warn('  - Timelogs con company_id diferente:', wrongCompanyId.slice(0, 3).map(log => ({
-              id: log.id,
-              company_id: log.company_id,
-              employee_id: log.employee_id,
-            })));
+            console.warn(
+              '  - Timelogs con company_id diferente:',
+              wrongCompanyId.slice(0, 3).map((log) => ({
+                id: log.id,
+                company_id: log.company_id,
+                employee_id: log.employee_id,
+              }))
+            );
           }
         } else if (!logsError) {
           console.warn('[TimelogsComponent] ⚠️ No se encontraron timelogs');
-          console.warn('  - Verificar que existan timelogs en la base de datos para:');
-          console.warn('    * Company ID:', this.organizationService.getCurrentCompanyId());
+          console.warn(
+            '  - Verificar que existan timelogs en la base de datos para:'
+          );
+          console.warn(
+            '    * Company ID:',
+            this.organizationService.getCurrentCompanyId()
+          );
           console.warn('    * Rango de fechas:', this.dateRange());
           console.warn('    * Employee ID:', this.employeeId() || 'Todos');
         }
@@ -1522,7 +981,7 @@ export class TimelogsComponent {
     const schedulesData = this.schedules.value() ?? [];
     const timeoffsData = this.timeoffs.value() ?? [];
     const daysList = this.days();
-    
+
     console.log('[TimelogsComponent] 📊 dayLogs - Datos de entrada:', {
       timelogs: logsData.length,
       employee_schedules: schedulesData.length,
@@ -1664,334 +1123,334 @@ export class TimelogsComponent {
       daysList: daysList.length,
       accInicial: acc.length,
     });
-    
+
     // Ahora procesar los logs para actualizar los registros creados
-    const result = (
-      filteredLogs
-        .reduce<
-          {
-            employee: Partial<Employee>;
-            day: string;
-            schedule?: any;
-            delay?: number | string;
-            alert?: string;
-            scheduleError?: boolean;
-            lunchExceeded?: boolean;
-            lunchMinutes?: number;
-            earlyExit?: boolean;
-            insufficientHours?: boolean;
-            totalHours?: number;
-            overtimeHours?: number; // Horas extras (más de 9 horas totales)
-            entry?: { date: Date; branch: Branch };
-            lunch_start?: { date: Date; branch: Branch };
-            lunch_end?: { date: Date; branch: Branch };
-            exit?: { date: Date; branch: Branch };
-          }[]
-        >((acc, x) => {
-          // Solo procesar si el día está dentro del rango
-          if (x.day < dateRangeStart || x.day > dateRangeEnd) {
-            return acc;
-          }
+    const result = filteredLogs
+      .reduce<
+        {
+          employee: Partial<Employee>;
+          day: string;
+          schedule?: any;
+          delay?: number | string;
+          alert?: string;
+          scheduleError?: boolean;
+          lunchExceeded?: boolean;
+          lunchMinutes?: number;
+          earlyExit?: boolean;
+          insufficientHours?: boolean;
+          totalHours?: number;
+          overtimeHours?: number; // Horas extras (más de 9 horas totales)
+          entry?: { date: Date; branch: Branch };
+          lunch_start?: { date: Date; branch: Branch };
+          lunch_end?: { date: Date; branch: Branch };
+          exit?: { date: Date; branch: Branch };
+        }[]
+      >((acc, x) => {
+        // Solo procesar si el día está dentro del rango
+        if (x.day < dateRangeStart || x.day > dateRangeEnd) {
+          return acc;
+        }
 
-          const index = acc.findIndex(
-            (y) => y.day === x.day && y.employee.id === x.employee.id
-          );
+        const index = acc.findIndex(
+          (y) => y.day === x.day && y.employee.id === x.employee.id
+        );
 
-          // Si no se encuentra el índice, significa que el día no está en this.days()
-          // Esto no debería pasar si el query filtra correctamente, pero por seguridad lo validamos
-          if (index === -1) {
-            return acc;
-          }
+        // Si no se encuentra el índice, significa que el día no está en this.days()
+        // Esto no debería pasar si el query filtra correctamente, pero por seguridad lo validamos
+        if (index === -1) {
+          return acc;
+        }
 
-          acc[index] = {
-            ...acc[index],
-            [x.type]: { date: x.created_at, branch: x.branch, id: x.id },
-          };
+        acc[index] = {
+          ...acc[index],
+          [x.type]: { date: x.created_at, branch: x.branch, id: x.id },
+        };
 
-          // Detectar alertas cuando hay marcación
-          const dayDate = new Date(acc[index].day);
-          const dayStr = format(dayDate, 'yyyy-MM-dd');
-          const timeoffForDay = timeoffsData.find((timeoff) => {
-            if (timeoff.employee_id !== acc[index].employee.id) return false;
-            const fromStr = format(new Date(timeoff.date_from), 'yyyy-MM-dd');
-            const toStr = format(new Date(timeoff.date_to), 'yyyy-MM-dd');
-            return dayStr >= fromStr && dayStr <= toStr;
-          });
-          const hasTimeOff = !!timeoffForDay;
-          // El type_id puede estar directamente o anidado en type (según el query)
-          const timeoffTypeId =
-            timeoffForDay?.type_id || timeoffForDay?.type?.id;
-          const hasRestrictedTimeOff =
-            hasTimeOff &&
-            timeoffForDay &&
-            timeoffTypeId &&
-            this.restrictedTimeOffTypeIds.includes(timeoffTypeId);
+        // Detectar alertas cuando hay marcación
+        const dayDate = new Date(acc[index].day);
+        const dayStr = format(dayDate, 'yyyy-MM-dd');
+        const timeoffForDay = timeoffsData.find((timeoff) => {
+          if (timeoff.employee_id !== acc[index].employee.id) return false;
+          const fromStr = format(new Date(timeoff.date_from), 'yyyy-MM-dd');
+          const toStr = format(new Date(timeoff.date_to), 'yyyy-MM-dd');
+          return dayStr >= fromStr && dayStr <= toStr;
+        });
+        const hasTimeOff = !!timeoffForDay;
+        // El type_id puede estar directamente o anidado en type (según el query)
+        const timeoffTypeId = timeoffForDay?.type_id || timeoffForDay?.type?.id;
+        const hasRestrictedTimeOff =
+          hasTimeOff &&
+          timeoffForDay &&
+          timeoffTypeId &&
+          this.restrictedTimeOffTypeIds.includes(timeoffTypeId);
 
-          // Verificar si hay marcación para mostrar alertas
-          const hasMark =
-            acc[index].entry || acc[index].lunch_start || acc[index].exit;
+        // Verificar si hay marcación para mostrar alertas
+        const hasMark =
+          acc[index].entry || acc[index].lunch_start || acc[index].exit;
 
-          // Verificar si el schedule es feriado o día libre
-          const scheduleId = acc[index].schedule?.schedule?.id;
-          const scheduleName =
-            acc[index].schedule?.schedule?.name?.toLowerCase() || '';
-          const isRestrictedScheduleId =
-            scheduleId && this.restrictedScheduleIds.includes(scheduleId);
-          const isRestrictedScheduleName = this.restrictedScheduleNames.some(
-            (name) => scheduleName.includes(name)
-          );
-          const isScheduleFeriado =
-            isRestrictedScheduleId ||
-            isRestrictedScheduleName ||
-            acc[index].schedule?.schedule?.day_off;
+        // Verificar si el schedule es feriado o día libre
+        const scheduleId = acc[index].schedule?.schedule?.id;
+        const scheduleName =
+          acc[index].schedule?.schedule?.name?.toLowerCase() || '';
+        const isRestrictedScheduleId =
+          scheduleId && this.restrictedScheduleIds.includes(scheduleId);
+        const isRestrictedScheduleName = this.restrictedScheduleNames.some(
+          (name) => scheduleName.includes(name)
+        );
+        const isScheduleFeriado =
+          isRestrictedScheduleId ||
+          isRestrictedScheduleName ||
+          acc[index].schedule?.schedule?.day_off;
 
-          // SIEMPRE marcar como error si hay timeoff y marcaciones (no hay horario válido)
-          if (hasTimeOff && hasMark) {
-            acc[index].alert = 'Feriado';
-            acc[index].scheduleError = true; // Error crítico: marcó en día de feriado/permiso (no hay horario válido)
-          }
+        // SIEMPRE marcar como error si hay timeoff y marcaciones (no hay horario válido)
+        if (hasTimeOff && hasMark) {
+          acc[index].alert = 'Feriado';
+          acc[index].scheduleError = true; // Error crítico: marcó en día de feriado/permiso (no hay horario válido)
+        }
 
-          // SIEMPRE marcar como error si el schedule es feriado/día libre y hay marcaciones
-          if (isScheduleFeriado && hasMark) {
-            acc[index].alert = acc[index].schedule?.schedule?.day_off
-              ? 'Día Libre'
-              : 'Feriado';
-            acc[index].scheduleError = true; // Error crítico: marcó en día feriado/libre (no debería tener marcaciones)
-          }
+        // SIEMPRE marcar como error si el schedule es feriado/día libre y hay marcaciones
+        if (isScheduleFeriado && hasMark) {
+          acc[index].alert = acc[index].schedule?.schedule?.day_off
+            ? 'Día Libre'
+            : 'Feriado';
+          acc[index].scheduleError = true; // Error crítico: marcó en día feriado/libre (no debería tener marcaciones)
+        }
 
-          if (hasMark) {
-            // Prioridad: Feriado > Día Libre > Sin Horario
-            if (hasTimeOff) {
-              // Ya se marcó arriba, solo asegurar que esté marcado
-              if (!acc[index].scheduleError) {
-                acc[index].scheduleError = true;
-              }
-            } else if (acc[index].schedule) {
-              if (acc[index].schedule.schedule.day_off || isScheduleFeriado) {
-                // Si es día libre o feriado pero el empleado marcó, es un error de configuración
-                acc[index].delay = 'DIA LIBRE';
-                acc[index].alert = acc[index].schedule.schedule.day_off
-                  ? 'Día Libre'
-                  : 'Feriado';
-                acc[index].scheduleError = true; // Error: marcó en día libre/feriado
-              } else {
-                // Calcular retraso si hay entrada
-                if (acc[index].entry) {
-                  const entryTime = format(acc[index].entry.date, 'hh:mm:ss');
-                  const scheduleTime = acc[index].schedule.schedule.entry_time;
-                  const delay = this.calcTimeDiff(entryTime, scheduleTime);
-
-                  if (delay > acc[index].schedule.schedule.minutes_tolerance) {
-                    acc[index].delay = delay;
-                  }
-                }
-              }
+        if (hasMark) {
+          // Prioridad: Feriado > Día Libre > Sin Horario
+          if (hasTimeOff) {
+            // Ya se marcó arriba, solo asegurar que esté marcado
+            if (!acc[index].scheduleError) {
+              acc[index].scheduleError = true;
+            }
+          } else if (acc[index].schedule) {
+            if (acc[index].schedule.schedule.day_off || isScheduleFeriado) {
+              // Si es día libre o feriado pero el empleado marcó, es un error de configuración
+              acc[index].delay = 'DIA LIBRE';
+              acc[index].alert = acc[index].schedule.schedule.day_off
+                ? 'Día Libre'
+                : 'Feriado';
+              acc[index].scheduleError = true; // Error: marcó en día libre/feriado
             } else {
-              // Sin horario establecido
-              acc[index].alert = 'Sin Horario';
-            }
+              // Calcular retraso si hay entrada
+              if (acc[index].entry) {
+                const entryTime = format(acc[index].entry.date, 'hh:mm:ss');
+                const scheduleTime = acc[index].schedule.schedule.entry_time;
+                const delay = this.calcTimeDiff(entryTime, scheduleTime);
 
-            // Validar tiempo de almuerzo (no debe exceder 60 minutos)
-            if (acc[index].lunch_start && acc[index].lunch_end) {
-              const lunchMinutes = differenceInMinutes(
-                acc[index].lunch_end.date,
-                acc[index].lunch_start.date
-              );
-              acc[index].lunchMinutes = lunchMinutes;
-              if (lunchMinutes > 60) {
-                acc[index].lunchExceeded = true;
-              }
-            }
-
-            // Validar salida temprana
-            if (
-              acc[index].schedule &&
-              acc[index].exit &&
-              !acc[index].schedule.schedule.day_off
-            ) {
-              const exitTime = format(acc[index].exit.date, 'HH:mm:ss');
-              const scheduleExitTime = acc[index].schedule.schedule.exit_time;
-              if (scheduleExitTime) {
-                // Convertir scheduleExitTime a string si es Date
-                const scheduleTimeStr =
-                  typeof scheduleExitTime === 'string'
-                    ? scheduleExitTime
-                    : format(new Date(scheduleExitTime), 'HH:mm:ss');
-
-                const exitParts = exitTime.split(':');
-                const scheduleParts = scheduleTimeStr.split(':');
-
-                const exitMinutes = +exitParts[0] * 60 + +exitParts[1];
-                const scheduleMinutes =
-                  +scheduleParts[0] * 60 + +scheduleParts[1];
-
-                if (exitMinutes < scheduleMinutes) {
-                  acc[index].earlyExit = true;
+                if (delay > acc[index].schedule.schedule.minutes_tolerance) {
+                  acc[index].delay = delay;
                 }
               }
             }
+          } else {
+            // Sin horario establecido
+            acc[index].alert = 'Sin Horario';
+          }
 
-            // Validar horas trabajadas (9 horas totales en la empresa: 7am-4pm, 8am-5pm, 11am-8pm)
-            // Se calcula desde la hora establecida del horario, no desde la entrada real
-            if (
-              acc[index].entry &&
-              acc[index].exit &&
-              acc[index].schedule &&
-              !acc[index].schedule.schedule.day_off
-            ) {
-              const scheduleEntryTime = acc[index].schedule.schedule.entry_time;
-              const scheduleExitTime = acc[index].schedule.schedule.exit_time;
+          // Validar tiempo de almuerzo (no debe exceder 60 minutos)
+          if (acc[index].lunch_start && acc[index].lunch_end) {
+            const lunchMinutes = differenceInMinutes(
+              acc[index].lunch_end.date,
+              acc[index].lunch_start.date
+            );
+            acc[index].lunchMinutes = lunchMinutes;
+            if (lunchMinutes > 60) {
+              acc[index].lunchExceeded = true;
+            }
+          }
 
-              if (scheduleEntryTime && scheduleExitTime) {
-                // Crear fechas usando la hora establecida del horario
-                const entryDate = new Date(acc[index].entry.date);
-                const exitDate = new Date(acc[index].exit.date);
+          // Validar salida temprana
+          if (
+            acc[index].schedule &&
+            acc[index].exit &&
+            !acc[index].schedule.schedule.day_off
+          ) {
+            const exitTime = format(acc[index].exit.date, 'HH:mm:ss');
+            const scheduleExitTime = acc[index].schedule.schedule.exit_time;
+            if (scheduleExitTime) {
+              // Convertir scheduleExitTime a string si es Date
+              const scheduleTimeStr =
+                typeof scheduleExitTime === 'string'
+                  ? scheduleExitTime
+                  : format(new Date(scheduleExitTime), 'HH:mm:ss');
 
-                // Convertir scheduleEntryTime a string si es Date
-                const entryTimeStr =
-                  typeof scheduleEntryTime === 'string'
-                    ? scheduleEntryTime
-                    : format(new Date(scheduleEntryTime), 'HH:mm:ss');
+              const exitParts = exitTime.split(':');
+              const scheduleParts = scheduleTimeStr.split(':');
 
-                // Establecer la hora de entrada según el horario establecido
-                const entryParts = entryTimeStr.split(':');
-                entryDate.setHours(
-                  +entryParts[0],
-                  +entryParts[1],
-                  +entryParts[2] || 0,
-                  0
-                );
+              const exitMinutes = +exitParts[0] * 60 + +exitParts[1];
+              const scheduleMinutes =
+                +scheduleParts[0] * 60 + +scheduleParts[1];
 
-                // Calcular desde la hora establecida hasta la salida real
-                const totalMinutes = differenceInMinutes(exitDate, entryDate);
+              if (exitMinutes < scheduleMinutes) {
+                acc[index].earlyExit = true;
+              }
+            }
+          }
 
-                // Restar tiempo de almuerzo si existe
-                const lunchTime =
-                  acc[index].lunch_start && acc[index].lunch_end
-                    ? differenceInMinutes(
-                        acc[index].lunch_end.date,
-                        acc[index].lunch_start.date
-                      )
-                    : 0;
+          // Validar horas trabajadas (9 horas totales en la empresa: 7am-4pm, 8am-5pm, 11am-8pm)
+          // Se calcula desde la hora establecida del horario, no desde la entrada real
+          if (
+            acc[index].entry &&
+            acc[index].exit &&
+            acc[index].schedule &&
+            !acc[index].schedule.schedule.day_off
+          ) {
+            const scheduleEntryTime = acc[index].schedule.schedule.entry_time;
+            const scheduleExitTime = acc[index].schedule.schedule.exit_time;
 
-                const workMinutes = totalMinutes - lunchTime;
-                const totalHours = totalMinutes / 60; // Horas totales en la empresa
-                acc[index].totalHours = totalHours;
+            if (scheduleEntryTime && scheduleExitTime) {
+              // Crear fechas usando la hora establecida del horario
+              const entryDate = new Date(acc[index].entry.date);
+              const exitDate = new Date(acc[index].exit.date);
 
-                // Calcular horas extras: más de 9 horas totales (8 horas de trabajo + 1 hora de almuerzo)
-                // 9 horas = 540 minutos
-                const requiredTotalMinutes = 540; // 9 horas totales (540 minutos)
-                const overtimeByTotalTime = totalMinutes > requiredTotalMinutes 
-                  ? totalMinutes - requiredTotalMinutes 
+              // Convertir scheduleEntryTime a string si es Date
+              const entryTimeStr =
+                typeof scheduleEntryTime === 'string'
+                  ? scheduleEntryTime
+                  : format(new Date(scheduleEntryTime), 'HH:mm:ss');
+
+              // Establecer la hora de entrada según el horario establecido
+              const entryParts = entryTimeStr.split(':');
+              entryDate.setHours(
+                +entryParts[0],
+                +entryParts[1],
+                +entryParts[2] || 0,
+                0
+              );
+
+              // Calcular desde la hora establecida hasta la salida real
+              const totalMinutes = differenceInMinutes(exitDate, entryDate);
+
+              // Restar tiempo de almuerzo si existe
+              const lunchTime =
+                acc[index].lunch_start && acc[index].lunch_end
+                  ? differenceInMinutes(
+                      acc[index].lunch_end.date,
+                      acc[index].lunch_start.date
+                    )
                   : 0;
-                
-                // Calcular minutos excedidos del almuerzo (más de 60 minutos)
-                const lunchExceededMinutes = lunchTime > 60 ? lunchTime - 60 : 0;
-                
-                // Sumar horas extras por tiempo total + minutos excedidos de almuerzo
-                const totalOvertimeMinutes = overtimeByTotalTime + lunchExceededMinutes;
-                acc[index].overtimeHours = totalOvertimeMinutes > 0 ? totalOvertimeMinutes / 60 : 0;
-
-                if (totalMinutes < requiredTotalMinutes) {
-                  acc[index].insufficientHours = true;
-                }
-              }
-            } else if (acc[index].entry && acc[index].exit) {
-              // Si no hay horario establecido, calcular desde la entrada real
-              const totalMinutes = differenceInMinutes(
-                acc[index].exit.date,
-                acc[index].entry.date
-              );
-              // Validar y calcular tiempo de almuerzo
-              let lunchTime = 0;
-              if (acc[index].lunch_start && acc[index].lunch_end) {
-                const lunchStart = acc[index].lunch_start.date;
-                const lunchEnd = acc[index].lunch_end.date;
-
-                // Validar que las fechas sean válidas
-                if (
-                  lunchStart &&
-                  lunchEnd &&
-                  !isNaN(new Date(lunchStart).getTime()) &&
-                  !isNaN(new Date(lunchEnd).getTime())
-                ) {
-                  const diff = differenceInMinutes(lunchEnd, lunchStart);
-                  // Solo usar si la diferencia es positiva y razonable (máximo 3 horas)
-                  if (diff > 0 && diff <= 180) {
-                    lunchTime = diff;
-                  }
-                }
-              }
 
               const workMinutes = totalMinutes - lunchTime;
-              // Validar que totalMinutes sea válido antes de dividir
-              const totalHours = totalMinutes > 0 ? totalMinutes / 60 : 0;
+              const totalHours = totalMinutes / 60; // Horas totales en la empresa
               acc[index].totalHours = totalHours;
-              
+
               // Calcular horas extras: más de 9 horas totales (8 horas de trabajo + 1 hora de almuerzo)
               // 9 horas = 540 minutos
               const requiredTotalMinutes = 540; // 9 horas totales (540 minutos)
-              const overtimeByTotalTime = totalMinutes > requiredTotalMinutes 
-                ? totalMinutes - requiredTotalMinutes 
-                : 0;
-              
+              const overtimeByTotalTime =
+                totalMinutes > requiredTotalMinutes
+                  ? totalMinutes - requiredTotalMinutes
+                  : 0;
+
               // Calcular minutos excedidos del almuerzo (más de 60 minutos)
               const lunchExceededMinutes = lunchTime > 60 ? lunchTime - 60 : 0;
-              
-              // Sumar horas extras por tiempo total + minutos excedidos de almuerzo
-              const totalOvertimeMinutes = overtimeByTotalTime + lunchExceededMinutes;
-              acc[index].overtimeHours = totalOvertimeMinutes > 0 ? totalOvertimeMinutes / 60 : 0;
-            }
-          } else {
-            // Si no hay marcación pero hay schedule, calcular retraso si aplica
-            if (acc[index].schedule && !acc[index].schedule.schedule.day_off) {
-              // No hay nada que hacer aquí, el delay se calcula cuando hay entrada
-            }
-          }
 
-          return acc;
-        }, acc) // Usar el array inicial que ya tiene todos los días
-        .sort((a, b) => {
-          // Ordenar primero por fecha (asegurar orden cronológico), luego por nombre de empleado
-          const dateA = new Date(a.day + 'T00:00:00').getTime();
-          const dateB = new Date(b.day + 'T00:00:00').getTime();
-          if (dateA !== dateB) {
-            return dateA - dateB;
+              // Sumar horas extras por tiempo total + minutos excedidos de almuerzo
+              const totalOvertimeMinutes =
+                overtimeByTotalTime + lunchExceededMinutes;
+              acc[index].overtimeHours =
+                totalOvertimeMinutes > 0 ? totalOvertimeMinutes / 60 : 0;
+
+              if (totalMinutes < requiredTotalMinutes) {
+                acc[index].insufficientHours = true;
+              }
+            }
+          } else if (acc[index].entry && acc[index].exit) {
+            // Si no hay horario establecido, calcular desde la entrada real
+            const totalMinutes = differenceInMinutes(
+              acc[index].exit.date,
+              acc[index].entry.date
+            );
+            // Validar y calcular tiempo de almuerzo
+            let lunchTime = 0;
+            if (acc[index].lunch_start && acc[index].lunch_end) {
+              const lunchStart = acc[index].lunch_start.date;
+              const lunchEnd = acc[index].lunch_end.date;
+
+              // Validar que las fechas sean válidas
+              if (
+                lunchStart &&
+                lunchEnd &&
+                !isNaN(new Date(lunchStart).getTime()) &&
+                !isNaN(new Date(lunchEnd).getTime())
+              ) {
+                const diff = differenceInMinutes(lunchEnd, lunchStart);
+                // Solo usar si la diferencia es positiva y razonable (máximo 3 horas)
+                if (diff > 0 && diff <= 180) {
+                  lunchTime = diff;
+                }
+              }
+            }
+
+            const workMinutes = totalMinutes - lunchTime;
+            // Validar que totalMinutes sea válido antes de dividir
+            const totalHours = totalMinutes > 0 ? totalMinutes / 60 : 0;
+            acc[index].totalHours = totalHours;
+
+            // Calcular horas extras: más de 9 horas totales (8 horas de trabajo + 1 hora de almuerzo)
+            // 9 horas = 540 minutos
+            const requiredTotalMinutes = 540; // 9 horas totales (540 minutos)
+            const overtimeByTotalTime =
+              totalMinutes > requiredTotalMinutes
+                ? totalMinutes - requiredTotalMinutes
+                : 0;
+
+            // Calcular minutos excedidos del almuerzo (más de 60 minutos)
+            const lunchExceededMinutes = lunchTime > 60 ? lunchTime - 60 : 0;
+
+            // Sumar horas extras por tiempo total + minutos excedidos de almuerzo
+            const totalOvertimeMinutes =
+              overtimeByTotalTime + lunchExceededMinutes;
+            acc[index].overtimeHours =
+              totalOvertimeMinutes > 0 ? totalOvertimeMinutes / 60 : 0;
           }
-          const nameA =
-            (a.employee.first_name || '') +
-            ' ' +
-            (a.employee.father_name || '');
-          const nameB =
-            (b.employee.first_name || '') +
-            ' ' +
-            (b.employee.father_name || '');
-          return nameA.localeCompare(nameB);
-        })
-        // Filtrar días finales que estén dentro del rango (validación final)
-        .filter((x) => {
-          const dayStr = x.day;
-          // Asegurar que la fecha esté en el rango correcto
-          return dayStr >= dateRangeStart && dayStr <= dateRangeEnd;
-        })
-    );
-    
+        } else {
+          // Si no hay marcación pero hay schedule, calcular retraso si aplica
+          if (acc[index].schedule && !acc[index].schedule.schedule.day_off) {
+            // No hay nada que hacer aquí, el delay se calcula cuando hay entrada
+          }
+        }
+
+        return acc;
+      }, acc) // Usar el array inicial que ya tiene todos los días
+      .sort((a, b) => {
+        // Ordenar primero por fecha (asegurar orden cronológico), luego por nombre de empleado
+        const dateA = new Date(a.day + 'T00:00:00').getTime();
+        const dateB = new Date(b.day + 'T00:00:00').getTime();
+        if (dateA !== dateB) {
+          return dateA - dateB;
+        }
+        const nameA =
+          (a.employee.first_name || '') + ' ' + (a.employee.father_name || '');
+        const nameB =
+          (b.employee.first_name || '') + ' ' + (b.employee.father_name || '');
+        return nameA.localeCompare(nameB);
+      })
+      // Filtrar días finales que estén dentro del rango (validación final)
+      .filter((x) => {
+        const dayStr = x.day;
+        // Asegurar que la fecha esté en el rango correcto
+        return dayStr >= dateRangeStart && dayStr <= dateRangeEnd;
+      });
+
     console.log('[TimelogsComponent] ✅ dayLogs - Procesamiento completado:', {
       totalRegistros: result.length,
-      conEntrada: result.filter(x => x.entry).length,
-      conSalida: result.filter(x => x.exit).length,
-      conAlmuerzo: result.filter(x => x.lunch_start && x.lunch_end).length,
-      conErrores: result.filter(x => x.scheduleError).length,
-      conAlertas: result.filter(x => x.alert).length,
-      conMarcaciones: result.filter(x => x.entry || x.lunch_start || x.exit).length,
+      conEntrada: result.filter((x) => x.entry).length,
+      conSalida: result.filter((x) => x.exit).length,
+      conAlmuerzo: result.filter((x) => x.lunch_start && x.lunch_end).length,
+      conErrores: result.filter((x) => x.scheduleError).length,
+      conAlertas: result.filter((x) => x.alert).length,
+      conMarcaciones: result.filter((x) => x.entry || x.lunch_start || x.exit)
+        .length,
     });
-    
+
     return result;
   });
 
   public filteredDaylogs = computed(() => {
     const dayLogsData = this.dayLogs();
-    
+
     // Filtrar manteniendo el mismo orden que dayLogs
     const filtered = dayLogsData.filter((x) => {
       if (this.onlyDelayed()) {
@@ -2040,17 +1499,20 @@ export class TimelogsComponent {
     });
 
     // Retornar los datos filtrados en el mismo orden (ya están ordenados por dayLogs)
-    console.log('[TimelogsComponent] ✅ filteredDaylogs - Filtrado completado:', {
-      totalAntes: dayLogsData.length,
-      totalDespues: filtered.length,
-      filtrosAplicados: {
-        onlyDelayed: this.onlyDelayed(),
-        onlyErrors: this.onlyErrors(),
-        onlyEarlyExit: this.onlyEarlyExit(),
-        onlyLunchExceeded: this.onlyLunchExceeded(),
-      },
-    });
-    
+    console.log(
+      '[TimelogsComponent] ✅ filteredDaylogs - Filtrado completado:',
+      {
+        totalAntes: dayLogsData.length,
+        totalDespues: filtered.length,
+        filtrosAplicados: {
+          onlyDelayed: this.onlyDelayed(),
+          onlyErrors: this.onlyErrors(),
+          onlyEarlyExit: this.onlyEarlyExit(),
+          onlyLunchExceeded: this.onlyLunchExceeded(),
+        },
+      }
+    );
+
     return filtered;
   });
 
@@ -2228,9 +1690,10 @@ export class TimelogsComponent {
         ? `${lunchMinutes} min`
         : '';
       const totalHours = x.totalHours ? this.formatHours(x.totalHours) : '-';
-      const overtimeHours = x.overtimeHours && x.overtimeHours > 0 
-        ? this.formatHours(x.overtimeHours) 
-        : '-';
+      const overtimeHours =
+        x.overtimeHours && x.overtimeHours > 0
+          ? this.formatHours(x.overtimeHours)
+          : '-';
       const errors = [];
       if (x.scheduleError) errors.push('Error de Horario');
       if (x.lunchExceeded) errors.push('Almuerzo Excedido');
