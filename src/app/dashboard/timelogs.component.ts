@@ -1090,6 +1090,7 @@ export class TimelogsComponent {
             earlyExit?: boolean;
             insufficientHours?: boolean;
             totalHours?: number;
+            overtimeHours?: number; // Horas extras (más de 9 horas totales)
             entry?: { date: Date; branch: Branch };
             lunch_start?: { date: Date; branch: Branch };
             lunch_end?: { date: Date; branch: Branch };

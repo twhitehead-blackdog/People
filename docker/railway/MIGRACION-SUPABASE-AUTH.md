@@ -151,3 +151,4 @@ El servicio mantiene compatibilidad con el código existente:
 - [Documentación de Supabase Auth](https://supabase.com/docs/guides/auth)
 - [Guía de Migración de Auth0 a Supabase](https://supabase.com/docs/guides/auth/auth-helpers/auth-helpers-angular)
 
+
