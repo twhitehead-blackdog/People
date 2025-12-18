@@ -498,8 +498,8 @@ export class HRTimeDashboardComponent {
 
   // Datos del gráfico
   public chartData = signal<any>(null);
-  public chartOptions = {
-    indexAxis: 'x', // Barras verticales (por defecto)
+  public chartOptions: any = {
+    indexAxis: 'x' as const, // Barras verticales (por defecto)
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
