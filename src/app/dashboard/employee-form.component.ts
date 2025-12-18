@@ -1290,8 +1290,25 @@ export class EmployeeFormComponent implements OnInit {
         next: () => {
           // Recargar la lista de empleados
           this.store.employees.reloadItems();
+          // Navegar de vuelta a la lista después de editar
+          this.router.navigate(['/admin/employees']);
+        },
+        error: (error) => {
+          console.error('Error al editar empleado:', error);
+          this.message.add({
+            severity: 'error',
+            summary: 'Error al guardar',
+            detail:
+              error?.error?.message ||
+              'Ocurrió un error al editar el empleado. Por favor intente nuevamente.',
+          });
+        },
+      });
+    }
+  }
 
-          this.store.employees.createItem(dataToSave).subscribe({
+  private saveNewEmployee(dataToSave: any) {
+    this.store.employees.createItem(dataToSave).subscribe({
             next: () => {
               // Recargar la lista de empleados
               this.store.employees.reloadItems();
