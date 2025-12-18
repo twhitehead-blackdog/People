@@ -415,7 +415,7 @@ import { OrganizationService } from '../services/organization.service';
           <!-- Formularios modales -->
           @if (activeGestionForm()) {
           <p-dialog
-            [(visible)]="showGestionDialog()"
+            [visible]="showGestionDialog()"
             [modal]="true"
             [style]="{ width: '90vw', maxWidth: '800px' }"
             [header]="getGestionFormTitle()"
