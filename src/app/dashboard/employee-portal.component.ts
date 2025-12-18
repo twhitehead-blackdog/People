@@ -14,9 +14,16 @@ import {
   addDays,
   differenceInDays,
   differenceInMinutes,
+  eachDayOfInterval,
   endOfMonth,
+  endOfWeek,
   format,
+  getDay,
+  isSameDay,
+  isSameMonth,
+  isToday,
   startOfMonth,
+  startOfWeek,
 } from 'date-fns';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
@@ -905,127 +912,182 @@ import { OrganizationService } from '../services/organization.service';
         <!-- Tab 3: Mis Marcaciones -->
         <p-tabpanel value="3">
           <p-card>
-            <ng-template #title>Registro de Marcaciones</ng-template>
-            <ng-template #subtitle
-              >Consulta tus entradas y salidas del mes</ng-template
-            >
-            <div class="flex flex-col gap-4 mb-4">
-              <div class="flex flex-col md:flex-row gap-2">
-                <p-datepicker
-                  placeholder="Rango de fechas"
-                  selectionMode="range"
-                  appendTo="body"
-                  [(ngModel)]="dateRange"
-                  class="w-full md:w-auto"
-                />
+            <ng-template #title>
+              <div class="flex items-center justify-between w-full">
+                <div>
+                  <h3 class="text-xl font-bold text-white m-0">Calendario de Marcaciones</h3>
+                  <p class="text-sm text-gray-400 m-0 mt-1">
+                    {{ calendarMonth() | date : 'MMMM yyyy' }}
+                  </p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <p-button
+                    icon="pi pi-chevron-left"
+                    severity="secondary"
+                    text
+                    rounded
+                    (onClick)="previousMonth()"
+                    [title]="'Mes anterior'"
+                  />
+                  <p-button
+                    label="Hoy"
+                    severity="secondary"
+                    outlined
+                    size="small"
+                    (onClick)="goToToday()"
+                  />
+                  <p-button
+                    icon="pi pi-chevron-right"
+                    severity="secondary"
+                    text
+                    rounded
+                    (onClick)="nextMonth()"
+                    [title]="'Mes siguiente'"
+                  />
+                </div>
               </div>
-            </div>
-            <div class="overflow-x-auto">
-              <p-table
-                [value]="myTimelogs()"
-                [rows]="10"
-                [rowsPerPageOptions]="[10, 20, 50]"
-                paginator
-                [loading]="timelogsApi.isLoading()"
-                paginatorDropdownAppendTo="body"
-                styleClass="p-datatable-sm md:p-datatable-lg"
-                [scrollable]="true"
-                scrollHeight="400px"
-                [responsiveLayout]="'scroll'"
-              >
-                <ng-template #header>
-                  <tr>
-                    <th>Fecha</th>
-                    <th>Horario</th>
-                    <th>Entrada</th>
-                    <th>Inicio Almuerzo</th>
-                    <th>Fin Almuerzo</th>
-                    <th>Salida</th>
-                    <th>Horas Trabajadas</th>
-                  </tr>
-                </ng-template>
-                <ng-template #body let-log>
-                  <tr>
-                    <td>{{ log.day | date : 'mediumDate' }}</td>
-                    <td>
-                      <span
-                        class="inline-flex gap-1 py-0.5 px-1.5 rounded-sm font-medium items-center justify-center text-xs border border-black/20 shadow-sm"
-                        [class]="
-                          log.schedule?.schedule
-                            ? getScheduleColor(log.schedule.schedule.color)
-                            : 'bg-neutral-700 text-gray-300'
-                        "
-                      >
-                        {{ log?.schedule?.schedule?.name || 'Sin horario' }}
-                      </span>
-                    </td>
-                    <td>
-                      <div class="flex gap-2 items-center">
-                        <span
-                          class="text-sm"
-                          [class.text-red-400]="
-                          log.delay && typeof log.delay === 'number'
-                        "
-                          [class.font-semibold]="
-                          log.delay && typeof log.delay === 'number'
-                        "
-                        >
-                          {{
-                            log.entry?.date
-                              ? (log.entry.date | date : 'hh:mm a')
-                              : '-'
-                          }}
-                        </span>
-                        @if(log.delay && typeof log.delay === 'number') {
-                        <span class="text-xs text-red-400"
-                          >Retraso: {{ log.delay }} min</span
-                        >
-                        }
+            </ng-template>
+            <ng-template #subtitle
+              >Visualiza tus marcaciones en formato calendario</ng-template
+            >
+            
+            @if (timelogsApi.isLoading()) {
+              <div class="flex items-center justify-center py-12">
+                <i class="pi pi-spin pi-spinner text-4xl text-amber-400"></i>
+              </div>
+            } @else {
+              <!-- Calendario -->
+              <div class="calendar-container">
+                <!-- Días de la semana -->
+                <div class="calendar-weekdays">
+                  <div class="calendar-weekday">Lun</div>
+                  <div class="calendar-weekday">Mar</div>
+                  <div class="calendar-weekday">Mié</div>
+                  <div class="calendar-weekday">Jue</div>
+                  <div class="calendar-weekday">Vie</div>
+                  <div class="calendar-weekday">Sáb</div>
+                  <div class="calendar-weekday">Dom</div>
+                </div>
+
+                <!-- Días del calendario -->
+                <div class="calendar-grid">
+                  @for (day of calendarDays(); track day.getTime()) {
+                    @let log = getLogForDay(day);
+                    @let isCurrentMonth = isSameMonth(day, calendarMonth());
+                    @let isTodayDate = isToday(day);
+                    @let hasEntry = log?.entry;
+                    @let hasExit = log?.exit;
+                    @let hasDelay = log?.delay && typeof log?.delay === 'number';
+                    @let workedHours = log?.entry && log?.exit ? calculateWorkedHours(log.entry.date, log.exit.date) : null;
+                    
+                    <div
+                      class="calendar-day"
+                      [class.calendar-day-other-month]="!isCurrentMonth"
+                      [class.calendar-day-today]="isTodayDate"
+                      [class.calendar-day-has-data]="hasEntry || hasExit"
+                      [class.calendar-day-complete]="hasEntry && hasExit"
+                      [class.calendar-day-incomplete]="hasEntry && !hasExit"
+                    >
+                      <!-- Número del día -->
+                      <div class="calendar-day-number">
+                        {{ day.getDate() }}
                       </div>
-                    </td>
-                    <td>
-                      {{
-                        log.lunch_start?.date
-                          ? (log.lunch_start.date | date : 'hh:mm a')
-                          : '-'
-                      }}
-                    </td>
-                    <td>
-                      {{
-                        log.lunch_end?.date
-                          ? (log.lunch_end.date | date : 'hh:mm a')
-                          : '-'
-                      }}
-                    </td>
-                    <td>
-                      {{
-                        log.exit?.date
-                          ? (log.exit.date | date : 'hh:mm a')
-                          : '-'
-                      }}
-                    </td>
-                    <td>
-                      @if(log.entry && log.exit) {
-                      {{ calculateWorkedHours(log.entry.date, log.exit.date) }}
-                      } @else {
-                      <span class="text-gray-400">-</span>
+
+                      <!-- Contenido del día -->
+                      @if (isCurrentMonth && log) {
+                        <div class="calendar-day-content">
+                          <!-- Entrada -->
+                          @if (hasEntry) {
+                            <div class="calendar-time-entry" [class.calendar-time-delay]="hasDelay">
+                              <i class="pi pi-sign-in text-xs"></i>
+                              <span class="text-xs font-semibold">
+                                {{ log.entry.date | date : 'HH:mm' }}
+                              </span>
+                              @if (hasDelay) {
+                                <span class="calendar-delay-badge">{{ log.delay }}m</span>
+                              }
+                            </div>
+                          }
+
+                          <!-- Almuerzo -->
+                          @if (log.lunch_start || log.lunch_end) {
+                            <div class="calendar-time-lunch">
+                              <i class="pi pi-clock text-xs"></i>
+                              @if (log.lunch_start && log.lunch_end) {
+                                <span class="text-xs">
+                                  {{ log.lunch_start.date | date : 'HH:mm' }} - 
+                                  {{ log.lunch_end.date | date : 'HH:mm' }}
+                                </span>
+                              } @else if (log.lunch_start) {
+                                <span class="text-xs">Almuerzo: {{ log.lunch_start.date | date : 'HH:mm' }}</span>
+                              }
+                            </div>
+                          }
+
+                          <!-- Salida -->
+                          @if (hasExit) {
+                            <div class="calendar-time-exit">
+                              <i class="pi pi-sign-out text-xs"></i>
+                              <span class="text-xs font-semibold">
+                                {{ log.exit.date | date : 'HH:mm' }}
+                              </span>
+                            </div>
+                          }
+
+                          <!-- Horas trabajadas -->
+                          @if (workedHours) {
+                            <div class="calendar-hours-worked">
+                              <i class="pi pi-hourglass text-xs"></i>
+                              <span class="text-xs font-bold">{{ workedHours }}</span>
+                            </div>
+                          }
+
+                          <!-- Estado del día -->
+                          @if (!hasEntry && !hasExit) {
+                            <div class="calendar-day-empty">
+                              <i class="pi pi-minus text-xs"></i>
+                              <span class="text-xs">Sin marcación</span>
+                            </div>
+                          } @else if (hasEntry && !hasExit) {
+                            <div class="calendar-day-warning">
+                              <i class="pi pi-exclamation-triangle text-xs"></i>
+                              <span class="text-xs">Sin salida</span>
+                            </div>
+                          }
+                        </div>
+                      } @else if (isCurrentMonth && !log) {
+                        <div class="calendar-day-empty">
+                          <i class="pi pi-minus text-xs"></i>
+                          <span class="text-xs">Sin datos</span>
+                        </div>
                       }
-                    </td>
-                  </tr>
-                </ng-template>
-                <ng-template #emptymessage>
-                  <tr>
-                    <td colspan="7">
-                      <div
-                        class="flex flex-col items-center justify-center gap-4 py-8"
-                      >
-                        <p class="text-gray-400">No se encontraron registros</p>
-                      </div>
-                    </td>
-                  </tr>
-                </ng-template>
-              </p-table>
-            </div>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <!-- Leyenda -->
+              <div class="calendar-legend mt-6 pt-6 border-t border-neutral-700">
+                <div class="flex flex-wrap gap-4 justify-center text-sm">
+                  <div class="flex items-center gap-2">
+                    <div class="w-4 h-4 rounded bg-green-500/30 border border-green-500/50"></div>
+                    <span class="text-gray-300">Día completo</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <div class="w-4 h-4 rounded bg-yellow-500/30 border border-yellow-500/50"></div>
+                    <span class="text-gray-300">Día incompleto</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <div class="w-4 h-4 rounded bg-red-500/30 border border-red-500/50"></div>
+                    <span class="text-gray-300">Con retraso</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <div class="w-4 h-4 rounded bg-neutral-700 border border-neutral-600"></div>
+                    <span class="text-gray-300">Sin marcación</span>
+                  </div>
+                </div>
+              </div>
+            }
           </p-card>
         </p-tabpanel>
 
@@ -2270,6 +2332,244 @@ import { OrganizationService } from '../services/organization.service';
     .naz-theme ::ng-deep [class*="border-neutral-700/50"] {
       border-color: rgba(255, 255, 255, 0.10) !important;
     }
+
+    /* Estilos del Calendario de Marcaciones */
+    .calendar-container {
+      width: 100%;
+      margin-top: 1.5rem;
+    }
+
+    .calendar-weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .calendar-weekday {
+      text-align: center;
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: #9ca3af;
+      padding: 0.75rem 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 0.5rem;
+    }
+
+    .calendar-day {
+      min-height: 140px;
+      background: #1f2937;
+      border: 1px solid #374151;
+      border-radius: 0.5rem;
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .calendar-day:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(251, 191, 36, 0.2);
+      border-color: #fbbf24;
+    }
+
+    .calendar-day-other-month {
+      opacity: 0.4;
+      background: #111827;
+    }
+
+    .calendar-day-today {
+      border: 2px solid #fbbf24;
+      box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.1);
+    }
+
+    .calendar-day-today .calendar-day-number {
+      background: #fbbf24;
+      color: #212121;
+      font-weight: 700;
+    }
+
+    .calendar-day-complete {
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%);
+      border-color: rgba(34, 197, 94, 0.3);
+    }
+
+    .calendar-day-incomplete {
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(251, 191, 36, 0.05) 100%);
+      border-color: rgba(251, 191, 36, 0.3);
+    }
+
+    .calendar-day-number {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #ffffff;
+      margin-bottom: 0.5rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(251, 191, 36, 0.1);
+    }
+
+    .calendar-day-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.375rem;
+      font-size: 0.75rem;
+    }
+
+    .calendar-time-entry,
+    .calendar-time-exit,
+    .calendar-time-lunch,
+    .calendar-hours-worked {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      color: #93c5fd;
+    }
+
+    .calendar-time-entry {
+      background: rgba(34, 197, 94, 0.1);
+      border-color: rgba(34, 197, 94, 0.2);
+      color: #86efac;
+    }
+
+    .calendar-time-entry.calendar-time-delay {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+
+    .calendar-time-exit {
+      background: rgba(59, 130, 246, 0.1);
+      border-color: rgba(59, 130, 246, 0.2);
+      color: #93c5fd;
+    }
+
+    .calendar-time-lunch {
+      background: rgba(251, 191, 36, 0.1);
+      border-color: rgba(251, 191, 36, 0.2);
+      color: #fcd34d;
+    }
+
+    .calendar-hours-worked {
+      background: rgba(168, 85, 247, 0.1);
+      border-color: rgba(168, 85, 247, 0.2);
+      color: #c4b5fd;
+      margin-top: auto;
+      font-weight: 600;
+    }
+
+    .calendar-delay-badge {
+      background: rgba(239, 68, 68, 0.3);
+      color: #fee2e2;
+      padding: 0.125rem 0.375rem;
+      border-radius: 0.25rem;
+      font-size: 0.625rem;
+      font-weight: 700;
+      margin-left: auto;
+    }
+
+    .calendar-day-empty {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.25rem 0.5rem;
+      color: #6b7280;
+      font-size: 0.75rem;
+      margin-top: auto;
+    }
+
+    .calendar-day-warning {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      background: rgba(251, 191, 36, 0.1);
+      border: 1px solid rgba(251, 191, 36, 0.2);
+      color: #fcd34d;
+      font-size: 0.75rem;
+      margin-top: auto;
+    }
+
+    .calendar-legend {
+      display: flex;
+      justify-content: center;
+      padding-top: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    /* Responsive para calendario */
+    @media (max-width: 768px) {
+      .calendar-day {
+        min-height: 100px;
+        padding: 0.5rem;
+      }
+
+      .calendar-day-content {
+        gap: 0.25rem;
+      }
+
+      .calendar-time-entry,
+      .calendar-time-exit,
+      .calendar-time-lunch,
+      .calendar-hours-worked {
+        font-size: 0.625rem;
+        padding: 0.125rem 0.375rem;
+      }
+
+      .calendar-day-number {
+        font-size: 0.875rem;
+        width: 24px;
+        height: 24px;
+      }
+
+      .calendar-weekday {
+        font-size: 0.75rem;
+        padding: 0.5rem 0.25rem;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .calendar-day {
+        min-height: 80px;
+        padding: 0.375rem;
+      }
+
+      .calendar-day-content {
+        gap: 0.125rem;
+      }
+
+      .calendar-time-entry,
+      .calendar-time-exit,
+      .calendar-time-lunch,
+      .calendar-hours-worked {
+        font-size: 0.5rem;
+        padding: 0.125rem 0.25rem;
+      }
+
+      .calendar-day-number {
+        font-size: 0.75rem;
+        width: 20px;
+        height: 20px;
+      }
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -2348,12 +2648,53 @@ export class EmployeePortalComponent {
     return new Date();
   }
 
-  // Date range for timelogs
-  // Inicializar con rango que incluya los últimos 7 días para las marcaciones recientes
+  // Calendario - mes actual seleccionado
+  public calendarMonth = signal<Date>(new Date());
+
+  // Date range for timelogs - inicializar con el mes actual
   public dateRange = signal<Date[]>([
-    addDays(new Date(), -7), // Últimos 7 días para incluir marcaciones recientes
+    startOfMonth(new Date()),
     endOfMonth(new Date()),
   ]);
+
+  // Generar días del calendario
+  public calendarDays = computed(() => {
+    const monthStart = startOfMonth(this.calendarMonth());
+    const monthEnd = endOfMonth(this.calendarMonth());
+    const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 }); // Lunes
+    const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 }); // Domingo
+
+    return eachDayOfInterval({ start: calendarStart, end: calendarEnd });
+  });
+
+  // Obtener log para un día específico
+  public getLogForDay(day: Date): any {
+    const dayStr = format(day, 'yyyy-MM-dd');
+    return this.myTimelogs().find((log) => log.day === dayStr);
+  }
+
+  // Navegación del calendario
+  public previousMonth(): void {
+    const current = this.calendarMonth();
+    const newMonth = new Date(current.getFullYear(), current.getMonth() - 1, 1);
+    this.calendarMonth.set(newMonth);
+    // Actualizar dateRange para el nuevo mes
+    this.dateRange.set([startOfMonth(newMonth), endOfMonth(newMonth)]);
+  }
+
+  public nextMonth(): void {
+    const current = this.calendarMonth();
+    const newMonth = new Date(current.getFullYear(), current.getMonth() + 1, 1);
+    this.calendarMonth.set(newMonth);
+    // Actualizar dateRange para el nuevo mes
+    this.dateRange.set([startOfMonth(newMonth), endOfMonth(newMonth)]);
+  }
+
+  public goToToday(): void {
+    const today = new Date();
+    this.calendarMonth.set(today);
+    this.dateRange.set([startOfMonth(today), endOfMonth(today)]);
+  }
 
   // Timelogs API
   public timelogsApi = httpResource<any[]>(() => {
@@ -2439,6 +2780,111 @@ export class EmployeePortalComponent {
                 ? { date: logDate, branch: logBranch }
                 : undefined,
             schedule: null, // Would need to fetch schedules separately
+            delay: undefined,
+          });
+        } else {
+          if (x.type === TimeLogEnum.entry)
+            existing.entry = { date: logDate, branch: logBranch };
+          if (x.type === TimeLogEnum.lunch_start)
+            existing.lunch_start = {
+              date: logDate,
+              branch: logBranch,
+            };
+          if (x.type === TimeLogEnum.lunch_end)
+            existing.lunch_end = {
+              date: logDate,
+              branch: logBranch,
+            };
+          if (x.type === TimeLogEnum.exit)
+            existing.exit = { date: logDate, branch: logBranch };
+        }
+        return acc;
+      }, []);
+
+    return processedLogs.sort(
+      (a, b) => new Date(b.day).getTime() - new Date(a.day).getTime()
+    );
+  });
+
+  // Timelogs API para el mes actual (independiente del dateRange del usuario)
+  public monthTimelogsApi = httpResource<any[]>(() => {
+    if (!this.currentEmployee()?.id) {
+      return undefined;
+    }
+    const employeeId = this.currentEmployee()!.id;
+    const companyId = this.organizationService.getCurrentCompanyId();
+    
+    if (!companyId) {
+      return undefined;
+    }
+    
+    const now = new Date();
+    const monthStart = startOfMonth(now);
+    const monthEnd = endOfMonth(now);
+    
+    const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`;
+    const startDate = format(monthStart, "yyyy-MM-dd'T'06:00:00");
+    const endDate = format(addDays(monthEnd, 1), "yyyy-MM-dd'T'06:00:00");
+    const select = `*,employee:employees(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)`;
+    
+    let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
+    url += `&employee_id=eq.${employeeId}`;
+    url += `&company_id=eq.${companyId}`;
+    url += `&created_at=gte.${startDate}`;
+    url += `&created_at=lte.${endDate}`;
+    url += `&order=created_at.asc`;
+    
+    return {
+      url,
+      method: 'GET',
+    };
+  });
+
+  // Procesar timelogs del mes actual
+  public monthTimelogs = computed(() => {
+    const logs = this.monthTimelogsApi.value() ?? [];
+    
+    const processedLogs = logs
+      .filter((x) => x.created_at)
+      .map((x) => {
+        try {
+          const date = new Date(x.created_at);
+          if (isNaN(date.getTime())) {
+            return null;
+          }
+          return { ...x, day: format(date, 'yyyy-MM-dd') };
+        } catch {
+          return null;
+        }
+      })
+      .filter((x) => x !== null)
+      .reduce<any[]>((acc, x) => {
+        if (!x) return acc;
+
+        const existing = acc.find((item) => item.day === x.day);
+        const logDate = new Date(x.created_at);
+        const logBranch = x.branch || null;
+
+        if (!existing) {
+          acc.push({
+            day: x.day,
+            entry:
+              x.type === TimeLogEnum.entry
+                ? { date: logDate, branch: logBranch }
+                : undefined,
+            lunch_start:
+              x.type === TimeLogEnum.lunch_start
+                ? { date: logDate, branch: logBranch }
+                : undefined,
+            lunch_end:
+              x.type === TimeLogEnum.lunch_end
+                ? { date: logDate, branch: logBranch }
+                : undefined,
+            exit:
+              x.type === TimeLogEnum.exit
+                ? { date: logDate, branch: logBranch }
+                : undefined,
+            schedule: null,
             delay: undefined,
           });
         } else {
@@ -2803,17 +3249,13 @@ export class EmployeePortalComponent {
 
   // Dashboard computed properties
   public daysWorkedThisMonth = computed(() => {
-    const logs = this.myTimelogs();
-    const now = new Date();
-    const monthStart = startOfMonth(now);
-    const monthEnd = endOfMonth(now);
+    // Usar monthTimelogs en lugar de myTimelogs para obtener todos los días del mes actual
+    const logs = this.monthTimelogs();
 
     // Contar días que tienen al menos una marcación (entry, lunch_start, lunch_end, o exit)
     return logs.filter((log) => {
-      const logDate = new Date(log.day);
-      const isInMonth = logDate >= monthStart && logDate <= monthEnd;
       const hasAnyMark = log.entry || log.lunch_start || log.lunch_end || log.exit;
-      return isInMonth && hasAnyMark;
+      return hasAnyMark;
     }).length;
   });
 
