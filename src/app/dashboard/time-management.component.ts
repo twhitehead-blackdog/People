@@ -1,9 +1,7 @@
-import { ChangeDetectionStrategy, Component, inject, computed, signal, OnDestroy } from '@angular/core';
-import { Router, RouterOutlet, ActivatedRoute, NavigationEnd } from '@angular/router';
+import { ChangeDetectionStrategy, Component, inject, computed, signal } from '@angular/core';
+import { Router, RouterOutlet, ActivatedRoute } from '@angular/router';
 import { NgClass } from '@angular/common';
 import { TabsModule } from 'primeng/tabs';
-import { filter } from 'rxjs/operators';
-import { Subscription } from 'rxjs';
 import { DashboardStore } from '../stores/dashboard.store';
 import { OrganizationService } from '../services/organization.service';
 
@@ -75,7 +73,7 @@ import { OrganizationService } from '../services/organization.service';
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class TimeManagementComponent implements OnDestroy {
+export class TimeManagementComponent {
   public store = inject(DashboardStore);
   public organizationService = inject(OrganizationService);
   private router = inject(Router);
@@ -87,50 +85,21 @@ export class TimeManagementComponent implements OnDestroy {
   // Tab activa basada en la ruta actual
   public activeTab = signal<string>('timetables');
 
-  // Valores válidos de pestañas
-  private readonly validTabValues = ['timelogs', 'timetables', 'schedules'];
-
-  // Suscripción a eventos del router
-  private routerSubscription?: Subscription;
-
   constructor() {
-    // Función para actualizar la pestaña activa basada en la URL
-    const updateActiveTabFromUrl = (url: string) => {
-      if (url.includes('/timelogs')) {
-        this.activeTab.set('timelogs');
-      } else if (url.includes('/schedules')) {
-        this.activeTab.set('schedules');
-      } else {
-        this.activeTab.set('timetables');
-      }
-    };
-
-    // Determinar la pestaña activa basada en la ruta inicial
-    updateActiveTabFromUrl(this.router.url);
-
-    // Suscribirse a los cambios de ruta para mantener la sincronización
-    this.routerSubscription = this.router.events
-      .pipe(filter(event => event instanceof NavigationEnd))
-      .subscribe(() => {
-        updateActiveTabFromUrl(this.router.url);
-      });
-  }
-
-  ngOnDestroy(): void {
-    // Limpiar la suscripción cuando el componente se destruya
-    this.routerSubscription?.unsubscribe();
+    // Determinar la pestaña activa basada en la ruta
+    const url = this.router.url;
+    if (url.includes('/timelogs')) {
+      this.activeTab.set('timelogs');
+    } else if (url.includes('/schedules')) {
+      this.activeTab.set('schedules');
+    } else {
+      this.activeTab.set('timetables');
+    }
   }
 
   // Manejar cambio de pestaña
   public onTabChange(tabValue: string | number): void {
     const tabValueStr = String(tabValue);
-    
-    // Validar que el valor sea uno de los valores válidos
-    if (!this.validTabValues.includes(tabValueStr)) {
-      console.warn(`Valor de pestaña inválido: ${tabValueStr}. Valores válidos: ${this.validTabValues.join(', ')}`);
-      return;
-    }
-
     this.activeTab.set(tabValueStr);
     // Navegar a la ruta correspondiente sin recargar
     this.router.navigate([tabValueStr], { relativeTo: this.route, replaceUrl: true });
