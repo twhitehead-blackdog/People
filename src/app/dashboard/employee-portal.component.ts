@@ -501,7 +501,9 @@ import { EmployeesStore } from '../stores/employees.store';
                   <p-button
                     label="Subir Incapacidad"
                     icon="pi pi-upload"
+                    type="button"
                     [loading]="uploadingDisability()"
+                    [disabled]="uploadingDisability()"
                     (click)="uploadDisability(); closeGestionForm()"
                   />
                 </div>
@@ -571,7 +573,9 @@ import { EmployeesStore } from '../stores/employees.store';
                   <p-button
                     label="Solicitar Documento"
                     icon="pi pi-send"
+                    type="button"
                     [loading]="submittingDocument()"
+                    [disabled]="submittingDocument()"
                     (click)="submitDocumentRequest(); closeGestionForm()"
                   />
                 </div>
@@ -668,6 +672,7 @@ import { EmployeesStore } from '../stores/employees.store';
                     label="Enviar Queja"
                     icon="pi pi-send"
                     severity="warn"
+                    type="button"
                     [loading]="submittingComplaint()"
                     [disabled]="!canSubmitComplaint() || submittingComplaint()"
                     (click)="submitComplaint(); closeGestionForm()"
@@ -742,7 +747,9 @@ import { EmployeesStore } from '../stores/employees.store';
                   <p-button
                     label="Enviar Solicitud"
                     icon="pi pi-send"
+                    type="button"
                     [loading]="submittingTimeoff()"
+                    [disabled]="submittingTimeoff()"
                     (click)="submitTimeoffRequest(); closeGestionForm()"
                   />
                 </div>
@@ -1258,7 +1265,9 @@ import { EmployeesStore } from '../stores/employees.store';
                 <p-button
                   label="Subir Incapacidad"
                   icon="pi pi-upload"
+                  type="button"
                   [loading]="uploadingDisability()"
+                  [disabled]="uploadingDisability()"
                   (click)="uploadDisability()"
                 />
               </div>
@@ -3643,6 +3652,11 @@ export class EmployeePortalComponent {
   }
 
   public async uploadDisability(): Promise<void> {
+    // Prevenir múltiples envíos
+    if (this.uploadingDisability()) {
+      return;
+    }
+
     // Validar campos requeridos
     if (
       !this.disabilityStartDate() ||
@@ -3871,6 +3885,11 @@ export class EmployeePortalComponent {
   }
 
   public async submitDocumentRequest(): Promise<void> {
+    // Prevenir múltiples envíos
+    if (this.submittingDocument()) {
+      return;
+    }
+
     if (!this.documentReason().trim()) {
       this.messageService.add({
         severity: 'warn',
@@ -3937,6 +3956,11 @@ export class EmployeePortalComponent {
   }
 
   public async submitComplaint(): Promise<void> {
+    // Prevenir múltiples envíos
+    if (this.submittingComplaint()) {
+      return;
+    }
+
     if (!this.canSubmitComplaint()) {
       this.messageService.add({
         severity: 'warn',
@@ -4297,6 +4321,11 @@ export class EmployeePortalComponent {
   }
 
   public submitTimeoffRequest(): void {
+    // Prevenir múltiples envíos
+    if (this.submittingTimeoff()) {
+      return;
+    }
+
     if (!this.currentEmployee()?.id) {
       this.messageService.add({
         severity: 'error',
