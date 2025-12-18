@@ -569,20 +569,7 @@ export class DashboardComponent {
   public router = inject(Router);
   public route = inject(ActivatedRoute);
   public currentRoute = signal('');
-  // Signal para toggle manual de la vista (para usuarios de soporte y admins)
-  private manualPortalViewToggle = signal<boolean | null>(null);
-  // Computed que determina si mostrar employee-portal
-  // Por defecto muestra employee-portal para admins/super admins
-  // Permite toggle manual para usuarios de soporte y admins
-  public showEmployeePortalView = computed(() => {
-    // Si hay un toggle manual, usar ese valor
-    const manualToggle = this.manualPortalViewToggle();
-    if (manualToggle !== null) {
-      return manualToggle;
-    }
-    // Por defecto, mostrar employee-portal si es admin o super admin
-    return this.store.isAdmin();
-  });
+  public showEmployeePortalView = signal(false);
   public organizationService = inject(OrganizationService);
   public http = inject(HttpClient);
   public bypassService = inject(AuthBypassService);
@@ -841,16 +828,13 @@ export class DashboardComponent {
       });
     }
 
-    // Agregar opción de vista Employee Portal para soporte2@blackdogpanama.com y admins
-    if (isSupport || (hasDashboardAccess && isAdmin)) {
+    // Agregar opción de vista Employee Portal solo para soporte2@blackdogpanama.com
+    if (isSupport) {
       items.push({
         label: portalView ? 'Vista Completa' : 'Vista Employee Portal',
         icon: portalView ? 'pi pi-th-large' : 'pi pi-id-card',
         command: () => {
-          // Toggle manual: si está en true, cambiar a false; si está en false, cambiar a true
-          // Si es null (por defecto), establecer el opuesto del valor actual
-          const currentValue = this.showEmployeePortalView();
-          this.manualPortalViewToggle.set(!currentValue);
+          this.showEmployeePortalView.update((v) => !v);
         },
       });
     }
