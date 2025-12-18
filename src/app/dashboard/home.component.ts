@@ -4393,9 +4393,19 @@ export class HomeComponent {
         }))
       );
     } else {
-      console.warn('[HomeComponent] latesDailyChartData - ⚠️ No hay schedules cargados. Verificar:');
-      console.warn('  - Company ID:', this.organizationService.getCurrentCompanyId());
-      console.warn('  - Error en employeeSchedules:', this.employeeSchedules.error());
+      // Solo mostrar warning si hay un error real, no cuando simplemente no hay datos todavía
+      const schedulesError = this.employeeSchedules.error();
+      const schedulesLoading = this.employeeSchedules.isLoading();
+      
+      if (schedulesError) {
+        console.warn('[HomeComponent] latesDailyChartData - ⚠️ Error al cargar schedules:');
+        console.warn('  - Company ID:', this.organizationService.getCurrentCompanyId());
+        console.warn('  - Error en employeeSchedules:', schedulesError);
+      } else if (!schedulesLoading && schedules.length === 0) {
+        // Solo mostrar warning si no están cargando y realmente no hay datos
+        // (puede ser normal si no hay schedules para el mes actual)
+        // console.warn('[HomeComponent] latesDailyChartData - No hay schedules disponibles');
+      }
     }
     const detailsByDate = new Map<
       string,
@@ -5092,13 +5102,24 @@ export class HomeComponent {
     // Este cálculo excluye casos sin horario o con errores
     const timelogs = this.latesFromTimelogs.value() ?? [];
     const schedules = this.employeeSchedules.value() ?? [];
+    const timelogsLoading = this.latesFromTimelogs.isLoading();
+    const schedulesLoading = this.employeeSchedules.isLoading();
+    const timelogsError = this.latesFromTimelogs.error();
+    const schedulesError = this.employeeSchedules.error();
     
-    // Debug logs
-    console.log('[HomeComponent] getMonthlyLates - Timelogs cargados:', timelogs.length);
-    console.log('[HomeComponent] getMonthlyLates - Schedules cargados:', schedules.length);
-    console.log('[HomeComponent] getMonthlyLates - Company ID:', this.organizationService.getCurrentCompanyId());
-    console.log('[HomeComponent] getMonthlyLates - activeSection:', this.activeSection());
-    console.log('[HomeComponent] getMonthlyLates - Chart data available:', !!chartData);
+    // Solo mostrar logs de debug si hay datos o errores, no durante la carga inicial
+    if (timelogs.length > 0 || schedules.length > 0 || timelogsError || schedulesError) {
+      console.log('[HomeComponent] getMonthlyLates - Timelogs cargados:', timelogs.length);
+      console.log('[HomeComponent] getMonthlyLates - Schedules cargados:', schedules.length);
+      console.log('[HomeComponent] getMonthlyLates - Company ID:', this.organizationService.getCurrentCompanyId());
+      console.log('[HomeComponent] getMonthlyLates - activeSection:', this.activeSection());
+      console.log('[HomeComponent] getMonthlyLates - Chart data available:', !!chartData);
+    }
+
+    // Si los datos están cargando, retornar 0 sin mostrar warnings
+    if (timelogsLoading || schedulesLoading) {
+      return 0;
+    }
 
     if (timelogs.length > 0 && schedules.length > 0) {
       let lateCount = 0;
@@ -5205,11 +5226,21 @@ export class HomeComponent {
       console.log('[HomeComponent] getMonthlyLates - Entradas procesadas:', entriesProcessed);
       return lateCount;
     } else {
-      console.warn('[HomeComponent] getMonthlyLates - ⚠️ No se pueden calcular tardanzas:');
-      console.warn('  - Timelogs:', timelogs.length);
-      console.warn('  - Schedules:', schedules.length);
-      console.warn('  - Error en latesFromTimelogs:', this.latesFromTimelogs.error());
-      console.warn('  - Error en employeeSchedules:', this.employeeSchedules.error());
+      // Solo mostrar warnings si hay errores reales, no cuando simplemente no hay datos
+      // (puede ser que no haya timelogs o schedules para el mes actual, lo cual es válido)
+      if (timelogsError || schedulesError) {
+        console.warn('[HomeComponent] getMonthlyLates - ⚠️ Error al cargar datos para calcular tardanzas:');
+        if (timelogsError) {
+          console.warn('  - Error en latesFromTimelogs:', timelogsError);
+        }
+        if (schedulesError) {
+          console.warn('  - Error en employeeSchedules:', schedulesError);
+        }
+      } else if (timelogs.length === 0 && schedules.length === 0) {
+        // Solo mostrar warning si no hay datos Y no están cargando (datos realmente vacíos)
+        // Esto es silencioso porque puede ser normal (no hay timelogs o schedules para el mes actual)
+        // console.warn('[HomeComponent] getMonthlyLates - No hay datos disponibles para calcular tardanzas');
+      }
     }
 
     return 0;
