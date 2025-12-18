@@ -139,17 +139,7 @@ import { EmployeePortalComponent } from './employee-portal.component';
                   <i class="pi pi-money-bill text-base"></i>
                   <span>Nómina</span></a
                 >
-                } @if(store.hasDashboardAccess() && store.isAdmin() &&
-                !store.hasPortalAccessOnly()) {
-                <a
-                  (click)="navigateTo('admin/user-management')"
-                  [class.selected]="isUserManagementActive()"
-                  class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
-                >
-                  <i class="pi pi-users text-base"></i>
-                  <span>Gestión de Usuarios</span></a
-                >
-                } @if(store.hasDashboardAccess() && ((store.isAdmin() ||
+ @if(store.hasDashboardAccess() && ((store.isAdmin() ||
                 (store.isScheduleAdmin() && !store.hasPortalAccessOnly())) ||
                 store.hasTimeManagementAccess())) {
                 <a
@@ -283,7 +273,8 @@ import { EmployeePortalComponent } from './employee-portal.component';
               [class.text-white]="isUserManagementActive()"
               [class.shadow-md]="isUserManagementActive()"
               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
-              ><i class="pi pi-users text-lg"></i> <span>Gestión de Usuarios</span></a
+              ><i class="pi pi-users text-lg"></i>
+              <span>Gestión de Usuarios</span></a
             >
             } @if(store.hasDashboardAccess() && (!store.hasPortalAccessOnly() ||
             store.hasTimeManagementAccess())) {
@@ -902,16 +893,6 @@ export class DashboardComponent {
       });
     }
 
-    // Agregar Gestión de Usuarios para administradores
-    if (hasDashboardAccess && isAdmin && !this.store.hasPortalAccessOnly()) {
-      items.push({
-        label: 'Gestión de Usuarios',
-        icon: 'pi pi-users',
-        command: () => {
-          this.navigateTo('admin/user-management');
-        },
-      });
-    }
 
     // Agregar selector de modo de prueba solo para soporte2@blackdogpanama.com
     if (isSupport) {
