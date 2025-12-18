@@ -509,13 +509,11 @@ import {
                     id="employee_number"
                     pInputText
                     formControlName="employee_number"
-                    placeholder="BD0001, NZ0001, etc."
+                    placeholder=""
                     [style]="{ fontFamily: 'monospace' }"
                     maxlength="6"
                   />
-                  <small class="text-gray-400 text-xs mt-1 block"
-                    >Formato: BD0001, NZ0001 (2 letras + 4 dígitos)</small
-                  >
+                  <small class="text-gray-400 text-xs mt-1 block"></small>
                 </div>
                 <div class="input-container">
                   <label for="position">Cargo</label>
@@ -1252,7 +1250,10 @@ export class EmployeeFormComponent implements OnInit {
       }
 
       // Generar número de empleado automáticamente solo si no se proporcionó uno
-      if (!dataToSave.employee_number || dataToSave.employee_number.trim() === '') {
+      if (
+        !dataToSave.employee_number ||
+        dataToSave.employee_number.trim() === ''
+      ) {
         this.generateEmployeeNumber(dataToSave.company_id)
           .then((employeeNumber) => {
             dataToSave.employee_number = employeeNumber;
@@ -1309,59 +1310,59 @@ export class EmployeeFormComponent implements OnInit {
 
   private saveNewEmployee(dataToSave: any) {
     this.store.employees.createItem(dataToSave).subscribe({
-            next: () => {
-              // Recargar la lista de empleados
-              this.store.employees.reloadItems();
+      next: () => {
+        // Recargar la lista de empleados
+        this.store.employees.reloadItems();
 
-              // Después de crear, preguntar si quiere invitar por Wassenger
-              const phoneNumber = this.combinePhoneNumber('phone_number');
-              if (phoneNumber && dataToSave.work_email) {
-                this.confirmationService.confirm({
-                  message: `¿Deseas enviar una invitación por Wassenger a ${dataToSave.first_name} ${dataToSave.father_name}?`,
-                  header: 'Invitación por Wassenger',
-                  icon: 'pi pi-comments',
-                  acceptLabel: 'Sí, enviar',
-                  rejectLabel: 'No, después',
-                  accept: () => {
-                    const employeeName = `${dataToSave.first_name} ${dataToSave.father_name}`;
-                    this.wassengerService
-                      .sendEmployeeInvitation(
-                        employeeName,
-                        phoneNumber,
-                        dataToSave.work_email
-                      )
-                      .then((success) => {
-                        if (success) {
-                          this.message.add({
-                            severity: 'success',
-                            summary: 'Invitación enviada',
-                            detail:
-                              'La invitación se envió correctamente por Wassenger',
-                          });
-                        }
-                      });
-                  },
-                  reject: () => {
-                    // Navegar de vuelta a la lista después de rechazar
-                    this.router.navigate(['/admin/employees']);
-                  },
+        // Después de crear, preguntar si quiere invitar por Wassenger
+        const phoneNumber = this.combinePhoneNumber('phone_number');
+        if (phoneNumber && dataToSave.work_email) {
+          this.confirmationService.confirm({
+            message: `¿Deseas enviar una invitación por Wassenger a ${dataToSave.first_name} ${dataToSave.father_name}?`,
+            header: 'Invitación por Wassenger',
+            icon: 'pi pi-comments',
+            acceptLabel: 'Sí, enviar',
+            rejectLabel: 'No, después',
+            accept: () => {
+              const employeeName = `${dataToSave.first_name} ${dataToSave.father_name}`;
+              this.wassengerService
+                .sendEmployeeInvitation(
+                  employeeName,
+                  phoneNumber,
+                  dataToSave.work_email
+                )
+                .then((success) => {
+                  if (success) {
+                    this.message.add({
+                      severity: 'success',
+                      summary: 'Invitación enviada',
+                      detail:
+                        'La invitación se envió correctamente por Wassenger',
+                    });
+                  }
                 });
-              } else {
-                // Si no hay datos para Wassenger, navegar directamente
-                this.router.navigate(['/admin/employees']);
-              }
             },
-            error: (error) => {
-              console.error('Error al crear empleado:', error);
-              this.message.add({
-                severity: 'error',
-                summary: 'Error al guardar',
-                detail:
-                  error?.error?.message ||
-                  'Ocurrió un error al crear el empleado. Por favor intente nuevamente.',
-              });
+            reject: () => {
+              // Navegar de vuelta a la lista después de rechazar
+              this.router.navigate(['/admin/employees']);
             },
           });
+        } else {
+          // Si no hay datos para Wassenger, navegar directamente
+          this.router.navigate(['/admin/employees']);
+        }
+      },
+      error: (error) => {
+        console.error('Error al crear empleado:', error);
+        this.message.add({
+          severity: 'error',
+          summary: 'Error al guardar',
+          detail:
+            error?.error?.message ||
+            'Ocurrió un error al crear el empleado. Por favor intente nuevamente.',
+        });
+      },
+    });
   }
 
   cancelChanges(list = false) {

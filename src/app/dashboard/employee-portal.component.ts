@@ -12,6 +12,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import {
   addDays,
+  differenceInDays,
   differenceInMinutes,
   endOfMonth,
   format,
@@ -169,15 +170,15 @@ import { OrganizationService } from '../services/organization.service';
                 </div>
               </p-card>
 
-              <!-- Marcaciones Recientes -->
+              <!-- Horas de Compensatorio Aprobadas -->
               <p-card class="dashboard-stat-card">
                 <div class="flex items-center justify-between">
                   <div>
-                    <p class="text-sm text-gray-400 m-0 mb-1">Marcaciones</p>
+                    <p class="text-sm text-gray-400 m-0 mb-1">Horas de Compensatorio Aprobadas</p>
                     <p class="text-2xl font-bold text-white m-0">
-                      {{ recentTimelogsCount() }}
+                      {{ approvedCompensatoryHours() }}
                     </p>
-                    <p class="text-xs text-gray-500 m-0 mt-1">Últimos 7 días</p>
+                    <p class="text-xs text-gray-500 m-0 mt-1">Total aprobadas</p>
                   </div>
                   <div
                     class="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center"
@@ -2807,9 +2808,12 @@ export class EmployeePortalComponent {
     const monthStart = startOfMonth(now);
     const monthEnd = endOfMonth(now);
 
+    // Contar días que tienen al menos una marcación (entry, lunch_start, lunch_end, o exit)
     return logs.filter((log) => {
       const logDate = new Date(log.day);
-      return logDate >= monthStart && logDate <= monthEnd && log.entry;
+      const isInMonth = logDate >= monthStart && logDate <= monthEnd;
+      const hasAnyMark = log.entry || log.lunch_start || log.lunch_end || log.exit;
+      return isInMonth && hasAnyMark;
     }).length;
   });
 
@@ -2826,6 +2830,52 @@ export class EmployeePortalComponent {
 
   public recentTimelogsCount = computed(() => {
     return this.recentTimelogs().length;
+  });
+
+  // Timeoffs API para compensatorios
+  public timeoffsApi = httpResource<any[]>(() => {
+    if (!this.currentEmployee()?.id) return undefined;
+    const companyId = this.organizationService.getCurrentCompanyId();
+    
+    if (!companyId) {
+      return undefined;
+    }
+    
+    // ID del tipo de timeoff "Compensatorio"
+    const compensatoryTypeId = 'f2d92995-96a0-414f-b64a-9823db776745';
+    
+    const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`;
+    const select = `*,type:timeoff_types(id,name),employee:employees(id,company_id)`;
+    
+    let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
+    url += `&employee_id=eq.${this.currentEmployee()!.id}`;
+    url += `&type_id=eq.${compensatoryTypeId}`;
+    url += `&is_approved=eq.true`;
+    // Filtrar a través de employee.company_id
+    url += `&employee.company_id=eq.${companyId}`;
+    url += `&order=date_from.desc`;
+    
+    return {
+      url,
+      method: 'GET',
+    };
+  });
+
+  // Horas de compensatorio aprobadas
+  public approvedCompensatoryHours = computed(() => {
+    const timeoffs = this.timeoffsApi.value() ?? [];
+    
+    // Calcular horas totales basándose en date_from y date_to
+    // Asumimos 8 horas por día trabajado
+    const totalHours = timeoffs.reduce((total, timeoff) => {
+      const startDate = new Date(timeoff.date_from);
+      const endDate = new Date(timeoff.date_to);
+      // differenceInDays devuelve la diferencia en días, sumamos 1 para incluir ambos días
+      const days = differenceInDays(endDate, startDate) + 1;
+      return total + (days * 8); // 8 horas por día
+    }, 0);
+    
+    return totalHours;
   });
 
   // Edit mode for personal data
