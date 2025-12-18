@@ -265,17 +265,6 @@ import { EmployeePortalComponent } from './employee-portal.component';
               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
               ><i class="pi pi-money-bill text-lg"></i> <span>Nómina</span></a
             >
-            } @if(store.hasDashboardAccess() && store.isAdmin() &&
-            !store.hasPortalAccessOnly()) {
-            <a
-              (click)="navigateTo('admin/user-management'); toggleMenu()"
-              [class.bg-gray-700]="isUserManagementActive()"
-              [class.text-white]="isUserManagementActive()"
-              [class.shadow-md]="isUserManagementActive()"
-              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
-              ><i class="pi pi-users text-lg"></i>
-              <span>Gestión de Usuarios</span></a
-            >
             } @if(store.hasDashboardAccess() && (!store.hasPortalAccessOnly() ||
             store.hasTimeManagementAccess())) {
             <a
