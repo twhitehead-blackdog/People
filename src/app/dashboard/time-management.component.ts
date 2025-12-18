@@ -1,23 +1,28 @@
-import { ChangeDetectionStrategy, Component, inject, computed, signal } from '@angular/core';
-import { Router, RouterOutlet, ActivatedRoute } from '@angular/router';
 import { NgClass } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
+import { ActivatedRoute, Router, RouterOutlet } from '@angular/router';
 import { TabsModule } from 'primeng/tabs';
-import { DashboardStore } from '../stores/dashboard.store';
 import { OrganizationService } from '../services/organization.service';
+import { DashboardStore } from '../stores/dashboard.store';
 
 @Component({
   selector: 'pt-time-management',
   imports: [RouterOutlet, NgClass, TabsModule],
-  template: `<div [ngClass]="{ 'naz-theme': isNaz() }" class="mx-2 sm:mx-4 md:mx-6 flex flex-col gap-4 py-4 sm:py-6">
-    <div class="flex items-center justify-between">
-      <h1 class="text-xl sm:text-2xl font-bold text-white">
-        <i class="pi pi-clock mr-2"></i>
-        <span class="hidden sm:inline">Gestión de Tiempo</span>
-        <span class="sm:hidden">Tiempo</span>
-      </h1>
-    </div>
-
-    <p-tabs [value]="activeTab()" (valueChange)="onTabChange($event)" scrollable>
+  template: `<div
+    [ngClass]="{ 'naz-theme': isNaz() }"
+    class="mx-2 sm:mx-4 md:mx-6 flex flex-col gap-4 py-4 sm:py-6"
+  >
+    <p-tabs
+      [value]="activeTab()"
+      (valueChange)="onTabChange($event)"
+      scrollable
+    >
       <p-tablist>
         @if (store.isAdmin()) {
         <p-tab value="timelogs">
@@ -39,7 +44,6 @@ import { OrganizationService } from '../services/organization.service';
         </p-tab>
         }
       </p-tablist>
-
     </p-tabs>
 
     <div class="mt-4">
@@ -78,7 +82,7 @@ export class TimeManagementComponent {
   public organizationService = inject(OrganizationService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
-  
+
   // Computed para verificar si es Naz
   public isNaz = computed(() => this.organizationService.isNaz());
 
@@ -102,6 +106,9 @@ export class TimeManagementComponent {
     const tabValueStr = String(tabValue);
     this.activeTab.set(tabValueStr);
     // Navegar a la ruta correspondiente sin recargar
-    this.router.navigate([tabValueStr], { relativeTo: this.route, replaceUrl: true });
+    this.router.navigate([tabValueStr], {
+      relativeTo: this.route,
+      replaceUrl: true,
+    });
   }
 }
