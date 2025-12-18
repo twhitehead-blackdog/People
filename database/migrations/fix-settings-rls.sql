@@ -26,11 +26,22 @@ DROP POLICY IF EXISTS "Settings: Delete for authenticated" ON settings;
 DROP POLICY IF EXISTS "Settings: Insert for authenticated" ON settings;
 DROP POLICY IF EXISTS "Settings: Read for authenticated" ON settings;
 DROP POLICY IF EXISTS "Settings: Update for authenticated" ON settings;
+-- Eliminar también las nuevas políticas que vamos a crear (por si ya existen)
+DROP POLICY IF EXISTS "Settings: Read for anon" ON settings;
+DROP POLICY IF EXISTS "Settings: Insert for anon" ON settings;
+DROP POLICY IF EXISTS "Settings: Update for anon" ON settings;
+DROP POLICY IF EXISTS "Settings: Delete for anon" ON settings;
 
 -- ============================================
 -- PASO 2: CREAR POLÍTICAS LIMPIAS Y CONSISTENTES
 -- ============================================
--- Solo para usuarios autenticados (authenticated role)
+-- IMPORTANTE: La aplicación usa ENV_SUPABASE_ANON_KEY, por lo que
+-- Supabase trata al usuario como rol 'anon', no 'authenticated'.
+-- Por eso necesitamos políticas para ambos roles.
+
+-- ============================================
+-- POLÍTICAS PARA ROL 'authenticated'
+-- ============================================
 
 -- SELECT: Todos los usuarios autenticados pueden leer
 CREATE POLICY "Settings: Read for authenticated" ON settings
@@ -57,6 +68,40 @@ CREATE POLICY "Settings: Update for authenticated" ON settings
 CREATE POLICY "Settings: Delete for authenticated" ON settings
     FOR DELETE 
     TO authenticated
+    USING (true);
+
+-- ============================================
+-- POLÍTICAS PARA ROL 'anon' (cuando se usa ANON_KEY)
+-- ============================================
+-- NOTA: Estas políticas son necesarias porque el interceptor HTTP
+-- usa ENV_SUPABASE_ANON_KEY, lo que hace que Supabase trate al usuario
+-- como rol 'anon' en lugar de 'authenticated'.
+
+-- SELECT: Usuarios anónimos pueden leer
+CREATE POLICY "Settings: Read for anon" ON settings
+    FOR SELECT 
+    TO anon
+    USING (true);
+
+-- INSERT: Usuarios anónimos pueden crear
+CREATE POLICY "Settings: Insert for anon" ON settings
+    FOR INSERT 
+    TO anon
+    WITH CHECK (true);
+
+-- UPDATE: Usuarios anónimos pueden actualizar
+-- CRÍTICO: Usar tanto USING como WITH CHECK para UPDATE
+-- Esto permite que return=representation funcione correctamente
+CREATE POLICY "Settings: Update for anon" ON settings
+    FOR UPDATE 
+    TO anon
+    USING (true)
+    WITH CHECK (true);
+
+-- DELETE: Usuarios anónimos pueden eliminar
+CREATE POLICY "Settings: Delete for anon" ON settings
+    FOR DELETE 
+    TO anon
     USING (true);
 
 -- ============================================

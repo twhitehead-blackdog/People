@@ -545,6 +545,24 @@ export class JobApplicationsListComponent implements OnInit {
     },
   }));
 
+  /**
+   * Obtiene los headers HTTP para operaciones administrativas en settings
+   * usando el service_role key (bypassa RLS)
+   */
+  private getSettingsAdminHeaders(): { [key: string]: string } {
+    const serviceRoleKey = 
+      process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'] ?? 
+      process.env['ENV_SUPABASE_TOKEN'] ?? 
+      process.env['ENV_SUPABASE_API_KEY'];
+    
+    return {
+      'Content-Type': 'application/json',
+      'apikey': serviceRoleKey,
+      'Authorization': `Bearer ${serviceRoleKey}`,
+      'Prefer': 'return=representation',
+    };
+  }
+
   public positions = computed(() => this.positionsStore.entities());
 
   getPositionName(positionId: string): string {
@@ -854,6 +872,7 @@ export class JobApplicationsListComponent implements OnInit {
                 select: 'id',
                 key: 'eq.job_fair_start_date',
               },
+              headers: this.getSettingsAdminHeaders(),
             }
           )
         );
@@ -883,10 +902,7 @@ export class JobApplicationsListComponent implements OnInit {
                 `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${settingId}&select=*`,
                 { value: startDateString },
                 {
-                  headers: {
-                    'Content-Type': 'application/json',
-                    Prefer: 'return=representation',
-                  },
+                  headers: this.getSettingsAdminHeaders(),
                 }
               )
             );
@@ -921,6 +937,9 @@ export class JobApplicationsListComponent implements OnInit {
                 description: 'Fecha de inicio de la Feria de Empleo',
                 category: 'job_fair',
                 is_encrypted: false,
+              },
+              {
+                headers: this.getSettingsAdminHeaders(),
               }
             )
           );
@@ -936,19 +955,19 @@ export class JobApplicationsListComponent implements OnInit {
                 select: 'id',
                 key: 'eq.job_fair_start_date',
               },
+              headers: this.getSettingsAdminHeaders(),
             }
           )
         );
 
         if (existingStartSettings && existingStartSettings.length > 0) {
+          const settingId = existingStartSettings[0].id;
           await firstValueFrom(
             this.http.patch(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${settingId}`,
               { value: '' },
               {
-                params: {
-                  key: 'eq.job_fair_start_date',
-                },
+                headers: this.getSettingsAdminHeaders(),
               }
             )
           );
@@ -967,6 +986,7 @@ export class JobApplicationsListComponent implements OnInit {
                 select: 'id',
                 key: 'eq.job_fair_end_date',
               },
+              headers: this.getSettingsAdminHeaders(),
             }
           )
         );
@@ -989,10 +1009,7 @@ export class JobApplicationsListComponent implements OnInit {
                 `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${settingId}&select=*`,
                 { value: endDateString },
                 {
-                  headers: {
-                    'Content-Type': 'application/json',
-                    Prefer: 'return=representation',
-                  },
+                  headers: this.getSettingsAdminHeaders(),
                 }
               )
             );
@@ -1027,6 +1044,9 @@ export class JobApplicationsListComponent implements OnInit {
                 description: 'Fecha de fin de la Feria de Empleo',
                 category: 'job_fair',
                 is_encrypted: false,
+              },
+              {
+                headers: this.getSettingsAdminHeaders(),
               }
             )
           );
@@ -1042,6 +1062,7 @@ export class JobApplicationsListComponent implements OnInit {
                 select: 'id',
                 key: 'eq.job_fair_end_date',
               },
+              headers: this.getSettingsAdminHeaders(),
             }
           )
         );
@@ -1053,10 +1074,7 @@ export class JobApplicationsListComponent implements OnInit {
               `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${settingId}`,
               { value: '' },
               {
-                headers: {
-                  'Content-Type': 'application/json',
-                  Prefer: 'return=representation',
-                },
+                headers: this.getSettingsAdminHeaders(),
               }
             )
           );
@@ -1161,6 +1179,7 @@ export class JobApplicationsListComponent implements OnInit {
             select: 'id',
             key: 'eq.job_fair_start_date',
           },
+          headers: this.getSettingsAdminHeaders(),
         }
       )
     );
@@ -1173,6 +1192,7 @@ export class JobApplicationsListComponent implements OnInit {
             select: 'id',
             key: 'eq.job_fair_end_date',
           },
+          headers: this.getSettingsAdminHeaders(),
         }
       )
     );
@@ -1184,10 +1204,7 @@ export class JobApplicationsListComponent implements OnInit {
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${settingId}`,
           { value: '' },
           {
-            headers: {
-              'Content-Type': 'application/json',
-              Prefer: 'return=representation',
-            },
+            headers: this.getSettingsAdminHeaders(),
           }
         )
       );
@@ -1200,10 +1217,7 @@ export class JobApplicationsListComponent implements OnInit {
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${settingId}`,
           { value: '' },
           {
-            headers: {
-              'Content-Type': 'application/json',
-              Prefer: 'return=representation',
-            },
+            headers: this.getSettingsAdminHeaders(),
           }
         )
       );
@@ -1229,6 +1243,7 @@ export class JobApplicationsListComponent implements OnInit {
               select: 'id',
               key: 'eq.job_fair_enabled',
             },
+            headers: this.getSettingsAdminHeaders(),
           }
         )
       );
@@ -1247,10 +1262,7 @@ export class JobApplicationsListComponent implements OnInit {
               `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${settingId}&select=*`,
               { value: newValue },
               {
-                headers: {
-                  'Content-Type': 'application/json',
-                  Prefer: 'return=representation',
-                },
+                headers: this.getSettingsAdminHeaders(),
               }
             )
           );
@@ -1276,6 +1288,9 @@ export class JobApplicationsListComponent implements OnInit {
               description: 'Estado de la Feria de Empleo',
               category: 'job_fair',
               is_encrypted: false,
+            },
+            {
+              headers: this.getSettingsAdminHeaders(),
             }
           )
         );
