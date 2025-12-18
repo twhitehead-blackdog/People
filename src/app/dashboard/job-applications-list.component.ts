@@ -864,31 +864,28 @@ export class JobApplicationsListComponent implements OnInit {
         );
 
         if (existingStartSettings && existingStartSettings.length > 0) {
-          // Actualizar existente usando PATCH con params correctos
+          // Actualizar existente usando PATCH con ID directamente (más confiable)
+          const settingId = existingStartSettings[0].id;
           console.log(
             '[DEBUG] Actualizando setting de inicio con ID:',
-            existingStartSettings[0].id
+            settingId
           );
           try {
             console.log('[DEBUG] 🔧 Enviando PATCH para fecha inicio...');
             console.log(
               '[DEBUG]   - URL:',
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`
+              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${settingId}&select=*`
             );
             console.log('[DEBUG]   - Body:', { value: startDateString });
-            console.log('[DEBUG]   - Params:', {
-              key: 'eq.job_fair_start_date',
-              select: '*',
-            });
 
             const updateResult = await firstValueFrom(
               this.http.patch(
-                `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+                `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${settingId}&select=*`,
                 { value: startDateString },
                 {
-                  params: {
-                    key: 'eq.job_fair_start_date',
-                    select: '*',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Prefer: 'return=representation',
                   },
                 }
               )
@@ -976,31 +973,25 @@ export class JobApplicationsListComponent implements OnInit {
         console.log('[DEBUG] Settings de fin existentes:', existingEndSettings);
 
         if (existingEndSettings && existingEndSettings.length > 0) {
-          // Actualizar existente usando PATCH con params correctos
-          console.log(
-            '[DEBUG] Actualizando setting de fin con ID:',
-            existingEndSettings[0].id
-          );
+          // Actualizar existente usando PATCH con ID directamente (más confiable)
+          const settingId = existingEndSettings[0].id;
+          console.log('[DEBUG] Actualizando setting de fin con ID:', settingId);
           try {
             console.log('[DEBUG] 🔧 Enviando PATCH para fecha fin...');
             console.log(
               '[DEBUG]   - URL:',
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`
+              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${settingId}&select=*`
             );
             console.log('[DEBUG]   - Body:', { value: endDateString });
-            console.log('[DEBUG]   - Params:', {
-              key: 'eq.job_fair_end_date',
-              select: '*',
-            });
 
             const updateResult = await firstValueFrom(
               this.http.patch(
-                `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+                `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${settingId}&select=*`,
                 { value: endDateString },
                 {
-                  params: {
-                    key: 'eq.job_fair_end_date',
-                    select: '*',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    Prefer: 'return=representation',
                   },
                 }
               )
@@ -1056,13 +1047,15 @@ export class JobApplicationsListComponent implements OnInit {
         );
 
         if (existingEndSettings && existingEndSettings.length > 0) {
+          const settingId = existingEndSettings[0].id;
           await firstValueFrom(
             this.http.patch(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${settingId}`,
               { value: '' },
               {
-                params: {
-                  key: 'eq.job_fair_end_date',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Prefer: 'return=representation',
                 },
               }
             )
@@ -1087,6 +1080,8 @@ export class JobApplicationsListComponent implements OnInit {
       });
 
       // Recargar settings después de un delay para evitar que el effect sobrescriba
+      // IMPORTANTE: Mantener isUpdatingInterviewDate en true durante el reload
+      // para que el effect no interfiera
       console.log('[DEBUG] ⏰ Programando recarga de settings en 500ms...');
       console.log(
         '[DEBUG]   - Estado actual isUpdatingInterviewDate:',
@@ -1098,8 +1093,18 @@ export class JobApplicationsListComponent implements OnInit {
           '[DEBUG]   - Estado isUpdatingInterviewDate antes del reload:',
           this.isUpdatingInterviewDate()
         );
+        // Asegurar que isUpdatingInterviewDate sigue en true durante el reload
+        this.isUpdatingInterviewDate.set(true);
         this.jobFairSettingsApi.reload();
         console.log('[DEBUG]   - Reload ejecutado, esperando respuesta...');
+
+        // Esperar un poco más antes de permitir que el effect se ejecute
+        setTimeout(() => {
+          console.log(
+            '[DEBUG] ✅ Permitiendo que effect se ejecute nuevamente'
+          );
+          this.isUpdatingInterviewDate.set(false);
+        }, 300);
       }, 500);
     } catch (error: any) {
       console.error(
@@ -1118,16 +1123,11 @@ export class JobApplicationsListComponent implements OnInit {
         summary: 'Error',
         detail: `No se pudo actualizar la duración de la feria: ${errorMessage}`,
       });
-    } finally {
-      console.log(
-        '[DEBUG] 🏁 Finalizando onJobFairDateRangeChange - estableciendo isUpdatingInterviewDate a false'
-      );
+      // En caso de error, establecer isUpdatingInterviewDate a false
       this.isUpdatingInterviewDate.set(false);
-      console.log(
-        '[DEBUG]   - isUpdatingInterviewDate ahora es:',
-        this.isUpdatingInterviewDate()
-      );
     }
+    // NOTA: No usar finally aquí porque necesitamos mantener isUpdatingInterviewDate
+    // en true durante el reload. Se establece a false en el setTimeout después del reload.
   }
 
   // Formatear fecha a string YYYY-MM-DD usando hora local (no UTC)
@@ -1178,13 +1178,15 @@ export class JobApplicationsListComponent implements OnInit {
     );
 
     if (existingStartSettings && existingStartSettings.length > 0) {
+      const settingId = existingStartSettings[0].id;
       await firstValueFrom(
         this.http.patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${settingId}`,
           { value: '' },
           {
-            params: {
-              key: 'eq.job_fair_start_date',
+            headers: {
+              'Content-Type': 'application/json',
+              Prefer: 'return=representation',
             },
           }
         )
@@ -1192,13 +1194,15 @@ export class JobApplicationsListComponent implements OnInit {
     }
 
     if (existingEndSettings && existingEndSettings.length > 0) {
+      const settingId = existingEndSettings[0].id;
       await firstValueFrom(
         this.http.patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${settingId}`,
           { value: '' },
           {
-            params: {
-              key: 'eq.job_fair_end_date',
+            headers: {
+              'Content-Type': 'application/json',
+              Prefer: 'return=representation',
             },
           }
         )
@@ -1231,20 +1235,21 @@ export class JobApplicationsListComponent implements OnInit {
       console.log('[DEBUG] Settings existentes encontrados:', existingSettings);
 
       if (existingSettings && existingSettings.length > 0) {
-        // Actualizar setting existente usando PATCH con params correctos
+        // Actualizar setting existente usando PATCH con ID directamente (más confiable)
+        const settingId = existingSettings[0].id;
         console.log(
           '[DEBUG] Actualizando setting existente con ID:',
-          existingSettings[0].id
+          settingId
         );
         try {
           const updateResult = await firstValueFrom(
             this.http.patch(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${settingId}&select=*`,
               { value: newValue },
               {
-                params: {
-                  key: 'eq.job_fair_enabled',
-                  select: '*',
+                headers: {
+                  'Content-Type': 'application/json',
+                  Prefer: 'return=representation',
                 },
               }
             )
@@ -1287,6 +1292,8 @@ export class JobApplicationsListComponent implements OnInit {
       });
 
       // Recargar settings después de un delay para evitar que el effect sobrescriba
+      // IMPORTANTE: Mantener isUpdatingJobFairStatus en true durante el reload
+      // para que el effect no interfiera
       console.log('[DEBUG] ⏰ Programando recarga de settings en 500ms...');
       console.log(
         '[DEBUG]   - Estado actual isUpdatingJobFairStatus:',
@@ -1298,8 +1305,18 @@ export class JobApplicationsListComponent implements OnInit {
           '[DEBUG]   - Estado isUpdatingJobFairStatus antes del reload:',
           this.isUpdatingJobFairStatus()
         );
+        // Asegurar que isUpdatingJobFairStatus sigue en true durante el reload
+        this.isUpdatingJobFairStatus.set(true);
         this.jobFairSettingsApi.reload();
         console.log('[DEBUG]   - Reload ejecutado, esperando respuesta...');
+
+        // Esperar un poco más antes de permitir que el effect se ejecute
+        setTimeout(() => {
+          console.log(
+            '[DEBUG] ✅ Permitiendo que effect se ejecute nuevamente'
+          );
+          this.isUpdatingJobFairStatus.set(false);
+        }, 300);
       }, 500);
     } catch (error: any) {
       console.error('[DEBUG] ❌ Error actualizando estado de la feria:', error);
@@ -1318,16 +1335,11 @@ export class JobApplicationsListComponent implements OnInit {
         summary: 'Error',
         detail: `No se pudo actualizar el estado de la feria: ${errorMessage}`,
       });
-    } finally {
-      console.log(
-        '[DEBUG] 🏁 Finalizando onJobFairEnabledChange - estableciendo isUpdatingJobFairStatus a false'
-      );
+      // En caso de error, también establecer isUpdatingJobFairStatus a false
       this.isUpdatingJobFairStatus.set(false);
-      console.log(
-        '[DEBUG]   - isUpdatingJobFairStatus ahora es:',
-        this.isUpdatingJobFairStatus()
-      );
     }
+    // NOTA: No usar finally aquí porque necesitamos mantener isUpdatingJobFairStatus
+    // en true durante el reload. Se establece a false en el setTimeout después del reload.
   }
 
   refreshPositions() {

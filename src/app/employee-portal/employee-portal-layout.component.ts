@@ -495,6 +495,17 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
   // Usar el servicio compartido de notificaciones
   public unreadNotificationsCount = computed(() => this.notificationsService.unreadCount());
 
+  constructor() {
+    // Inicializar notificaciones cuando cambia el empleado actual
+    // effect() debe estar en el constructor, no en ngOnInit
+    effect(() => {
+      const employeeId = this.store.currentEmployee()?.id;
+      if (employeeId) {
+        this.notificationsService.setCurrentEmployeeId(employeeId);
+      }
+    });
+  }
+
   public navSections: NavSection[] = [
     {
       id: 'dashboard',
@@ -531,14 +542,6 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
   ];
 
   ngOnInit() {
-    // Inicializar notificaciones cuando cambia el empleado actual
-    effect(() => {
-      const employeeId = this.store.currentEmployee()?.id;
-      if (employeeId) {
-        this.notificationsService.setCurrentEmployeeId(employeeId);
-      }
-    });
-
     // Inicializar con el fragmento actual
     this.updateFragment();
 

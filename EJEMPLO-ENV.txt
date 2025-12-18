@@ -6,6 +6,8 @@
 # Supabase - Obtén estos valores de: https://app.supabase.com > Tu Proyecto > Settings > API
 ENV_SUPABASE_URL=https://abcdefghijklmnop.supabase.co
 ENV_SUPABASE_API_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiY2RlZmdoaWprbG1ub3AiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTYz...
+# Nota: ENV_SUPABASE_ANON_KEY es el mismo valor que ENV_SUPABASE_API_KEY (clave pública/anónima)
+ENV_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiY2RlZmdoaWprbG1ub3AiLCJyb2xlIjoiYW5vbiIsImlhdCI6MTYz...
 ENV_SUPABASE_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiY2RlZmdoaWprbG1ub3AiLCJyb2xlIjoic2VydmljZV9yb2xlIiwiaWF0IjoxNjM...
 
 # Auth0 - Obtén estos valores de: https://manage.auth0.com > Applications > Tu App
@@ -14,7 +16,10 @@ ENV_AUTH0_CLIENT_ID=abc123xyz456def789ghi012jkl345
 ENV_AUTH0_AUDIENCE=https://people.api
 
 # Application
+# URL de la aplicación (para desarrollo local usa http://localhost:4200)
 ENV_APP_URL=http://localhost:4200
+# URL de la API (solo necesario en producción/Railway, dejar vacío en desarrollo local)
+ENV_API_URL=
 
 # SMTP - Email service (configuración genérica para cualquier servidor SMTP)
 # Para Gmail: smtp.gmail.com, puerto 587 (TLS) o 465 (SSL)
