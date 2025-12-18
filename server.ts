@@ -112,14 +112,18 @@ export function app(): express.Express {
     });
   });
 
-  // Endpoint root para health checks de Railway (debe estar antes del catch-all)
+  // Endpoint root simple que siempre responde (para health checks de Railway)
   // IMPORTANTE: Este endpoint debe responder rápidamente para health checks
   server.get('/', (req, res, next) => {
     console.log(`📥 GET / - User-Agent: ${req.headers['user-agent'] || 'unknown'}`);
-    // Si es un health check (query param o User-Agent específico), responder inmediatamente
-    if (req.query['health'] === 'check' || 
+    // Si es un health check (query param, User-Agent específico, o no tiene Accept header de navegador), responder inmediatamente
+    const isHealthCheck = req.query['health'] === 'check' || 
         req.headers['user-agent']?.includes('Railway') ||
-        req.headers['user-agent']?.includes('HealthCheck')) {
+        req.headers['user-agent']?.includes('HealthCheck') ||
+        req.headers['user-agent']?.includes('curl') ||
+        (!req.headers['accept'] || !req.headers['accept'].includes('text/html'));
+    
+    if (isHealthCheck) {
       console.log('✅ Health check recibido en /');
       res.json({ 
         status: 'ok', 
@@ -289,6 +293,16 @@ function run(): void {
     const actualPath = require('fs').existsSync(browserPath) ? browserPath : distPath;
     console.log(`📁 Static files will be served from: ${actualPath}`);
     console.log(`🌐 Server is ready to accept connections`);
+    
+    // Verificar que el servidor está realmente escuchando
+    httpServer.on('connection', (socket) => {
+      console.log(`🔌 Nueva conexión desde ${socket.remoteAddress}:${socket.remotePort}`);
+    });
+    
+    // Log cuando el servidor cierra
+    httpServer.on('close', () => {
+      console.log('⚠️ HTTP server closed');
+    });
   });
 
   // Manejo de errores del servidor HTTP
