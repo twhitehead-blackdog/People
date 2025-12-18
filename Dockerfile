@@ -12,7 +12,7 @@ COPY package.json package-lock.json* ./
 COPY nx.json ./
 
 # Instalar dependencias (incluyendo devDependencies para el build)
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 # Copiar todo el código fuente y archivos de configuración
 COPY . .
@@ -33,7 +33,7 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 
 # Instalar solo dependencias de producción
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --legacy-peer-deps
 
 # Copiar archivos construidos desde el stage de build
 COPY --from=builder /app/dist ./dist
