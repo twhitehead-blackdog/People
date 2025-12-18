@@ -1,67 +1,50 @@
-import { ChangeDetectionStrategy, Component, inject, computed } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { ChangeDetectionStrategy, Component, inject, computed, signal } from '@angular/core';
+import { Router, RouterOutlet, ActivatedRoute } from '@angular/router';
 import { NgClass } from '@angular/common';
+import { TabsModule } from 'primeng/tabs';
 import { DashboardStore } from '../stores/dashboard.store';
 import { OrganizationService } from '../services/organization.service';
 
 @Component({
   selector: 'pt-time-management',
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, NgClass],
-  template: `<div [ngClass]="{ 'naz-theme': isNaz() }">
-    <header class="bg-gradient-to-r from-neutral-800 via-neutral-700 to-neutral-800 border-b border-neutral-600/50 shadow-md" [ngClass]="{ 'naz-header': isNaz() }">
-      <div class="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8 text-center">
-        <div class="block w-full overflow-x-auto">
-          <div class="flex gap-2 min-w-max justify-center items-center">
-            @if (store.isAdmin()) {
-            <a
-              routerLink="timelogs"
-              class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
-              [routerLinkActive]="[
-                'bg-gradient-to-r',
-                'from-amber-500/20',
-                'to-amber-600/20',
-                'text-amber-300',
-                'shadow-md'
-              ]"
-              ><i class="pi pi-clock text-base"></i> <span>Marcaciones</span></a
-            >
-            }
+  imports: [RouterOutlet, NgClass, TabsModule],
+  template: `<div [ngClass]="{ 'naz-theme': isNaz() }" class="mx-2 sm:mx-4 md:mx-6 flex flex-col gap-4 py-4 sm:py-6">
+    <div class="flex items-center justify-between">
+      <h1 class="text-xl sm:text-2xl font-bold text-white">
+        <i class="pi pi-clock mr-2"></i>
+        <span class="hidden sm:inline">Gestión de Tiempo</span>
+        <span class="sm:hidden">Tiempo</span>
+      </h1>
+    </div>
 
-            <a
-              routerLink="timetables"
-              class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
-              [routerLinkActive]="[
-                'bg-gradient-to-r',
-                'from-amber-500/20',
-                'to-amber-600/20',
-                'text-amber-300',
-                'shadow-md'
-              ]"
-              ><i class="pi pi-calendar-clock text-base"></i> <span>Turnos</span></a
-            >
-            @if(store.isAdmin()) {
-            <a
-              routerLink="schedules"
-              class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
-              [routerLinkActive]="[
-                'bg-gradient-to-r',
-                'from-amber-500/20',
-                'to-amber-600/20',
-                'text-amber-300',
-                'shadow-md'
-              ]"
-              ><i class="pi pi-calendar text-base"></i> <span>Horarios</span></a
-            >
-            }
-          </div>
-        </div>
-      </div>
-    </header>
-    <main class="bg-neutral-900 min-h-screen" [ngClass]="{ 'naz-main': isNaz() }">
-      <div class="mx-auto px-4 py-6 sm:px-6 lg:px-8">
-        <router-outlet />
-      </div>
-    </main>
+    <p-tabs [value]="activeTab()" (valueChange)="onTabChange($event)" scrollable>
+      <p-tablist>
+        @if (store.isAdmin()) {
+        <p-tab value="timelogs">
+          <i class="pi pi-clock mr-2"></i>
+          <span class="hidden sm:inline">Marcaciones</span>
+          <span class="sm:hidden">Marcaciones</span>
+        </p-tab>
+        }
+        <p-tab value="timetables">
+          <i class="pi pi-calendar-clock mr-2"></i>
+          <span class="hidden sm:inline">Turnos</span>
+          <span class="sm:hidden">Turnos</span>
+        </p-tab>
+        @if(store.isAdmin()) {
+        <p-tab value="schedules">
+          <i class="pi pi-calendar mr-2"></i>
+          <span class="hidden sm:inline">Horarios</span>
+          <span class="sm:hidden">Horarios</span>
+        </p-tab>
+        }
+      </p-tablist>
+
+    </p-tabs>
+
+    <div class="mt-4">
+      <router-outlet />
+    </div>
   </div>`,
   styles: `
     /* Tema Naz */
@@ -93,7 +76,31 @@ import { OrganizationService } from '../services/organization.service';
 export class TimeManagementComponent {
   public store = inject(DashboardStore);
   public organizationService = inject(OrganizationService);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
   
   // Computed para verificar si es Naz
   public isNaz = computed(() => this.organizationService.isNaz());
+
+  // Tab activa basada en la ruta actual
+  public activeTab = signal<string>('timetables');
+
+  constructor() {
+    // Determinar la pestaña activa basada en la ruta
+    const url = this.router.url;
+    if (url.includes('/timelogs')) {
+      this.activeTab.set('timelogs');
+    } else if (url.includes('/schedules')) {
+      this.activeTab.set('schedules');
+    } else {
+      this.activeTab.set('timetables');
+    }
+  }
+
+  // Manejar cambio de pestaña
+  public onTabChange(tabValue: string): void {
+    this.activeTab.set(tabValue);
+    // Navegar a la ruta correspondiente sin recargar
+    this.router.navigate([tabValue], { relativeTo: this.route, replaceUrl: true });
+  }
 }

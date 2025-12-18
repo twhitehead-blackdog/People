@@ -11,7 +11,18 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { addDays, differenceInMinutes, format, startOfMonth } from 'date-fns';
+import {
+  addDays,
+  differenceInMinutes,
+  eachDayOfInterval,
+  endOfMonth,
+  endOfWeek,
+  format,
+  isSameMonth,
+  isToday,
+  startOfMonth,
+  startOfWeek,
+} from 'date-fns';
 import { es } from 'date-fns/locale';
 import { trim } from 'lodash';
 import { MessageService } from 'primeng/api';
@@ -21,6 +32,7 @@ import { Card } from 'primeng/card';
 import { DatePicker } from 'primeng/datepicker';
 import { Select } from 'primeng/select';
 import { TableModule } from 'primeng/table';
+import { TabsModule } from 'primeng/tabs';
 import { Tag } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { ToggleSwitch } from 'primeng/toggleswitch';
@@ -46,6 +58,7 @@ import { EmployeesStore } from '../stores/employees.store';
     FormsModule,
     DatePipe,
     TableModule,
+    TabsModule,
     Tag,
     TooltipModule,
     Avatar,
@@ -186,7 +199,220 @@ import { EmployeesStore } from '../stores/employees.store';
       @if (hasError()) {
       <!-- Error handling, toast will be shown -->
       }
-      <div class="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+      
+      <p-tabs value="0" scrollable>
+        <p-tablist>
+          <p-tab value="0">
+            <i class="pi pi-calendar-clock mr-2"></i>
+            <span class="hidden sm:inline">Mis Marcaciones</span>
+            <span class="sm:hidden">Marcaciones</span>
+          </p-tab>
+        </p-tablist>
+
+        <!-- Tab 0: Mis Marcaciones (Calendario) -->
+        <p-tabpanel value="0">
+          @if (!employeeId()) {
+            <div class="flex flex-col items-center justify-center py-12">
+              <i class="pi pi-user-minus text-4xl text-gray-500 mb-4"></i>
+              <p class="text-gray-400 text-lg mb-2">Selecciona un empleado</p>
+              <p class="text-gray-500 text-sm">Por favor selecciona un empleado del filtro superior para ver su calendario de marcaciones</p>
+            </div>
+          } @else if (logs.isLoading()) {
+            <div class="flex items-center justify-center py-12">
+              <i class="pi pi-spin pi-spinner text-4xl text-amber-400"></i>
+            </div>
+          } @else {
+            <!-- Calendario -->
+            <div class="calendar-container">
+              <!-- Controles de navegación del calendario -->
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <h3 class="text-xl font-bold text-white m-0">Calendario de Marcaciones</h3>
+                  <p class="text-sm text-gray-400 m-0 mt-1">
+                    {{ calendarMonth() | date : 'MMMM yyyy' }}
+                  </p>
+                </div>
+                <div class="flex items-center gap-2">
+                  <p-button
+                    icon="pi pi-chevron-left"
+                    severity="secondary"
+                    text
+                    rounded
+                    (onClick)="previousMonth()"
+                    [title]="'Mes anterior'"
+                  />
+                  <p-button
+                    label="Hoy"
+                    severity="secondary"
+                    outlined
+                    size="small"
+                    (onClick)="goToToday()"
+                  />
+                  <p-button
+                    icon="pi pi-chevron-right"
+                    severity="secondary"
+                    text
+                    rounded
+                    (onClick)="nextMonth()"
+                    [title]="'Mes siguiente'"
+                  />
+                </div>
+              </div>
+
+              <!-- Días de la semana -->
+              <div class="calendar-weekdays">
+                <div class="calendar-weekday">Lun</div>
+                <div class="calendar-weekday">Mar</div>
+                <div class="calendar-weekday">Mié</div>
+                <div class="calendar-weekday">Jue</div>
+                <div class="calendar-weekday">Vie</div>
+                <div class="calendar-weekday">Sáb</div>
+                <div class="calendar-weekday">Dom</div>
+              </div>
+
+              <!-- Días del calendario -->
+              <div class="calendar-grid">
+                @for (day of calendarDays(); track day.getTime()) {
+                  @let log = getLogForDay(day);
+                  @let isCurrentMonth = checkSameMonth(day, calendarMonth());
+                  @let isTodayDate = checkIsToday(day);
+                  @let hasEntry = log?.entry;
+                  @let hasExit = log?.exit;
+                  @let hasDelay = log?.delay && typeof log?.delay === 'number';
+                  @let workedHours = log?.entry && log?.exit ? calculateWorkedHours(log.entry.date, log.exit.date) : null;
+                  @let hasError = log?.scheduleError || log?.alert;
+                  
+                  <div
+                    class="calendar-day"
+                    [class.calendar-day-other-month]="!isCurrentMonth"
+                    [class.calendar-day-today]="isTodayDate"
+                    [class.calendar-day-has-data]="hasEntry || hasExit"
+                    [class.calendar-day-complete]="hasEntry && hasExit && !hasError"
+                    [class.calendar-day-incomplete]="hasEntry && !hasExit"
+                    [class.calendar-day-error]="hasError"
+                  >
+                    <!-- Número del día -->
+                    <div class="calendar-day-number">
+                      {{ day.getDate() }}
+                    </div>
+
+                    <!-- Contenido del día -->
+                    @if (isCurrentMonth && log) {
+                      <div class="calendar-day-content">
+                        <!-- Entrada -->
+                        @if (hasEntry) {
+                          <div class="calendar-time-entry" [class.calendar-time-delay]="hasDelay">
+                            <i class="pi pi-sign-in text-xs"></i>
+                            <span class="text-xs font-semibold">
+                              {{ log.entry.date | date : 'HH:mm' }}
+                            </span>
+                            @if (hasDelay) {
+                              <span class="calendar-delay-badge">{{ log.delay }}m</span>
+                            }
+                          </div>
+                        }
+
+                        <!-- Almuerzo -->
+                        @if (log.lunch_start || log.lunch_end) {
+                          <div class="calendar-time-lunch" [class.calendar-time-exceeded]="log.lunchExceeded">
+                            <i class="pi pi-clock text-xs"></i>
+                            @if (log.lunch_start && log.lunch_end) {
+                              <span class="text-xs">
+                                {{ log.lunch_start.date | date : 'HH:mm' }} - 
+                                {{ log.lunch_end.date | date : 'HH:mm' }}
+                              </span>
+                            } @else if (log.lunch_start) {
+                              <span class="text-xs">Almuerzo: {{ log.lunch_start.date | date : 'HH:mm' }}</span>
+                            }
+                            @if (log.lunchExceeded && log.lunchMinutes) {
+                              <span class="calendar-exceeded-badge">+{{ log.lunchMinutes - 60 }}m</span>
+                            }
+                          </div>
+                        }
+
+                        <!-- Salida -->
+                        @if (hasExit) {
+                          <div class="calendar-time-exit" [class.calendar-time-early]="log.earlyExit">
+                            <i class="pi pi-sign-out text-xs"></i>
+                            <span class="text-xs font-semibold">
+                              {{ log.exit.date | date : 'HH:mm' }}
+                            </span>
+                            @if (log.earlyExit) {
+                              <span class="calendar-early-badge">Temprana</span>
+                            }
+                          </div>
+                        }
+
+                        <!-- Horas trabajadas -->
+                        @if (workedHours) {
+                          <div class="calendar-hours-worked" [class.calendar-hours-insufficient]="log.insufficientHours">
+                            <i class="pi pi-hourglass text-xs"></i>
+                            <span class="text-xs font-bold">{{ workedHours }}</span>
+                            @if (log.insufficientHours) {
+                              <span class="calendar-insufficient-badge">Menos de 9h</span>
+                            }
+                          </div>
+                        }
+
+                        <!-- Errores/Alertas -->
+                        @if (hasError) {
+                          <div class="calendar-day-error-indicator">
+                            <i class="pi pi-exclamation-triangle text-xs"></i>
+                            <span class="text-xs">{{ log.alert || 'Error' }}</span>
+                          </div>
+                        }
+
+                        <!-- Estado del día -->
+                        @if (!hasEntry && !hasExit) {
+                          <div class="calendar-day-empty">
+                            <i class="pi pi-minus text-xs"></i>
+                            <span class="text-xs">Sin marcación</span>
+                          </div>
+                        } @else if (hasEntry && !hasExit) {
+                          <div class="calendar-day-warning">
+                            <i class="pi pi-exclamation-triangle text-xs"></i>
+                            <span class="text-xs">Sin salida</span>
+                          </div>
+                        }
+                      </div>
+                    } @else if (isCurrentMonth && !log) {
+                      <div class="calendar-day-empty">
+                        <i class="pi pi-minus text-xs"></i>
+                        <span class="text-xs">Sin datos</span>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Leyenda -->
+            <div class="calendar-legend mt-6 pt-6 border-t border-neutral-700">
+              <div class="flex flex-wrap gap-4 justify-center text-sm">
+                <div class="flex items-center gap-2">
+                  <div class="w-4 h-4 rounded bg-green-500/30 border border-green-500/50"></div>
+                  <span class="text-gray-300">Día completo</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <div class="w-4 h-4 rounded bg-yellow-500/30 border border-yellow-500/50"></div>
+                  <span class="text-gray-300">Día incompleto</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <div class="w-4 h-4 rounded bg-red-500/30 border border-red-500/50"></div>
+                  <span class="text-gray-300">Con retraso/error</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <div class="w-4 h-4 rounded bg-neutral-700 border border-neutral-600"></div>
+                  <span class="text-gray-300">Sin marcación</span>
+                </div>
+              </div>
+            </div>
+          }
+        </p-tabpanel>
+      </p-tabs>
+      
+      <!-- Tabla original (oculta, solo para exportar) -->
+      <div class="hidden">
         <p-table
           [value]="filteredDaylogs()"
           [rows]="25"
@@ -481,6 +707,283 @@ import { EmployeesStore } from '../stores/employees.store';
     ::ng-deep .p-tag .p-tag-icon {
       margin-right: 0.5rem;
     }
+
+    /* Estilos del Calendario de Marcaciones */
+    .calendar-container {
+      width: 100%;
+      margin-top: 1.5rem;
+    }
+
+    .calendar-weekdays {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .calendar-weekday {
+      text-align: center;
+      font-weight: 600;
+      font-size: 0.875rem;
+      color: #9ca3af;
+      padding: 0.75rem 0.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 0.5rem;
+    }
+
+    .calendar-day {
+      min-height: 140px;
+      background: #1f2937;
+      border: 1px solid #374151;
+      border-radius: 0.5rem;
+      padding: 0.75rem;
+      display: flex;
+      flex-direction: column;
+      transition: all 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .calendar-day:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(251, 191, 36, 0.2);
+      border-color: #fbbf24;
+    }
+
+    .calendar-day-other-month {
+      opacity: 0.4;
+      background: #111827;
+    }
+
+    .calendar-day-today {
+      border: 2px solid #fbbf24;
+      box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.1);
+    }
+
+    .calendar-day-today .calendar-day-number {
+      background: #fbbf24;
+      color: #212121;
+      font-weight: 700;
+    }
+
+    .calendar-day-complete {
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%);
+      border-color: rgba(34, 197, 94, 0.3);
+    }
+
+    .calendar-day-incomplete {
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(251, 191, 36, 0.05) 100%);
+      border-color: rgba(251, 191, 36, 0.3);
+    }
+
+    .calendar-day-error {
+      background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(239, 68, 68, 0.05) 100%);
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    .calendar-day-number {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #ffffff;
+      margin-bottom: 0.5rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(251, 191, 36, 0.1);
+    }
+
+    .calendar-day-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.375rem;
+      font-size: 0.75rem;
+    }
+
+    .calendar-time-entry,
+    .calendar-time-exit,
+    .calendar-time-lunch,
+    .calendar-hours-worked {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+      color: #93c5fd;
+    }
+
+    .calendar-time-entry {
+      background: rgba(34, 197, 94, 0.1);
+      border-color: rgba(34, 197, 94, 0.2);
+      color: #86efac;
+    }
+
+    .calendar-time-entry.calendar-time-delay {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+
+    .calendar-time-exit {
+      background: rgba(59, 130, 246, 0.1);
+      border-color: rgba(59, 130, 246, 0.2);
+      color: #93c5fd;
+    }
+
+    .calendar-time-exit.calendar-time-early {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+
+    .calendar-time-lunch {
+      background: rgba(251, 191, 36, 0.1);
+      border-color: rgba(251, 191, 36, 0.2);
+      color: #fcd34d;
+    }
+
+    .calendar-time-lunch.calendar-time-exceeded {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+
+    .calendar-hours-worked {
+      background: rgba(168, 85, 247, 0.1);
+      border-color: rgba(168, 85, 247, 0.2);
+      color: #c4b5fd;
+      margin-top: auto;
+      font-weight: 600;
+    }
+
+    .calendar-hours-worked.calendar-hours-insufficient {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+    }
+
+    .calendar-delay-badge,
+    .calendar-exceeded-badge,
+    .calendar-early-badge,
+    .calendar-insufficient-badge {
+      background: rgba(239, 68, 68, 0.3);
+      color: #fee2e2;
+      padding: 0.125rem 0.375rem;
+      border-radius: 0.25rem;
+      font-size: 0.625rem;
+      font-weight: 700;
+      margin-left: auto;
+    }
+
+    .calendar-day-empty {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.25rem 0.5rem;
+      color: #6b7280;
+      font-size: 0.75rem;
+      margin-top: auto;
+    }
+
+    .calendar-day-warning {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      background: rgba(251, 191, 36, 0.1);
+      border: 1px solid rgba(251, 191, 36, 0.2);
+      color: #fcd34d;
+      font-size: 0.75rem;
+      margin-top: auto;
+    }
+
+    .calendar-day-error-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.25rem;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      color: #fca5a5;
+      font-size: 0.75rem;
+      margin-top: auto;
+    }
+
+    .calendar-legend {
+      display: flex;
+      justify-content: center;
+      padding-top: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    /* Responsive para calendario */
+    @media (max-width: 768px) {
+      .calendar-day {
+        min-height: 100px;
+        padding: 0.5rem;
+      }
+
+      .calendar-day-content {
+        gap: 0.25rem;
+      }
+
+      .calendar-time-entry,
+      .calendar-time-exit,
+      .calendar-time-lunch,
+      .calendar-hours-worked {
+        font-size: 0.625rem;
+        padding: 0.125rem 0.375rem;
+      }
+
+      .calendar-day-number {
+        font-size: 0.875rem;
+        width: 24px;
+        height: 24px;
+      }
+
+      .calendar-weekday {
+        font-size: 0.75rem;
+        padding: 0.5rem 0.25rem;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .calendar-day {
+        min-height: 80px;
+        padding: 0.375rem;
+      }
+
+      .calendar-day-content {
+        gap: 0.125rem;
+      }
+
+      .calendar-time-entry,
+      .calendar-time-exit,
+      .calendar-time-lunch,
+      .calendar-hours-worked {
+        font-size: 0.5rem;
+        padding: 0.125rem 0.25rem;
+      }
+
+      .calendar-day-number {
+        font-size: 0.75rem;
+        width: 20px;
+        height: 20px;
+      }
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -547,6 +1050,71 @@ export class TimelogsComponent {
   public onlyDelayed = signal(false);
   public organizationService = inject(OrganizationService);
   private injector = inject(Injector);
+
+  // Calendario - mes actual seleccionado
+  public calendarMonth = signal<Date>(new Date());
+
+  // Generar días del calendario
+  public calendarDays = computed(() => {
+    const monthStart = startOfMonth(this.calendarMonth());
+    const monthEnd = endOfMonth(this.calendarMonth());
+    const calendarStart = startOfWeek(monthStart, { weekStartsOn: 1 }); // Lunes
+    const calendarEnd = endOfWeek(monthEnd, { weekStartsOn: 1 }); // Domingo
+
+    return eachDayOfInterval({ start: calendarStart, end: calendarEnd });
+  });
+
+  // Obtener log para un día específico del empleado seleccionado
+  public getLogForDay(day: Date): any {
+    if (!this.employeeId()) {
+      return null;
+    }
+    const dayStr = format(day, 'yyyy-MM-dd');
+    const logs = this.dayLogs();
+    return logs.find(
+      (log) => log.day === dayStr && log.employee.id === this.employeeId()
+    );
+  }
+
+  // Navegación del calendario
+  public previousMonth(): void {
+    const current = this.calendarMonth();
+    const newMonth = new Date(current.getFullYear(), current.getMonth() - 1, 1);
+    this.calendarMonth.set(newMonth);
+    // Actualizar dateRange para el nuevo mes
+    this.dateRange.set([startOfMonth(newMonth), endOfMonth(newMonth)]);
+  }
+
+  public nextMonth(): void {
+    const current = this.calendarMonth();
+    const newMonth = new Date(current.getFullYear(), current.getMonth() + 1, 1);
+    this.calendarMonth.set(newMonth);
+    // Actualizar dateRange para el nuevo mes
+    this.dateRange.set([startOfMonth(newMonth), endOfMonth(newMonth)]);
+  }
+
+  public goToToday(): void {
+    const today = new Date();
+    this.calendarMonth.set(today);
+    this.dateRange.set([startOfMonth(today), endOfMonth(today)]);
+  }
+
+  // Helper methods for template (wrapper methods to use date-fns functions)
+  public checkSameMonth(day: Date, month: Date): boolean {
+    return isSameMonth(day, month);
+  }
+
+  public checkIsToday(day: Date): boolean {
+    return isToday(day);
+  }
+
+  // Calcular horas trabajadas para el calendario
+  public calculateWorkedHours(entryDate: Date, exitDate: Date): string {
+    const minutes = differenceInMinutes(exitDate, entryDate);
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours}h ${mins}m`;
+  }
 
   // Computed para verificar si es Naz
   public isNaz = computed(() => this.organizationService.isNaz());
@@ -804,6 +1372,25 @@ export class TimelogsComponent {
   });
 
   constructor() {
+    // Sincronizar calendarMonth con dateRange
+    effect(
+      () => {
+        const range = this.dateRange();
+        if (range && range.length > 0 && range[0]) {
+          const firstDate = range[0];
+          const currentMonth = this.calendarMonth();
+          // Solo actualizar si el mes es diferente
+          if (
+            firstDate.getMonth() !== currentMonth.getMonth() ||
+            firstDate.getFullYear() !== currentMonth.getFullYear()
+          ) {
+            this.calendarMonth.set(new Date(firstDate.getFullYear(), firstDate.getMonth(), 1));
+          }
+        }
+      },
+      { injector: this.injector }
+    );
+
     // Debug: Effect para verificar datos cargados
     effect(
       () => {
