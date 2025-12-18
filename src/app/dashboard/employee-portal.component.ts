@@ -1,15 +1,17 @@
-import { DatePipe, NgClass } from '@angular/common';
+import { DatePipe, NgClass, NgTemplateOutlet } from '@angular/common';
 import { HttpClient, httpResource } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
   computed,
   DestroyRef,
+  effect,
   inject,
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, NavigationEnd, Router } from '@angular/router';
 import {
   addDays,
   differenceInDays,
@@ -18,8 +20,6 @@ import {
   endOfMonth,
   endOfWeek,
   format,
-  getDay,
-  isSameDay,
   isSameMonth,
   isToday,
   startOfMonth,
@@ -39,11 +39,13 @@ import { TagModule } from 'primeng/tag';
 import { Textarea } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
-import { firstValueFrom } from 'rxjs';
+import { filter, firstValueFrom } from 'rxjs';
+import { CalendarComponent, CalendarMarkerData } from '../calendar.component';
 import { TimeLogEnum } from '../models';
+import { NotificationsService } from '../services/notifications.service';
+import { OrganizationService } from '../services/organization.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
-import { OrganizationService } from '../services/organization.service';
 
 @Component({
   selector: 'pt-employee-portal',
@@ -64,6 +66,8 @@ import { OrganizationService } from '../services/organization.service';
     ToastModule,
     TooltipModule,
     NgClass,
+    NgTemplateOutlet,
+    CalendarComponent,
   ],
   providers: [MessageService],
   template: `
@@ -76,7 +80,7 @@ import { OrganizationService } from '../services/organization.service';
         </h1>
       </div>
 
-      <p-tabs value="0" scrollable>
+      <p-tabs [value]="activeTabIndex()" (valueChange)="onTabChange($event)" scrollable>
         <p-tablist>
           <p-tab value="0">
             <i class="pi pi-home mr-2"></i>
@@ -747,6 +751,146 @@ import { OrganizationService } from '../services/organization.service';
             }
           </p-dialog>
           }
+
+          <!-- Diálogo de Notificaciones -->
+          <p-dialog
+            [visible]="showNotificationsDialog()"
+            [modal]="true"
+            [style]="{ width: '90vw', maxWidth: '600px' }"
+            [header]="'Notificaciones'"
+            (onHide)="closeNotificationsDialog()"
+            [draggable]="false"
+            [resizable]="false"
+          >
+            <div class="flex flex-col gap-4">
+              <!-- Header con filtros y acciones -->
+              @if (!notificationsService.notificationsApi.isLoading() && myNotifications().length > 0) {
+              <div class="flex items-center justify-between gap-3 pb-3 border-b border-neutral-700">
+                <!-- Filtros -->
+                <div class="flex items-center gap-2">
+                  <button
+                    type="button"
+                    (click)="notificationFilter.set('all')"
+                    [class.bg-amber-500/20]="notificationFilter() === 'all'"
+                    [class.text-amber-400]="notificationFilter() === 'all'"
+                    [class.text-gray-400]="notificationFilter() !== 'all'"
+                    class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors hover:bg-neutral-700/50"
+                  >
+                    Todas ({{ myNotifications().length }})
+                  </button>
+                  <button
+                    type="button"
+                    (click)="notificationFilter.set('unread')"
+                    [class.bg-amber-500/20]="notificationFilter() === 'unread'"
+                    [class.text-amber-400]="notificationFilter() === 'unread'"
+                    [class.text-gray-400]="notificationFilter() !== 'unread'"
+                    class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors hover:bg-neutral-700/50"
+                  >
+                    No leídas ({{ unreadNotificationsCount() }})
+                  </button>
+                  <button
+                    type="button"
+                    (click)="notificationFilter.set('read')"
+                    [class.bg-amber-500/20]="notificationFilter() === 'read'"
+                    [class.text-amber-400]="notificationFilter() === 'read'"
+                    [class.text-gray-400]="notificationFilter() !== 'read'"
+                    class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors hover:bg-neutral-700/50"
+                  >
+                    Leídas
+                  </button>
+                </div>
+                <!-- Botón marcar todas como leídas -->
+                @if (unreadNotificationsCount() > 0) {
+                <button
+                  type="button"
+                  (click)="markAllNotificationsAsRead()"
+                  class="px-3 py-1.5 rounded-lg text-sm font-medium bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 transition-colors flex items-center gap-2"
+                  pTooltip="Marcar todas como leídas"
+                >
+                  <i class="pi pi-check-circle text-sm"></i>
+                  <span>Marcar todas</span>
+                </button>
+                }
+              </div>
+              }
+              
+              @if (notificationsService.notificationsApi.isLoading()) {
+              <div class="flex items-center justify-center py-8">
+                <i class="pi pi-spin pi-spinner text-2xl text-gray-400"></i>
+              </div>
+              } @else if (filteredNotifications().length === 0) {
+              <div class="flex flex-col items-center justify-center py-8 text-center">
+                <i class="pi pi-bell text-4xl text-gray-500 mb-4"></i>
+                <p class="text-gray-400">
+                  @if (notificationFilter() === 'unread') {
+                    No tienes notificaciones no leídas
+                  } @else if (notificationFilter() === 'read') {
+                    No tienes notificaciones leídas
+                  } @else {
+                    No tienes notificaciones
+                  }
+                </p>
+              </div>
+              } @else {
+              <div class="flex flex-col gap-2 max-h-[60vh] overflow-y-auto">
+                @for (notification of filteredNotifications(); track notification.id) {
+                <div
+                  class="p-4 rounded-lg border transition-all"
+                  [class.bg-neutral-800]="!notification.is_read"
+                  [class.bg-neutral-900]="notification.is_read"
+                  [class.border-amber-500/30]="!notification.is_read"
+                  [class.border-neutral-700]="notification.is_read"
+                >
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="flex-1">
+                      <div class="flex items-center gap-2 mb-1">
+                        <!-- Icono según tipo de mensaje -->
+                        <i
+                          [class]="getNotificationIcon(notification.message_type)"
+                          class="text-base flex-shrink-0"
+                          [class.text-amber-400]="!notification.is_read"
+                          [class.text-gray-500]="notification.is_read"
+                        ></i>
+                        <h4 class="font-semibold text-white m-0 flex-1">
+                          {{ notification.title || getNotificationTitle(notification.message_type) }}
+                        </h4>
+                        @if (!notification.is_read) {
+                        <span
+                          class="w-2 h-2 bg-amber-500 rounded-full flex-shrink-0"
+                        ></span>
+                        }
+                      </div>
+                      <p class="text-gray-300 text-sm m-0 mb-2">
+                        {{ notification.message }}
+                      </p>
+                      <div class="flex items-center gap-3">
+                        <p class="text-gray-500 text-xs m-0">
+                          {{ notification.created_at | date : 'short' }}
+                        </p>
+                        @if (notification.message_type) {
+                        <span class="text-gray-600 text-xs">
+                          {{ getNotificationTypeLabel(notification.message_type) }}
+                        </span>
+                        }
+                      </div>
+                    </div>
+                    @if (!notification.is_read) {
+                    <button
+                      type="button"
+                      (click)="markNotificationAsRead(notification.id)"
+                      class="p-2 rounded-lg hover:bg-neutral-700 transition-colors flex-shrink-0"
+                      pTooltip="Marcar como leída"
+                    >
+                      <i class="pi pi-check text-sm text-gray-400 hover:text-amber-400"></i>
+                    </button>
+                    }
+                  </div>
+                </div>
+                }
+              </div>
+              }
+            </div>
+          </p-dialog>
         </p-tabpanel>
 
         <!-- Tab 2: Mi Perfil -->
@@ -921,29 +1065,7 @@ import { OrganizationService } from '../services/organization.service';
                   </p>
                 </div>
                 <div class="flex items-center gap-2">
-                  <p-button
-                    icon="pi pi-chevron-left"
-                    severity="secondary"
-                    text
-                    rounded
-                    (onClick)="previousMonth()"
-                    [title]="'Mes anterior'"
-                  />
-                  <p-button
-                    label="Hoy"
-                    severity="secondary"
-                    outlined
-                    size="small"
-                    (onClick)="goToToday()"
-                  />
-                  <p-button
-                    icon="pi pi-chevron-right"
-                    severity="secondary"
-                    text
-                    rounded
-                    (onClick)="nextMonth()"
-                    [title]="'Mes siguiente'"
-                  />
+                  <!-- Los controles del calendario ahora están dentro del componente pt-calendar -->
                 </div>
               </div>
             </ng-template>
@@ -951,142 +1073,63 @@ import { OrganizationService } from '../services/organization.service';
               >Visualiza tus marcaciones en formato calendario</ng-template
             >
             
-            @if (timelogsApi.isLoading()) {
+            @if (monthTimelogsApi.isLoading()) {
               <div class="flex items-center justify-center py-12">
                 <i class="pi pi-spin pi-spinner text-4xl text-amber-400"></i>
               </div>
             } @else {
-              <!-- Calendario -->
-              <div class="calendar-container">
-                <!-- Días de la semana -->
-                <div class="calendar-weekdays">
-                  <div class="calendar-weekday">Lun</div>
-                  <div class="calendar-weekday">Mar</div>
-                  <div class="calendar-weekday">Mié</div>
-                  <div class="calendar-weekday">Jue</div>
-                  <div class="calendar-weekday">Vie</div>
-                  <div class="calendar-weekday">Sáb</div>
-                  <div class="calendar-weekday">Dom</div>
-                </div>
-
-                <!-- Días del calendario -->
-                <div class="calendar-grid">
-                  @for (day of calendarDays(); track day.getTime()) {
-                    @let log = getLogForDay(day);
-                    @let isCurrentMonth = checkSameMonth(day, calendarMonth());
-                    @let isTodayDate = checkIsToday(day);
+              <!-- Calendario bonito usando pt-calendar -->
+              <pt-calendar
+                [markers]="timelogMarkers()"
+                [markerTpl]="timelogMarkerTemplate"
+                (monthChange)="onCalendarMonthChange($event)"
+              />
+              
+              <!-- Template para mostrar los markers en el calendario -->
+              <ng-template #timelogMarkerTemplate let-markers>
+                <div class="flex flex-col gap-1 w-full">
+                  @for (marker of markers; track marker.data.day) {
+                    @let log = marker.data;
                     @let hasEntry = log?.entry;
                     @let hasExit = log?.exit;
                     @let hasDelay = log?.delay && typeof log?.delay === 'number';
                     @let workedHours = log?.entry && log?.exit ? calculateWorkedHours(log.entry.date, log.exit.date) : null;
                     
                     <div
-                      class="calendar-day"
-                      [class.calendar-day-other-month]="!isCurrentMonth"
-                      [class.calendar-day-today]="isTodayDate"
-                      [class.calendar-day-has-data]="hasEntry || hasExit"
-                      [class.calendar-day-complete]="hasEntry && hasExit"
-                      [class.calendar-day-incomplete]="hasEntry && !hasExit"
+                      class="flex flex-col gap-0.5 p-1 rounded text-xs"
+                      [class.bg-green-500/20]="hasEntry && hasExit"
+                      [class.bg-yellow-500/20]="hasEntry && !hasExit"
+                      [class.bg-red-500/20]="hasDelay"
+                      [class.border]="true"
+                      [class.border-green-500/50]="hasEntry && hasExit"
+                      [class.border-yellow-500/50]="hasEntry && !hasExit"
+                      [class.border-red-500/50]="hasDelay"
                     >
-                      <!-- Número del día -->
-                      <div class="calendar-day-number">
-                        {{ day.getDate() }}
-                      </div>
-
-                      <!-- Contenido del día -->
-                      @if (isCurrentMonth && log) {
-                        <div class="calendar-day-content">
-                          <!-- Entrada -->
-                          @if (hasEntry) {
-                            <div class="calendar-time-entry" [class.calendar-time-delay]="hasDelay">
-                              <i class="pi pi-sign-in text-xs"></i>
-                              <span class="text-xs font-semibold">
-                                {{ log.entry.date | date : 'HH:mm' }}
-                              </span>
-                              @if (hasDelay) {
-                                <span class="calendar-delay-badge">{{ log.delay }}m</span>
-                              }
-                            </div>
-                          }
-
-                          <!-- Almuerzo -->
-                          @if (log.lunch_start || log.lunch_end) {
-                            <div class="calendar-time-lunch">
-                              <i class="pi pi-clock text-xs"></i>
-                              @if (log.lunch_start && log.lunch_end) {
-                                <span class="text-xs">
-                                  {{ log.lunch_start.date | date : 'HH:mm' }} - 
-                                  {{ log.lunch_end.date | date : 'HH:mm' }}
-                                </span>
-                              } @else if (log.lunch_start) {
-                                <span class="text-xs">Almuerzo: {{ log.lunch_start.date | date : 'HH:mm' }}</span>
-                              }
-                            </div>
-                          }
-
-                          <!-- Salida -->
-                          @if (hasExit) {
-                            <div class="calendar-time-exit">
-                              <i class="pi pi-sign-out text-xs"></i>
-                              <span class="text-xs font-semibold">
-                                {{ log.exit.date | date : 'HH:mm' }}
-                              </span>
-                            </div>
-                          }
-
-                          <!-- Horas trabajadas -->
-                          @if (workedHours) {
-                            <div class="calendar-hours-worked">
-                              <i class="pi pi-hourglass text-xs"></i>
-                              <span class="text-xs font-bold">{{ workedHours }}</span>
-                            </div>
-                          }
-
-                          <!-- Estado del día -->
-                          @if (!hasEntry && !hasExit) {
-                            <div class="calendar-day-empty">
-                              <i class="pi pi-minus text-xs"></i>
-                              <span class="text-xs">Sin marcación</span>
-                            </div>
-                          } @else if (hasEntry && !hasExit) {
-                            <div class="calendar-day-warning">
-                              <i class="pi pi-exclamation-triangle text-xs"></i>
-                              <span class="text-xs">Sin salida</span>
-                            </div>
+                      @if (hasEntry) {
+                        <div class="flex items-center gap-1">
+                          <i class="pi pi-sign-in text-[10px]"></i>
+                          <span class="font-semibold">{{ log.entry.date | date : 'HH:mm' }}</span>
+                          @if (hasDelay) {
+                            <span class="text-[10px] bg-red-500/50 px-1 rounded">{{ log.delay }}m</span>
                           }
                         </div>
-                      } @else if (isCurrentMonth && !log) {
-                        <div class="calendar-day-empty">
-                          <i class="pi pi-minus text-xs"></i>
-                          <span class="text-xs">Sin datos</span>
+                      }
+                      @if (hasExit) {
+                        <div class="flex items-center gap-1">
+                          <i class="pi pi-sign-out text-[10px]"></i>
+                          <span class="font-semibold">{{ log.exit.date | date : 'HH:mm' }}</span>
+                        </div>
+                      }
+                      @if (workedHours) {
+                        <div class="flex items-center gap-1 text-[10px]">
+                          <i class="pi pi-hourglass"></i>
+                          <span>{{ workedHours }}</span>
                         </div>
                       }
                     </div>
                   }
                 </div>
-              </div>
-
-              <!-- Leyenda -->
-              <div class="calendar-legend mt-6 pt-6 border-t border-neutral-700">
-                <div class="flex flex-wrap gap-4 justify-center text-sm">
-                  <div class="flex items-center gap-2">
-                    <div class="w-4 h-4 rounded bg-green-500/30 border border-green-500/50"></div>
-                    <span class="text-gray-300">Día completo</span>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <div class="w-4 h-4 rounded bg-yellow-500/30 border border-yellow-500/50"></div>
-                    <span class="text-gray-300">Día incompleto</span>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <div class="w-4 h-4 rounded bg-red-500/30 border border-red-500/50"></div>
-                    <span class="text-gray-300">Con retraso</span>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <div class="w-4 h-4 rounded bg-neutral-700 border border-neutral-600"></div>
-                    <span class="text-gray-300">Sin marcación</span>
-                  </div>
-                </div>
-              </div>
+              </ng-template>
             }
           </p-card>
         </p-tabpanel>
@@ -2580,17 +2623,149 @@ export class EmployeePortalComponent {
   private http = inject(HttpClient);
   private destroyRef = inject(DestroyRef);
   public organizationService = inject(OrganizationService);
+  public notificationsService = inject(NotificationsService);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
 
   // Computed para verificar si es Naz
   public isNaz = computed(() => this.organizationService.isNaz());
-  
+
+  // Tab activo sincronizado con fragmentos de URL
+  public activeTabIndex = signal<number>(0);
+  private isUpdatingFromFragment = false; // Bandera para evitar loops
+
+  constructor() {
+    // Inicializar notificaciones cuando cambia el empleado actual
+    effect(() => {
+      const employeeId = this.currentEmployee()?.id;
+      if (employeeId) {
+        this.notificationsService.setCurrentEmployeeId(employeeId);
+      }
+    });
+
+    // Inicializar con el fragmento actual
+    this.updateTabFromFragment();
+
+    // Suscribirse a cambios de navegación para sincronizar tabs con fragmentos
+    this.router.events
+      .pipe(
+        filter((event) => event instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(() => {
+        // Pequeño delay para asegurar que el fragmento esté disponible
+        setTimeout(() => {
+          this.updateTabFromFragment();
+        }, 100);
+      });
+
+    // También escuchar cambios en el hash directamente
+    if (typeof window !== 'undefined') {
+      window.addEventListener('hashchange', () => {
+        setTimeout(() => {
+          this.updateTabFromFragment();
+        }, 100);
+      });
+    }
+
+    // Sincronizar fragmento cuando cambia el tab (solo si el cambio viene del usuario)
+    effect(() => {
+      // Evitar actualizar si el cambio viene de la sincronización con fragmento
+      if (this.isUpdatingFromFragment) return;
+
+      const tabIndex = this.activeTabIndex();
+      const fragment = this.getFragmentFromTabIndex(tabIndex);
+      const currentFragment = this.getCurrentFragment();
+
+      // Solo actualizar el fragmento si es diferente para evitar loops
+      if (fragment && fragment !== currentFragment) {
+        this.router.navigate(['/employee-portal'], {
+          fragment: fragment,
+          replaceUrl: true, // Evitar agregar entradas al historial
+        });
+      }
+    });
+  }
+
+  private getCurrentFragment(): string | null {
+    // Obtener fragmento de la URL actual
+    const url = this.router.url;
+    if (url.includes('#')) {
+      const fragment = url.split('#')[1];
+      // Limpiar cualquier query parameter que pueda estar después del fragmento
+      return fragment.split('?')[0];
+    }
+    // También verificar window.location.hash como respaldo
+    if (typeof window !== 'undefined' && window.location.hash) {
+      const hash = window.location.hash.substring(1);
+      return hash.split('?')[0];
+    }
+    return null;
+  }
+
+  private updateTabFromFragment(): void {
+    const fragment = this.getCurrentFragment();
+    const tabIndex = this.getTabIndexFromFragment(fragment);
+
+    // Solo actualizar si el tab es diferente
+    if (this.activeTabIndex() !== tabIndex) {
+      this.isUpdatingFromFragment = true;
+      this.activeTabIndex.set(tabIndex);
+      // Resetear la bandera después de un pequeño delay para permitir que el effect se ejecute
+      setTimeout(() => {
+        this.isUpdatingFromFragment = false;
+      }, 50);
+    }
+  }
+
+  private getTabIndexFromFragment(fragment: string | null): number {
+    if (!fragment) return 0; // Dashboard por defecto
+
+    // Mapeo de fragmentos a índices de tabs
+    const fragmentToTabMap: Record<string, number> = {
+      dashboard: 0,
+      management: 1,
+      gestiones: 1,
+      profile: 2,
+      timelogs: 3,
+      lates: 4,
+      notifications: 0, // Las notificaciones se mostrarán en un diálogo o panel
+      // Gestiones individuales también van al tab de Gestiones
+      disabilities: 1,
+      documents: 1,
+      complaints: 1,
+    };
+
+    return fragmentToTabMap[fragment] ?? 0;
+  }
+
+  private getFragmentFromTabIndex(tabIndex: number): string | null {
+    // Mapeo de índices de tabs a fragmentos
+    const tabToFragmentMap: Record<number, string> = {
+      0: 'dashboard',
+      1: 'management',
+      2: 'profile',
+      3: 'timelogs',
+      4: 'lates',
+    };
+
+    return tabToFragmentMap[tabIndex] ?? null;
+  }
+
+  public onTabChange(tabIndex: string | number): void {
+    // Convertir a número si es string
+    const index =
+      typeof tabIndex === 'string' ? parseInt(tabIndex, 10) : tabIndex;
+    this.activeTabIndex.set(index);
+  }
+
   // Helper para agregar filtro de company_id a los parámetros
   private addCompanyFilter(params: any, tableName: string): any {
     const companyId = this.organizationService.getCurrentCompanyId();
     if (!companyId) {
       return params;
     }
-    
+
     // Tablas que tienen company_id y deben filtrarse
     const tablesWithCompanyId = [
       'employees',
@@ -2600,16 +2775,16 @@ export class EmployeePortalComponent {
       'schedules',
       'employee_schedules',
       'attendance_sheets',
-      'timelogs'
+      'timelogs',
     ];
-    
+
     if (tablesWithCompanyId.includes(tableName)) {
       return {
         ...params,
-        company_id: `eq.${companyId}`
+        company_id: `eq.${companyId}`,
       };
     }
-    
+
     return params;
   }
 
@@ -2617,29 +2792,7 @@ export class EmployeePortalComponent {
     const employee = this.store.currentEmployee();
     const isNaz = this.isNaz();
     const companyId = this.organizationService.getCurrentCompanyId();
-    
-    
-    // DEBUG: Log cuando currentEmployee cambia
-    if (employee) {
-      const employeeAny = employee as any;
-      console.log('=== DEBUG EMPLOYEE PORTAL ===');
-      console.log('currentEmployee encontrado:', employee);
-      console.log('currentEmployee id:', employee.id);
-      console.log('currentEmployee company_id:', employeeAny?.company_id);
-      console.log('currentEmployee position:', employee.position);
-      console.log('currentEmployee position dashboard_access:', employee.position?.dashboard_access);
-      console.log('currentEmployee position admin:', employee.position?.admin);
-      console.log('currentEmployee has_portal_access:', employee.has_portal_access);
-      console.log('isNaz:', isNaz);
-      console.log('companyId from service:', companyId);
-      console.log('================================');
-    } else {
-      console.log('=== DEBUG EMPLOYEE PORTAL ===');
-      console.log('currentEmployee es null/undefined');
-      console.log('store.currentEmployee():', this.store.currentEmployee());
-      console.log('employees.entities().length:', this.employees.entities().length);
-      console.log('================================');
-    }
+
     return employee;
   });
 
@@ -2696,6 +2849,11 @@ export class EmployeePortalComponent {
     this.dateRange.set([startOfMonth(today), endOfMonth(today)]);
   }
 
+  public onCalendarMonthChange(date: Date): void {
+    this.calendarMonth.set(date);
+    this.dateRange.set([startOfMonth(date), endOfMonth(date)]);
+  }
+
   // Helper methods for template (wrapper methods to use date-fns functions)
   public checkSameMonth(day: Date, month: Date): boolean {
     return isSameMonth(day, month);
@@ -2716,26 +2874,31 @@ export class EmployeePortalComponent {
     }
     const employeeId = this.currentEmployee()!.id;
     const companyId = this.organizationService.getCurrentCompanyId();
-    
+
     // Asegurar que siempre tengamos un company_id válido
     if (!companyId) {
-      console.warn('[EmployeePortal] No se encontró company_id, no se pueden cargar timelogs');
+      console.warn(
+        '[EmployeePortal] No se encontró company_id, no se pueden cargar timelogs'
+      );
       return undefined;
     }
-    
+
     // Construir URL manualmente para aplicar correctamente filtros gte y lte
     const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`;
     const startDate = format(this.dateRange()[0], "yyyy-MM-dd'T'06:00:00");
-    const endDate = format(addDays(this.dateRange()[1], 1), "yyyy-MM-dd'T'06:00:00");
+    const endDate = format(
+      addDays(this.dateRange()[1], 1),
+      "yyyy-MM-dd'T'06:00:00"
+    );
     const select = `*,employee:employees(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)`;
-    
+
     let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
     url += `&employee_id=eq.${employeeId}`;
     url += `&company_id=eq.${companyId}`; // Siempre agregar filtro de company_id
     url += `&created_at=gte.${startDate}`;
     url += `&created_at=lte.${endDate}`;
     url += `&order=created_at.asc`;
-    
+
     return {
       url,
       method: 'GET',
@@ -2744,7 +2907,7 @@ export class EmployeePortalComponent {
 
   public myTimelogs = computed(() => {
     const logs = this.timelogsApi.value() ?? [];
-    
+
     // Process logs similar to timelogs component
     // Filtrar logs sin fecha válida antes de procesar
     const processedLogs = logs
@@ -2822,27 +2985,27 @@ export class EmployeePortalComponent {
     }
     const employeeId = this.currentEmployee()!.id;
     const companyId = this.organizationService.getCurrentCompanyId();
-    
+
     if (!companyId) {
       return undefined;
     }
-    
+
     const now = new Date();
     const monthStart = startOfMonth(now);
     const monthEnd = endOfMonth(now);
-    
+
     const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`;
     const startDate = format(monthStart, "yyyy-MM-dd'T'06:00:00");
     const endDate = format(addDays(monthEnd, 1), "yyyy-MM-dd'T'06:00:00");
     const select = `*,employee:employees(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)`;
-    
+
     let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
     url += `&employee_id=eq.${employeeId}`;
     url += `&company_id=eq.${companyId}`;
     url += `&created_at=gte.${startDate}`;
     url += `&created_at=lte.${endDate}`;
     url += `&order=created_at.asc`;
-    
+
     return {
       url,
       method: 'GET',
@@ -2852,7 +3015,7 @@ export class EmployeePortalComponent {
   // Procesar timelogs del mes actual
   public monthTimelogs = computed(() => {
     const logs = this.monthTimelogsApi.value() ?? [];
-    
+
     const processedLogs = logs
       .filter((x) => x.created_at)
       .map((x) => {
@@ -2918,6 +3081,17 @@ export class EmployeePortalComponent {
     return processedLogs.sort(
       (a, b) => new Date(b.day).getTime() - new Date(a.day).getTime()
     );
+  });
+
+  // Convertir timelogs a markers para el calendario bonito
+  public timelogMarkers = computed<CalendarMarkerData[]>(() => {
+    const logs = this.monthTimelogs();
+    return logs
+      .filter((log) => log.entry || log.exit)
+      .map((log) => ({
+        date: new Date(log.day),
+        data: log,
+      }));
   });
 
   // Lates computed from timelogs
@@ -3018,6 +3192,31 @@ export class EmployeePortalComponent {
   // Gestiones - Formularios
   public activeGestionForm = signal<string | null>(null);
   public showGestionDialog = signal(false);
+
+  // Notificaciones
+  public showNotificationsDialog = signal(false);
+  public notificationFilter = signal<'all' | 'unread' | 'read'>('all');
+
+  // Usar el servicio compartido de notificaciones
+  public myNotifications = computed(() =>
+    this.notificationsService.notifications()
+  );
+  public unreadNotificationsCount = computed(() =>
+    this.notificationsService.unreadCount()
+  );
+
+  // Notificaciones filtradas
+  public filteredNotifications = computed(() => {
+    const notifications = this.myNotifications();
+    const filter = this.notificationFilter();
+
+    if (filter === 'unread') {
+      return notifications.filter((n: any) => !n.is_read);
+    } else if (filter === 'read') {
+      return notifications.filter((n: any) => n.is_read);
+    }
+    return notifications;
+  });
 
   // Timeoff Types API
   public timeoffTypesApi = httpResource<any[]>(() => ({
@@ -3263,7 +3462,8 @@ export class EmployeePortalComponent {
 
     // Contar días que tienen al menos una marcación (entry, lunch_start, lunch_end, o exit)
     return logs.filter((log) => {
-      const hasAnyMark = log.entry || log.lunch_start || log.lunch_end || log.exit;
+      const hasAnyMark =
+        log.entry || log.lunch_start || log.lunch_end || log.exit;
       return hasAnyMark;
     }).length;
   });
@@ -3287,17 +3487,17 @@ export class EmployeePortalComponent {
   public timeoffsApi = httpResource<any[]>(() => {
     if (!this.currentEmployee()?.id) return undefined;
     const companyId = this.organizationService.getCurrentCompanyId();
-    
+
     if (!companyId) {
       return undefined;
     }
-    
+
     // ID del tipo de timeoff "Compensatorio"
     const compensatoryTypeId = 'f2d92995-96a0-414f-b64a-9823db776745';
-    
+
     const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`;
     const select = `*,type:timeoff_types(id,name),employee:employees(id,company_id)`;
-    
+
     let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
     url += `&employee_id=eq.${this.currentEmployee()!.id}`;
     url += `&type_id=eq.${compensatoryTypeId}`;
@@ -3305,7 +3505,7 @@ export class EmployeePortalComponent {
     // Filtrar a través de employee.company_id
     url += `&employee.company_id=eq.${companyId}`;
     url += `&order=date_from.desc`;
-    
+
     return {
       url,
       method: 'GET',
@@ -3315,7 +3515,7 @@ export class EmployeePortalComponent {
   // Horas de compensatorio aprobadas
   public approvedCompensatoryHours = computed(() => {
     const timeoffs = this.timeoffsApi.value() ?? [];
-    
+
     // Calcular horas totales basándose en date_from y date_to
     // Asumimos 8 horas por día trabajado
     const totalHours = timeoffs.reduce((total, timeoff) => {
@@ -3323,9 +3523,9 @@ export class EmployeePortalComponent {
       const endDate = new Date(timeoff.date_to);
       // differenceInDays devuelve la diferencia en días, sumamos 1 para incluir ambos días
       const days = differenceInDays(endDate, startDate) + 1;
-      return total + (days * 8); // 8 horas por día
+      return total + days * 8; // 8 horas por día
     }, 0);
-    
+
     return totalHours;
   });
 
@@ -3397,12 +3597,12 @@ export class EmployeePortalComponent {
 
       const companyId = this.organizationService.getCurrentCompanyId();
       const params: any = { id: `eq.${this.currentEmployee()!.id}` };
-      
+
       // Agregar filtro por company_id para seguridad
       if (companyId) {
         params.company_id = `eq.${companyId}`;
       }
-      
+
       await firstValueFrom(
         this.http.patch(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
@@ -3959,17 +4159,24 @@ export class EmployeePortalComponent {
   public openGestionForm(formType: string): void {
     this.activeGestionForm.set(formType);
     this.showGestionDialog.set(true);
-    
+
     // Pre-seleccionar el tipo de timeoff según el formulario
-    if (formType === 'vacations' || formType === 'license' || formType === 'personal' || formType === 'maternity') {
+    if (
+      formType === 'vacations' ||
+      formType === 'license' ||
+      formType === 'personal' ||
+      formType === 'maternity'
+    ) {
       const types = this.timeoffTypes();
       let typeName = '';
       if (formType === 'vacations') typeName = 'Vacaciones';
       else if (formType === 'license') typeName = 'Licencia';
       else if (formType === 'personal') typeName = 'Permiso Personal';
       else if (formType === 'maternity') typeName = 'Licencia de Maternidad';
-      
-      const foundType = types.find(t => t.name.toLowerCase().includes(typeName.toLowerCase()));
+
+      const foundType = types.find((t) =>
+        t.name.toLowerCase().includes(typeName.toLowerCase())
+      );
       if (foundType) {
         this.selectedTimeoffType.set(foundType.id);
       }
@@ -3984,6 +4191,76 @@ export class EmployeePortalComponent {
     this.timeoffEndDate.set(null);
     this.timeoffNotes.set('');
     this.selectedTimeoffType.set(null);
+  }
+
+  public openNotificationsDialog(): void {
+    this.showNotificationsDialog.set(true);
+    this.notificationsService.reload();
+  }
+
+  public closeNotificationsDialog(): void {
+    this.showNotificationsDialog.set(false);
+    // Limpiar el fragmento de notificaciones al cerrar
+    const currentUrl = this.router.url;
+    if (currentUrl.includes('#notifications')) {
+      this.router.navigate(['/employee-portal'], {
+        fragment: undefined,
+        replaceUrl: true,
+      });
+    }
+  }
+
+  public markNotificationAsRead(notificationId: string): void {
+    this.notificationsService.markAsRead(notificationId);
+  }
+
+  public markAllNotificationsAsRead(): void {
+    this.notificationsService.markAllAsRead();
+  }
+
+  public getNotificationIcon(messageType: string | null | undefined): string {
+    if (!messageType) return 'pi pi-bell';
+
+    const iconMap: Record<string, string> = {
+      info: 'pi pi-info-circle',
+      warning: 'pi pi-exclamation-triangle',
+      error: 'pi pi-times-circle',
+      success: 'pi pi-check-circle',
+      document: 'pi pi-file',
+      approval: 'pi pi-check',
+      rejection: 'pi pi-times',
+      reminder: 'pi pi-clock',
+      system: 'pi pi-cog',
+    };
+
+    return iconMap[messageType.toLowerCase()] || 'pi pi-bell';
+  }
+
+  public getNotificationTitle(messageType: string | null | undefined): string {
+    if (!messageType) return 'Notificación';
+
+    const titleMap: Record<string, string> = {
+      info: 'Información',
+      warning: 'Advertencia',
+      error: 'Error',
+      success: 'Éxito',
+      document: 'Documento',
+      approval: 'Aprobación',
+      rejection: 'Rechazo',
+      reminder: 'Recordatorio',
+      system: 'Sistema',
+    };
+
+    return titleMap[messageType.toLowerCase()] || 'Notificación';
+  }
+
+  public getNotificationTypeLabel(
+    messageType: string | null | undefined
+  ): string {
+    if (!messageType) return '';
+    return (
+      messageType.charAt(0).toUpperCase() + messageType.slice(1).toLowerCase()
+    );
   }
 
   public getGestionFormTitle(): string {
@@ -4003,19 +4280,19 @@ export class EmployeePortalComponent {
   public getTimeoffTypeIdForForm(): string | null {
     const form = this.activeGestionForm();
     const types = this.timeoffTypes();
-    
+
     if (!form || !types.length) return null;
-    
+
     let typeName = '';
     if (form === 'vacations') typeName = 'Vacaciones';
     else if (form === 'license') typeName = 'Licencia';
     else if (form === 'personal') typeName = 'Permiso Personal';
     else if (form === 'maternity') typeName = 'Licencia de Maternidad';
-    
-    const foundType = types.find(t => 
+
+    const foundType = types.find((t) =>
       t.name.toLowerCase().includes(typeName.toLowerCase())
     );
-    
+
     return foundType?.id || this.selectedTimeoffType() || null;
   }
 

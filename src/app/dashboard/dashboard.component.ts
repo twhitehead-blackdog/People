@@ -27,9 +27,6 @@ import { AuthService } from '@auth0/auth0-angular';
 import { Avatar } from 'primeng/avatar';
 import { Button } from 'primeng/button';
 import { MenuModule } from 'primeng/menu';
-import { combineLatest } from 'rxjs';
-import { map } from 'rxjs/operators';
-import { AuthBypassService } from '../services/auth-bypass.service';
 import {
   Organization,
   OrganizationService,
@@ -572,7 +569,6 @@ export class DashboardComponent {
   public showEmployeePortalView = signal(false);
   public organizationService = inject(OrganizationService);
   public http = inject(HttpClient);
-  public bypassService = inject(AuthBypassService);
   public branchesStore = inject(BranchesStore);
   public employeesStore = inject(EmployeesStore);
   public positionsStore = inject(PositionsStore);
@@ -616,21 +612,8 @@ export class DashboardComponent {
     return employee?.position?.name || 'Sin cargo';
   });
 
-  // Observable combinado para obtener el usuario (bypass o Auth0)
-  // Usa switchMap para cambiar dinámicamente entre bypass y Auth0
-  public currentUser$ = combineLatest([
-    this.bypassService.user$,
-    this.auth.user$,
-  ]).pipe(
-    map(([bypassUser, authUser]) => {
-      // Si el bypass está activo y tiene usuario, usar bypass
-      if (this.bypassService.isBypassActive() && bypassUser) {
-        return bypassUser;
-      }
-      // Si no, usar Auth0
-      return authUser;
-    })
-  );
+  // Observable para obtener el usuario de Auth0
+  public currentUser$ = this.auth.user$;
 
   // Determinar si se puede cambiar la organización (solo para soporte2@blackdogpanama.com)
   public canChangeOrganization = computed(() => {
@@ -863,14 +846,8 @@ export class DashboardComponent {
           // Limpiar selección de organización antes de cerrar sesión
           this.organizationService.clearOrganization();
 
-          if (this.bypassService.isBypassActive()) {
-            // Si está en bypass, cerrar bypass y redirigir a login
-            this.bypassService.logout();
-            this.router.navigate(['/login']);
-          } else {
-            // Si no, usar logout normal de Auth0
-            this.auth.logout();
-          }
+          // Cerrar sesión con Auth0
+          this.auth.logout();
         },
       }
     );

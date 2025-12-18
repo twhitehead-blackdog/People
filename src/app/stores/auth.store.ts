@@ -12,7 +12,6 @@ import {
 } from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { filter, of, pipe, switchMap } from 'rxjs';
-import { AuthBypassService } from '../services/auth-bypass.service';
 import { OrganizationService } from '../services/organization.service';
 
 type State = {
@@ -27,26 +26,12 @@ export const AuthStore = signalStore(
     _auth: inject(AuthService),
     _http: inject(HttpClient),
     _orgService: inject(OrganizationService),
-    _bypass: inject(AuthBypassService),
   })),
-  withMethods(({ _auth, _http, _orgService, _bypass, ...state }) => ({
+  withMethods(({ _auth, _http, _orgService, ...state }) => ({
     getCurrentEmployee: rxMethod<void>(
       pipe(
         switchMap(() => {
-          // Si el bypass está activo, usar el usuario del bypass
-          if (_bypass.isBypassActive()) {
-            const bypassUser = _bypass.getCurrentUser();
-            console.log(
-              '🔓 [AuthStore] Usando bypass, usuario:',
-              bypassUser?.email
-            );
-            if (bypassUser) {
-              // Retornar el usuario del bypass como Observable
-              return of(bypassUser);
-            }
-            console.warn('🔓 [AuthStore] Bypass activo pero no hay usuario');
-          }
-          // Si no, usar Auth0
+          // Usar Auth0
           return _auth.user$;
         }),
         filter((user) => !!user),

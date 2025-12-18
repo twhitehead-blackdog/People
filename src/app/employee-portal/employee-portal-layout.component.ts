@@ -2,6 +2,7 @@ import { AsyncPipe } from '@angular/common';
 import {
   Component,
   computed,
+  effect,
   inject,
   OnDestroy,
   OnInit,
@@ -17,6 +18,7 @@ import { MenuModule } from 'primeng/menu';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { filter, Subscription } from 'rxjs';
+import { NotificationsService } from '../services/notifications.service';
 import { OrganizationService } from '../services/organization.service';
 import { AuthStore } from '../stores/auth.store';
 import { BanksStore } from '../stores/banks.store';
@@ -150,20 +152,20 @@ type NavSection = {
               <div class="ml-4 flex items-center md:ml-6 gap-3">
                 <button
                   type="button"
-                  (click)="navigateToSection('complaints')"
+                  (click)="navigateToSection('notifications')"
                   class="relative p-2.5 rounded-lg bg-gray-700/30 hover:bg-gray-700/60 transition-all duration-200 text-white border border-gray-600/50 hover:border-gray-500"
-                  pTooltip="Buzón de Quejas"
-                  title="Buzón de Quejas"
+                  pTooltip="Notificaciones"
+                  title="Notificaciones"
                 >
-                  <i class="pi pi-inbox text-xl"></i>
-                  @if (unreadComplaintsCount() > 0) {
+                  <i class="pi pi-bell text-xl"></i>
+                  @if (unreadNotificationsCount() > 0) {
                   <span
                     class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-gray-800"
                   >
                     {{
-                      unreadComplaintsCount() > 99
+                      unreadNotificationsCount() > 99
                         ? '99+'
-                        : unreadComplaintsCount()
+                        : unreadNotificationsCount()
                     }}
                   </span>
                   }
@@ -229,17 +231,17 @@ type NavSection = {
             @if(user) {
             <button
               type="button"
-              (click)="navigateToSection('complaints')"
+              (click)="navigateToSection('notifications')"
               class="relative w-full rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer text-left"
             >
-              <i class="pi pi-inbox text-lg"></i>
-              <span>Buzón de Quejas</span>
-              @if (unreadComplaintsCount() > 0) {
+              <i class="pi pi-bell text-lg"></i>
+              <span>Notificaciones</span>
+              @if (unreadNotificationsCount() > 0) {
               <span
                 class="ml-auto w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white"
               >
                 {{
-                  unreadComplaintsCount() > 99 ? '99+' : unreadComplaintsCount()
+                  unreadNotificationsCount() > 99 ? '99+' : unreadNotificationsCount()
                 }}
               </span>
               }
@@ -479,6 +481,7 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
   public router = inject(Router);
   public store = inject(DashboardStore);
   public organizationService = inject(OrganizationService);
+  public notificationsService = inject(NotificationsService);
 
   public isNaz = computed(() => this.organizationService.isNaz());
 
@@ -489,11 +492,8 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
   private routerSubscription?: Subscription;
   private dropdownTimeout: any = null;
 
-  public unreadComplaintsCount = computed(() => {
-    // This will be populated from the employee portal component
-    // For now, return 0 as placeholder
-    return 0;
-  });
+  // Usar el servicio compartido de notificaciones
+  public unreadNotificationsCount = computed(() => this.notificationsService.unreadCount());
 
   public navSections: NavSection[] = [
     {
@@ -503,54 +503,22 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
       section: 'dashboard',
     },
     {
-      id: 'personal',
-      label: 'Mi Portal',
-      icon: 'pi pi-user',
-      children: [
-        {
-          id: 'profile',
-          label: 'Mi Perfil',
-          icon: 'pi pi-id-card',
-          section: 'profile',
-        },
-        {
-          id: 'timelogs',
-          label: 'Mis Marcaciones',
-          icon: 'pi pi-calendar-clock',
-          section: 'timelogs',
-        },
-        {
-          id: 'lates',
-          label: 'Mis Tardanzas',
-          icon: 'pi pi-clock',
-          section: 'lates',
-        },
-      ],
-    },
-    {
       id: 'management',
       label: 'Gestiones',
       icon: 'pi pi-briefcase',
-      children: [
-        {
-          id: 'disabilities',
-          label: 'Incapacidades',
-          icon: 'pi pi-file-plus',
-          section: 'disabilities',
-        },
-        {
-          id: 'documents',
-          label: 'Solicitar Documentos',
-          icon: 'pi pi-file-edit',
-          section: 'documents',
-        },
-        {
-          id: 'complaints',
-          label: 'Buzón de Quejas',
-          icon: 'pi pi-comments',
-          section: 'complaints',
-        },
-      ],
+      section: 'management',
+    },
+    {
+      id: 'profile',
+      label: 'Mi Perfil',
+      icon: 'pi pi-id-card',
+      section: 'profile',
+    },
+    {
+      id: 'timelogs',
+      label: 'Mis Marcaciones',
+      icon: 'pi pi-calendar-clock',
+      section: 'timelogs',
     },
   ];
 
@@ -563,6 +531,14 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
   ];
 
   ngOnInit() {
+    // Inicializar notificaciones cuando cambia el empleado actual
+    effect(() => {
+      const employeeId = this.store.currentEmployee()?.id;
+      if (employeeId) {
+        this.notificationsService.setCurrentEmployeeId(employeeId);
+      }
+    });
+
     // Inicializar con el fragmento actual
     this.updateFragment();
 
@@ -587,8 +563,24 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
   }
 
   navigateToSection(section: string) {
-    this.router.navigate(['/employee-portal'], { fragment: section });
-    this.currentFragment.set(section);
+    // Navegar directamente al fragmento correspondiente
+    // El componente employee-portal sincronizará automáticamente el tab activo
+    this.router.navigate(['/employee-portal'], { 
+      fragment: section,
+      replaceUrl: false // Permitir historial de navegación
+    }).then(() => {
+      // Asegurar que el fragmento se actualice después de la navegación
+      this.currentFragment.set(section);
+      this.updateFragment();
+      
+      // Scroll al inicio del contenido después de un pequeño delay
+      setTimeout(() => {
+        const element = document.querySelector('pt-employee-portal');
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 200);
+    });
     this.openDropdown.set(null);
     // Cerrar menú móvil si está abierto
     if (!this.isCollapsed()) {
@@ -602,9 +594,22 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
 
   isActiveSection(section: string): boolean {
     const fragment = this.currentFragment();
+    
+    // Dashboard está activo cuando no hay fragmento o cuando el fragmento es 'dashboard'
     if (section === 'dashboard') {
       return !fragment || fragment === 'dashboard';
     }
+    
+    // Gestiones está activo cuando estamos en cualquier sección de gestiones
+    // (disabilities, documents, complaints, o management)
+    if (section === 'management') {
+      return fragment === 'management' || 
+             fragment === 'disabilities' || 
+             fragment === 'documents' || 
+             fragment === 'complaints';
+    }
+    
+    // Para otras secciones, verificar coincidencia exacta
     return fragment === section;
   }
 

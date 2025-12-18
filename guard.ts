@@ -3,28 +3,11 @@ import { ActivatedRouteSnapshot, CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { catchError, from, map, of, switchMap, take } from 'rxjs';
-import { AuthBypassService } from './src/app/services/auth-bypass.service';
 
 export const authGuardFn: CanActivateFn = (_route: ActivatedRouteSnapshot) => {
   const auth = inject(AuthService);
   const router = inject(Router);
   const http = inject(HttpClient);
-  const bypassService = inject(AuthBypassService);
-
-  // Verificar si el bypass está activo PRIMERO
-  if (bypassService.isBypassActive()) {
-    const user = bypassService.getCurrentUser();
-    console.log('🔓 [Guard] Bypass activo, usuario:', user?.email);
-    if (user?.email) {
-      // Con bypass, permitir acceso sin verificar en base de datos
-      // El bypass es para desarrollo/testing, así que confiamos en él
-      console.log('🔓 [Guard] Permitiendo acceso con bypass');
-      return of(true);
-    } else {
-      console.warn('🔓 [Guard] Bypass activo pero no hay usuario, limpiando bypass');
-      bypassService.logout();
-    }
-  }
 
   return from(auth.isAuthenticated$).pipe(
     take(1),
