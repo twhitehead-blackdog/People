@@ -306,6 +306,12 @@ function run(): void {
     console.log(`🌐 Server is ready to accept connections`);
     
     // Verificar que el servidor está realmente escuchando
+    const address = httpServer.address();
+    if (address && typeof address === 'object') {
+      console.log(`🔍 Server listening on ${address.address}:${address.port}`);
+    }
+    
+    // Verificar que el servidor está realmente escuchando
     httpServer.on('connection', (socket) => {
       console.log(`🔌 Nueva conexión desde ${socket.remoteAddress}:${socket.remotePort}`);
     });
@@ -314,6 +320,25 @@ function run(): void {
     httpServer.on('close', () => {
       console.log('⚠️ HTTP server closed');
     });
+    
+    // Log de errores de conexión
+    httpServer.on('error', (error: Error) => {
+      console.error('❌ Error en servidor HTTP:', error);
+    });
+    
+    // Hacer un test interno del health check
+    setTimeout(() => {
+      console.log('🧪 Testing health endpoint internally...');
+      const http = require('http');
+      const testReq = http.get(`http://localhost:${port}/health`, (res: any) => {
+        console.log(`✅ Health check interno: ${res.statusCode}`);
+        res.on('data', () => {});
+        res.on('end', () => {});
+      });
+      testReq.on('error', (err: Error) => {
+        console.error('❌ Error en health check interno:', err);
+      });
+    }, 1000);
   });
 
   // Manejo de errores del servidor HTTP
