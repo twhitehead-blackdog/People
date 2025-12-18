@@ -641,11 +641,27 @@ export class JobApplicationsListComponent implements OnInit {
       }
 
       const settings = this.jobFairSettingsApi.value();
+      const isLoading = this.jobFairSettingsApi.isLoading();
+      const error = this.jobFairSettingsApi.error();
+      
       console.log(
         '[DEBUG] 📥 Settings cargados desde API:',
         JSON.stringify(settings, null, 2)
       );
       console.log('[DEBUG] 📥 Cantidad de settings:', settings?.length || 0);
+      console.log('[DEBUG] 📥 isLoading:', isLoading);
+      console.log('[DEBUG] 📥 error:', error);
+      
+      // Si está cargando, no hacer nada todavía
+      if (isLoading) {
+        console.log('[DEBUG] ⏳ Settings aún cargando, esperando...');
+        return;
+      }
+      
+      // Si hay error, loguearlo pero continuar
+      if (error) {
+        console.error('[DEBUG] ❌ Error cargando settings:', error);
+      }
 
       if (settings && settings.length > 0) {
         const enabledSetting = settings.find(
