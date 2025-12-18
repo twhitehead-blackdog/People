@@ -557,7 +557,19 @@ export class JobApplicationsListComponent implements OnInit {
       '';
     
     if (!serviceRoleKey) {
-      console.warn('[WARNING] No se encontró ENV_SUPABASE_SERVICE_ROLE_KEY, ENV_SUPABASE_TOKEN ni ENV_SUPABASE_API_KEY. Las operaciones en settings pueden fallar.');
+      const errorMsg = '❌ ERROR: No se encontró ENV_SUPABASE_SERVICE_ROLE_KEY, ENV_SUPABASE_TOKEN ni ENV_SUPABASE_API_KEY. ' +
+        'Por favor, agrega ENV_SUPABASE_SERVICE_ROLE_KEY a tu archivo .env y REINICIA la aplicación (detén con Ctrl+C y ejecuta npm start de nuevo).';
+      console.error('[ERROR]', errorMsg);
+      console.error('[ERROR] Variables disponibles en tiempo de compilación:', {
+        'ENV_SUPABASE_SERVICE_ROLE_KEY': process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'] ? '✅ Configurada' : '❌ No configurada',
+        'ENV_SUPABASE_TOKEN': process.env['ENV_SUPABASE_TOKEN'] ? '✅ Configurada' : '❌ No configurada',
+        'ENV_SUPABASE_API_KEY': process.env['ENV_SUPABASE_API_KEY'] ? '✅ Configurada' : '❌ No configurada',
+      });
+      console.error('[ERROR] IMPORTANTE: Las variables de entorno se inyectan en tiempo de compilación. ' +
+        'Si agregaste ENV_SUPABASE_SERVICE_ROLE_KEY al .env después de iniciar la aplicación, ' +
+        'debes REINICIAR la aplicación para que se cargue.');
+      // No lanzar error aquí, permitir que la petición falle con 401 para que el usuario vea el error
+      // El error se manejará en el catch del método que llama
     }
     
     return {

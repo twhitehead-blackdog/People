@@ -22,6 +22,12 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
          process.env['ENV_SUPABASE_API_KEY'] ?? 
          '');
     
+    // Si es una petición a settings y no hay key disponible, mostrar error más claro
+    if (isSettingsRequest && !supabaseKey) {
+      console.error('[ERROR] No se encontró ENV_SUPABASE_SERVICE_ROLE_KEY para peticiones a settings. ' +
+        'Por favor, agrega esta variable a tu archivo .env y reinicia la aplicación.');
+    }
+    
     let headers = req.headers
       .set('apikey', supabaseKey)
       .set('Authorization', `Bearer ${supabaseKey}`);
