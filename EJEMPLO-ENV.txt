@@ -9,11 +9,11 @@ ENV_SUPABASE_API_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 ENV_SUPABASE_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiY2RlZmdoaWprbG1ub3AiLCJyb2xlIjoic2VydmljZV9yb2xlIiwiaWF0IjoxNjM...
 
 # Auth0 - Obtén estos valores de: https://manage.auth0.com > Applications > Tu App
-ENV_AUTH0_DOMAIN=dev-gyiiy3lphqlh0zo8.us.auth0.com
-ENV_AUTH0_CLIENT_ID=3naRktq1HnSCdV4nPgKXCBEctucaSGar
+ENV_AUTH0_DOMAIN=tu-dominio.auth0.com
+ENV_AUTH0_CLIENT_ID=tu_client_id_aqui
 # IMPORTANTE: Client Secret solo para uso en BACKEND, NO usar en frontend por seguridad
-ENV_AUTH0_CLIENT_SECRET=Pb6f31QdgdysljnyI_SVKFttFJx2oz9UwAX44GLjz9fNinB_QyTOafKmYTDnxPU
-ENV_AUTH0_AUDIENCE=https://people.api
+ENV_AUTH0_CLIENT_SECRET=tu_client_secret_aqui
+ENV_AUTH0_AUDIENCE=https://tu-api.audience
 
 # Application
 # IMPORTANTE: Este debe coincidir EXACTAMENTE con la URL configurada en Auth0 Dashboard
