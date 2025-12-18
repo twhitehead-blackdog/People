@@ -77,31 +77,68 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withInterceptors([httpInterceptor, errorInterceptor])),
     provideAuth0({
       domain: (() => {
-        const domain = process.env['ENV_AUTH0_DOMAIN'];
+        // Función helper para limpiar valores (remover comillas y espacios)
+        const cleanValue = (val: string | undefined): string => {
+          if (!val || val === '' || val === 'undefined') return '';
+          // Remover comillas dobles y simples del inicio y final
+          let cleaned = val.trim();
+          if ((cleaned.startsWith('"') && cleaned.endsWith('"')) || 
+              (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+            cleaned = cleaned.slice(1, -1);
+          }
+          return cleaned.trim();
+        };
+        
+        const domain = cleanValue(process.env['ENV_AUTH0_DOMAIN']);
         if (!domain || domain === '') {
           console.error('❌ ERROR: ENV_AUTH0_DOMAIN no está configurado. Auth0 no funcionará correctamente.');
-          // Fallback para desarrollo local
+          console.error('   Valor recibido:', process.env['ENV_AUTH0_DOMAIN']);
           return '';
         }
+        console.log('✅ ENV_AUTH0_DOMAIN configurado:', domain);
         return domain;
       })(),
       clientId: (() => {
-        const clientId = process.env['ENV_AUTH0_CLIENT_ID'];
+        const cleanValue = (val: string | undefined): string => {
+          if (!val || val === '' || val === 'undefined') return '';
+          let cleaned = val.trim();
+          if ((cleaned.startsWith('"') && cleaned.endsWith('"')) || 
+              (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+            cleaned = cleaned.slice(1, -1);
+          }
+          return cleaned.trim();
+        };
+        
+        const clientId = cleanValue(process.env['ENV_AUTH0_CLIENT_ID']);
         if (!clientId || clientId === '') {
           console.error('❌ ERROR: ENV_AUTH0_CLIENT_ID no está configurado. Auth0 no funcionará correctamente.');
+          console.error('   Valor recibido:', process.env['ENV_AUTH0_CLIENT_ID']);
           return '';
         }
+        console.log('✅ ENV_AUTH0_CLIENT_ID configurado:', clientId.substring(0, 10) + '...');
         return clientId;
       })(),
       authorizationParams: {
         // IMPORTANTE: El redirect_uri debe coincidir EXACTAMENTE con el configurado en Auth0 Dashboard
         // Usar ENV_APP_URL si está disponible, de lo contrario usar window.location.origin
         redirect_uri: (() => {
+          const cleanValue = (val: string | undefined): string => {
+            if (!val || val === '' || val === 'undefined') return '';
+            let cleaned = val.trim();
+            if ((cleaned.startsWith('"') && cleaned.endsWith('"')) || 
+                (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+              cleaned = cleaned.slice(1, -1);
+            }
+            return cleaned.trim();
+          };
+          
           // Priorizar ENV_APP_URL si está definido (más confiable)
-          const envUrl = process.env['ENV_APP_URL'];
-          if (envUrl && envUrl !== '' && envUrl !== 'undefined') {
+          const envUrl = cleanValue(process.env['ENV_APP_URL']);
+          if (envUrl && envUrl !== '') {
             // Asegurar que no tenga barra final
-            return envUrl.replace(/\/$/, '');
+            const redirectUri = envUrl.replace(/\/$/, '');
+            console.log('✅ Usando ENV_APP_URL como redirect_uri:', redirectUri);
+            return redirectUri;
           }
           
           // Fallback a window.location.origin si está disponible (siempre funciona en el navegador)
@@ -116,9 +153,24 @@ export const appConfig: ApplicationConfig = {
           return 'http://localhost:3000';
         })(),
         // Audience solo se incluye si está configurado (opcional para aplicaciones SPA)
-        ...(process.env['ENV_AUTH0_AUDIENCE'] && process.env['ENV_AUTH0_AUDIENCE'] !== '' && process.env['ENV_AUTH0_AUDIENCE'] !== 'undefined' 
-          ? { audience: process.env['ENV_AUTH0_AUDIENCE'] } 
-          : {}),
+        ...((() => {
+          const cleanValue = (val: string | undefined): string => {
+            if (!val || val === '' || val === 'undefined') return '';
+            let cleaned = val.trim();
+            if ((cleaned.startsWith('"') && cleaned.endsWith('"')) || 
+                (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+              cleaned = cleaned.slice(1, -1);
+            }
+            return cleaned.trim();
+          };
+          
+          const audience = cleanValue(process.env['ENV_AUTH0_AUDIENCE']);
+          if (audience && audience !== '') {
+            console.log('✅ ENV_AUTH0_AUDIENCE configurado:', audience);
+            return { audience };
+          }
+          return {};
+        })()),
       },
       useRefreshTokens: true,
       cacheLocation: 'localstorage',
