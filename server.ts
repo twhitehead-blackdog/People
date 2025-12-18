@@ -105,15 +105,24 @@ export function app(): express.Express {
 
   // Health check endpoints (debe estar antes de los archivos estáticos)
   // Railway hace health checks en /health
+  // IMPORTANTE: Este endpoint debe responder lo más rápido posible
   server.get('/health', (req, res) => {
     console.log('✅ Health check recibido en /health');
     console.log(`   Headers: ${JSON.stringify(req.headers)}`);
+    console.log(`   IP: ${req.ip || req.socket.remoteAddress}`);
+    // Responder inmediatamente sin procesamiento adicional
     res.status(200).json({ 
       status: 'ok', 
       message: 'Server is running', 
       timestamp: new Date().toISOString(),
       uptime: process.uptime()
     });
+  });
+  
+  // También responder en /healthz (algunos sistemas usan esto)
+  server.get('/healthz', (req, res) => {
+    console.log('✅ Health check recibido en /healthz');
+    res.status(200).json({ status: 'ok' });
   });
 
   server.get('/api/health', (req, res) => {
