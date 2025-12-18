@@ -122,6 +122,25 @@ export const appConfig: ApplicationConfig = {
         // IMPORTANTE: El redirect_uri debe coincidir EXACTAMENTE con el configurado en Auth0 Dashboard
         // Usar ENV_APP_URL si está disponible, de lo contrario usar window.location.origin
         redirect_uri: (() => {
+          // IMPORTANTE: Auth0 requiere que el redirect_uri coincida EXACTAMENTE con las URLs permitidas
+          // Las URLs permitidas en Auth0 son:
+          // - https://frontend-dev-production-c157.up.railway.app
+          // - https://adoptions-production.up.railway.app/*
+          // - http://localhost:4200
+          // - http://localhost:4200/*
+          //
+          // Para que funcione con wildcards, debemos usar window.location.origin en tiempo de ejecución
+          // para que coincida exactamente con la URL actual del navegador
+          
+          // SIEMPRE usar window.location.origin en el navegador para que coincida exactamente
+          if (typeof window !== 'undefined' && window.location) {
+            const origin = window.location.origin;
+            console.log('✅ Usando window.location.origin como redirect_uri:', origin);
+            console.log('   Esto asegura que coincida exactamente con la URL actual del navegador');
+            return origin;
+          }
+          
+          // Solo usar ENV_APP_URL como fallback si window no está disponible (SSR)
           const cleanValue = (val: string | undefined): string => {
             if (!val || val === '' || val === 'undefined') return '';
             let cleaned = val.trim();
@@ -132,25 +151,16 @@ export const appConfig: ApplicationConfig = {
             return cleaned.trim();
           };
           
-          // Priorizar ENV_APP_URL si está definido (más confiable)
           const envUrl = cleanValue(process.env['ENV_APP_URL']);
           if (envUrl && envUrl !== '') {
-            // Asegurar que no tenga barra final
             const redirectUri = envUrl.replace(/\/$/, '');
-            console.log('✅ Usando ENV_APP_URL como redirect_uri:', redirectUri);
+            console.warn('⚠️ Usando ENV_APP_URL como fallback (window no disponible):', redirectUri);
             return redirectUri;
           }
           
-          // Fallback a window.location.origin si está disponible (siempre funciona en el navegador)
-          if (typeof window !== 'undefined' && window.location) {
-            const origin = window.location.origin;
-            console.log(`📝 Usando window.location.origin como redirect_uri: ${origin}`);
-            return origin;
-          }
-          
-          // Último fallback (solo para SSR o casos especiales)
+          // Último fallback
           console.warn('⚠️ No se pudo determinar redirect_uri, usando fallback localhost');
-          return 'http://localhost:3000';
+          return 'http://localhost:4200';
         })(),
         // Audience solo se incluye si está configurado (opcional para aplicaciones SPA)
         ...((() => {
