@@ -33,6 +33,7 @@ import { OrganizationService } from '../services/organization.service';
             <div
               class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
               [class.selected]="
+                isActiveRoute('hr/time-dashboard') ||
                 isActiveRoute('hr/disabilities') ||
                 (!isNaz() && isActiveRoute('job-applications'))
               "
@@ -49,6 +50,16 @@ import { OrganizationService } from '../services/organization.service';
               (mouseenter)="openDropdown('rrhh')"
               (mouseleave)="closeDropdown()"
             >
+              <!-- Tiempo -->
+              <a
+                routerLink="hr/time-dashboard"
+                class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
+                [class.bg-neutral-700]="isActiveRoute('hr/time-dashboard')"
+                [class.text-amber-300]="isActiveRoute('hr/time-dashboard')"
+              >
+                <i class="pi pi-clock text-sm"></i>
+                <span>Tiempo</span>
+              </a>
               <!-- Incapacidades -->
               <a
                 routerLink="hr/disabilities"

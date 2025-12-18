@@ -108,13 +108,20 @@ export const DASHBOARD_ROUTES: Routes = [
             path: 'hr',
             children: [
               {
+                path: 'time-dashboard',
+                loadComponent: () =>
+                  import('./hr-time-dashboard.component').then(
+                    (x) => x.HRTimeDashboardComponent
+                  ),
+              },
+              {
                 path: 'disabilities',
                 loadComponent: () =>
                   import('./hr-disabilities.component').then(
                     (x) => x.HRDisabilitiesComponent
                   ),
               },
-              { path: '', redirectTo: 'disabilities', pathMatch: 'full' },
+              { path: '', redirectTo: 'time-dashboard', pathMatch: 'full' },
             ],
           },
           { path: '', redirectTo: 'employees', pathMatch: 'full' },
