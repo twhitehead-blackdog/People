@@ -805,7 +805,7 @@ export class JobApplicationsListComponent implements OnInit {
         );
 
         if (existingStartSettings && existingStartSettings.length > 0) {
-          // Actualizar existente usando PATCH con params
+          // Actualizar existente usando PATCH con params correctos
           console.log(
             '[DEBUG] Actualizando setting de inicio con ID:',
             existingStartSettings[0].id
@@ -813,10 +813,11 @@ export class JobApplicationsListComponent implements OnInit {
           try {
             const updateResult = await firstValueFrom(
               this.http.patch(
-                `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingStartSettings[0].id}`,
+                `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
                 { value: startDateString },
                 {
                   params: {
+                    key: 'eq.job_fair_start_date',
                     select: '*',
                   },
                 }
@@ -869,8 +870,13 @@ export class JobApplicationsListComponent implements OnInit {
         if (existingStartSettings && existingStartSettings.length > 0) {
           await firstValueFrom(
             this.http.patch(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingStartSettings[0].id}`,
-              { value: '' }
+              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+              { value: '' },
+              {
+                params: {
+                  key: 'eq.job_fair_start_date',
+                },
+              }
             )
           );
         }
@@ -894,7 +900,7 @@ export class JobApplicationsListComponent implements OnInit {
         console.log('[DEBUG] Settings de fin existentes:', existingEndSettings);
 
         if (existingEndSettings && existingEndSettings.length > 0) {
-          // Actualizar existente usando PATCH con params
+          // Actualizar existente usando PATCH con params correctos
           console.log(
             '[DEBUG] Actualizando setting de fin con ID:',
             existingEndSettings[0].id
@@ -902,10 +908,11 @@ export class JobApplicationsListComponent implements OnInit {
           try {
             const updateResult = await firstValueFrom(
               this.http.patch(
-                `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingEndSettings[0].id}`,
+                `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
                 { value: endDateString },
                 {
                   params: {
+                    key: 'eq.job_fair_end_date',
                     select: '*',
                   },
                 }
@@ -958,11 +965,11 @@ export class JobApplicationsListComponent implements OnInit {
         if (existingEndSettings && existingEndSettings.length > 0) {
           await firstValueFrom(
             this.http.patch(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingEndSettings[0].id}`,
+              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
               { value: '' },
               {
                 params: {
-                  select: '*',
+                  key: 'eq.job_fair_end_date',
                 },
               }
             )
@@ -1063,8 +1070,13 @@ export class JobApplicationsListComponent implements OnInit {
     if (existingStartSettings && existingStartSettings.length > 0) {
       await firstValueFrom(
         this.http.patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingStartSettings[0].id}`,
-          { value: '' }
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+          { value: '' },
+          {
+            params: {
+              key: 'eq.job_fair_start_date',
+            },
+          }
         )
       );
     }
@@ -1072,8 +1084,13 @@ export class JobApplicationsListComponent implements OnInit {
     if (existingEndSettings && existingEndSettings.length > 0) {
       await firstValueFrom(
         this.http.patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingEndSettings[0].id}`,
-          { value: '' }
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+          { value: '' },
+          {
+            params: {
+              key: 'eq.job_fair_end_date',
+            },
+          }
         )
       );
     }
@@ -1104,7 +1121,7 @@ export class JobApplicationsListComponent implements OnInit {
       console.log('[DEBUG] Settings existentes encontrados:', existingSettings);
 
       if (existingSettings && existingSettings.length > 0) {
-        // Actualizar setting existente usando PATCH con filtro en la URL
+        // Actualizar setting existente usando PATCH con params correctos
         console.log(
           '[DEBUG] Actualizando setting existente con ID:',
           existingSettings[0].id
@@ -1112,10 +1129,11 @@ export class JobApplicationsListComponent implements OnInit {
         try {
           const updateResult = await firstValueFrom(
             this.http.patch(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${existingSettings[0].id}`,
+              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
               { value: newValue },
               {
                 params: {
+                  key: 'eq.job_fair_enabled',
                   select: '*',
                 },
               }
