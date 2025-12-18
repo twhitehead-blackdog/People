@@ -16,6 +16,7 @@ import {
   subMonths,
 } from 'date-fns';
 import { Branch, Department, Position } from '../models';
+import { TestModeService } from '../services/test-mode.service';
 import { AuthStore } from './auth.store';
 import { BanksStore } from './banks.store';
 import { BranchesStore } from './branches.store';
@@ -48,9 +49,10 @@ export const DashboardStore = signalStore(
     auth: inject(AuthStore),
     banks: inject(BanksStore),
     payrolls: inject(PayrollsStore),
+    testMode: inject(TestModeService),
   })),
   withComputed(
-    ({ employees, branches, companies, selectedCompanyId, auth }) => {
+    ({ employees, branches, companies, selectedCompanyId, auth, testMode }) => {
       const headCount = computed(() => {
         const allEmployees = employees.entities();
         const activeEmployees = allEmployees.filter((x) => x.is_active);
@@ -89,6 +91,14 @@ export const DashboardStore = signalStore(
 
       const isAdmin = computed(() => {
         const employee = currentEmployee();
+        const currentMode = testMode.currentMode;
+        const isSupportUser = employee?.work_email && testMode.isSupportUser(employee.work_email);
+        
+        // Si es soporte2 y está en modo de prueba, respetar el modo
+        if (isSupportUser && currentMode !== null) {
+          // Solo es admin si está en modo "admin"
+          return currentMode === 'admin';
+        }
         
         // Verificar si es super admin por correo
         if (
@@ -116,6 +126,15 @@ export const DashboardStore = signalStore(
 
       const hasPortalAccessOnly = computed(() => {
         const employee = currentEmployee();
+        const currentMode = testMode.currentMode;
+        const isSupportUser = employee?.work_email && testMode.isSupportUser(employee.work_email);
+        
+        // Si es soporte2 y está en modo de prueba, respetar el modo
+        if (isSupportUser && currentMode !== null) {
+          // Solo tiene acceso al portal si está en modo "empleado"
+          return currentMode === 'empleado';
+        }
+        
         const positionName = employee?.position?.name || '';
 
         // Verificar si el cargo está en la lista de cargos que solo tienen acceso al portal
@@ -163,9 +182,20 @@ export const DashboardStore = signalStore(
         return dashboardAccess !== false;
       });
       
-      const isScheduleApprover = computed(
-        () => currentEmployee()?.position?.schedule_approver
-      );
+      const isScheduleApprover = computed(() => {
+        const employee = currentEmployee();
+        const currentMode = testMode.currentMode;
+        const isSupportUser = employee?.work_email && testMode.isSupportUser(employee.work_email);
+        
+        // Si es soporte2 y está en modo de prueba, respetar el modo
+        if (isSupportUser && currentMode !== null) {
+          // Tiene permisos de schedule_approver si está en modo "gerente"
+          return currentMode === 'gerente';
+        }
+        
+        // Comportamiento normal
+        return employee?.position?.schedule_approver || false;
+      });
 
       const currentBranch = computed(() => currentEmployee()?.branch);
 

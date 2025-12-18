@@ -4,6 +4,7 @@ import { AuthService } from '@auth0/auth0-angular';
 import { HttpClient } from '@angular/common/http';
 import { map, switchMap, take, of, catchError } from 'rxjs';
 import { OrganizationService } from '../services/organization.service';
+import { TestModeService } from '../services/test-mode.service';
 
 // Tipo para el empleado con posición
 type EmployeeWithPosition = {
@@ -52,6 +53,7 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
   const authService = inject(AuthService);
   const http = inject(HttpClient);
   const orgService = inject(OrganizationService);
+  const testModeService = inject(TestModeService);
 
   // Lista de correos con acceso completo (super admins)
   const superAdminEmails = ['mercadeo@blackdogpanama.com', 'soporte2@blackdogpanama.com'];
@@ -80,9 +82,43 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
 
       // Verificar si el usuario actual es un super admin
       const userEmail = user?.email?.toLowerCase();
+      const isSupportUser = userEmail && testModeService.isSupportUser(userEmail);
+      const currentTestMode = testModeService.getMode();
       
-      if (userEmail && superAdminEmails.includes(userEmail)) {
-        // Super admin tiene acceso a todo
+      // Si es soporte2 y está en modo de prueba, aplicar las restricciones del modo
+      // Pero siempre permitir acceso si está cambiando a modo admin
+      if (isSupportUser && currentTestMode !== null) {
+        // Si está en modo "empleado", redirigir al portal
+        if (currentTestMode === 'empleado') {
+          const isPortalRoute = state.url.includes('/employee-portal') || state.url.includes('/my-portal');
+          if (!isPortalRoute) {
+            return of(router.createUrlTree(['/employee-portal']));
+          }
+          return of(true);
+        }
+        // Si está en modo "gerente", permitir acceso a time-management y timeclock
+        if (currentTestMode === 'gerente') {
+          const isTimeManagementRoute = state.url.includes('/time-management');
+          const isTimeclockRoute = state.url.includes('/timeclock');
+          const isPortalRoute = state.url.includes('/employee-portal') || state.url.includes('/my-portal');
+          const isHomeRoute = state.url === '/' || state.url === '' || state.url.includes('/home');
+          
+          // Permitir acceso a time-management y timeclock
+          if (isTimeManagementRoute || isTimeclockRoute || isPortalRoute) {
+            return of(true);
+          }
+          // Redirigir a time-management desde home
+          if (isHomeRoute) {
+            return of(router.createUrlTree(['/time-management']));
+          }
+          // Para otras rutas administrativas, denegar acceso
+          return of(router.createUrlTree(['/time-management']));
+        }
+        // Si está en modo "admin", continuar con el flujo normal (sin restricciones)
+      }
+      
+      if (userEmail && superAdminEmails.includes(userEmail) && (currentTestMode === null || currentTestMode === 'admin')) {
+        // Super admin tiene acceso a todo (solo si no está en modo de prueba restringido)
         return of(true);
       }
 
@@ -115,17 +151,37 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
         const hasTimeManagementAccess = timeManagementAccessPositions.some(
           (pos) => positionName.toLowerCase().includes(pos.toLowerCase())
         );
-        const hasPortalAccessOnly = 
+        // Verificar si es soporte2 y tiene modo de prueba activo
+        const isSupportUserInCache = testModeService.isSupportUser(user.email);
+        const currentTestMode = testModeService.getMode();
+        
+        // Aplicar modo de prueba si es soporte2
+        let hasPortalAccessOnly = 
           isPortalOnlyPosition || 
           (employee.has_portal_access === true && !employee.position?.admin);
+        let hasDashboardAccess = employee.position?.dashboard_access !== false;
+        let isAdmin = employee.position?.admin === true;
+        let isScheduleApprover = false;
         
-        // Verificar permiso de dashboard
-        // Si dashboard_access es null/undefined, permitir acceso (compatibilidad con datos antiguos)
-        // Solo denegar si es explícitamente false
-        const hasDashboardAccess = employee.position?.dashboard_access !== false;
-        
-        // Si el usuario es admin, siempre permitir acceso (independientemente de dashboard_access)
-        const isAdmin = employee.position?.admin === true;
+        if (isSupportUserInCache && currentTestMode !== null) {
+          if (currentTestMode === 'empleado') {
+            hasPortalAccessOnly = true;
+            hasDashboardAccess = false;
+            isAdmin = false;
+            isScheduleApprover = false;
+          } else if (currentTestMode === 'gerente') {
+            hasPortalAccessOnly = false;
+            hasDashboardAccess = false; // Gerentes no tienen acceso al dashboard completo
+            isAdmin = false;
+            isScheduleApprover = true; // Simular permisos de supervisor
+          } else if (currentTestMode === 'admin') {
+            // Modo admin: sin restricciones
+            hasPortalAccessOnly = false;
+            hasDashboardAccess = true;
+            isAdmin = true;
+            isScheduleApprover = true;
+          }
+        }
 
         const currentRoute = route.routeConfig?.path || '';
         const isTimeclockRoute = currentRoute === 'timeclock' || state.url.includes('/timeclock');
@@ -290,6 +346,10 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
             return router.createUrlTree(['/sin-acceso']);
           }
 
+          // Verificar si es soporte2 y tiene modo de prueba activo
+          const isSupportUserInMap = testModeService.isSupportUser(user.email);
+          const currentTestMode = testModeService.getMode();
+          
           const positionName = employee.position?.name || '';
           const isPortalOnlyPosition = portalOnlyPositions.some(
             (pos) => positionName.toLowerCase().includes(pos.toLowerCase())
@@ -297,9 +357,34 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
           const hasTimeManagementAccess = timeManagementAccessPositions.some(
             (pos) => positionName.toLowerCase().includes(pos.toLowerCase())
           );
-          const hasPortalAccessOnly = 
+          
+          // Aplicar modo de prueba si es soporte2
+          let hasPortalAccessOnly = 
             isPortalOnlyPosition || 
             (employee.has_portal_access === true && !employee.position?.admin);
+          let hasDashboardAccess = employee.position?.dashboard_access !== false;
+          let isAdmin = employee.position?.admin === true;
+          let isScheduleApprover = false;
+          
+          if (isSupportUserInMap && currentTestMode !== null) {
+            if (currentTestMode === 'empleado') {
+              hasPortalAccessOnly = true;
+              hasDashboardAccess = false;
+              isAdmin = false;
+              isScheduleApprover = false;
+            } else if (currentTestMode === 'gerente') {
+              hasPortalAccessOnly = false;
+              hasDashboardAccess = false; // Gerentes no tienen acceso al dashboard completo
+              isAdmin = false;
+              isScheduleApprover = true; // Simular permisos de supervisor
+            } else if (currentTestMode === 'admin') {
+              // Modo admin: sin restricciones
+              hasPortalAccessOnly = false;
+              hasDashboardAccess = true;
+              isAdmin = true;
+              isScheduleApprover = true;
+            }
+          }
 
           // Rutas que todos pueden acceder
           const currentRoute = route.routeConfig?.path || '';
@@ -307,14 +392,6 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
           const isTimeManagementRoute = currentRoute === 'time-management' || state.url.includes('/time-management');
           const isPortalRoute = currentRoute === 'my-portal' || state.url.includes('/my-portal') || state.url.includes('/employee-portal');
           const isHomeRoute = currentRoute === 'home' || state.url.includes('/home') || state.url === '/' || state.url === '';
-          
-          // Verificar permiso de dashboard
-          // Si dashboard_access es null/undefined, permitir acceso (compatibilidad con datos antiguos)
-          // Solo denegar si es explícitamente false
-          const hasDashboardAccess = employee.position?.dashboard_access !== false;
-          
-          // Si el usuario es admin, siempre permitir acceso (independientemente de dashboard_access)
-          const isAdmin = employee.position?.admin === true;
           
           // Si tiene acceso especial a gestión de tiempo, permitir acceso a time-management y timeclock
           if (hasTimeManagementAccess && (isTimeManagementRoute || isTimeclockRoute)) {

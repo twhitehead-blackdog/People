@@ -31,6 +31,7 @@ import {
   Organization,
   OrganizationService,
 } from '../services/organization.service';
+import { TestModeService } from '../services/test-mode.service';
 import { AuthStore } from '../stores/auth.store';
 import { BanksStore } from '../stores/banks.store';
 import { BranchesStore } from '../stores/branches.store';
@@ -317,6 +318,26 @@ import { EmployeePortalComponent } from './employee-portal.component';
           }
         </div>
       </nav>
+      <!-- Banner de modo de prueba (solo visible cuando no está en modo admin) -->
+      @if(isSupportUser() && isTestModeActive() && !isAdminMode()) {
+      <div
+        class="bg-yellow-500/20 border-b border-yellow-500/50 px-4 py-2 flex items-center justify-between"
+      >
+        <div class="flex items-center gap-2 text-yellow-300">
+          <i class="pi pi-info-circle"></i>
+          <span class="text-sm font-medium">
+            Modo de Prueba: <strong>{{ getModeLabel() }}</strong>
+          </span>
+        </div>
+        <button
+          (click)="setTestMode('admin')"
+          class="px-3 py-1 bg-yellow-500 hover:bg-yellow-600 text-black text-sm font-semibold rounded transition-colors flex items-center gap-2"
+        >
+          <i class="pi pi-arrow-left text-xs"></i>
+          Volver a Admin
+        </button>
+      </div>
+      }
       <div class="flex-1 overflow-y-auto">
         @if(showEmployeePortalView()) {
         <pt-employee-portal />
@@ -568,6 +589,7 @@ export class DashboardComponent {
   public currentRoute = signal('');
   public showEmployeePortalView = signal(false);
   public organizationService = inject(OrganizationService);
+  public testModeService = inject(TestModeService);
   public http = inject(HttpClient);
   public branchesStore = inject(BranchesStore);
   public employeesStore = inject(EmployeesStore);
@@ -598,6 +620,51 @@ export class DashboardComponent {
     const email = employee.work_email?.toLowerCase() || '';
     return email === 'soporte2@blackdogpanama.com';
   });
+
+  // Computed para el modo de prueba actual
+  public currentTestMode = computed(() => this.testModeService.currentMode);
+  public isTestModeActive = computed(() =>
+    this.testModeService.isTestModeActive()
+  );
+  public isAdminMode = computed(() => this.testModeService.isAdminMode());
+  public isGerenteMode = computed(() => this.testModeService.isGerenteMode());
+  public isEmpleadoMode = computed(() => this.testModeService.isEmpleadoMode());
+
+  // Método para cambiar el modo de prueba
+  public setTestMode(mode: 'admin' | 'gerente' | 'empleado' | null): void {
+    this.testModeService.setMode(mode);
+    // Invalidar cache del guard para que se recalculen los permisos
+    if (typeof window !== 'undefined') {
+      const employee = this.store.currentEmployee();
+      if (employee?.work_email) {
+        // Forzar recarga del empleado actual para actualizar permisos
+        this.store.auth.getCurrentEmployee();
+        // Redirigir según el modo
+        if (mode === 'empleado') {
+          this.router.navigate(['/employee-portal']);
+        } else if (mode === 'gerente') {
+          this.router.navigate(['/time-management']);
+        } else if (mode === 'admin' || mode === null) {
+          this.router.navigate(['/home']);
+        }
+      }
+    }
+  }
+
+  // Método para obtener la etiqueta del modo actual
+  public getModeLabel(): string {
+    const mode = this.currentTestMode();
+    switch (mode) {
+      case 'admin':
+        return 'Admin';
+      case 'gerente':
+        return 'Gerente';
+      case 'empleado':
+        return 'Empleado';
+      default:
+        return 'Admin';
+    }
+  }
 
   // Memoized employee name to avoid multiple store calls
   public currentEmployeeName = computed(() => {
@@ -811,14 +878,68 @@ export class DashboardComponent {
       });
     }
 
-    // Agregar opción de vista Employee Portal solo para soporte2@blackdogpanama.com
+    // Agregar selector de modo de prueba solo para soporte2@blackdogpanama.com
     if (isSupport) {
+      const currentMode = this.currentTestMode();
+      const modeLabel = this.getModeLabel();
+
+      // Separador antes del selector de modo
       items.push({
-        label: portalView ? 'Vista Completa' : 'Vista Employee Portal',
-        icon: portalView ? 'pi pi-th-large' : 'pi pi-id-card',
+        separator: true,
+      });
+
+      // Título del selector
+      items.push({
+        label: 'Modo de Prueba',
+        icon: 'pi pi-cog',
+        disabled: true,
+      });
+
+      // Opciones de modo
+      items.push({
+        label: `Admin ${
+          currentMode === 'admin' || currentMode === null ? '✓' : ''
+        }`,
+        icon: 'pi pi-shield',
         command: () => {
-          this.showEmployeePortalView.update((v) => !v);
+          this.setTestMode('admin');
         },
+      });
+
+      items.push({
+        label: `Gerente ${currentMode === 'gerente' ? '✓' : ''}`,
+        icon: 'pi pi-user-edit',
+        command: () => {
+          this.setTestMode('gerente');
+        },
+      });
+
+      items.push({
+        label: `Empleado ${currentMode === 'empleado' ? '✓' : ''}`,
+        icon: 'pi pi-user',
+        command: () => {
+          this.setTestMode('empleado');
+        },
+      });
+
+      // Botón rápido para volver a admin si no está en modo admin
+      if (currentMode !== 'admin' && currentMode !== null) {
+        items.push({
+          separator: true,
+        });
+        items.push({
+          label: 'Volver a Admin',
+          icon: 'pi pi-arrow-left',
+          styleClass: 'text-yellow-400',
+          command: () => {
+            this.setTestMode('admin');
+          },
+        });
+      }
+
+      // Separador después del selector
+      items.push({
+        separator: true,
       });
     }
 
