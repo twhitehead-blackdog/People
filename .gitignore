@@ -42,3 +42,15 @@ Thumbs.db
 .nx/workspace-data
 .angular
 .env
+.env.*
+*.env
+
+# Archivos con información sensible (claves, tokens, credenciales)
+VARIABLES-RAILWAY.md
+CONFIGURACION-RAILWAY-VARIABLES.md
+EJEMPLO-ENV.txt
+*VARIABLES*.md
+*CONFIG*.md
+*SECRET*.md
+*CREDENTIALS*.md
+*KEYS*.md
