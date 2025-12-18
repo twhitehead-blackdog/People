@@ -76,29 +76,49 @@ export const appConfig: ApplicationConfig = {
     provideAnimationsAsync(),
     provideHttpClient(withInterceptors([httpInterceptor, errorInterceptor])),
     provideAuth0({
-      domain: process.env['ENV_AUTH0_DOMAIN'] ?? '',
-      clientId: process.env['ENV_AUTH0_CLIENT_ID'] ?? '',
+      domain: (() => {
+        const domain = process.env['ENV_AUTH0_DOMAIN'];
+        if (!domain || domain === '') {
+          console.error('❌ ERROR: ENV_AUTH0_DOMAIN no está configurado. Auth0 no funcionará correctamente.');
+          // Fallback para desarrollo local
+          return '';
+        }
+        return domain;
+      })(),
+      clientId: (() => {
+        const clientId = process.env['ENV_AUTH0_CLIENT_ID'];
+        if (!clientId || clientId === '') {
+          console.error('❌ ERROR: ENV_AUTH0_CLIENT_ID no está configurado. Auth0 no funcionará correctamente.');
+          return '';
+        }
+        return clientId;
+      })(),
       authorizationParams: {
         // IMPORTANTE: El redirect_uri debe coincidir EXACTAMENTE con el configurado en Auth0 Dashboard
         // Usar ENV_APP_URL si está disponible, de lo contrario usar window.location.origin
         redirect_uri: (() => {
           // Priorizar ENV_APP_URL si está definido (más confiable)
           const envUrl = process.env['ENV_APP_URL'];
-          if (envUrl) {
+          if (envUrl && envUrl !== '' && envUrl !== 'undefined') {
             // Asegurar que no tenga barra final
             return envUrl.replace(/\/$/, '');
           }
           
-          // Fallback a window.location.origin si está disponible
+          // Fallback a window.location.origin si está disponible (siempre funciona en el navegador)
           if (typeof window !== 'undefined' && window.location) {
-            return window.location.origin;
+            const origin = window.location.origin;
+            console.log(`📝 Usando window.location.origin como redirect_uri: ${origin}`);
+            return origin;
           }
           
-          // Último fallback
+          // Último fallback (solo para SSR o casos especiales)
+          console.warn('⚠️ No se pudo determinar redirect_uri, usando fallback localhost');
           return 'http://localhost:3000';
         })(),
         // Audience solo se incluye si está configurado (opcional para aplicaciones SPA)
-        ...(process.env['ENV_AUTH0_AUDIENCE'] ? { audience: process.env['ENV_AUTH0_AUDIENCE'] } : {}),
+        ...(process.env['ENV_AUTH0_AUDIENCE'] && process.env['ENV_AUTH0_AUDIENCE'] !== '' && process.env['ENV_AUTH0_AUDIENCE'] !== 'undefined' 
+          ? { audience: process.env['ENV_AUTH0_AUDIENCE'] } 
+          : {}),
       },
       useRefreshTokens: true,
       cacheLocation: 'localstorage',

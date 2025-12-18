@@ -7,6 +7,23 @@ RUN apk add --no-cache python3 make g++
 # Establecer directorio de trabajo
 WORKDIR /app
 
+# Declarar argumentos de build para variables de entorno
+# Estas se pasan desde Railway durante el build
+ARG ENV_AUTH0_DOMAIN
+ARG ENV_AUTH0_CLIENT_ID
+ARG ENV_AUTH0_AUDIENCE
+ARG ENV_APP_URL
+ARG ENV_SUPABASE_URL
+ARG ENV_SUPABASE_API_KEY
+
+# Exportar como variables de entorno para que estén disponibles durante el build
+ENV ENV_AUTH0_DOMAIN=${ENV_AUTH0_DOMAIN}
+ENV ENV_AUTH0_CLIENT_ID=${ENV_AUTH0_CLIENT_ID}
+ENV ENV_AUTH0_AUDIENCE=${ENV_AUTH0_AUDIENCE}
+ENV ENV_APP_URL=${ENV_APP_URL}
+ENV ENV_SUPABASE_URL=${ENV_SUPABASE_URL}
+ENV ENV_SUPABASE_API_KEY=${ENV_SUPABASE_API_KEY}
+
 # Copiar archivos de configuración de dependencias primero (para cache de Docker)
 COPY package.json package-lock.json* ./
 COPY nx.json ./
@@ -17,7 +34,7 @@ RUN npm ci --legacy-peer-deps
 # Copiar todo el código fuente y archivos de configuración
 COPY . .
 
-# Construir la aplicación
+# Construir la aplicación (las variables de entorno estarán disponibles aquí)
 RUN npm run build && \
     echo "=== Verificando build ===" && \
     ls -la /app/dist && \
