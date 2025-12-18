@@ -2,15 +2,27 @@ import { config } from 'dotenv';
 import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
-// Cargar variables de entorno desde .env
-const envPath = resolve(process.cwd(), '.env');
+// IMPORTANTE: En Railway, las variables de entorno están en process.env directamente
+// En desarrollo local, pueden estar en un archivo .env
+// Priorizamos process.env (Railway) sobre .env (desarrollo local)
+
 let envVars = {};
 
+// PRIMERO: Cargar desde process.env (Railway y variables del sistema)
+// Esto tiene la máxima prioridad
+for (const key in process.env) {
+  if (key.startsWith('ENV_')) {
+    envVars[key] = process.env[key];
+  }
+}
+
+// SEGUNDO: Intentar cargar desde .env solo si no existe en process.env (desarrollo local)
+// Esto es un fallback para desarrollo local
+const envPath = resolve(process.cwd(), '.env');
 try {
   const envFile = readFileSync(envPath, 'utf-8');
   
   // Parsear manualmente el archivo .env
-  // Primero, unir líneas que continúan (líneas que no tienen = y no son comentarios)
   const lines = envFile.split('\n');
   const processedLines = [];
   let currentLine = '';
@@ -18,7 +30,6 @@ try {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     
-    // Si la línea está vacía o es un comentario, procesar la línea actual y continuar
     if (!line || line.startsWith('#')) {
       if (currentLine) {
         processedLines.push(currentLine);
@@ -27,22 +38,18 @@ try {
       continue;
     }
     
-    // Si la línea tiene un =, es una nueva variable
     if (line.includes('=')) {
-      // Si hay una línea acumulada, procesarla primero
       if (currentLine) {
         processedLines.push(currentLine);
       }
       currentLine = line;
     } else {
-      // Si no tiene =, es continuación de la línea anterior
       if (currentLine) {
-        currentLine += line; // Unir sin espacios para valores JWT
+        currentLine += line;
       }
     }
   }
   
-  // Agregar la última línea si existe
   if (currentLine) {
     processedLines.push(currentLine);
   }
@@ -54,7 +61,6 @@ try {
       return;
     }
     
-    // Buscar el primer = que separa la clave del valor
     const equalIndex = trimmedLine.indexOf('=');
     if (equalIndex === -1) {
       return;
@@ -63,28 +69,27 @@ try {
     const key = trimmedLine.substring(0, equalIndex).trim();
     let value = trimmedLine.substring(equalIndex + 1).trim();
     
-    // Remover comillas si existen
     if ((value.startsWith('"') && value.endsWith('"')) || 
         (value.startsWith("'") && value.endsWith("'"))) {
       value = value.slice(1, -1);
     }
     
-    // Solo procesar variables que empiecen con ENV_
-    if (key.startsWith('ENV_')) {
+    // Solo agregar si no existe ya en envVars (process.env tiene prioridad)
+    if (key.startsWith('ENV_') && !envVars[key]) {
       envVars[key] = value;
     }
   });
   
-  console.log('[ENV Plugin] ✅ Variables cargadas desde .env:', Object.keys(envVars).join(', '));
+  console.log('[ENV Plugin] ✅ Variables cargadas desde .env (fallback):', Object.keys(envVars).filter(k => !process.env[k]).join(', ') || 'ninguna');
 } catch (error) {
-  console.warn('[ENV Plugin] ⚠️ No se pudo cargar .env, usando process.env:', error.message);
+  // En Railway, el archivo .env puede no existir, eso está bien
+  // console.warn('[ENV Plugin] ⚠️ No se pudo cargar .env (normal en Railway):', error.message);
 }
 
-// También cargar desde process.env (para variables ya cargadas o desde dotenv)
+// TERCERO: Usar dotenv como último recurso (solo si no está en process.env ni .env)
 config();
 for (const key in process.env) {
-  if (key.startsWith('ENV_')) {
-    // process.env tiene prioridad sobre el .env parseado manualmente
+  if (key.startsWith('ENV_') && !envVars[key]) {
     envVars[key] = process.env[key];
   }
 }
@@ -93,9 +98,29 @@ const envVarPlugin = {
   name: 'env-var-plugin',
   setup(build) {
     const options = build.initialOptions;
-    // Usar las variables parseadas del .env y process.env
+    
+    // Asegurar que options.define existe
+    if (!options.define) {
+      options.define = {};
+    }
+    
+    // Inyectar cada variable individualmente para mejor compatibilidad
+    for (const key in envVars) {
+      options.define[`process.env.${key}`] = JSON.stringify(envVars[key]);
+    }
+    
+    // También inyectar el objeto completo
     options.define['process.env'] = JSON.stringify(envVars);
+    
     console.log('[ENV Plugin] 🔧 Variables inyectadas en build:', Object.keys(envVars).length);
+    console.log('[ENV Plugin] 🔧 Variables:', Object.keys(envVars).join(', '));
+    
+    // Verificar específicamente ENV_SUPABASE_SERVICE_ROLE_KEY
+    if (envVars['ENV_SUPABASE_SERVICE_ROLE_KEY']) {
+      console.log('[ENV Plugin] ✅ ENV_SUPABASE_SERVICE_ROLE_KEY encontrada (longitud:', envVars['ENV_SUPABASE_SERVICE_ROLE_KEY'].length + ')');
+    } else {
+      console.warn('[ENV Plugin] ⚠️ ENV_SUPABASE_SERVICE_ROLE_KEY NO encontrada');
+    }
   },
 };
 

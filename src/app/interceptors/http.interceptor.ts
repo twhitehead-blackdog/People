@@ -34,6 +34,8 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
       );
     }
 
+    // Para Service Role Key, intentar todas las variantes posibles
+    // ENV_SUPABASE_TOKEN y ENV_SUPABASE_SERVICE_ROLE_KEY deberían ser la misma clave
     const supabaseKey = needsServiceRoleKey
       ? process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'] ??
         process.env['ENV_SUPABASE_TOKEN'] ??
@@ -43,6 +45,19 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
       : process.env['ENV_SUPABASE_ANON_KEY'] ??
         process.env['ENV_SUPABASE_API_KEY'] ??
         '';
+    
+    // Debug adicional: verificar qué key se está usando realmente
+    if (isJobApplicationsRequest) {
+      const usedKey = needsServiceRoleKey
+        ? (process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'] ? 'ENV_SUPABASE_SERVICE_ROLE_KEY' :
+           process.env['ENV_SUPABASE_TOKEN'] ? 'ENV_SUPABASE_TOKEN' :
+           process.env['ENV_SUPABASE_ANON_KEY'] ? 'ENV_SUPABASE_ANON_KEY' :
+           process.env['ENV_SUPABASE_API_KEY'] ? 'ENV_SUPABASE_API_KEY' : 'NINGUNA')
+        : (process.env['ENV_SUPABASE_ANON_KEY'] ? 'ENV_SUPABASE_ANON_KEY' :
+           process.env['ENV_SUPABASE_API_KEY'] ? 'ENV_SUPABASE_API_KEY' : 'NINGUNA');
+      console.log('[DEBUG] 🔑 Key usada:', usedKey);
+      console.log('[DEBUG] 🔑 Primeros 20 chars de key:', supabaseKey ? supabaseKey.substring(0, 20) + '...' : 'VACÍA');
+    }
 
     // Debug: Log para verificar qué key se está usando
     if (isJobApplicationsRequest) {
