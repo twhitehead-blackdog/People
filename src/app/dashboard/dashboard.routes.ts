@@ -91,6 +91,13 @@ export const DASHBOARD_ROUTES: Routes = [
               import('./settings.component').then((x) => x.SettingsComponent),
           },
           {
+            path: 'user-management',
+            loadComponent: () =>
+              import('./user-management.component').then(
+                (x) => x.UserManagementComponent
+              ),
+          },
+          {
             path: 'complaints-inbox',
             loadComponent: () =>
               import('./complaints-inbox.component').then(

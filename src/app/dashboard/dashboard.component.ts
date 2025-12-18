@@ -139,6 +139,16 @@ import { EmployeePortalComponent } from './employee-portal.component';
                   <i class="pi pi-money-bill text-base"></i>
                   <span>Nómina</span></a
                 >
+                } @if(store.hasDashboardAccess() && store.isAdmin() &&
+                !store.hasPortalAccessOnly()) {
+                <a
+                  (click)="navigateTo('admin/user-management')"
+                  [class.selected]="isUserManagementActive()"
+                  class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
+                >
+                  <i class="pi pi-users text-base"></i>
+                  <span>Gestión de Usuarios</span></a
+                >
                 } @if(store.hasDashboardAccess() && ((store.isAdmin() ||
                 (store.isScheduleAdmin() && !store.hasPortalAccessOnly())) ||
                 store.hasTimeManagementAccess())) {
@@ -264,6 +274,16 @@ import { EmployeePortalComponent } from './employee-portal.component';
               [class.shadow-md]="isPayrollActive()"
               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
               ><i class="pi pi-money-bill text-lg"></i> <span>Nómina</span></a
+            >
+            } @if(store.hasDashboardAccess() && store.isAdmin() &&
+            !store.hasPortalAccessOnly()) {
+            <a
+              (click)="navigateTo('admin/user-management'); toggleMenu()"
+              [class.bg-gray-700]="isUserManagementActive()"
+              [class.text-white]="isUserManagementActive()"
+              [class.shadow-md]="isUserManagementActive()"
+              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
+              ><i class="pi pi-users text-lg"></i> <span>Gestión de Usuarios</span></a
             >
             } @if(store.hasDashboardAccess() && (!store.hasPortalAccessOnly() ||
             store.hasTimeManagementAccess())) {
@@ -832,6 +852,11 @@ export class DashboardComponent {
     return route === 'branch-manager';
   });
 
+  public isUserManagementActive = computed(() => {
+    const url = typeof window !== 'undefined' ? window.location.pathname : '';
+    return url.includes('/admin/user-management');
+  });
+
   // Método legacy para compatibilidad (ahora usa computed signals internamente)
   isActiveRoute(route: string): boolean {
     switch (route) {
@@ -854,7 +879,6 @@ export class DashboardComponent {
 
   public items = computed<MenuItem[]>(() => {
     const isSupport = this.isSupportUser();
-    const portalView = this.showEmployeePortalView();
     const hasDashboardAccess = this.store.hasDashboardAccess();
     const isAdmin = this.store.isAdmin();
     const isScheduleAdmin = this.store.isScheduleAdmin();
@@ -874,6 +898,17 @@ export class DashboardComponent {
         icon: 'pi pi-shop',
         command: () => {
           this.navigateTo('branch-manager');
+        },
+      });
+    }
+
+    // Agregar Gestión de Usuarios para administradores
+    if (hasDashboardAccess && isAdmin && !this.store.hasPortalAccessOnly()) {
+      items.push({
+        label: 'Gestión de Usuarios',
+        icon: 'pi pi-users',
+        command: () => {
+          this.navigateTo('admin/user-management');
         },
       });
     }
