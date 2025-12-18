@@ -6,6 +6,9 @@ import { existsSync } from 'fs';
 export function app(): express.Express {
   const server = express();
 
+  // Determinar si estamos en producción (una sola vez)
+  const isProduction = process.env['NODE_ENV'] === 'production' || process.env['RAILWAY_ENVIRONMENT'] !== undefined;
+
   // Configurar Express para confiar en proxies (necesario para obtener IP real en producción/VPS)
   // Esto permite que req.ip funcione correctamente cuando hay un proxy reverso (nginx, etc.)
   server.set('trust proxy', true);
@@ -26,7 +29,6 @@ export function app(): express.Express {
   });
 
   // Logging de peticiones para debugging (solo en producción para Railway)
-  const isProduction = process.env['NODE_ENV'] === 'production' || process.env['RAILWAY_ENVIRONMENT'] !== undefined;
   if (isProduction) {
     server.use((req, res, next) => {
       console.log(`📥 ${req.method} ${req.path} - ${new Date().toISOString()}`);
@@ -171,7 +173,6 @@ export function app(): express.Express {
   // Angular con SSR genera archivos en dist/people/browser
   const distPath = join(process.cwd(), 'dist/people');
   const browserPath = join(distPath, 'browser');
-  const isProduction = process.env['NODE_ENV'] === 'production' || process.env['RAILWAY_ENVIRONMENT'] !== undefined;
   
   if (isProduction) {
     // Verificar primero si existe browser/ (estructura con SSR)
