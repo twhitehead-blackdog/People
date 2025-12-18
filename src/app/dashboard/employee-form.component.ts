@@ -1364,42 +1364,6 @@ export class EmployeeFormComponent implements OnInit {
           });
   }
 
-    } else {
-      // Ya no se filtran campos, todo se guarda (tablas compartidas)
-      const formValue = this.form.getRawValue();
-      const dataToSave: any = {
-        ...formValue,
-        // Combinar código de país con número de teléfono
-        phone_number: this.combinePhoneNumber('phone_number'),
-        work_phone_number: this.combinePhoneNumber('work_phone_number'),
-        emergency_contact_phone: this.combineEmergencyContactPhone(),
-      };
-      // Eliminar campos internos de código de país
-      delete dataToSave.phone_country_code;
-      delete dataToSave.work_phone_country_code;
-      delete dataToSave.emergency_contact_phone_country_code;
-
-      this.store.employees.editItem(dataToSave).subscribe({
-        next: () => {
-          // Recargar la lista de empleados
-          this.store.employees.reloadItems();
-          // Navegar de vuelta a la lista después de editar
-          this.router.navigate(['/admin/employees']);
-        },
-        error: (error) => {
-          console.error('Error al actualizar empleado:', error);
-          this.message.add({
-            severity: 'error',
-            summary: 'Error al guardar',
-            detail:
-              error?.error?.message ||
-              'Ocurrió un error al actualizar el empleado. Por favor intente nuevamente.',
-          });
-        },
-      });
-    }
-  }
-
   cancelChanges(list = false) {
     const route = list ? ['../..'] : ['..'];
     if (this.form.pristine) {
