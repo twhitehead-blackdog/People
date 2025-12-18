@@ -139,7 +139,7 @@ import { EmployeePortalComponent } from './employee-portal.component';
                   <i class="pi pi-money-bill text-base"></i>
                   <span>Nómina</span></a
                 >
- @if(store.hasDashboardAccess() && ((store.isAdmin() ||
+                } @if(store.hasDashboardAccess() && ((store.isAdmin() ||
                 (store.isScheduleAdmin() && !store.hasPortalAccessOnly())) ||
                 store.hasTimeManagementAccess())) {
                 <a
@@ -881,7 +881,6 @@ export class DashboardComponent {
         },
       });
     }
-
 
     // Agregar selector de modo de prueba solo para soporte2@blackdogpanama.com
     if (isSupport) {
