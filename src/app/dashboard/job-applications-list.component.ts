@@ -553,7 +553,12 @@ export class JobApplicationsListComponent implements OnInit {
     const serviceRoleKey = 
       process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'] ?? 
       process.env['ENV_SUPABASE_TOKEN'] ?? 
-      process.env['ENV_SUPABASE_API_KEY'];
+      process.env['ENV_SUPABASE_API_KEY'] ??
+      '';
+    
+    if (!serviceRoleKey) {
+      console.warn('[WARNING] No se encontró ENV_SUPABASE_SERVICE_ROLE_KEY, ENV_SUPABASE_TOKEN ni ENV_SUPABASE_API_KEY. Las operaciones en settings pueden fallar.');
+    }
     
     return {
       'Content-Type': 'application/json',
