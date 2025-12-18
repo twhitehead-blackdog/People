@@ -58,9 +58,6 @@ interface Metric {
 
       <!-- Tarjetas de Acciones -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-
-      <!-- Tarjetas de Acciones -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- Registrar eventualidad -->
         <p-card class="action-card">
           <div class="flex flex-col items-center text-center p-4">
@@ -77,7 +74,7 @@ interface Metric {
               label="Registrar"
               icon="pi pi-plus"
               (onClick)="navigateToEventuality()"
-              class="w-full"
+              class="w-full yellow-button"
             />
           </div>
         </p-card>
@@ -96,9 +93,9 @@ interface Metric {
             </p>
             <p-button
               label="Conectar"
-              icon="pi pi-link"
+              icon="pi pi-at"
               (onClick)="navigateToConnectDevice()"
-              class="w-full"
+              class="w-full yellow-button"
             />
           </div>
         </p-card>
@@ -117,7 +114,7 @@ interface Metric {
               label="Ver"
               icon="pi pi-eye"
               (onClick)="navigateToIncidents()"
-              class="w-full"
+              class="w-full yellow-button"
             />
           </div>
         </p-card>
@@ -136,7 +133,7 @@ interface Metric {
               label="Ver"
               icon="pi pi-eye"
               (onClick)="navigateToAttendance()"
-              class="w-full"
+              class="w-full yellow-button"
             />
           </div>
         </p-card>
@@ -157,7 +154,7 @@ interface Metric {
               label="Inactivar"
               icon="pi pi-ban"
               (onClick)="navigateToDeactivate()"
-              class="w-full"
+              class="w-full yellow-button"
             />
           </div>
         </p-card>
@@ -176,7 +173,7 @@ interface Metric {
               label="Ver"
               icon="pi pi-eye"
               (onClick)="navigateToReports()"
-              class="w-full"
+              class="w-full yellow-button"
             />
           </div>
         </p-card>
@@ -197,7 +194,7 @@ interface Metric {
               label="Ver"
               icon="pi pi-eye"
               (onClick)="navigateToBalances()"
-              class="w-full"
+              class="w-full yellow-button"
             />
           </div>
         </p-card>
@@ -218,7 +215,7 @@ interface Metric {
               label="Ver"
               icon="pi pi-eye"
               (onClick)="navigateToPrepare()"
-              class="w-full"
+              class="w-full yellow-button"
             />
           </div>
         </p-card>
@@ -235,10 +232,8 @@ interface Metric {
               </h3>
               <p-button
                 label="Abrir"
-                icon="pi pi-external-link"
-                [text]="true"
                 (onClick)="navigateToRequests()"
-                class="text-blue-500"
+                class="yellow-button-small"
               />
             </div>
           </ng-template>
@@ -383,8 +378,37 @@ interface Metric {
 
     ::ng-deep .action-card:hover {
       transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-      border-color: #3b82f6 !important;
+      box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+      border-color: #fbbf24 !important;
+    }
+
+    /* Botones amarillos */
+    ::ng-deep .yellow-button {
+      background: #fbbf24 !important;
+      border-color: #fbbf24 !important;
+      color: #000000 !important;
+      font-weight: 600 !important;
+    }
+
+    ::ng-deep .yellow-button:hover {
+      background: #f59e0b !important;
+      border-color: #f59e0b !important;
+      color: #000000 !important;
+    }
+
+    ::ng-deep .yellow-button-small {
+      background: #fbbf24 !important;
+      border-color: #fbbf24 !important;
+      color: #000000 !important;
+      font-weight: 600 !important;
+      padding: 0.5rem 1rem !important;
+      font-size: 0.875rem !important;
+    }
+
+    ::ng-deep .yellow-button-small:hover {
+      background: #f59e0b !important;
+      border-color: #f59e0b !important;
+      color: #000000 !important;
     }
 
     ::ng-deep .requests-panel,
@@ -475,6 +499,7 @@ export class HRTimeDashboardComponent {
   // Datos del gráfico
   public chartData = signal<any>(null);
   public chartOptions = {
+    indexAxis: 'x', // Barras verticales (por defecto)
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -483,23 +508,36 @@ export class HRTimeDashboardComponent {
       },
       tooltip: {
         enabled: true,
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        titleColor: '#ffffff',
+        bodyColor: '#ffffff',
       },
     },
     scales: {
       x: {
         ticks: {
           color: '#9ca3af',
+          font: {
+            size: 11,
+          },
         },
         grid: {
           color: '#374151',
+          display: true,
         },
       },
       y: {
+        beginAtZero: true,
         ticks: {
           color: '#9ca3af',
+          font: {
+            size: 11,
+          },
+          stepSize: 20,
         },
         grid: {
           color: '#374151',
+          display: true,
         },
       },
     },
@@ -577,7 +615,7 @@ export class HRTimeDashboardComponent {
   }
 
   private initializeChart(): void {
-    // Datos de ejemplo basados en la imagen
+    // Datos de ejemplo basados en la imagen - gráfico vertical
     this.chartData.set({
       labels: [
         'Ausencias',
