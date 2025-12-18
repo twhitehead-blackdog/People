@@ -117,15 +117,16 @@ export function app(): express.Express {
   server.get('/', (req, res, next) => {
     console.log(`📥 GET / - User-Agent: ${req.headers['user-agent'] || 'unknown'}`);
     // Si es un health check (query param o User-Agent específico), responder inmediatamente
-    if (req.query.health === 'check' || 
+    if (req.query['health'] === 'check' || 
         req.headers['user-agent']?.includes('Railway') ||
         req.headers['user-agent']?.includes('HealthCheck')) {
       console.log('✅ Health check recibido en /');
-      return res.json({ 
+      res.json({ 
         status: 'ok', 
         message: 'Server is running',
         timestamp: new Date().toISOString()
       });
+      return;
     }
     // Si no, dejar que el middleware de archivos estáticos maneje la ruta
     next();
