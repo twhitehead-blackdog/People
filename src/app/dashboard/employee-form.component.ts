@@ -503,6 +503,21 @@ import {
                   />
                 </div>
                 <div class="input-container">
+                  <label for="employee_number">Número de Empleado</label>
+                  <input
+                    type="text"
+                    id="employee_number"
+                    pInputText
+                    formControlName="employee_number"
+                    placeholder="BD0001, NZ0001, etc."
+                    [style]="{ fontFamily: 'monospace' }"
+                    maxlength="6"
+                  />
+                  <small class="text-gray-400 text-xs mt-1 block"
+                    >Formato: BD0001, NZ0001 (2 letras + 4 dígitos)</small
+                  >
+                </div>
+                <div class="input-container">
                   <label for="position">Cargo</label>
                   <p-select
                     [options]="store.positions.entities()"
@@ -817,6 +832,7 @@ export class EmployeeFormComponent implements OnInit {
       // company_id es requerido siempre
       validators: [],
     }),
+    employee_number: new FormControl('', { nonNullable: true }),
     work_email: new FormControl('', { nonNullable: true }),
     monthly_salary: new FormControl(0, { nonNullable: true }),
     hourly_salary: new FormControl(0, { nonNullable: true }),
@@ -1235,10 +1251,45 @@ export class EmployeeFormComponent implements OnInit {
         }
       }
 
-      // Generar número de empleado automáticamente
-      this.generateEmployeeNumber(dataToSave.company_id)
-        .then((employeeNumber) => {
-          dataToSave.employee_number = employeeNumber;
+      // Generar número de empleado automáticamente solo si no se proporcionó uno
+      if (!dataToSave.employee_number || dataToSave.employee_number.trim() === '') {
+        this.generateEmployeeNumber(dataToSave.company_id)
+          .then((employeeNumber) => {
+            dataToSave.employee_number = employeeNumber;
+            this.saveNewEmployee(dataToSave);
+          })
+          .catch((error) => {
+            console.error('Error al generar número de empleado:', error);
+            this.message.add({
+              severity: 'error',
+              summary: 'Error',
+              detail:
+                'No se pudo generar el número de empleado. Por favor intente nuevamente.',
+            });
+          });
+      } else {
+        // Si el usuario ya proporcionó un número, usarlo directamente
+        this.saveNewEmployee(dataToSave);
+      }
+    } else {
+      // Ya no se filtran campos, todo se guarda (tablas compartidas)
+      const formValue = this.form.getRawValue();
+      const dataToSave: any = {
+        ...formValue,
+        // Combinar código de país con número de teléfono
+        phone_number: this.combinePhoneNumber('phone_number'),
+        work_phone_number: this.combinePhoneNumber('work_phone_number'),
+        emergency_contact_phone: this.combineEmergencyContactPhone(),
+      };
+      // Eliminar campos internos de código de país
+      delete dataToSave.phone_country_code;
+      delete dataToSave.work_phone_country_code;
+      delete dataToSave.emergency_contact_phone_country_code;
+
+      this.store.employees.editItem(dataToSave).subscribe({
+        next: () => {
+          // Recargar la lista de empleados
+          this.store.employees.reloadItems();
 
           this.store.employees.createItem(dataToSave).subscribe({
             next: () => {
