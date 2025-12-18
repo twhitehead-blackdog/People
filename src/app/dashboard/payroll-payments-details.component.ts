@@ -419,8 +419,9 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
       method: 'GET',
       params: {
         select:
-          '*, items:payroll_payment_employee_items(*), employee:employees(id, first_name, father_name, document_id)',
+          '*, items:payroll_payment_employee_items(*), employee:employees!inner(id, first_name, father_name, document_id, is_active)',
         payroll_payment_id: `eq.${this.payment.value()?.[0]?.id}`,
+        'employee.is_active': 'eq.true', // Solo empleados activos
       },
     };
   });
@@ -487,8 +488,9 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
       method: 'GET',
       params: {
         select:
-          '*, employee:employees(id, first_name, father_name, monthly_salary, hourly_salary, week_hours, use_timelog, branch_id, debts:payroll_debts(*))',
+          '*, employee:employees!inner(id, first_name, father_name, monthly_salary, hourly_salary, week_hours, use_timelog, branch_id, is_active, debts:payroll_debts(*))',
         payroll_id: `eq.${this.payment.value()?.[0]?.payroll_id}`,
+        'employee.is_active': 'eq.true', // Solo empleados activos
       },
     };
   });

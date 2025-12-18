@@ -745,13 +745,16 @@ export class TimelogsComponent {
     const startDate = format(start, "yyyy-MM-dd'T'06:00:00");
     const endDate = format(addDays(end, 1), "yyyy-MM-dd'T'06:00:00");
     
-    // Construir select con relaciones
-    const select = `*,employee:employees(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)`;
+    // Construir select con relaciones (solo empleados activos)
+    const select = `*,employee:employees!inner(id,first_name,father_name,is_active,branch:branches(id, name)),branch:branches(id, name, short_name)`;
     
     // Construir URL con todos los parámetros
     let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
     url += `&created_at=gte.${startDate}`;
     url += `&created_at=lte.${endDate}`;
+    
+    // Filtrar solo empleados activos
+    url += `&employee.is_active=eq.true`;
     
     if (this.employeeId()) {
       url += `&employee_id=eq.${this.employeeId()}`;

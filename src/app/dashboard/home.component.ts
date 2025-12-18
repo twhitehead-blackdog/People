@@ -3699,7 +3699,10 @@ export class HomeComponent {
     // IMPORTANTE: Agregar limit=10000 para obtener todos los registros del mes (Supabase limita a 1000 por defecto)
     // El interceptor HTTP agregará el header Range automáticamente para peticiones a timelogs
     const companyId = this.organizationService.getCurrentCompanyId();
-    let url = `${baseUrl}/rest/v1/timelogs?select=created_at,employee_id,type,employee:employees(first_name,father_name)&type=eq.entry&created_at=gte.${from}&created_at=lte.${to}&order=created_at.asc&limit=10000`;
+    let url = `${baseUrl}/rest/v1/timelogs?select=created_at,employee_id,type,employee:employees!inner(first_name,father_name,is_active)&type=eq.entry&created_at=gte.${from}&created_at=lte.${to}&order=created_at.asc&limit=10000`;
+    
+    // Filtrar solo empleados activos
+    url += `&employee.is_active=eq.true`;
     
     // Agregar filtro por company_id
     if (companyId) {
@@ -3737,8 +3740,11 @@ export class HomeComponent {
     // Usaremos ambas estrategias: primero intentar con company_id directo,
     // y si no hay resultados, usar el filtro a través de employees
     
-    let url = `${baseUrl}/rest/v1/employee_schedules?select=*,schedule:schedules(*),employee:employees(id,company_id)`;
+    let url = `${baseUrl}/rest/v1/employee_schedules?select=*,schedule:schedules(*),employee:employees!inner(id,company_id,is_active)`;
     url += `&start_date=lte.${monthEnd}&end_date=gte.${monthStart}`;
+    
+    // Filtrar solo empleados activos
+    url += `&employee.is_active=eq.true`;
     
     // ESTRATEGIA: Filtrar a través de employees usando INNER JOIN
     // Esto funciona incluso si employee_schedules no tiene company_id asignado

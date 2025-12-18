@@ -158,8 +158,9 @@ export class PayrollEmployeesComponent {
   public employees = httpResource<PayrollEmployee[]>(() => {
     const companyId = this.organizationService.getCurrentCompanyId();
     const params: any = {
-      select: `*, employee:employees(id, first_name, father_name, monthly_salary, hourly_salary)`,
+      select: `*, employee:employees!inner(id, first_name, father_name, monthly_salary, hourly_salary, is_active)`,
       payroll_id: `eq.${this.payrollId()}`,
+      'employee.is_active': `eq.true`, // Solo empleados activos
     };
 
     // Nota: employee_payrolls no tiene company_id directamente, pero podemos filtrar por employee.company_id

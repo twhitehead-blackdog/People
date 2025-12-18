@@ -1039,11 +1039,14 @@ export class BranchManagerComponent {
     
     // Construir URL manualmente para aplicar correctamente filtros gte y lte
     const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`;
-    const select = `*,employee:employees(id,first_name,father_name)`;
+    const select = `*,employee:employees!inner(id,first_name,father_name,is_active)`;
     
     let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
     url += `&created_at=gte.${startOfDayStr}`;
     url += `&created_at=lte.${endOfDayStr}`;
+    
+    // Filtrar solo empleados activos
+    url += `&employee.is_active=eq.true`;
     
     if (branchId) {
       url += `&branch_id=eq.${branchId}`;
@@ -1073,9 +1076,12 @@ export class BranchManagerComponent {
     const endDate = format(end, 'yyyy-MM-dd');
     const select = `*,schedule:schedules(*), branch:branches(id, name, short_name)`;
     
-    let url = `${baseUrl}?select=${encodeURIComponent(select)},employee:employees(id,company_id)`;
+    let url = `${baseUrl}?select=${encodeURIComponent(select)},employee:employees!inner(id,company_id,is_active)`;
     url += `&start_date=lte.${endDate}`;
     url += `&end_date=gte.${startDate}`;
+    
+    // Filtrar solo empleados activos
+    url += `&employee.is_active=eq.true`;
     
     // Filtrar a través de employees.company_id (funciona incluso si employee_schedules no tiene company_id)
     if (companyId) {
@@ -1220,8 +1226,9 @@ export class BranchManagerComponent {
     const branchId = this.currentBranch()?.id;
     const companyId = this.organizationService.getCurrentCompanyId();
     const params: any = {
-      select: `*,employee:employees(id,first_name,father_name)`,
+      select: `*,employee:employees!inner(id,first_name,father_name,is_active)`,
       order: 'due_date.asc',
+      'employee.is_active': 'eq.true', // Solo empleados activos
     };
     // Si hay sucursal seleccionada (o es gerente), filtrar por sucursal
     if (branchId) {
