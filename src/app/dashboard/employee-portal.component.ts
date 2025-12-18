@@ -973,8 +973,8 @@ import { OrganizationService } from '../services/organization.service';
                 <div class="calendar-grid">
                   @for (day of calendarDays(); track day.getTime()) {
                     @let log = getLogForDay(day);
-                    @let isCurrentMonth = isSameMonth(day, calendarMonth());
-                    @let isTodayDate = isToday(day);
+                    @let isCurrentMonth = checkSameMonth(day, calendarMonth());
+                    @let isTodayDate = checkIsToday(day);
                     @let hasEntry = log?.entry;
                     @let hasExit = log?.exit;
                     @let hasDelay = log?.delay && typeof log?.delay === 'number';
@@ -2694,6 +2694,15 @@ export class EmployeePortalComponent {
     const today = new Date();
     this.calendarMonth.set(today);
     this.dateRange.set([startOfMonth(today), endOfMonth(today)]);
+  }
+
+  // Helper methods for template (wrapper methods to use date-fns functions)
+  public checkSameMonth(day: Date, month: Date): boolean {
+    return isSameMonth(day, month);
+  }
+
+  public checkIsToday(day: Date): boolean {
+    return isToday(day);
   }
 
   // Timelogs API
