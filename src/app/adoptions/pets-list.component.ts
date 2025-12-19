@@ -14,6 +14,7 @@ import { Pet, AdoptionApplication } from '../models';
 import { FoundationsStore } from '../stores/foundations.store';
 import { PetsStore } from '../stores/pets.store';
 import { AdoptionApplicationsStore } from '../stores/adoption-applications.store';
+import { PetFavoritesStore } from '../stores/pet-favorites.store';
 import { MatchFilters } from './adoptions-match.component';
 
 @Component({
@@ -25,19 +26,55 @@ import { MatchFilters } from './adoptions-match.component';
       <div class="pets-list-inner">
         <div class="section-header">
           <h1 class="section-title">LOS RECIÉN LLEGADOS</h1>
+          <div class="view-toggle">
+            <button
+              type="button"
+              class="toggle-btn"
+              [class.active]="viewMode() === 'grid'"
+              (click)="setViewMode('grid')"
+              title="Vista de tarjetas"
+            >
+              <span>⊞</span>
+            </button>
+            <button
+              type="button"
+              class="toggle-btn"
+              [class.active]="viewMode() === 'list'"
+              (click)="setViewMode('list')"
+              title="Vista de lista"
+            >
+              <span>☰</span>
+            </button>
+          </div>
         </div>
 
-        <div class="pets-list">
+        <div class="pets-list" [class.list-view]="viewMode() === 'list'">
           @for (pet of filteredPets(); track pet.id) {
-          <div class="pet-card">
+          <div class="pet-card" (click)="viewPet(pet.id)">
             <div class="pet-image-container">
               @if (pet.photos && pet.photos.length > 0) {
               <img [src]="pet.photos[0]" [alt]="pet.name" class="pet-image" />
-              <span class="heart-icon">💛</span>
+              <button
+                type="button"
+                class="favorite-button"
+                [class.favorited]="isFavorite(pet.id)"
+                (click)="toggleFavorite(pet, $event)"
+                title="{{ isFavorite(pet.id) ? 'Quitar de favoritos' : 'Agregar a favoritos' }}"
+              >
+                {{ isFavorite(pet.id) ? '❤️' : '🤍' }}
+              </button>
               } @else {
               <div class="pet-image-placeholder">
                 <div class="topographic-pattern"></div>
-                <span class="heart-icon">💛</span>
+                <button
+                  type="button"
+                  class="favorite-button"
+                  [class.favorited]="isFavorite(pet.id)"
+                  (click)="toggleFavorite(pet, $event)"
+                  title="{{ isFavorite(pet.id) ? 'Quitar de favoritos' : 'Agregar a favoritos' }}"
+                >
+                  {{ isFavorite(pet.id) ? '❤️' : '🤍' }}
+                </button>
               </div>
               }
             </div>
@@ -255,8 +292,12 @@ import { MatchFilters } from './adoptions-match.component';
       }
 
       .section-header {
-        text-align: center;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         margin-bottom: 3rem;
+        flex-wrap: wrap;
+        gap: 1rem;
       }
 
       .section-title {
@@ -265,6 +306,8 @@ import { MatchFilters } from './adoptions-match.component';
         color: #fbbf24;
         margin: 0;
         text-transform: uppercase;
+        flex: 1;
+        text-align: center;
         letter-spacing: 0.02em;
         text-shadow: 0 2px 12px rgba(251, 191, 36, 0.4);
         position: relative;
@@ -283,10 +326,65 @@ import { MatchFilters } from './adoptions-match.component';
         border-radius: 2px;
       }
 
+      .view-toggle {
+        display: flex;
+        gap: 0.5rem;
+        background: #ffffff;
+        border: 2px solid #374151;
+        border-radius: 0.5rem;
+        padding: 0.25rem;
+      }
+
+      .toggle-btn {
+        background: transparent;
+        border: none;
+        padding: 0.5rem 1rem;
+        cursor: pointer;
+        font-size: 1.25rem;
+        color: #6b7280;
+        transition: all 0.3s ease;
+        border-radius: 0.25rem;
+      }
+
+      .toggle-btn:hover {
+        background: #f9fafb;
+        color: #000000;
+      }
+
+      .toggle-btn.active {
+        background: #FBBF24;
+        color: #000000;
+        font-weight: 700;
+      }
+
       .pets-list {
         display: flex;
         flex-direction: column;
         gap: 2rem;
+      }
+
+      .pets-list.list-view .pet-card {
+        flex-direction: row;
+        padding: 1rem;
+        gap: 1.5rem;
+      }
+
+      .pets-list.list-view .pet-image-container {
+        width: 200px;
+        height: 200px;
+        flex-shrink: 0;
+      }
+
+      .pets-list.list-view .pet-info {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+
+      .pets-list.list-view .pet-details-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
       }
 
       .pet-card {
@@ -295,6 +393,8 @@ import { MatchFilters } from './adoptions-match.component';
         background: #ffffff;
         border: 2px solid rgba(251, 191, 36, 0.3);
         border-radius: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
         padding: 1.5rem;
         transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1),
@@ -384,12 +484,12 @@ import { MatchFilters } from './adoptions-match.component';
           );
       }
 
-      .heart-icon {
+      .favorite-button {
         position: absolute;
         top: 1rem;
         right: 1rem;
         font-size: 1.5rem;
-        background: rgba(251, 191, 36, 0.95);
+        background: rgba(255, 255, 255, 0.95);
         width: 45px;
         height: 45px;
         border-radius: 50%;
@@ -400,11 +500,24 @@ import { MatchFilters } from './adoptions-match.component';
         z-index: 10;
         transition: all 0.3s ease;
         cursor: pointer;
+        border: 2px solid rgba(251, 191, 36, 0.3);
+        padding: 0;
+        line-height: 1;
       }
 
-      .heart-icon:hover {
-        transform: scale(1.1);
-        box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
+      .favorite-button:hover {
+        transform: scale(1.15);
+        box-shadow: 0 4px 12px rgba(251, 191, 36, 0.5);
+        background: rgba(251, 191, 36, 0.95);
+      }
+
+      .favorite-button.favorited {
+        background: rgba(251, 191, 36, 0.95);
+        border-color: #fbbf24;
+      }
+
+      .favorite-button.favorited:hover {
+        background: rgba(255, 255, 255, 0.95);
       }
 
       .pet-info {
@@ -777,6 +890,7 @@ export class PetsListComponent {
   public petsStore = inject(PetsStore);
   public foundationsStore = inject(FoundationsStore);
   public applicationsStore = inject(AdoptionApplicationsStore);
+  public favoritesStore = inject(PetFavoritesStore);
   private router = inject(Router);
   private authService = inject(AuthService);
   private authWrapper = inject(AuthWrapperService);
@@ -790,6 +904,7 @@ export class PetsListComponent {
   public showPetDetails = signal(false);
   public selectedPet = signal<Pet | null>(null);
   public mapUrls = signal<Record<string, string>>({});
+  public viewMode = signal<'grid' | 'list'>('grid');
 
   public filteredPets = computed(() => {
     // Usar datos de ejemplo si el switch está activado
@@ -803,12 +918,41 @@ export class PetsListComponent {
         pets = pets.filter((p) => p.species === currentFilters.species);
       }
       if (currentFilters.location) {
-        // Filtrar por ubicación si está disponible en el modelo
         const locationLower = currentFilters.location.toLowerCase();
         pets = pets.filter((p) => {
           const foundationName = p.foundation?.name?.toLowerCase() || '';
           return foundationName.includes(locationLower);
         });
+      }
+      if (currentFilters.ageMin !== null && currentFilters.ageMin !== undefined) {
+        pets = pets.filter((p) => p.age !== null && p.age !== undefined && p.age >= currentFilters.ageMin!);
+      }
+      if (currentFilters.ageMax !== null && currentFilters.ageMax !== undefined) {
+        pets = pets.filter((p) => p.age !== null && p.age !== undefined && p.age <= currentFilters.ageMax!);
+      }
+      if (currentFilters.size) {
+        pets = pets.filter((p) => p.size === currentFilters.size);
+      }
+      if (currentFilters.gender) {
+        pets = pets.filter((p) => p.gender === currentFilters.gender);
+      }
+      if (currentFilters.breed) {
+        pets = pets.filter((p) => p.breed === currentFilters.breed);
+      }
+      if (currentFilters.personality && currentFilters.personality.length > 0) {
+        pets = pets.filter((p) => {
+          if (!p.personality || p.personality.length === 0) return false;
+          return currentFilters.personality!.some((trait) => p.personality!.includes(trait));
+        });
+      }
+      if (currentFilters.is_vaccinated !== null && currentFilters.is_vaccinated !== undefined) {
+        pets = pets.filter((p) => p.is_vaccinated === currentFilters.is_vaccinated);
+      }
+      if (currentFilters.is_sterilized !== null && currentFilters.is_sterilized !== undefined) {
+        pets = pets.filter((p) => p.is_sterilized === currentFilters.is_sterilized);
+      }
+      if (currentFilters.foundation_id) {
+        pets = pets.filter((p) => p.foundation_id === currentFilters.foundation_id);
       }
     }
 
@@ -988,8 +1132,52 @@ export class PetsListComponent {
 
   public showMoreInfo(pet: Pet, event: Event): void {
     event.preventDefault();
+    event.stopPropagation();
     this.selectedPet.set(pet);
     this.showPetDetails.set(true);
+  }
+
+  public viewPet(petId: string): void {
+    this.router.navigate(['/adoptions/mascota', petId]);
+  }
+
+  public setViewMode(mode: 'grid' | 'list'): void {
+    this.viewMode.set(mode);
+    localStorage.setItem('petsViewMode', mode);
+  }
+
+  public isFavorite(petId: string): boolean {
+    const user = this.authWrapper.currentUser();
+    if (!user?.email) {
+      return false;
+    }
+    return this.favoritesStore.isFavorite(user.email, petId);
+  }
+
+  public toggleFavorite(pet: Pet, event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    this.authService.isAuthenticated$.pipe(take(1)).subscribe((isAuth) => {
+      if (!isAuth) {
+        this.router.navigate(['/auth/login']);
+        return;
+      }
+
+      const user = this.authWrapper.currentUser();
+      if (!user?.email) {
+        return;
+      }
+
+      this.favoritesStore.toggleFavorite(user.email, pet.id).subscribe({
+        next: () => {
+          // El store se actualizará automáticamente
+        },
+        error: (error) => {
+          console.error('Error al actualizar favorito:', error);
+        },
+      });
+    });
   }
 
   public openAdoptionForm(pet: Pet): void {

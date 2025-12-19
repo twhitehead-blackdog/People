@@ -303,3 +303,12 @@ export type PersonalityTrait = {
   created_at?: Date;
   updated_at?: Date;
 };
+
+export type PetFavorite = {
+  id: string;
+  user_email: string; // Email del usuario
+  pet_id: string;
+  pet?: Pet; // Relación con la mascota
+  created_at?: Date;
+  updated_at?: Date;
+};

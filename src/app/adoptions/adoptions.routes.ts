@@ -59,6 +59,11 @@ export const ADOPTIONS_ROUTES: Routes = [
           ),
       },
       {
+        path: 'mascota/:id',
+        loadComponent: () =>
+          import('./pet-detail.component').then((x) => x.PetDetailComponent),
+      },
+      {
         path: 'admin',
         canActivate: [adminGuardFn],
         loadComponent: () =>

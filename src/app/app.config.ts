@@ -44,6 +44,7 @@ import { PersonalityTraitsStore } from './stores/personality-traits.store';
 import { PetMatchesStore } from './stores/pet-matches.store';
 import { UserPetsStore } from './stores/user-pets.store';
 import { PetBreedsStore } from './stores/pet-breeds.store';
+import { PetFavoritesStore } from './stores/pet-favorites.store';
 registerLocaleData(localeEs, 'es-MX');
 
 const MyPreset = definePreset(Aura, {
@@ -223,5 +224,6 @@ export const appConfig: ApplicationConfig = {
     PetMatchesStore,
     UserPetsStore,
     PetBreedsStore,
+    PetFavoritesStore,
   ],
 };

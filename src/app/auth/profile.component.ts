@@ -7,11 +7,17 @@ import { InputText } from 'primeng/inputtext';
 import { InputTextarea } from 'primeng/inputtextarea';
 import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
-import { Card } from 'primeng/card';
 import { Avatar } from 'primeng/avatar';
+import { TableModule } from 'primeng/table';
+import { TagModule } from 'primeng/tag';
+import { DropdownModule } from 'primeng/dropdown';
+import { CalendarModule } from 'primeng/calendar';
 import { AuthWrapperService } from './auth-wrapper.service';
-import { User, UserPet } from '../models';
+import { User, UserPet, AdoptionApplication, Pet } from '../models';
 import { UserPetsStore } from '../stores/user-pets.store';
+import { AdoptionApplicationsStore } from '../stores/adoption-applications.store';
+import { PetFavoritesStore } from '../stores/pet-favorites.store';
+import { PetsStore } from '../stores/pets.store';
 
 @Component({
   selector: 'pt-profile',
@@ -23,8 +29,11 @@ import { UserPetsStore } from '../stores/user-pets.store';
     InputText,
     InputTextarea,
     ToastModule,
-    Card,
     Avatar,
+    TableModule,
+    TagModule,
+    DropdownModule,
+    CalendarModule,
     AsyncPipe,
   ],
   providers: [MessageService],
@@ -271,6 +280,226 @@ import { UserPetsStore } from '../stores/user-pets.store';
                 />
               </div>
             </form>
+          </div>
+
+          <!-- My Favorites Card -->
+          <div class="favorites-card">
+            <div class="favorites-card-header">
+              <h3 class="favorites-card-title">❤️ Mis Favoritos</h3>
+            </div>
+            <div class="favorites-card-content">
+              @if (myFavorites().length === 0) {
+                <div class="empty-favorites">
+                  <span class="empty-icon">💛</span>
+                  <p class="empty-text">No tienes mascotas favoritas aún</p>
+                  <p-button
+                    label="Explorar Mascotas"
+                    icon="pi pi-search"
+                    (onClick)="goToAdoptions()"
+                    [style]="{
+                      background: '#FBBF24',
+                      border: 'none',
+                      color: '#000000',
+                      fontWeight: 'bold',
+                      marginTop: '1rem'
+                    }"
+                  />
+                </div>
+              } @else {
+                <div class="favorites-grid">
+                  @for (favorite of myFavorites(); track favorite.id) {
+                    @if (favorite.pet) {
+                      <div class="favorite-pet-card" (click)="viewPet(favorite.pet!.id)">
+                        <div class="favorite-pet-image">
+                          @if (favorite.pet.photos && favorite.pet.photos.length > 0) {
+                            <img [src]="favorite.pet.photos[0]" [alt]="favorite.pet.name" />
+                          } @else {
+                            <div class="favorite-pet-placeholder">
+                              <span class="placeholder-icon">{{ favorite.pet.species === 'dog' ? '🐕' : favorite.pet.species === 'cat' ? '🐱' : '🐾' }}</span>
+                            </div>
+                          }
+                          <button
+                            type="button"
+                            class="remove-favorite-button"
+                            (click)="removeFavorite(favorite, $event)"
+                            title="Quitar de favoritos"
+                          >
+                            ❌
+                          </button>
+                        </div>
+                        <div class="favorite-pet-info">
+                          <h4 class="favorite-pet-name">{{ favorite.pet.name }}</h4>
+                          <p class="favorite-pet-details">
+                            {{ getSpeciesLabel(favorite.pet.species) }} • {{ favorite.pet.gender === 'M' ? 'Macho' : 'Hembra' }}
+                          </p>
+                          <p-tag
+                            [value]="favorite.pet.is_available ? 'Disponible' : 'Adoptada'"
+                            [severity]="favorite.pet.is_available ? 'success' : 'danger'"
+                            [style]="{ marginTop: '0.5rem' }"
+                          />
+                        </div>
+                      </div>
+                    }
+                  }
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- My Adoption Applications Card -->
+          <div class="applications-card">
+            <div class="applications-card-header">
+              <h3 class="applications-card-title">📋 Mis Solicitudes de Adopción</h3>
+            </div>
+            
+            <!-- Statistics Summary -->
+            <div class="applications-stats">
+              <div class="stat-item">
+                <span class="stat-value">{{ applicationStats().total }}</span>
+                <span class="stat-label">Total</span>
+              </div>
+              <div class="stat-item pending">
+                <span class="stat-value">{{ applicationStats().pending }}</span>
+                <span class="stat-label">Pendientes</span>
+              </div>
+              <div class="stat-item approved">
+                <span class="stat-value">{{ applicationStats().approved }}</span>
+                <span class="stat-label">Aprobadas</span>
+              </div>
+              <div class="stat-item completed">
+                <span class="stat-value">{{ applicationStats().completed }}</span>
+                <span class="stat-label">Completadas</span>
+              </div>
+            </div>
+            
+            <!-- Filters -->
+            <div class="applications-filters">
+              <div class="filter-item">
+                <label>Estado</label>
+                <p-dropdown
+                  [options]="statusOptions"
+                  [(ngModel)]="statusFilter"
+                  placeholder="Todos los estados"
+                  optionLabel="label"
+                  optionValue="value"
+                  [showClear]="true"
+                />
+              </div>
+              <div class="filter-item">
+                <label>Desde</label>
+                <p-calendar
+                  [(ngModel)]="dateFrom"
+                  [showIcon]="true"
+                  dateFormat="dd/mm/yy"
+                  placeholder="Fecha inicial"
+                  [showClear]="true"
+                />
+              </div>
+              <div class="filter-item">
+                <label>Hasta</label>
+                <p-calendar
+                  [(ngModel)]="dateTo"
+                  [showIcon]="true"
+                  dateFormat="dd/mm/yy"
+                  placeholder="Fecha final"
+                  [showClear]="true"
+                />
+              </div>
+              <div class="filter-item">
+                <p-button
+                  label="Limpiar Filtros"
+                  severity="secondary"
+                  [text]="true"
+                  (onClick)="clearFilters()"
+                  [style]="{ marginTop: '1.5rem' }"
+                />
+              </div>
+            </div>
+            
+            <div class="applications-card-content">
+              @if (myApplications().length === 0) {
+                <div class="empty-applications">
+                  <span class="empty-icon">📝</span>
+                  <p class="empty-text">No has realizado ninguna solicitud de adopción aún</p>
+                  <p-button
+                    label="Ver Mascotas Disponibles"
+                    icon="pi pi-search"
+                    (onClick)="goToAdoptions()"
+                    [style]="{
+                      background: '#FBBF24',
+                      border: 'none',
+                      color: '#000000',
+                      fontWeight: 'bold',
+                      marginTop: '1rem'
+                    }"
+                  />
+                </div>
+              } @else {
+                <p-table
+                  [value]="myApplications()"
+                  [paginator]="true"
+                  [rows]="5"
+                  [rowsPerPageOptions]="[5, 10, 20]"
+                  styleClass="p-datatable-striped"
+                  [loading]="applicationsStore.isLoading()"
+                >
+                  <ng-template pTemplate="header">
+                    <tr>
+                      <th>Mascota</th>
+                      <th>Estado</th>
+                      <th>Fecha</th>
+                      <th>Acciones</th>
+                    </tr>
+                  </ng-template>
+                  <ng-template pTemplate="body" let-application>
+                    <tr>
+                      <td>
+                        <div class="application-pet-info">
+                          @if (application.pet?.photos && application.pet.photos.length > 0) {
+                            <img [src]="application.pet.photos[0]" [alt]="application.pet.name" class="pet-thumbnail" />
+                          }
+                          <div class="pet-info-text">
+                            <strong>{{ application.pet?.name || 'N/A' }}</strong>
+                            <small>{{ getSpeciesLabel(application.pet?.species || 'other') }}</small>
+                          </div>
+                        </div>
+                      </td>
+                      <td>
+                        <p-tag
+                          [value]="getStatusLabel(application.status)"
+                          [severity]="getStatusSeverity(application.status)"
+                        />
+                      </td>
+                      <td>{{ formatDate(application.created_at) }}</td>
+                      <td>
+                        <p-button
+                          icon="pi pi-eye"
+                          [text]="true"
+                          severity="info"
+                          (onClick)="viewApplication(application)"
+                          title="Ver detalles"
+                        />
+                        @if (application.status === 'pending') {
+                          <p-button
+                            icon="pi pi-pencil"
+                            [text]="true"
+                            severity="secondary"
+                            (onClick)="editApplication(application)"
+                            title="Editar solicitud"
+                            [style]="{ marginLeft: '0.5rem' }"
+                          />
+                        }
+                      </td>
+                    </tr>
+                  </ng-template>
+                  <ng-template pTemplate="emptymessage">
+                    <tr>
+                      <td colspan="4">No se encontraron solicitudes</td>
+                    </tr>
+                  </ng-template>
+                </p-table>
+              }
+            </div>
           </div>
 
           <!-- Pets Grid Card -->
@@ -700,7 +929,9 @@ import { UserPetsStore } from '../stores/user-pets.store';
       }
 
       .info-card,
-      .pets-card {
+      .pets-card,
+      .applications-card,
+      .favorites-card {
         background: #ffffff;
         border: 1px solid #374151;
         border-radius: 1rem;
@@ -710,13 +941,17 @@ import { UserPetsStore } from '../stores/user-pets.store';
       }
 
       .info-card:hover,
-      .pets-card:hover {
+      .pets-card:hover,
+      .applications-card:hover,
+      .favorites-card:hover {
         border-color: #FBBF24;
         box-shadow: 0 8px 24px rgba(251, 191, 36, 0.2);
       }
 
       .info-card-header,
-      .pets-card-header {
+      .pets-card-header,
+      .applications-card-header,
+      .favorites-card-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -726,13 +961,234 @@ import { UserPetsStore } from '../stores/user-pets.store';
       }
 
       .info-card-title,
-      .pets-card-title {
+      .pets-card-title,
+      .applications-card-title,
+      .favorites-card-title {
         font-size: 1.25rem;
         font-weight: 700;
         color: #000000;
         margin: 0;
         text-transform: uppercase;
         letter-spacing: 0.02em;
+      }
+
+      .favorites-card-content {
+        padding: 1.5rem;
+      }
+
+      .empty-favorites {
+        text-align: center;
+        padding: 4rem 1rem;
+        background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
+        border-radius: 0.75rem;
+        border: 1px dashed #374151;
+      }
+
+      .favorites-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1.5rem;
+      }
+
+      .favorite-pet-card {
+        background: #ffffff;
+        border: 1px solid #374151;
+        border-radius: 0.75rem;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(55, 65, 81, 0.1);
+        cursor: pointer;
+      }
+
+      .favorite-pet-card:hover {
+        border-color: #FBBF24;
+        box-shadow: 0 8px 24px rgba(251, 191, 36, 0.3);
+        transform: translateY(-4px);
+      }
+
+      .favorite-pet-image {
+        width: 100%;
+        height: 180px;
+        overflow: hidden;
+        background: #374151;
+        position: relative;
+      }
+
+      .favorite-pet-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+      }
+
+      .favorite-pet-card:hover .favorite-pet-image img {
+        transform: scale(1.05);
+      }
+
+      .favorite-pet-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #FBBF24 0%, #FBBF24 100%);
+      }
+
+      .remove-favorite-button {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        background: rgba(255, 255, 255, 0.9);
+        border: 2px solid #ef4444;
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+        z-index: 10;
+        padding: 0;
+        line-height: 1;
+      }
+
+      .remove-favorite-button:hover {
+        background: #ef4444;
+        transform: scale(1.1);
+      }
+
+      .favorite-pet-info {
+        padding: 1rem;
+        background: #ffffff;
+      }
+
+      .favorite-pet-name {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #000000;
+        margin: 0 0 0.5rem 0;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+      }
+
+      .favorite-pet-details {
+        font-size: 0.875rem;
+        color: #374151;
+        margin: 0;
+        font-weight: 500;
+      }
+
+      .applications-stats {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1rem;
+        padding: 1.5rem;
+        background: #f9fafb;
+        border-bottom: 1px solid #e5e7eb;
+      }
+
+      .stat-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 1rem;
+        background: #ffffff;
+        border-radius: 0.5rem;
+        border: 1px solid #e5e7eb;
+      }
+
+      .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #000000;
+      }
+
+      .stat-label {
+        font-size: 0.875rem;
+        color: #6b7280;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .stat-item.pending .stat-value {
+        color: #fbbf24;
+      }
+
+      .stat-item.approved .stat-value {
+        color: #10b981;
+      }
+
+      .stat-item.completed .stat-value {
+        color: #3b82f6;
+      }
+
+      .applications-filters {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        padding: 1.5rem;
+        background: #ffffff;
+        border-bottom: 1px solid #e5e7eb;
+      }
+
+      .filter-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .filter-item label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #374151;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .applications-card-content {
+        padding: 1.5rem;
+      }
+
+      .empty-applications {
+        text-align: center;
+        padding: 4rem 1rem;
+        background: linear-gradient(135deg, #f9fafb 0%, #ffffff 100%);
+        border-radius: 0.75rem;
+        border: 1px dashed #374151;
+      }
+
+      .application-pet-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .pet-thumbnail {
+        width: 50px;
+        height: 50px;
+        object-fit: cover;
+        border-radius: 0.5rem;
+        border: 2px solid #FBBF24;
+      }
+
+      .pet-info-text {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+
+      .pet-info-text strong {
+        color: #000000;
+        font-weight: 700;
+      }
+
+      .pet-info-text small {
+        color: #374151;
+        font-size: 0.875rem;
       }
 
       .dashboard-form {
@@ -993,10 +1449,101 @@ export class ProfileComponent implements OnInit {
   private router = inject(Router);
   private messageService = inject(MessageService);
   private userPetsStore = inject(UserPetsStore);
+  public applicationsStore = inject(AdoptionApplicationsStore);
+  public favoritesStore = inject(PetFavoritesStore);
+  public petsStore = inject(PetsStore);
 
   user$ = this.auth.user$;
   isLoading = signal(false);
-  myPets = this.userPetsStore.myPets;;
+  myPets = this.userPetsStore.myPets;
+  
+  // Filtros para historial
+  public statusFilter = signal<string | null>(null);
+  public dateFrom = signal<Date | null>(null);
+  public dateTo = signal<Date | null>(null);
+  
+  public statusOptions = [
+    { label: 'Todas', value: null },
+    { label: 'Pendientes', value: 'pending' },
+    { label: 'Aprobadas', value: 'approved' },
+    { label: 'Rechazadas', value: 'rejected' },
+    { label: 'Completadas', value: 'completed' },
+  ];
+  
+  myApplications = computed(() => {
+    const user = this.auth.currentUser();
+    if (!user?.email) {
+      return [];
+    }
+    let apps = this.applicationsStore.getUserApplications(user.email);
+    
+    // Aplicar filtros
+    if (this.statusFilter()) {
+      apps = apps.filter(app => app.status === this.statusFilter());
+    }
+    
+    if (this.dateFrom()) {
+      apps = apps.filter(app => {
+        if (!app.created_at) return false;
+        const appDate = new Date(app.created_at);
+        return appDate >= this.dateFrom()!;
+      });
+    }
+    
+    if (this.dateTo()) {
+      apps = apps.filter(app => {
+        if (!app.created_at) return false;
+        const appDate = new Date(app.created_at);
+        // Agregar un día para incluir el día completo
+        const toDate = new Date(this.dateTo()!);
+        toDate.setHours(23, 59, 59, 999);
+        return appDate <= toDate;
+      });
+    }
+    
+    // Ordenar por fecha más reciente primero
+    return apps.sort((a, b) => {
+      const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return dateB - dateA;
+    });
+  });
+  
+  public applicationStats = computed(() => {
+    const user = this.auth.currentUser();
+    if (!user?.email) {
+      return {
+        total: 0,
+        pending: 0,
+        approved: 0,
+        rejected: 0,
+        completed: 0,
+      };
+    }
+    const allApps = this.applicationsStore.getUserApplications(user.email);
+    return {
+      total: allApps.length,
+      pending: allApps.filter(app => app.status === 'pending').length,
+      approved: allApps.filter(app => app.status === 'approved').length,
+      rejected: allApps.filter(app => app.status === 'rejected').length,
+      completed: allApps.filter(app => app.status === 'completed').length,
+    };
+  });
+
+  myFavorites = computed(() => {
+    const user = this.auth.currentUser();
+    if (!user?.email) {
+      return [];
+    }
+    const favorites = this.favoritesStore.getUserFavorites(user.email);
+    // Obtener las mascotas completas desde el petsStore
+    return favorites
+      .map(fav => {
+        const pet = this.petsStore.entities().find(p => p.id === fav.pet_id);
+        return pet ? { ...fav, pet } : null;
+      })
+      .filter((fav): fav is { pet: Pet } & typeof favorites[0] => fav !== null);
+  });;
   
   formData: Partial<User> = {
     full_name: '',
@@ -1056,12 +1603,15 @@ export class ProfileComponent implements OnInit {
   }
 
   private async loadAdoptionStats(): Promise<void> {
-    // TODO: Implementar carga de estadísticas desde el store
-    // const userId = this.currentUser()?.id;
-    // if (userId) {
-    //   const stats = await this.adoptionApplicationsStore.getUserStats(userId);
-    //   this.adoptionStats.set(stats);
-    // }
+    const user = this.auth.currentUser();
+    if (user?.email) {
+      const apps = this.applicationsStore.getUserApplications(user.email);
+      this.adoptionStats.set({
+        pending: apps.filter(app => app.status === 'pending').length,
+        approved: apps.filter(app => app.status === 'approved').length,
+        rejected: apps.filter(app => app.status === 'rejected').length,
+      });
+    }
   }
 
   async onSubmit(): Promise<void> {
@@ -1134,6 +1684,96 @@ export class ProfileComponent implements OnInit {
     this.router.navigate(['/adoptions/busco-pareja/publicar'], {
       queryParams: { petId },
     });
+  }
+
+  getStatusLabel(status: string): string {
+    const labels: Record<string, string> = {
+      pending: 'Pendiente',
+      approved: 'Aprobada',
+      rejected: 'Rechazada',
+      completed: 'Completada',
+    };
+    return labels[status] || status;
+  }
+
+  getStatusSeverity(status: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' | undefined {
+    const severities: Record<string, 'success' | 'info' | 'warn' | 'danger' | 'secondary' | undefined> = {
+      pending: 'warn',
+      approved: 'success',
+      rejected: 'danger',
+      completed: 'info',
+    };
+    return severities[status] || 'secondary';
+  }
+
+  formatDate(date: Date | string | undefined): string {
+    if (!date) return 'N/A';
+    const d = new Date(date);
+    return d.toLocaleDateString('es-MX', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  }
+
+  viewApplication(application: AdoptionApplication): void {
+    // Navegar a la página de detalles de la solicitud
+    // Por ahora, mostrar información en un diálogo o navegar a la página de adopciones
+    this.router.navigate(['/adoptions'], {
+      queryParams: { applicationId: application.id },
+    });
+  }
+
+  editApplication(application: AdoptionApplication): void {
+    // Navegar al formulario de adopción para editar
+    if (application.pet_id) {
+      this.router.navigate(['/adoptions/adoptar', application.pet_id], {
+        queryParams: { edit: application.id },
+      });
+    }
+  }
+
+  goToAdoptions(): void {
+    this.router.navigate(['/adoptions']);
+  }
+
+  viewPet(petId: string): void {
+    // Navegar a la página de detalles de la mascota (se implementará después)
+    this.router.navigate(['/adoptions/mascota', petId]);
+  }
+
+  removeFavorite(favorite: { id: string; pet_id: string }, event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    const user = this.auth.currentUser();
+    if (!user?.email) {
+      return;
+    }
+
+    this.favoritesStore.removeFavorite(user.email, favorite.pet_id).subscribe({
+      next: () => {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Favorito eliminado',
+          detail: 'La mascota se ha eliminado de tus favoritos',
+        });
+      },
+      error: (error) => {
+        console.error('Error al eliminar favorito:', error);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'No se pudo eliminar el favorito',
+        });
+      },
+    });
+  }
+
+  clearFilters(): void {
+    this.statusFilter.set(null);
+    this.dateFrom.set(null);
+    this.dateTo.set(null);
   }
 }
 

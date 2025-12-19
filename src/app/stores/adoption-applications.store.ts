@@ -136,6 +136,14 @@ export const AdoptionApplicationsStore = signalStore(
       );
     },
     /**
+     * Obtiene las solicitudes de adopción del usuario actual
+     */
+    getUserApplications(userEmail: string) {
+      return store.entities().filter(
+        (app) => app.applicant_email.toLowerCase() === userEmail.toLowerCase()
+      );
+    },
+    /**
      * Obtiene estadísticas de solicitudes de adopción
      */
     getStatistics() {
