@@ -2877,21 +2877,32 @@ export class EmployeePortalComponent {
     effect(() => {
       const currentTab = this.activeTabIndex();
       const previousTab = this.previousTabIndex;
-      
+
       // Si el tab cambió y volvió a Dashboard (tab 0), forzar recarga
       if (currentTab === 0 && previousTab !== 0) {
-        console.log('[EmployeePortal] Tab Dashboard vuelve a ser activo, forzando recarga de recursos');
+        console.log(
+          '[EmployeePortal] Tab Dashboard vuelve a ser activo, forzando recarga de recursos'
+        );
         // Forzar recarga de recursos HTTP después de un pequeño delay
         setTimeout(() => {
           // Forzar recarga de los recursos HTTP
           try {
-            if (this.timelogsApi && typeof this.timelogsApi.reload === 'function') {
+            if (
+              this.timelogsApi &&
+              typeof this.timelogsApi.reload === 'function'
+            ) {
               this.timelogsApi.reload();
             }
-            if (this.monthTimelogsApi && typeof this.monthTimelogsApi.reload === 'function') {
+            if (
+              this.monthTimelogsApi &&
+              typeof this.monthTimelogsApi.reload === 'function'
+            ) {
               this.monthTimelogsApi.reload();
             }
-            if (this.timeoffsApi && typeof this.timeoffsApi.reload === 'function') {
+            if (
+              this.timeoffsApi &&
+              typeof this.timeoffsApi.reload === 'function'
+            ) {
               this.timeoffsApi.reload();
             }
           } catch (error) {
@@ -2904,7 +2915,7 @@ export class EmployeePortalComponent {
           }
         }, 200);
       }
-      
+
       this.previousTabIndex = currentTab;
     });
 
@@ -2982,7 +2993,7 @@ export class EmployeePortalComponent {
     const fragment = this.getCurrentFragment();
     const tabIndex = this.getTabIndexFromFragment(fragment);
     const currentTabIndex = this.activeTabIndex();
-    
+
     console.log(
       '[EmployeePortal] updateTabFromFragment - fragment:',
       fragment,
@@ -3006,20 +3017,31 @@ export class EmployeePortalComponent {
         '[EmployeePortal] updateTabFromFragment - activeTabIndex después de set:',
         this.activeTabIndex()
       );
-      
+
       // Si volvemos al Dashboard, forzar recarga de recursos
       if (tabIndex === 0) {
         setTimeout(() => {
-          console.log('[EmployeePortal] updateTabFromFragment - Forzando recarga de recursos para Dashboard');
+          console.log(
+            '[EmployeePortal] updateTabFromFragment - Forzando recarga de recursos para Dashboard'
+          );
           // Forzar recarga de recursos HTTP
           try {
-            if (this.timelogsApi && typeof this.timelogsApi.reload === 'function') {
+            if (
+              this.timelogsApi &&
+              typeof this.timelogsApi.reload === 'function'
+            ) {
               this.timelogsApi.reload();
             }
-            if (this.monthTimelogsApi && typeof this.monthTimelogsApi.reload === 'function') {
+            if (
+              this.monthTimelogsApi &&
+              typeof this.monthTimelogsApi.reload === 'function'
+            ) {
               this.monthTimelogsApi.reload();
             }
-            if (this.timeoffsApi && typeof this.timeoffsApi.reload === 'function') {
+            if (
+              this.timeoffsApi &&
+              typeof this.timeoffsApi.reload === 'function'
+            ) {
               this.timeoffsApi.reload();
             }
           } catch (error) {
@@ -3029,7 +3051,7 @@ export class EmployeePortalComponent {
           this.cdr.markForCheck();
         }, 100);
       }
-      
+
       // Forzar detección de cambios después de actualizar el tab
       setTimeout(() => {
         this.isUpdatingFromFragment = false;
@@ -3107,7 +3129,7 @@ export class EmployeePortalComponent {
     const index =
       typeof tabIndex === 'string' ? parseInt(tabIndex, 10) : tabIndex;
     const previousIndex = this.activeTabIndex();
-    
+
     console.log(
       '[EmployeePortal] onTabChange - tabIndex recibido:',
       tabIndex,
@@ -3116,25 +3138,39 @@ export class EmployeePortalComponent {
       'anterior:',
       previousIndex
     );
-    
+
     this.activeTabIndex.set(index);
-    
+
     // Si el usuario cambió manualmente al Dashboard, forzar recarga de recursos
     if (index === 0 && previousIndex !== 0) {
-      console.log('[EmployeePortal] onTabChange - Usuario cambió manualmente a Dashboard, forzando recarga');
+      console.log(
+        '[EmployeePortal] onTabChange - Usuario cambió manualmente a Dashboard, forzando recarga'
+      );
       setTimeout(() => {
         try {
-          if (this.timelogsApi && typeof this.timelogsApi.reload === 'function') {
+          if (
+            this.timelogsApi &&
+            typeof this.timelogsApi.reload === 'function'
+          ) {
             this.timelogsApi.reload();
           }
-          if (this.monthTimelogsApi && typeof this.monthTimelogsApi.reload === 'function') {
+          if (
+            this.monthTimelogsApi &&
+            typeof this.monthTimelogsApi.reload === 'function'
+          ) {
             this.monthTimelogsApi.reload();
           }
-          if (this.timeoffsApi && typeof this.timeoffsApi.reload === 'function') {
+          if (
+            this.timeoffsApi &&
+            typeof this.timeoffsApi.reload === 'function'
+          ) {
             this.timeoffsApi.reload();
           }
         } catch (error) {
-          console.warn('[EmployeePortal] Error al recargar recursos en onTabChange:', error);
+          console.warn(
+            '[EmployeePortal] Error al recargar recursos en onTabChange:',
+            error
+          );
         }
         // Forzar detección de cambios
         this.cdr.markForCheck();
@@ -3143,7 +3179,7 @@ export class EmployeePortalComponent {
         }
       }, 150);
     }
-    
+
     console.log(
       '[EmployeePortal] onTabChange - activeTabIndex después:',
       this.activeTabIndex()
@@ -3921,12 +3957,12 @@ export class EmployeePortalComponent {
 
   public recentTimelogs = computed(() => {
     const logs = this.myTimelogs();
-    
+
     // Validar que logs sea un array válido
     if (!Array.isArray(logs) || logs.length === 0) {
       return [];
     }
-    
+
     const sevenDaysAgo = addDays(new Date(), -7);
     return logs
       .filter((log) => {
@@ -3959,16 +3995,17 @@ export class EmployeePortalComponent {
 
     const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`;
     // La tabla timeoffs tiene múltiples relaciones con employees (employee_id, reviewed_by, registered_by)
-    // Esto causa el error HTTP 300 cuando intentamos usar employee:employees(...) sin especificar la foreign key
-    // Solución: No incluir la relación employee ya que no la necesitamos para calcular horas de compensatorio
-    // Solo necesitamos date_from y date_to que ya están en la tabla timeoffs
-    // El filtro por company_id no es necesario porque employee_id ya garantiza que pertenece a la compañía correcta
-    const select = `*,type:timeoff_types(id,name)`;
+    // Supabase requiere especificar explícitamente la foreign key usando la sintaxis:
+    // employee:employees!time_offs_employee_id_fkey(...) para usar la relación employee_id
+    // Esto evita el error HTTP 300 cuando hay múltiples relaciones
+    const select = `*,type:timeoff_types(id,name),employee:employees!time_offs_employee_id_fkey(id,company_id)`;
 
     let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
     url += `&employee_id=eq.${this.currentEmployee()!.id}`;
     url += `&type_id=eq.${compensatoryTypeId}`;
     url += `&is_approved=eq.true`;
+    // Filtrar a través de employee.company_id usando la relación especificada
+    url += `&employee.company_id=eq.${companyId}`;
     url += `&order=date_from.desc`;
 
     return {
@@ -3995,12 +4032,12 @@ export class EmployeePortalComponent {
       try {
         const startDate = new Date(timeoff.date_from);
         const endDate = new Date(timeoff.date_to);
-        
+
         // Validar que las fechas sean válidas
         if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
           return total;
         }
-        
+
         // differenceInDays devuelve la diferencia en días, sumamos 1 para incluir ambos días
         const days = differenceInDays(endDate, startDate) + 1;
         return total + Math.max(0, days) * 8; // 8 horas por día, asegurar que days no sea negativo
