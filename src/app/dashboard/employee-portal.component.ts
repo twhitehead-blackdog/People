@@ -1892,6 +1892,11 @@ import { EmployeesStore } from '../stores/employees.store';
       padding: 0;
     }
 
+    /* Asegurar que el contenido de los tabpanels sea visible */
+    ::ng-deep .p-tabs .p-tabpanel-content {
+      background: transparent;
+    }
+
     /* Responsive container */
     @media (max-width: 640px) {
       :host {
@@ -2136,6 +2141,11 @@ import { EmployeesStore } from '../stores/employees.store';
     ::ng-deep .p-tabpanel {
       max-width: 100%;
       overflow-x: auto;
+      padding: 1rem 0;
+    }
+
+    ::ng-deep .p-tabpanel .p-tabpanel-content {
+      padding: 0;
     }
 
     /* Better spacing on mobile */
