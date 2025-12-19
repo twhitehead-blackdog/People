@@ -26,8 +26,8 @@ import { Button } from 'primeng/button';
   selector: 'pt-calendar',
   imports: [Button, NgClass, DatePipe, NgTemplateOutlet],
   template: `<div class="calendar-container">
-    <header class="calendar-header my-4 flex items-center justify-between">
-      <h2 class="text-xl font-semibold">
+    <header class="calendar-header mt-2 mb-2 flex items-center justify-between">
+      <h2 class="text-xl font-bold text-white uppercase">
         {{ this.currentMonth() }}
       </h2>
 
@@ -57,15 +57,16 @@ import { Button } from 'primeng/button';
       </div>
       }
     </div>
-    <div class="calendar-grid mt-2 grid grid-cols-7 gap-1 text-sm">
+    <div class="calendar-grid mt-2 grid grid-cols-7 gap-2 text-sm">
       @for (day of daysWithMarkers(); track day.day) {
       <div
         [ngClass]="[
           'mx-auto',
           'relative',
           'flex',
-          'h-20',
-          'md:h-20',
+          'h-32',
+          'md:h-36',
+          'lg:h-40',
           'w-full',
           'flex-col',
           'items-center',
@@ -79,7 +80,7 @@ import { Button } from 'primeng/button';
           day.isToday ? 'font-medium' : 'font-normal'
         ]"
       >
-        <div class="w-full flex-auto p-2">
+        <div class="w-full flex-auto p-2 overflow-y-auto">
           @if (this.markerTpl(); as markerTpl) {
           <ng-container
             *ngTemplateOutlet="markerTpl; context: { $implicit: day.markers }"
@@ -87,7 +88,13 @@ import { Button } from 'primeng/button';
           }
         </div>
         <footer
-          class="flex h-4 w-4 p-2 flex-shrink-0 items-center justify-center rounded-full text-lg md:absolute md:bottom-2 md:right-2 md:self-end"
+          class="flex h-7 w-7 p-1 flex-shrink-0 items-center justify-center rounded-full text-base font-bold md:absolute md:bottom-2 md:right-2 md:self-end bg-gradient-to-br from-amber-500/30 to-amber-600/20 border-2 border-amber-400/50 text-white shadow-md"
+          [class.bg-gradient-to-br]="day.isToday"
+          [class.from-amber-500]="day.isToday"
+          [class.to-amber-600]="day.isToday"
+          [class.border-amber-400]="day.isToday"
+          [class.bg-neutral-800/70]="!day.isToday"
+          [class.border-neutral-700/50]="!day.isToday"
         >
           {{ day.day | date : 'd' }}
         </footer>
@@ -112,7 +119,7 @@ export class CalendarComponent {
 
   protected currentDate = signal(startOfToday());
   protected currentMonth = computed(() =>
-    format(this.currentDate(), 'MMMM yyyy', { locale: es })
+    format(this.currentDate(), 'MMMM yyyy', { locale: es }).toUpperCase()
   );
 
   protected readonly startOfSelectedMonth = computed(() =>
