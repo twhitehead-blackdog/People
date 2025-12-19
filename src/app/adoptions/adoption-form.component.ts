@@ -173,6 +173,13 @@ import { AdoptionApplication } from '../models';
               type="submit"
               [disabled]="adoptionForm.invalid || isSubmitting()"
               [loading]="isSubmitting()"
+              [style]="{
+                background: '#fbbf24',
+                border: 'none',
+                color: '#000000',
+                fontWeight: 'bold',
+                padding: '0.75rem 2rem'
+              }"
             />
           </div>
         </form>
@@ -195,20 +202,23 @@ import { AdoptionApplication } from '../models';
       }
 
       .form-header {
-        padding: 1.5rem;
+        padding: 1.5rem 2rem;
         text-align: center;
-        background: #18181b;
+        background: #ffffff;
+        border-bottom: 2px solid #e5e7eb;
       }
 
       .form-header h1 {
-        color: #fbbf24;
-        font-size: 2rem;
+        color: #000000;
+        font-size: 1.75rem;
+        font-weight: 700;
         margin-bottom: 0.5rem;
       }
 
       .subtitle {
-        color: #9ca3af;
+        color: #6b7280;
         font-size: 1.125rem;
+        margin: 0;
       }
 
       .form-section {
@@ -216,11 +226,12 @@ import { AdoptionApplication } from '../models';
       }
 
       .form-section h3 {
-        color: #ffffff;
+        color: #000000;
         font-size: 1.25rem;
+        font-weight: 600;
         margin-bottom: 1rem;
         padding-bottom: 0.5rem;
-        border-bottom: 2px solid rgba(251, 191, 36, 0.3);
+        border-bottom: 2px solid #e5e7eb;
       }
 
       .form-grid {
@@ -237,8 +248,8 @@ import { AdoptionApplication } from '../models';
       }
 
       .form-field label {
-        color: #d1d5db;
-        font-weight: 500;
+        color: #000000;
+        font-weight: 600;
         font-size: 0.875rem;
       }
 
@@ -248,9 +259,16 @@ import { AdoptionApplication } from '../models';
         gap: 0.5rem;
       }
 
+      .checkbox-field label {
+        font-weight: 600;
+        color: #000000;
+        cursor: pointer;
+      }
+
       .error {
         color: #ef4444;
         font-size: 0.75rem;
+        margin-top: 0.25rem;
       }
 
       .form-actions {
@@ -258,22 +276,31 @@ import { AdoptionApplication } from '../models';
         justify-content: flex-end;
         gap: 1rem;
         margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #e5e7eb;
       }
 
       .loading-state {
         text-align: center;
         padding: 3rem;
-        color: #9ca3af;
+        color: #6b7280;
       }
 
       ::ng-deep .p-card {
-        background: #18181b;
-        border: 2px solid rgba(251, 191, 36, 0.3);
-        border-radius: 0.75rem;
+        background: #ffffff;
+        border: 1px solid #374151;
+        border-radius: 1rem;
+        box-shadow: 0 4px 12px rgba(55, 65, 81, 0.1);
+      }
+
+      ::ng-deep .p-card-header {
+        background: #ffffff;
+        border-bottom: 1px solid #e5e7eb;
       }
 
       ::ng-deep .p-card-body {
         padding: 2rem;
+        background: #ffffff;
       }
 
       ::ng-deep .form-actions p-button button {
@@ -284,6 +311,96 @@ import { AdoptionApplication } from '../models';
       ::ng-deep .form-actions p-button button[style*='#fbbf24']:hover:not(:disabled) {
         background: #000000 !important;
         color: #fbbf24 !important;
+      }
+
+      ::ng-deep .form-actions p-button[severity='secondary'] button {
+        background: #e5e7eb !important;
+        border: none !important;
+        color: #374151 !important;
+      }
+
+      ::ng-deep .form-actions p-button[severity='secondary'] button:hover:not(:disabled) {
+        background: #d1d5db !important;
+        color: #000000 !important;
+      }
+
+      /* Estilos para inputs y textareas */
+      ::ng-deep .p-inputtext,
+      ::ng-deep .p-textarea {
+        background: #ffffff;
+        border: 1px solid #d1d5db;
+        color: #000000;
+      }
+
+      ::ng-deep .p-inputtext:enabled:focus,
+      ::ng-deep .p-textarea:enabled:focus {
+        border-color: #fbbf24;
+        box-shadow: 0 0 0 0.2rem rgba(251, 191, 36, 0.2);
+      }
+
+      /* Estilos para dropdowns */
+      ::ng-deep .p-dropdown {
+        background: #ffffff;
+        border: 1px solid #d1d5db;
+        color: #000000;
+      }
+
+      ::ng-deep .p-dropdown:not(.p-disabled):hover {
+        border-color: #9ca3af;
+      }
+
+      ::ng-deep .p-dropdown:not(.p-disabled).p-focus {
+        border-color: #fbbf24;
+        box-shadow: 0 0 0 0.2rem rgba(251, 191, 36, 0.2);
+      }
+
+      /* Estilos para multiselect */
+      ::ng-deep .p-multiselect {
+        background: #ffffff;
+        border: 1px solid #d1d5db;
+        color: #000000;
+      }
+
+      ::ng-deep .p-multiselect:not(.p-disabled):hover {
+        border-color: #9ca3af;
+      }
+
+      ::ng-deep .p-multiselect:not(.p-disabled).p-focus {
+        border-color: #fbbf24;
+        box-shadow: 0 0 0 0.2rem rgba(251, 191, 36, 0.2);
+      }
+
+      /* Estilos para checkbox */
+      ::ng-deep .p-checkbox .p-checkbox-box {
+        border: 2px solid #d1d5db;
+        background: #ffffff;
+      }
+
+      ::ng-deep .p-checkbox .p-checkbox-box.p-highlight {
+        background: #fbbf24;
+        border-color: #fbbf24;
+      }
+
+      @media (max-width: 768px) {
+        .adoption-form-container {
+          padding: 1rem;
+        }
+
+        .form-header {
+          padding: 1rem;
+        }
+
+        .form-header h1 {
+          font-size: 1.5rem;
+        }
+
+        ::ng-deep .p-card-body {
+          padding: 1.5rem;
+        }
+
+        .form-grid {
+          grid-template-columns: 1fr;
+        }
       }
     `,
   ],
