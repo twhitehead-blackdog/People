@@ -1,5 +1,5 @@
-import { Component, inject, signal, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, inject, signal, OnInit, AfterViewInit } from '@angular/core';
+import { CommonModule, ViewportScroller } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { CardModule } from 'primeng/card';
@@ -34,57 +34,88 @@ import { AdoptionApplication } from '../models';
   template: `
     <p-toast />
     <div class="adoption-form-container">
-      <p-card>
-        <ng-template pTemplate="header">
-          <div class="form-header">
-            <h1>Solicitud de Adopción</h1>
-            @if (pet()) {
-            <p class="subtitle">Adoptando a: {{ pet()!.name }}</p>
-            }
+      <!-- Hero Header -->
+      <div class="form-hero">
+        <div class="hero-content">
+          <div class="hero-icon">🐾</div>
+          <h1 class="hero-title">Solicitud de Adopción</h1>
+          @if (pet()) {
+          <div class="pet-info-badge">
+            <span class="pet-emoji">{{ pet()!.species === 'dog' ? '🐕' : pet()!.species === 'cat' ? '🐈' : '🐾' }}</span>
+            <span class="pet-name">{{ pet()!.name }}</span>
           </div>
-        </ng-template>
+          }
+        </div>
+        <div class="hero-decoration"></div>
+      </div>
 
+      <!-- Form Card -->
+      <div class="form-card">
         @if (pet()) {
         <form [formGroup]="adoptionForm" (ngSubmit)="onSubmit()">
-          <div class="form-section">
-            <h3>Información Personal</h3>
+          <!-- Sección 1: Información Personal -->
+          <div class="form-section-card">
+            <div class="section-header">
+              <div class="section-icon">👤</div>
+              <h3>Información Personal</h3>
+            </div>
             <div class="form-grid">
               <div class="form-field">
-                <label>Nombre Completo *</label>
-                <input type="text" pInputText formControlName="applicant_name" />
+                <label>
+                  <span class="label-icon">📝</span>
+                  Nombre Completo *
+                </label>
+                <input type="text" pInputText formControlName="applicant_name" placeholder="Tu nombre completo" />
                 @if (adoptionForm.get('applicant_name')?.invalid && adoptionForm.get('applicant_name')?.touched) {
                 <small class="error">El nombre es requerido</small>
                 }
               </div>
               <div class="form-field">
-                <label>Email *</label>
-                <input type="email" pInputText formControlName="applicant_email" />
+                <label>
+                  <span class="label-icon">📧</span>
+                  Email *
+                </label>
+                <input type="email" pInputText formControlName="applicant_email" placeholder="tu@email.com" />
                 @if (adoptionForm.get('applicant_email')?.invalid && adoptionForm.get('applicant_email')?.touched) {
                 <small class="error">Email inválido</small>
                 }
               </div>
               <div class="form-field">
-                <label>Teléfono *</label>
-                <input type="tel" pInputText formControlName="applicant_phone" />
+                <label>
+                  <span class="label-icon">📱</span>
+                  Teléfono *
+                </label>
+                <input type="tel" pInputText formControlName="applicant_phone" placeholder="+507 6123-4567" />
                 @if (adoptionForm.get('applicant_phone')?.invalid && adoptionForm.get('applicant_phone')?.touched) {
                 <small class="error">El teléfono es requerido</small>
                 }
               </div>
               <div class="form-field">
-                <label>Cédula</label>
-                <input type="text" pInputText formControlName="applicant_document_id" />
+                <label>
+                  <span class="label-icon">🆔</span>
+                  Cédula
+                </label>
+                <input type="text" pInputText formControlName="applicant_document_id" placeholder="Opcional" />
               </div>
             </div>
           </div>
 
-          <div class="form-section">
-            <h3>Dirección</h3>
+          <!-- Sección 2: Dirección -->
+          <div class="form-section-card">
+            <div class="section-header">
+              <div class="section-icon">📍</div>
+              <h3>Dirección</h3>
+            </div>
             <div class="form-field">
-              <label>Dirección Completa *</label>
+              <label>
+                <span class="label-icon">🏠</span>
+                Dirección Completa *
+              </label>
               <textarea
                 pTextarea
                 formControlName="applicant_address"
                 rows="3"
+                placeholder="Calle, número, barrio, ciudad..."
               ></textarea>
               @if (adoptionForm.get('applicant_address')?.invalid && adoptionForm.get('applicant_address')?.touched) {
               <small class="error">La dirección es requerida</small>
@@ -92,10 +123,17 @@ import { AdoptionApplication } from '../models';
             </div>
           </div>
 
-          <div class="form-section">
-            <h3>Información sobre el Hogar</h3>
+          <!-- Sección 3: Información sobre el Hogar -->
+          <div class="form-section-card">
+            <div class="section-header">
+              <div class="section-icon">🏡</div>
+              <h3>Información sobre el Hogar</h3>
+            </div>
             <div class="form-field">
-              <label>Motivo de Adopción</label>
+              <label>
+                <span class="label-icon">💭</span>
+                Motivo de Adopción
+              </label>
               <textarea
                 pTextarea
                 formControlName="reason_for_adoption"
@@ -104,7 +142,10 @@ import { AdoptionApplication } from '../models';
               ></textarea>
             </div>
             <div class="form-field">
-              <label>Situación de Vivienda</label>
+              <label>
+                <span class="label-icon">🏘️</span>
+                Situación de Vivienda
+              </label>
               <p-dropdown
                 [options]="livingSituationOptions"
                 formControlName="living_situation"
@@ -112,7 +153,10 @@ import { AdoptionApplication } from '../models';
               />
             </div>
             <div class="form-field">
-              <label>Personalidad</label>
+              <label>
+                <span class="label-icon">✨</span>
+                Personalidad Deseada
+              </label>
               <p-multiSelect
                 [options]="personalityOptions"
                 formControlName="personality"
@@ -128,11 +172,17 @@ import { AdoptionApplication } from '../models';
                 binary="true"
                 inputId="has_other_pets"
               />
-              <label for="has_other_pets">¿Tiene otras mascotas?</label>
+              <label for="has_other_pets">
+                <span class="label-icon">🐾</span>
+                ¿Tiene otras mascotas?
+              </label>
             </div>
             @if (adoptionForm.get('has_other_pets')?.value) {
             <div class="form-field">
-              <label>Información sobre otras mascotas</label>
+              <label>
+                <span class="label-icon">📋</span>
+                Información sobre otras mascotas
+              </label>
               <textarea
                 pTextarea
                 formControlName="other_pets_info"
@@ -147,11 +197,17 @@ import { AdoptionApplication } from '../models';
                 binary="true"
                 inputId="has_children"
               />
-              <label for="has_children">¿Tiene niños?</label>
+              <label for="has_children">
+                <span class="label-icon">👶</span>
+                ¿Tiene niños?
+              </label>
             </div>
             @if (adoptionForm.get('has_children')?.value) {
             <div class="form-field">
-              <label>Información sobre los niños</label>
+              <label>
+                <span class="label-icon">📋</span>
+                Información sobre los niños
+              </label>
               <textarea
                 pTextarea
                 formControlName="children_info"
@@ -162,187 +218,380 @@ import { AdoptionApplication } from '../models';
             }
           </div>
 
+          <!-- Botones de Acción -->
           <div class="form-actions">
             <p-button
               label="Cancelar"
               severity="secondary"
+              icon="pi pi-times"
               (onClick)="goBack()"
             />
             <p-button
               label="Enviar Solicitud"
               type="submit"
+              icon="pi pi-send"
               [disabled]="adoptionForm.invalid || isSubmitting()"
               [loading]="isSubmitting()"
               [style]="{
-                background: '#fbbf24',
+                background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
                 border: 'none',
                 color: '#000000',
                 fontWeight: 'bold',
-                padding: '0.75rem 2rem'
+                padding: '0.75rem 2rem',
+                boxShadow: '0 4px 12px rgba(251, 191, 36, 0.4)'
               }"
             />
           </div>
         </form>
         } @else {
         <div class="loading-state">
-          <i class="pi pi-spin pi-spinner" style="font-size: 2rem;"></i>
+          <div class="loading-spinner">
+            <i class="pi pi-spin pi-spinner"></i>
+          </div>
           <p>Cargando información de la mascota...</p>
         </div>
         }
-      </p-card>
+      </div>
     </div>
   `,
   styles: [
     `
       .adoption-form-container {
-        max-width: 800px;
+        max-width: 900px;
         margin: 0 auto;
         padding: 2rem;
-        background: #ffffff;
+        background: linear-gradient(to bottom, #f9fafb 0%, #ffffff 20%);
+        min-height: 100vh;
       }
 
-      .form-header {
-        padding: 1.5rem 2rem;
-        text-align: center;
-        background: #ffffff;
-        border-bottom: 2px solid #e5e7eb;
-      }
-
-      .form-header h1 {
-        color: #000000;
-        font-size: 1.75rem;
-        font-weight: 700;
-        margin-bottom: 0.5rem;
-      }
-
-      .subtitle {
-        color: #6b7280;
-        font-size: 1.125rem;
-        margin: 0;
-      }
-
-      .form-section {
+      /* Hero Header */
+      .form-hero {
+        position: relative;
+        background: linear-gradient(135deg, #000000 0%, #374151 50%, #000000 100%);
+        border-radius: 1.5rem;
+        padding: 3rem 2rem;
         margin-bottom: 2rem;
+        overflow: hidden;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        animation: fadeInDown 0.6s ease-out;
       }
 
-      .form-section h3 {
-        color: #000000;
+      .form-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 400px;
+        height: 400px;
+        background: radial-gradient(circle, rgba(251, 191, 36, 0.15) 0%, transparent 70%);
+        border-radius: 50%;
+        animation: pulse 4s ease-in-out infinite;
+      }
+
+      .form-hero::after {
+        content: '';
+        position: absolute;
+        bottom: -30%;
+        left: -10%;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(251, 191, 36, 0.1) 0%, transparent 70%);
+        border-radius: 50%;
+        animation: pulse 5s ease-in-out infinite;
+      }
+
+      .hero-content {
+        position: relative;
+        z-index: 1;
+        text-align: center;
+      }
+
+      .hero-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        animation: bounce 2s ease-in-out infinite;
+        display: inline-block;
+      }
+
+      .hero-title {
+        color: #fbbf24;
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin: 0 0 1rem 0;
+        text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.3);
+        letter-spacing: 0.05em;
+      }
+
+      .pet-info-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.75rem;
+        background: rgba(251, 191, 36, 0.2);
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(251, 191, 36, 0.4);
+        border-radius: 2rem;
+        padding: 0.75rem 1.5rem;
+        margin-top: 1rem;
+      }
+
+      .pet-emoji {
+        font-size: 1.5rem;
+      }
+
+      .pet-name {
+        color: #fbbf24;
         font-size: 1.25rem;
         font-weight: 600;
-        margin-bottom: 1rem;
-        padding-bottom: 0.5rem;
+      }
+
+      .hero-decoration {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, #fbbf24 0%, #f59e0b 50%, #fbbf24 100%);
+        animation: shimmer 3s linear infinite;
+      }
+
+      /* Form Card */
+      .form-card {
+        background: #ffffff;
+        border-radius: 1.5rem;
+        border: 1px solid #e5e7eb;
+        padding: 2.5rem;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+        animation: fadeInUp 0.6s ease-out 0.2s both;
+      }
+
+      /* Section Cards */
+      .form-section-card {
+        background: linear-gradient(to bottom, #ffffff 0%, #f9fafb 100%);
+        border: 2px solid #e5e7eb;
+        border-radius: 1rem;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .form-section-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background: linear-gradient(to bottom, #fbbf24 0%, #f59e0b 100%);
+        transform: scaleY(0);
+        transition: transform 0.3s ease;
+      }
+
+      .form-section-card:hover {
+        border-color: #fbbf24;
+        box-shadow: 0 8px 24px rgba(251, 191, 36, 0.15);
+        transform: translateY(-2px);
+      }
+
+      .form-section-card:hover::before {
+        transform: scaleY(1);
+      }
+
+      .section-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
         border-bottom: 2px solid #e5e7eb;
+      }
+
+      .section-icon {
+        font-size: 2rem;
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+      }
+
+      .section-header h3 {
+        color: #000000;
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0;
       }
 
       .form-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 1rem;
+        gap: 1.5rem;
       }
 
       .form-field {
         display: flex;
         flex-direction: column;
-        gap: 0.5rem;
-        margin-bottom: 1rem;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
       }
 
       .form-field label {
         color: #000000;
         font-weight: 600;
-        font-size: 0.875rem;
+        font-size: 0.9375rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .label-icon {
+        font-size: 1.125rem;
       }
 
       .checkbox-field {
         flex-direction: row;
         align-items: center;
-        gap: 0.5rem;
+        gap: 0.75rem;
+        padding: 1rem;
+        background: #f9fafb;
+        border-radius: 0.75rem;
+        border: 1px solid #e5e7eb;
+        transition: all 0.3s ease;
+      }
+
+      .checkbox-field:hover {
+        background: #f3f4f6;
+        border-color: #fbbf24;
       }
 
       .checkbox-field label {
         font-weight: 600;
         color: #000000;
         cursor: pointer;
+        margin: 0;
       }
 
       .error {
         color: #ef4444;
-        font-size: 0.75rem;
+        font-size: 0.875rem;
         margin-top: 0.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+      }
+
+      .error::before {
+        content: '⚠️';
+        font-size: 0.875rem;
       }
 
       .form-actions {
         display: flex;
         justify-content: flex-end;
         gap: 1rem;
-        margin-top: 2rem;
-        padding-top: 1.5rem;
-        border-top: 1px solid #e5e7eb;
+        margin-top: 3rem;
+        padding-top: 2rem;
+        border-top: 2px solid #e5e7eb;
       }
 
       .loading-state {
         text-align: center;
-        padding: 3rem;
+        padding: 4rem 2rem;
         color: #6b7280;
       }
 
-      ::ng-deep .p-card {
-        background: #ffffff;
-        border: 1px solid #374151;
-        border-radius: 1rem;
-        box-shadow: 0 4px 12px rgba(55, 65, 81, 0.1);
+      .loading-spinner {
+        font-size: 3rem;
+        color: #fbbf24;
+        margin-bottom: 1rem;
       }
 
-      ::ng-deep .p-card-header {
-        background: #ffffff;
-        border-bottom: 1px solid #e5e7eb;
+      /* Animations */
+      @keyframes fadeInDown {
+        from {
+          opacity: 0;
+          transform: translateY(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
-      ::ng-deep .p-card-body {
-        padding: 2rem;
-        background: #ffffff;
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
-      ::ng-deep .form-actions p-button button {
-        transition: all 0.3s ease !important;
+      @keyframes bounce {
+        0%, 100% {
+          transform: translateY(0);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
       }
 
-      ::ng-deep .form-actions p-button[style*='#fbbf24'] button:hover:not(:disabled),
-      ::ng-deep .form-actions p-button button[style*='#fbbf24']:hover:not(:disabled) {
-        background: #000000 !important;
-        color: #fbbf24 !important;
+      @keyframes pulse {
+        0%, 100% {
+          opacity: 0.3;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.5;
+          transform: scale(1.1);
+        }
       }
 
-      ::ng-deep .form-actions p-button[severity='secondary'] button {
-        background: #e5e7eb !important;
-        border: none !important;
-        color: #374151 !important;
-      }
-
-      ::ng-deep .form-actions p-button[severity='secondary'] button:hover:not(:disabled) {
-        background: #d1d5db !important;
-        color: #000000 !important;
+      @keyframes shimmer {
+        0% {
+          background-position: -200% 0;
+        }
+        100% {
+          background-position: 200% 0;
+        }
       }
 
       /* Estilos para inputs y textareas */
       ::ng-deep .p-inputtext,
       ::ng-deep .p-textarea {
         background: #ffffff;
-        border: 1px solid #d1d5db;
+        border: 2px solid #d1d5db;
         color: #000000;
+        border-radius: 0.5rem;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+      }
+
+      ::ng-deep .p-inputtext:hover,
+      ::ng-deep .p-textarea:hover {
+        border-color: #9ca3af;
       }
 
       ::ng-deep .p-inputtext:enabled:focus,
       ::ng-deep .p-textarea:enabled:focus {
         border-color: #fbbf24;
         box-shadow: 0 0 0 0.2rem rgba(251, 191, 36, 0.2);
+        outline: none;
       }
 
       /* Estilos para dropdowns */
       ::ng-deep .p-dropdown {
         background: #ffffff;
-        border: 1px solid #d1d5db;
+        border: 2px solid #d1d5db;
         color: #000000;
+        border-radius: 0.5rem;
+        transition: all 0.3s ease;
       }
 
       ::ng-deep .p-dropdown:not(.p-disabled):hover {
@@ -357,8 +606,10 @@ import { AdoptionApplication } from '../models';
       /* Estilos para multiselect */
       ::ng-deep .p-multiselect {
         background: #ffffff;
-        border: 1px solid #d1d5db;
+        border: 2px solid #d1d5db;
         color: #000000;
+        border-radius: 0.5rem;
+        transition: all 0.3s ease;
       }
 
       ::ng-deep .p-multiselect:not(.p-disabled):hover {
@@ -374,11 +625,36 @@ import { AdoptionApplication } from '../models';
       ::ng-deep .p-checkbox .p-checkbox-box {
         border: 2px solid #d1d5db;
         background: #ffffff;
+        border-radius: 0.25rem;
+        transition: all 0.3s ease;
       }
 
       ::ng-deep .p-checkbox .p-checkbox-box.p-highlight {
-        background: #fbbf24;
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
         border-color: #fbbf24;
+      }
+
+      /* Estilos para botones */
+      ::ng-deep .form-actions p-button button {
+        transition: all 0.3s ease !important;
+        border-radius: 0.5rem !important;
+      }
+
+      ::ng-deep .form-actions p-button[style*='gradient'] button:hover:not(:disabled) {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 20px rgba(251, 191, 36, 0.5) !important;
+      }
+
+      ::ng-deep .form-actions p-button[severity='secondary'] button {
+        background: #e5e7eb !important;
+        border: none !important;
+        color: #374151 !important;
+      }
+
+      ::ng-deep .form-actions p-button[severity='secondary'] button:hover:not(:disabled) {
+        background: #d1d5db !important;
+        color: #000000 !important;
+        transform: translateY(-2px) !important;
       }
 
       @media (max-width: 768px) {
@@ -386,30 +662,47 @@ import { AdoptionApplication } from '../models';
           padding: 1rem;
         }
 
-        .form-header {
-          padding: 1rem;
+        .form-hero {
+          padding: 2rem 1.5rem;
         }
 
-        .form-header h1 {
-          font-size: 1.5rem;
+        .hero-title {
+          font-size: 1.75rem;
         }
 
-        ::ng-deep .p-card-body {
+        .hero-icon {
+          font-size: 3rem;
+        }
+
+        .form-card {
+          padding: 1.5rem;
+        }
+
+        .form-section-card {
           padding: 1.5rem;
         }
 
         .form-grid {
           grid-template-columns: 1fr;
         }
+
+        .form-actions {
+          flex-direction: column;
+        }
+
+        .form-actions p-button {
+          width: 100%;
+        }
       }
     `,
   ],
 })
-export class AdoptionFormComponent implements OnInit {
+export class AdoptionFormComponent implements OnInit, AfterViewInit {
   private fb = inject(FormBuilder);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private messageService = inject(MessageService);
+  private viewportScroller = inject(ViewportScroller);
   public petsStore = inject(PetsStore);
   public applicationsStore = inject(AdoptionApplicationsStore);
 
@@ -467,6 +760,14 @@ export class AdoptionFormComponent implements OnInit {
         }
       }
     }
+  }
+
+  ngAfterViewInit(): void {
+    // Scroll al inicio cuando se carga el componente
+    setTimeout(() => {
+      this.viewportScroller.scrollToPosition([0, 0]);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 100);
   }
 
   public onSubmit(): void {
