@@ -18,6 +18,7 @@ import {
   endOfMonth,
   format,
   startOfMonth,
+  startOfToday,
 } from 'date-fns';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
@@ -690,6 +691,19 @@ import { EmployeesStore } from '../stores/employees.store';
                   <p class="text-sm text-gray-400 m-0">
                     Solicita tiempo compensatorio por horas extras
                   </p>
+                  @if (totalOvertimeHours() > 0) {
+                    <div class="mt-2 px-3 py-1.5 bg-cyan-500/20 border border-cyan-400/30 rounded-lg">
+                      <p class="text-xs text-cyan-300 m-0 font-semibold">
+                        {{ totalOvertimeHours().toFixed(1) }}h disponibles
+                      </p>
+                    </div>
+                  } @else {
+                    <div class="mt-2 px-3 py-1.5 bg-gray-500/20 border border-gray-400/30 rounded-lg">
+                      <p class="text-xs text-gray-400 m-0">
+                        Sin horas extras
+                      </p>
+                    </div>
+                  }
                 </div>
               </p-card>
             </div>
@@ -1370,6 +1384,179 @@ import { EmployeesStore } from '../stores/employees.store';
         </p-card>
       </div>
       }
+
+      <!-- Tiempo Compensatorio Section -->
+      @if (activeSection() === 'compensatory') {
+      <div id="compensatory" class="section-content">
+        <p-card>
+          <ng-template #title>
+            <div class="flex items-center gap-2">
+              <i class="pi pi-clock text-cyan-400"></i>
+              <span>Solicitar Tiempo Compensatorio</span>
+            </div>
+          </ng-template>
+          <ng-template #subtitle
+            >Solicita tiempo compensatorio basado en tus horas extras trabajadas</ng-template
+          >
+          
+          <!-- Información de horas extras disponibles -->
+          <div class="mb-6">
+            <div class="bg-gradient-to-r from-cyan-500/20 to-cyan-600/10 border border-cyan-400/30 rounded-lg p-4">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm text-gray-400 mb-1">Horas Extras Disponibles</p>
+                  <p class="text-2xl font-bold text-cyan-300">
+                    {{ totalOvertimeHours().toFixed(1) }}h
+                  </p>
+                </div>
+                <div class="w-16 h-16 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                  <i class="pi pi-clock text-cyan-400 text-2xl"></i>
+                </div>
+              </div>
+              @if (totalOvertimeHours() === 0) {
+                <p class="text-xs text-gray-400 mt-2">
+                  No tienes horas extras acumuladas. Las horas extras se generan cuando trabajas más de 9 horas en un día.
+                </p>
+              }
+            </div>
+          </div>
+
+          @if (totalOvertimeHours() > 0) {
+          <div class="flex flex-col gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm text-gray-400 mb-2"
+                  >Fecha de Inicio</label
+                >
+                <p-datepicker
+                  [(ngModel)]="compensatoryStartDate"
+                  appendTo="body"
+                  class="w-full"
+                  [minDate]="today"
+                />
+              </div>
+              <div>
+                <label class="block text-sm text-gray-400 mb-2"
+                  >Fecha de Fin</label
+                >
+                <p-datepicker
+                  [(ngModel)]="compensatoryEndDate"
+                  appendTo="body"
+                  class="w-full"
+                  [minDate]="compensatoryStartDate() || today"
+                />
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm text-gray-400 mb-2"
+                >Horas a Solicitar</label
+              >
+              <input
+                type="number"
+                pInputText
+                [(ngModel)]="compensatoryHours"
+                [max]="totalOvertimeHours()"
+                [min]="0.5"
+                step="0.5"
+                placeholder="Ej: 4.0"
+                class="w-full"
+              />
+              <p class="text-xs text-gray-500 mt-1">
+                Máximo disponible: {{ totalOvertimeHours().toFixed(1) }}h
+              </p>
+            </div>
+            <div>
+              <label class="block text-sm text-gray-400 mb-2"
+                >Motivo (opcional)</label
+              >
+              <textarea
+                pInputTextarea
+                [(ngModel)]="compensatoryReason"
+                rows="3"
+                placeholder="Describe el motivo de la solicitud..."
+                class="w-full"
+              ></textarea>
+            </div>
+            <div class="flex justify-end">
+              <p-button
+                label="Solicitar Tiempo Compensatorio"
+                icon="pi pi-send"
+                [loading]="submittingCompensatory()"
+                [disabled]="!canSubmitCompensatory() || submittingCompensatory()"
+                (click)="submitCompensatoryRequest()"
+              />
+            </div>
+          </div>
+          } @else {
+          <div class="text-center py-8">
+            <i class="pi pi-info-circle text-gray-400 text-4xl mb-4"></i>
+            <p class="text-gray-400">
+              No tienes horas extras disponibles para solicitar tiempo compensatorio.
+            </p>
+          </div>
+          }
+
+          <!-- Lista de solicitudes de tiempo compensatorio -->
+          <div class="mt-6">
+            <h3 class="text-lg font-semibold text-white mb-4">
+              Mis Solicitudes de Tiempo Compensatorio
+            </h3>
+            <div class="overflow-x-auto">
+              <p-table
+                [value]="myCompensatoryRequests()"
+                [rows]="10"
+                paginator
+                [loading]="compensatoryTimeoffsApi.isLoading()"
+                styleClass="p-datatable-sm md:p-datatable-lg"
+                [scrollable]="true"
+                scrollHeight="400px"
+                [responsiveLayout]="'scroll'"
+              >
+                <ng-template #header>
+                  <tr>
+                    <th>Fecha de Solicitud</th>
+                    <th>Desde</th>
+                    <th>Hasta</th>
+                    <th>Horas</th>
+                    <th>Estado</th>
+                  </tr>
+                </ng-template>
+                <ng-template #body let-request>
+                  <tr>
+                    <td>{{ request.created_at | date : 'mediumDate' }}</td>
+                    <td>{{ request.date_from | date : 'mediumDate' }}</td>
+                    <td>{{ request.date_to | date : 'mediumDate' }}</td>
+                    <td>
+                      @if (request.hours) {
+                        {{ request.hours }}h
+                      } @else {
+                        {{ calculateDays(request.date_from, request.date_to) * 8 }}h
+                      }
+                    </td>
+                    <td>
+                      <span
+                        class="px-2 py-1 rounded text-xs font-semibold"
+                        [class.bg-yellow-500]="request.is_approved === false && !request.rejection_comment"
+                        [class.bg-green-500]="request.is_approved === true"
+                        [class.bg-red-500]="request.rejection_comment"
+                      >
+                        {{
+                          request.is_approved === true
+                            ? 'Aprobado'
+                            : request.rejection_comment
+                            ? 'Rechazado'
+                            : 'Pendiente'
+                        }}
+                      </span>
+                    </td>
+                  </tr>
+                </ng-template>
+              </p-table>
+            </div>
+          </div>
+        </p-card>
+      </div>
+      }
     </div>
 
     <!-- Dialog para conversación bidireccional -->
@@ -1776,7 +1963,7 @@ export class EmployeePortalComponent {
   ]);
 
   // Calendar month for timelogs calendar view
-  public calendarMonth = signal<Date>(new Date());
+  public calendarMonth = signal<Date>(startOfToday());
 
   // Timelogs API
   public timelogsApi = httpResource<any[]>(() => {
@@ -2238,18 +2425,65 @@ export class EmployeePortalComponent {
 
   // Dashboard computed properties
   public daysWorkedThisMonth = computed(() => {
-    const logs = this.myTimelogs();
+    // Usar monthTimelogs que ya está filtrado por el mes actual del calendario
+    const logs = this.monthTimelogs();
     const now = new Date();
     const monthStart = startOfMonth(now);
     const monthEnd = endOfMonth(now);
 
     // Contar días que tienen al menos una marcación (entry, lunch_start, lunch_end, o exit)
+    // monthTimelogs ya está filtrado por el mes, pero verificamos por si acaso
     return logs.filter((log) => {
       const logDate = new Date(log.day);
       const isInMonth = logDate >= monthStart && logDate <= monthEnd;
       const hasAnyMark = log.entry || log.lunch_start || log.lunch_end || log.exit;
       return isInMonth && hasAnyMark;
     }).length;
+  });
+
+  // Calcular horas extras totales usando la misma lógica que timelogs.component.ts
+  public totalOvertimeHours = computed(() => {
+    const logs = this.monthTimelogs();
+    let totalOvertimeMinutes = 0;
+
+    logs.forEach((log) => {
+      if (!log.entry || !log.exit) return;
+
+      const entryDate = new Date(log.entry.date);
+      const exitDate = new Date(log.exit.date);
+
+      if (isNaN(entryDate.getTime()) || isNaN(exitDate.getTime())) return;
+
+      // Calcular tiempo total desde entrada hasta salida
+      const totalMinutes = differenceInMinutes(exitDate, entryDate);
+
+      // Calcular tiempo de almuerzo si existe
+      const lunchTime =
+        log.lunch_start && log.lunch_end
+          ? differenceInMinutes(
+              new Date(log.lunch_end.date),
+              new Date(log.lunch_start.date)
+            )
+          : 0;
+
+      // Calcular horas extras: más de 9 horas totales (8 horas de trabajo + 1 hora de almuerzo)
+      // 9 horas = 540 minutos
+      const requiredTotalMinutes = 540;
+      const overtimeByTotalTime =
+        totalMinutes > requiredTotalMinutes
+          ? totalMinutes - requiredTotalMinutes
+          : 0;
+
+      // Calcular minutos excedidos del almuerzo (más de 60 minutos)
+      const lunchExceededMinutes = lunchTime > 60 ? lunchTime - 60 : 0;
+
+      // Sumar horas extras por tiempo total + minutos excedidos de almuerzo
+      const dayOvertimeMinutes = overtimeByTotalTime + lunchExceededMinutes;
+      totalOvertimeMinutes += dayOvertimeMinutes;
+    });
+
+    // Convertir minutos a horas
+    return totalOvertimeMinutes / 60;
   });
 
   public recentTimelogs = computed(() => {
@@ -2339,6 +2573,145 @@ export class EmployeePortalComponent {
       method: 'GET',
     };
   });
+
+  // Signals para formulario de tiempo compensatorio
+  public compensatoryStartDate = signal<Date | null>(null);
+  public compensatoryEndDate = signal<Date | null>(null);
+  public compensatoryHours = signal<number>(0);
+  public compensatoryReason = signal('');
+  public submittingCompensatory = signal(false);
+
+  // Propiedad para obtener la fecha actual (para usar en templates)
+  public get today(): Date {
+    return new Date();
+  }
+
+  // API para obtener todas las solicitudes de tiempo compensatorio (no solo aprobadas)
+  public compensatoryTimeoffsApi = httpResource<any[]>(() => {
+    if (!this.currentEmployee()?.id) return undefined;
+    const companyId = this.organizationService.getCurrentCompanyId();
+    
+    if (!companyId) {
+      return undefined;
+    }
+    
+    // ID del tipo de timeoff "Compensatorio"
+    const compensatoryTypeId = 'f2d92995-96a0-414f-b64a-9823db776745';
+    
+    const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`;
+    const select = `*,type:timeoff_types(id,name),employee:employees(id,company_id)`;
+    
+    let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
+    url += `&employee_id=eq.${this.currentEmployee()!.id}`;
+    url += `&type_id=eq.${compensatoryTypeId}`;
+    // Filtrar a través de employee.company_id
+    url += `&employee.company_id=eq.${companyId}`;
+    url += `&order=date_from.desc`;
+    
+    return {
+      url,
+      method: 'GET',
+    };
+  });
+
+  // Computed: Todas las solicitudes de tiempo compensatorio
+  public myCompensatoryRequests = computed(() => {
+    return this.compensatoryTimeoffsApi.value() ?? [];
+  });
+
+  // Validar si se puede enviar la solicitud
+  public canSubmitCompensatory = computed(() => {
+    const startDate = this.compensatoryStartDate();
+    const endDate = this.compensatoryEndDate();
+    const hours = this.compensatoryHours();
+    const availableHours = this.totalOvertimeHours();
+    
+    return (
+      startDate !== null &&
+      endDate !== null &&
+      hours > 0 &&
+      hours <= availableHours &&
+      endDate >= startDate
+    );
+  });
+
+  // Función para enviar solicitud de tiempo compensatorio
+  public async submitCompensatoryRequest(): Promise<void> {
+    if (!this.canSubmitCompensatory()) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Campos Requeridos',
+        detail: 'Por favor completa todos los campos correctamente',
+      });
+      return;
+    }
+
+    const requestedHours = this.compensatoryHours();
+    const availableHours = this.totalOvertimeHours();
+
+    if (requestedHours > availableHours) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Horas Insuficientes',
+        detail: `Solo tienes ${availableHours.toFixed(1)}h disponibles`,
+      });
+      return;
+    }
+
+    this.submittingCompensatory.set(true);
+
+    // ID del tipo de timeoff "Compensatorio"
+    const compensatoryTypeId = 'f2d92995-96a0-414f-b64a-9823db776745';
+
+    const timeoffData = {
+      employee_id: this.currentEmployee()!.id,
+      type_id: compensatoryTypeId,
+      date_from: format(this.compensatoryStartDate()!, 'yyyy-MM-dd'),
+      date_to: format(this.compensatoryEndDate()!, 'yyyy-MM-dd'),
+      hours: requestedHours,
+      reason: this.compensatoryReason() || null,
+      is_approved: false,
+    };
+
+    try {
+      await this.http
+        .post(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`,
+          timeoffData,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Prefer: 'return=representation',
+            },
+          }
+        )
+        .toPromise();
+
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Solicitud Enviada',
+        detail: 'Tu solicitud de tiempo compensatorio ha sido enviada correctamente',
+      });
+
+      // Reset form
+      this.compensatoryStartDate.set(null);
+      this.compensatoryEndDate.set(null);
+      this.compensatoryHours.set(0);
+      this.compensatoryReason.set('');
+      this.compensatoryTimeoffsApi.reload();
+    } catch (error: any) {
+      console.error('Error submitting compensatory request:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail:
+          error.error?.message ||
+          'No se pudo enviar la solicitud. Por favor intenta de nuevo.',
+      });
+    } finally {
+      this.submittingCompensatory.set(false);
+    }
+  }
 
   // Horas de compensatorio aprobadas
   public approvedCompensatoryHours = computed(() => {
