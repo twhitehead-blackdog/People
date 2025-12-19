@@ -2901,7 +2901,8 @@ export class EmployeePortalComponent {
             }
             if (
               this.timeoffsApi &&
-              typeof this.timeoffsApi.reload === 'function'
+              typeof this.timeoffsApi.reload === 'function' &&
+              this.timeoffsApi.status() !== 'error'
             ) {
               this.timeoffsApi.reload();
             }
@@ -3040,7 +3041,8 @@ export class EmployeePortalComponent {
             }
             if (
               this.timeoffsApi &&
-              typeof this.timeoffsApi.reload === 'function'
+              typeof this.timeoffsApi.reload === 'function' &&
+              this.timeoffsApi.status() !== 'error'
             ) {
               this.timeoffsApi.reload();
             }
@@ -3982,44 +3984,59 @@ export class EmployeePortalComponent {
   });
 
   // Timeoffs API para compensatorios
-  public timeoffsApi = httpResource<any[]>(() => {
-    if (!this.currentEmployee()?.id) return undefined;
-    const companyId = this.organizationService.getCurrentCompanyId();
+  public timeoffsApi = httpResource<any[]>(
+    () => {
+      if (!this.currentEmployee()?.id) return undefined;
+      const companyId = this.organizationService.getCurrentCompanyId();
 
-    if (!companyId) {
-      return undefined;
+      if (!companyId) {
+        return undefined;
+      }
+
+      // ID del tipo de timeoff "Compensatorio"
+      const compensatoryTypeId = 'f2d92995-96a0-414f-b64a-9823db776745';
+
+      const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`;
+      // La tabla timeoffs tiene múltiples relaciones con employees (employee_id, reviewed_by, registered_by)
+      // No necesitamos incluir la relación employee porque:
+      // 1. approvedCompensatoryHours solo usa date_from y date_to (campos directos de timeoffs)
+      // 2. Ya filtramos por employee_id directamente, que garantiza que pertenece al empleado correcto
+      // 3. El empleado ya está filtrado por company_id a través de currentEmployee()
+      // Esto evita el error HTTP 300 cuando hay múltiples relaciones
+      // Solo necesitamos los campos directos de timeoffs y el tipo
+      // NO incluimos employee:employees para evitar error HTTP 300 con múltiples relaciones
+      // IMPORTANTE: No filtramos por employee.company_id porque employee es un alias embebido
+      // y eso causa ambigüedad cuando hay múltiples relaciones → HTTP 300
+      const select = `*,type:timeoff_types(id,name)`;
+
+      let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
+      url += `&employee_id=eq.${this.currentEmployee()!.id}`;
+      url += `&type_id=eq.${compensatoryTypeId}`;
+      url += `&is_approved=eq.true`;
+      // No necesitamos filtrar por company_id porque employee_id ya garantiza que pertenece al empleado correcto
+      // y el empleado ya está filtrado por company_id a través de currentEmployee()
+      url += `&order=date_from.desc`;
+
+      return {
+        url,
+        method: 'GET',
+      };
+    },
+    {
+      // CRÍTICO: defaultValue evita que el resource lance error si falla la primera carga
+      // Si el resource entra en estado de error, cualquier recomputación del signal vuelve a lanzar el error (loop infinito)
+      // Por eso protegemos los reload() para que no se ejecuten si status === 'error'
+      defaultValue: [],
     }
-
-    // ID del tipo de timeoff "Compensatorio"
-    const compensatoryTypeId = 'f2d92995-96a0-414f-b64a-9823db776745';
-
-    const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`;
-    // La tabla timeoffs tiene múltiples relaciones con employees (employee_id, reviewed_by, registered_by)
-    // No necesitamos incluir la relación employee porque:
-    // 1. approvedCompensatoryHours solo usa date_from y date_to (campos directos de timeoffs)
-    // 2. Ya filtramos por employee_id directamente, que garantiza que pertenece al empleado correcto
-    // 3. El empleado ya está filtrado por company_id a través de currentEmployee()
-    // Esto evita el error HTTP 300 cuando hay múltiples relaciones
-    // Solo necesitamos los campos directos de timeoffs y el tipo
-    // NO incluimos employee:employees para evitar error HTTP 300 con múltiples relaciones
-    const select = `*,type:timeoff_types(id,name)`;
-
-    let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
-    url += `&employee_id=eq.${this.currentEmployee()!.id}`;
-    url += `&type_id=eq.${compensatoryTypeId}`;
-    url += `&is_approved=eq.true`;
-    // No necesitamos filtrar por company_id porque employee_id ya garantiza que pertenece al empleado correcto
-    // y el empleado ya está filtrado por company_id a través de currentEmployee()
-    url += `&order=date_from.desc`;
-
-    return {
-      url,
-      method: 'GET',
-    };
-  });
+  );
 
   // Horas de compensatorio aprobadas
   public approvedCompensatoryHours = computed(() => {
+    // CRÍTICO: Si el resource está en estado de error, retornar 0 en lugar de intentar acceder a value()
+    // Esto evita que el computed lance el error y entre en loop infinito
+    if (this.timeoffsApi.status() === 'error') {
+      return 0;
+    }
     const timeoffs = this.timeoffsApi.value() ?? [];
 
     // Validar que timeoffs sea un array válido
