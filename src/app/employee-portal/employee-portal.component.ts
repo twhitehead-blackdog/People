@@ -1406,10 +1406,9 @@ import { EmployeesStore } from '../stores/employees.store';
             >Solicita tiempo compensatorio basado en tus horas extras trabajadas</ng-template
           >
           
-          <!-- Información de horas extras disponibles (solo para HR/Admin) -->
-          @if (isHRorAdmin()) {
+          <!-- Información de horas extras disponibles -->
           <div class="mb-6">
-            <div class="bg-gradient-to-r from-cyan-500/20 to-cyan-600/10 border border-cyan-400/30 rounded-lg p-4">
+            <div class="bg-gradient-to-r from-cyan-500/20 to-cyan-600/10 border border-cyan-400/30 rounded-lg p-4 shadow-lg">
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-sm text-gray-400 mb-1">Horas Extras Disponibles</p>
@@ -1428,66 +1427,154 @@ import { EmployeesStore } from '../stores/employees.store';
               }
             </div>
           </div>
-          }
 
-          <div class="flex flex-col gap-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm text-gray-400 mb-2"
-                  >Fecha de Inicio de Compensatorio</label
-                >
-                <p-datepicker
-                  [(ngModel)]="compensatoryStartDate"
-                  appendTo="body"
-                  class="w-full"
-                  [minDate]="today"
-                />
+          <!-- Paso 1: Selección de Tipo -->
+          <div class="mb-6 p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                <i class="pi pi-list text-cyan-400"></i>
               </div>
-              <div>
-                <label class="block text-sm text-gray-400 mb-2"
-                  >Fecha de Fin de Compensatorio</label
-                >
-                <p-datepicker
-                  [(ngModel)]="compensatoryEndDate"
-                  appendTo="body"
-                  class="w-full"
-                  [minDate]="compensatoryStartDate() || today"
-                />
-              </div>
+              <h3 class="text-lg font-semibold text-white m-0">Paso 1: Selecciona el Tipo</h3>
             </div>
-            <div>
-              <label class="block text-sm text-gray-400 mb-2"
-                >Tipo</label
+            <div class="flex gap-6">
+              <div 
+                class="flex-1 p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-lg"
+                [class.border-cyan-400]="compensatoryType() === 'hours'"
+                [class.bg-cyan-500/10]="compensatoryType() === 'hours'"
+                [class.border-neutral-600]="compensatoryType() !== 'hours'"
+                [class.bg-neutral-700/30]="compensatoryType() !== 'hours'"
+                (click)="compensatoryType.set('hours')"
               >
-              <div class="flex gap-4">
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-3">
                   <input
                     type="radio"
                     id="compensatory-hours"
                     name="compensatory-type"
                     [value]="'hours'"
                     [(ngModel)]="compensatoryType"
-                    class="w-4 h-4"
+                    class="w-5 h-5 text-cyan-400"
                   />
-                  <label for="compensatory-hours" class="text-sm text-gray-300 cursor-pointer">Horas</label>
+                  <label for="compensatory-hours" class="text-base font-medium text-gray-300 cursor-pointer flex-1">
+                    <div class="flex items-center gap-2">
+                      <i class="pi pi-clock text-cyan-400"></i>
+                      <span>Horas</span>
+                    </div>
+                  </label>
                 </div>
-                <div class="flex items-center gap-2">
+                <p class="text-xs text-gray-400 mt-2 ml-8">Solicita compensatorio por horas específicas</p>
+              </div>
+              <div 
+                class="flex-1 p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-lg"
+                [class.border-cyan-400]="compensatoryType() === 'days'"
+                [class.bg-cyan-500/10]="compensatoryType() === 'days'"
+                [class.border-neutral-600]="compensatoryType() !== 'days'"
+                [class.bg-neutral-700/30]="compensatoryType() !== 'days'"
+                (click)="compensatoryType.set('days')"
+              >
+                <div class="flex items-center gap-3">
                   <input
                     type="radio"
                     id="compensatory-days"
                     name="compensatory-type"
                     [value]="'days'"
                     [(ngModel)]="compensatoryType"
-                    class="w-4 h-4"
+                    class="w-5 h-5 text-cyan-400"
                   />
-                  <label for="compensatory-days" class="text-sm text-gray-300 cursor-pointer">Días</label>
+                  <label for="compensatory-days" class="text-base font-medium text-gray-300 cursor-pointer flex-1">
+                    <div class="flex items-center gap-2">
+                      <i class="pi pi-calendar text-cyan-400"></i>
+                      <span>Días</span>
+                    </div>
+                  </label>
                 </div>
+                <p class="text-xs text-gray-400 mt-2 ml-8">Solicita compensatorio por días completos</p>
               </div>
             </div>
+          </div>
+
+          <!-- Paso 2: Fechas Condicionales -->
+          <div class="mb-6 p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                <i class="pi pi-calendar text-cyan-400"></i>
+              </div>
+              <h3 class="text-lg font-semibold text-white m-0">Paso 2: Fecha del Compensatorio</h3>
+            </div>
+            
+            @if (compensatoryType() === 'hours') {
+              <!-- Si es Horas: Fecha + Hora -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm text-gray-400 mb-2 font-medium">
+                    <i class="pi pi-calendar mr-2"></i>Fecha
+                  </label>
+                  <p-datepicker
+                    [(ngModel)]="compensatoryDate"
+                    appendTo="body"
+                    class="w-full"
+                    [minDate]="today"
+                    placeholder="Selecciona la fecha"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm text-gray-400 mb-2 font-medium">
+                    <i class="pi pi-clock mr-2"></i>Hora
+                  </label>
+                  <p-datepicker
+                    [(ngModel)]="compensatoryTime"
+                    appendTo="body"
+                    class="w-full"
+                    timeOnly
+                    hourFormat="12"
+                    placeholder="Selecciona la hora"
+                  />
+                </div>
+              </div>
+            } @else {
+              <!-- Si es Días: Fecha Inicio + Fecha Fin -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm text-gray-400 mb-2 font-medium">
+                    <i class="pi pi-calendar-plus mr-2"></i>Fecha de Inicio
+                  </label>
+                  <p-datepicker
+                    [(ngModel)]="compensatoryStartDate"
+                    appendTo="body"
+                    class="w-full"
+                    [minDate]="today"
+                    placeholder="Selecciona fecha inicio"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm text-gray-400 mb-2 font-medium">
+                    <i class="pi pi-calendar-minus mr-2"></i>Fecha de Fin
+                  </label>
+                  <p-datepicker
+                    [(ngModel)]="compensatoryEndDate"
+                    appendTo="body"
+                    class="w-full"
+                    [minDate]="compensatoryStartDate() || today"
+                    placeholder="Selecciona fecha fin"
+                  />
+                </div>
+              </div>
+            }
+          </div>
+
+          <!-- Paso 3: Cantidad -->
+          <div class="mb-6 p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                <i class="pi pi-hashtag text-cyan-400"></i>
+              </div>
+              <h3 class="text-lg font-semibold text-white m-0">
+                Paso 3: Cantidad de {{ compensatoryType() === 'hours' ? 'Horas' : 'Días' }}
+              </h3>
+            </div>
             <div>
-              <label class="block text-sm text-gray-400 mb-2"
-                >{{ compensatoryType() === 'hours' ? 'Horas' : 'Días' }} a Solicitar</label
-              >
+              <label class="block text-sm text-gray-400 mb-2 font-medium">
+                {{ compensatoryType() === 'hours' ? 'Horas' : 'Días' }} a Solicitar
+              </label>
               <input
                 type="number"
                 pInputText
@@ -1496,35 +1583,119 @@ import { EmployeesStore } from '../stores/employees.store';
                 [min]="compensatoryType() === 'hours' ? 0.5 : 1"
                 [step]="compensatoryType() === 'hours' ? 0.5 : 1"
                 [placeholder]="compensatoryType() === 'hours' ? 'Ej: 4.0' : 'Ej: 1'"
-                class="w-full"
+                class="w-full text-lg"
               />
-              @if (compensatoryType() === 'hours' && isHRorAdmin()) {
-                <p class="text-xs text-gray-500 mt-1">
-                  Máximo disponible: {{ totalOvertimeHours().toFixed(1) }}h
+              @if (compensatoryType() === 'hours') {
+                <div class="mt-2 p-3 rounded bg-cyan-500/10 border border-cyan-400/30">
+                  <p class="text-xs text-gray-300 mb-1">
+                    <i class="pi pi-info-circle mr-1"></i>
+                    Máximo disponible: <span class="font-bold text-cyan-300">{{ totalOvertimeHours().toFixed(1) }}h</span>
+                  </p>
+                  @if (totalSelectedOvertimeHours() > 0) {
+                    <p class="text-xs text-gray-300">
+                      Horas de días seleccionados: <span class="font-bold text-cyan-300">{{ totalSelectedOvertimeHours().toFixed(1) }}h</span>
+                    </p>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+
+          <!-- Paso 4: Días trabajados (solo si es tipo horas) -->
+          @if (compensatoryType() === 'hours' && availableOvertimeDays().length > 0) {
+            <div class="mb-6 p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
+              <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                  <i class="pi pi-calendar-check text-cyan-400"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-white m-0">Paso 4: Selecciona los Días donde Trabajaste de Más</h3>
+              </div>
+              <p class="text-sm text-gray-400 mb-4">
+                Selecciona los días donde trabajaste horas extras para que HR pueda verificar
+              </p>
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-96 overflow-y-auto p-2">
+                @for (dayData of availableOvertimeDays(); track dayData.day) {
+                  <div 
+                    class="p-3 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-md"
+                    [class.border-cyan-400]="isDaySelected(dayData.day)"
+                    [class.bg-cyan-500/20]="isDaySelected(dayData.day)"
+                    [class.border-neutral-600]="!isDaySelected(dayData.day)"
+                    [class.bg-neutral-700/30]="!isDaySelected(dayData.day)"
+                    (click)="toggleOvertimeDay(dayData.day)"
+                  >
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          [checked]="isDaySelected(dayData.day)"
+                          (change)="toggleOvertimeDay(dayData.day)"
+                          class="w-4 h-4 text-cyan-400"
+                        />
+                        <div>
+                          <p class="text-sm font-medium text-white m-0">
+                            {{ dayData.date | date : 'fullDate' }}
+                          </p>
+                          <p class="text-xs text-gray-400 m-0">
+                            {{ dayData.hours.toFixed(1) }}h extras
+                          </p>
+                        </div>
+                      </div>
+                      @if (isDaySelected(dayData.day)) {
+                        <i class="pi pi-check-circle text-cyan-400 text-lg"></i>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+              @if (selectedOvertimeDays().size === 0) {
+                <p class="text-xs text-amber-400 mt-3">
+                  <i class="pi pi-exclamation-triangle mr-1"></i>
+                  Selecciona al menos un día trabajado
                 </p>
               }
             </div>
-            <div>
-              <label class="block text-sm text-gray-400 mb-2"
-                >Motivo (opcional)</label
-              >
-              <textarea
-                pInputTextarea
-                [(ngModel)]="compensatoryReason"
-                rows="3"
-                placeholder="Describe el motivo de la solicitud..."
-                class="w-full"
-              ></textarea>
+          }
+
+          <!-- Paso 5: Motivo (opcional) -->
+          <div class="mb-6 p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                <i class="pi pi-comment text-cyan-400"></i>
+              </div>
+              <h3 class="text-lg font-semibold text-white m-0">Paso 5: Motivo (Opcional)</h3>
             </div>
-            <div class="flex justify-end">
-              <p-button
-                label="Solicitar Tiempo Compensatorio"
-                icon="pi pi-send"
-                [loading]="submittingCompensatory()"
-                [disabled]="!canSubmitCompensatory() || submittingCompensatory()"
-                (click)="submitCompensatoryRequest()"
-              />
-            </div>
+            <textarea
+              pInputTextarea
+              [(ngModel)]="compensatoryReason"
+              rows="3"
+              placeholder="Describe el motivo de la solicitud..."
+              class="w-full"
+            ></textarea>
+          </div>
+
+          <!-- Resumen y Botón de Envío -->
+          <div class="flex flex-col md:flex-row items-center justify-between gap-4 p-5 rounded-lg bg-gradient-to-r from-cyan-500/10 to-cyan-600/5 border border-cyan-400/30 shadow-lg">
+            @if (compensatoryAmount() > 0) {
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                  <i class="pi pi-check-circle text-cyan-400 text-xl"></i>
+                </div>
+                <div>
+                  <p class="text-sm text-gray-400 m-0">Total a Solicitar</p>
+                  <p class="text-xl font-bold text-cyan-300 m-0">
+                    {{ compensatoryAmount() }} {{ compensatoryType() === 'hours' ? 'hora(s)' : 'día(s)' }}
+                  </p>
+                </div>
+              </div>
+            }
+            <p-button
+              label="Solicitar Tiempo Compensatorio"
+              icon="pi pi-send"
+              [loading]="submittingCompensatory()"
+              [disabled]="!canSubmitCompensatory() || submittingCompensatory()"
+              (click)="submitCompensatoryRequest()"
+              class="ml-auto"
+            />
           </div>
           
           <div class="mt-6 flex justify-end">
@@ -2636,6 +2807,45 @@ export class EmployeePortalComponent {
     }).length;
   });
 
+  // Método para calcular horas extras de un día específico
+  public calculateDayOvertimeHours(log: any): number {
+    if (!log.entry || !log.exit) return 0;
+
+    const entryDate = new Date(log.entry.date);
+    const exitDate = new Date(log.exit.date);
+
+    if (isNaN(entryDate.getTime()) || isNaN(exitDate.getTime())) return 0;
+
+    // Calcular tiempo total desde entrada hasta salida
+    const totalMinutes = differenceInMinutes(exitDate, entryDate);
+
+    // Calcular tiempo de almuerzo si existe
+    const lunchTime =
+      log.lunch_start && log.lunch_end
+        ? differenceInMinutes(
+            new Date(log.lunch_end.date),
+            new Date(log.lunch_start.date)
+          )
+        : 0;
+
+    // Calcular horas extras: más de 9 horas totales (8 horas de trabajo + 1 hora de almuerzo)
+    // 9 horas = 540 minutos
+    const requiredTotalMinutes = 540;
+    const overtimeByTotalTime =
+      totalMinutes > requiredTotalMinutes
+        ? totalMinutes - requiredTotalMinutes
+        : 0;
+
+    // Calcular minutos excedidos del almuerzo (más de 60 minutos)
+    const lunchExceededMinutes = lunchTime > 60 ? lunchTime - 60 : 0;
+
+    // Sumar horas extras por tiempo total + minutos excedidos de almuerzo
+    const dayOvertimeMinutes = overtimeByTotalTime + lunchExceededMinutes;
+
+    // Convertir minutos a horas
+    return dayOvertimeMinutes / 60;
+  }
+
   // Calcular horas extras totales usando la misma lógica que timelogs.component.ts
   public totalOvertimeHours = computed(() => {
     const logs = this.monthTimelogs();
@@ -2679,6 +2889,46 @@ export class EmployeePortalComponent {
 
     // Convertir minutos a horas
     return totalOvertimeMinutes / 60;
+  });
+
+  // Computed: Días disponibles con horas extras
+  public availableOvertimeDays = computed(() => {
+    const logs = this.monthTimelogs();
+    const daysWithOvertime: Array<{ date: Date; day: string; hours: number }> =
+      [];
+
+    logs.forEach((log) => {
+      if (!log.entry || !log.exit) return;
+
+      // Calcular horas extras del día
+      const overtimeHours = this.calculateDayOvertimeHours(log);
+
+      if (overtimeHours > 0) {
+        daysWithOvertime.push({
+          date: new Date(log.day),
+          day: log.day,
+          hours: overtimeHours,
+        });
+      }
+    });
+
+    return daysWithOvertime.sort((a, b) => b.date.getTime() - a.date.getTime());
+  });
+
+  // Computed: Total de horas extras de días seleccionados
+  public totalSelectedOvertimeHours = computed(() => {
+    const selectedDays = this.selectedOvertimeDays();
+    const availableDays = this.availableOvertimeDays();
+
+    let total = 0;
+    selectedDays.forEach((day) => {
+      const dayData = availableDays.find((d) => d.day === day);
+      if (dayData) {
+        total += dayData.hours;
+      }
+    });
+
+    return total;
   });
 
   public recentTimelogs = computed(() => {
@@ -2741,44 +2991,47 @@ export class EmployeePortalComponent {
   });
 
   // Timeoffs API para compensatorios
-  public timeoffsApi = httpResource<any[]>(() => {
-    if (!this.currentEmployee()?.id) return undefined;
-    const companyId = this.organizationService.getCurrentCompanyId();
+  public timeoffsApi = httpResource<any[]>(
+    () => {
+      if (!this.currentEmployee()?.id) return undefined;
+      const companyId = this.organizationService.getCurrentCompanyId();
 
-    if (!companyId) {
-      return undefined;
+      if (!companyId) {
+        return undefined;
+      }
+
+      // ID del tipo de timeoff "Compensatorio"
+      const compensatoryTypeId = 'f2d92995-96a0-414f-b64a-9823db776745';
+
+      const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`;
+      // La tabla timeoffs tiene múltiples relaciones con employees (employee_id, reviewed_by, registered_by)
+      // No necesitamos incluir la relación employee porque:
+      // 1. approvedCompensatoryHours solo usa date_from y date_to (campos directos de timeoffs)
+      // 2. Ya filtramos por employee_id directamente, que garantiza que pertenece al empleado correcto
+      // 3. El empleado ya está filtrado por company_id a través de currentEmployee()
+      // Esto evita el error HTTP 300 cuando hay múltiples relaciones
+      const select = `*,type:timeoff_types(id,name)`;
+
+      let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
+      url += `&employee_id=eq.${this.currentEmployee()!.id}`;
+      url += `&type_id=eq.${compensatoryTypeId}`;
+      url += `&is_approved=eq.true`;
+      // No necesitamos filtrar por company_id porque employee_id ya garantiza que pertenece al empleado correcto
+      // y el empleado ya está filtrado por company_id a través de currentEmployee()
+      url += `&order=date_from.desc`;
+
+      return {
+        url,
+        method: 'GET',
+      };
+    },
+    {
+      // CRÍTICO: defaultValue evita que el resource lance error si falla la primera carga
+      // Si el resource entra en estado de error, cualquier recomputación del signal vuelve a lanzar el error (loop infinito)
+      // Por eso protegemos los reload() para que no se ejecuten si status === 'error'
+      defaultValue: [],
     }
-
-    // ID del tipo de timeoff "Compensatorio"
-    const compensatoryTypeId = 'f2d92995-96a0-414f-b64a-9823db776745';
-
-    const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`;
-    // La tabla timeoffs tiene múltiples relaciones con employees (employee_id, reviewed_by, registered_by)
-    // No necesitamos incluir la relación employee porque:
-    // 1. approvedCompensatoryHours solo usa date_from y date_to (campos directos de timeoffs)
-    // 2. Ya filtramos por employee_id directamente, que garantiza que pertenece al empleado correcto
-    // 3. El empleado ya está filtrado por company_id a través de currentEmployee()
-    // Esto evita el error HTTP 300 cuando hay múltiples relaciones
-    const select = `*,type:timeoff_types(id,name)`;
-
-    let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
-    url += `&employee_id=eq.${this.currentEmployee()!.id}`;
-    url += `&type_id=eq.${compensatoryTypeId}`;
-    url += `&is_approved=eq.true`;
-    // No necesitamos filtrar por company_id porque employee_id ya garantiza que pertenece al empleado correcto
-    // y el empleado ya está filtrado por company_id a través de currentEmployee()
-    url += `&order=date_from.desc`;
-
-    return {
-      url,
-      method: 'GET',
-    };
-  }, {
-    // CRÍTICO: defaultValue evita que el resource lance error si falla la primera carga
-    // Si el resource entra en estado de error, cualquier recomputación del signal vuelve a lanzar el error (loop infinito)
-    // Por eso protegemos los reload() para que no se ejecuten si status === 'error'
-    defaultValue: [],
-  });
+  );
 
   // Signals para formulario de tiempo compensatorio
   public compensatoryStartDate = signal<Date | null>(null);
@@ -2788,47 +3041,70 @@ export class EmployeePortalComponent {
   public compensatoryReason = signal('');
   public submittingCompensatory = signal(false);
 
+  // Nuevos signals para el formulario mejorado
+  public compensatoryDate = signal<Date | null>(null); // Fecha cuando tipo es "hours"
+  public compensatoryTime = signal<Date | null>(null); // Hora cuando tipo es "hours"
+  public selectedOvertimeDays = signal<Set<string>>(new Set()); // Días seleccionados con horas extras
+
   // Propiedad para obtener la fecha actual (para usar en templates)
   public get today(): Date {
     return new Date();
   }
 
-  // API para obtener todas las solicitudes de tiempo compensatorio (no solo aprobadas)
-  public compensatoryTimeoffsApi = httpResource<any[]>(() => {
-    if (!this.currentEmployee()?.id) return undefined;
-    const companyId = this.organizationService.getCurrentCompanyId();
-
-    if (!companyId) {
-      return undefined;
+  // Métodos helper para manejar selección de días
+  public toggleOvertimeDay(day: string): void {
+    const current = new Set(this.selectedOvertimeDays());
+    if (current.has(day)) {
+      current.delete(day);
+    } else {
+      current.add(day);
     }
+    this.selectedOvertimeDays.set(current);
+  }
 
-    // ID del tipo de timeoff "Compensatorio"
-    const compensatoryTypeId = 'f2d92995-96a0-414f-b64a-9823db776745';
+  public isDaySelected(day: string): boolean {
+    return this.selectedOvertimeDays().has(day);
+  }
 
-    const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`;
-    // La tabla timeoffs tiene múltiples relaciones con employees (employee_id, reviewed_by, registered_by)
-    // No necesitamos incluir la relación employee porque:
-    // 1. myCompensatoryRequests solo usa campos directos de timeoffs
-    // 2. Ya filtramos por employee_id directamente, que garantiza que pertenece al empleado correcto
-    // 3. El empleado ya está filtrado por company_id a través de currentEmployee()
-    // Esto evita el error HTTP 300 cuando hay múltiples relaciones
-    const select = `*,type:timeoff_types(id,name)`;
+  // API para obtener todas las solicitudes de tiempo compensatorio (no solo aprobadas)
+  public compensatoryTimeoffsApi = httpResource<any[]>(
+    () => {
+      if (!this.currentEmployee()?.id) return undefined;
+      const companyId = this.organizationService.getCurrentCompanyId();
 
-    let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
-    url += `&employee_id=eq.${this.currentEmployee()!.id}`;
-    url += `&type_id=eq.${compensatoryTypeId}`;
-    // No necesitamos filtrar por company_id porque employee_id ya garantiza que pertenece al empleado correcto
-    // y el empleado ya está filtrado por company_id a través de currentEmployee()
-    url += `&order=date_from.desc`;
+      if (!companyId) {
+        return undefined;
+      }
 
-    return {
-      url,
-      method: 'GET',
-    };
-  }, {
-    // CRÍTICO: defaultValue evita que el resource lance error si falla la primera carga
-    defaultValue: [],
-  });
+      // ID del tipo de timeoff "Compensatorio"
+      const compensatoryTypeId = 'f2d92995-96a0-414f-b64a-9823db776745';
+
+      const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`;
+      // La tabla timeoffs tiene múltiples relaciones con employees (employee_id, reviewed_by, registered_by)
+      // No necesitamos incluir la relación employee porque:
+      // 1. myCompensatoryRequests solo usa campos directos de timeoffs
+      // 2. Ya filtramos por employee_id directamente, que garantiza que pertenece al empleado correcto
+      // 3. El empleado ya está filtrado por company_id a través de currentEmployee()
+      // Esto evita el error HTTP 300 cuando hay múltiples relaciones
+      const select = `*,type:timeoff_types(id,name)`;
+
+      let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
+      url += `&employee_id=eq.${this.currentEmployee()!.id}`;
+      url += `&type_id=eq.${compensatoryTypeId}`;
+      // No necesitamos filtrar por company_id porque employee_id ya garantiza que pertenece al empleado correcto
+      // y el empleado ya está filtrado por company_id a través de currentEmployee()
+      url += `&order=date_from.desc`;
+
+      return {
+        url,
+        method: 'GET',
+      };
+    },
+    {
+      // CRÍTICO: defaultValue evita que el resource lance error si falla la primera carga
+      defaultValue: [],
+    }
+  );
 
   // Computed: Todas las solicitudes de tiempo compensatorio
   public myCompensatoryRequests = computed(() => {
@@ -2842,19 +3118,33 @@ export class EmployeePortalComponent {
 
   // Validar si se puede enviar la solicitud
   public canSubmitCompensatory = computed(() => {
-    const startDate = this.compensatoryStartDate();
-    const endDate = this.compensatoryEndDate();
-    const amount = this.compensatoryAmount();
     const type = this.compensatoryType();
-    const availableHours = this.totalOvertimeHours();
+    const amount = this.compensatoryAmount();
+    const selectedDays = this.selectedOvertimeDays();
+    const totalSelectedHours = this.totalSelectedOvertimeHours();
 
-    if (!startDate || !endDate || amount <= 0 || endDate < startDate) {
+    if (amount <= 0) {
       return false;
     }
 
-    // Si es por horas, verificar que no exceda las disponibles
-    if (type === 'hours' && amount > availableHours) {
-      return false;
+    if (type === 'hours') {
+      // Si es horas, debe tener fecha, hora y al menos un día seleccionado
+      const date = this.compensatoryDate();
+      const time = this.compensatoryTime();
+      if (!date || !time || selectedDays.size === 0) {
+        return false;
+      }
+      // Verificar que la cantidad solicitada no exceda las horas extras de los días seleccionados
+      if (amount > totalSelectedHours) {
+        return false;
+      }
+    } else {
+      // Si es días, debe tener fecha inicio y fin
+      const startDate = this.compensatoryStartDate();
+      const endDate = this.compensatoryEndDate();
+      if (!startDate || !endDate || endDate < startDate) {
+        return false;
+      }
     }
 
     return true;
@@ -2873,14 +3163,16 @@ export class EmployeePortalComponent {
 
     const type = this.compensatoryType();
     const amount = this.compensatoryAmount();
-    const availableHours = this.totalOvertimeHours();
+    const totalSelectedHours = this.totalSelectedOvertimeHours();
 
-    // Si es por horas, verificar que no exceda las disponibles
-    if (type === 'hours' && amount > availableHours) {
+    // Si es por horas, verificar que no exceda las horas de los días seleccionados
+    if (type === 'hours' && amount > totalSelectedHours) {
       this.messageService.add({
         severity: 'warn',
         summary: 'Horas Insuficientes',
-        detail: `Solo tienes ${availableHours.toFixed(1)}h disponibles`,
+        detail: `Solo tienes ${totalSelectedHours.toFixed(
+          1
+        )}h disponibles de los días seleccionados`,
       });
       return;
     }
@@ -2890,6 +3182,27 @@ export class EmployeePortalComponent {
     // ID del tipo de timeoff "Compensatorio"
     const compensatoryTypeId = 'f2d92995-96a0-414f-b64a-9823db776745';
 
+    // Determinar date_from y date_to según el tipo
+    let dateFrom: string;
+    let dateTo: string;
+
+    if (type === 'hours') {
+      // Si es horas, combinar fecha y hora
+      const selectedDate = this.compensatoryDate()!;
+      const time = this.compensatoryTime()!;
+      const combinedDateTime = new Date(selectedDate);
+      combinedDateTime.setHours(time.getHours());
+      combinedDateTime.setMinutes(time.getMinutes());
+      combinedDateTime.setSeconds(0);
+      combinedDateTime.setMilliseconds(0);
+      dateFrom = format(combinedDateTime, 'yyyy-MM-dd HH:mm:ss');
+      dateTo = dateFrom; // Para horas, la fecha de inicio y fin es la misma
+    } else {
+      // Si es días, usar las fechas de inicio y fin
+      dateFrom = format(this.compensatoryStartDate()!, 'yyyy-MM-dd');
+      dateTo = format(this.compensatoryEndDate()!, 'yyyy-MM-dd');
+    }
+
     // Calcular horas si es por días (asumiendo 8 horas por día)
     const hours = type === 'days' ? amount * 8 : amount;
 
@@ -2897,21 +3210,49 @@ export class EmployeePortalComponent {
     const notes: string[] = [];
     const reason = this.compensatoryReason();
     if (reason) {
-      notes.push(reason);
+      notes.push(`Motivo: ${reason}`);
     }
+
     // Agregar información sobre tipo y cantidad
     notes.push(
       `Tipo: ${type === 'days' ? 'Días' : 'Horas'}, Cantidad: ${amount}`
     );
+
     if (type === 'days') {
       notes.push(`Horas equivalentes: ${hours}`);
+    }
+
+    // Si es horas, agregar información de la hora y días seleccionados
+    if (type === 'hours') {
+      const time = this.compensatoryTime();
+      if (time) {
+        notes.push(`Hora solicitada: ${format(time, 'HH:mm')}`);
+      }
+
+      const selectedDays = this.selectedOvertimeDays();
+      if (selectedDays.size > 0) {
+        const availableDays = this.availableOvertimeDays();
+        const selectedDaysInfo = Array.from(selectedDays)
+          .map((day) => {
+            const dayData = availableDays.find((d) => d.day === day);
+            if (dayData) {
+              return `${format(
+                dayData.date,
+                'dd/MM/yyyy'
+              )} (${dayData.hours.toFixed(1)}h)`;
+            }
+            return day;
+          })
+          .join(', ');
+        notes.push(`Días trabajados para verificación: ${selectedDaysInfo}`);
+      }
     }
 
     const timeoffData: any = {
       employee_id: this.currentEmployee()!.id,
       type_id: compensatoryTypeId,
-      date_from: format(this.compensatoryStartDate()!, 'yyyy-MM-dd'),
-      date_to: format(this.compensatoryEndDate()!, 'yyyy-MM-dd'),
+      date_from: dateFrom,
+      date_to: dateTo,
       notes: notes,
       is_approved: false,
     };
@@ -2943,9 +3284,12 @@ export class EmployeePortalComponent {
       // Reset form
       this.compensatoryStartDate.set(null);
       this.compensatoryEndDate.set(null);
+      this.compensatoryDate.set(null);
+      this.compensatoryTime.set(null);
       this.compensatoryType.set('hours');
       this.compensatoryAmount.set(0);
       this.compensatoryReason.set('');
+      this.selectedOvertimeDays.set(new Set());
       if (
         this.compensatoryTimeoffsApi &&
         typeof this.compensatoryTimeoffsApi.reload === 'function' &&
