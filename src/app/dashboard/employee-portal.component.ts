@@ -322,91 +322,105 @@ import { EmployeesStore } from '../stores/employees.store';
 
         <!-- Tab 1: Gestiones -->
         <p-tabpanel value="1">
-          <div class="gestiones-container">
-            <div class="gestiones-header">
-              <h2 class="gestiones-title">Gestiones</h2>
-              <p class="gestiones-subtitle">
+          <div class="flex flex-col gap-6" style="min-height: 400px; padding: 1rem 0;">
+            <div>
+              <h2 class="text-2xl font-bold text-white mb-2">Gestiones</h2>
+              <p class="text-gray-400">
                 Accede a todos los formularios y solicitudes disponibles
               </p>
             </div>
 
-            <div class="gestiones-grid">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <!-- Incapacidades -->
-              <div class="gestion-card-new" (click)="openGestionForm('disabilities')">
-                <div class="gestion-icon-wrapper">
-                  <i class="pi pi-file-plus gestion-icon"></i>
+              <p-card class="cursor-pointer hover:shadow-lg transition-all" (click)="openGestionForm('disabilities')">
+                <div class="flex flex-col items-center text-center gap-3">
+                  <div class="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
+                    <i class="pi pi-file-plus text-blue-400 text-xl"></i>
+                  </div>
+                  <h3 class="text-lg font-semibold text-white m-0">Incapacidades</h3>
+                  <p class="text-sm text-gray-400 m-0">
+                    Sube documentos de incapacidad médica
+                  </p>
                 </div>
-                <h3 class="gestion-card-title-new">Incapacidades</h3>
-                <p class="gestion-card-description-new">
-                  Sube documentos de incapacidad médica
-                </p>
-              </div>
+              </p-card>
 
               <!-- Solicitar Documentos -->
-              <div class="gestion-card-new" (click)="openGestionForm('documents')">
-                <div class="gestion-icon-wrapper">
-                  <i class="pi pi-file-edit gestion-icon"></i>
+              <p-card class="cursor-pointer hover:shadow-lg transition-all" (click)="openGestionForm('documents')">
+                <div class="flex flex-col items-center text-center gap-3">
+                  <div class="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
+                    <i class="pi pi-file-edit text-green-400 text-xl"></i>
+                  </div>
+                  <h3 class="text-lg font-semibold text-white m-0">Solicitar Documentos</h3>
+                  <p class="text-sm text-gray-400 m-0">
+                    Solicita cartas de trabajo u otros documentos
+                  </p>
                 </div>
-                <h3 class="gestion-card-title-new">Solicitar Documentos</h3>
-                <p class="gestion-card-description-new">
-                  Solicita cartas de trabajo u otros documentos
-                </p>
-              </div>
+              </p-card>
 
               <!-- Buzón de Quejas -->
-              <div class="gestion-card-new" (click)="openGestionForm('complaints')">
-                <div class="gestion-icon-wrapper">
-                  <i class="pi pi-comments gestion-icon"></i>
+              <p-card class="cursor-pointer hover:shadow-lg transition-all" (click)="openGestionForm('complaints')">
+                <div class="flex flex-col items-center text-center gap-3">
+                  <div class="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                    <i class="pi pi-comments text-yellow-400 text-xl"></i>
+                  </div>
+                  <h3 class="text-lg font-semibold text-white m-0">Buzón de Quejas</h3>
+                  <p class="text-sm text-gray-400 m-0">
+                    Expresa tus inquietudes de forma anónima
+                  </p>
                 </div>
-                <h3 class="gestion-card-title-new">Buzón de Quejas</h3>
-                <p class="gestion-card-description-new">
-                  Expresa tus inquietudes de forma anónima
-                </p>
-              </div>
+              </p-card>
 
               <!-- Solicitar Vacaciones -->
-              <div class="gestion-card-new" (click)="openGestionForm('vacations')">
-                <div class="gestion-icon-wrapper">
-                  <i class="pi pi-calendar-plus gestion-icon"></i>
+              <p-card class="cursor-pointer hover:shadow-lg transition-all" (click)="openGestionForm('vacations')">
+                <div class="flex flex-col items-center text-center gap-3">
+                  <div class="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center">
+                    <i class="pi pi-calendar-plus text-purple-400 text-xl"></i>
+                  </div>
+                  <h3 class="text-lg font-semibold text-white m-0">Solicitar Vacaciones</h3>
+                  <p class="text-sm text-gray-400 m-0">
+                    Solicita tus días de vacaciones
+                  </p>
                 </div>
-                <h3 class="gestion-card-title-new">Solicitar Vacaciones</h3>
-                <p class="gestion-card-description-new">
-                  Solicita tus días de vacaciones
-                </p>
-              </div>
+              </p-card>
 
               <!-- Solicitar Licencia -->
-              <div class="gestion-card-new" (click)="openGestionForm('license')">
-                <div class="gestion-icon-wrapper">
-                  <i class="pi pi-calendar gestion-icon"></i>
+              <p-card class="cursor-pointer hover:shadow-lg transition-all" (click)="openGestionForm('license')">
+                <div class="flex flex-col items-center text-center gap-3">
+                  <div class="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center">
+                    <i class="pi pi-calendar text-orange-400 text-xl"></i>
+                  </div>
+                  <h3 class="text-lg font-semibold text-white m-0">Solicitar Licencia</h3>
+                  <p class="text-sm text-gray-400 m-0">
+                    Solicita una licencia sin goce de sueldo
+                  </p>
                 </div>
-                <h3 class="gestion-card-title-new">Solicitar Licencia</h3>
-                <p class="gestion-card-description-new">
-                  Solicita una licencia sin goce de sueldo
-                </p>
-              </div>
+              </p-card>
 
               <!-- Solicitar Permiso Personal -->
-              <div class="gestion-card-new" (click)="openGestionForm('personal')">
-                <div class="gestion-icon-wrapper">
-                  <i class="pi pi-user gestion-icon"></i>
+              <p-card class="cursor-pointer hover:shadow-lg transition-all" (click)="openGestionForm('personal')">
+                <div class="flex flex-col items-center text-center gap-3">
+                  <div class="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center">
+                    <i class="pi pi-user text-indigo-400 text-xl"></i>
+                  </div>
+                  <h3 class="text-lg font-semibold text-white m-0">Permiso Personal</h3>
+                  <p class="text-sm text-gray-400 m-0">
+                    Solicita un permiso por asuntos personales
+                  </p>
                 </div>
-                <h3 class="gestion-card-title-new">Permiso Personal</h3>
-                <p class="gestion-card-description-new">
-                  Solicita un permiso por asuntos personales
-                </p>
-              </div>
+              </p-card>
 
               <!-- Solicitar Licencia de Maternidad -->
-              <div class="gestion-card-new" (click)="openGestionForm('maternity')">
-                <div class="gestion-icon-wrapper">
-                  <i class="pi pi-heart gestion-icon"></i>
+              <p-card class="cursor-pointer hover:shadow-lg transition-all" (click)="openGestionForm('maternity')">
+                <div class="flex flex-col items-center text-center gap-3">
+                  <div class="w-12 h-12 rounded-full bg-pink-500/20 flex items-center justify-center">
+                    <i class="pi pi-heart text-pink-400 text-xl"></i>
+                  </div>
+                  <h3 class="text-lg font-semibold text-white m-0">Licencia de Maternidad</h3>
+                  <p class="text-sm text-gray-400 m-0">
+                    Solicita tu licencia de maternidad pagada
+                  </p>
                 </div>
-                <h3 class="gestion-card-title-new">Licencia de Maternidad</h3>
-                <p class="gestion-card-description-new">
-                  Solicita tu licencia de maternidad pagada
-                </p>
-              </div>
+              </p-card>
             </div>
           </div>
 
@@ -1872,116 +1886,6 @@ import { EmployeesStore } from '../stores/employees.store';
       padding: 1rem 0;
     }
 
-    /* Nueva implementación de Gestiones - Estilos directos y visibles */
-    .gestiones-container {
-      padding: 2rem 0;
-      min-height: 500px;
-      background: transparent;
-      display: block !important;
-      visibility: visible !important;
-      opacity: 1 !important;
-      position: relative;
-      z-index: 10;
-    }
-
-    .gestiones-header {
-      margin-bottom: 2rem;
-      padding: 0 1rem;
-    }
-
-    .gestiones-title {
-      font-size: 2rem;
-      font-weight: 700;
-      color: #ffffff;
-      margin: 0 0 0.5rem 0;
-      line-height: 1.2;
-    }
-
-    .gestiones-subtitle {
-      font-size: 1rem;
-      color: #9ca3af;
-      margin: 0;
-      line-height: 1.5;
-    }
-
-    .gestiones-grid {
-      display: grid !important;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: 1.5rem;
-      padding: 0 1rem;
-      visibility: visible !important;
-      opacity: 1 !important;
-    }
-
-    .gestion-card-new {
-      background: #1f2937 !important;
-      border: 2px solid #374151 !important;
-      border-radius: 0.75rem;
-      padding: 2rem;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      display: flex !important;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      min-height: 200px;
-      position: relative;
-      z-index: 10;
-      visibility: visible !important;
-      opacity: 1 !important;
-    }
-
-    .gestion-card-new:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
-      border-color: #3b82f6;
-      background: #1e3a5f;
-    }
-
-    .gestion-icon-wrapper {
-      width: 72px;
-      height: 72px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 1.25rem;
-      border-radius: 50%;
-      background: rgba(59, 130, 246, 0.15);
-      border: 2px solid rgba(59, 130, 246, 0.3);
-    }
-
-    .gestion-icon {
-      font-size: 2.5rem;
-      color: #3b82f6;
-    }
-
-    .gestion-card-title-new {
-      font-size: 1.25rem;
-      font-weight: 600;
-      color: #ffffff;
-      margin: 0 0 0.75rem 0;
-      line-height: 1.3;
-    }
-
-    .gestion-card-description-new {
-      font-size: 0.9375rem;
-      color: #d1d5db;
-      margin: 0;
-      line-height: 1.5;
-    }
-
-    /* Responsive */
-    @media (max-width: 768px) {
-      .gestiones-grid {
-        grid-template-columns: 1fr;
-        gap: 1rem;
-      }
-
-      .gestion-card-new {
-        padding: 1.5rem;
-        min-height: 180px;
-      }
-    }
 
     :host {
       display: block;
@@ -2264,7 +2168,15 @@ import { EmployeesStore } from '../stores/employees.store';
     }
 
     /* Asegurar que el tabpanel activo sea visible */
-    ::ng-deep .p-tabpanel.p-tabpanel-active {
+    ::ng-deep .p-tabpanel.p-tabpanel-active,
+    ::ng-deep .p-tabpanel[aria-hidden="false"] {
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+    }
+
+    /* Asegurar que todos los tabpanels sean visibles cuando están activos */
+    ::ng-deep .p-tabs .p-tabpanel:not([aria-hidden="true"]) {
       display: block !important;
       visibility: visible !important;
       opacity: 1 !important;
@@ -2282,34 +2194,35 @@ import { EmployeesStore } from '../stores/employees.store';
     }
 
     /* Asegurar visibilidad del contenido del tabpanel de Gestiones */
-    ::ng-deep .p-tabpanel[value="1"] {
+    ::ng-deep .p-tabpanel[value="1"],
+    ::ng-deep .p-tabpanel[value="1"][aria-hidden="false"] {
       background: transparent !important;
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      height: auto !important;
+      min-height: 400px !important;
+    }
+
+    ::ng-deep .p-tabpanel[value="1"] .p-tabpanel-content,
+    ::ng-deep .p-tabpanel[value="1"][aria-hidden="false"] .p-tabpanel-content {
+      background: transparent !important;
+      display: block !important;
+      visibility: visible !important;
+      opacity: 1 !important;
+      min-height: 400px !important;
+      padding: 1rem 0 !important;
+    }
+
+    /* Forzar visibilidad cuando el tab está activo */
+    ::ng-deep .p-tabs[value="1"] .p-tabpanel[value="1"],
+    ::ng-deep .p-tabs[value="1"] .p-tabpanel[value="1"] .p-tabpanel-content {
       display: block !important;
       visibility: visible !important;
       opacity: 1 !important;
     }
 
-    ::ng-deep .p-tabpanel[value="1"] .p-tabpanel-content {
-      background: transparent !important;
-      display: block !important;
-      visibility: visible !important;
-      opacity: 1 !important;
-      min-height: 500px !important;
-    }
 
-    /* Asegurar que el grid de tarjetas sea visible */
-    ::ng-deep .p-tabpanel[value="1"] .gestiones-grid {
-      display: grid !important;
-      visibility: visible !important;
-      opacity: 1 !important;
-    }
-
-    /* Asegurar que todas las tarjetas sean visibles */
-    ::ng-deep .p-tabpanel[value="1"] .gestion-card-new {
-      display: flex !important;
-      visibility: visible !important;
-      opacity: 1 !important;
-    }
 
     /* Better spacing on mobile */
     @media (max-width: 640px) {
@@ -2893,10 +2806,14 @@ export class EmployeePortalComponent {
     if (this.activeTabIndex() !== tabIndex) {
       this.isUpdatingFromFragment = true;
       this.activeTabIndex.set(tabIndex);
-      // Resetear la bandera después de un pequeño delay para permitir que el effect se ejecute
+      // Forzar detección de cambios después de actualizar el tab
       setTimeout(() => {
         this.isUpdatingFromFragment = false;
-      }, 100);
+        // Asegurar que el DOM se actualice
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('resize'));
+        }
+      }, 150);
     }
   }
 
