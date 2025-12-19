@@ -2,6 +2,7 @@ import { DatePipe, NgClass, NgTemplateOutlet } from '@angular/common';
 import { HttpClient, httpResource } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   computed,
   DestroyRef,
@@ -2828,6 +2829,7 @@ export class EmployeePortalComponent {
   public notificationsService = inject(NotificationsService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  private cdr = inject(ChangeDetectorRef);
 
   // Computed para verificar si es Naz
   public isNaz = computed(() => this.organizationService.isNaz());
@@ -2835,6 +2837,7 @@ export class EmployeePortalComponent {
   // Tab activo sincronizado con fragmentos de URL
   public activeTabIndex = signal<number>(0);
   private isUpdatingFromFragment = false; // Bandera para evitar loops
+  private previousTabIndex = 0; // Track del tab anterior para detectar cambios
 
   constructor() {
     // Inicializar notificaciones cuando cambia el empleado actual
@@ -2869,6 +2872,41 @@ export class EmployeePortalComponent {
         }, 100);
       });
     }
+
+    // Detectar cuando el tab vuelve a ser activo y forzar recarga de recursos
+    effect(() => {
+      const currentTab = this.activeTabIndex();
+      const previousTab = this.previousTabIndex;
+      
+      // Si el tab cambió y volvió a Dashboard (tab 0), forzar recarga
+      if (currentTab === 0 && previousTab !== 0) {
+        console.log('[EmployeePortal] Tab Dashboard vuelve a ser activo, forzando recarga de recursos');
+        // Forzar recarga de recursos HTTP después de un pequeño delay
+        setTimeout(() => {
+          // Forzar recarga de los recursos HTTP
+          try {
+            if (this.timelogsApi && typeof this.timelogsApi.reload === 'function') {
+              this.timelogsApi.reload();
+            }
+            if (this.monthTimelogsApi && typeof this.monthTimelogsApi.reload === 'function') {
+              this.monthTimelogsApi.reload();
+            }
+            if (this.timeoffsApi && typeof this.timeoffsApi.reload === 'function') {
+              this.timeoffsApi.reload();
+            }
+          } catch (error) {
+            console.warn('[EmployeePortal] Error al recargar recursos:', error);
+          }
+          // Forzar detección de cambios
+          this.cdr.markForCheck();
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(new Event('resize'));
+          }
+        }, 200);
+      }
+      
+      this.previousTabIndex = currentTab;
+    });
 
     // Sincronizar fragmento cuando cambia el tab (solo si el cambio viene del usuario)
     effect(() => {
@@ -2943,22 +2981,22 @@ export class EmployeePortalComponent {
   private updateTabFromFragment(): void {
     const fragment = this.getCurrentFragment();
     const tabIndex = this.getTabIndexFromFragment(fragment);
+    const currentTabIndex = this.activeTabIndex();
+    
     console.log(
       '[EmployeePortal] updateTabFromFragment - fragment:',
       fragment,
       'tabIndex:',
-      tabIndex
-    );
-    console.log(
-      '[EmployeePortal] updateTabFromFragment - activeTabIndex actual:',
-      this.activeTabIndex()
+      tabIndex,
+      'currentTabIndex:',
+      currentTabIndex
     );
 
     // Solo actualizar si el tab es diferente
-    if (this.activeTabIndex() !== tabIndex) {
+    if (currentTabIndex !== tabIndex) {
       console.log(
         '[EmployeePortal] updateTabFromFragment - Actualizando tab de',
-        this.activeTabIndex(),
+        currentTabIndex,
         'a',
         tabIndex
       );
@@ -2968,17 +3006,45 @@ export class EmployeePortalComponent {
         '[EmployeePortal] updateTabFromFragment - activeTabIndex después de set:',
         this.activeTabIndex()
       );
+      
+      // Si volvemos al Dashboard, forzar recarga de recursos
+      if (tabIndex === 0) {
+        setTimeout(() => {
+          console.log('[EmployeePortal] updateTabFromFragment - Forzando recarga de recursos para Dashboard');
+          // Forzar recarga de recursos HTTP
+          try {
+            if (this.timelogsApi && typeof this.timelogsApi.reload === 'function') {
+              this.timelogsApi.reload();
+            }
+            if (this.monthTimelogsApi && typeof this.monthTimelogsApi.reload === 'function') {
+              this.monthTimelogsApi.reload();
+            }
+            if (this.timeoffsApi && typeof this.timeoffsApi.reload === 'function') {
+              this.timeoffsApi.reload();
+            }
+          } catch (error) {
+            console.warn('[EmployeePortal] Error al recargar recursos:', error);
+          }
+          // Forzar detección de cambios
+          this.cdr.markForCheck();
+        }, 100);
+      }
+      
       // Forzar detección de cambios después de actualizar el tab
       setTimeout(() => {
         this.isUpdatingFromFragment = false;
         console.log(
           '[EmployeePortal] updateTabFromFragment - Bandera isUpdatingFromFragment reset a false'
         );
+        // Forzar detección de cambios
+        this.cdr.markForCheck();
         // Asegurar que el DOM se actualice
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new Event('resize'));
+          // Forzar reflow para asegurar que Angular detecte los cambios
+          document.body.offsetHeight;
         }
-      }, 150);
+      }, 200);
     } else {
       console.log(
         '[EmployeePortal] updateTabFromFragment - No se actualiza, tabIndex es el mismo'
@@ -3040,17 +3106,44 @@ export class EmployeePortalComponent {
     // Convertir a número si es string
     const index =
       typeof tabIndex === 'string' ? parseInt(tabIndex, 10) : tabIndex;
+    const previousIndex = this.activeTabIndex();
+    
     console.log(
       '[EmployeePortal] onTabChange - tabIndex recibido:',
       tabIndex,
       'convertido a:',
-      index
+      index,
+      'anterior:',
+      previousIndex
     );
-    console.log(
-      '[EmployeePortal] onTabChange - activeTabIndex antes:',
-      this.activeTabIndex()
-    );
+    
     this.activeTabIndex.set(index);
+    
+    // Si el usuario cambió manualmente al Dashboard, forzar recarga de recursos
+    if (index === 0 && previousIndex !== 0) {
+      console.log('[EmployeePortal] onTabChange - Usuario cambió manualmente a Dashboard, forzando recarga');
+      setTimeout(() => {
+        try {
+          if (this.timelogsApi && typeof this.timelogsApi.reload === 'function') {
+            this.timelogsApi.reload();
+          }
+          if (this.monthTimelogsApi && typeof this.monthTimelogsApi.reload === 'function') {
+            this.monthTimelogsApi.reload();
+          }
+          if (this.timeoffsApi && typeof this.timeoffsApi.reload === 'function') {
+            this.timeoffsApi.reload();
+          }
+        } catch (error) {
+          console.warn('[EmployeePortal] Error al recargar recursos en onTabChange:', error);
+        }
+        // Forzar detección de cambios
+        this.cdr.markForCheck();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('resize'));
+        }
+      }, 150);
+    }
+    
     console.log(
       '[EmployeePortal] onTabChange - activeTabIndex después:',
       this.activeTabIndex()
@@ -3813,6 +3906,11 @@ export class EmployeePortalComponent {
     // Usar monthTimelogs en lugar de myTimelogs para obtener todos los días del mes actual
     const logs = this.monthTimelogs();
 
+    // Validar que logs sea un array válido
+    if (!Array.isArray(logs) || logs.length === 0) {
+      return 0;
+    }
+
     // Contar días que tienen al menos una marcación (entry, lunch_start, lunch_end, o exit)
     return logs.filter((log) => {
       const hasAnyMark =
@@ -3823,11 +3921,22 @@ export class EmployeePortalComponent {
 
   public recentTimelogs = computed(() => {
     const logs = this.myTimelogs();
+    
+    // Validar que logs sea un array válido
+    if (!Array.isArray(logs) || logs.length === 0) {
+      return [];
+    }
+    
     const sevenDaysAgo = addDays(new Date(), -7);
     return logs
       .filter((log) => {
-        const logDate = new Date(log.day);
-        return logDate >= sevenDaysAgo;
+        if (!log || !log.day) return false;
+        try {
+          const logDate = new Date(log.day);
+          return !isNaN(logDate.getTime()) && logDate >= sevenDaysAgo;
+        } catch {
+          return false;
+        }
       })
       .slice(0, 5); // Últimos 5 días
   });
@@ -3849,14 +3958,17 @@ export class EmployeePortalComponent {
     const compensatoryTypeId = 'f2d92995-96a0-414f-b64a-9823db776745';
 
     const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`;
-    const select = `*,type:timeoff_types(id,name),employee:employees(id,company_id)`;
+    // Especificar explícitamente la relación usando employee_id para evitar ambigüedad
+    // La tabla timeoffs tiene múltiples relaciones con employees (employee_id, reviewed_by, registered_by)
+    // Usamos la sintaxis correcta: employee_id!inner:employees(...) sin alias para evitar el error 300
+    const select = `*,type:timeoff_types(id,name)`;
 
     let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
     url += `&employee_id=eq.${this.currentEmployee()!.id}`;
     url += `&type_id=eq.${compensatoryTypeId}`;
     url += `&is_approved=eq.true`;
-    // Filtrar a través de employee.company_id
-    url += `&employee.company_id=eq.${companyId}`;
+    // No filtramos por company_id aquí porque ya estamos filtrando por employee_id
+    // que pertenece al empleado actual, y el empleado ya está filtrado por company_id
     url += `&order=date_from.desc`;
 
     return {
@@ -3869,14 +3981,32 @@ export class EmployeePortalComponent {
   public approvedCompensatoryHours = computed(() => {
     const timeoffs = this.timeoffsApi.value() ?? [];
 
+    // Validar que timeoffs sea un array válido
+    if (!Array.isArray(timeoffs) || timeoffs.length === 0) {
+      return 0;
+    }
+
     // Calcular horas totales basándose en date_from y date_to
     // Asumimos 8 horas por día trabajado
     const totalHours = timeoffs.reduce((total, timeoff) => {
-      const startDate = new Date(timeoff.date_from);
-      const endDate = new Date(timeoff.date_to);
-      // differenceInDays devuelve la diferencia en días, sumamos 1 para incluir ambos días
-      const days = differenceInDays(endDate, startDate) + 1;
-      return total + days * 8; // 8 horas por día
+      if (!timeoff || !timeoff.date_from || !timeoff.date_to) {
+        return total;
+      }
+      try {
+        const startDate = new Date(timeoff.date_from);
+        const endDate = new Date(timeoff.date_to);
+        
+        // Validar que las fechas sean válidas
+        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+          return total;
+        }
+        
+        // differenceInDays devuelve la diferencia en días, sumamos 1 para incluir ambos días
+        const days = differenceInDays(endDate, startDate) + 1;
+        return total + Math.max(0, days) * 8; // 8 horas por día, asegurar que days no sea negativo
+      } catch {
+        return total;
+      }
     }, 0);
 
     return totalHours;
