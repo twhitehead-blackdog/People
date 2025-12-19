@@ -16,7 +16,12 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
       '/rest/v1/job_applications'
     );
     const isTimeoffsRequest = req.url.includes('/rest/v1/timeoffs');
-    const needsServiceRoleKey = isSettingsRequest || isJobApplicationsRequest || isTimeoffsRequest;
+    const isNotificationsRequest = req.url.includes('/rest/v1/notifications');
+    const needsServiceRoleKey =
+      isSettingsRequest ||
+      isJobApplicationsRequest ||
+      isTimeoffsRequest ||
+      isNotificationsRequest;
 
     // Debug: Log para verificar qué se está detectando
     if (isJobApplicationsRequest) {
@@ -46,18 +51,29 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
       : process.env['ENV_SUPABASE_ANON_KEY'] ??
         process.env['ENV_SUPABASE_API_KEY'] ??
         '';
-    
+
     // Debug adicional: verificar qué key se está usando realmente
     if (isJobApplicationsRequest) {
       const usedKey = needsServiceRoleKey
-        ? (process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'] ? 'ENV_SUPABASE_SERVICE_ROLE_KEY' :
-           process.env['ENV_SUPABASE_TOKEN'] ? 'ENV_SUPABASE_TOKEN' :
-           process.env['ENV_SUPABASE_ANON_KEY'] ? 'ENV_SUPABASE_ANON_KEY' :
-           process.env['ENV_SUPABASE_API_KEY'] ? 'ENV_SUPABASE_API_KEY' : 'NINGUNA')
-        : (process.env['ENV_SUPABASE_ANON_KEY'] ? 'ENV_SUPABASE_ANON_KEY' :
-           process.env['ENV_SUPABASE_API_KEY'] ? 'ENV_SUPABASE_API_KEY' : 'NINGUNA');
+        ? process.env['ENV_SUPABASE_SERVICE_ROLE_KEY']
+          ? 'ENV_SUPABASE_SERVICE_ROLE_KEY'
+          : process.env['ENV_SUPABASE_TOKEN']
+          ? 'ENV_SUPABASE_TOKEN'
+          : process.env['ENV_SUPABASE_ANON_KEY']
+          ? 'ENV_SUPABASE_ANON_KEY'
+          : process.env['ENV_SUPABASE_API_KEY']
+          ? 'ENV_SUPABASE_API_KEY'
+          : 'NINGUNA'
+        : process.env['ENV_SUPABASE_ANON_KEY']
+        ? 'ENV_SUPABASE_ANON_KEY'
+        : process.env['ENV_SUPABASE_API_KEY']
+        ? 'ENV_SUPABASE_API_KEY'
+        : 'NINGUNA';
       console.log('[DEBUG] 🔑 Key usada:', usedKey);
-      console.log('[DEBUG] 🔑 Primeros 20 chars de key:', supabaseKey ? supabaseKey.substring(0, 20) + '...' : 'VACÍA');
+      console.log(
+        '[DEBUG] 🔑 Primeros 20 chars de key:',
+        supabaseKey ? supabaseKey.substring(0, 20) + '...' : 'VACÍA'
+      );
     }
 
     // Debug: Log para verificar qué key se está usando
