@@ -3958,17 +3958,17 @@ export class EmployeePortalComponent {
     const compensatoryTypeId = 'f2d92995-96a0-414f-b64a-9823db776745';
 
     const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`;
-    // Especificar explícitamente la relación usando employee_id para evitar ambigüedad
     // La tabla timeoffs tiene múltiples relaciones con employees (employee_id, reviewed_by, registered_by)
-    // Usamos la sintaxis correcta: employee_id!inner:employees(...) sin alias para evitar el error 300
+    // Esto causa el error HTTP 300 cuando intentamos usar employee:employees(...) sin especificar la foreign key
+    // Solución: No incluir la relación employee ya que no la necesitamos para calcular horas de compensatorio
+    // Solo necesitamos date_from y date_to que ya están en la tabla timeoffs
+    // El filtro por company_id no es necesario porque employee_id ya garantiza que pertenece a la compañía correcta
     const select = `*,type:timeoff_types(id,name)`;
 
     let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
     url += `&employee_id=eq.${this.currentEmployee()!.id}`;
     url += `&type_id=eq.${compensatoryTypeId}`;
     url += `&is_approved=eq.true`;
-    // No filtramos por company_id aquí porque ya estamos filtrando por employee_id
-    // que pertenece al empleado actual, y el empleado ya está filtrado por company_id
     url += `&order=date_from.desc`;
 
     return {
