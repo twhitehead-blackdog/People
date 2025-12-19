@@ -38,7 +38,6 @@ export const AuthStore = signalStore(
         switchMap((user) => {
           // Ya no hay tablas naz_*, todo es por company_id en tablas compartidas
           const tableName = 'employees';
-          const positionTableName = 'positions';
 
           // Usar positions siempre (tabla compartida)
           const positionSelect = `position:positions(id, name, admin, schedule_admin, schedule_approver, dashboard_access, default_view)`;
