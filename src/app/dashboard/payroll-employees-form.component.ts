@@ -129,7 +129,7 @@ export class PayrollEmployeesFormComponent implements OnInit {
   currentEmployee = computed(() =>
     this.employees
       .employeesList()
-      .find((e) => e.id === this.currentEmployeeId())
+      .find((e: any) => e.id === this.currentEmployeeId())
   );
 
   ngOnInit(): void {

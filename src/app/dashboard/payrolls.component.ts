@@ -31,7 +31,7 @@ import { PayrollsFormComponent } from './payrolls-form.component';
         </div>
       </ng-template>
       <p-table 
-        [value]="store.entities() || []" 
+        [value]="store['entities']() || []" 
         [loading]="store.isLoading()"
         paginator
         [rows]="10"

@@ -3977,7 +3977,7 @@ export class EmployeePortalComponent {
       });
 
       // Recargar datos del empleado
-      this.store.employees.fetchItems();
+      this.store.employees['fetchItems']();
       this.editMode.set(false);
     } catch (error: any) {
       console.error('Error updating personal data:', error);

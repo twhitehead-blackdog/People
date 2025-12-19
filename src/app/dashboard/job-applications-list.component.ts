@@ -583,10 +583,10 @@ export class JobApplicationsListComponent implements OnInit {
     };
   }
 
-  public positions = computed(() => this.positionsStore.entities());
+  public positions = computed(() => this.positionsStore['entities']());
 
   getPositionName(positionId: string): string {
-    const position = this.positions().find((p) => p.id === positionId);
+    const position = this.positions().find((p: any) => p.id === positionId);
     return position?.name || 'N/A';
   }
 
@@ -808,7 +808,7 @@ export class JobApplicationsListComponent implements OnInit {
     });
   }
 
-  public applications = computed(() => this.jobApplicationsStore.entities());
+  public applications = computed(() => this.jobApplicationsStore['entities']());
 
   public filteredApplications = computed(() => {
     const status = this.statusFilter.value;
@@ -818,17 +818,17 @@ export class JobApplicationsListComponent implements OnInit {
       return apps;
     }
 
-    return apps.filter((app) => app.status === status);
+    return apps.filter((app: any) => app.status === status);
   });
 
   ngOnInit() {
     // Cargar aplicaciones al inicializar
     if (this.applications().length === 0) {
-      this.jobApplicationsStore.reloadItems();
+      this.jobApplicationsStore['reloadItems']();
     }
     // Cargar posiciones al inicializar
     if (this.positions().length === 0) {
-      this.positionsStore.reloadItems();
+      this.positionsStore['reloadItems']();
     }
     // Cargar estados personalizados
     this.statusesApi.reload();
@@ -1410,7 +1410,7 @@ export class JobApplicationsListComponent implements OnInit {
 
     ref.onClose.subscribe(() => {
       // Recargar posiciones después de cerrar el diálogo
-      this.positionsStore.reloadItems();
+      this.positionsStore['reloadItems']();
     });
   }
 
@@ -1436,7 +1436,7 @@ export class JobApplicationsListComponent implements OnInit {
       );
 
       // Actualizar el store local
-      this.positionsStore.reloadItems();
+      this.positionsStore['reloadItems']();
 
       this.messageService.add({
         severity: 'success',
@@ -1458,7 +1458,7 @@ export class JobApplicationsListComponent implements OnInit {
   }
 
   refreshApplications() {
-    this.jobApplicationsStore.reloadItems();
+    this.jobApplicationsStore['reloadItems']();
     this.messageService.add({
       severity: 'success',
       summary: 'Actualizado',
@@ -1521,7 +1521,7 @@ export class JobApplicationsListComponent implements OnInit {
       });
 
       // Recargar aplicaciones
-      this.jobApplicationsStore.reloadItems();
+      this.jobApplicationsStore['reloadItems']();
     } catch (error: any) {
       console.error('Error updating status:', error);
       this.messageService.add({
@@ -1620,7 +1620,7 @@ export class JobApplicationsListComponent implements OnInit {
       }
 
       // Preparar datos para Excel
-      const data = applications.map((app) => ({
+      const data = applications.map((app: any) => ({
         Fecha: app.created_at
           ? new Date(app.created_at).toLocaleDateString('es-PA')
           : '',
@@ -1733,7 +1733,7 @@ export class JobApplicationsListComponent implements OnInit {
       );
 
       // Actualizar el store local
-      this.jobApplicationsStore.reloadItems();
+      this.jobApplicationsStore['reloadItems']();
 
       this.messageService.add({
         severity: 'success',

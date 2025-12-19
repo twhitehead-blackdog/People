@@ -6,6 +6,7 @@ import {
   signalStoreFeature,
   type,
   withComputed,
+  withHooks,
   withMethods,
   withProps,
   withState,
@@ -23,6 +24,7 @@ import { differenceInSeconds } from 'date-fns';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { filter, forkJoin, Observable, pipe, switchMap, tap } from 'rxjs';
 import { OrganizationService } from '../services/organization.service';
+import { SupabaseService, RealtimeLevel, RealtimeEvent } from '../services/supabase.service';
 import { getTableNameFromService } from '../utils/table-helper';
 
 type State = {
@@ -37,11 +39,13 @@ export function withCustomEntities<T extends { id: EntityId }>({
   query = '*',
   detailsQuery = '*',
   order = 'id',
+  realtimeLevel = 'C',
 }: {
   name: string;
   query?: string;
   detailsQuery?: string;
   order?: string;
+  realtimeLevel?: RealtimeLevel;
 }) {
   // Helper para agregar filtro de company_id a los parámetros de query
   // Ya no hay tablas naz_*, todo se filtra por company_id
@@ -158,12 +162,14 @@ export function withCustomEntities<T extends { id: EntityId }>({
       const _message = inject(MessageService);
       const _confirm = inject(ConfirmationService);
       const _orgService = inject(OrganizationService);
+      const _supabase = inject(SupabaseService);
 
       return {
         _http,
         _message,
         _confirm,
         _orgService,
+        _supabase,
       };
     }),
     withComputed(({ entityMap, selectedEntityId }) => ({
@@ -172,12 +178,12 @@ export function withCustomEntities<T extends { id: EntityId }>({
         return selectedId ? entityMap()[selectedId] : null;
       }),
     })),
-    withMethods((state) => {
+    withMethods((state: any) => {
       // Helper para obtener el company_id actual
-      const getCurrentCompanyId = () => state._orgService.getCurrentCompanyId();
+      const getCurrentCompanyId = () => state['_orgService'].getCurrentCompanyId();
 
       // Obtener el nombre correcto de la tabla según la organización
-      const getTable = () => getTableNameFromService(name, state._orgService);
+      const getTable = () => getTableNameFromService(name, state['_orgService']);
 
       return {
         selectEntity: (id: EntityId) => {
@@ -189,23 +195,23 @@ export function withCustomEntities<T extends { id: EntityId }>({
           const cleanedQuery = cleanQuery(
             detailsQuery,
             tableName,
-            state._orgService
+            state['_orgService']
           );
           const companyId = getCurrentCompanyId();
           const params = addCompanyFilter(
             { id: `eq.${id}`, select: cleanedQuery },
             companyId,
             tableName,
-            state._orgService
+            state['_orgService']
           );
-          state._http
+          state['_http']
             .get<T>(`${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`, {
               params,
             })
             .pipe(
               tapResponse({
-                next: (changes) => {
-                  patchState(state, updateEntity({ id: changes.id, changes }));
+                next: (changes: T) => {
+                  patchState(state, updateEntity({ id: changes.id, changes: changes as Partial<T> }));
                 },
                 error: (error) => {
                   patchState(state, { error });
@@ -230,7 +236,7 @@ export function withCustomEntities<T extends { id: EntityId }>({
               const cleanedQuery = cleanQuery(
                 query,
                 tableName,
-                state._orgService
+                state['_orgService']
               );
 
               // Para banks, creditors y positions, hacer dos queries separadas y combinarlas
@@ -245,13 +251,13 @@ export function withCustomEntities<T extends { id: EntityId }>({
                 const baseParams = { select: cleanedQuery, order: order };
 
                 // Query 1: company_id = companyId
-                const query1 = state._http.get<T[]>(
+                const query1 = state['_http'].get<T[]>(
                   `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
                   { params: { ...baseParams, company_id: `eq.${companyId}` } }
                 );
 
                 // Query 2: company_id IS NULL
-                const query2 = state._http.get<T[]>(
+                const query2 = state['_http'].get<T[]>(
                   `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
                   { params: { ...baseParams, company_id: 'is.null' } }
                 );
@@ -259,12 +265,12 @@ export function withCustomEntities<T extends { id: EntityId }>({
                 // Combinar ambas queries y eliminar duplicados
                 return forkJoin([query1, query2]).pipe(
                   tapResponse({
-                    next: ([entities1, entities2]) => {
+                    next: ([entities1, entities2]: [T[], T[]]) => {
                       // Combinar y eliminar duplicados por ID
                       const combined = [...entities1, ...entities2];
                       const unique = combined.filter(
-                        (item, index, self) =>
-                          index === self.findIndex((t) => t.id === item.id)
+                        (item: T, index: number, self: T[]) =>
+                          index === self.findIndex((t: T) => t.id === item.id)
                       );
                       patchState(state, setAllEntities(unique), {
                         lastUpdated: new Date(),
@@ -287,14 +293,14 @@ export function withCustomEntities<T extends { id: EntityId }>({
                 state._orgService
               );
 
-              return state._http
+              return state['_http']
                 .get<T[]>(
                   `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
                   { params }
                 )
                 .pipe(
                   tapResponse({
-                    next: (entities) => {
+                    next: (entities: T[]) => {
                       patchState(state, setAllEntities(entities), {
                         lastUpdated: new Date(),
                       });
@@ -325,7 +331,7 @@ export function withCustomEntities<T extends { id: EntityId }>({
               const cleanedQuery = cleanQuery(
                 query,
                 tableName,
-                state._orgService
+                state['_orgService']
               );
 
               // Para banks, creditors y positions, hacer dos queries separadas y combinarlas
@@ -339,13 +345,13 @@ export function withCustomEntities<T extends { id: EntityId }>({
                 const baseParams = { select: cleanedQuery, order: order };
 
                 // Query 1: company_id = companyId
-                const query1 = state._http.get<T[]>(
+                const query1 = state['_http'].get<T[]>(
                   `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
                   { params: { ...baseParams, company_id: `eq.${companyId}` } }
                 );
 
                 // Query 2: company_id IS NULL
-                const query2 = state._http.get<T[]>(
+                const query2 = state['_http'].get<T[]>(
                   `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
                   { params: { ...baseParams, company_id: 'is.null' } }
                 );
@@ -353,12 +359,12 @@ export function withCustomEntities<T extends { id: EntityId }>({
                 // Combinar ambas queries y eliminar duplicados
                 return forkJoin([query1, query2]).pipe(
                   tapResponse({
-                    next: ([entities1, entities2]) => {
+                    next: ([entities1, entities2]: [T[], T[]]) => {
                       // Combinar y eliminar duplicados por ID
                       const combined = [...entities1, ...entities2];
                       const unique = combined.filter(
-                        (item, index, self) =>
-                          index === self.findIndex((t) => t.id === item.id)
+                        (item: T, index: number, self: T[]) =>
+                          index === self.findIndex((t: T) => t.id === item.id)
                       );
                       patchState(state, setAllEntities(unique), {
                         lastUpdated: new Date(),
@@ -389,14 +395,14 @@ export function withCustomEntities<T extends { id: EntityId }>({
                 console.log('[PositionsStore] Company ID:', companyId);
               }
 
-              return state._http
+              return state['_http']
                 .get<T[]>(
                   `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
                   { params }
                 )
                 .pipe(
                   tapResponse({
-                    next: (entities) => {
+                    next: (entities: T[]) => {
                       // Debug: Log para posiciones
                       if (tableName === 'positions') {
                         console.log(
@@ -435,7 +441,7 @@ export function withCustomEntities<T extends { id: EntityId }>({
           patchState(state, { isLoading: true, error: null });
           const tableName = getTable();
           const companyId = getCurrentCompanyId();
-          const cleanedQuery = cleanQuery(query, tableName, state._orgService);
+          const cleanedQuery = cleanQuery(query, tableName, state['_orgService']);
 
           // Asegurar que company_id esté presente en el request (solo para Black Dog)
           let requestData: any = { ...request };
@@ -455,7 +461,7 @@ export function withCustomEntities<T extends { id: EntityId }>({
 
           // Solo agregar company_id si NO es una tabla de Naz
           if (
-            !state._orgService.isNaz() &&
+            !state['_orgService'].isNaz() &&
             tablesRequiringCompanyId.includes(name) &&
             companyId
           ) {
@@ -465,7 +471,7 @@ export function withCustomEntities<T extends { id: EntityId }>({
           // Para banks y creditors, company_id es opcional (puede ser NULL para compartidos)
           // Solo para Black Dog
           if (
-            !state._orgService.isNaz() &&
+            !state['_orgService'].isNaz() &&
             (name === 'banks' || name === 'creditors') &&
             companyId
           ) {
@@ -479,10 +485,10 @@ export function withCustomEntities<T extends { id: EntityId }>({
             { select: cleanedQuery },
             companyId,
             tableName,
-            state._orgService
+            state['_orgService']
           );
 
-          return state._http
+          return state['_http']
             .post<T[]>(
               `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
               requestData,
@@ -490,9 +496,9 @@ export function withCustomEntities<T extends { id: EntityId }>({
             )
             .pipe(
               tapResponse({
-                next: (item) => {
+                next: (item: T[]) => {
                   patchState(state, addEntity(item[0]));
-                  state._message.add({
+                  state['_message'].add({
                     severity: 'success',
                     detail: 'Elemento creado con exito',
                     summary: 'Exito',
@@ -500,7 +506,7 @@ export function withCustomEntities<T extends { id: EntityId }>({
                 },
                 error: (error) => {
                   patchState(state, { error });
-                  state._message.add({
+                  state['_message'].add({
                     severity: 'error',
                     detail: 'Algo salio mal, intente de nuevo',
                     summary: 'Error',
@@ -535,7 +541,7 @@ export function withCustomEntities<T extends { id: EntityId }>({
 
           // Solo agregar company_id si NO es una tabla de Naz
           if (
-            !state._orgService.isNaz() &&
+            !state['_orgService'].isNaz() &&
             tablesRequiringCompanyId.includes(name) &&
             companyId
           ) {
@@ -550,10 +556,10 @@ export function withCustomEntities<T extends { id: EntityId }>({
             { id: `eq.${request.id}` },
             companyId,
             tableName,
-            state._orgService
+            state['_orgService']
           );
 
-          return state._http
+          return state['_http']
             .patch(
               `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
               requestData,
@@ -567,7 +573,7 @@ export function withCustomEntities<T extends { id: EntityId }>({
                     state,
                     updateEntity({ id: request.id, changes: request })
                   );
-                  state._message.add({
+                  state['_message'].add({
                     severity: 'success',
                     detail: 'Elemento actualizado con exito',
                     summary: 'Exito',
@@ -575,7 +581,7 @@ export function withCustomEntities<T extends { id: EntityId }>({
                 },
                 error: (error) => {
                   patchState(state, { error });
-                  state._message.add({
+                  state['_message'].add({
                     severity: 'error',
                     detail: 'Algo salio mal, intente de nuevo',
                     summary: 'Error',
@@ -588,7 +594,7 @@ export function withCustomEntities<T extends { id: EntityId }>({
             );
         },
         deleteItem(id: EntityId): void {
-          state._confirm.confirm({
+          state['_confirm'].confirm({
             header: 'Confirmación',
             closable: true,
             closeOnEscape: true,
@@ -616,7 +622,7 @@ export function withCustomEntities<T extends { id: EntityId }>({
                 tableName,
                 state._orgService
               );
-              state._http
+              state['_http']
                 .delete(
                   `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
                   { params }
@@ -625,14 +631,14 @@ export function withCustomEntities<T extends { id: EntityId }>({
                   tapResponse({
                     next: () => {
                       patchState(state, removeEntity(id));
-                      state._message.add({
+                      state['_message'].add({
                         severity: 'info',
                         detail: 'Elemento eliminado con exito',
                         summary: 'Exito',
                       });
                     },
                     error: (error) => {
-                      state._message.add({
+                      state['_message'].add({
                         severity: 'error',
                         detail: 'Algo salio mal, intente de nuevo',
                         summary: 'Error',
@@ -648,6 +654,71 @@ export function withCustomEntities<T extends { id: EntityId }>({
           });
         },
       };
-    })
+    }),
+    // Integrar Realtime solo para Nivel A y B
+    ...(realtimeLevel !== 'C'
+      ? [
+          withHooks({
+            onInit(state: any) {
+              const tableName = getTableNameFromService(name, state['_orgService']);
+              const companyId = state['_orgService'].getCurrentCompanyId();
+
+              // Construir filtros para Realtime
+              const filters: Record<string, any> = {};
+              if (companyId && tableName !== 'companies') {
+                // Filtrar por company_id si la tabla lo soporta
+                const tablesWithCompanyId = [
+                  'employees',
+                  'branches',
+                  'departments',
+                  'positions',
+                  'schedules',
+                  'employee_schedules',
+                  'attendance_sheets',
+                  'timelogs',
+                  'payrolls',
+                ];
+                if (tablesWithCompanyId.includes(tableName)) {
+                  filters['filter'] = `company_id=eq.${companyId}`;
+                }
+              }
+
+              // Suscribirse a Realtime
+              const channel = state['_supabase'].subscribeToTable<T>(
+                tableName,
+                realtimeLevel,
+                filters,
+                (event: RealtimeEvent<T>) => {
+                  // Manejar eventos según tipo
+                  if (event.eventType === 'INSERT' && event.new) {
+                    // Agregar nueva entidad
+                    patchState(state, addEntity(event.new));
+                  } else if (event.eventType === 'UPDATE' && event.new) {
+                    // Actualizar entidad existente (merge por ID)
+                    patchState(state, updateEntity({ id: event.new.id, changes: event.new }));
+                  } else if (event.eventType === 'DELETE' && event.old) {
+                    // Eliminar entidad
+                    patchState(state, removeEntity(event.old.id));
+                  }
+                }
+              );
+
+              // Guardar referencia al channel para limpieza
+              if (channel) {
+                state['_realtimeChannel'] = channel;
+              }
+            },
+            onDestroy(state: any) {
+              // Limpiar suscripción Realtime al destruir el store
+              const channel = state['_realtimeChannel'];
+              if (channel) {
+                const tableName = getTableNameFromService(name, state['_orgService']);
+                state['_supabase'].unsubscribeFromTable(tableName);
+                state['_realtimeChannel'] = null;
+              }
+            },
+          }),
+        ] as any
+      : [])
   );
 }

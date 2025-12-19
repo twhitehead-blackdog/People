@@ -3598,9 +3598,9 @@ export class HomeComponent {
 
     // Empleados que ingresaron este mes (start_date en el mes actual)
     const hires = this.employees
-      .entities()
+      ['entities']()
       .filter(
-        (x) =>
+        (x: any) =>
           x.start_date &&
           new Date(x.start_date) >= monthStart &&
           new Date(x.start_date) <= monthEnd
@@ -4617,7 +4617,7 @@ export class HomeComponent {
         branch: x.branch,
         position: x.position,
       }))
-      .sort((a, b) => {
+      .sort((a: any, b: any) => {
         if (!a.start_date || !b.start_date) return 0;
         return (
           new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
@@ -4651,7 +4651,7 @@ export class HomeComponent {
         reason: t.reason,
         employee: this.employees.entities().find((e) => e.id === t.employee_id),
       }))
-      .sort((a, b) => {
+      .sort((a: any, b: any) => {
         if (!a.date || !b.date) return 0;
         return new Date(a.date).getTime() - new Date(b.date).getTime();
       });
@@ -4740,7 +4740,7 @@ export class HomeComponent {
         branch: x.branch,
         position: x.position,
       }))
-      .sort((a, b) => {
+      .sort((a: any, b: any) => {
         if (!a.start_date || !b.start_date) return 0;
         const aDate: Date | string = a.start_date as any;
         const bDate: Date | string = b.start_date as any;
@@ -4827,7 +4827,7 @@ export class HomeComponent {
         reason: t.reason,
         employee: this.employees.entities().find((e) => e.id === t.employee_id),
       }))
-      .sort((a, b) => {
+      .sort((a: any, b: any) => {
         if (!a.date || !b.date) return 0;
         const aDateValue: Date | string = a.date as any;
         const bDateValue: Date | string = b.date as any;
@@ -4846,7 +4846,7 @@ export class HomeComponent {
     }
     return this.state
       .employeesByBranch()
-      .map((x) => x.branch?.name || 'Sin sucursal');
+      .map((x: any) => x.branch?.name || 'Sin sucursal');
   });
 
   public branchData = computed(() => {
@@ -4854,7 +4854,7 @@ export class HomeComponent {
       return [];
     }
 
-    const counts = this.state.employeesByBranch().map((x) => x.count);
+        const counts = this.state.employeesByBranch().map((x: any) => x.count);
     const colors = this.generateCorporateColors(counts.length);
     return [
       {

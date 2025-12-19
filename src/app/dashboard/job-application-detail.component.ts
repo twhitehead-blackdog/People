@@ -364,7 +364,7 @@ export class JobApplicationDetailComponent implements OnInit {
       });
 
       // Recargar aplicaciones
-      this.jobApplicationsStore.reloadItems();
+      this.jobApplicationsStore['reloadItems']();
 
       // Cerrar diálogo
       this.close();

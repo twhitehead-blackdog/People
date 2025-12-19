@@ -31,8 +31,8 @@ export const EmployeesStore = signalStore(
   withComputed((state) => {
     const employeesList = computed(() =>
       state
-        .entities()
-        .map((item) => ({
+        ['entities']()
+        .map((item: any) => ({
           ...item,
           full_name: `${item.first_name} ${item.middle_name} ${item.father_name} ${item.mother_name}`,
           short_name: `${item.first_name} ${item.father_name}`,
@@ -40,20 +40,20 @@ export const EmployeesStore = signalStore(
           probatory:
             differenceInMonths(new Date(), item.start_date ?? new Date()) < 3,
         }))
-        .sort((a, b) => a.full_name.localeCompare(b.full_name))
+        .sort((a: any, b: any) => a.full_name.localeCompare(b.full_name))
     );
     const activeEmployees = computed(() =>
-      employeesList().filter((x) => x.is_active)
+      employeesList().filter((x: any) => x.is_active)
     );
     return {
       employeesList,
       activeEmployees,
     };
   }),
-  withMethods((state) => ({
+  withMethods((state: any) => ({
     terminateEmployee(request: Termination) {
       patchState(state, { isLoading: true, error: null });
-      const companyId = state._orgService.getCurrentCompanyId();
+      const companyId = state['_orgService'].getCurrentCompanyId();
       const params: any = { id: `eq.${request.employee_id}` };
 
       // Agregar filtro por company_id para seguridad
@@ -61,14 +61,14 @@ export const EmployeesStore = signalStore(
         params.company_id = `eq.${companyId}`;
       }
 
-      return state._http
+      return state['_http']
         .post(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/terminations`,
           request
         )
         .pipe(
           exhaustMap(() =>
-            state._http.patch(
+            state['_http'].patch(
               `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
               {
                 is_active: false,
@@ -101,7 +101,7 @@ export const EmployeesStore = signalStore(
     },
     saveTimeOff(request: TimeOff) {
       patchState(state, { isLoading: true, error: null });
-      return state._http
+      return state['_http']
         .post(`${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`, request)
         .pipe(
           tapResponse({
@@ -126,7 +126,7 @@ export const EmployeesStore = signalStore(
     },
     fetchTimeOffTypes() {
       patchState(state, { isLoading: true });
-      return state._http
+      return state['_http']
         .get<TimeOff[]>(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoff_types`
         )

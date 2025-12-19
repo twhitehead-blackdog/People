@@ -547,15 +547,15 @@ export class OrganigramaComponent {
   public originalStructure = signal<Map<string, Set<string | null>>>(new Map());
 
   public availablePositions = computed(() => {
-    return this.positionsStore.entities();
+    return this.positionsStore['entities']();
   });
 
   public employees = computed(() => {
-    return this.employeesStore.entities().filter((e) => e.is_active);
+    return this.employeesStore['entities']().filter((e: any) => e.is_active);
   });
 
   public getEmployeeCount(positionId: string): number {
-    return this.employees().filter((e) => e.position_id === positionId).length;
+    return this.employees().filter((e: any) => e.position_id === positionId).length;
   }
 
   public getParentIds(positionId: string): (string | null)[] {
@@ -571,7 +571,7 @@ export class OrganigramaComponent {
 
   public getParentOptions(currentPositionId: string) {
     return this.availablePositions().filter(
-      (p) => p.id !== currentPositionId
+      (p: any) => p.id !== currentPositionId
     );
   }
   
@@ -668,7 +668,7 @@ export class OrganigramaComponent {
 
     // Encontrar posiciones raíz (sin padres configurados)
     const rootPositions = configuredPositions.filter(
-      (p) => {
+      (p: any) => {
         const parents = structure.get(p.id);
         // Es raíz si no tiene padres configurados o el set está vacío
         return !parents || parents.size === 0;
@@ -679,17 +679,17 @@ export class OrganigramaComponent {
     // Si una posición tiene múltiples padres, aparecerá bajo el primer padre en el árbol
     const buildTree = (position: Position): OrgNode => {
       const positionEmployees = employees.filter(
-        (e) => e.position_id === position.id
+        (e: any) => e.position_id === position.id
       );
       
       // Encontrar hijos: posiciones que tienen esta posición como uno de sus padres
       const children = configuredPositions
-        .filter((p) => {
+        .filter((p: any) => {
           const parents = structure.get(p.id);
           if (!parents || parents.size === 0) return false;
           return parents.has(position.id);
         })
-        .map((p) => buildTree(p));
+        .map((p: any) => buildTree(p));
 
       return {
         position,
@@ -699,7 +699,7 @@ export class OrganigramaComponent {
       };
     };
 
-    return rootPositions.map((p) => buildTree(p));
+    return rootPositions.map((p: any) => buildTree(p));
   });
 
   // Convertir el árbol a formato compatible con PrimeNG OrganizationChart
@@ -749,13 +749,13 @@ export class OrganigramaComponent {
           employees: [],
         },
         expanded: true,
-        children: nodes.map(node => convertToPrimeNGFormat(node)),
+        children: nodes.map((node: any) => convertToPrimeNGFormat(node)),
       }];
       console.log('Multiple roots, created virtual root:', result);
       return result;
     }
 
-    const result = nodes.map(node => convertToPrimeNGFormat(node));
+    const result = nodes.map((node: any) => convertToPrimeNGFormat(node));
     console.log('Single root result:', result);
     return result;
   });

@@ -104,7 +104,7 @@ import { PayrollDebtsFormComponent } from './payroll-debts-form.component';
             >
               <p-multiSelect
                 [ngModel]="value"
-                [options]="creditors.entities()"
+                [options]="creditors['entities']()"
                 placeholder="TODOS"
                 (onChange)="filter($event.value)"
                 optionLabel="name"

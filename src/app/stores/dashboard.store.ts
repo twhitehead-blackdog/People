@@ -54,23 +54,23 @@ export const DashboardStore = signalStore(
   withComputed(
     ({ employees, branches, companies, selectedCompanyId, auth, testMode }) => {
       const headCount = computed(() => {
-        const allEmployees = employees.entities();
-        const activeEmployees = allEmployees.filter((x) => x.is_active);
+        const allEmployees = employees['entities']();
+        const activeEmployees = allEmployees.filter((x: any) => x.is_active);
         return activeEmployees.length;
       });
 
       const currentEmployee = computed(() => {
         const employeeId = auth.currentEmployeeId();
-        const allEmployees = employees.entities();
-        return allEmployees.find((x) => x.id === employeeId);
+        const allEmployees = employees['entities']();
+        return allEmployees.find((x: any) => x.id === employeeId);
       });
 
       const monthlyBudget = computed(() => {
         const MAX_SALARY = 999999999; // Límite máximo para evitar overflow
         const total = employees
           .employeesList()
-          .filter((x) => x.is_active)
-          .reduce((acc, current) => {
+          .filter((x: any) => x.is_active)
+          .reduce((acc: number, current: any) => {
             const salary = current.monthly_salary || 0;
             // Validar que el salario no exceda el límite y que sea un número válido
             if (isNaN(salary) || salary < 0 || salary > MAX_SALARY) {
@@ -200,21 +200,21 @@ export const DashboardStore = signalStore(
       const currentBranch = computed(() => currentEmployee()?.branch);
 
       const branchesCount = computed(
-        () => branches.entities().filter((x) => x.is_active).length
+        () => branches['entities']().filter((x: any) => x.is_active).length
       );
 
       const selectedCompany = computed(() =>
-        companies.entities().find((x) => x.id === selectedCompanyId())
+        companies['entities']().find((x: any) => x.id === selectedCompanyId())
       );
 
       const employeesByGender = computed(() =>
-        employees.entities().reduce<
+        employees['entities']().reduce<
           {
             gender: string;
             count: number;
           }[]
-        >((acc, item) => {
-          const index = acc.findIndex((x) => x.gender === item.gender);
+        >((acc: any, item: any) => {
+          const index = acc.findIndex((x: any) => x.gender === item.gender);
           if (index !== -1) {
             acc[index].count++;
           } else {
@@ -226,9 +226,9 @@ export const DashboardStore = signalStore(
 
       const countByGender = computed(() =>
         employees
-          .entities()
-          .filter((x) => x.is_active)
-          .reduce((acc, item) => {
+          ['entities']()
+          .filter((x: any) => x.is_active)
+          .reduce((acc: any, item: any) => {
             acc[item.gender] = (acc[item.gender] || 0) + 1;
             return acc;
           }, {} as Record<string, number>)
@@ -236,20 +236,20 @@ export const DashboardStore = signalStore(
 
       const birthDates = computed(() =>
         employees
-          .entities()
-          .filter((x) => x.is_active)
+          ['entities']()
+          .filter((x: any) => x.is_active)
           .filter(
-            (x) =>
+            (x: any) =>
               x.birth_date &&
               (x.birth_date as unknown as string) !== '1970-01-01'
           )
-          .filter((x) => getMonth(x.birth_date!) === getMonth(new Date()))
+          .filter((x: any) => getMonth(x.birth_date!) === getMonth(new Date()))
           .sort(
-            (a, b) =>
+            (a: any, b: any) =>
               new Date(a.birth_date!).getDate() -
               new Date(b.birth_date!).getDate()
           )
-          .map(({ first_name, father_name, birth_date, branch }) => ({
+          .map(({ first_name, father_name, birth_date, branch }: any) => ({
             first_name,
             father_name,
             birth_date,
@@ -260,15 +260,15 @@ export const DashboardStore = signalStore(
       const employeesByBranch = computed(() =>
         employees
           .employeesList()
-          .filter((x) => x.is_active)
+          .filter((x: any) => x.is_active)
           .reduce<
             {
               branch: Branch | undefined;
               count: number;
             }[]
-          >((acc, item) => {
+          >((acc: any, item: any) => {
             const itemIndex = acc.findIndex(
-              (x) => x.branch?.id === item.branch_id
+              (x: any) => x.branch?.id === item.branch_id
             );
             if (itemIndex !== -1) {
               acc[itemIndex].count++;
@@ -280,7 +280,7 @@ export const DashboardStore = signalStore(
       );
 
       const employeesList = computed(() =>
-        employees.entities().map((item) => ({
+        employees['entities']().map((item: any) => ({
           ...item,
           full_name: `${item.first_name} ${item.middle_name} ${item.father_name} ${item.mother_name}`,
           short_name: `${item.first_name} ${item.father_name}`,
@@ -295,15 +295,15 @@ export const DashboardStore = signalStore(
         const now = new Date();
         const monthStart = startOfMonth(now);
         const monthEnd = endOfMonth(now);
-        const activeEmployees = employees.entities().filter((x) => x.is_active);
+        const activeEmployees = employees['entities']().filter((x: any) => x.is_active);
         const totalEmployees = activeEmployees.length;
 
         if (totalEmployees === 0) return 0;
 
         const terminatedThisMonth = employees
-          .entities()
+          ['entities']()
           .filter(
-            (x) =>
+            (x: any) =>
               x.end_date &&
               new Date(x.end_date) >= monthStart &&
               new Date(x.end_date) <= monthEnd
@@ -318,15 +318,15 @@ export const DashboardStore = signalStore(
         const now = new Date();
         const yearStart = startOfMonth(subMonths(now, 11));
         const yearEnd = endOfMonth(now);
-        const activeEmployees = employees.entities().filter((x) => x.is_active);
+        const activeEmployees = employees['entities']().filter((x: any) => x.is_active);
         const totalEmployees = activeEmployees.length;
 
         if (totalEmployees === 0) return 0;
 
         const terminatedThisYear = employees
-          .entities()
+          ['entities']()
           .filter(
-            (x) =>
+            (x: any) =>
               x.end_date &&
               new Date(x.end_date) >= yearStart &&
               new Date(x.end_date) <= yearEnd
@@ -340,7 +340,7 @@ export const DashboardStore = signalStore(
       // Antigüedad promedio
       const averageTenure = computed(() => {
         const activeEmployees = employees
-          .entities()
+          ['entities']()
           .filter((x) => x.is_active && x.start_date);
 
         if (activeEmployees.length === 0) return 0;
@@ -361,7 +361,7 @@ export const DashboardStore = signalStore(
           const branchEmployees = employees
             .employeesList()
             .filter(
-              (x) =>
+              (x: any) =>
                 x.is_active && x.branch_id === item.branch?.id && x.start_date
             );
 
@@ -389,7 +389,7 @@ export const DashboardStore = signalStore(
       // Nota: El cálculo real se hace en el componente usando httpResource
       // porque httpResource no puede estar dentro de withComputed
       const monthlyAbsenteeism = computed(() => {
-        const activeEmployees = employees.entities().filter((x) => x.is_active);
+        const activeEmployees = employees['entities']().filter((x: any) => x.is_active);
         const totalEmployees = activeEmployees.length;
 
         if (totalEmployees === 0) return { percentage: 0, totalDays: 0 };
@@ -413,7 +413,7 @@ export const DashboardStore = signalStore(
 
       // Distribución por tipo de contrato
       const contractDistribution = computed(() => {
-        const activeEmployees = employees.entities().filter((x) => x.is_active);
+        const activeEmployees = employees['entities']().filter((x: any) => x.is_active);
         const now = new Date();
 
         const fixed = activeEmployees.filter(
@@ -458,7 +458,7 @@ export const DashboardStore = signalStore(
       const averageSalary = computed(() => {
         const activeEmployees = employees
           .employeesList()
-          .filter((x) => x.is_active);
+          .filter((x: any) => x.is_active);
 
         if (activeEmployees.length === 0) return 0;
 
@@ -474,7 +474,7 @@ export const DashboardStore = signalStore(
       // Placeholder: usando planilla mensual como proxy
       // En producción debería usar ingresos reales de la empresa
       const peopleEfficiencyRatio = computed(() => {
-        const activeEmployees = employees.entities().filter((x) => x.is_active);
+        const activeEmployees = employees['entities']().filter((x: any) => x.is_active);
         const totalEmployees = activeEmployees.length;
 
         if (totalEmployees === 0) return 0;
@@ -490,15 +490,15 @@ export const DashboardStore = signalStore(
         const now = new Date();
         const monthStart = startOfMonth(now);
         const monthEnd = endOfMonth(now);
-        const activeEmployees = employees.entities().filter((x) => x.is_active);
+        const activeEmployees = employees['entities']().filter((x: any) => x.is_active);
         const totalEmployees = activeEmployees.length;
 
         if (totalEmployees === 0) return 0;
 
         const hiredThisMonth = employees
-          .entities()
+          ['entities']()
           .filter(
-            (x) =>
+            (x: any) =>
               x.start_date &&
               new Date(x.start_date) >= monthStart &&
               new Date(x.start_date) <= monthEnd &&
@@ -516,9 +516,9 @@ export const DashboardStore = signalStore(
         const monthEnd = endOfMonth(now);
 
         return employees
-          .entities()
+          ['entities']()
           .filter(
-            (x) =>
+            (x: any) =>
               x.start_date &&
               new Date(x.start_date) >= monthStart &&
               new Date(x.start_date) <= monthEnd &&
@@ -529,9 +529,9 @@ export const DashboardStore = signalStore(
       // Empleados en período de prueba
       const probatoryEmployees = computed(() => {
         return employees
-          .entities()
+          ['entities']()
           .filter(
-            (x) =>
+            (x: any) =>
               x.is_active &&
               x.start_date &&
               differenceInMonths(new Date(), new Date(x.start_date)) < 3
@@ -545,9 +545,9 @@ export const DashboardStore = signalStore(
 
         // Empleados que estaban activos al inicio del período (empezaron antes del inicio del año)
         const employeesAtYearStart = employees
-          .entities()
+          ['entities']()
           .filter(
-            (x) =>
+            (x: any) =>
               x.start_date &&
               new Date(x.start_date) <= yearStart &&
               (!x.end_date || new Date(x.end_date) >= yearStart)
@@ -557,9 +557,9 @@ export const DashboardStore = signalStore(
 
         // Empleados que estaban al inicio y siguen activos actualmente
         const employeesStillActive = employees
-          .entities()
+          ['entities']()
           .filter(
-            (x) =>
+            (x: any) =>
               x.is_active &&
               x.start_date &&
               new Date(x.start_date) <= yearStart &&
@@ -574,15 +574,15 @@ export const DashboardStore = signalStore(
       const employeesByDepartment = computed(() =>
         employees
           .employeesList()
-          .filter((x) => x.is_active)
+          .filter((x: any) => x.is_active)
           .reduce<
             {
               department: Department | undefined;
               count: number;
             }[]
-          >((acc, item) => {
+          >((acc: any, item: any) => {
             const itemIndex = acc.findIndex(
-              (x) => x.department?.id === item.department_id
+              (x: any) => x.department?.id === item.department_id
             );
             if (itemIndex !== -1) {
               acc[itemIndex].count++;
@@ -597,15 +597,15 @@ export const DashboardStore = signalStore(
       const employeesByPosition = computed(() =>
         employees
           .employeesList()
-          .filter((x) => x.is_active)
+          .filter((x: any) => x.is_active)
           .reduce<
             {
               position: Position | undefined;
               count: number;
             }[]
-          >((acc, item) => {
+          >((acc: any, item: any) => {
             const itemIndex = acc.findIndex(
-              (x) => x.position?.id === item.position_id
+              (x: any) => x.position?.id === item.position_id
             );
             if (itemIndex !== -1) {
               acc[itemIndex].count++;
@@ -619,9 +619,9 @@ export const DashboardStore = signalStore(
       // Promedio de edad
       const averageAge = computed(() => {
         const activeEmployees = employees
-          .entities()
+          ['entities']()
           .filter(
-            (x) =>
+            (x: any) =>
               x.is_active &&
               x.birth_date &&
               (x.birth_date as unknown as string) !== '1970-01-01'
@@ -648,9 +648,9 @@ export const DashboardStore = signalStore(
       // Distribución etaria
       const ageDistribution = computed(() => {
         const activeEmployees = employees
-          .entities()
+          ['entities']()
           .filter(
-            (x) =>
+            (x: any) =>
               x.is_active &&
               x.birth_date &&
               (x.birth_date as unknown as string) !== '1970-01-01'
@@ -691,9 +691,9 @@ export const DashboardStore = signalStore(
       // Empleados con deudas pendientes
       const employeesWithDebts = computed(() => {
         return employees
-          .entities()
+          ['entities']()
           .filter(
-            (x) =>
+            (x: any) =>
               x.is_active &&
               x.debts &&
               x.debts.length > 0 &&
@@ -703,11 +703,11 @@ export const DashboardStore = signalStore(
 
       const totalDebtAmount = computed(() => {
         return employees
-          .entities()
+          ['entities']()
           .filter((x) => x.is_active && x.debts && x.debts.length > 0)
-          .reduce((acc, emp) => {
+          .reduce((acc: any, emp: any) => {
             const employeeDebt = emp.debts!.reduce(
-              (sum, debt) => sum + (debt.balance || 0),
+              (sum: number, debt: any) => sum + (debt.balance || 0),
               0
             );
             return acc + employeeDebt;
@@ -716,7 +716,7 @@ export const DashboardStore = signalStore(
 
       // Costo por empleado
       const costPerEmployee = computed(() => {
-        const activeEmployees = employees.entities().filter((x) => x.is_active);
+        const activeEmployees = employees['entities']().filter((x: any) => x.is_active);
         const totalEmployees = activeEmployees.length;
 
         if (totalEmployees === 0) return 0;
@@ -726,7 +726,7 @@ export const DashboardStore = signalStore(
 
       // Ratio de supervisión (empleados por supervisor/admin)
       const supervisionRatio = computed(() => {
-        const activeEmployees = employees.entities().filter((x) => x.is_active);
+        const activeEmployees = employees['entities']().filter((x: any) => x.is_active);
         const supervisors = activeEmployees.filter(
           (x) => x.position?.admin || x.position?.schedule_admin
         ).length;
@@ -743,9 +743,9 @@ export const DashboardStore = signalStore(
         thirtyDaysFromNow.setDate(now.getDate() + 30);
 
         return employees
-          .entities()
-          .filter((x) => x.is_active && x.start_date)
-          .map((emp) => {
+          ['entities']()
+          .filter((x: any) => x.is_active && x.start_date)
+          .map((emp: any) => {
             const startDate = new Date(emp.start_date!);
             const thisYearAnniversary = new Date(
               now.getFullYear(),
@@ -772,12 +772,12 @@ export const DashboardStore = signalStore(
             };
           })
           .filter(
-            (item) =>
+            (item: any) =>
               item.anniversaryDate >= now &&
               item.anniversaryDate <= thirtyDaysFromNow
           )
           .sort(
-            (a, b) => a.anniversaryDate.getTime() - b.anniversaryDate.getTime()
+            (a: any, b: any) => a.anniversaryDate.getTime() - b.anniversaryDate.getTime()
           )
           .slice(0, 10); // Top 10 próximos aniversarios
       });
@@ -790,9 +790,9 @@ export const DashboardStore = signalStore(
         const lastMonthEnd = endOfMonth(lastMonth);
 
         const employeesLastMonth = employees
-          .entities()
+          ['entities']()
           .filter(
-            (x) =>
+            (x: any) =>
               x.start_date &&
               new Date(x.start_date) <= lastMonthEnd &&
               (x.is_active ||
@@ -800,8 +800,8 @@ export const DashboardStore = signalStore(
           ).length;
 
         const currentEmployees = employees
-          .entities()
-          .filter((x) => x.is_active).length;
+          ['entities']()
+          .filter((x: any) => x.is_active).length;
 
         if (employeesLastMonth === 0) return 0;
 
@@ -823,13 +823,13 @@ export const DashboardStore = signalStore(
           now.getDate()
         );
 
-        return employees.entities().filter(
+        return employees['entities']().filter(
           (x) =>
             x.is_active &&
             x.gender === 'F' &&
             x.timeoffs &&
             x.timeoffs.length > 0 &&
-            x.timeoffs.some((timeoff) => {
+            x.timeoffs.some((timeoff: any) => {
               const fromDate = new Date(timeoff.date_from);
               const toDate = new Date(timeoff.date_to);
               const from = new Date(

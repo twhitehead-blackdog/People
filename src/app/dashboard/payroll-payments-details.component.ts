@@ -1201,9 +1201,9 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
       ['Fecha de generación: ' + new Date().toISOString()], // empty row for spacing
       // your actual data
     ]);
-    const branches = this.dashboardStore.branches.entities();
+    const branches = this.dashboardStore.branches['entities']();
     let currentRow = 5;
-    branches.forEach((branch) => {
+    branches.forEach((branch: any) => {
       utils.sheet_add_aoa(ws, [[branch.name.toUpperCase()]], {
         origin: `A${currentRow + 1}`,
       });

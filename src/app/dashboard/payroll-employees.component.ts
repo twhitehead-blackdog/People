@@ -196,7 +196,7 @@ export class PayrollEmployeesComponent {
   }
 
   massiveCharge() {
-    const items = this.employeesStore.activeEmployees().map((item) => ({
+    const items = this.employeesStore.activeEmployees().map((item: any) => ({
       payroll_id: this.payrollId(),
       employee_id: item.id,
       monthly_salary: item.monthly_salary,

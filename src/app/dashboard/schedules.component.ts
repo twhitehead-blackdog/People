@@ -120,7 +120,7 @@ import { SchedulesFormComponent } from './schedules-form.component';
 })
 export class SchedulesComponent {
   public store = inject(SchedulesStore);
-  public schedules = computed(() => [...this.store.entities()]);
+  public schedules = computed(() => [...this.store['entities']()]);
 
   public dialogService = inject(DialogService);
   private ref = inject(DynamicDialogRef);

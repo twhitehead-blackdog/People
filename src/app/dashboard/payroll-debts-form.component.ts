@@ -58,7 +58,7 @@ import { PayrollsStore } from '../stores/payrolls.store';
           inputId="payroll"
           formControlName="payroll_id"
           fluid
-          [options]="store.entities()"
+          [options]="store['entities']()"
           optionLabel="name"
           optionValue="id"
           placeholder="---Seleccione una planilla---"
@@ -73,7 +73,7 @@ import { PayrollsStore } from '../stores/payrolls.store';
           inputId="creditor"
           formControlName="creditor_id"
           fluid
-          [options]="creditors.entities()"
+          [options]="creditors['entities']()"
           optionLabel="name"
           optionValue="id"
           placeholder="---Seleccione un credor---"

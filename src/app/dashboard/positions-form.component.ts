@@ -39,7 +39,7 @@ import { DashboardStore } from '../stores/dashboard.store';
           <p-select
             inputId="department_id"
             formControlName="department_id"
-            [options]="store.departments.entities()"
+            [options]="store.departments['entities']()"
             optionLabel="name"
             optionValue="id"
             placeholder="Seleccione un área"

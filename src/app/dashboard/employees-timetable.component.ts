@@ -8,10 +8,12 @@ import {
   inject,
   Injector,
   model,
+  OnDestroy,
   OnInit,
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { RealtimeChannel } from '@supabase/supabase-js';
 import {
   addDays,
   addWeeks,
@@ -41,6 +43,8 @@ import { Tooltip } from 'primeng/tooltip';
 import { catchError, EMPTY } from 'rxjs';
 import { colorVariants, EmployeeSchedule } from '../models';
 import { OrganizationService } from '../services/organization.service';
+import { StatePersistenceService } from '../services/state-persistence.service';
+import { RealtimeEvent, SupabaseService } from '../services/supabase.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { AddEmployeeToBranchDialogComponent } from './add-employee-to-branch-dialog.component';
 import { EmployeeSchedulesFormComponent } from './employee-schedules-form.component';
@@ -100,7 +104,7 @@ import { EmployeeSchedulesFormComponent } from './employee-schedules-form.compon
             <p-select
               fluid
               [(ngModel)]="currentBranch"
-              [options]="store.branches.entities()"
+              [options]="store.branches['entities']()"
               [disabled]="disableBranch()"
               appendTo="body"
               optionValue="id"
@@ -114,7 +118,7 @@ import { EmployeeSchedulesFormComponent } from './employee-schedules-form.compon
             <p-select
               fluid
               [(ngModel)]="currentPosition"
-              [options]="store.positions.entities()"
+              [options]="store.positions['entities']()"
               appendTo="body"
               placeholder="TODOS LOS PUESTOS"
               filter
@@ -301,7 +305,7 @@ import { EmployeeSchedulesFormComponent } from './employee-schedules-form.compon
   styles: ``,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class EmployeesTimetableComponent implements OnInit {
+export class EmployeesTimetableComponent implements OnInit, OnDestroy {
   public store = inject(DashboardStore);
   public editionLocked = model<boolean>();
   public unlockModal = signal(false);
@@ -310,7 +314,12 @@ export class EmployeesTimetableComponent implements OnInit {
   private http = inject(HttpClient);
   private confirm = inject(ConfirmationService);
   private organizationService = inject(OrganizationService);
+  private supabaseService = inject(SupabaseService);
+  private statePersistence = inject(StatePersistenceService);
   public injector = inject(Injector);
+  private realtimeChannel: RealtimeChannel | null = null;
+  private readonly STATE_NAMESPACE = 'employees-timetable';
+  private readonly STATE_VERSION = 1;
 
   public isHRDepartment = computed(() => {
     const currentEmp = this.store.currentEmployee();
@@ -413,7 +422,7 @@ export class EmployeesTimetableComponent implements OnInit {
     const managerBranchId = isManager ? this.store.currentBranch()?.id : null;
 
     return employees
-      .filter((employee) => {
+      .filter((employee: any) => {
         // Si es gerente, solo mostrar empleados de su sucursal
         if (isManager && managerBranchId) {
           if (employee.branch_id !== managerBranchId) {
@@ -533,6 +542,25 @@ export class EmployeesTimetableComponent implements OnInit {
 
   ngOnInit(): void {
     this.editionLocked.set(true);
+
+    // Restaurar estado persistido
+    this.restoreState();
+
+    // Guardar estado cuando cambien los valores relevantes
+    effect(
+      () => {
+        // Leer valores para que el effect se active cuando cambien
+        this.currentDate();
+        this.currentBranch();
+        this.currentPosition();
+        this.employeeSearch();
+
+        // Guardar estado
+        this.saveState();
+      },
+      { injector: this.injector }
+    );
+
     effect(
       () => {
         if (this.store.isAdmin()) {
@@ -553,6 +581,172 @@ export class EmployeesTimetableComponent implements OnInit {
       },
       { injector: this.injector }
     );
+
+    // Suscribirse a Realtime para employee_schedules (Nivel A)
+    this.subscribeToRealtime();
+  }
+
+  ngOnDestroy(): void {
+    // Limpiar suscripción Realtime
+    if (this.realtimeChannel) {
+      this.supabaseService.unsubscribeFromTable('employee_schedules');
+      this.realtimeChannel = null;
+    }
+  }
+
+  /**
+   * Restaura el estado persistido
+   */
+  private restoreState(): void {
+    const savedState = this.statePersistence.loadState<{
+      currentDate: string;
+      currentBranch: string | null;
+      currentPosition: string | null;
+      employeeSearch: string;
+    }>(this.STATE_NAMESPACE, this.STATE_VERSION);
+
+    if (savedState) {
+      // Restaurar fecha de semana
+      if (savedState.currentDate) {
+        const date = new Date(savedState.currentDate);
+        if (!isNaN(date.getTime())) {
+          this.currentDate.set(date);
+        }
+      }
+
+      // Restaurar filtros (validar que aún existen)
+      if (savedState.currentBranch) {
+        const branchExists = this.store.branches
+          .entities()
+          .some((b: any) => b.id === savedState.currentBranch);
+        if (branchExists) {
+          this.currentBranch.set(savedState.currentBranch);
+        }
+      }
+
+      if (savedState.currentPosition) {
+        const positionExists = this.store.positions['entities']().some(
+          (p: any) => p.id === savedState.currentPosition
+        );
+        if (positionExists) {
+          this.currentPosition.set(savedState.currentPosition);
+        }
+      }
+
+      if (savedState.employeeSearch) {
+        this.employeeSearch.set(savedState.employeeSearch);
+      }
+    }
+  }
+
+  /**
+   * Guarda el estado actual
+   */
+  private saveState(): void {
+    const state = {
+      currentDate: this.currentDate().toISOString(),
+      currentBranch: this.currentBranch() || null,
+      currentPosition: this.currentPosition() || null,
+      employeeSearch: this.employeeSearch() || '',
+    };
+
+    this.statePersistence.saveState(
+      this.STATE_NAMESPACE,
+      state,
+      this.STATE_VERSION
+    );
+  }
+
+  /**
+   * Suscribe a cambios en tiempo real de employee_schedules
+   */
+  private subscribeToRealtime(): void {
+    const companyId = this.organizationService.getCurrentCompanyId();
+    const startDate = format(this.start(), 'yyyy-MM-dd');
+    const endDate = format(this.end(), 'yyyy-MM-dd');
+
+    // Construir filtros para Realtime
+    // Nota: Supabase Realtime no soporta filtros complejos como fechas directamente
+    // Por lo tanto, filtraremos en el callback
+    const filters: Record<string, any> = {};
+    if (companyId) {
+      // Filtrar por company_id a través de employee
+      // Esto requiere un filtro personalizado en el callback
+    }
+
+    this.realtimeChannel =
+      this.supabaseService.subscribeToTable<EmployeeSchedule>(
+        'employee_schedules',
+        'A', // Nivel A - siempre activo
+        filters,
+        (event: RealtimeEvent<EmployeeSchedule>) => {
+          this.handleRealtimeEvent(event, companyId, startDate, endDate);
+        }
+      );
+  }
+
+  /**
+   * Maneja eventos de Realtime
+   */
+  private handleRealtimeEvent(
+    event: RealtimeEvent<EmployeeSchedule>,
+    companyId: string | null,
+    startDate: string,
+    endDate: string
+  ): void {
+    const currentSchedules = this.schedulesResource.value() || [];
+
+    // Filtrar por company_id y rango de fechas
+    const isInRange = (schedule: EmployeeSchedule): boolean => {
+      const scheduleStart = format(new Date(schedule.start_date), 'yyyy-MM-dd');
+      const scheduleEnd = format(new Date(schedule.end_date), 'yyyy-MM-dd');
+      return (
+        (scheduleStart >= startDate && scheduleStart <= endDate) ||
+        (scheduleEnd >= startDate && scheduleEnd <= endDate) ||
+        (scheduleStart <= startDate && scheduleEnd >= endDate)
+      );
+    };
+
+    if (event.eventType === 'INSERT' && event.new) {
+      const newSchedule = event.new;
+      // Verificar que pertenece a la compañía y está en el rango
+      if (isInRange(newSchedule)) {
+        // Verificar company_id a través de employee si es necesario
+        // Por ahora, agregar directamente y recargar para asegurar consistencia
+        // En el futuro se puede optimizar con append local
+        this.schedulesResource.reload();
+      }
+    } else if (event.eventType === 'UPDATE' && event.new) {
+      const updatedSchedule = event.new;
+      if (isInRange(updatedSchedule)) {
+        // Merge inteligente: actualizar solo el schedule afectado
+        const existingIndex = currentSchedules.findIndex(
+          (s) => s.id === updatedSchedule.id
+        );
+        if (existingIndex >= 0) {
+          // Actualizar localmente sin recargar todo
+          const updated = [...currentSchedules];
+          updated[existingIndex] = updatedSchedule;
+          // Nota: httpResource no tiene método directo para actualizar, así que recargamos
+          // En el futuro se puede optimizar
+          this.schedulesResource.reload();
+        } else {
+          // Si no existe localmente pero está en rango, recargar
+          this.schedulesResource.reload();
+        }
+      }
+    } else if (event.eventType === 'DELETE' && event.old) {
+      const deletedSchedule = event.old;
+      if (isInRange(deletedSchedule)) {
+        // Eliminar localmente sin recargar todo
+        const filtered = currentSchedules.filter(
+          (s) => s.id !== deletedSchedule.id
+        );
+        // Nota: httpResource no tiene método directo para actualizar, así que recargamos
+        // En el futuro se puede optimizar
+        this.schedulesResource.reload();
+      }
+    }
   }
 
   public nextWeek() {

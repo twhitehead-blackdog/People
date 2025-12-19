@@ -785,7 +785,7 @@ export class JobFairFormComponent implements OnInit {
     // Usar las posiciones de Black Dog cargadas específicamente para la feria
     // Si no hay posiciones cargadas, usar el store como fallback
     const jobFairPos = this.jobFairPositions();
-    const storePos = this.positionsStore.entities();
+    const storePos = this.positionsStore['entities']();
     const allPositions = jobFairPos.length > 0 ? jobFairPos : storePos;
 
     // Si no hay posiciones cargadas, retornar array vacío
@@ -797,7 +797,7 @@ export class JobFairFormComponent implements OnInit {
     // Filtrar solo las posiciones que están disponibles para la feria de empleo
     // Si available_for_job_fair es null o undefined, asumir que está disponible (true por defecto)
     const availablePositions = allPositions.filter(
-      (pos) => pos.available_for_job_fair !== false
+      (pos: any) => pos.available_for_job_fair !== false
     );
 
     console.log('Total de posiciones cargadas:', allPositions.length);
@@ -1041,7 +1041,7 @@ export class JobFairFormComponent implements OnInit {
       const blackdogCompanyId = this.orgService.getBlackdogCompanyId();
       if (!blackdogCompanyId) {
         console.warn('⚠️ No se encontró company_id de Black Dog, cargando todas las posiciones...');
-        this.positionsStore.reloadItems();
+        this.positionsStore['reloadItems']();
         return;
       }
 

@@ -176,7 +176,7 @@ export class PositionsComponent implements OnInit {
 
   private dialog = inject(DialogService);
   private ref = inject(DynamicDialogRef);
-  public positions = computed(() => [...this.store.positions.entities()]);
+  public positions = computed(() => [...this.store.positions['entities']()]);
 
   public getDefaultViewLabel(value?: string): string {
     if (!value) return 'No definida';

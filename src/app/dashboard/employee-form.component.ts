@@ -518,7 +518,7 @@ import {
                 <div class="input-container">
                   <label for="position">Cargo</label>
                   <p-select
-                    [options]="store.positions.entities()"
+                    [options]="store.positions['entities']()"
                     optionLabel="name"
                     optionValue="id"
                     inputId="position"
@@ -530,7 +530,7 @@ import {
                 <div class="input-container">
                   <label for="department">Area</label>
                   <p-select
-                    [options]="store.departments.entities()"
+                    [options]="store.departments['entities']()"
                     optionLabel="name"
                     optionValue="id"
                     inputId="department"
@@ -542,7 +542,7 @@ import {
                 <div class="input-container">
                   <label for="branch">Sucursal</label>
                   <p-select
-                    [options]="store.branches.entities()"
+                    [options]="store.branches['entities']()"
                     optionLabel="name"
                     optionValue="id"
                     inputId="branch"
@@ -1294,7 +1294,7 @@ export class EmployeeFormComponent implements OnInit {
           // Navegar de vuelta a la lista después de editar
           this.router.navigate(['/admin/employees']);
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error al editar empleado:', error);
           this.message.add({
             severity: 'error',

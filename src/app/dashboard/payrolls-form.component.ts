@@ -40,7 +40,7 @@ import { DashboardStore } from '../stores/dashboard.store';
         <p-select
           inputId="company"
           formControlName="company_id"
-          [options]="store.companies.entities()"
+          [options]="store.companies['entities']()"
           optionLabel="name"
           optionValue="id"
         />

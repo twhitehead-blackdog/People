@@ -183,7 +183,7 @@ import { getEmployeeNumberPrefix } from '../utils/employee-number.utils';
                   >
                     <p-multiSelect
                       [ngModel]="value"
-                      [options]="store.branches.entities()"
+                      [options]="store.branches['entities']()"
                       placeholder="TODOS"
                       (onChange)="filter($event.value)"
                       optionLabel="name"
@@ -205,7 +205,7 @@ import { getEmployeeNumberPrefix } from '../utils/employee-number.utils';
                   >
                     <p-multiSelect
                       [ngModel]="value"
-                      [options]="store.departments.entities()"
+                      [options]="store.departments['entities']()"
                       placeholder="TODOS"
                       (onChange)="filter($event.value)"
                       optionLabel="name"
@@ -227,7 +227,7 @@ import { getEmployeeNumberPrefix } from '../utils/employee-number.utils';
                   >
                     <p-multiSelect
                       [ngModel]="value"
-                      [options]="store.positions.entities()"
+                      [options]="store.positions['entities']()"
                       placeholder="TODOS"
                       (onChange)="filter($event.value)"
                       optionLabel="name"
@@ -709,7 +709,7 @@ export class EmployeeListComponent implements OnInit {
   );
 
   public itemsToReports = computed(() =>
-    this.filtered().map((item) => ({
+    this.filtered().map((item: any) => ({
       Nombre: item.first_name + ' ' + item.father_name,
       Status: item.is_active ? 'ACTIVO' : 'INACTIVO',
       Cedula: item.document_id,

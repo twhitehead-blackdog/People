@@ -8,6 +8,8 @@ import {
   inject,
   Injector,
   model,
+  OnDestroy,
+  OnInit,
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -25,6 +27,7 @@ import { Tag } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { TooltipModule } from 'primeng/tooltip';
+import { RealtimeChannel } from '@supabase/supabase-js';
 import { utils, writeFile } from 'xlsx';
 import {
   Branch,
@@ -33,6 +36,8 @@ import {
   getScheduleColorInlineStyle as getColorStyle,
 } from '../models';
 import { OrganizationService } from '../services/organization.service';
+import { SupabaseService, RealtimeEvent } from '../services/supabase.service';
+import { StatePersistenceService } from '../services/state-persistence.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
 
@@ -155,7 +160,7 @@ import { EmployeesStore } from '../stores/employees.store';
           <p-select
             placeholder="--TODAS LAS SUCURSALES--"
             [(ngModel)]="branchId"
-            [options]="store.branches.entities()"
+            [options]="store.branches['entities']()"
             optionLabel="name"
             optionValue="id"
             showClear
@@ -490,7 +495,7 @@ import { EmployeesStore } from '../stores/employees.store';
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class TimelogsComponent {
+export class TimelogsComponent implements OnInit, OnDestroy {
   // Calcular el ancho máximo para los tags de alertas en columna Empleado
   public maxEmployeeTagWidth = computed(() => {
     const possibleTags = [
@@ -552,7 +557,12 @@ export class TimelogsComponent {
   public store = inject(DashboardStore);
   public onlyDelayed = signal(false);
   public organizationService = inject(OrganizationService);
+  private supabaseService = inject(SupabaseService);
+  private statePersistence = inject(StatePersistenceService);
   private injector = inject(Injector);
+  private realtimeChannel: RealtimeChannel | null = null;
+  private readonly STATE_NAMESPACE = 'timelogs';
+  private readonly STATE_VERSION = 1;
 
   // Computed para verificar si es Naz
   public isNaz = computed(() => this.organizationService.isNaz());
@@ -646,7 +656,7 @@ export class TimelogsComponent {
 
   // Computed para obtener solo empleados activos
   public activeEmployeesList = computed(() =>
-    this.employees.employeesList().filter((emp) => emp.is_active)
+    this.employees.employeesList().filter((emp: any) => emp.is_active)
   );
 
   public loading = signal(false);
@@ -1045,7 +1055,7 @@ export class TimelogsComponent {
     if (this.employeeId()) {
       const selectedEmployee = this.employees
         .employeesList()
-        .find((emp) => emp.id === this.employeeId());
+        .find((emp: any) => emp.id === this.employeeId());
       if (selectedEmployee && !uniqueEmployees.has(selectedEmployee.id)) {
         uniqueEmployees.set(selectedEmployee.id, selectedEmployee);
       }
@@ -1053,7 +1063,7 @@ export class TimelogsComponent {
 
     // Si no hay empleados únicos, usar todos los empleados activos
     if (uniqueEmployees.size === 0) {
-      this.employees.employeesList().forEach((emp) => {
+      this.employees.employeesList().forEach((emp: any) => {
         if (emp.is_active) {
           uniqueEmployees.set(emp.id, emp);
         }
@@ -1913,6 +1923,130 @@ export class TimelogsComponent {
       });
     } finally {
       this.loading.set(false);
+    }
+  }
+
+  ngOnInit(): void {
+    // Restaurar estado persistido
+    this.restoreState();
+
+    // Guardar estado cuando cambien los valores relevantes
+    effect(
+      () => {
+        // Leer valores para que el effect se active cuando cambien
+        this.dateRange();
+        this.employeeId();
+        this.branchId();
+        this.onlyDelayed();
+
+        // Guardar estado
+        this.saveState();
+      },
+      { injector: this.injector }
+    );
+
+    // Suscribirse a Realtime para timelogs (Nivel A)
+    this.subscribeToRealtime();
+  }
+
+  ngOnDestroy(): void {
+    // Limpiar suscripción Realtime
+    if (this.realtimeChannel) {
+      this.supabaseService.unsubscribeFromTable('timelogs');
+      this.realtimeChannel = null;
+    }
+  }
+
+  /**
+   * Restaura el estado persistido
+   */
+  private restoreState(): void {
+    const savedState = this.statePersistence.loadState<{
+      dateRange: string[];
+      employeeId: string | null;
+      branchId: string | null;
+      onlyDelayed: boolean;
+    }>(this.STATE_NAMESPACE, this.STATE_VERSION);
+
+    if (savedState) {
+      // Restaurar rango de fechas
+      if (savedState.dateRange && savedState.dateRange.length === 2) {
+        const start = new Date(savedState.dateRange[0]);
+        const end = new Date(savedState.dateRange[1]);
+        if (!isNaN(start.getTime()) && !isNaN(end.getTime())) {
+          this.dateRange.set([start, end]);
+        }
+      }
+
+      // Restaurar filtros
+      if (savedState.employeeId) {
+        this.employeeId.set(savedState.employeeId);
+      }
+      if (savedState.branchId) {
+        this.branchId.set(savedState.branchId);
+      }
+      if (savedState.onlyDelayed !== undefined) {
+        this.onlyDelayed.set(savedState.onlyDelayed);
+      }
+    }
+  }
+
+  /**
+   * Guarda el estado actual
+   */
+  private saveState(): void {
+    const range = this.dateRange();
+    const state = {
+      dateRange: range && range.length === 2 ? [range[0].toISOString(), range[1].toISOString()] : [],
+      employeeId: this.employeeId() || null,
+      branchId: this.branchId() || null,
+      onlyDelayed: this.onlyDelayed(),
+    };
+
+    this.statePersistence.saveState(this.STATE_NAMESPACE, state, this.STATE_VERSION);
+  }
+
+  /**
+   * Suscribe a cambios en tiempo real de timelogs
+   */
+  private subscribeToRealtime(): void {
+    const companyId = this.organizationService.getCurrentCompanyId();
+    const { start, end } = this.normalizedDateRange();
+
+    if (!start || !end) {
+      return;
+    }
+
+    // Construir filtros para Realtime
+    const filters: Record<string, any> = {};
+    if (companyId) {
+      // Filtrar por company_id a través de employee
+      filters['filter'] = `employee.company_id=eq.${companyId}`;
+    }
+
+    this.realtimeChannel = this.supabaseService.subscribeToTable<any>(
+      'timelogs',
+      'A', // Nivel A - siempre activo
+      filters,
+      (event: RealtimeEvent<any>) => {
+        this.handleRealtimeEvent(event, companyId, start, end);
+      }
+    );
+  }
+
+  /**
+   * Maneja eventos de Realtime
+   */
+  private handleRealtimeEvent(
+    event: RealtimeEvent<any>,
+    companyId: string | null,
+    start: Date,
+    end: Date
+  ): void {
+    // Para timelogs, recargar siempre porque tienen procesamiento complejo
+    // (agrupación por día, cálculos de horas, etc.)
+    if (event.eventType === 'INSERT' || event.eventType === 'UPDATE' || event.eventType === 'DELETE') {
+      this.logs.reload();
     }
   }
 }

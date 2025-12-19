@@ -306,12 +306,12 @@ export class SchedulesFormComponent implements OnInit {
     };
     if (this.dialog.data.schedule) {
       this.state
-        .editItem(request)
+        ['editItem'](request)
         .pipe()
         .subscribe(() => this.dialogRef.close());
     } else {
       this.state
-        .createItem(request)
+        ['createItem'](request)
         .pipe()
         .subscribe(() => this.dialogRef.close());
     }

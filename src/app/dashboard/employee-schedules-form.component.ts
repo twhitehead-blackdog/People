@@ -79,7 +79,7 @@ import { DashboardStore } from '../stores/dashboard.store';
         <label for="schedule_id">Turno</label>
         <p-select
           inputId="schedule_id"
-          [options]="store.schedules.entities()"
+          [options]="store.schedules['entities']()"
           optionLabel="name"
           optionValue="id"
           formControlName="schedule_id"
@@ -140,7 +140,7 @@ import { DashboardStore } from '../stores/dashboard.store';
         <p-select
           inputId="branch_id"
           formControlName="branch_id"
-          [options]="store.branches.entities()"
+          [options]="store.branches['entities']()"
           optionLabel="name"
           filter
           optionValue="id"
