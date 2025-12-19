@@ -2753,20 +2753,31 @@ export class EmployeePortalComponent {
     const compensatoryTypeId = 'f2d92995-96a0-414f-b64a-9823db776745';
 
     const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`;
-    const select = `*,type:timeoff_types(id,name),employee:employees(id,company_id)`;
+    // La tabla timeoffs tiene múltiples relaciones con employees (employee_id, reviewed_by, registered_by)
+    // No necesitamos incluir la relación employee porque:
+    // 1. approvedCompensatoryHours solo usa date_from y date_to (campos directos de timeoffs)
+    // 2. Ya filtramos por employee_id directamente, que garantiza que pertenece al empleado correcto
+    // 3. El empleado ya está filtrado por company_id a través de currentEmployee()
+    // Esto evita el error HTTP 300 cuando hay múltiples relaciones
+    const select = `*,type:timeoff_types(id,name)`;
 
     let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
     url += `&employee_id=eq.${this.currentEmployee()!.id}`;
     url += `&type_id=eq.${compensatoryTypeId}`;
     url += `&is_approved=eq.true`;
-    // Filtrar a través de employee.company_id
-    url += `&employee.company_id=eq.${companyId}`;
+    // No necesitamos filtrar por company_id porque employee_id ya garantiza que pertenece al empleado correcto
+    // y el empleado ya está filtrado por company_id a través de currentEmployee()
     url += `&order=date_from.desc`;
 
     return {
       url,
       method: 'GET',
     };
+  }, {
+    // CRÍTICO: defaultValue evita que el resource lance error si falla la primera carga
+    // Si el resource entra en estado de error, cualquier recomputación del signal vuelve a lanzar el error (loop infinito)
+    // Por eso protegemos los reload() para que no se ejecuten si status === 'error'
+    defaultValue: [],
   });
 
   // Signals para formulario de tiempo compensatorio
@@ -3003,6 +3014,11 @@ export class EmployeePortalComponent {
 
   // Horas de compensatorio aprobadas
   public approvedCompensatoryHours = computed(() => {
+    // CRÍTICO: Si el resource está en estado de error, retornar 0 en lugar de intentar acceder a value()
+    // Esto evita que el computed lance el error y entre en loop infinito
+    if (this.timeoffsApi.status() === 'error') {
+      return 0;
+    }
     const timeoffs = this.timeoffsApi.value() ?? [];
 
     // Calcular horas totales basándose en date_from y date_to
