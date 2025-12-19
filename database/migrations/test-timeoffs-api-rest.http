@@ -1,0 +1,57 @@
+### ============================================
+### TEST: Verificar sintaxis explícita de foreign key en timeoffs
+### ============================================
+### Este archivo puede usarse con REST Client extension en VS Code
+### O copiar las queries a Postman/Insomnia
+### ============================================
+
+### Variables (reemplaza estos valores)
+@supabaseUrl = https://TU_PROYECTO.supabase.co
+@anonKey = TU_ANON_KEY
+@employeeId = TU_EMPLOYEE_ID
+@companyId = TU_COMPANY_ID
+@compensatoryTypeId = f2d92995-96a0-414f-b64a-9823db776745
+
+### ============================================
+### TEST 1: Query con sintaxis explícita (debería funcionar)
+### ============================================
+GET {{supabaseUrl}}/rest/v1/timeoffs?select=*,type:timeoff_types(id,name),employee:employees!time_offs_employee_id_fkey(id,company_id)&employee_id=eq.{{employeeId}}&type_id=eq.{{compensatoryTypeId}}&is_approved=eq.true&employee.company_id=eq.{{companyId}}&order=date_from.desc
+apikey: {{anonKey}}
+Authorization: Bearer {{anonKey}}
+
+### ============================================
+### TEST 2: Query sin sintaxis explícita (debería fallar con 300)
+### ============================================
+### Descomenta para probar que sin la sintaxis explícita da error:
+# GET {{supabaseUrl}}/rest/v1/timeoffs?select=*,type:timeoff_types(id,name),employee:employees(id,company_id)&employee_id=eq.{{employeeId}}&type_id=eq.{{compensatoryTypeId}}&is_approved=eq.true&employee.company_id=eq.{{companyId}}&order=date_from.desc
+# apikey: {{anonKey}}
+# Authorization: Bearer {{anonKey}}
+
+### ============================================
+### TEST 3: Query simplificada (solo para verificar sintaxis)
+### ============================================
+GET {{supabaseUrl}}/rest/v1/timeoffs?select=*,type:timeoff_types(id,name),employee:employees!time_offs_employee_id_fkey(id,company_id)&limit=5
+apikey: {{anonKey}}
+Authorization: Bearer {{anonKey}}
+
+### ============================================
+### TEST 4: Verificar que las foreign keys existen
+### ============================================
+### Esto requiere usar el SQL Editor de Supabase, no la API REST
+### Ejecuta la query de test-timeoffs-query-syntax.sql (OPCIÓN 3)
+
+### ============================================
+### RESULTADOS ESPERADOS
+### ============================================
+### TEST 1: 
+###   ✅ Status: 200 OK
+###   ✅ Body: Array de timeoffs con type y employee embebidos
+###
+### TEST 2 (descomentado):
+###   ❌ Status: 300 OK
+###   ❌ Body: Error "Could not embed because more than one relationship..."
+###
+### TEST 3:
+###   ✅ Status: 200 OK
+###   ✅ Body: Array con máximo 5 timeoffs
+
