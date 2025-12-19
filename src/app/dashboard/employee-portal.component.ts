@@ -4003,6 +4003,8 @@ export class EmployeePortalComponent {
       // 2. Ya filtramos por employee_id directamente, que garantiza que pertenece al empleado correcto
       // 3. El empleado ya está filtrado por company_id a través de currentEmployee()
       // Esto evita el error HTTP 300 cuando hay múltiples relaciones
+      // SOLUCIÓN: No incluir employee:employees para evitar error HTTP 300
+      // approvedCompensatoryHours solo necesita date_from y date_to (campos directos)
       const select = `*,type:timeoff_types(id,name)`;
 
       let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
