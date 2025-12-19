@@ -80,6 +80,7 @@ import { EmployeesStore } from '../stores/employees.store';
         </h1>
       </div>
 
+      <!-- DEBUG: activeTabIndex en template = {{ activeTabIndex() }} -->
       <p-tabs [value]="activeTabIndex().toString()" (valueChange)="onTabChange($event)" scrollable>
         <p-tablist>
           <p-tab value="0">
@@ -107,8 +108,10 @@ import { EmployeesStore } from '../stores/employees.store';
           </p-tab>
         </p-tablist>
 
+        <!-- Contenido de tabs usando @if en lugar de p-tabpanel -->
+        @if (activeTabIndex() === 0) {
         <!-- Tab 0: Dashboard -->
-        <p-tabpanel value="0">
+        <div class="tab-content">
           @if (currentEmployee()) {
           <div class="flex flex-col gap-6">
             <!-- Welcome Card -->
@@ -318,10 +321,15 @@ import { EmployeesStore } from '../stores/employees.store';
             </div>
           </div>
           }
-        </p-tabpanel>
+        </div>
+        }
 
-        <!-- Tab 1: Gestiones -->
-        <p-tabpanel value="1">
+        @if (activeTabIndex() === 1) {
+        <!-- Tab 1: Gestiones - activeTabIndex = {{ activeTabIndex() }} -->
+        <div class="tab-content" style="background: rgba(255,0,0,0.1); border: 2px solid red; padding: 1rem;">
+          <div style="background: rgba(0,255,0,0.1); padding: 1rem; margin-bottom: 1rem;">
+            <strong>DEBUG: Tab Gestiones está activo - activeTabIndex = {{ activeTabIndex() }}</strong>
+          </div>
           <div class="flex flex-col gap-6" style="min-height: 400px; padding: 1rem 0;">
             <div>
               <h2 class="text-2xl font-bold text-white mb-2">Gestiones</h2>
@@ -898,10 +906,12 @@ import { EmployeesStore } from '../stores/employees.store';
               }
             </div>
           </p-dialog>
-        </p-tabpanel>
+        </div>
+        }
 
+        @if (activeTabIndex() === 2) {
         <!-- Tab 2: Mi Perfil -->
-        <p-tabpanel value="2">
+        <div class="tab-content">
           <p-card>
             <ng-template #title>
               <div class="flex items-center justify-between w-full">
@@ -1058,10 +1068,12 @@ import { EmployeesStore } from '../stores/employees.store';
             </div>
             }
           </p-card>
-        </p-tabpanel>
+        </div>
+        }
 
+        @if (activeTabIndex() === 3) {
         <!-- Tab 3: Mis Marcaciones -->
-        <p-tabpanel value="3">
+        <div class="tab-content">
           <p-card>
             <ng-template #title>
               <div class="flex items-center justify-between w-full">
@@ -1092,57 +1104,136 @@ import { EmployeesStore } from '../stores/employees.store';
                 (monthChange)="onCalendarMonthChange($event)"
               />
               
-              <!-- Template para mostrar los markers en el calendario -->
+              <!-- Template para mostrar los markers en el calendario tipo mapa -->
               <ng-template #timelogMarkerTemplate let-markers>
-                <div class="flex flex-col gap-1 w-full">
+                <div class="flex flex-col gap-1.5 w-full h-full">
                   @for (marker of markers; track marker.data.day) {
                     @let log = marker.data;
                     @let hasEntry = log?.entry;
                     @let hasExit = log?.exit;
+                    @let hasLunchStart = log?.lunch_start;
+                    @let hasLunchEnd = log?.lunch_end;
                     @let hasDelay = log?.delay && typeof log?.delay === 'number';
                     @let workedHours = log?.entry && log?.exit ? calculateWorkedHours(log.entry.date, log.exit.date) : null;
+                    @let isComplete = hasEntry && hasExit;
+                    @let isIncomplete = hasEntry && !hasExit;
                     
                     <div
-                      class="flex flex-col gap-0.5 p-1 rounded text-xs"
-                      [class.bg-green-500/20]="hasEntry && hasExit"
-                      [class.bg-yellow-500/20]="hasEntry && !hasExit"
-                      [class.bg-red-500/20]="hasDelay"
-                      [class.border]="true"
-                      [class.border-green-500/50]="hasEntry && hasExit"
-                      [class.border-yellow-500/50]="hasEntry && !hasExit"
-                      [class.border-red-500/50]="hasDelay"
+                      class="flex flex-col gap-1.5 p-2 rounded-lg shadow-md border-2 transition-all duration-200 hover:scale-105 hover:shadow-lg w-full min-h-[80px]"
+                      [class.bg-gradient-to-br]="true"
+                      [class.from-green-600/30]="isComplete && !hasDelay"
+                      [class.to-green-500/20]="isComplete && !hasDelay"
+                      [class.from-yellow-600/30]="isIncomplete"
+                      [class.to-yellow-500/20]="isIncomplete"
+                      [class.from-red-600/30]="hasDelay"
+                      [class.to-red-500/20]="hasDelay"
+                      [class.border-green-400]="isComplete && !hasDelay"
+                      [class.border-yellow-400]="isIncomplete"
+                      [class.border-red-400]="hasDelay"
                     >
-                      @if (hasEntry) {
-                        <div class="flex items-center gap-1">
-                          <i class="pi pi-sign-in text-[10px]"></i>
-                          <span class="font-semibold">{{ log.entry.date | date : 'HH:mm' }}</span>
-                          @if (hasDelay) {
-                            <span class="text-[10px] bg-red-500/50 px-1 rounded">{{ log.delay }}m</span>
-                          }
-                        </div>
-                      }
-                      @if (hasExit) {
-                        <div class="flex items-center gap-1">
-                          <i class="pi pi-sign-out text-[10px]"></i>
-                          <span class="font-semibold">{{ log.exit.date | date : 'HH:mm' }}</span>
-                        </div>
-                      }
-                      @if (workedHours) {
-                        <div class="flex items-center gap-1 text-[10px]">
-                          <i class="pi pi-hourglass"></i>
-                          <span>{{ workedHours }}</span>
-                        </div>
-                      }
+                      <!-- Header con fecha y estado -->
+                      <div class="flex items-center justify-between mb-1 pb-1 border-b border-white/10">
+                        <span class="text-[10px] font-bold uppercase tracking-wide text-white/80">
+                          {{ log.day | date : 'EEE d' }}
+                        </span>
+                        @if (isComplete) {
+                          <span class="text-[9px] bg-green-500/50 text-white px-1.5 py-0.5 rounded-full font-semibold">
+                            ✓ Completo
+                          </span>
+                        } @else if (isIncomplete) {
+                          <span class="text-[9px] bg-yellow-500/50 text-white px-1.5 py-0.5 rounded-full font-semibold">
+                            ⚠ Pendiente
+                          </span>
+                        }
+                        @if (hasDelay) {
+                          <span class="text-[9px] bg-red-500/70 text-white px-1.5 py-0.5 rounded-full font-semibold animate-pulse">
+                            ⏰ {{ log.delay }}m
+                          </span>
+                        }
+                      </div>
+
+                      <!-- Timeline visual tipo mapa -->
+                      <div class="flex flex-col gap-1.5">
+                        <!-- Entrada -->
+                        @if (hasEntry) {
+                          <div class="flex items-center gap-2 p-1.5 rounded-md bg-white/5 border border-green-400/30">
+                            <div class="flex items-center justify-center w-5 h-5 rounded-full bg-green-500/30 border-2 border-green-400">
+                              <i class="pi pi-sign-in text-[10px] text-green-300"></i>
+                            </div>
+                            <div class="flex-1">
+                              <div class="text-[11px] text-gray-300 font-medium">Entrada</div>
+                              <div class="text-[13px] text-white font-bold">{{ log.entry.date | date : 'HH:mm' }}</div>
+                            </div>
+                            @if (log.entry.branch?.name) {
+                              <div class="text-[9px] text-gray-400 truncate max-w-[60px]">
+                                {{ log.entry.branch.name }}
+                              </div>
+                            }
+                          </div>
+                        }
+
+                        <!-- Almuerzo -->
+                        @if (hasLunchStart || hasLunchEnd) {
+                          <div class="flex items-center gap-2 p-1.5 rounded-md bg-white/5 border border-amber-400/30">
+                            <div class="flex items-center justify-center w-5 h-5 rounded-full bg-amber-500/30 border-2 border-amber-400">
+                              <i class="pi pi-clock text-[10px] text-amber-300"></i>
+                            </div>
+                            <div class="flex-1">
+                              <div class="text-[11px] text-gray-300 font-medium">Almuerzo</div>
+                              <div class="flex items-center gap-2 text-[12px]">
+                                @if (hasLunchStart) {
+                                  <span class="text-white font-semibold">{{ log.lunch_start.date | date : 'HH:mm' }}</span>
+                                }
+                                @if (hasLunchStart && hasLunchEnd) {
+                                  <span class="text-gray-500">→</span>
+                                }
+                                @if (hasLunchEnd) {
+                                  <span class="text-white font-semibold">{{ log.lunch_end.date | date : 'HH:mm' }}</span>
+                                }
+                              </div>
+                            </div>
+                          </div>
+                        }
+
+                        <!-- Salida -->
+                        @if (hasExit) {
+                          <div class="flex items-center gap-2 p-1.5 rounded-md bg-white/5 border border-blue-400/30">
+                            <div class="flex items-center justify-center w-5 h-5 rounded-full bg-blue-500/30 border-2 border-blue-400">
+                              <i class="pi pi-sign-out text-[10px] text-blue-300"></i>
+                            </div>
+                            <div class="flex-1">
+                              <div class="text-[11px] text-gray-300 font-medium">Salida</div>
+                              <div class="text-[13px] text-white font-bold">{{ log.exit.date | date : 'HH:mm' }}</div>
+                            </div>
+                            @if (log.exit.branch?.name) {
+                              <div class="text-[9px] text-gray-400 truncate max-w-[60px]">
+                                {{ log.exit.branch.name }}
+                              </div>
+                            }
+                          </div>
+                        }
+
+                        <!-- Horas trabajadas -->
+                        @if (workedHours) {
+                          <div class="flex items-center justify-center gap-1.5 mt-1 pt-1.5 border-t border-white/10">
+                            <i class="pi pi-hourglass text-amber-400 text-xs"></i>
+                            <span class="text-[12px] font-bold text-amber-300">{{ workedHours }}</span>
+                            <span class="text-[10px] text-gray-400">horas</span>
+                          </div>
+                        }
+                      </div>
                     </div>
                   }
                 </div>
               </ng-template>
             }
           </p-card>
-        </p-tabpanel>
+        </div>
+        }
 
+        @if (activeTabIndex() === 4) {
         <!-- Tab 4: Mis Tardanzas -->
-        <p-tabpanel value="4">
+        <div class="tab-content">
           <p-card>
             <div class="overflow-x-auto">
               <p-table
@@ -1199,10 +1290,12 @@ import { EmployeesStore } from '../stores/employees.store';
               </p-table>
             </div>
           </p-card>
-        </p-tabpanel>
+        </div>
+        }
 
         <!-- Tab 4: Incapacidades (mantener para compatibilidad, pero redirigir a Gestiones) -->
-        <p-tabpanel value="4" style="display: none;">
+        @if (false) {
+        <div class="tab-content" style="display: none;">
           <p-card class="bg-neutral-800 border-neutral-700">
             <ng-template #title>Subir Incapacidad</ng-template>
             <ng-template #subtitle
@@ -1372,10 +1465,12 @@ import { EmployeesStore } from '../stores/employees.store';
               </div>
             </div>
           </p-card>
-        </p-tabpanel>
+        </div>
+        }
 
         <!-- Tab 5: Solicitar Documentos (mantener para compatibilidad, pero redirigir a Gestiones) -->
-        <p-tabpanel value="5" style="display: none;">
+        @if (false) {
+        <div class="tab-content" style="display: none;">
           <p-card>
             <ng-template #title>Solicitar Documentos</ng-template>
             <ng-template #subtitle
@@ -1506,10 +1601,12 @@ import { EmployeesStore } from '../stores/employees.store';
               </div>
             </div>
           </p-card>
-        </p-tabpanel>
+        </div>
+        }
 
         <!-- Tab 6: Buzón de Quejas (mantener para compatibilidad, pero redirigir a Gestiones) -->
-        <p-tabpanel value="6" style="display: none;">
+        @if (false) {
+        <div class="tab-content" style="display: none;">
           <p-card>
             <ng-template #title>Buzón de Quejas Anónimas</ng-template>
             <ng-template #subtitle
@@ -1696,7 +1793,8 @@ import { EmployeesStore } from '../stores/employees.store';
               }
             </div>
           </p-card>
-        </p-tabpanel>
+        </div>
+        }
       </p-tabs>
     </div>
 
@@ -2147,6 +2245,15 @@ import { EmployeesStore } from '../stores/employees.store';
         padding: 1rem;
         max-height: calc(100vh - 120px);
       }
+    }
+
+    /* Estilos para contenido de tabs usando @if */
+    .tab-content {
+      display: block;
+      visibility: visible;
+      opacity: 1;
+      padding: 1rem 0;
+      min-height: 400px;
     }
 
     /* Scrollable content */
@@ -2766,18 +2873,39 @@ export class EmployeePortalComponent {
     // Sincronizar fragmento cuando cambia el tab (solo si el cambio viene del usuario)
     effect(() => {
       // Evitar actualizar si el cambio viene de la sincronización con fragmento
-      if (this.isUpdatingFromFragment) return;
+      if (this.isUpdatingFromFragment) {
+        console.log(
+          '[EmployeePortal] effect - Saltando actualización, isUpdatingFromFragment es true'
+        );
+        return;
+      }
 
       const tabIndex = this.activeTabIndex();
       const fragment = this.getFragmentFromTabIndex(tabIndex);
       const currentFragment = this.getCurrentFragment();
+      console.log(
+        '[EmployeePortal] effect - tabIndex:',
+        tabIndex,
+        'fragment:',
+        fragment,
+        'currentFragment:',
+        currentFragment
+      );
 
       // Solo actualizar el fragmento si es diferente para evitar loops
       if (fragment && fragment !== currentFragment) {
+        console.log(
+          '[EmployeePortal] effect - Navegando a fragment:',
+          fragment
+        );
         this.router.navigate(['/employee-portal'], {
           fragment: fragment,
           replaceUrl: true, // Evitar agregar entradas al historial
         });
+      } else {
+        console.log(
+          '[EmployeePortal] effect - No se navega, fragment igual o null'
+        );
       }
     });
   }
@@ -2785,40 +2913,90 @@ export class EmployeePortalComponent {
   private getCurrentFragment(): string | null {
     // Obtener fragmento de la URL actual
     const url = this.router.url;
+    console.log('[EmployeePortal] getCurrentFragment - router.url:', url);
     if (url.includes('#')) {
       const fragment = url.split('#')[1];
+      const cleanFragment = fragment.split('?')[0];
+      console.log(
+        '[EmployeePortal] getCurrentFragment - fragment encontrado:',
+        cleanFragment
+      );
       // Limpiar cualquier query parameter que pueda estar después del fragmento
-      return fragment.split('?')[0];
+      return cleanFragment;
     }
     // También verificar window.location.hash como respaldo
     if (typeof window !== 'undefined' && window.location.hash) {
       const hash = window.location.hash.substring(1);
-      return hash.split('?')[0];
+      const cleanHash = hash.split('?')[0];
+      console.log(
+        '[EmployeePortal] getCurrentFragment - window.location.hash:',
+        cleanHash
+      );
+      return cleanHash;
     }
+    console.log(
+      '[EmployeePortal] getCurrentFragment - No hay fragmento, retornando null'
+    );
     return null;
   }
 
   private updateTabFromFragment(): void {
     const fragment = this.getCurrentFragment();
     const tabIndex = this.getTabIndexFromFragment(fragment);
+    console.log(
+      '[EmployeePortal] updateTabFromFragment - fragment:',
+      fragment,
+      'tabIndex:',
+      tabIndex
+    );
+    console.log(
+      '[EmployeePortal] updateTabFromFragment - activeTabIndex actual:',
+      this.activeTabIndex()
+    );
 
     // Solo actualizar si el tab es diferente
     if (this.activeTabIndex() !== tabIndex) {
+      console.log(
+        '[EmployeePortal] updateTabFromFragment - Actualizando tab de',
+        this.activeTabIndex(),
+        'a',
+        tabIndex
+      );
       this.isUpdatingFromFragment = true;
       this.activeTabIndex.set(tabIndex);
+      console.log(
+        '[EmployeePortal] updateTabFromFragment - activeTabIndex después de set:',
+        this.activeTabIndex()
+      );
       // Forzar detección de cambios después de actualizar el tab
       setTimeout(() => {
         this.isUpdatingFromFragment = false;
+        console.log(
+          '[EmployeePortal] updateTabFromFragment - Bandera isUpdatingFromFragment reset a false'
+        );
         // Asegurar que el DOM se actualice
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new Event('resize'));
         }
       }, 150);
+    } else {
+      console.log(
+        '[EmployeePortal] updateTabFromFragment - No se actualiza, tabIndex es el mismo'
+      );
     }
   }
 
   private getTabIndexFromFragment(fragment: string | null): number {
-    if (!fragment) return 0; // Dashboard por defecto
+    console.log(
+      '[EmployeePortal] getTabIndexFromFragment - fragment recibido:',
+      fragment
+    );
+    if (!fragment) {
+      console.log(
+        '[EmployeePortal] getTabIndexFromFragment - No hay fragmento, retornando 0 (Dashboard)'
+      );
+      return 0; // Dashboard por defecto
+    }
 
     // Mapeo de fragmentos a índices de tabs
     const fragmentToTabMap: Record<string, number> = {
@@ -2835,7 +3013,14 @@ export class EmployeePortalComponent {
       complaints: 1,
     };
 
-    return fragmentToTabMap[fragment] ?? 0;
+    const tabIndex = fragmentToTabMap[fragment] ?? 0;
+    console.log(
+      '[EmployeePortal] getTabIndexFromFragment - fragment:',
+      fragment,
+      'mapeado a tabIndex:',
+      tabIndex
+    );
+    return tabIndex;
   }
 
   private getFragmentFromTabIndex(tabIndex: number): string | null {
@@ -2855,7 +3040,21 @@ export class EmployeePortalComponent {
     // Convertir a número si es string
     const index =
       typeof tabIndex === 'string' ? parseInt(tabIndex, 10) : tabIndex;
+    console.log(
+      '[EmployeePortal] onTabChange - tabIndex recibido:',
+      tabIndex,
+      'convertido a:',
+      index
+    );
+    console.log(
+      '[EmployeePortal] onTabChange - activeTabIndex antes:',
+      this.activeTabIndex()
+    );
     this.activeTabIndex.set(index);
+    console.log(
+      '[EmployeePortal] onTabChange - activeTabIndex después:',
+      this.activeTabIndex()
+    );
   }
 
   // Helper para agregar filtro de company_id a los parámetros
@@ -2949,8 +3148,13 @@ export class EmployeePortalComponent {
   }
 
   public onCalendarMonthChange(date: Date): void {
+    console.log('[Timelogs] Cambio de mes en calendario:', date);
+    console.log('[Timelogs] Mes anterior:', this.calendarMonth());
     this.calendarMonth.set(date);
-    this.dateRange.set([startOfMonth(date), endOfMonth(date)]);
+    const newRange = [startOfMonth(date), endOfMonth(date)];
+    console.log('[Timelogs] Nuevo rango de fechas:', newRange);
+    this.dateRange.set(newRange);
+    console.log('[Timelogs] Mes actualizado:', this.calendarMonth());
   }
 
   // Helper methods for template (wrapper methods to use date-fns functions)
@@ -3114,6 +3318,11 @@ export class EmployeePortalComponent {
   // Procesar timelogs del mes actual
   public monthTimelogs = computed(() => {
     const logs = this.monthTimelogsApi.value() ?? [];
+    console.log(
+      '[Timelogs] monthTimelogs - Logs crudos recibidos:',
+      logs.length,
+      logs
+    );
 
     const processedLogs = logs
       .filter((x) => x.created_at)
@@ -3177,20 +3386,43 @@ export class EmployeePortalComponent {
         return acc;
       }, []);
 
-    return processedLogs.sort(
+    const sorted = processedLogs.sort(
       (a, b) => new Date(b.day).getTime() - new Date(a.day).getTime()
     );
+    console.log(
+      '[Timelogs] monthTimelogs - Logs procesados:',
+      sorted.length,
+      sorted
+    );
+    return sorted;
   });
 
   // Convertir timelogs a markers para el calendario bonito
   public timelogMarkers = computed<CalendarMarkerData[]>(() => {
     const logs = this.monthTimelogs();
-    return logs
-      .filter((log) => log.entry || log.exit)
-      .map((log) => ({
-        date: new Date(log.day),
-        data: log,
-      }));
+    console.log(
+      '[Timelogs] timelogMarkers - Logs recibidos:',
+      logs.length,
+      logs
+    );
+
+    const filtered = logs.filter((log) => log.entry || log.exit);
+    console.log(
+      '[Timelogs] timelogMarkers - Logs con entrada o salida:',
+      filtered.length,
+      filtered
+    );
+
+    const markers = filtered.map((log) => ({
+      date: new Date(log.day),
+      data: log,
+    }));
+    console.log(
+      '[Timelogs] timelogMarkers - Markers generados:',
+      markers.length,
+      markers
+    );
+    return markers;
   });
 
   // Lates computed from timelogs
@@ -3430,8 +3662,18 @@ export class EmployeePortalComponent {
     entry: Date | null | undefined,
     exit: Date | null | undefined
   ): string {
+    console.log(
+      '[Timelogs] calculateWorkedHours - Entrada:',
+      entry,
+      'Salida:',
+      exit
+    );
+
     // Validar que ambas fechas existan
     if (!entry || !exit) {
+      console.log(
+        '[Timelogs] calculateWorkedHours - Faltan fechas, retornando "-"'
+      );
       return '-';
     }
 
@@ -3440,20 +3682,32 @@ export class EmployeePortalComponent {
     const exitDate = new Date(exit);
 
     if (isNaN(entryDate.getTime()) || isNaN(exitDate.getTime())) {
+      console.log(
+        '[Timelogs] calculateWorkedHours - Fechas inválidas, retornando "-"'
+      );
       return '-';
     }
 
     // Calcular diferencia en minutos
     const minutes = differenceInMinutes(exitDate, entryDate);
+    console.log(
+      '[Timelogs] calculateWorkedHours - Diferencia en minutos:',
+      minutes
+    );
 
     // Validar que la diferencia no sea negativa
     if (minutes < 0) {
+      console.log(
+        '[Timelogs] calculateWorkedHours - Diferencia negativa, retornando "0h 0m"'
+      );
       return '0h 0m';
     }
 
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
-    return `${hours}h ${mins}m`;
+    const result = `${hours}h ${mins}m`;
+    console.log('[Timelogs] calculateWorkedHours - Resultado:', result);
+    return result;
   }
 
   public calculateDays(
