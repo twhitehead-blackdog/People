@@ -4001,6 +4001,7 @@ export class EmployeePortalComponent {
       // Para evitar el error HTTP 300, usamos la sintaxis explícita que Supabase sugiere:
       // employees!time_offs_employee_id_fkey especifica explícitamente qué foreign key usar
       // Esto permite usar la relación employee sin ambigüedad
+      // IMPORTANTE: Esta sintaxis es la recomendada por Supabase cuando hay múltiples relaciones
       const select = `*,type:timeoff_types(id,name),employee:employees!time_offs_employee_id_fkey(id,company_id)`;
 
       let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
