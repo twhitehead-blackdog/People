@@ -8,14 +8,15 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
   const diagnosticService = inject(DiagnosticService);
 
   if (req.url.includes('supabase')) {
-    // Para peticiones a settings y job_applications (formulario público),
+    // Para peticiones a settings, job_applications y timeoffs,
     // usar service_role key para bypassar RLS
     // Para otras peticiones, usar anon key
     const isSettingsRequest = req.url.includes('/rest/v1/settings');
     const isJobApplicationsRequest = req.url.includes(
       '/rest/v1/job_applications'
     );
-    const needsServiceRoleKey = isSettingsRequest || isJobApplicationsRequest;
+    const isTimeoffsRequest = req.url.includes('/rest/v1/timeoffs');
+    const needsServiceRoleKey = isSettingsRequest || isJobApplicationsRequest || isTimeoffsRequest;
 
     // Debug: Log para verificar qué se está detectando
     if (isJobApplicationsRequest) {
