@@ -1,4 +1,9 @@
-import { CurrencyPipe, DatePipe, NgClass, NgTemplateOutlet } from '@angular/common';
+import {
+  CurrencyPipe,
+  DatePipe,
+  NgClass,
+  NgTemplateOutlet,
+} from '@angular/common';
 import { HttpClient, httpResource } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
@@ -7,7 +12,6 @@ import {
   effect,
   inject,
   signal,
-  TemplateRef,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -691,19 +695,22 @@ import { EmployeesStore } from '../stores/employees.store';
                   <p class="text-sm text-gray-400 m-0">
                     Solicita tiempo compensatorio por horas extras
                   </p>
-                  @if (totalOvertimeHours() > 0) {
-                    <div class="mt-2 px-3 py-1.5 bg-cyan-500/20 border border-cyan-400/30 rounded-lg">
-                      <p class="text-xs text-cyan-300 m-0 font-semibold">
-                        {{ totalOvertimeHours().toFixed(1) }}h disponibles
-                      </p>
-                    </div>
-                  } @else {
-                    <div class="mt-2 px-3 py-1.5 bg-gray-500/20 border border-gray-400/30 rounded-lg">
-                      <p class="text-xs text-gray-400 m-0">
-                        Sin horas extras
-                      </p>
-                    </div>
-                  }
+                </div>
+              </p-card>
+
+              <!-- Mis Solicitudes -->
+              <p-card 
+                class="cursor-pointer hover:shadow-lg transition-all" 
+                (click)="activeSection.set('my-requests')"
+              >
+                <div class="flex flex-col items-center text-center gap-3">
+                  <div class="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center">
+                    <i class="pi pi-list text-indigo-400 text-xl"></i>
+                  </div>
+                  <h3 class="text-lg font-semibold text-white m-0">Mis Solicitudes</h3>
+                  <p class="text-sm text-gray-400 m-0">
+                    Visualiza todas tus solicitudes
+                  </p>
                 </div>
               </p-card>
             </div>
@@ -1399,7 +1406,8 @@ import { EmployeesStore } from '../stores/employees.store';
             >Solicita tiempo compensatorio basado en tus horas extras trabajadas</ng-template
           >
           
-          <!-- Información de horas extras disponibles -->
+          <!-- Información de horas extras disponibles (solo para HR/Admin) -->
+          @if (isHRorAdmin()) {
           <div class="mb-6">
             <div class="bg-gradient-to-r from-cyan-500/20 to-cyan-600/10 border border-cyan-400/30 rounded-lg p-4">
               <div class="flex items-center justify-between">
@@ -1420,13 +1428,13 @@ import { EmployeesStore } from '../stores/employees.store';
               }
             </div>
           </div>
+          }
 
-          @if (totalOvertimeHours() > 0) {
           <div class="flex flex-col gap-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm text-gray-400 mb-2"
-                  >Fecha de Inicio</label
+                  >Fecha de Inicio de Compensatorio</label
                 >
                 <p-datepicker
                   [(ngModel)]="compensatoryStartDate"
@@ -1437,7 +1445,7 @@ import { EmployeesStore } from '../stores/employees.store';
               </div>
               <div>
                 <label class="block text-sm text-gray-400 mb-2"
-                  >Fecha de Fin</label
+                  >Fecha de Fin de Compensatorio</label
                 >
                 <p-datepicker
                   [(ngModel)]="compensatoryEndDate"
@@ -1449,21 +1457,52 @@ import { EmployeesStore } from '../stores/employees.store';
             </div>
             <div>
               <label class="block text-sm text-gray-400 mb-2"
-                >Horas a Solicitar</label
+                >Tipo</label
+              >
+              <div class="flex gap-4">
+                <div class="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    id="compensatory-hours"
+                    name="compensatory-type"
+                    [value]="'hours'"
+                    [(ngModel)]="compensatoryType"
+                    class="w-4 h-4"
+                  />
+                  <label for="compensatory-hours" class="text-sm text-gray-300 cursor-pointer">Horas</label>
+                </div>
+                <div class="flex items-center gap-2">
+                  <input
+                    type="radio"
+                    id="compensatory-days"
+                    name="compensatory-type"
+                    [value]="'days'"
+                    [(ngModel)]="compensatoryType"
+                    class="w-4 h-4"
+                  />
+                  <label for="compensatory-days" class="text-sm text-gray-300 cursor-pointer">Días</label>
+                </div>
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm text-gray-400 mb-2"
+                >{{ compensatoryType() === 'hours' ? 'Horas' : 'Días' }} a Solicitar</label
               >
               <input
                 type="number"
                 pInputText
-                [(ngModel)]="compensatoryHours"
-                [max]="totalOvertimeHours()"
-                [min]="0.5"
-                step="0.5"
-                placeholder="Ej: 4.0"
+                [(ngModel)]="compensatoryAmount"
+                [max]="compensatoryType() === 'hours' ? totalOvertimeHours() : null"
+                [min]="compensatoryType() === 'hours' ? 0.5 : 1"
+                [step]="compensatoryType() === 'hours' ? 0.5 : 1"
+                [placeholder]="compensatoryType() === 'hours' ? 'Ej: 4.0' : 'Ej: 1'"
                 class="w-full"
               />
-              <p class="text-xs text-gray-500 mt-1">
-                Máximo disponible: {{ totalOvertimeHours().toFixed(1) }}h
-              </p>
+              @if (compensatoryType() === 'hours' && isHRorAdmin()) {
+                <p class="text-xs text-gray-500 mt-1">
+                  Máximo disponible: {{ totalOvertimeHours().toFixed(1) }}h
+                </p>
+              }
             </div>
             <div>
               <label class="block text-sm text-gray-400 mb-2"
@@ -1487,72 +1526,123 @@ import { EmployeesStore } from '../stores/employees.store';
               />
             </div>
           </div>
-          } @else {
-          <div class="text-center py-8">
-            <i class="pi pi-info-circle text-gray-400 text-4xl mb-4"></i>
-            <p class="text-gray-400">
-              No tienes horas extras disponibles para solicitar tiempo compensatorio.
-            </p>
+          
+          <div class="mt-6 flex justify-end">
+            <p-button
+              label="Ver Mis Solicitudes"
+              icon="pi pi-list"
+              severity="secondary"
+              [outlined]="true"
+              (click)="activeSection.set('my-requests')"
+            />
           </div>
-          }
+        </p-card>
+      </div>
+      }
 
-          <!-- Lista de solicitudes de tiempo compensatorio -->
-          <div class="mt-6">
-            <h3 class="text-lg font-semibold text-white mb-4">
-              Mis Solicitudes de Tiempo Compensatorio
-            </h3>
-            <div class="overflow-x-auto">
-              <p-table
-                [value]="myCompensatoryRequests()"
-                [rows]="10"
-                paginator
-                [loading]="compensatoryTimeoffsApi.isLoading()"
-                styleClass="p-datatable-sm md:p-datatable-lg"
-                [scrollable]="true"
-                scrollHeight="400px"
-                [responsiveLayout]="'scroll'"
-              >
-                <ng-template #header>
-                  <tr>
-                    <th>Fecha de Solicitud</th>
-                    <th>Desde</th>
-                    <th>Hasta</th>
-                    <th>Horas</th>
-                    <th>Estado</th>
-                  </tr>
-                </ng-template>
-                <ng-template #body let-request>
-                  <tr>
-                    <td>{{ request.created_at | date : 'mediumDate' }}</td>
-                    <td>{{ request.date_from | date : 'mediumDate' }}</td>
-                    <td>{{ request.date_to | date : 'mediumDate' }}</td>
-                    <td>
-                      @if (request.hours) {
-                        {{ request.hours }}h
-                      } @else {
-                        {{ calculateDays(request.date_from, request.date_to) * 8 }}h
-                      }
-                    </td>
-                    <td>
-                      <span
-                        class="px-2 py-1 rounded text-xs font-semibold"
-                        [class.bg-yellow-500]="request.is_approved === false && !request.rejection_comment"
-                        [class.bg-green-500]="request.is_approved === true"
-                        [class.bg-red-500]="request.rejection_comment"
-                      >
-                        {{
-                          request.is_approved === true
-                            ? 'Aprobado'
-                            : request.rejection_comment
-                            ? 'Rechazado'
-                            : 'Pendiente'
-                        }}
-                      </span>
-                    </td>
-                  </tr>
-                </ng-template>
-              </p-table>
+      <!-- Mis Solicitudes Section -->
+      @if (activeSection() === 'my-requests') {
+      <div id="my-requests" class="section-content">
+        <p-card>
+          <ng-template #title>
+            <div class="flex items-center justify-between w-full">
+              <div class="flex items-center gap-2">
+                <i class="pi pi-list text-cyan-400"></i>
+                <span>Mis Solicitudes</span>
+              </div>
+              <p-button
+                label="Nueva Solicitud"
+                icon="pi pi-plus"
+                (click)="activeSection.set('compensatory')"
+              />
             </div>
+          </ng-template>
+          <ng-template #subtitle
+            >Visualiza todas tus solicitudes de tiempo compensatorio</ng-template
+          >
+          
+          <div class="overflow-x-auto">
+            <p-table
+              [value]="myCompensatoryRequests()"
+              [rows]="10"
+              paginator
+              [loading]="compensatoryTimeoffsApi.isLoading()"
+              styleClass="p-datatable-sm md:p-datatable-lg"
+              [scrollable]="true"
+              scrollHeight="400px"
+              [responsiveLayout]="'scroll'"
+            >
+              <ng-template #header>
+                <tr>
+                  <th>Fecha de Solicitud</th>
+                  <th>Desde</th>
+                  <th>Hasta</th>
+                  <th>Tipo</th>
+                  <th>Cantidad</th>
+                  <th>Motivo</th>
+                  <th>Estado</th>
+                </tr>
+              </ng-template>
+              <ng-template #body let-request>
+                <tr>
+                  <td>{{ request.created_at | date : 'mediumDate' }}</td>
+                  <td>{{ request.date_from | date : 'mediumDate' }}</td>
+                  <td>{{ request.date_to | date : 'mediumDate' }}</td>
+                  <td>
+                    @if (request.compensatory_type === 'days') {
+                      <span class="text-sm text-gray-300">Días</span>
+                    } @else {
+                      <span class="text-sm text-gray-300">Horas</span>
+                    }
+                  </td>
+                  <td>
+                    @if (request.compensatory_type === 'days') {
+                      {{ request.compensatory_amount || calculateDays(request.date_from, request.date_to) }} días
+                    } @else {
+                      {{ request.hours || request.compensatory_amount || 0 }}h
+                    }
+                  </td>
+                  <td>
+                    @if (request.reason) {
+                      <span class="text-sm text-gray-400">{{ request.reason }}</span>
+                    } @else {
+                      <span class="text-sm text-gray-500">-</span>
+                    }
+                  </td>
+                  <td>
+                    <span
+                      class="px-2 py-1 rounded text-xs font-semibold"
+                      [class.bg-yellow-500]="request.review_status === 'pending' || (request.is_approved === false && !request.rejection_comment)"
+                      [class.bg-green-500]="request.is_approved === true"
+                      [class.bg-red-500]="request.rejection_comment || request.review_status === 'rejected'"
+                    >
+                      {{
+                        request.is_approved === true
+                          ? 'Aprobado'
+                          : request.rejection_comment || request.review_status === 'rejected'
+                          ? 'Rechazado'
+                          : request.review_status === 'approved'
+                          ? 'En Registro'
+                          : 'Pendiente'
+                      }}
+                    </span>
+                    @if (request.rejection_comment) {
+                      <p class="text-xs text-red-400 mt-1">{{ request.rejection_comment }}</p>
+                    }
+                  </td>
+                </tr>
+              </ng-template>
+              <ng-template #emptymessage>
+                <tr>
+                  <td colspan="7" class="text-center py-8">
+                    <div class="flex flex-col items-center gap-2">
+                      <i class="pi pi-inbox text-4xl text-gray-500"></i>
+                      <p class="text-gray-400">No tienes solicitudes de tiempo compensatorio</p>
+                    </div>
+                  </td>
+                </tr>
+              </ng-template>
+            </p-table>
           </div>
         </p-card>
       </div>
@@ -1901,37 +1991,70 @@ export class EmployeePortalComponent {
 
   public showSalary = signal(false);
 
+  // Verificar si el usuario es HR o Admin
+  public isHRorAdmin = computed(() => {
+    const isAdmin = this.store.isAdmin();
+    const currentEmp = this.currentEmployee();
+    const deptName = currentEmp?.department?.name?.toLowerCase() || '';
+    const isHR =
+      deptName.includes('recursos humanos') ||
+      deptName.includes('rrhh') ||
+      deptName.includes('hr');
+    return isAdmin || isHR;
+  });
+
   constructor() {
     console.log('[EmployeePortal] Constructor - Inicializando componente');
     // Inicializar con el fragmento actual si existe
     const currentFragment = this.route.snapshot.fragment;
-    console.log('[EmployeePortal] Constructor - Fragmento actual:', currentFragment);
+    console.log(
+      '[EmployeePortal] Constructor - Fragmento actual:',
+      currentFragment
+    );
     if (currentFragment) {
       this.activeSection.set(currentFragment);
-      console.log('[EmployeePortal] Constructor - Sección activa establecida a:', currentFragment);
+      console.log(
+        '[EmployeePortal] Constructor - Sección activa establecida a:',
+        currentFragment
+      );
     } else {
       this.activeSection.set('dashboard');
-      console.log('[EmployeePortal] Constructor - Sección activa establecida a: dashboard (por defecto)');
+      console.log(
+        '[EmployeePortal] Constructor - Sección activa establecida a: dashboard (por defecto)'
+      );
     }
 
     // Suscribirse a cambios de fragmento
     this.route.fragment.subscribe((fragment) => {
-      console.log('[EmployeePortal] Fragment changed - Nuevo fragmento:', fragment);
+      console.log(
+        '[EmployeePortal] Fragment changed - Nuevo fragmento:',
+        fragment
+      );
       if (fragment) {
-        console.log('[EmployeePortal] Fragment changed - Estableciendo sección activa a:', fragment);
+        console.log(
+          '[EmployeePortal] Fragment changed - Estableciendo sección activa a:',
+          fragment
+        );
         this.activeSection.set(fragment);
         // Hacer scroll a la sección después de un pequeño delay
         setTimeout(() => {
           const element = document.getElementById(fragment);
           if (element) {
-            console.log('[EmployeePortal] Fragment changed - Elemento encontrado, haciendo scroll');
+            console.log(
+              '[EmployeePortal] Fragment changed - Elemento encontrado, haciendo scroll'
+            );
             element.scrollIntoView({ behavior: 'smooth', block: 'start' });
           } else {
-            console.log('[EmployeePortal] Fragment changed - Elemento NO encontrado para:', fragment);
+            console.log(
+              '[EmployeePortal] Fragment changed - Elemento NO encontrado para:',
+              fragment
+            );
           }
         }, 100);
       } else {
-        console.log('[EmployeePortal] Fragment changed - No hay fragmento, estableciendo dashboard');
+        console.log(
+          '[EmployeePortal] Fragment changed - No hay fragmento, estableciendo dashboard'
+        );
         this.activeSection.set('dashboard');
       }
     });
@@ -1942,11 +2065,19 @@ export class EmployeePortalComponent {
       console.log('[EmployeePortal] Effect - activeSection cambió a:', section);
       if (section === 'timelogs') {
         console.log('[Timelogs] Effect - Sección timelogs activada');
-        console.log('[Timelogs] Effect - calendarMonth():', this.calendarMonth());
-        console.log('[Timelogs] Effect - monthTimelogsApi.isLoading():', this.monthTimelogsApi.isLoading());
+        console.log(
+          '[Timelogs] Effect - calendarMonth():',
+          this.calendarMonth()
+        );
+        console.log(
+          '[Timelogs] Effect - monthTimelogsApi.isLoading():',
+          this.monthTimelogsApi.isLoading()
+        );
       }
       if (section === 'management' || section === 'gestiones') {
-        console.log('[Gestiones] Effect - Sección gestiones/management activada');
+        console.log(
+          '[Gestiones] Effect - Sección gestiones/management activada'
+        );
       }
     });
   }
@@ -1976,19 +2107,24 @@ export class EmployeePortalComponent {
     }
     const employeeId = this.currentEmployee()!.id;
     const companyId = this.organizationService.getCurrentCompanyId();
-    
+
     // Asegurar que siempre tengamos un company_id válido
     if (!companyId) {
-      console.warn('[EmployeePortal] No se encontró company_id, no se pueden cargar timelogs');
+      console.warn(
+        '[EmployeePortal] No se encontró company_id, no se pueden cargar timelogs'
+      );
       return undefined;
     }
-    
+
     // Construir URL manualmente para aplicar correctamente filtros gte y lte
     const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`;
     const startDate = format(this.dateRange()[0], "yyyy-MM-dd'T'06:00:00");
-    const endDate = format(addDays(this.dateRange()[1], 1), "yyyy-MM-dd'T'06:00:00");
+    const endDate = format(
+      addDays(this.dateRange()[1], 1),
+      "yyyy-MM-dd'T'06:00:00"
+    );
     const select = `*,employee:employees(id,first_name,father_name,company_id, branch:branches(id, name)),branch:branches(id, name, short_name)`;
-    
+
     let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
     url += `&employee_id=eq.${employeeId}`;
     // Filtrar a través de employee.company_id (funciona incluso si timelogs no tiene company_id)
@@ -1998,7 +2134,7 @@ export class EmployeePortalComponent {
     url += `&created_at=gte.${startDate}`;
     url += `&created_at=lte.${endDate}`;
     url += `&order=created_at.asc`;
-    
+
     return {
       url,
       method: 'GET',
@@ -2060,23 +2196,36 @@ export class EmployeePortalComponent {
 
   // Timelogs API para el mes actual (independiente del dateRange del usuario)
   public monthTimelogsApi = httpResource<any[]>(() => {
-    console.log('[Timelogs] monthTimelogsApi - Iniciando carga de timelogs del mes');
+    console.log(
+      '[Timelogs] monthTimelogsApi - Iniciando carga de timelogs del mes'
+    );
     if (!this.currentEmployee()?.id) {
-      console.log('[Timelogs] monthTimelogsApi - No hay employee ID, retornando undefined');
+      console.log(
+        '[Timelogs] monthTimelogsApi - No hay employee ID, retornando undefined'
+      );
       return undefined;
     }
     const employeeId = this.currentEmployee()!.id;
     const companyId = this.organizationService.getCurrentCompanyId();
 
     if (!companyId) {
-      console.log('[Timelogs] monthTimelogsApi - No hay company ID, retornando undefined');
+      console.log(
+        '[Timelogs] monthTimelogsApi - No hay company ID, retornando undefined'
+      );
       return undefined;
     }
 
     const month = this.calendarMonth();
     const monthStart = startOfMonth(month);
     const monthEnd = endOfMonth(month);
-    console.log('[Timelogs] monthTimelogsApi - Mes seleccionado:', month, 'Desde:', monthStart, 'Hasta:', monthEnd);
+    console.log(
+      '[Timelogs] monthTimelogsApi - Mes seleccionado:',
+      month,
+      'Desde:',
+      monthStart,
+      'Hasta:',
+      monthEnd
+    );
 
     const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`;
     const startDate = format(monthStart, "yyyy-MM-dd'T'06:00:00");
@@ -2101,7 +2250,11 @@ export class EmployeePortalComponent {
   // Procesar timelogs del mes actual
   public monthTimelogs = computed(() => {
     const logs = this.monthTimelogsApi.value() ?? [];
-    console.log('[Timelogs] monthTimelogs - Logs crudos recibidos:', logs.length, logs);
+    console.log(
+      '[Timelogs] monthTimelogs - Logs crudos recibidos:',
+      logs.length,
+      logs
+    );
 
     const processedLogs = logs
       .filter((x) => x.created_at)
@@ -2168,32 +2321,59 @@ export class EmployeePortalComponent {
     const sorted = processedLogs.sort(
       (a, b) => new Date(b.day).getTime() - new Date(a.day).getTime()
     );
-    console.log('[Timelogs] monthTimelogs - Logs procesados:', sorted.length, sorted);
+    console.log(
+      '[Timelogs] monthTimelogs - Logs procesados:',
+      sorted.length,
+      sorted
+    );
     return sorted;
   });
 
   // Convertir timelogs a markers para el calendario bonito
   public timelogMarkers = computed<CalendarMarkerData[]>(() => {
     const logs = this.monthTimelogs();
-    console.log('[Timelogs] timelogMarkers - Logs recibidos:', logs.length, logs);
-    
+    console.log(
+      '[Timelogs] timelogMarkers - Logs recibidos:',
+      logs.length,
+      logs
+    );
+
     const filtered = logs.filter((log) => log.entry || log.exit);
-    console.log('[Timelogs] timelogMarkers - Logs con entrada o salida:', filtered.length, filtered);
-    
+    console.log(
+      '[Timelogs] timelogMarkers - Logs con entrada o salida:',
+      filtered.length,
+      filtered
+    );
+
     const markers = filtered.map((log) => ({
       date: new Date(log.day),
       data: log,
     }));
-    console.log('[Timelogs] timelogMarkers - Markers generados:', markers.length, markers);
+    console.log(
+      '[Timelogs] timelogMarkers - Markers generados:',
+      markers.length,
+      markers
+    );
     return markers;
   });
 
   // Handler para cambio de mes en el calendario
   public onCalendarMonthChange(date: Date): void {
-    console.log('[Timelogs] onCalendarMonthChange - Cambio de mes en calendario:', date);
-    console.log('[Timelogs] onCalendarMonthChange - Mes anterior:', this.calendarMonth());
+    console.log(
+      '[Timelogs] onCalendarMonthChange - Cambio de mes en calendario:',
+      date
+    );
+    console.log(
+      '[Timelogs] onCalendarMonthChange - Mes anterior:',
+      this.calendarMonth()
+    );
     this.calendarMonth.set(date);
-    console.log('[Timelogs] onCalendarMonthChange - Mes actualizado:', this.calendarMonth());
+    console.log(
+      '[Timelogs] onCalendarMonthChange - Mes actualizado:',
+      this.calendarMonth()
+    );
+    // Forzar recarga del API cuando cambia el mes
+    this.monthTimelogsApi.reload();
   }
 
   // Lates computed from timelogs
@@ -2369,10 +2549,17 @@ export class EmployeePortalComponent {
 
   // Helper methods
   public calculateWorkedHours(entry: Date, exit: Date): string {
-    console.log('[Timelogs] calculateWorkedHours - Entrada:', entry, 'Salida:', exit);
-    
+    console.log(
+      '[Timelogs] calculateWorkedHours - Entrada:',
+      entry,
+      'Salida:',
+      exit
+    );
+
     if (!entry || !exit) {
-      console.log('[Timelogs] calculateWorkedHours - Faltan fechas, retornando "-"');
+      console.log(
+        '[Timelogs] calculateWorkedHours - Faltan fechas, retornando "-"'
+      );
       return '-';
     }
 
@@ -2380,15 +2567,22 @@ export class EmployeePortalComponent {
     const exitDate = new Date(exit);
 
     if (isNaN(entryDate.getTime()) || isNaN(exitDate.getTime())) {
-      console.log('[Timelogs] calculateWorkedHours - Fechas inválidas, retornando "-"');
+      console.log(
+        '[Timelogs] calculateWorkedHours - Fechas inválidas, retornando "-"'
+      );
       return '-';
     }
 
     const minutes = differenceInMinutes(exitDate, entryDate);
-    console.log('[Timelogs] calculateWorkedHours - Diferencia en minutos:', minutes);
+    console.log(
+      '[Timelogs] calculateWorkedHours - Diferencia en minutos:',
+      minutes
+    );
 
     if (minutes < 0) {
-      console.log('[Timelogs] calculateWorkedHours - Diferencia negativa, retornando "0h 0m"');
+      console.log(
+        '[Timelogs] calculateWorkedHours - Diferencia negativa, retornando "0h 0m"'
+      );
       return '0h 0m';
     }
 
@@ -2436,7 +2630,8 @@ export class EmployeePortalComponent {
     return logs.filter((log) => {
       const logDate = new Date(log.day);
       const isInMonth = logDate >= monthStart && logDate <= monthEnd;
-      const hasAnyMark = log.entry || log.lunch_start || log.lunch_end || log.exit;
+      const hasAnyMark =
+        log.entry || log.lunch_start || log.lunch_end || log.exit;
       return isInMonth && hasAnyMark;
     }).length;
   });
@@ -2490,7 +2685,7 @@ export class EmployeePortalComponent {
     // Obtener los timelogs crudos (sin agrupar por día)
     const rawLogs = this.timelogsApi.value() ?? [];
     const sevenDaysAgo = addDays(new Date(), -7);
-    
+
     // Filtrar por los últimos 7 días y convertir cada marcación en un evento individual
     const recentEvents = rawLogs
       .filter((log) => {
@@ -2501,7 +2696,7 @@ export class EmployeePortalComponent {
         const logDate = new Date(log.created_at);
         let typeLabel = '';
         let icon = 'pi-clock';
-        
+
         switch (log.type) {
           case 'entry':
             typeLabel = 'Entrada';
@@ -2522,7 +2717,7 @@ export class EmployeePortalComponent {
           default:
             typeLabel = 'Marcación';
         }
-        
+
         return {
           id: log.id,
           type: log.type,
@@ -2537,7 +2732,7 @@ export class EmployeePortalComponent {
       })
       .sort((a, b) => b.date.getTime() - a.date.getTime()) // Más recientes primero
       .slice(0, 4); // Últimas 4 marcaciones
-    
+
     return recentEvents;
   });
 
@@ -2549,17 +2744,17 @@ export class EmployeePortalComponent {
   public timeoffsApi = httpResource<any[]>(() => {
     if (!this.currentEmployee()?.id) return undefined;
     const companyId = this.organizationService.getCurrentCompanyId();
-    
+
     if (!companyId) {
       return undefined;
     }
-    
+
     // ID del tipo de timeoff "Compensatorio"
     const compensatoryTypeId = 'f2d92995-96a0-414f-b64a-9823db776745';
-    
+
     const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`;
     const select = `*,type:timeoff_types(id,name),employee:employees(id,company_id)`;
-    
+
     let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
     url += `&employee_id=eq.${this.currentEmployee()!.id}`;
     url += `&type_id=eq.${compensatoryTypeId}`;
@@ -2567,7 +2762,7 @@ export class EmployeePortalComponent {
     // Filtrar a través de employee.company_id
     url += `&employee.company_id=eq.${companyId}`;
     url += `&order=date_from.desc`;
-    
+
     return {
       url,
       method: 'GET',
@@ -2577,7 +2772,8 @@ export class EmployeePortalComponent {
   // Signals para formulario de tiempo compensatorio
   public compensatoryStartDate = signal<Date | null>(null);
   public compensatoryEndDate = signal<Date | null>(null);
-  public compensatoryHours = signal<number>(0);
+  public compensatoryType = signal<'hours' | 'days'>('hours');
+  public compensatoryAmount = signal<number>(0);
   public compensatoryReason = signal('');
   public submittingCompensatory = signal(false);
 
@@ -2590,24 +2786,24 @@ export class EmployeePortalComponent {
   public compensatoryTimeoffsApi = httpResource<any[]>(() => {
     if (!this.currentEmployee()?.id) return undefined;
     const companyId = this.organizationService.getCurrentCompanyId();
-    
+
     if (!companyId) {
       return undefined;
     }
-    
+
     // ID del tipo de timeoff "Compensatorio"
     const compensatoryTypeId = 'f2d92995-96a0-414f-b64a-9823db776745';
-    
+
     const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`;
     const select = `*,type:timeoff_types(id,name),employee:employees(id,company_id)`;
-    
+
     let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
     url += `&employee_id=eq.${this.currentEmployee()!.id}`;
     url += `&type_id=eq.${compensatoryTypeId}`;
     // Filtrar a través de employee.company_id
     url += `&employee.company_id=eq.${companyId}`;
     url += `&order=date_from.desc`;
-    
+
     return {
       url,
       method: 'GET',
@@ -2623,16 +2819,20 @@ export class EmployeePortalComponent {
   public canSubmitCompensatory = computed(() => {
     const startDate = this.compensatoryStartDate();
     const endDate = this.compensatoryEndDate();
-    const hours = this.compensatoryHours();
+    const amount = this.compensatoryAmount();
+    const type = this.compensatoryType();
     const availableHours = this.totalOvertimeHours();
-    
-    return (
-      startDate !== null &&
-      endDate !== null &&
-      hours > 0 &&
-      hours <= availableHours &&
-      endDate >= startDate
-    );
+
+    if (!startDate || !endDate || amount <= 0 || endDate < startDate) {
+      return false;
+    }
+
+    // Si es por horas, verificar que no exceda las disponibles
+    if (type === 'hours' && amount > availableHours) {
+      return false;
+    }
+
+    return true;
   });
 
   // Función para enviar solicitud de tiempo compensatorio
@@ -2646,10 +2846,12 @@ export class EmployeePortalComponent {
       return;
     }
 
-    const requestedHours = this.compensatoryHours();
+    const type = this.compensatoryType();
+    const amount = this.compensatoryAmount();
     const availableHours = this.totalOvertimeHours();
 
-    if (requestedHours > availableHours) {
+    // Si es por horas, verificar que no exceda las disponibles
+    if (type === 'hours' && amount > availableHours) {
       this.messageService.add({
         severity: 'warn',
         summary: 'Horas Insuficientes',
@@ -2663,19 +2865,25 @@ export class EmployeePortalComponent {
     // ID del tipo de timeoff "Compensatorio"
     const compensatoryTypeId = 'f2d92995-96a0-414f-b64a-9823db776745';
 
-    const timeoffData = {
+    // Calcular horas si es por días (asumiendo 8 horas por día)
+    const hours = type === 'days' ? amount * 8 : amount;
+
+    const timeoffData: any = {
       employee_id: this.currentEmployee()!.id,
       type_id: compensatoryTypeId,
       date_from: format(this.compensatoryStartDate()!, 'yyyy-MM-dd'),
       date_to: format(this.compensatoryEndDate()!, 'yyyy-MM-dd'),
-      hours: requestedHours,
+      hours: hours,
       reason: this.compensatoryReason() || null,
       is_approved: false,
+      review_status: 'pending', // Nuevo campo para flujo de revisión
+      compensatory_type: type, // Guardar si es horas o días
+      compensatory_amount: amount, // Guardar la cantidad original
     };
 
     try {
-      await this.http
-        .post(
+      const response = await firstValueFrom(
+        this.http.post<any>(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`,
           timeoffData,
           {
@@ -2685,18 +2893,23 @@ export class EmployeePortalComponent {
             },
           }
         )
-        .toPromise();
+      );
+
+      // Enviar notificación a Verley (HR que revisa)
+      await this.notifyHRReviewer(response[0]?.id || response?.id);
 
       this.messageService.add({
         severity: 'success',
         summary: 'Solicitud Enviada',
-        detail: 'Tu solicitud de tiempo compensatorio ha sido enviada correctamente',
+        detail:
+          'Tu solicitud de tiempo compensatorio ha sido enviada para revisión',
       });
 
       // Reset form
       this.compensatoryStartDate.set(null);
       this.compensatoryEndDate.set(null);
-      this.compensatoryHours.set(0);
+      this.compensatoryType.set('hours');
+      this.compensatoryAmount.set(0);
       this.compensatoryReason.set('');
       this.compensatoryTimeoffsApi.reload();
     } catch (error: any) {
@@ -2704,19 +2917,94 @@ export class EmployeePortalComponent {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail:
-          error.error?.message ||
-          'No se pudo enviar la solicitud. Por favor intenta de nuevo.',
+        detail: 'No se pudo enviar la solicitud. Por favor intenta de nuevo.',
       });
     } finally {
       this.submittingCompensatory.set(false);
     }
   }
 
+  // Función helper para notificar a Verley (HR que revisa)
+  private async notifyHRReviewer(timeoffId: string): Promise<void> {
+    try {
+      const companyId = this.organizationService.getCurrentCompanyId();
+      if (!companyId) return;
+
+      // Buscar posiciones HR
+      const hrPositions = await firstValueFrom(
+        this.http.get<any[]>(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/positions`,
+          {
+            params: {
+              select: 'id',
+              name: 'ilike.%recursos humanos%',
+            },
+          }
+        )
+      );
+
+      if (!hrPositions || hrPositions.length === 0) {
+        console.warn('No se encontraron posiciones HR');
+        return;
+      }
+
+      const hrPositionIds = hrPositions.map((p) => p.id);
+
+      // Buscar empleados con esas posiciones
+      const hrEmployees = await firstValueFrom(
+        this.http.get<any[]>(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
+          {
+            params: {
+              select: 'id,first_name,father_name',
+              position_id: `in.(${hrPositionIds.join(',')})`,
+              company_id: `eq.${companyId}`,
+              is_active: 'eq.true',
+            },
+          }
+        )
+      );
+
+      if (!hrEmployees || hrEmployees.length === 0) {
+        console.warn('No se encontraron empleados HR para notificar');
+        return;
+      }
+
+      // Enviar notificación a todos los HR encontrados
+      const notifications = hrEmployees.map((hr) => ({
+        recipient_id: hr.id,
+        type: 'other',
+        title: 'Nueva Solicitud de Tiempo Compensatorio',
+        message: `${this.currentEmployee()?.first_name} ${
+          this.currentEmployee()?.father_name
+        } ha enviado una solicitud de tiempo compensatorio que requiere tu revisión.`,
+        related_entity_type: 'timeoff',
+        related_entity_id: timeoffId,
+        priority: 'medium',
+      }));
+
+      await firstValueFrom(
+        this.http.post(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/notifications`,
+          notifications,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Prefer: 'return=representation',
+            },
+          }
+        )
+      );
+    } catch (error) {
+      console.error('Error enviando notificación a HR:', error);
+      // No fallar la solicitud si la notificación falla
+    }
+  }
+
   // Horas de compensatorio aprobadas
   public approvedCompensatoryHours = computed(() => {
     const timeoffs = this.timeoffsApi.value() ?? [];
-    
+
     // Calcular horas totales basándose en date_from y date_to
     // Asumimos 8 horas por día trabajado
     const totalHours = timeoffs.reduce((total, timeoff) => {
@@ -2724,9 +3012,9 @@ export class EmployeePortalComponent {
       const endDate = new Date(timeoff.date_to);
       // differenceInDays devuelve la diferencia en días, sumamos 1 para incluir ambos días
       const days = differenceInDays(endDate, startDate) + 1;
-      return total + (days * 8); // 8 horas por día
+      return total + days * 8; // 8 horas por día
     }, 0);
-    
+
     return totalHours;
   });
 
@@ -2771,12 +3059,12 @@ export class EmployeePortalComponent {
 
       const companyId = this.organizationService.getCurrentCompanyId();
       const params: any = { id: `eq.${this.currentEmployee()!.id}` };
-      
+
       // Agregar filtro por company_id para seguridad
       if (companyId) {
         params.company_id = `eq.${companyId}`;
       }
-      
+
       await this.http
         .patch(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,

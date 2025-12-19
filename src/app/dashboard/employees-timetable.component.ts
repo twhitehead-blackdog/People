@@ -40,10 +40,10 @@ import { ToggleSwitch, ToggleSwitchChangeEvent } from 'primeng/toggleswitch';
 import { Tooltip } from 'primeng/tooltip';
 import { catchError, EMPTY } from 'rxjs';
 import { colorVariants, EmployeeSchedule } from '../models';
-import { DashboardStore } from '../stores/dashboard.store';
 import { OrganizationService } from '../services/organization.service';
-import { EmployeeSchedulesFormComponent } from './employee-schedules-form.component';
+import { DashboardStore } from '../stores/dashboard.store';
 import { AddEmployeeToBranchDialogComponent } from './add-employee-to-branch-dialog.component';
+import { EmployeeSchedulesFormComponent } from './employee-schedules-form.component';
 
 @Component({
   selector: 'pt-employees-timetable',
@@ -141,7 +141,8 @@ import { AddEmployeeToBranchDialogComponent } from './add-employee-to-branch-dia
                 class="w-full lg:w-auto whitespace-nowrap text-sm"
               />
             </div>
-            @if(store.isAdmin() || (store.isScheduleAdmin() && currentBranch()) || (isHRDepartment() && currentBranch())) {
+            @if(store.isAdmin() || (store.isScheduleAdmin() && currentBranch())
+            || (isHRDepartment() && currentBranch())) {
             <p-button
               label="¿No aparece un empleado?"
               icon="pi pi-user-plus"
@@ -230,7 +231,12 @@ import { AddEmployeeToBranchDialogComponent } from './add-employee-to-branch-dia
                   <ul class="list-non flex flex-col">
                     <li
                       class="flex items-center gap-2 p-2 hover:bg-emphasis cursor-pointer rounded-md"
-                      (click)="editSchedule({ employee_schedule: day.shift })"
+                      (click)="
+                        editSchedule({
+                          employee_schedule: day.shift,
+                          date: day.date
+                        })
+                      "
                     >
                       <i class="pi pi-pencil text-primary-600"></i>
                       Editar
@@ -309,7 +315,11 @@ export class EmployeesTimetableComponent implements OnInit {
   public isHRDepartment = computed(() => {
     const currentEmp = this.store.currentEmployee();
     const deptName = currentEmp?.department?.name?.toLowerCase() || '';
-    return deptName.includes('recursos humanos') || deptName.includes('rrhh') || deptName.includes('hr');
+    return (
+      deptName.includes('recursos humanos') ||
+      deptName.includes('rrhh') ||
+      deptName.includes('hr')
+    );
   });
 
   public start = computed(() => {
@@ -413,17 +423,23 @@ export class EmployeesTimetableComponent implements OnInit {
 
         // Filtro por búsqueda de nombre
         const searchTerm = this.employeeSearch()?.toLowerCase().trim() || '';
-        const matchesSearch = !searchTerm || 
-          `${employee.first_name} ${employee.father_name}`.toLowerCase().includes(searchTerm) ||
+        const matchesSearch =
+          !searchTerm ||
+          `${employee.first_name} ${employee.father_name}`
+            .toLowerCase()
+            .includes(searchTerm) ||
           employee.first_name.toLowerCase().includes(searchTerm) ||
           employee.father_name.toLowerCase().includes(searchTerm);
-        
+
         // Filtro por sucursal (selector manual)
-        const matchesBranch = !this.currentBranch() || employee.branch_id === this.currentBranch();
-        
+        const matchesBranch =
+          !this.currentBranch() || employee.branch_id === this.currentBranch();
+
         // Filtro por puesto
-        const matchesPosition = !this.currentPosition() || employee.position_id === this.currentPosition();
-        
+        const matchesPosition =
+          !this.currentPosition() ||
+          employee.position_id === this.currentPosition();
+
         return matchesSearch && matchesBranch && matchesPosition;
       })
       .map(
@@ -455,17 +471,17 @@ export class EmployeesTimetableComponent implements OnInit {
     const companyId = this.organizationService.getCurrentCompanyId();
     const startDate = format(this.start(), 'yyyy-MM-dd');
     const endDate = format(this.end(), 'yyyy-MM-dd');
-    
+
     // Construir URL manualmente para filtrar a través de employee.company_id
     let url = `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules?select=*,schedule:schedules(*),branch:branches(id, name, short_name),employee:employees(id,company_id)`;
     url += `&start_date=lte.${endDate}`;
     url += `&end_date=gte.${startDate}`;
-    
+
     // Filtrar a través de employees.company_id (funciona incluso si employee_schedules no tiene company_id)
     if (companyId) {
       url += `&employee.company_id=eq.${companyId}`;
     }
-    
+
     return {
       url,
       method: 'GET',
@@ -560,6 +576,22 @@ export class EmployeesTimetableComponent implements OnInit {
     employee_schedule?: EmployeeSchedule;
     date?: Date;
   } = {}): void {
+    // Verificar si el empleado tiene horarios en la semana actual
+    const employeeHasSchedulesInWeek = employee_id
+      ? this.shifts()?.some(
+          (shift) =>
+            shift.employee_id === employee_id &&
+            isWithinInterval(this.start(), {
+              start: startOfDay(
+                toDate(shift.start_date, { timeZone: 'America/Panama' })
+              ),
+              end: endOfDay(
+                toDate(shift.end_date, { timeZone: 'America/Panama' })
+              ),
+            })
+        ) || false
+      : false;
+
     this.dialog
       .open(EmployeeSchedulesFormComponent, {
         header: 'Editar horario',
@@ -568,6 +600,9 @@ export class EmployeesTimetableComponent implements OnInit {
           employee_schedule,
           date,
           branch: this.currentBranch(),
+          weekStart: this.start(),
+          weekEnd: this.end(),
+          employeeHasSchedulesInWeek,
         },
         modal: true,
       })
@@ -595,12 +630,12 @@ export class EmployeesTimetableComponent implements OnInit {
       accept: () => {
         const companyId = this.organizationService.getCurrentCompanyId();
         const params: any = { id: `eq.${id}` };
-        
+
         // Agregar filtro por company_id para seguridad
         if (companyId) {
           params.company_id = `eq.${companyId}`;
         }
-        
+
         this.http
           .delete(
             `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
@@ -648,12 +683,12 @@ export class EmployeesTimetableComponent implements OnInit {
       accept: () => {
         const companyId = this.organizationService.getCurrentCompanyId();
         const params: any = { id: `eq.${id}` };
-        
+
         // Agregar filtro por company_id para seguridad
         if (companyId) {
           params.company_id = `eq.${companyId}`;
         }
-        
+
         this.http
           .patch(
             `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
@@ -704,7 +739,9 @@ export class EmployeesTimetableComponent implements OnInit {
       // Para Admin o HR, usar la sucursal del filtro si está seleccionada, sino undefined
       if (this.currentBranch()) {
         const branchId = this.currentBranch();
-        targetBranch = this.store.branches.entities().find(b => b.id === branchId) || undefined;
+        targetBranch =
+          this.store.branches.entities().find((b) => b.id === branchId) ||
+          undefined;
       } else {
         targetBranch = undefined;
       }

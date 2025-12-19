@@ -18,10 +18,13 @@ import { DropdownModule } from 'primeng/dropdown';
 import { InputTextModule } from 'primeng/inputtext';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { TableModule } from 'primeng/table';
+import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
+import { firstValueFrom } from 'rxjs';
 import { OrganizationService } from '../services/organization.service';
+import { DashboardStore } from '../stores/dashboard.store';
 
 interface Disability {
   id: string;
@@ -43,6 +46,33 @@ interface Disability {
   created_at: string;
 }
 
+interface CompensatoryRequest {
+  id: string;
+  employee_id: string;
+  employee?: {
+    id: string;
+    first_name: string;
+    father_name: string;
+    work_email: string;
+    position?: { name: string };
+    branch?: { name: string };
+  };
+  date_from: string;
+  date_to: string;
+  hours?: number;
+  reason?: string;
+  compensatory_type?: 'hours' | 'days';
+  compensatory_amount?: number;
+  review_status?: 'pending' | 'approved' | 'rejected';
+  reviewed_by?: string;
+  reviewed_at?: string;
+  registered_by?: string;
+  registered_at?: string;
+  rejection_comment?: string;
+  is_approved: boolean;
+  created_at: string;
+}
+
 @Component({
   selector: 'pt-hr-disabilities',
   standalone: true,
@@ -50,6 +80,7 @@ interface Disability {
     TableModule,
     ButtonModule,
     TagModule,
+    TabsModule,
     TooltipModule,
     InputTextModule,
     DropdownModule,
@@ -71,12 +102,9 @@ interface Disability {
       <!-- Header -->
       <div class="flex items-center justify-between">
         <div>
-          <h2 class="text-2xl font-bold text-white m-0">
-            Gestión de Incapacidades
-          </h2>
+          <h2 class="text-2xl font-bold text-white m-0">Gestión de RRHH</h2>
           <p class="text-sm text-gray-400 m-0 mt-1">
-            Revisa, aprueba o rechaza las incapacidades enviadas por los
-            empleados
+            Revisa, aprueba o rechaza las solicitudes enviadas por los empleados
           </p>
         </div>
         <div class="flex items-center gap-3">
@@ -85,266 +113,562 @@ interface Disability {
             label="Actualizar"
             [outlined]="true"
             severity="secondary"
-            (onClick)="disabilitiesApi.reload()"
-            [loading]="disabilitiesApi.isLoading()"
+            (onClick)="refreshAll()"
+            [loading]="isRefreshing()"
           />
         </div>
       </div>
 
-      <!-- Estadísticas -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div class="bg-neutral-800 rounded-lg p-4 border border-neutral-700">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm text-gray-400 m-0">Total</p>
-              <p class="text-2xl font-bold text-white m-0 mt-1">
-                {{ totalCount() }}
-              </p>
-            </div>
-            <i class="pi pi-file text-3xl text-gray-500"></i>
-          </div>
-        </div>
-        <div class="bg-neutral-800 rounded-lg p-4 border border-neutral-700">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm text-gray-400 m-0">Pendientes</p>
-              <p class="text-2xl font-bold text-yellow-400 m-0 mt-1">
-                {{ pendingCount() }}
-              </p>
-            </div>
-            <i class="pi pi-clock text-3xl text-yellow-500"></i>
-          </div>
-        </div>
-        <div class="bg-neutral-800 rounded-lg p-4 border border-neutral-700">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm text-gray-400 m-0">Aprobadas</p>
-              <p class="text-2xl font-bold text-green-400 m-0 mt-1">
-                {{ approvedCount() }}
-              </p>
-            </div>
-            <i class="pi pi-check-circle text-3xl text-green-500"></i>
-          </div>
-        </div>
-        <div class="bg-neutral-800 rounded-lg p-4 border border-neutral-700">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm text-gray-400 m-0">Rechazadas</p>
-              <p class="text-2xl font-bold text-red-400 m-0 mt-1">
-                {{ rejectedCount() }}
-              </p>
-            </div>
-            <i class="pi pi-times-circle text-3xl text-red-500"></i>
-          </div>
-        </div>
-      </div>
+      <p-tabs value="disabilities">
+        <p-tablist>
+          <p-tab value="disabilities">
+            <i class="pi pi-heart mr-2"></i>
+            Incapacidades
+          </p-tab>
+          <p-tab value="compensatory">
+            <i class="pi pi-clock mr-2"></i>
+            Tiempo Compensatorio
+          </p-tab>
+        </p-tablist>
 
-      <!-- Filtros -->
-      <p-card class="bg-neutral-800 border-neutral-700">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-300 mb-2"
-              >Buscar</label
+        <p-tabpanel value="disabilities">
+          <!-- Estadísticas de Incapacidades -->
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div
+              class="bg-neutral-800 rounded-lg p-4 border border-neutral-700"
             >
-            <input
-              type="text"
-              pInputText
-              placeholder="Empleado, descripción..."
-              [(ngModel)]="searchText"
-              (input)="onFilterChange()"
-              class="w-full"
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-300 mb-2"
-              >Estado</label
-            >
-            <p-dropdown
-              [options]="statusOptions"
-              [(ngModel)]="selectedStatus"
-              (onChange)="onFilterChange()"
-              placeholder="Todos los estados"
-              [showClear]="true"
-              class="w-full"
-            />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-300 mb-2"
-              >Fecha Inicio</label
-            >
-            <p-calendar
-              [(ngModel)]="dateRange"
-              selectionMode="range"
-              [showIcon]="true"
-              dateFormat="dd/mm/yy"
-              placeholder="Rango de fechas"
-              (onSelect)="onFilterChange()"
-              [showClear]="true"
-              class="w-full"
-            />
-          </div>
-          <div class="flex items-end">
-            <p-button
-              label="Limpiar Filtros"
-              icon="pi pi-filter-slash"
-              [outlined]="true"
-              severity="secondary"
-              (onClick)="clearFilters()"
-              class="w-full"
-            />
-          </div>
-        </div>
-      </p-card>
-
-      <!-- Tabla -->
-      <p-card class="bg-neutral-800 border-neutral-700">
-        @if (disabilitiesApi.isLoading()) {
-        <div class="flex justify-center items-center py-12">
-          <p-progressSpinner />
-        </div>
-        } @else {
-        <p-table
-          [value]="filteredDisabilities()"
-          [paginator]="true"
-          [rows]="10"
-          [rowsPerPageOptions]="[10, 25, 50]"
-          [globalFilterFields]="[
-            'employee.first_name',
-            'employee.father_name',
-            'employee.work_email',
-            'description'
-          ]"
-          styleClass="p-datatable-striped"
-          [tableStyle]="{ 'min-width': '50rem' }"
-        >
-          <ng-template #emptymessage>
-            <tr>
-              <td colspan="8" class="text-center py-4">
-                No se encontraron incapacidades
-              </td>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="header">
-            <tr>
-              <th style="width: 200px">Empleado</th>
-              <th style="width: 120px">Fecha Inicio</th>
-              <th style="width: 120px">Fecha Fin</th>
-              <th style="width: 100px">Días</th>
-              <th>Descripción</th>
-              <th style="width: 120px">Estado</th>
-              <th style="width: 100px">Documento</th>
-              <th style="width: 200px">Acciones</th>
-            </tr>
-          </ng-template>
-          <ng-template pTemplate="body" let-disability>
-            <tr>
-              <td>
-                <div class="flex flex-col">
-                  <span class="font-medium text-white">
-                    {{ disability.employee?.first_name }}
-                    {{ disability.employee?.father_name }}
-                  </span>
-                  <span class="text-xs text-gray-400">
-                    {{ disability.employee?.work_email }}
-                  </span>
-                  @if (disability.employee?.position?.name) {
-                  <span class="text-xs text-gray-500">
-                    {{ disability.employee.position.name }}
-                  </span>
-                  }
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm text-gray-400 m-0">Total</p>
+                  <p class="text-2xl font-bold text-white m-0 mt-1">
+                    {{ totalCount() }}
+                  </p>
                 </div>
-              </td>
-              <td>
-                <span class="text-sm text-gray-300">
-                  {{ disability.start_date | date : 'dd/MM/yyyy' }}
-                </span>
-              </td>
-              <td>
-                <span class="text-sm text-gray-300">
-                  {{ disability.end_date | date : 'dd/MM/yyyy' }}
-                </span>
-              </td>
-              <td>
-                <span class="text-sm font-medium text-white">
-                  {{
-                    calculateDays(disability.start_date, disability.end_date)
-                  }}
-                  días
-                </span>
-              </td>
-              <td>
-                @if (disability.description) {
-                <span
-                  class="text-sm text-gray-300 cursor-help"
-                  [pTooltip]="disability.description"
-                  tooltipPosition="top"
-                  [style.max-width.px]="200"
-                  [style.display]="'inline-block'"
-                  [style.overflow]="'hidden'"
-                  [style.text-overflow]="'ellipsis'"
-                  [style.white-space]="'nowrap'"
+                <i class="pi pi-file text-3xl text-gray-500"></i>
+              </div>
+            </div>
+            <div
+              class="bg-neutral-800 rounded-lg p-4 border border-neutral-700"
+            >
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm text-gray-400 m-0">Pendientes</p>
+                  <p class="text-2xl font-bold text-yellow-400 m-0 mt-1">
+                    {{ pendingCount() }}
+                  </p>
+                </div>
+                <i class="pi pi-clock text-3xl text-yellow-500"></i>
+              </div>
+            </div>
+            <div
+              class="bg-neutral-800 rounded-lg p-4 border border-neutral-700"
+            >
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm text-gray-400 m-0">Aprobadas</p>
+                  <p class="text-2xl font-bold text-green-400 m-0 mt-1">
+                    {{ approvedCount() }}
+                  </p>
+                </div>
+                <i class="pi pi-check-circle text-3xl text-green-500"></i>
+              </div>
+            </div>
+            <div
+              class="bg-neutral-800 rounded-lg p-4 border border-neutral-700"
+            >
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm text-gray-400 m-0">Rechazadas</p>
+                  <p class="text-2xl font-bold text-red-400 m-0 mt-1">
+                    {{ rejectedCount() }}
+                  </p>
+                </div>
+                <i class="pi pi-times-circle text-3xl text-red-500"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Filtros -->
+          <p-card class="bg-neutral-800 border-neutral-700">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2"
+                  >Buscar</label
                 >
-                  {{ disability.description }}
-                </span>
-                } @else {
-                <span class="text-gray-500 text-sm">-</span>
-                }
-              </td>
-              <td>
-                <p-tag
-                  [value]="getStatusLabel(disability.status)"
-                  [severity]="getStatusSeverity(disability.status)"
+                <input
+                  type="text"
+                  pInputText
+                  placeholder="Empleado, descripción..."
+                  [(ngModel)]="searchText"
+                  (input)="onFilterChange()"
+                  class="w-full"
                 />
-              </td>
-              <td>
-                @if (disability.document_url) {
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2"
+                  >Estado</label
+                >
+                <p-dropdown
+                  [options]="statusOptions"
+                  [(ngModel)]="selectedStatus"
+                  (onChange)="onFilterChange()"
+                  placeholder="Todos los estados"
+                  [showClear]="true"
+                  class="w-full"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2"
+                  >Fecha Inicio</label
+                >
+                <p-calendar
+                  [(ngModel)]="dateRange"
+                  selectionMode="range"
+                  [showIcon]="true"
+                  dateFormat="dd/mm/yy"
+                  placeholder="Rango de fechas"
+                  (onSelect)="onFilterChange()"
+                  [showClear]="true"
+                  class="w-full"
+                />
+              </div>
+              <div class="flex items-end">
                 <p-button
-                  icon="pi pi-download"
-                  [text]="true"
+                  label="Limpiar Filtros"
+                  icon="pi pi-filter-slash"
+                  [outlined]="true"
                   severity="secondary"
-                  (onClick)="downloadDocument(disability.document_url!)"
-                  pTooltip="Descargar documento"
-                  tooltipPosition="top"
+                  (onClick)="clearFilters()"
+                  class="w-full"
                 />
-                } @else {
-                <span class="text-gray-500 text-sm">-</span>
-                }
-              </td>
-              <td>
-                <div class="flex gap-2">
-                  @if (disability.status === 'pending') {
-                  <p-button
-                    icon="pi pi-check"
-                    [text]="true"
-                    severity="success"
-                    (onClick)="approveDisability(disability)"
-                    pTooltip="Aprobar"
-                    tooltipPosition="top"
-                  />
-                  <p-button
-                    icon="pi pi-times"
-                    [text]="true"
-                    severity="danger"
-                    (onClick)="rejectDisability(disability)"
-                    pTooltip="Rechazar"
-                    tooltipPosition="top"
-                  />
-                  }
-                  <p-button
-                    icon="pi pi-eye"
-                    [text]="true"
-                    severity="info"
-                    (onClick)="viewDetails(disability)"
-                    pTooltip="Ver detalles"
-                    tooltipPosition="top"
-                  />
+              </div>
+            </div>
+          </p-card>
+
+          <!-- Tabla -->
+          <p-card class="bg-neutral-800 border-neutral-700">
+            @if (disabilitiesApi.isLoading()) {
+            <div class="flex justify-center items-center py-12">
+              <p-progressSpinner />
+            </div>
+            } @else {
+            <p-table
+              [value]="filteredDisabilities()"
+              [paginator]="true"
+              [rows]="10"
+              [rowsPerPageOptions]="[10, 25, 50]"
+              [globalFilterFields]="[
+                'employee.first_name',
+                'employee.father_name',
+                'employee.work_email',
+                'description'
+              ]"
+              styleClass="p-datatable-striped"
+              [tableStyle]="{ 'min-width': '50rem' }"
+            >
+              <ng-template #emptymessage>
+                <tr>
+                  <td colspan="8" class="text-center py-4">
+                    No se encontraron incapacidades
+                  </td>
+                </tr>
+              </ng-template>
+              <ng-template pTemplate="header">
+                <tr>
+                  <th style="width: 200px">Empleado</th>
+                  <th style="width: 120px">Fecha Inicio</th>
+                  <th style="width: 120px">Fecha Fin</th>
+                  <th style="width: 100px">Días</th>
+                  <th>Descripción</th>
+                  <th style="width: 120px">Estado</th>
+                  <th style="width: 100px">Documento</th>
+                  <th style="width: 200px">Acciones</th>
+                </tr>
+              </ng-template>
+              <ng-template pTemplate="body" let-disability>
+                <tr>
+                  <td>
+                    <div class="flex flex-col">
+                      <span class="font-medium text-white">
+                        {{ disability.employee?.first_name }}
+                        {{ disability.employee?.father_name }}
+                      </span>
+                      <span class="text-xs text-gray-400">
+                        {{ disability.employee?.work_email }}
+                      </span>
+                      @if (disability.employee?.position?.name) {
+                      <span class="text-xs text-gray-500">
+                        {{ disability.employee.position.name }}
+                      </span>
+                      }
+                    </div>
+                  </td>
+                  <td>
+                    <span class="text-sm text-gray-300">
+                      {{ disability.start_date | date : 'dd/MM/yyyy' }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="text-sm text-gray-300">
+                      {{ disability.end_date | date : 'dd/MM/yyyy' }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="text-sm font-medium text-white">
+                      {{
+                        calculateDays(
+                          disability.start_date,
+                          disability.end_date
+                        )
+                      }}
+                      días
+                    </span>
+                  </td>
+                  <td>
+                    @if (disability.description) {
+                    <span
+                      class="text-sm text-gray-300 cursor-help"
+                      [pTooltip]="disability.description"
+                      tooltipPosition="top"
+                      [style.max-width.px]="200"
+                      [style.display]="'inline-block'"
+                      [style.overflow]="'hidden'"
+                      [style.text-overflow]="'ellipsis'"
+                      [style.white-space]="'nowrap'"
+                    >
+                      {{ disability.description }}
+                    </span>
+                    } @else {
+                    <span class="text-gray-500 text-sm">-</span>
+                    }
+                  </td>
+                  <td>
+                    <p-tag
+                      [value]="getStatusLabel(disability.status)"
+                      [severity]="getStatusSeverity(disability.status)"
+                    />
+                  </td>
+                  <td>
+                    @if (disability.document_url) {
+                    <p-button
+                      icon="pi pi-download"
+                      [text]="true"
+                      severity="secondary"
+                      (onClick)="downloadDocument(disability.document_url!)"
+                      pTooltip="Descargar documento"
+                      tooltipPosition="top"
+                    />
+                    } @else {
+                    <span class="text-gray-500 text-sm">-</span>
+                    }
+                  </td>
+                  <td>
+                    <div class="flex gap-2">
+                      @if (disability.status === 'pending') {
+                      <p-button
+                        icon="pi pi-check"
+                        [text]="true"
+                        severity="success"
+                        (onClick)="approveDisability(disability)"
+                        pTooltip="Aprobar"
+                        tooltipPosition="top"
+                      />
+                      <p-button
+                        icon="pi pi-times"
+                        [text]="true"
+                        severity="danger"
+                        (onClick)="rejectDisability(disability)"
+                        pTooltip="Rechazar"
+                        tooltipPosition="top"
+                      />
+                      }
+                      <p-button
+                        icon="pi pi-eye"
+                        [text]="true"
+                        severity="info"
+                        (onClick)="viewDetails(disability)"
+                        pTooltip="Ver detalles"
+                        tooltipPosition="top"
+                      />
+                    </div>
+                  </td>
+                </tr>
+              </ng-template>
+            </p-table>
+            }
+          </p-card>
+        </p-tabpanel>
+
+        <p-tabpanel value="compensatory">
+          <!-- Estadísticas de Tiempo Compensatorio -->
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+            <div
+              class="bg-neutral-800 rounded-lg p-4 border border-neutral-700"
+            >
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm text-gray-400 m-0">Total</p>
+                  <p class="text-2xl font-bold text-white m-0 mt-1">
+                    {{ compensatoryTotalCount() }}
+                  </p>
                 </div>
-              </td>
-            </tr>
-          </ng-template>
-        </p-table>
-        }
-      </p-card>
+                <i class="pi pi-clock text-3xl text-gray-500"></i>
+              </div>
+            </div>
+            <div
+              class="bg-neutral-800 rounded-lg p-4 border border-neutral-700"
+            >
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm text-gray-400 m-0">Pendientes</p>
+                  <p class="text-2xl font-bold text-yellow-400 m-0 mt-1">
+                    {{ compensatoryPendingCount() }}
+                  </p>
+                </div>
+                <i class="pi pi-clock text-3xl text-yellow-500"></i>
+              </div>
+            </div>
+            <div
+              class="bg-neutral-800 rounded-lg p-4 border border-neutral-700"
+            >
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm text-gray-400 m-0">Aprobadas</p>
+                  <p class="text-2xl font-bold text-green-400 m-0 mt-1">
+                    {{ compensatoryApprovedCount() }}
+                  </p>
+                </div>
+                <i class="pi pi-check-circle text-3xl text-green-500"></i>
+              </div>
+            </div>
+            <div
+              class="bg-neutral-800 rounded-lg p-4 border border-neutral-700"
+            >
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-sm text-gray-400 m-0">Rechazadas</p>
+                  <p class="text-2xl font-bold text-red-400 m-0 mt-1">
+                    {{ compensatoryRejectedCount() }}
+                  </p>
+                </div>
+                <i class="pi pi-times-circle text-3xl text-red-500"></i>
+              </div>
+            </div>
+          </div>
+
+          <!-- Filtros de Tiempo Compensatorio -->
+          <p-card class="bg-neutral-800 border-neutral-700 mb-6">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2"
+                  >Buscar</label
+                >
+                <input
+                  type="text"
+                  pInputText
+                  placeholder="Empleado, motivo..."
+                  [(ngModel)]="compensatorySearchText"
+                  (input)="onCompensatoryFilterChange()"
+                  class="w-full"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2"
+                  >Estado</label
+                >
+                <p-dropdown
+                  [options]="compensatoryStatusOptions"
+                  [(ngModel)]="compensatorySelectedStatus"
+                  (onChange)="onCompensatoryFilterChange()"
+                  placeholder="Todos los estados"
+                  [showClear]="true"
+                  class="w-full"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2"
+                  >Fecha</label
+                >
+                <p-calendar
+                  [(ngModel)]="compensatoryDateRange"
+                  selectionMode="range"
+                  [showIcon]="true"
+                  dateFormat="dd/mm/yy"
+                  placeholder="Rango de fechas"
+                  (onSelect)="onCompensatoryFilterChange()"
+                  [showClear]="true"
+                  class="w-full"
+                />
+              </div>
+              <div class="flex items-end">
+                <p-button
+                  label="Limpiar Filtros"
+                  icon="pi pi-filter-slash"
+                  [outlined]="true"
+                  severity="secondary"
+                  (onClick)="clearCompensatoryFilters()"
+                  class="w-full"
+                />
+              </div>
+            </div>
+          </p-card>
+
+          <!-- Tabla de Tiempo Compensatorio -->
+          <p-card class="bg-neutral-800 border-neutral-700">
+            @if (compensatoryTimeoffsApi.isLoading()) {
+            <div class="flex justify-center items-center py-12">
+              <p-progressSpinner />
+            </div>
+            } @else {
+            <p-table
+              [value]="filteredCompensatoryRequests()"
+              [paginator]="true"
+              [rows]="10"
+              [rowsPerPageOptions]="[10, 25, 50]"
+              [globalFilterFields]="[
+                'employee_id.first_name',
+                'employee_id.father_name',
+                'employee_id.work_email',
+                'reason'
+              ]"
+              styleClass="p-datatable-striped"
+              [tableStyle]="{ 'min-width': '50rem' }"
+            >
+              <ng-template #emptymessage>
+                <tr>
+                  <td colspan="8" class="text-center py-4">
+                    No se encontraron solicitudes de tiempo compensatorio
+                  </td>
+                </tr>
+              </ng-template>
+              <ng-template pTemplate="header">
+                <tr>
+                  <th style="width: 200px">Empleado</th>
+                  <th style="width: 120px">Fecha Inicio</th>
+                  <th style="width: 120px">Fecha Fin</th>
+                  <th style="width: 100px">Tipo</th>
+                  <th style="width: 100px">Cantidad</th>
+                  <th>Motivo</th>
+                  <th style="width: 120px">Estado</th>
+                  <th style="width: 200px">Acciones</th>
+                </tr>
+              </ng-template>
+              <ng-template pTemplate="body" let-request>
+                <tr>
+                  <td>
+                    <div class="flex flex-col">
+                      <span class="font-medium text-white">
+                        {{ getEmployeeName(request) }}
+                      </span>
+                      <span class="text-xs text-gray-400">
+                        {{ getEmployeeEmail(request) }}
+                      </span>
+                      @if (getEmployeePosition(request)) {
+                      <span class="text-xs text-gray-500">
+                        {{ getEmployeePosition(request) }}
+                      </span>
+                      }
+                    </div>
+                  </td>
+                  <td>
+                    <span class="text-sm text-gray-300">
+                      {{ request.date_from | date : 'dd/MM/yyyy' }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="text-sm text-gray-300">
+                      {{ request.date_to | date : 'dd/MM/yyyy' }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="text-sm font-medium text-white">
+                      {{
+                        request.compensatory_type === 'days' ? 'Días' : 'Horas'
+                      }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="text-sm font-medium text-white">
+                      @if (request.compensatory_type === 'days') {
+                      {{
+                        request.compensatory_amount ||
+                          calculateDays(request.date_from, request.date_to)
+                      }}
+                      días } @else {
+                      {{ request.hours || request.compensatory_amount || 0 }}h }
+                    </span>
+                  </td>
+                  <td>
+                    @if (request.reason) {
+                    <span
+                      class="text-sm text-gray-300 cursor-help"
+                      [pTooltip]="request.reason"
+                      tooltipPosition="top"
+                      [style.max-width.px]="200"
+                      [style.display]="'inline-block'"
+                      [style.overflow]="'hidden'"
+                      [style.text-overflow]="'ellipsis'"
+                      [style.white-space]="'nowrap'"
+                    >
+                      {{ request.reason }}
+                    </span>
+                    } @else {
+                    <span class="text-gray-500 text-sm">-</span>
+                    }
+                  </td>
+                  <td>
+                    <p-tag
+                      [value]="getCompensatoryStatusLabel(request)"
+                      [severity]="getCompensatoryStatusSeverity(request)"
+                    />
+                  </td>
+                  <td>
+                    <div class="flex gap-2">
+                      @if (request.review_status === 'pending') {
+                      <p-button
+                        icon="pi pi-check"
+                        [text]="true"
+                        severity="success"
+                        (onClick)="approveCompensatoryRequest(request)"
+                        pTooltip="Aprobar"
+                        tooltipPosition="top"
+                      />
+                      <p-button
+                        icon="pi pi-times"
+                        [text]="true"
+                        severity="danger"
+                        (onClick)="rejectCompensatoryRequest(request)"
+                        pTooltip="Rechazar"
+                        tooltipPosition="top"
+                      />
+                      } @else if (request.review_status === 'approved' &&
+                      !request.is_approved) {
+                      <p-button
+                        icon="pi pi-check-circle"
+                        [text]="true"
+                        severity="info"
+                        (onClick)="registerCompensatoryRequest(request)"
+                        pTooltip="Registrar (Lia)"
+                        tooltipPosition="top"
+                      />
+                      }
+                      <p-button
+                        icon="pi pi-eye"
+                        [text]="true"
+                        severity="info"
+                        (onClick)="viewCompensatoryDetails(request)"
+                        pTooltip="Ver detalles"
+                        tooltipPosition="top"
+                      />
+                    </div>
+                  </td>
+                </tr>
+              </ng-template>
+            </p-table>
+            }
+          </p-card>
+        </p-tabpanel>
+      </p-tabs>
     </div>
 
     <!-- Dialog de Detalles -->
@@ -509,6 +833,7 @@ export class HRDisabilitiesComponent {
   private messageService = inject(MessageService);
   private confirmationService = inject(ConfirmationService);
   private organizationService = inject(OrganizationService);
+  private dashboardStore = inject(DashboardStore);
 
   // API para obtener incapacidades con información del empleado
   public disabilitiesApi = httpResource<Disability[]>(() => {
@@ -604,9 +929,9 @@ export class HRDisabilitiesComponent {
     return disabilities;
   });
 
-  public calculateDays(start: string, end: string): number {
-    const startDate = new Date(start);
-    const endDate = new Date(end);
+  public calculateDays(start: string | Date, end: string | Date): number {
+    const startDate = typeof start === 'string' ? new Date(start) : start;
+    const endDate = typeof end === 'string' ? new Date(end) : end;
     const diffTime = endDate.getTime() - startDate.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays + 1;
@@ -643,6 +968,470 @@ export class HRDisabilitiesComponent {
     this.searchText.set('');
     this.selectedStatus.set(null);
     this.dateRange.set(null);
+  }
+
+  // ========== Tiempo Compensatorio ==========
+
+  // API para obtener solicitudes de tiempo compensatorio
+  public compensatoryTimeoffsApi = httpResource<CompensatoryRequest[]>(() => {
+    const companyId = this.organizationService.getCurrentCompanyId();
+    const compensatoryTypeId = 'f2d92995-96a0-414f-b64a-9823db776745';
+
+    // Usar sintaxis con alias explícito para especificar la relación correcta
+    const params: any = {
+      select: `*,type:timeoff_types(id,name),employee:employee_id(id,first_name,father_name,work_email,position:positions(name),branch:branches(name))`,
+      type_id: `eq.${compensatoryTypeId}`,
+      order: 'created_at.desc',
+    };
+
+    return {
+      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`,
+      method: 'GET',
+      params,
+    };
+  });
+
+  // Filtros para tiempo compensatorio
+  public compensatorySearchText = signal('');
+  public compensatorySelectedStatus = signal<string | null>(null);
+  public compensatoryDateRange = signal<Date[] | null>(null);
+  public isRefreshing = signal(false);
+
+  // Opciones de estado para tiempo compensatorio
+  public compensatoryStatusOptions = [
+    { label: 'Pendiente', value: 'pending' },
+    { label: 'Aprobada', value: 'approved' },
+    { label: 'Rechazada', value: 'rejected' },
+  ];
+
+  // Estadísticas de tiempo compensatorio
+  public compensatoryTotalCount = computed(
+    () => this.compensatoryTimeoffsApi.value()?.length || 0
+  );
+  public compensatoryPendingCount = computed(
+    () =>
+      this.compensatoryTimeoffsApi
+        .value()
+        ?.filter(
+          (r) =>
+            r.review_status === 'pending' ||
+            (!r.review_status && !r.is_approved)
+        ).length || 0
+  );
+  public compensatoryApprovedCount = computed(
+    () =>
+      this.compensatoryTimeoffsApi
+        .value()
+        ?.filter((r) => r.is_approved === true).length || 0
+  );
+  public compensatoryRejectedCount = computed(
+    () =>
+      this.compensatoryTimeoffsApi
+        .value()
+        ?.filter((r) => r.review_status === 'rejected' || r.rejection_comment)
+        .length || 0
+  );
+
+  // Solicitudes filtradas
+  public filteredCompensatoryRequests = computed(() => {
+    let requests = this.compensatoryTimeoffsApi.value() || [];
+
+    // Filtro por texto
+    const search = this.compensatorySearchText().toLowerCase();
+    if (search) {
+      requests = requests.filter((r) => {
+        const employeeName = this.getEmployeeName(r).toLowerCase();
+        const email = this.getEmployeeEmail(r).toLowerCase();
+        const reason = r.reason?.toLowerCase() || '';
+        return (
+          employeeName.includes(search) ||
+          email.includes(search) ||
+          reason.includes(search)
+        );
+      });
+    }
+
+    // Filtro por estado
+    const status = this.compensatorySelectedStatus();
+    if (status) {
+      if (status === 'pending') {
+        requests = requests.filter(
+          (r) =>
+            r.review_status === 'pending' ||
+            (!r.review_status && !r.is_approved)
+        );
+      } else if (status === 'approved') {
+        requests = requests.filter((r) => r.is_approved === true);
+      } else if (status === 'rejected') {
+        requests = requests.filter(
+          (r) => r.review_status === 'rejected' || r.rejection_comment
+        );
+      }
+    }
+
+    // Filtro por rango de fechas
+    const dateRange = this.compensatoryDateRange();
+    if (dateRange && dateRange.length === 2) {
+      const startDate = dateRange[0];
+      const endDate = dateRange[1];
+      requests = requests.filter((r) => {
+        const requestStart = new Date(r.date_from);
+        return requestStart >= startDate && requestStart <= endDate;
+      });
+    }
+
+    return requests;
+  });
+
+  public onCompensatoryFilterChange(): void {
+    // Los filtros se aplican automáticamente mediante computed
+  }
+
+  public clearCompensatoryFilters(): void {
+    this.compensatorySearchText.set('');
+    this.compensatorySelectedStatus.set(null);
+    this.compensatoryDateRange.set(null);
+  }
+
+  public refreshAll(): void {
+    this.isRefreshing.set(true);
+    this.disabilitiesApi.reload();
+    this.compensatoryTimeoffsApi.reload();
+    setTimeout(() => this.isRefreshing.set(false), 1000);
+  }
+
+  public getCompensatoryStatusLabel(request: CompensatoryRequest): string {
+    if (request.is_approved) return 'Aprobado';
+    if (request.rejection_comment || request.review_status === 'rejected')
+      return 'Rechazado';
+    if (request.review_status === 'approved') return 'En Registro';
+    return 'Pendiente';
+  }
+
+  public getCompensatoryStatusSeverity(
+    request: CompensatoryRequest
+  ): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
+    if (request.is_approved) return 'success';
+    if (request.rejection_comment || request.review_status === 'rejected')
+      return 'danger';
+    if (request.review_status === 'approved') return 'info';
+    return 'warn';
+  }
+
+  // Helper methods para obtener información del empleado
+  public getEmployeeName(request: CompensatoryRequest): string {
+    if (request.employee) {
+      return `${request.employee.first_name || ''} ${
+        request.employee.father_name || ''
+      }`.trim();
+    }
+    return 'Empleado';
+  }
+
+  public getEmployeeEmail(request: CompensatoryRequest): string {
+    if (request.employee) {
+      return request.employee.work_email || '';
+    }
+    return '';
+  }
+
+  public getEmployeePosition(request: CompensatoryRequest): string | null {
+    if (request.employee?.position?.name) {
+      return request.employee.position.name;
+    }
+    return null;
+  }
+
+  public viewCompensatoryDetails(request: CompensatoryRequest): void {
+    // TODO: Implementar dialog de detalles
+    console.log('View details:', request);
+  }
+
+  public approveCompensatoryRequest(request: CompensatoryRequest): void {
+    const employeeName = this.getEmployeeName(request);
+    this.confirmationService.confirm({
+      message: `¿Estás seguro de aprobar la solicitud de tiempo compensatorio de ${employeeName}?`,
+      header: 'Confirmar Aprobación',
+      icon: 'pi pi-exclamation-triangle',
+      acceptButtonStyleClass: 'p-button-success',
+      accept: () => {
+        this.updateCompensatoryReviewStatus(request.id, 'approved');
+      },
+    });
+  }
+
+  public rejectCompensatoryRequest(request: CompensatoryRequest): void {
+    // TODO: Mostrar dialog para ingresar comentario de rechazo
+    const employeeName = this.getEmployeeName(request);
+    this.confirmationService.confirm({
+      message: `¿Estás seguro de rechazar la solicitud de tiempo compensatorio de ${employeeName}?`,
+      header: 'Confirmar Rechazo',
+      icon: 'pi pi-exclamation-triangle',
+      acceptButtonStyleClass: 'p-button-danger',
+      accept: () => {
+        this.updateCompensatoryReviewStatus(
+          request.id,
+          'rejected',
+          'Solicitud rechazada'
+        );
+      },
+    });
+  }
+
+  public registerCompensatoryRequest(request: CompensatoryRequest): void {
+    const employeeName = this.getEmployeeName(request);
+    this.confirmationService.confirm({
+      message: `¿Estás seguro de registrar la solicitud de tiempo compensatorio de ${employeeName}?`,
+      header: 'Confirmar Registro',
+      icon: 'pi pi-exclamation-triangle',
+      acceptButtonStyleClass: 'p-button-info',
+      accept: () => {
+        this.registerCompensatoryTimeoff(request.id);
+      },
+    });
+  }
+
+  private updateCompensatoryReviewStatus(
+    id: string,
+    status: 'approved' | 'rejected',
+    rejectionComment?: string
+  ): void {
+    const currentEmployee = this.dashboardStore.currentEmployee();
+    if (!currentEmployee) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo identificar al empleado actual',
+      });
+      return;
+    }
+
+    const updateData: any = {
+      review_status: status,
+      reviewed_by: currentEmployee.id,
+      reviewed_at: new Date().toISOString(),
+    };
+
+    if (status === 'rejected' && rejectionComment) {
+      updateData.rejection_comment = rejectionComment;
+    }
+
+    this.http
+      .patch(
+        `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs?id=eq.${id}`,
+        updateData
+      )
+      .subscribe({
+        next: async () => {
+          // Obtener la solicitud para notificar al empleado
+          const request = this.compensatoryTimeoffsApi
+            .value()
+            ?.find((r) => r.id === id);
+
+          if (status === 'approved' && request) {
+            // Enviar notificación a Lia para que registre
+            await this.notifyLiaForRegistration(id, request);
+          } else if (status === 'rejected' && request) {
+            // Enviar notificación al empleado sobre el rechazo
+            await this.notifyEmployee(
+              id,
+              request,
+              'rejected',
+              rejectionComment
+            );
+          }
+
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Éxito',
+            detail: `Solicitud ${
+              status === 'approved' ? 'aprobada' : 'rechazada'
+            } correctamente`,
+          });
+          this.compensatoryTimeoffsApi.reload();
+        },
+        error: () => {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'No se pudo actualizar el estado de la solicitud',
+          });
+        },
+      });
+  }
+
+  private registerCompensatoryTimeoff(id: string): void {
+    const currentEmployee = this.dashboardStore.currentEmployee();
+    if (!currentEmployee) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo identificar al empleado actual',
+      });
+      return;
+    }
+
+    const updateData = {
+      registered_by: currentEmployee.id,
+      registered_at: new Date().toISOString(),
+      is_approved: true,
+    };
+
+    this.http
+      .patch(
+        `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs?id=eq.${id}`,
+        updateData
+      )
+      .subscribe({
+        next: async () => {
+          // Obtener la solicitud para notificar al empleado
+          const request = this.compensatoryTimeoffsApi
+            .value()
+            ?.find((r) => r.id === id);
+          if (request) {
+            // Enviar notificación al empleado sobre la aprobación final
+            await this.notifyEmployee(id, request, 'approved');
+          }
+
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Éxito',
+            detail: 'Solicitud registrada correctamente',
+          });
+          this.compensatoryTimeoffsApi.reload();
+        },
+        error: () => {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'No se pudo registrar la solicitud',
+          });
+        },
+      });
+  }
+
+  // Funciones helper para notificaciones
+  private async notifyLiaForRegistration(
+    timeoffId: string,
+    request: CompensatoryRequest
+  ): Promise<void> {
+    try {
+      const companyId = this.organizationService.getCurrentCompanyId();
+      if (!companyId) return;
+
+      // Buscar posiciones HR
+      const hrPositions = await firstValueFrom(
+        this.http.get<any[]>(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/positions`,
+          {
+            params: {
+              select: 'id',
+              name: 'ilike.%recursos humanos%',
+            },
+          }
+        )
+      );
+
+      if (!hrPositions || hrPositions.length === 0) {
+        console.warn('No se encontraron posiciones HR');
+        return;
+      }
+
+      const hrPositionIds = hrPositions.map((p) => p.id);
+
+      // Buscar Lia (empleado HR que registra)
+      const liaEmployees = await firstValueFrom(
+        this.http.get<any[]>(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
+          {
+            params: {
+              select: 'id,first_name,father_name',
+              position_id: `in.(${hrPositionIds.join(',')})`,
+              company_id: `eq.${companyId}`,
+              is_active: 'eq.true',
+            },
+          }
+        )
+      );
+
+      if (!liaEmployees || liaEmployees.length === 0) {
+        console.warn('No se encontraron empleados HR (Lia) para notificar');
+        return;
+      }
+
+      const employeeName = this.getEmployeeName(request);
+      const notifications = liaEmployees.map((lia) => ({
+        recipient_id: lia.id,
+        type: 'other',
+        title: 'Solicitud de Tiempo Compensatorio Aprobada - Requiere Registro',
+        message: `La solicitud de tiempo compensatorio de ${employeeName} ha sido aprobada y requiere tu registro.`,
+        related_entity_type: 'timeoff',
+        related_entity_id: timeoffId,
+        priority: 'medium',
+      }));
+
+      await firstValueFrom(
+        this.http.post(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/notifications`,
+          notifications,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Prefer: 'return=representation',
+            },
+          }
+        )
+      );
+    } catch (error) {
+      console.error('Error enviando notificación a Lia:', error);
+    }
+  }
+
+  private async notifyEmployee(
+    timeoffId: string,
+    request: CompensatoryRequest,
+    status: 'approved' | 'rejected',
+    rejectionComment?: string
+  ): Promise<void> {
+    try {
+      const employeeId = request.employee_id;
+      if (!employeeId) return;
+
+      const title =
+        status === 'approved'
+          ? 'Solicitud de Tiempo Compensatorio Aprobada'
+          : 'Solicitud de Tiempo Compensatorio Rechazada';
+
+      const message =
+        status === 'approved'
+          ? `Tu solicitud de tiempo compensatorio ha sido registrada y aprobada.`
+          : `Tu solicitud de tiempo compensatorio ha sido rechazada.${
+              rejectionComment ? ` Motivo: ${rejectionComment}` : ''
+            }`;
+
+      await firstValueFrom(
+        this.http.post(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/notifications`,
+          {
+            recipient_id: employeeId,
+            type: 'other',
+            title,
+            message,
+            related_entity_type: 'timeoff',
+            related_entity_id: timeoffId,
+            priority: status === 'rejected' ? 'high' : 'medium',
+          },
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Prefer: 'return=representation',
+            },
+          }
+        )
+      );
+    } catch (error) {
+      console.error('Error enviando notificación al empleado:', error);
+    }
   }
 
   public viewDetails(disability: Disability): void {
