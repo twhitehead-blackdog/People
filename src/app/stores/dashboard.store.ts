@@ -87,19 +87,23 @@ export const DashboardStore = signalStore(
       });
 
       // Lista de correos con acceso completo (super admins)
-      const superAdminEmails = ['mercadeo@blackdogpanama.com', 'soporte2@blackdogpanama.com'];
+      const superAdminEmails = [
+        'mercadeo@blackdogpanama.com',
+        'soporte2@blackdogpanama.com',
+      ];
 
       const isAdmin = computed(() => {
         const employee = currentEmployee();
         const currentMode = testMode.currentMode;
-        const isSupportUser = employee?.work_email && testMode.isSupportUser(employee.work_email);
-        
+        const isSupportUser =
+          employee?.work_email && testMode.isSupportUser(employee.work_email);
+
         // Si es soporte2 y está en modo de prueba, respetar el modo
         if (isSupportUser && currentMode !== null) {
           // Solo es admin si está en modo "admin"
           return currentMode === 'admin';
         }
-        
+
         // Verificar si es super admin por correo
         if (
           employee?.work_email &&
@@ -127,14 +131,15 @@ export const DashboardStore = signalStore(
       const hasPortalAccessOnly = computed(() => {
         const employee = currentEmployee();
         const currentMode = testMode.currentMode;
-        const isSupportUser = employee?.work_email && testMode.isSupportUser(employee.work_email);
-        
+        const isSupportUser =
+          employee?.work_email && testMode.isSupportUser(employee.work_email);
+
         // Si es soporte2 y está en modo de prueba, respetar el modo
         if (isSupportUser && currentMode !== null) {
           // Solo tiene acceso al portal si está en modo "empleado"
           return currentMode === 'empleado';
         }
-        
+
         const positionName = employee?.position?.name || '';
 
         // Verificar si el cargo está en la lista de cargos que solo tienen acceso al portal
@@ -162,18 +167,16 @@ export const DashboardStore = signalStore(
       );
 
       // Lista de cargos que tienen acceso especial a gestión de tiempo y reloj de marcaciones
-      const timeManagementAccessPositions = [
-        'gerente de tienda',
-      ];
+      const timeManagementAccessPositions = ['gerente de tienda'];
 
       const hasTimeManagementAccess = computed(() => {
         const employee = currentEmployee();
         const positionName = employee?.position?.name || '';
-        return timeManagementAccessPositions.some(
-          (pos) => positionName.toLowerCase().includes(pos.toLowerCase())
+        return timeManagementAccessPositions.some((pos) =>
+          positionName.toLowerCase().includes(pos.toLowerCase())
         );
       });
-      
+
       const hasDashboardAccess = computed(() => {
         const employee = currentEmployee();
         const dashboardAccess = employee?.position?.dashboard_access;
@@ -181,18 +184,19 @@ export const DashboardStore = signalStore(
         // Solo denegar si es explícitamente false
         return dashboardAccess !== false;
       });
-      
+
       const isScheduleApprover = computed(() => {
         const employee = currentEmployee();
         const currentMode = testMode.currentMode;
-        const isSupportUser = employee?.work_email && testMode.isSupportUser(employee.work_email);
-        
+        const isSupportUser =
+          employee?.work_email && testMode.isSupportUser(employee.work_email);
+
         // Si es soporte2 y está en modo de prueba, respetar el modo
         if (isSupportUser && currentMode !== null) {
           // Tiene permisos de schedule_approver si está en modo "gerente"
           return currentMode === 'gerente';
         }
-        
+
         // Comportamiento normal
         return employee?.position?.schedule_approver || false;
       });

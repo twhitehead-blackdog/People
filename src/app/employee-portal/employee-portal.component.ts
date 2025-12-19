@@ -2893,17 +2893,27 @@ export class EmployeePortalComponent {
     // Calcular horas si es por días (asumiendo 8 horas por día)
     const hours = type === 'days' ? amount * 8 : amount;
 
+    // Construir el array de notas con la información del tiempo compensatorio
+    const notes: string[] = [];
+    const reason = this.compensatoryReason();
+    if (reason) {
+      notes.push(reason);
+    }
+    // Agregar información sobre tipo y cantidad
+    notes.push(
+      `Tipo: ${type === 'days' ? 'Días' : 'Horas'}, Cantidad: ${amount}`
+    );
+    if (type === 'days') {
+      notes.push(`Horas equivalentes: ${hours}`);
+    }
+
     const timeoffData: any = {
       employee_id: this.currentEmployee()!.id,
       type_id: compensatoryTypeId,
       date_from: format(this.compensatoryStartDate()!, 'yyyy-MM-dd'),
       date_to: format(this.compensatoryEndDate()!, 'yyyy-MM-dd'),
-      hours: hours,
-      reason: this.compensatoryReason() || null,
+      notes: notes,
       is_approved: false,
-      review_status: 'pending', // Nuevo campo para flujo de revisión
-      compensatory_type: type, // Guardar si es horas o días
-      compensatory_amount: amount, // Guardar la cantidad original
     };
 
     try {

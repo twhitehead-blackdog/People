@@ -711,20 +711,24 @@ export class DashboardComponent {
         this.previousOrganization !== currentOrg
       ) {
         // Recargar todos los stores
-        this.employeesStore.reloadItems();
-        this.branchesStore.reloadItems();
-        this.positionsStore.reloadItems();
-        this.departmentsStore.reloadItems();
-        this.companiesStore.reloadItems();
-        this.schedulesStore.reloadItems();
-        this.banksStore.reloadItems();
-        this.payrollsStore.reloadItems();
+        try {
+          this.employeesStore.reloadItems();
+          this.branchesStore.reloadItems();
+          this.positionsStore.reloadItems();
+          this.departmentsStore.reloadItems();
+          this.companiesStore.reloadItems();
+          this.schedulesStore.reloadItems();
+          this.banksStore.reloadItems();
+          this.payrollsStore.reloadItems();
 
-        // Recargar empleado actual
-        this.store.auth.getCurrentEmployee();
+          // Recargar empleado actual
+          this.store.auth.getCurrentEmployee();
 
-        // Actualizar organización anterior
-        this.previousOrganization = currentOrg;
+          // Actualizar organización anterior
+          this.previousOrganization = currentOrg;
+        } catch (error) {
+          // Error al recargar stores - silencioso
+        }
       } else if (this.previousOrganization === null) {
         // Primera vez, solo guardar la organización actual
         this.previousOrganization = currentOrg;

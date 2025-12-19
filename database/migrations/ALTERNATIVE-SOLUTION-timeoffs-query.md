@@ -17,7 +17,7 @@ public timeoffsApi = httpResource<any[]>(() => {
 
   const compensatoryTypeId = 'f2d92995-96a0-414f-b64a-9823db776745';
   const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`;
-  
+
   // Usar la sintaxis explícita que Supabase sugiere:
   // employees!time_offs_employee_id_fkey especifica explícitamente qué foreign key usar
   const select = `*,type:timeoff_types(id,name),employee:employees!time_offs_employee_id_fkey(id,company_id)`;
@@ -59,11 +59,13 @@ const select = `*,
 ## ¿Cuándo usar cada solución?
 
 ### Usar Opción 1 (sin relación) cuando:
+
 - ✅ Solo necesitas campos directos de `timeoffs` (como `date_from`, `date_to`)
 - ✅ Ya tienes el `employee_id` y no necesitas más datos del empleado
 - ✅ Quieres la consulta más simple y eficiente
 
 ### Usar Opción 2 (con relación explícita) cuando:
+
 - ✅ Necesitas datos del empleado (como `company_id`, `name`, etc.)
 - ✅ Quieres filtrar por `employee.company_id` directamente en la query
 - ✅ Necesitas múltiples relaciones (employee, reviewer, registrar)
@@ -71,9 +73,9 @@ const select = `*,
 ## Estado actual
 
 **Solución implementada: Opción 1** (sin relación)
+
 - ✅ Más eficiente porque no hace JOIN innecesario
 - ✅ `approvedCompensatoryHours` solo usa `date_from` y `date_to`
 - ✅ El filtro por `company_id` ya está garantizado por `currentEmployee()`
 
 Si en el futuro necesitas la relación, simplemente cambia a la Opción 2 usando la sintaxis explícita.
-
