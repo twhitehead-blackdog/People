@@ -2806,23 +2806,37 @@ export class EmployeePortalComponent {
     const compensatoryTypeId = 'f2d92995-96a0-414f-b64a-9823db776745';
 
     const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`;
-    const select = `*,type:timeoff_types(id,name),employee:employees(id,company_id)`;
+    // La tabla timeoffs tiene múltiples relaciones con employees (employee_id, reviewed_by, registered_by)
+    // No necesitamos incluir la relación employee porque:
+    // 1. myCompensatoryRequests solo usa campos directos de timeoffs
+    // 2. Ya filtramos por employee_id directamente, que garantiza que pertenece al empleado correcto
+    // 3. El empleado ya está filtrado por company_id a través de currentEmployee()
+    // Esto evita el error HTTP 300 cuando hay múltiples relaciones
+    const select = `*,type:timeoff_types(id,name)`;
 
     let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
     url += `&employee_id=eq.${this.currentEmployee()!.id}`;
     url += `&type_id=eq.${compensatoryTypeId}`;
-    // Filtrar a través de employee.company_id
-    url += `&employee.company_id=eq.${companyId}`;
+    // No necesitamos filtrar por company_id porque employee_id ya garantiza que pertenece al empleado correcto
+    // y el empleado ya está filtrado por company_id a través de currentEmployee()
     url += `&order=date_from.desc`;
 
     return {
       url,
       method: 'GET',
     };
+  }, {
+    // CRÍTICO: defaultValue evita que el resource lance error si falla la primera carga
+    defaultValue: [],
   });
 
   // Computed: Todas las solicitudes de tiempo compensatorio
   public myCompensatoryRequests = computed(() => {
+    // CRÍTICO: Si el resource está en estado de error, retornar array vacío en lugar de intentar acceder a value()
+    // Esto evita que el computed lance el error y entre en loop infinito
+    if (this.compensatoryTimeoffsApi.status() === 'error') {
+      return [];
+    }
     return this.compensatoryTimeoffsApi.value() ?? [];
   });
 
@@ -2922,7 +2936,13 @@ export class EmployeePortalComponent {
       this.compensatoryType.set('hours');
       this.compensatoryAmount.set(0);
       this.compensatoryReason.set('');
-      this.compensatoryTimeoffsApi.reload();
+      if (
+        this.compensatoryTimeoffsApi &&
+        typeof this.compensatoryTimeoffsApi.reload === 'function' &&
+        this.compensatoryTimeoffsApi.status() !== 'error'
+      ) {
+        this.compensatoryTimeoffsApi.reload();
+      }
     } catch (error: any) {
       console.error('Error submitting compensatory request:', error);
       this.messageService.add({
