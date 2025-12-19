@@ -4000,6 +4000,8 @@ export class EmployeePortalComponent {
     // 2. Ya filtramos por employee_id directamente, que garantiza que pertenece al empleado correcto
     // 3. El empleado ya está filtrado por company_id a través de currentEmployee()
     // Esto evita el error HTTP 300 cuando hay múltiples relaciones
+    // Solo necesitamos los campos directos de timeoffs y el tipo
+    // NO incluimos employee:employees para evitar error HTTP 300 con múltiples relaciones
     const select = `*,type:timeoff_types(id,name)`;
 
     let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
