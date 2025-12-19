@@ -3998,19 +3998,19 @@ export class EmployeePortalComponent {
 
       const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`;
       // La tabla timeoffs tiene múltiples relaciones con employees (employee_id, reviewed_by, registered_by)
-      // Para evitar el error HTTP 300, usamos la sintaxis explícita que Supabase sugiere:
-      // employees!time_offs_employee_id_fkey especifica explícitamente qué foreign key usar
-      // Esto permite usar la relación employee sin ambigüedad
-      // IMPORTANTE: Esta sintaxis es la recomendada por Supabase cuando hay múltiples relaciones
-      const select = `*,type:timeoff_types(id,name),employee:employees!time_offs_employee_id_fkey(id,company_id)`;
+      // No necesitamos incluir la relación employee porque:
+      // 1. approvedCompensatoryHours solo usa date_from y date_to (campos directos de timeoffs)
+      // 2. Ya filtramos por employee_id directamente, que garantiza que pertenece al empleado correcto
+      // 3. El empleado ya está filtrado por company_id a través de currentEmployee()
+      // Esto evita el error HTTP 300 cuando hay múltiples relaciones
+      const select = `*,type:timeoff_types(id,name)`;
 
       let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
       url += `&employee_id=eq.${this.currentEmployee()!.id}`;
       url += `&type_id=eq.${compensatoryTypeId}`;
       url += `&is_approved=eq.true`;
-      // Ahora SÍ podemos filtrar por employee.company_id porque especificamos la FK explícitamente
-      // Esto elimina la ambigüedad y evita el error HTTP 300
-      url += `&employee.company_id=eq.${companyId}`;
+      // No necesitamos filtrar por company_id porque employee_id ya garantiza que pertenece al empleado correcto
+      // y el empleado ya está filtrado por company_id a través de currentEmployee()
       url += `&order=date_from.desc`;
 
       return {
