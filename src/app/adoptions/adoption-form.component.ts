@@ -92,6 +92,16 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
         <form [formGroup]="adoptionForm" (ngSubmit)="onSubmit()">
           <!-- Carousel Container -->
           <div class="wizard-carousel">
+            <!-- Botón Cancelar (esquina superior izquierda) -->
+            <button 
+              class="carousel-arrow carousel-arrow-cancel"
+              (click)="goBack()"
+              type="button"
+              title="Cancelar"
+            >
+              <i class="pi pi-times"></i>
+            </button>
+
             <!-- Flecha Izquierda -->
             @if (currentStep() > 1) {
               <button 
@@ -305,56 +315,8 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
             }
           </div>
           }
-              </div>
 
-              <!-- Paso Siguiente (si existe) -->
-              @if (currentStep() < 4) {
-                <div class="wizard-step-preview wizard-step-next" [class.step-2]="currentStep() === 1" [class.step-3]="currentStep() === 2" [class.step-4]="currentStep() === 3">
-                  <div class="step-preview-content">
-                    @if (currentStep() === 1) {
-                      <div class="step-preview-header">
-                        <div class="section-icon">📍</div>
-                        <h4>Dirección</h4>
-                      </div>
-                      <div class="step-preview-info">
-                        <p>Paso siguiente</p>
-                      </div>
-                    } @else if (currentStep() === 2) {
-                      <div class="step-preview-header">
-                        <div class="section-icon">🏡</div>
-                        <h4>Información del Hogar</h4>
-                      </div>
-                      <div class="step-preview-info">
-                        <p>Paso siguiente</p>
-                      </div>
-                    } @else if (currentStep() === 3) {
-                      <div class="step-preview-header">
-                        <div class="section-icon">📋</div>
-                        <h4>Resumen</h4>
-                      </div>
-                      <div class="step-preview-info">
-                        <p>Revisa tu solicitud</p>
-                      </div>
-                    }
-                  </div>
-                </div>
-              }
-            </div>
-
-            <!-- Flecha Derecha -->
-            @if (currentStep() < 4) {
-              <button 
-                class="carousel-arrow carousel-arrow-right"
-                (click)="nextStep()"
-                type="button"
-                title="Paso siguiente"
-              >
-                <i class="pi pi-chevron-right"></i>
-              </button>
-            }
-          </div>
-
-          <!-- Paso 4: Resumen/Revisión (fuera del carousel) -->
+          <!-- Paso 4: Resumen/Revisión -->
           @if (currentStep() === 4) {
           <div class="summary-section wizard-step">
             <div class="summary-header">
@@ -486,74 +448,69 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
             </div>
           </div>
           }
+              </div>
 
-          <!-- Botones de Navegación -->
-          <div class="form-actions wizard-navigation">
-            <div class="nav-left">
-              <p-button
-                label="Cancelar"
-                severity="secondary"
-                icon="pi pi-times"
-                (onClick)="goBack()"
-                [style]="{
-                  padding: '0.75rem 1.5rem',
-                  minWidth: '140px'
-                }"
-              />
-            </div>
-            <div class="nav-center">
-              @if (currentStep() > 1) {
-                <p-button
-                  label="Anterior"
-                  severity="secondary"
-                  icon="pi pi-chevron-left"
-                  (onClick)="previousStep()"
-                  [style]="{
-                    padding: '0.75rem 1.5rem',
-                    minWidth: '140px',
-                    marginRight: '0.75rem'
-                  }"
-                />
-              }
+              <!-- Paso Siguiente (si existe) -->
               @if (currentStep() < 4) {
-                <p-button
-                  [label]="currentStep() === 3 ? 'Revisar' : 'Siguiente'"
-                  [icon]="currentStep() === 3 ? 'pi pi-check' : 'pi pi-chevron-right'"
-                  [iconPos]="currentStep() === 3 ? 'left' : 'right'"
-                  (onClick)="nextStep()"
-                  [style]="{
-                    background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
-                    border: 'none',
-                    color: '#000000',
-                    fontWeight: 'bold',
-                    padding: '0.75rem 1.5rem',
-                    minWidth: '140px'
-                  }"
-                />
+                <div class="wizard-step-preview wizard-step-next" [class.step-2]="currentStep() === 1" [class.step-3]="currentStep() === 2" [class.step-4]="currentStep() === 3">
+                  <div class="step-preview-content">
+                    @if (currentStep() === 1) {
+                      <div class="step-preview-header">
+                        <div class="section-icon">📍</div>
+                        <h4>Dirección</h4>
+                      </div>
+                      <div class="step-preview-info">
+                        <p>Paso siguiente</p>
+                      </div>
+                    } @else if (currentStep() === 2) {
+                      <div class="step-preview-header">
+                        <div class="section-icon">🏡</div>
+                        <h4>Información del Hogar</h4>
+                      </div>
+                      <div class="step-preview-info">
+                        <p>Paso siguiente</p>
+                      </div>
+                    } @else if (currentStep() === 3) {
+                      <div class="step-preview-header">
+                        <div class="section-icon">📋</div>
+                        <h4>Resumen</h4>
+                      </div>
+                      <div class="step-preview-info">
+                        <p>Revisa tu solicitud</p>
+                      </div>
+                    }
+                  </div>
+                </div>
               }
             </div>
-            <div class="nav-right">
-              @if (currentStep() === 4) {
-                <p-button
-                  [label]="isEditMode() ? 'Actualizar Solicitud' : 'Aceptar y Enviar'"
-                  type="submit"
-                  icon="pi pi-check"
-                  iconPos="left"
-                  [disabled]="adoptionForm.invalid || isSubmitting()"
-                  [loading]="isSubmitting()"
-                  [style]="{
-                    background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
-                    border: 'none',
-                    color: '#000000',
-                    fontWeight: 'bold',
-                    padding: '0.75rem 1.5rem',
-                    minWidth: '180px',
-                    boxShadow: '0 4px 12px rgba(251, 191, 36, 0.4)'
-                  }"
-                />
-              }
-            </div>
+
+            <!-- Flecha Derecha o Botón de Confirmación -->
+            @if (currentStep() < 4) {
+              <button 
+                class="carousel-arrow carousel-arrow-right"
+                (click)="nextStep()"
+                type="button"
+                title="Paso siguiente"
+              >
+                <i class="pi pi-chevron-right"></i>
+              </button>
+            }
+            @if (currentStep() === 4) {
+              <button 
+                class="carousel-arrow carousel-arrow-confirm"
+                type="submit"
+                title="Confirmar y enviar solicitud"
+                [disabled]="adoptionForm.invalid || isSubmitting()"
+              >
+                @if (isSubmitting()) {
+                  <i class="pi pi-spin pi-spinner"></i>
+                } @else {
+                  <i class="pi pi-check"></i>
+                }
+              </button>
+            }
           </div>
+
         </form>
         } @else {
         <div class="loading-state">
@@ -961,7 +918,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
         min-height: 600px;
         margin: 2rem auto;
         padding: 0 100px;
-        overflow: hidden;
+        overflow: visible;
         width: 100%;
         max-width: 1200px;
       }
@@ -970,9 +927,36 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
         position: relative;
         width: 100%;
         max-width: 900px;
-        height: 600px;
+        min-height: 600px;
         margin: 0 auto;
         perspective: 1500px;
+        overflow-y: auto;
+        overflow-x: hidden;
+      }
+
+      /* Scrollbar personalizado - más discreto */
+      .wizard-steps-container::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      .wizard-steps-container::-webkit-scrollbar-track {
+        background: transparent;
+      }
+
+      .wizard-steps-container::-webkit-scrollbar-thumb {
+        background: rgba(209, 213, 219, 0.3);
+        border-radius: 3px;
+        transition: background 0.2s ease;
+      }
+
+      .wizard-steps-container::-webkit-scrollbar-thumb:hover {
+        background: rgba(209, 213, 219, 0.5);
+      }
+
+      /* Para Firefox - scrollbar más delgado y transparente */
+      .wizard-steps-container {
+        scrollbar-width: thin;
+        scrollbar-color: rgba(209, 213, 219, 0.3) transparent;
       }
 
       /* Carousel Arrows */
@@ -1013,6 +997,38 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
 
       .carousel-arrow-right {
         right: 10px;
+      }
+
+      .carousel-arrow-cancel {
+        top: 20px;
+        left: 10px;
+        transform: translateY(0);
+      }
+
+      .carousel-arrow-cancel:hover {
+        transform: scale(1.15);
+        box-shadow: 0 8px 30px rgba(251, 191, 36, 0.7), 0 0 0 8px rgba(251, 191, 36, 0.2);
+        background: linear-gradient(135deg, #fcd34d 0%, #fbbf24 100%);
+      }
+
+      .carousel-arrow-cancel:active {
+        transform: scale(1.05);
+        box-shadow: 0 4px 15px rgba(251, 191, 36, 0.5);
+      }
+
+      .carousel-arrow-confirm {
+        right: 10px;
+      }
+
+      .carousel-arrow-confirm:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .carousel-arrow-confirm:disabled:hover {
+        transform: translateY(-50%);
+        box-shadow: 0 6px 20px rgba(251, 191, 36, 0.5), 0 0 0 0 rgba(251, 191, 36, 0.4);
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
       }
 
       .carousel-arrow i {
@@ -1119,18 +1135,20 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
         transform: translateY(0);
         margin-bottom: 0;
         will-change: transform, opacity;
+        min-height: 500px;
       }
 
       .wizard-step-active .wizard-step {
         box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.2), 0 8px 12px -4px rgba(0, 0, 0, 0.15);
         border-color: #fbbf24;
         transform: scale(1);
+        min-height: auto;
       }
 
-      /* Summary section (step 4) - fuera del carousel, centrado */
+      /* Summary section (step 4) - dentro del carousel */
       .summary-section {
-        margin: 2rem auto;
-        max-width: 900px;
+        margin: 0;
+        max-width: 100%;
         width: 100%;
       }
 
@@ -1151,39 +1169,6 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
         border-radius: 1.5rem 0 0 1.5rem;
       }
 
-      /* Wizard Navigation */
-      .wizard-navigation {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 1rem;
-        padding: 1.5rem 0;
-      }
-
-      .nav-left,
-      .nav-center,
-      .nav-right {
-        display: flex;
-        gap: 0.75rem;
-        align-items: center;
-      }
-
-      .nav-center {
-        flex: 1;
-        justify-content: center;
-      }
-
-      /* Uniform button sizes */
-      ::ng-deep .wizard-navigation .p-button {
-        height: 48px;
-        font-size: 0.9375rem;
-        font-weight: 600;
-      }
-
-      ::ng-deep .wizard-navigation .p-button .p-button-icon {
-        font-size: 1rem;
-      }
 
       /* Summary View */
       .summary-section {
@@ -1538,6 +1523,15 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
         }
 
         .carousel-arrow-right {
+          right: 5px;
+        }
+
+        .carousel-arrow-cancel {
+          top: 15px;
+          left: 5px;
+        }
+
+        .carousel-arrow-confirm {
           right: 5px;
         }
 
