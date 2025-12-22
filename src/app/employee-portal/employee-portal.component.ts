@@ -1397,38 +1397,26 @@ import { EmployeesStore } from '../stores/employees.store';
       <div id="compensatory" class="section-content">
         <p-card>
           <ng-template #title>
-            <div class="flex items-center gap-2">
-              <i class="pi pi-clock text-cyan-400"></i>
-              <span>Solicitar Tiempo Compensatorio</span>
+            <div class="flex items-center justify-between w-full">
+              <div class="flex items-center gap-2">
+                <i class="pi pi-clock text-cyan-400"></i>
+                <span>Solicitar Tiempo Compensatorio</span>
+              </div>
+              <p-button
+                icon="pi pi-question-circle"
+                [rounded]="true"
+                [text]="true"
+                severity="secondary"
+                [outlined]="true"
+                (click)="showTutorialDialog.set(true)"
+                pTooltip="¿Cómo funciona el tiempo compensatorio?"
+                [style]="{ width: '2.5rem', height: '2.5rem' }"
+              />
             </div>
           </ng-template>
           <ng-template #subtitle
             >Solicita tiempo compensatorio basado en tus horas extras trabajadas</ng-template
           >
-          
-          <!-- Información de horas extras disponibles (solo informativo para HR) -->
-          @if (isHRorAdmin()) {
-          <div class="mb-6">
-            <div class="bg-gradient-to-r from-cyan-500/20 to-cyan-600/10 border border-cyan-400/30 rounded-lg p-4 shadow-lg">
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="text-sm text-gray-400 mb-1">Horas Extras Disponibles (Solo para referencia de HR)</p>
-                  <p class="text-2xl font-bold text-cyan-300">
-                    {{ totalOvertimeHours().toFixed(1) }}h
-                  </p>
-                </div>
-                <div class="w-16 h-16 rounded-full bg-cyan-500/20 flex items-center justify-center">
-                  <i class="pi pi-clock text-cyan-400 text-2xl"></i>
-                </div>
-              </div>
-              @if (totalOvertimeHours() === 0) {
-                <p class="text-xs text-gray-400 mt-2">
-                  No hay horas extras acumuladas. Las horas extras se generan cuando trabajas más de 9 horas en un día.
-                </p>
-              }
-            </div>
-          </div>
-          }
 
           <!-- Paso 1: Selección de Tipo -->
           <div class="mb-6 p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
@@ -1870,6 +1858,179 @@ import { EmployeesStore } from '../stores/employees.store';
       </div>
     </div>
     }
+
+    <!-- Dialog de Tutorial de Tiempo Compensatorio -->
+    <p-dialog
+      [(visible)]="showTutorialDialog"
+      [modal]="true"
+      [style]="{ width: '90vw', maxWidth: '800px' }"
+      [draggable]="false"
+      [resizable]="false"
+      [closable]="true"
+      [header]="'¿Cómo solicitar tiempo compensatorio?'"
+    >
+      <div class="tutorial-content">
+        <!-- Introducción -->
+        <div class="mb-6 p-4 bg-cyan-500/10 border border-cyan-400/30 rounded-lg">
+          <div class="flex items-start gap-3">
+            <i class="pi pi-info-circle text-cyan-400 text-2xl mt-1"></i>
+            <div>
+              <h3 class="text-lg font-semibold text-white mb-2">
+                ¿Qué es el tiempo compensatorio?
+              </h3>
+              <p class="text-gray-300 text-sm leading-relaxed">
+                El tiempo compensatorio te permite tomar descanso equivalente a las horas extras que has trabajado. 
+                Por ejemplo, si trabajaste 2 horas extras, puedes solicitar 2 horas de descanso compensatorio.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Paso 1 -->
+        <div class="mb-6 p-4 bg-neutral-800/50 border border-neutral-700 rounded-lg">
+          <div class="flex items-start gap-3 mb-3">
+            <div class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center flex-shrink-0">
+              <span class="text-cyan-400 font-bold">1</span>
+            </div>
+            <div class="flex-1">
+              <h3 class="text-lg font-semibold text-white mb-2">
+                Selecciona el Tipo de Solicitud
+              </h3>
+              <div class="space-y-3 text-gray-300 text-sm">
+                <div class="flex items-start gap-2">
+                  <i class="pi pi-clock text-cyan-400 mt-1"></i>
+                  <div>
+                    <strong class="text-white">Por Horas:</strong> Usa esta opción cuando necesites tomar 
+                    tiempo compensatorio por horas específicas (ej: 2 horas, 4 horas). Debes seleccionar:
+                    <ul class="list-disc list-inside mt-2 ml-2 space-y-1 text-gray-400">
+                      <li>La fecha en que deseas tomar el compensatorio</li>
+                      <li>La hora de inicio</li>
+                      <li>La hora de fin</li>
+                    </ul>
+                  </div>
+                </div>
+                <div class="flex items-start gap-2">
+                  <i class="pi pi-calendar text-cyan-400 mt-1"></i>
+                  <div>
+                    <strong class="text-white">Por Días:</strong> Usa esta opción cuando necesites tomar 
+                    uno o más días completos de descanso compensatorio. Debes seleccionar:
+                    <ul class="list-disc list-inside mt-2 ml-2 space-y-1 text-gray-400">
+                      <li>Fecha de inicio del período de descanso</li>
+                      <li>Fecha de fin del período de descanso</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Paso 2 -->
+        <div class="mb-6 p-4 bg-neutral-800/50 border border-neutral-700 rounded-lg">
+          <div class="flex items-start gap-3 mb-3">
+            <div class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center flex-shrink-0">
+              <span class="text-cyan-400 font-bold">2</span>
+            </div>
+            <div class="flex-1">
+              <h3 class="text-lg font-semibold text-white mb-2">
+                Selecciona las Fechas y Horas
+              </h3>
+              <div class="space-y-2 text-gray-300 text-sm">
+                <p>
+                  <strong class="text-white">Para solicitudes por horas:</strong> Selecciona la fecha y 
+                  el rango de horas exactas que deseas tomar. El sistema calculará automáticamente cuántas 
+                  horas estás solicitando.
+                </p>
+                <p>
+                  <strong class="text-white">Para solicitudes por días:</strong> Selecciona el rango de 
+                  fechas completo. Puedes seleccionar desde un día hasta varios días consecutivos.
+                </p>
+                <div class="mt-3 p-3 bg-yellow-500/10 border border-yellow-500/30 rounded">
+                  <p class="text-yellow-300 text-xs m-0">
+                    <i class="pi pi-exclamation-triangle mr-2"></i>
+                    <strong>Importante:</strong> Solo puedes solicitar fechas futuras. No puedes solicitar 
+                    compensatorio para días pasados.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Paso 3 -->
+        <div class="mb-6 p-4 bg-neutral-800/50 border border-neutral-700 rounded-lg">
+          <div class="flex items-start gap-3 mb-3">
+            <div class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center flex-shrink-0">
+              <span class="text-cyan-400 font-bold">3</span>
+            </div>
+            <div class="flex-1">
+              <h3 class="text-lg font-semibold text-white mb-2">
+                Agrega un Motivo (Opcional)
+              </h3>
+              <p class="text-gray-300 text-sm">
+                Aunque es opcional, agregar un motivo puede ayudar a RRHH a entender mejor tu solicitud. 
+                Por ejemplo: "Necesito tiempo para asuntos personales", "Tengo una cita médica", etc.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Proceso de Revisión -->
+        <div class="mb-6 p-4 bg-blue-500/10 border border-blue-400/30 rounded-lg">
+          <div class="flex items-start gap-3">
+            <i class="pi pi-check-circle text-blue-400 text-2xl mt-1"></i>
+            <div>
+              <h3 class="text-lg font-semibold text-white mb-2">
+                ¿Qué pasa después de enviar mi solicitud?
+              </h3>
+              <ol class="list-decimal list-inside space-y-2 text-gray-300 text-sm">
+                <li>
+                  <strong class="text-white">Revisión de RRHH:</strong> El departamento de Recursos Humanos 
+                  revisará tu solicitud y verificará que tengas horas extras disponibles acumuladas.
+                </li>
+                <li>
+                  <strong class="text-white">Aprobación o Rechazo:</strong> RRHH te notificará si tu 
+                  solicitud fue aprobada o rechazada. Si es rechazada, te explicarán el motivo.
+                </li>
+                <li>
+                  <strong class="text-white">Registro:</strong> Una vez aprobada, tu solicitud será registrada 
+                  en el sistema y podrás disfrutar de tu tiempo compensatorio.
+                </li>
+              </ol>
+            </div>
+          </div>
+        </div>
+
+        <!-- Consejos adicionales -->
+        <div class="p-4 bg-green-500/10 border border-green-400/30 rounded-lg">
+          <div class="flex items-start gap-3">
+            <i class="pi pi-lightbulb text-green-400 text-xl mt-1"></i>
+            <div>
+              <h3 class="text-base font-semibold text-white mb-2">
+                Consejos útiles
+              </h3>
+              <ul class="list-disc list-inside space-y-1 text-gray-300 text-sm">
+                <li>Solicita con anticipación para facilitar la planificación</li>
+                <li>Verifica que tengas horas extras antes de solicitar</li>
+                <li>Revisa el estado de tus solicitudes en la sección "Mis Solicitudes"</li>
+                <li>Contacta a RRHH si tienes dudas sobre tus horas extras disponibles</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+      <ng-template #footer>
+        <div class="flex justify-end">
+          <p-button
+            label="Entendido"
+            icon="pi pi-check"
+            (onClick)="showTutorialDialog.set(false)"
+            severity="success"
+            [rounded]="true"
+          />
+        </div>
+      </ng-template>
+    </p-dialog>
 
     <p-toast />
   `,
@@ -2963,6 +3124,7 @@ export class EmployeePortalComponent {
   public compensatoryType = signal<'hours' | 'days'>('hours');
   public compensatoryReason = signal('');
   public submittingCompensatory = signal(false);
+  public showTutorialDialog = signal(false);
 
   // Nuevos signals para el formulario mejorado
   public compensatoryDate = signal<Date | null>(null); // Fecha cuando tipo es "hours"

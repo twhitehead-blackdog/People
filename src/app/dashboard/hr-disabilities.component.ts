@@ -8,6 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { differenceInMinutes, format, startOfMonth, endOfMonth } from 'date-fns';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { CalendarModule } from 'primeng/calendar';
@@ -779,6 +780,204 @@ interface CompensatoryRequest {
       </div>
       }
     </p-dialog>
+
+    <!-- Dialog de Detalles de Tiempo Compensatorio -->
+    <p-dialog
+      [(visible)]="showCompensatoryDetailsDialog"
+      [modal]="true"
+      [style]="{ width: '90vw', maxWidth: '800px' }"
+      [header]="'Detalles de Solicitud de Tiempo Compensatorio'"
+      [draggable]="false"
+      [resizable]="false"
+    >
+      @if (selectedCompensatoryRequest()) {
+      <div class="space-y-4">
+        <!-- Información del Empleado -->
+        <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
+          <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+            <i class="pi pi-user text-cyan-400"></i>
+            Información del Empleado
+          </h3>
+          <div class="space-y-2">
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Nombre</label
+              >
+              <p class="text-white">
+                {{ getEmployeeName(selectedCompensatoryRequest()!) }}
+              </p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Email</label
+              >
+              <p class="text-white">
+                {{ getEmployeeEmail(selectedCompensatoryRequest()!) }}
+              </p>
+            </div>
+            @if (getEmployeePosition(selectedCompensatoryRequest()!)) {
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Cargo</label
+              >
+              <p class="text-white">
+                {{ getEmployeePosition(selectedCompensatoryRequest()!) }}
+              </p>
+            </div>
+            }
+            @if (selectedCompensatoryRequest()!.employee?.branch?.name) {
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Sucursal</label
+              >
+              <p class="text-white">
+                {{ selectedCompensatoryRequest()!.employee?.branch?.name }}
+              </p>
+            </div>
+            }
+          </div>
+        </div>
+
+        <!-- Horas Extras Disponibles -->
+        <div class="p-4 bg-gradient-to-r from-cyan-500/20 to-cyan-600/10 border border-cyan-400/30 rounded-lg">
+          <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+            <i class="pi pi-clock text-cyan-400"></i>
+            Horas Extras Disponibles
+          </h3>
+          @if (isLoadingOvertimeHours()) {
+          <div class="flex items-center gap-2 text-gray-400">
+            <i class="pi pi-spin pi-spinner"></i>
+            <span>Cargando horas extras...</span>
+          </div>
+          } @else {
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm text-gray-400 mb-1">Total de horas extras acumuladas (mes actual)</p>
+              <p class="text-3xl font-bold text-cyan-300">
+                {{ employeeOvertimeHours().toFixed(1) }}h
+              </p>
+            </div>
+            <div class="w-20 h-20 rounded-full bg-cyan-500/20 flex items-center justify-center">
+              <i class="pi pi-clock text-cyan-400 text-3xl"></i>
+            </div>
+          </div>
+          @if (employeeOvertimeHours() === 0) {
+          <p class="text-xs text-gray-400 mt-3">
+            El empleado no tiene horas extras acumuladas este mes. Las horas extras se generan cuando se trabaja más de 9 horas en un día.
+          </p>
+          }
+          }
+        </div>
+
+        <!-- Información de la Solicitud -->
+        <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
+          <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+            <i class="pi pi-info-circle text-cyan-400"></i>
+            Información de la Solicitud
+          </h3>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Tipo de Solicitud</label
+              >
+              <p class="text-white">
+                @if (selectedCompensatoryRequest()!.compensatory_type === 'days') {
+                  <span class="flex items-center gap-2">
+                    <i class="pi pi-calendar text-cyan-400"></i>
+                    Por Días
+                  </span>
+                } @else {
+                  <span class="flex items-center gap-2">
+                    <i class="pi pi-clock text-cyan-400"></i>
+                    Por Horas
+                  </span>
+                }
+              </p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Cantidad Solicitada</label
+              >
+              <p class="text-white">
+                @if (selectedCompensatoryRequest()!.compensatory_type === 'days') {
+                  {{ 
+                    selectedCompensatoryRequest()!.compensatory_amount || 
+                    calculateDays(selectedCompensatoryRequest()!.date_from, selectedCompensatoryRequest()!.date_to)
+                  }} día(s)
+                } @else {
+                  {{ selectedCompensatoryRequest()!.hours || selectedCompensatoryRequest()!.compensatory_amount || 0 }} hora(s)
+                }
+              </p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Fecha de Inicio</label
+              >
+              <p class="text-white">
+                {{ selectedCompensatoryRequest()!.date_from | date : 'dd/MM/yyyy' }}
+              </p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Fecha de Fin</label
+              >
+              <p class="text-white">
+                {{ selectedCompensatoryRequest()!.date_to | date : 'dd/MM/yyyy' }}
+              </p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Fecha de Solicitud</label
+              >
+              <p class="text-white">
+                {{ selectedCompensatoryRequest()!.created_at | date : 'dd/MM/yyyy HH:mm' }}
+              </p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Estado</label
+              >
+              <p-tag
+                [value]="getCompensatoryStatusLabel(selectedCompensatoryRequest()!)"
+                [severity]="getCompensatoryStatusSeverity(selectedCompensatoryRequest()!)"
+              />
+            </div>
+          </div>
+          @if (selectedCompensatoryRequest()!.reason) {
+          <div class="mt-4">
+            <label class="block text-sm font-medium text-gray-400 mb-1"
+              >Motivo</label
+            >
+            <p class="text-white whitespace-pre-wrap bg-neutral-900/50 p-3 rounded">
+              {{ selectedCompensatoryRequest()!.reason }}
+            </p>
+          </div>
+          }
+          @if (selectedCompensatoryRequest()!.rejection_comment) {
+          <div class="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded">
+            <label class="block text-sm font-medium text-red-400 mb-1"
+              >Comentario de Rechazo</label
+            >
+            <p class="text-red-300 whitespace-pre-wrap">
+              {{ selectedCompensatoryRequest()!.rejection_comment }}
+            </p>
+          </div>
+          }
+        </div>
+      </div>
+      }
+      <ng-template #footer>
+        <div class="flex justify-end gap-2">
+          <p-button
+            label="Cerrar"
+            icon="pi pi-times"
+            severity="secondary"
+            (onClick)="showCompensatoryDetailsDialog.set(false)"
+            [rounded]="true"
+          />
+        </div>
+      </ng-template>
+    </p-dialog>
   `,
   styles: `
     ::ng-deep .p-datatable .p-datatable-thead > tr > th {
@@ -862,6 +1061,10 @@ export class HRDisabilitiesComponent {
   // Dialog
   public showDetailsDialog = signal(false);
   public selectedDisability = signal<Disability | null>(null);
+  public showCompensatoryDetailsDialog = signal(false);
+  public selectedCompensatoryRequest = signal<CompensatoryRequest | null>(null);
+  public employeeOvertimeHours = signal<number>(0);
+  public isLoadingOvertimeHours = signal<boolean>(false);
 
   // Opciones de estado
   public statusOptions = [
@@ -1143,8 +1346,117 @@ export class HRDisabilitiesComponent {
   }
 
   public viewCompensatoryDetails(request: CompensatoryRequest): void {
-    // TODO: Implementar dialog de detalles
-    console.log('View details:', request);
+    this.selectedCompensatoryRequest.set(request);
+    this.showCompensatoryDetailsDialog.set(true);
+    this.loadEmployeeOvertimeHours(request.employee_id);
+  }
+
+  // Método helper para calcular horas extras de un empleado específico
+  private async loadEmployeeOvertimeHours(employeeId: string): Promise<void> {
+    this.isLoadingOvertimeHours.set(true);
+    try {
+      const companyId = this.organizationService.getCurrentCompanyId();
+      if (!companyId) {
+        this.employeeOvertimeHours.set(0);
+        return;
+      }
+
+      // Obtener timelogs del mes actual
+      const startDate = startOfMonth(new Date());
+      const endDate = endOfMonth(new Date());
+      
+      const startDateStr = format(startDate, "yyyy-MM-dd'T'06:00:00");
+      const endDateStr = format(endDate, "yyyy-MM-dd'T'06:00:00");
+
+      const timelogs = await firstValueFrom(
+        this.http.get<any[]>(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`,
+          {
+            params: {
+              select: '*',
+              employee_id: `eq.${employeeId}`,
+              'employee.company_id': `eq.${companyId}`,
+              created_at: `gte.${startDateStr},lte.${endDateStr}`,
+              order: 'created_at.asc',
+            },
+          }
+        )
+      );
+
+      // Procesar timelogs similar a employee-portal
+      const processedLogs = this.processTimelogsForOvertime(timelogs);
+      const totalHours = this.calculateTotalOvertimeHours(processedLogs);
+      this.employeeOvertimeHours.set(totalHours);
+    } catch (error) {
+      console.error('Error loading overtime hours:', error);
+      this.employeeOvertimeHours.set(0);
+    } finally {
+      this.isLoadingOvertimeHours.set(false);
+    }
+  }
+
+  // Procesar timelogs para agrupar por día
+  private processTimelogsForOvertime(timelogs: any[]): any[] {
+    const processed = timelogs
+      .map((x) => ({ ...x, day: format(new Date(x.created_at), 'yyyy-MM-dd') }))
+      .reduce<any[]>((acc, x) => {
+        const existing = acc.find((item) => item.day === x.day);
+        if (!existing) {
+          acc.push({
+            day: x.day,
+            entry: x.type === 'entry' ? { date: new Date(x.created_at) } : undefined,
+            lunch_start: x.type === 'lunch_start' ? { date: new Date(x.created_at) } : undefined,
+            lunch_end: x.type === 'lunch_end' ? { date: new Date(x.created_at) } : undefined,
+            exit: x.type === 'exit' ? { date: new Date(x.created_at) } : undefined,
+          });
+        } else {
+          if (x.type === 'entry') existing.entry = { date: new Date(x.created_at) };
+          if (x.type === 'lunch_start') existing.lunch_start = { date: new Date(x.created_at) };
+          if (x.type === 'lunch_end') existing.lunch_end = { date: new Date(x.created_at) };
+          if (x.type === 'exit') existing.exit = { date: new Date(x.created_at) };
+        }
+        return acc;
+      }, []);
+
+    return processed.filter((log) => log.entry && log.exit);
+  }
+
+  // Calcular horas extras totales
+  private calculateTotalOvertimeHours(logs: any[]): number {
+    let totalOvertimeMinutes = 0;
+
+    logs.forEach((log) => {
+      if (!log.entry || !log.exit) return;
+
+      const entryDate = new Date(log.entry.date);
+      const exitDate = new Date(log.exit.date);
+
+      if (isNaN(entryDate.getTime()) || isNaN(exitDate.getTime())) return;
+
+      const totalMinutes = differenceInMinutes(exitDate, entryDate);
+
+      const lunchTime =
+        log.lunch_start && log.lunch_end
+          ? differenceInMinutes(
+              new Date(log.lunch_end.date),
+              new Date(log.lunch_start.date)
+            )
+          : 0;
+
+      // Calcular horas extras: más de 9 horas totales (8 horas + 1 hora de almuerzo)
+      const requiredTotalMinutes = 540;
+      const overtimeByTotalTime =
+        totalMinutes > requiredTotalMinutes
+          ? totalMinutes - requiredTotalMinutes
+          : 0;
+
+      const lunchExceededMinutes = lunchTime > 60 ? lunchTime - 60 : 0;
+
+      const dayOvertimeMinutes = overtimeByTotalTime + lunchExceededMinutes;
+      totalOvertimeMinutes += dayOvertimeMinutes;
+    });
+
+    return totalOvertimeMinutes / 60;
   }
 
   public approveCompensatoryRequest(request: CompensatoryRequest): void {
