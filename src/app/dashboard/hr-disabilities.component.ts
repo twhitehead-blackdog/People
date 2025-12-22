@@ -975,7 +975,7 @@ interface CompensatoryRequest {
           </h3>
           <div class="overflow-x-auto">
             <p-table
-              [value]="getOvertimeDaysFromNotes(selectedCompensatoryRequest()!)"
+              [value]="getOvertimeDaysFromNotes(selectedCompensatoryRequest()!) || []"
               styleClass="p-datatable-sm"
               [paginator]="false"
               [scrollable]="true"

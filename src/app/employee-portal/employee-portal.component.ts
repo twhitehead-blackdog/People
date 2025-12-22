@@ -1638,7 +1638,7 @@ import { EmployeesStore } from '../stores/employees.store';
                   <ng-template #body let-dayDetail>
                     <tr>
                       <td class="font-medium">
-                        {{ format(dayDetail.date, 'dd/MM/yyyy') }}
+                        {{ dayDetail.date | date : 'dd/MM/yyyy' }}
                       </td>
                       <td>
                         <span class="flex items-center gap-2">
@@ -1684,7 +1684,7 @@ import { EmployeesStore } from '../stores/employees.store';
                     </span>
                   </div>
                   <span class="text-lg font-bold text-cyan-300">
-                    {{ overtimeDaysDetails().reduce((sum, day) => sum + day.overtimeHours, 0).toFixed(2) }}h
+                    {{ getTotalOvertimeHours() }}h
                   </span>
                 </div>
               </div>
@@ -3562,6 +3562,13 @@ export class EmployeePortalComponent {
 
     return details.sort((a, b) => b.date.getTime() - a.date.getTime());
   });
+
+  // Método helper para obtener el total de horas extra
+  public getTotalOvertimeHours(): string {
+    const details = this.overtimeDaysDetails();
+    const total = details.reduce((sum, day) => sum + day.overtimeHours, 0);
+    return total.toFixed(2);
+  }
 
   public recentTimelogs = computed(() => {
     // Obtener los timelogs crudos (sin agrupar por día)
