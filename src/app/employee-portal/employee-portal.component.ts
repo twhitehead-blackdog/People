@@ -31,6 +31,7 @@ import { DatePicker } from 'primeng/datepicker';
 import { DialogModule } from 'primeng/dialog';
 import { FileUpload } from 'primeng/fileupload';
 import { InputText } from 'primeng/inputtext';
+import { Select } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { Textarea } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
@@ -59,6 +60,7 @@ import { EmployeesStore } from '../stores/employees.store';
     DialogModule,
     ToastModule,
     TooltipModule,
+    Select,
     NgClass,
     CalendarComponent,
     NgTemplateOutlet,
@@ -1644,89 +1646,349 @@ import { EmployeesStore } from '../stores/employees.store';
             >Visualiza todas tus solicitudes de tiempo compensatorio</ng-template
           >
           
-          <div class="overflow-x-auto">
-            <p-table
-              [value]="myCompensatoryRequests()"
-              [rows]="10"
-              paginator
-              [loading]="compensatoryTimeoffsApi.isLoading()"
-              styleClass="p-datatable-sm md:p-datatable-lg"
-              [scrollable]="true"
-              scrollHeight="400px"
-              [responsiveLayout]="'scroll'"
-            >
-              <ng-template #header>
-                <tr>
-                  <th>Fecha de Solicitud</th>
-                  <th>Desde</th>
-                  <th>Hasta</th>
-                  <th>Tipo</th>
-                  <th>Cantidad</th>
-                  <th>Motivo</th>
-                  <th>Estado</th>
-                </tr>
-              </ng-template>
-              <ng-template #body let-request>
-                <tr>
-                  <td>{{ request.created_at | date : 'mediumDate' }}</td>
-                  <td>{{ request.date_from | date : 'mediumDate' }}</td>
-                  <td>{{ request.date_to | date : 'mediumDate' }}</td>
-                  <td>
-                    @if (request.compensatory_type === 'days') {
-                      <span class="text-sm text-gray-300">Días</span>
-                    } @else {
-                      <span class="text-sm text-gray-300">Horas</span>
-                    }
-                  </td>
-                  <td>
-                    @if (request.compensatory_type === 'days') {
-                      {{ request.compensatory_amount || calculateDays(request.date_from, request.date_to) }} días
-                    } @else {
-                      {{ request.hours || request.compensatory_amount || 0 }}h
-                    }
-                  </td>
-                  <td>
-                    @if (request.reason) {
-                      <span class="text-sm text-gray-400">{{ request.reason }}</span>
-                    } @else {
-                      <span class="text-sm text-gray-500">-</span>
-                    }
-                  </td>
-                  <td>
-                    <span
-                      class="px-2 py-1 rounded text-xs font-semibold"
-                      [class.bg-yellow-500]="request.review_status === 'pending' || (request.is_approved === false && !request.rejection_comment)"
-                      [class.bg-green-500]="request.is_approved === true"
-                      [class.bg-red-500]="request.rejection_comment || request.review_status === 'rejected'"
-                    >
-                      {{
-                        request.is_approved === true
-                          ? 'Aprobado'
-                          : request.rejection_comment || request.review_status === 'rejected'
-                          ? 'Rechazado'
-                          : request.review_status === 'approved'
-                          ? 'En Registro'
-                          : 'Pendiente'
-                      }}
-                    </span>
-                    @if (request.rejection_comment) {
-                      <p class="text-xs text-red-400 mt-1">{{ request.rejection_comment }}</p>
-                    }
-                  </td>
-                </tr>
-              </ng-template>
-              <ng-template #emptymessage>
-                <tr>
-                  <td colspan="7" class="text-center py-8">
-                    <div class="flex flex-col items-center gap-2">
-                      <i class="pi pi-inbox text-4xl text-gray-500"></i>
-                      <p class="text-gray-400">No tienes solicitudes de tiempo compensatorio</p>
-                    </div>
-                  </td>
-                </tr>
-              </ng-template>
-            </p-table>
+          <!-- Filtros y Ordenamiento -->
+          <div class="mb-6 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700/50">
+            <div class="flex flex-col gap-4">
+              <!-- Primera fila: Filtros principales -->
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- Búsqueda por texto -->
+                <div class="lg:col-span-2">
+                  <label class="block text-sm font-medium text-gray-300 mb-2">
+                    <i class="pi pi-search mr-2"></i>Buscar por motivo
+                  </label>
+                  <input
+                    pInputText
+                    type="text"
+                    [(ngModel)]="compensatoryFilterSearch"
+                    placeholder="Buscar en motivos..."
+                    class="w-full"
+                  />
+                </div>
+
+                <!-- Filtro por Estado -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-300 mb-2">
+                    <i class="pi pi-filter mr-2"></i>Estado
+                  </label>
+                  <p-select
+                    [options]="compensatoryStatusOptions"
+                    [(ngModel)]="compensatoryFilterStatus"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Todos los estados"
+                    appendTo="body"
+                    class="w-full"
+                  />
+                </div>
+
+                <!-- Filtro por Tipo -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-300 mb-2">
+                    <i class="pi pi-tag mr-2"></i>Tipo
+                  </label>
+                  <p-select
+                    [options]="compensatoryTypeOptions"
+                    [(ngModel)]="compensatoryFilterType"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Todos los tipos"
+                    appendTo="body"
+                    class="w-full"
+                  />
+                </div>
+              </div>
+
+              <!-- Segunda fila: Rango de fechas y ordenamiento -->
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Rango de fechas -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-300 mb-2">
+                    <i class="pi pi-calendar mr-2"></i>Rango de fechas
+                  </label>
+                  <p-datepicker
+                    [(ngModel)]="compensatoryFilterDateRange"
+                    selectionMode="range"
+                    [showIcon]="true"
+                    dateFormat="dd/mm/yy"
+                    placeholder="Seleccionar rango"
+                    appendTo="body"
+                    [showClear]="true"
+                    class="w-full"
+                  />
+                </div>
+
+                <!-- Ordenamiento -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-300 mb-2">
+                    <i class="pi pi-sort mr-2"></i>Ordenar por
+                  </label>
+                  <p-select
+                    [options]="compensatorySortOptions"
+                    [(ngModel)]="selectedSortOption"
+                    (ngModelChange)="onCompensatorySortChange($event)"
+                    optionLabel="label"
+                    placeholder="Seleccionar orden"
+                    appendTo="body"
+                    class="w-full"
+                  />
+                </div>
+              </div>
+
+              <!-- Tercera fila: Botones de acción y contador -->
+              <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-2 border-t border-neutral-700/50">
+                <div class="flex items-center gap-2 text-sm text-gray-400">
+                  <i class="pi pi-info-circle"></i>
+                  <span>
+                    Mostrando 
+                    <strong class="text-white">{{ myCompensatoryRequests().length }}</strong>
+                    de 
+                    <strong class="text-white">{{ allCompensatoryRequests().length }}</strong>
+                    solicitudes
+                  </span>
+                </div>
+                <p-button
+                  label="Limpiar Filtros"
+                  icon="pi pi-filter-slash"
+                  severity="secondary"
+                  [outlined]="true"
+                  [rounded]="true"
+                  (onClick)="clearCompensatoryFilters()"
+                  [disabled]="!compensatoryFilterStatus() && !compensatoryFilterType() && !compensatoryFilterDateRange() && !compensatoryFilterSearch()"
+                />
+              </div>
+            </div>
           </div>
+          
+          @if (compensatoryTimeoffsApi.isLoading()) {
+          <div class="flex justify-center items-center py-12">
+            <div class="flex flex-col items-center gap-3">
+              <i class="pi pi-spin pi-spinner text-4xl text-cyan-400"></i>
+              <p class="text-gray-400">Cargando tus solicitudes...</p>
+            </div>
+          </div>
+          } @else if (allCompensatoryRequests().length === 0) {
+          <div class="flex flex-col items-center justify-center py-16 px-4">
+            <div class="w-24 h-24 rounded-full bg-cyan-500/10 flex items-center justify-center mb-4">
+              <i class="pi pi-inbox text-5xl text-cyan-400/50"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-white mb-2">No tienes solicitudes aún</h3>
+            <p class="text-gray-400 text-center max-w-md mb-6">
+              Aún no has enviado ninguna solicitud de tiempo compensatorio. 
+              Haz clic en "Nueva Solicitud" para comenzar.
+            </p>
+            <p-button
+              label="Crear Primera Solicitud"
+              icon="pi pi-plus"
+              (click)="activeSection.set('compensatory')"
+              severity="success"
+              [rounded]="true"
+            />
+          </div>
+          } @else if (myCompensatoryRequests().length === 0) {
+          <div class="flex flex-col items-center justify-center py-16 px-4">
+            <div class="w-24 h-24 rounded-full bg-yellow-500/10 flex items-center justify-center mb-4">
+              <i class="pi pi-filter-slash text-5xl text-yellow-400/50"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-white mb-2">No se encontraron resultados</h3>
+            <p class="text-gray-400 text-center max-w-md mb-6">
+              No hay solicitudes que coincidan con los filtros seleccionados. 
+              Intenta ajustar los filtros o limpiarlos para ver todas tus solicitudes.
+            </p>
+            <p-button
+              label="Limpiar Filtros"
+              icon="pi pi-filter-slash"
+              (click)="clearCompensatoryFilters()"
+              severity="secondary"
+              [rounded]="true"
+            />
+          </div>
+          } @else {
+          <div class="space-y-4">
+            @for (request of myCompensatoryRequests(); track request.id) {
+            <div
+              class="bg-gradient-to-r from-neutral-800 to-neutral-800/80 border rounded-xl p-5 hover:shadow-lg transition-all duration-300"
+              [class.border-yellow-500/30]="request.review_status === 'pending' || (request.is_approved === false && !request.rejection_comment)"
+              [class.border-green-500/30]="request.is_approved === true"
+              [class.border-red-500/30]="request.rejection_comment || request.review_status === 'rejected'"
+              [class.border-cyan-500/30]="request.review_status === 'approved'"
+              [class.hover:border-cyan-400/50]="true"
+            >
+              <div class="flex flex-col md:flex-row md:items-start gap-4">
+                <!-- Icono y Estado -->
+                <div class="flex-shrink-0">
+                  <div
+                    class="w-16 h-16 rounded-xl flex items-center justify-center text-2xl"
+                    [class.bg-yellow-500/20]="request.review_status === 'pending' || (request.is_approved === false && !request.rejection_comment)"
+                    [class.bg-green-500/20]="request.is_approved === true"
+                    [class.bg-red-500/20]="request.rejection_comment || request.review_status === 'rejected'"
+                    [class.bg-cyan-500/20]="request.review_status === 'approved'"
+                  >
+                    @if (request.is_approved === true) {
+                      <i class="pi pi-check-circle text-green-400"></i>
+                    } @else if (request.rejection_comment || request.review_status === 'rejected') {
+                      <i class="pi pi-times-circle text-red-400"></i>
+                    } @else if (request.review_status === 'approved') {
+                      <i class="pi pi-clock text-cyan-400"></i>
+                    } @else {
+                      <i class="pi pi-hourglass text-yellow-400"></i>
+                    }
+                  </div>
+                </div>
+
+                <!-- Contenido Principal -->
+                <div class="flex-1 min-w-0">
+                  <!-- Header con Estado -->
+                  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-4">
+                    <div class="flex items-center gap-3">
+                      <div>
+                        <h3 class="text-lg font-semibold text-white mb-1">
+                          @if (request.compensatory_type === 'days') {
+                            <span class="flex items-center gap-2">
+                              <i class="pi pi-calendar text-cyan-400"></i>
+                              Tiempo Compensatorio por Días
+                            </span>
+                          } @else {
+                            <span class="flex items-center gap-2">
+                              <i class="pi pi-clock text-cyan-400"></i>
+                              Tiempo Compensatorio por Horas
+                            </span>
+                          }
+                        </h3>
+                        <p class="text-sm text-gray-400">
+                          Solicitado el {{ request.created_at | date : 'dd/MM/yyyy' }} a las {{ request.created_at | date : 'HH:mm' }}
+                        </p>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span
+                        class="px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2"
+                        [class.bg-yellow-500/20]="request.review_status === 'pending' || (request.is_approved === false && !request.rejection_comment)"
+                        [class.text-yellow-300]="request.review_status === 'pending' || (request.is_approved === false && !request.rejection_comment)"
+                        [class.bg-green-500/20]="request.is_approved === true"
+                        [class.text-green-300]="request.is_approved === true"
+                        [class.bg-red-500/20]="request.rejection_comment || request.review_status === 'rejected'"
+                        [class.text-red-300]="request.rejection_comment || request.review_status === 'rejected'"
+                        [class.bg-cyan-500/20]="request.review_status === 'approved'"
+                        [class.text-cyan-300]="request.review_status === 'approved'"
+                      >
+                        @if (request.is_approved === true) {
+                          <i class="pi pi-check-circle"></i>
+                          Aprobado
+                        } @else if (request.rejection_comment || request.review_status === 'rejected') {
+                          <i class="pi pi-times-circle"></i>
+                          Rechazado
+                        } @else if (request.review_status === 'approved') {
+                          <i class="pi pi-clock"></i>
+                          En Registro
+                        } @else {
+                          <i class="pi pi-hourglass"></i>
+                          Pendiente
+                        }
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Información de la Solicitud -->
+                  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                    <!-- Fechas -->
+                    <div class="bg-neutral-900/50 rounded-lg p-3 border border-neutral-700/50">
+                      <div class="flex items-center gap-2 mb-2">
+                        <i class="pi pi-calendar text-cyan-400"></i>
+                        <span class="text-xs text-gray-400 font-medium">Período</span>
+                      </div>
+                      <p class="text-white font-semibold">
+                        {{ request.date_from | date : 'dd/MM/yyyy' }}
+                      </p>
+                      @if (request.date_from !== request.date_to) {
+                      <p class="text-gray-400 text-sm mt-1">
+                        hasta {{ request.date_to | date : 'dd/MM/yyyy' }}
+                      </p>
+                      }
+                    </div>
+
+                    <!-- Tipo y Cantidad -->
+                    <div class="bg-neutral-900/50 rounded-lg p-3 border border-neutral-700/50">
+                      <div class="flex items-center gap-2 mb-2">
+                        @if (request.compensatory_type === 'days') {
+                          <i class="pi pi-calendar text-cyan-400"></i>
+                        } @else {
+                          <i class="pi pi-clock text-cyan-400"></i>
+                        }
+                        <span class="text-xs text-gray-400 font-medium">Cantidad</span>
+                      </div>
+                      <p class="text-white font-semibold text-lg">
+                        @if (request.compensatory_type === 'days') {
+                          @let daysCount = request.compensatory_amount || calculateDays(request.date_from, request.date_to);
+                          {{ daysCount }} día(s)
+                          <span class="text-gray-400 text-sm font-normal block mt-1">
+                            ({{ daysCount * 24 }} horas)
+                          </span>
+                        } @else {
+                          {{ request.hours || request.compensatory_amount || 0 }} hora(s)
+                        }
+                      </p>
+                    </div>
+
+                    <!-- Tipo de Solicitud -->
+                    <div class="bg-neutral-900/50 rounded-lg p-3 border border-neutral-700/50">
+                      <div class="flex items-center gap-2 mb-2">
+                        <i class="pi pi-tag text-cyan-400"></i>
+                        <span class="text-xs text-gray-400 font-medium">Tipo</span>
+                      </div>
+                      <p class="text-white font-semibold">
+                        @if (request.compensatory_type === 'days') {
+                          Por Días
+                        } @else {
+                          Por Horas
+                        }
+                      </p>
+                    </div>
+
+                    <!-- Duración -->
+                    <div class="bg-neutral-900/50 rounded-lg p-3 border border-neutral-700/50">
+                      <div class="flex items-center gap-2 mb-2">
+                        <i class="pi pi-info-circle text-cyan-400"></i>
+                        <span class="text-xs text-gray-400 font-medium">Duración</span>
+                      </div>
+                      <p class="text-white font-semibold">
+                        @if (request.date_from === request.date_to) {
+                          1 día
+                        } @else {
+                          {{ calculateDays(request.date_from, request.date_to) }} días
+                        }
+                      </p>
+                    </div>
+                  </div>
+
+                  <!-- Motivo (si existe) -->
+                  @if (request.reason) {
+                  <div class="bg-neutral-900/30 rounded-lg p-3 border border-neutral-700/30 mb-4">
+                    <div class="flex items-center gap-2 mb-2">
+                      <i class="pi pi-comment text-cyan-400"></i>
+                      <span class="text-sm text-gray-400 font-medium">Motivo</span>
+                    </div>
+                    <p class="text-gray-300 text-sm">{{ request.reason }}</p>
+                  </div>
+                  }
+
+                  <!-- Comentario de Rechazo (si existe) -->
+                  @if (request.rejection_comment) {
+                  <div class="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                    <div class="flex items-start gap-3">
+                      <i class="pi pi-exclamation-triangle text-red-400 text-xl mt-0.5"></i>
+                      <div class="flex-1">
+                        <h4 class="text-red-300 font-semibold mb-1">Motivo del Rechazo</h4>
+                        <p class="text-red-200 text-sm">{{ request.rejection_comment }}</p>
+                      </div>
+                    </div>
+                  </div>
+                  }
+                </div>
+              </div>
+            </div>
+            }
+          </div>
+          }
         </p-card>
       </div>
       }
@@ -3192,8 +3454,17 @@ export class EmployeePortalComponent {
     }
   );
 
-  // Computed: Todas las solicitudes de tiempo compensatorio
-  public myCompensatoryRequests = computed(() => {
+  // Signals para filtros de solicitudes
+  public compensatoryFilterStatus = signal<string | null>(null);
+  public compensatoryFilterType = signal<string | null>(null);
+  public compensatoryFilterDateRange = signal<Date[] | null>(null);
+  public compensatoryFilterSearch = signal<string>('');
+  public compensatorySortBy = signal<'date' | 'status' | 'amount'>('date');
+  public compensatorySortOrder = signal<'asc' | 'desc'>('desc');
+  public selectedSortOption = signal<any>({ label: 'Fecha (Más reciente)', by: 'date', order: 'desc' });
+
+  // Computed: Todas las solicitudes de tiempo compensatorio (sin filtrar)
+  public allCompensatoryRequests = computed(() => {
     // CRÍTICO: Si el resource está en estado de error, retornar array vacío en lugar de intentar acceder a value()
     // Esto evita que el computed lance el error y entre en loop infinito
     if (this.compensatoryTimeoffsApi.status() === 'error') {
@@ -3201,6 +3472,131 @@ export class EmployeePortalComponent {
     }
     return this.compensatoryTimeoffsApi.value() ?? [];
   });
+
+  // Computed: Solicitudes filtradas y ordenadas
+  public myCompensatoryRequests = computed(() => {
+    let requests = [...this.allCompensatoryRequests()];
+
+    // Filtro por estado
+    const statusFilter = this.compensatoryFilterStatus();
+    if (statusFilter) {
+      requests = requests.filter((r) => {
+        if (statusFilter === 'pending') {
+          return r.review_status === 'pending' || (!r.review_status && !r.is_approved);
+        } else if (statusFilter === 'approved') {
+          return r.is_approved === true;
+        } else if (statusFilter === 'rejected') {
+          return r.rejection_comment || r.review_status === 'rejected';
+        } else if (statusFilter === 'in_registry') {
+          return r.review_status === 'approved' && !r.is_approved;
+        }
+        return true;
+      });
+    }
+
+    // Filtro por tipo
+    const typeFilter = this.compensatoryFilterType();
+    if (typeFilter) {
+      requests = requests.filter((r) => r.compensatory_type === typeFilter);
+    }
+
+    // Filtro por rango de fechas
+    const dateRange = this.compensatoryFilterDateRange();
+    if (dateRange && dateRange.length === 2) {
+      const startDate = dateRange[0];
+      const endDate = dateRange[1];
+      requests = requests.filter((r) => {
+        const requestDate = new Date(r.date_from);
+        return requestDate >= startDate && requestDate <= endDate;
+      });
+    }
+
+    // Filtro por búsqueda de texto (motivo)
+    const searchText = this.compensatoryFilterSearch().toLowerCase();
+    if (searchText) {
+      requests = requests.filter((r) => {
+        const reason = r.reason?.toLowerCase() || '';
+        return reason.includes(searchText);
+      });
+    }
+
+    // Ordenamiento
+    const sortBy = this.compensatorySortBy();
+    const sortOrder = this.compensatorySortOrder();
+    
+    requests.sort((a, b) => {
+      let comparison = 0;
+      
+      if (sortBy === 'date') {
+        const dateA = new Date(a.created_at).getTime();
+        const dateB = new Date(b.created_at).getTime();
+        comparison = dateA - dateB;
+      } else if (sortBy === 'status') {
+        const statusA = this.getRequestStatusOrder(a);
+        const statusB = this.getRequestStatusOrder(b);
+        comparison = statusA - statusB;
+      } else if (sortBy === 'amount') {
+        const amountA = a.compensatory_amount || a.hours || 0;
+        const amountB = b.compensatory_amount || b.hours || 0;
+        comparison = amountA - amountB;
+      }
+      
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+    return requests;
+  });
+
+  // Helper para ordenar por estado
+  private getRequestStatusOrder(request: any): number {
+    if (request.is_approved === true) return 1; // Aprobado primero
+    if (request.review_status === 'approved') return 2; // En registro
+    if (request.review_status === 'pending' || (!request.review_status && !request.is_approved)) return 3; // Pendiente
+    if (request.rejection_comment || request.review_status === 'rejected') return 4; // Rechazado
+    return 5;
+  }
+
+  // Opciones para filtros
+  public compensatoryStatusOptions = [
+    { label: 'Todos los estados', value: null },
+    { label: 'Pendiente', value: 'pending' },
+    { label: 'Aprobado', value: 'approved' },
+    { label: 'En Registro', value: 'in_registry' },
+    { label: 'Rechazado', value: 'rejected' },
+  ];
+
+  public compensatoryTypeOptions = [
+    { label: 'Todos los tipos', value: null },
+    { label: 'Por Horas', value: 'hours' },
+    { label: 'Por Días', value: 'days' },
+  ];
+
+  public compensatorySortOptions = [
+    { label: 'Fecha (Más reciente)', by: 'date' as const, order: 'desc' as const },
+    { label: 'Fecha (Más antiguo)', by: 'date' as const, order: 'asc' as const },
+    { label: 'Estado', by: 'status' as const, order: 'asc' as const },
+    { label: 'Cantidad (Mayor)', by: 'amount' as const, order: 'desc' as const },
+    { label: 'Cantidad (Menor)', by: 'amount' as const, order: 'asc' as const },
+  ];
+
+  // Métodos para limpiar filtros
+  public clearCompensatoryFilters(): void {
+    this.compensatoryFilterStatus.set(null);
+    this.compensatoryFilterType.set(null);
+    this.compensatoryFilterDateRange.set(null);
+    this.compensatoryFilterSearch.set('');
+    this.compensatorySortBy.set('date');
+    this.compensatorySortOrder.set('desc');
+    this.selectedSortOption.set(this.compensatorySortOptions[0]);
+  }
+
+  public onCompensatorySortChange(option: any): void {
+    if (option && option.by) {
+      this.compensatorySortBy.set(option.by);
+      this.compensatorySortOrder.set(option.order);
+      this.selectedSortOption.set(option);
+    }
+  }
 
   // Computed: Calcular el total de horas/días automáticamente
   public compensatoryAmount = computed(() => {
