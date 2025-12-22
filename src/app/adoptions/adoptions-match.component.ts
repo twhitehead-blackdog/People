@@ -78,7 +78,8 @@ export interface MatchFilters {
             type="text"
             pInputText
             placeholder="INGRESA TU UBICACIÓN"
-            [(ngModel)]="location"
+            [ngModel]="location()"
+            (ngModelChange)="location.set($event)"
             class="location-input"
           />
         </div>
@@ -324,9 +325,9 @@ export interface MatchFilters {
       }
 
       .dog-button.active {
-        background: #ec4899;
+        background: #3b82f6;
         color: #ffffff;
-        border-color: #ec4899;
+        border-color: #3b82f6;
       }
 
       .location-input-container {
