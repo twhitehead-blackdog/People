@@ -357,27 +357,22 @@ import { MatchFilters } from './adoptions-match.component';
         font-weight: 700;
       }
 
+      /* Vista por defecto: en filas (list) */
       .pets-list {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-        gap: 2rem;
-      }
-
-      /* Vista en filas (list) */
-      .pets-list.list-view {
         display: flex;
         flex-direction: column;
+        gap: 2rem;
       }
 
       .pets-list.list-view .pet-card {
         flex-direction: row;
-        padding: 1rem;
-        gap: 1.5rem;
+        padding: 1.5rem;
+        gap: 2rem;
       }
 
       .pets-list.list-view .pet-image-container {
-        width: 200px;
-        height: 200px;
+        width: 300px;
+        height: 300px;
         flex-shrink: 0;
       }
 
@@ -389,14 +384,22 @@ import { MatchFilters } from './adoptions-match.component';
       }
 
       .pets-list.list-view .pet-details-grid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 1rem;
+        grid-template-columns: 2fr 1fr;
+        gap: 2rem;
       }
 
       /* Vista cuadriculada (grid) */
+      .pets-list:not(.list-view) {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 2rem;
+      }
+
       .pets-list:not(.list-view) .pet-card {
         flex-direction: column;
         margin-bottom: 0;
+        gap: 1rem;
+        padding: 1rem;
       }
 
       .pets-list:not(.list-view) .pet-image-container {
@@ -407,6 +410,7 @@ import { MatchFilters } from './adoptions-match.component';
       .pets-list:not(.list-view) .pet-details-grid {
         grid-template-columns: 1fr;
         gap: 1rem;
+        margin-top: 0.5rem;
       }
 
       .pets-list:not(.list-view) .pet-details-right {
@@ -464,12 +468,6 @@ import { MatchFilters } from './adoptions-match.component';
         margin-bottom: 1.5rem;
         position: relative;
         overflow: hidden;
-      }
-
-      /* Estilos específicos para vista grid */
-      .pets-list:not(.list-view) .pet-card {
-        gap: 1rem;
-        padding: 1rem;
       }
 
       .pet-card::before {
@@ -849,6 +847,9 @@ import { MatchFilters } from './adoptions-match.component';
         text-align: center;
         padding: 4rem 2rem;
         color: #9ca3af;
+      }
+
+      .pets-list:not(.list-view) .empty-state {
         grid-column: 1 / -1;
       }
 
@@ -929,16 +930,16 @@ import { MatchFilters } from './adoptions-match.component';
           grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
         }
 
-        .pet-card {
+        .pets-list.list-view .pet-card {
           flex-direction: column;
         }
 
-        .pet-image-container {
+        .pets-list.list-view .pet-image-container {
           width: 100%;
           height: 250px;
         }
 
-        .pet-details-grid {
+        .pets-list.list-view .pet-details-grid {
           grid-template-columns: 1fr;
         }
       }
@@ -992,7 +993,7 @@ export class PetsListComponent {
   public showPetDetails = signal(false);
   public selectedPet = signal<Pet | null>(null);
   public mapUrls = signal<Record<string, string>>({});
-  public viewMode = signal<'grid' | 'list'>('grid');
+  public viewMode = signal<'grid' | 'list'>('list');
 
   public filteredPets = computed(() => {
     // Usar datos de ejemplo si el switch está activado
