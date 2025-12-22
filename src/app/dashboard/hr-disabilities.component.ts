@@ -8,6 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { differenceInMinutes, format, startOfMonth, endOfMonth, subDays, addDays } from 'date-fns';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
@@ -108,26 +109,27 @@ interface CompensatoryRequest {
     <p-toast />
     <p-confirmDialog />
 
-    <div class="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-900 to-neutral-800">
-      <!-- Header Moderno con Búsqueda Global -->
+    <div class="h-screen flex flex-col bg-gradient-to-br from-neutral-900 via-neutral-900 to-neutral-800 overflow-hidden">
+      <!-- Header Compacto con Búsqueda Global -->
       <div class="bg-gradient-to-r from-neutral-800 via-neutral-800/95 to-neutral-800 border-b border-neutral-700/50 shadow-xl sticky top-0 z-40 backdrop-blur-sm">
-        <div class="px-6 py-4">
-          <div class="flex items-center justify-between mb-4">
-            <div>
-              <h1 class="text-3xl font-bold bg-gradient-to-r from-white via-cyan-100 to-cyan-300 bg-clip-text text-transparent m-0">
+        <div class="px-4 py-2">
+          <div class="flex items-center justify-between mb-2 gap-4">
+            <div class="flex-1 min-w-0">
+              <h1 class="text-xl font-bold bg-gradient-to-r from-white via-cyan-100 to-cyan-300 bg-clip-text text-transparent m-0">
                 Dashboard de RRHH
               </h1>
-              <p class="text-sm text-gray-400 m-0 mt-1 flex items-center gap-2">
-                <i class="pi pi-shield text-cyan-400"></i>
-                Gestión integral de incapacidades y tiempo compensatorio
+              <p class="text-xs text-gray-400 m-0 mt-0.5 flex items-center gap-1.5">
+                <i class="pi pi-shield text-cyan-400 text-xs"></i>
+                <span class="truncate">Gestión integral de incapacidades y tiempo compensatorio</span>
               </p>
             </div>
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2 flex-shrink-0">
               <p-button
                 icon="pi pi-download"
-                label="Exportar"
+                [label]="'Exportar'"
                 [outlined]="true"
                 severity="secondary"
+                size="small"
                 (onClick)="exportData()"
                 [disabled]="isRefreshing()"
                 pTooltip="Exportar datos a Excel"
@@ -135,9 +137,10 @@ interface CompensatoryRequest {
               />
               <p-button
                 icon="pi pi-refresh"
-                label="Actualizar"
+                [label]="'Actualizar'"
                 [outlined]="true"
                 severity="secondary"
+                size="small"
                 (onClick)="refreshAll()"
                 [loading]="isRefreshing()"
                 pTooltip="Actualizar todos los datos"
@@ -146,7 +149,7 @@ interface CompensatoryRequest {
             </div>
           </div>
           
-          <!-- Búsqueda Global Inteligente -->
+          <!-- Búsqueda Global Compacta -->
           <div class="relative">
             <input
               type="text"
@@ -154,133 +157,153 @@ interface CompensatoryRequest {
               placeholder="🔍 Búsqueda rápida: empleado, email, descripción, motivo..."
               [(ngModel)]="globalSearchText"
               (input)="onGlobalSearch()"
-              class="w-full pl-12 pr-4 py-3 bg-neutral-900/50 border-neutral-600 text-white placeholder-gray-500 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all"
+              class="w-full pl-10 pr-8 py-1.5 text-sm bg-neutral-900/50 border-neutral-600 text-white placeholder-gray-500 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/20 transition-all"
             />
-            <i class="pi pi-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+            <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm"></i>
             @if (globalSearchText()) {
             <button
               (click)="clearGlobalSearch()"
-              class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+              class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors p-1"
             >
-              <i class="pi pi-times"></i>
+              <i class="pi pi-times text-sm"></i>
             </button>
             }
           </div>
         </div>
       </div>
 
-      <div class="px-6 py-6 space-y-6">
-        <!-- Pestañas Mejoradas -->
-        <div class="bg-neutral-800/50 rounded-xl border border-neutral-700/50 p-1 backdrop-blur-sm">
-          <div class="flex gap-2">
+      <div class="px-4 py-2 space-y-2 flex-1 overflow-y-auto">
+        <!-- Pestañas Compactas -->
+        <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-0.5 backdrop-blur-sm">
+          <div class="flex gap-1 flex-wrap">
             <button
               (click)="activeTab.set('disabilities')"
-              [class]="'flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-300 ' + 
+              [class]="'px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 ' + 
                 (activeTab() === 'disabilities' 
-                  ? 'bg-gradient-to-r from-cyan-500/20 to-cyan-600/20 text-cyan-300 shadow-lg border border-cyan-400/30' 
+                  ? 'bg-gradient-to-r from-cyan-500/20 to-cyan-600/20 text-cyan-300 shadow-md border border-cyan-400/30' 
                   : 'text-gray-400 hover:text-white hover:bg-neutral-700/50')"
             >
-              <i class="pi pi-heart mr-2"></i>
+              <i class="pi pi-heart mr-1.5 text-xs"></i>
               Incapacidades
               @if (pendingCount() > 0) {
-              <span class="ml-2 px-2 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full text-xs font-bold">
+              <span class="ml-1.5 px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full text-xs font-bold">
                 {{ pendingCount() }}
               </span>
               }
             </button>
             <button
               (click)="activeTab.set('compensatory')"
-              [class]="'flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-300 ' + 
+              [class]="'px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 ' + 
                 (activeTab() === 'compensatory' 
-                  ? 'bg-gradient-to-r from-cyan-500/20 to-cyan-600/20 text-cyan-300 shadow-lg border border-cyan-400/30' 
+                  ? 'bg-gradient-to-r from-cyan-500/20 to-cyan-600/20 text-cyan-300 shadow-md border border-cyan-400/30' 
                   : 'text-gray-400 hover:text-white hover:bg-neutral-700/50')"
             >
-              <i class="pi pi-clock mr-2"></i>
+              <i class="pi pi-clock mr-1.5 text-xs"></i>
               Tiempo Compensatorio
               @if (compensatoryPendingCount() > 0) {
-              <span class="ml-2 px-2 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full text-xs font-bold">
+              <span class="ml-1.5 px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full text-xs font-bold">
                 {{ compensatoryPendingCount() }}
               </span>
               }
+            </button>
+            <button
+              (click)="navigateToTab('documents')"
+              [class]="'px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 ' + 
+                (activeTab() === 'documents' 
+                  ? 'bg-gradient-to-r from-cyan-500/20 to-cyan-600/20 text-cyan-300 shadow-md border border-cyan-400/30' 
+                  : 'text-gray-400 hover:text-white hover:bg-neutral-700/50')"
+            >
+              <i class="pi pi-file-edit mr-1.5 text-xs"></i>
+              Solicitar Documentos
+            </button>
+            <button
+              (click)="navigateToTab('suggestions')"
+              [class]="'px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 ' + 
+                (activeTab() === 'suggestions' 
+                  ? 'bg-gradient-to-r from-cyan-500/20 to-cyan-600/20 text-cyan-300 shadow-md border border-cyan-400/30' 
+                  : 'text-gray-400 hover:text-white hover:bg-neutral-700/50')"
+            >
+              <i class="pi pi-comments mr-1.5 text-xs"></i>
+              Buzón de Sugerencias
             </button>
           </div>
         </div>
 
         @if (activeTab() === 'disabilities') {
         <!-- Dashboard de Incapacidades -->
-        <div class="space-y-6">
-          <!-- Estadísticas Mejoradas con Animaciones -->
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="space-y-3">
+          <!-- Estadísticas Compactas -->
+          <div class="grid grid-cols-4 gap-2">
             <!-- Total -->
-            <div class="group relative bg-gradient-to-br from-neutral-800 to-neutral-800/80 rounded-xl p-6 border border-neutral-700/50 hover:border-cyan-400/50 transition-all duration-300 hover:shadow-2xl hover:shadow-cyan-500/10 hover:-translate-y-1 cursor-pointer">
-              <div class="flex items-center justify-between mb-4">
-                <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-gray-500/20 to-gray-600/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <i class="pi pi-file text-2xl text-gray-400"></i>
+            <div class="group relative bg-gradient-to-br from-neutral-800 to-neutral-800/80 rounded-lg p-3 border border-neutral-700/50 hover:border-cyan-400/50 transition-all duration-200 hover:shadow-lg hover:shadow-cyan-500/10 cursor-pointer">
+              <div class="flex items-center justify-between">
+                <div class="w-8 h-8 rounded-md bg-gradient-to-br from-gray-500/20 to-gray-600/20 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <i class="pi pi-file text-lg text-gray-400"></i>
                 </div>
-                <div class="text-right">
-                  <p class="text-xs font-medium text-gray-400 uppercase tracking-wider m-0">Total</p>
-                  <p class="text-3xl font-bold text-white m-0 mt-1">
+                <div class="text-right flex-1">
+                  <p class="text-[10px] font-medium text-gray-400 uppercase tracking-wider m-0">Total</p>
+                  <p class="text-xl font-bold text-white m-0">
                     {{ totalCount() }}
                   </p>
                 </div>
               </div>
-              <div class="h-1 bg-neutral-700 rounded-full overflow-hidden">
+              <div class="h-0.5 bg-neutral-700 rounded-full overflow-hidden mt-2">
                 <div class="h-full bg-gradient-to-r from-gray-500 to-gray-400 rounded-full" [style.width.%]="100"></div>
               </div>
             </div>
 
             <!-- Pendientes -->
-            <div class="group relative bg-gradient-to-br from-yellow-500/10 via-yellow-500/5 to-neutral-800 rounded-xl p-6 border border-yellow-500/30 hover:border-yellow-400/50 transition-all duration-300 hover:shadow-2xl hover:shadow-yellow-500/20 hover:-translate-y-1 cursor-pointer">
-              <div class="flex items-center justify-between mb-4">
-                <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-yellow-500/30 to-yellow-600/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <i class="pi pi-clock text-2xl text-yellow-400"></i>
+            <div class="group relative bg-gradient-to-br from-yellow-500/10 via-yellow-500/5 to-neutral-800 rounded-lg p-3 border border-yellow-500/30 hover:border-yellow-400/50 transition-all duration-200 hover:shadow-lg hover:shadow-yellow-500/20 cursor-pointer">
+              <div class="flex items-center justify-between">
+                <div class="w-8 h-8 rounded-md bg-gradient-to-br from-yellow-500/30 to-yellow-600/20 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <i class="pi pi-clock text-lg text-yellow-400"></i>
                 </div>
-                <div class="text-right">
-                  <p class="text-xs font-medium text-yellow-400/80 uppercase tracking-wider m-0">Pendientes</p>
-                  <p class="text-3xl font-bold text-yellow-300 m-0 mt-1">
+                <div class="text-right flex-1">
+                  <p class="text-[10px] font-medium text-yellow-400/80 uppercase tracking-wider m-0">Pendientes</p>
+                  <p class="text-xl font-bold text-yellow-300 m-0">
                     {{ pendingCount() }}
                   </p>
                 </div>
               </div>
-              <div class="h-1 bg-neutral-700 rounded-full overflow-hidden">
+              <div class="h-0.5 bg-neutral-700 rounded-full overflow-hidden mt-2">
                 <div class="h-full bg-gradient-to-r from-yellow-500 to-yellow-400 rounded-full" 
                      [style.width.%]="totalCount() > 0 ? (pendingCount() / totalCount() * 100) : 0"></div>
               </div>
             </div>
 
             <!-- Aprobadas -->
-            <div class="group relative bg-gradient-to-br from-green-500/10 via-green-500/5 to-neutral-800 rounded-xl p-6 border border-green-500/30 hover:border-green-400/50 transition-all duration-300 hover:shadow-2xl hover:shadow-green-500/20 hover:-translate-y-1 cursor-pointer">
-              <div class="flex items-center justify-between mb-4">
-                <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-green-500/30 to-green-600/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <i class="pi pi-check-circle text-2xl text-green-400"></i>
+            <div class="group relative bg-gradient-to-br from-green-500/10 via-green-500/5 to-neutral-800 rounded-lg p-3 border border-green-500/30 hover:border-green-400/50 transition-all duration-200 hover:shadow-lg hover:shadow-green-500/20 cursor-pointer">
+              <div class="flex items-center justify-between">
+                <div class="w-8 h-8 rounded-md bg-gradient-to-br from-green-500/30 to-green-600/20 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <i class="pi pi-check-circle text-lg text-green-400"></i>
                 </div>
-                <div class="text-right">
-                  <p class="text-xs font-medium text-green-400/80 uppercase tracking-wider m-0">Aprobadas</p>
-                  <p class="text-3xl font-bold text-green-300 m-0 mt-1">
+                <div class="text-right flex-1">
+                  <p class="text-[10px] font-medium text-green-400/80 uppercase tracking-wider m-0">Aprobadas</p>
+                  <p class="text-xl font-bold text-green-300 m-0">
                     {{ approvedCount() }}
                   </p>
                 </div>
               </div>
-              <div class="h-1 bg-neutral-700 rounded-full overflow-hidden">
+              <div class="h-0.5 bg-neutral-700 rounded-full overflow-hidden mt-2">
                 <div class="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full" 
                      [style.width.%]="totalCount() > 0 ? (approvedCount() / totalCount() * 100) : 0"></div>
               </div>
             </div>
 
             <!-- Rechazadas -->
-            <div class="group relative bg-gradient-to-br from-red-500/10 via-red-500/5 to-neutral-800 rounded-xl p-6 border border-red-500/30 hover:border-red-400/50 transition-all duration-300 hover:shadow-2xl hover:shadow-red-500/20 hover:-translate-y-1 cursor-pointer">
-              <div class="flex items-center justify-between mb-4">
-                <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-red-500/30 to-red-600/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <i class="pi pi-times-circle text-2xl text-red-400"></i>
+            <div class="group relative bg-gradient-to-br from-red-500/10 via-red-500/5 to-neutral-800 rounded-lg p-3 border border-red-500/30 hover:border-red-400/50 transition-all duration-200 hover:shadow-lg hover:shadow-red-500/20 cursor-pointer">
+              <div class="flex items-center justify-between">
+                <div class="w-8 h-8 rounded-md bg-gradient-to-br from-red-500/30 to-red-600/20 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <i class="pi pi-times-circle text-lg text-red-400"></i>
                 </div>
-                <div class="text-right">
-                  <p class="text-xs font-medium text-red-400/80 uppercase tracking-wider m-0">Rechazadas</p>
-                  <p class="text-3xl font-bold text-red-300 m-0 mt-1">
+                <div class="text-right flex-1">
+                  <p class="text-[10px] font-medium text-red-400/80 uppercase tracking-wider m-0">Rechazadas</p>
+                  <p class="text-xl font-bold text-red-300 m-0">
                     {{ rejectedCount() }}
                   </p>
                 </div>
               </div>
-              <div class="h-1 bg-neutral-700 rounded-full overflow-hidden">
+              <div class="h-0.5 bg-neutral-700 rounded-full overflow-hidden mt-2">
                 <div class="h-full bg-gradient-to-r from-red-500 to-red-400 rounded-full" 
                      [style.width.%]="totalCount() > 0 ? (rejectedCount() / totalCount() * 100) : 0"></div>
               </div>
@@ -288,19 +311,19 @@ interface CompensatoryRequest {
           </div>
 
           <!-- Filtros Avanzados Colapsables -->
-          <div class="bg-gradient-to-br from-neutral-800/80 to-neutral-800/60 rounded-xl border border-neutral-700/50 backdrop-blur-sm">
-            <div class="p-4 border-b border-neutral-700/50 flex items-center justify-between cursor-pointer"
+          <div class="bg-gradient-to-br from-neutral-800/80 to-neutral-800/60 rounded-lg border border-neutral-700/50 backdrop-blur-sm">
+            <div class="p-2 border-b border-neutral-700/50 flex items-center justify-between cursor-pointer"
                  (click)="showFilters.set(!showFilters())">
-              <div class="flex items-center gap-3">
-                <i class="pi pi-filter text-cyan-400"></i>
-                <h3 class="text-lg font-semibold text-white m-0">Filtros Avanzados</h3>
+              <div class="flex items-center gap-2">
+                <i class="pi pi-filter text-cyan-400 text-sm"></i>
+                <h3 class="text-sm font-semibold text-white m-0">Filtros Avanzados</h3>
                 @if (hasActiveFilters()) {
-                <span class="px-2 py-1 bg-cyan-500/20 text-cyan-300 rounded-full text-xs font-bold">
+                <span class="px-1.5 py-0.5 bg-cyan-500/20 text-cyan-300 rounded-full text-[10px] font-bold">
                   {{ getActiveFiltersCount() }} activos
                 </span>
                 }
               </div>
-              <i class="pi" 
+              <i class="pi text-sm" 
                  [class.pi-chevron-down]="!showFilters()" 
                  [class.pi-chevron-up]="showFilters()"
                  [class.text-gray-400]="!showFilters()"
@@ -308,11 +331,11 @@ interface CompensatoryRequest {
             </div>
             
             @if (showFilters()) {
-            <div class="p-6 space-y-4 animate-fade-in">
-              <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div class="p-3 space-y-2 animate-fade-in">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
                 <div class="md:col-span-2">
-                  <label class="block text-sm font-medium text-gray-300 mb-2">
-                    <i class="pi pi-search mr-2 text-cyan-400"></i>Búsqueda Específica
+                  <label class="block text-xs font-medium text-gray-300 mb-1">
+                    <i class="pi pi-search mr-1 text-cyan-400 text-xs"></i>Búsqueda Específica
                   </label>
                   <input
                     type="text"
@@ -320,12 +343,12 @@ interface CompensatoryRequest {
                     placeholder="Empleado, email, descripción..."
                     [(ngModel)]="searchText"
                     (input)="onFilterChange()"
-                    class="w-full bg-neutral-900/50 border-neutral-600"
+                    class="w-full text-sm py-1.5 bg-neutral-900/50 border-neutral-600"
                   />
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-gray-300 mb-2">
-                    <i class="pi pi-tag mr-2 text-cyan-400"></i>Estado
+                  <label class="block text-xs font-medium text-gray-300 mb-1">
+                    <i class="pi pi-tag mr-1 text-cyan-400 text-xs"></i>Estado
                   </label>
                   <p-dropdown
                     [options]="statusOptions"
@@ -333,12 +356,13 @@ interface CompensatoryRequest {
                     (onChange)="onFilterChange()"
                     placeholder="Todos"
                     [showClear]="true"
-                    class="w-full"
+                    class="w-full text-sm"
+                    [style]="{'height': '32px'}"
                   />
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-gray-300 mb-2">
-                    <i class="pi pi-calendar mr-2 text-cyan-400"></i>Rango de Fechas
+                  <label class="block text-xs font-medium text-gray-300 mb-1">
+                    <i class="pi pi-calendar mr-1 text-cyan-400 text-xs"></i>Rango de Fechas
                   </label>
                   <p-calendar
                     [(ngModel)]="dateRange"
@@ -348,12 +372,13 @@ interface CompensatoryRequest {
                     placeholder="Seleccionar"
                     (onSelect)="onFilterChange()"
                     [showClear]="true"
-                    class="w-full"
+                    class="w-full text-sm"
+                    [inputStyle]="{'height': '32px', 'padding': '0.375rem'}"
                   />
                 </div>
               </div>
               
-              <div class="flex items-center justify-between pt-4 border-t border-neutral-700/50">
+              <div class="flex items-center justify-between pt-2 border-t border-neutral-700/50">
                 <p-button
                   label="Limpiar Todo"
                   icon="pi pi-filter-slash"
@@ -371,31 +396,31 @@ interface CompensatoryRequest {
             }
           </div>
 
-          <!-- Tabla Mejorada -->
-          <div class="bg-gradient-to-br from-neutral-800/80 to-neutral-800/60 rounded-xl border border-neutral-700/50 backdrop-blur-sm overflow-hidden">
-            <div class="p-6 border-b border-neutral-700/50 flex items-center justify-between">
-              <div class="flex items-center gap-4">
-                <h3 class="text-xl font-semibold text-white m-0 flex items-center gap-2">
-                  <i class="pi pi-list text-cyan-400"></i>
+          <!-- Tabla Compacta -->
+          <div class="bg-gradient-to-br from-neutral-800/80 to-neutral-800/60 rounded-lg border border-neutral-700/50 backdrop-blur-sm overflow-hidden">
+            <div class="p-2 border-b border-neutral-700/50 flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <h3 class="text-sm font-semibold text-white m-0 flex items-center gap-1.5">
+                  <i class="pi pi-list text-cyan-400 text-sm"></i>
                   Solicitudes de Incapacidades
                 </h3>
                 @if (selectedDisabilities().length > 0) {
-                <span class="px-3 py-1 bg-cyan-500/20 text-cyan-300 rounded-lg text-sm font-medium">
+                <span class="px-2 py-0.5 bg-cyan-500/20 text-cyan-300 rounded text-xs font-medium">
                   {{ selectedDisabilities().length }} seleccionada(s)
                 </span>
                 }
               </div>
               @if (selectedDisabilities().length > 0) {
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-1">
                 <p-button
-                  label="Aprobar Seleccionadas"
+                  [label]="'Aprobar'"
                   icon="pi pi-check"
                   severity="success"
                   size="small"
                   (onClick)="bulkApprove()"
                 />
                 <p-button
-                  label="Rechazar Seleccionadas"
+                  [label]="'Rechazar'"
                   icon="pi pi-times"
                   severity="danger"
                   size="small"
@@ -414,22 +439,23 @@ interface CompensatoryRequest {
             </div>
             
             @if (disabilitiesApi.isLoading()) {
-            <div class="flex justify-center items-center py-20">
+            <div class="flex justify-center items-center py-8">
               <div class="text-center">
                 <p-progressSpinner />
-                <p class="text-gray-400 mt-4">Cargando incapacidades...</p>
+                <p class="text-gray-400 mt-2 text-sm">Cargando incapacidades...</p>
               </div>
             </div>
             } @else if (filteredDisabilities().length === 0) {
-            <div class="flex flex-col items-center justify-center py-20 text-center">
-              <i class="pi pi-inbox text-6xl text-gray-600 mb-4"></i>
-              <h4 class="text-xl font-semibold text-gray-300 mb-2">No se encontraron incapacidades</h4>
-              <p class="text-gray-500 mb-4">Intenta ajustar los filtros para ver más resultados</p>
+            <div class="flex flex-col items-center justify-center py-8 text-center">
+              <i class="pi pi-inbox text-4xl text-gray-600 mb-2"></i>
+              <h4 class="text-sm font-semibold text-gray-300 mb-1">No se encontraron incapacidades</h4>
+              <p class="text-gray-500 text-xs mb-2">Intenta ajustar los filtros para ver más resultados</p>
               <p-button
-                label="Limpiar Filtros"
+                [label]="'Limpiar Filtros'"
                 icon="pi pi-filter-slash"
                 [outlined]="true"
                 severity="secondary"
+                size="small"
                 (onClick)="clearFilters()"
               />
             </div>
@@ -438,8 +464,9 @@ interface CompensatoryRequest {
               <p-table
                 [value]="filteredDisabilities()"
                 [paginator]="true"
-                [rows]="15"
-                [rowsPerPageOptions]="[10, 15, 25, 50, 100]"
+                [rows]="8"
+                [rowsPerPageOptions]="[5, 8, 10, 15, 25]"
+                styleClass="p-datatable-sm p-datatable-striped"
                 [globalFilterFields]="[
                   'employee.first_name',
                   'employee.father_name',
@@ -451,168 +478,156 @@ interface CompensatoryRequest {
               >
                 <ng-template pTemplate="header">
                   <tr>
-                    <th style="width: 50px">
+                    <th style="width: 40px; padding: 0.5rem;">
                       <p-checkbox 
                         [binary]="true"
                         [ngModel]="isAllSelected()"
                         (ngModelChange)="toggleSelectAll($event)"
                       />
                     </th>
-                    <th style="width: 220px">
-                      <div class="flex items-center gap-2">
-                        <i class="pi pi-user text-cyan-400"></i>
-                        <span>Empleado</span>
+                    <th style="width: 180px; padding: 0.5rem;">
+                      <div class="flex items-center gap-1">
+                        <i class="pi pi-user text-cyan-400 text-xs"></i>
+                        <span class="text-xs">Empleado</span>
                       </div>
                     </th>
-                    <th style="width: 130px">
-                      <div class="flex items-center gap-2">
-                        <i class="pi pi-calendar text-cyan-400"></i>
-                        <span>Fecha Inicio</span>
+                    <th style="width: 100px; padding: 0.5rem;">
+                      <div class="flex items-center gap-1">
+                        <i class="pi pi-calendar text-cyan-400 text-xs"></i>
+                        <span class="text-xs">Inicio</span>
                       </div>
                     </th>
-                    <th style="width: 130px">
-                      <div class="flex items-center gap-2">
-                        <i class="pi pi-calendar-times text-cyan-400"></i>
-                        <span>Fecha Fin</span>
+                    <th style="width: 100px; padding: 0.5rem;">
+                      <div class="flex items-center gap-1">
+                        <i class="pi pi-calendar-times text-cyan-400 text-xs"></i>
+                        <span class="text-xs">Fin</span>
                       </div>
                     </th>
-                    <th style="width: 100px">
-                      <div class="flex items-center gap-2">
-                        <i class="pi pi-clock text-cyan-400"></i>
-                        <span>Días</span>
+                    <th style="width: 70px; padding: 0.5rem;">
+                      <div class="flex items-center gap-1">
+                        <i class="pi pi-clock text-cyan-400 text-xs"></i>
+                        <span class="text-xs">Días</span>
                       </div>
                     </th>
-                    <th>
-                      <div class="flex items-center gap-2">
-                        <i class="pi pi-file-edit text-cyan-400"></i>
-                        <span>Descripción</span>
+                    <th style="padding: 0.5rem;">
+                      <div class="flex items-center gap-1">
+                        <i class="pi pi-file-edit text-cyan-400 text-xs"></i>
+                        <span class="text-xs">Descripción</span>
                       </div>
                     </th>
-                    <th style="width: 130px">
-                      <div class="flex items-center gap-2">
-                        <i class="pi pi-tag text-cyan-400"></i>
-                        <span>Estado</span>
+                    <th style="width: 100px; padding: 0.5rem;">
+                      <div class="flex items-center gap-1">
+                        <i class="pi pi-tag text-cyan-400 text-xs"></i>
+                        <span class="text-xs">Estado</span>
                       </div>
                     </th>
-                    <th style="width: 100px">
-                      <div class="flex items-center gap-2">
-                        <i class="pi pi-paperclip text-cyan-400"></i>
-                        <span>Documento</span>
+                    <th style="width: 70px; padding: 0.5rem;">
+                      <div class="flex items-center gap-1">
+                        <i class="pi pi-paperclip text-cyan-400 text-xs"></i>
+                        <span class="text-xs">Doc</span>
                       </div>
                     </th>
-                    <th style="width: 220px">
-                      <div class="flex items-center gap-2">
-                        <i class="pi pi-cog text-cyan-400"></i>
-                        <span>Acciones</span>
+                    <th style="width: 120px; padding: 0.5rem;">
+                      <div class="flex items-center gap-1">
+                        <i class="pi pi-cog text-cyan-400 text-xs"></i>
+                        <span class="text-xs">Acciones</span>
                       </div>
                     </th>
                   </tr>
                 </ng-template>
                 <ng-template pTemplate="body" let-disability>
                   <tr [class.bg-cyan-500/5]="selectedDisabilities().includes(disability.id)"
-                      class="hover:bg-neutral-700/30 transition-colors">
-                    <td>
+                      class="hover:bg-neutral-700/30 transition-colors cursor-pointer"
+                      (click)="viewDetails(disability)">
+                    <td style="padding: 0.5rem;" (click)="$event.stopPropagation()">
                       <p-checkbox 
                         [binary]="true"
                         [ngModel]="selectedDisabilities().includes(disability.id)"
                         (ngModelChange)="toggleDisabilitySelection(disability.id, $event)"
                       />
                     </td>
-                    <td>
-                      <div class="flex flex-col gap-1">
-                        <div class="flex items-center gap-2">
-                          <div class="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500/20 to-cyan-600/20 flex items-center justify-center">
-                            <i class="pi pi-user text-cyan-400 text-xs"></i>
-                          </div>
-                          <div class="flex flex-col">
-                            <span class="font-semibold text-white text-sm">
-                              {{ disability.employee?.first_name }}
-                              {{ disability.employee?.father_name }}
-                            </span>
-                            <span class="text-xs text-gray-400">
-                              {{ disability.employee?.work_email }}
-                            </span>
-                            @if (disability.employee?.position?.name) {
-                            <span class="text-xs text-gray-500 mt-0.5">
-                              <i class="pi pi-briefcase text-xs mr-1"></i>
-                              {{ disability.employee.position.name }}
-                            </span>
-                            }
-                          </div>
+                    <td style="padding: 0.5rem;">
+                      <div class="flex items-center gap-1.5">
+                        <div class="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-500/20 to-cyan-600/20 flex items-center justify-center flex-shrink-0">
+                          <i class="pi pi-user text-cyan-400 text-[10px]"></i>
+                        </div>
+                        <div class="flex flex-col min-w-0">
+                          <span class="font-semibold text-white text-xs truncate">
+                            {{ disability.employee?.first_name }}
+                            {{ disability.employee?.father_name }}
+                          </span>
+                          <span class="text-[10px] text-gray-400 truncate">
+                            {{ disability.employee?.work_email }}
+                          </span>
                         </div>
                       </div>
                     </td>
-                    <td>
-                      <div class="flex items-center gap-2">
-                        <i class="pi pi-calendar text-gray-500 text-xs"></i>
-                        <span class="text-sm font-medium text-gray-300">
-                          {{ disability.start_date | date : 'dd/MM/yyyy' }}
-                        </span>
-                      </div>
+                    <td style="padding: 0.5rem;">
+                      <span class="text-xs text-gray-300">
+                        {{ disability.start_date | date : 'dd/MM/yyyy' }}
+                      </span>
                     </td>
-                    <td>
-                      <div class="flex items-center gap-2">
-                        <i class="pi pi-calendar-times text-gray-500 text-xs"></i>
-                        <span class="text-sm font-medium text-gray-300">
-                          {{ disability.end_date | date : 'dd/MM/yyyy' }}
-                        </span>
-                      </div>
+                    <td style="padding: 0.5rem;">
+                      <span class="text-xs text-gray-300">
+                        {{ disability.end_date | date : 'dd/MM/yyyy' }}
+                      </span>
                     </td>
-                    <td>
-                      <span class="inline-flex items-center gap-1 px-2 py-1 bg-blue-500/20 text-blue-300 rounded-lg text-sm font-semibold">
-                        <i class="pi pi-clock text-xs"></i>
+                    <td style="padding: 0.5rem;">
+                      <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-blue-500/20 text-blue-300 rounded text-xs font-semibold">
                         {{
                           calculateDays(
                             disability.start_date,
                             disability.end_date
                           )
                         }}
-                        días
                       </span>
                     </td>
-                    <td>
+                    <td style="padding: 0.5rem;">
                       @if (disability.description) {
                       <span
-                        class="text-sm text-gray-300 cursor-help inline-block max-w-[200px] truncate"
+                        class="text-xs text-gray-300 cursor-help inline-block max-w-[150px] truncate"
                         [pTooltip]="disability.description"
                         tooltipPosition="top"
                       >
                         {{ disability.description }}
                       </span>
                       } @else {
-                      <span class="text-gray-500 text-sm italic">Sin descripción</span>
+                      <span class="text-gray-500 text-xs">-</span>
                       }
                     </td>
-                    <td>
+                    <td style="padding: 0.5rem;">
                       <p-tag
                         [value]="getStatusLabel(disability.status)"
                         [severity]="getStatusSeverity(disability.status)"
                         [rounded]="true"
+                        [style]="{'font-size': '0.7rem', 'padding': '0.125rem 0.5rem'}"
                       />
                     </td>
-                    <td>
+                    <td style="padding: 0.5rem;">
                       @if (disability.document_url) {
                       <p-button
                         icon="pi pi-download"
                         [text]="true"
                         severity="secondary"
+                        size="small"
                         (onClick)="downloadDocument(disability.document_url!)"
                         pTooltip="Descargar documento"
                         tooltipPosition="top"
                         [rounded]="true"
                       />
                       } @else {
-                      <span class="text-gray-500 text-sm italic">-</span>
+                      <span class="text-gray-500 text-xs">-</span>
                       }
                     </td>
-                    <td>
-                      <div class="flex gap-1">
+                    <td style="padding: 0.5rem;" (click)="$event.stopPropagation()">
+                      <div class="flex gap-0.5">
                         @if (disability.status === 'pending') {
                         <p-button
                           icon="pi pi-check"
                           [text]="true"
                           severity="success"
-                          (onClick)="approveDisability(disability)"
+                          size="small"
+                          (onClick)="approveDisability(disability); $event.stopPropagation()"
                           pTooltip="Aprobar"
                           tooltipPosition="top"
                           [rounded]="true"
@@ -621,7 +636,8 @@ interface CompensatoryRequest {
                           icon="pi pi-times"
                           [text]="true"
                           severity="danger"
-                          (onClick)="rejectDisability(disability)"
+                          size="small"
+                          (onClick)="rejectDisability(disability); $event.stopPropagation()"
                           pTooltip="Rechazar"
                           tooltipPosition="top"
                           [rounded]="true"
@@ -631,7 +647,8 @@ interface CompensatoryRequest {
                           icon="pi pi-eye"
                           [text]="true"
                           severity="info"
-                          (onClick)="viewDetails(disability)"
+                          size="small"
+                          (onClick)="viewDetails(disability); $event.stopPropagation()"
                           pTooltip="Ver detalles"
                           tooltipPosition="top"
                           [rounded]="true"
@@ -649,79 +666,79 @@ interface CompensatoryRequest {
 
         @if (activeTab() === 'compensatory') {
         <!-- Dashboard de Tiempo Compensatorio -->
-        <div class="space-y-6">
-          <!-- Estadísticas Mejoradas de Tiempo Compensatorio -->
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="space-y-3">
+          <!-- Estadísticas Compactas de Tiempo Compensatorio -->
+          <div class="grid grid-cols-4 gap-2">
             <!-- Total -->
-            <div class="group relative bg-gradient-to-br from-neutral-800 to-neutral-800/80 rounded-xl p-6 border border-neutral-700/50 hover:border-cyan-400/50 transition-all duration-300 hover:shadow-2xl hover:shadow-cyan-500/10 hover:-translate-y-1 cursor-pointer">
-              <div class="flex items-center justify-between mb-4">
-                <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-gray-500/20 to-gray-600/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <i class="pi pi-clock text-2xl text-gray-400"></i>
+            <div class="group relative bg-gradient-to-br from-neutral-800 to-neutral-800/80 rounded-lg p-3 border border-neutral-700/50 hover:border-cyan-400/50 transition-all duration-200 hover:shadow-lg hover:shadow-cyan-500/10 cursor-pointer">
+              <div class="flex items-center justify-between">
+                <div class="w-8 h-8 rounded-md bg-gradient-to-br from-gray-500/20 to-gray-600/20 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <i class="pi pi-clock text-lg text-gray-400"></i>
                 </div>
-                <div class="text-right">
-                  <p class="text-xs font-medium text-gray-400 uppercase tracking-wider m-0">Total</p>
-                  <p class="text-3xl font-bold text-white m-0 mt-1">
+                <div class="text-right flex-1">
+                  <p class="text-[10px] font-medium text-gray-400 uppercase tracking-wider m-0">Total</p>
+                  <p class="text-xl font-bold text-white m-0">
                     {{ compensatoryTotalCount() }}
                   </p>
                 </div>
               </div>
-              <div class="h-1 bg-neutral-700 rounded-full overflow-hidden">
+              <div class="h-0.5 bg-neutral-700 rounded-full overflow-hidden mt-2">
                 <div class="h-full bg-gradient-to-r from-gray-500 to-gray-400 rounded-full" [style.width.%]="100"></div>
               </div>
             </div>
 
             <!-- Pendientes -->
-            <div class="group relative bg-gradient-to-br from-yellow-500/10 via-yellow-500/5 to-neutral-800 rounded-xl p-6 border border-yellow-500/30 hover:border-yellow-400/50 transition-all duration-300 hover:shadow-2xl hover:shadow-yellow-500/20 hover:-translate-y-1 cursor-pointer">
-              <div class="flex items-center justify-between mb-4">
-                <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-yellow-500/30 to-yellow-600/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <i class="pi pi-clock text-2xl text-yellow-400"></i>
+            <div class="group relative bg-gradient-to-br from-yellow-500/10 via-yellow-500/5 to-neutral-800 rounded-lg p-3 border border-yellow-500/30 hover:border-yellow-400/50 transition-all duration-200 hover:shadow-lg hover:shadow-yellow-500/20 cursor-pointer">
+              <div class="flex items-center justify-between">
+                <div class="w-8 h-8 rounded-md bg-gradient-to-br from-yellow-500/30 to-yellow-600/20 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <i class="pi pi-clock text-lg text-yellow-400"></i>
                 </div>
-                <div class="text-right">
-                  <p class="text-xs font-medium text-yellow-400/80 uppercase tracking-wider m-0">Pendientes</p>
-                  <p class="text-3xl font-bold text-yellow-300 m-0 mt-1">
+                <div class="text-right flex-1">
+                  <p class="text-[10px] font-medium text-yellow-400/80 uppercase tracking-wider m-0">Pendientes</p>
+                  <p class="text-xl font-bold text-yellow-300 m-0">
                     {{ compensatoryPendingCount() }}
                   </p>
                 </div>
               </div>
-              <div class="h-1 bg-neutral-700 rounded-full overflow-hidden">
+              <div class="h-0.5 bg-neutral-700 rounded-full overflow-hidden mt-2">
                 <div class="h-full bg-gradient-to-r from-yellow-500 to-yellow-400 rounded-full" 
                      [style.width.%]="compensatoryTotalCount() > 0 ? (compensatoryPendingCount() / compensatoryTotalCount() * 100) : 0"></div>
               </div>
             </div>
 
             <!-- Aprobadas -->
-            <div class="group relative bg-gradient-to-br from-green-500/10 via-green-500/5 to-neutral-800 rounded-xl p-6 border border-green-500/30 hover:border-green-400/50 transition-all duration-300 hover:shadow-2xl hover:shadow-green-500/20 hover:-translate-y-1 cursor-pointer">
-              <div class="flex items-center justify-between mb-4">
-                <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-green-500/30 to-green-600/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <i class="pi pi-check-circle text-2xl text-green-400"></i>
+            <div class="group relative bg-gradient-to-br from-green-500/10 via-green-500/5 to-neutral-800 rounded-lg p-3 border border-green-500/30 hover:border-green-400/50 transition-all duration-200 hover:shadow-lg hover:shadow-green-500/20 cursor-pointer">
+              <div class="flex items-center justify-between">
+                <div class="w-8 h-8 rounded-md bg-gradient-to-br from-green-500/30 to-green-600/20 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <i class="pi pi-check-circle text-lg text-green-400"></i>
                 </div>
-                <div class="text-right">
-                  <p class="text-xs font-medium text-green-400/80 uppercase tracking-wider m-0">Aprobadas</p>
-                  <p class="text-3xl font-bold text-green-300 m-0 mt-1">
+                <div class="text-right flex-1">
+                  <p class="text-[10px] font-medium text-green-400/80 uppercase tracking-wider m-0">Aprobadas</p>
+                  <p class="text-xl font-bold text-green-300 m-0">
                     {{ compensatoryApprovedCount() }}
                   </p>
                 </div>
               </div>
-              <div class="h-1 bg-neutral-700 rounded-full overflow-hidden">
+              <div class="h-0.5 bg-neutral-700 rounded-full overflow-hidden mt-2">
                 <div class="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full" 
                      [style.width.%]="compensatoryTotalCount() > 0 ? (compensatoryApprovedCount() / compensatoryTotalCount() * 100) : 0"></div>
               </div>
             </div>
 
             <!-- Rechazadas -->
-            <div class="group relative bg-gradient-to-br from-red-500/10 via-red-500/5 to-neutral-800 rounded-xl p-6 border border-red-500/30 hover:border-red-400/50 transition-all duration-300 hover:shadow-2xl hover:shadow-red-500/20 hover:-translate-y-1 cursor-pointer">
-              <div class="flex items-center justify-between mb-4">
-                <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-red-500/30 to-red-600/20 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <i class="pi pi-times-circle text-2xl text-red-400"></i>
+            <div class="group relative bg-gradient-to-br from-red-500/10 via-red-500/5 to-neutral-800 rounded-lg p-3 border border-red-500/30 hover:border-red-400/50 transition-all duration-200 hover:shadow-lg hover:shadow-red-500/20 cursor-pointer">
+              <div class="flex items-center justify-between">
+                <div class="w-8 h-8 rounded-md bg-gradient-to-br from-red-500/30 to-red-600/20 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <i class="pi pi-times-circle text-lg text-red-400"></i>
                 </div>
-                <div class="text-right">
-                  <p class="text-xs font-medium text-red-400/80 uppercase tracking-wider m-0">Rechazadas</p>
-                  <p class="text-3xl font-bold text-red-300 m-0 mt-1">
+                <div class="text-right flex-1">
+                  <p class="text-[10px] font-medium text-red-400/80 uppercase tracking-wider m-0">Rechazadas</p>
+                  <p class="text-xl font-bold text-red-300 m-0">
                     {{ compensatoryRejectedCount() }}
                   </p>
                 </div>
               </div>
-              <div class="h-1 bg-neutral-700 rounded-full overflow-hidden">
+              <div class="h-0.5 bg-neutral-700 rounded-full overflow-hidden mt-2">
                 <div class="h-full bg-gradient-to-r from-red-500 to-red-400 rounded-full" 
                      [style.width.%]="compensatoryTotalCount() > 0 ? (compensatoryRejectedCount() / compensatoryTotalCount() * 100) : 0"></div>
               </div>
@@ -729,19 +746,19 @@ interface CompensatoryRequest {
           </div>
 
           <!-- Filtros Avanzados Colapsables para Tiempo Compensatorio -->
-          <div class="bg-gradient-to-br from-neutral-800/80 to-neutral-800/60 rounded-xl border border-neutral-700/50 backdrop-blur-sm">
-            <div class="p-4 border-b border-neutral-700/50 flex items-center justify-between cursor-pointer"
+          <div class="bg-gradient-to-br from-neutral-800/80 to-neutral-800/60 rounded-lg border border-neutral-700/50 backdrop-blur-sm">
+            <div class="p-2 border-b border-neutral-700/50 flex items-center justify-between cursor-pointer"
                  (click)="showCompensatoryFilters.set(!showCompensatoryFilters())">
-              <div class="flex items-center gap-3">
-                <i class="pi pi-filter text-cyan-400"></i>
-                <h3 class="text-lg font-semibold text-white m-0">Filtros Avanzados</h3>
+              <div class="flex items-center gap-2">
+                <i class="pi pi-filter text-cyan-400 text-sm"></i>
+                <h3 class="text-sm font-semibold text-white m-0">Filtros Avanzados</h3>
                 @if (hasActiveCompensatoryFilters()) {
-                <span class="px-2 py-1 bg-cyan-500/20 text-cyan-300 rounded-full text-xs font-bold">
+                <span class="px-1.5 py-0.5 bg-cyan-500/20 text-cyan-300 rounded-full text-[10px] font-bold">
                   {{ getActiveCompensatoryFiltersCount() }} activos
                 </span>
                 }
               </div>
-              <i class="pi" 
+              <i class="pi text-sm" 
                  [class.pi-chevron-down]="!showCompensatoryFilters()" 
                  [class.pi-chevron-up]="showCompensatoryFilters()"
                  [class.text-gray-400]="!showCompensatoryFilters()"
@@ -749,11 +766,11 @@ interface CompensatoryRequest {
             </div>
             
             @if (showCompensatoryFilters()) {
-            <div class="p-6 space-y-4 animate-fade-in">
-              <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div class="p-3 space-y-2 animate-fade-in">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
                 <div class="md:col-span-2">
-                  <label class="block text-sm font-medium text-gray-300 mb-2">
-                    <i class="pi pi-search mr-2 text-cyan-400"></i>Búsqueda Específica
+                  <label class="block text-xs font-medium text-gray-300 mb-1">
+                    <i class="pi pi-search mr-1 text-cyan-400 text-xs"></i>Búsqueda Específica
                   </label>
                   <input
                     type="text"
@@ -761,12 +778,12 @@ interface CompensatoryRequest {
                     placeholder="Empleado, email, motivo..."
                     [(ngModel)]="compensatorySearchText"
                     (input)="onCompensatoryFilterChange()"
-                    class="w-full bg-neutral-900/50 border-neutral-600"
+                    class="w-full text-sm py-1.5 bg-neutral-900/50 border-neutral-600"
                   />
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-gray-300 mb-2">
-                    <i class="pi pi-tag mr-2 text-cyan-400"></i>Estado
+                  <label class="block text-xs font-medium text-gray-300 mb-1">
+                    <i class="pi pi-tag mr-1 text-cyan-400 text-xs"></i>Estado
                   </label>
                   <p-dropdown
                     [options]="compensatoryStatusOptions"
@@ -774,12 +791,13 @@ interface CompensatoryRequest {
                     (onChange)="onCompensatoryFilterChange()"
                     placeholder="Todos"
                     [showClear]="true"
-                    class="w-full"
+                    class="w-full text-sm"
+                    [style]="{'height': '32px'}"
                   />
                 </div>
                 <div>
-                  <label class="block text-sm font-medium text-gray-300 mb-2">
-                    <i class="pi pi-calendar mr-2 text-cyan-400"></i>Rango de Fechas
+                  <label class="block text-xs font-medium text-gray-300 mb-1">
+                    <i class="pi pi-calendar mr-1 text-cyan-400 text-xs"></i>Rango de Fechas
                   </label>
                   <p-calendar
                     [(ngModel)]="compensatoryDateRange"
@@ -789,12 +807,13 @@ interface CompensatoryRequest {
                     placeholder="Seleccionar"
                     (onSelect)="onCompensatoryFilterChange()"
                     [showClear]="true"
-                    class="w-full"
+                    class="w-full text-sm"
+                    [inputStyle]="{'height': '32px', 'padding': '0.375rem'}"
                   />
                 </div>
               </div>
               
-              <div class="flex items-center justify-between pt-4 border-t border-neutral-700/50">
+              <div class="flex items-center justify-between pt-2 border-t border-neutral-700/50">
                 <p-button
                   label="Limpiar Todo"
                   icon="pi pi-filter-slash"
@@ -812,26 +831,27 @@ interface CompensatoryRequest {
             }
           </div>
 
-          <!-- Tabla Mejorada de Tiempo Compensatorio -->
-          <div class="bg-gradient-to-br from-neutral-800/80 to-neutral-800/60 rounded-xl border border-neutral-700/50 backdrop-blur-sm overflow-hidden">
-            <div class="p-6 border-b border-neutral-700/50">
-              <h3 class="text-xl font-semibold text-white m-0 flex items-center gap-2">
-                <i class="pi pi-list text-cyan-400"></i>
+          <!-- Tabla Compacta de Tiempo Compensatorio -->
+          <div class="bg-gradient-to-br from-neutral-800/80 to-neutral-800/60 rounded-lg border border-neutral-700/50 backdrop-blur-sm overflow-hidden">
+            <div class="p-2 border-b border-neutral-700/50">
+              <h3 class="text-sm font-semibold text-white m-0 flex items-center gap-1.5">
+                <i class="pi pi-list text-cyan-400 text-sm"></i>
                 Solicitudes de Tiempo Compensatorio
               </h3>
             </div>
             
             <div class="overflow-x-auto">
             @if (compensatoryTimeoffsApi.isLoading()) {
-            <div class="flex justify-center items-center py-12">
+            <div class="flex justify-center items-center py-8">
               <p-progressSpinner />
             </div>
             } @else {
             <p-table
               [value]="filteredCompensatoryRequests()"
               [paginator]="true"
-              [rows]="10"
-              [rowsPerPageOptions]="[10, 25, 50]"
+              [rows]="8"
+              [rowsPerPageOptions]="[5, 8, 10, 15, 25]"
+              styleClass="p-datatable-sm p-datatable-striped"
               [globalFilterFields]="[
                 'employee.first_name',
                 'employee.father_name',
@@ -850,102 +870,142 @@ interface CompensatoryRequest {
               </ng-template>
               <ng-template pTemplate="header">
                 <tr>
-                  <th style="width: 200px">Empleado</th>
-                  <th style="width: 120px">Fecha Inicio</th>
-                  <th style="width: 120px">Fecha Fin</th>
-                  <th style="width: 100px">Tipo</th>
-                  <th style="width: 100px">Cantidad</th>
-                  <th>Motivo</th>
-                  <th style="width: 120px">Estado</th>
-                  <th style="width: 200px">Acciones</th>
+                  <th style="width: 180px; padding: 0.5rem;">
+                    <div class="flex items-center gap-1">
+                      <i class="pi pi-user text-cyan-400 text-xs"></i>
+                      <span class="text-xs">Empleado</span>
+                    </div>
+                  </th>
+                  <th style="width: 100px; padding: 0.5rem;">
+                    <div class="flex items-center gap-1">
+                      <i class="pi pi-calendar text-cyan-400 text-xs"></i>
+                      <span class="text-xs">Inicio</span>
+                    </div>
+                  </th>
+                  <th style="width: 100px; padding: 0.5rem;">
+                    <div class="flex items-center gap-1">
+                      <i class="pi pi-calendar-times text-cyan-400 text-xs"></i>
+                      <span class="text-xs">Fin</span>
+                    </div>
+                  </th>
+                  <th style="width: 70px; padding: 0.5rem;">
+                    <div class="flex items-center gap-1">
+                      <i class="pi pi-tag text-cyan-400 text-xs"></i>
+                      <span class="text-xs">Tipo</span>
+                    </div>
+                  </th>
+                  <th style="width: 80px; padding: 0.5rem;">
+                    <div class="flex items-center gap-1">
+                      <i class="pi pi-clock text-cyan-400 text-xs"></i>
+                      <span class="text-xs">Cantidad</span>
+                    </div>
+                  </th>
+                  <th style="padding: 0.5rem;">
+                    <div class="flex items-center gap-1">
+                      <i class="pi pi-comment text-cyan-400 text-xs"></i>
+                      <span class="text-xs">Motivo</span>
+                    </div>
+                  </th>
+                  <th style="width: 100px; padding: 0.5rem;">
+                    <div class="flex items-center gap-1">
+                      <i class="pi pi-tag text-cyan-400 text-xs"></i>
+                      <span class="text-xs">Estado</span>
+                    </div>
+                  </th>
+                  <th style="width: 120px; padding: 0.5rem;">
+                    <div class="flex items-center gap-1">
+                      <i class="pi pi-cog text-cyan-400 text-xs"></i>
+                      <span class="text-xs">Acciones</span>
+                    </div>
+                  </th>
                 </tr>
               </ng-template>
               <ng-template pTemplate="body" let-request>
                 <tr>
-                  <td>
-                    <div class="flex flex-col">
-                      <span class="font-medium text-white">
-                        {{ getEmployeeName(request) }}
-                      </span>
-                      <span class="text-xs text-gray-400">
-                        {{ getEmployeeEmail(request) }}
-                      </span>
-                      @if (getEmployeePosition(request)) {
-                      <span class="text-xs text-gray-500">
-                        {{ getEmployeePosition(request) }}
-                      </span>
-                      }
+                  <td style="padding: 0.5rem;">
+                    <div class="flex items-center gap-1.5">
+                      <div class="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-500/20 to-cyan-600/20 flex items-center justify-center flex-shrink-0">
+                        <i class="pi pi-user text-cyan-400 text-[10px]"></i>
+                      </div>
+                      <div class="flex flex-col min-w-0">
+                        <span class="font-medium text-white text-xs truncate">
+                          {{ getEmployeeName(request) }}
+                        </span>
+                        <span class="text-[10px] text-gray-400 truncate">
+                          {{ getEmployeeEmail(request) }}
+                        </span>
+                      </div>
                     </div>
                   </td>
-                  <td>
-                    <span class="text-sm text-gray-300">
+                  <td style="padding: 0.5rem;">
+                    <span class="text-xs text-gray-300">
                       {{ request.date_from | date : 'dd/MM/yyyy' }}
                     </span>
                   </td>
-                  <td>
-                    <span class="text-sm text-gray-300">
+                  <td style="padding: 0.5rem;">
+                    <span class="text-xs text-gray-300">
                       {{ request.date_to | date : 'dd/MM/yyyy' }}
                     </span>
                   </td>
-                  <td>
-                    <span class="text-sm font-medium text-white">
+                  <td style="padding: 0.5rem;">
+                    <span class="text-xs font-medium text-white">
                       {{
                         request.compensatory_type === 'days' ? 'Días' : 'Horas'
                       }}
                     </span>
                   </td>
-                  <td>
+                  <td style="padding: 0.5rem;">
                     @let quantity = getCompensatoryQuantity(request);
-                    <span class="text-sm font-medium text-white">
+                    <span class="text-xs font-medium text-white">
                       @if (quantity.isDays) {
-                        {{ quantity.value }} día(s)
+                        {{ quantity.value }}d
                       } @else {
                         {{ formatHoursMinutes(quantity.value) }}
                       }
                     </span>
                   </td>
-                  <td>
+                  <td style="padding: 0.5rem;">
                     @if (request.reason) {
                     <span
-                      class="text-sm text-gray-300 cursor-help"
+                      class="text-xs text-gray-300 cursor-help inline-block max-w-[150px] truncate"
                       [pTooltip]="request.reason"
                       tooltipPosition="top"
-                      [style.max-width.px]="200"
-                      [style.display]="'inline-block'"
-                      [style.overflow]="'hidden'"
-                      [style.text-overflow]="'ellipsis'"
-                      [style.white-space]="'nowrap'"
                     >
                       {{ request.reason }}
                     </span>
                     } @else {
-                    <span class="text-gray-500 text-sm">-</span>
+                    <span class="text-gray-500 text-xs">-</span>
                     }
                   </td>
-                  <td>
+                  <td style="padding: 0.5rem;">
                     <p-tag
                       [value]="getCompensatoryStatusLabel(request)"
                       [severity]="getCompensatoryStatusSeverity(request)"
+                      [style]="{'font-size': '0.7rem', 'padding': '0.125rem 0.5rem'}"
                     />
                   </td>
-                  <td>
-                    <div class="flex gap-2">
+                  <td style="padding: 0.5rem;">
+                    <div class="flex gap-0.5">
                       @if (request.review_status === 'pending') {
                       <p-button
                         icon="pi pi-check"
                         [text]="true"
                         severity="success"
-                        (onClick)="approveCompensatoryRequest(request)"
+                        size="small"
+                        (onClick)="approveCompensatoryRequest(request); $event.stopPropagation()"
                         pTooltip="Aprobar"
                         tooltipPosition="top"
+                        [rounded]="true"
                       />
                       <p-button
                         icon="pi pi-times"
                         [text]="true"
                         severity="danger"
-                        (onClick)="rejectCompensatoryRequest(request)"
+                        size="small"
+                        (onClick)="rejectCompensatoryRequest(request); $event.stopPropagation()"
                         pTooltip="Rechazar"
                         tooltipPosition="top"
+                        [rounded]="true"
                       />
                       } @else if (request.review_status === 'approved' &&
                       !request.is_approved) {
@@ -953,18 +1013,22 @@ interface CompensatoryRequest {
                         icon="pi pi-check-circle"
                         [text]="true"
                         severity="info"
-                        (onClick)="registerCompensatoryRequest(request)"
+                        size="small"
+                        (onClick)="registerCompensatoryRequest(request); $event.stopPropagation()"
                         pTooltip="Registrar (Lia)"
                         tooltipPosition="top"
+                        [rounded]="true"
                       />
                       }
                       <p-button
                         icon="pi pi-eye"
                         [text]="true"
                         severity="info"
-                        (onClick)="viewCompensatoryDetails(request)"
+                        size="small"
+                        (onClick)="viewCompensatoryDetails(request); $event.stopPropagation()"
                         pTooltip="Ver detalles"
                         tooltipPosition="top"
+                        [rounded]="true"
                       />
                     </div>
                   </td>
@@ -987,6 +1051,7 @@ interface CompensatoryRequest {
       [header]="'Detalles de Incapacidad'"
       [draggable]="false"
       [resizable]="false"
+      [dismissableMask]="true"
     >
       @if (selectedDisability()) {
       <div class="space-y-4">
@@ -1096,6 +1161,7 @@ interface CompensatoryRequest {
       [header]="'Detalles de Solicitud de Tiempo Compensatorio'"
       [draggable]="false"
       [resizable]="false"
+      [dismissableMask]="true"
     >
       @if (selectedCompensatoryRequest()) {
       <div class="space-y-4">
@@ -1393,7 +1459,18 @@ interface CompensatoryRequest {
     ::ng-deep .p-datatable .p-datatable-tbody > tr > td {
       border-color: #374151 !important;
       color: #e5e7eb !important;
-      padding: 1rem !important;
+      padding: 0.5rem !important;
+      font-size: 0.75rem !important;
+    }
+    
+    ::ng-deep .p-datatable.p-datatable-sm .p-datatable-thead > tr > th {
+      padding: 0.5rem !important;
+      font-size: 0.7rem !important;
+    }
+    
+    ::ng-deep .p-datatable.p-datatable-sm .p-datatable-tbody > tr > td {
+      padding: 0.5rem !important;
+      font-size: 0.75rem !important;
     }
 
     ::ng-deep .p-card {
@@ -1474,6 +1551,22 @@ export class HRDisabilitiesComponent {
   private confirmationService = inject(ConfirmationService);
   private organizationService = inject(OrganizationService);
   private dashboardStore = inject(DashboardStore);
+  private router = inject(Router);
+  
+  // Método para navegar a diferentes pestañas
+  public navigateToTab(tab: 'disabilities' | 'compensatory' | 'documents' | 'suggestions'): void {
+    if (tab === 'documents') {
+      // Navegar a la ruta de solicitudes de documentos (si existe) o mostrar contenido embebido
+      this.activeTab.set('documents');
+      // TODO: Implementar vista de solicitudes de documentos
+    } else if (tab === 'suggestions') {
+      // Navegar al buzón de sugerencias
+      this.router.navigate(['admin', 'suggestions-inbox']);
+    } else {
+      // Para disabilities y compensatory, solo cambiar la pestaña activa
+      this.activeTab.set(tab);
+    }
+  }
 
   // API para obtener incapacidades con información del empleado
   public disabilitiesApi = httpResource<Disability[]>(() => {
@@ -1500,7 +1593,7 @@ export class HRDisabilitiesComponent {
   public dateRange = signal<Date[] | null>(null);
   
   // Nuevas señales para el dashboard mejorado
-  public activeTab = signal<'disabilities' | 'compensatory'>('disabilities');
+  public activeTab = signal<'disabilities' | 'compensatory' | 'documents' | 'suggestions'>('disabilities');
   public showFilters = signal(false);
   public showCompensatoryFilters = signal(false);
   public globalSearchText = signal('');
@@ -2100,25 +2193,6 @@ export class HRDisabilitiesComponent {
     if (!delayHours) return false;
     const delay = parseFloat(delayHours);
     return !isNaN(delay) && delay > 0;
-  }
-
-  // Helper para formatear horas en formato horas y minutos
-  public formatHoursMinutes(hoursStr: string | undefined): string {
-    if (!hoursStr) return '0m';
-    const hours = parseFloat(hoursStr);
-    if (isNaN(hours) || hours <= 0) return '0m';
-    
-    const totalMinutes = Math.round(hours * 60);
-    const hoursPart = Math.floor(totalMinutes / 60);
-    const minutesPart = totalMinutes % 60;
-    
-    if (hoursPart === 0) {
-      return `${minutesPart}m`;
-    } else if (minutesPart === 0) {
-      return `${hoursPart}h`;
-    } else {
-      return `${hoursPart}h ${minutesPart}m`;
-    }
   }
 
   // Método helper para parsear las notas y extraer información de fechas de horas extra

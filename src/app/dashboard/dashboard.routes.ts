@@ -105,6 +105,13 @@ export const DASHBOARD_ROUTES: Routes = [
               ),
           },
           {
+            path: 'suggestions-inbox',
+            loadComponent: () =>
+              import('./suggestions-inbox.component').then(
+                (x) => x.SuggestionsInboxComponent
+              ),
+          },
+          {
             path: 'job-applications',
             loadComponent: () =>
               import('./job-applications-list.component').then(

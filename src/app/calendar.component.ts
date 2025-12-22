@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   input,
   output,
   signal,
@@ -115,9 +116,24 @@ export class CalendarComponent {
 
   public markerTpl = input<TemplateRef<{ $implicit: CalendarMarkerData[] }>>();
 
+  public currentDateInput = input<Date | undefined>(undefined);
+
   public monthChange = output<Date>();
 
-  protected currentDate = signal(startOfToday());
+  protected currentDate = signal<Date>(startOfToday());
+
+  constructor() {
+    // Sincronizar el currentDate interno con el input cuando cambie
+    effect(() => {
+      const inputDate = this.currentDateInput();
+      if (inputDate) {
+        const normalized = startOfMonth(inputDate);
+        if (!isSameMonth(normalized, this.currentDate())) {
+          this.currentDate.set(normalized);
+        }
+      }
+    });
+  }
   protected currentMonth = computed(() =>
     format(this.currentDate(), 'MMMM yyyy', { locale: es }).toUpperCase()
   );

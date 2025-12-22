@@ -195,28 +195,6 @@ import { OrganizationService } from '../services/organization.service';
               <span>Configuración</span>
             </a>
 
-            <!-- Buzón de Quejas -->
-            <a
-              routerLink="complaints-inbox"
-              class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200 relative"
-              [routerLinkActive]="[
-                'bg-gradient-to-r',
-                'from-amber-500/20',
-                'to-amber-600/20',
-                'text-amber-300',
-                'shadow-md'
-              ]"
-            >
-              <i class="pi pi-inbox text-base"></i>
-              <span>Buzón de Quejas</span>
-              @if (unreadCount() > 0) {
-              <span
-                class="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shadow-lg"
-              >
-                {{ unreadCount() > 99 ? '99+' : unreadCount() }}
-              </span>
-              }
-            </a>
           </div>
         </div>
       </div>

@@ -728,13 +728,27 @@ import { EmployeesStore } from '../stores/employees.store';
       <div id="timelogs" class="section-content">
         <p-card>
           <ng-template #title>
-            <div class="flex items-center gap-2">
-              <i class="pi pi-calendar-clock text-amber-400"></i>
-              <span>Calendario de Marcaciones</span>
+            <div class="flex items-center justify-between w-full">
+              <div class="flex items-center gap-2">
+                <i class="pi pi-calendar-clock text-amber-400"></i>
+                <span>Calendario de Marcaciones</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <p-button
+                  [icon]="timelogViewMode() === 'calendar' ? 'pi pi-table' : 'pi pi-calendar'"
+                  [label]="timelogViewMode() === 'calendar' ? 'Vista Tabla' : 'Vista Calendario'"
+                  [outlined]="true"
+                  severity="secondary"
+                  size="small"
+                  (onClick)="timelogViewMode.set(timelogViewMode() === 'calendar' ? 'table' : 'calendar')"
+                  [pTooltip]="timelogViewMode() === 'calendar' ? 'Cambiar a vista de tabla' : 'Cambiar a vista de calendario'"
+                  tooltipPosition="left"
+                />
+              </div>
             </div>
           </ng-template>
           <ng-template #subtitle
-            >Visualiza tus marcaciones en formato calendario</ng-template
+            >{{ timelogViewMode() === 'calendar' ? 'Visualiza tus marcaciones en formato calendario' : 'Visualiza tus marcaciones en formato tabla' }}</ng-template
           >
           
           <div class="mt-2"></div>
@@ -744,12 +758,150 @@ import { EmployeesStore } from '../stores/employees.store';
               <i class="pi pi-spin pi-spinner text-4xl text-amber-400"></i>
             </div>
           } @else {
-            <!-- Calendario bonito usando pt-calendar -->
-            <pt-calendar
-              [markers]="timelogMarkers()"
-              [markerTpl]="timelogMarkerTemplate"
-              (monthChange)="onCalendarMonthChange($event)"
-            />
+            @if (timelogViewMode() === 'calendar') {
+              <!-- Calendario bonito usando pt-calendar -->
+              <pt-calendar
+                [markers]="timelogMarkers()"
+                [markerTpl]="timelogMarkerTemplate"
+                [currentDateInput]="calendarMonth()"
+                (monthChange)="onCalendarMonthChange($event)"
+              />
+            } @else {
+              <!-- Vista de tabla -->
+              <div class="overflow-x-auto">
+                <p-table
+                  [value]="monthTimelogs()"
+                  [rows]="25"
+                  [rowsPerPageOptions]="[10, 25, 50, 100]"
+                  paginator
+                  paginatorDropdownAppendTo="body"
+                  showGridlines
+                  stripedRows
+                  styleClass="p-datatable-sm"
+                  [scrollable]="true"
+                  scrollHeight="calc(100vh - 400px)"
+                >
+                  <ng-template #header>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Entrada</th>
+                      <th>Inicio Almuerzo</th>
+                      <th>Fin Almuerzo</th>
+                      <th>Salida</th>
+                      <th>Horas Trabajadas</th>
+                      <th>Estado</th>
+                    </tr>
+                  </ng-template>
+                  <ng-template #body let-log>
+                    <tr>
+                      <td class="font-semibold">{{ log.day | date : 'fullDate' }}</td>
+                      <td>
+                        @if (log.entry) {
+                          <div class="flex items-center gap-2">
+                            <i class="pi pi-sign-in text-green-400"></i>
+                            <span>{{ log.entry.date | date : 'HH:mm' }}</span>
+                            @if (log.entry.branch) {
+                              <span class="text-xs text-gray-400">({{ log.entry.branch.short_name || log.entry.branch.name }})</span>
+                            }
+                          </div>
+                        } @else {
+                          <span class="text-gray-500">-</span>
+                        }
+                      </td>
+                      <td>
+                        @if (log.lunch_start) {
+                          <div class="flex items-center gap-2">
+                            <i class="pi pi-clock text-amber-400"></i>
+                            <span>{{ log.lunch_start.date | date : 'HH:mm' }}</span>
+                            @if (log.lunch_start.branch) {
+                              <span class="text-xs text-gray-400">({{ log.lunch_start.branch.short_name || log.lunch_start.branch.name }})</span>
+                            }
+                          </div>
+                        } @else {
+                          <span class="text-gray-500">-</span>
+                        }
+                      </td>
+                      <td>
+                        @if (log.lunch_end) {
+                          <div class="flex items-center gap-2">
+                            <i class="pi pi-clock text-amber-400"></i>
+                            <span>{{ log.lunch_end.date | date : 'HH:mm' }}</span>
+                            @if (log.lunch_end.branch) {
+                              <span class="text-xs text-gray-400">({{ log.lunch_end.branch.short_name || log.lunch_end.branch.name }})</span>
+                            }
+                          </div>
+                        } @else {
+                          <span class="text-gray-500">-</span>
+                        }
+                      </td>
+                      <td>
+                        @if (log.exit) {
+                          <div class="flex items-center gap-2">
+                            <i class="pi pi-sign-out text-blue-400"></i>
+                            <span>{{ log.exit.date | date : 'HH:mm' }}</span>
+                            @if (log.exit.branch) {
+                              <span class="text-xs text-gray-400">({{ log.exit.branch.short_name || log.exit.branch.name }})</span>
+                            }
+                          </div>
+                        } @else {
+                          <span class="text-gray-500">-</span>
+                        }
+                      </td>
+                      <td>
+                        @if (log.entry && log.exit) {
+                          @let workedHours = calculateWorkedHours(
+                            log.entry.date, 
+                            log.exit.date, 
+                            log.lunch_start?.date, 
+                            log.lunch_end?.date
+                          );
+                          <span class="font-semibold text-amber-300">{{ workedHours }}</span>
+                        } @else {
+                          <span class="text-gray-500">-</span>
+                        }
+                      </td>
+                      <td>
+                        @let hasEntry = log?.entry;
+                        @let hasExit = log?.exit;
+                        @let hasDelay = log?.delay && typeof log?.delay === 'number';
+                        @let isComplete = hasEntry && hasExit;
+                        @let isIncomplete = hasEntry && !hasExit;
+                        
+                        <div class="flex items-center gap-2">
+                          @if (isComplete && !hasDelay) {
+                            <span class="px-2 py-1 rounded text-xs font-semibold bg-green-500/20 text-green-300">
+                              <i class="pi pi-check-circle mr-1"></i>Completo
+                            </span>
+                          } @else if (isIncomplete) {
+                            <span class="px-2 py-1 rounded text-xs font-semibold bg-yellow-500/20 text-yellow-300">
+                              <i class="pi pi-exclamation-triangle mr-1"></i>Incompleto
+                            </span>
+                          } @else if (hasDelay) {
+                            <span class="px-2 py-1 rounded text-xs font-semibold bg-red-500/20 text-red-300">
+                              <i class="pi pi-clock mr-1"></i>Retraso {{ log.delay }}m
+                            </span>
+                          } @else {
+                            <span class="px-2 py-1 rounded text-xs font-semibold bg-gray-500/20 text-gray-400">
+                              Sin datos
+                            </span>
+                          }
+                        </div>
+                      </td>
+                    </tr>
+                  </ng-template>
+                  <ng-template #emptymessage>
+                    <tr>
+                      <td colspan="7">
+                        <div class="flex flex-col items-center justify-center gap-4 py-8">
+                          <i class="pi pi-calendar-times text-4xl text-gray-500"></i>
+                          <p class="text-gray-400">No hay marcaciones para este mes</p>
+                        </div>
+                      </td>
+                    </tr>
+                  </ng-template>
+                </p-table>
+              </div>
+            }
             
             <!-- Template para mostrar los markers en el calendario tipo mapa -->
             <ng-template #timelogMarkerTemplate let-markers>
@@ -761,7 +913,12 @@ import { EmployeesStore } from '../stores/employees.store';
                   @let hasLunchStart = log?.lunch_start;
                   @let hasLunchEnd = log?.lunch_end;
                   @let hasDelay = log?.delay && typeof log?.delay === 'number';
-                  @let workedHours = log?.entry && log?.exit ? calculateWorkedHours(log.entry.date, log.exit.date) : null;
+                  @let workedHours = log?.entry && log?.exit ? calculateWorkedHours(
+                    log.entry.date, 
+                    log.exit.date, 
+                    log.lunch_start?.date, 
+                    log.lunch_end?.date
+                  ) : null;
                   @let isComplete = hasEntry && hasExit;
                   @let isIncomplete = hasEntry && !hasExit;
                   
@@ -3236,6 +3393,9 @@ export class EmployeePortalComponent {
 
   // Calendar month for timelogs calendar view
   public calendarMonth = signal<Date>(startOfToday());
+  
+  // Vista de marcaciones: 'calendar' o 'table'
+  public timelogViewMode = signal<'calendar' | 'table'>('table');
 
   // Timelogs API
   public timelogsApi = httpResource<any[]>(() => {
@@ -3403,10 +3563,21 @@ export class EmployeePortalComponent {
         try {
           const date = new Date(x.created_at);
           if (isNaN(date.getTime())) {
+            console.warn('[Timelogs] Fecha inválida en log:', x);
             return null;
           }
-          return { ...x, day: format(date, 'yyyy-MM-dd') };
-        } catch {
+          // No pre-calcular el día aquí, lo haremos en el reduce
+          // para usar la fecha real de cada marcación
+          console.log('[Timelogs] Procesando marcación:', {
+            type: x.type,
+            created_at: x.created_at,
+            dateOriginal: date.toString(),
+            hour: date.getHours(),
+            minute: date.getMinutes()
+          });
+          return x;
+        } catch (error) {
+          console.error('[Timelogs] Error procesando log:', x, error);
           return null;
         }
       })
@@ -3414,48 +3585,52 @@ export class EmployeePortalComponent {
       .reduce<any[]>((acc, x) => {
         if (!x) return acc;
 
-        const existing = acc.find((item) => item.day === x.day);
         const logDate = new Date(x.created_at);
         const logBranch = x.branch || null;
-
+        
+        // Normalizar la fecha a medianoche para determinar el día
+        // Esto es consistente con cómo se procesa en el componente de timelogs del dashboard
+        const logDateNormalized = new Date(logDate);
+        logDateNormalized.setHours(0, 0, 0, 0);
+        const actualDay = format(logDateNormalized, 'yyyy-MM-dd');
+        
+        // Buscar registro existente por el día de esta marcación
+        let existing = acc.find((item) => item.day === actualDay);
+        
+        // Si no existe, crear uno nuevo
         if (!existing) {
-          acc.push({
-            day: x.day,
-            entry:
-              x.type === TimeLogEnum.entry
-                ? { date: logDate, branch: logBranch }
-                : undefined,
-            lunch_start:
-              x.type === TimeLogEnum.lunch_start
-                ? { date: logDate, branch: logBranch }
-                : undefined,
-            lunch_end:
-              x.type === TimeLogEnum.lunch_end
-                ? { date: logDate, branch: logBranch }
-                : undefined,
-            exit:
-              x.type === TimeLogEnum.exit
-                ? { date: logDate, branch: logBranch }
-                : undefined,
+          existing = {
+            day: actualDay,
+            entry: undefined,
+            lunch_start: undefined,
+            lunch_end: undefined,
+            exit: undefined,
             schedule: null,
             delay: undefined,
-          });
-        } else {
-          if (x.type === TimeLogEnum.entry)
-            existing.entry = { date: logDate, branch: logBranch };
-          if (x.type === TimeLogEnum.lunch_start)
-            existing.lunch_start = {
-              date: logDate,
-              branch: logBranch,
-            };
-          if (x.type === TimeLogEnum.lunch_end)
-            existing.lunch_end = {
-              date: logDate,
-              branch: logBranch,
-            };
-          if (x.type === TimeLogEnum.exit)
-            existing.exit = { date: logDate, branch: logBranch };
+          };
+          acc.push(existing);
         }
+        
+        // Agregar la marcación al registro
+        // Si ya existe una marcación del mismo tipo, mantener la más temprana (para entrada) o la más tardía (para salida)
+        if (x.type === TimeLogEnum.entry) {
+          if (!existing.entry || logDate < existing.entry.date) {
+            existing.entry = { date: logDate, branch: logBranch };
+          }
+        } else if (x.type === TimeLogEnum.exit) {
+          if (!existing.exit || logDate > existing.exit.date) {
+            existing.exit = { date: logDate, branch: logBranch };
+          }
+        } else if (x.type === TimeLogEnum.lunch_start) {
+          if (!existing.lunch_start || logDate < existing.lunch_start.date) {
+            existing.lunch_start = { date: logDate, branch: logBranch };
+          }
+        } else if (x.type === TimeLogEnum.lunch_end) {
+          if (!existing.lunch_end || logDate > existing.lunch_end.date) {
+            existing.lunch_end = { date: logDate, branch: logBranch };
+          }
+        }
+        
         return acc;
       }, []);
 
@@ -3467,6 +3642,32 @@ export class EmployeePortalComponent {
       sorted.length,
       sorted
     );
+    // Log detallado de cada día procesado
+    sorted.forEach((log) => {
+      console.log('[Timelogs] Día procesado:', {
+        day: log.day,
+        entry: log.entry ? {
+          date: log.entry.date.toString(),
+          hour: log.entry.date.getHours(),
+          minute: log.entry.date.getMinutes()
+        } : null,
+        exit: log.exit ? {
+          date: log.exit.date.toString(),
+          hour: log.exit.date.getHours(),
+          minute: log.exit.date.getMinutes()
+        } : null,
+        lunch_start: log.lunch_start ? {
+          date: log.lunch_start.date.toString(),
+          hour: log.lunch_start.date.getHours(),
+          minute: log.lunch_start.date.getMinutes()
+        } : null,
+        lunch_end: log.lunch_end ? {
+          date: log.lunch_end.date.toString(),
+          hour: log.lunch_end.date.getHours(),
+          minute: log.lunch_end.date.getMinutes()
+        } : null
+      });
+    });
     return sorted;
   });
 
@@ -3479,9 +3680,27 @@ export class EmployeePortalComponent {
       logs
     );
 
-    const filtered = logs.filter((log) => log.entry || log.exit);
+    // Filtrar solo días con marcaciones válidas (entrada y/o salida)
+    const filtered = logs.filter((log) => {
+      // Debe tener al menos entrada o salida
+      if (!log.entry && !log.exit) {
+        return false;
+      }
+
+      // Verificar que la fecha sea válida
+      const logDate = new Date(log.day);
+      if (isNaN(logDate.getTime())) {
+        return false;
+      }
+
+      // El día ya está calculado correctamente basándose en la entrada o salida
+      // No necesitamos validar días diferentes porque el día se recalcula correctamente
+      // en el procesamiento anterior
+      return true;
+    });
+    
     console.log(
-      '[Timelogs] timelogMarkers - Logs con entrada o salida:',
+      '[Timelogs] timelogMarkers - Logs filtrados (con validación de días):',
       filtered.length,
       filtered
     );
@@ -3508,7 +3727,9 @@ export class EmployeePortalComponent {
       '[Timelogs] onCalendarMonthChange - Mes anterior:',
       this.calendarMonth()
     );
-    this.calendarMonth.set(date);
+    // Normalizar la fecha al inicio del mes para evitar problemas de zona horaria
+    const normalizedDate = startOfMonth(date);
+    this.calendarMonth.set(normalizedDate);
     console.log(
       '[Timelogs] onCalendarMonthChange - Mes actualizado:',
       this.calendarMonth()
@@ -3689,18 +3910,13 @@ export class EmployeePortalComponent {
   public sendingReply = signal(false);
 
   // Helper methods
-  public calculateWorkedHours(entry: Date, exit: Date): string {
-    console.log(
-      '[Timelogs] calculateWorkedHours - Entrada:',
-      entry,
-      'Salida:',
-      exit
-    );
-
+  public calculateWorkedHours(
+    entry: Date,
+    exit: Date,
+    lunchStart?: Date,
+    lunchEnd?: Date
+  ): string {
     if (!entry || !exit) {
-      console.log(
-        '[Timelogs] calculateWorkedHours - Faltan fechas, retornando "-"'
-      );
       return '-';
     }
 
@@ -3708,30 +3924,43 @@ export class EmployeePortalComponent {
     const exitDate = new Date(exit);
 
     if (isNaN(entryDate.getTime()) || isNaN(exitDate.getTime())) {
-      console.log(
-        '[Timelogs] calculateWorkedHours - Fechas inválidas, retornando "-"'
-      );
       return '-';
     }
 
-    const minutes = differenceInMinutes(exitDate, entryDate);
-    console.log(
-      '[Timelogs] calculateWorkedHours - Diferencia en minutos:',
-      minutes
-    );
+    // Calcular diferencia total en minutos
+    const totalMinutes = differenceInMinutes(exitDate, entryDate);
 
-    if (minutes < 0) {
-      console.log(
-        '[Timelogs] calculateWorkedHours - Diferencia negativa, retornando "0h 0m"'
-      );
+    if (totalMinutes < 0) {
       return '0h 0m';
     }
 
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    const result = `${hours}h ${mins}m`;
-    console.log('[Timelogs] calculateWorkedHours - Resultado:', result);
-    return result;
+    // Restar tiempo de almuerzo si existe
+    let lunchTime = 0;
+    if (lunchStart && lunchEnd) {
+      const lunchStartDate = new Date(lunchStart);
+      const lunchEndDate = new Date(lunchEnd);
+      if (
+        !isNaN(lunchStartDate.getTime()) &&
+        !isNaN(lunchEndDate.getTime())
+      ) {
+        const lunchDiff = differenceInMinutes(lunchEndDate, lunchStartDate);
+        // Solo usar si la diferencia es positiva y razonable (máximo 3 horas)
+        if (lunchDiff > 0 && lunchDiff <= 180) {
+          lunchTime = lunchDiff;
+        }
+      }
+    }
+
+    // Calcular horas trabajadas restando el almuerzo
+    const workMinutes = totalMinutes - lunchTime;
+
+    if (workMinutes < 0) {
+      return '0h 0m';
+    }
+
+    const hours = Math.floor(workMinutes / 60);
+    const mins = workMinutes % 60;
+    return `${hours}h ${mins}m`;
   }
 
   public calculateDays(start: Date | string, end: Date | string): number {
