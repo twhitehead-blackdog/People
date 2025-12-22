@@ -10,6 +10,7 @@ import { take } from 'rxjs';
 import { Button } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { TagModule } from 'primeng/tag';
+import { TooltipModule } from 'primeng/tooltip';
 import { Pet, AdoptionApplication } from '../models';
 import { FoundationsStore } from '../stores/foundations.store';
 import { PetsStore } from '../stores/pets.store';
@@ -20,7 +21,7 @@ import { MatchFilters } from './adoptions-match.component';
 @Component({
   selector: 'pt-pets-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, Button, TagModule, DialogModule],
+  imports: [CommonModule, FormsModule, Button, TagModule, DialogModule, TooltipModule],
   template: `
     <div class="pets-list-container">
       <div class="pets-list-inner">
@@ -52,6 +53,14 @@ import { MatchFilters } from './adoptions-match.component';
           @for (pet of filteredPets(); track pet.id) {
           <div class="pet-card" (click)="viewPet(pet.id)">
             <div class="pet-image-container">
+              @if (!pet.is_available) {
+              <p-tag 
+                severity="secondary" 
+                value="ADOPTADA" 
+                icon="pi pi-check"
+                class="adopted-badge"
+              />
+              }
               @if (pet.photos && pet.photos.length > 0) {
               <img [src]="pet.photos[0]" [alt]="pet.name" class="pet-image" />
               <button
@@ -130,7 +139,7 @@ import { MatchFilters } from './adoptions-match.component';
                   </div>
                   }
                   <p-button
-                    label="PREGUNTAR POR MI"
+                    [label]="pet.is_available ? 'PREGUNTAR POR MI' : 'ADOPTADA'"
                     [style]="{
                       background: '#fbbf24',
                       border: 'none',
@@ -141,6 +150,9 @@ import { MatchFilters } from './adoptions-match.component';
                     }"
                     (onClick)="openAdoptionForm(pet)"
                     [disabled]="!pet.is_available"
+                    [icon]="!pet.is_available ? 'pi pi-lock' : ''"
+                    [pTooltip]="!pet.is_available ? 'Esta mascota ya fue adoptada' : ''"
+                    tooltipPosition="top"
                   />
                   <p class="interest-count">
                     {{ getInterestCount(pet.id) }} personas están interesadas
@@ -502,6 +514,15 @@ import { MatchFilters } from './adoptions-match.component';
         flex-shrink: 0;
         width: 300px;
         height: 300px;
+      }
+
+      .adopted-badge {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        z-index: 20;
+        font-weight: 700;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
       }
 
       .pet-image {
@@ -1272,44 +1293,14 @@ export class PetsListComponent {
   public openAdoptionForm(pet: Pet): void {
     this.authService.isAuthenticated$.pipe(take(1)).subscribe((isAuth) => {
       if (!isAuth) {
-        this.router.navigate(['/auth/login']);
+        // Redirigir al login con returnUrl para mejorar UX
+        this.router.navigate(['/auth/login'], {
+          queryParams: { returnUrl: `/adoptions/adoptar/${pet.id}` }
+        });
         return;
       }
       
-      // Registrar interés si el usuario está autenticado
-      const user = this.authWrapper.currentUser();
-      if (user && user.email) {
-        // Verificar si ya existe una solicitud para este usuario y esta mascota
-        const existingApp = this.applicationsStore.entities().find(
-          app => app.pet_id === pet.id && app.applicant_email === user.email
-        );
-        
-        // Si no existe, crear una solicitud de interés mínima
-        if (!existingApp) {
-          const interestApplication: Partial<AdoptionApplication> = {
-            pet_id: pet.id,
-            applicant_name: user.full_name || user.email.split('@')[0],
-            applicant_email: user.email,
-            applicant_phone: '',
-            applicant_address: '',
-            has_other_pets: false,
-            has_children: false,
-            status: 'pending',
-          };
-          
-          this.applicationsStore.createItem(interestApplication as AdoptionApplication).subscribe({
-            next: () => {
-              // El contador se actualizará automáticamente porque el computed signal se recalcula
-            },
-            error: (error) => {
-              // Silenciar el error, solo registrar interés
-              console.error('Error al registrar interés:', error);
-            }
-          });
-        }
-      }
-      
-      // Navegar al formulario de adopción
+      // Solo navegar al formulario de adopción
       this.router.navigate(['/adoptions/adoptar', pet.id]);
     });
   }

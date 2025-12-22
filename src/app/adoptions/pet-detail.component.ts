@@ -30,6 +30,14 @@ import { take } from 'rxjs/operators';
             ← Volver
           </button>
           <div class="hero-image-container">
+            @if (!pet()!.is_available) {
+              <p-tag 
+                severity="secondary" 
+                value="ADOPTADA" 
+                icon="pi pi-check"
+                class="adopted-badge-detail"
+              />
+            }
             @if (pet()?.photos && pet()!.photos!.length > 0) {
               <div class="main-photo-wrapper">
                 <img
@@ -234,6 +242,7 @@ import { take } from 'rxjs/operators';
                 label="Esta mascota ya fue adoptada"
                 [disabled]="true"
                 severity="secondary"
+                icon="pi pi-lock"
                 [style]="{
                   width: '100%',
                   padding: '1rem 2rem'
@@ -299,6 +308,17 @@ import { take } from 'rxjs/operators';
         border-radius: 1rem;
         overflow: hidden;
         box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+      }
+
+      .adopted-badge-detail {
+        position: absolute;
+        top: 2rem;
+        right: 2rem;
+        z-index: 20;
+        font-weight: 700;
+        font-size: 1.125rem;
+        padding: 0.75rem 1.5rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
       }
 
       .hero-image-container {
@@ -733,9 +753,13 @@ export class PetDetailComponent implements OnInit, AfterViewInit {
 
     this.authService.isAuthenticated$.pipe(take(1)).subscribe((isAuth) => {
       if (!isAuth) {
-        this.router.navigate(['/auth/login']);
+        // Redirigir al login con returnUrl para mejorar UX
+        this.router.navigate(['/auth/login'], {
+          queryParams: { returnUrl: `/adoptions/adoptar/${this.pet()!.id}` }
+        });
         return;
       }
+      // Solo navegar al formulario de adopción
       this.router.navigate(['/adoptions/adoptar', this.pet()!.id]);
     });
   }
