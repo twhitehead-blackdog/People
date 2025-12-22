@@ -204,7 +204,7 @@ export interface MatchFilters {
               fontWeight: 'bold',
               width: '100%',
               padding: '0.75rem',
-              marginTop: '0.75rem'
+              marginTop: '0.25rem'
             }"
             (onClick)="findMatch()"
           />
@@ -258,7 +258,7 @@ export interface MatchFilters {
       .match-content {
         display: flex;
         flex-direction: column;
-        gap: 1rem;
+        gap: 0.75rem;
         flex: 1;
         overflow-y: auto;
         overflow-x: hidden;
@@ -268,7 +268,7 @@ export interface MatchFilters {
       
       .match-actions {
         flex-shrink: 0;
-        margin-top: auto;
+        margin-top: 0.5rem;
       }
 
       .match-question p {
@@ -358,7 +358,7 @@ export interface MatchFilters {
       }
 
       .advanced-filters-toggle {
-        margin-top: 1rem;
+        margin-top: 0.5rem;
       }
 
       .toggle-button {

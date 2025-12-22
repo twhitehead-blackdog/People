@@ -166,7 +166,7 @@ import { filter, take } from 'rxjs/operators';
         top: 50%;
         right: 2rem;
         transform: translateY(-50%);
-        width: 320px;
+        width: 380px;
         max-width: calc(100% - 4rem);
         height: calc(100% - 4rem);
         max-height: calc(100% - 4rem);
