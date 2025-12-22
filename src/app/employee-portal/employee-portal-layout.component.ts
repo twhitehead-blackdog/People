@@ -566,17 +566,6 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
   }
 
   navigateToSection(section: string) {
-    const currentFragment = this.currentFragment();
-    
-    // Si se hace clic en "Gestiones" y ya estamos en una sección de gestiones, volver al dashboard
-    if (section === 'management' && 
-        (currentFragment === 'management' || 
-         currentFragment === 'disabilities' || 
-         currentFragment === 'documents' || 
-         currentFragment === 'complaints')) {
-      section = 'dashboard';
-    }
-    
     // Navegar directamente al fragmento correspondiente
     // El componente employee-portal sincronizará automáticamente el tab activo
     this.router.navigate(['/employee-portal'], { 

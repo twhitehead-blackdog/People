@@ -1977,12 +1977,13 @@ import { EmployeesStore } from '../stores/employees.store';
             @for (request of filteredAllRequests(); track request.id) {
               @let data = request.originalData;
             <div
-              class="bg-gradient-to-r from-neutral-800 to-neutral-800/80 border rounded-xl p-5 hover:shadow-lg transition-all duration-300"
+              class="bg-gradient-to-r from-neutral-800 to-neutral-800/80 border rounded-xl p-5 hover:shadow-lg transition-all duration-300 cursor-pointer"
               [class.border-yellow-500/30]="request.status === 'pending'"
               [class.border-green-500/30]="request.status === 'approved'"
               [class.border-red-500/30]="request.status === 'rejected'"
               [class.border-cyan-500/30]="request.status === 'in_registry'"
               [class.hover:border-cyan-400/50]="true"
+              (click)="viewRequestDetails(request)"
             >
               <div class="flex flex-col md:flex-row md:items-start gap-4">
                 <!-- Icono y Estado -->
@@ -2537,6 +2538,383 @@ import { EmployeesStore } from '../stores/employees.store';
           />
         </div>
       </ng-template>
+    </p-dialog>
+
+    <!-- Dialog para Detalles de Solicitud -->
+    <p-dialog
+      [(visible)]="showRequestDetailsDialog"
+      [modal]="true"
+      [style]="{ width: '90vw', maxWidth: '900px' }"
+      [draggable]="false"
+      [resizable]="false"
+      [closable]="true"
+      [header]="selectedRequestDetails()?.title || 'Detalles de la Solicitud'"
+      (onHide)="closeRequestDetailsDialog()"
+    >
+      @if (selectedRequestDetails()) {
+        @let request = selectedRequestDetails()!;
+        @let data = request.originalData;
+        <div class="flex flex-col gap-6">
+          <!-- Estado y Fecha -->
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
+            <div>
+              <p class="text-sm text-gray-400 mb-1">Estado</p>
+              <span
+                class="px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 w-fit"
+                [class.bg-yellow-500/20]="request.status === 'pending'"
+                [class.text-yellow-300]="request.status === 'pending'"
+                [class.bg-green-500/20]="request.status === 'approved'"
+                [class.text-green-300]="request.status === 'approved'"
+                [class.bg-red-500/20]="request.status === 'rejected'"
+                [class.text-red-300]="request.status === 'rejected'"
+                [class.bg-cyan-500/20]="request.status === 'in_registry'"
+                [class.text-cyan-300]="request.status === 'in_registry'"
+              >
+                @if (request.status === 'approved') {
+                  <i class="pi pi-check-circle"></i>
+                } @else if (request.status === 'rejected') {
+                  <i class="pi pi-times-circle"></i>
+                } @else if (request.status === 'in_registry') {
+                  <i class="pi pi-clock"></i>
+                } @else {
+                  <i class="pi pi-hourglass"></i>
+                }
+                {{ getUnifiedStatusLabel(request.status) }}
+              </span>
+            </div>
+            <div class="text-right">
+              <p class="text-sm text-gray-400 mb-1">Fecha de Solicitud</p>
+              <p class="text-white font-semibold">
+                {{ request.created_at | date : 'fullDate' }} a las {{ request.created_at | date : 'HH:mm' }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Información según tipo de solicitud -->
+          @if (request.request_type === 'compensatory') {
+            <!-- Tiempo Compensatorio -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
+                <div class="flex items-center gap-2 mb-2">
+                  <i class="pi pi-calendar text-cyan-400"></i>
+                  <span class="text-sm text-gray-400 font-medium">Período</span>
+                </div>
+                <p class="text-white font-semibold text-lg">
+                  {{ data.date_from | date : 'dd/MM/yyyy' }}
+                </p>
+                @if (data.date_from !== data.date_to) {
+                  <p class="text-gray-400 text-sm mt-1">
+                    hasta {{ data.date_to | date : 'dd/MM/yyyy' }}
+                  </p>
+                }
+              </div>
+
+              <div class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
+                <div class="flex items-center gap-2 mb-2">
+                  @if (data.compensatory_type === 'days') {
+                    <i class="pi pi-calendar text-cyan-400"></i>
+                  } @else {
+                    <i class="pi pi-clock text-cyan-400"></i>
+                  }
+                  <span class="text-sm text-gray-400 font-medium">Cantidad</span>
+                </div>
+                <p class="text-white font-semibold text-xl">
+                  @let quantity = getCompensatoryQuantity(data);
+                  @if (quantity.isDays) {
+                    {{ quantity.value }} día(s)
+                    <span class="text-gray-400 text-sm font-normal block mt-1">
+                      ({{ quantity.value * 24 }} horas)
+                    </span>
+                  } @else {
+                    {{ formatHoursMinutes(quantity.value) }}
+                  }
+                </p>
+              </div>
+
+              <div class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
+                <div class="flex items-center gap-2 mb-2">
+                  <i class="pi pi-tag text-cyan-400"></i>
+                  <span class="text-sm text-gray-400 font-medium">Tipo</span>
+                </div>
+                <p class="text-white font-semibold">
+                  @if (data.compensatory_type === 'days') {
+                    Por Días
+                  } @else {
+                    Por Horas
+                  }
+                </p>
+              </div>
+
+              <div class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
+                <div class="flex items-center gap-2 mb-2">
+                  <i class="pi pi-list text-cyan-400"></i>
+                  <span class="text-sm text-gray-400 font-medium">Tipo de Solicitud</span>
+                </div>
+                <p class="text-white font-semibold">
+                  {{ getRequestTypeLabel(request.request_type) }}
+                </p>
+              </div>
+            </div>
+
+            <!-- Motivo -->
+            @if (data.reason || request.description || getCompensatoryReasonFromNotes(data)) {
+              <div class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
+                <div class="flex items-center gap-2 mb-3">
+                  <i class="pi pi-comment text-cyan-400"></i>
+                  <span class="text-sm text-gray-400 font-medium">Motivo</span>
+                </div>
+                <p class="text-white text-sm whitespace-pre-wrap">
+                  {{ data.reason || request.description || getCompensatoryReasonFromNotes(data) || 'Sin motivo especificado' }}
+                </p>
+              </div>
+            }
+
+            <!-- Comentario de Rechazo -->
+            @if ((data.rejection_comment || data.notes) && request.status === 'rejected') {
+              <div class="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                <div class="flex items-start gap-3">
+                  <i class="pi pi-exclamation-triangle text-red-400 text-xl mt-0.5"></i>
+                  <div class="flex-1">
+                    <h4 class="text-red-300 font-semibold mb-2">Motivo del Rechazo</h4>
+                    <p class="text-red-200 text-sm whitespace-pre-wrap">
+                      {{ data.rejection_comment || data.notes }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            }
+          }
+
+          @if (request.request_type === 'disability') {
+            <!-- Incapacidad -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
+                <div class="flex items-center gap-2 mb-2">
+                  <i class="pi pi-calendar text-blue-400"></i>
+                  <span class="text-sm text-gray-400 font-medium">Período de Incapacidad</span>
+                </div>
+                <p class="text-white font-semibold text-lg">
+                  {{ data.start_date | date : 'dd/MM/yyyy' }}
+                </p>
+                @if (data.end_date) {
+                  <p class="text-gray-400 text-sm mt-1">
+                    hasta {{ data.end_date | date : 'dd/MM/yyyy' }}
+                  </p>
+                }
+              </div>
+
+              <div class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
+                <div class="flex items-center gap-2 mb-2">
+                  <i class="pi pi-calendar-check text-blue-400"></i>
+                  <span class="text-sm text-gray-400 font-medium">Días</span>
+                </div>
+                <p class="text-white font-semibold text-xl">
+                  {{ calculateDays(data.start_date, data.end_date) }} día(s)
+                </p>
+              </div>
+
+              <div class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
+                <div class="flex items-center gap-2 mb-2">
+                  <i class="pi pi-file text-blue-400"></i>
+                  <span class="text-sm text-gray-400 font-medium">Documento</span>
+                </div>
+                @if (data.document_url) {
+                  <p-button
+                    icon="pi pi-download"
+                    label="Descargar Documento"
+                    severity="secondary"
+                    [outlined]="true"
+                    size="small"
+                    (onClick)="downloadDocument(data.document_url)"
+                  />
+                } @else {
+                  <p class="text-gray-400 text-sm">No hay documento disponible</p>
+                }
+              </div>
+
+              <div class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
+                <div class="flex items-center gap-2 mb-2">
+                  <i class="pi pi-list text-blue-400"></i>
+                  <span class="text-sm text-gray-400 font-medium">Tipo de Solicitud</span>
+                </div>
+                <p class="text-white font-semibold">
+                  {{ getRequestTypeLabel(request.request_type) }}
+                </p>
+              </div>
+            </div>
+
+            <!-- Descripción -->
+            @if (data.description || request.description) {
+              <div class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
+                <div class="flex items-center gap-2 mb-3">
+                  <i class="pi pi-comment text-blue-400"></i>
+                  <span class="text-sm text-gray-400 font-medium">Descripción</span>
+                </div>
+                <p class="text-white text-sm whitespace-pre-wrap">
+                  {{ data.description || request.description || 'Sin descripción' }}
+                </p>
+              </div>
+            }
+
+            <!-- Comentario de Rechazo -->
+            @if ((data.rejection_comment || data.review_notes) && request.status === 'rejected') {
+              <div class="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                <div class="flex items-start gap-3">
+                  <i class="pi pi-exclamation-triangle text-red-400 text-xl mt-0.5"></i>
+                  <div class="flex-1">
+                    <h4 class="text-red-300 font-semibold mb-2">Motivo del Rechazo</h4>
+                    <p class="text-red-200 text-sm whitespace-pre-wrap">
+                      {{ data.rejection_comment || data.review_notes }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            }
+          }
+
+          @if (request.request_type === 'document') {
+            <!-- Solicitud de Documento -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
+                <div class="flex items-center gap-2 mb-2">
+                  <i class="pi pi-file text-green-400"></i>
+                  <span class="text-sm text-gray-400 font-medium">Tipo de Documento</span>
+                </div>
+                <p class="text-white font-semibold text-lg">
+                  {{ getDocumentTypeLabel(data.document_type) }}
+                </p>
+              </div>
+
+              @if (data.required_date) {
+                <div class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
+                  <div class="flex items-center gap-2 mb-2">
+                    <i class="pi pi-calendar text-green-400"></i>
+                    <span class="text-sm text-gray-400 font-medium">Fecha Requerida</span>
+                  </div>
+                  <p class="text-white font-semibold text-lg">
+                    {{ data.required_date | date : 'fullDate' }}
+                  </p>
+                </div>
+              }
+
+              @if (data.status === 'approved' && data.document_url) {
+                <div class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700 md:col-span-2">
+                  <div class="flex items-center gap-2 mb-2">
+                    <i class="pi pi-download text-green-400"></i>
+                    <span class="text-sm text-gray-400 font-medium">Documento Disponible</span>
+                  </div>
+                  <p-button
+                    icon="pi pi-download"
+                    label="Descargar Documento"
+                    severity="success"
+                    (onClick)="downloadDocument(data.document_url)"
+                  />
+                </div>
+              }
+
+              <div class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
+                <div class="flex items-center gap-2 mb-2">
+                  <i class="pi pi-list text-green-400"></i>
+                  <span class="text-sm text-gray-400 font-medium">Tipo de Solicitud</span>
+                </div>
+                <p class="text-white font-semibold">
+                  {{ getRequestTypeLabel(request.request_type) }}
+                </p>
+              </div>
+            </div>
+
+            <!-- Motivo/Uso -->
+            @if (data.reason || request.description) {
+              <div class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
+                <div class="flex items-center gap-2 mb-3">
+                  <i class="pi pi-comment text-green-400"></i>
+                  <span class="text-sm text-gray-400 font-medium">Motivo o Uso del Documento</span>
+                </div>
+                <p class="text-white text-sm whitespace-pre-wrap">
+                  {{ data.reason || request.description || 'Sin motivo especificado' }}
+                </p>
+              </div>
+            }
+
+            <!-- Comentario de Rechazo -->
+            @if (data.rejection_comment && request.status === 'rejected') {
+              <div class="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+                <div class="flex items-start gap-3">
+                  <i class="pi pi-exclamation-triangle text-red-400 text-xl mt-0.5"></i>
+                  <div class="flex-1">
+                    <h4 class="text-red-300 font-semibold mb-2">Motivo del Rechazo</h4>
+                    <p class="text-red-200 text-sm whitespace-pre-wrap">
+                      {{ data.rejection_comment }}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            }
+          }
+
+          @if (request.request_type === 'complaint') {
+            <!-- Queja -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
+                <div class="flex items-center gap-2 mb-2">
+                  <i class="pi pi-tag text-yellow-400"></i>
+                  <span class="text-sm text-gray-400 font-medium">Categoría</span>
+                </div>
+                <p class="text-white font-semibold text-lg">
+                  {{ getComplaintCategoryLabel(data.category) }}
+                </p>
+              </div>
+
+              @if (data.priority) {
+                <div class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
+                  <div class="flex items-center gap-2 mb-2">
+                    <i class="pi pi-exclamation-circle text-yellow-400"></i>
+                    <span class="text-sm text-gray-400 font-medium">Prioridad</span>
+                  </div>
+                  <p class="text-white font-semibold text-lg capitalize">
+                    {{ data.priority }}
+                  </p>
+                </div>
+              }
+
+              <div class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
+                <div class="flex items-center gap-2 mb-2">
+                  <i class="pi pi-list text-yellow-400"></i>
+                  <span class="text-sm text-gray-400 font-medium">Tipo de Solicitud</span>
+                </div>
+                <p class="text-white font-semibold">
+                  {{ getRequestTypeLabel(request.request_type) }}
+                </p>
+              </div>
+            </div>
+
+            <!-- Detalles/Queja -->
+            @if (data.complaint || request.description) {
+              <div class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
+                <div class="flex items-center gap-2 mb-3">
+                  <i class="pi pi-comment text-yellow-400"></i>
+                  <span class="text-sm text-gray-400 font-medium">Detalles de la Queja</span>
+                </div>
+                <p class="text-white text-sm whitespace-pre-wrap">
+                  {{ data.complaint || request.description }}
+                </p>
+              </div>
+            }
+
+            <!-- Botón para ver conversación -->
+            <div class="flex justify-end">
+              <p-button
+                label="Ver Conversación"
+                icon="pi pi-comments"
+                severity="secondary"
+                [outlined]="true"
+                [rounded]="true"
+                (onClick)="closeRequestDetailsDialog(); viewResponse(data)"
+              />
+            </div>
+          }
+        </div>
+      }
     </p-dialog>
 
     <p-toast />
@@ -3365,24 +3743,215 @@ export class EmployeePortalComponent {
   }
 
   // Helper para calcular horas desde date_from y date_to cuando es por horas
-  public calculateHoursFromDates(dateFrom: Date | string, dateTo: Date | string): number {
-    const startDate = new Date(dateFrom);
-    const endDate = new Date(dateTo);
-    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-    const diffHours = diffTime / (1000 * 60 * 60);
-    return diffHours;
+  public calculateHoursFromDates(
+    dateFrom: Date | string,
+    dateTo: Date | string
+  ): number {
+    if (!dateFrom || !dateTo) {
+      return 0;
+    }
+
+    // Normalizar las fechas a strings para mejor parsing
+    const dateFromStr = String(dateFrom);
+    const dateToStr = String(dateTo);
+
+    // Intentar parsear las fechas
+    let startDate: Date;
+    let endDate: Date;
+
+    try {
+      // Si ya es un objeto Date, usarlo directamente
+      if (dateFrom instanceof Date) {
+        startDate = dateFrom;
+      } else {
+        // Intentar parsear como string
+        startDate = new Date(dateFromStr);
+      }
+
+      if (dateTo instanceof Date) {
+        endDate = dateTo;
+      } else {
+        endDate = new Date(dateToStr);
+      }
+
+      // Validar que las fechas sean válidas
+      if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        console.warn(
+          '[getCompensatoryQuantity] Fechas inválidas:',
+          dateFromStr,
+          dateToStr
+        );
+        return 0;
+      }
+
+      const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+      const diffHours = diffTime / (1000 * 60 * 60);
+
+      // Redondear a 2 decimales para evitar errores de precisión
+      return Math.round(diffHours * 100) / 100;
+    } catch (error) {
+      console.error(
+        '[getCompensatoryQuantity] Error calculando horas:',
+        error,
+        dateFromStr,
+        dateToStr
+      );
+      return 0;
+    }
+  }
+
+  // Helper para extraer el motivo desde las notas de una solicitud compensatoria
+  public getCompensatoryReasonFromNotes(data: any): string | null {
+    if (!data.notes) return null;
+    const notesArray = Array.isArray(data.notes)
+      ? data.notes
+      : typeof data.notes === 'string'
+      ? [data.notes]
+      : [];
+    const motivoNote = notesArray.find(
+      (note: any) => typeof note === 'string' && note.startsWith('Motivo:')
+    );
+    if (motivoNote) {
+      return motivoNote.replace('Motivo: ', '').trim();
+    }
+    return null;
   }
 
   // Helper para obtener la cantidad correcta de horas o días para una solicitud compensatoria
-  public getCompensatoryQuantity(data: any): { value: number; isDays: boolean } {
-    if (data.compensatory_type === 'days') {
-      const days = data.compensatory_amount || this.calculateDays(data.date_from, data.date_to);
-      return { value: days, isDays: true };
+  public getCompensatoryQuantity(data: any): {
+    value: number;
+    isDays: boolean;
+  } {
+    // Primero intentar determinar si es días u horas desde las notas o el campo compensatory_type
+    let isDays = false;
+
+    // 1. Intentar desde compensatory_type si existe
+    if (data.compensatory_type) {
+      isDays = data.compensatory_type === 'days';
+    }
+    // 2. Intentar desde las notas
+    else if (data.notes) {
+      const notesArray = Array.isArray(data.notes)
+        ? data.notes
+        : typeof data.notes === 'string'
+        ? [data.notes]
+        : [];
+
+      // Buscar nota que contenga "Tipo:"
+      const tipoNote = notesArray.find(
+        (note: any) => typeof note === 'string' && note.includes('Tipo:')
+      );
+
+      if (tipoNote) {
+        isDays = tipoNote.includes('Días');
+      }
+      // 3. Si no hay nota de tipo, determinar por el formato de las fechas y la diferencia
+      else if (data.date_from && data.date_to) {
+        const dateFromStr = String(data.date_from);
+        const dateToStr = String(data.date_to);
+
+        // Si las fechas incluyen hora (formato datetime con espacio o ISO con T), probablemente es por horas
+        const hasTimeInFrom =
+          (dateFromStr.includes(' ') && dateFromStr.includes(':')) ||
+          (dateFromStr.includes('T') && dateFromStr.includes(':'));
+        const hasTimeInTo =
+          (dateToStr.includes(' ') && dateToStr.includes(':')) ||
+          (dateToStr.includes('T') && dateToStr.includes(':'));
+
+        if (hasTimeInFrom && hasTimeInTo) {
+          // Tiene hora, es por horas
+          isDays = false;
+        } else {
+          // No tiene hora, calcular diferencia
+          const hours = this.calculateHoursFromDates(
+            data.date_from,
+            data.date_to
+          );
+          const days = hours / 24;
+          // Si la diferencia es un número entero de días (tolerancia pequeña)
+          isDays = days >= 1 && Math.abs(days - Math.round(days)) < 0.1;
+        }
+      }
+    }
+    // 4. Si no hay notas, intentar determinar por formato de fechas
+    else if (data.date_from && data.date_to) {
+      const dateFromStr = String(data.date_from);
+      const dateToStr = String(data.date_to);
+
+      const hasTimeInFrom =
+        (dateFromStr.includes(' ') && dateFromStr.includes(':')) ||
+        (dateFromStr.includes('T') && dateFromStr.includes(':'));
+      const hasTimeInTo =
+        (dateToStr.includes(' ') && dateToStr.includes(':')) ||
+        (dateToStr.includes('T') && dateToStr.includes(':'));
+
+      if (hasTimeInFrom && hasTimeInTo) {
+        isDays = false;
+      } else {
+        const hours = this.calculateHoursFromDates(
+          data.date_from,
+          data.date_to
+        );
+        const days = hours / 24;
+        isDays = days >= 1 && Math.abs(days - Math.round(days)) < 0.1;
+      }
+    }
+
+    if (isDays) {
+      // Calcular días desde fechas
+      let days = 0;
+      if (data.date_from && data.date_to) {
+        days = this.calculateDays(data.date_from, data.date_to);
+      } else if (data.compensatory_amount) {
+        days = data.compensatory_amount;
+      }
+      return { value: days > 0 ? days : 1, isDays: true };
     } else {
-      // Para horas, intentar obtener de hours, compensatory_amount, o calcular desde fechas
-      let hours = data.hours || data.compensatory_amount || 0;
-      if (hours === 0 && data.date_from && data.date_to) {
+      // Para horas, calcular siempre desde fechas si están disponibles
+      let hours = 0;
+      if (data.date_from && data.date_to) {
         hours = this.calculateHoursFromDates(data.date_from, data.date_to);
+
+        // Si el resultado es 0 o negativo, intentar desde otros campos
+        if (hours <= 0) {
+          // Intentar desde las notas si hay cantidad guardada
+          if (data.notes) {
+            const notesArray = Array.isArray(data.notes)
+              ? data.notes
+              : typeof data.notes === 'string'
+              ? [data.notes]
+              : [];
+            const cantidadNote = notesArray.find(
+              (note: any) =>
+                typeof note === 'string' && note.includes('Cantidad:')
+            );
+            if (cantidadNote) {
+              const cantidadMatch = cantidadNote.match(/Cantidad:\s*([\d.]+)/);
+              if (cantidadMatch && cantidadMatch[1]) {
+                hours = parseFloat(cantidadMatch[1]);
+              }
+            }
+          }
+
+          // Si aún es 0, intentar desde otros campos
+          if (hours <= 0 && data.hours) {
+            hours = data.hours;
+          } else if (hours <= 0 && data.compensatory_amount) {
+            hours = data.compensatory_amount;
+          }
+        }
+
+        // Si el resultado es muy grande (más de 24 horas), probablemente es un error
+        // y debería ser días en lugar de horas
+        if (hours >= 24 && hours % 24 < 0.1) {
+          // Es un número entero de días, convertir a días
+          const days = Math.round(hours / 24);
+          return { value: days, isDays: true };
+        }
+      } else if (data.hours) {
+        hours = data.hours;
+      } else if (data.compensatory_amount) {
+        hours = data.compensatory_amount;
       }
       return { value: hours, isDays: false };
     }
@@ -3457,7 +4026,10 @@ export class EmployeePortalComponent {
     const lunchExceededMinutes = lunchTime > 60 ? lunchTime - 60 : 0;
 
     // RESTAR el exceso de almuerzo de las horas extras (porque ese tiempo no es trabajo)
-    const dayOvertimeMinutes = Math.max(0, overtimeByTotalTime - lunchExceededMinutes);
+    const dayOvertimeMinutes = Math.max(
+      0,
+      overtimeByTotalTime - lunchExceededMinutes
+    );
 
     // Convertir minutos a horas
     return dayOvertimeMinutes / 60;
@@ -3501,7 +4073,10 @@ export class EmployeePortalComponent {
       const lunchExceededMinutes = lunchTime > 60 ? lunchTime - 60 : 0;
 
       // RESTAR el exceso de almuerzo de las horas extras (porque ese tiempo no es trabajo)
-      const dayOvertimeMinutes = Math.max(0, overtimeByTotalTime - lunchExceededMinutes);
+      const dayOvertimeMinutes = Math.max(
+        0,
+        overtimeByTotalTime - lunchExceededMinutes
+      );
       totalOvertimeMinutes += dayOvertimeMinutes;
     });
 
@@ -3570,7 +4145,7 @@ export class EmployeePortalComponent {
       if (overtimeHours > 0) {
         const entryDate = new Date(log.entry.date);
         const exitDate = new Date(log.exit.date);
-        
+
         // Calcular tiempo de almuerzo en horas
         const lunchTimeMinutes =
           log.lunch_start && log.lunch_end
@@ -3583,12 +4158,14 @@ export class EmployeePortalComponent {
 
         // Calcular retraso (delay) en horas
         // El delay viene en minutos desde los logs procesados
-        const delayMinutes = log.delay && typeof log.delay === 'number' ? log.delay : 0;
+        const delayMinutes =
+          log.delay && typeof log.delay === 'number' ? log.delay : 0;
         const delayHours = delayMinutes / 60;
 
         // Calcular tiempo total trabajado REAL = (salida - entrada) - almuerzo - retraso
         const totalMinutes = differenceInMinutes(exitDate, entryDate);
-        const totalHoursReal = (totalMinutes - lunchTimeMinutes - delayMinutes) / 60;
+        const totalHoursReal =
+          (totalMinutes - lunchTimeMinutes - delayMinutes) / 60;
 
         details.push({
           date: new Date(log.day),
@@ -3617,11 +4194,11 @@ export class EmployeePortalComponent {
   public formatHoursMinutes(hours: number | string): string {
     const hoursNum = typeof hours === 'string' ? parseFloat(hours) : hours;
     if (isNaN(hoursNum) || hoursNum <= 0) return '0m';
-    
+
     const totalMinutes = Math.round(hoursNum * 60);
     const hoursPart = Math.floor(totalMinutes / 60);
     const minutesPart = totalMinutes % 60;
-    
+
     if (hoursPart === 0) {
       return `${minutesPart}m`;
     } else if (minutesPart === 0) {
@@ -3741,6 +4318,10 @@ export class EmployeePortalComponent {
   public submittingCompensatory = signal(false);
   public showTutorialDialog = signal(false);
 
+  // Dialog para detalles de solicitud
+  public showRequestDetailsDialog = signal(false);
+  public selectedRequestDetails = signal<any>(null);
+
   // Nuevos signals para el formulario mejorado
   public compensatoryDate = signal<Date | null>(null); // Fecha cuando tipo es "hours"
   public compensatoryTimeStart = signal<Date | null>(null); // Hora inicio cuando tipo es "hours"
@@ -3814,7 +4395,11 @@ export class EmployeePortalComponent {
   public allRequestsFilterSearch = signal<string>('');
   public allRequestsSortBy = signal<'date' | 'status' | 'type'>('date');
   public allRequestsSortOrder = signal<'asc' | 'desc'>('desc');
-  public selectedSortOption = signal<any>({ label: 'Fecha (Más reciente)', by: 'date', order: 'desc' });
+  public selectedSortOption = signal<any>({
+    label: 'Fecha (Más reciente)',
+    by: 'date',
+    order: 'desc',
+  });
   public filtersExpanded = signal<boolean>(false);
 
   // Mantener filtros antiguos para compatibilidad con sección de tiempo compensatorio
@@ -3839,7 +4424,12 @@ export class EmployeePortalComponent {
   public allRequestsUnified = computed(() => {
     const requests: Array<{
       id: string;
-      request_type: 'compensatory' | 'disability' | 'document' | 'complaint' | 'vacation';
+      request_type:
+        | 'compensatory'
+        | 'disability'
+        | 'document'
+        | 'complaint'
+        | 'vacation';
       created_at: string | Date;
       status: string;
       title: string;
@@ -3855,7 +4445,9 @@ export class EmployeePortalComponent {
         request_type: 'compensatory',
         created_at: req.created_at,
         status: this.getUnifiedRequestStatus(req, 'compensatory'),
-        title: `Tiempo Compensatorio ${req.compensatory_type === 'days' ? 'por Días' : 'por Horas'}`,
+        title: `Tiempo Compensatorio ${
+          req.compensatory_type === 'days' ? 'por Días' : 'por Horas'
+        }`,
         description: req.reason || '',
         originalData: req,
       });
@@ -3911,7 +4503,8 @@ export class EmployeePortalComponent {
     if (type === 'compensatory') {
       if (request.is_approved === true) return 'approved';
       if (request.review_status === 'approved') return 'in_registry';
-      if (request.rejection_comment || request.review_status === 'rejected') return 'rejected';
+      if (request.rejection_comment || request.review_status === 'rejected')
+        return 'rejected';
       return 'pending';
     } else if (type === 'disability') {
       return request.status || 'pending';
@@ -3932,7 +4525,10 @@ export class EmployeePortalComponent {
     if (statusFilter) {
       requests = requests.filter((r) => {
         if (statusFilter === 'pending') {
-          return r.review_status === 'pending' || (!r.review_status && !r.is_approved);
+          return (
+            r.review_status === 'pending' ||
+            (!r.review_status && !r.is_approved)
+          );
         } else if (statusFilter === 'approved') {
           return r.is_approved === true;
         } else if (statusFilter === 'rejected') {
@@ -3973,10 +4569,10 @@ export class EmployeePortalComponent {
     // Ordenamiento
     const sortBy = this.compensatorySortBy();
     const sortOrder = this.compensatorySortOrder();
-    
+
     requests.sort((a, b) => {
       let comparison = 0;
-      
+
       if (sortBy === 'date') {
         const dateA = new Date(a.created_at).getTime();
         const dateB = new Date(b.created_at).getTime();
@@ -3990,7 +4586,7 @@ export class EmployeePortalComponent {
         const amountB = b.compensatory_amount || b.hours || 0;
         comparison = amountA - amountB;
       }
-      
+
       return sortOrder === 'asc' ? comparison : -comparison;
     });
 
@@ -4001,8 +4597,13 @@ export class EmployeePortalComponent {
   private getRequestStatusOrder(request: any): number {
     if (request.is_approved === true) return 1; // Aprobado primero
     if (request.review_status === 'approved') return 2; // En registro
-    if (request.review_status === 'pending' || (!request.review_status && !request.is_approved)) return 3; // Pendiente
-    if (request.rejection_comment || request.review_status === 'rejected') return 4; // Rechazado
+    if (
+      request.review_status === 'pending' ||
+      (!request.review_status && !request.is_approved)
+    )
+      return 3; // Pendiente
+    if (request.rejection_comment || request.review_status === 'rejected')
+      return 4; // Rechazado
     return 5;
   }
 
@@ -4059,27 +4660,28 @@ export class EmployeePortalComponent {
     // Ordenamiento
     const sortBy = this.allRequestsSortBy();
     const sortOrder = this.allRequestsSortOrder();
-    
+
     requests.sort((a, b) => {
       let comparison = 0;
-      
+
       if (sortBy === 'date') {
         const dateA = new Date(a.created_at).getTime();
         const dateB = new Date(b.created_at).getTime();
         comparison = dateA - dateB;
       } else if (sortBy === 'status') {
         const statusOrder: Record<string, number> = {
-          'pending': 1,
-          'approved': 2,
-          'in_registry': 3,
-          'completed': 4,
-          'rejected': 5,
+          pending: 1,
+          approved: 2,
+          in_registry: 3,
+          completed: 4,
+          rejected: 5,
         };
-        comparison = (statusOrder[a.status] || 99) - (statusOrder[b.status] || 99);
+        comparison =
+          (statusOrder[a.status] || 99) - (statusOrder[b.status] || 99);
       } else if (sortBy === 'type') {
         comparison = a.request_type.localeCompare(b.request_type);
       }
-      
+
       return sortOrder === 'asc' ? comparison : -comparison;
     });
 
@@ -4089,14 +4691,14 @@ export class EmployeePortalComponent {
   // Helper: Obtener label del estado unificado
   public getUnifiedStatusLabel(status: string): string {
     const labels: Record<string, string> = {
-      'pending': 'Pendiente',
-      'approved': 'Aprobado',
-      'rejected': 'Rechazado',
-      'in_registry': 'En Registro',
-      'completed': 'Completado',
-      'in_review': 'En Revisión',
-      'closed': 'Cerrado',
-      'resolved': 'Resuelto',
+      pending: 'Pendiente',
+      approved: 'Aprobado',
+      rejected: 'Rechazado',
+      in_registry: 'En Registro',
+      completed: 'Completado',
+      in_review: 'En Revisión',
+      closed: 'Cerrado',
+      resolved: 'Resuelto',
     };
     return labels[status] || status;
   }
@@ -4104,11 +4706,11 @@ export class EmployeePortalComponent {
   // Helper: Obtener label del tipo de solicitud
   public getRequestTypeLabel(type: string): string {
     const labels: Record<string, string> = {
-      'compensatory': 'Tiempo Compensatorio',
-      'disability': 'Incapacidad',
-      'document': 'Documento',
-      'complaint': 'Queja',
-      'vacation': 'Vacaciones',
+      compensatory: 'Tiempo Compensatorio',
+      disability: 'Incapacidad',
+      document: 'Documento',
+      complaint: 'Queja',
+      vacation: 'Vacaciones',
     };
     return labels[type] || type;
   }
@@ -4133,8 +4735,16 @@ export class EmployeePortalComponent {
   ];
 
   public allRequestsSortOptions = [
-    { label: 'Fecha (Más reciente)', by: 'date' as const, order: 'desc' as const },
-    { label: 'Fecha (Más antiguo)', by: 'date' as const, order: 'asc' as const },
+    {
+      label: 'Fecha (Más reciente)',
+      by: 'date' as const,
+      order: 'desc' as const,
+    },
+    {
+      label: 'Fecha (Más antiguo)',
+      by: 'date' as const,
+      order: 'asc' as const,
+    },
     { label: 'Estado', by: 'status' as const, order: 'asc' as const },
     { label: 'Tipo', by: 'type' as const, order: 'asc' as const },
   ];
@@ -4195,10 +4805,22 @@ export class EmployeePortalComponent {
   ];
 
   public compensatorySortOptions = [
-    { label: 'Fecha (Más reciente)', by: 'date' as const, order: 'desc' as const },
-    { label: 'Fecha (Más antiguo)', by: 'date' as const, order: 'asc' as const },
+    {
+      label: 'Fecha (Más reciente)',
+      by: 'date' as const,
+      order: 'desc' as const,
+    },
+    {
+      label: 'Fecha (Más antiguo)',
+      by: 'date' as const,
+      order: 'asc' as const,
+    },
     { label: 'Estado', by: 'status' as const, order: 'asc' as const },
-    { label: 'Cantidad (Mayor)', by: 'amount' as const, order: 'desc' as const },
+    {
+      label: 'Cantidad (Mayor)',
+      by: 'amount' as const,
+      order: 'desc' as const,
+    },
     { label: 'Cantidad (Menor)', by: 'amount' as const, order: 'asc' as const },
   ];
 
@@ -4394,15 +5016,27 @@ export class EmployeePortalComponent {
     if (overtimeDetails.length > 0) {
       notes.push('');
       notes.push('--- Fechas donde trabajó horas extra ---');
-      const totalOvertime = overtimeDetails.reduce((sum, day) => sum + day.overtimeHours, 0);
-      notes.push(`Total de horas extra disponibles: ${totalOvertime.toFixed(2)}h`);
+      const totalOvertime = overtimeDetails.reduce(
+        (sum, day) => sum + day.overtimeHours,
+        0
+      );
+      notes.push(
+        `Total de horas extra disponibles: ${totalOvertime.toFixed(2)}h`
+      );
       notes.push('');
       notes.push('Detalle por fecha:');
       overtimeDetails.forEach((day) => {
-        const delayText = day.delayHours > 0 ? ` | Retraso: ${day.delayHours.toFixed(2)}h` : '';
+        const delayText =
+          day.delayHours > 0 ? ` | Retraso: ${day.delayHours.toFixed(2)}h` : '';
         notes.push(
-          `${format(day.date, 'dd/MM/yyyy')}: Entrada ${day.entryTime} - Salida ${day.exitTime} | ` +
-          `Total: ${day.totalHours.toFixed(2)}h (después de restar almuerzo y retraso) | Almuerzo: ${day.lunchDuration.toFixed(2)}h${delayText} | Extra: ${day.overtimeHours.toFixed(2)}h`
+          `${format(day.date, 'dd/MM/yyyy')}: Entrada ${
+            day.entryTime
+          } - Salida ${day.exitTime} | ` +
+            `Total: ${day.totalHours.toFixed(
+              2
+            )}h (después de restar almuerzo y retraso) | Almuerzo: ${day.lunchDuration.toFixed(
+              2
+            )}h${delayText} | Extra: ${day.overtimeHours.toFixed(2)}h`
         );
       });
     }
@@ -4991,6 +5625,16 @@ export class EmployeePortalComponent {
     } catch (error) {
       console.error('Error al descargar documento:', error);
     }
+  }
+
+  public viewRequestDetails(request: any): void {
+    this.selectedRequestDetails.set(request);
+    this.showRequestDetailsDialog.set(true);
+  }
+
+  public closeRequestDetailsDialog(): void {
+    this.showRequestDetailsDialog.set(false);
+    this.selectedRequestDetails.set(null);
   }
 
   public viewResponse(complaint: any): void {

@@ -8,16 +8,20 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { differenceInMinutes, format, startOfMonth, endOfMonth } from 'date-fns';
+import { differenceInMinutes, format, startOfMonth, endOfMonth, subDays, addDays } from 'date-fns';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { CalendarModule } from 'primeng/calendar';
 import { CardModule } from 'primeng/card';
+import { CheckboxModule } from 'primeng/checkbox';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DialogModule } from 'primeng/dialog';
 import { DropdownModule } from 'primeng/dropdown';
 import { InputTextModule } from 'primeng/inputtext';
+import { MenuModule } from 'primeng/menu';
+import { MultiSelectModule } from 'primeng/multiselect';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
+import { SelectButtonModule } from 'primeng/selectbutton';
 import { TableModule } from 'primeng/table';
 import { TabsModule } from 'primeng/tabs';
 import { TagModule } from 'primeng/tag';
@@ -94,429 +98,730 @@ interface CompensatoryRequest {
     ProgressSpinnerModule,
     FormsModule,
     DatePipe,
+    MenuModule,
+    MultiSelectModule,
+    CheckboxModule,
+    SelectButtonModule,
   ],
   providers: [MessageService, ConfirmationService],
   template: `
     <p-toast />
     <p-confirmDialog />
 
-    <div class="space-y-6">
-      <!-- Header -->
-      <div class="flex items-center justify-between">
-        <div>
-          <h2 class="text-2xl font-bold text-white m-0">Gestión de RRHH</h2>
-          <p class="text-sm text-gray-400 m-0 mt-1">
-            Revisa, aprueba o rechaza las solicitudes enviadas por los empleados
-          </p>
-        </div>
-        <div class="flex items-center gap-3">
-          <p-button
-            icon="pi pi-refresh"
-            label="Actualizar"
-            [outlined]="true"
-            severity="secondary"
-            (onClick)="refreshAll()"
-            [loading]="isRefreshing()"
-          />
+    <div class="min-h-screen bg-gradient-to-br from-neutral-900 via-neutral-900 to-neutral-800">
+      <!-- Header Moderno con Búsqueda Global -->
+      <div class="bg-gradient-to-r from-neutral-800 via-neutral-800/95 to-neutral-800 border-b border-neutral-700/50 shadow-xl sticky top-0 z-40 backdrop-blur-sm">
+        <div class="px-6 py-4">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h1 class="text-3xl font-bold bg-gradient-to-r from-white via-cyan-100 to-cyan-300 bg-clip-text text-transparent m-0">
+                Dashboard de RRHH
+              </h1>
+              <p class="text-sm text-gray-400 m-0 mt-1 flex items-center gap-2">
+                <i class="pi pi-shield text-cyan-400"></i>
+                Gestión integral de incapacidades y tiempo compensatorio
+              </p>
+            </div>
+            <div class="flex items-center gap-3">
+              <p-button
+                icon="pi pi-download"
+                label="Exportar"
+                [outlined]="true"
+                severity="secondary"
+                (onClick)="exportData()"
+                [disabled]="isRefreshing()"
+                pTooltip="Exportar datos a Excel"
+                tooltipPosition="bottom"
+              />
+              <p-button
+                icon="pi pi-refresh"
+                label="Actualizar"
+                [outlined]="true"
+                severity="secondary"
+                (onClick)="refreshAll()"
+                [loading]="isRefreshing()"
+                pTooltip="Actualizar todos los datos"
+                tooltipPosition="bottom"
+              />
+            </div>
+          </div>
+          
+          <!-- Búsqueda Global Inteligente -->
+          <div class="relative">
+            <input
+              type="text"
+              pInputText
+              placeholder="🔍 Búsqueda rápida: empleado, email, descripción, motivo..."
+              [(ngModel)]="globalSearchText"
+              (input)="onGlobalSearch()"
+              class="w-full pl-12 pr-4 py-3 bg-neutral-900/50 border-neutral-600 text-white placeholder-gray-500 focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all"
+            />
+            <i class="pi pi-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+            @if (globalSearchText()) {
+            <button
+              (click)="clearGlobalSearch()"
+              class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+            >
+              <i class="pi pi-times"></i>
+            </button>
+            }
+          </div>
         </div>
       </div>
 
-      <p-tabs value="disabilities">
-        <p-tablist>
-          <p-tab value="disabilities">
-            <i class="pi pi-heart mr-2"></i>
-            Incapacidades
-          </p-tab>
-          <p-tab value="compensatory">
-            <i class="pi pi-clock mr-2"></i>
-            Tiempo Compensatorio
-          </p-tab>
-        </p-tablist>
-
-        <p-tabpanel value="disabilities">
-          <!-- Estadísticas de Incapacidades -->
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <div
-              class="bg-neutral-800 rounded-lg p-4 border border-neutral-700"
+      <div class="px-6 py-6 space-y-6">
+        <!-- Pestañas Mejoradas -->
+        <div class="bg-neutral-800/50 rounded-xl border border-neutral-700/50 p-1 backdrop-blur-sm">
+          <div class="flex gap-2">
+            <button
+              (click)="activeTab.set('disabilities')"
+              [class]="'flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-300 ' + 
+                (activeTab() === 'disabilities' 
+                  ? 'bg-gradient-to-r from-cyan-500/20 to-cyan-600/20 text-cyan-300 shadow-lg border border-cyan-400/30' 
+                  : 'text-gray-400 hover:text-white hover:bg-neutral-700/50')"
             >
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="text-sm text-gray-400 m-0">Total</p>
-                  <p class="text-2xl font-bold text-white m-0 mt-1">
+              <i class="pi pi-heart mr-2"></i>
+              Incapacidades
+              @if (pendingCount() > 0) {
+              <span class="ml-2 px-2 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full text-xs font-bold">
+                {{ pendingCount() }}
+              </span>
+              }
+            </button>
+            <button
+              (click)="activeTab.set('compensatory')"
+              [class]="'flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-300 ' + 
+                (activeTab() === 'compensatory' 
+                  ? 'bg-gradient-to-r from-cyan-500/20 to-cyan-600/20 text-cyan-300 shadow-lg border border-cyan-400/30' 
+                  : 'text-gray-400 hover:text-white hover:bg-neutral-700/50')"
+            >
+              <i class="pi pi-clock mr-2"></i>
+              Tiempo Compensatorio
+              @if (compensatoryPendingCount() > 0) {
+              <span class="ml-2 px-2 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full text-xs font-bold">
+                {{ compensatoryPendingCount() }}
+              </span>
+              }
+            </button>
+          </div>
+        </div>
+
+        @if (activeTab() === 'disabilities') {
+        <!-- Dashboard de Incapacidades -->
+        <div class="space-y-6">
+          <!-- Estadísticas Mejoradas con Animaciones -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Total -->
+            <div class="group relative bg-gradient-to-br from-neutral-800 to-neutral-800/80 rounded-xl p-6 border border-neutral-700/50 hover:border-cyan-400/50 transition-all duration-300 hover:shadow-2xl hover:shadow-cyan-500/10 hover:-translate-y-1 cursor-pointer">
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-gray-500/20 to-gray-600/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <i class="pi pi-file text-2xl text-gray-400"></i>
+                </div>
+                <div class="text-right">
+                  <p class="text-xs font-medium text-gray-400 uppercase tracking-wider m-0">Total</p>
+                  <p class="text-3xl font-bold text-white m-0 mt-1">
                     {{ totalCount() }}
                   </p>
                 </div>
-                <i class="pi pi-file text-3xl text-gray-500"></i>
+              </div>
+              <div class="h-1 bg-neutral-700 rounded-full overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-gray-500 to-gray-400 rounded-full" [style.width.%]="100"></div>
               </div>
             </div>
-            <div
-              class="bg-neutral-800 rounded-lg p-4 border border-neutral-700"
-            >
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="text-sm text-gray-400 m-0">Pendientes</p>
-                  <p class="text-2xl font-bold text-yellow-400 m-0 mt-1">
+
+            <!-- Pendientes -->
+            <div class="group relative bg-gradient-to-br from-yellow-500/10 via-yellow-500/5 to-neutral-800 rounded-xl p-6 border border-yellow-500/30 hover:border-yellow-400/50 transition-all duration-300 hover:shadow-2xl hover:shadow-yellow-500/20 hover:-translate-y-1 cursor-pointer">
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-yellow-500/30 to-yellow-600/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <i class="pi pi-clock text-2xl text-yellow-400"></i>
+                </div>
+                <div class="text-right">
+                  <p class="text-xs font-medium text-yellow-400/80 uppercase tracking-wider m-0">Pendientes</p>
+                  <p class="text-3xl font-bold text-yellow-300 m-0 mt-1">
                     {{ pendingCount() }}
                   </p>
                 </div>
-                <i class="pi pi-clock text-3xl text-yellow-500"></i>
+              </div>
+              <div class="h-1 bg-neutral-700 rounded-full overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-yellow-500 to-yellow-400 rounded-full" 
+                     [style.width.%]="totalCount() > 0 ? (pendingCount() / totalCount() * 100) : 0"></div>
               </div>
             </div>
-            <div
-              class="bg-neutral-800 rounded-lg p-4 border border-neutral-700"
-            >
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="text-sm text-gray-400 m-0">Aprobadas</p>
-                  <p class="text-2xl font-bold text-green-400 m-0 mt-1">
+
+            <!-- Aprobadas -->
+            <div class="group relative bg-gradient-to-br from-green-500/10 via-green-500/5 to-neutral-800 rounded-xl p-6 border border-green-500/30 hover:border-green-400/50 transition-all duration-300 hover:shadow-2xl hover:shadow-green-500/20 hover:-translate-y-1 cursor-pointer">
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-green-500/30 to-green-600/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <i class="pi pi-check-circle text-2xl text-green-400"></i>
+                </div>
+                <div class="text-right">
+                  <p class="text-xs font-medium text-green-400/80 uppercase tracking-wider m-0">Aprobadas</p>
+                  <p class="text-3xl font-bold text-green-300 m-0 mt-1">
                     {{ approvedCount() }}
                   </p>
                 </div>
-                <i class="pi pi-check-circle text-3xl text-green-500"></i>
+              </div>
+              <div class="h-1 bg-neutral-700 rounded-full overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full" 
+                     [style.width.%]="totalCount() > 0 ? (approvedCount() / totalCount() * 100) : 0"></div>
               </div>
             </div>
-            <div
-              class="bg-neutral-800 rounded-lg p-4 border border-neutral-700"
-            >
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="text-sm text-gray-400 m-0">Rechazadas</p>
-                  <p class="text-2xl font-bold text-red-400 m-0 mt-1">
+
+            <!-- Rechazadas -->
+            <div class="group relative bg-gradient-to-br from-red-500/10 via-red-500/5 to-neutral-800 rounded-xl p-6 border border-red-500/30 hover:border-red-400/50 transition-all duration-300 hover:shadow-2xl hover:shadow-red-500/20 hover:-translate-y-1 cursor-pointer">
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-red-500/30 to-red-600/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <i class="pi pi-times-circle text-2xl text-red-400"></i>
+                </div>
+                <div class="text-right">
+                  <p class="text-xs font-medium text-red-400/80 uppercase tracking-wider m-0">Rechazadas</p>
+                  <p class="text-3xl font-bold text-red-300 m-0 mt-1">
                     {{ rejectedCount() }}
                   </p>
                 </div>
-                <i class="pi pi-times-circle text-3xl text-red-500"></i>
+              </div>
+              <div class="h-1 bg-neutral-700 rounded-full overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-red-500 to-red-400 rounded-full" 
+                     [style.width.%]="totalCount() > 0 ? (rejectedCount() / totalCount() * 100) : 0"></div>
               </div>
             </div>
           </div>
 
-          <!-- Filtros -->
-          <p-card class="bg-neutral-800 border-neutral-700">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2"
-                  >Buscar</label
-                >
-                <input
-                  type="text"
-                  pInputText
-                  placeholder="Empleado, descripción..."
-                  [(ngModel)]="searchText"
-                  (input)="onFilterChange()"
-                  class="w-full"
-                />
+          <!-- Filtros Avanzados Colapsables -->
+          <div class="bg-gradient-to-br from-neutral-800/80 to-neutral-800/60 rounded-xl border border-neutral-700/50 backdrop-blur-sm">
+            <div class="p-4 border-b border-neutral-700/50 flex items-center justify-between cursor-pointer"
+                 (click)="showFilters.set(!showFilters())">
+              <div class="flex items-center gap-3">
+                <i class="pi pi-filter text-cyan-400"></i>
+                <h3 class="text-lg font-semibold text-white m-0">Filtros Avanzados</h3>
+                @if (hasActiveFilters()) {
+                <span class="px-2 py-1 bg-cyan-500/20 text-cyan-300 rounded-full text-xs font-bold">
+                  {{ getActiveFiltersCount() }} activos
+                </span>
+                }
               </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2"
-                  >Estado</label
-                >
-                <p-dropdown
-                  [options]="statusOptions"
-                  [(ngModel)]="selectedStatus"
-                  (onChange)="onFilterChange()"
-                  placeholder="Todos los estados"
-                  [showClear]="true"
-                  class="w-full"
-                />
+              <i class="pi" 
+                 [class.pi-chevron-down]="!showFilters()" 
+                 [class.pi-chevron-up]="showFilters()"
+                 [class.text-gray-400]="!showFilters()"
+                 [class.text-cyan-400]="showFilters()"></i>
+            </div>
+            
+            @if (showFilters()) {
+            <div class="p-6 space-y-4 animate-fade-in">
+              <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div class="md:col-span-2">
+                  <label class="block text-sm font-medium text-gray-300 mb-2">
+                    <i class="pi pi-search mr-2 text-cyan-400"></i>Búsqueda Específica
+                  </label>
+                  <input
+                    type="text"
+                    pInputText
+                    placeholder="Empleado, email, descripción..."
+                    [(ngModel)]="searchText"
+                    (input)="onFilterChange()"
+                    class="w-full bg-neutral-900/50 border-neutral-600"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-300 mb-2">
+                    <i class="pi pi-tag mr-2 text-cyan-400"></i>Estado
+                  </label>
+                  <p-dropdown
+                    [options]="statusOptions"
+                    [(ngModel)]="selectedStatus"
+                    (onChange)="onFilterChange()"
+                    placeholder="Todos"
+                    [showClear]="true"
+                    class="w-full"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-300 mb-2">
+                    <i class="pi pi-calendar mr-2 text-cyan-400"></i>Rango de Fechas
+                  </label>
+                  <p-calendar
+                    [(ngModel)]="dateRange"
+                    selectionMode="range"
+                    [showIcon]="true"
+                    dateFormat="dd/mm/yy"
+                    placeholder="Seleccionar"
+                    (onSelect)="onFilterChange()"
+                    [showClear]="true"
+                    class="w-full"
+                  />
+                </div>
               </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2"
-                  >Fecha Inicio</label
-                >
-                <p-calendar
-                  [(ngModel)]="dateRange"
-                  selectionMode="range"
-                  [showIcon]="true"
-                  dateFormat="dd/mm/yy"
-                  placeholder="Rango de fechas"
-                  (onSelect)="onFilterChange()"
-                  [showClear]="true"
-                  class="w-full"
-                />
-              </div>
-              <div class="flex items-end">
+              
+              <div class="flex items-center justify-between pt-4 border-t border-neutral-700/50">
                 <p-button
-                  label="Limpiar Filtros"
+                  label="Limpiar Todo"
                   icon="pi pi-filter-slash"
                   [outlined]="true"
                   severity="secondary"
                   (onClick)="clearFilters()"
-                  class="w-full"
+                  [disabled]="!hasActiveFilters()"
                 />
+                <div class="flex items-center gap-2 text-sm text-gray-400">
+                  <i class="pi pi-info-circle"></i>
+                  <span>{{ filteredDisabilities().length }} de {{ totalCount() }} resultados</span>
+                </div>
               </div>
             </div>
-          </p-card>
+            }
+          </div>
 
-          <!-- Tabla -->
-          <p-card class="bg-neutral-800 border-neutral-700">
+          <!-- Tabla Mejorada -->
+          <div class="bg-gradient-to-br from-neutral-800/80 to-neutral-800/60 rounded-xl border border-neutral-700/50 backdrop-blur-sm overflow-hidden">
+            <div class="p-6 border-b border-neutral-700/50 flex items-center justify-between">
+              <div class="flex items-center gap-4">
+                <h3 class="text-xl font-semibold text-white m-0 flex items-center gap-2">
+                  <i class="pi pi-list text-cyan-400"></i>
+                  Solicitudes de Incapacidades
+                </h3>
+                @if (selectedDisabilities().length > 0) {
+                <span class="px-3 py-1 bg-cyan-500/20 text-cyan-300 rounded-lg text-sm font-medium">
+                  {{ selectedDisabilities().length }} seleccionada(s)
+                </span>
+                }
+              </div>
+              @if (selectedDisabilities().length > 0) {
+              <div class="flex items-center gap-2">
+                <p-button
+                  label="Aprobar Seleccionadas"
+                  icon="pi pi-check"
+                  severity="success"
+                  size="small"
+                  (onClick)="bulkApprove()"
+                />
+                <p-button
+                  label="Rechazar Seleccionadas"
+                  icon="pi pi-times"
+                  severity="danger"
+                  size="small"
+                  (onClick)="bulkReject()"
+                />
+                <p-button
+                  icon="pi pi-times"
+                  [text]="true"
+                  severity="secondary"
+                  size="small"
+                  (onClick)="selectedDisabilities.set([])"
+                  pTooltip="Limpiar selección"
+                />
+              </div>
+              }
+            </div>
+            
             @if (disabilitiesApi.isLoading()) {
-            <div class="flex justify-center items-center py-12">
-              <p-progressSpinner />
+            <div class="flex justify-center items-center py-20">
+              <div class="text-center">
+                <p-progressSpinner />
+                <p class="text-gray-400 mt-4">Cargando incapacidades...</p>
+              </div>
+            </div>
+            } @else if (filteredDisabilities().length === 0) {
+            <div class="flex flex-col items-center justify-center py-20 text-center">
+              <i class="pi pi-inbox text-6xl text-gray-600 mb-4"></i>
+              <h4 class="text-xl font-semibold text-gray-300 mb-2">No se encontraron incapacidades</h4>
+              <p class="text-gray-500 mb-4">Intenta ajustar los filtros para ver más resultados</p>
+              <p-button
+                label="Limpiar Filtros"
+                icon="pi pi-filter-slash"
+                [outlined]="true"
+                severity="secondary"
+                (onClick)="clearFilters()"
+              />
             </div>
             } @else {
-            <p-table
-              [value]="filteredDisabilities()"
-              [paginator]="true"
-              [rows]="10"
-              [rowsPerPageOptions]="[10, 25, 50]"
-              [globalFilterFields]="[
-                'employee.first_name',
-                'employee.father_name',
-                'employee.work_email',
-                'description'
-              ]"
-              styleClass="p-datatable-striped"
-              [tableStyle]="{ 'min-width': '50rem' }"
-            >
-              <ng-template #emptymessage>
-                <tr>
-                  <td colspan="8" class="text-center py-4">
-                    No se encontraron incapacidades
-                  </td>
-                </tr>
-              </ng-template>
-              <ng-template pTemplate="header">
-                <tr>
-                  <th style="width: 200px">Empleado</th>
-                  <th style="width: 120px">Fecha Inicio</th>
-                  <th style="width: 120px">Fecha Fin</th>
-                  <th style="width: 100px">Días</th>
-                  <th>Descripción</th>
-                  <th style="width: 120px">Estado</th>
-                  <th style="width: 100px">Documento</th>
-                  <th style="width: 200px">Acciones</th>
-                </tr>
-              </ng-template>
-              <ng-template pTemplate="body" let-disability>
-                <tr>
-                  <td>
-                    <div class="flex flex-col">
-                      <span class="font-medium text-white">
-                        {{ disability.employee?.first_name }}
-                        {{ disability.employee?.father_name }}
+            <div class="overflow-x-auto">
+              <p-table
+                [value]="filteredDisabilities()"
+                [paginator]="true"
+                [rows]="15"
+                [rowsPerPageOptions]="[10, 15, 25, 50, 100]"
+                [globalFilterFields]="[
+                  'employee.first_name',
+                  'employee.father_name',
+                  'employee.work_email',
+                  'description'
+                ]"
+                styleClass="p-datatable-striped p-datatable-sm"
+                [tableStyle]="{ 'min-width': '50rem' }"
+              >
+                <ng-template pTemplate="header">
+                  <tr>
+                    <th style="width: 50px">
+                      <p-checkbox 
+                        [binary]="true"
+                        [ngModel]="isAllSelected()"
+                        (ngModelChange)="toggleSelectAll($event)"
+                      />
+                    </th>
+                    <th style="width: 220px">
+                      <div class="flex items-center gap-2">
+                        <i class="pi pi-user text-cyan-400"></i>
+                        <span>Empleado</span>
+                      </div>
+                    </th>
+                    <th style="width: 130px">
+                      <div class="flex items-center gap-2">
+                        <i class="pi pi-calendar text-cyan-400"></i>
+                        <span>Fecha Inicio</span>
+                      </div>
+                    </th>
+                    <th style="width: 130px">
+                      <div class="flex items-center gap-2">
+                        <i class="pi pi-calendar-times text-cyan-400"></i>
+                        <span>Fecha Fin</span>
+                      </div>
+                    </th>
+                    <th style="width: 100px">
+                      <div class="flex items-center gap-2">
+                        <i class="pi pi-clock text-cyan-400"></i>
+                        <span>Días</span>
+                      </div>
+                    </th>
+                    <th>
+                      <div class="flex items-center gap-2">
+                        <i class="pi pi-file-edit text-cyan-400"></i>
+                        <span>Descripción</span>
+                      </div>
+                    </th>
+                    <th style="width: 130px">
+                      <div class="flex items-center gap-2">
+                        <i class="pi pi-tag text-cyan-400"></i>
+                        <span>Estado</span>
+                      </div>
+                    </th>
+                    <th style="width: 100px">
+                      <div class="flex items-center gap-2">
+                        <i class="pi pi-paperclip text-cyan-400"></i>
+                        <span>Documento</span>
+                      </div>
+                    </th>
+                    <th style="width: 220px">
+                      <div class="flex items-center gap-2">
+                        <i class="pi pi-cog text-cyan-400"></i>
+                        <span>Acciones</span>
+                      </div>
+                    </th>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-disability>
+                  <tr [class.bg-cyan-500/5]="selectedDisabilities().includes(disability.id)"
+                      class="hover:bg-neutral-700/30 transition-colors">
+                    <td>
+                      <p-checkbox 
+                        [binary]="true"
+                        [ngModel]="selectedDisabilities().includes(disability.id)"
+                        (ngModelChange)="toggleDisabilitySelection(disability.id, $event)"
+                      />
+                    </td>
+                    <td>
+                      <div class="flex flex-col gap-1">
+                        <div class="flex items-center gap-2">
+                          <div class="w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500/20 to-cyan-600/20 flex items-center justify-center">
+                            <i class="pi pi-user text-cyan-400 text-xs"></i>
+                          </div>
+                          <div class="flex flex-col">
+                            <span class="font-semibold text-white text-sm">
+                              {{ disability.employee?.first_name }}
+                              {{ disability.employee?.father_name }}
+                            </span>
+                            <span class="text-xs text-gray-400">
+                              {{ disability.employee?.work_email }}
+                            </span>
+                            @if (disability.employee?.position?.name) {
+                            <span class="text-xs text-gray-500 mt-0.5">
+                              <i class="pi pi-briefcase text-xs mr-1"></i>
+                              {{ disability.employee.position.name }}
+                            </span>
+                            }
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="flex items-center gap-2">
+                        <i class="pi pi-calendar text-gray-500 text-xs"></i>
+                        <span class="text-sm font-medium text-gray-300">
+                          {{ disability.start_date | date : 'dd/MM/yyyy' }}
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <div class="flex items-center gap-2">
+                        <i class="pi pi-calendar-times text-gray-500 text-xs"></i>
+                        <span class="text-sm font-medium text-gray-300">
+                          {{ disability.end_date | date : 'dd/MM/yyyy' }}
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="inline-flex items-center gap-1 px-2 py-1 bg-blue-500/20 text-blue-300 rounded-lg text-sm font-semibold">
+                        <i class="pi pi-clock text-xs"></i>
+                        {{
+                          calculateDays(
+                            disability.start_date,
+                            disability.end_date
+                          )
+                        }}
+                        días
                       </span>
-                      <span class="text-xs text-gray-400">
-                        {{ disability.employee?.work_email }}
+                    </td>
+                    <td>
+                      @if (disability.description) {
+                      <span
+                        class="text-sm text-gray-300 cursor-help inline-block max-w-[200px] truncate"
+                        [pTooltip]="disability.description"
+                        tooltipPosition="top"
+                      >
+                        {{ disability.description }}
                       </span>
-                      @if (disability.employee?.position?.name) {
-                      <span class="text-xs text-gray-500">
-                        {{ disability.employee.position.name }}
-                      </span>
+                      } @else {
+                      <span class="text-gray-500 text-sm italic">Sin descripción</span>
                       }
-                    </div>
-                  </td>
-                  <td>
-                    <span class="text-sm text-gray-300">
-                      {{ disability.start_date | date : 'dd/MM/yyyy' }}
-                    </span>
-                  </td>
-                  <td>
-                    <span class="text-sm text-gray-300">
-                      {{ disability.end_date | date : 'dd/MM/yyyy' }}
-                    </span>
-                  </td>
-                  <td>
-                    <span class="text-sm font-medium text-white">
-                      {{
-                        calculateDays(
-                          disability.start_date,
-                          disability.end_date
-                        )
-                      }}
-                      días
-                    </span>
-                  </td>
-                  <td>
-                    @if (disability.description) {
-                    <span
-                      class="text-sm text-gray-300 cursor-help"
-                      [pTooltip]="disability.description"
-                      tooltipPosition="top"
-                      [style.max-width.px]="200"
-                      [style.display]="'inline-block'"
-                      [style.overflow]="'hidden'"
-                      [style.text-overflow]="'ellipsis'"
-                      [style.white-space]="'nowrap'"
-                    >
-                      {{ disability.description }}
-                    </span>
-                    } @else {
-                    <span class="text-gray-500 text-sm">-</span>
-                    }
-                  </td>
-                  <td>
-                    <p-tag
-                      [value]="getStatusLabel(disability.status)"
-                      [severity]="getStatusSeverity(disability.status)"
-                    />
-                  </td>
-                  <td>
-                    @if (disability.document_url) {
-                    <p-button
-                      icon="pi pi-download"
-                      [text]="true"
-                      severity="secondary"
-                      (onClick)="downloadDocument(disability.document_url!)"
-                      pTooltip="Descargar documento"
-                      tooltipPosition="top"
-                    />
-                    } @else {
-                    <span class="text-gray-500 text-sm">-</span>
-                    }
-                  </td>
-                  <td>
-                    <div class="flex gap-2">
-                      @if (disability.status === 'pending') {
-                      <p-button
-                        icon="pi pi-check"
-                        [text]="true"
-                        severity="success"
-                        (onClick)="approveDisability(disability)"
-                        pTooltip="Aprobar"
-                        tooltipPosition="top"
+                    </td>
+                    <td>
+                      <p-tag
+                        [value]="getStatusLabel(disability.status)"
+                        [severity]="getStatusSeverity(disability.status)"
+                        [rounded]="true"
                       />
+                    </td>
+                    <td>
+                      @if (disability.document_url) {
                       <p-button
-                        icon="pi pi-times"
+                        icon="pi pi-download"
                         [text]="true"
-                        severity="danger"
-                        (onClick)="rejectDisability(disability)"
-                        pTooltip="Rechazar"
+                        severity="secondary"
+                        (onClick)="downloadDocument(disability.document_url!)"
+                        pTooltip="Descargar documento"
                         tooltipPosition="top"
+                        [rounded]="true"
                       />
+                      } @else {
+                      <span class="text-gray-500 text-sm italic">-</span>
                       }
-                      <p-button
-                        icon="pi pi-eye"
-                        [text]="true"
-                        severity="info"
-                        (onClick)="viewDetails(disability)"
-                        pTooltip="Ver detalles"
-                        tooltipPosition="top"
-                      />
-                    </div>
-                  </td>
-                </tr>
+                    </td>
+                    <td>
+                      <div class="flex gap-1">
+                        @if (disability.status === 'pending') {
+                        <p-button
+                          icon="pi pi-check"
+                          [text]="true"
+                          severity="success"
+                          (onClick)="approveDisability(disability)"
+                          pTooltip="Aprobar"
+                          tooltipPosition="top"
+                          [rounded]="true"
+                        />
+                        <p-button
+                          icon="pi pi-times"
+                          [text]="true"
+                          severity="danger"
+                          (onClick)="rejectDisability(disability)"
+                          pTooltip="Rechazar"
+                          tooltipPosition="top"
+                          [rounded]="true"
+                        />
+                        }
+                        <p-button
+                          icon="pi pi-eye"
+                          [text]="true"
+                          severity="info"
+                          (onClick)="viewDetails(disability)"
+                          pTooltip="Ver detalles"
+                          tooltipPosition="top"
+                          [rounded]="true"
+                        />
+                      </div>
+                    </td>
+                  </tr>
               </ng-template>
             </p-table>
+            </div>
             }
-          </p-card>
-        </p-tabpanel>
+          </div>
+        </div>
+        }
 
-        <p-tabpanel value="compensatory">
-          <!-- Estadísticas de Tiempo Compensatorio -->
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-            <div
-              class="bg-neutral-800 rounded-lg p-4 border border-neutral-700"
-            >
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="text-sm text-gray-400 m-0">Total</p>
-                  <p class="text-2xl font-bold text-white m-0 mt-1">
+        @if (activeTab() === 'compensatory') {
+        <!-- Dashboard de Tiempo Compensatorio -->
+        <div class="space-y-6">
+          <!-- Estadísticas Mejoradas de Tiempo Compensatorio -->
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Total -->
+            <div class="group relative bg-gradient-to-br from-neutral-800 to-neutral-800/80 rounded-xl p-6 border border-neutral-700/50 hover:border-cyan-400/50 transition-all duration-300 hover:shadow-2xl hover:shadow-cyan-500/10 hover:-translate-y-1 cursor-pointer">
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-gray-500/20 to-gray-600/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <i class="pi pi-clock text-2xl text-gray-400"></i>
+                </div>
+                <div class="text-right">
+                  <p class="text-xs font-medium text-gray-400 uppercase tracking-wider m-0">Total</p>
+                  <p class="text-3xl font-bold text-white m-0 mt-1">
                     {{ compensatoryTotalCount() }}
                   </p>
                 </div>
-                <i class="pi pi-clock text-3xl text-gray-500"></i>
+              </div>
+              <div class="h-1 bg-neutral-700 rounded-full overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-gray-500 to-gray-400 rounded-full" [style.width.%]="100"></div>
               </div>
             </div>
-            <div
-              class="bg-neutral-800 rounded-lg p-4 border border-neutral-700"
-            >
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="text-sm text-gray-400 m-0">Pendientes</p>
-                  <p class="text-2xl font-bold text-yellow-400 m-0 mt-1">
+
+            <!-- Pendientes -->
+            <div class="group relative bg-gradient-to-br from-yellow-500/10 via-yellow-500/5 to-neutral-800 rounded-xl p-6 border border-yellow-500/30 hover:border-yellow-400/50 transition-all duration-300 hover:shadow-2xl hover:shadow-yellow-500/20 hover:-translate-y-1 cursor-pointer">
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-yellow-500/30 to-yellow-600/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <i class="pi pi-clock text-2xl text-yellow-400"></i>
+                </div>
+                <div class="text-right">
+                  <p class="text-xs font-medium text-yellow-400/80 uppercase tracking-wider m-0">Pendientes</p>
+                  <p class="text-3xl font-bold text-yellow-300 m-0 mt-1">
                     {{ compensatoryPendingCount() }}
                   </p>
                 </div>
-                <i class="pi pi-clock text-3xl text-yellow-500"></i>
+              </div>
+              <div class="h-1 bg-neutral-700 rounded-full overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-yellow-500 to-yellow-400 rounded-full" 
+                     [style.width.%]="compensatoryTotalCount() > 0 ? (compensatoryPendingCount() / compensatoryTotalCount() * 100) : 0"></div>
               </div>
             </div>
-            <div
-              class="bg-neutral-800 rounded-lg p-4 border border-neutral-700"
-            >
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="text-sm text-gray-400 m-0">Aprobadas</p>
-                  <p class="text-2xl font-bold text-green-400 m-0 mt-1">
+
+            <!-- Aprobadas -->
+            <div class="group relative bg-gradient-to-br from-green-500/10 via-green-500/5 to-neutral-800 rounded-xl p-6 border border-green-500/30 hover:border-green-400/50 transition-all duration-300 hover:shadow-2xl hover:shadow-green-500/20 hover:-translate-y-1 cursor-pointer">
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-green-500/30 to-green-600/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <i class="pi pi-check-circle text-2xl text-green-400"></i>
+                </div>
+                <div class="text-right">
+                  <p class="text-xs font-medium text-green-400/80 uppercase tracking-wider m-0">Aprobadas</p>
+                  <p class="text-3xl font-bold text-green-300 m-0 mt-1">
                     {{ compensatoryApprovedCount() }}
                   </p>
                 </div>
-                <i class="pi pi-check-circle text-3xl text-green-500"></i>
+              </div>
+              <div class="h-1 bg-neutral-700 rounded-full overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full" 
+                     [style.width.%]="compensatoryTotalCount() > 0 ? (compensatoryApprovedCount() / compensatoryTotalCount() * 100) : 0"></div>
               </div>
             </div>
-            <div
-              class="bg-neutral-800 rounded-lg p-4 border border-neutral-700"
-            >
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="text-sm text-gray-400 m-0">Rechazadas</p>
-                  <p class="text-2xl font-bold text-red-400 m-0 mt-1">
+
+            <!-- Rechazadas -->
+            <div class="group relative bg-gradient-to-br from-red-500/10 via-red-500/5 to-neutral-800 rounded-xl p-6 border border-red-500/30 hover:border-red-400/50 transition-all duration-300 hover:shadow-2xl hover:shadow-red-500/20 hover:-translate-y-1 cursor-pointer">
+              <div class="flex items-center justify-between mb-4">
+                <div class="w-12 h-12 rounded-lg bg-gradient-to-br from-red-500/30 to-red-600/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <i class="pi pi-times-circle text-2xl text-red-400"></i>
+                </div>
+                <div class="text-right">
+                  <p class="text-xs font-medium text-red-400/80 uppercase tracking-wider m-0">Rechazadas</p>
+                  <p class="text-3xl font-bold text-red-300 m-0 mt-1">
                     {{ compensatoryRejectedCount() }}
                   </p>
                 </div>
-                <i class="pi pi-times-circle text-3xl text-red-500"></i>
+              </div>
+              <div class="h-1 bg-neutral-700 rounded-full overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-red-500 to-red-400 rounded-full" 
+                     [style.width.%]="compensatoryTotalCount() > 0 ? (compensatoryRejectedCount() / compensatoryTotalCount() * 100) : 0"></div>
               </div>
             </div>
           </div>
 
-          <!-- Filtros de Tiempo Compensatorio -->
-          <p-card class="bg-neutral-800 border-neutral-700 mb-6">
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2"
-                  >Buscar</label
-                >
-                <input
-                  type="text"
-                  pInputText
-                  placeholder="Empleado, motivo..."
-                  [(ngModel)]="compensatorySearchText"
-                  (input)="onCompensatoryFilterChange()"
-                  class="w-full"
-                />
+          <!-- Filtros Avanzados Colapsables para Tiempo Compensatorio -->
+          <div class="bg-gradient-to-br from-neutral-800/80 to-neutral-800/60 rounded-xl border border-neutral-700/50 backdrop-blur-sm">
+            <div class="p-4 border-b border-neutral-700/50 flex items-center justify-between cursor-pointer"
+                 (click)="showCompensatoryFilters.set(!showCompensatoryFilters())">
+              <div class="flex items-center gap-3">
+                <i class="pi pi-filter text-cyan-400"></i>
+                <h3 class="text-lg font-semibold text-white m-0">Filtros Avanzados</h3>
+                @if (hasActiveCompensatoryFilters()) {
+                <span class="px-2 py-1 bg-cyan-500/20 text-cyan-300 rounded-full text-xs font-bold">
+                  {{ getActiveCompensatoryFiltersCount() }} activos
+                </span>
+                }
               </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2"
-                  >Estado</label
-                >
-                <p-dropdown
-                  [options]="compensatoryStatusOptions"
-                  [(ngModel)]="compensatorySelectedStatus"
-                  (onChange)="onCompensatoryFilterChange()"
-                  placeholder="Todos los estados"
-                  [showClear]="true"
-                  class="w-full"
-                />
+              <i class="pi" 
+                 [class.pi-chevron-down]="!showCompensatoryFilters()" 
+                 [class.pi-chevron-up]="showCompensatoryFilters()"
+                 [class.text-gray-400]="!showCompensatoryFilters()"
+                 [class.text-cyan-400]="showCompensatoryFilters()"></i>
+            </div>
+            
+            @if (showCompensatoryFilters()) {
+            <div class="p-6 space-y-4 animate-fade-in">
+              <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                <div class="md:col-span-2">
+                  <label class="block text-sm font-medium text-gray-300 mb-2">
+                    <i class="pi pi-search mr-2 text-cyan-400"></i>Búsqueda Específica
+                  </label>
+                  <input
+                    type="text"
+                    pInputText
+                    placeholder="Empleado, email, motivo..."
+                    [(ngModel)]="compensatorySearchText"
+                    (input)="onCompensatoryFilterChange()"
+                    class="w-full bg-neutral-900/50 border-neutral-600"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-300 mb-2">
+                    <i class="pi pi-tag mr-2 text-cyan-400"></i>Estado
+                  </label>
+                  <p-dropdown
+                    [options]="compensatoryStatusOptions"
+                    [(ngModel)]="compensatorySelectedStatus"
+                    (onChange)="onCompensatoryFilterChange()"
+                    placeholder="Todos"
+                    [showClear]="true"
+                    class="w-full"
+                  />
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-300 mb-2">
+                    <i class="pi pi-calendar mr-2 text-cyan-400"></i>Rango de Fechas
+                  </label>
+                  <p-calendar
+                    [(ngModel)]="compensatoryDateRange"
+                    selectionMode="range"
+                    [showIcon]="true"
+                    dateFormat="dd/mm/yy"
+                    placeholder="Seleccionar"
+                    (onSelect)="onCompensatoryFilterChange()"
+                    [showClear]="true"
+                    class="w-full"
+                  />
+                </div>
               </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-300 mb-2"
-                  >Fecha</label
-                >
-                <p-calendar
-                  [(ngModel)]="compensatoryDateRange"
-                  selectionMode="range"
-                  [showIcon]="true"
-                  dateFormat="dd/mm/yy"
-                  placeholder="Rango de fechas"
-                  (onSelect)="onCompensatoryFilterChange()"
-                  [showClear]="true"
-                  class="w-full"
-                />
-              </div>
-              <div class="flex items-end">
+              
+              <div class="flex items-center justify-between pt-4 border-t border-neutral-700/50">
                 <p-button
-                  label="Limpiar Filtros"
+                  label="Limpiar Todo"
                   icon="pi pi-filter-slash"
                   [outlined]="true"
                   severity="secondary"
                   (onClick)="clearCompensatoryFilters()"
-                  class="w-full"
+                  [disabled]="!hasActiveCompensatoryFilters()"
                 />
+                <div class="flex items-center gap-2 text-sm text-gray-400">
+                  <i class="pi pi-info-circle"></i>
+                  <span>{{ filteredCompensatoryRequests().length }} de {{ compensatoryTotalCount() }} resultados</span>
+                </div>
               </div>
             </div>
-          </p-card>
+            }
+          </div>
 
-          <!-- Tabla de Tiempo Compensatorio -->
-          <p-card class="bg-neutral-800 border-neutral-700">
+          <!-- Tabla Mejorada de Tiempo Compensatorio -->
+          <div class="bg-gradient-to-br from-neutral-800/80 to-neutral-800/60 rounded-xl border border-neutral-700/50 backdrop-blur-sm overflow-hidden">
+            <div class="p-6 border-b border-neutral-700/50">
+              <h3 class="text-xl font-semibold text-white m-0 flex items-center gap-2">
+                <i class="pi pi-list text-cyan-400"></i>
+                Solicitudes de Tiempo Compensatorio
+              </h3>
+            </div>
+            
+            <div class="overflow-x-auto">
             @if (compensatoryTimeoffsApi.isLoading()) {
             <div class="flex justify-center items-center py-12">
               <p-progressSpinner />
@@ -528,9 +833,9 @@ interface CompensatoryRequest {
               [rows]="10"
               [rowsPerPageOptions]="[10, 25, 50]"
               [globalFilterFields]="[
-                'employee_id.first_name',
-                'employee_id.father_name',
-                'employee_id.work_email',
+                'employee.first_name',
+                'employee.father_name',
+                'employee.work_email',
                 'reason'
               ]"
               styleClass="p-datatable-striped"
@@ -590,14 +895,13 @@ interface CompensatoryRequest {
                     </span>
                   </td>
                   <td>
+                    @let quantity = getCompensatoryQuantity(request);
                     <span class="text-sm font-medium text-white">
-                      @if (request.compensatory_type === 'days') {
-                      {{
-                        request.compensatory_amount ||
-                          calculateDays(request.date_from, request.date_to)
-                      }}
-                      días } @else {
-                      {{ request.hours || request.compensatory_amount || 0 }}h }
+                      @if (quantity.isDays) {
+                        {{ quantity.value }} día(s)
+                      } @else {
+                        {{ formatHoursMinutes(quantity.value) }}
+                      }
                     </span>
                   </td>
                   <td>
@@ -668,9 +972,11 @@ interface CompensatoryRequest {
               </ng-template>
             </p-table>
             }
-          </p-card>
-        </p-tabpanel>
-      </p-tabs>
+            </div>
+          </div>
+        </div>
+        }
+      </div>
     </div>
 
     <!-- Dialog de Detalles -->
@@ -1048,24 +1354,46 @@ interface CompensatoryRequest {
     </p-dialog>
   `,
   styles: `
+    @keyframes fade-in {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .animate-fade-in {
+      animation: fade-in 0.3s ease-out;
+    }
+
     ::ng-deep .p-datatable .p-datatable-thead > tr > th {
       background: #1f2937 !important;
       color: #e5e7eb !important;
       border-color: #374151 !important;
+      font-weight: 600 !important;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
     }
 
     ::ng-deep .p-datatable .p-datatable-tbody > tr {
       background: #111827 !important;
       border-color: #374151 !important;
+      transition: all 0.2s ease;
     }
 
     ::ng-deep .p-datatable .p-datatable-tbody > tr:hover {
       background: #1f2937 !important;
+      transform: scale(1.01);
     }
 
     ::ng-deep .p-datatable .p-datatable-tbody > tr > td {
       border-color: #374151 !important;
       color: #e5e7eb !important;
+      padding: 1rem !important;
     }
 
     ::ng-deep .p-card {
@@ -1091,6 +1419,51 @@ interface CompensatoryRequest {
     ::ng-deep .p-dialog .p-dialog-content {
       background: #1f2937 !important;
       color: #e5e7eb !important;
+    }
+
+    ::ng-deep .p-inputtext {
+      background: #111827 !important;
+      border-color: #374151 !important;
+      color: #e5e7eb !important;
+    }
+
+    ::ng-deep .p-inputtext:enabled:focus {
+      border-color: #06b6d4 !important;
+      box-shadow: 0 0 0 0.2rem rgba(6, 182, 212, 0.2) !important;
+    }
+
+    ::ng-deep .p-dropdown {
+      background: #111827 !important;
+      border-color: #374151 !important;
+    }
+
+    ::ng-deep .p-dropdown:not(.p-disabled):hover {
+      border-color: #06b6d4 !important;
+    }
+
+    ::ng-deep .p-dropdown:not(.p-disabled).p-focus {
+      border-color: #06b6d4 !important;
+      box-shadow: 0 0 0 0.2rem rgba(6, 182, 212, 0.2) !important;
+    }
+
+    ::ng-deep .p-calendar {
+      background: #111827 !important;
+    }
+
+    ::ng-deep .p-calendar .p-inputtext {
+      background: #111827 !important;
+      border-color: #374151 !important;
+    }
+
+    ::ng-deep .p-paginator {
+      background: #1f2937 !important;
+      border-color: #374151 !important;
+      color: #e5e7eb !important;
+    }
+
+    ::ng-deep .p-paginator .p-paginator-page.p-highlight {
+      background: #06b6d4 !important;
+      border-color: #06b6d4 !important;
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -1125,6 +1498,13 @@ export class HRDisabilitiesComponent {
   public searchText = signal('');
   public selectedStatus = signal<string | null>(null);
   public dateRange = signal<Date[] | null>(null);
+  
+  // Nuevas señales para el dashboard mejorado
+  public activeTab = signal<'disabilities' | 'compensatory'>('disabilities');
+  public showFilters = signal(false);
+  public showCompensatoryFilters = signal(false);
+  public globalSearchText = signal('');
+  public selectedDisabilities = signal<string[]>([]);
 
   // Dialog
   public showDetailsDialog = signal(false);
@@ -1163,7 +1543,24 @@ export class HRDisabilitiesComponent {
   public filteredDisabilities = computed(() => {
     let disabilities = this.disabilitiesApi.value() || [];
 
-    // Filtro por texto
+    // Filtro por búsqueda global
+    const globalSearch = this.globalSearchText().toLowerCase();
+    if (globalSearch) {
+      disabilities = disabilities.filter((d) => {
+        const employeeName = `${d.employee?.first_name || ''} ${
+          d.employee?.father_name || ''
+        }`.toLowerCase();
+        const email = d.employee?.work_email?.toLowerCase() || '';
+        const description = d.description?.toLowerCase() || '';
+        return (
+          employeeName.includes(globalSearch) ||
+          email.includes(globalSearch) ||
+          description.includes(globalSearch)
+        );
+      });
+    }
+
+    // Filtro por texto específico
     const search = this.searchText().toLowerCase();
     if (search) {
       disabilities = disabilities.filter((d) => {
@@ -1208,6 +1605,134 @@ export class HRDisabilitiesComponent {
     return diffDays + 1;
   }
 
+  public calculateHoursFromDates(
+    dateFrom: Date | string,
+    dateTo: Date | string
+  ): number {
+    const startDate = new Date(dateFrom);
+    const endDate = new Date(dateTo);
+    
+    // Validar que las fechas sean válidas
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return 0;
+    }
+    
+    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+    const diffHours = diffTime / (1000 * 60 * 60);
+    return Math.round(diffHours * 100) / 100; // Redondear a 2 decimales
+  }
+
+  public formatHoursMinutes(hours: number): string {
+    if (hours === 0) return '0m';
+    
+    const wholeHours = Math.floor(hours);
+    const minutes = Math.round((hours - wholeHours) * 60);
+    
+    if (wholeHours === 0) {
+      return `${minutes}m`;
+    } else if (minutes === 0) {
+      return `${wholeHours}h`;
+    } else {
+      return `${wholeHours}h ${minutes}m`;
+    }
+  }
+
+  public getCompensatoryQuantity(data: CompensatoryRequest): {
+    value: number;
+    isDays: boolean;
+  } {
+    // Primero intentar determinar si es días u horas desde las notas o el campo compensatory_type
+    let isDays = false;
+    
+    // 1. Intentar desde compensatory_type si existe
+    if (data.compensatory_type) {
+      isDays = data.compensatory_type === 'days';
+    } 
+    // 2. Intentar desde las notas
+    else if (data.notes) {
+      const notesArray = Array.isArray(data.notes)
+        ? data.notes
+        : typeof data.notes === 'string'
+        ? [data.notes]
+        : [];
+      
+      // Buscar nota que contenga "Tipo:"
+      const tipoNote = notesArray.find(
+        (note: any) => typeof note === 'string' && note.includes('Tipo:')
+      );
+      
+      if (tipoNote) {
+        isDays = tipoNote.includes('Días');
+      } 
+      // 3. Si no hay nota de tipo, determinar por el formato de las fechas y la diferencia
+      else if (data.date_from && data.date_to) {
+        const dateFromStr = String(data.date_from);
+        const dateToStr = String(data.date_to);
+        
+        // Si las fechas incluyen hora (formato datetime), probablemente es por horas
+        const hasTimeInFrom = dateFromStr.includes(' ') && dateFromStr.includes(':');
+        const hasTimeInTo = dateToStr.includes(' ') && dateToStr.includes(':');
+        
+        if (hasTimeInFrom && hasTimeInTo) {
+          // Tiene hora, es por horas
+          isDays = false;
+        } else {
+          // No tiene hora, calcular diferencia
+          const hours = this.calculateHoursFromDates(data.date_from, data.date_to);
+          const days = hours / 24;
+          // Si la diferencia es un número entero de días (tolerancia pequeña)
+          isDays = days >= 1 && Math.abs(days - Math.round(days)) < 0.1;
+        }
+      }
+    }
+    // 4. Si no hay notas, intentar determinar por formato de fechas
+    else if (data.date_from && data.date_to) {
+      const dateFromStr = String(data.date_from);
+      const dateToStr = String(data.date_to);
+      
+      const hasTimeInFrom = dateFromStr.includes(' ') && dateFromStr.includes(':');
+      const hasTimeInTo = dateToStr.includes(' ') && dateToStr.includes(':');
+      
+      if (hasTimeInFrom && hasTimeInTo) {
+        isDays = false;
+      } else {
+        const hours = this.calculateHoursFromDates(data.date_from, data.date_to);
+        const days = hours / 24;
+        isDays = days >= 1 && Math.abs(days - Math.round(days)) < 0.1;
+      }
+    }
+
+    if (isDays) {
+      // Calcular días desde fechas
+      let days = 0;
+      if (data.date_from && data.date_to) {
+        days = this.calculateDays(data.date_from, data.date_to);
+      } else if (data.compensatory_amount) {
+        days = data.compensatory_amount;
+      }
+      return { value: days > 0 ? days : 1, isDays: true };
+    } else {
+      // Para horas, calcular siempre desde fechas si están disponibles
+      let hours = 0;
+      if (data.date_from && data.date_to) {
+        hours = this.calculateHoursFromDates(data.date_from, data.date_to);
+        
+        // Si el resultado es muy grande (más de 24 horas), probablemente es un error
+        // y debería ser días en lugar de horas
+        if (hours >= 24 && hours % 24 < 0.1) {
+          // Es un número entero de días, convertir a días
+          const days = Math.round(hours / 24);
+          return { value: days, isDays: true };
+        }
+      } else if (data.hours) {
+        hours = data.hours;
+      } else if (data.compensatory_amount) {
+        hours = data.compensatory_amount;
+      }
+      return { value: hours, isDays: false };
+    }
+  }
+
   public getStatusLabel(status: string): string {
     const labels: Record<string, string> = {
       pending: 'Pendiente',
@@ -1239,6 +1764,142 @@ export class HRDisabilitiesComponent {
     this.searchText.set('');
     this.selectedStatus.set(null);
     this.dateRange.set(null);
+  }
+
+  // Métodos helper para el dashboard mejorado
+  public hasActiveFilters(): boolean {
+    return !!(
+      this.searchText() ||
+      this.selectedStatus() ||
+      this.dateRange() ||
+      this.globalSearchText()
+    );
+  }
+
+  public getActiveFiltersCount(): number {
+    let count = 0;
+    if (this.searchText()) count++;
+    if (this.selectedStatus()) count++;
+    if (this.dateRange()) count++;
+    if (this.globalSearchText()) count++;
+    return count;
+  }
+
+  public onGlobalSearch(): void {
+    // La búsqueda global se aplica automáticamente mediante computed
+    // Puedes agregar lógica adicional aquí si es necesario
+  }
+
+  public clearGlobalSearch(): void {
+    this.globalSearchText.set('');
+  }
+
+  public toggleDisabilitySelection(id: string, selected: boolean): void {
+    const current = [...this.selectedDisabilities()];
+    if (selected) {
+      if (!current.includes(id)) {
+        current.push(id);
+      }
+    } else {
+      const index = current.indexOf(id);
+      if (index > -1) {
+        current.splice(index, 1);
+      }
+    }
+    this.selectedDisabilities.set(current);
+  }
+
+  public isAllSelected(): boolean {
+    const filtered = this.filteredDisabilities();
+    return filtered.length > 0 && filtered.every(d => this.selectedDisabilities().includes(d.id));
+  }
+
+  public toggleSelectAll(selectAll: boolean): void {
+    if (selectAll) {
+      const allIds = this.filteredDisabilities().map(d => d.id);
+      this.selectedDisabilities.set([...allIds]);
+    } else {
+      this.selectedDisabilities.set([]);
+    }
+  }
+
+  public bulkApprove(): void {
+    const selected = Array.from(this.selectedDisabilities());
+    if (selected.length === 0) return;
+
+    this.confirmationService.confirm({
+      message: `¿Estás seguro de aprobar ${selected.length} incapacidad(es) seleccionada(s)?`,
+      header: 'Confirmar Aprobación Masiva',
+      icon: 'pi pi-exclamation-triangle',
+      acceptButtonStyleClass: 'p-button-success',
+      accept: () => {
+        selected.forEach(id => {
+          const disability = this.disabilitiesApi.value()?.find(d => d.id === id);
+          if (disability && disability.status === 'pending') {
+            this.updateDisabilityStatus(id, 'approved');
+          }
+        });
+        this.selectedDisabilities.set([]);
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Éxito',
+          detail: `${selected.length} incapacidad(es) aprobada(s) correctamente`,
+        });
+      },
+    });
+  }
+
+  public bulkReject(): void {
+    const selected = Array.from(this.selectedDisabilities());
+    if (selected.length === 0) return;
+
+    this.confirmationService.confirm({
+      message: `¿Estás seguro de rechazar ${selected.length} incapacidad(es) seleccionada(s)?`,
+      header: 'Confirmar Rechazo Masivo',
+      icon: 'pi pi-exclamation-triangle',
+      acceptButtonStyleClass: 'p-button-danger',
+      accept: () => {
+        selected.forEach(id => {
+          const disability = this.disabilitiesApi.value()?.find(d => d.id === id);
+          if (disability && disability.status === 'pending') {
+            this.updateDisabilityStatus(id, 'rejected');
+          }
+        });
+        this.selectedDisabilities.set([]);
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Éxito',
+          detail: `${selected.length} incapacidad(es) rechazada(s) correctamente`,
+        });
+      },
+    });
+  }
+
+  public exportData(): void {
+    // Implementar exportación a Excel/CSV
+    this.messageService.add({
+      severity: 'info',
+      summary: 'Exportación',
+      detail: 'Funcionalidad de exportación próximamente disponible',
+    });
+  }
+
+  public hasActiveCompensatoryFilters(): boolean {
+    return !!(
+      this.compensatorySearchText() ||
+      this.compensatorySelectedStatus() ||
+      this.compensatoryDateRange() ||
+      this.globalSearchText()
+    );
+  }
+
+  public getActiveCompensatoryFiltersCount(): number {
+    let count = 0;
+    if (this.compensatorySearchText()) count++;
+    if (this.compensatorySelectedStatus()) count++;
+    if (this.compensatoryDateRange()) count++;
+    if (this.globalSearchText()) count++;
+    return count;
   }
 
   // ========== Tiempo Compensatorio ==========
@@ -1307,7 +1968,22 @@ export class HRDisabilitiesComponent {
   public filteredCompensatoryRequests = computed(() => {
     let requests = this.compensatoryTimeoffsApi.value() || [];
 
-    // Filtro por texto
+    // Filtro por búsqueda global
+    const globalSearch = this.globalSearchText().toLowerCase();
+    if (globalSearch) {
+      requests = requests.filter((r) => {
+        const employeeName = this.getEmployeeName(r).toLowerCase();
+        const email = this.getEmployeeEmail(r).toLowerCase();
+        const reason = r.reason?.toLowerCase() || '';
+        return (
+          employeeName.includes(globalSearch) ||
+          email.includes(globalSearch) ||
+          reason.includes(globalSearch)
+        );
+      });
+    }
+
+    // Filtro por texto específico
     const search = this.compensatorySearchText().toLowerCase();
     if (search) {
       requests = requests.filter((r) => {
