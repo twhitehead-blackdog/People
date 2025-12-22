@@ -194,29 +194,31 @@ export interface MatchFilters {
           </div>
         }
 
-        <p-button
-          label="ENCUENTRA TU MASCOTA"
-          [style]="{
-            background: '#fbbf24',
-            border: 'none',
-            color: '#000000',
-            fontWeight: 'bold',
-            width: '100%',
-            padding: '0.875rem',
-            marginTop: '1.5rem'
-          }"
-          (onClick)="findMatch()"
-        />
-        <p-button
-          label="LIMPIAR FILTROS"
-          severity="secondary"
-          [text]="true"
-          [style]="{
-            width: '100%',
-            marginTop: '0.5rem'
-          }"
-          (onClick)="clearFilters()"
-        />
+        <div class="match-actions">
+          <p-button
+            label="ENCUENTRA TU MASCOTA"
+            [style]="{
+              background: '#fbbf24',
+              border: 'none',
+              color: '#000000',
+              fontWeight: 'bold',
+              width: '100%',
+              padding: '0.75rem',
+              marginTop: '0.75rem'
+            }"
+            (onClick)="findMatch()"
+          />
+          <p-button
+            label="LIMPIAR FILTROS"
+            severity="secondary"
+            [text]="true"
+            [style]="{
+              width: '100%',
+              marginTop: '0.5rem'
+            }"
+            (onClick)="clearFilters()"
+          />
+        </div>
       </div>
     </div>
   `,
@@ -225,21 +227,27 @@ export interface MatchFilters {
       .match-card {
         background: #ffffff;
         border-radius: 1rem;
-        padding: 2rem;
+        padding: 1.25rem;
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
         position: relative;
-        z-index: 20;
+        z-index: 100;
+        height: 100%;
+        max-height: 100%;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
       }
 
       .match-header {
         display: flex;
         align-items: center;
         gap: 0.75rem;
-        margin-bottom: 2rem;
+        margin-bottom: 1rem;
+        flex-shrink: 0;
       }
 
       .match-title {
-        font-size: 1.5rem;
+        font-size: 1.25rem;
         font-weight: 700;
         color: #000000;
         margin: 0;
@@ -250,11 +258,21 @@ export interface MatchFilters {
       .match-content {
         display: flex;
         flex-direction: column;
-        gap: 1.5rem;
+        gap: 1rem;
+        flex: 1;
+        overflow-y: auto;
+        overflow-x: hidden;
+        min-height: 0;
+        padding-right: 0.5rem;
+      }
+      
+      .match-actions {
+        flex-shrink: 0;
+        margin-top: auto;
       }
 
       .match-question p {
-        font-size: 1rem;
+        font-size: 0.875rem;
         font-weight: 600;
         color: #374151;
         margin: 0;
@@ -263,7 +281,7 @@ export interface MatchFilters {
       .pet-type-buttons {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: 1rem;
+        gap: 0.75rem;
       }
 
       .pet-type-button {
@@ -275,13 +293,17 @@ export interface MatchFilters {
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 0.5rem;
+        gap: 0.25rem;
         cursor: pointer;
         transition: all 0.2s;
-        font-size: 1rem;
+        font-size: 0.875rem;
         font-weight: 600;
         color: #374151;
-        padding: 1rem;
+        padding: 0.75rem;
+      }
+      
+      .pet-type-button span:first-child {
+        font-size: 1.75rem !important;
       }
 
       .pet-type-button:hover {
@@ -357,9 +379,9 @@ export interface MatchFilters {
       .advanced-filters {
         display: flex;
         flex-direction: column;
-        gap: 1rem;
-        margin-top: 1rem;
-        padding: 1rem;
+        gap: 0.75rem;
+        margin-top: 0.5rem;
+        padding: 0.75rem;
         background: #f9fafb;
         border-radius: 0.5rem;
         border: 1px solid #e5e7eb;

@@ -156,6 +156,9 @@ import { filter, take } from 'rxjs/operators';
 
       .hero-section-wrapper {
         position: relative;
+        min-height: 500px;
+        overflow: visible;
+        margin-bottom: 2rem;
       }
 
       .match-card-wrapper {
@@ -163,10 +166,15 @@ import { filter, take } from 'rxjs/operators';
         top: 50%;
         right: 2rem;
         transform: translateY(-50%);
-        width: 400px;
+        width: 320px;
         max-width: calc(100% - 4rem);
-        z-index: 20;
+        height: calc(100% - 4rem);
+        max-height: calc(100% - 4rem);
+        z-index: 100;
         pointer-events: auto;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
       }
 
       @media (max-width: 1024px) {
@@ -190,6 +198,9 @@ import { filter, take } from 'rxjs/operators';
         width: 100%;
         padding: 3rem 2rem;
         text-align: center;
+        position: relative;
+        z-index: 1;
+        margin-top: 2rem;
       }
 
       .adoption-plan-section-inner {
