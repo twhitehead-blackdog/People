@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit, computed, AfterViewInit } from '@angular/core';
+import { Component, inject, signal, OnInit, computed, AfterViewInit, effect } from '@angular/core';
 import { CommonModule, ViewportScroller } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Button } from 'primeng/button';
@@ -658,6 +658,16 @@ export class PetDetailComponent implements OnInit, AfterViewInit {
   public pet = signal<Pet | null>(null);
   public currentPhotoIndex = signal(0);
 
+  constructor() {
+    // Escuchar cambios en selectedEntity del store
+    effect(() => {
+      const selectedPet = this.petsStore.selectedEntity();
+      if (selectedPet && (!this.pet() || this.pet()!.id !== selectedPet.id)) {
+        this.pet.set(selectedPet);
+      }
+    });
+  }
+
   public isFavorite = computed(() => {
     const user = this.authWrapper.currentUser();
     if (!user?.email || !this.pet()) {
@@ -673,11 +683,9 @@ export class PetDetailComponent implements OnInit, AfterViewInit {
       if (pet) {
         this.pet.set(pet);
       } else {
+        // Si no está en el store, seleccionar para cargar los detalles
         this.petsStore.selectEntity(petId);
-        const selectedPet = this.petsStore.selectedEntity();
-        if (selectedPet) {
-          this.pet.set(selectedPet);
-        }
+        // El effect se encargará de actualizar pet cuando se cargue
       }
     }
   }

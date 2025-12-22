@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit, AfterViewInit } from '@angular/core';
+import { Component, inject, signal, OnInit, AfterViewInit, effect } from '@angular/core';
 import { CommonModule, ViewportScroller } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -708,6 +708,17 @@ export class AdoptionFormComponent implements OnInit, AfterViewInit {
 
   public pet = signal<any>(null);
   public isSubmitting = signal(false);
+  private petId: string | null = null;
+
+  constructor() {
+    // Escuchar cambios en selectedEntity del store
+    effect(() => {
+      const selectedPet = this.petsStore.selectedEntity();
+      if (selectedPet && this.petId && selectedPet.id === this.petId && (!this.pet() || this.pet()!.id !== selectedPet.id)) {
+        this.pet.set(selectedPet);
+      }
+    });
+  }
 
   public livingSituationOptions = [
     { label: 'Casa propia', value: 'casa_propia' },
@@ -747,17 +758,15 @@ export class AdoptionFormComponent implements OnInit, AfterViewInit {
   });
 
   ngOnInit(): void {
-    const petId = this.route.snapshot.paramMap.get('id');
-    if (petId) {
-      const pet = this.petsStore.entities().find((p) => p.id === petId);
+    this.petId = this.route.snapshot.paramMap.get('id');
+    if (this.petId) {
+      const pet = this.petsStore.entities().find((p) => p.id === this.petId);
       if (pet) {
         this.pet.set(pet);
       } else {
-        this.petsStore.selectEntity(petId);
-        const selectedPet = this.petsStore.selectedEntity();
-        if (selectedPet) {
-          this.pet.set(selectedPet);
-        }
+        // Si no está en el store, seleccionar para cargar los detalles
+        this.petsStore.selectEntity(this.petId);
+        // El effect se encargará de actualizar pet cuando se cargue
       }
     }
   }
