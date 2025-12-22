@@ -72,6 +72,7 @@ interface CompensatoryRequest {
   rejection_comment?: string;
   is_approved: boolean;
   created_at: string;
+  notes?: string[] | string;
 }
 
 @Component({
@@ -964,6 +965,64 @@ interface CompensatoryRequest {
           </div>
           }
         </div>
+
+        <!-- Fechas donde trabajó horas extra -->
+        @if (getOvertimeDaysFromNotes(selectedCompensatoryRequest()!)) {
+        <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
+          <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+            <i class="pi pi-calendar-check text-cyan-400"></i>
+            Fechas donde trabajó horas extra
+          </h3>
+          <div class="overflow-x-auto">
+            <p-table
+              [value]="getOvertimeDaysFromNotes(selectedCompensatoryRequest()!)"
+              styleClass="p-datatable-sm"
+              [paginator]="false"
+              [scrollable]="true"
+              scrollHeight="250px"
+            >
+              <ng-template #header>
+                <tr>
+                  <th class="text-left">Fecha</th>
+                  <th class="text-left">Hora de Entrada</th>
+                  <th class="text-left">Hora de Salida</th>
+                  <th class="text-right">Horas Totales</th>
+                  <th class="text-right">Tiempo de Almuerzo</th>
+                  <th class="text-right">Horas Extra</th>
+                </tr>
+              </ng-template>
+              <ng-template #body let-dayDetail>
+                <tr>
+                  <td class="font-medium">{{ dayDetail.date }}</td>
+                  <td>
+                    <span class="flex items-center gap-2">
+                      <i class="pi pi-sign-in text-green-400"></i>
+                      <span class="font-mono">{{ dayDetail.entryTime }}</span>
+                    </span>
+                  </td>
+                  <td>
+                    <span class="flex items-center gap-2">
+                      <i class="pi pi-sign-out text-red-400"></i>
+                      <span class="font-mono">{{ dayDetail.exitTime }}</span>
+                    </span>
+                  </td>
+                  <td class="text-right">
+                    <span class="font-semibold">{{ dayDetail.totalHours }}h</span>
+                  </td>
+                  <td class="text-right">
+                    <span class="text-gray-400">{{ dayDetail.lunchDuration }}h</span>
+                  </td>
+                  <td class="text-right">
+                    <span class="px-2 py-1 bg-cyan-500/20 text-cyan-300 rounded font-semibold">
+                      {{ dayDetail.overtimeHours }}h
+                    </span>
+                  </td>
+                </tr>
+              </ng-template>
+            </p-table>
+          </div>
+        </div>
+        }
       </div>
       }
       <ng-template #footer>
@@ -1349,6 +1408,83 @@ export class HRDisabilitiesComponent {
     this.selectedCompensatoryRequest.set(request);
     this.showCompensatoryDetailsDialog.set(true);
     this.loadEmployeeOvertimeHours(request.employee_id);
+  }
+
+  // Método helper para parsear las notas y extraer información de fechas de horas extra
+  public getOvertimeDaysFromNotes(request: CompensatoryRequest): Array<{
+    date: string;
+    entryTime: string;
+    exitTime: string;
+    totalHours: string;
+    lunchDuration: string;
+    overtimeHours: string;
+  }> | null {
+    if (!request.notes) return null;
+
+    // Convertir notes a array si es string
+    const notesArray = Array.isArray(request.notes) 
+      ? request.notes 
+      : typeof request.notes === 'string' 
+        ? [request.notes] 
+        : [];
+
+    // Buscar la sección "--- Fechas donde trabajó horas extra ---"
+    const startIndex = notesArray.findIndex(note => 
+      typeof note === 'string' && note.includes('--- Fechas donde trabajó horas extra ---')
+    );
+
+    if (startIndex === -1) return null;
+
+    // Extraer las líneas de detalle por fecha (después de "Detalle por fecha:")
+    const detailStartIndex = notesArray.findIndex((note, idx) => 
+      idx > startIndex && typeof note === 'string' && note.includes('Detalle por fecha:')
+    );
+
+    if (detailStartIndex === -1) return null;
+
+    const overtimeDays: Array<{
+      date: string;
+      entryTime: string;
+      exitTime: string;
+      totalHours: string;
+      lunchDuration: string;
+      overtimeHours: string;
+    }> = [];
+
+    // Parsear cada línea de detalle
+    for (let i = detailStartIndex + 1; i < notesArray.length; i++) {
+      const note = notesArray[i];
+      if (typeof note !== 'string') continue;
+      
+      // Formato esperado: "dd/MM/yyyy: Entrada HH:mm - Salida HH:mm | Total: X.XXh | Almuerzo: X.XXh | Extra: X.XXh"
+      const match = note.match(/(\d{2}\/\d{2}\/\d{4}):\s*Entrada\s+(\d{2}:\d{2})\s+-\s+Salida\s+(\d{2}:\d{2})\s+\|\s+Total:\s+([\d.]+)h\s+\|\s+Almuerzo:\s+([\d.]+)h\s+\|\s+Extra:\s+([\d.]+)h/);
+      
+      if (match) {
+        overtimeDays.push({
+          date: match[1],
+          entryTime: match[2],
+          exitTime: match[3],
+          totalHours: match[4],
+          lunchDuration: match[5],
+          overtimeHours: match[6],
+        });
+      } else {
+        // Formato antiguo sin almuerzo (para compatibilidad)
+        const oldMatch = note.match(/(\d{2}\/\d{2}\/\d{4}):\s*Entrada\s+(\d{2}:\d{2})\s+-\s+Salida\s+(\d{2}:\d{2})\s+\|\s+Total:\s+([\d.]+)h\s+\|\s+Extra:\s+([\d.]+)h/);
+        if (oldMatch) {
+          overtimeDays.push({
+            date: oldMatch[1],
+            entryTime: oldMatch[2],
+            exitTime: oldMatch[3],
+            totalHours: oldMatch[4],
+            lunchDuration: '0.00',
+            overtimeHours: oldMatch[5],
+          });
+        }
+      }
+    }
+
+    return overtimeDays.length > 0 ? overtimeDays : null;
   }
 
   // Método helper para calcular horas extras de un empleado específico

@@ -1585,6 +1585,112 @@ import { EmployeesStore } from '../stores/employees.store';
             ></textarea>
           </div>
 
+          <!-- Paso 4: Fechas donde trabajó horas extra -->
+          <div class="mb-6 p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                <i class="pi pi-calendar-check text-cyan-400"></i>
+              </div>
+              <h3 class="text-lg font-semibold text-white m-0">Paso 4: Fechas donde trabajé horas extra</h3>
+            </div>
+            <p class="text-sm text-gray-400 mb-4">
+              Revisa las fechas donde trabajaste horas extra para confirmar que el tiempo que solicitas es correcto.
+              RRHH también revisará esta información al aprobar tu solicitud.
+            </p>
+            
+            @if (monthTimelogsApi.isLoading()) {
+              <div class="flex items-center justify-center py-8">
+                <i class="pi pi-spin pi-spinner text-2xl text-cyan-400 mr-3"></i>
+                <span class="text-gray-400">Cargando información de horas extra...</span>
+              </div>
+            } @else if (overtimeDaysDetails().length === 0) {
+              <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
+                <div class="flex items-start gap-3">
+                  <i class="pi pi-exclamation-triangle text-yellow-400 text-xl"></i>
+                  <div>
+                    <p class="text-yellow-300 font-semibold mb-1">No se encontraron horas extra</p>
+                    <p class="text-sm text-gray-300">
+                      No se encontraron registros de horas extra trabajadas en el mes actual. 
+                      Si trabajaste horas extra, asegúrate de que tus marcaciones estén correctamente registradas.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            } @else {
+              <div class="overflow-x-auto">
+                <p-table
+                  [value]="overtimeDaysDetails()"
+                  styleClass="p-datatable-sm"
+                  [paginator]="false"
+                  [scrollable]="true"
+                  scrollHeight="300px"
+                >
+                  <ng-template #header>
+                    <tr>
+                      <th class="text-left">Fecha</th>
+                      <th class="text-left">Hora de Entrada</th>
+                      <th class="text-left">Hora de Salida</th>
+                      <th class="text-right">Horas Totales</th>
+                      <th class="text-right">Tiempo de Almuerzo</th>
+                      <th class="text-right">Horas Extra</th>
+                    </tr>
+                  </ng-template>
+                  <ng-template #body let-dayDetail>
+                    <tr>
+                      <td class="font-medium">
+                        {{ format(dayDetail.date, 'dd/MM/yyyy') }}
+                      </td>
+                      <td>
+                        <span class="flex items-center gap-2">
+                          <i class="pi pi-sign-in text-green-400"></i>
+                          <span class="font-mono">{{ dayDetail.entryTime }}</span>
+                        </span>
+                      </td>
+                      <td>
+                        <span class="flex items-center gap-2">
+                          <i class="pi pi-sign-out text-red-400"></i>
+                          <span class="font-mono">{{ dayDetail.exitTime }}</span>
+                        </span>
+                      </td>
+                      <td class="text-right">
+                        <span class="font-semibold">{{ dayDetail.totalHours.toFixed(2) }}h</span>
+                      </td>
+                      <td class="text-right">
+                        <span class="text-gray-400">{{ dayDetail.lunchDuration.toFixed(2) }}h</span>
+                      </td>
+                      <td class="text-right">
+                        <span class="px-2 py-1 bg-cyan-500/20 text-cyan-300 rounded font-semibold">
+                          {{ dayDetail.overtimeHours.toFixed(2) }}h
+                        </span>
+                      </td>
+                    </tr>
+                  </ng-template>
+                  <ng-template #emptymessage>
+                    <tr>
+                      <td colspan="6" class="text-center py-8 text-gray-400">
+                        No se encontraron días con horas extra
+                      </td>
+                    </tr>
+                  </ng-template>
+                </p-table>
+              </div>
+              
+              <div class="mt-4 p-3 bg-cyan-500/10 border border-cyan-500/30 rounded-lg">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <i class="pi pi-info-circle text-cyan-400"></i>
+                    <span class="text-sm text-gray-300">
+                      Total de horas extra disponibles este mes:
+                    </span>
+                  </div>
+                  <span class="text-lg font-bold text-cyan-300">
+                    {{ overtimeDaysDetails().reduce((sum, day) => sum + day.overtimeHours, 0).toFixed(2) }}h
+                  </span>
+                </div>
+              </div>
+            }
+          </div>
+
           <!-- Resumen y Botón de Envío -->
           <div class="flex flex-col md:flex-row items-center justify-between gap-4 p-5 rounded-lg bg-gradient-to-r from-cyan-500/10 to-cyan-600/5 border border-cyan-400/30 shadow-lg">
             @if (compensatoryAmount() > 0) {
@@ -3408,6 +3514,55 @@ export class EmployeePortalComponent {
     return total;
   });
 
+  // Computed: Detalles completos de días con horas extra (para Paso 4)
+  public overtimeDaysDetails = computed(() => {
+    const logs = this.monthTimelogs();
+    const details: Array<{
+      date: Date;
+      day: string;
+      entryTime: string | null;
+      exitTime: string | null;
+      totalHours: number;
+      overtimeHours: number;
+      lunchDuration: number;
+    }> = [];
+
+    logs.forEach((log) => {
+      if (!log.entry || !log.exit) return;
+
+      const overtimeHours = this.calculateDayOvertimeHours(log);
+      if (overtimeHours > 0) {
+        const entryDate = new Date(log.entry.date);
+        const exitDate = new Date(log.exit.date);
+        
+        // Calcular tiempo total trabajado
+        const totalMinutes = differenceInMinutes(exitDate, entryDate);
+        const totalHours = totalMinutes / 60;
+
+        // Calcular tiempo de almuerzo
+        const lunchTime =
+          log.lunch_start && log.lunch_end
+            ? differenceInMinutes(
+                new Date(log.lunch_end.date),
+                new Date(log.lunch_start.date)
+              ) / 60
+            : 0;
+
+        details.push({
+          date: new Date(log.day),
+          day: log.day,
+          entryTime: format(entryDate, 'HH:mm'),
+          exitTime: format(exitDate, 'HH:mm'),
+          totalHours: totalHours,
+          overtimeHours: overtimeHours,
+          lunchDuration: lunchTime,
+        });
+      }
+    });
+
+    return details.sort((a, b) => b.date.getTime() - a.date.getTime());
+  });
+
   public recentTimelogs = computed(() => {
     // Obtener los timelogs crudos (sin agrupar por día)
     const rawLogs = this.timelogsApi.value() ?? [];
@@ -4164,6 +4319,23 @@ export class EmployeePortalComponent {
       notes.push(
         `HR verificará las horas extras trabajadas para aprobar esta solicitud`
       );
+    }
+
+    // Agregar información de fechas donde trabajó horas extra
+    const overtimeDetails = this.overtimeDaysDetails();
+    if (overtimeDetails.length > 0) {
+      notes.push('');
+      notes.push('--- Fechas donde trabajó horas extra ---');
+      const totalOvertime = overtimeDetails.reduce((sum, day) => sum + day.overtimeHours, 0);
+      notes.push(`Total de horas extra disponibles: ${totalOvertime.toFixed(2)}h`);
+      notes.push('');
+      notes.push('Detalle por fecha:');
+      overtimeDetails.forEach((day) => {
+        notes.push(
+          `${format(day.date, 'dd/MM/yyyy')}: Entrada ${day.entryTime} - Salida ${day.exitTime} | ` +
+          `Total: ${day.totalHours.toFixed(2)}h | Almuerzo: ${day.lunchDuration.toFixed(2)}h | Extra: ${day.overtimeHours.toFixed(2)}h`
+        );
+      });
     }
 
     const timeoffData: any = {
