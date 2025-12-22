@@ -466,6 +466,7 @@ interface CompensatoryRequest {
                 [paginator]="true"
                 [rows]="8"
                 [rowsPerPageOptions]="[5, 8, 10, 15, 25]"
+                paginatorPosition="bottom"
                 styleClass="p-datatable-sm p-datatable-striped"
                 [globalFilterFields]="[
                   'employee.first_name',
@@ -851,6 +852,7 @@ interface CompensatoryRequest {
               [paginator]="true"
               [rows]="8"
               [rowsPerPageOptions]="[5, 8, 10, 15, 25]"
+              paginatorPosition="bottom"
               styleClass="p-datatable-sm p-datatable-striped"
               [globalFilterFields]="[
                 'employee.first_name',
@@ -921,8 +923,9 @@ interface CompensatoryRequest {
                 </tr>
               </ng-template>
               <ng-template pTemplate="body" let-request>
-                <tr>
-                  <td style="padding: 0.5rem;">
+                <tr class="hover:bg-neutral-700/30 transition-colors cursor-pointer"
+                    (click)="viewCompensatoryDetails(request)">
+                  <td style="padding: 0.5rem;" (click)="$event.stopPropagation()">
                     <div class="flex items-center gap-1.5">
                       <div class="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-500/20 to-cyan-600/20 flex items-center justify-center flex-shrink-0">
                         <i class="pi pi-user text-cyan-400 text-[10px]"></i>
