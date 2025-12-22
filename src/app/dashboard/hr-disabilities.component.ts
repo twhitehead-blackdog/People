@@ -871,50 +871,50 @@ interface CompensatoryRequest {
               </ng-template>
               <ng-template pTemplate="header">
                 <tr>
-                  <th style="width: 160px; padding: 0.4rem;">
+                  <th style="width: 160px; padding: 0.4rem; text-align: left;">
                     <div class="flex items-center gap-1">
                       <i class="pi pi-user text-cyan-400 text-xs"></i>
                       <span class="text-xs">Empleado</span>
                     </div>
                   </th>
-                  <th style="width: 85px; padding: 0.4rem;">
-                    <div class="flex items-center gap-1">
+                  <th style="width: 85px; padding: 0.4rem; text-align: center;">
+                    <div class="flex items-center justify-center gap-1">
                       <i class="pi pi-calendar text-cyan-400 text-xs"></i>
                       <span class="text-xs">Inicio</span>
                     </div>
                   </th>
-                  <th style="width: 85px; padding: 0.4rem;">
-                    <div class="flex items-center gap-1">
+                  <th style="width: 85px; padding: 0.4rem; text-align: center;">
+                    <div class="flex items-center justify-center gap-1">
                       <i class="pi pi-calendar-times text-cyan-400 text-xs"></i>
                       <span class="text-xs">Fin</span>
                     </div>
                   </th>
-                  <th style="width: 60px; padding: 0.4rem;">
-                    <div class="flex items-center gap-1">
+                  <th style="width: 70px; padding: 0.4rem; text-align: center;">
+                    <div class="flex items-center justify-center gap-1">
                       <i class="pi pi-tag text-cyan-400 text-xs"></i>
                       <span class="text-xs">Tipo</span>
                     </div>
                   </th>
-                  <th style="width: 70px; padding: 0.4rem;">
-                    <div class="flex items-center gap-1">
+                  <th style="width: 80px; padding: 0.4rem; text-align: center;">
+                    <div class="flex items-center justify-center gap-1">
                       <i class="pi pi-clock text-cyan-400 text-xs"></i>
                       <span class="text-xs">Cantidad</span>
                     </div>
                   </th>
-                  <th style="width: 120px; padding: 0.4rem;">
-                    <div class="flex items-center gap-1">
+                  <th style="width: 120px; padding: 0.4rem; text-align: center;">
+                    <div class="flex items-center justify-center gap-1">
                       <i class="pi pi-comment text-cyan-400 text-xs"></i>
                       <span class="text-xs">Motivo</span>
                     </div>
                   </th>
-                  <th style="width: 90px; padding: 0.4rem;">
-                    <div class="flex items-center gap-1">
+                  <th style="width: 90px; padding: 0.4rem; text-align: center;">
+                    <div class="flex items-center justify-center gap-1">
                       <i class="pi pi-tag text-cyan-400 text-xs"></i>
                       <span class="text-xs">Estado</span>
                     </div>
                   </th>
-                  <th style="width: 110px; padding: 0.4rem;">
-                    <div class="flex items-center gap-1">
+                  <th style="width: 110px; padding: 0.4rem; text-align: center;">
+                    <div class="flex items-center justify-center gap-1">
                       <i class="pi pi-cog text-cyan-400 text-xs"></i>
                       <span class="text-xs">Acciones</span>
                     </div>
@@ -939,34 +939,37 @@ interface CompensatoryRequest {
                       </div>
                     </div>
                   </td>
-                  <td style="padding: 0.4rem;">
+                  <td style="padding: 0.4rem; text-align: center;">
                     <span class="text-xs text-gray-300">
                       {{ request.date_from | date : 'dd/MM/yyyy' }}
                     </span>
                   </td>
-                  <td style="padding: 0.4rem;">
+                  <td style="padding: 0.4rem; text-align: center;">
                     <span class="text-xs text-gray-300">
                       {{ request.date_to | date : 'dd/MM/yyyy' }}
                     </span>
                   </td>
-                  <td style="padding: 0.4rem;">
+                  <td style="padding: 0.4rem; text-align: center;">
+                    @let compensatoryType = request.compensatory_type || (request.compensatory_amount && request.compensatory_amount >= 8 ? 'days' : 'hours');
                     <span class="text-xs font-medium text-white">
-                      {{
-                        request.compensatory_type === 'days' ? 'Días' : 'Horas'
-                      }}
+                      {{ compensatoryType === 'days' ? 'Días' : 'Horas' }}
                     </span>
                   </td>
-                  <td style="padding: 0.4rem;">
+                  <td style="padding: 0.4rem; text-align: center;">
                     @let quantity = getCompensatoryQuantity(request);
                     <span class="text-xs font-medium text-white">
-                      @if (quantity.isDays) {
-                        {{ quantity.value }}d
+                      @if (quantity && quantity.value > 0) {
+                        @if (quantity.isDays) {
+                          {{ quantity.value }}d
+                        } @else {
+                          {{ formatHoursMinutes(quantity.value) }}
+                        }
                       } @else {
-                        {{ formatHoursMinutes(quantity.value) }}
+                        <span class="text-gray-500">-</span>
                       }
                     </span>
                   </td>
-                  <td style="padding: 0.4rem;">
+                  <td style="padding: 0.4rem; text-align: center;">
                     @if (request.reason) {
                     <span
                       class="text-xs text-gray-300 cursor-help inline-block max-w-[110px] truncate"
@@ -979,15 +982,15 @@ interface CompensatoryRequest {
                     <span class="text-gray-500 text-xs">-</span>
                     }
                   </td>
-                  <td style="padding: 0.4rem;">
+                  <td style="padding: 0.4rem; text-align: center;">
                     <p-tag
                       [value]="getCompensatoryStatusLabel(request)"
                       [severity]="getCompensatoryStatusSeverity(request)"
                       [style]="{'font-size': '0.65rem', 'padding': '0.1rem 0.4rem'}"
                     />
                   </td>
-                  <td style="padding: 0.4rem;">
-                    <div class="flex gap-0.5">
+                  <td style="padding: 0.4rem; text-align: center;" (click)="$event.stopPropagation()">
+                    <div class="flex gap-0.5 justify-center">
                       @if (request.review_status === 'pending') {
                       <p-button
                         icon="pi pi-check"
@@ -1858,8 +1861,22 @@ export class HRDisabilitiesComponent {
       } else if (data.compensatory_amount) {
         hours = data.compensatory_amount;
       }
-      return { value: hours, isDays: false };
+      
+      // Si no hay horas calculadas y no hay datos, devolver 0 para que se muestre "-"
+      if (hours === 0 && !data.date_from && !data.date_to && !data.hours && !data.compensatory_amount) {
+        return { value: 0, isDays: false };
+      }
+      
+      return { value: hours > 0 ? hours : 0, isDays: false };
     }
+    
+    // Si no se pudo determinar el tipo, intentar devolver algo por defecto
+    if (data.compensatory_amount) {
+      return { value: data.compensatory_amount, isDays: false };
+    }
+    
+    // Si no hay datos, devolver 0 para que se muestre "-"
+    return { value: 0, isDays: false };
   }
 
   public getStatusLabel(status: string): string {
