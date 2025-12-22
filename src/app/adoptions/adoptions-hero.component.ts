@@ -29,10 +29,14 @@ import { Component } from '@angular/core';
           #1f2937 60%,
           #374151 100%
         );
-        padding: 4rem 2rem;
+        padding: 3rem 2rem 3rem 2rem;
+        padding-right: 450px;
         position: relative;
-        overflow: hidden;
-        min-height: 600px;
+        overflow: visible;
+        min-height: 500px;
+        height: auto;
+        display: flex;
+        align-items: center;
         transition: background 0.3s ease;
       }
 
@@ -99,7 +103,8 @@ import { Component } from '@angular/core';
         align-items: center;
         position: relative;
         z-index: 1;
-        min-height: 500px;
+        width: 100%;
+        height: 100%;
       }
 
       .hero-text {
@@ -110,9 +115,13 @@ import { Component } from '@angular/core';
         z-index: 1;
         flex: 1;
         padding-right: 420px;
+        justify-content: center;
       }
 
       @media (max-width: 1024px) {
+        .hero-section {
+          padding-right: 2rem;
+        }
         .hero-text {
           padding-right: 0;
         }
@@ -159,6 +168,8 @@ import { Component } from '@angular/core';
       @media (max-width: 768px) {
         .hero-section {
           padding: 2rem 1rem;
+          min-height: 400px;
+          height: auto;
         }
 
         .hero-logo-left {

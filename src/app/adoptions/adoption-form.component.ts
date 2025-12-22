@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit, AfterViewInit, effect } from '@angular/core';
+import { Component, inject, signal, computed, OnInit, AfterViewInit, effect } from '@angular/core';
 import { CommonModule, ViewportScroller } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -10,6 +10,7 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { DropdownModule } from 'primeng/dropdown';
 import { DialogModule } from 'primeng/dialog';
 import { TagModule } from 'primeng/tag';
+import { ProgressBarModule } from 'primeng/progressbar';
 import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 import { PetsStore } from '../stores/pets.store';
@@ -32,6 +33,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
     DropdownModule,
     DialogModule,
     TagModule,
+    ProgressBarModule,
     ToastModule,
   ],
   template: `
@@ -52,12 +54,97 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
         <div class="hero-decoration"></div>
       </div>
 
+      <!-- Progress Bar and Step Indicators -->
+      <div class="wizard-progress-container">
+        <div class="progress-bar-wrapper">
+          <p-progressBar [value]="progressPercentage()" [showValue]="false" />
+          <div class="progress-text">{{ Math.round(progressPercentage()) }}%</div>
+        </div>
+        <div class="step-indicators">
+          @for (step of [1, 2, 3, 4]; track step) {
+            <div 
+              class="step-indicator"
+              [class.completed]="step < currentStep()"
+              [class.active]="step === currentStep()"
+              [class.pending]="step > currentStep()"
+            >
+              <div class="step-number">
+                @if (step < currentStep()) {
+                  ✓
+                } @else {
+                  {{ step }}
+                }
+              </div>
+              <div class="step-label">
+                @if (step === 1) { Personal }
+                @else if (step === 2) { Dirección }
+                @else if (step === 3) { Hogar }
+                @else { Resumen }
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
       <!-- Form Card -->
       <div class="form-card">
         @if (pet()) {
         <form [formGroup]="adoptionForm" (ngSubmit)="onSubmit()">
-          <!-- Sección 1: Información Personal -->
-          <div class="form-section-card">
+          <!-- Carousel Container -->
+          <div class="wizard-carousel">
+            <!-- Flecha Izquierda -->
+            @if (currentStep() > 1) {
+              <button 
+                class="carousel-arrow carousel-arrow-left"
+                (click)="previousStep()"
+                type="button"
+                title="Paso anterior"
+              >
+                <i class="pi pi-chevron-left"></i>
+              </button>
+            }
+
+            <!-- Contenedor de Pasos -->
+            <div class="wizard-steps-container">
+              <!-- Paso Anterior (si existe) -->
+              @if (currentStep() > 1) {
+                <div class="wizard-step-preview wizard-step-prev" [class.step-1]="currentStep() === 2" [class.step-2]="currentStep() === 3" [class.step-3]="currentStep() === 4">
+                  <div class="step-preview-content">
+                    @if (currentStep() === 2) {
+                      <div class="step-preview-header">
+                        <div class="section-icon">👤</div>
+                        <h4>Información Personal</h4>
+                      </div>
+                      <div class="step-preview-info">
+                        <p>{{ adoptionForm.get('applicant_name')?.value || 'Sin completar' }}</p>
+                        <p>{{ adoptionForm.get('applicant_email')?.value || 'Sin completar' }}</p>
+                      </div>
+                    } @else if (currentStep() === 3) {
+                      <div class="step-preview-header">
+                        <div class="section-icon">📍</div>
+                        <h4>Dirección</h4>
+                      </div>
+                      <div class="step-preview-info">
+                        <p>{{ adoptionForm.get('applicant_address')?.value || 'Sin completar' }}</p>
+                      </div>
+                    } @else if (currentStep() === 4) {
+                      <div class="step-preview-header">
+                        <div class="section-icon">🏡</div>
+                        <h4>Información del Hogar</h4>
+                      </div>
+                      <div class="step-preview-info">
+                        <p>{{ adoptionForm.get('living_situation')?.value ? getLivingSituationLabel(adoptionForm.get('living_situation')?.value) : 'Sin completar' }}</p>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+
+              <!-- Paso Actual -->
+              <div class="wizard-step-active">
+                <!-- Paso 1: Información Personal -->
+                @if (currentStep() === 1) {
+                <div class="form-section-card wizard-step">
             <div class="section-header">
               <div class="section-icon">👤</div>
               <h3>Información Personal</h3>
@@ -88,7 +175,14 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
                   <span class="label-icon">📱</span>
                   Teléfono *
                 </label>
-                <input type="tel" pInputText formControlName="applicant_phone" placeholder="+507 6123-4567" />
+                <input 
+                  type="tel" 
+                  pInputText 
+                  formControlName="applicant_phone" 
+                  placeholder="+507 6123-4567"
+                  (input)="onPhoneInput($event)"
+                  (focus)="onPhoneFocus($event)"
+                />
                 @if (adoptionForm.get('applicant_phone')?.invalid && adoptionForm.get('applicant_phone')?.touched) {
                 <small class="error">El teléfono es requerido</small>
                 }
@@ -102,9 +196,11 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
               </div>
             </div>
           </div>
+          }
 
-          <!-- Sección 2: Dirección -->
-          <div class="form-section-card">
+          <!-- Paso 2: Dirección -->
+          @if (currentStep() === 2) {
+          <div class="form-section-card wizard-step">
             <div class="section-header">
               <div class="section-icon">📍</div>
               <h3>Dirección</h3>
@@ -125,9 +221,11 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
               }
             </div>
           </div>
+          }
 
-          <!-- Sección 3: Información sobre el Hogar -->
-          <div class="form-section-card">
+          <!-- Paso 3: Información sobre el Hogar -->
+          @if (currentStep() === 3) {
+          <div class="form-section-card wizard-step">
             <div class="section-header">
               <div class="section-icon">🏡</div>
               <h3>Información sobre el Hogar</h3>
@@ -167,7 +265,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
               </label>
             </div>
             @if (adoptionForm.get('has_other_pets')?.value) {
-            <div class="form-field">
+            <div class="form-field checkbox-child">
               <label>
                 <span class="label-icon">📋</span>
                 Información sobre otras mascotas
@@ -192,7 +290,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
               </label>
             </div>
             @if (adoptionForm.get('has_children')?.value) {
-            <div class="form-field">
+            <div class="form-field checkbox-child">
               <label>
                 <span class="label-icon">📋</span>
                 Información sobre los niños
@@ -206,30 +304,255 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
             </div>
             }
           </div>
+          }
+              </div>
 
-          <!-- Botones de Acción -->
-          <div class="form-actions">
-            <p-button
-              label="Cancelar"
-              severity="secondary"
-              icon="pi pi-times"
-              (onClick)="goBack()"
-            />
-            <p-button
-              [label]="isEditMode() ? 'Actualizar Solicitud' : 'Enviar Solicitud'"
-              type="submit"
-              [icon]="isEditMode() ? 'pi pi-check' : 'pi pi-send'"
-              [disabled]="adoptionForm.invalid || isSubmitting()"
-              [loading]="isSubmitting()"
-              [style]="{
-                background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
-                border: 'none',
-                color: '#000000',
-                fontWeight: 'bold',
-                padding: '0.75rem 2rem',
-                boxShadow: '0 4px 12px rgba(251, 191, 36, 0.4)'
-              }"
-            />
+              <!-- Paso Siguiente (si existe) -->
+              @if (currentStep() < 4) {
+                <div class="wizard-step-preview wizard-step-next" [class.step-2]="currentStep() === 1" [class.step-3]="currentStep() === 2" [class.step-4]="currentStep() === 3">
+                  <div class="step-preview-content">
+                    @if (currentStep() === 1) {
+                      <div class="step-preview-header">
+                        <div class="section-icon">📍</div>
+                        <h4>Dirección</h4>
+                      </div>
+                      <div class="step-preview-info">
+                        <p>Paso siguiente</p>
+                      </div>
+                    } @else if (currentStep() === 2) {
+                      <div class="step-preview-header">
+                        <div class="section-icon">🏡</div>
+                        <h4>Información del Hogar</h4>
+                      </div>
+                      <div class="step-preview-info">
+                        <p>Paso siguiente</p>
+                      </div>
+                    } @else if (currentStep() === 3) {
+                      <div class="step-preview-header">
+                        <div class="section-icon">📋</div>
+                        <h4>Resumen</h4>
+                      </div>
+                      <div class="step-preview-info">
+                        <p>Revisa tu solicitud</p>
+                      </div>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+
+            <!-- Flecha Derecha -->
+            @if (currentStep() < 4) {
+              <button 
+                class="carousel-arrow carousel-arrow-right"
+                (click)="nextStep()"
+                type="button"
+                title="Paso siguiente"
+              >
+                <i class="pi pi-chevron-right"></i>
+              </button>
+            }
+          </div>
+
+          <!-- Paso 4: Resumen/Revisión (fuera del carousel) -->
+          @if (currentStep() === 4) {
+          <div class="summary-section wizard-step">
+            <div class="summary-header">
+              <div class="section-icon">📋</div>
+              <h3>Resumen de tu Solicitud</h3>
+              <p class="summary-subtitle">Revisa toda la información antes de enviar</p>
+            </div>
+
+            <!-- Información de la Mascota -->
+            <div class="summary-card">
+              <div class="summary-card-header">
+                <h4>Mascota</h4>
+              </div>
+              <div class="summary-content">
+                <div class="summary-item">
+                  <span class="summary-label">Nombre:</span>
+                  <span class="summary-value">{{ pet()?.name }}</span>
+                </div>
+                <div class="summary-item">
+                  <span class="summary-label">Especie:</span>
+                  <span class="summary-value">{{ pet()?.species === 'dog' ? 'Perro' : pet()?.species === 'cat' ? 'Gato' : 'Otro' }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Información Personal -->
+            <div class="summary-card">
+              <div class="summary-card-header">
+                <h4>Información Personal</h4>
+                <p-button
+                  label="Editar"
+                  icon="pi pi-pencil"
+                  [text]="true"
+                  severity="secondary"
+                  (onClick)="goToStep(1)"
+                  [style]="{ fontSize: '0.875rem' }"
+                />
+              </div>
+              <div class="summary-content">
+                <div class="summary-item">
+                  <span class="summary-label">Nombre:</span>
+                  <span class="summary-value">{{ adoptionForm.get('applicant_name')?.value || 'N/A' }}</span>
+                </div>
+                <div class="summary-item">
+                  <span class="summary-label">Email:</span>
+                  <span class="summary-value">{{ adoptionForm.get('applicant_email')?.value || 'N/A' }}</span>
+                </div>
+                <div class="summary-item">
+                  <span class="summary-label">Teléfono:</span>
+                  <span class="summary-value">{{ adoptionForm.get('applicant_phone')?.value || 'N/A' }}</span>
+                </div>
+                @if (adoptionForm.get('applicant_document_id')?.value) {
+                <div class="summary-item">
+                  <span class="summary-label">Cédula:</span>
+                  <span class="summary-value">{{ adoptionForm.get('applicant_document_id')?.value }}</span>
+                </div>
+                }
+              </div>
+            </div>
+
+            <!-- Dirección -->
+            <div class="summary-card">
+              <div class="summary-card-header">
+                <h4>Dirección</h4>
+                <p-button
+                  label="Editar"
+                  icon="pi pi-pencil"
+                  [text]="true"
+                  severity="secondary"
+                  (onClick)="goToStep(2)"
+                  [style]="{ fontSize: '0.875rem' }"
+                />
+              </div>
+              <div class="summary-content">
+                <div class="summary-item">
+                  <span class="summary-label">Dirección:</span>
+                  <span class="summary-value">{{ adoptionForm.get('applicant_address')?.value || 'N/A' }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Información del Hogar -->
+            <div class="summary-card">
+              <div class="summary-card-header">
+                <h4>Información del Hogar</h4>
+                <p-button
+                  label="Editar"
+                  icon="pi pi-pencil"
+                  [text]="true"
+                  severity="secondary"
+                  (onClick)="goToStep(3)"
+                  [style]="{ fontSize: '0.875rem' }"
+                />
+              </div>
+              <div class="summary-content">
+                @if (adoptionForm.get('reason_for_adoption')?.value) {
+                <div class="summary-item">
+                  <span class="summary-label">Motivo de Adopción:</span>
+                  <span class="summary-value">{{ adoptionForm.get('reason_for_adoption')?.value }}</span>
+                </div>
+                }
+                @if (adoptionForm.get('living_situation')?.value) {
+                <div class="summary-item">
+                  <span class="summary-label">Situación de Vivienda:</span>
+                  <span class="summary-value">{{ getLivingSituationLabel(adoptionForm.get('living_situation')?.value) }}</span>
+                </div>
+                }
+                <div class="summary-item">
+                  <span class="summary-label">Tiene otras mascotas:</span>
+                  <span class="summary-value">{{ adoptionForm.get('has_other_pets')?.value ? 'Sí' : 'No' }}</span>
+                </div>
+                @if (adoptionForm.get('has_other_pets')?.value && adoptionForm.get('other_pets_info')?.value) {
+                <div class="summary-item">
+                  <span class="summary-label">Información sobre otras mascotas:</span>
+                  <span class="summary-value">{{ adoptionForm.get('other_pets_info')?.value }}</span>
+                </div>
+                }
+                <div class="summary-item">
+                  <span class="summary-label">Tiene niños:</span>
+                  <span class="summary-value">{{ adoptionForm.get('has_children')?.value ? 'Sí' : 'No' }}</span>
+                </div>
+                @if (adoptionForm.get('has_children')?.value && adoptionForm.get('children_info')?.value) {
+                <div class="summary-item">
+                  <span class="summary-label">Información sobre los niños:</span>
+                  <span class="summary-value">{{ adoptionForm.get('children_info')?.value }}</span>
+                </div>
+                }
+              </div>
+            </div>
+          </div>
+          }
+
+          <!-- Botones de Navegación -->
+          <div class="form-actions wizard-navigation">
+            <div class="nav-left">
+              <p-button
+                label="Cancelar"
+                severity="secondary"
+                icon="pi pi-times"
+                (onClick)="goBack()"
+                [style]="{
+                  padding: '0.75rem 1.5rem',
+                  minWidth: '140px'
+                }"
+              />
+            </div>
+            <div class="nav-center">
+              @if (currentStep() > 1) {
+                <p-button
+                  label="Anterior"
+                  severity="secondary"
+                  icon="pi pi-chevron-left"
+                  (onClick)="previousStep()"
+                  [style]="{
+                    padding: '0.75rem 1.5rem',
+                    minWidth: '140px',
+                    marginRight: '0.75rem'
+                  }"
+                />
+              }
+              @if (currentStep() < 4) {
+                <p-button
+                  [label]="currentStep() === 3 ? 'Revisar' : 'Siguiente'"
+                  [icon]="currentStep() === 3 ? 'pi pi-check' : 'pi pi-chevron-right'"
+                  [iconPos]="currentStep() === 3 ? 'left' : 'right'"
+                  (onClick)="nextStep()"
+                  [style]="{
+                    background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+                    border: 'none',
+                    color: '#000000',
+                    fontWeight: 'bold',
+                    padding: '0.75rem 1.5rem',
+                    minWidth: '140px'
+                  }"
+                />
+              }
+            </div>
+            <div class="nav-right">
+              @if (currentStep() === 4) {
+                <p-button
+                  [label]="isEditMode() ? 'Actualizar Solicitud' : 'Aceptar y Enviar'"
+                  type="submit"
+                  icon="pi pi-check"
+                  iconPos="left"
+                  [disabled]="adoptionForm.invalid || isSubmitting()"
+                  [loading]="isSubmitting()"
+                  [style]="{
+                    background: 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)',
+                    border: 'none',
+                    color: '#000000',
+                    fontWeight: 'bold',
+                    padding: '0.75rem 1.5rem',
+                    minWidth: '180px',
+                    boxShadow: '0 4px 12px rgba(251, 191, 36, 0.4)'
+                  }"
+                />
+              }
+            </div>
           </div>
         </form>
         } @else {
@@ -245,7 +568,8 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
 
     <!-- Diálogo de Solicitud Existente -->
     <p-dialog
-      [(visible)]="showExistingApplicationDialog()"
+      [visible]="showExistingApplicationDialog()"
+      (visibleChange)="showExistingApplicationDialog.set($event)"
       [modal]="true"
       [dismissableMask]="true"
       [style]="{ width: '500px' }"
@@ -300,7 +624,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
   styles: [
     `
       .adoption-form-container {
-        max-width: 900px;
+        max-width: 1400px;
         margin: 0 auto;
         padding: 2rem;
         background: linear-gradient(to bottom, #f9fafb 0%, #ffffff 20%);
@@ -411,12 +735,14 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
       .form-section-card {
         background: linear-gradient(to bottom, #ffffff 0%, #f9fafb 100%);
         border: 2px solid #e5e7eb;
-        border-radius: 1rem;
-        padding: 2rem;
+        border-radius: 1.5rem;
+        padding: 2.5rem;
         margin-bottom: 2rem;
-        transition: all 0.3s ease;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
         overflow: hidden;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+        transform: translateY(0);
       }
 
       .form-section-card::before {
@@ -424,21 +750,18 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
         position: absolute;
         top: 0;
         left: 0;
-        width: 4px;
+        width: 5px;
         height: 100%;
         background: linear-gradient(to bottom, #fbbf24 0%, #f59e0b 100%);
-        transform: scaleY(0);
-        transition: transform 0.3s ease;
+        transform: scaleY(1);
+        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 1.5rem 0 0 1.5rem;
       }
 
       .form-section-card:hover {
         border-color: #fbbf24;
-        box-shadow: 0 8px 24px rgba(251, 191, 36, 0.15);
+        box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.2), 0 8px 12px -4px rgba(0, 0, 0, 0.15);
         transform: translateY(-2px);
-      }
-
-      .form-section-card:hover::before {
-        transform: scaleY(1);
       }
 
       .section-header {
@@ -530,6 +853,417 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
       .error::before {
         content: '⚠️';
         font-size: 0.875rem;
+      }
+
+      /* Wizard Progress Bar */
+      .wizard-progress-container {
+        margin: 2rem 0;
+        padding: 1.5rem;
+        background: #ffffff;
+        border-radius: 1rem;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      .progress-bar-wrapper {
+        position: relative;
+        margin-bottom: 2rem;
+      }
+
+      .progress-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-weight: 700;
+        font-size: 0.875rem;
+        color: #000000;
+        z-index: 10;
+      }
+
+      .step-indicators {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: relative;
+      }
+
+      .step-indicator {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.5rem;
+        flex: 1;
+        position: relative;
+      }
+
+      .step-indicator:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        top: 20px;
+        left: 60%;
+        width: 80%;
+        height: 2px;
+        background: #e5e7eb;
+        z-index: 0;
+      }
+
+      .step-indicator.completed:not(:last-child)::after {
+        background: #fbbf24;
+      }
+
+      .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 1rem;
+        position: relative;
+        z-index: 1;
+        transition: all 0.3s ease;
+      }
+
+      .step-indicator.completed .step-number {
+        background: #fbbf24;
+        color: #000000;
+      }
+
+      .step-indicator.active .step-number {
+        background: #fbbf24;
+        color: #000000;
+        box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.2);
+        transform: scale(1.1);
+      }
+
+      .step-indicator.pending .step-number {
+        background: #e5e7eb;
+        color: #6b7280;
+      }
+
+      .step-label {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #6b7280;
+        text-align: center;
+      }
+
+      .step-indicator.completed .step-label,
+      .step-indicator.active .step-label {
+        color: #000000;
+      }
+
+      /* Wizard Carousel Container */
+      .wizard-carousel {
+        position: relative;
+        display: block;
+        min-height: 600px;
+        margin: 2rem auto;
+        padding: 0 100px;
+        overflow: hidden;
+        width: 100%;
+        max-width: 1200px;
+      }
+
+      .wizard-steps-container {
+        position: relative;
+        width: 100%;
+        max-width: 900px;
+        height: 600px;
+        margin: 0 auto;
+        perspective: 1500px;
+      }
+
+      /* Carousel Arrows */
+      .carousel-arrow {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        border: 4px solid #ffffff;
+        color: #000000;
+        font-size: 1.75rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+        box-shadow: 0 6px 20px rgba(251, 191, 36, 0.5), 0 0 0 0 rgba(251, 191, 36, 0.4);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .carousel-arrow:hover {
+        transform: translateY(-50%) scale(1.15);
+        box-shadow: 0 8px 30px rgba(251, 191, 36, 0.7), 0 0 0 8px rgba(251, 191, 36, 0.2);
+        background: linear-gradient(135deg, #fcd34d 0%, #fbbf24 100%);
+      }
+
+      .carousel-arrow:active {
+        transform: translateY(-50%) scale(1.05);
+        box-shadow: 0 4px 15px rgba(251, 191, 36, 0.5);
+      }
+
+      .carousel-arrow-left {
+        left: 10px;
+      }
+
+      .carousel-arrow-right {
+        right: 10px;
+      }
+
+      .carousel-arrow i {
+        font-weight: 900;
+        filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+      }
+
+      /* Active Step Container - Fixed Position */
+      .wizard-step-active {
+        position: absolute;
+        left: 50%;
+        top: 0;
+        transform: translateX(-50%);
+        z-index: 3;
+        width: 100%;
+        max-width: 900px;
+        opacity: 1;
+        transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      /* Step Preview (Previous/Next) - Fixed Positions */
+      .wizard-step-preview {
+        position: absolute;
+        top: 0;
+        width: 75%;
+        max-width: 675px;
+        opacity: 0.35;
+        pointer-events: none;
+        transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 1;
+      }
+
+      .wizard-step-prev {
+        left: 0;
+        transform: translateX(-100%) scale(0.8) rotateY(20deg);
+      }
+
+      .wizard-step-next {
+        right: 0;
+        transform: translateX(100%) scale(0.8) rotateY(-20deg);
+      }
+
+      .step-preview-content {
+        background: linear-gradient(to bottom, #ffffff 0%, #f9fafb 100%);
+        border: 2px solid #e5e7eb;
+        border-radius: 1.25rem;
+        padding: 2rem;
+        box-shadow: 0 8px 20px -5px rgba(0, 0, 0, 0.1);
+        min-height: 300px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+      }
+
+      .step-preview-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #e5e7eb;
+      }
+
+      .step-preview-header .section-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+      }
+
+      .step-preview-header h4 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #1f2937;
+      }
+
+      .step-preview-info {
+        color: #6b7280;
+        font-size: 0.9375rem;
+        line-height: 1.6;
+      }
+
+      .step-preview-info p {
+        margin: 0.5rem 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      /* Wizard Step Transitions - Pasarela Style */
+      .wizard-step {
+        position: relative;
+        background: #ffffff;
+        border-radius: 1.5rem;
+        padding: 2.5rem;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+        border: 2px solid #f3f4f6;
+        transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        transform: translateY(0);
+        margin-bottom: 0;
+        will-change: transform, opacity;
+      }
+
+      .wizard-step-active .wizard-step {
+        box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.2), 0 8px 12px -4px rgba(0, 0, 0, 0.15);
+        border-color: #fbbf24;
+        transform: scale(1);
+      }
+
+      /* Summary section (step 4) - fuera del carousel, centrado */
+      .summary-section {
+        margin: 2rem auto;
+        max-width: 900px;
+        width: 100%;
+      }
+
+      .wizard-step:hover {
+        box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.2), 0 8px 12px -4px rgba(0, 0, 0, 0.15);
+        transform: translateY(-2px);
+        border-color: #fbbf24;
+      }
+
+      .wizard-step::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 5px;
+        height: 100%;
+        background: linear-gradient(180deg, #fbbf24 0%, #f59e0b 100%);
+        border-radius: 1.5rem 0 0 1.5rem;
+      }
+
+      /* Wizard Navigation */
+      .wizard-navigation {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+        padding: 1.5rem 0;
+      }
+
+      .nav-left,
+      .nav-center,
+      .nav-right {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+      }
+
+      .nav-center {
+        flex: 1;
+        justify-content: center;
+      }
+
+      /* Uniform button sizes */
+      ::ng-deep .wizard-navigation .p-button {
+        height: 48px;
+        font-size: 0.9375rem;
+        font-weight: 600;
+      }
+
+      ::ng-deep .wizard-navigation .p-button .p-button-icon {
+        font-size: 1rem;
+      }
+
+      /* Summary View */
+      .summary-section {
+        animation: fadeInDown 0.4s ease-out;
+      }
+
+      .summary-header {
+        text-align: center;
+        margin-bottom: 2rem;
+      }
+
+      .summary-subtitle {
+        color: #6b7280;
+        font-size: 0.9375rem;
+        margin-top: 0.5rem;
+      }
+
+      .summary-card {
+        background: #f9fafb;
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid #e5e7eb;
+        transition: all 0.3s ease;
+      }
+
+      .summary-card:hover {
+        border-color: #fbbf24;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      }
+
+      .summary-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #e5e7eb;
+      }
+
+      .summary-card-header h4 {
+        margin: 0;
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: #000000;
+      }
+
+      .summary-content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      .summary-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #e5e7eb;
+      }
+
+      .summary-item:last-child {
+        border-bottom: none;
+      }
+
+      .summary-label {
+        font-weight: 600;
+        color: #6b7280;
+        font-size: 0.9375rem;
+        min-width: 150px;
+      }
+
+      .summary-value {
+        color: #000000;
+        font-weight: 500;
+        font-size: 0.9375rem;
+        text-align: right;
+        flex: 1;
+        word-break: break-word;
       }
 
       .form-actions {
@@ -668,13 +1402,34 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
       ::ng-deep .p-checkbox .p-checkbox-box {
         border: 2px solid #d1d5db;
         background: #ffffff;
-        border-radius: 0.25rem;
+        border-radius: 0.375rem;
         transition: all 0.3s ease;
+        width: 22px;
+        height: 22px;
       }
 
       ::ng-deep .p-checkbox .p-checkbox-box.p-highlight {
         background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
         border-color: #fbbf24;
+      }
+
+      ::ng-deep .p-checkbox .p-checkbox-box.p-highlight .p-checkbox-icon {
+        color: #000000 !important;
+        font-weight: 900 !important;
+        font-size: 0.875rem !important;
+        display: block !important;
+        opacity: 1 !important;
+      }
+
+      ::ng-deep .p-checkbox .p-checkbox-box .p-checkbox-icon {
+        color: #ffffff;
+        font-size: 0.875rem;
+        font-weight: 900;
+        display: block;
+      }
+
+      ::ng-deep .p-checkbox .p-checkbox-box:not(.p-highlight) .p-checkbox-icon {
+        display: none;
       }
 
       /* Estilos para botones */
@@ -766,6 +1521,59 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
           padding: 1rem;
         }
 
+        /* Carousel Responsive */
+        .wizard-carousel {
+          padding: 0 60px;
+          min-height: 500px;
+        }
+
+        .carousel-arrow {
+          width: 52px;
+          height: 52px;
+          font-size: 1.5rem;
+        }
+
+        .carousel-arrow-left {
+          left: 5px;
+        }
+
+        .carousel-arrow-right {
+          right: 5px;
+        }
+
+        .wizard-step-preview {
+          width: 70%;
+          max-width: 630px;
+          opacity: 0.25;
+        }
+
+        .wizard-step-prev {
+          left: 0;
+          transform: translateX(-100%) scale(0.75) rotateY(25deg);
+        }
+
+        .wizard-step-next {
+          right: 0;
+          transform: translateX(100%) scale(0.75) rotateY(-25deg);
+        }
+
+        .wizard-step-active {
+          max-width: 100%;
+        }
+
+        .step-preview-content {
+          padding: 1.5rem;
+          min-height: 250px;
+        }
+
+        .step-preview-header h4 {
+          font-size: 1rem;
+        }
+
+        .step-preview-info {
+          font-size: 0.875rem;
+        }
+
         .dialog-actions {
           flex-direction: column;
         }
@@ -826,6 +1634,15 @@ export class AdoptionFormComponent implements OnInit, AfterViewInit {
   private petId: string | null = null;
   private applicationIdToEdit: string | null = null;
   public isEditMode = signal(false);
+
+  // Wizard state
+  public currentStep = signal<number>(1);
+  public readonly totalSteps = 4;
+  public progressPercentage = computed(() => (this.currentStep() / this.totalSteps) * 100);
+  public completedSteps = computed(() => Math.max(0, this.currentStep() - 1));
+  
+  // Expose Math to template
+  public readonly Math = Math;
 
   constructor() {
     // Escuchar cambios en selectedEntity del store
@@ -971,7 +1788,20 @@ export class AdoptionFormComponent implements OnInit, AfterViewInit {
   }
 
   public onSubmit(): void {
+    // Solo permitir envío desde el paso de resumen (paso 4)
+    if (this.currentStep() !== 4) {
+      return;
+    }
+
     if (this.adoptionForm.invalid || !this.pet()) {
+      // Si el formulario es inválido, validar todo y mostrar errores
+      this.markStepAsTouched(1);
+      this.markStepAsTouched(2);
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Formulario incompleto',
+        detail: 'Por favor completa todos los campos requeridos'
+      });
       return;
     }
 
@@ -1131,6 +1961,170 @@ export class AdoptionFormComponent implements OnInit, AfterViewInit {
       month: 'long',
       day: 'numeric',
     });
+  }
+
+  public getLivingSituationLabel(value: string): string {
+    const option = this.livingSituationOptions.find(opt => opt.value === value);
+    return option?.label || value;
+  }
+
+  // Wizard navigation methods
+  public nextStep(): void {
+    if (this.validateCurrentStep()) {
+      if (this.currentStep() < this.totalSteps) {
+        this.currentStep.set(this.currentStep() + 1);
+      }
+    }
+  }
+
+  public previousStep(): void {
+    if (this.currentStep() > 1) {
+      this.currentStep.set(this.currentStep() - 1);
+    }
+  }
+
+  public goToStep(step: number): void {
+    if (step >= 1 && step <= this.totalSteps) {
+      this.currentStep.set(step);
+    }
+  }
+
+  public validateCurrentStep(): boolean {
+    const step = this.currentStep();
+    this.markStepAsTouched(step);
+
+    switch (step) {
+      case 1:
+        // Validar Información Personal
+        return this.isStepValid(1);
+      case 2:
+        // Validar Dirección
+        return this.isStepValid(2);
+      case 3:
+        // Información del Hogar - todos opcionales, siempre válido
+        return true;
+      case 4:
+        // Resumen - validar todo
+        return this.adoptionForm.valid;
+      default:
+        return false;
+    }
+  }
+
+  public isStepValid(step: number): boolean {
+    switch (step) {
+      case 1:
+        // Información Personal: nombre, email, teléfono requeridos
+        const nameControl = this.adoptionForm.get('applicant_name');
+        const emailControl = this.adoptionForm.get('applicant_email');
+        const phoneControl = this.adoptionForm.get('applicant_phone');
+        return !!(
+          nameControl?.valid &&
+          emailControl?.valid &&
+          phoneControl?.valid
+        );
+      case 2:
+        // Dirección: dirección requerida
+        const addressControl = this.adoptionForm.get('applicant_address');
+        return addressControl?.valid ?? false;
+      case 3:
+        // Información del Hogar - todos opcionales
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  public markStepAsTouched(step: number): void {
+    switch (step) {
+      case 1:
+        this.adoptionForm.get('applicant_name')?.markAsTouched();
+        this.adoptionForm.get('applicant_email')?.markAsTouched();
+        this.adoptionForm.get('applicant_phone')?.markAsTouched();
+        break;
+      case 2:
+        this.adoptionForm.get('applicant_address')?.markAsTouched();
+        break;
+      case 3:
+        // No hay campos requeridos en el paso 3
+        break;
+    }
+  }
+
+  // Phone formatting methods
+  public onPhoneFocus(event: any): void {
+    const input = event.target as HTMLInputElement;
+    const currentValue = this.adoptionForm.get('applicant_phone')?.value || '';
+    
+    // Si el campo está vacío, prellenar con +507 
+    if (!currentValue || currentValue.trim() === '') {
+      this.adoptionForm.get('applicant_phone')?.setValue('+507 ');
+      // Mover el cursor al final
+      setTimeout(() => {
+        input.setSelectionRange(6, 6);
+      }, 0);
+    }
+  }
+
+  public onPhoneInput(event: any): void {
+    const input = event.target as HTMLInputElement;
+    let value = input.value;
+    
+    // Remover todo excepto números y el prefijo +507
+    const digits = value.replace(/[^\d+]/g, '');
+    
+    // Asegurar que empiece con +507
+    if (!value.startsWith('+507')) {
+      // Si no empieza con +507, agregarlo
+      if (digits.startsWith('507')) {
+        value = '+507 ' + digits.substring(3);
+      } else if (digits.startsWith('+507')) {
+        value = '+507 ' + digits.substring(4);
+      } else {
+        value = '+507 ' + digits;
+      }
+    } else {
+      // Ya tiene +507, solo formatear los dígitos restantes
+      const phoneDigits = digits.substring(4); // Remover +507
+      if (phoneDigits.length <= 4) {
+        value = '+507 ' + phoneDigits;
+      } else if (phoneDigits.length <= 8) {
+        value = '+507 ' + phoneDigits.substring(0, 4) + '-' + phoneDigits.substring(4);
+      } else {
+        // Limitar a 8 dígitos después de +507
+        value = '+507 ' + phoneDigits.substring(0, 4) + '-' + phoneDigits.substring(4, 8);
+      }
+    }
+    
+    // Actualizar el valor del formulario
+    this.adoptionForm.get('applicant_phone')?.setValue(value, { emitEvent: false });
+    
+    // Mantener la posición del cursor
+    const cursorPosition = input.selectionStart || 0;
+    setTimeout(() => {
+      const newPosition = Math.min(cursorPosition, value.length);
+      input.setSelectionRange(newPosition, newPosition);
+    }, 0);
+  }
+
+  public formatPhoneNumber(value: string): string {
+    if (!value) return '+507 ';
+    
+    // Remover todo excepto números
+    const digits = value.replace(/[^\d]/g, '');
+    
+    // Si no empieza con 507, agregarlo
+    if (!digits.startsWith('507')) {
+      return '+507 ' + digits.substring(0, 4) + (digits.length > 4 ? '-' + digits.substring(4, 8) : '');
+    }
+    
+    // Ya tiene 507, formatear
+    const phoneDigits = digits.substring(3); // Remover 507
+    if (phoneDigits.length <= 4) {
+      return '+507 ' + phoneDigits;
+    } else {
+      return '+507 ' + phoneDigits.substring(0, 4) + '-' + phoneDigits.substring(4, 8);
+    }
   }
 }
 
