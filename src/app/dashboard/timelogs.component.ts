@@ -1344,11 +1344,12 @@ export class TimelogsComponent {
                   : 0;
 
               // Calcular minutos excedidos del almuerzo (más de 60 minutos)
+              // Si el almuerzo excede 60 minutos, ese tiempo extra NO es trabajo y debe restarse de las horas extras
               const lunchExceededMinutes = lunchTime > 60 ? lunchTime - 60 : 0;
 
-              // Sumar horas extras por tiempo total + minutos excedidos de almuerzo
+              // RESTAR el exceso de almuerzo de las horas extras (porque ese tiempo no es trabajo)
               const totalOvertimeMinutes =
-                overtimeByTotalTime + lunchExceededMinutes;
+                Math.max(0, overtimeByTotalTime - lunchExceededMinutes);
               acc[index].overtimeHours =
                 totalOvertimeMinutes > 0 ? totalOvertimeMinutes / 60 : 0;
 
@@ -1397,11 +1398,12 @@ export class TimelogsComponent {
                 : 0;
 
             // Calcular minutos excedidos del almuerzo (más de 60 minutos)
+            // Si el almuerzo excede 60 minutos, ese tiempo extra NO es trabajo y debe restarse de las horas extras
             const lunchExceededMinutes = lunchTime > 60 ? lunchTime - 60 : 0;
 
-            // Sumar horas extras por tiempo total + minutos excedidos de almuerzo
+            // RESTAR el exceso de almuerzo de las horas extras (porque ese tiempo no es trabajo)
             const totalOvertimeMinutes =
-              overtimeByTotalTime + lunchExceededMinutes;
+              Math.max(0, overtimeByTotalTime - lunchExceededMinutes);
             acc[index].overtimeHours =
               totalOvertimeMinutes > 0 ? totalOvertimeMinutes / 60 : 0;
           }

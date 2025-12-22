@@ -1589,7 +1589,7 @@ import { EmployeesStore } from '../stores/employees.store';
           <div class="mb-6 p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
             <div class="flex items-center gap-3 mb-4">
               <div class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
-                <i class="pi pi-calendar-check text-cyan-400"></i>
+                <i class="pi pi-clock text-cyan-400"></i>
               </div>
               <h3 class="text-lg font-semibold text-white m-0">Paso 4: Fechas donde trabajé horas extra</h3>
             </div>
@@ -1632,6 +1632,7 @@ import { EmployeesStore } from '../stores/employees.store';
                       <th class="text-left">Hora de Salida</th>
                       <th class="text-right">Horas Totales</th>
                       <th class="text-right">Tiempo de Almuerzo</th>
+                      <th class="text-right">Retraso</th>
                       <th class="text-right">Horas Extra</th>
                     </tr>
                   </ng-template>
@@ -1653,21 +1654,29 @@ import { EmployeesStore } from '../stores/employees.store';
                         </span>
                       </td>
                       <td class="text-right">
-                        <span class="font-semibold">{{ dayDetail.totalHours.toFixed(2) }}h</span>
+                        <span class="font-semibold">{{ formatHoursMinutes(dayDetail.totalHours) }}</span>
+                        <p class="text-xs text-gray-400 mt-1">(después de restar almuerzo y retraso)</p>
                       </td>
                       <td class="text-right">
-                        <span class="text-gray-400">{{ dayDetail.lunchDuration.toFixed(2) }}h</span>
+                        <span class="text-gray-400">{{ formatHoursMinutes(dayDetail.lunchDuration) }}</span>
+                      </td>
+                      <td class="text-right">
+                        @if (dayDetail.delayHours > 0) {
+                          <span class="text-red-400">{{ formatHoursMinutes(dayDetail.delayHours) }}</span>
+                        } @else {
+                          <span class="text-gray-500">0m</span>
+                        }
                       </td>
                       <td class="text-right">
                         <span class="px-2 py-1 bg-cyan-500/20 text-cyan-300 rounded font-semibold">
-                          {{ dayDetail.overtimeHours.toFixed(2) }}h
+                          {{ formatHoursMinutes(dayDetail.overtimeHours) }}
                         </span>
                       </td>
                     </tr>
                   </ng-template>
                   <ng-template #emptymessage>
                     <tr>
-                      <td colspan="6" class="text-center py-8 text-gray-400">
+                      <td colspan="7" class="text-center py-8 text-gray-400">
                         No se encontraron días con horas extra
                       </td>
                     </tr>
@@ -1684,7 +1693,7 @@ import { EmployeesStore } from '../stores/employees.store';
                     </span>
                   </div>
                   <span class="text-lg font-bold text-cyan-300">
-                    {{ getTotalOvertimeHours() }}h
+                    {{ getTotalOvertimeHours() }}
                   </span>
                 </div>
               </div>
@@ -2070,14 +2079,14 @@ import { EmployeesStore } from '../stores/employees.store';
                           <span class="text-xs text-gray-400 font-medium">Cantidad</span>
                         </div>
                         <p class="text-white font-semibold text-lg">
-                          @if (data.compensatory_type === 'days') {
-                            @let daysCount = data.compensatory_amount || calculateDays(data.date_from, data.date_to);
-                            {{ daysCount }} día(s)
+                          @let quantity = getCompensatoryQuantity(data);
+                          @if (quantity.isDays) {
+                            {{ quantity.value }} día(s)
                             <span class="text-gray-400 text-sm font-normal block mt-1">
-                              ({{ daysCount * 24 }} horas)
+                              ({{ quantity.value * 24 }} horas)
                             </span>
                           } @else {
-                            {{ data.hours || data.compensatory_amount || 0 }} hora(s)
+                            {{ formatHoursMinutes(quantity.value) }}
                           }
                         </p>
                       </div>
@@ -3355,6 +3364,30 @@ export class EmployeePortalComponent {
     return diffDays + 1; // Include both start and end days
   }
 
+  // Helper para calcular horas desde date_from y date_to cuando es por horas
+  public calculateHoursFromDates(dateFrom: Date | string, dateTo: Date | string): number {
+    const startDate = new Date(dateFrom);
+    const endDate = new Date(dateTo);
+    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+    const diffHours = diffTime / (1000 * 60 * 60);
+    return diffHours;
+  }
+
+  // Helper para obtener la cantidad correcta de horas o días para una solicitud compensatoria
+  public getCompensatoryQuantity(data: any): { value: number; isDays: boolean } {
+    if (data.compensatory_type === 'days') {
+      const days = data.compensatory_amount || this.calculateDays(data.date_from, data.date_to);
+      return { value: days, isDays: true };
+    } else {
+      // Para horas, intentar obtener de hours, compensatory_amount, o calcular desde fechas
+      let hours = data.hours || data.compensatory_amount || 0;
+      if (hours === 0 && data.date_from && data.date_to) {
+        hours = this.calculateHoursFromDates(data.date_from, data.date_to);
+      }
+      return { value: hours, isDays: false };
+    }
+  }
+
   public getScheduleColor(color: string): string {
     const colorMap: Record<string, string> = {
       blue: 'bg-blue-500 text-white',
@@ -3420,10 +3453,11 @@ export class EmployeePortalComponent {
         : 0;
 
     // Calcular minutos excedidos del almuerzo (más de 60 minutos)
+    // Si el almuerzo excede 60 minutos, ese tiempo extra NO es trabajo y debe restarse de las horas extras
     const lunchExceededMinutes = lunchTime > 60 ? lunchTime - 60 : 0;
 
-    // Sumar horas extras por tiempo total + minutos excedidos de almuerzo
-    const dayOvertimeMinutes = overtimeByTotalTime + lunchExceededMinutes;
+    // RESTAR el exceso de almuerzo de las horas extras (porque ese tiempo no es trabajo)
+    const dayOvertimeMinutes = Math.max(0, overtimeByTotalTime - lunchExceededMinutes);
 
     // Convertir minutos a horas
     return dayOvertimeMinutes / 60;
@@ -3463,10 +3497,11 @@ export class EmployeePortalComponent {
           : 0;
 
       // Calcular minutos excedidos del almuerzo (más de 60 minutos)
+      // Si el almuerzo excede 60 minutos, ese tiempo extra NO es trabajo y debe restarse de las horas extras
       const lunchExceededMinutes = lunchTime > 60 ? lunchTime - 60 : 0;
 
-      // Sumar horas extras por tiempo total + minutos excedidos de almuerzo
-      const dayOvertimeMinutes = overtimeByTotalTime + lunchExceededMinutes;
+      // RESTAR el exceso de almuerzo de las horas extras (porque ese tiempo no es trabajo)
+      const dayOvertimeMinutes = Math.max(0, overtimeByTotalTime - lunchExceededMinutes);
       totalOvertimeMinutes += dayOvertimeMinutes;
     });
 
@@ -3525,6 +3560,7 @@ export class EmployeePortalComponent {
       totalHours: number;
       overtimeHours: number;
       lunchDuration: number;
+      delayHours: number;
     }> = [];
 
     logs.forEach((log) => {
@@ -3535,27 +3571,34 @@ export class EmployeePortalComponent {
         const entryDate = new Date(log.entry.date);
         const exitDate = new Date(log.exit.date);
         
-        // Calcular tiempo total trabajado
-        const totalMinutes = differenceInMinutes(exitDate, entryDate);
-        const totalHours = totalMinutes / 60;
-
-        // Calcular tiempo de almuerzo
-        const lunchTime =
+        // Calcular tiempo de almuerzo en horas
+        const lunchTimeMinutes =
           log.lunch_start && log.lunch_end
             ? differenceInMinutes(
                 new Date(log.lunch_end.date),
                 new Date(log.lunch_start.date)
-              ) / 60
+              )
             : 0;
+        const lunchTime = lunchTimeMinutes / 60;
+
+        // Calcular retraso (delay) en horas
+        // El delay viene en minutos desde los logs procesados
+        const delayMinutes = log.delay && typeof log.delay === 'number' ? log.delay : 0;
+        const delayHours = delayMinutes / 60;
+
+        // Calcular tiempo total trabajado REAL = (salida - entrada) - almuerzo - retraso
+        const totalMinutes = differenceInMinutes(exitDate, entryDate);
+        const totalHoursReal = (totalMinutes - lunchTimeMinutes - delayMinutes) / 60;
 
         details.push({
           date: new Date(log.day),
           day: log.day,
           entryTime: format(entryDate, 'HH:mm'),
           exitTime: format(exitDate, 'HH:mm'),
-          totalHours: totalHours,
+          totalHours: totalHoursReal, // Horas reales trabajadas después de restar almuerzo y retrasos
           overtimeHours: overtimeHours,
           lunchDuration: lunchTime,
+          delayHours: delayHours,
         });
       }
     });
@@ -3567,7 +3610,25 @@ export class EmployeePortalComponent {
   public getTotalOvertimeHours(): string {
     const details = this.overtimeDaysDetails();
     const total = details.reduce((sum, day) => sum + day.overtimeHours, 0);
-    return total.toFixed(2);
+    return this.formatHoursMinutes(total);
+  }
+
+  // Helper para formatear horas en formato horas y minutos
+  public formatHoursMinutes(hours: number | string): string {
+    const hoursNum = typeof hours === 'string' ? parseFloat(hours) : hours;
+    if (isNaN(hoursNum) || hoursNum <= 0) return '0m';
+    
+    const totalMinutes = Math.round(hoursNum * 60);
+    const hoursPart = Math.floor(totalMinutes / 60);
+    const minutesPart = totalMinutes % 60;
+    
+    if (hoursPart === 0) {
+      return `${minutesPart}m`;
+    } else if (minutesPart === 0) {
+      return `${hoursPart}h`;
+    } else {
+      return `${hoursPart}h ${minutesPart}m`;
+    }
   }
 
   public recentTimelogs = computed(() => {
@@ -4338,9 +4399,10 @@ export class EmployeePortalComponent {
       notes.push('');
       notes.push('Detalle por fecha:');
       overtimeDetails.forEach((day) => {
+        const delayText = day.delayHours > 0 ? ` | Retraso: ${day.delayHours.toFixed(2)}h` : '';
         notes.push(
           `${format(day.date, 'dd/MM/yyyy')}: Entrada ${day.entryTime} - Salida ${day.exitTime} | ` +
-          `Total: ${day.totalHours.toFixed(2)}h | Almuerzo: ${day.lunchDuration.toFixed(2)}h | Extra: ${day.overtimeHours.toFixed(2)}h`
+          `Total: ${day.totalHours.toFixed(2)}h (después de restar almuerzo y retraso) | Almuerzo: ${day.lunchDuration.toFixed(2)}h${delayText} | Extra: ${day.overtimeHours.toFixed(2)}h`
         );
       });
     }

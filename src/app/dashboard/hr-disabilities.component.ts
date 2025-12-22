@@ -988,6 +988,7 @@ interface CompensatoryRequest {
                   <th class="text-left">Hora de Salida</th>
                   <th class="text-right">Horas Totales</th>
                   <th class="text-right">Tiempo de Almuerzo</th>
+                  <th class="text-right">Retraso</th>
                   <th class="text-right">Horas Extra</th>
                 </tr>
               </ng-template>
@@ -1007,14 +1008,22 @@ interface CompensatoryRequest {
                     </span>
                   </td>
                   <td class="text-right">
-                    <span class="font-semibold">{{ dayDetail.totalHours }}h</span>
+                    <span class="font-semibold">{{ formatHoursMinutes(dayDetail.totalHours) }}</span>
+                    <p class="text-xs text-gray-400 mt-1">(después de restar almuerzo y retraso)</p>
                   </td>
                   <td class="text-right">
-                    <span class="text-gray-400">{{ dayDetail.lunchDuration }}h</span>
+                    <span class="text-gray-400">{{ formatHoursMinutes(dayDetail.lunchDuration) }}</span>
+                  </td>
+                  <td class="text-right">
+                    @if (hasDelay(dayDetail.delayHours)) {
+                      <span class="text-red-400">{{ formatHoursMinutes(dayDetail.delayHours) }}</span>
+                    } @else {
+                      <span class="text-gray-500">0m</span>
+                    }
                   </td>
                   <td class="text-right">
                     <span class="px-2 py-1 bg-cyan-500/20 text-cyan-300 rounded font-semibold">
-                      {{ dayDetail.overtimeHours }}h
+                      {{ formatHoursMinutes(dayDetail.overtimeHours) }}
                     </span>
                   </td>
                 </tr>
@@ -1410,6 +1419,32 @@ export class HRDisabilitiesComponent {
     this.loadEmployeeOvertimeHours(request.employee_id);
   }
 
+  // Helper para verificar si hay retraso
+  public hasDelay(delayHours: string | undefined): boolean {
+    if (!delayHours) return false;
+    const delay = parseFloat(delayHours);
+    return !isNaN(delay) && delay > 0;
+  }
+
+  // Helper para formatear horas en formato horas y minutos
+  public formatHoursMinutes(hoursStr: string | undefined): string {
+    if (!hoursStr) return '0m';
+    const hours = parseFloat(hoursStr);
+    if (isNaN(hours) || hours <= 0) return '0m';
+    
+    const totalMinutes = Math.round(hours * 60);
+    const hoursPart = Math.floor(totalMinutes / 60);
+    const minutesPart = totalMinutes % 60;
+    
+    if (hoursPart === 0) {
+      return `${minutesPart}m`;
+    } else if (minutesPart === 0) {
+      return `${hoursPart}h`;
+    } else {
+      return `${hoursPart}h ${minutesPart}m`;
+    }
+  }
+
   // Método helper para parsear las notas y extraer información de fechas de horas extra
   public getOvertimeDaysFromNotes(request: CompensatoryRequest): Array<{
     date: string;
@@ -1417,6 +1452,7 @@ export class HRDisabilitiesComponent {
     exitTime: string;
     totalHours: string;
     lunchDuration: string;
+    delayHours: string;
     overtimeHours: string;
   }> | null {
     if (!request.notes) return null;
@@ -1448,6 +1484,7 @@ export class HRDisabilitiesComponent {
       exitTime: string;
       totalHours: string;
       lunchDuration: string;
+      delayHours: string;
       overtimeHours: string;
     }> = [];
 
@@ -1456,30 +1493,46 @@ export class HRDisabilitiesComponent {
       const note = notesArray[i];
       if (typeof note !== 'string') continue;
       
-      // Formato esperado: "dd/MM/yyyy: Entrada HH:mm - Salida HH:mm | Total: X.XXh | Almuerzo: X.XXh | Extra: X.XXh"
-      const match = note.match(/(\d{2}\/\d{2}\/\d{4}):\s*Entrada\s+(\d{2}:\d{2})\s+-\s+Salida\s+(\d{2}:\d{2})\s+\|\s+Total:\s+([\d.]+)h\s+\|\s+Almuerzo:\s+([\d.]+)h\s+\|\s+Extra:\s+([\d.]+)h/);
+      // Formato nuevo con delay: "dd/MM/yyyy: Entrada HH:mm - Salida HH:mm | Total: X.XXh (después de restar almuerzo y retraso) | Almuerzo: X.XXh | Retraso: X.XXh | Extra: X.XXh"
+      const matchWithDelay = note.match(/(\d{2}\/\d{2}\/\d{4}):\s*Entrada\s+(\d{2}:\d{2})\s+-\s+Salida\s+(\d{2}:\d{2})\s+\|\s+Total:\s+([\d.]+)h[^|]*\|\s+Almuerzo:\s+([\d.]+)h(?:\s+\|\s+Retraso:\s+([\d.]+)h)?\s+\|\s+Extra:\s+([\d.]+)h/);
       
-      if (match) {
+      if (matchWithDelay) {
         overtimeDays.push({
-          date: match[1],
-          entryTime: match[2],
-          exitTime: match[3],
-          totalHours: match[4],
-          lunchDuration: match[5],
-          overtimeHours: match[6],
+          date: matchWithDelay[1],
+          entryTime: matchWithDelay[2],
+          exitTime: matchWithDelay[3],
+          totalHours: matchWithDelay[4],
+          lunchDuration: matchWithDelay[5],
+          delayHours: matchWithDelay[6] || '0.00',
+          overtimeHours: matchWithDelay[7],
         });
       } else {
-        // Formato antiguo sin almuerzo (para compatibilidad)
-        const oldMatch = note.match(/(\d{2}\/\d{2}\/\d{4}):\s*Entrada\s+(\d{2}:\d{2})\s+-\s+Salida\s+(\d{2}:\d{2})\s+\|\s+Total:\s+([\d.]+)h\s+\|\s+Extra:\s+([\d.]+)h/);
-        if (oldMatch) {
+        // Formato antiguo sin delay pero con almuerzo
+        const matchWithLunch = note.match(/(\d{2}\/\d{2}\/\d{4}):\s*Entrada\s+(\d{2}:\d{2})\s+-\s+Salida\s+(\d{2}:\d{2})\s+\|\s+Total:\s+([\d.]+)h\s+\|\s+Almuerzo:\s+([\d.]+)h\s+\|\s+Extra:\s+([\d.]+)h/);
+        if (matchWithLunch) {
           overtimeDays.push({
-            date: oldMatch[1],
-            entryTime: oldMatch[2],
-            exitTime: oldMatch[3],
-            totalHours: oldMatch[4],
-            lunchDuration: '0.00',
-            overtimeHours: oldMatch[5],
+            date: matchWithLunch[1],
+            entryTime: matchWithLunch[2],
+            exitTime: matchWithLunch[3],
+            totalHours: matchWithLunch[4],
+            lunchDuration: matchWithLunch[5],
+            delayHours: '0.00',
+            overtimeHours: matchWithLunch[6],
           });
+        } else {
+          // Formato antiguo sin almuerzo (para compatibilidad)
+          const oldMatch = note.match(/(\d{2}\/\d{2}\/\d{4}):\s*Entrada\s+(\d{2}:\d{2})\s+-\s+Salida\s+(\d{2}:\d{2})\s+\|\s+Total:\s+([\d.]+)h\s+\|\s+Extra:\s+([\d.]+)h/);
+          if (oldMatch) {
+            overtimeDays.push({
+              date: oldMatch[1],
+              entryTime: oldMatch[2],
+              exitTime: oldMatch[3],
+              totalHours: oldMatch[4],
+              lunchDuration: '0.00',
+              delayHours: '0.00',
+              overtimeHours: oldMatch[5],
+            });
+          }
         }
       }
     }
@@ -1586,9 +1639,11 @@ export class HRDisabilitiesComponent {
           ? totalMinutes - requiredTotalMinutes
           : 0;
 
+      // Si el almuerzo excede 60 minutos, ese tiempo extra NO es trabajo y debe restarse de las horas extras
       const lunchExceededMinutes = lunchTime > 60 ? lunchTime - 60 : 0;
 
-      const dayOvertimeMinutes = overtimeByTotalTime + lunchExceededMinutes;
+      // RESTAR el exceso de almuerzo de las horas extras (porque ese tiempo no es trabajo)
+      const dayOvertimeMinutes = Math.max(0, overtimeByTotalTime - lunchExceededMinutes);
       totalOvertimeMinutes += dayOvertimeMinutes;
     });
 
