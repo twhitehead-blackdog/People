@@ -841,7 +841,7 @@ interface CompensatoryRequest {
               </h3>
             </div>
             
-            <div class="overflow-x-auto">
+            <div>
             @if (compensatoryTimeoffsApi.isLoading()) {
             <div class="flex justify-center items-center py-8">
               <p-progressSpinner />
@@ -860,8 +860,7 @@ interface CompensatoryRequest {
                 'employee.work_email',
                 'reason'
               ]"
-              styleClass="p-datatable-striped"
-              [tableStyle]="{ 'min-width': '50rem' }"
+              [scrollable]="false"
             >
               <ng-template #emptymessage>
                 <tr>
@@ -872,49 +871,49 @@ interface CompensatoryRequest {
               </ng-template>
               <ng-template pTemplate="header">
                 <tr>
-                  <th style="width: 180px; padding: 0.5rem;">
+                  <th style="width: 160px; padding: 0.4rem;">
                     <div class="flex items-center gap-1">
                       <i class="pi pi-user text-cyan-400 text-xs"></i>
                       <span class="text-xs">Empleado</span>
                     </div>
                   </th>
-                  <th style="width: 100px; padding: 0.5rem;">
+                  <th style="width: 85px; padding: 0.4rem;">
                     <div class="flex items-center gap-1">
                       <i class="pi pi-calendar text-cyan-400 text-xs"></i>
                       <span class="text-xs">Inicio</span>
                     </div>
                   </th>
-                  <th style="width: 100px; padding: 0.5rem;">
+                  <th style="width: 85px; padding: 0.4rem;">
                     <div class="flex items-center gap-1">
                       <i class="pi pi-calendar-times text-cyan-400 text-xs"></i>
                       <span class="text-xs">Fin</span>
                     </div>
                   </th>
-                  <th style="width: 70px; padding: 0.5rem;">
+                  <th style="width: 60px; padding: 0.4rem;">
                     <div class="flex items-center gap-1">
                       <i class="pi pi-tag text-cyan-400 text-xs"></i>
                       <span class="text-xs">Tipo</span>
                     </div>
                   </th>
-                  <th style="width: 80px; padding: 0.5rem;">
+                  <th style="width: 70px; padding: 0.4rem;">
                     <div class="flex items-center gap-1">
                       <i class="pi pi-clock text-cyan-400 text-xs"></i>
                       <span class="text-xs">Cantidad</span>
                     </div>
                   </th>
-                  <th style="padding: 0.5rem;">
+                  <th style="width: 120px; padding: 0.4rem;">
                     <div class="flex items-center gap-1">
                       <i class="pi pi-comment text-cyan-400 text-xs"></i>
                       <span class="text-xs">Motivo</span>
                     </div>
                   </th>
-                  <th style="width: 100px; padding: 0.5rem;">
+                  <th style="width: 90px; padding: 0.4rem;">
                     <div class="flex items-center gap-1">
                       <i class="pi pi-tag text-cyan-400 text-xs"></i>
                       <span class="text-xs">Estado</span>
                     </div>
                   </th>
-                  <th style="width: 120px; padding: 0.5rem;">
+                  <th style="width: 110px; padding: 0.4rem;">
                     <div class="flex items-center gap-1">
                       <i class="pi pi-cog text-cyan-400 text-xs"></i>
                       <span class="text-xs">Acciones</span>
@@ -925,39 +924,39 @@ interface CompensatoryRequest {
               <ng-template pTemplate="body" let-request>
                 <tr class="hover:bg-neutral-700/30 transition-colors cursor-pointer"
                     (click)="viewCompensatoryDetails(request)">
-                  <td style="padding: 0.5rem;" (click)="$event.stopPropagation()">
-                    <div class="flex items-center gap-1.5">
-                      <div class="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-500/20 to-cyan-600/20 flex items-center justify-center flex-shrink-0">
-                        <i class="pi pi-user text-cyan-400 text-[10px]"></i>
+                  <td style="padding: 0.4rem;" (click)="$event.stopPropagation()">
+                    <div class="flex items-center gap-1">
+                      <div class="w-5 h-5 rounded-full bg-gradient-to-br from-cyan-500/20 to-cyan-600/20 flex items-center justify-center flex-shrink-0">
+                        <i class="pi pi-user text-cyan-400 text-[9px]"></i>
                       </div>
                       <div class="flex flex-col min-w-0">
                         <span class="font-medium text-white text-xs truncate">
                           {{ getEmployeeName(request) }}
                         </span>
-                        <span class="text-[10px] text-gray-400 truncate">
+                        <span class="text-[9px] text-gray-400 truncate">
                           {{ getEmployeeEmail(request) }}
                         </span>
                       </div>
                     </div>
                   </td>
-                  <td style="padding: 0.5rem;">
+                  <td style="padding: 0.4rem;">
                     <span class="text-xs text-gray-300">
                       {{ request.date_from | date : 'dd/MM/yyyy' }}
                     </span>
                   </td>
-                  <td style="padding: 0.5rem;">
+                  <td style="padding: 0.4rem;">
                     <span class="text-xs text-gray-300">
                       {{ request.date_to | date : 'dd/MM/yyyy' }}
                     </span>
                   </td>
-                  <td style="padding: 0.5rem;">
+                  <td style="padding: 0.4rem;">
                     <span class="text-xs font-medium text-white">
                       {{
                         request.compensatory_type === 'days' ? 'Días' : 'Horas'
                       }}
                     </span>
                   </td>
-                  <td style="padding: 0.5rem;">
+                  <td style="padding: 0.4rem;">
                     @let quantity = getCompensatoryQuantity(request);
                     <span class="text-xs font-medium text-white">
                       @if (quantity.isDays) {
@@ -967,10 +966,10 @@ interface CompensatoryRequest {
                       }
                     </span>
                   </td>
-                  <td style="padding: 0.5rem;">
+                  <td style="padding: 0.4rem;">
                     @if (request.reason) {
                     <span
-                      class="text-xs text-gray-300 cursor-help inline-block max-w-[150px] truncate"
+                      class="text-xs text-gray-300 cursor-help inline-block max-w-[110px] truncate"
                       [pTooltip]="request.reason"
                       tooltipPosition="top"
                     >
@@ -980,14 +979,14 @@ interface CompensatoryRequest {
                     <span class="text-gray-500 text-xs">-</span>
                     }
                   </td>
-                  <td style="padding: 0.5rem;">
+                  <td style="padding: 0.4rem;">
                     <p-tag
                       [value]="getCompensatoryStatusLabel(request)"
                       [severity]="getCompensatoryStatusSeverity(request)"
-                      [style]="{'font-size': '0.7rem', 'padding': '0.125rem 0.5rem'}"
+                      [style]="{'font-size': '0.65rem', 'padding': '0.1rem 0.4rem'}"
                     />
                   </td>
-                  <td style="padding: 0.5rem;">
+                  <td style="padding: 0.4rem;">
                     <div class="flex gap-0.5">
                       @if (request.review_status === 'pending') {
                       <p-button
@@ -1057,7 +1056,7 @@ interface CompensatoryRequest {
       [dismissableMask]="true"
     >
       @if (selectedDisability()) {
-      <div class="space-y-4">
+      <div class="space-y-4 pt-4">
         <div>
           <label class="block text-sm font-medium text-gray-400 mb-1"
             >Empleado</label
@@ -1167,7 +1166,7 @@ interface CompensatoryRequest {
       [dismissableMask]="true"
     >
       @if (selectedCompensatoryRequest()) {
-      <div class="space-y-4">
+      <div class="space-y-4 pt-4">
         <!-- Información del Empleado -->
         <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
           <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
@@ -1343,61 +1342,71 @@ interface CompensatoryRequest {
 
         <!-- Fechas donde trabajó horas extra -->
         @if (getOvertimeDaysFromNotes(selectedCompensatoryRequest()!)) {
-        <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
-          <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+        <div class="p-5 bg-neutral-800 rounded-lg border border-neutral-700 shadow-lg">
+          <h3 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <i class="pi pi-calendar-check text-cyan-400"></i>
             Fechas donde trabajó horas extra
           </h3>
-          <div class="overflow-x-auto">
+          <div class="overflow-x-auto -mx-2">
             <p-table
               [value]="getOvertimeDaysFromNotes(selectedCompensatoryRequest()!) || []"
-              styleClass="p-datatable-sm"
+              styleClass="p-datatable-sm overtime-details-table"
               [paginator]="false"
               [scrollable]="true"
-              scrollHeight="250px"
+              scrollHeight="300px"
+              showGridlines
             >
               <ng-template #header>
                 <tr>
-                  <th class="text-left">Fecha</th>
-                  <th class="text-left">Hora de Entrada</th>
-                  <th class="text-left">Hora de Salida</th>
-                  <th class="text-right">Horas Totales</th>
-                  <th class="text-right">Tiempo de Almuerzo</th>
-                  <th class="text-right">Retraso</th>
-                  <th class="text-right">Horas Extra</th>
+                  <th class="text-left font-semibold">Fecha</th>
+                  <th class="text-left font-semibold">Hora de Entrada</th>
+                  <th class="text-left font-semibold">Hora de Salida</th>
+                  <th class="text-right font-semibold">Horas Totales</th>
+                  <th class="text-right font-semibold">Tiempo de Almuerzo</th>
+                  <th class="text-right font-semibold">Retraso</th>
+                  <th class="text-right font-semibold">Horas Extra</th>
                 </tr>
               </ng-template>
               <ng-template #body let-dayDetail>
-                <tr>
-                  <td class="font-medium">{{ dayDetail.date }}</td>
-                  <td>
-                    <span class="flex items-center gap-2">
-                      <i class="pi pi-sign-in text-green-400"></i>
-                      <span class="font-mono">{{ dayDetail.entryTime }}</span>
-                    </span>
+                <tr class="hover:bg-neutral-700/50 transition-colors">
+                  <td class="font-semibold text-white py-3">
+                    <div class="flex items-center gap-2">
+                      <i class="pi pi-calendar text-cyan-400 text-sm"></i>
+                      <span>{{ dayDetail.date }}</span>
+                    </div>
                   </td>
-                  <td>
-                    <span class="flex items-center gap-2">
-                      <i class="pi pi-sign-out text-red-400"></i>
-                      <span class="font-mono">{{ dayDetail.exitTime }}</span>
-                    </span>
+                  <td class="py-3">
+                    <div class="flex items-center gap-2 bg-green-500/10 px-2 py-1 rounded">
+                      <i class="pi pi-sign-in text-green-400 text-sm"></i>
+                      <span class="font-mono text-sm font-semibold text-green-300">{{ dayDetail.entryTime }}</span>
+                    </div>
                   </td>
-                  <td class="text-right">
-                    <span class="font-semibold">{{ formatHoursMinutes(dayDetail.totalHours) }}</span>
-                    <p class="text-xs text-gray-400 mt-1">(después de restar almuerzo y retraso)</p>
+                  <td class="py-3">
+                    <div class="flex items-center gap-2 bg-red-500/10 px-2 py-1 rounded">
+                      <i class="pi pi-sign-out text-red-400 text-sm"></i>
+                      <span class="font-mono text-sm font-semibold text-red-300">{{ dayDetail.exitTime }}</span>
+                    </div>
                   </td>
-                  <td class="text-right">
-                    <span class="text-gray-400">{{ formatHoursMinutes(dayDetail.lunchDuration) }}</span>
+                  <td class="text-right py-3">
+                    <div class="flex flex-col items-end">
+                      <span class="font-semibold text-white text-sm">{{ formatHoursMinutes(dayDetail.totalHours) }}</span>
+                      <span class="text-xs text-gray-400 mt-0.5">(neto)</span>
+                    </div>
                   </td>
-                  <td class="text-right">
+                  <td class="text-right py-3">
+                    <span class="text-gray-300 font-medium text-sm">{{ formatHoursMinutes(dayDetail.lunchDuration) }}</span>
+                  </td>
+                  <td class="text-right py-3">
                     @if (hasDelay(dayDetail.delayHours)) {
-                      <span class="text-red-400">{{ formatHoursMinutes(dayDetail.delayHours) }}</span>
+                      <span class="px-2 py-1 bg-red-500/20 text-red-300 rounded text-sm font-semibold">
+                        {{ formatHoursMinutes(dayDetail.delayHours) }}
+                      </span>
                     } @else {
-                      <span class="text-gray-500">0m</span>
+                      <span class="text-gray-500 text-sm">-</span>
                     }
                   </td>
-                  <td class="text-right">
-                    <span class="px-2 py-1 bg-cyan-500/20 text-cyan-300 rounded font-semibold">
+                  <td class="text-right py-3">
+                    <span class="px-3 py-1.5 bg-gradient-to-r from-cyan-500/30 to-cyan-600/30 text-cyan-300 rounded-lg font-bold text-sm border border-cyan-400/30">
                       {{ formatHoursMinutes(dayDetail.overtimeHours) }}
                     </span>
                   </td>
@@ -1456,23 +1465,22 @@ interface CompensatoryRequest {
 
     ::ng-deep .p-datatable .p-datatable-tbody > tr:hover {
       background: #1f2937 !important;
-      transform: scale(1.01);
     }
 
     ::ng-deep .p-datatable .p-datatable-tbody > tr > td {
       border-color: #374151 !important;
       color: #e5e7eb !important;
-      padding: 0.5rem !important;
+      padding: 0.4rem !important;
       font-size: 0.75rem !important;
     }
     
     ::ng-deep .p-datatable.p-datatable-sm .p-datatable-thead > tr > th {
-      padding: 0.5rem !important;
+      padding: 0.4rem !important;
       font-size: 0.7rem !important;
     }
     
     ::ng-deep .p-datatable.p-datatable-sm .p-datatable-tbody > tr > td {
-      padding: 0.5rem !important;
+      padding: 0.4rem !important;
       font-size: 0.75rem !important;
     }
 
@@ -1544,6 +1552,31 @@ interface CompensatoryRequest {
     ::ng-deep .p-paginator .p-paginator-page.p-highlight {
       background: #06b6d4 !important;
       border-color: #06b6d4 !important;
+    }
+
+    /* Estilos específicos para la tabla de horas extra */
+    ::ng-deep .overtime-details-table .p-datatable-thead > tr > th {
+      background: #1f2937 !important;
+      color: #e5e7eb !important;
+      border-color: #374151 !important;
+      padding: 0.75rem 1rem !important;
+      font-size: 0.75rem !important;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    ::ng-deep .overtime-details-table .p-datatable-tbody > tr > td {
+      padding: 0.75rem 1rem !important;
+      border-color: #374151 !important;
+      background: #111827 !important;
+    }
+
+    ::ng-deep .overtime-details-table .p-datatable-tbody > tr:hover > td {
+      background: #1f2937 !important;
+    }
+
+    ::ng-deep .overtime-details-table .p-datatable-scrollable-body {
+      border-color: #374151 !important;
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
