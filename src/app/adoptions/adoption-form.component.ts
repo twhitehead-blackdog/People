@@ -8,6 +8,8 @@ import { InputTextModule } from 'primeng/inputtext';
 import { Textarea } from 'primeng/textarea';
 import { CheckboxModule } from 'primeng/checkbox';
 import { DropdownModule } from 'primeng/dropdown';
+import { DialogModule } from 'primeng/dialog';
+import { TagModule } from 'primeng/tag';
 import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 import { PetsStore } from '../stores/pets.store';
@@ -28,6 +30,8 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
     Textarea,
     CheckboxModule,
     DropdownModule,
+    DialogModule,
+    TagModule,
     ToastModule,
   ],
   template: `
@@ -238,6 +242,60 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
         }
       </div>
     </div>
+
+    <!-- Diálogo de Solicitud Existente -->
+    <p-dialog
+      [(visible)]="showExistingApplicationDialog()"
+      [modal]="true"
+      [dismissableMask]="true"
+      [style]="{ width: '500px' }"
+      header="Solicitud Existente"
+    >
+      @if (existingApplication()) {
+        <div class="existing-application-dialog">
+          <p class="dialog-message">
+            <strong>Ya tienes una solicitud para esta mascota:</strong>
+          </p>
+          <div class="application-info">
+            <div class="info-row">
+              <span class="info-label">Estado:</span>
+              <p-tag 
+                [value]="getStatusLabel(existingApplication()!.status)"
+                [severity]="getStatusSeverity(existingApplication()!.status)"
+              />
+            </div>
+            <div class="info-row">
+              <span class="info-label">Fecha:</span>
+              <span class="info-value">{{ formatDate(existingApplication()!.created_at) }}</span>
+            </div>
+            <div class="info-row">
+              <span class="info-label">Mascota:</span>
+              <span class="info-value">{{ pet()?.name || 'N/A' }}</span>
+            </div>
+          </div>
+          <div class="dialog-actions">
+            <p-button
+              label="Ver mi solicitud"
+              icon="pi pi-user"
+              (onClick)="goToMyApplications()"
+              [style]="{
+                background: '#fbbf24',
+                border: 'none',
+                color: '#000000',
+                fontWeight: 'bold',
+                marginRight: '0.5rem'
+              }"
+            />
+            <p-button
+              label="Ver mascota"
+              icon="pi pi-eye"
+              severity="secondary"
+              (onClick)="viewPetFromDialog()"
+            />
+          </div>
+        </div>
+      }
+    </p-dialog>
   `,
   styles: [
     `
@@ -642,9 +700,78 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
         transform: translateY(-2px) !important;
       }
 
+      /* Estilos para el diálogo de solicitud existente */
+      .existing-application-dialog {
+        padding: 1rem 0;
+      }
+
+      .dialog-message {
+        margin-bottom: 1.5rem;
+        color: #374151;
+        font-size: 1rem;
+        line-height: 1.6;
+      }
+
+      .dialog-message strong {
+        color: #000000;
+        font-weight: 700;
+      }
+
+      .application-info {
+        background: #f9fafb;
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid #e5e7eb;
+      }
+
+      .info-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #e5e7eb;
+      }
+
+      .info-row:last-child {
+        margin-bottom: 0;
+        padding-bottom: 0;
+        border-bottom: none;
+      }
+
+      .info-label {
+        font-weight: 600;
+        color: #6b7280;
+        font-size: 0.9375rem;
+      }
+
+      .info-value {
+        color: #000000;
+        font-weight: 500;
+        font-size: 0.9375rem;
+      }
+
+      .dialog-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #e5e7eb;
+      }
+
       @media (max-width: 768px) {
         .adoption-form-container {
           padding: 1rem;
+        }
+
+        .dialog-actions {
+          flex-direction: column;
+        }
+
+        .dialog-actions p-button {
+          width: 100%;
         }
 
         .form-hero {
@@ -694,6 +821,8 @@ export class AdoptionFormComponent implements OnInit, AfterViewInit {
 
   public pet = signal<any>(null);
   public isSubmitting = signal(false);
+  public existingApplication = signal<AdoptionApplication | null>(null);
+  public showExistingApplicationDialog = signal(false);
   private petId: string | null = null;
 
   constructor() {
@@ -776,14 +905,9 @@ export class AdoptionFormComponent implements OnInit, AfterViewInit {
     );
 
     if (existingApp) {
-      this.messageService.add({
-        severity: 'info',
-        summary: 'Solicitud existente',
-        detail: 'Ya tienes una solicitud activa para esta mascota'
-      });
-      setTimeout(() => {
-        this.router.navigate(['/adoptions']);
-      }, 2000);
+      // Guardar la solicitud existente y mostrar el diálogo
+      this.existingApplication.set(existingApp);
+      this.showExistingApplicationDialog.set(true);
     }
   }
 
@@ -821,11 +945,9 @@ export class AdoptionFormComponent implements OnInit, AfterViewInit {
       );
 
       if (existingApp) {
-        this.messageService.add({
-          severity: 'warn',
-          summary: 'Solicitud existente',
-          detail: 'Ya tienes una solicitud activa para esta mascota'
-        });
+        // Mostrar diálogo en lugar de solo toast
+        this.existingApplication.set(existingApp);
+        this.showExistingApplicationDialog.set(true);
         return;
       }
     }
@@ -868,6 +990,48 @@ export class AdoptionFormComponent implements OnInit, AfterViewInit {
 
   public goBack(): void {
     this.router.navigate(['/adoptions']);
+  }
+
+  public goToMyApplications(): void {
+    this.showExistingApplicationDialog.set(false);
+    this.router.navigate(['/adoptions/profile']);
+  }
+
+  public viewPetFromDialog(): void {
+    this.showExistingApplicationDialog.set(false);
+    if (this.pet()) {
+      this.router.navigate(['/adoptions/mascota', this.pet()!.id]);
+    }
+  }
+
+  public getStatusLabel(status: string): string {
+    const labels: Record<string, string> = {
+      pending: 'Pendiente',
+      approved: 'Aprobada',
+      rejected: 'Rechazada',
+      completed: 'Completada',
+    };
+    return labels[status] || status;
+  }
+
+  public getStatusSeverity(status: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' | undefined {
+    const severities: Record<string, 'success' | 'info' | 'warn' | 'danger' | 'secondary' | undefined> = {
+      pending: 'warn',
+      approved: 'success',
+      rejected: 'danger',
+      completed: 'info',
+    };
+    return severities[status] || 'secondary';
+  }
+
+  public formatDate(date: Date | string | undefined): string {
+    if (!date) return 'N/A';
+    const d = new Date(date);
+    return d.toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
   }
 }
 
