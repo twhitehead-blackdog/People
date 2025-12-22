@@ -41,7 +41,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
       <div class="form-hero">
         <div class="hero-content">
           <div class="hero-icon">🐾</div>
-          <h1 class="hero-title">Solicitud de Adopción</h1>
+          <h1 class="hero-title">{{ isEditMode() ? 'Editar Solicitud de Adopción' : 'Solicitud de Adopción' }}</h1>
           @if (pet()) {
           <div class="pet-info-badge">
             <span class="pet-emoji">{{ pet()!.species === 'dog' ? '🐕' : pet()!.species === 'cat' ? '🐈' : '🐾' }}</span>
@@ -216,9 +216,9 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
               (onClick)="goBack()"
             />
             <p-button
-              label="Enviar Solicitud"
+              [label]="isEditMode() ? 'Actualizar Solicitud' : 'Enviar Solicitud'"
               type="submit"
-              icon="pi pi-send"
+              [icon]="isEditMode() ? 'pi pi-check' : 'pi pi-send'"
               [disabled]="adoptionForm.invalid || isSubmitting()"
               [loading]="isSubmitting()"
               [style]="{
@@ -824,6 +824,8 @@ export class AdoptionFormComponent implements OnInit, AfterViewInit {
   public existingApplication = signal<AdoptionApplication | null>(null);
   public showExistingApplicationDialog = signal(false);
   private petId: string | null = null;
+  private applicationIdToEdit: string | null = null;
+  public isEditMode = signal(false);
 
   constructor() {
     // Escuchar cambios en selectedEntity del store
@@ -833,8 +835,12 @@ export class AdoptionFormComponent implements OnInit, AfterViewInit {
         this.pet.set(selectedPet);
         // Validar cuando se carga la mascota de forma asíncrona
         setTimeout(() => {
-          this.validatePetAvailability();
-          this.validateDuplicateApplication();
+          if (this.applicationIdToEdit) {
+            this.loadApplicationForEdit();
+          } else {
+            this.validatePetAvailability();
+            this.validateDuplicateApplication();
+          }
         }, 100);
       }
     });
@@ -864,18 +870,63 @@ export class AdoptionFormComponent implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     this.petId = this.route.snapshot.paramMap.get('id');
+    // Verificar si estamos en modo edición
+    this.applicationIdToEdit = this.route.snapshot.queryParamMap.get('edit');
+    
     if (this.petId) {
       const pet = this.petsStore.entities().find((p) => p.id === this.petId);
       if (pet) {
         this.pet.set(pet);
-        // Validar disponibilidad y duplicados
-        this.validatePetAvailability();
-        this.validateDuplicateApplication();
+        // Si estamos en modo edición, cargar la solicitud existente
+        if (this.applicationIdToEdit) {
+          this.loadApplicationForEdit();
+        } else {
+          // Solo validar si no estamos editando
+          this.validatePetAvailability();
+          this.validateDuplicateApplication();
+        }
       } else {
         // Si no está en el store, seleccionar para cargar los detalles
         this.petsStore.selectEntity(this.petId);
         // El effect se encargará de actualizar pet cuando se cargue
       }
+    }
+  }
+
+  private loadApplicationForEdit(): void {
+    if (!this.applicationIdToEdit) return;
+
+    const application = this.applicationsStore.entities().find(
+      app => app.id === this.applicationIdToEdit
+    );
+
+    if (application) {
+      this.isEditMode.set(true);
+      this.existingApplication.set(application);
+      // Prellenar el formulario con los datos de la solicitud
+      this.adoptionForm.patchValue({
+        applicant_name: application.applicant_name,
+        applicant_email: application.applicant_email,
+        applicant_phone: application.applicant_phone,
+        applicant_address: application.applicant_address,
+        applicant_document_id: application.applicant_document_id || '',
+        reason_for_adoption: application.reason_for_adoption || '',
+        has_other_pets: application.has_other_pets || false,
+        other_pets_info: application.other_pets_info || '',
+        has_children: application.has_children || false,
+        children_info: application.children_info || '',
+        living_situation: application.living_situation || '',
+      });
+    } else {
+      // Si no se encuentra la solicitud, mostrar error y redirigir
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo encontrar la solicitud para editar'
+      });
+      setTimeout(() => {
+        this.router.navigate(['/adoptions/profile']);
+      }, 2000);
     }
   }
 
@@ -935,13 +986,61 @@ export class AdoptionFormComponent implements OnInit, AfterViewInit {
       return;
     }
 
-    // Verificar duplicados (por si acaso cambió algo entre carga y envío)
+    // Si estamos en modo edición, actualizar la solicitud existente
+    if (this.isEditMode() && this.applicationIdToEdit) {
+      const existingApp = this.existingApplication();
+      if (!existingApp) {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'No se pudo encontrar la solicitud para editar'
+        });
+        return;
+      }
+
+      this.isSubmitting.set(true);
+      const formValue = this.adoptionForm.value;
+      const updatedApplication: AdoptionApplication = {
+        ...existingApp,
+        applicant_name: formValue.applicant_name,
+        applicant_email: formValue.applicant_email,
+        applicant_phone: formValue.applicant_phone,
+        applicant_address: formValue.applicant_address,
+        applicant_document_id: formValue.applicant_document_id || undefined,
+        reason_for_adoption: formValue.reason_for_adoption || undefined,
+        has_other_pets: formValue.has_other_pets,
+        other_pets_info: formValue.other_pets_info || undefined,
+        has_children: formValue.has_children,
+        children_info: formValue.children_info || undefined,
+        living_situation: formValue.living_situation || undefined,
+      };
+
+      this.applicationsStore.editItem(updatedApplication).subscribe({
+        next: () => {
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Éxito',
+            detail: 'Solicitud de adopción actualizada correctamente',
+          });
+          setTimeout(() => {
+            this.router.navigate(['/adoptions/profile']);
+          }, 2000);
+        },
+        error: () => {
+          this.isSubmitting.set(false);
+        },
+      });
+      return;
+    }
+
+    // Verificar duplicados solo si no estamos editando (por si acaso cambió algo entre carga y envío)
     const user = this.authWrapper.currentUser();
     if (user?.email) {
       const existingApp = this.applicationsStore.entities().find(
         app => app.pet_id === this.pet()!.id && 
               app.applicant_email === user.email &&
-              app.status !== 'rejected'
+              app.status !== 'rejected' &&
+              app.id !== this.applicationIdToEdit // Excluir la solicitud que estamos editando
       );
 
       if (existingApp) {
