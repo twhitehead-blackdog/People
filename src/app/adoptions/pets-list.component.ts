@@ -358,9 +358,15 @@ import { MatchFilters } from './adoptions-match.component';
       }
 
       .pets-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 2rem;
+      }
+
+      /* Vista en filas (list) */
+      .pets-list.list-view {
         display: flex;
         flex-direction: column;
-        gap: 2rem;
       }
 
       .pets-list.list-view .pet-card {
@@ -387,6 +393,62 @@ import { MatchFilters } from './adoptions-match.component';
         gap: 1rem;
       }
 
+      /* Vista cuadriculada (grid) */
+      .pets-list:not(.list-view) .pet-card {
+        flex-direction: column;
+        margin-bottom: 0;
+      }
+
+      .pets-list:not(.list-view) .pet-image-container {
+        width: 100%;
+        height: 300px;
+      }
+
+      .pets-list:not(.list-view) .pet-details-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+      }
+
+      .pets-list:not(.list-view) .pet-details-right {
+        display: none;
+      }
+
+      .pets-list:not(.list-view) .action-links {
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .pets-list:not(.list-view) .pet-details-left {
+        gap: 0.5rem;
+      }
+
+      .pets-list:not(.list-view) .pet-detail-item {
+        padding: 0.375rem;
+        font-size: 0.8125rem;
+      }
+
+      .pets-list:not(.list-view) .pet-location-info {
+        padding: 0.5rem;
+        font-size: 0.8125rem;
+        margin-top: 0.25rem;
+      }
+
+      .pets-list:not(.list-view) .interest-count {
+        font-size: 0.75rem;
+        padding: 0.375rem;
+        margin-top: 0.25rem;
+      }
+
+      .pets-list:not(.list-view) .action-link {
+        padding: 0.375rem 0.5rem;
+        font-size: 0.8125rem;
+      }
+
+      .pets-list:not(.list-view) ::ng-deep .pet-card p-button button {
+        padding: 0.625rem 1rem !important;
+        font-size: 0.875rem !important;
+      }
+
       .pet-card {
         display: flex;
         gap: 2rem;
@@ -402,6 +464,12 @@ import { MatchFilters } from './adoptions-match.component';
         margin-bottom: 1.5rem;
         position: relative;
         overflow: hidden;
+      }
+
+      /* Estilos específicos para vista grid */
+      .pets-list:not(.list-view) .pet-card {
+        gap: 1rem;
+        padding: 1rem;
       }
 
       .pet-card::before {
@@ -540,6 +608,10 @@ import { MatchFilters } from './adoptions-match.component';
         align-items: center;
         gap: 0.5rem;
         transition: all 0.3s ease;
+      }
+
+      .pets-list:not(.list-view) .pet-name {
+        font-size: 1.5rem;
       }
 
       .pet-card:hover .pet-name {
@@ -777,6 +849,7 @@ import { MatchFilters } from './adoptions-match.component';
         text-align: center;
         padding: 4rem 2rem;
         color: #9ca3af;
+        grid-column: 1 / -1;
       }
 
       .pet-details-dialog {
@@ -852,6 +925,10 @@ import { MatchFilters } from './adoptions-match.component';
       }
 
       @media (max-width: 1024px) {
+        .pets-list:not(.list-view) {
+          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        }
+
         .pet-card {
           flex-direction: column;
         }
@@ -867,6 +944,11 @@ import { MatchFilters } from './adoptions-match.component';
       }
 
       @media (max-width: 768px) {
+        .pets-list:not(.list-view) {
+          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+          gap: 1.5rem;
+        }
+
         .section-title {
           font-size: 2rem;
         }
@@ -881,6 +963,12 @@ import { MatchFilters } from './adoptions-match.component';
 
         .pet-card {
           padding: 1rem;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .pets-list:not(.list-view) {
+          grid-template-columns: 1fr;
         }
       }
     `,
