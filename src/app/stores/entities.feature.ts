@@ -437,10 +437,11 @@ export function withCustomEntities<T extends { id: EntityId }>({
           const companyId = getCurrentCompanyId();
           const cleanedQuery = cleanQuery(query, tableName, state._orgService);
 
-          // Asegurar que company_id esté presente en el request (solo para Black Dog)
+          // Asegurar que company_id esté presente en el request
           let requestData: any = { ...request };
 
-          // Agregar company_id si la tabla lo requiere y no está presente (solo para Black Dog)
+          // Agregar company_id si la tabla lo requiere y no está presente
+          // Ahora que usamos tablas compartidas, TANTO Naz como Black Dog necesitan company_id
           const tablesRequiringCompanyId = [
             'employees',
             'branches',
@@ -453,26 +454,23 @@ export function withCustomEntities<T extends { id: EntityId }>({
             'payrolls',
           ];
 
-          // Solo agregar company_id si NO es una tabla de Naz
+          // Agregar company_id si la tabla lo requiere y companyId está disponible
+          // (ya no excluimos a Naz porque ahora usa tablas compartidas)
           if (
-            !state._orgService.isNaz() &&
             tablesRequiringCompanyId.includes(name) &&
-            companyId
+            companyId &&
+            !requestData.company_id
           ) {
             requestData.company_id = companyId;
           }
 
           // Para banks y creditors, company_id es opcional (puede ser NULL para compartidos)
-          // Solo para Black Dog
           if (
-            !state._orgService.isNaz() &&
             (name === 'banks' || name === 'creditors') &&
-            companyId
+            companyId &&
+            !requestData.company_id
           ) {
-            // Solo agregar si no está presente (permitir NULL para compartidos)
-            if (!requestData.company_id) {
-              requestData.company_id = companyId;
-            }
+            requestData.company_id = companyId;
           }
 
           const params = addCompanyFilter(
@@ -533,17 +531,14 @@ export function withCustomEntities<T extends { id: EntityId }>({
             'payrolls',
           ];
 
-          // Solo agregar company_id si NO es una tabla de Naz
+          // Agregar company_id si la tabla lo requiere y companyId está disponible
+          // (ya no excluimos a Naz porque ahora usa tablas compartidas)
           if (
-            !state._orgService.isNaz() &&
             tablesRequiringCompanyId.includes(name) &&
-            companyId
+            companyId &&
+            !requestData.company_id
           ) {
-            // No sobrescribir company_id si ya está presente (permitir cambios)
-            // Pero asegurar que no se pueda cambiar a otra organización
-            if (!requestData.company_id) {
-              requestData.company_id = companyId;
-            }
+            requestData.company_id = companyId;
           }
 
           const params = addCompanyFilter(
