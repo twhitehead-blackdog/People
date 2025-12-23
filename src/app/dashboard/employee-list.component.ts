@@ -12,10 +12,7 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import {
-  ConfirmationService,
-  MessageService,
-} from 'primeng/api';
+import { ConfirmationService, MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
@@ -31,13 +28,12 @@ import { ToastModule } from 'primeng/toast';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { TooltipModule } from 'primeng/tooltip';
 import { utils, writeFile } from 'xlsx';
-import { Column, Employee, ExportColumn } from '../models';
+import { Employee, ExportColumn } from '../models';
 import { AgePipe } from '../pipes/age.pipe';
 import { OrganizationService } from '../services/organization.service';
 import { WassengerService } from '../services/wassenger.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeeFormComponent } from './employee-form.component';
-import { getEmployeeNumberPrefix } from '../utils/employee-number.utils';
 
 @Component({
   selector: 'pt-employee-list',
@@ -111,7 +107,9 @@ import { getEmployeeNumberPrefix } from '../utils/employee-number.utils';
         </div>
       </ng-template>
       <!-- Panel de Filtros Colapsable -->
-      <div class="mb-4 bg-neutral-800/50 rounded-lg border border-neutral-700/50 overflow-hidden">
+      <div
+        class="mb-4 bg-neutral-800/50 rounded-lg border border-neutral-700/50 overflow-hidden"
+      >
         <!-- Header del panel de filtros -->
         <button
           type="button"
@@ -122,19 +120,21 @@ import { getEmployeeNumberPrefix } from '../utils/employee-number.utils';
             <i class="pi pi-filter text-yellow-400"></i>
             <span class="text-lg font-semibold text-white">Filtros</span>
             @if (hasActiveFilters()) {
-            <span class="px-2 py-1 bg-cyan-500/20 text-cyan-300 text-xs font-semibold rounded-full">
+            <span
+              class="px-2 py-1 bg-cyan-500/20 text-cyan-300 text-xs font-semibold rounded-full"
+            >
               {{ getActiveFiltersCount() }} activo(s)
             </span>
             }
           </div>
-          <i 
+          <i
             class="pi transition-transform duration-300"
             [class.pi-chevron-down]="!filtersExpanded()"
             [class.pi-chevron-up]="filtersExpanded()"
             [class.text-gray-400]="true"
           ></i>
         </button>
-        
+
         <!-- Contenido desplegable -->
         @if (filtersExpanded()) {
         <div class="px-4 pb-4 border-t border-neutral-700/50 pt-4">
@@ -203,9 +203,7 @@ import { getEmployeeNumberPrefix } from '../utils/employee-number.utils';
                   <div class="flex items-center gap-2">
                     <i
                       [ngClass]="
-                        option.value === 'M'
-                          ? 'pi pi-mars'
-                          : 'pi pi-venus'
+                        option.value === 'M' ? 'pi pi-mars' : 'pi pi-venus'
                       "
                     ></i>
                     {{ option.label }}
@@ -220,8 +218,13 @@ import { getEmployeeNumberPrefix } from '../utils/employee-number.utils';
                 <i class="pi pi-toggle-on mr-2"></i>Estado
               </label>
               <div class="flex items-center gap-2">
-                <p-toggleswitch [formControl]="inactiveToggle" inputId="active" />
-                <label for="active" class="text-sm text-gray-300 cursor-pointer">Incluir inactivos</label>
+                <p-toggleswitch
+                  [formControl]="inactiveToggle"
+                  inputId="active"
+                />
+                <label for="active" class="text-sm text-gray-300 cursor-pointer"
+                  >Incluir inactivos</label
+                >
               </div>
             </div>
           </div>
@@ -272,12 +275,6 @@ import { getEmployeeNumberPrefix } from '../utils/employee-number.utils';
               <th></th>
               <th></th>
               <th></th>
-              <th></th>
-              <th></th>
-              <th></th>
-              <th></th>
-              <th></th>
-              <th></th>
             </tr>
             <tr>
               <th pSortableColumn="employee_number">
@@ -300,12 +297,6 @@ import { getEmployeeNumberPrefix } from '../utils/employee-number.utils';
               <th pSortableColumn="department.name">
                 Area<p-sortIcon field="department.name" />
               </th>
-              <th
-                style="width: 10%; max-width: 120px;"
-                pSortableColumn="position.name"
-              >
-                Cargo<p-sortIcon field="position.name" />
-              </th>
               <th pSortableColumn="monthly_salary">
                 Salario<p-sortIcon field="monthly_salary" />
               </th>
@@ -324,12 +315,7 @@ import { getEmployeeNumberPrefix } from '../utils/employee-number.utils';
               <th pSortableColumn="created_at">
                 Creado<p-sortIcon field="created_at" />
               </th>
-              <th pSortableColumn="total_lunch_exceeded_minutes">
-                Almuerzo Excedido<p-sortIcon
-                  field="total_lunch_exceeded_minutes"
-                />
-              </th>
-              <th></th>
+              <th>Acciones</th>
             </tr>
           </ng-template>
           <ng-template #body let-item let-columns="columns">
@@ -356,9 +342,6 @@ import { getEmployeeNumberPrefix } from '../utils/employee-number.utils';
                 {{ item.branch?.name || 'SIN SUCURSAL' }}
               </td>
               <td>{{ item.department?.name || 'SIN AREA' }}</td>
-              <td class="position-cell">
-                {{ item.position?.name || 'SIN CARGO' }}
-              </td>
               <td>{{ item.monthly_salary | currency : '$' }}</td>
               <td>{{ item.uniform_size }}</td>
               <td>{{ item.start_date | date : 'mediumDate' }}</td>
@@ -380,22 +363,6 @@ import { getEmployeeNumberPrefix } from '../utils/employee-number.utils';
                 </span>
               </td>
               <td>{{ item.created_at | date : 'medium' }}</td>
-              <td>
-                @if(item.total_lunch_exceeded_minutes !== undefined &&
-                item.total_lunch_exceeded_minutes !== null) {
-                @if(item.total_lunch_exceeded_minutes > 0) {
-                <p-tag
-                  severity="warn"
-                  [value]="
-                    formatLunchExceeded(item.total_lunch_exceeded_minutes)
-                  "
-                />
-                } @else {
-                <span class="text-gray-500">0</span>
-                } } @else {
-                <span class="text-gray-500">0</span>
-                }
-              </td>
               <td>
                 <div class="flex gap-1 sm:gap-2 flex-nowrap">
                   <p-button
@@ -485,21 +452,6 @@ import { getEmployeeNumberPrefix } from '../utils/employee-number.utils';
       transition: all 0.2s ease !important;
     }
 
-    /* Excepción: columna Cargo puede tener múltiples líneas */
-    :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td.position-cell {
-      white-space: normal !important;
-      word-wrap: break-word !important;
-      word-break: break-word !important;
-      overflow-wrap: break-word !important;
-      line-height: 1.4 !important;
-      max-height: none !important;
-      height: auto !important;
-      min-height: 3rem !important;
-      vertical-align: middle !important;
-      overflow: visible !important;
-      text-overflow: clip !important;
-      padding: 0.5rem 0.75rem !important;
-    }
 
     :host ::ng-deep .p-datatable .p-datatable-tbody > tr {
       height: auto !important;
@@ -557,7 +509,7 @@ import { getEmployeeNumberPrefix } from '../utils/employee-number.utils';
       color: #f9fafb !important;
       text-transform: uppercase !important;
       background: linear-gradient(135deg, #374151 0%, #1f2937 100%) !important;
-      border-bottom: 2px solid rgba(250, 204, 21, 0.3) !important;
+      border-bottom: 2px solid rgba(107, 114, 128, 0.3) !important;
       padding: 1.125rem 1rem !important;
       position: relative !important;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) inset !important;
@@ -570,7 +522,7 @@ import { getEmployeeNumberPrefix } from '../utils/employee-number.utils';
       left: 0 !important;
       right: 0 !important;
       height: 2px !important;
-      background: linear-gradient(90deg, transparent, rgba(250, 204, 21, 0.5), transparent) !important;
+      background: linear-gradient(90deg, transparent, rgba(107, 114, 128, 0.5), transparent) !important;
     }
 
     /* Títulos de columnas ordenables modernos */
@@ -582,19 +534,10 @@ import { getEmployeeNumberPrefix } from '../utils/employee-number.utils';
     }
 
     :host ::ng-deep .p-datatable .p-datatable-thead > tr:last-child > th.p-datatable-sortable-column:hover {
-      background: linear-gradient(135deg, rgba(250, 204, 21, 0.15) 0%, rgba(250, 204, 21, 0.05) 100%) !important;
-      color: #facc15 !important;
+      background: linear-gradient(135deg, rgba(107, 114, 128, 0.15) 0%, rgba(107, 114, 128, 0.05) 100%) !important;
+      color: #d1d5db !important;
       transform: translateY(-1px) !important;
-      box-shadow: 0 4px 6px rgba(250, 204, 21, 0.1) !important;
-    }
-
-    /* Columna Cargo - ancho limitado y permite múltiples líneas */
-    :host ::ng-deep .p-datatable .p-datatable-thead > tr > th[psortablecolumn="position.name"] {
-      width: 10% !important;
-      max-width: 120px !important;
-      min-width: 80px !important;
-      white-space: normal !important;
-      word-wrap: break-word !important;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
     }
 
     /* Estilos de columnas ordenables */
@@ -613,9 +556,9 @@ import { getEmployeeNumberPrefix } from '../utils/employee-number.utils';
     /* Estilo cuando la columna está activa (ordenada) - Moderno */
     :host ::ng-deep .p-datatable .p-datatable-thead > tr > th.p-datatable-sortable-column.p-highlight,
     :host ::ng-deep .p-datatable .p-datatable-thead > tr > th.p-datatable-sortable-column.p-datatable-column-sorted {
-      background: linear-gradient(135deg, rgba(250, 204, 21, 0.2) 0%, rgba(250, 204, 21, 0.1) 100%) !important;
-      color: #facc15 !important;
-      border-bottom-color: rgba(250, 204, 21, 0.5) !important;
+      background: linear-gradient(135deg, rgba(107, 114, 128, 0.2) 0%, rgba(107, 114, 128, 0.1) 100%) !important;
+      color: #d1d5db !important;
+      border-bottom-color: rgba(107, 114, 128, 0.5) !important;
     }
 
     /* Animación de iconos de ordenamiento */
@@ -747,10 +690,10 @@ export class EmployeeListComponent implements OnInit {
 
   public hasActiveFilters = computed(() => {
     return (
-      (this.branchFilter().length > 0) ||
-      (this.departmentFilter().length > 0) ||
-      (this.positionFilter().length > 0) ||
-      (this.genderFilter() !== null)
+      this.branchFilter().length > 0 ||
+      this.departmentFilter().length > 0 ||
+      this.positionFilter().length > 0 ||
+      this.genderFilter() !== null
     );
   });
 
@@ -764,14 +707,12 @@ export class EmployeeListComponent implements OnInit {
   });
 
   public filtered = computed(() => {
-    const employees = this.store.employees
-      .employeesList()
-      .filter(
-        (item) =>
-          // Si el toggle está activado, mostrar todos (activos e inactivos)
-          // Si está desactivado, mostrar solo activos
-          this.inactiveValue() || item.is_active === true
-      );
+    const employees = this.store.employees.employeesList().filter(
+      (item) =>
+        // Si el toggle está activado, mostrar todos (activos e inactivos)
+        // Si está desactivado, mostrar solo activos
+        this.inactiveValue() || item.is_active === true
+    );
 
     const search = this.searchTerm()?.toLowerCase().trim() || '';
 
@@ -786,10 +727,16 @@ export class EmployeeListComponent implements OnInit {
         }
 
         // Buscar por nombre completo
-        const fullName = `${emp.first_name || ''} ${emp.father_name || ''}`.toLowerCase().trim();
+        const fullName = `${emp.first_name || ''} ${emp.father_name || ''}`
+          .toLowerCase()
+          .trim();
         const firstName = (emp.first_name || '').toLowerCase();
         const fatherName = (emp.father_name || '').toLowerCase();
-        if (fullName.includes(search) || firstName.includes(search) || fatherName.includes(search)) {
+        if (
+          fullName.includes(search) ||
+          firstName.includes(search) ||
+          fatherName.includes(search)
+        ) {
           return true;
         }
 
@@ -804,26 +751,27 @@ export class EmployeeListComponent implements OnInit {
     }
 
     // Aplicar filtros de sucursal
-    const branchFilterIds = this.branchFilter().map(b => b.id);
+    const branchFilterIds = this.branchFilter().map((b) => b.id);
     if (branchFilterIds.length > 0) {
-      filtered = filtered.filter((emp) => 
-        emp.branch_id && branchFilterIds.includes(emp.branch_id)
+      filtered = filtered.filter(
+        (emp) => emp.branch_id && branchFilterIds.includes(emp.branch_id)
       );
     }
 
     // Aplicar filtros de área
-    const departmentFilterIds = this.departmentFilter().map(d => d.id);
+    const departmentFilterIds = this.departmentFilter().map((d) => d.id);
     if (departmentFilterIds.length > 0) {
-      filtered = filtered.filter((emp) => 
-        emp.department_id && departmentFilterIds.includes(emp.department_id)
+      filtered = filtered.filter(
+        (emp) =>
+          emp.department_id && departmentFilterIds.includes(emp.department_id)
       );
     }
 
     // Aplicar filtros de cargo
-    const positionFilterIds = this.positionFilter().map(p => p.id);
+    const positionFilterIds = this.positionFilter().map((p) => p.id);
     if (positionFilterIds.length > 0) {
-      filtered = filtered.filter((emp) => 
-        emp.position_id && positionFilterIds.includes(emp.position_id)
+      filtered = filtered.filter(
+        (emp) => emp.position_id && positionFilterIds.includes(emp.position_id)
       );
     }
 
@@ -887,10 +835,13 @@ export class EmployeeListComponent implements OnInit {
 
   public getEmployeeDisplayNumber(employee: Employee): string {
     // Si el empleado ya tiene employee_number en formato BD0001, usarlo
-    if (employee.employee_number && /^[A-Z]{2}\d{4}$/.test(employee.employee_number)) {
+    if (
+      employee.employee_number &&
+      /^[A-Z]{2}\d{4}$/.test(employee.employee_number)
+    ) {
       return employee.employee_number;
     }
-    
+
     // Si no tiene employee_number, mostrar solo los primeros 8 caracteres del ID como fallback
     // El formato BD0001 debe asignarse desde la base de datos o al crear el empleado
     return employee.id.substring(0, 8);
