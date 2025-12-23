@@ -59,7 +59,9 @@ import { EmployeesStore } from '../stores/employees.store';
   template: `<div [ngClass]="{ 'naz-theme': isNaz() }">
     <p-card>
       <ng-template #title>
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
+        <div
+          class="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3"
+        >
           <div>
             <h2 class="m-0 text-lg sm:text-xl">Marcaciones</h2>
             <p class="text-xs sm:text-sm text-gray-400 m-0 mt-1">
@@ -105,7 +107,9 @@ import { EmployeesStore } from '../stores/employees.store';
       </div>
 
       <!-- Panel de Filtros Colapsable -->
-      <div class="mb-4 bg-neutral-800/50 rounded-lg border border-neutral-700/50 overflow-hidden">
+      <div
+        class="mb-4 bg-neutral-800/50 rounded-lg border border-neutral-700/50 overflow-hidden"
+      >
         <!-- Header del panel de filtros -->
         <button
           type="button"
@@ -116,19 +120,21 @@ import { EmployeesStore } from '../stores/employees.store';
             <i class="pi pi-filter text-yellow-400 text-sm"></i>
             <span class="text-base font-semibold text-white">Filtros</span>
             @if (hasActiveFilters()) {
-            <span class="px-2 py-0.5 bg-cyan-500/20 text-cyan-300 text-xs font-semibold rounded-full">
+            <span
+              class="px-2 py-0.5 bg-cyan-500/20 text-cyan-300 text-xs font-semibold rounded-full"
+            >
               {{ getActiveFiltersCount() }} activo(s)
             </span>
             }
           </div>
-          <i 
+          <i
             class="pi transition-transform duration-300 text-sm"
             [class.pi-chevron-down]="!filtersExpanded()"
             [class.pi-chevron-up]="filtersExpanded()"
             [class.text-gray-400]="true"
           ></i>
         </button>
-        
+
         <!-- Contenido desplegable -->
         @if (filtersExpanded()) {
         <div class="px-3 pb-3 border-t border-neutral-700/50 pt-3">
@@ -170,43 +176,59 @@ import { EmployeesStore } from '../stores/employees.store';
               />
             </div>
 
-            <!-- Filtros de Alertas -->
-            <div class="flex-1 min-w-[200px]">
+            <!-- Filtros de Alertas - Reorganizado en grid 2x2 -->
+            <div class="flex-1 min-w-[240px]">
               <label class="block text-xs font-medium text-gray-300 mb-1">
                 <i class="pi pi-exclamation-triangle mr-1 text-xs"></i>Alertas
               </label>
-              <div class="flex flex-wrap gap-x-3 gap-y-1">
+              <div class="grid grid-cols-2 gap-x-3 gap-y-1">
                 <div class="flex items-center gap-1.5">
                   <p-toggleSwitch
                     inputId="delayed"
                     [(ngModel)]="onlyDelayed"
-                    [style]="{ 'transform': 'scale(0.85)' }"
+                    [style]="{ transform: 'scale(0.85)' }"
                   />
-                  <label for="delayed" class="text-xs text-gray-300 cursor-pointer whitespace-nowrap">Retrasos</label>
+                  <label
+                    for="delayed"
+                    class="text-xs text-gray-300 cursor-pointer whitespace-nowrap"
+                    >Retrasos</label
+                  >
                 </div>
                 <div class="flex items-center gap-1.5">
                   <p-toggleSwitch
                     inputId="errors"
                     [(ngModel)]="onlyErrors"
-                    [style]="{ 'transform': 'scale(0.85)' }"
+                    [style]="{ transform: 'scale(0.85)' }"
                   />
-                  <label for="errors" class="text-xs text-gray-300 cursor-pointer whitespace-nowrap">Errores</label>
+                  <label
+                    for="errors"
+                    class="text-xs text-gray-300 cursor-pointer whitespace-nowrap"
+                    >Errores</label
+                  >
                 </div>
                 <div class="flex items-center gap-1.5">
                   <p-toggleSwitch
                     inputId="earlyExit"
                     [(ngModel)]="onlyEarlyExit"
-                    [style]="{ 'transform': 'scale(0.85)' }"
+                    [style]="{ transform: 'scale(0.85)' }"
                   />
-                  <label for="earlyExit" class="text-xs text-gray-300 cursor-pointer whitespace-nowrap">Salida temprana</label>
+                  <label
+                    for="earlyExit"
+                    class="text-xs text-gray-300 cursor-pointer whitespace-nowrap"
+                    >Salida temprana</label
+                  >
                 </div>
                 <div class="flex items-center gap-1.5">
                   <p-toggleSwitch
                     inputId="lunchExceededToggle"
                     [(ngModel)]="onlyLunchExceeded"
-                    [style]="{ 'transform': 'scale(0.85)' }"
+                    [style]="{ transform: 'scale(0.85)' }"
                   />
-                  <label for="lunchExceededToggle" class="text-xs text-gray-300 cursor-pointer whitespace-nowrap">Almuerzo excedido</label>
+                  <label
+                    for="lunchExceededToggle"
+                    class="text-xs text-gray-300 cursor-pointer whitespace-nowrap"
+                    >Almuerzo excedido</label
+                  >
                 </div>
               </div>
             </div>
@@ -231,32 +253,41 @@ import { EmployeesStore } from '../stores/employees.store';
               />
             </div>
             }
-
-            <!-- Información del empleado seleccionado -->
-            @if(employeeId() && selectedEmployeeLunchExceeded() !== null) {
-            <div class="flex-1 min-w-[140px]">
-              <label class="block text-xs font-medium text-gray-300 mb-1">
-                <i class="pi pi-info-circle mr-1 text-xs"></i>Total Excedido
-              </label>
-              <div class="flex items-center gap-2">
-                @if(selectedEmployeeLunchExceeded()! > 0) {
-                <p-tag
-                  severity="warn"
-                  [value]="formatLunchExceededTotal(selectedEmployeeLunchExceeded()!)"
-                  icon="pi pi-clock"
-                  styleClass="text-xs"
-                />
-                } @else {
-                <span class="text-xs text-gray-400">0 min</span>
-                }
-              </div>
-            </div>
-            }
           </div>
         </div>
         }
       </div>
-      @if (hasError()) {
+
+      <!-- Total Excedido fuera del panel de filtros -->
+      @if(selectedEmployee() && selectedEmployeeLunchExceeded() !== null) {
+      <div
+        class="mb-4 p-3 bg-neutral-800/50 rounded-lg border border-neutral-700/50"
+      >
+        <div class="flex items-center gap-3">
+          <i class="pi pi-info-circle text-yellow-400"></i>
+          <div class="flex-1">
+            <span class="text-sm font-medium text-gray-300"
+              >Total Excedido - {{ selectedEmployee()?.first_name }}
+              {{ selectedEmployee()?.father_name }}</span
+            >
+          </div>
+          <div class="flex items-center gap-2">
+            @if(selectedEmployeeLunchExceeded()! > 0) {
+            <p-tag
+              severity="warn"
+              [value]="
+                formatLunchExceededTotal(selectedEmployeeLunchExceeded()!)
+              "
+              icon="pi pi-clock"
+              styleClass="text-xs"
+            />
+            } @else {
+            <span class="text-sm text-gray-400">0 minutos</span>
+            }
+          </div>
+        </div>
+      </div>
+      } @if (hasError()) {
       <!-- Error handling, toast will be shown -->
       }
       <div class="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
@@ -755,9 +786,64 @@ export class TimelogsComponent {
   private message = inject(MessageService);
   public colorVariants = colorVariants;
 
-  private selectedEmployee = computed(() =>
-    this.employees.employeesList().find((x) => x.id === this.employeeId())
-  );
+  // Computed mejorado para encontrar el empleado seleccionado
+  // Busca por employeeId si existe, o por employeeSearch si solo hay un resultado único
+  private selectedEmployee = computed(() => {
+    // Si hay un employeeId seleccionado, usarlo
+    if (this.employeeId()) {
+      return this.employees
+        .employeesList()
+        .find((x) => x.id === this.employeeId());
+    }
+
+    // Si hay búsqueda de texto, buscar empleados que coincidan (misma lógica que filteredDaylogs)
+    const searchTerm = this.employeeSearch()?.toLowerCase().trim() || '';
+    if (searchTerm) {
+      const matchingEmployees = this.employees.employeesList().filter((emp) => {
+        // Aplicar trim a cada campo para evitar problemas con espacios en la BD
+        const firstName = (emp.first_name || '').trim().toLowerCase();
+        const middleName = (emp.middle_name || '').trim().toLowerCase();
+        const fatherName = (emp.father_name || '').trim().toLowerCase();
+        const motherName = (emp.mother_name || '').trim().toLowerCase();
+
+        // Crear diferentes combinaciones de nombres
+        const shortName = `${firstName} ${fatherName}`.trim();
+        const fullName =
+          `${firstName} ${middleName} ${fatherName} ${motherName}`.trim();
+        const allNames = [firstName, middleName, fatherName, motherName].filter(
+          (n) => n.length > 0 // Filtrar también strings vacíos después del trim
+        );
+
+        // Si el searchTerm tiene múltiples palabras, buscar que todas estén presentes
+        const searchWords = searchTerm.split(/\s+/).filter((w) => w.length > 0);
+
+        if (searchWords.length === 1) {
+          // Búsqueda de una sola palabra: buscar en cualquier campo
+          const word = searchWords[0];
+          return (
+            fullName.includes(word) ||
+            shortName.includes(word) ||
+            allNames.some((name) => name.includes(word))
+          );
+        } else {
+          // Búsqueda de múltiples palabras: todas deben estar presentes en algún campo
+          return searchWords.every(
+            (word) =>
+              fullName.includes(word) ||
+              shortName.includes(word) ||
+              allNames.some((name) => name.includes(word))
+          );
+        }
+      });
+
+      // Solo retornar si hay exactamente un empleado que coincida
+      if (matchingEmployees.length === 1) {
+        return matchingEmployees[0];
+      }
+    }
+
+    return null;
+  });
 
   // Computed para obtener el tiempo total excedido del empleado seleccionado
   public selectedEmployeeLunchExceeded = computed(() => {
@@ -1450,8 +1536,10 @@ export class TimelogsComponent {
               const lunchExceededMinutes = lunchTime > 60 ? lunchTime - 60 : 0;
 
               // RESTAR el exceso de almuerzo de las horas extras (porque ese tiempo no es trabajo)
-              const totalOvertimeMinutes =
-                Math.max(0, overtimeByTotalTime - lunchExceededMinutes);
+              const totalOvertimeMinutes = Math.max(
+                0,
+                overtimeByTotalTime - lunchExceededMinutes
+              );
               acc[index].overtimeHours =
                 totalOvertimeMinutes > 0 ? totalOvertimeMinutes / 60 : 0;
 
@@ -1504,8 +1592,10 @@ export class TimelogsComponent {
             const lunchExceededMinutes = lunchTime > 60 ? lunchTime - 60 : 0;
 
             // RESTAR el exceso de almuerzo de las horas extras (porque ese tiempo no es trabajo)
-            const totalOvertimeMinutes =
-              Math.max(0, overtimeByTotalTime - lunchExceededMinutes);
+            const totalOvertimeMinutes = Math.max(
+              0,
+              overtimeByTotalTime - lunchExceededMinutes
+            );
             acc[index].overtimeHours =
               totalOvertimeMinutes > 0 ? totalOvertimeMinutes / 60 : 0;
           }
@@ -1558,16 +1648,58 @@ export class TimelogsComponent {
 
     // Filtrar manteniendo el mismo orden que dayLogs
     const filtered = dayLogsData.filter((x) => {
-      // Filtrar por búsqueda de nombre
+      // Filtrar por employeeId si está seleccionado
+      if (this.employeeId()) {
+        if (x.employee?.id !== this.employeeId()) {
+          return false;
+        }
+      }
+
+      // Filtrar por branchId si está seleccionado
+      if (this.branchId()) {
+        if (x.employee?.branch_id !== this.branchId()) {
+          return false;
+        }
+      }
+
+      // Filtrar por búsqueda de nombre (mejorado para buscar en todos los campos)
       if (searchTerm) {
-        const fullName = `${x.employee?.first_name || ''} ${x.employee?.father_name || ''}`.toLowerCase().trim();
-        const firstName = (x.employee?.first_name || '').toLowerCase();
-        const fatherName = (x.employee?.father_name || '').toLowerCase();
-        
-        const matchesSearch = fullName.includes(searchTerm) || 
-                             firstName.includes(searchTerm) || 
-                             fatherName.includes(searchTerm);
-        
+        // Aplicar trim a cada campo para evitar problemas con espacios en la BD
+        const firstName = (x.employee?.first_name || '').trim().toLowerCase();
+        const middleName = (x.employee?.middle_name || '').trim().toLowerCase();
+        const fatherName = (x.employee?.father_name || '').trim().toLowerCase();
+        const motherName = (x.employee?.mother_name || '').trim().toLowerCase();
+
+        // Crear diferentes combinaciones de nombres
+        const shortName = `${firstName} ${fatherName}`.trim();
+        const fullName =
+          `${firstName} ${middleName} ${fatherName} ${motherName}`.trim();
+        const allNames = [firstName, middleName, fatherName, motherName].filter(
+          (n) => n.length > 0 // Filtrar también strings vacíos después del trim
+        );
+
+        // Si el searchTerm tiene múltiples palabras, buscar que todas estén presentes
+        const searchWords = searchTerm.split(/\s+/).filter((w) => w.length > 0);
+
+        let matchesSearch = false;
+
+        if (searchWords.length === 1) {
+          // Búsqueda de una sola palabra: buscar en cualquier campo
+          const word = searchWords[0];
+          matchesSearch =
+            fullName.includes(word) ||
+            shortName.includes(word) ||
+            allNames.some((name) => name.includes(word));
+        } else {
+          // Búsqueda de múltiples palabras: todas deben estar presentes en algún campo
+          matchesSearch = searchWords.every(
+            (word) =>
+              fullName.includes(word) ||
+              shortName.includes(word) ||
+              allNames.some((name) => name.includes(word))
+          );
+        }
+
         if (!matchesSearch) {
           return false;
         }
