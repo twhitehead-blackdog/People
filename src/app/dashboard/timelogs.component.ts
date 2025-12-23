@@ -788,7 +788,7 @@ export class TimelogsComponent {
 
   // Computed mejorado para encontrar el empleado seleccionado
   // Busca por employeeId si existe, o por employeeSearch si solo hay un resultado único
-  private selectedEmployee = computed(() => {
+  public selectedEmployee = computed(() => {
     // Si hay un employeeId seleccionado, usarlo
     if (this.employeeId()) {
       return this.employees
