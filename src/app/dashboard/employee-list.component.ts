@@ -5,6 +5,7 @@ import {
   Component,
   computed,
   inject,
+  model,
   OnInit,
   signal,
 } from '@angular/core';
@@ -13,13 +14,13 @@ import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import {
   ConfirmationService,
-  FilterService,
   MessageService,
 } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
+import { InputText } from 'primeng/inputtext';
 import { MenuModule } from 'primeng/menu';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { Select } from 'primeng/select';
@@ -60,6 +61,7 @@ import { getEmployeeNumberPrefix } from '../utils/employee-number.utils';
     TooltipModule,
     ToastModule,
     ConfirmDialogModule,
+    InputText,
   ],
   providers: [
     DynamicDialogRef,
@@ -108,6 +110,125 @@ import { getEmployeeNumberPrefix } from '../utils/employee-number.utils';
           </div>
         </div>
       </ng-template>
+      <!-- Panel de Filtros Colapsable -->
+      <div class="mb-4 bg-neutral-800/50 rounded-lg border border-neutral-700/50 overflow-hidden">
+        <!-- Header del panel de filtros -->
+        <button
+          type="button"
+          (click)="filtersExpanded.set(!filtersExpanded())"
+          class="w-full flex items-center justify-between p-4 hover:bg-neutral-700/30 transition-colors"
+        >
+          <div class="flex items-center gap-3">
+            <i class="pi pi-filter text-yellow-400"></i>
+            <span class="text-lg font-semibold text-white">Filtros</span>
+            @if (hasActiveFilters()) {
+            <span class="px-2 py-1 bg-cyan-500/20 text-cyan-300 text-xs font-semibold rounded-full">
+              {{ getActiveFiltersCount() }} activo(s)
+            </span>
+            }
+          </div>
+          <i 
+            class="pi transition-transform duration-300"
+            [class.pi-chevron-down]="!filtersExpanded()"
+            [class.pi-chevron-up]="filtersExpanded()"
+            [class.text-gray-400]="true"
+          ></i>
+        </button>
+        
+        <!-- Contenido desplegable -->
+        @if (filtersExpanded()) {
+        <div class="px-4 pb-4 border-t border-neutral-700/50 pt-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- Filtro por Sucursal -->
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-2">
+                <i class="pi pi-building mr-2"></i>Sucursal
+              </label>
+              <p-multiSelect
+                [(ngModel)]="branchFilter"
+                [options]="store.branches.entities()"
+                placeholder="TODAS"
+                optionLabel="name"
+                appendTo="body"
+                class="w-full"
+              />
+            </div>
+
+            <!-- Filtro por Área -->
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-2">
+                <i class="pi pi-sitemap mr-2"></i>Área
+              </label>
+              <p-multiSelect
+                [(ngModel)]="departmentFilter"
+                [options]="store.departments.entities()"
+                placeholder="TODAS"
+                optionLabel="name"
+                appendTo="body"
+                class="w-full"
+              />
+            </div>
+
+            <!-- Filtro por Cargo -->
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-2">
+                <i class="pi pi-briefcase mr-2"></i>Cargo
+              </label>
+              <p-multiSelect
+                [(ngModel)]="positionFilter"
+                [options]="store.positions.entities()"
+                placeholder="TODOS"
+                optionLabel="name"
+                appendTo="body"
+                class="w-full"
+              />
+            </div>
+
+            <!-- Filtro por Género -->
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-2">
+                <i class="pi pi-users mr-2"></i>Género
+              </label>
+              <p-select
+                [options]="genders"
+                [(ngModel)]="genderFilter"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Todos"
+                appendTo="body"
+                [showClear]="true"
+                class="w-full"
+              >
+                <ng-template let-option #item>
+                  <div class="flex items-center gap-2">
+                    <i
+                      [ngClass]="
+                        option.value === 'M'
+                          ? 'pi pi-mars'
+                          : 'pi pi-venus'
+                      "
+                    ></i>
+                    {{ option.label }}
+                  </div>
+                </ng-template>
+              </p-select>
+            </div>
+
+            <!-- Filtro Incluir Inactivos -->
+            <div>
+              <label class="block text-sm font-medium text-gray-300 mb-2">
+                <i class="pi pi-toggle-on mr-2"></i>Estado
+              </label>
+              <div class="flex items-center gap-2">
+                <p-toggleswitch [formControl]="inactiveToggle" inputId="active" />
+                <label for="active" class="text-sm text-gray-300 cursor-pointer">Incluir inactivos</label>
+              </div>
+            </div>
+          </div>
+        </div>
+        }
+      </div>
+
       <div class="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
         <p-table
           #dt
@@ -124,160 +245,37 @@ import { getEmployeeNumberPrefix } from '../utils/employee-number.utils';
           styleClass="min-w-full"
         >
           <ng-template #caption>
-            <div class="flex gap-2 items-center">
-              <p-toggleswitch [formControl]="inactiveToggle" inputId="active" />
-              <label for="active">Incluir inactivos</label>
+            <div class="flex flex-col sm:flex-row gap-3 items-center mb-3">
+              <input
+                pInputText
+                type="text"
+                [(ngModel)]="searchTerm"
+                placeholder="Buscar por número, nombre o cédula..."
+                class="w-full sm:w-auto flex-1 text-sm"
+              />
             </div>
           </ng-template>
           <ng-template #header>
             <tr>
-              <th>
-                <p-columnFilter
-                  type="text"
-                  field="employee_number"
-                  placeholder="Número"
-                  ariaLabel="Filter Number"
-                  matchMode="contains"
-                  [showMenu]="false"
-                  [showApplyButton]="false"
-                  [showClearButton]="true"
-                />
-              </th>
-              <th>
-                <p-columnFilter
-                  type="text"
-                  field="short_name"
-                  placeholder="Buscar por nombre"
-                  ariaLabel="Filter Name"
-                  matchMode="contains"
-                  [showMenu]="false"
-                  [showApplyButton]="false"
-                  [showClearButton]="true"
-                />
-              </th>
+              <th></th>
+              <th></th>
               @if (inactiveValue()) {
               <th></th>
               }
-              <th>
-                <p-columnFilter
-                  type="text"
-                  field="document_id"
-                  placeholder="Buscar por Cédula"
-                  ariaLabel="Filter Document"
-                  matchMode="contains"
-                  [showMenu]="false"
-                  [showApplyButton]="false"
-                  [showClearButton]="true"
-                />
-              </th>
-              <th>
-                <p-columnFilter
-                  field="branch"
-                  matchMode="custom-filter"
-                  [showMenu]="false"
-                >
-                  <ng-template
-                    pTemplate="filter"
-                    let-value
-                    let-filter="filterCallback"
-                  >
-                    <p-multiSelect
-                      [ngModel]="value"
-                      [options]="store.branches.entities()"
-                      placeholder="TODOS"
-                      (onChange)="filter($event.value)"
-                      optionLabel="name"
-                      appendTo="body"
-                    />
-                  </ng-template>
-                </p-columnFilter>
-              </th>
-              <th>
-                <p-columnFilter
-                  field="department"
-                  matchMode="custom-filter"
-                  [showMenu]="false"
-                >
-                  <ng-template
-                    pTemplate="filter"
-                    let-value
-                    let-filter="filterCallback"
-                  >
-                    <p-multiSelect
-                      [ngModel]="value"
-                      [options]="store.departments.entities()"
-                      placeholder="TODOS"
-                      (onChange)="filter($event.value)"
-                      optionLabel="name"
-                      appendTo="body"
-                    />
-                  </ng-template>
-                </p-columnFilter>
-              </th>
-              <th>
-                <p-columnFilter
-                  field="position"
-                  matchMode="custom-filter"
-                  [showMenu]="false"
-                >
-                  <ng-template
-                    pTemplate="filter"
-                    let-value
-                    let-filter="filterCallback"
-                  >
-                    <p-multiSelect
-                      [ngModel]="value"
-                      [options]="store.positions.entities()"
-                      placeholder="TODOS"
-                      (onChange)="filter($event.value)"
-                      optionLabel="name"
-                      appendTo="body"
-                    />
-                  </ng-template>
-                </p-columnFilter>
-              </th>
               <th></th>
               <th></th>
               <th></th>
               <th></th>
-              <th>
-                <p-columnFilter
-                  field="gender"
-                  matchMode="equals"
-                  [showMatchModes]="false"
-                  [showOperator]="false"
-                  [showAddButton]="false"
-                  [showApplyButton]="false"
-                  [showClearButton]="false"
-                >
-                  <ng-template
-                    pTemplate="filter"
-                    let-value
-                    let-filter="filterCallback"
-                  >
-                    <p-select
-                      [options]="genders"
-                      [ngModel]="value"
-                      (onChange)="filter($event.value)"
-                      placeholder="Elija uno"
-                      [showClear]="true"
-                    >
-                      <ng-template let-option #item>
-                        <div class="flex items-center gap-2">
-                          <i
-                            [ngClass]="
-                              option.value === 'M'
-                                ? 'pi pi-mars'
-                                : 'pi pi-venus'
-                            "
-                          ></i>
-                          {{ option.label }}
-                        </div>
-                      </ng-template>
-                    </p-select>
-                  </ng-template>
-                </p-columnFilter>
-              </th>
+              <th></th>
+              <th></th>
+              <th></th>
+              <th></th>
+              <th></th>
+              <th></th>
+              <th></th>
+              <th></th>
+              <th></th>
+              <th></th>
               <th></th>
               <th></th>
             </tr>
@@ -615,62 +613,6 @@ import { getEmployeeNumberPrefix } from '../utils/employee-number.utils';
     :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td:first-child {
       text-align: center !important;
     }
-
-
-    /* Reducir ancho del input de búsqueda de número (primera fila = filtros, primera columna) */
-    :host ::ng-deep .p-datatable .p-datatable-thead > tr:first-child > th:first-child p-columnfilter input.p-inputtext {
-      max-width: 100px !important;
-      width: 100px !important;
-      box-sizing: border-box !important;
-    }
-
-    :host ::ng-deep .p-datatable .p-datatable-thead > tr:first-child > th:first-child p-columnfilter {
-      max-width: 100px !important;
-      width: 100px !important;
-    }
-
-    :host ::ng-deep .p-datatable .p-datatable-thead > tr:first-child > th:first-child .p-datatable-filter {
-      max-width: 100px !important;
-      width: 100px !important;
-    }
-
-    /* Limitar ancho de input de filtro para nombre (primera fila = filtros, segunda columna) */
-    :host ::ng-deep .p-datatable .p-datatable-thead > tr:first-child > th:nth-child(2) p-columnfilter input.p-inputtext {
-      max-width: 150px !important;
-      width: 150px !important;
-      box-sizing: border-box !important;
-    }
-
-    /* También limitar el contenedor del filtro para nombre */
-    :host ::ng-deep .p-datatable .p-datatable-thead > tr:first-child > th:nth-child(2) p-columnfilter {
-      max-width: 150px !important;
-      width: 150px !important;
-    }
-
-    /* Limitar el div contenedor del filtro inline para nombre */
-    :host ::ng-deep .p-datatable .p-datatable-thead > tr:first-child > th:nth-child(2) .p-datatable-filter {
-      max-width: 150px !important;
-      width: 150px !important;
-    }
-
-    /* Input de cédula más estrecho - ajustar índice según si hay columna de status */
-    :host ::ng-deep .p-datatable .p-datatable-thead > tr:nth-child(2) > th:nth-child(4) p-columnfilter input.p-inputtext {
-      max-width: 120px !important;
-      width: 120px !important;
-      box-sizing: border-box !important;
-    }
-
-    /* Contenedor del filtro de cédula más estrecho */
-    :host ::ng-deep .p-datatable .p-datatable-thead > tr:nth-child(2) > th:nth-child(4) p-columnfilter {
-      max-width: 120px !important;
-      width: 120px !important;
-    }
-
-    /* Div contenedor del filtro de cédula más estrecho */
-    :host ::ng-deep .p-datatable .p-datatable-thead > tr:nth-child(2) > th:nth-child(4) .p-datatable-filter {
-      max-width: 120px !important;
-      width: 120px !important;
-    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -699,14 +641,103 @@ export class EmployeeListComponent implements OnInit {
   });
   public exportColumns!: ExportColumn[];
 
-  public filtered = computed(() =>
-    this.store.employees
+  public searchTerm = model<string>('');
+  public filtersExpanded = signal(false);
+  public branchFilter = signal<any[]>([]);
+  public departmentFilter = signal<any[]>([]);
+  public positionFilter = signal<any[]>([]);
+  public genderFilter = signal<string | null>(null);
+
+  public hasActiveFilters = computed(() => {
+    return (
+      (this.branchFilter().length > 0) ||
+      (this.departmentFilter().length > 0) ||
+      (this.positionFilter().length > 0) ||
+      (this.genderFilter() !== null)
+    );
+  });
+
+  public getActiveFiltersCount = computed(() => {
+    let count = 0;
+    if (this.branchFilter().length > 0) count++;
+    if (this.departmentFilter().length > 0) count++;
+    if (this.positionFilter().length > 0) count++;
+    if (this.genderFilter() !== null) count++;
+    return count;
+  });
+
+  public filtered = computed(() => {
+    const employees = this.store.employees
       .employeesList()
       .filter(
         (item) =>
-          item.is_active === (this.inactiveValue() ? item.is_active : true)
-      )
-  );
+          // Si el toggle está activado, mostrar todos (activos e inactivos)
+          // Si está desactivado, mostrar solo activos
+          this.inactiveValue() || item.is_active === true
+      );
+
+    const search = this.searchTerm()?.toLowerCase().trim() || '';
+
+    // Aplicar filtro de búsqueda
+    let filtered = employees;
+    if (search) {
+      filtered = employees.filter((emp) => {
+        // Buscar por número de empleado
+        const employeeNumber = this.getEmployeeDisplayNumber(emp).toLowerCase();
+        if (employeeNumber.includes(search)) {
+          return true;
+        }
+
+        // Buscar por nombre completo
+        const fullName = `${emp.first_name || ''} ${emp.father_name || ''}`.toLowerCase().trim();
+        const firstName = (emp.first_name || '').toLowerCase();
+        const fatherName = (emp.father_name || '').toLowerCase();
+        if (fullName.includes(search) || firstName.includes(search) || fatherName.includes(search)) {
+          return true;
+        }
+
+        // Buscar por cédula
+        const documentId = (emp.document_id || '').toLowerCase();
+        if (documentId.includes(search)) {
+          return true;
+        }
+
+        return false;
+      });
+    }
+
+    // Aplicar filtros de sucursal
+    const branchFilterIds = this.branchFilter().map(b => b.id);
+    if (branchFilterIds.length > 0) {
+      filtered = filtered.filter((emp) => 
+        emp.branch_id && branchFilterIds.includes(emp.branch_id)
+      );
+    }
+
+    // Aplicar filtros de área
+    const departmentFilterIds = this.departmentFilter().map(d => d.id);
+    if (departmentFilterIds.length > 0) {
+      filtered = filtered.filter((emp) => 
+        emp.department_id && departmentFilterIds.includes(emp.department_id)
+      );
+    }
+
+    // Aplicar filtros de cargo
+    const positionFilterIds = this.positionFilter().map(p => p.id);
+    if (positionFilterIds.length > 0) {
+      filtered = filtered.filter((emp) => 
+        emp.position_id && positionFilterIds.includes(emp.position_id)
+      );
+    }
+
+    // Aplicar filtro de género
+    const gender = this.genderFilter();
+    if (gender !== null) {
+      filtered = filtered.filter((emp) => emp.gender === gender);
+    }
+
+    return filtered;
+  });
 
   public itemsToReports = computed(() =>
     this.filtered().map((item) => ({
@@ -727,24 +758,8 @@ export class EmployeeListComponent implements OnInit {
   );
   private dialog = inject(DialogService);
   private ref = inject(DynamicDialogRef);
-  private filterService = inject(FilterService);
-  callbackFilter: any;
-  public cols: Column[] = [];
 
   ngOnInit(): void {
-    this.filterService.register(
-      'custom-filter',
-      (value: { id: any } | null | undefined, filter: any[]) => {
-        if (filter === undefined || filter === null || !filter.length) {
-          return true;
-        }
-
-        if (value === undefined || value === null) {
-          return false;
-        }
-        return filter.map((x) => x.id).includes(value.id);
-      }
-    );
     this.store.employees.clearSelectedEntity();
     this.store.employees.fetchItems();
     // Cargar posiciones, branches y departments para los filtros
