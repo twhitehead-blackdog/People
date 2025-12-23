@@ -1871,7 +1871,7 @@ export class HRDisabilitiesComponent {
     }
     
     // Si no se pudo determinar el tipo, intentar devolver algo por defecto
-    if (data.compensatory_amount) {
+    if (data.compensatory_amount !== undefined && data.compensatory_amount !== null) {
       return { value: data.compensatory_amount, isDays: false };
     }
     
