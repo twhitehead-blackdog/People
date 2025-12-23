@@ -1,4 +1,4 @@
-import { DatePipe, NgClass, NgTemplateOutlet } from '@angular/common';
+import { DatePipe, NgClass } from '@angular/common';
 import { HttpClient, httpResource } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
@@ -67,7 +67,6 @@ import { EmployeesStore } from '../stores/employees.store';
     ToastModule,
     TooltipModule,
     NgClass,
-    NgTemplateOutlet,
     CalendarComponent,
   ],
   providers: [MessageService],

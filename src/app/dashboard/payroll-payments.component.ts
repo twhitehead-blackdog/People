@@ -2,9 +2,13 @@ import { httpResource } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
+  effect,
   inject,
   input,
+  model,
 } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
@@ -18,7 +22,7 @@ import { PayrollPaymentsFormComponent } from './payroll-payments-form.component'
 
 @Component({
   selector: 'pt-payroll-payments',
-  imports: [TableModule, Button, RouterLink, IconField, InputIcon, InputText, Card],
+  imports: [TableModule, Button, RouterLink, IconField, InputIcon, InputText, Card, FormsModule],
   providers: [DynamicDialogRef, DialogService],
   template: `
     <p-card>
@@ -41,7 +45,7 @@ import { PayrollPaymentsFormComponent } from './payroll-payments-form.component'
       </ng-template>
       <p-table
       #dt1
-      [value]="payments.value() ?? []"
+      [value]="filteredPayments()"
       [loading]="payments.isLoading()"
       [paginator]="true"
       [rows]="10"
@@ -49,7 +53,6 @@ import { PayrollPaymentsFormComponent } from './payroll-payments-form.component'
       [rowsPerPageOptions]="[10, 25, 50, 100]"
       paginatorDropdownAppendTo="body"
       currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} pagos"
-      [globalFilterFields]="['title']"
     >
       <ng-template #caption>
         <div class="flex gap-2 items-center">
@@ -60,8 +63,9 @@ import { PayrollPaymentsFormComponent } from './payroll-payments-form.component'
             <input
               pInputText
               type="text"
-              (input)="onFilterInput($event, dt1)"
+              [(ngModel)]="searchTerm"
               placeholder="Buscar"
+              class="w-full lg:w-auto flex-1 text-sm"
             />
           </p-iconfield>
         </div>
@@ -113,19 +117,21 @@ import { PayrollPaymentsFormComponent } from './payroll-payments-form.component'
 export class PayrollPaymentsComponent {
   public payrollId = input.required<string>();
   public dialogService = inject(DialogService);
+  public searchTerm = model<string>('');
 
-  // Validar y sanitizar input de filtros
-  public onFilterInput(event: Event, table: any): void {
-    const input = event.target as HTMLInputElement;
-    if (!input) return;
-    
-    // Sanitizar input: remover caracteres peligrosos y limitar longitud
-    let value = input.value || '';
-    // Remover caracteres de control y limitar a 200 caracteres
-    // eslint-disable-next-line no-control-regex
-    value = value.replace(/[\x00-\x1F\x7F]/g, '').substring(0, 200);
-    
-    table.filterGlobal(value, 'contains');
+  constructor() {
+    // Sanitizar el término de búsqueda cuando cambia
+    effect(() => {
+      const term = this.searchTerm();
+      if (term) {
+        // Remover caracteres de control y limitar a 200 caracteres
+        // eslint-disable-next-line no-control-regex
+        const sanitized = term.replace(/[\x00-\x1F\x7F]/g, '').substring(0, 200);
+        if (sanitized !== term) {
+          this.searchTerm.set(sanitized);
+        }
+      }
+    });
   }
 
   public payments = httpResource<PayrollPayment[]>(() => ({
@@ -136,6 +142,20 @@ export class PayrollPaymentsComponent {
       payroll_id: `eq.${this.payrollId()}`,
     },
   }));
+
+  public filteredPayments = computed(() => {
+    const search = this.searchTerm().toLowerCase().trim();
+    const pays = this.payments.value() || [];
+
+    if (!search) {
+      return pays;
+    }
+
+    return pays.filter((pay) => {
+      const searchableText = [pay.title].filter(Boolean).join(' ').toLowerCase();
+      return searchableText.includes(search);
+    });
+  });
 
   generatePayment() {
     this.dialogService.open(PayrollPaymentsFormComponent, {

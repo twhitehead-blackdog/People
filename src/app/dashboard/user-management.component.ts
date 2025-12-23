@@ -4,6 +4,7 @@ import {
   Component,
   computed,
   inject,
+  model,
   signal,
 } from '@angular/core';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
@@ -129,7 +130,7 @@ type ApprovalStatus = 'all' | 'pending' | 'approved' | 'rejected';
               type="text"
               placeholder="Buscar por nombre, email..."
               [(ngModel)]="searchTerm"
-              class="w-full"
+              class="w-full lg:w-auto flex-1 text-sm"
             />
           </div>
           <div class="w-full sm:w-48">
@@ -297,7 +298,7 @@ export class UserManagementComponent {
   private orgService = inject(OrganizationService);
   public store = inject(DashboardStore);
 
-  public searchTerm = new FormControl('');
+  public searchTerm = model<string>('');
   public approvalStatusFilter = new FormControl<ApprovalStatus>('all');
   public portalAccessFilter = new FormControl<'all' | 'yes' | 'no'>('all');
   public savingUsers = signal<Set<string>>(new Set());
@@ -412,7 +413,7 @@ export class UserManagementComponent {
   // Computed para usuarios filtrados
   public filteredUsers = computed(() => {
     const users = this.usersApi.value() || [];
-    const search = (this.searchTerm.value || '').toLowerCase();
+    const search = (this.searchTerm() || '').toLowerCase();
     const approvalFilter = this.approvalStatusFilter.value || 'all';
     const portalFilter = this.portalAccessFilter.value || 'all';
 

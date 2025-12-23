@@ -16,12 +16,15 @@ import {
   addDays,
   addWeeks,
   endOfDay,
+  endOfMonth,
   endOfWeek,
   format,
   getDate,
+  getWeek,
   isBefore,
   isWithinInterval,
   startOfDay,
+  startOfMonth,
   startOfWeek,
   subWeeks,
 } from 'date-fns';
@@ -297,14 +300,137 @@ import { EmployeeSchedulesFormComponent } from './employee-schedules-form.compon
         />
         <p-button label="Validar" (click)="validateCode(code)" rounded />
       </div>
+    </p-dialog>
+    
+    <p-dialog
+      [visible]="monthWeekSelectorVisible()"
+      (visibleChange)="monthWeekSelectorVisible.set($event)"
+      [modal]="true"
+      [closable]="true"
+      [draggable]="false"
+      [resizable]="false"
+      [dismissableMask]="true"
+      header="Seleccionar Mes y Semana"
+      [style]="{ width: '90vw', maxWidth: '650px', minHeight: '400px' }"
+      [styleClass]="'month-week-selector-dialog'"
+      (onHide)="monthWeekSelectorVisible.set(false)"
+    >
+      <div class="flex flex-col gap-5 py-2">
+        <div class="flex flex-col gap-3">
+          <label class="text-sm font-semibold text-gray-200">Mes:</label>
+          <p-select
+            [options]="getMonthOptions()"
+            [ngModel]="selectedMonthOption()"
+            (ngModelChange)="onMonthChange($event)"
+            optionLabel="label"
+            [styleClass]="'w-full month-select'"
+            appendTo="body"
+          />
+        </div>
+        <div class="flex flex-col gap-3">
+          <label class="text-sm font-semibold text-gray-200">Semana del mes:</label>
+          <p-select
+            [options]="weekOptions()"
+            [ngModel]="selectedWeek()"
+            (ngModelChange)="selectedWeek.set($event)"
+            optionLabel="label"
+            optionValue="value"
+            [styleClass]="'w-full week-select'"
+            appendTo="body"
+          />
+        </div>
+        <div class="flex justify-end gap-2 mt-4">
+          <p-button
+            label="Cancelar"
+            (click)="monthWeekSelectorVisible.set(false)"
+            rounded
+            severity="secondary"
+          />
+          <p-button
+            label="Ir a semana"
+            (click)="goToSelectedWeek()"
+            rounded
+          />
+        </div>
+      </div>
     </p-dialog> `,
-  styles: ``,
+  styles: `
+    ::ng-deep .month-week-selector-dialog .p-dialog-content {
+      padding: 1.5rem !important;
+      min-height: 300px !important;
+    }
+    
+    ::ng-deep .month-week-selector-dialog .p-select {
+      width: 100% !important;
+    }
+    
+    ::ng-deep .month-week-selector-dialog .p-select-trigger {
+      min-height: 44px !important;
+      padding: 0.625rem 0.75rem !important;
+    }
+    
+    ::ng-deep .month-week-selector-dialog .p-select-panel {
+      width: 100% !important;
+      max-height: 300px !important;
+    }
+    
+    ::ng-deep .month-week-selector-dialog .p-select-items-wrapper {
+      max-height: 280px !important;
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+    }
+    
+    ::ng-deep .month-week-selector-dialog .month-select .p-select-items-wrapper {
+      max-height: 320px !important;
+      overflow-y: auto !important;
+      overflow-x: hidden !important;
+      scrollbar-width: thin !important;
+      scrollbar-color: rgba(107, 114, 128, 0.5) transparent !important;
+    }
+    
+    ::ng-deep .month-week-selector-dialog .month-select .p-select-items-wrapper::-webkit-scrollbar {
+      width: 8px !important;
+    }
+    
+    ::ng-deep .month-week-selector-dialog .month-select .p-select-items-wrapper::-webkit-scrollbar-track {
+      background: transparent !important;
+    }
+    
+    ::ng-deep .month-week-selector-dialog .month-select .p-select-items-wrapper::-webkit-scrollbar-thumb {
+      background-color: rgba(107, 114, 128, 0.5) !important;
+      border-radius: 4px !important;
+    }
+    
+    ::ng-deep .month-week-selector-dialog .p-select-item {
+      padding: 0.875rem 1rem !important;
+      font-size: 0.95rem !important;
+      min-height: 44px !important;
+      display: flex !important;
+      align-items: center !important;
+    }
+    
+    ::ng-deep .month-week-selector-dialog .p-select-item:hover {
+      background-color: rgba(107, 114, 128, 0.2) !important;
+    }
+    
+    ::ng-deep .month-week-selector-dialog .p-select-item.p-highlight {
+      background-color: rgba(251, 191, 36, 0.2) !important;
+      color: #fbbf24 !important;
+    }
+  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EmployeesTimetableComponent implements OnInit {
   public store = inject(DashboardStore);
   public editionLocked = model<boolean>();
   public unlockModal = signal(false);
+  public monthWeekSelectorVisible = signal(false);
+  public selectedMonth = signal<Date>(new Date());
+  public selectedMonthOption = signal<{ label: string; value: Date }>({
+    label: '',
+    value: new Date()
+  });
+  public selectedWeek = signal<number>(1);
   public currentDate = signal(new Date());
   public disableBranch = signal(true);
   private http = inject(HttpClient);
@@ -357,6 +483,11 @@ export class EmployeesTimetableComponent implements OnInit {
     }
   });
 
+  weekOptions = computed(() => {
+    const weeks = this.getWeeksInMonth(this.selectedMonth());
+    return weeks.map(w => ({ label: 'Semana ' + w, value: w }));
+  });
+
   unlockEdition(event: ToggleSwitchChangeEvent) {
     if (!event.checked) {
       this.unlockModal.set(true);
@@ -395,6 +526,12 @@ export class EmployeesTimetableComponent implements OnInit {
       label: 'Semana siguiente',
       icon: 'pi pi-angle-right',
       command: () => this.nextWeek(),
+    },
+    { separator: true },
+    {
+      label: 'Seleccionar mes y semana',
+      icon: 'pi pi-calendar-plus',
+      command: () => this.openMonthWeekSelector(),
     },
   ];
 
@@ -565,6 +702,104 @@ export class EmployeesTimetableComponent implements OnInit {
 
   public goToday() {
     this.currentDate.set(new Date());
+  }
+
+  public openMonthWeekSelector() {
+    const today = new Date();
+    const monthDate = new Date(today.getFullYear(), today.getMonth(), 1);
+    this.selectedMonth.set(monthDate);
+    const options = this.getMonthOptions();
+    const currentOption = options.find(opt => 
+      opt.value.getFullYear() === monthDate.getFullYear() &&
+      opt.value.getMonth() === monthDate.getMonth()
+    ) || options[options.length - 1];
+    this.selectedMonthOption.set(currentOption);
+    this.selectedWeek.set(this.getCurrentWeekOfMonth(today));
+    this.monthWeekSelectorVisible.set(true);
+  }
+
+  public getWeeksInMonth(month: Date): number[] {
+    const start = startOfMonth(month);
+    const end = endOfMonth(month);
+    const weeks: number[] = [];
+    
+    // Calcular la primera semana que incluye días del mes
+    let currentDate = startOfWeek(start, { weekStartsOn: 0 });
+    let weekNumber = 1;
+    const maxWeeks = 6; // Un mes puede tener máximo 6 semanas
+    
+    // Iterar hasta cubrir todo el mes o hasta 6 semanas
+    while (weekNumber <= maxWeeks && currentDate <= end) {
+      // Verificar si esta semana tiene al menos un día del mes
+      const weekEnd = endOfWeek(currentDate, { weekStartsOn: 0 });
+      if (weekEnd >= start && currentDate <= end) {
+        weeks.push(weekNumber);
+      }
+      currentDate = addWeeks(currentDate, 1);
+      weekNumber++;
+    }
+    
+    return weeks.length > 0 ? weeks : [1]; // Al menos una semana
+  }
+
+  public getCurrentWeekOfMonth(date: Date): number {
+    const monthStart = startOfMonth(date);
+    const firstWeekStart = startOfWeek(monthStart, { weekStartsOn: 0 });
+    const dateWeekStart = startOfWeek(date, { weekStartsOn: 0 });
+    const diffInWeeks = Math.floor(
+      (dateWeekStart.getTime() - firstWeekStart.getTime()) / (7 * 24 * 60 * 60 * 1000)
+    );
+    return diffInWeeks + 1;
+  }
+
+  public onMonthChange(option: { label: string; value: Date }) {
+    if (option && option.value) {
+      this.selectedMonthOption.set(option);
+      this.selectedMonth.set(option.value);
+      this.selectedWeek.set(1);
+    }
+  }
+
+  public goToSelectedWeek() {
+    const month = this.selectedMonth();
+    const weekNumber = this.selectedWeek();
+    
+    // Calcular la fecha de inicio de la semana seleccionada
+    const monthStart = startOfMonth(month);
+    const firstWeekStart = startOfWeek(monthStart, { weekStartsOn: 0 });
+    const targetWeekStart = addWeeks(firstWeekStart, weekNumber - 1);
+    
+    // Asegurarse de que la semana esté dentro del mes
+    const monthEnd = endOfMonth(month);
+    if (targetWeekStart > monthEnd) {
+      // Si la semana está fuera del mes, usar el último día del mes
+      this.currentDate.set(monthEnd);
+    } else {
+      this.currentDate.set(targetWeekStart);
+    }
+    
+    this.monthWeekSelectorVisible.set(false);
+  }
+
+  public getMonthOptions(): { label: string; value: Date }[] {
+    const options: { label: string; value: Date }[] = [];
+    const today = new Date();
+    const monthNames = [
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+    ];
+    
+    // Agregar los últimos 12 meses y los próximos 3 meses
+    for (let i = -12; i <= 3; i++) {
+      const date = new Date(today.getFullYear(), today.getMonth() + i, 1);
+      const monthName = monthNames[date.getMonth()];
+      options.push({
+        label: `${monthName} ${date.getFullYear()}`,
+        value: date,
+      });
+    }
+    
+    return options;
   }
 
   public editSchedule({
@@ -757,6 +992,7 @@ export class EmployeesTimetableComponent implements OnInit {
           canSelectBranch: isAdminOrHR, // Permitir seleccionar solo si es Admin o HR
         },
         modal: true,
+        dismissableMask: true,
       })
       .onClose.subscribe((added) => {
         if (added) {

@@ -6,6 +6,7 @@ import {
   computed,
   effect,
   inject,
+  model,
   OnInit,
   signal,
 } from '@angular/core';
@@ -135,15 +136,6 @@ import { PositionsFormComponent } from './positions-form.component';
             [paginator]="true"
             [rows]="10"
             [rowsPerPageOptions]="[10, 20, 50]"
-            [globalFilterFields]="[
-              'first_name',
-              'last_name',
-              'email',
-              'phone_number',
-              'province',
-              'position_name',
-              'status'
-            ]"
             paginatorDropdownAppendTo="body"
             [showCurrentPageReport]="true"
             currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} aplicaciones"
@@ -196,9 +188,7 @@ import { PositionsFormComponent } from './positions-form.component';
                   <input
                     pInputText
                     type="text"
-                    (input)="
-                      dt.filterGlobal($any($event.target).value, 'contains')
-                    "
+                    [(ngModel)]="searchTerm"
                     placeholder="Buscar por nombre, email, posición..."
                     class="w-64"
                   />
@@ -412,25 +402,19 @@ import { PositionsFormComponent } from './positions-form.component';
                 pInputText
                 type="text"
                 #searchInput
-                (input)="
-                  positionsTable.filterGlobal(
-                    $any($event.target).value,
-                    'contains'
-                  )
-                "
+                [(ngModel)]="positionSearchTerm"
                 placeholder="Buscar vacante..."
-                class="w-64"
+                class="w-full lg:w-auto flex-1 text-sm"
               />
             </div>
           </div>
           <p-table
             #positionsTable
-            [value]="positions()"
+            [value]="filteredPositions()"
             [loading]="positionsStore.isLoading()"
             [paginator]="true"
             [rows]="20"
             [rowsPerPageOptions]="[10, 20, 50]"
-            [globalFilterFields]="['name', 'department.name']"
             paginatorDropdownAppendTo="body"
           >
             <ng-template #header>
@@ -529,6 +513,8 @@ export class JobApplicationsListComponent implements OnInit {
   private organizationService = inject(OrganizationService);
 
   public statusFilter = new FormControl<string | null>(null);
+  public searchTerm = model<string>('');
+  public positionSearchTerm = model<string>('');
   public isUpdatingPosition = signal<boolean>(false);
   public isUpdatingJobFairStatus = signal<boolean>(false);
   public isUpdatingInterviewDate = signal<boolean>(false);
@@ -584,6 +570,21 @@ export class JobApplicationsListComponent implements OnInit {
   }
 
   public positions = computed(() => this.positionsStore.entities());
+
+  public filteredPositions = computed(() => {
+    const search = this.positionSearchTerm().toLowerCase().trim();
+    const pos = this.positions();
+
+    if (!search) {
+      return pos;
+    }
+
+    return pos.filter((p) => {
+      const name = (p.name || '').toLowerCase();
+      const deptName = (p.department?.name || '').toLowerCase();
+      return name.includes(search) || deptName.includes(search);
+    });
+  });
 
   getPositionName(positionId: string): string {
     const position = this.positions().find((p) => p.id === positionId);
@@ -812,13 +813,30 @@ export class JobApplicationsListComponent implements OnInit {
 
   public filteredApplications = computed(() => {
     const status = this.statusFilter.value;
+    const search = this.searchTerm()?.toLowerCase().trim() || '';
     const apps = this.applications();
 
-    if (!status) {
-      return apps;
+    let filtered = apps;
+
+    // Filtrar por status
+    if (status) {
+      filtered = filtered.filter((app) => app.status === status);
     }
 
-    return apps.filter((app) => app.status === status);
+    // Filtrar por término de búsqueda (nombres)
+    if (search) {
+      filtered = filtered.filter((app) => {
+        const fullName = `${app.first_name || ''} ${app.last_name || ''}`.toLowerCase().trim();
+        const firstName = (app.first_name || '').toLowerCase();
+        const lastName = (app.last_name || '').toLowerCase();
+        
+        return fullName.includes(search) || 
+               firstName.includes(search) || 
+               lastName.includes(search);
+      });
+    }
+
+    return filtered;
   });
 
   ngOnInit() {

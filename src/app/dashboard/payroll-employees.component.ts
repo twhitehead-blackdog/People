@@ -3,9 +3,13 @@ import { HttpClient, httpResource } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
+  effect,
   inject,
   input,
+  model,
 } from '@angular/core';
+import { FormsModule } from '@angular/forms';
 import { ConfirmationService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
@@ -40,6 +44,7 @@ import { PayrollEmployeesFormComponent } from './payroll-employees-form.componen
     InputIcon,
     InputText,
     Card,
+    FormsModule,
   ],
   providers: [DynamicDialogRef, DialogService],
   template: `
@@ -64,12 +69,11 @@ import { PayrollEmployeesFormComponent } from './payroll-employees-form.componen
       </ng-template>
       <p-table
         #dt2
-        [value]="employees.value() || []"
+        [value]="filteredEmployees()"
         [loading]="employees.isLoading()"
         [paginator]="true"
         [rows]="10"
         [rowsPerPageOptions]="[10, 25, 50]"
-        [globalFilterFields]="['employee.first_name', 'employee.father_name']"
         [scrollable]="true"
         dataKey="id"
         paginatorDropdownAppendTo="body"
@@ -85,8 +89,9 @@ import { PayrollEmployeesFormComponent } from './payroll-employees-form.componen
               <input
                 pInputText
                 type="text"
-                (input)="onFilterInput($event, dt2)"
+                [(ngModel)]="searchTerm"
                 placeholder="Buscar por nombre"
+                class="w-full lg:w-auto flex-1 text-sm"
               />
             </p-iconfield>
           </div>
@@ -141,20 +146,25 @@ export class PayrollEmployeesComponent {
   public payrollId = input.required<string>();
   public employeesStore = inject(EmployeesStore);
   public organizationService = inject(OrganizationService);
+  public searchTerm = model<string>('');
 
-  // Validar y sanitizar input de filtros
-  public onFilterInput(event: Event, table: any): void {
-    const input = event.target as HTMLInputElement;
-    if (!input) return;
-
-    // Sanitizar input: remover caracteres peligrosos y limitar longitud
-    let value = input.value || '';
-    // Remover caracteres de control y limitar a 200 caracteres
-    // eslint-disable-next-line no-control-regex
-    value = value.replace(/[\x00-\x1F\x7F]/g, '').substring(0, 200);
-
-    table.filterGlobal(value, 'contains');
+  constructor() {
+    // Sanitizar el término de búsqueda cuando cambia
+    effect(() => {
+      const term = this.searchTerm();
+      if (term) {
+        // Remover caracteres de control y limitar a 200 caracteres
+        // eslint-disable-next-line no-control-regex
+        const sanitized = term
+          .replace(/[\x00-\x1F\x7F]/g, '')
+          .substring(0, 200);
+        if (sanitized !== term) {
+          this.searchTerm.set(sanitized);
+        }
+      }
+    });
   }
+
   public employees = httpResource<PayrollEmployee[]>(() => {
     const companyId = this.organizationService.getCurrentCompanyId();
     const params: any = {
@@ -171,6 +181,31 @@ export class PayrollEmployeesComponent {
       method: 'GET',
       params,
     };
+  });
+
+  public filteredEmployees = computed(() => {
+    const search = this.searchTerm()?.toLowerCase().trim() || '';
+    const emps = this.employees.value() || [];
+
+    if (!search) {
+      return emps;
+    }
+
+    return emps.filter((emp) => {
+      const fullName = `${emp.employee?.first_name || ''} ${
+        emp.employee?.father_name || ''
+      }`
+        .toLowerCase()
+        .trim();
+      const firstName = (emp.employee?.first_name || '').toLowerCase();
+      const fatherName = (emp.employee?.father_name || '').toLowerCase();
+
+      return (
+        fullName.includes(search) ||
+        firstName.includes(search) ||
+        fatherName.includes(search)
+      );
+    });
   });
 
   private confirmationService = inject(ConfirmationService);

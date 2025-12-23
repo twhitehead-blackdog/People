@@ -1,4 +1,4 @@
-import { NgClass, NgStyle } from '@angular/common';
+import { NgClass } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -35,7 +35,6 @@ import { SchedulesStore } from '../stores/schedules.store';
     Button,
     ToggleSwitch,
     NgClass,
-    NgStyle,
   ],
   template: `<form [formGroup]="form" (ngSubmit)="saveChanges()">
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3">

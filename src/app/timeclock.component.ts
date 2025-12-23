@@ -94,24 +94,25 @@ import { DiagnosticService } from './services/diagnostic.service';
     >
       @if (!isKioskMode() || isIPValid() || isNazCompany()) {
       <div
-        class="flex flex-col gap-2 md:gap-3 lg:gap-4 items-center px-3 md:px-6 relative z-10 timeclock-content"
-        style="max-width: 600px; width: 100%; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem 0;"
+        class="flex flex-col gap-2 sm:gap-3 md:gap-4 items-center px-4 sm:px-6 md:px-8 relative z-10 timeclock-content"
+        style="max-width: 100%; width: 100%; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem 0.5rem;"
       >
         <img
           [src]="isNazCompany() ? 'images/Naz_Logo.jpg' : 'images/blackdog.png'"
-          class="h-12 md:h-16 lg:h-20 w-auto object-contain drop-shadow-2xl relative z-10"
+          class="h-10 sm:h-12 md:h-16 lg:h-20 w-auto object-contain drop-shadow-2xl relative z-10 mb-2 sm:mb-3 md:mb-4 flex-shrink-0"
+          style="max-width: 90%; height: auto;"
         />
-        <p-card class="w-full timeclock-card relative z-10">
+        <p-card class="w-full max-w-lg mx-auto timeclock-card relative z-10">
           <ng-template #title>
-            <div class="flex flex-col gap-1 md:gap-2 items-center">
+            <div class="flex flex-col gap-1.5 sm:gap-2 md:gap-2.5 items-center px-2 py-1">
               <div
-                class="text-base md:text-lg lg:text-xl font-bold text-gray-100 text-center"
+                class="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-gray-100 text-center w-full break-words"
               >
                 Reloj de Marcación
               </div>
               <!-- Clock Display inside card -->
               <div
-                class="flex flex-col items-center gap-0.5 bg-black/40 backdrop-blur-sm rounded-lg px-3 md:px-5 py-1.5 md:py-2 border shadow-lg clock-display"
+                class="flex flex-col items-center gap-0.5 sm:gap-1 bg-black/40 backdrop-blur-sm rounded-lg px-2 sm:px-3 md:px-5 py-1.5 sm:py-2 md:py-2.5 border shadow-lg clock-display w-full mt-1"
                 [ngClass]="
                   isBlackDogCompany()
                     ? 'border-yellow-500/40'
@@ -119,14 +120,14 @@ import { DiagnosticService } from './services/diagnostic.service';
                 "
               >
                 <div
-                  class="text-xl md:text-2xl lg:text-3xl font-mono font-bold clock-time"
+                  class="text-lg sm:text-xl md:text-2xl lg:text-3xl font-mono font-bold clock-time break-words text-center"
                   [ngClass]="
                     isBlackDogCompany() ? 'text-yellow-400' : 'text-gray-300'
                   "
                 >
                   {{ formattedTime() }}
                 </div>
-                <div class="text-xs md:text-sm text-gray-300">
+                <div class="text-[10px] sm:text-xs md:text-sm text-gray-300 text-center break-words px-1">
                   {{ formattedDate() }}
                 </div>
               </div>
@@ -134,28 +135,30 @@ import { DiagnosticService } from './services/diagnostic.service';
           </ng-template>
           <ng-template #subtitle>
             <div
-              class="flex items-center justify-center gap-2 text-[#d2d2d2] text-xs md:text-sm font-semibold text-center"
+              class="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2 text-[#d2d2d2] text-[10px] sm:text-xs md:text-sm font-semibold text-center px-2 py-1"
             >
-              <i
-                [ngClass]="
-                  isBlackDogCompany()
-                    ? 'pi pi-building text-yellow-400'
-                    : 'pi pi-building text-gray-400'
-                "
-              ></i>
-              <i
-                [ngClass]="
-                  isBlackDogCompany()
-                    ? 'pi pi-user text-yellow-400'
-                    : 'pi pi-user text-gray-400'
-                "
-              ></i>
-              <span>Seleccione la sucursal y empleado</span>
+              <div class="flex items-center gap-1 sm:gap-1.5 flex-shrink-0">
+                <i
+                  [ngClass]="
+                    isBlackDogCompany()
+                      ? 'pi pi-building text-yellow-400 text-xs sm:text-sm flex-shrink-0'
+                      : 'pi pi-building text-gray-400 text-xs sm:text-sm flex-shrink-0'
+                  "
+                ></i>
+                <i
+                  [ngClass]="
+                    isBlackDogCompany()
+                      ? 'pi pi-user text-yellow-400 text-xs sm:text-sm flex-shrink-0'
+                      : 'pi pi-user text-gray-400 text-xs sm:text-sm flex-shrink-0'
+                  "
+                ></i>
+              </div>
+              <span class="flex-shrink-0">Seleccione la sucursal y empleado</span>
             </div>
           </ng-template>
           <form
             [formGroup]="form"
-            class="flex flex-col gap-3 md:gap-4 items-center w-full"
+            class="flex flex-col gap-2.5 sm:gap-3 md:gap-4 items-center w-full"
             (keydown.enter)="onEnterKey($event)"
           >
             @if (!form.get('company_id')?.value) {
@@ -226,11 +229,10 @@ import { DiagnosticService } from './services/diagnostic.service';
 
             <!-- PIN Input Section -->
             <div
-              class="w-full flex flex-col gap-0.5 items-center justify-center"
+              class="w-full flex flex-col gap-0.5 sm:gap-1 items-center justify-center px-2"
             >
               <label
-                class="text-gray-300 font-medium text-xs md:text-sm text-center"
-                style="margin-bottom: 3px;"
+                class="text-gray-300 font-medium text-[11px] sm:text-xs md:text-sm text-center mb-1"
               >
                 Ingrese su PIN
               </label>
@@ -248,7 +250,7 @@ import { DiagnosticService } from './services/diagnostic.service';
             </div>
 
             <!-- Submit Button -->
-            <div class="w-full flex justify-center items-center">
+            <div class="w-full flex justify-center items-center px-2">
               <p-button
                 [disabled]="
                   form.invalid || isProcessing() || !form.get('employee')?.value
@@ -261,9 +263,9 @@ import { DiagnosticService } from './services/diagnostic.service';
                     ? 'pi pi-spin pi-spinner'
                     : 'pi pi-check-circle'
                 "
-                size="large"
+                [size]="'large'"
                 rounded
-                [styleClass]="'mark-button'"
+                [styleClass]="'mark-button w-full sm:w-auto'"
                 [style]="{
                   background:
                     form.invalid || !form.get('employee')?.value
@@ -285,7 +287,7 @@ import { DiagnosticService } from './services/diagnostic.service';
             <!-- Validation Messages -->
             @if (form.get('employee')?.invalid && form.get('employee')?.touched)
             {
-            <div class="text-gray-400 text-xs text-center w-full mt-1">
+            <div class="text-gray-400 text-[11px] sm:text-xs text-center w-full mt-1 px-2">
               Debe seleccionar un empleado para continuar.
             </div>
             }
@@ -295,12 +297,12 @@ import { DiagnosticService } from './services/diagnostic.service';
       } @else {
       <!-- Mensaje de acceso restringido en modo kiosko -->
       <div
-        class="flex flex-col gap-4 items-center px-3 md:px-6 relative z-10"
-        style="max-width: 600px; width: 100%; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem 0;"
+        class="flex flex-col gap-3 sm:gap-4 items-center px-4 sm:px-6 md:px-8 relative z-10"
+        style="max-width: 100%; width: 100%; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem 0.5rem;"
       >
         <img
           [src]="isNazCompany() ? 'images/Naz_Logo.jpg' : 'images/blackdog.png'"
-          class="h-12 md:h-16 lg:h-20 w-auto object-contain drop-shadow-2xl relative z-10"
+          class="h-10 sm:h-12 md:h-16 lg:h-20 w-auto object-contain drop-shadow-2xl relative z-10 mb-1 sm:mb-2"
         />
         <p-card class="w-full timeclock-card relative z-10">
           <ng-template pTemplate="title">
@@ -400,49 +402,24 @@ import { DiagnosticService } from './services/diagnostic.service';
     }
     
     .timeclock-content {
-      transform-origin: center;
       flex-shrink: 0;
     }
     
-    @media (max-height: 800px) {
+    @media (max-width: 640px) {
       .timeclock-content {
-        transform: scale(0.9);
+        padding: 0.75rem 0.25rem !important;
       }
     }
     
     @media (max-height: 700px) {
       .timeclock-content {
-        transform: scale(0.8);
+        padding: 0.5rem 0.25rem !important;
       }
     }
     
     @media (max-height: 600px) {
       .timeclock-content {
-        transform: scale(0.75);
-      }
-    }
-    
-    @media (max-width: 767px) {
-      .animated-gradient-container {
-        padding: 0;
-      }
-      
-      @media (max-height: 900px) {
-        .timeclock-content {
-          transform: scale(0.85);
-        }
-      }
-      
-      @media (max-height: 700px) {
-        .timeclock-content {
-          transform: scale(0.75);
-        }
-      }
-      
-      @media (max-height: 600px) {
-        .timeclock-content {
-          transform: scale(0.65);
-        }
+        padding: 0.25rem 0.25rem !important;
       }
     }
     
@@ -456,15 +433,53 @@ import { DiagnosticService } from './services/diagnostic.service';
       animation: cardEntrance 0.25s ease-out;
     }
     
-    @media (max-width: 767px) {
+    @media (max-width: 640px) {
       .timeclock-card ::ng-deep .p-card-body {
-        padding: 1rem !important;
-      }
-      
-      .timeclock-card ::ng-deep .p-card-title {
         padding: 0.75rem !important;
       }
       
+      .timeclock-card ::ng-deep .p-card-title {
+        padding: 0.5rem 0.75rem !important;
+        overflow: visible !important;
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+      }
+      
+      .timeclock-card ::ng-deep .p-card-subtitle {
+        padding: 0.5rem 0.75rem !important;
+        overflow: visible !important;
+        min-height: auto !important;
+        word-wrap: break-word !important;
+        overflow-wrap: break-word !important;
+      }
+      
+      .timeclock-card ::ng-deep .p-card-title *,
+      .timeclock-card ::ng-deep .p-card-subtitle * {
+        position: relative !important;
+        z-index: 1 !important;
+      }
+      
+      .timeclock-card ::ng-deep .p-card-subtitle .flex {
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+        gap: 0.5rem !important;
+      }
+      
+      .timeclock-card ::ng-deep .p-card-subtitle .flex > div {
+        flex-shrink: 0 !important;
+      }
+      
+      .timeclock-card ::ng-deep .p-card-subtitle span {
+        display: inline-block !important;
+        text-align: center !important;
+        line-height: 1.4 !important;
+      }
+    }
+    
+    @media (min-width: 641px) and (max-width: 1024px) {
+      .timeclock-card ::ng-deep .p-card-body {
+        padding: 1.25rem !important;
+      }
     }
     
     /* Desactivar animaciones solo si el usuario explícitamente prefiere movimiento reducido */
@@ -550,9 +565,9 @@ import { DiagnosticService } from './services/diagnostic.service';
     
     .timeclock-card ::ng-deep .p-inputotp-input {
       width: auto !important;
-      min-width: 32px !important;
-      max-width: 45px !important;
-      height: 38px !important;
+      min-width: 36px !important;
+      max-width: 48px !important;
+      height: 40px !important;
       font-size: 0.95rem !important;
       border: 2px solid rgba(107, 114, 128, 0.5) !important;
       border-radius: 8px !important;
@@ -572,12 +587,25 @@ import { DiagnosticService } from './services/diagnostic.service';
       border-color: rgba(107, 114, 128, 0.7) !important;
     }
     
-    @media (max-width: 768px) {
+    @media (max-width: 640px) {
+      .timeclock-card ::ng-deep .p-inputotp {
+        gap: 0.375rem !important;
+      }
+      
       .timeclock-card ::ng-deep .p-inputotp-input {
-        min-width: 28px !important;
-        max-width: 38px !important;
-        height: 35px !important;
-        font-size: 0.85rem !important;
+        min-width: 30px !important;
+        max-width: 36px !important;
+        height: 36px !important;
+        font-size: 0.8125rem !important;
+      }
+    }
+    
+    @media (min-width: 641px) and (max-width: 1024px) {
+      .timeclock-card ::ng-deep .p-inputotp-input {
+        min-width: 38px !important;
+        max-width: 44px !important;
+        height: 42px !important;
+        font-size: 0.9rem !important;
       }
     }
     
@@ -586,23 +614,38 @@ import { DiagnosticService } from './services/diagnostic.service';
     }
     
     .input-container ::ng-deep .p-select .p-select-trigger {
-      padding: 0.4rem 0.65rem;
-      min-height: 38px;
+      padding: 0.5rem 0.75rem;
+      min-height: 42px;
       font-size: 0.875rem;
     }
     
-    @media (max-width: 768px) {
+    @media (max-width: 640px) {
       .input-container ::ng-deep .p-select .p-select-trigger {
-        padding: 0.5rem 0.7rem;
+        padding: 0.45rem 0.65rem;
         min-height: 40px;
-        font-size: 0.85rem;
+        font-size: 0.8125rem;
+      }
+    }
+    
+    @media (min-width: 641px) and (max-width: 1024px) {
+      .input-container ::ng-deep .p-select .p-select-trigger {
+        padding: 0.55rem 0.8rem;
+        min-height: 44px;
+        font-size: 0.9rem;
       }
     }
     
     .timeclock-card ::ng-deep .mark-button {
       margin: 0 auto !important;
       display: block !important;
-      width: auto !important;
+    }
+    
+    .timeclock-card ::ng-deep .mark-button.w-full {
+      width: 100% !important;
+    }
+    
+    .timeclock-card ::ng-deep .mark-button.w-full button {
+      width: 100% !important;
     }
     
     .timeclock-card ::ng-deep .mark-button button {
@@ -612,6 +655,23 @@ import { DiagnosticService } from './services/diagnostic.service';
       justify-content: center !important;
       gap: 0.5rem !important;
       flex-direction: row !important;
+      padding: 0.625rem 1.5rem !important;
+      font-size: 0.875rem !important;
+    }
+    
+    @media (max-width: 640px) {
+      .timeclock-card ::ng-deep .mark-button button {
+        padding: 0.5rem 1.25rem !important;
+        font-size: 0.8125rem !important;
+        min-height: 42px !important;
+      }
+    }
+    
+    @media (min-width: 641px) and (max-width: 1024px) {
+      .timeclock-card ::ng-deep .mark-button button {
+        padding: 0.75rem 1.75rem !important;
+        font-size: 0.9rem !important;
+      }
     }
     
     .timeclock-card ::ng-deep .p-button {

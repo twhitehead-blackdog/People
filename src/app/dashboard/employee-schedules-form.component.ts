@@ -232,8 +232,16 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       this.form.get('approved')?.disable();
     }
 
+    // Establecer la sucursal por defecto: primero la que viene explícitamente,
+    // luego la del empleado si existe employee_id, y finalmente ninguna
     if (branch) {
       this.form.get('branch_id')?.patchValue(branch);
+    } else if (employee_id) {
+      // Buscar el empleado y usar su sucursal como valor por defecto
+      const employee = this.store.employees.entities().find(emp => emp.id === employee_id);
+      if (employee?.branch_id) {
+        this.form.get('branch_id')?.patchValue(employee.branch_id);
+      }
     }
 
     if (date) {
@@ -279,6 +287,9 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       // Guardar el turno original para comparación
       this.originalSchedule = employee_schedule;
 
+      // Si no hay branch_id en el horario, usar la sucursal del empleado como fallback
+      const finalBranchId = branch_id || (employee_id ? this.store.employees.entities().find(emp => emp.id === employee_id)?.branch_id : null);
+
       const startDateObj = toDate(start_date, { timeZone: 'America/Panama' });
       const endDateObj = toDate(end_date, { timeZone: 'America/Panama' });
 
@@ -296,7 +307,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
             id,
             employee_id,
             schedule_id,
-            branch_id,
+            branch_id: finalBranchId,
             approved,
           });
           this.form.get('start_date')?.patchValue(startDateObj);
@@ -308,6 +319,8 @@ export class EmployeeSchedulesFormComponent implements OnInit {
           // Establecer solo el día seleccionado
           this.form.get('start_date')?.patchValue(dateObj);
           this.form.get('end_date')?.patchValue(dateObj);
+          // Establecer la sucursal del turno original (o del empleado si no tiene)
+          this.form.get('branch_id')?.patchValue(finalBranchId);
           // Generar nuevo ID para el nuevo turno
           this.form.get('id')?.patchValue(v4());
         } else {
@@ -316,7 +329,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
             id,
             employee_id,
             schedule_id,
-            branch_id,
+            branch_id: finalBranchId,
             approved,
           });
           this.form.get('start_date')?.patchValue(startDateObj);
@@ -328,7 +341,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
           id,
           employee_id,
           schedule_id,
-          branch_id,
+          branch_id: finalBranchId,
           approved,
         });
         this.form.get('start_date')?.patchValue(startDateObj);

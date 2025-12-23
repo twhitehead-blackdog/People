@@ -6,6 +6,7 @@ import {
   computed,
   effect,
   inject,
+  model,
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -957,7 +958,7 @@ export class BranchManagerComponent {
   
   // Vista semanal de horarios
   public currentDateForSchedule = signal<Date>(new Date());
-  public employeeSearchForSchedule = signal<string>('');
+  public employeeSearchForSchedule = model<string>('');
   public currentPositionForSchedule = signal<string | null>(null);
   
   private confirm = inject(ConfirmationService);

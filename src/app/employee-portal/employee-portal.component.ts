@@ -2,7 +2,6 @@ import {
   CurrencyPipe,
   DatePipe,
   NgClass,
-  NgTemplateOutlet,
 } from '@angular/common';
 import { HttpClient, httpResource } from '@angular/common/http';
 import {
@@ -65,7 +64,6 @@ import { EmployeesStore } from '../stores/employees.store';
     Select,
     NgClass,
     CalendarComponent,
-    NgTemplateOutlet,
   ],
   providers: [MessageService],
   template: `
@@ -3360,17 +3358,8 @@ export class EmployeePortalComponent {
     // Efecto para rastrear cambios en activeSection
     effect(() => {
       const section = this.activeSection();
-      console.log('[EmployeePortal] Effect - activeSection cambió a:', section);
       if (section === 'timelogs') {
-        console.log('[Timelogs] Effect - Sección timelogs activada');
-        console.log(
-          '[Timelogs] Effect - calendarMonth():',
-          this.calendarMonth()
-        );
-        console.log(
-          '[Timelogs] Effect - monthTimelogsApi.isLoading():',
-          this.monthTimelogsApi.isLoading()
-        );
+        // Sección timelogs activada - no se requiere logging
       }
       if (section === 'management' || section === 'gestiones') {
         console.log(
@@ -3497,36 +3486,19 @@ export class EmployeePortalComponent {
 
   // Timelogs API para el mes actual (independiente del dateRange del usuario)
   public monthTimelogsApi = httpResource<any[]>(() => {
-    console.log(
-      '[Timelogs] monthTimelogsApi - Iniciando carga de timelogs del mes'
-    );
     if (!this.currentEmployee()?.id) {
-      console.log(
-        '[Timelogs] monthTimelogsApi - No hay employee ID, retornando undefined'
-      );
       return undefined;
     }
     const employeeId = this.currentEmployee()!.id;
     const companyId = this.organizationService.getCurrentCompanyId();
 
     if (!companyId) {
-      console.log(
-        '[Timelogs] monthTimelogsApi - No hay company ID, retornando undefined'
-      );
       return undefined;
     }
 
     const month = this.calendarMonth();
     const monthStart = startOfMonth(month);
     const monthEnd = endOfMonth(month);
-    console.log(
-      '[Timelogs] monthTimelogsApi - Mes seleccionado:',
-      month,
-      'Desde:',
-      monthStart,
-      'Hasta:',
-      monthEnd
-    );
 
     const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`;
     const startDate = format(monthStart, "yyyy-MM-dd'T'06:00:00");
@@ -3540,8 +3512,6 @@ export class EmployeePortalComponent {
     url += `&created_at=lte.${endDate}`;
     url += `&order=created_at.asc`;
 
-    console.log('[Timelogs] monthTimelogsApi - URL construida:', url);
-
     return {
       url,
       method: 'GET',
@@ -3551,11 +3521,6 @@ export class EmployeePortalComponent {
   // Procesar timelogs del mes actual
   public monthTimelogs = computed(() => {
     const logs = this.monthTimelogsApi.value() ?? [];
-    console.log(
-      '[Timelogs] monthTimelogs - Logs crudos recibidos:',
-      logs.length,
-      logs
-    );
 
     const processedLogs = logs
       .filter((x) => x.created_at)
@@ -3563,21 +3528,10 @@ export class EmployeePortalComponent {
         try {
           const date = new Date(x.created_at);
           if (isNaN(date.getTime())) {
-            console.warn('[Timelogs] Fecha inválida en log:', x);
             return null;
           }
-          // No pre-calcular el día aquí, lo haremos en el reduce
-          // para usar la fecha real de cada marcación
-          console.log('[Timelogs] Procesando marcación:', {
-            type: x.type,
-            created_at: x.created_at,
-            dateOriginal: date.toString(),
-            hour: date.getHours(),
-            minute: date.getMinutes()
-          });
           return x;
         } catch (error) {
-          console.error('[Timelogs] Error procesando log:', x, error);
           return null;
         }
       })
@@ -3637,48 +3591,12 @@ export class EmployeePortalComponent {
     const sorted = processedLogs.sort(
       (a, b) => new Date(b.day).getTime() - new Date(a.day).getTime()
     );
-    console.log(
-      '[Timelogs] monthTimelogs - Logs procesados:',
-      sorted.length,
-      sorted
-    );
-    // Log detallado de cada día procesado
-    sorted.forEach((log) => {
-      console.log('[Timelogs] Día procesado:', {
-        day: log.day,
-        entry: log.entry ? {
-          date: log.entry.date.toString(),
-          hour: log.entry.date.getHours(),
-          minute: log.entry.date.getMinutes()
-        } : null,
-        exit: log.exit ? {
-          date: log.exit.date.toString(),
-          hour: log.exit.date.getHours(),
-          minute: log.exit.date.getMinutes()
-        } : null,
-        lunch_start: log.lunch_start ? {
-          date: log.lunch_start.date.toString(),
-          hour: log.lunch_start.date.getHours(),
-          minute: log.lunch_start.date.getMinutes()
-        } : null,
-        lunch_end: log.lunch_end ? {
-          date: log.lunch_end.date.toString(),
-          hour: log.lunch_end.date.getHours(),
-          minute: log.lunch_end.date.getMinutes()
-        } : null
-      });
-    });
     return sorted;
   });
 
   // Convertir timelogs a markers para el calendario bonito
   public timelogMarkers = computed<CalendarMarkerData[]>(() => {
     const logs = this.monthTimelogs();
-    console.log(
-      '[Timelogs] timelogMarkers - Logs recibidos:',
-      logs.length,
-      logs
-    );
 
     // Filtrar solo días con marcaciones válidas (entrada y/o salida)
     const filtered = logs.filter((log) => {
@@ -3698,42 +3616,19 @@ export class EmployeePortalComponent {
       // en el procesamiento anterior
       return true;
     });
-    
-    console.log(
-      '[Timelogs] timelogMarkers - Logs filtrados (con validación de días):',
-      filtered.length,
-      filtered
-    );
 
     const markers = filtered.map((log) => ({
       date: new Date(log.day),
       data: log,
     }));
-    console.log(
-      '[Timelogs] timelogMarkers - Markers generados:',
-      markers.length,
-      markers
-    );
     return markers;
   });
 
   // Handler para cambio de mes en el calendario
   public onCalendarMonthChange(date: Date): void {
-    console.log(
-      '[Timelogs] onCalendarMonthChange - Cambio de mes en calendario:',
-      date
-    );
-    console.log(
-      '[Timelogs] onCalendarMonthChange - Mes anterior:',
-      this.calendarMonth()
-    );
     // Normalizar la fecha al inicio del mes para evitar problemas de zona horaria
     const normalizedDate = startOfMonth(date);
     this.calendarMonth.set(normalizedDate);
-    console.log(
-      '[Timelogs] onCalendarMonthChange - Mes actualizado:',
-      this.calendarMonth()
-    );
     // Forzar recarga del API cuando cambia el mes
     this.monthTimelogsApi.reload();
   }
