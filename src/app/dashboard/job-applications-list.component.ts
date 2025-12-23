@@ -572,7 +572,7 @@ export class JobApplicationsListComponent implements OnInit {
   public positions = computed(() => this.positionsStore.entities());
 
   public filteredPositions = computed(() => {
-    const search = this.positionSearchTerm().toLowerCase().trim();
+    const search = (this.positionSearchTerm() || '').toLowerCase().trim();
     const pos = this.positions();
 
     if (!search) {
@@ -823,16 +823,51 @@ export class JobApplicationsListComponent implements OnInit {
       filtered = filtered.filter((app) => app.status === status);
     }
 
-    // Filtrar por término de búsqueda (nombres)
+    // Filtrar por término de búsqueda (nombres, email, teléfono, provincia, posición, estado)
     if (search) {
       filtered = filtered.filter((app) => {
+        // Buscar en nombres
         const fullName = `${app.first_name || ''} ${app.last_name || ''}`.toLowerCase().trim();
         const firstName = (app.first_name || '').toLowerCase();
         const lastName = (app.last_name || '').toLowerCase();
         
+        // Buscar en email
+        const email = (app.email || '').toLowerCase();
+        
+        // Buscar en teléfono
+        const phoneNumber = (app.phone_number || '').toLowerCase();
+        
+        // Buscar en provincia
+        const province = (app.province || '').toLowerCase();
+        const corregimiento = (app.corregimiento || '').toLowerCase();
+        
+        // Buscar en nombre de posición
+        const positionName = (app.position_name || '').toLowerCase();
+        const positionObjName = (app.position?.name || '').toLowerCase();
+        
+        // Buscar en nombres de posiciones múltiples (si tiene position_ids)
+        let positionNames = '';
+        if (app.position_ids && app.position_ids.length > 0) {
+          positionNames = app.position_ids
+            .map(id => this.getPositionName(id))
+            .join(' ')
+            .toLowerCase();
+        }
+        
+        // Buscar en estado (convertir código a texto legible)
+        const statusLabel = this.getStatusLabel(app.status).toLowerCase();
+        
         return fullName.includes(search) || 
                firstName.includes(search) || 
-               lastName.includes(search);
+               lastName.includes(search) ||
+               email.includes(search) ||
+               phoneNumber.includes(search) ||
+               province.includes(search) ||
+               corregimiento.includes(search) ||
+               positionName.includes(search) ||
+               positionObjName.includes(search) ||
+               positionNames.includes(search) ||
+               statusLabel.includes(search);
       });
     }
 
