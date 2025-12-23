@@ -19,6 +19,7 @@ import { Avatar } from 'primeng/avatar';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { DatePicker } from 'primeng/datepicker';
+import { InputText } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
@@ -43,6 +44,7 @@ import { EmployeesStore } from '../stores/employees.store';
     Card,
     Select,
     DatePicker,
+    InputText,
     FormsModule,
     DatePipe,
     TableModule,
@@ -55,114 +57,41 @@ import { EmployeesStore } from '../stores/employees.store';
     ToggleSwitch,
   ],
   template: `<div [ngClass]="{ 'naz-theme': isNaz() }">
-    <p-card
-      header="Marcaciones"
-      subheader="Listado de marcaciones de empleados"
-    >
-      <div
-        class="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-3"
-      >
-        <div class="flex items-center gap-2">
-          <label for="delayed" class="text-sm whitespace-nowrap"
-            >Solo retrasos</label
-          >
-          <p-toggleSwitch
-            inputId="delayed"
-            [(ngModel)]="onlyDelayed"
-            onLabel="Solo retrasos"
-            offLabel="Todos"
-          />
-        </div>
-        <div class="flex items-center gap-2">
-          <label for="errors" class="text-sm whitespace-nowrap"
-            >Solo errores</label
-          >
-          <p-toggleSwitch
-            inputId="errors"
-            [(ngModel)]="onlyErrors"
-            onLabel="Solo errores"
-            offLabel="Todos"
-          />
-        </div>
-        <div class="flex items-center gap-2">
-          <label for="earlyExit" class="text-sm whitespace-nowrap"
-            >Solo salida temprana</label
-          >
-          <p-toggleSwitch
-            inputId="earlyExit"
-            [(ngModel)]="onlyEarlyExit"
-            onLabel="Solo salida temprana"
-            offLabel="Todos"
-          />
-        </div>
-        <div class="flex flex-col sm:flex-row sm:items-center gap-2">
-          <div class="flex items-center gap-2">
-            <label for="lunchExceededToggle" class="text-sm whitespace-nowrap"
-              >Solo almuerzo excedido</label
-            >
-            <p-toggleSwitch
-              inputId="lunchExceededToggle"
-              [(ngModel)]="onlyLunchExceeded"
-              onLabel="Solo almuerzo excedido"
-              offLabel="Todos"
+    <p-card>
+      <ng-template #title>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
+          <div>
+            <h2 class="m-0 text-lg sm:text-xl">Marcaciones</h2>
+            <p class="text-xs sm:text-sm text-gray-400 m-0 mt-1">
+              Listado de marcaciones de empleados
+            </p>
+          </div>
+          <div>
+            <p-button
+              icon="pi pi-file-excel"
+              [loading]="loading()"
+              (click)="generateReport()"
+              severity="success"
+              [disabled]="timelogsReport().length === 0"
+              label="Exportar Excel"
+              rounded
+              class="min-h-[44px]"
             />
           </div>
-          @if(employeeId() && selectedEmployeeLunchExceeded() !== null) {
-          <div class="flex items-center gap-2">
-            <span class="text-sm text-gray-500">Total excedido:</span>
-            @if(selectedEmployeeLunchExceeded()! > 0) {
-            <p-tag
-              severity="warn"
-              [value]="
-                formatLunchExceededTotal(selectedEmployeeLunchExceeded()!)
-              "
-              icon="pi pi-clock"
-              styleClass="text-xs"
-            />
-            } @else {
-            <span class="text-sm text-gray-500">0</span>
-            }
-          </div>
-          } @if(onlyLunchExceeded()) {
-          <p-select
-            inputId="lunchExceeded"
-            [(ngModel)]="lunchExceededRange"
-            [options]="lunchExceededOptions"
-            optionLabel="label"
-            optionValue="value"
-            placeholder="Todos"
-            showClear
-            appendTo="body"
-            class="w-full sm:w-48"
-          />
-          }
         </div>
-      </div>
-      <div class="flex flex-col md:flex-row gap-3 items-center mb-3">
-        <div class="input-container">
-          <p-select
-            [options]="activeEmployeesList()"
-            optionLabel="short_name"
-            optionValue="id"
-            placeholder="--TODOS--"
-            filter
-            showClear
-            appendTo="body"
-            [(ngModel)]="employeeId"
+      </ng-template>
+      <!-- Búsqueda y Fecha (fuera del panel) -->
+      <div class="flex flex-col md:flex-row gap-3 items-center mb-4">
+        <div class="flex-1 w-full md:w-auto">
+          <input
+            pInputText
+            type="text"
+            [(ngModel)]="employeeSearch"
+            placeholder="Buscar empleado por nombre..."
+            class="w-full text-sm"
           />
         </div>
-        <div class="input-container">
-          <p-select
-            placeholder="--TODAS LAS SUCURSALES--"
-            [(ngModel)]="branchId"
-            [options]="store.branches.entities()"
-            optionLabel="name"
-            optionValue="id"
-            showClear
-            appendTo="body"
-          />
-        </div>
-        <div class="input-container">
+        <div class="w-full md:w-auto">
           <p-datepicker
             placeholder="Fecha o rango de fechas"
             selectionMode="range"
@@ -170,18 +99,162 @@ import { EmployeesStore } from '../stores/employees.store';
             [(ngModel)]="dateRange"
             [showIcon]="true"
             dateFormat="dd/mm/yy"
+            class="w-full"
           />
         </div>
+      </div>
 
-        <div>
-          <p-button
-            icon="pi pi-file-excel"
-            [loading]="loading()"
-            (click)="generateReport()"
-            severity="success"
-            [disabled]="timelogsReport().length === 0"
-          />
+      <!-- Panel de Filtros Colapsable -->
+      <div class="mb-4 bg-neutral-800/50 rounded-lg border border-neutral-700/50 overflow-hidden">
+        <!-- Header del panel de filtros -->
+        <button
+          type="button"
+          (click)="filtersExpanded.set(!filtersExpanded())"
+          class="w-full flex items-center justify-between p-3 hover:bg-neutral-700/30 transition-colors"
+        >
+          <div class="flex items-center gap-2">
+            <i class="pi pi-filter text-yellow-400 text-sm"></i>
+            <span class="text-base font-semibold text-white">Filtros</span>
+            @if (hasActiveFilters()) {
+            <span class="px-2 py-0.5 bg-cyan-500/20 text-cyan-300 text-xs font-semibold rounded-full">
+              {{ getActiveFiltersCount() }} activo(s)
+            </span>
+            }
+          </div>
+          <i 
+            class="pi transition-transform duration-300 text-sm"
+            [class.pi-chevron-down]="!filtersExpanded()"
+            [class.pi-chevron-up]="filtersExpanded()"
+            [class.text-gray-400]="true"
+          ></i>
+        </button>
+        
+        <!-- Contenido desplegable -->
+        @if (filtersExpanded()) {
+        <div class="px-3 pb-3 border-t border-neutral-700/50 pt-3">
+          <div class="flex flex-wrap items-end gap-3">
+            <!-- Filtro por Empleado -->
+            <div class="flex-1 min-w-[160px]">
+              <label class="block text-xs font-medium text-gray-300 mb-1">
+                <i class="pi pi-user mr-1 text-xs"></i>Empleado
+              </label>
+              <p-select
+                [options]="activeEmployeesList()"
+                optionLabel="short_name"
+                optionValue="id"
+                placeholder="TODOS"
+                filter
+                showClear
+                appendTo="body"
+                [(ngModel)]="employeeId"
+                class="w-full"
+                [style]="{ 'font-size': '0.875rem' }"
+              />
+            </div>
+
+            <!-- Filtro por Sucursal -->
+            <div class="flex-1 min-w-[160px]">
+              <label class="block text-xs font-medium text-gray-300 mb-1">
+                <i class="pi pi-building mr-1 text-xs"></i>Sucursal
+              </label>
+              <p-select
+                placeholder="TODAS"
+                [(ngModel)]="branchId"
+                [options]="store.branches.entities()"
+                optionLabel="name"
+                optionValue="id"
+                showClear
+                appendTo="body"
+                class="w-full"
+                [style]="{ 'font-size': '0.875rem' }"
+              />
+            </div>
+
+            <!-- Filtros de Alertas -->
+            <div class="flex-1 min-w-[200px]">
+              <label class="block text-xs font-medium text-gray-300 mb-1">
+                <i class="pi pi-exclamation-triangle mr-1 text-xs"></i>Alertas
+              </label>
+              <div class="flex flex-wrap gap-x-3 gap-y-1">
+                <div class="flex items-center gap-1.5">
+                  <p-toggleSwitch
+                    inputId="delayed"
+                    [(ngModel)]="onlyDelayed"
+                    [style]="{ 'transform': 'scale(0.85)' }"
+                  />
+                  <label for="delayed" class="text-xs text-gray-300 cursor-pointer whitespace-nowrap">Retrasos</label>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <p-toggleSwitch
+                    inputId="errors"
+                    [(ngModel)]="onlyErrors"
+                    [style]="{ 'transform': 'scale(0.85)' }"
+                  />
+                  <label for="errors" class="text-xs text-gray-300 cursor-pointer whitespace-nowrap">Errores</label>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <p-toggleSwitch
+                    inputId="earlyExit"
+                    [(ngModel)]="onlyEarlyExit"
+                    [style]="{ 'transform': 'scale(0.85)' }"
+                  />
+                  <label for="earlyExit" class="text-xs text-gray-300 cursor-pointer whitespace-nowrap">Salida temprana</label>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <p-toggleSwitch
+                    inputId="lunchExceededToggle"
+                    [(ngModel)]="onlyLunchExceeded"
+                    [style]="{ 'transform': 'scale(0.85)' }"
+                  />
+                  <label for="lunchExceededToggle" class="text-xs text-gray-300 cursor-pointer whitespace-nowrap">Almuerzo excedido</label>
+                </div>
+              </div>
+            </div>
+
+            <!-- Filtro de Almuerzo Excedido (condicional) -->
+            @if (onlyLunchExceeded()) {
+            <div class="flex-1 min-w-[160px]">
+              <label class="block text-xs font-medium text-gray-300 mb-1">
+                <i class="pi pi-clock mr-1 text-xs"></i>Rango de Exceso
+              </label>
+              <p-select
+                inputId="lunchExceeded"
+                [(ngModel)]="lunchExceededRange"
+                [options]="lunchExceededOptions"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Todos"
+                showClear
+                appendTo="body"
+                class="w-full"
+                [style]="{ 'font-size': '0.875rem' }"
+              />
+            </div>
+            }
+
+            <!-- Información del empleado seleccionado -->
+            @if(employeeId() && selectedEmployeeLunchExceeded() !== null) {
+            <div class="flex-1 min-w-[140px]">
+              <label class="block text-xs font-medium text-gray-300 mb-1">
+                <i class="pi pi-info-circle mr-1 text-xs"></i>Total Excedido
+              </label>
+              <div class="flex items-center gap-2">
+                @if(selectedEmployeeLunchExceeded()! > 0) {
+                <p-tag
+                  severity="warn"
+                  [value]="formatLunchExceededTotal(selectedEmployeeLunchExceeded()!)"
+                  icon="pi pi-clock"
+                  styleClass="text-xs"
+                />
+                } @else {
+                <span class="text-xs text-gray-400">0 min</span>
+                }
+              </div>
+            </div>
+            }
+          </div>
         </div>
+        }
       </div>
       @if (hasError()) {
       <!-- Error handling, toast will be shown -->
@@ -549,6 +622,7 @@ export class TimelogsComponent {
   public dateRange = signal<Date[]>([startOfMonth(new Date()), new Date()]);
   public employeeId = model<string>();
   public branchId = model<string>();
+  public employeeSearch = model<string>('');
   public store = inject(DashboardStore);
   public onlyDelayed = signal(false);
   public organizationService = inject(OrganizationService);
@@ -602,6 +676,34 @@ export class TimelogsComponent {
   public onlyEarlyExit = signal(false);
   public onlyLunchExceeded = signal(false);
   public lunchExceededRange = signal<string | null>(null);
+  public filtersExpanded = signal(false);
+
+  // Computed para verificar si hay filtros activos
+  public hasActiveFilters = computed(() => {
+    return (
+      this.onlyDelayed() ||
+      this.onlyErrors() ||
+      this.onlyEarlyExit() ||
+      this.onlyLunchExceeded() ||
+      !!this.employeeId() ||
+      !!this.branchId() ||
+      !!this.employeeSearch() ||
+      (this.dateRange() && this.dateRange().length > 0)
+    );
+  });
+
+  public getActiveFiltersCount = computed(() => {
+    let count = 0;
+    if (this.onlyDelayed()) count++;
+    if (this.onlyErrors()) count++;
+    if (this.onlyEarlyExit()) count++;
+    if (this.onlyLunchExceeded()) count++;
+    if (this.employeeId()) count++;
+    if (this.branchId()) count++;
+    if (this.employeeSearch()) count++;
+    if (this.dateRange() && this.dateRange().length > 0) count++;
+    return count;
+  });
 
   // Opciones para el filtro de almuerzo excedido
   public lunchExceededOptions = [
@@ -1452,9 +1554,25 @@ export class TimelogsComponent {
 
   public filteredDaylogs = computed(() => {
     const dayLogsData = this.dayLogs();
+    const searchTerm = this.employeeSearch()?.toLowerCase().trim() || '';
 
     // Filtrar manteniendo el mismo orden que dayLogs
     const filtered = dayLogsData.filter((x) => {
+      // Filtrar por búsqueda de nombre
+      if (searchTerm) {
+        const fullName = `${x.employee?.first_name || ''} ${x.employee?.father_name || ''}`.toLowerCase().trim();
+        const firstName = (x.employee?.first_name || '').toLowerCase();
+        const fatherName = (x.employee?.father_name || '').toLowerCase();
+        
+        const matchesSearch = fullName.includes(searchTerm) || 
+                             firstName.includes(searchTerm) || 
+                             fatherName.includes(searchTerm);
+        
+        if (!matchesSearch) {
+          return false;
+        }
+      }
+
       if (this.onlyDelayed()) {
         return x.delay !== undefined;
       }

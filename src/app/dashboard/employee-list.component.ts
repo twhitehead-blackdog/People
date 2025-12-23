@@ -452,19 +452,37 @@ import { getEmployeeNumberPrefix } from '../utils/employee-number.utils';
     </p-card>
   `,
   styles: `
+    /* Estilos modernos para la tabla */
+    :host ::ng-deep .p-datatable {
+      border-radius: 0.75rem !important;
+      overflow: hidden !important;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
+      background: #1f2937 !important;
+    }
+
+    :host ::ng-deep .p-datatable-table {
+      border-collapse: separate !important;
+      border-spacing: 0 !important;
+    }
+
     /* Estilos para mantener dimensiones uniformes y consistentes */
     :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td {
-      padding: 0.5rem 0.75rem !important;
+      padding: 0.875rem 1rem !important;
       vertical-align: middle !important;
-      line-height: 1.4 !important;
-      height: 3rem !important;
-      min-height: 3rem !important;
-      max-height: 3rem !important;
+      line-height: 1.5 !important;
+      height: 3.5rem !important;
+      min-height: 3.5rem !important;
+      max-height: 3.5rem !important;
       box-sizing: border-box !important;
       overflow: hidden !important;
       text-overflow: ellipsis !important;
       white-space: nowrap !important;
       text-align: center !important;
+      background: #1f2937 !important;
+      color: #e5e7eb !important;
+      border-bottom: 1px solid rgba(75, 85, 99, 0.3) !important;
+      font-size: 0.875rem !important;
+      transition: all 0.2s ease !important;
     }
 
     /* Excepción: columna Cargo puede tener múltiples líneas */
@@ -485,8 +503,21 @@ import { getEmployeeNumberPrefix } from '../utils/employee-number.utils';
 
     :host ::ng-deep .p-datatable .p-datatable-tbody > tr {
       height: auto !important;
-      min-height: 3rem !important;
+      min-height: 3.5rem !important;
       box-sizing: border-box !important;
+      transition: all 0.2s ease !important;
+    }
+
+    /* Efecto hover moderno para las filas */
+    :host ::ng-deep .p-datatable .p-datatable-tbody > tr:hover {
+      background: rgba(55, 65, 81, 0.5) !important;
+      transform: translateY(-1px) !important;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+    }
+
+    :host ::ng-deep .p-datatable .p-datatable-tbody > tr:hover > td {
+      background: rgba(55, 65, 81, 0.5) !important;
+      border-bottom-color: rgba(107, 114, 128, 0.5) !important;
     }
 
     /* Centrar elementos dentro de las celdas */
@@ -518,29 +549,43 @@ import { getEmployeeNumberPrefix } from '../utils/employee-number.utils';
       text-align: center !important;
     }
 
-    /* Títulos de columnas más llamativos (segunda fila con los títulos) */
+    /* Títulos de columnas modernos (segunda fila con los títulos) */
     :host ::ng-deep .p-datatable .p-datatable-thead > tr:last-child > th {
-      font-weight: 700 !important;
-      font-size: 0.9rem !important;
-      letter-spacing: 0.05em !important;
-      color: #e5e7eb !important;
+      font-weight: 600 !important;
+      font-size: 0.8125rem !important;
+      letter-spacing: 0.025em !important;
+      color: #f9fafb !important;
       text-transform: uppercase !important;
-      background-color: #474747 !important;
-      border-bottom: 2px solid rgba(107, 114, 128, 0.6) !important;
-      padding: 1rem 0.75rem !important;
+      background: linear-gradient(135deg, #374151 0%, #1f2937 100%) !important;
+      border-bottom: 2px solid rgba(250, 204, 21, 0.3) !important;
+      padding: 1.125rem 1rem !important;
+      position: relative !important;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) inset !important;
     }
 
-    /* Títulos de columnas ordenables aún más destacados */
+    :host ::ng-deep .p-datatable .p-datatable-thead > tr:last-child > th::after {
+      content: '' !important;
+      position: absolute !important;
+      bottom: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      height: 2px !important;
+      background: linear-gradient(90deg, transparent, rgba(250, 204, 21, 0.5), transparent) !important;
+    }
+
+    /* Títulos de columnas ordenables modernos */
     :host ::ng-deep .p-datatable .p-datatable-thead > tr:last-child > th.p-datatable-sortable-column {
-      color: #ffffff !important;
+      color: #f9fafb !important;
       cursor: pointer !important;
-      transition: all 0.2s ease !important;
-      background-color: #474747 !important;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      background: linear-gradient(135deg, #374151 0%, #1f2937 100%) !important;
     }
 
     :host ::ng-deep .p-datatable .p-datatable-thead > tr:last-child > th.p-datatable-sortable-column:hover {
-      background-color: rgba(249, 115, 22, 0.2) !important; /* Naranja con opacidad */
-      color: #fbbf24 !important; /* Amarillo/naranja claro para el texto */
+      background: linear-gradient(135deg, rgba(250, 204, 21, 0.15) 0%, rgba(250, 204, 21, 0.05) 100%) !important;
+      color: #facc15 !important;
+      transform: translateY(-1px) !important;
+      box-shadow: 0 4px 6px rgba(250, 204, 21, 0.1) !important;
     }
 
     /* Columna Cargo - ancho limitado y permite múltiples líneas */
@@ -565,16 +610,12 @@ import { getEmployeeNumberPrefix } from '../utils/employee-number.utils';
       margin-left: 0.25rem !important;
     }
 
-    :host ::ng-deep .p-datatable .p-datatable-thead > tr > th.p-datatable-sortable-column:hover {
-      background-color: rgba(249, 115, 22, 0.15) !important;
-      color: #fbbf24 !important;
-    }
-
-    /* Estilo cuando la columna está activa (ordenada) - Igual que "Nombre" */
+    /* Estilo cuando la columna está activa (ordenada) - Moderno */
     :host ::ng-deep .p-datatable .p-datatable-thead > tr > th.p-datatable-sortable-column.p-highlight,
     :host ::ng-deep .p-datatable .p-datatable-thead > tr > th.p-datatable-sortable-column.p-datatable-column-sorted {
-      background-color: rgba(107, 114, 128, 0.3) !important;
-      color: #e5e7eb !important;
+      background: linear-gradient(135deg, rgba(250, 204, 21, 0.2) 0%, rgba(250, 204, 21, 0.1) 100%) !important;
+      color: #facc15 !important;
+      border-bottom-color: rgba(250, 204, 21, 0.5) !important;
     }
 
     /* Animación de iconos de ordenamiento */
@@ -596,7 +637,7 @@ import { getEmployeeNumberPrefix } from '../utils/employee-number.utils';
       transform: rotate(180deg) !important;
     }
 
-    /* Enlaces con ellipsis */
+    /* Enlaces modernos con ellipsis */
     :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td a {
       display: inline-block;
       max-width: 100%;
@@ -606,12 +647,68 @@ import { getEmployeeNumberPrefix } from '../utils/employee-number.utils';
       vertical-align: middle;
       text-align: center !important;
       margin: 0 auto;
+      color: #60a5fa !important;
+      font-weight: 500 !important;
+      transition: all 0.2s ease !important;
+      text-decoration: none !important;
+    }
+
+    :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td a:hover {
+      color: #3b82f6 !important;
+      text-decoration: underline !important;
     }
 
     /* Centrar columna de número (primera columna en encabezados, primera columna en body) */
     :host ::ng-deep .p-datatable .p-datatable-thead > tr:last-child > th:first-child,
     :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td:first-child {
       text-align: center !important;
+    }
+
+    /* Mejoras adicionales para modernizar la tabla */
+    :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td:first-child {
+      font-weight: 600 !important;
+      color: #9ca3af !important;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace !important;
+      font-size: 0.8125rem !important;
+    }
+
+    /* Tags modernos */
+    :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td p-tag {
+      border-radius: 0.5rem !important;
+      font-weight: 500 !important;
+      font-size: 0.75rem !important;
+      padding: 0.25rem 0.625rem !important;
+    }
+
+    /* Scrollbar moderno */
+    :host ::ng-deep .p-datatable .p-datatable-scrollable-body::-webkit-scrollbar {
+      width: 8px !important;
+      height: 8px !important;
+    }
+
+    :host ::ng-deep .p-datatable .p-datatable-scrollable-body::-webkit-scrollbar-track {
+      background: #1f2937 !important;
+      border-radius: 4px !important;
+    }
+
+    :host ::ng-deep .p-datatable .p-datatable-scrollable-body::-webkit-scrollbar-thumb {
+      background: #4b5563 !important;
+      border-radius: 4px !important;
+    }
+
+    :host ::ng-deep .p-datatable .p-datatable-scrollable-body::-webkit-scrollbar-thumb:hover {
+      background: #6b7280 !important;
+    }
+
+    /* Mejorar contraste de texto en celdas */
+    :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td {
+      color: #d1d5db !important;
+    }
+
+    /* Estilo para texto en rojo (sin sucursal) */
+    :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td.text-red-600 {
+      color: #f87171 !important;
+      font-weight: 500 !important;
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
