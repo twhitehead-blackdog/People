@@ -275,6 +275,7 @@ import { EmployeeFormComponent } from './employee-form.component';
               <th></th>
               <th></th>
               <th></th>
+              <th></th>
             </tr>
             <tr>
               <th pSortableColumn="employee_number">
@@ -296,6 +297,12 @@ import { EmployeeFormComponent } from './employee-form.component';
               </th>
               <th pSortableColumn="department.name">
                 Area<p-sortIcon field="department.name" />
+              </th>
+              <th
+                style="width: 150px; max-width: 150px; min-width: 120px;"
+                pSortableColumn="position.name"
+              >
+                Cargo<p-sortIcon field="position.name" />
               </th>
               <th pSortableColumn="monthly_salary">
                 Salario<p-sortIcon field="monthly_salary" />
@@ -342,6 +349,12 @@ import { EmployeeFormComponent } from './employee-form.component';
                 {{ item.branch?.name || 'SIN SUCURSAL' }}
               </td>
               <td>{{ item.department?.name || 'SIN AREA' }}</td>
+              <td
+                class="position-cell"
+                [pTooltip]="item.position?.name || 'SIN CARGO'"
+              >
+                {{ item.position?.name || 'SIN CARGO' }}
+              </td>
               <td>{{ item.monthly_salary | currency : '$' }}</td>
               <td>{{ item.uniform_size }}</td>
               <td>{{ item.start_date | date : 'mediumDate' }}</td>
@@ -470,6 +483,18 @@ import { EmployeeFormComponent } from './employee-form.component';
     :host ::ng-deep .p-datatable .p-datatable-tbody > tr:hover > td {
       background: rgba(55, 65, 81, 0.5) !important;
       border-bottom-color: rgba(107, 114, 128, 0.5) !important;
+    }
+
+    /* Columna Cargo - texto truncado con ellipsis */
+    :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td.position-cell {
+      max-width: 150px !important;
+      width: 150px !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      white-space: nowrap !important;
+      padding: 0.875rem 1rem !important;
+      vertical-align: middle !important;
+      text-align: center !important;
     }
 
     /* Centrar elementos dentro de las celdas */
