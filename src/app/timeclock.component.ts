@@ -97,11 +97,13 @@ import { DiagnosticService } from './services/diagnostic.service';
         class="flex flex-col gap-2 sm:gap-3 md:gap-4 items-center px-4 sm:px-6 md:px-8 relative z-10 timeclock-content"
         style="max-width: 100%; width: 100%; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem 0.5rem;"
       >
+        @if (isKioskMode()) {
         <img
           [src]="isNazCompany() ? 'images/Naz_Logo.jpg' : 'images/blackdog.png'"
-          class="h-10 sm:h-12 md:h-16 lg:h-20 w-auto object-contain drop-shadow-2xl relative z-10 mb-2 sm:mb-3 md:mb-4 flex-shrink-0"
+          class="h-6 sm:h-8 md:h-10 w-auto object-contain drop-shadow-2xl relative z-10 mb-1 sm:mb-2 flex-shrink-0"
           style="max-width: 90%; height: auto;"
         />
+        }
         <p-card class="w-full max-w-lg mx-auto timeclock-card relative z-10">
           <ng-template #title>
             <div class="flex flex-col gap-1.5 sm:gap-2 md:gap-2.5 items-center px-2 py-1">
@@ -308,7 +310,7 @@ import { DiagnosticService } from './services/diagnostic.service';
       >
         <img
           [src]="isNazCompany() ? 'images/Naz_Logo.jpg' : 'images/blackdog.png'"
-          class="h-10 sm:h-12 md:h-16 lg:h-20 w-auto object-contain drop-shadow-2xl relative z-10 mb-1 sm:mb-2"
+          class="h-6 sm:h-8 md:h-10 w-auto object-contain drop-shadow-2xl relative z-10 mb-1 sm:mb-2"
         />
         <p-card class="w-full timeclock-card relative z-10">
           <ng-template pTemplate="title">

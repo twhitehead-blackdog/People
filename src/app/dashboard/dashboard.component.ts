@@ -43,6 +43,8 @@ import { PayrollsStore } from '../stores/payrolls.store';
 import { PositionsStore } from '../stores/positions.store';
 import { SchedulesStore } from '../stores/schedules.store';
 import { EmployeePortalComponent } from './employee-portal.component';
+import { ScreenLockService } from '../services/screen-lock.service';
+import { ScreenLockComponent } from '../components/screen-lock.component';
 
 @Component({
   selector: 'pt-dashboard',
@@ -74,6 +76,7 @@ import { EmployeePortalComponent } from './employee-portal.component';
     MenuModule,
     EmployeePortalComponent,
     NgClass,
+    ScreenLockComponent,
   ],
   template: `
     <p-toast />
@@ -345,6 +348,7 @@ import { EmployeePortalComponent } from './employee-portal.component';
         <router-outlet />
         }
       </div>
+      <pt-screen-lock />
     </div>
   `,
   styles: `
@@ -599,6 +603,7 @@ export class DashboardComponent {
   public schedulesStore = inject(SchedulesStore);
   public banksStore = inject(BanksStore);
   public payrollsStore = inject(PayrollsStore);
+  public screenLockService = inject(ScreenLockService);
   private injector = inject(Injector);
 
   // Signal para la IP actual
@@ -866,6 +871,8 @@ export class DashboardComponent {
     const hasDashboardAccess = this.store.hasDashboardAccess();
     const isAdmin = this.store.isAdmin();
     const isScheduleAdmin = this.store.isScheduleAdmin();
+    const hasTimeManagementAccess = this.store.hasTimeManagementAccess();
+    const currentEmployee = this.store.currentEmployee();
 
     const items: MenuItem[] = [
       {
@@ -875,13 +882,29 @@ export class DashboardComponent {
       },
     ];
 
-    // Agregar Gestión de Tienda para gerentes y administradores
-    if (hasDashboardAccess && (isAdmin || isScheduleAdmin)) {
+    // Agregar Gestión de Tienda para gerentes, administradores y Gerente de Tienda
+    if (hasDashboardAccess && (isAdmin || isScheduleAdmin || hasTimeManagementAccess)) {
       items.push({
         label: 'Gestión de Tienda',
         icon: 'pi pi-shop',
         command: () => {
           this.navigateTo('branch-manager');
+        },
+      });
+    }
+
+    // Agregar opción de bloqueo de pantalla para Gerente de Tienda y Admins
+    if (currentEmployee && this.screenLockService.canUseScreenLock(currentEmployee)) {
+      const isScreenLockEnabled = this.screenLockService.isEnabled();
+      items.push({
+        label: isScreenLockEnabled ? 'Desactivar Bloqueo de Pantalla' : 'Activar Bloqueo de Pantalla',
+        icon: isScreenLockEnabled ? 'pi pi-lock-open' : 'pi pi-lock',
+        command: () => {
+          if (isScreenLockEnabled) {
+            this.screenLockService.disable();
+          } else {
+            this.screenLockService.enable(currentEmployee, 15); // 15 minutos
+          }
         },
       });
     }
