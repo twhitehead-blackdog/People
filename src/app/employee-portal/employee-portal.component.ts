@@ -41,6 +41,7 @@ import { firstValueFrom } from 'rxjs';
 import { CalendarComponent, CalendarMarkerData } from '../calendar.component';
 import { TimeLogEnum } from '../models';
 import { OrganizationService } from '../services/organization.service';
+import { EmployeePortalNavigationService } from '../services/employee-portal-navigation.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
 
@@ -1561,16 +1562,28 @@ import { EmployeesStore } from '../stores/employees.store';
                 <i class="pi pi-clock text-cyan-400"></i>
                 <span>Solicitar Tiempo Compensatorio</span>
               </div>
-              <p-button
-                icon="pi pi-question-circle"
-                [rounded]="true"
-                [text]="true"
-                severity="secondary"
-                [outlined]="true"
-                (click)="showTutorialDialog.set(true)"
-                pTooltip="¿Cómo funciona el tiempo compensatorio?"
-                [style]="{ width: '2.5rem', height: '2.5rem' }"
-              />
+              <div class="flex items-center gap-2">
+                <p-button
+                  icon="pi pi-question-circle"
+                  [rounded]="true"
+                  [text]="true"
+                  severity="secondary"
+                  [outlined]="true"
+                  (click)="showTutorialDialog.set(true)"
+                  pTooltip="¿Cómo funciona el tiempo compensatorio?"
+                  [style]="{ width: '2.5rem', height: '2.5rem' }"
+                />
+                <p-button
+                  icon="pi pi-times"
+                  [rounded]="true"
+                  [text]="true"
+                  severity="secondary"
+                  [outlined]="true"
+                  (click)="activeSection.set('management')"
+                  pTooltip="Volver a Gestiones"
+                  [style]="{ width: '2.5rem', height: '2.5rem' }"
+                />
+              </div>
             </div>
           </ng-template>
           <ng-template #subtitle
@@ -3306,6 +3319,7 @@ export class EmployeePortalComponent {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private organizationService = inject(OrganizationService);
+  private navigationService = inject(EmployeePortalNavigationService);
   private readonly companyEmailDomain = '@blackdogpanama.com';
 
   public currentEmployee = computed(() => this.store.currentEmployee());
@@ -3396,6 +3410,26 @@ export class EmployeePortalComponent {
         console.log(
           '[Gestiones] Effect - Sección gestiones/management activada'
         );
+      }
+    });
+
+    // Suscribirse a cambios de navegación desde el layout
+    effect(() => {
+      const targetSection = this.navigationService.navigateToSection();
+      if (targetSection) {
+        this.activeSection.set(targetSection);
+        // Actualizar la URL también
+        this.router.navigate(['/employee-portal'], { 
+          fragment: targetSection,
+          replaceUrl: false
+        });
+        // Hacer scroll a la sección
+        setTimeout(() => {
+          const element = document.getElementById(targetSection);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 100);
       }
     });
   }

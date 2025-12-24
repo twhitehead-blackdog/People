@@ -20,6 +20,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { filter, Subscription } from 'rxjs';
 import { NotificationsService } from '../services/notifications.service';
 import { OrganizationService } from '../services/organization.service';
+import { EmployeePortalNavigationService } from '../services/employee-portal-navigation.service';
 import { AuthStore } from '../stores/auth.store';
 import { BanksStore } from '../stores/banks.store';
 import { BranchesStore } from '../stores/branches.store';
@@ -482,6 +483,7 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
   public store = inject(DashboardStore);
   public organizationService = inject(OrganizationService);
   public notificationsService = inject(NotificationsService);
+  private navigationService = inject(EmployeePortalNavigationService);
 
   public isNaz = computed(() => this.organizationService.isNaz());
 
@@ -566,17 +568,42 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
   }
 
   navigateToSection(section: string) {
-    // Navegar directamente al fragmento correspondiente
-    // El componente employee-portal sincronizará automáticamente el tab activo
+    // Si estamos navegando a 'management' y estamos en una subsección de gestiones,
+    // usar el servicio de navegación para cambiar directamente la sección activa
+    if (section === 'management') {
+      // Leer el fragmento directamente de la URL actual
+      const url = this.router.url;
+      const urlFragment = url.includes('#') ? url.split('#')[1] : null;
+      const currentFragment = urlFragment || this.currentFragment();
+      
+      // Verificar si estamos en una subsección de gestiones
+      const isInManagementSubsection = 
+        currentFragment === 'disabilities' || 
+        currentFragment === 'documents' || 
+        currentFragment === 'complaints' || 
+        currentFragment === 'vacations' ||
+        currentFragment === 'compensatory' ||
+        currentFragment === 'my-requests';
+      
+      // Si estamos en una subsección, usar el servicio para cambiar directamente la sección
+      if (isInManagementSubsection) {
+        this.navigationService.goToSection('management');
+        this.openDropdown.set(null);
+        if (!this.isCollapsed()) {
+          this.isCollapsed.set(true);
+        }
+        return;
+      }
+    }
+    
+    // Navegación normal para otros casos
     this.router.navigate(['/employee-portal'], { 
       fragment: section,
-      replaceUrl: false // Permitir historial de navegación
+      replaceUrl: false
     }).then(() => {
-      // Asegurar que el fragmento se actualice después de la navegación
       this.currentFragment.set(section);
       this.updateFragment();
       
-      // Scroll al inicio del contenido después de un pequeño delay
       setTimeout(() => {
         const element = document.querySelector('pt-employee-portal');
         if (element) {
@@ -585,7 +612,6 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
       }, 200);
     });
     this.openDropdown.set(null);
-    // Cerrar menú móvil si está abierto
     if (!this.isCollapsed()) {
       this.isCollapsed.set(true);
     }
