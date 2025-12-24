@@ -175,7 +175,7 @@ import { DiagnosticService } from './services/diagnostic.service';
                 [styleClass]="'w-full'"
               />
             </div>
-            } @if (canChangeBranch()) {
+            } @if (form.get('company_id')?.value) {
             <div class="input-container w-full">
               <p-select
                 formControlName="branch_id"
@@ -187,7 +187,13 @@ import { DiagnosticService } from './services/diagnostic.service';
                 filterBy="name"
                 class="w-full"
                 [styleClass]="'w-full'"
+                [disabled]="!canChangeBranch()"
               />
+              @if (!canChangeBranch() && form.get('branch_id')?.value) {
+                <p class="text-xs text-gray-400 mt-1 text-center">
+                  Sucursal detectada automáticamente por IP
+                </p>
+              }
             </div>
             }
             <div
