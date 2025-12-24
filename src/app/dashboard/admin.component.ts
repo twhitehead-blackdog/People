@@ -60,7 +60,7 @@ import { OrganizationService } from '../services/organization.service';
                 <i class="pi pi-clock text-sm"></i>
                 <span>Tiempo</span>
               </a>
-              <!-- Incapacidades -->
+              <!-- Gestión de Solicitudes -->
               <a
                 routerLink="hr/disabilities"
                 class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
@@ -68,10 +68,10 @@ import { OrganizationService } from '../services/organization.service';
                 [class.text-amber-300]="isActiveRoute('hr/disabilities')"
               >
                 <i class="pi pi-heart text-sm"></i>
-                <span>Incapacidades</span>
+                <span>Gestión de Solicitudes</span>
               </a>
 
-              <!-- Aplicaciones de Trabajo (solo para Black Dog) -->
+              <!-- Feria de empleo (solo para Black Dog) -->
               @if (!isNaz()) {
               <a
                 routerLink="job-applications"
@@ -80,7 +80,7 @@ import { OrganizationService } from '../services/organization.service';
                 [class.text-amber-300]="isActiveRoute('job-applications')"
               >
                 <i class="pi pi-briefcase text-sm"></i>
-                <span>Aplicaciones de Trabajo</span>
+                <span>Feria de empleo</span>
               </a>
               }
             </div>

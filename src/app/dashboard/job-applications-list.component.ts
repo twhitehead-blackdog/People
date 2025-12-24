@@ -71,7 +71,7 @@ import { PositionsFormComponent } from './positions-form.component';
       <ng-template #title>
         <div class="flex items-center justify-between w-full">
           <div>
-            <h2 class="m-0">Aplicaciones de Trabajo</h2>
+            <h2 class="m-0">Feria de empleo</h2>
             <p class="text-sm text-gray-400 m-0 mt-1">
               Gestiona las aplicaciones recibidas de la Feria de Empleo
             </p>
@@ -572,7 +572,8 @@ export class JobApplicationsListComponent implements OnInit {
   public positions = computed(() => this.positionsStore.entities());
 
   public filteredPositions = computed(() => {
-    const search = (this.positionSearchTerm() || '').toLowerCase().trim();
+    const searchTerm = this.positionSearchTerm();
+    const search = (searchTerm || '').toString().toLowerCase().trim();
     const pos = this.positions();
 
     if (!search) {
@@ -580,8 +581,8 @@ export class JobApplicationsListComponent implements OnInit {
     }
 
     return pos.filter((p) => {
-      const name = (p.name || '').toLowerCase();
-      const deptName = (p.department?.name || '').toLowerCase();
+      const name = (p?.name || '').toString().toLowerCase();
+      const deptName = (p?.department?.name || '').toString().toLowerCase();
       return name.includes(search) || deptName.includes(search);
     });
   });

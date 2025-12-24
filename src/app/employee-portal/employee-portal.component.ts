@@ -1749,110 +1749,89 @@ import { EmployeesStore } from '../stores/employees.store';
               <h3 class="text-lg font-semibold text-white m-0">Paso 4: Fechas donde trabajé horas extra</h3>
             </div>
             <p class="text-sm text-gray-400 mb-4">
-              Revisa las fechas donde trabajaste horas extra para confirmar que el tiempo que solicitas es correcto.
-              RRHH también revisará esta información al aprobar tu solicitud.
+              Ingresa manualmente las fechas donde trabajaste horas extra. RRHH revisará esta información 
+              junto con tus marcaciones para verificar que el tiempo solicitado es correcto.
             </p>
             
-            @if (monthTimelogsApi.isLoading()) {
-              <div class="flex items-center justify-center py-8">
-                <i class="pi pi-spin pi-spinner text-2xl text-cyan-400 mr-3"></i>
-                <span class="text-gray-400">Cargando información de horas extra...</span>
+            <!-- Campo para agregar fechas -->
+            <div class="flex flex-col sm:flex-row gap-3 mb-4">
+              <div class="flex-1">
+                <label class="block text-sm text-gray-400 mb-2">Agregar fecha</label>
+                <p-datepicker
+                  [(ngModel)]="newOvertimeDate"
+                  appendTo="body"
+                  dateFormat="dd/mm/yy"
+                  placeholder="Selecciona una fecha"
+                  [maxDate]="today"
+                  class="w-full"
+                />
               </div>
-            } @else if (overtimeDaysDetails().length === 0) {
+              <div class="flex items-end">
+                <p-button
+                  label="Agregar Fecha"
+                  icon="pi pi-plus"
+                  severity="success"
+                  [disabled]="!newOvertimeDate()"
+                  (onClick)="addManualOvertimeDate()"
+                  class="w-full sm:w-auto"
+                />
+              </div>
+            </div>
+
+            <!-- Lista de fechas agregadas -->
+            @if (manualOvertimeDates().length === 0) {
               <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
                 <div class="flex items-start gap-3">
-                  <i class="pi pi-exclamation-triangle text-yellow-400 text-xl"></i>
+                  <i class="pi pi-info-circle text-yellow-400 text-xl"></i>
                   <div>
-                    <p class="text-yellow-300 font-semibold mb-1">No se encontraron horas extra</p>
+                    <p class="text-yellow-300 font-semibold mb-1">No hay fechas agregadas</p>
                     <p class="text-sm text-gray-300">
-                      No se encontraron registros de horas extra trabajadas en el mes actual. 
-                      Si trabajaste horas extra, asegúrate de que tus marcaciones estén correctamente registradas.
+                      Agrega las fechas donde trabajaste horas extra usando el campo de arriba.
                     </p>
                   </div>
                 </div>
               </div>
             } @else {
-              <div class="overflow-x-auto">
-                <p-table
-                  [value]="overtimeDaysDetails()"
-                  styleClass="p-datatable-sm"
-                  [paginator]="false"
-                  [scrollable]="true"
-                  scrollHeight="300px"
-                >
-                  <ng-template #header>
-                    <tr>
-                      <th class="text-left">Fecha</th>
-                      <th class="text-left">Hora de Entrada</th>
-                      <th class="text-left">Hora de Salida</th>
-                      <th class="text-right">Horas Totales</th>
-                      <th class="text-right">Tiempo de Almuerzo</th>
-                      <th class="text-right">Retraso</th>
-                      <th class="text-right">Horas Extra</th>
-                    </tr>
-                  </ng-template>
-                  <ng-template #body let-dayDetail>
-                    <tr>
-                      <td class="font-medium">
-                        {{ dayDetail.date | date : 'dd/MM/yyyy' }}
-                      </td>
-                      <td>
-                        <span class="flex items-center gap-2">
-                          <i class="pi pi-sign-in text-green-400"></i>
-                          <span class="font-mono">{{ dayDetail.entryTime }}</span>
+              <div class="space-y-2">
+                <h4 class="text-sm font-semibold text-gray-300 mb-3">
+                  Fechas agregadas ({{ manualOvertimeDates().length }}):
+                </h4>
+                <div class="flex flex-col gap-2">
+                  @for (date of manualOvertimeDates(); track $index) {
+                    <div class="flex items-center justify-between p-3 rounded-lg bg-neutral-700/50 border border-neutral-600/50">
+                      <div class="flex items-center gap-3">
+                        <i class="pi pi-calendar text-cyan-400"></i>
+                        <span class="text-white font-medium">
+                          {{ date | date : 'fullDate' }}
                         </span>
-                      </td>
-                      <td>
-                        <span class="flex items-center gap-2">
-                          <i class="pi pi-sign-out text-red-400"></i>
-                          <span class="font-mono">{{ dayDetail.exitTime }}</span>
-                        </span>
-                      </td>
-                      <td class="text-right">
-                        <span class="font-semibold">{{ formatHoursMinutes(dayDetail.totalHours) }}</span>
-                        <p class="text-xs text-gray-400 mt-1">(después de restar almuerzo y retraso)</p>
-                      </td>
-                      <td class="text-right">
-                        <span class="text-gray-400">{{ formatHoursMinutes(dayDetail.lunchDuration) }}</span>
-                      </td>
-                      <td class="text-right">
-                        @if (dayDetail.delayHours > 0) {
-                          <span class="text-red-400">{{ formatHoursMinutes(dayDetail.delayHours) }}</span>
-                        } @else {
-                          <span class="text-gray-500">0m</span>
-                        }
-                      </td>
-                      <td class="text-right">
-                        <span class="px-2 py-1 bg-cyan-500/20 text-cyan-300 rounded font-semibold">
-                          {{ formatHoursMinutes(dayDetail.overtimeHours) }}
-                        </span>
-                      </td>
-                    </tr>
-                  </ng-template>
-                  <ng-template #emptymessage>
-                    <tr>
-                      <td colspan="7" class="text-center py-8 text-gray-400">
-                        No se encontraron días con horas extra
-                      </td>
-                    </tr>
-                  </ng-template>
-                </p-table>
-              </div>
-              
-              <div class="mt-4 p-3 bg-cyan-500/10 border border-cyan-500/30 rounded-lg">
-                <div class="flex items-center justify-between">
-                  <div class="flex items-center gap-2">
-                    <i class="pi pi-info-circle text-cyan-400"></i>
-                    <span class="text-sm text-gray-300">
-                      Total de horas extra disponibles este mes:
-                    </span>
-                  </div>
-                  <span class="text-lg font-bold text-cyan-300">
-                    {{ getTotalOvertimeHours() }}
-                  </span>
+                      </div>
+                      <p-button
+                        icon="pi pi-times"
+                        severity="danger"
+                        text
+                        rounded
+                        size="small"
+                        (onClick)="removeManualOvertimeDate($index)"
+                        pTooltip="Eliminar fecha"
+                      />
+                    </div>
+                  }
                 </div>
               </div>
             }
+
+            <!-- Información para RRHH -->
+            <div class="mt-4 p-3 bg-cyan-500/10 border border-cyan-500/30 rounded-lg">
+              <div class="flex items-start gap-2">
+                <i class="pi pi-info-circle text-cyan-400 mt-0.5"></i>
+                <div>
+                  <p class="text-sm text-gray-300">
+                    <strong>Nota para RRHH:</strong> Esta información será revisada junto con las marcaciones 
+                    del empleado para verificar las horas extra trabajadas y aprobar la solicitud.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Resumen y Botón de Envío -->
@@ -2209,18 +2188,44 @@ import { EmployeesStore } from '../stores/employees.store';
                     <!-- Tiempo Compensatorio -->
                     @if (request.request_type === 'compensatory') {
                       <!-- Fechas -->
+                      @let quantityForPeriodList = getCompensatoryQuantity(data);
                       <div class="bg-neutral-900/50 rounded-lg p-3 border border-neutral-700/50">
                         <div class="flex items-center gap-2 mb-2">
                           <i class="pi pi-calendar text-cyan-400"></i>
-                          <span class="text-xs text-gray-400 font-medium">Período</span>
+                          <span class="text-xs text-gray-400 font-medium">
+                            @if (quantityForPeriodList.isDays) {
+                              Período
+                            } @else {
+                              Fecha y Horas
+                            }
+                          </span>
                         </div>
-                        <p class="text-white font-semibold">
-                          {{ data.date_from | date : 'dd/MM/yyyy' }}
-                        </p>
-                        @if (data.date_from !== data.date_to) {
-                        <p class="text-gray-400 text-sm mt-1">
-                          hasta {{ data.date_to | date : 'dd/MM/yyyy' }}
-                        </p>
+                        @if (quantityForPeriodList.isDays) {
+                          <p class="text-white font-semibold">
+                            {{ data.date_from | date : 'dd/MM/yyyy' }}
+                          </p>
+                          @if (data.date_from !== data.date_to) {
+                            <p class="text-gray-400 text-sm mt-1">
+                              hasta {{ data.date_to | date : 'dd/MM/yyyy' }}
+                            </p>
+                          }
+                        } @else {
+                          @if (data.date_from) {
+                            <p class="text-white font-semibold">
+                              {{ data.date_from | date : 'dd/MM/yyyy' }}
+                            </p>
+                            @if (data.date_from && hasTimeInfo(data.date_from)) {
+                              <p class="text-gray-400 text-sm mt-1">
+                                {{ formatDateWithTimeRange(data.date_from, data.date_to) }}
+                              </p>
+                            } @else {
+                              <p class="text-gray-400 text-sm mt-1">
+                                {{ formatHoursMinutes(quantityForPeriodList.value) }}
+                              </p>
+                            }
+                          } @else {
+                            <p class="text-gray-400 text-sm">Sin fecha específica</p>
+                          }
                         }
                       </div>
 
@@ -2239,7 +2244,7 @@ import { EmployeesStore } from '../stores/employees.store';
                           @if (quantity.isDays) {
                             {{ quantity.value }} día(s)
                             <span class="text-gray-400 text-sm font-normal block mt-1">
-                              ({{ quantity.value * 24 }} horas)
+                              ({{ quantity.value * 8 }} horas)
                             </span>
                           } @else {
                             {{ formatHoursMinutes(quantity.value) }}
@@ -2255,9 +2260,9 @@ import { EmployeesStore } from '../stores/employees.store';
                         </div>
                         <p class="text-white font-semibold">
                           @if (data.compensatory_type === 'days') {
-                            Por Días
+                            Días
                           } @else {
-                            Por Horas
+                            Horas
                           }
                         </p>
                       </div>
@@ -2749,18 +2754,44 @@ import { EmployeesStore } from '../stores/employees.store';
           @if (request.request_type === 'compensatory') {
             <!-- Tiempo Compensatorio -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              @let quantityForPeriod = getCompensatoryQuantity(data);
               <div class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
                 <div class="flex items-center gap-2 mb-2">
                   <i class="pi pi-calendar text-cyan-400"></i>
-                  <span class="text-sm text-gray-400 font-medium">Período</span>
+                  <span class="text-sm text-gray-400 font-medium">
+                    @if (quantityForPeriod.isDays) {
+                      Período
+                    } @else {
+                      Fecha y Horas
+                    }
+                  </span>
                 </div>
-                <p class="text-white font-semibold text-lg">
-                  {{ data.date_from | date : 'dd/MM/yyyy' }}
-                </p>
-                @if (data.date_from !== data.date_to) {
-                  <p class="text-gray-400 text-sm mt-1">
-                    hasta {{ data.date_to | date : 'dd/MM/yyyy' }}
+                @if (quantityForPeriod.isDays) {
+                  <p class="text-white font-semibold text-lg">
+                    {{ data.date_from | date : 'dd/MM/yyyy' }}
                   </p>
+                  @if (data.date_from !== data.date_to) {
+                    <p class="text-gray-400 text-sm mt-1">
+                      hasta {{ data.date_to | date : 'dd/MM/yyyy' }}
+                    </p>
+                  }
+                } @else {
+                  @if (data.date_from) {
+                    <p class="text-white font-semibold text-lg">
+                      {{ data.date_from | date : 'dd/MM/yyyy' }}
+                    </p>
+                    @if (data.date_from && hasTimeInfo(data.date_from)) {
+                      <p class="text-gray-400 text-sm mt-1">
+                        {{ formatDateWithTimeRange(data.date_from, data.date_to) }}
+                      </p>
+                    } @else {
+                      <p class="text-gray-400 text-sm mt-1">
+                        {{ formatHoursMinutes(quantityForPeriod.value) }}
+                      </p>
+                    }
+                  } @else {
+                    <p class="text-gray-400 text-sm">Sin fecha específica</p>
+                  }
                 }
               </div>
 
@@ -2778,7 +2809,7 @@ import { EmployeesStore } from '../stores/employees.store';
                   @if (quantity.isDays) {
                     {{ quantity.value }} día(s)
                     <span class="text-gray-400 text-sm font-normal block mt-1">
-                      ({{ quantity.value * 24 }} horas)
+                      ({{ quantity.value * 8 }} horas)
                     </span>
                   } @else {
                     {{ formatHoursMinutes(quantity.value) }}
@@ -2793,9 +2824,9 @@ import { EmployeesStore } from '../stores/employees.store';
                 </div>
                 <p class="text-white font-semibold">
                   @if (data.compensatory_type === 'days') {
-                    Por Días
+                    Días
                   } @else {
-                    Por Horas
+                    Horas
                   }
                 </p>
               </div>
@@ -4314,6 +4345,33 @@ export class EmployeePortalComponent {
     return this.formatHoursMinutes(total);
   }
 
+  // Método helper para verificar si una fecha tiene información de tiempo
+  public hasTimeInfo(dateValue: string | Date | null | undefined): boolean {
+    if (!dateValue) return false;
+    const dateStr = String(dateValue);
+    return dateStr.includes(' ') || dateStr.includes('T');
+  }
+
+  // Método helper para formatear el rango de horas desde fechas datetime
+  public formatDateWithTimeRange(dateFrom: string | Date, dateTo: string | Date): string {
+    try {
+      const from = new Date(dateFrom);
+      const to = new Date(dateTo);
+      
+      if (isNaN(from.getTime()) || isNaN(to.getTime())) {
+        return '';
+      }
+      
+      const fromTime = format(from, 'HH:mm');
+      const toTime = format(to, 'HH:mm');
+      
+      return `de ${fromTime} a ${toTime}`;
+    } catch (error) {
+      console.error('Error formatting date range:', error);
+      return '';
+    }
+  }
+
   // Helper para formatear horas en formato horas y minutos
   public formatHoursMinutes(hours: number | string): string {
     const hoursNum = typeof hours === 'string' ? parseFloat(hours) : hours;
@@ -4451,6 +4509,8 @@ export class EmployeePortalComponent {
   public compensatoryTimeStart = signal<Date | null>(null); // Hora inicio cuando tipo es "hours"
   public compensatoryTimeEnd = signal<Date | null>(null); // Hora fin cuando tipo es "hours"
   public selectedOvertimeDays = signal<Set<string>>(new Set()); // Días seleccionados con horas extras
+  public manualOvertimeDates = signal<Date[]>([]); // Fechas manuales de horas extra ingresadas por el empleado
+  public newOvertimeDate = signal<Date | null>(null); // Fecha temporal para agregar
 
   // Propiedad para obtener la fecha actual (para usar en templates)
   public get today(): Date {
@@ -4470,6 +4530,37 @@ export class EmployeePortalComponent {
 
   public isDaySelected(day: string): boolean {
     return this.selectedOvertimeDays().has(day);
+  }
+
+  // Método para agregar una fecha manual de horas extra
+  public addManualOvertimeDate() {
+    const date = this.newOvertimeDate();
+    if (!date) return;
+
+    const dateStr = format(date, 'yyyy-MM-dd');
+    const existingDates = this.manualOvertimeDates();
+
+    // Verificar que no esté duplicada
+    const isDuplicate = existingDates.some((d) => format(d, 'yyyy-MM-dd') === dateStr);
+    if (isDuplicate) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Fecha duplicada',
+        detail: 'Esta fecha ya ha sido agregada',
+      });
+      return;
+    }
+
+    // Agregar la fecha
+    this.manualOvertimeDates.set([...existingDates, date]);
+    this.newOvertimeDate.set(null);
+  }
+
+  // Método para eliminar una fecha manual
+  public removeManualOvertimeDate(index: number) {
+    const dates = this.manualOvertimeDates();
+    dates.splice(index, 1);
+    this.manualOvertimeDates.set([...dates]);
   }
 
   // API para obtener todas las solicitudes de tiempo compensatorio (no solo aprobadas)
@@ -4570,7 +4661,7 @@ export class EmployeePortalComponent {
         created_at: req.created_at,
         status: this.getUnifiedRequestStatus(req, 'compensatory'),
         title: `Tiempo Compensatorio ${
-          req.compensatory_type === 'days' ? 'por Días' : 'por Horas'
+          req.compensatory_type === 'days' ? 'Días' : 'Horas'
         }`,
         description: req.reason || '',
         originalData: req,
@@ -5135,34 +5226,17 @@ export class EmployeePortalComponent {
       );
     }
 
-    // Agregar información de fechas donde trabajó horas extra
-    const overtimeDetails = this.overtimeDaysDetails();
-    if (overtimeDetails.length > 0) {
+    // Agregar información de fechas donde trabajó horas extra (fechas manuales)
+    const manualDates = this.manualOvertimeDates();
+    if (manualDates.length > 0) {
       notes.push('');
-      notes.push('--- Fechas donde trabajó horas extra ---');
-      const totalOvertime = overtimeDetails.reduce(
-        (sum, day) => sum + day.overtimeHours,
-        0
-      );
-      notes.push(
-        `Total de horas extra disponibles: ${totalOvertime.toFixed(2)}h`
-      );
+      notes.push('--- Fechas donde trabajó horas extra (ingresadas manualmente) ---');
       notes.push('');
-      notes.push('Detalle por fecha:');
-      overtimeDetails.forEach((day) => {
-        const delayText =
-          day.delayHours > 0 ? ` | Retraso: ${day.delayHours.toFixed(2)}h` : '';
-        notes.push(
-          `${format(day.date, 'dd/MM/yyyy')}: Entrada ${
-            day.entryTime
-          } - Salida ${day.exitTime} | ` +
-            `Total: ${day.totalHours.toFixed(
-              2
-            )}h (después de restar almuerzo y retraso) | Almuerzo: ${day.lunchDuration.toFixed(
-              2
-            )}h${delayText} | Extra: ${day.overtimeHours.toFixed(2)}h`
-        );
+      manualDates.forEach((date) => {
+        notes.push(`- ${format(date, 'dd/MM/yyyy')}`);
       });
+      notes.push('');
+      notes.push('RRHH revisará estas fechas junto con las marcaciones del empleado para verificar las horas extra trabajadas.');
     }
 
     const timeoffData: any = {
@@ -5206,6 +5280,8 @@ export class EmployeePortalComponent {
       this.compensatoryTimeEnd.set(null);
       this.compensatoryType.set('hours');
       this.compensatoryReason.set('');
+      this.manualOvertimeDates.set([]);
+      this.newOvertimeDate.set(null);
       if (
         this.compensatoryTimeoffsApi &&
         typeof this.compensatoryTimeoffsApi.reload === 'function' &&

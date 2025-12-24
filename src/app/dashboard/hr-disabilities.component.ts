@@ -19,6 +19,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DialogModule } from 'primeng/dialog';
 import { DropdownModule } from 'primeng/dropdown';
 import { InputTextModule } from 'primeng/inputtext';
+import { InputTextarea } from 'primeng/inputtextarea';
 import { MenuModule } from 'primeng/menu';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
@@ -90,6 +91,7 @@ interface CompensatoryRequest {
     TabsModule,
     TooltipModule,
     InputTextModule,
+    InputTextarea,
     DropdownModule,
     CalendarModule,
     ToastModule,
@@ -120,7 +122,7 @@ interface CompensatoryRequest {
               </h1>
               <p class="text-xs text-gray-400 m-0 mt-0.5 flex items-center gap-1.5">
                 <i class="pi pi-shield text-cyan-400 text-xs"></i>
-                <span class="truncate">Gestión integral de incapacidades y tiempo compensatorio</span>
+                <span class="truncate">Gestión integral de solicitudes y tiempo compensatorio</span>
               </p>
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
@@ -184,7 +186,7 @@ interface CompensatoryRequest {
                   : 'text-gray-400 hover:text-white hover:bg-neutral-700/50')"
             >
               <i class="pi pi-heart mr-1.5 text-xs"></i>
-              Incapacidades
+              Gestión de Solicitudes
               @if (pendingCount() > 0) {
               <span class="ml-1.5 px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full text-xs font-bold">
                 {{ pendingCount() }}
@@ -230,7 +232,7 @@ interface CompensatoryRequest {
         </div>
 
         @if (activeTab() === 'disabilities') {
-        <!-- Dashboard de Incapacidades -->
+        <!-- Dashboard de Gestión de Solicitudes -->
         <div class="space-y-3">
           <!-- Estadísticas Compactas -->
           <div class="grid grid-cols-4 gap-2">
@@ -402,7 +404,7 @@ interface CompensatoryRequest {
               <div class="flex items-center gap-2">
                 <h3 class="text-sm font-semibold text-white m-0 flex items-center gap-1.5">
                   <i class="pi pi-list text-cyan-400 text-sm"></i>
-                  Solicitudes de Incapacidades
+                  Solicitudes
                 </h3>
                 @if (selectedDisabilities().length > 0) {
                 <span class="px-2 py-0.5 bg-cyan-500/20 text-cyan-300 rounded text-xs font-medium">
@@ -442,13 +444,13 @@ interface CompensatoryRequest {
             <div class="flex justify-center items-center py-8">
               <div class="text-center">
                 <p-progressSpinner />
-                <p class="text-gray-400 mt-2 text-sm">Cargando incapacidades...</p>
+                <p class="text-gray-400 mt-2 text-sm">Cargando solicitudes...</p>
               </div>
             </div>
             } @else if (filteredDisabilities().length === 0) {
             <div class="flex flex-col items-center justify-center py-8 text-center">
               <i class="pi pi-inbox text-4xl text-gray-600 mb-2"></i>
-              <h4 class="text-sm font-semibold text-gray-300 mb-1">No se encontraron incapacidades</h4>
+              <h4 class="text-sm font-semibold text-gray-300 mb-1">No se encontraron solicitudes</h4>
               <p class="text-gray-500 text-xs mb-2">Intenta ajustar los filtros para ver más resultados</p>
               <p-button
                 [label]="'Limpiar Filtros'"
@@ -864,7 +866,7 @@ interface CompensatoryRequest {
             >
               <ng-template #emptymessage>
                 <tr>
-                  <td colspan="8" class="text-center py-4">
+                  <td colspan="9" class="text-center py-4">
                     No se encontraron solicitudes de tiempo compensatorio
                   </td>
                 </tr>
@@ -904,13 +906,19 @@ interface CompensatoryRequest {
                   <th style="width: 120px; padding: 0.4rem; text-align: center;">
                     <div class="flex items-center justify-center gap-1">
                       <i class="pi pi-comment text-cyan-400 text-xs"></i>
-                      <span class="text-xs">Motivo</span>
+                      <span class="text-xs">Motivo Solicitud</span>
                     </div>
                   </th>
                   <th style="width: 90px; padding: 0.4rem; text-align: center;">
                     <div class="flex items-center justify-center gap-1">
                       <i class="pi pi-tag text-cyan-400 text-xs"></i>
                       <span class="text-xs">Estado</span>
+                    </div>
+                  </th>
+                  <th style="width: 120px; padding: 0.4rem; text-align: center;">
+                    <div class="flex items-center justify-center gap-1">
+                      <i class="pi pi-exclamation-triangle text-red-400 text-xs"></i>
+                      <span class="text-xs">Motivo Rechazo</span>
                     </div>
                   </th>
                   <th style="width: 110px; padding: 0.4rem; text-align: center;">
@@ -950,9 +958,15 @@ interface CompensatoryRequest {
                     </span>
                   </td>
                   <td style="padding: 0.4rem; text-align: center;">
-                    @let compensatoryType = request.compensatory_type || (request.compensatory_amount && request.compensatory_amount >= 8 ? 'days' : 'hours');
+                    @let compensatoryType = getCompensatoryTypeFromNotes(request);
                     <span class="text-xs font-medium text-white">
-                      {{ compensatoryType === 'days' ? 'Días' : 'Horas' }}
+                      @if (compensatoryType === 'days') {
+                        Días
+                      } @else if (compensatoryType === 'hours') {
+                        Horas
+                      } @else {
+                        <span class="text-gray-500">-</span>
+                      }
                     </span>
                   </td>
                   <td style="padding: 0.4rem; text-align: center;">
@@ -960,7 +974,7 @@ interface CompensatoryRequest {
                     <span class="text-xs font-medium text-white">
                       @if (quantity && quantity.value > 0) {
                         @if (quantity.isDays) {
-                          {{ quantity.value }}d
+                          {{ quantity.value }} día(s)
                         } @else {
                           {{ formatHoursMinutes(quantity.value) }}
                         }
@@ -970,13 +984,14 @@ interface CompensatoryRequest {
                     </span>
                   </td>
                   <td style="padding: 0.4rem; text-align: center;">
-                    @if (request.reason) {
+                    @let reason = getCompensatoryReasonFromNotes(request);
+                    @if (reason) {
                     <span
                       class="text-xs text-gray-300 cursor-help inline-block max-w-[110px] truncate"
-                      [pTooltip]="request.reason"
+                      [pTooltip]="reason"
                       tooltipPosition="top"
                     >
-                      {{ request.reason }}
+                      {{ reason }}
                     </span>
                     } @else {
                     <span class="text-gray-500 text-xs">-</span>
@@ -988,6 +1003,19 @@ interface CompensatoryRequest {
                       [severity]="getCompensatoryStatusSeverity(request)"
                       [style]="{'font-size': '0.65rem', 'padding': '0.1rem 0.4rem'}"
                     />
+                  </td>
+                  <td style="padding: 0.4rem; text-align: center;">
+                    @if (request.rejection_comment) {
+                    <span
+                      class="text-xs text-red-300 cursor-help inline-block max-w-[110px] truncate"
+                      [pTooltip]="request.rejection_comment"
+                      tooltipPosition="top"
+                    >
+                      {{ request.rejection_comment }}
+                    </span>
+                    } @else {
+                    <span class="text-gray-500 text-xs">-</span>
+                    }
                   </td>
                   <td style="padding: 0.4rem; text-align: center;" (click)="$event.stopPropagation()">
                     <div class="flex gap-0.5 justify-center">
@@ -1259,16 +1287,19 @@ interface CompensatoryRequest {
                 >Tipo de Solicitud</label
               >
               <p class="text-white">
-                @if (selectedCompensatoryRequest()!.compensatory_type === 'days') {
+                @let compensatoryType = getCompensatoryTypeFromNotes(selectedCompensatoryRequest()!);
+                @if (compensatoryType === 'days') {
                   <span class="flex items-center gap-2">
                     <i class="pi pi-calendar text-cyan-400"></i>
-                    Por Días
+                    Días
                   </span>
-                } @else {
+                } @else if (compensatoryType === 'hours') {
                   <span class="flex items-center gap-2">
                     <i class="pi pi-clock text-cyan-400"></i>
-                    Por Horas
+                    Horas
                   </span>
+                } @else {
+                  <span class="text-gray-400">No especificado</span>
                 }
               </p>
             </div>
@@ -1277,13 +1308,15 @@ interface CompensatoryRequest {
                 >Cantidad Solicitada</label
               >
               <p class="text-white">
-                @if (selectedCompensatoryRequest()!.compensatory_type === 'days') {
-                  {{ 
-                    selectedCompensatoryRequest()!.compensatory_amount || 
-                    calculateDays(selectedCompensatoryRequest()!.date_from, selectedCompensatoryRequest()!.date_to)
-                  }} día(s)
+                @let quantity = getCompensatoryQuantity(selectedCompensatoryRequest()!);
+                @if (quantity && quantity.value > 0) {
+                  @if (quantity.isDays) {
+                    {{ quantity.value }} día(s) ({{ quantity.value * 8 }} horas)
+                  } @else {
+                    {{ formatHoursMinutes(quantity.value) }}
+                  }
                 } @else {
-                  {{ selectedCompensatoryRequest()!.hours || selectedCompensatoryRequest()!.compensatory_amount || 0 }} hora(s)
+                  <span class="text-gray-400">No especificada</span>
                 }
               </p>
             </div>
@@ -1321,13 +1354,14 @@ interface CompensatoryRequest {
               />
             </div>
           </div>
-          @if (selectedCompensatoryRequest()!.reason) {
+          @let reason = getCompensatoryReasonFromNotes(selectedCompensatoryRequest()!);
+          @if (reason) {
           <div class="mt-4">
             <label class="block text-sm font-medium text-gray-400 mb-1"
               >Motivo</label
             >
             <p class="text-white whitespace-pre-wrap bg-neutral-900/50 p-3 rounded">
-              {{ selectedCompensatoryRequest()!.reason }}
+              {{ reason }}
             </p>
           </div>
           }
@@ -1428,6 +1462,60 @@ interface CompensatoryRequest {
             icon="pi pi-times"
             severity="secondary"
             (onClick)="showCompensatoryDetailsDialog.set(false)"
+            [rounded]="true"
+          />
+        </div>
+      </ng-template>
+    </p-dialog>
+
+    <!-- Dialog de Motivo de Rechazo -->
+    <p-dialog
+      [(visible)]="showRejectionDialog"
+      [modal]="true"
+      [style]="{ width: '500px' }"
+      [header]="'Motivo de Rechazo'"
+      [draggable]="false"
+      [resizable]="false"
+      [dismissableMask]="true"
+    >
+      <div class="space-y-4 pt-4">
+        @if (requestToReject()) {
+        <div class="mb-4">
+          <p class="text-gray-300 text-sm">
+            Estás rechazando la solicitud de tiempo compensatorio de
+            <strong class="text-white">{{ getEmployeeName(requestToReject()!) }}</strong>.
+            Por favor, indica el motivo del rechazo:
+          </p>
+        </div>
+        }
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-2">
+            Motivo del Rechazo <span class="text-red-400">*</span>
+          </label>
+          <textarea
+            pInputTextarea
+            [(ngModel)]="rejectionComment"
+            placeholder="Ingresa el motivo del rechazo..."
+            rows="5"
+            class="w-full"
+            [style]="{'min-height': '120px'}"
+          ></textarea>
+        </div>
+      </div>
+      <ng-template #footer>
+        <div class="flex justify-end gap-2">
+          <p-button
+            label="Cancelar"
+            icon="pi pi-times"
+            severity="secondary"
+            (onClick)="cancelRejection()"
+            [rounded]="true"
+          />
+          <p-button
+            label="Confirmar Rechazo"
+            icon="pi pi-times-circle"
+            severity="danger"
+            (onClick)="confirmRejection()"
             [rounded]="true"
           />
         </div>
@@ -1645,6 +1733,11 @@ export class HRDisabilitiesComponent {
   public selectedCompensatoryRequest = signal<CompensatoryRequest | null>(null);
   public employeeOvertimeHours = signal<number>(0);
   public isLoadingOvertimeHours = signal<boolean>(false);
+  
+  // Dialog de rechazo
+  public showRejectionDialog = signal(false);
+  public rejectionComment = signal('');
+  public requestToReject = signal<CompensatoryRequest | null>(null);
 
   // Opciones de estado
   public statusOptions = [
@@ -1878,6 +1971,83 @@ export class HRDisabilitiesComponent {
     
     // Si no hay datos, devolver 0 para que se muestre "-"
     return { value: 0, isDays: false };
+  }
+
+  public getCompensatoryTypeFromNotes(data: CompensatoryRequest): 'days' | 'hours' | null {
+    // Primero intentar desde compensatory_type si existe
+    if (data.compensatory_type) {
+      return data.compensatory_type;
+    }
+    
+    // Intentar desde las notas
+    if (data.notes) {
+      const notesArray = Array.isArray(data.notes)
+        ? data.notes
+        : typeof data.notes === 'string'
+        ? [data.notes]
+        : [];
+      
+      // Buscar nota que contenga "Tipo:"
+      const tipoNote = notesArray.find(
+        (note: any) => typeof note === 'string' && note.includes('Tipo:')
+      );
+      
+      if (tipoNote) {
+        if (tipoNote.includes('Días')) {
+          return 'days';
+        } else if (tipoNote.includes('Horas')) {
+          return 'hours';
+        }
+      }
+    }
+    
+    // Si no se encuentra, intentar determinar por formato de fechas
+    if (data.date_from && data.date_to) {
+      const dateFromStr = String(data.date_from);
+      const dateToStr = String(data.date_to);
+      
+      const hasTimeInFrom = dateFromStr.includes(' ') && dateFromStr.includes(':');
+      const hasTimeInTo = dateToStr.includes(' ') && dateToStr.includes(':');
+      
+      if (hasTimeInFrom && hasTimeInTo) {
+        return 'hours';
+      } else {
+        return 'days';
+      }
+    }
+    
+    return null;
+  }
+
+  public getCompensatoryReasonFromNotes(data: CompensatoryRequest): string | null {
+    // Primero intentar desde reason si existe
+    if (data.reason) {
+      return data.reason;
+    }
+    
+    // Intentar desde las notas
+    if (data.notes) {
+      const notesArray = Array.isArray(data.notes)
+        ? data.notes
+        : typeof data.notes === 'string'
+        ? [data.notes]
+        : [];
+      
+      // Buscar nota que contenga "Motivo:"
+      const motivoNote = notesArray.find(
+        (note: any) => typeof note === 'string' && note.includes('Motivo:')
+      );
+      
+      if (motivoNote) {
+        // Extraer el motivo después de "Motivo:"
+        const match = motivoNote.match(/Motivo:\s*(.+)/);
+        if (match && match[1]) {
+          return match[1].trim();
+        }
+      }
+    }
+    
+    return null;
   }
 
   public getStatusLabel(status: string): string {
@@ -2468,21 +2638,41 @@ export class HRDisabilitiesComponent {
   }
 
   public rejectCompensatoryRequest(request: CompensatoryRequest): void {
-    // TODO: Mostrar dialog para ingresar comentario de rechazo
-    const employeeName = this.getEmployeeName(request);
-    this.confirmationService.confirm({
-      message: `¿Estás seguro de rechazar la solicitud de tiempo compensatorio de ${employeeName}?`,
-      header: 'Confirmar Rechazo',
-      icon: 'pi pi-exclamation-triangle',
-      acceptButtonStyleClass: 'p-button-danger',
-      accept: () => {
-        this.updateCompensatoryReviewStatus(
-          request.id,
-          'rejected',
-          'Solicitud rechazada'
-        );
-      },
-    });
+    this.requestToReject.set(request);
+    this.rejectionComment.set('');
+    this.showRejectionDialog.set(true);
+  }
+
+  public confirmRejection(): void {
+    const request = this.requestToReject();
+    const comment = this.rejectionComment().trim();
+    
+    if (!request) return;
+    
+    if (!comment) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Advertencia',
+        detail: 'Por favor, ingresa un motivo para el rechazo',
+      });
+      return;
+    }
+
+    this.updateCompensatoryReviewStatus(
+      request.id,
+      'rejected',
+      comment
+    );
+    
+    this.showRejectionDialog.set(false);
+    this.rejectionComment.set('');
+    this.requestToReject.set(null);
+  }
+
+  public cancelRejection(): void {
+    this.showRejectionDialog.set(false);
+    this.rejectionComment.set('');
+    this.requestToReject.set(null);
   }
 
   public registerCompensatoryRequest(request: CompensatoryRequest): void {
