@@ -1,6 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { HttpClient, httpResource } from '@angular/common/http';
 import { DatePipe, NgClass } from '@angular/common';
+import { HttpClient, httpResource } from '@angular/common/http';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { format } from 'date-fns';
 import { MessageService } from 'primeng/api';
@@ -10,7 +16,6 @@ import { Select } from 'primeng/select';
 import { Tag } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
-import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
 
 interface Complaint {
@@ -76,14 +81,18 @@ interface ComplaintMessage {
   providers: [MessageService],
   template: `
     <p-toast />
-    <div class="h-[calc(100vh-180px)] flex flex-col bg-neutral-900 rounded-lg overflow-hidden border border-neutral-700">
+    <div
+      class="h-[calc(100vh-180px)] flex flex-col bg-neutral-900 rounded-lg overflow-hidden border border-neutral-700"
+    >
       <!-- Header con filtros -->
       <div class="bg-neutral-800 border-b border-neutral-700 p-4">
         <div class="flex items-center justify-between mb-4">
           <div>
-            <h2 class="text-xl font-bold text-white flex items-center gap-2 m-0">
+            <h2
+              class="text-xl font-bold text-white flex items-center gap-2 m-0"
+            >
               <i class="pi pi-inbox text-amber-400"></i>
-              Buzón de Quejas
+              Buzón de Sugerencias
             </h2>
             <p class="text-sm text-gray-400 m-0 mt-1">
               Gestión de quejas y conversaciones con empleados
@@ -123,327 +132,382 @@ interface ComplaintMessage {
       <!-- Contenedor principal estilo WhatsApp -->
       <div class="flex-1 flex overflow-hidden">
         <!-- Lista de conversaciones (izquierda) -->
-        <div class="w-1/3 border-r border-neutral-700 flex flex-col bg-neutral-850">
+        <div
+          class="w-1/3 border-r border-neutral-700 flex flex-col bg-neutral-850"
+        >
           <div class="flex-1 overflow-y-auto">
             @if(complaintsApi.isLoading()) {
-              <div class="p-8 text-center text-gray-400">Cargando conversaciones...</div>
+            <div class="p-8 text-center text-gray-400">
+              Cargando conversaciones...
+            </div>
             } @else if(filteredComplaints().length === 0) {
-              <div class="p-8 text-center text-gray-400">
-                <i class="pi pi-inbox text-4xl mb-4 block"></i>
-                <p>No hay quejas disponibles</p>
-              </div>
-            } @else {
-              @for(complaint of filteredComplaints(); track complaint.id) {
-                <div
-                  class="p-3 border-l-4 border-b border-neutral-700 cursor-pointer hover:bg-neutral-800 transition-colors"
-                  [ngClass]="{
-                    'bg-neutral-800': selectedComplaint()?.id === complaint.id,
-                    'bg-amber-500/10 border-l-amber-400': hasUnreadMessages(complaint) && selectedComplaint()?.id !== complaint.id,
-                    'border-l-orange-400': complaint.status === 'pending' && !hasUnreadMessages(complaint) && selectedComplaint()?.id !== complaint.id,
-                    'border-l-blue-400': complaint.status === 'in_review' && !hasUnreadMessages(complaint) && selectedComplaint()?.id !== complaint.id,
-                    'border-l-green-400': complaint.status === 'resolved' && !hasUnreadMessages(complaint) && selectedComplaint()?.id !== complaint.id,
-                    'border-l-gray-400': complaint.status === 'closed' && !hasUnreadMessages(complaint) && selectedComplaint()?.id !== complaint.id
-                  }"
-                  (click)="openConversation(complaint)"
-                >
-                  <div class="flex items-start gap-3">
-                    <!-- Avatar con indicador de prioridad -->
-                    <div class="relative flex-shrink-0">
-                      <div class="w-10 h-10 rounded-full bg-neutral-700 flex items-center justify-center">
-                        @if(complaint.employee) {
-                          <span class="text-white font-semibold text-sm">
-                            {{ complaint.employee.first_name.charAt(0) }}{{ complaint.employee.father_name.charAt(0) }}
-                          </span>
-                        } @else {
-                          <i class="pi pi-user-secret text-gray-400"></i>
-                        }
-                      </div>
-                      @if(complaint.priority === 'urgent') {
-                        <span class="absolute -top-0.5 -right-0.5 w-3 h-3 bg-red-500 rounded-full border border-neutral-850"></span>
-                      } @else if(complaint.priority === 'high') {
-                        <span class="absolute -top-0.5 -right-0.5 w-3 h-3 bg-orange-500 rounded-full border border-neutral-850"></span>
-                      }
-                    </div>
-                    
-                    <!-- Información -->
-                    <div class="flex-1 min-w-0">
-                      <div class="flex items-center justify-between mb-1.5 gap-2">
-                        <h3 class="text-white font-semibold text-sm break-words flex-1 min-w-0">
-                          @if((complaint.allow_contact || complaint.reveal_identity) && complaint.employee) {
-                            {{ complaint.employee.first_name }} {{ complaint.employee.father_name }}
-                          } @else {
-                            Anónimo
-                          }
-                        </h3>
-                        <span class="text-xs text-gray-500 flex-shrink-0">
-                          {{ getRelativeTime(complaint.last_message_at || complaint.updated_at) }}
-                        </span>
-                      </div>
-                      
-                      <!-- Mensaje -->
-                      <p class="text-sm text-gray-400 break-words mb-2 line-clamp-2">
-                        {{ complaint.complaint }}
-                      </p>
-                      
-                      <!-- Tags y controles en una línea -->
-                      <div class="flex items-center gap-2 flex-wrap" (click)="$event.stopPropagation()">
-                        <p-tag
-                          [value]="getStatusLabel(complaint.status)"
-                          [severity]="getStatusSeverity(complaint.status)"
-                          styleClass="text-xs"
-                        />
-                        <p-select
-                          [ngModel]="complaint.status"
-                          (ngModelChange)="updateStatusQuick($event, complaint)"
-                          [options]="statusOptionsForSelect"
-                          optionLabel="label"
-                          optionValue="value"
-                          appendTo="body"
-                          styleClass="text-xs h-6 w-24 border-0 bg-transparent text-gray-400 hover:text-white"
-                          [showClear]="false"
-                        />
-                        <span class="text-gray-600">•</span>
-                        <p-select
-                          [ngModel]="complaint.priority || 'medium'"
-                          (ngModelChange)="updatePriorityQuick($event, complaint)"
-                          [options]="priorityOptions"
-                          optionLabel="label"
-                          optionValue="value"
-                          appendTo="body"
-                          styleClass="text-xs h-6 w-20 border-0 bg-transparent text-gray-400 hover:text-white"
-                          [showClear]="false"
-                        />
-                        @if(hasUnreadMessages(complaint)) {
-                          <span class="ml-auto">
-                            <span class="w-2 h-2 bg-amber-400 rounded-full inline-block animate-pulse"></span>
-                          </span>
-                        }
-                      </div>
-                    </div>
+            <div class="p-8 text-center text-gray-400">
+              <i class="pi pi-inbox text-4xl mb-4 block"></i>
+              <p>No hay quejas disponibles</p>
+            </div>
+            } @else { @for(complaint of filteredComplaints(); track
+            complaint.id) {
+            <div
+              class="p-3 border-l-4 border-b border-neutral-700 cursor-pointer hover:bg-neutral-800 transition-colors"
+              [ngClass]="{
+                'bg-neutral-800': selectedComplaint()?.id === complaint.id,
+                'bg-amber-500/10 border-l-amber-400':
+                  hasUnreadMessages(complaint) &&
+                  selectedComplaint()?.id !== complaint.id,
+                'border-l-orange-400':
+                  complaint.status === 'pending' &&
+                  !hasUnreadMessages(complaint) &&
+                  selectedComplaint()?.id !== complaint.id,
+                'border-l-blue-400':
+                  complaint.status === 'in_review' &&
+                  !hasUnreadMessages(complaint) &&
+                  selectedComplaint()?.id !== complaint.id,
+                'border-l-green-400':
+                  complaint.status === 'resolved' &&
+                  !hasUnreadMessages(complaint) &&
+                  selectedComplaint()?.id !== complaint.id,
+                'border-l-gray-400':
+                  complaint.status === 'closed' &&
+                  !hasUnreadMessages(complaint) &&
+                  selectedComplaint()?.id !== complaint.id
+              }"
+              (click)="openConversation(complaint)"
+            >
+              <div class="flex items-start gap-3">
+                <!-- Avatar con indicador de prioridad -->
+                <div class="relative flex-shrink-0">
+                  <div
+                    class="w-10 h-10 rounded-full bg-neutral-700 flex items-center justify-center"
+                  >
+                    @if(complaint.employee) {
+                    <span class="text-white font-semibold text-sm">
+                      {{ complaint.employee.first_name.charAt(0)
+                      }}{{ complaint.employee.father_name.charAt(0) }}
+                    </span>
+                    } @else {
+                    <i class="pi pi-user-secret text-gray-400"></i>
+                    }
+                  </div>
+                  @if(complaint.priority === 'urgent') {
+                  <span
+                    class="absolute -top-0.5 -right-0.5 w-3 h-3 bg-red-500 rounded-full border border-neutral-850"
+                  ></span>
+                  } @else if(complaint.priority === 'high') {
+                  <span
+                    class="absolute -top-0.5 -right-0.5 w-3 h-3 bg-orange-500 rounded-full border border-neutral-850"
+                  ></span>
+                  }
+                </div>
+
+                <!-- Información -->
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center justify-between mb-1.5 gap-2">
+                    <h3
+                      class="text-white font-semibold text-sm break-words flex-1 min-w-0"
+                    >
+                      @if((complaint.allow_contact || complaint.reveal_identity)
+                      && complaint.employee) {
+                      {{ complaint.employee.first_name }}
+                      {{ complaint.employee.father_name }}
+                      } @else { Anónimo }
+                    </h3>
+                    <span class="text-xs text-gray-500 flex-shrink-0">
+                      {{
+                        getRelativeTime(
+                          complaint.last_message_at || complaint.updated_at
+                        )
+                      }}
+                    </span>
+                  </div>
+
+                  <!-- Mensaje -->
+                  <p
+                    class="text-sm text-gray-400 break-words mb-2 line-clamp-2"
+                  >
+                    {{ complaint.complaint }}
+                  </p>
+
+                  <!-- Tags y controles en una línea -->
+                  <div
+                    class="flex items-center gap-2 flex-wrap"
+                    (click)="$event.stopPropagation()"
+                  >
+                    <p-tag
+                      [value]="getStatusLabel(complaint.status)"
+                      [severity]="getStatusSeverity(complaint.status)"
+                      styleClass="text-xs"
+                    />
+                    <p-select
+                      [ngModel]="complaint.status"
+                      (ngModelChange)="updateStatusQuick($event, complaint)"
+                      [options]="statusOptionsForSelect"
+                      optionLabel="label"
+                      optionValue="value"
+                      appendTo="body"
+                      styleClass="text-xs h-6 w-24 border-0 bg-transparent text-gray-400 hover:text-white"
+                      [showClear]="false"
+                    />
+                    <span class="text-gray-600">•</span>
+                    <p-select
+                      [ngModel]="complaint.priority || 'medium'"
+                      (ngModelChange)="updatePriorityQuick($event, complaint)"
+                      [options]="priorityOptions"
+                      optionLabel="label"
+                      optionValue="value"
+                      appendTo="body"
+                      styleClass="text-xs h-6 w-20 border-0 bg-transparent text-gray-400 hover:text-white"
+                      [showClear]="false"
+                    />
+                    @if(hasUnreadMessages(complaint)) {
+                    <span class="ml-auto">
+                      <span
+                        class="w-2 h-2 bg-amber-400 rounded-full inline-block animate-pulse"
+                      ></span>
+                    </span>
+                    }
                   </div>
                 </div>
-              }
-            }
+              </div>
+            </div>
+            } }
           </div>
         </div>
 
         <!-- Vista de conversación (derecha) -->
         <div class="flex-1 flex flex-col bg-neutral-900">
           @if(!selectedComplaint()) {
-            <div class="flex-1 flex items-center justify-center bg-neutral-900">
-              <div class="text-center">
-                <i class="pi pi-comments text-6xl text-gray-600 mb-4 block"></i>
-                <p class="text-gray-400 text-lg">Selecciona una conversación para comenzar</p>
-              </div>
+          <div class="flex-1 flex items-center justify-center bg-neutral-900">
+            <div class="text-center">
+              <i class="pi pi-comments text-6xl text-gray-600 mb-4 block"></i>
+              <p class="text-gray-400 text-lg">
+                Selecciona una conversación para comenzar
+              </p>
             </div>
+          </div>
           } @else {
-            <!-- Header de conversación -->
-            <div class="bg-neutral-800 border-b border-neutral-700 p-3">
-              <div class="flex items-center justify-between mb-2">
-                <div class="flex items-center gap-2">
-                  <div class="w-8 h-8 rounded-full bg-neutral-700 flex items-center justify-center flex-shrink-0">
-                    @if(selectedComplaint()!.employee) {
-                      <span class="text-white font-semibold text-xs">
-                        {{ selectedComplaint()!.employee!.first_name.charAt(0) }}{{ selectedComplaint()!.employee!.father_name.charAt(0) }}
-                      </span>
-                    } @else {
-                      <i class="pi pi-user-secret text-gray-400 text-xs"></i>
-                    }
-                  </div>
-                  <div>
-                    <h3 class="text-white font-semibold text-sm m-0">
-                      @if((selectedComplaint()!.allow_contact || selectedComplaint()!.reveal_identity) && selectedComplaint()!.employee) {
-                        {{ selectedComplaint()!.employee!.first_name }} {{ selectedComplaint()!.employee!.father_name }}
-                      } @else {
-                        Anónimo
-                      }
-                    </h3>
-                    @if(selectedComplaint()!.employee?.work_email) {
-                      <p class="text-xs text-gray-500 m-0">{{ selectedComplaint()!.employee!.work_email }}</p>
-                    }
-                  </div>
-                </div>
-                <p-tag
-                  [value]="getCategoryLabel(selectedComplaint()!.category)"
-                  [severity]="getCategorySeverity(selectedComplaint()!.category)"
-                  styleClass="text-xs"
-                />
-              </div>
-              
-              <!-- Controles de gestión compactos -->
-              <div class="flex items-center gap-2 flex-wrap">
-                <p-select
-                  [ngModel]="selectedComplaint()!.status"
-                  (ngModelChange)="updateStatus($event)"
-                  [options]="statusOptionsForSelect"
-                  optionLabel="label"
-                  optionValue="value"
-                  appendTo="body"
-                  styleClass="text-xs h-7 w-28"
-                />
-                <p-select
-                  [ngModel]="selectedComplaint()!.priority || 'medium'"
-                  (ngModelChange)="updatePriority($event)"
-                  [options]="priorityOptions"
-                  optionLabel="label"
-                  optionValue="value"
-                  appendTo="body"
-                  styleClass="text-xs h-7 w-24"
-                />
-                <div class="flex items-center gap-1 ml-auto">
-                  @if(selectedComplaint()!.status !== 'resolved' && selectedComplaint()!.status !== 'closed') {
-                    <p-button
-                      icon="pi pi-check"
-                      severity="success"
-                      size="small"
-                      (onClick)="markAsResolved()"
-                      [pTooltip]="'Marcar como Resuelto'"
-                      styleClass="h-7 w-7"
-                    />
-                  }
-                  @if(!selectedComplaint()!.closed) {
-                    <p-button
-                      icon="pi pi-times"
-                      severity="secondary"
-                      size="small"
-                      (onClick)="closeComplaint()"
-                      [pTooltip]="'Cerrar'"
-                      styleClass="h-7 w-7"
-                    />
+          <!-- Header de conversación -->
+          <div class="bg-neutral-800 border-b border-neutral-700 p-3">
+            <div class="flex items-center justify-between mb-2">
+              <div class="flex items-center gap-2">
+                <div
+                  class="w-8 h-8 rounded-full bg-neutral-700 flex items-center justify-center flex-shrink-0"
+                >
+                  @if(selectedComplaint()!.employee) {
+                  <span class="text-white font-semibold text-xs">
+                    {{ selectedComplaint()!.employee!.first_name.charAt(0)
+                    }}{{ selectedComplaint()!.employee!.father_name.charAt(0) }}
+                  </span>
                   } @else {
-                    <p-button
-                      icon="pi pi-refresh"
-                      severity="info"
-                      size="small"
-                      (onClick)="reopenComplaint()"
-                      [pTooltip]="'Reabrir'"
-                      styleClass="h-7 w-7"
-                    />
+                  <i class="pi pi-user-secret text-gray-400 text-xs"></i>
                   }
-                  <p-button
-                    icon="pi pi-trash"
-                    severity="danger"
-                    size="small"
-                    (onClick)="deleteComplaint()"
-                    [pTooltip]="'Eliminar conversación'"
-                    styleClass="h-7 w-7"
-                  />
+                </div>
+                <div>
+                  <h3 class="text-white font-semibold text-sm m-0">
+                    @if((selectedComplaint()!.allow_contact ||
+                    selectedComplaint()!.reveal_identity) &&
+                    selectedComplaint()!.employee) {
+                    {{ selectedComplaint()!.employee!.first_name }}
+                    {{ selectedComplaint()!.employee!.father_name }}
+                    } @else { Anónimo }
+                  </h3>
+                  @if(selectedComplaint()!.employee?.work_email) {
+                  <p class="text-xs text-gray-500 m-0">
+                    {{ selectedComplaint()!.employee!.work_email }}
+                  </p>
+                  }
                 </div>
               </div>
+              <p-tag
+                [value]="getCategoryLabel(selectedComplaint()!.category)"
+                [severity]="getCategorySeverity(selectedComplaint()!.category)"
+                styleClass="text-xs"
+              />
             </div>
 
-            <!-- Mensajes -->
-            <div class="flex-1 overflow-y-auto p-4 space-y-3 bg-neutral-900" #messagesContainer>
-              @if(conversationMessagesApi.isLoading()) {
-                <div class="text-center py-8 text-gray-400">Cargando mensajes...</div>
-              } @else if(messages().length === 0) {
-                <div class="text-center py-8">
-                  <p class="text-gray-400">No hay mensajes todavía.</p>
-                  <p class="text-sm text-gray-500 mt-2">
-                    El empleado envió: "{{ selectedComplaint()?.complaint }}"
-                  </p>
-                </div>
-              } @else {
-                @for(message of messages(); track message.id) {
-                  <div
-                    class="flex"
-                    [ngClass]="{
-                      'justify-end': message.sender_type === 'hr',
-                      'justify-start': message.sender_type === 'employee'
-                    }"
-                  >
-                    <div
-                      class="max-w-[85%] rounded-lg p-2.5 break-words"
-                      [ngClass]="{
-                        'bg-amber-500/20': message.sender_type === 'hr',
-                        'border': message.sender_type === 'hr',
-                        'border-amber-500/30': message.sender_type === 'hr',
-                        'bg-neutral-700': message.sender_type === 'employee',
-                        'border-neutral-600': message.sender_type === 'employee'
-                      }"
-                    >
-                      <div class="flex items-center gap-1.5 mb-1 flex-wrap">
-                        @if(message.sender_type === 'hr') {
-                          <span class="text-amber-300 font-semibold text-xs">RRHH</span>
-                        } @else {
-                          @if(message.is_anonymous || !message.sender) {
-                            <span class="text-gray-400 italic text-xs">Anónimo</span>
-                          } @else {
-                            <span class="text-gray-300 font-semibold text-xs">
-                              {{ message.sender.first_name }} {{ message.sender.father_name }}
-                            </span>
-                          }
-                        }
-                        <span class="text-xs text-gray-500">
-                          {{ message.created_at | date : 'short' }}
-                        </span>
-                        @if(message.sender_type === 'employee' && !message.is_read) {
-                          <span class="w-1.5 h-1.5 bg-amber-400 rounded-full inline-block"></span>
-                        }
-                      </div>
-                      <p class="text-white text-sm whitespace-pre-wrap break-words m-0">{{ message.message }}</p>
-                    </div>
-                  </div>
-                }
-              }
-            </div>
-
-            <!-- Input de respuesta -->
-            <div class="bg-neutral-800 border-t border-neutral-700 p-3">
-              <div class="flex gap-2">
-                <textarea
-                  pInputTextarea
-                  [ngModel]="replyMessage()"
-                  (ngModelChange)="replyMessage.set($event)"
-                  placeholder="Escribe tu respuesta..."
-                  [rows]="2"
-                  [autoResize]="true"
-                  class="flex-1 w-full text-sm"
-                  (keydown.enter)="onEnterKey($event)"
-                ></textarea>
+            <!-- Controles de gestión compactos -->
+            <div class="flex items-center gap-2 flex-wrap">
+              <p-select
+                [ngModel]="selectedComplaint()!.status"
+                (ngModelChange)="updateStatus($event)"
+                [options]="statusOptionsForSelect"
+                optionLabel="label"
+                optionValue="value"
+                appendTo="body"
+                styleClass="text-xs h-7 w-28"
+              />
+              <p-select
+                [ngModel]="selectedComplaint()!.priority || 'medium'"
+                (ngModelChange)="updatePriority($event)"
+                [options]="priorityOptions"
+                optionLabel="label"
+                optionValue="value"
+                appendTo="body"
+                styleClass="text-xs h-7 w-24"
+              />
+              <div class="flex items-center gap-1 ml-auto">
+                @if(selectedComplaint()!.status !== 'resolved' &&
+                selectedComplaint()!.status !== 'closed') {
                 <p-button
-                  icon="pi pi-send"
-                  [disabled]="!replyMessage().trim() || sendingMessage()"
-                  [loading]="sendingMessage()"
-                  (onClick)="sendReply()"
-                  styleClass="self-end h-10 w-10"
+                  icon="pi pi-check"
+                  severity="success"
+                  size="small"
+                  (onClick)="markAsResolved()"
+                  [pTooltip]="'Marcar como Resuelto'"
+                  styleClass="h-7 w-7"
+                />
+                } @if(!selectedComplaint()!.closed) {
+                <p-button
+                  icon="pi pi-times"
+                  severity="secondary"
+                  size="small"
+                  (onClick)="closeComplaint()"
+                  [pTooltip]="'Cerrar'"
+                  styleClass="h-7 w-7"
+                />
+                } @else {
+                <p-button
+                  icon="pi pi-refresh"
+                  severity="info"
+                  size="small"
+                  (onClick)="reopenComplaint()"
+                  [pTooltip]="'Reabrir'"
+                  styleClass="h-7 w-7"
+                />
+                }
+                <p-button
+                  icon="pi pi-trash"
+                  severity="danger"
+                  size="small"
+                  (onClick)="deleteComplaint()"
+                  [pTooltip]="'Eliminar conversación'"
+                  styleClass="h-7 w-7"
                 />
               </div>
             </div>
+          </div>
+
+          <!-- Mensajes -->
+          <div
+            class="flex-1 overflow-y-auto p-4 space-y-3 bg-neutral-900"
+            #messagesContainer
+          >
+            @if(conversationMessagesApi.isLoading()) {
+            <div class="text-center py-8 text-gray-400">
+              Cargando mensajes...
+            </div>
+            } @else if(messages().length === 0) {
+            <div class="text-center py-8">
+              <p class="text-gray-400">No hay mensajes todavía.</p>
+              <p class="text-sm text-gray-500 mt-2">
+                El empleado envió: "{{ selectedComplaint()?.complaint }}"
+              </p>
+            </div>
+            } @else { @for(message of messages(); track message.id) {
+            <div
+              class="flex"
+              [ngClass]="{
+                'justify-end': message.sender_type === 'hr',
+                'justify-start': message.sender_type === 'employee'
+              }"
+            >
+              <div
+                class="max-w-[85%] rounded-lg p-2.5 break-words"
+                [ngClass]="{
+                  'bg-amber-500/20': message.sender_type === 'hr',
+                  border: message.sender_type === 'hr',
+                  'border-amber-500/30': message.sender_type === 'hr',
+                  'bg-neutral-700': message.sender_type === 'employee',
+                  'border-neutral-600': message.sender_type === 'employee'
+                }"
+              >
+                <div class="flex items-center gap-1.5 mb-1 flex-wrap">
+                  @if(message.sender_type === 'hr') {
+                  <span class="text-amber-300 font-semibold text-xs">RRHH</span>
+                  } @else { @if(message.is_anonymous || !message.sender) {
+                  <span class="text-gray-400 italic text-xs">Anónimo</span>
+                  } @else {
+                  <span class="text-gray-300 font-semibold text-xs">
+                    {{ message.sender.first_name }}
+                    {{ message.sender.father_name }}
+                  </span>
+                  } }
+                  <span class="text-xs text-gray-500">
+                    {{ message.created_at | date : 'short' }}
+                  </span>
+                  @if(message.sender_type === 'employee' && !message.is_read) {
+                  <span
+                    class="w-1.5 h-1.5 bg-amber-400 rounded-full inline-block"
+                  ></span>
+                  }
+                </div>
+                <p
+                  class="text-white text-sm whitespace-pre-wrap break-words m-0"
+                >
+                  {{ message.message }}
+                </p>
+              </div>
+            </div>
+            } }
+          </div>
+
+          <!-- Input de respuesta -->
+          <div class="bg-neutral-800 border-t border-neutral-700 p-3">
+            <div class="flex gap-2">
+              <textarea
+                pInputTextarea
+                [ngModel]="replyMessage()"
+                (ngModelChange)="replyMessage.set($event)"
+                placeholder="Escribe tu respuesta..."
+                [rows]="2"
+                [autoResize]="true"
+                class="flex-1 w-full text-sm"
+                (keydown.enter)="onEnterKey($event)"
+              ></textarea>
+              <p-button
+                icon="pi pi-send"
+                [disabled]="!replyMessage().trim() || sendingMessage()"
+                [loading]="sendingMessage()"
+                (onClick)="sendReply()"
+                styleClass="self-end h-10 w-10"
+              />
+            </div>
+          </div>
           }
         </div>
       </div>
     </div>
   `,
-  styles: [`
-    :host {
-      display: block;
-      width: 100%;
-      height: 100%;
-    }
+  styles: [
+    `
+      :host {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
 
-    .bg-neutral-850 {
-      background-color: #1a1a1a;
-    }
+      .bg-neutral-850 {
+        background-color: #1a1a1a;
+      }
 
-    /* Scrollbar personalizado */
-    .overflow-y-auto::-webkit-scrollbar {
-      width: 6px;
-    }
+      /* Scrollbar personalizado */
+      .overflow-y-auto::-webkit-scrollbar {
+        width: 6px;
+      }
 
-    .overflow-y-auto::-webkit-scrollbar-track {
-      background: #2a2a2a;
-    }
+      .overflow-y-auto::-webkit-scrollbar-track {
+        background: #2a2a2a;
+      }
 
-    .overflow-y-auto::-webkit-scrollbar-thumb {
-      background: #4a4a4a;
-      border-radius: 3px;
-    }
+      .overflow-y-auto::-webkit-scrollbar-thumb {
+        background: #4a4a4a;
+        border-radius: 3px;
+      }
 
-    .overflow-y-auto::-webkit-scrollbar-thumb:hover {
-      background: #5a5a5a;
-    }
-  `],
+      .overflow-y-auto::-webkit-scrollbar-thumb:hover {
+        background: #5a5a5a;
+      }
+    `,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ComplaintsInboxComponent {
@@ -523,15 +587,17 @@ export class ComplaintsInboxComponent {
   // Computed: Quejas filtradas
   public filteredComplaints = computed(() => {
     let complaints = this.complaintsWithEmployee();
-    
+
     if (this.statusFilter()) {
       complaints = complaints.filter((c) => c.status === this.statusFilter());
     }
-    
+
     if (this.categoryFilter()) {
-      complaints = complaints.filter((c) => c.category === this.categoryFilter());
+      complaints = complaints.filter(
+        (c) => c.category === this.categoryFilter()
+      );
     }
-    
+
     return complaints;
   });
 
@@ -540,7 +606,7 @@ export class ComplaintsInboxComponent {
   public conversationMessagesApi = httpResource<ComplaintMessage[]>(() => {
     const complaint = this.selectedComplaint();
     if (!complaint) return undefined;
-    
+
     return {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages`,
       method: 'GET',
@@ -577,12 +643,12 @@ export class ComplaintsInboxComponent {
   public messagesWithSender = computed(() => {
     const messages = this.conversationMessagesApi.value() || [];
     const employees = this.employeesStore.entities();
-    
+
     return messages.map((message) => {
       const sender = message.sender_id
         ? employees.find((e) => e.id === message.sender_id)
         : null;
-      
+
       return {
         ...message,
         sender: sender
@@ -633,7 +699,7 @@ export class ComplaintsInboxComponent {
             {
               headers: {
                 'Content-Type': 'application/json',
-                'Prefer': 'return=representation',
+                Prefer: 'return=representation',
               },
             }
           )
@@ -657,7 +723,11 @@ export class ComplaintsInboxComponent {
     const complaint = this.selectedComplaint();
     if (!complaint) return;
 
-    if (!confirm(`¿Estás seguro de que deseas eliminar esta conversación? Esta acción no se puede deshacer.`)) {
+    if (
+      !confirm(
+        `¿Estás seguro de que deseas eliminar esta conversación? Esta acción no se puede deshacer.`
+      )
+    ) {
       return;
     }
 
@@ -688,7 +758,7 @@ export class ComplaintsInboxComponent {
 
       this.selectedComplaint.set(null);
       this.complaintsApi.reload();
-      
+
       if (this.messageService) {
         this.messageService.add({
           severity: 'success',
@@ -772,8 +842,13 @@ export class ComplaintsInboxComponent {
     return labels[category] || category;
   }
 
-  public getCategorySeverity(category: string): 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast' {
-    const severities: Record<string, 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast'> = {
+  public getCategorySeverity(
+    category: string
+  ): 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast' {
+    const severities: Record<
+      string,
+      'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast'
+    > = {
       work_environment: 'info',
       salary_benefits: 'warn',
       management: 'danger',
@@ -793,8 +868,13 @@ export class ComplaintsInboxComponent {
     return labels[status] || status;
   }
 
-  public getStatusSeverity(status: string): 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast' {
-    const severities: Record<string, 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast'> = {
+  public getStatusSeverity(
+    status: string
+  ): 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast' {
+    const severities: Record<
+      string,
+      'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast'
+    > = {
       pending: 'warn',
       in_review: 'info',
       resolved: 'success',
@@ -813,8 +893,13 @@ export class ComplaintsInboxComponent {
     return labels[priority] || priority;
   }
 
-  public getPrioritySeverity(priority: string): 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast' {
-    const severities: Record<string, 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast'> = {
+  public getPrioritySeverity(
+    priority: string
+  ): 'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast' {
+    const severities: Record<
+      string,
+      'success' | 'secondary' | 'info' | 'warn' | 'danger' | 'contrast'
+    > = {
       low: 'secondary',
       medium: 'info',
       high: 'warn',
@@ -823,7 +908,10 @@ export class ComplaintsInboxComponent {
     return severities[priority] || 'secondary';
   }
 
-  public async updateStatus(newStatus: string, complaint?: Complaint): Promise<void> {
+  public async updateStatus(
+    newStatus: string,
+    complaint?: Complaint
+  ): Promise<void> {
     const targetComplaint = complaint || this.selectedComplaint();
     if (!targetComplaint) return;
 
@@ -835,7 +923,7 @@ export class ComplaintsInboxComponent {
           {
             headers: {
               'Content-Type': 'application/json',
-              'Prefer': 'return=representation',
+              Prefer: 'return=representation',
             },
           }
         )
@@ -850,7 +938,9 @@ export class ComplaintsInboxComponent {
       this.complaintsApi.reload();
       if (!complaint) {
         // Solo actualizar selectedComplaint si estamos actualizando el seleccionado
-        const updated = this.complaintsWithEmployee().find(c => c.id === targetComplaint.id);
+        const updated = this.complaintsWithEmployee().find(
+          (c) => c.id === targetComplaint.id
+        );
         if (updated) {
           this.selectedComplaint.set(updated);
         }
@@ -865,11 +955,17 @@ export class ComplaintsInboxComponent {
     }
   }
 
-  public async updateStatusQuick(newStatus: string, complaint: Complaint): Promise<void> {
+  public async updateStatusQuick(
+    newStatus: string,
+    complaint: Complaint
+  ): Promise<void> {
     await this.updateStatus(newStatus, complaint);
   }
 
-  public async updatePriority(newPriority: string, complaint?: Complaint): Promise<void> {
+  public async updatePriority(
+    newPriority: string,
+    complaint?: Complaint
+  ): Promise<void> {
     const targetComplaint = complaint || this.selectedComplaint();
     if (!targetComplaint) return;
 
@@ -881,7 +977,7 @@ export class ComplaintsInboxComponent {
           {
             headers: {
               'Content-Type': 'application/json',
-              'Prefer': 'return=representation',
+              Prefer: 'return=representation',
             },
           }
         )
@@ -890,13 +986,17 @@ export class ComplaintsInboxComponent {
       this.messageService.add({
         severity: 'success',
         summary: 'Prioridad Actualizada',
-        detail: `La prioridad se ha cambiado a: ${this.getPriorityLabel(newPriority)}`,
+        detail: `La prioridad se ha cambiado a: ${this.getPriorityLabel(
+          newPriority
+        )}`,
       });
 
       this.complaintsApi.reload();
       if (!complaint) {
         // Solo actualizar selectedComplaint si estamos actualizando el seleccionado
-        const updated = this.complaintsWithEmployee().find(c => c.id === targetComplaint.id);
+        const updated = this.complaintsWithEmployee().find(
+          (c) => c.id === targetComplaint.id
+        );
         if (updated) {
           this.selectedComplaint.set(updated);
         }
@@ -911,7 +1011,10 @@ export class ComplaintsInboxComponent {
     }
   }
 
-  public async updatePriorityQuick(newPriority: string, complaint: Complaint): Promise<void> {
+  public async updatePriorityQuick(
+    newPriority: string,
+    complaint: Complaint
+  ): Promise<void> {
     await this.updatePriority(newPriority, complaint);
   }
 
@@ -927,15 +1030,15 @@ export class ComplaintsInboxComponent {
       await this.http
         .patch(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaints?id=eq.${complaint.id}`,
-          { 
+          {
             status: 'closed',
             closed: true,
-            closed_at: new Date().toISOString()
+            closed_at: new Date().toISOString(),
           },
           {
             headers: {
               'Content-Type': 'application/json',
-              'Prefer': 'return=representation',
+              Prefer: 'return=representation',
             },
           }
         )
@@ -948,7 +1051,9 @@ export class ComplaintsInboxComponent {
       });
 
       this.complaintsApi.reload();
-      const updated = this.complaintsWithEmployee().find(c => c.id === complaint.id);
+      const updated = this.complaintsWithEmployee().find(
+        (c) => c.id === complaint.id
+      );
       if (updated) {
         this.selectedComplaint.set(updated);
       }
@@ -970,15 +1075,15 @@ export class ComplaintsInboxComponent {
       await this.http
         .patch(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaints?id=eq.${complaint.id}`,
-          { 
+          {
             closed: false,
             closed_at: null,
-            status: 'pending'
+            status: 'pending',
           },
           {
             headers: {
               'Content-Type': 'application/json',
-              'Prefer': 'return=representation',
+              Prefer: 'return=representation',
             },
           }
         )
@@ -991,7 +1096,9 @@ export class ComplaintsInboxComponent {
       });
 
       this.complaintsApi.reload();
-      const updated = this.complaintsWithEmployee().find(c => c.id === complaint.id);
+      const updated = this.complaintsWithEmployee().find(
+        (c) => c.id === complaint.id
+      );
       if (updated) {
         this.selectedComplaint.set(updated);
       }

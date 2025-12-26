@@ -60,6 +60,7 @@ interface Disability {
   description: string | null;
   document_url: string | null;
   status: 'pending' | 'approved' | 'rejected';
+  rejection_comment?: string | null;
   created_at: string;
 }
 
@@ -893,28 +894,28 @@ interface CompensatoryRequest {
               </ng-template>
               <ng-template pTemplate="header">
                 <tr>
+                  <th style="width: 100px; padding: 0.4rem; text-align: center;">
+                    <div class="flex items-center justify-center gap-1">
+                      <i class="pi pi-calendar-check text-cyan-400 text-xs"></i>
+                      <span class="text-xs">Fecha Solicitud</span>
+                    </div>
+                  </th>
                   <th style="width: 160px; padding: 0.4rem; text-align: left;">
                     <div class="flex items-center gap-1">
                       <i class="pi pi-user text-cyan-400 text-xs"></i>
                       <span class="text-xs">Empleado</span>
                     </div>
                   </th>
-                  <th style="width: 85px; padding: 0.4rem; text-align: center;">
-                    <div class="flex items-center justify-center gap-1">
-                      <i class="pi pi-calendar text-cyan-400 text-xs"></i>
-                      <span class="text-xs">Inicio</span>
-                    </div>
-                  </th>
-                  <th style="width: 85px; padding: 0.4rem; text-align: center;">
-                    <div class="flex items-center justify-center gap-1">
-                      <i class="pi pi-calendar-times text-cyan-400 text-xs"></i>
-                      <span class="text-xs">Fin</span>
-                    </div>
-                  </th>
                   <th style="width: 70px; padding: 0.4rem; text-align: center;">
                     <div class="flex items-center justify-center gap-1">
                       <i class="pi pi-tag text-cyan-400 text-xs"></i>
                       <span class="text-xs">Tipo</span>
+                    </div>
+                  </th>
+                  <th style="width: 130px; padding: 0.4rem; text-align: center;">
+                    <div class="flex items-center justify-center gap-1">
+                      <i class="pi pi-calendar text-cyan-400 text-xs"></i>
+                      <span class="text-xs">Fechas</span>
                     </div>
                   </th>
                   <th style="width: 80px; padding: 0.4rem; text-align: center;">
@@ -935,12 +936,6 @@ interface CompensatoryRequest {
                       <span class="text-xs">Estado</span>
                     </div>
                   </th>
-                  <th style="width: 120px; padding: 0.4rem; text-align: center;">
-                    <div class="flex items-center justify-center gap-1">
-                      <i class="pi pi-exclamation-triangle text-red-400 text-xs"></i>
-                      <span class="text-xs">Motivo Rechazo</span>
-                    </div>
-                  </th>
                   <th style="width: 110px; padding: 0.4rem; text-align: center;">
                     <div class="flex items-center justify-center gap-1">
                       <i class="pi pi-cog text-cyan-400 text-xs"></i>
@@ -952,7 +947,12 @@ interface CompensatoryRequest {
               <ng-template pTemplate="body" let-request>
                 <tr class="hover:bg-neutral-700/30 transition-colors cursor-pointer"
                     (click)="viewCompensatoryDetails(request)">
-                  <td style="padding: 0.4rem;" (click)="$event.stopPropagation()">
+                  <td style="padding: 0.4rem; text-align: center;">
+                    <span class="text-xs text-gray-300">
+                      {{ request.created_at | date : 'dd/MM/yyyy' }}
+                    </span>
+                  </td>
+                  <td style="padding: 0.4rem;">
                     <div class="flex items-center gap-1">
                       <div class="w-5 h-5 rounded-full bg-gradient-to-br from-cyan-500/20 to-cyan-600/20 flex items-center justify-center flex-shrink-0">
                         <i class="pi pi-user text-cyan-400 text-[9px]"></i>
@@ -968,16 +968,6 @@ interface CompensatoryRequest {
                     </div>
                   </td>
                   <td style="padding: 0.4rem; text-align: center;">
-                    <span class="text-xs text-gray-300">
-                      {{ request.date_from | date : 'dd/MM/yyyy' }}
-                    </span>
-                  </td>
-                  <td style="padding: 0.4rem; text-align: center;">
-                    <span class="text-xs text-gray-300">
-                      {{ request.date_to | date : 'dd/MM/yyyy' }}
-                    </span>
-                  </td>
-                  <td style="padding: 0.4rem; text-align: center;">
                     @let compensatoryType = getCompensatoryTypeFromNotes(request);
                     <span class="text-xs font-medium text-white">
                       @if (compensatoryType === 'days') {
@@ -988,6 +978,15 @@ interface CompensatoryRequest {
                         <span class="text-gray-500">-</span>
                       }
                     </span>
+                  </td>
+                  <td style="padding: 0.4rem; text-align: center;">
+                    @let dateFrom = request.date_from | date : 'dd/MM/yyyy';
+                    @let dateTo = request.date_to | date : 'dd/MM/yyyy';
+                    @if (dateFrom === dateTo) {
+                      <span class="text-xs text-gray-300">{{ dateFrom }}</span>
+                    } @else {
+                      <span class="text-xs text-gray-300">{{ dateFrom }} → {{ dateTo }}</span>
+                    }
                   </td>
                   <td style="padding: 0.4rem; text-align: center;">
                     @let quantity = getCompensatoryQuantity(request);
@@ -1023,19 +1022,6 @@ interface CompensatoryRequest {
                       [severity]="getCompensatoryStatusSeverity(request)"
                       [style]="{'font-size': '0.65rem', 'padding': '0.1rem 0.4rem'}"
                     />
-                  </td>
-                  <td style="padding: 0.4rem; text-align: center;">
-                    @if (request.rejection_comment) {
-                    <span
-                      class="text-xs text-red-300 cursor-help inline-block max-w-[110px] truncate"
-                      [pTooltip]="request.rejection_comment"
-                      tooltipPosition="top"
-                    >
-                      {{ request.rejection_comment }}
-                    </span>
-                    } @else {
-                    <span class="text-gray-500 text-xs">-</span>
-                    }
                   </td>
                   <td style="padding: 0.4rem; text-align: center;" (click)="$event.stopPropagation()">
                     <div class="flex gap-0.5 justify-center">
@@ -1202,6 +1188,29 @@ interface CompensatoryRequest {
             {{ selectedDisability()!.created_at | date : 'dd/MM/yyyy HH:mm' }}
           </p>
         </div>
+        @if (selectedDisability()!.status === 'rejected') {
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-2">
+            Motivo de Rechazo (editable)
+          </label>
+          <textarea
+            pInputTextarea
+            [(ngModel)]="disabilityRejectionComment"
+            placeholder="Agregar o editar el motivo del rechazo..."
+            rows="3"
+            class="w-full"
+          ></textarea>
+          <div class="flex justify-end mt-2">
+            <p-button
+              label="Guardar Comentario"
+              icon="pi pi-save"
+              size="small"
+              [loading]="savingDisabilityComment()"
+              (onClick)="saveDisabilityRejectionComment()"
+            />
+          </div>
+        </div>
+        }
       </div>
       }
     </p-dialog>
@@ -1468,6 +1477,29 @@ interface CompensatoryRequest {
             <p class="text-red-300 whitespace-pre-wrap">
               {{ selectedCompensatoryRequest()!.rejection_comment }}
             </p>
+          </div>
+          }
+          @if (selectedCompensatoryRequest()!.rejection_comment || selectedCompensatoryRequest()!.review_status === 'rejected') {
+          <div class="mt-4 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
+            <label class="block text-sm font-medium text-gray-400 mb-2">
+              Motivo de Rechazo (editable)
+            </label>
+            <textarea
+              pInputTextarea
+              [(ngModel)]="compensatoryRejectionComment"
+              placeholder="Agregar o editar el motivo del rechazo..."
+              rows="3"
+              class="w-full"
+            ></textarea>
+            <div class="flex justify-end mt-2">
+              <p-button
+                label="Guardar Comentario"
+                icon="pi pi-save"
+                size="small"
+                [loading]="savingCompensatoryComment()"
+                (onClick)="saveCompensatoryRejectionComment()"
+              />
+            </div>
           </div>
           }
         </div>
@@ -1777,59 +1809,6 @@ interface CompensatoryRequest {
       </ng-template>
     </p-dialog>
 
-    <!-- Dialog de Motivo de Rechazo -->
-    <p-dialog
-      [(visible)]="showRejectionDialog"
-      [modal]="true"
-      [style]="{ width: '500px' }"
-      [header]="'Motivo de Rechazo'"
-      [draggable]="false"
-      [resizable]="false"
-      [dismissableMask]="true"
-    >
-      <div class="space-y-4 pt-4">
-        @if (requestToReject()) {
-        <div class="mb-4">
-          <p class="text-gray-300 text-sm">
-            Estás rechazando la solicitud de tiempo compensatorio de
-            <strong class="text-white">{{ getEmployeeName(requestToReject()!) }}</strong>.
-            Por favor, indica el motivo del rechazo:
-          </p>
-        </div>
-        }
-        <div>
-          <label class="block text-sm font-medium text-gray-300 mb-2">
-            Motivo del Rechazo <span class="text-red-400">*</span>
-          </label>
-          <textarea
-            pInputTextarea
-            [(ngModel)]="rejectionComment"
-            placeholder="Ingresa el motivo del rechazo..."
-            rows="5"
-            class="w-full"
-            [style]="{'min-height': '120px'}"
-          ></textarea>
-        </div>
-      </div>
-      <ng-template #footer>
-        <div class="flex justify-end gap-2">
-          <p-button
-            label="Cancelar"
-            icon="pi pi-times"
-            severity="secondary"
-            (onClick)="cancelRejection()"
-            [rounded]="true"
-          />
-          <p-button
-            label="Confirmar Rechazo"
-            icon="pi pi-times-circle"
-            severity="danger"
-            (onClick)="confirmRejection()"
-            [rounded]="true"
-          />
-        </div>
-      </ng-template>
-    </p-dialog>
   `,
   styles: `
     @keyframes fade-in {
@@ -2068,10 +2047,11 @@ export class HRDisabilitiesComponent {
   public expandedAuditItems = signal<Set<string>>(new Set());
   public showAuditSidebar = signal(false);
 
-  // Dialog de rechazo
-  public showRejectionDialog = signal(false);
-  public rejectionComment = signal('');
-  public requestToReject = signal<CompensatoryRequest | null>(null);
+  // Señales para edición de comentarios
+  public disabilityRejectionComment = signal('');
+  public compensatoryRejectionComment = signal('');
+  public savingDisabilityComment = signal(false);
+  public savingCompensatoryComment = signal(false);
 
   // Opciones de estado
   public statusOptions = [
@@ -2950,6 +2930,8 @@ export class HRDisabilitiesComponent {
     this.showCompensatoryDetailsDialog.set(true);
     this.loadEmployeeOvertimeHours(request.employee_id);
     this.loadAuditHistory(request.id);
+    // Inicializar el comentario si existe
+    this.compensatoryRejectionComment.set(request.rejection_comment || '');
   }
 
   public loadAuditHistory(timeoffId: string): void {
@@ -3512,37 +3494,17 @@ export class HRDisabilitiesComponent {
   }
 
   public rejectCompensatoryRequest(request: CompensatoryRequest): void {
-    this.requestToReject.set(request);
-    this.rejectionComment.set('');
-    this.showRejectionDialog.set(true);
-  }
-
-  public confirmRejection(): void {
-    const request = this.requestToReject();
-    const comment = this.rejectionComment().trim();
-
-    if (!request) return;
-
-    if (!comment) {
-      this.messageService.add({
-        severity: 'warn',
-        summary: 'Advertencia',
-        detail: 'Por favor, ingresa un motivo para el rechazo',
-      });
-      return;
-    }
-
-    this.updateCompensatoryReviewStatus(request.id, 'rejected', comment);
-
-    this.showRejectionDialog.set(false);
-    this.rejectionComment.set('');
-    this.requestToReject.set(null);
-  }
-
-  public cancelRejection(): void {
-    this.showRejectionDialog.set(false);
-    this.rejectionComment.set('');
-    this.requestToReject.set(null);
+    this.confirmationService.confirm({
+      message: `¿Estás seguro de rechazar la solicitud de tiempo compensatorio de ${this.getEmployeeName(
+        request
+      )}?`,
+      header: 'Confirmar Rechazo',
+      icon: 'pi pi-exclamation-triangle',
+      acceptButtonStyleClass: 'p-button-danger',
+      accept: () => {
+        this.updateCompensatoryReviewStatus(request.id, 'rejected');
+      },
+    });
   }
 
   public registerCompensatoryRequest(request: CompensatoryRequest): void {
@@ -3585,6 +3547,7 @@ export class HRDisabilitiesComponent {
       reviewed_at: new Date().toISOString(),
     };
 
+    // El rejectionComment solo se guarda si se proporciona y el status es 'rejected'
     if (status === 'rejected' && rejectionComment) {
       updateData.rejection_comment = rejectionComment;
     }
@@ -3854,10 +3817,86 @@ export class HRDisabilitiesComponent {
   public viewDetails(disability: Disability): void {
     this.selectedDisability.set(disability);
     this.showDetailsDialog.set(true);
+    // Inicializar el comentario si existe
+    this.disabilityRejectionComment.set(disability.rejection_comment || '');
   }
 
   public downloadDocument(url: string): void {
     window.open(url, '_blank');
+  }
+
+  public saveDisabilityRejectionComment(): void {
+    const disability = this.selectedDisability();
+    if (!disability) return;
+
+    this.savingDisabilityComment.set(true);
+    const comment = this.disabilityRejectionComment().trim() || null;
+
+    this.http
+      .patch(
+        `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_disabilities?id=eq.${disability.id}`,
+        { rejection_comment: comment }
+      )
+      .subscribe({
+        next: () => {
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Éxito',
+            detail: 'Comentario de rechazo guardado correctamente',
+          });
+          this.disabilitiesApi.reload();
+          // Actualizar el objeto local
+          if (disability) {
+            disability.rejection_comment = comment;
+          }
+          this.savingDisabilityComment.set(false);
+        },
+        error: () => {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'No se pudo guardar el comentario',
+          });
+          this.savingDisabilityComment.set(false);
+        },
+      });
+  }
+
+  public saveCompensatoryRejectionComment(): void {
+    const request = this.selectedCompensatoryRequest();
+    if (!request) return;
+
+    this.savingCompensatoryComment.set(true);
+    const comment = this.compensatoryRejectionComment().trim() || null;
+
+    this.http
+      .patch(
+        `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs?id=eq.${request.id}`,
+        { rejection_comment: comment }
+      )
+      .subscribe({
+        next: () => {
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Éxito',
+            detail: 'Comentario de rechazo guardado correctamente',
+          });
+          this.compensatoryTimeoffsApi.reload();
+          // Actualizar el objeto local
+          if (request) {
+            request.rejection_comment = comment || undefined;
+          }
+          this.savingCompensatoryComment.set(false);
+        },
+        error: () => {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'No se pudo guardar el comentario',
+          });
+          this.savingCompensatoryComment.set(false);
+        },
+      });
   }
 
   public approveDisability(disability: Disability): void {
@@ -3886,12 +3925,22 @@ export class HRDisabilitiesComponent {
 
   private updateDisabilityStatus(
     id: string,
-    status: 'approved' | 'rejected'
+    status: 'approved' | 'rejected',
+    rejectionComment?: string
   ): void {
+    const updateData: any = {
+      status,
+      reviewed_at: new Date().toISOString(),
+    };
+
+    if (status === 'rejected' && rejectionComment) {
+      updateData.rejection_comment = rejectionComment;
+    }
+
     this.http
       .patch(
         `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_disabilities?id=eq.${id}`,
-        { status, reviewed_at: new Date().toISOString() }
+        updateData
       )
       .subscribe({
         next: () => {

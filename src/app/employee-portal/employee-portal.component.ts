@@ -1066,162 +1066,144 @@ import { EmployeesStore } from '../stores/employees.store';
       @if (activeSection() === 'disabilities') {
       <div id="disabilities" class="section-content">
         <p-card>
-          <ng-template #title>Subir Incapacidad</ng-template>
+          <ng-template #title>
+            <div class="flex items-center justify-between w-full">
+              <div class="flex items-center gap-2">
+                <i class="pi pi-file-medical text-cyan-400"></i>
+                <span>Subir Incapacidad</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <p-button
+                  icon="pi pi-times"
+                  [rounded]="true"
+                  [text]="true"
+                  severity="secondary"
+                  [outlined]="true"
+                  (click)="activeSection.set('management')"
+                  pTooltip="Volver a Gestiones"
+                  [style]="{ width: '2.5rem', height: '2.5rem' }"
+                />
+              </div>
+            </div>
+          </ng-template>
           <ng-template #subtitle
             >Carga documentos de incapacidad médica</ng-template
           >
-          <div class="flex flex-col gap-4">
+
+          <!-- Paso 1: Fechas de Incapacidad -->
+          <div class="mb-6 p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                <i class="pi pi-calendar text-cyan-400"></i>
+              </div>
+              <h3 class="text-lg font-semibold text-white m-0">Paso 1: Período de Incapacidad</h3>
+            </div>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm text-gray-400 mb-2"
-                  >Inicio de Incapacidad</label
-                >
+                <label class="block text-sm text-gray-400 mb-2 font-medium">
+                  <i class="pi pi-calendar-plus mr-2"></i>Inicio de Incapacidad
+                </label>
                 <p-datepicker
                   [(ngModel)]="disabilityStartDate"
                   appendTo="body"
                   class="w-full"
+                  placeholder="Selecciona fecha inicio"
                 />
               </div>
               <div>
-                <label class="block text-sm text-gray-400 mb-2"
-                  >Fin de Incapacidad</label
-                >
+                <label class="block text-sm text-gray-400 mb-2 font-medium">
+                  <i class="pi pi-calendar-minus mr-2"></i>Fin de Incapacidad
+                </label>
                 <p-datepicker
                   [(ngModel)]="disabilityEndDate"
                   appendTo="body"
                   class="w-full"
+                  placeholder="Selecciona fecha fin"
                 />
               </div>
             </div>
-            <div>
-              <label class="block text-sm text-gray-400 mb-2"
-                >Descripción (opcional)</label
-              >
-              <textarea
-                id="disability-description"
-                pInputTextarea
-                [(ngModel)]="disabilityDescription"
-                rows="3"
-                placeholder="Describe el motivo de la incapacidad..."
-                class="w-full"
-              ></textarea>
-            </div>
-            <div>
-              <label class="block text-sm text-gray-400 mb-2"
-                >Documento de Incapacidad</label
-              >
-              <p-fileUpload
-                mode="basic"
-                accept="image/*,.pdf"
-                maxFileSize="5000000"
-                [auto]="false"
-                chooseLabel="Seleccionar Archivo"
-                (onSelect)="onFileSelect($event)"
-                class="w-full"
-              />
-              <p class="text-xs text-gray-500 mt-2">
-                Formatos permitidos: PDF, JPG, PNG (máx. 5MB)
-              </p>
-            </div>
-            <div class="flex justify-end">
-              <p-button
-                label="Subir Incapacidad"
-                icon="pi pi-upload"
-                [loading]="uploadingDisability()"
-                (click)="uploadDisability()"
-              />
-            </div>
           </div>
 
-          <!-- Lista de incapacidades subidas -->
-          <div class="mt-6">
-            <h3 class="text-lg font-semibold text-white mb-4">
-              Mis Incapacidades
-            </h3>
-            <div class="overflow-x-auto">
-              <p-table
-                [value]="myDisabilities()"
-                [rows]="10"
-                paginator
-                [loading]="disabilitiesApi.isLoading()"
-                styleClass="p-datatable-sm md:p-datatable-lg"
-                [scrollable]="true"
-                scrollHeight="400px"
-                [responsiveLayout]="'scroll'"
-              >
-                <ng-template #header>
-                  <tr>
-                    <th>Inicio de Incapacidad</th>
-                    <th>Fin de Incapacidad</th>
-                    <th>Días</th>
-                    <th>Estado</th>
-                    <th>Documento</th>
-                  </tr>
-                </ng-template>
-                <ng-template #body let-disability>
-                  <tr>
-                    <td>{{ disability.start_date | date : 'mediumDate' }}</td>
-                    <td>{{ disability.end_date | date : 'mediumDate' }}</td>
-                    <td>
-                      {{
-                        calculateDays(
-                          disability.start_date,
-                          disability.end_date
-                        )
-                      }}
-                    </td>
-                    <td>
-                      @if (disability.status === 'rejected' &&
-                      (disability.rejection_comment || disability.review_notes)) {
-                      <span
-                        class="px-2 py-1 rounded text-xs font-semibold cursor-help"
-                        [class.bg-yellow-500]="disability.status === 'pending'"
-                        [class.bg-green-500]="disability.status === 'approved'"
-                        [class.bg-red-500]="disability.status === 'rejected'"
-                        [pTooltip]="'Motivo: ' + (disability.rejection_comment || disability.review_notes || 'Sin motivo especificado')"
-                        tooltipPosition="top"
-                      >
-                        {{
-                          disability.status === 'pending'
-                            ? 'Pendiente'
-                            : disability.status === 'approved'
-                            ? 'Aprobada'
-                            : 'Rechazada'
-                        }}
-                      </span>
-                      } @else {
-                      <span
-                        class="px-2 py-1 rounded text-xs font-semibold"
-                        [class.bg-yellow-500]="disability.status === 'pending'"
-                        [class.bg-green-500]="disability.status === 'approved'"
-                        [class.bg-red-500]="disability.status === 'rejected'"
-                      >
-                        {{
-                          disability.status === 'pending'
-                            ? 'Pendiente'
-                            : disability.status === 'approved'
-                            ? 'Aprobada'
-                            : 'Rechazada'
-                        }}
-                      </span>
-                      }
-                    </td>
-                    <td>
-                      @if(disability.document_url) {
-                      <p-button
-                        icon="pi pi-download"
-                        severity="secondary"
-                        size="small"
-                        (click)="downloadDocument(disability.document_url)"
-                        pTooltip="Descargar documento"
-                        tooltipPosition="top"
-                      />
-                      }
-                    </td>
-                  </tr>
-                </ng-template>
-              </p-table>
+          <!-- Paso 2: Descripción (Opcional) -->
+          <div class="mb-6 p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                <i class="pi pi-comment text-cyan-400"></i>
+              </div>
+              <h3 class="text-lg font-semibold text-white m-0">Paso 2: Descripción (Opcional)</h3>
             </div>
+            <textarea
+              id="disability-description"
+              pInputTextarea
+              [(ngModel)]="disabilityDescription"
+              rows="3"
+              placeholder="Describe el motivo de la incapacidad..."
+              class="w-full"
+            ></textarea>
+          </div>
+
+          <!-- Paso 3: Documento de Incapacidad -->
+          <div class="mb-6 p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
+            <div class="flex items-center gap-3 mb-4">
+              <div class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                <i class="pi pi-file text-cyan-400"></i>
+              </div>
+              <h3 class="text-lg font-semibold text-white m-0">Paso 3: Documento de Incapacidad</h3>
+            </div>
+            <p-fileUpload
+              mode="basic"
+              accept="image/*,.pdf"
+              maxFileSize="5000000"
+              [auto]="false"
+              chooseLabel="Seleccionar Archivo"
+              (onSelect)="onFileSelect($event)"
+              class="w-full"
+            />
+            <p class="text-xs text-gray-500 mt-2">
+              Formatos permitidos: PDF, JPG, PNG (máx. 5MB)
+            </p>
+            @if (selectedFile()) {
+              <div class="mt-3 p-3 bg-cyan-500/10 border border-cyan-500/30 rounded-lg flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <i class="pi pi-file text-cyan-400"></i>
+                  <span class="text-sm text-gray-300">{{ selectedFile()!.name }}</span>
+                </div>
+                <p-button
+                  icon="pi pi-times"
+                  severity="danger"
+                  text
+                  rounded
+                  size="small"
+                  (onClick)="selectedFile.set(null)"
+                  pTooltip="Eliminar archivo"
+                />
+              </div>
+            }
+          </div>
+
+          <!-- Resumen y Botón de Envío -->
+          <div class="flex flex-col md:flex-row items-center justify-between gap-4 p-5 rounded-lg bg-gradient-to-r from-cyan-500/10 to-cyan-600/5 border border-cyan-400/30 shadow-lg">
+            @if (disabilityStartDate() && disabilityEndDate()) {
+              <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                  <i class="pi pi-check-circle text-cyan-400 text-xl"></i>
+                </div>
+                <div>
+                  <p class="text-sm text-gray-400 m-0">Período de Incapacidad</p>
+                  <p class="text-xl font-bold text-cyan-300 m-0">
+                    {{ calculateDays(disabilityStartDate()!, disabilityEndDate()!) }} día(s)
+                  </p>
+                </div>
+              </div>
+            }
+            <p-button
+              label="Subir Incapacidad"
+              icon="pi pi-upload"
+              [loading]="uploadingDisability()"
+              [disabled]="!disabilityStartDate() || !disabilityEndDate() || !selectedFile() || uploadingDisability()"
+              (click)="uploadDisability()"
+              class="ml-auto"
+            />
           </div>
         </p-card>
       </div>
@@ -1674,6 +1656,8 @@ import { EmployeesStore } from '../stores/employees.store';
                     [minDate]="minPastDate"
                     [maxDate]="maxFutureDate"
                     placeholder="Selecciona la fecha"
+                    [showIcon]="true"
+                    dateFormat="dd/mm/yy"
                   />
                 </div>
                 <div>
@@ -1687,6 +1671,7 @@ import { EmployeesStore } from '../stores/employees.store';
                     timeOnly
                     hourFormat="12"
                     placeholder="Hora inicio"
+                    [showIcon]="true"
                   />
                 </div>
                 <div>
@@ -1700,6 +1685,7 @@ import { EmployeesStore } from '../stores/employees.store';
                     timeOnly
                     hourFormat="12"
                     placeholder="Hora fin"
+                    [showIcon]="true"
                   />
                 </div>
               </div>
@@ -1717,6 +1703,8 @@ import { EmployeesStore } from '../stores/employees.store';
                     [minDate]="minPastDate"
                     [maxDate]="maxFutureDate"
                     placeholder="Selecciona fecha inicio"
+                    [showIcon]="true"
+                    dateFormat="dd/mm/yy"
                   />
                 </div>
                 <div>
@@ -1730,6 +1718,8 @@ import { EmployeesStore } from '../stores/employees.store';
                     [minDate]="compensatoryStartDate() || minPastDate"
                     [maxDate]="maxFutureDate"
                     placeholder="Selecciona fecha fin"
+                    [showIcon]="true"
+                    dateFormat="dd/mm/yy"
                   />
                 </div>
               </div>

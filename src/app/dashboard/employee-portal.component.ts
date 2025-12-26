@@ -371,7 +371,7 @@ import { EmployeesStore } from '../stores/employees.store';
                   <div class="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center">
                     <i class="pi pi-comments text-yellow-400 text-xl"></i>
                   </div>
-                  <h3 class="text-lg font-semibold text-white m-0">Buzón de Quejas</h3>
+                  <h3 class="text-lg font-semibold text-white m-0">Buzón de Sugerencias</h3>
                   <p class="text-sm text-gray-400 m-0">
                     Expresa tus inquietudes de forma anónima
                   </p>
@@ -1608,7 +1608,7 @@ import { EmployeesStore } from '../stores/employees.store';
         @if (false) {
         <div class="tab-content" style="display: none;">
           <p-card>
-            <ng-template #title>Buzón de Quejas Anónimas</ng-template>
+            <ng-template #title>Buzón de Sugerencias Anónimas</ng-template>
             <ng-template #subtitle
               >Expresa tus inquietudes de forma anónima y
               confidencial</ng-template
@@ -4821,7 +4821,7 @@ export class EmployeePortalComponent {
     const titles: Record<string, string> = {
       disabilities: 'Subir Incapacidad',
       documents: 'Solicitar Documentos',
-      complaints: 'Buzón de Quejas',
+      complaints: 'Buzón de Sugerencias',
       vacations: 'Solicitar Vacaciones',
       license: 'Solicitar Licencia',
       personal: 'Solicitar Permiso Personal',
