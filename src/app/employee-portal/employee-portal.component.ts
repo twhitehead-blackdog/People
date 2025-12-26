@@ -42,6 +42,7 @@ import { CalendarComponent, CalendarMarkerData } from '../calendar.component';
 import { TimeLogEnum } from '../models';
 import { OrganizationService } from '../services/organization.service';
 import { EmployeePortalNavigationService } from '../services/employee-portal-navigation.service';
+import { NotificationsService } from '../services/notifications.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
 
@@ -2414,6 +2415,105 @@ import { EmployeesStore } from '../stores/employees.store';
         </p-card>
       </div>
       }
+
+      <!-- Notificaciones Section -->
+      @if (activeSection() === 'notifications') {
+      <div id="notifications" class="section-content">
+        <p-card>
+          <ng-template #title>
+            <div class="flex items-center justify-between w-full">
+              <div class="flex items-center gap-2">
+                <i class="pi pi-bell text-amber-400"></i>
+                <span>Buzón de Notificaciones</span>
+              </div>
+              <p-button
+                label="Marcar todas como leídas"
+                icon="pi pi-check"
+                [outlined]="true"
+                severity="secondary"
+                size="small"
+                (onClick)="markAllNotificationsAsRead()"
+                [disabled]="unreadNotificationsCount() === 0"
+              />
+            </div>
+          </ng-template>
+          <ng-template #subtitle
+            >Gestiona todas tus notificaciones</ng-template
+          >
+          
+          @if (notifications().length === 0) {
+          <div class="flex flex-col items-center justify-center py-16 text-center">
+            <div class="w-24 h-24 rounded-full bg-gradient-to-br from-amber-500/20 to-amber-600/20 border border-amber-400/30 flex items-center justify-center mb-4">
+              <i class="pi pi-inbox text-amber-400 text-4xl"></i>
+            </div>
+            <h3 class="text-xl font-semibold text-white mb-2">No hay notificaciones</h3>
+            <p class="text-gray-400 text-sm">Todas tus notificaciones aparecerán aquí</p>
+          </div>
+          } @else {
+          <div class="space-y-3">
+            @for (notification of notifications(); track notification.id) {
+            <div
+              class="rounded-lg bg-neutral-800/50 border border-neutral-700/50 p-4 hover:bg-neutral-800/70 transition-all cursor-pointer"
+              [class.bg-neutral-800/70]="!notification.is_read"
+              [class.border-amber-400/50]="!notification.is_read"
+              (click)="markNotificationAsRead(notification.id)"
+            >
+              <div class="flex items-start gap-4">
+                <!-- Icono -->
+                <div
+                  class="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-br from-amber-500/20 to-amber-600/20 border border-amber-400/30 flex items-center justify-center"
+                >
+                  <i
+                    [class]="getNotificationIcon(notification.message_type) + ' text-amber-400 text-lg'"
+                  ></i>
+                </div>
+                <!-- Contenido -->
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-start justify-between gap-2 mb-2">
+                    <h3
+                      class="text-base font-semibold text-white"
+                      [class.font-bold]="!notification.is_read"
+                    >
+                      {{ notification.title }}
+                    </h3>
+                    @if (!notification.is_read) {
+                    <span
+                      class="flex-shrink-0 w-2.5 h-2.5 bg-amber-400 rounded-full"
+                    ></span>
+                    }
+                  </div>
+                  <p class="text-sm text-gray-300 mb-3 whitespace-pre-wrap">
+                    {{ notification.message }}
+                  </p>
+                  <div class="flex items-center justify-between flex-wrap gap-2">
+                    <div class="flex items-center gap-3">
+                      <span class="text-xs text-gray-500">
+                        <i class="pi pi-calendar text-gray-500 mr-1"></i>
+                        {{ notification.created_at | date: 'dd/MM/yyyy HH:mm' }}
+                      </span>
+                      @if (notification.related_type) {
+                      <span
+                        class="text-xs px-2 py-1 rounded bg-amber-500/20 text-amber-400 border border-amber-400/30"
+                      >
+                        {{ getRelatedTypeLabel(notification.related_type) }}
+                      </span>
+                      }
+                    </div>
+                    @if (notification.is_read && notification.read_at) {
+                    <span class="text-xs text-gray-500">
+                      Leída: {{ notification.read_at | date: 'dd/MM/yyyy HH:mm' }}
+                    </span>
+                    }
+                  </div>
+                </div>
+              </div>
+            </div>
+            }
+          </div>
+          }
+        </p-card>
+      </div>
+      }
     </div>
 
     <!-- Dialog para conversación bidireccional -->
@@ -3117,6 +3217,72 @@ import { EmployeesStore } from '../stores/employees.store';
           }
         </div>
       }
+
+    <p-dialog
+      [(visible)]="showRequestDetailsDialog"
+      [modal]="true"
+      [style]="{ width: '90vw', maxWidth: '600px' }"
+      [draggable]="false"
+      [resizable]="false"
+      [closable]="true"
+      styleClass="request-details-dialog"
+    >
+      <ng-template #header>
+        <div class="flex items-center gap-2">
+          <i class="pi pi-info-circle text-amber-400"></i>
+          <span class="text-lg font-semibold text-white">Detalles de Solicitud</span>
+        </div>
+      </ng-template>
+      @if (selectedRequestDetails()) {
+      @let data = selectedRequestDetails();
+      <div class="space-y-4">
+        <!-- Información básica -->
+        <div class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700/50">
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <p class="text-xs text-gray-400 m-0 mb-1">Tipo</p>
+              <p class="text-white font-semibold m-0">{{ data.type }}</p>
+            </div>
+            <div>
+              <p class="text-xs text-gray-400 m-0 mb-1">Estado</p>
+              <p class="text-white font-semibold m-0">{{ data.status }}</p>
+            </div>
+            <div>
+              <p class="text-xs text-gray-400 m-0 mb-1">Fecha de Solicitud</p>
+              <p class="text-white m-0">{{ data.created_at | date: 'dd/MM/yyyy' }}</p>
+            </div>
+            @if (data.response_date) {
+            <div>
+              <p class="text-xs text-gray-400 m-0 mb-1">Fecha de Respuesta</p>
+              <p class="text-white m-0">{{ data.response_date | date: 'dd/MM/yyyy' }}</p>
+            </div>
+            }
+          </div>
+        </div>
+
+        <!-- Descripción/Contenido -->
+        @if (data.complaint || data.description) {
+        <div class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700/50">
+          <p class="text-sm text-gray-400 m-0 mb-2">Descripción</p>
+          <p class="text-white text-sm whitespace-pre-wrap">
+            {{ data.complaint || data.description }}
+          </p>
+        </div>
+        }
+
+        <!-- Botón para ver conversación -->
+        <div class="flex justify-end">
+          <p-button
+            label="Ver Conversación"
+            icon="pi pi-comments"
+            severity="secondary"
+            [outlined]="true"
+            [rounded]="true"
+            (onClick)="closeRequestDetailsDialog(); viewResponse(data)"
+          />
+        </div>
+      </div>
+      }
     </p-dialog>
 
     <p-toast />
@@ -3323,10 +3489,15 @@ export class EmployeePortalComponent {
   private route = inject(ActivatedRoute);
   private organizationService = inject(OrganizationService);
   private navigationService = inject(EmployeePortalNavigationService);
+  public notificationsService = inject(NotificationsService);
   private readonly companyEmailDomain = '@blackdogpanama.com';
 
   public currentEmployee = computed(() => this.store.currentEmployee());
   public activeSection = signal<string>('dashboard');
+
+  // Notificaciones
+  public notifications = computed(() => this.notificationsService.notifications());
+  public unreadNotificationsCount = computed(() => this.notificationsService.unreadCount());
   public showWorkEmail = computed(() => {
     const workEmail =
       this.currentEmployee()?.work_email?.trim().toLowerCase() ?? '';
@@ -3348,6 +3519,13 @@ export class EmployeePortalComponent {
   });
 
   constructor() {
+    // Inicializar notificaciones cuando cambia el empleado actual
+    effect(() => {
+      const employeeId = this.currentEmployee()?.id;
+      if (employeeId) {
+        this.notificationsService.setCurrentEmployeeId(employeeId);
+      }
+    });
     console.log('[EmployeePortal] Constructor - Inicializando componente');
     // Inicializar con el fragmento actual si existe
     const currentFragment = this.route.snapshot.fragment;
@@ -3413,6 +3591,14 @@ export class EmployeePortalComponent {
         console.log(
           '[Gestiones] Effect - Sección gestiones/management activada'
         );
+      }
+    });
+
+    // Inicializar notificaciones cuando cambia el empleado actual
+    effect(() => {
+      const employeeId = this.currentEmployee()?.id;
+      if (employeeId) {
+        this.notificationsService.setCurrentEmployeeId(employeeId);
       }
     });
 
@@ -5439,34 +5625,35 @@ export class EmployeePortalComponent {
       const companyId = this.organizationService.getCurrentCompanyId();
       if (!companyId) return;
 
-      // Buscar posiciones HR
-      const hrPositions = await firstValueFrom(
+      // Buscar posición exacta de Verley: "Encargada de Recursos Humanos"
+      const verleyPositions = await firstValueFrom(
         this.http.get<any[]>(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/positions`,
           {
             params: {
               select: 'id',
-              name: 'ilike.%recursos humanos%',
+              name: 'eq.Encargada de Recursos Humanos',
+              company_id: `eq.${companyId}`,
             },
           }
         )
       );
 
-      if (!hrPositions || hrPositions.length === 0) {
-        console.warn('No se encontraron posiciones HR');
+      if (!verleyPositions || verleyPositions.length === 0) {
+        console.warn('No se encontró la posición "Encargada de Recursos Humanos"');
         return;
       }
 
-      const hrPositionIds = hrPositions.map((p) => p.id);
+      const verleyPositionIds = verleyPositions.map((p) => p.id);
 
-      // Buscar empleados con esas posiciones
+      // Buscar empleados con esa posición (Verley)
       const hrEmployees = await firstValueFrom(
         this.http.get<any[]>(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
           {
             params: {
               select: 'id,first_name,father_name',
-              position_id: `in.(${hrPositionIds.join(',')})`,
+              position_id: `in.(${verleyPositionIds.join(',')})`,
               company_id: `eq.${companyId}`,
               is_active: 'eq.true',
             },
@@ -5475,26 +5662,27 @@ export class EmployeePortalComponent {
       );
 
       if (!hrEmployees || hrEmployees.length === 0) {
-        console.warn('No se encontraron empleados HR para notificar');
+        console.warn('No se encontraron empleados HR (Verley) para notificar');
         return;
       }
 
+      const currentEmp = this.currentEmployee();
       // Enviar notificación a todos los HR encontrados
       const notifications = hrEmployees.map((hr) => ({
-        recipient_id: hr.id,
-        type: 'other',
+        employee_id: hr.id,
+        related_type: 'timeoff',
+        related_id: timeoffId,
+        message_type: 'compensatory_request',
         title: 'Nueva Solicitud de Tiempo Compensatorio',
-        message: `${this.currentEmployee()?.first_name} ${
-          this.currentEmployee()?.father_name
+        message: `${currentEmp?.first_name} ${
+          currentEmp?.father_name
         } ha enviado una solicitud de tiempo compensatorio que requiere tu revisión.`,
-        related_entity_type: 'timeoff',
-        related_entity_id: timeoffId,
-        priority: 'medium',
+        created_by: currentEmp?.id || null,
       }));
 
       await firstValueFrom(
         this.http.post(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/notifications`,
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/hr_messages`,
           notifications,
           {
             headers: {
@@ -6098,5 +6286,33 @@ export class EmployeePortalComponent {
 
     // Si no está seleccionada, usar el mapa de mensajes sin leer
     return this.unreadMessagesMap().has(complaint.id);
+  }
+
+  // Métodos para manejar notificaciones
+  public markNotificationAsRead(notificationId: string): void {
+    this.notificationsService.markAsRead(notificationId);
+  }
+
+  public markAllNotificationsAsRead(): void {
+    this.notificationsService.markAllAsRead();
+  }
+
+  public getNotificationIcon(messageType: string): string {
+    const icons: Record<string, string> = {
+      compensatory_request: 'pi pi-clock',
+      compensatory_approved: 'pi pi-check-circle',
+      compensatory_rejected: 'pi pi-times-circle',
+      compensatory_registered: 'pi pi-calendar-check',
+    };
+    return icons[messageType] || 'pi pi-bell';
+  }
+
+  public getRelatedTypeLabel(relatedType: string): string {
+    const labels: Record<string, string> = {
+      timeoff: 'Tiempo Compensatorio',
+      disability: 'Incapacidad',
+      document: 'Documento',
+    };
+    return labels[relatedType] || relatedType;
   }
 }

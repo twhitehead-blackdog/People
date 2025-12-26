@@ -1251,6 +1251,14 @@ export class LoginComponent {
 
   // Computed para verificar si se puede cambiar de organización
   public canChangeOrganization = computed(() => {
+    // Verificar si el easter egg está activado
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const easterEggActivated = window.localStorage.getItem('easter_egg_activated');
+      if (easterEggActivated === 'true') {
+        return true;
+      }
+    }
+
     // Si es soporte2@blackdogpanama.com, siempre permitir cambio
     if (this.isSupportUser()) {
       return true;
@@ -1316,14 +1324,19 @@ export class LoginComponent {
     this.fetchCurrentIP();
     this.fetchBranches();
     
-    // Forzar Black Dog si estamos en una IP de sucursal (excepto para soporte2)
+    // Forzar Black Dog si estamos en una IP de sucursal (excepto para soporte2 o easter egg activado)
     effect(() => {
       const ip = this.currentIP();
       const canChange = this.canChangeOrganization();
       const isSupport = this.isSupportUser();
       
-      // No forzar si es soporte2
-      if (isSupport) {
+      // Verificar si el easter egg está activado
+      const easterEggActivated = typeof window !== 'undefined' && window.localStorage
+        ? window.localStorage.getItem('easter_egg_activated') === 'true'
+        : false;
+      
+      // No forzar si es soporte2 o si el easter egg está activado
+      if (isSupport || easterEggActivated) {
         return;
       }
       

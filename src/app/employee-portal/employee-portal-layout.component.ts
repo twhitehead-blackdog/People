@@ -21,6 +21,7 @@ import { filter, Subscription } from 'rxjs';
 import { NotificationsService } from '../services/notifications.service';
 import { OrganizationService } from '../services/organization.service';
 import { EmployeePortalNavigationService } from '../services/employee-portal-navigation.service';
+import { NotificationsDropdownComponent } from '../components/notifications-dropdown.component';
 import { AuthStore } from '../stores/auth.store';
 import { BanksStore } from '../stores/banks.store';
 import { BranchesStore } from '../stores/branches.store';
@@ -71,6 +72,7 @@ type NavSection = {
     AsyncPipe,
     Button,
     TooltipModule,
+    NotificationsDropdownComponent,
   ],
   template: `
     <p-toast />
@@ -151,26 +153,32 @@ type NavSection = {
             <div class="flex items-center">
               @if(user) {
               <div class="ml-4 flex items-center md:ml-6 gap-3">
-                <button
-                  type="button"
-                  (click)="navigateToSection('notifications')"
-                  class="relative p-2.5 rounded-lg bg-gray-700/30 hover:bg-gray-700/60 transition-all duration-200 text-white border border-gray-600/50 hover:border-gray-500"
-                  pTooltip="Notificaciones"
-                  title="Notificaciones"
-                >
-                  <i class="pi pi-bell text-xl"></i>
-                  @if (unreadNotificationsCount() > 0) {
-                  <span
-                    class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-gray-800"
+                <div class="relative">
+                  <button
+                    type="button"
+                    (click)="toggleNotificationsDropdown()"
+                    class="relative p-2.5 rounded-lg bg-gray-700/30 hover:bg-gray-700/60 transition-all duration-200 text-white border border-gray-600/50 hover:border-gray-500"
+                    pTooltip="Notificaciones"
+                    title="Notificaciones"
                   >
-                    {{
-                      unreadNotificationsCount() > 99
-                        ? '99+'
-                        : unreadNotificationsCount()
-                    }}
-                  </span>
-                  }
-                </button>
+                    <i class="pi pi-bell text-xl"></i>
+                    @if (unreadNotificationsCount() > 0) {
+                    <span
+                      class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-gray-800"
+                    >
+                      {{
+                        unreadNotificationsCount() > 99
+                          ? '99+'
+                          : unreadNotificationsCount()
+                      }}
+                    </span>
+                    }
+                  </button>
+                  <pt-notifications-dropdown
+                    [isVisible]="showNotificationsDropdown()"
+                    [onClose]="closeNotificationsDropdown.bind(this)"
+                  />
+                </div>
                 <div class="hidden md:flex items-center gap-3">
                   <p-menu #menu [model]="items" popup />
                   <div
@@ -230,23 +238,29 @@ type NavSection = {
         >
           <div class="space-y-2 px-2 pt-2 pb-3 sm:px-3">
             @if(user) {
-            <button
-              type="button"
-              (click)="navigateToSection('notifications')"
-              class="relative w-full rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer text-left"
-            >
-              <i class="pi pi-bell text-lg"></i>
-              <span>Notificaciones</span>
-              @if (unreadNotificationsCount() > 0) {
-              <span
-                class="ml-auto w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white"
+            <div class="relative">
+              <button
+                type="button"
+                (click)="toggleNotificationsDropdown()"
+                class="relative w-full rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer text-left"
               >
-                {{
-                  unreadNotificationsCount() > 99 ? '99+' : unreadNotificationsCount()
-                }}
-              </span>
-              }
-            </button>
+                <i class="pi pi-bell text-lg"></i>
+                <span>Notificaciones</span>
+                @if (unreadNotificationsCount() > 0) {
+                <span
+                  class="ml-auto w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                >
+                  {{
+                    unreadNotificationsCount() > 99 ? '99+' : unreadNotificationsCount()
+                  }}
+                </span>
+                }
+              </button>
+              <pt-notifications-dropdown
+                [isVisible]="showNotificationsDropdown()"
+                [onClose]="closeNotificationsDropdown.bind(this)"
+              />
+            </div>
             } @for (nav of navSections; track nav.id) { @if (!nav.children) {
             <button
               type="button"
@@ -491,6 +505,7 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
   public currentFragment = signal<string | null>(null);
   public openDropdown = signal<string | null>(null);
   public mobileDropdowns = signal<Record<string, boolean>>({});
+  public showNotificationsDropdown = signal(false);
   private routerSubscription?: Subscription;
   private dropdownTimeout: any = null;
 
@@ -673,5 +688,13 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
       this.openDropdown.set(null);
       this.dropdownTimeout = null;
     }, 500); // 500ms delay before closing to allow moving to dropdown
+  }
+
+  toggleNotificationsDropdown() {
+    this.showNotificationsDropdown.update((value) => !value);
+  }
+
+  closeNotificationsDropdown() {
+    this.showNotificationsDropdown.set(false);
   }
 }

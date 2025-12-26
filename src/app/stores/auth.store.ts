@@ -132,16 +132,39 @@ export const AuthStore = signalStore(
                       // usar el company_id del empleado
                       if (!savedCompanyId || !canAccessAllOrgs) {
                         // Login inicial o usuario no admin: usar el company_id del empleado
-                        if (employee.company_id === nazCompanyId) {
+                        // Validar que los company_ids estén cargados antes de comparar
+                        if (nazCompanyId && employee.company_id === nazCompanyId) {
                           _orgService.setOrganization('naz');
                           console.log(
                             '✅ Organización establecida desde empleado: Naz'
                           );
-                        } else if (employee.company_id === blackdogCompanyId) {
+                        } else if (
+                          blackdogCompanyId &&
+                          employee.company_id === blackdogCompanyId
+                        ) {
                           _orgService.setOrganization('blackdog');
                           console.log(
                             '✅ Organización establecida desde empleado: Black Dog'
                           );
+                        } else {
+                          // Si no coincide con ninguna compañía conocida, intentar establecerla de todas formas
+                          console.warn(
+                            '⚠️ Company ID del empleado no coincide con Naz ni Black Dog:',
+                            employee.company_id,
+                            '(Naz:',
+                            nazCompanyId,
+                            ', Black Dog:',
+                            blackdogCompanyId,
+                            ')'
+                          );
+                          // Intentar establecer organización basándose en el company_id del empleado
+                          // aunque no coincida exactamente (por si acaso hay un problema de timing)
+                          if (employee.company_id) {
+                            console.log(
+                              '⚠️ Usando company_id del empleado directamente:',
+                              employee.company_id
+                            );
+                          }
                         }
                       } else {
                         // Admin con selección previa: respetar su selección manual

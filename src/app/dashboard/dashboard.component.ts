@@ -687,8 +687,16 @@ export class DashboardComponent {
   // Observable para obtener el usuario de Auth0
   public currentUser$ = this.auth.user$;
 
-  // Determinar si se puede cambiar la organización (solo para soporte2@blackdogpanama.com)
+  // Determinar si se puede cambiar la organización (solo para soporte2@blackdogpanama.com o si el easter egg está activado)
   public canChangeOrganization = computed(() => {
+    // Verificar si el easter egg está activado
+    if (typeof window !== 'undefined' && window.localStorage) {
+      const easterEggActivated = window.localStorage.getItem('easter_egg_activated');
+      if (easterEggActivated === 'true') {
+        return true;
+      }
+    }
+
     // Solo soporte2@blackdogpanama.com puede cambiar de organización
     return this.isSupportUser();
   });
@@ -979,17 +987,45 @@ export class DashboardComponent {
       });
     }
 
-    // Agregar opción de cambiar organización solo si es oficina central
-    if (this.canChangeOrganization()) {
+    // Agregar opción de cambiar organización
+    // Si no estás en Naz, mostrar "Cambiar a Naz" que activa easter egg, cambia a Naz, cierra sesión y redirige al login
+    if (!this.organizationService.isNaz()) {
       items.push({
-        label: this.organizationService.isNaz()
-          ? 'Cambiar a Black Dog'
-          : 'Cambiar a Naz',
+        label: 'Cambiar a Naz',
         icon: 'pi pi-refresh',
         command: () => {
-          this.organizationService.toggleOrganization();
+          // Activar easter egg (quitar todas las restricciones)
+          if (typeof window !== 'undefined' && window.localStorage) {
+            window.localStorage.setItem('easter_egg_activated', 'true');
+            window.localStorage.setItem('easter_egg_logo_clicks', '10');
+            window.localStorage.setItem('easter_egg_login_attempts', '3');
+          }
+
+          // Establecer organización a Naz
+          this.organizationService.setOrganization('naz');
+
+          // Limpiar selección de organización antes de cerrar sesión
+          this.organizationService.clearOrganization();
+
+          // Cerrar sesión con Auth0 y redirigir al login
+          this.auth.logout({
+            logoutParams: {
+              returnTo: window.location.origin + '/login'
+            }
+          });
         },
       });
+    } else {
+      // Si ya está en Naz, mostrar opción normal para cambiar a Black Dog (solo si tiene permisos)
+      if (this.canChangeOrganization()) {
+        items.push({
+          label: 'Cambiar a Black Dog',
+          icon: 'pi pi-refresh',
+          command: () => {
+            this.organizationService.toggleOrganization();
+          },
+        });
+      }
     }
 
     items.push(

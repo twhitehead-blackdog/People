@@ -3438,25 +3438,28 @@ export class HRDisabilitiesComponent {
       const companyId = this.organizationService.getCurrentCompanyId();
       if (!companyId) return;
 
-      // Buscar posiciones HR
-      const hrPositions = await firstValueFrom(
+      // Buscar posición exacta de Lia: "Especialista de Nómina y Gestión Administrativa"
+      const liaPositions = await firstValueFrom(
         this.http.get<any[]>(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/positions`,
           {
             params: {
               select: 'id',
-              name: 'ilike.%recursos humanos%',
+              name: 'eq.Especialista de Nómina y Gestión Administrativa',
+              company_id: `eq.${companyId}`,
             },
           }
         )
       );
 
-      if (!hrPositions || hrPositions.length === 0) {
-        console.warn('No se encontraron posiciones HR');
+      if (!liaPositions || liaPositions.length === 0) {
+        console.warn(
+          'No se encontró la posición "Especialista de Nómina y Gestión Administrativa"'
+        );
         return;
       }
 
-      const hrPositionIds = hrPositions.map((p) => p.id);
+      const liaPositionIds = liaPositions.map((p) => p.id);
 
       // Buscar Lia (empleado HR que registra)
       const liaEmployees = await firstValueFrom(
@@ -3465,7 +3468,7 @@ export class HRDisabilitiesComponent {
           {
             params: {
               select: 'id,first_name,father_name',
-              position_id: `in.(${hrPositionIds.join(',')})`,
+              position_id: `in.(${liaPositionIds.join(',')})`,
               company_id: `eq.${companyId}`,
               is_active: 'eq.true',
             },
@@ -3479,19 +3482,20 @@ export class HRDisabilitiesComponent {
       }
 
       const employeeName = this.getEmployeeName(request);
+      const currentEmployee = this.dashboardStore.currentEmployee();
       const notifications = liaEmployees.map((lia) => ({
-        recipient_id: lia.id,
-        type: 'other',
+        employee_id: lia.id,
+        related_type: 'timeoff',
+        related_id: timeoffId,
+        message_type: 'compensatory_registered',
         title: 'Solicitud de Tiempo Compensatorio Aprobada - Requiere Registro',
         message: `La solicitud de tiempo compensatorio de ${employeeName} ha sido aprobada y requiere tu registro.`,
-        related_entity_type: 'timeoff',
-        related_entity_id: timeoffId,
-        priority: 'medium',
+        created_by: currentEmployee?.id || null,
       }));
 
       await firstValueFrom(
         this.http.post(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/notifications`,
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/hr_messages`,
           notifications,
           {
             headers: {
@@ -3516,6 +3520,8 @@ export class HRDisabilitiesComponent {
       const employeeId = request.employee_id;
       if (!employeeId) return;
 
+      const currentEmployee = this.dashboardStore.currentEmployee();
+
       const title =
         status === 'approved'
           ? 'Solicitud de Tiempo Compensatorio Aprobada'
@@ -3530,15 +3536,18 @@ export class HRDisabilitiesComponent {
 
       await firstValueFrom(
         this.http.post(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/notifications`,
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/hr_messages`,
           {
-            recipient_id: employeeId,
-            type: 'other',
+            employee_id: employeeId,
+            related_type: 'timeoff',
+            related_id: timeoffId,
+            message_type:
+              status === 'approved'
+                ? 'compensatory_approved'
+                : 'compensatory_rejected',
             title,
             message,
-            related_entity_type: 'timeoff',
-            related_entity_id: timeoffId,
-            priority: status === 'rejected' ? 'high' : 'medium',
+            created_by: currentEmployee?.id || null,
           },
           {
             headers: {
