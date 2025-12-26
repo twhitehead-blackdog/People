@@ -42,14 +42,22 @@ export const AuthStore = signalStore(
           // Usar positions siempre (tabla compartida)
           const positionSelect = `position:positions(id, name, admin, schedule_admin, schedule_approver, dashboard_access, default_view)`;
 
+          // Verificar si es super admin antes de agregar filtro de company_id
+          const superAdminEmails = [
+            'mercadeo@blackdogpanama.com',
+            'soporte2@blackdogpanama.com',
+          ];
+          const isSuperAdmin = user.email && superAdminEmails.includes(user.email.toLowerCase());
+
           const params: any = {
             work_email: `eq.${user.email}`,
             select: `id,company_id,first_name,father_name,work_email,${positionSelect}`,
           };
 
-          // Siempre agregar filtro por company_id
+          // Solo agregar filtro por company_id si NO es super admin
+          // Los super admins pueden estar en cualquier organización, así que buscamos sin filtro
           const companyId = _orgService.getCurrentCompanyId();
-          if (companyId) {
+          if (companyId && !isSuperAdmin) {
             params.company_id = `eq.${companyId}`;
           }
 
@@ -76,9 +84,9 @@ export const AuthStore = signalStore(
             })
             .pipe(
               switchMap((resp) => {
-                // Si no se encuentra el empleado con el company_id actual, buscar sin filtro de company_id
+                // Si no se encuentra el empleado y NO es super admin, buscar sin filtro de company_id
                 // Esto permite encontrar al empleado aunque esté en otra organización
-                if (!resp || resp.length === 0) {
+                if ((!resp || resp.length === 0) && !isSuperAdmin) {
                   console.warn(
                     '⚠️ Empleado no encontrado con company_id actual, buscando sin filtro...'
                   );
@@ -117,10 +125,9 @@ export const AuthStore = signalStore(
                       );
                     const canAccessAllOrgs = isAdmin || isSuperAdmin;
 
-                    // En el login inicial, siempre usar el company_id del empleado
-                    // Solo respetar selección manual si el usuario ya estaba logueado y cambió manualmente
-                    // Para detectar si es login inicial, verificamos si hay un company_id guardado
-                    // Si no hay company_id guardado, es login inicial y debemos usar el del empleado
+                    // En el login inicial, SIEMPRE usar el company_id del empleado para establecer la organización
+                    // Esto asegura que si el usuario es de Naz, vea la interfaz de Naz desde el inicio
+                    // Solo respetar selección manual si hay una selección explícita previa (no login inicial)
                     if (employee.company_id) {
                       // Verificar si es login inicial (no hay company_id en localStorage)
                       const savedCompanyId =
@@ -128,9 +135,20 @@ export const AuthStore = signalStore(
                           ? window.localStorage.getItem('selected_company_id')
                           : null;
 
-                      // Si es login inicial (no hay company_id guardado) o NO es admin:
-                      // usar el company_id del empleado
-                      if (!savedCompanyId || !canAccessAllOrgs) {
+                      // Determinar si es login inicial: no hay company_id guardado O
+                      // el company_id guardado no coincide con el del empleado (situación anormal)
+                      const isInitialLogin =
+                        !savedCompanyId ||
+                        (nazCompanyId &&
+                          employee.company_id === nazCompanyId &&
+                          savedCompanyId !== nazCompanyId) ||
+                        (blackdogCompanyId &&
+                          employee.company_id === blackdogCompanyId &&
+                          savedCompanyId !== blackdogCompanyId);
+
+                      // Si es login inicial: SIEMPRE usar el company_id del empleado
+                      // Si NO es admin: SIEMPRE usar el company_id del empleado (no puede cambiar de org)
+                      if (isInitialLogin || !canAccessAllOrgs) {
                         // Login inicial o usuario no admin: usar el company_id del empleado
                         // Validar que los company_ids estén cargados antes de comparar
                         if (nazCompanyId && employee.company_id === nazCompanyId) {
@@ -147,7 +165,7 @@ export const AuthStore = signalStore(
                             '✅ Organización establecida desde empleado: Black Dog'
                           );
                         } else {
-                          // Si no coincide con ninguna compañía conocida, intentar establecerla de todas formas
+                          // Si no coincide con ninguna compañía conocida
                           console.warn(
                             '⚠️ Company ID del empleado no coincide con Naz ni Black Dog:',
                             employee.company_id,
@@ -157,17 +175,9 @@ export const AuthStore = signalStore(
                             blackdogCompanyId,
                             ')'
                           );
-                          // Intentar establecer organización basándose en el company_id del empleado
-                          // aunque no coincida exactamente (por si acaso hay un problema de timing)
-                          if (employee.company_id) {
-                            console.log(
-                              '⚠️ Usando company_id del empleado directamente:',
-                              employee.company_id
-                            );
-                          }
                         }
                       } else {
-                        // Admin con selección previa: respetar su selección manual
+                        // Admin con selección previa válida: respetar su selección manual
                         // (puede trabajar con cualquier organización)
                         console.log(
                           '✅ Respetando selección del admin:',

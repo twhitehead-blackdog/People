@@ -1,8 +1,9 @@
-import { computed, inject } from '@angular/core';
+import { computed, effect, inject } from '@angular/core';
 import {
   patchState,
   signalStore,
   withComputed,
+  withHooks,
   withMethods,
   withProps,
   withState,
@@ -900,5 +901,64 @@ export const DashboardStore = signalStore(
   withMethods((state) => ({
     toggleCompany: (id: string | null) =>
       patchState(state, { selectedCompanyId: id }),
-  }))
+    /**
+     * Asegura que el empleado actual esté cargado en el EmployeesStore
+     * Esto es necesario porque el empleado puede no estar en entities() si
+     * el filtro de company_id lo excluye o si hay un problema de timing
+     */
+    ensureCurrentEmployeeLoaded: () => {
+      const employeeId = state.auth.currentEmployeeId();
+      if (!employeeId) {
+        return;
+      }
+
+      // Verificar si el empleado ya está en entities
+      const allEmployees = state.employees.entities();
+      const employee = allEmployees.find((x) => x.id === employeeId);
+
+      // Si el empleado ya está cargado y tiene position, no hacer nada
+      if (employee && employee.position) {
+        return;
+      }
+
+      // El empleado no está en entities o no tiene position
+      // Usar ensureEmployeeLoaded que carga sin filtrar por company_id
+      state.employees.ensureEmployeeLoaded(employeeId);
+      console.log('🔄 Cargando empleado actual en EmployeesStore:', employeeId);
+    },
+  })),
+  withHooks({
+    onInit: (store) => {
+      // Variable para evitar múltiples ejecuciones simultáneas
+      let isLoadingEmployee = false;
+      let lastLoadedEmployeeId: string | null = null;
+
+      // Efecto para cargar el empleado actual cuando cambie currentEmployeeId
+      effect(() => {
+        const employeeId = store.auth.currentEmployeeId();
+
+        // Solo ejecutar si:
+        // 1. Hay un employeeId
+        // 2. No se está cargando actualmente
+        // 3. Es un employeeId diferente al último cargado
+        if (
+          employeeId &&
+          !isLoadingEmployee &&
+          employeeId !== lastLoadedEmployeeId
+        ) {
+          isLoadingEmployee = true;
+          lastLoadedEmployeeId = employeeId;
+
+          // Usar setTimeout para evitar ejecutar en el mismo ciclo
+          setTimeout(() => {
+            store.ensureCurrentEmployeeLoaded();
+            // Reset después de un tiempo razonable
+            setTimeout(() => {
+              isLoadingEmployee = false;
+            }, 2000);
+          }, 100);
+        }
+      });
+    },
+  })
 );
