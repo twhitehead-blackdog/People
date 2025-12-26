@@ -200,6 +200,11 @@ import {
                       [showIcon]="true"
                       appendTo="body"
                       placeholder="dd/mm/yyyy"
+                      [touchUI]="false"
+                      dateFormat="dd/mm/yy"
+                      [autoZIndex]="true"
+                      [hideOnDateTimeSelect]="true"
+                      [showOnFocus]="false"
                     />
                   </div>
                   <div class="input-container">
@@ -581,6 +586,11 @@ import {
                     [showIcon]="true"
                     appendTo="body"
                     placeholder="dd/mm/yyyy"
+                    [touchUI]="false"
+                    dateFormat="dd/mm/yy"
+                    [autoZIndex]="true"
+                    [hideOnDateTimeSelect]="true"
+                    [showOnFocus]="false"
                   />
                 </div>
                 <div class="input-container">
@@ -592,6 +602,11 @@ import {
                     [showIcon]="true"
                     appendTo="body"
                     placeholder="dd/mm/yyyy"
+                    [touchUI]="false"
+                    dateFormat="dd/mm/yy"
+                    [autoZIndex]="true"
+                    [hideOnDateTimeSelect]="true"
+                    [showOnFocus]="false"
                   />
                 </div>
                 <div class="input-container">
@@ -661,6 +676,64 @@ import {
     ::ng-deep .p-datepicker.p-focus {
       border-color: #fbbf24 !important;
       box-shadow: 0 0 0 0.2rem rgba(251, 191, 36, 0.2) !important;
+    }
+
+    /* Asegurar que los botones y elementos del datepicker funcionen correctamente */
+    ::ng-deep .p-datepicker {
+      pointer-events: auto !important;
+    }
+
+    ::ng-deep .p-datepicker-panel {
+      pointer-events: auto !important;
+      z-index: 10000 !important;
+    }
+
+    ::ng-deep .p-datepicker-panel * {
+      pointer-events: auto !important;
+    }
+
+    ::ng-deep .p-datepicker-header {
+      pointer-events: auto !important;
+    }
+
+    ::ng-deep .p-datepicker-header button {
+      pointer-events: auto !important;
+      cursor: pointer !important;
+      touch-action: manipulation !important;
+      z-index: 10001 !important;
+      position: relative;
+    }
+
+    ::ng-deep .p-datepicker-calendar {
+      pointer-events: auto !important;
+    }
+
+    ::ng-deep .p-datepicker-calendar-container {
+      pointer-events: auto !important;
+    }
+
+    ::ng-deep .p-datepicker-calendar td {
+      pointer-events: auto !important;
+      cursor: pointer !important;
+      touch-action: manipulation !important;
+    }
+
+    ::ng-deep .p-datepicker-calendar td > span {
+      pointer-events: auto !important;
+      cursor: pointer !important;
+      touch-action: manipulation !important;
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Asegurar que el overlay no bloquee los eventos */
+    ::ng-deep .p-datepicker-panel.p-component-overlay {
+      pointer-events: auto !important;
+    }
+
+    ::ng-deep .p-datepicker-panel.p-component-overlay * {
+      pointer-events: auto !important;
     }
     
     ::ng-deep .p-tabs .p-tablist {

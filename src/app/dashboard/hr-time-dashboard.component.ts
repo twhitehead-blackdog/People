@@ -468,16 +468,27 @@ export class HRTimeDashboardComponent {
   private organizationService = inject(OrganizationService);
 
   // API para obtener solicitudes
-  public requestsApi = httpResource<any[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`,
-    method: 'GET',
-    params: {
-      select: '*,employee:employees(id,first_name,father_name),type:timeoff_types(name)',
-      is_approved: 'eq.false',
-      order: 'created_at.desc',
-      limit: '10',
-    },
-  }));
+  public requestsApi = httpResource<any[]>(() => {
+    const companyId = this.organizationService.getCurrentCompanyId();
+    
+    if (!companyId) {
+      return undefined; // No hacer request si no hay company_id
+    }
+    
+    return {
+      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`,
+      method: 'GET',
+      params: {
+        // Usar sintaxis explícita de foreign key para especificar la relación employee_id
+        select: '*,employee:employees!time_offs_employee_id_fkey(id,first_name,father_name,company_id),type:timeoff_types(name)',
+        is_approved: 'eq.false',
+        // Filtrar por company_id del empleado
+        'employee.company_id': `eq.${companyId}`,
+        order: 'created_at.desc',
+        limit: '10',
+      },
+    };
+  });
 
   // Solicitudes procesadas
   public requests = computed(() => {

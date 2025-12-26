@@ -1236,81 +1236,84 @@ interface CompensatoryRequest {
       </ng-template>
       @if (selectedCompensatoryRequest()) {
       <div class="space-y-4 pt-4">
-        <!-- Información del Empleado -->
-        <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
-          <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-            <i class="pi pi-user text-cyan-400"></i>
-            Información del Empleado
-          </h3>
-          <div class="space-y-2">
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Nombre</label
-              >
-              <p class="text-white">
-                {{ getEmployeeName(selectedCompensatoryRequest()!) }}
-              </p>
+        <!-- Información del Empleado y Horas Extras Disponibles (lado a lado) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Información del Empleado -->
+          <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
+            <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+              <i class="pi pi-user text-cyan-400"></i>
+              Información del Empleado
+            </h3>
+            <div class="space-y-2">
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Nombre</label
+                >
+                <p class="text-white">
+                  {{ getEmployeeName(selectedCompensatoryRequest()!) }}
+                </p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Email</label
+                >
+                <p class="text-white">
+                  {{ getEmployeeEmail(selectedCompensatoryRequest()!) }}
+                </p>
+              </div>
+              @if (getEmployeePosition(selectedCompensatoryRequest()!)) {
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Cargo</label
+                >
+                <p class="text-white">
+                  {{ getEmployeePosition(selectedCompensatoryRequest()!) }}
+                </p>
+              </div>
+              }
+              @if (selectedCompensatoryRequest()!.employee?.branch?.name) {
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Sucursal</label
+                >
+                <p class="text-white">
+                  {{ selectedCompensatoryRequest()!.employee?.branch?.name }}
+                </p>
+              </div>
+              }
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Email</label
-              >
-              <p class="text-white">
-                {{ getEmployeeEmail(selectedCompensatoryRequest()!) }}
-              </p>
-            </div>
-            @if (getEmployeePosition(selectedCompensatoryRequest()!)) {
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Cargo</label
-              >
-              <p class="text-white">
-                {{ getEmployeePosition(selectedCompensatoryRequest()!) }}
-              </p>
-            </div>
-            }
-            @if (selectedCompensatoryRequest()!.employee?.branch?.name) {
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Sucursal</label
-              >
-              <p class="text-white">
-                {{ selectedCompensatoryRequest()!.employee?.branch?.name }}
-              </p>
-            </div>
-            }
           </div>
-        </div>
 
-        <!-- Horas Extras Disponibles -->
-        <div class="p-4 bg-gradient-to-r from-cyan-500/20 to-cyan-600/10 border border-cyan-400/30 rounded-lg">
-          <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-            <i class="pi pi-clock text-cyan-400"></i>
-            Horas Extras Disponibles
-          </h3>
-          @if (isLoadingOvertimeHours()) {
-          <div class="flex items-center gap-2 text-gray-400">
-            <i class="pi pi-spin pi-spinner"></i>
-            <span>Cargando horas extras...</span>
-          </div>
-          } @else {
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm text-gray-400 mb-1">Total de horas extras acumuladas (mes actual)</p>
-              <p class="text-3xl font-bold text-cyan-300">
-                {{ employeeOvertimeHours().toFixed(1) }}h
-              </p>
+          <!-- Horas Extras Disponibles -->
+          <div class="p-4 bg-gradient-to-r from-cyan-500/20 to-cyan-600/10 border border-cyan-400/30 rounded-lg">
+            <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+              <i class="pi pi-clock text-cyan-400"></i>
+              Horas Extras Disponibles
+            </h3>
+            @if (isLoadingOvertimeHours()) {
+            <div class="flex items-center gap-2 text-gray-400">
+              <i class="pi pi-spin pi-spinner"></i>
+              <span>Cargando horas extras...</span>
             </div>
-            <div class="w-20 h-20 rounded-full bg-cyan-500/20 flex items-center justify-center">
-              <i class="pi pi-clock text-cyan-400 text-3xl"></i>
+            } @else {
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-sm text-gray-400 mb-1">Total de horas extras acumuladas (mes actual)</p>
+                <p class="text-3xl font-bold text-cyan-300">
+                  {{ employeeOvertimeHours().toFixed(1) }}h
+                </p>
+              </div>
+              <div class="w-20 h-20 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                <i class="pi pi-clock text-cyan-400 text-3xl"></i>
+              </div>
             </div>
+            @if (employeeOvertimeHours() === 0) {
+            <p class="text-xs text-gray-400 mt-3">
+              El empleado no tiene horas extras acumuladas este mes. Las horas extras se generan cuando se trabaja más de 8 horas en un día.
+            </p>
+            }
+            }
           </div>
-          @if (employeeOvertimeHours() === 0) {
-          <p class="text-xs text-gray-400 mt-3">
-            El empleado no tiene horas extras acumuladas este mes. Las horas extras se generan cuando se trabaja más de 8 horas en un día.
-          </p>
-          }
-          }
         </div>
 
         <!-- Información de la Solicitud -->
@@ -1374,6 +1377,23 @@ interface CompensatoryRequest {
                 {{ selectedCompensatoryRequest()!.date_to | date : 'dd/MM/yyyy' }}
               </p>
             </div>
+            @if (selectedCompensatoryRequest()!.compensatory_type === 'hours') {
+              @let timeRange = getCompensatoryTimeRange(selectedCompensatoryRequest()!);
+              @if (timeRange) {
+                <div>
+                  <label class="block text-sm font-medium text-gray-400 mb-1"
+                    >Hora de Inicio</label
+                  >
+                  <p class="text-white font-mono">{{ timeRange.startTime }}</p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-400 mb-1"
+                    >Hora de Fin</label
+                  >
+                  <p class="text-white font-mono">{{ timeRange.endTime }}</p>
+                </div>
+              }
+            }
             <div>
               <label class="block text-sm font-medium text-gray-400 mb-1"
                 >Fecha de Solicitud</label
@@ -1414,6 +1434,24 @@ interface CompensatoryRequest {
           </div>
           }
         </div>
+
+        <!-- Fechas manuales donde trabajó horas extra -->
+        @let manualDates = getManualOvertimeDates(selectedCompensatoryRequest()!);
+        @if (manualDates.length > 0) {
+          <div class="mt-4 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
+            <label class="block text-sm font-medium text-gray-400 mb-2">
+              <i class="pi pi-calendar-check mr-2 text-cyan-400"></i>
+              Fechas donde trabajó horas extra (ingresadas manualmente)
+            </label>
+            <div class="flex flex-wrap gap-2">
+              @for (date of manualDates; track date) {
+                <span class="px-3 py-1.5 bg-cyan-500/20 text-cyan-300 rounded-lg text-sm font-medium border border-cyan-400/30">
+                  {{ date }}
+                </span>
+              }
+            </div>
+          </div>
+        }
 
         <!-- Fechas donde trabajó horas extra -->
         @if (getOvertimeDaysFromNotes(selectedCompensatoryRequest()!)) {
@@ -2112,6 +2150,15 @@ export class HRDisabilitiesComponent {
     value: number;
     isDays: boolean;
   } {
+    // Log temporal para depuración
+    console.log('getCompensatoryQuantity data:', {
+      compensatory_type: data.compensatory_type,
+      compensatory_amount: data.compensatory_amount,
+      date_from: data.date_from,
+      date_to: data.date_to,
+      fullData: data,
+    });
+
     // Primero intentar determinar si es días u horas desde las notas o el campo compensatory_type
     let isDays = false;
 
@@ -2181,19 +2228,21 @@ export class HRDisabilitiesComponent {
       }
     }
 
-    if (isDays) {
-      // Calcular días desde fechas
+    if (isDays === true) {
+      // Calcular días desde fechas o usar compensatory_amount
       let days = 0;
-      if (data.date_from && data.date_to) {
-        days = this.calculateDays(data.date_from, data.date_to);
-      } else if (data.compensatory_amount) {
+      if (data.compensatory_amount) {
         days = data.compensatory_amount;
+      } else if (data.date_from && data.date_to) {
+        days = this.calculateDays(data.date_from, data.date_to);
       }
       return { value: days > 0 ? days : 1, isDays: true };
-    } else {
-      // Para horas, calcular siempre desde fechas si están disponibles
+    } else if (isDays === false) {
+      // Para horas, priorizar compensatory_amount si existe
       let hours = 0;
-      if (data.date_from && data.date_to) {
+      if (data.compensatory_amount) {
+        hours = data.compensatory_amount;
+      } else if (data.date_from && data.date_to) {
         hours = this.calculateHoursFromDates(data.date_from, data.date_to);
 
         // Si el resultado es muy grande (más de 24 horas), probablemente es un error
@@ -2205,8 +2254,6 @@ export class HRDisabilitiesComponent {
         }
       } else if (data.hours) {
         hours = data.hours;
-      } else if (data.compensatory_amount) {
-        hours = data.compensatory_amount;
       }
 
       // Si no hay horas calculadas y no hay datos, devolver 0 para que se muestre "-"
@@ -2223,9 +2270,10 @@ export class HRDisabilitiesComponent {
       return { value: hours > 0 ? hours : 0, isDays: false };
     }
 
-    // Si no se pudo determinar el tipo, intentar devolver algo por defecto
+    // Si no se pudo determinar el tipo, intentar usar compensatory_amount como fallback
     const amount = data.compensatory_amount ?? 0;
     if (amount > 0) {
+      // Si hay amount pero no type, asumir horas (más común)
       return { value: amount, isDays: false };
     }
 
@@ -2652,10 +2700,16 @@ export class HRDisabilitiesComponent {
     const companyId = this.organizationService.getCurrentCompanyId();
     const compensatoryTypeId = 'f2d92995-96a0-414f-b64a-9823db776745';
 
-    // Usar sintaxis con alias explícito para especificar la relación correcta
+    if (!companyId) {
+      return undefined; // No hacer request si no hay company_id
+    }
+
+    // Usar sintaxis explícita de foreign key para especificar la relación employee_id
     const params: any = {
-      select: `*,type:timeoff_types(id,name),employee:employee_id(id,first_name,father_name,work_email,position:positions(name),branch:branches(name))`,
+      select: `id,employee_id,type_id,date_from,date_to,notes,is_approved,compensatory_type,compensatory_amount,review_status,reviewed_by,reviewed_at,registered_by,registered_at,rejection_comment,created_at,type:timeoff_types(id,name),employee:employees!time_offs_employee_id_fkey(id,first_name,father_name,work_email,company_id,position:positions(name),branch:branches(name))`,
       type_id: `eq.${compensatoryTypeId}`,
+      // Filtrar por company_id del empleado
+      'employee.company_id': `eq.${companyId}`,
       order: 'created_at.desc',
     };
 
@@ -2865,13 +2919,23 @@ export class HRDisabilitiesComponent {
   public loadAllAuditHistory(): void {
     this.isLoadingAllAuditHistory.set(true);
     const compensatoryTypeId = 'f2d92995-96a0-414f-b64a-9823db776745';
+    const companyId = this.organizationService.getCurrentCompanyId();
 
-    // Obtener todos los timeoffs compensatorios primero
+    if (!companyId) {
+      this.allAuditHistory.set([]);
+      this.isLoadingAllAuditHistory.set(false);
+      return;
+    }
+
+    // Obtener todos los timeoffs compensatorios primero, filtrados por company_id
     this.http
       .get<any[]>(`${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`, {
         params: {
           type_id: `eq.${compensatoryTypeId}`,
-          select: 'id',
+          select:
+            'id,employee:employees!time_offs_employee_id_fkey(company_id)',
+          // Filtrar por company_id del empleado
+          'employee.company_id': `eq.${companyId}`,
         },
       })
       .subscribe({
@@ -3086,6 +3150,100 @@ export class HRDisabilitiesComponent {
     return overtimeDays.length > 0 ? overtimeDays : null;
   }
 
+  // Función para extraer rango de horas desde notes o date_from/date_to
+  public getCompensatoryTimeRange(request: CompensatoryRequest): {
+    startTime: string;
+    endTime: string;
+  } | null {
+    if (request.compensatory_type !== 'hours') return null;
+
+    // Intentar extraer desde notes primero
+    if (request.notes) {
+      const notesArray = Array.isArray(request.notes)
+        ? request.notes
+        : typeof request.notes === 'string'
+        ? [request.notes]
+        : [];
+
+      const timeRangeNote = notesArray.find(
+        (note) => typeof note === 'string' && note.includes('Rango de horas:')
+      );
+
+      if (timeRangeNote) {
+        const match = timeRangeNote.match(
+          /Rango de horas:\s*(\d{2}:\d{2})\s*-\s*(\d{2}:\d{2})/
+        );
+        if (match) {
+          return { startTime: match[1], endTime: match[2] };
+        }
+      }
+    }
+
+    // Si no está en notes, intentar extraer desde date_from y date_to (si son datetime)
+    if (request.date_from && request.date_to) {
+      const dateFromStr = String(request.date_from);
+      const dateToStr = String(request.date_to);
+
+      // Verificar si tienen hora (incluyen espacio y dos puntos)
+      if (
+        dateFromStr.includes(' ') &&
+        dateFromStr.includes(':') &&
+        dateToStr.includes(' ') &&
+        dateToStr.includes(':')
+      ) {
+        try {
+          const fromDate = new Date(request.date_from);
+          const toDate = new Date(request.date_to);
+          const startTime = format(fromDate, 'HH:mm');
+          const endTime = format(toDate, 'HH:mm');
+          return { startTime, endTime };
+        } catch (e) {
+          // Si falla, retornar null
+        }
+      }
+    }
+
+    return null;
+  }
+
+  // Función para extraer las fechas manuales desde notes
+  public getManualOvertimeDates(request: CompensatoryRequest): string[] {
+    if (!request.notes) return [];
+
+    const notesArray = Array.isArray(request.notes)
+      ? request.notes
+      : typeof request.notes === 'string'
+      ? [request.notes]
+      : [];
+
+    const startIndex = notesArray.findIndex(
+      (note) =>
+        typeof note === 'string' &&
+        note.includes(
+          '--- Fechas donde trabajó horas extra (ingresadas manualmente) ---'
+        )
+    );
+
+    if (startIndex === -1) return [];
+
+    const dates: string[] = [];
+    for (let i = startIndex + 1; i < notesArray.length; i++) {
+      const note = notesArray[i];
+      if (typeof note === 'string') {
+        // Buscar formato: "- dd/MM/yyyy"
+        const match = note.match(/^\s*-\s*(\d{2}\/\d{2}\/\d{4})/);
+        if (match) {
+          dates.push(match[1]);
+        } else if (note.trim() === '' || note.includes('RRHH revisará')) {
+          // Si encontramos línea vacía o el texto final, parar
+          break;
+        }
+      }
+    }
+
+    return dates;
+  }
+
   // Método helper para calcular horas extras de un empleado específico
   private async loadEmployeeOvertimeHours(employeeId: string): Promise<void> {
     this.isLoadingOvertimeHours.set(true);
@@ -3110,7 +3268,7 @@ export class HRDisabilitiesComponent {
             params: {
               select: '*',
               employee_id: `eq.${employeeId}`,
-              'employee.company_id': `eq.${companyId}`,
+              company_id: `eq.${companyId}`, // Filtrar directamente por company_id
               created_at: `gte.${startDateStr},lte.${endDateStr}`,
               order: 'created_at.asc',
             },

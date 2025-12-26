@@ -5564,6 +5564,8 @@ export class EmployeePortalComponent {
       date_to: dateTo,
       notes: notes,
       is_approved: false,
+      compensatory_type: type,
+      compensatory_amount: amount,
     };
 
     try {

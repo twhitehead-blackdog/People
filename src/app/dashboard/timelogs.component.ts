@@ -915,15 +915,23 @@ export class TimelogsComponent {
     if (!start || !end) {
       return undefined;
     }
+    
+    const companyId = this.organizationService.getCurrentCompanyId();
+    if (!companyId) {
+      return undefined;
+    }
+    
     return {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`,
       method: 'GET',
       params: {
         select:
-          'id,type_id,employee_id,date_from,date_to,is_approved,type:timeoff_types(id,name)',
+          'id,type_id,employee_id,date_from,date_to,is_approved,type:timeoff_types(id,name),employee:employees!time_offs_employee_id_fkey(company_id)',
         date_from: `lte.${format(end, 'yyyy-MM-dd')}`,
         date_to: `gte.${format(start, 'yyyy-MM-dd')}`,
         is_approved: 'eq.true',
+        // Filtrar por company_id del empleado
+        'employee.company_id': `eq.${companyId}`,
       },
     };
   });

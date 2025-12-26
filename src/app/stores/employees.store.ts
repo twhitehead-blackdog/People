@@ -10,12 +10,12 @@ import {
 } from '@ngrx/signals';
 import { updateEntity, addEntity } from '@ngrx/signals/entities';
 import { differenceInMonths } from 'date-fns';
-import { exhaustMap } from 'rxjs';
-import { Employee, Termination, TimeOff } from '../models';
+import { exhaustMap, firstValueFrom } from 'rxjs';
+import { Employee, Termination, TimeOff, TimeOffType } from '../models';
 import { withCustomEntities } from './entities.feature';
 
 type State = {
-  timeoff_types: TimeOff[];
+  timeoff_types: TimeOffType[];
 };
 
 export const EmployeesStore = signalStore(
@@ -106,12 +106,52 @@ export const EmployeesStore = signalStore(
         .post(`${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`, request)
         .pipe(
           tapResponse({
-            next: () => {
+            next: async (response) => {
               state._message.add({
                 severity: 'success',
                 summary: 'Success',
                 detail: 'Solicitud de tiempo libre enviada',
               });
+
+              // Crear notificación en el buzón
+              try {
+                const timeoffId = Array.isArray(response)
+                  ? (response[0] as any)?.id
+                  : (response as any)?.id;
+
+                if (timeoffId && request.employee_id) {
+                  // Obtener información del tipo de timeoff
+                  const timeoffType = state.timeoff_types().find(
+                    (t) => t.id === request.type_id
+                  );
+
+                  await firstValueFrom(
+                    state._http.post(
+                      `${process.env['ENV_SUPABASE_URL']}/rest/v1/hr_messages`,
+                      {
+                        employee_id: request.employee_id,
+                        related_type: 'timeoff',
+                        related_id: timeoffId,
+                        message_type: 'timeoff_created',
+                        title: 'Solicitud de tiempo libre enviada',
+                        message: `Tu solicitud de ${
+                          timeoffType?.name || 'tiempo libre'
+                        } ha sido enviada y está pendiente de aprobación.`,
+                        is_read: false,
+                      },
+                      {
+                        headers: {
+                          'Content-Type': 'application/json',
+                          Prefer: 'return=representation',
+                        },
+                      }
+                    )
+                  );
+                }
+              } catch (error) {
+                console.error('Error al crear notificación:', error);
+                // No fallar el flujo principal si la notificación falla
+              }
             },
             error: (error) => {
               state._message.add({
@@ -128,7 +168,7 @@ export const EmployeesStore = signalStore(
     fetchTimeOffTypes() {
       patchState(state, { isLoading: true });
       return state._http
-        .get<TimeOff[]>(
+        .get<TimeOffType[]>(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoff_types`
         )
         .pipe(
