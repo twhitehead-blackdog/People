@@ -1,8 +1,4 @@
-import {
-  CurrencyPipe,
-  DatePipe,
-  NgClass,
-} from '@angular/common';
+import { CurrencyPipe, DatePipe, NgClass } from '@angular/common';
 import { HttpClient, httpResource } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
@@ -40,9 +36,9 @@ import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
 import { CalendarComponent, CalendarMarkerData } from '../calendar.component';
 import { TimeLogEnum } from '../models';
-import { OrganizationService } from '../services/organization.service';
 import { EmployeePortalNavigationService } from '../services/employee-portal-navigation.service';
 import { NotificationsService } from '../services/notifications.service';
+import { OrganizationService } from '../services/organization.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
 
@@ -3496,8 +3492,12 @@ export class EmployeePortalComponent {
   public activeSection = signal<string>('dashboard');
 
   // Notificaciones
-  public notifications = computed(() => this.notificationsService.notifications());
-  public unreadNotificationsCount = computed(() => this.notificationsService.unreadCount());
+  public notifications = computed(() =>
+    this.notificationsService.notifications()
+  );
+  public unreadNotificationsCount = computed(() =>
+    this.notificationsService.unreadCount()
+  );
   public showWorkEmail = computed(() => {
     const workEmail =
       this.currentEmployee()?.work_email?.trim().toLowerCase() ?? '';
@@ -3608,9 +3608,9 @@ export class EmployeePortalComponent {
       if (targetSection) {
         this.activeSection.set(targetSection);
         // Actualizar la URL también
-        this.router.navigate(['/employee-portal'], { 
+        this.router.navigate(['/employee-portal'], {
           fragment: targetSection,
-          replaceUrl: false
+          replaceUrl: false,
         });
         // Hacer scroll a la sección
         setTimeout(() => {
@@ -3636,7 +3636,7 @@ export class EmployeePortalComponent {
 
   // Calendar month for timelogs calendar view
   public calendarMonth = signal<Date>(startOfToday());
-  
+
   // Vista de marcaciones: 'calendar' o 'table'
   public timelogViewMode = signal<'calendar' | 'table'>('table');
 
@@ -3671,9 +3671,9 @@ export class EmployeePortalComponent {
 
     let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
     url += `&employee_id=eq.${employeeId}`;
-    // Filtrar a través de employee.company_id (funciona incluso si timelogs no tiene company_id)
+    // Filtrar directamente por company_id de timelogs (la tabla tiene este campo)
     if (companyId) {
-      url += `&employee.company_id=eq.${companyId}`;
+      url += `&company_id=eq.${companyId}`;
     }
     url += `&created_at=gte.${startDate}`;
     url += `&created_at=lte.${endDate}`;
@@ -3761,7 +3761,8 @@ export class EmployeePortalComponent {
 
     let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
     url += `&employee_id=eq.${employeeId}`;
-    url += `&employee.company_id=eq.${companyId}`;
+    // Filtrar directamente por company_id de timelogs (la tabla tiene este campo)
+    url += `&company_id=eq.${companyId}`;
     url += `&created_at=gte.${startDate}`;
     url += `&created_at=lte.${endDate}`;
     url += `&order=created_at.asc`;
@@ -3795,16 +3796,16 @@ export class EmployeePortalComponent {
 
         const logDate = new Date(x.created_at);
         const logBranch = x.branch || null;
-        
+
         // Normalizar la fecha a medianoche para determinar el día
         // Esto es consistente con cómo se procesa en el componente de timelogs del dashboard
         const logDateNormalized = new Date(logDate);
         logDateNormalized.setHours(0, 0, 0, 0);
         const actualDay = format(logDateNormalized, 'yyyy-MM-dd');
-        
+
         // Buscar registro existente por el día de esta marcación
         let existing = acc.find((item) => item.day === actualDay);
-        
+
         // Si no existe, crear uno nuevo
         if (!existing) {
           existing = {
@@ -3818,7 +3819,7 @@ export class EmployeePortalComponent {
           };
           acc.push(existing);
         }
-        
+
         // Agregar la marcación al registro
         // Si ya existe una marcación del mismo tipo, mantener la más temprana (para entrada) o la más tardía (para salida)
         if (x.type === TimeLogEnum.entry) {
@@ -3838,7 +3839,7 @@ export class EmployeePortalComponent {
             existing.lunch_end = { date: logDate, branch: logBranch };
           }
         }
-        
+
         return acc;
       }, []);
 
@@ -4088,10 +4089,7 @@ export class EmployeePortalComponent {
     if (lunchStart && lunchEnd) {
       const lunchStartDate = new Date(lunchStart);
       const lunchEndDate = new Date(lunchEnd);
-      if (
-        !isNaN(lunchStartDate.getTime()) &&
-        !isNaN(lunchEndDate.getTime())
-      ) {
+      if (!isNaN(lunchStartDate.getTime()) && !isNaN(lunchEndDate.getTime())) {
         const lunchDiff = differenceInMinutes(lunchEndDate, lunchStartDate);
         // Solo usar si la diferencia es positiva y razonable (máximo 3 horas)
         if (lunchDiff > 0 && lunchDiff <= 180) {
@@ -4576,18 +4574,21 @@ export class EmployeePortalComponent {
   }
 
   // Método helper para formatear el rango de horas desde fechas datetime
-  public formatDateWithTimeRange(dateFrom: string | Date, dateTo: string | Date): string {
+  public formatDateWithTimeRange(
+    dateFrom: string | Date,
+    dateTo: string | Date
+  ): string {
     try {
       const from = new Date(dateFrom);
       const to = new Date(dateTo);
-      
+
       if (isNaN(from.getTime()) || isNaN(to.getTime())) {
         return '';
       }
-      
+
       const fromTime = format(from, 'HH:mm');
       const toTime = format(to, 'HH:mm');
-      
+
       return `de ${fromTime} a ${toTime}`;
     } catch (error) {
       console.error('Error formatting date range:', error);
@@ -4782,7 +4783,9 @@ export class EmployeePortalComponent {
     const existingDates = this.manualOvertimeDates();
 
     // Verificar que no esté duplicada
-    const isDuplicate = existingDates.some((d) => format(d, 'yyyy-MM-dd') === dateStr);
+    const isDuplicate = existingDates.some(
+      (d) => format(d, 'yyyy-MM-dd') === dateStr
+    );
     if (isDuplicate) {
       this.messageService.add({
         severity: 'warn',
@@ -5398,9 +5401,11 @@ export class EmployeePortalComponent {
       if (selectedDate) {
         const selected = new Date(selectedDate);
         selected.setHours(0, 0, 0, 0);
-        
-        const daysDiff = Math.ceil((selected.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-        
+
+        const daysDiff = Math.ceil(
+          (selected.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+        );
+
         if (daysDiff > this.MAX_FUTURE_DAYS) {
           this.messageService.add({
             severity: 'error',
@@ -5409,7 +5414,7 @@ export class EmployeePortalComponent {
           });
           return;
         }
-        
+
         if (daysDiff < -this.MAX_PAST_DAYS) {
           this.messageService.add({
             severity: 'error',
@@ -5423,26 +5428,29 @@ export class EmployeePortalComponent {
       // Validación para días
       const startDate = this.compensatoryStartDate();
       const endDate = this.compensatoryEndDate();
-      
+
       if (startDate && endDate) {
         const start = new Date(startDate);
         const end = new Date(endDate);
         start.setHours(0, 0, 0, 0);
         end.setHours(0, 0, 0, 0);
-        
+
         // Validar que start <= end
         if (start > end) {
           this.messageService.add({
             severity: 'error',
             summary: 'Fechas inválidas',
-            detail: 'La fecha de inicio debe ser anterior o igual a la fecha de fin',
+            detail:
+              'La fecha de inicio debe ser anterior o igual a la fecha de fin',
           });
           return;
         }
-        
+
         // Validar límite de días futuros
-        const daysDiff = Math.ceil((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-        
+        const daysDiff = Math.ceil(
+          (end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+        );
+
         if (daysDiff > this.MAX_FUTURE_DAYS) {
           this.messageService.add({
             severity: 'error',
@@ -5451,10 +5459,12 @@ export class EmployeePortalComponent {
           });
           return;
         }
-        
+
         // Validar rango máximo de días consecutivos
-        const rangeDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-        
+        const rangeDays =
+          Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) +
+          1;
+
         if (rangeDays > this.MAX_CONSECUTIVE_DAYS) {
           this.messageService.add({
             severity: 'error',
@@ -5548,13 +5558,17 @@ export class EmployeePortalComponent {
     const manualDates = this.manualOvertimeDates();
     if (manualDates.length > 0) {
       notes.push('');
-      notes.push('--- Fechas donde trabajó horas extra (ingresadas manualmente) ---');
+      notes.push(
+        '--- Fechas donde trabajó horas extra (ingresadas manualmente) ---'
+      );
       notes.push('');
       manualDates.forEach((date) => {
         notes.push(`- ${format(date, 'dd/MM/yyyy')}`);
       });
       notes.push('');
-      notes.push('RRHH revisará estas fechas junto con las marcaciones del empleado para verificar las horas extra trabajadas.');
+      notes.push(
+        'RRHH revisará estas fechas junto con las marcaciones del empleado para verificar las horas extra trabajadas.'
+      );
     }
 
     const timeoffData: any = {
@@ -5599,7 +5613,8 @@ export class EmployeePortalComponent {
                 related_id: timeoffId,
                 message_type: 'compensatory_request',
                 title: 'Solicitud de tiempo compensatorio enviada',
-                message: 'Tu solicitud de tiempo compensatorio ha sido enviada y está pendiente de revisión.',
+                message:
+                  'Tu solicitud de tiempo compensatorio ha sido enviada y está pendiente de revisión.',
                 is_read: false,
               },
               {
@@ -5673,7 +5688,9 @@ export class EmployeePortalComponent {
       );
 
       if (!verleyPositions || verleyPositions.length === 0) {
-        console.warn('No se encontró la posición "Encargada de Recursos Humanos"');
+        console.warn(
+          'No se encontró la posición "Encargada de Recursos Humanos"'
+        );
         return;
       }
 
@@ -5707,9 +5724,7 @@ export class EmployeePortalComponent {
         related_id: timeoffId,
         message_type: 'compensatory_request',
         title: 'Nueva Solicitud de Tiempo Compensatorio',
-        message: `${currentEmp?.first_name} ${
-          currentEmp?.father_name
-        } ha enviado una solicitud de tiempo compensatorio que requiere tu revisión.`,
+        message: `${currentEmp?.first_name} ${currentEmp?.father_name} ha enviado una solicitud de tiempo compensatorio que requiere tu revisión.`,
         created_by: currentEmp?.id || null,
       }));
 

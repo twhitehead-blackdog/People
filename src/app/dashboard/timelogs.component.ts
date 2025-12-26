@@ -965,9 +965,9 @@ export class TimelogsComponent {
       url += `&employee_id=eq.${this.employeeId()}`;
     }
 
-    // Filtrar a través de employees.company_id (funciona incluso si timelogs no tiene company_id)
+    // Filtrar directamente por company_id de timelogs (la tabla tiene este campo)
     if (companyId) {
-      url += `&employee.company_id=eq.${companyId}`;
+      url += `&company_id=eq.${companyId}`;
     }
 
     url += `&order=created_at.asc`;
