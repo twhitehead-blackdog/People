@@ -894,7 +894,12 @@ export class DashboardComponent {
     }
 
     // Agregar opción de bloqueo de pantalla para Gerente de Tienda y Admins
-    if (currentEmployee && this.screenLockService.canUseScreenLock(currentEmployee)) {
+    // También permitir en modo gerente (modo de prueba)
+    const canUseScreenLock = currentEmployee && (
+      this.screenLockService.canUseScreenLock(currentEmployee) || 
+      this.isGerenteMode()
+    );
+    if (canUseScreenLock) {
       const isScreenLockEnabled = this.screenLockService.isEnabled();
       items.push({
         label: isScreenLockEnabled ? 'Desactivar Bloqueo de Pantalla' : 'Activar Bloqueo de Pantalla',

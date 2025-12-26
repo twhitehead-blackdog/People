@@ -75,7 +75,8 @@ export class ScreenLockService {
     if (this.inactivityTimer) {
       clearTimeout(this.inactivityTimer);
     }
-    this.unlockScreen();
+    this.isLocked.set(false);
+    this.lastActivity.set(new Date());
   }
   
   /**
