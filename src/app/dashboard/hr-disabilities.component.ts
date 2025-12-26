@@ -1296,7 +1296,7 @@ interface CompensatoryRequest {
               <span>Cargando horas extras...</span>
             </div>
             } @else {
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between mb-3">
               <div>
                 <p class="text-sm text-gray-400 mb-1">Total de horas extras acumuladas (mes actual)</p>
                 <p class="text-3xl font-bold text-cyan-300">
@@ -1307,10 +1307,34 @@ interface CompensatoryRequest {
                 <i class="pi pi-clock text-cyan-400 text-3xl"></i>
               </div>
             </div>
-            @if (employeeOvertimeHours() === 0) {
-            <p class="text-xs text-gray-400 mt-3">
-              El empleado no tiene horas extras acumuladas este mes. Las horas extras se generan cuando se trabaja más de 8 horas en un día.
-            </p>
+            @if (employeeOvertimeDays().length > 0) {
+              <!-- Mostrar días con horas extras -->
+              <div class="mt-3">
+                <p class="text-xs font-medium text-gray-300 mb-2">Días con horas extras trabajadas:</p>
+                <div class="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                  @for (day of employeeOvertimeDays(); track day.day) {
+                    <div class="bg-cyan-500/10 border border-cyan-400/30 rounded-lg p-2 hover:bg-cyan-500/20 transition-colors">
+                      <div class="flex items-center justify-between mb-1">
+                        <span class="text-xs font-semibold text-cyan-300">
+                          {{ formatDate(day.day) }}
+                        </span>
+                        <span class="text-xs font-bold text-cyan-400">
+                          +{{ day.overtimeHours.toFixed(1) }}h
+                        </span>
+                      </div>
+                      @if (day.entryTime && day.exitTime) {
+                        <div class="text-xs text-gray-400">
+                          {{ day.entryTime }} - {{ day.exitTime }}
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              </div>
+            } @else {
+              <p class="text-xs text-gray-400 mt-3">
+                El empleado no tiene horas extras acumuladas este mes. Las horas extras se generan cuando se trabaja más de 8 horas en un día.
+              </p>
             }
             }
           </div>
@@ -1361,22 +1385,35 @@ interface CompensatoryRequest {
                 }
               </p>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Fecha de Inicio</label
-              >
-              <p class="text-white">
-                {{ selectedCompensatoryRequest()!.date_from | date : 'dd/MM/yyyy' }}
-              </p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Fecha de Fin</label
-              >
-              <p class="text-white">
-                {{ selectedCompensatoryRequest()!.date_to | date : 'dd/MM/yyyy' }}
-              </p>
-            </div>
+            @let dateFrom = selectedCompensatoryRequest()!.date_from | date : 'dd/MM/yyyy';
+            @let dateTo = selectedCompensatoryRequest()!.date_to | date : 'dd/MM/yyyy';
+            @if (dateFrom === dateTo) {
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Fecha de Inicio y Fin</label
+                >
+                <p class="text-white">
+                  {{ dateFrom }}
+                </p>
+              </div>
+            } @else {
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Fecha de Inicio</label
+                >
+                <p class="text-white">
+                  {{ dateFrom }}
+                </p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Fecha de Fin</label
+                >
+                <p class="text-white">
+                  {{ dateTo }}
+                </p>
+              </div>
+            }
             @if (selectedCompensatoryRequest()!.compensatory_type === 'hours') {
               @let timeRange = getCompensatoryTimeRange(selectedCompensatoryRequest()!);
               @if (timeRange) {
@@ -2016,6 +2053,15 @@ export class HRDisabilitiesComponent {
   public isLoadingAuditHistory = signal(false);
   public employeeOvertimeHours = signal<number>(0);
   public isLoadingOvertimeHours = signal<boolean>(false);
+  public employeeOvertimeDays = signal<
+    Array<{
+      day: string;
+      overtimeHours: number;
+      entryTime?: string;
+      exitTime?: string;
+      totalHours?: number;
+    }>
+  >([]);
   public showAuditHistoryDialog = signal(false);
   public allAuditHistory = signal<TimeoffAuditLog[]>([]);
   public isLoadingAllAuditHistory = signal(false);
@@ -2147,6 +2193,15 @@ export class HRDisabilitiesComponent {
       return `${wholeHours}h`;
     } else {
       return `${wholeHours}h ${minutes}m`;
+    }
+  }
+
+  public formatDate(dateString: string): string {
+    try {
+      const date = new Date(dateString + 'T00:00:00');
+      return format(date, 'dd/MM/yyyy');
+    } catch (error) {
+      return dateString;
     }
   }
 
@@ -3255,6 +3310,7 @@ export class HRDisabilitiesComponent {
       const companyId = this.organizationService.getCurrentCompanyId();
       if (!companyId) {
         this.employeeOvertimeHours.set(0);
+        this.employeeOvertimeDays.set([]);
         return;
       }
 
@@ -3284,9 +3340,14 @@ export class HRDisabilitiesComponent {
       const processedLogs = this.processTimelogsForOvertime(timelogs);
       const totalHours = this.calculateTotalOvertimeHours(processedLogs);
       this.employeeOvertimeHours.set(totalHours);
+
+      // Guardar días con horas extras para mostrar
+      const overtimeDays = this.extractOvertimeDays(processedLogs);
+      this.employeeOvertimeDays.set(overtimeDays);
     } catch (error) {
       console.error('Error loading overtime hours:', error);
       this.employeeOvertimeHours.set(0);
+      this.employeeOvertimeDays.set([]);
     } finally {
       this.isLoadingOvertimeHours.set(false);
     }
@@ -3371,6 +3432,70 @@ export class HRDisabilitiesComponent {
     });
 
     return totalOvertimeMinutes / 60;
+  }
+
+  // Extraer días con horas extras con información detallada
+  private extractOvertimeDays(logs: any[]): Array<{
+    day: string;
+    overtimeHours: number;
+    entryTime?: string;
+    exitTime?: string;
+    totalHours?: number;
+  }> {
+    const overtimeDays: Array<{
+      day: string;
+      overtimeHours: number;
+      entryTime?: string;
+      exitTime?: string;
+      totalHours?: number;
+    }> = [];
+
+    logs.forEach((log) => {
+      if (!log.entry || !log.exit) return;
+
+      const entryDate = new Date(log.entry.date);
+      const exitDate = new Date(log.exit.date);
+
+      if (isNaN(entryDate.getTime()) || isNaN(exitDate.getTime())) return;
+
+      const totalMinutes = differenceInMinutes(exitDate, entryDate);
+      const lunchTime =
+        log.lunch_start && log.lunch_end
+          ? differenceInMinutes(
+              new Date(log.lunch_end.date),
+              new Date(log.lunch_start.date)
+            )
+          : 0;
+
+      // Calcular horas extras: más de 9 horas totales (8 horas + 1 hora de almuerzo)
+      const requiredTotalMinutes = 540;
+      const overtimeByTotalTime =
+        totalMinutes > requiredTotalMinutes
+          ? totalMinutes - requiredTotalMinutes
+          : 0;
+
+      // Si el almuerzo excede 60 minutos, ese tiempo extra NO es trabajo y debe restarse de las horas extras
+      const lunchExceededMinutes = lunchTime > 60 ? lunchTime - 60 : 0;
+
+      // RESTAR el exceso de almuerzo de las horas extras (porque ese tiempo no es trabajo)
+      const dayOvertimeMinutes = Math.max(
+        0,
+        overtimeByTotalTime - lunchExceededMinutes
+      );
+
+      // Solo agregar días con horas extras > 0
+      if (dayOvertimeMinutes > 0) {
+        overtimeDays.push({
+          day: log.day,
+          overtimeHours: dayOvertimeMinutes / 60,
+          entryTime: format(entryDate, 'HH:mm'),
+          exitTime: format(exitDate, 'HH:mm'),
+          totalHours: totalMinutes / 60,
+        });
+      }
+    });
+
+    return overtimeDays;
   }
 
   public approveCompensatoryRequest(request: CompensatoryRequest): void {
