@@ -1674,7 +1674,8 @@ import { EmployeesStore } from '../stores/employees.store';
                     [(ngModel)]="compensatoryDate"
                     appendTo="body"
                     class="w-full"
-                    [minDate]="today"
+                    [minDate]="minPastDate"
+                    [maxDate]="maxFutureDate"
                     placeholder="Selecciona la fecha"
                   />
                 </div>
@@ -1716,7 +1717,8 @@ import { EmployeesStore } from '../stores/employees.store';
                     [(ngModel)]="compensatoryStartDate"
                     appendTo="body"
                     class="w-full"
-                    [minDate]="today"
+                    [minDate]="minPastDate"
+                    [maxDate]="maxFutureDate"
                     placeholder="Selecciona fecha inicio"
                   />
                 </div>
@@ -1728,7 +1730,8 @@ import { EmployeesStore } from '../stores/employees.store';
                     [(ngModel)]="compensatoryEndDate"
                     appendTo="body"
                     class="w-full"
-                    [minDate]="compensatoryStartDate() || today"
+                    [minDate]="compensatoryStartDate() || minPastDate"
+                    [maxDate]="maxFutureDate"
                     placeholder="Selecciona fecha fin"
                   />
                 </div>
@@ -4546,9 +4549,27 @@ export class EmployeePortalComponent {
   public manualOvertimeDates = signal<Date[]>([]); // Fechas manuales de horas extra ingresadas por el empleado
   public newOvertimeDate = signal<Date | null>(null); // Fecha temporal para agregar
 
+  // Constantes de validación para tiempo compensatorio
+  private readonly MAX_FUTURE_DAYS = 90; // Máximo 90 días en el futuro
+  private readonly MAX_PAST_DAYS = 30; // Máximo 30 días en el pasado
+  private readonly MAX_CONSECUTIVE_DAYS = 7; // Máximo 7 días consecutivos
+
   // Propiedad para obtener la fecha actual (para usar en templates)
   public get today(): Date {
     return new Date();
+  }
+
+  // Propiedades computadas para límites de fechas
+  public get maxFutureDate(): Date {
+    const date = new Date();
+    date.setDate(date.getDate() + this.MAX_FUTURE_DAYS);
+    return date;
+  }
+
+  public get minPastDate(): Date {
+    const date = new Date();
+    date.setDate(date.getDate() - this.MAX_PAST_DAYS);
+    return date;
   }
 
   // Métodos helper para manejar selección de días
@@ -5181,9 +5202,86 @@ export class EmployeePortalComponent {
       return;
     }
 
+    const type = this.compensatoryType();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Validaciones de fechas
+    if (type === 'hours') {
+      const selectedDate = this.compensatoryDate();
+      if (selectedDate) {
+        const selected = new Date(selectedDate);
+        selected.setHours(0, 0, 0, 0);
+        
+        const daysDiff = Math.ceil((selected.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (daysDiff > this.MAX_FUTURE_DAYS) {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Fecha inválida',
+            detail: `No puedes solicitar tiempo compensatorio para más de ${this.MAX_FUTURE_DAYS} días en el futuro`,
+          });
+          return;
+        }
+        
+        if (daysDiff < -this.MAX_PAST_DAYS) {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Fecha inválida',
+            detail: `No puedes solicitar tiempo compensatorio para más de ${this.MAX_PAST_DAYS} días en el pasado`,
+          });
+          return;
+        }
+      }
+    } else {
+      // Validación para días
+      const startDate = this.compensatoryStartDate();
+      const endDate = this.compensatoryEndDate();
+      
+      if (startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        start.setHours(0, 0, 0, 0);
+        end.setHours(0, 0, 0, 0);
+        
+        // Validar que start <= end
+        if (start > end) {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Fechas inválidas',
+            detail: 'La fecha de inicio debe ser anterior o igual a la fecha de fin',
+          });
+          return;
+        }
+        
+        // Validar límite de días futuros
+        const daysDiff = Math.ceil((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+        
+        if (daysDiff > this.MAX_FUTURE_DAYS) {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Fecha inválida',
+            detail: `La fecha final no puede ser más de ${this.MAX_FUTURE_DAYS} días en el futuro`,
+          });
+          return;
+        }
+        
+        // Validar rango máximo de días consecutivos
+        const rangeDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        
+        if (rangeDays > this.MAX_CONSECUTIVE_DAYS) {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Rango inválido',
+            detail: `No puedes solicitar más de ${this.MAX_CONSECUTIVE_DAYS} días consecutivos de tiempo compensatorio`,
+          });
+          return;
+        }
+      }
+    }
+
     this.submittingCompensatory.set(true);
 
-    const type = this.compensatoryType();
     const amount = this.compensatoryAmount();
 
     // ID del tipo de timeoff "Compensatorio"

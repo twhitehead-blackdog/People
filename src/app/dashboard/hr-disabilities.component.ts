@@ -9,7 +9,12 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { differenceInMinutes, format, startOfMonth, endOfMonth, subDays, addDays } from 'date-fns';
+import {
+  differenceInMinutes,
+  endOfMonth,
+  format,
+  startOfMonth,
+} from 'date-fns';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { CalendarModule } from 'primeng/calendar';
@@ -30,7 +35,12 @@ import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
+import { utils, writeFile } from 'xlsx';
 import { OrganizationService } from '../services/organization.service';
+import {
+  TimeoffAuditLog,
+  TimeoffAuditService,
+} from '../services/timeoff-audit.service';
 import { DashboardStore } from '../stores/dashboard.store';
 
 interface Disability {
@@ -127,8 +137,18 @@ interface CompensatoryRequest {
             </div>
             <div class="flex items-center gap-2 flex-shrink-0">
               <p-button
+                icon="pi pi-shield"
+                [label]="''"
+                [outlined]="true"
+                severity="secondary"
+                size="small"
+                (onClick)="openAuditHistoryDialog()"
+                pTooltip="Ver historial de auditoría completo"
+                tooltipPosition="bottom"
+              />
+              <p-button
                 icon="pi pi-download"
-                [label]="'Exportar'"
+                [label]="''"
                 [outlined]="true"
                 severity="secondary"
                 size="small"
@@ -139,7 +159,7 @@ interface CompensatoryRequest {
               />
               <p-button
                 icon="pi pi-refresh"
-                [label]="'Actualizar'"
+                [label]="''"
                 [outlined]="true"
                 severity="secondary"
                 size="small"
@@ -1191,11 +1211,29 @@ interface CompensatoryRequest {
       [(visible)]="showCompensatoryDetailsDialog"
       [modal]="true"
       [style]="{ width: '90vw', maxWidth: '800px' }"
-      [header]="'Detalles de Solicitud de Tiempo Compensatorio'"
       [draggable]="false"
       [resizable]="false"
       [dismissableMask]="true"
     >
+      <ng-template pTemplate="header">
+        <div class="flex items-center justify-between w-full">
+          <span class="text-lg font-semibold text-white">Detalles de Solicitud de Tiempo Compensatorio</span>
+          <div class="flex items-center gap-2">
+            <p-button
+              icon="pi pi-history"
+              [rounded]="true"
+              [text]="true"
+              severity="secondary"
+              (onClick)="showAuditSidebar.set(!showAuditSidebar())"
+              [class.bg-cyan-500/20]="showAuditSidebar()"
+              [class.text-cyan-400]="showAuditSidebar()"
+              pTooltip="Ver historial de cambios"
+              tooltipPosition="left"
+              size="small"
+            />
+          </div>
+        </div>
+      </ng-template>
       @if (selectedCompensatoryRequest()) {
       <div class="space-y-4 pt-4">
         <!-- Información del Empleado -->
@@ -1269,7 +1307,7 @@ interface CompensatoryRequest {
           </div>
           @if (employeeOvertimeHours() === 0) {
           <p class="text-xs text-gray-400 mt-3">
-            El empleado no tiene horas extras acumuladas este mes. Las horas extras se generan cuando se trabaja más de 9 horas en un día.
+            El empleado no tiene horas extras acumuladas este mes. Las horas extras se generan cuando se trabaja más de 8 horas en un día.
           </p>
           }
           }
@@ -1455,13 +1493,209 @@ interface CompensatoryRequest {
         }
       </div>
       }
+
+      <!-- Panel lateral de historial (deslizable desde la derecha) -->
+      <div 
+        class="fixed bg-neutral-900 border-l border-neutral-700 shadow-2xl z-[1200] transition-all duration-500 ease-out"
+        [style.width]="'320px'"
+        [style.max-width]="'30vw'"
+        [style.top]="'50%'"
+        [style.left]="showAuditSidebar() ? 'calc(50% + 400px)' : '50%'"
+        [style.transform]="showAuditSidebar() ? 'translateY(-50%) translateX(0) scale(1)' : 'translateY(-50%) translateX(0) scale(0.8)'"
+        [style.opacity]="showAuditSidebar() ? '1' : '0'"
+        [style.max-height]="'90vh'"
+        [style.height]="'664px'"
+        [style.pointer-events]="showAuditSidebar() ? 'auto' : 'none'"
+      >
+        <div class="flex flex-col h-full">
+          <!-- Header del panel lateral -->
+          <div class="p-4 border-b border-neutral-700 bg-neutral-800 flex items-center justify-between">
+            <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+              <i class="pi pi-history text-cyan-400"></i>
+              Historial de Cambios
+            </h3>
+            <p-button
+              icon="pi pi-times"
+              [rounded]="true"
+              [text]="true"
+              severity="secondary"
+              (onClick)="showAuditSidebar.set(false)"
+              size="small"
+            />
+          </div>
+
+          <!-- Contenido del historial -->
+          <div class="flex-1 overflow-y-auto p-4">
+            @if (isLoadingAuditHistory()) {
+            <div class="flex items-center justify-center gap-2 text-gray-400 py-8">
+              <i class="pi pi-spin pi-spinner"></i>
+              <span class="text-sm">Cargando historial...</span>
+            </div>
+            } @else if (auditHistory().length === 0) {
+            <div class="text-center py-8 text-gray-400">
+              <i class="pi pi-info-circle text-4xl mb-4"></i>
+              <p class="text-sm">No hay historial de cambios disponible</p>
+            </div>
+            } @else {
+            <div class="space-y-3">
+              @for (log of auditHistory(); track log.id) {
+              @let isExpanded = expandedAuditItems().has(log.id);
+              <div class="rounded-lg bg-gradient-to-br from-neutral-800/80 to-neutral-800/50 border border-neutral-700/70 overflow-hidden transition-all hover:border-cyan-500/30 shadow-lg">
+                <!-- Contenido siempre visible (mejorado) -->
+                <div class="p-4 space-y-3">
+                  <!-- Header con usuario y acción -->
+                  <div class="flex items-start justify-between gap-3">
+                    <div class="flex items-start gap-3 flex-1 min-w-0">
+                      <div [class]="'w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ' + getActionColor(log.action).replace('text-', 'bg-').replace('-400', '-500/20')">
+                        <i [class]="'pi ' + getActionIcon(log.action) + ' ' + getActionColor(log.action) + ' text-lg'"></i>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="text-white font-semibold text-sm mb-1">
+                          {{ log.changed_by_employee ? (log.changed_by_employee.first_name + ' ' + log.changed_by_employee.father_name) : 'Usuario desconocido' }}
+                        </div>
+                        <div class="text-gray-400 text-xs mb-2">
+                          {{ getActionLabel(log.action) }}
+                        </div>
+                        <div class="text-gray-500 text-xs flex items-center gap-1">
+                          <i class="pi pi-calendar text-[10px]"></i>
+                          {{ log.changed_at | date: 'dd/MM/yyyy HH:mm' }}
+                        </div>
+                      </div>
+                    </div>
+                    <!-- Botón para colapsar/expandir -->
+                    <button
+                      type="button"
+                      (click)="toggleAuditItem(log.id)"
+                      class="flex-shrink-0 p-1.5 rounded hover:bg-neutral-700 transition-colors"
+                      [class.bg-neutral-700]="isExpanded"
+                    >
+                      <i 
+                        [class]="'pi transition-transform duration-200 text-gray-400 text-xs ' + (isExpanded ? 'pi-chevron-up' : 'pi-chevron-down')"
+                      ></i>
+                    </button>
+                  </div>
+
+                  <!-- Contenido expandible con más detalles -->
+                  @if (isExpanded) {
+                  <div class="pt-3 mt-3 border-t border-neutral-700/50 space-y-3 animate-fade-in">
+                    @if (log.old_status && log.new_status) {
+                    <div class="p-3 bg-neutral-900/50 rounded-lg border border-neutral-700/50">
+                      <div class="text-xs text-gray-400 mb-2 font-medium">Cambio de Estado</div>
+                      <div class="flex items-center gap-2">
+                        <span class="px-3 py-1.5 rounded-lg bg-yellow-500/20 text-yellow-400 text-xs font-semibold border border-yellow-500/30">
+                          {{ getStatusLabel(log.old_status) }}
+                        </span>
+                        <i class="pi pi-arrow-right text-gray-500 text-sm"></i>
+                        <span class="px-3 py-1.5 rounded-lg bg-green-500/20 text-green-400 text-xs font-semibold border border-green-500/30">
+                          {{ getStatusLabel(log.new_status) }}
+                        </span>
+                      </div>
+                    </div>
+                    }
+                    @if (log.comment) {
+                    <div class="p-3 bg-cyan-500/10 rounded-lg border-l-4 border-cyan-400">
+                      <div class="text-xs text-cyan-300 mb-1.5 font-medium flex items-center gap-1">
+                        <i class="pi pi-comment text-[10px]"></i>
+                        Comentario
+                      </div>
+                      <p class="text-gray-200 text-xs leading-relaxed italic">
+                        {{ log.comment }}
+                      </p>
+                    </div>
+                    }
+                  </div>
+                  }
+                </div>
+              </div>
+              }
+            </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <!-- Overlay para cerrar el panel al hacer clic fuera -->
+      @if (showAuditSidebar()) {
+      <div 
+        class="fixed inset-0 bg-black/50 z-[1199]"
+        (click)="showAuditSidebar.set(false)"
+      ></div>
+      }
+    </p-dialog>
+
+    <!-- Dialog de Historial de Auditoría Completo -->
+    <p-dialog
+      [(visible)]="showAuditHistoryDialog"
+      [modal]="true"
+      [style]="{ width: '90vw', maxWidth: '1000px' }"
+      [header]="'Historial de Auditoría - Tiempo Compensatorio'"
+      [draggable]="false"
+      [resizable]="false"
+      [dismissableMask]="true"
+    >
+      <div class="space-y-4 pt-4">
+        @if (isLoadingAllAuditHistory()) {
+        <div class="flex items-center justify-center gap-2 text-gray-400 py-8">
+          <i class="pi pi-spin pi-spinner"></i>
+          <span>Cargando historial de auditoría...</span>
+        </div>
+        } @else if (allAuditHistory().length === 0) {
+        <div class="text-center py-8 text-gray-400">
+          <i class="pi pi-info-circle text-4xl mb-4"></i>
+          <p>No hay registros de auditoría disponibles</p>
+        </div>
+        } @else {
+        <div class="space-y-3 max-h-[60vh] overflow-y-auto">
+          @for (log of allAuditHistory(); track log.id) {
+          <div class="p-4 rounded-lg bg-neutral-800/50 border border-neutral-700 hover:bg-neutral-800 transition-colors">
+            <div class="flex items-start gap-3">
+              <div [class]="'w-10 h-10 rounded-full flex items-center justify-center ' + getActionColor(log.action) + ' bg-opacity-20'">
+                <i [class]="'pi ' + getActionIcon(log.action) + ' text-lg'"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between mb-2">
+                  <div>
+                    <div class="text-white font-semibold">
+                      {{ log.changed_by_employee ? (log.changed_by_employee.first_name + ' ' + log.changed_by_employee.father_name) : 'Usuario desconocido' }}
+                    </div>
+                    <div class="text-sm text-gray-400">
+                      {{ getActionLabel(log.action) }}
+                    </div>
+                  </div>
+                  <div class="text-xs text-gray-500">
+                    {{ log.changed_at | date: 'dd/MM/yyyy HH:mm' }}
+                  </div>
+                </div>
+                @if (log.comment) {
+                <div class="text-sm text-gray-300 mt-2 p-2 bg-neutral-900/50 rounded border-l-2 border-cyan-400">
+                  {{ log.comment }}
+                </div>
+                }
+                @if (log.old_status && log.new_status) {
+                <div class="flex items-center gap-2 mt-2 text-xs">
+                  <span class="text-gray-400">Estado:</span>
+                  <span class="px-2 py-1 rounded bg-yellow-500/20 text-yellow-400">{{ log.old_status }}</span>
+                  <i class="pi pi-arrow-right text-gray-500"></i>
+                  <span class="px-2 py-1 rounded bg-green-500/20 text-green-400">{{ log.new_status }}</span>
+                </div>
+                }
+                <div class="text-xs text-gray-500 mt-2">
+                  Solicitud ID: <span class="font-mono text-gray-400">{{ log.timeoff_id.substring(0, 8) }}...</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          }
+        </div>
+        }
+      </div>
       <ng-template #footer>
         <div class="flex justify-end gap-2">
           <p-button
             label="Cerrar"
             icon="pi pi-times"
             severity="secondary"
-            (onClick)="showCompensatoryDetailsDialog.set(false)"
+            (onClick)="showAuditHistoryDialog.set(false)"
             [rounded]="true"
           />
         </div>
@@ -1679,9 +1913,12 @@ export class HRDisabilitiesComponent {
   private organizationService = inject(OrganizationService);
   private dashboardStore = inject(DashboardStore);
   private router = inject(Router);
-  
+  private auditService = inject(TimeoffAuditService);
+
   // Método para navegar a diferentes pestañas
-  public navigateToTab(tab: 'disabilities' | 'compensatory' | 'documents' | 'suggestions'): void {
+  public navigateToTab(
+    tab: 'disabilities' | 'compensatory' | 'documents' | 'suggestions'
+  ): void {
     if (tab === 'documents') {
       // Navegar a la ruta de solicitudes de documentos (si existe) o mostrar contenido embebido
       this.activeTab.set('documents');
@@ -1718,9 +1955,11 @@ export class HRDisabilitiesComponent {
   public searchText = signal('');
   public selectedStatus = signal<string | null>(null);
   public dateRange = signal<Date[] | null>(null);
-  
+
   // Nuevas señales para el dashboard mejorado
-  public activeTab = signal<'disabilities' | 'compensatory' | 'documents' | 'suggestions'>('disabilities');
+  public activeTab = signal<
+    'disabilities' | 'compensatory' | 'documents' | 'suggestions'
+  >('disabilities');
   public showFilters = signal(false);
   public showCompensatoryFilters = signal(false);
   public globalSearchText = signal('');
@@ -1731,9 +1970,16 @@ export class HRDisabilitiesComponent {
   public selectedDisability = signal<Disability | null>(null);
   public showCompensatoryDetailsDialog = signal(false);
   public selectedCompensatoryRequest = signal<CompensatoryRequest | null>(null);
+  public auditHistory = signal<TimeoffAuditLog[]>([]);
+  public isLoadingAuditHistory = signal(false);
   public employeeOvertimeHours = signal<number>(0);
   public isLoadingOvertimeHours = signal<boolean>(false);
-  
+  public showAuditHistoryDialog = signal(false);
+  public allAuditHistory = signal<TimeoffAuditLog[]>([]);
+  public isLoadingAllAuditHistory = signal(false);
+  public expandedAuditItems = signal<Set<string>>(new Set());
+  public showAuditSidebar = signal(false);
+
   // Dialog de rechazo
   public showRejectionDialog = signal(false);
   public rejectionComment = signal('');
@@ -1836,12 +2082,12 @@ export class HRDisabilitiesComponent {
   ): number {
     const startDate = new Date(dateFrom);
     const endDate = new Date(dateTo);
-    
+
     // Validar que las fechas sean válidas
     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
       return 0;
     }
-    
+
     const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
     const diffHours = diffTime / (1000 * 60 * 60);
     return Math.round(diffHours * 100) / 100; // Redondear a 2 decimales
@@ -1849,10 +2095,10 @@ export class HRDisabilitiesComponent {
 
   public formatHoursMinutes(hours: number): string {
     if (hours === 0) return '0m';
-    
+
     const wholeHours = Math.floor(hours);
     const minutes = Math.round((hours - wholeHours) * 60);
-    
+
     if (wholeHours === 0) {
       return `${minutes}m`;
     } else if (minutes === 0) {
@@ -1868,11 +2114,11 @@ export class HRDisabilitiesComponent {
   } {
     // Primero intentar determinar si es días u horas desde las notas o el campo compensatory_type
     let isDays = false;
-    
+
     // 1. Intentar desde compensatory_type si existe
     if (data.compensatory_type) {
       isDays = data.compensatory_type === 'days';
-    } 
+    }
     // 2. Intentar desde las notas
     else if (data.notes) {
       const notesArray = Array.isArray(data.notes)
@@ -1880,30 +2126,34 @@ export class HRDisabilitiesComponent {
         : typeof data.notes === 'string'
         ? [data.notes]
         : [];
-      
+
       // Buscar nota que contenga "Tipo:"
       const tipoNote = notesArray.find(
         (note: any) => typeof note === 'string' && note.includes('Tipo:')
       );
-      
+
       if (tipoNote) {
         isDays = tipoNote.includes('Días');
-      } 
+      }
       // 3. Si no hay nota de tipo, determinar por el formato de las fechas y la diferencia
       else if (data.date_from && data.date_to) {
         const dateFromStr = String(data.date_from);
         const dateToStr = String(data.date_to);
-        
+
         // Si las fechas incluyen hora (formato datetime), probablemente es por horas
-        const hasTimeInFrom = dateFromStr.includes(' ') && dateFromStr.includes(':');
+        const hasTimeInFrom =
+          dateFromStr.includes(' ') && dateFromStr.includes(':');
         const hasTimeInTo = dateToStr.includes(' ') && dateToStr.includes(':');
-        
+
         if (hasTimeInFrom && hasTimeInTo) {
           // Tiene hora, es por horas
           isDays = false;
         } else {
           // No tiene hora, calcular diferencia
-          const hours = this.calculateHoursFromDates(data.date_from, data.date_to);
+          const hours = this.calculateHoursFromDates(
+            data.date_from,
+            data.date_to
+          );
           const days = hours / 24;
           // Si la diferencia es un número entero de días (tolerancia pequeña)
           isDays = days >= 1 && Math.abs(days - Math.round(days)) < 0.1;
@@ -1914,14 +2164,18 @@ export class HRDisabilitiesComponent {
     else if (data.date_from && data.date_to) {
       const dateFromStr = String(data.date_from);
       const dateToStr = String(data.date_to);
-      
-      const hasTimeInFrom = dateFromStr.includes(' ') && dateFromStr.includes(':');
+
+      const hasTimeInFrom =
+        dateFromStr.includes(' ') && dateFromStr.includes(':');
       const hasTimeInTo = dateToStr.includes(' ') && dateToStr.includes(':');
-      
+
       if (hasTimeInFrom && hasTimeInTo) {
         isDays = false;
       } else {
-        const hours = this.calculateHoursFromDates(data.date_from, data.date_to);
+        const hours = this.calculateHoursFromDates(
+          data.date_from,
+          data.date_to
+        );
         const days = hours / 24;
         isDays = days >= 1 && Math.abs(days - Math.round(days)) < 0.1;
       }
@@ -1941,7 +2195,7 @@ export class HRDisabilitiesComponent {
       let hours = 0;
       if (data.date_from && data.date_to) {
         hours = this.calculateHoursFromDates(data.date_from, data.date_to);
-        
+
         // Si el resultado es muy grande (más de 24 horas), probablemente es un error
         // y debería ser días en lugar de horas
         if (hours >= 24 && hours % 24 < 0.1) {
@@ -1954,31 +2208,39 @@ export class HRDisabilitiesComponent {
       } else if (data.compensatory_amount) {
         hours = data.compensatory_amount;
       }
-      
+
       // Si no hay horas calculadas y no hay datos, devolver 0 para que se muestre "-"
-      if (hours === 0 && !data.date_from && !data.date_to && !data.hours && !data.compensatory_amount) {
+      if (
+        hours === 0 &&
+        !data.date_from &&
+        !data.date_to &&
+        !data.hours &&
+        !data.compensatory_amount
+      ) {
         return { value: 0, isDays: false };
       }
-      
+
       return { value: hours > 0 ? hours : 0, isDays: false };
     }
-    
+
     // Si no se pudo determinar el tipo, intentar devolver algo por defecto
     const amount = data.compensatory_amount ?? 0;
     if (amount > 0) {
       return { value: amount, isDays: false };
     }
-    
+
     // Si no hay datos, devolver 0 para que se muestre "-"
     return { value: 0, isDays: false };
   }
 
-  public getCompensatoryTypeFromNotes(data: CompensatoryRequest): 'days' | 'hours' | null {
+  public getCompensatoryTypeFromNotes(
+    data: CompensatoryRequest
+  ): 'days' | 'hours' | null {
     // Primero intentar desde compensatory_type si existe
     if (data.compensatory_type) {
       return data.compensatory_type;
     }
-    
+
     // Intentar desde las notas
     if (data.notes) {
       const notesArray = Array.isArray(data.notes)
@@ -1986,12 +2248,12 @@ export class HRDisabilitiesComponent {
         : typeof data.notes === 'string'
         ? [data.notes]
         : [];
-      
+
       // Buscar nota que contenga "Tipo:"
       const tipoNote = notesArray.find(
         (note: any) => typeof note === 'string' && note.includes('Tipo:')
       );
-      
+
       if (tipoNote) {
         if (tipoNote.includes('Días')) {
           return 'days';
@@ -2000,31 +2262,34 @@ export class HRDisabilitiesComponent {
         }
       }
     }
-    
+
     // Si no se encuentra, intentar determinar por formato de fechas
     if (data.date_from && data.date_to) {
       const dateFromStr = String(data.date_from);
       const dateToStr = String(data.date_to);
-      
-      const hasTimeInFrom = dateFromStr.includes(' ') && dateFromStr.includes(':');
+
+      const hasTimeInFrom =
+        dateFromStr.includes(' ') && dateFromStr.includes(':');
       const hasTimeInTo = dateToStr.includes(' ') && dateToStr.includes(':');
-      
+
       if (hasTimeInFrom && hasTimeInTo) {
         return 'hours';
       } else {
         return 'days';
       }
     }
-    
+
     return null;
   }
 
-  public getCompensatoryReasonFromNotes(data: CompensatoryRequest): string | null {
+  public getCompensatoryReasonFromNotes(
+    data: CompensatoryRequest
+  ): string | null {
     // Primero intentar desde reason si existe
     if (data.reason) {
       return data.reason;
     }
-    
+
     // Intentar desde las notas
     if (data.notes) {
       const notesArray = Array.isArray(data.notes)
@@ -2032,12 +2297,12 @@ export class HRDisabilitiesComponent {
         : typeof data.notes === 'string'
         ? [data.notes]
         : [];
-      
+
       // Buscar nota que contenga "Motivo:"
       const motivoNote = notesArray.find(
         (note: any) => typeof note === 'string' && note.includes('Motivo:')
       );
-      
+
       if (motivoNote) {
         // Extraer el motivo después de "Motivo:"
         const match = motivoNote.match(/Motivo:\s*(.+)/);
@@ -2046,17 +2311,8 @@ export class HRDisabilitiesComponent {
         }
       }
     }
-    
-    return null;
-  }
 
-  public getStatusLabel(status: string): string {
-    const labels: Record<string, string> = {
-      pending: 'Pendiente',
-      approved: 'Aprobada',
-      rejected: 'Rechazada',
-    };
-    return labels[status] || status;
+    return null;
   }
 
   public getStatusSeverity(
@@ -2128,12 +2384,15 @@ export class HRDisabilitiesComponent {
 
   public isAllSelected(): boolean {
     const filtered = this.filteredDisabilities();
-    return filtered.length > 0 && filtered.every(d => this.selectedDisabilities().includes(d.id));
+    return (
+      filtered.length > 0 &&
+      filtered.every((d) => this.selectedDisabilities().includes(d.id))
+    );
   }
 
   public toggleSelectAll(selectAll: boolean): void {
     if (selectAll) {
-      const allIds = this.filteredDisabilities().map(d => d.id);
+      const allIds = this.filteredDisabilities().map((d) => d.id);
       this.selectedDisabilities.set([...allIds]);
     } else {
       this.selectedDisabilities.set([]);
@@ -2150,8 +2409,10 @@ export class HRDisabilitiesComponent {
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-success',
       accept: () => {
-        selected.forEach(id => {
-          const disability = this.disabilitiesApi.value()?.find(d => d.id === id);
+        selected.forEach((id) => {
+          const disability = this.disabilitiesApi
+            .value()
+            ?.find((d) => d.id === id);
           if (disability && disability.status === 'pending') {
             this.updateDisabilityStatus(id, 'approved');
           }
@@ -2176,8 +2437,10 @@ export class HRDisabilitiesComponent {
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger',
       accept: () => {
-        selected.forEach(id => {
-          const disability = this.disabilitiesApi.value()?.find(d => d.id === id);
+        selected.forEach((id) => {
+          const disability = this.disabilitiesApi
+            .value()
+            ?.find((d) => d.id === id);
           if (disability && disability.status === 'pending') {
             this.updateDisabilityStatus(id, 'rejected');
           }
@@ -2192,13 +2455,176 @@ export class HRDisabilitiesComponent {
     });
   }
 
-  public exportData(): void {
-    // Implementar exportación a Excel/CSV
-    this.messageService.add({
-      severity: 'info',
-      summary: 'Exportación',
-      detail: 'Funcionalidad de exportación próximamente disponible',
-    });
+  public async exportData(): Promise<void> {
+    try {
+      const requests = this.filteredCompensatoryRequests();
+
+      if (requests.length === 0) {
+        this.messageService.add({
+          severity: 'warn',
+          summary: 'Sin datos',
+          detail: 'No hay solicitudes para exportar con los filtros aplicados',
+        });
+        return;
+      }
+
+      // Preparar datos para Excel
+      const data = await Promise.all(
+        requests.map(async (req) => {
+          const employeeName = this.getEmployeeName(req);
+          const employeeEmail = this.getEmployeeEmail(req);
+
+          // Obtener nombres de revisores y registradores
+          const reviewedByName = req.reviewed_by
+            ? await this.getEmployeeNameById(req.reviewed_by)
+            : 'N/A';
+          const registeredByName = req.registered_by
+            ? await this.getEmployeeNameById(req.registered_by)
+            : 'N/A';
+
+          return {
+            'ID Solicitud': req.id,
+            'Fecha Solicitud': req.created_at
+              ? format(new Date(req.created_at), 'dd/MM/yyyy HH:mm')
+              : '',
+            Empleado: employeeName,
+            Email: employeeEmail,
+            Posición: req.employee?.position?.name || 'N/A',
+            Sucursal: req.employee?.branch?.name || 'N/A',
+            'Fecha Desde': req.date_from
+              ? format(new Date(req.date_from), 'dd/MM/yyyy')
+              : '',
+            'Fecha Hasta': req.date_to
+              ? format(new Date(req.date_to), 'dd/MM/yyyy')
+              : '',
+            Tipo: req.compensatory_type === 'hours' ? 'Horas' : 'Días',
+            Cantidad: req.compensatory_amount || req.hours || 0,
+            'Horas Totales': req.hours || (req.compensatory_amount || 0) * 8,
+            Estado: this.getCompensatoryStatusLabel(req),
+            'Revisado Por': reviewedByName,
+            'Fecha Revisión': req.reviewed_at
+              ? format(new Date(req.reviewed_at), 'dd/MM/yyyy HH:mm')
+              : '',
+            'Registrado Por': registeredByName,
+            'Fecha Registro': req.registered_at
+              ? format(new Date(req.registered_at), 'dd/MM/yyyy HH:mm')
+              : '',
+            'Comentario Rechazo': req.rejection_comment || '',
+            Motivo: req.reason || '',
+            Notas: Array.isArray(req.notes)
+              ? req.notes.join('; ')
+              : req.notes || '',
+          };
+        })
+      );
+
+      // Crear hoja de datos
+      const ws = utils.json_to_sheet(data);
+      const wb = utils.book_new();
+      utils.book_append_sheet(wb, ws, 'Solicitudes');
+
+      // Ajustar ancho de columnas
+      const colWidths = [
+        { wch: 36 }, // ID
+        { wch: 18 }, // Fecha Solicitud
+        { wch: 25 }, // Empleado
+        { wch: 30 }, // Email
+        { wch: 20 }, // Posición
+        { wch: 20 }, // Sucursal
+        { wch: 12 }, // Fecha Desde
+        { wch: 12 }, // Fecha Hasta
+        { wch: 10 }, // Tipo
+        { wch: 10 }, // Cantidad
+        { wch: 12 }, // Horas Totales
+        { wch: 15 }, // Estado
+        { wch: 20 }, // Revisado Por
+        { wch: 18 }, // Fecha Revisión
+        { wch: 20 }, // Registrado Por
+        { wch: 18 }, // Fecha Registro
+        { wch: 30 }, // Comentario Rechazo
+        { wch: 30 }, // Motivo
+        { wch: 50 }, // Notas
+      ];
+      ws['!cols'] = colWidths;
+
+      // Crear hoja de resumen
+      const summaryData = [
+        ['Resumen de Exportación'],
+        ['Fecha Exportación', format(new Date(), 'dd/MM/yyyy HH:mm:ss')],
+        ['Total Solicitudes', requests.length],
+        ['Pendientes', this.compensatoryPendingCount()],
+        ['Aprobadas', this.compensatoryApprovedCount()],
+        ['Rechazadas', this.compensatoryRejectedCount()],
+        [''],
+        ['Filtros Aplicados'],
+        ['Búsqueda', this.compensatorySearchText() || 'Ninguna'],
+        [
+          'Estado',
+          this.compensatorySelectedStatus()
+            ? this.compensatoryStatusOptions.find(
+                (o) => o.value === this.compensatorySelectedStatus()
+              )?.label || 'Todos'
+            : 'Todos',
+        ],
+        [
+          'Rango Fechas',
+          this.compensatoryDateRange()
+            ? `${format(
+                this.compensatoryDateRange()![0],
+                'dd/MM/yyyy'
+              )} - ${format(this.compensatoryDateRange()![1], 'dd/MM/yyyy')}`
+            : 'Todos',
+        ],
+      ];
+
+      const summaryWs = utils.aoa_to_sheet(summaryData);
+      summaryWs['!cols'] = [{ wch: 25 }, { wch: 30 }];
+      utils.book_append_sheet(wb, summaryWs, 'Resumen');
+
+      // Generar nombre de archivo con timestamp
+      const fileName = `Tiempo_Compensatorio_${format(
+        new Date(),
+        'yyyy-MM-dd_HH-mm-ss'
+      )}.xlsx`;
+
+      // Descargar archivo
+      writeFile(wb, fileName);
+
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Exportación exitosa',
+        detail: `Se exportaron ${requests.length} solicitudes`,
+      });
+    } catch (error) {
+      console.error('Error exportando datos:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo exportar los datos',
+      });
+    }
+  }
+
+  private async getEmployeeNameById(employeeId: string): Promise<string> {
+    try {
+      const employee = await firstValueFrom(
+        this.http.get<any[]>(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
+          {
+            params: {
+              id: `eq.${employeeId}`,
+              select: 'first_name,father_name',
+            },
+          }
+        )
+      );
+      if (employee && employee[0]) {
+        return `${employee[0].first_name} ${employee[0].father_name}`;
+      }
+      return 'N/A';
+    } catch {
+      return 'N/A';
+    }
   }
 
   public hasActiveCompensatoryFilters(): boolean {
@@ -2410,6 +2836,141 @@ export class HRDisabilitiesComponent {
     this.selectedCompensatoryRequest.set(request);
     this.showCompensatoryDetailsDialog.set(true);
     this.loadEmployeeOvertimeHours(request.employee_id);
+    this.loadAuditHistory(request.id);
+  }
+
+  public loadAuditHistory(timeoffId: string): void {
+    this.isLoadingAuditHistory.set(true);
+    this.auditService.getAuditHistory(timeoffId).subscribe({
+      next: (history) => {
+        this.auditHistory.set(history);
+        // Expandir todos los elementos por defecto
+        const allIds = new Set(history.map((log) => log.id));
+        this.expandedAuditItems.set(allIds);
+        this.isLoadingAuditHistory.set(false);
+      },
+      error: (error) => {
+        console.error('Error cargando historial de auditoría:', error);
+        this.auditHistory.set([]);
+        this.isLoadingAuditHistory.set(false);
+      },
+    });
+  }
+
+  public openAuditHistoryDialog(): void {
+    this.showAuditHistoryDialog.set(true);
+    this.loadAllAuditHistory();
+  }
+
+  public loadAllAuditHistory(): void {
+    this.isLoadingAllAuditHistory.set(true);
+    const compensatoryTypeId = 'f2d92995-96a0-414f-b64a-9823db776745';
+
+    // Obtener todos los timeoffs compensatorios primero
+    this.http
+      .get<any[]>(`${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`, {
+        params: {
+          type_id: `eq.${compensatoryTypeId}`,
+          select: 'id',
+        },
+      })
+      .subscribe({
+        next: (timeoffs) => {
+          if (timeoffs.length === 0) {
+            this.allAuditHistory.set([]);
+            this.isLoadingAllAuditHistory.set(false);
+            return;
+          }
+
+          const timeoffIds = timeoffs.map((t) => t.id);
+
+          // Obtener todo el historial de auditoría para estos timeoffs
+          this.http
+            .get<TimeoffAuditLog[]>(
+              `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoff_audit_log`,
+              {
+                params: {
+                  timeoff_id: `in.(${timeoffIds.join(',')})`,
+                  select: `*,changed_by_employee:changed_by(id,first_name,father_name,work_email)`,
+                  order: 'changed_at.desc',
+                  limit: '1000', // Límite razonable
+                },
+              }
+            )
+            .subscribe({
+              next: (history) => {
+                this.allAuditHistory.set(history);
+                this.isLoadingAllAuditHistory.set(false);
+              },
+              error: (error) => {
+                console.error('Error cargando historial completo:', error);
+                this.allAuditHistory.set([]);
+                this.isLoadingAllAuditHistory.set(false);
+              },
+            });
+        },
+        error: (error) => {
+          console.error('Error obteniendo timeoffs:', error);
+          this.allAuditHistory.set([]);
+          this.isLoadingAllAuditHistory.set(false);
+        },
+      });
+  }
+
+  public getActionLabel(action: string): string {
+    const labels: Record<string, string> = {
+      created: 'creó la solicitud',
+      status_changed: 'cambió el estado',
+      approved: 'aprobó la solicitud',
+      rejected: 'rechazó la solicitud',
+      registered: 'registró la solicitud',
+      updated: 'actualizó la solicitud',
+    };
+    return labels[action] || action;
+  }
+
+  public getActionIcon(action: string): string {
+    const icons: Record<string, string> = {
+      created: 'pi-plus-circle',
+      status_changed: 'pi-sync',
+      approved: 'pi-check-circle',
+      rejected: 'pi-times-circle',
+      registered: 'pi-save',
+      updated: 'pi-pencil',
+    };
+    return icons[action] || 'pi-circle';
+  }
+
+  public getActionColor(action: string): string {
+    const colors: Record<string, string> = {
+      created: 'text-blue-400',
+      status_changed: 'text-yellow-400',
+      approved: 'text-green-400',
+      rejected: 'text-red-400',
+      registered: 'text-cyan-400',
+      updated: 'text-gray-400',
+    };
+    return colors[action] || 'text-gray-400';
+  }
+
+  public getStatusLabel(status: string): string {
+    const labels: Record<string, string> = {
+      pending: 'Pendiente',
+      approved: 'Aprobado',
+      rejected: 'Rechazado',
+      registered: 'Registrado',
+    };
+    return labels[status] || status;
+  }
+
+  public toggleAuditItem(logId: string): void {
+    const current = new Set(this.expandedAuditItems());
+    if (current.has(logId)) {
+      current.delete(logId);
+    } else {
+      current.add(logId);
+    }
+    this.expandedAuditItems.set(current);
   }
 
   // Helper para verificar si hay retraso
@@ -2432,22 +2993,27 @@ export class HRDisabilitiesComponent {
     if (!request.notes) return null;
 
     // Convertir notes a array si es string
-    const notesArray = Array.isArray(request.notes) 
-      ? request.notes 
-      : typeof request.notes === 'string' 
-        ? [request.notes] 
-        : [];
+    const notesArray = Array.isArray(request.notes)
+      ? request.notes
+      : typeof request.notes === 'string'
+      ? [request.notes]
+      : [];
 
     // Buscar la sección "--- Fechas donde trabajó horas extra ---"
-    const startIndex = notesArray.findIndex(note => 
-      typeof note === 'string' && note.includes('--- Fechas donde trabajó horas extra ---')
+    const startIndex = notesArray.findIndex(
+      (note) =>
+        typeof note === 'string' &&
+        note.includes('--- Fechas donde trabajó horas extra ---')
     );
 
     if (startIndex === -1) return null;
 
     // Extraer las líneas de detalle por fecha (después de "Detalle por fecha:")
-    const detailStartIndex = notesArray.findIndex((note, idx) => 
-      idx > startIndex && typeof note === 'string' && note.includes('Detalle por fecha:')
+    const detailStartIndex = notesArray.findIndex(
+      (note, idx) =>
+        idx > startIndex &&
+        typeof note === 'string' &&
+        note.includes('Detalle por fecha:')
     );
 
     if (detailStartIndex === -1) return null;
@@ -2466,10 +3032,12 @@ export class HRDisabilitiesComponent {
     for (let i = detailStartIndex + 1; i < notesArray.length; i++) {
       const note = notesArray[i];
       if (typeof note !== 'string') continue;
-      
+
       // Formato nuevo con delay: "dd/MM/yyyy: Entrada HH:mm - Salida HH:mm | Total: X.XXh (después de restar almuerzo y retraso) | Almuerzo: X.XXh | Retraso: X.XXh | Extra: X.XXh"
-      const matchWithDelay = note.match(/(\d{2}\/\d{2}\/\d{4}):\s*Entrada\s+(\d{2}:\d{2})\s+-\s+Salida\s+(\d{2}:\d{2})\s+\|\s+Total:\s+([\d.]+)h[^|]*\|\s+Almuerzo:\s+([\d.]+)h(?:\s+\|\s+Retraso:\s+([\d.]+)h)?\s+\|\s+Extra:\s+([\d.]+)h/);
-      
+      const matchWithDelay = note.match(
+        /(\d{2}\/\d{2}\/\d{4}):\s*Entrada\s+(\d{2}:\d{2})\s+-\s+Salida\s+(\d{2}:\d{2})\s+\|\s+Total:\s+([\d.]+)h[^|]*\|\s+Almuerzo:\s+([\d.]+)h(?:\s+\|\s+Retraso:\s+([\d.]+)h)?\s+\|\s+Extra:\s+([\d.]+)h/
+      );
+
       if (matchWithDelay) {
         overtimeDays.push({
           date: matchWithDelay[1],
@@ -2482,7 +3050,9 @@ export class HRDisabilitiesComponent {
         });
       } else {
         // Formato antiguo sin delay pero con almuerzo
-        const matchWithLunch = note.match(/(\d{2}\/\d{2}\/\d{4}):\s*Entrada\s+(\d{2}:\d{2})\s+-\s+Salida\s+(\d{2}:\d{2})\s+\|\s+Total:\s+([\d.]+)h\s+\|\s+Almuerzo:\s+([\d.]+)h\s+\|\s+Extra:\s+([\d.]+)h/);
+        const matchWithLunch = note.match(
+          /(\d{2}\/\d{2}\/\d{4}):\s*Entrada\s+(\d{2}:\d{2})\s+-\s+Salida\s+(\d{2}:\d{2})\s+\|\s+Total:\s+([\d.]+)h\s+\|\s+Almuerzo:\s+([\d.]+)h\s+\|\s+Extra:\s+([\d.]+)h/
+        );
         if (matchWithLunch) {
           overtimeDays.push({
             date: matchWithLunch[1],
@@ -2495,7 +3065,9 @@ export class HRDisabilitiesComponent {
           });
         } else {
           // Formato antiguo sin almuerzo (para compatibilidad)
-          const oldMatch = note.match(/(\d{2}\/\d{2}\/\d{4}):\s*Entrada\s+(\d{2}:\d{2})\s+-\s+Salida\s+(\d{2}:\d{2})\s+\|\s+Total:\s+([\d.]+)h\s+\|\s+Extra:\s+([\d.]+)h/);
+          const oldMatch = note.match(
+            /(\d{2}\/\d{2}\/\d{4}):\s*Entrada\s+(\d{2}:\d{2})\s+-\s+Salida\s+(\d{2}:\d{2})\s+\|\s+Total:\s+([\d.]+)h\s+\|\s+Extra:\s+([\d.]+)h/
+          );
           if (oldMatch) {
             overtimeDays.push({
               date: oldMatch[1],
@@ -2527,7 +3099,7 @@ export class HRDisabilitiesComponent {
       // Obtener timelogs del mes actual
       const startDate = startOfMonth(new Date());
       const endDate = endOfMonth(new Date());
-      
+
       const startDateStr = format(startDate, "yyyy-MM-dd'T'06:00:00");
       const endDateStr = format(endDate, "yyyy-MM-dd'T'06:00:00");
 
@@ -2567,16 +3139,28 @@ export class HRDisabilitiesComponent {
         if (!existing) {
           acc.push({
             day: x.day,
-            entry: x.type === 'entry' ? { date: new Date(x.created_at) } : undefined,
-            lunch_start: x.type === 'lunch_start' ? { date: new Date(x.created_at) } : undefined,
-            lunch_end: x.type === 'lunch_end' ? { date: new Date(x.created_at) } : undefined,
-            exit: x.type === 'exit' ? { date: new Date(x.created_at) } : undefined,
+            entry:
+              x.type === 'entry' ? { date: new Date(x.created_at) } : undefined,
+            lunch_start:
+              x.type === 'lunch_start'
+                ? { date: new Date(x.created_at) }
+                : undefined,
+            lunch_end:
+              x.type === 'lunch_end'
+                ? { date: new Date(x.created_at) }
+                : undefined,
+            exit:
+              x.type === 'exit' ? { date: new Date(x.created_at) } : undefined,
           });
         } else {
-          if (x.type === 'entry') existing.entry = { date: new Date(x.created_at) };
-          if (x.type === 'lunch_start') existing.lunch_start = { date: new Date(x.created_at) };
-          if (x.type === 'lunch_end') existing.lunch_end = { date: new Date(x.created_at) };
-          if (x.type === 'exit') existing.exit = { date: new Date(x.created_at) };
+          if (x.type === 'entry')
+            existing.entry = { date: new Date(x.created_at) };
+          if (x.type === 'lunch_start')
+            existing.lunch_start = { date: new Date(x.created_at) };
+          if (x.type === 'lunch_end')
+            existing.lunch_end = { date: new Date(x.created_at) };
+          if (x.type === 'exit')
+            existing.exit = { date: new Date(x.created_at) };
         }
         return acc;
       }, []);
@@ -2617,7 +3201,10 @@ export class HRDisabilitiesComponent {
       const lunchExceededMinutes = lunchTime > 60 ? lunchTime - 60 : 0;
 
       // RESTAR el exceso de almuerzo de las horas extras (porque ese tiempo no es trabajo)
-      const dayOvertimeMinutes = Math.max(0, overtimeByTotalTime - lunchExceededMinutes);
+      const dayOvertimeMinutes = Math.max(
+        0,
+        overtimeByTotalTime - lunchExceededMinutes
+      );
       totalOvertimeMinutes += dayOvertimeMinutes;
     });
 
@@ -2646,9 +3233,9 @@ export class HRDisabilitiesComponent {
   public confirmRejection(): void {
     const request = this.requestToReject();
     const comment = this.rejectionComment().trim();
-    
+
     if (!request) return;
-    
+
     if (!comment) {
       this.messageService.add({
         severity: 'warn',
@@ -2658,12 +3245,8 @@ export class HRDisabilitiesComponent {
       return;
     }
 
-    this.updateCompensatoryReviewStatus(
-      request.id,
-      'rejected',
-      comment
-    );
-    
+    this.updateCompensatoryReviewStatus(request.id, 'rejected', comment);
+
     this.showRejectionDialog.set(false);
     this.rejectionComment.set('');
     this.requestToReject.set(null);
@@ -2703,6 +3286,12 @@ export class HRDisabilitiesComponent {
       return;
     }
 
+    // Obtener estado anterior antes de actualizar
+    const request = this.compensatoryTimeoffsApi
+      .value()
+      ?.find((r) => r.id === id);
+    const oldStatus = request?.review_status || 'pending';
+
     const updateData: any = {
       review_status: status,
       reviewed_by: currentEmployee.id,
@@ -2720,11 +3309,17 @@ export class HRDisabilitiesComponent {
       )
       .subscribe({
         next: async () => {
-          // Obtener la solicitud para notificar al empleado
-          const request = this.compensatoryTimeoffsApi
-            .value()
-            ?.find((r) => r.id === id);
+          // Registrar en auditoría
+          await this.auditService.logChange({
+            timeoffId: id,
+            changedBy: currentEmployee.id,
+            action: status === 'approved' ? 'approved' : 'rejected',
+            oldStatus,
+            newStatus: status,
+            comment: status === 'rejected' ? rejectionComment : undefined,
+          });
 
+          // Obtener la solicitud para notificar al empleado
           if (status === 'approved' && request) {
             // Enviar notificación a Lia para que registre
             await this.notifyLiaForRegistration(id, request);
@@ -2746,6 +3341,13 @@ export class HRDisabilitiesComponent {
             } correctamente`,
           });
           this.compensatoryTimeoffsApi.reload();
+          // Recargar historial si el diálogo está abierto
+          if (
+            this.showCompensatoryDetailsDialog() &&
+            this.selectedCompensatoryRequest()?.id === id
+          ) {
+            this.loadAuditHistory(id);
+          }
         },
         error: () => {
           this.messageService.add({
@@ -2768,6 +3370,12 @@ export class HRDisabilitiesComponent {
       return;
     }
 
+    // Obtener estado anterior
+    const request = this.compensatoryTimeoffsApi
+      .value()
+      ?.find((r) => r.id === id);
+    const oldStatus = request?.review_status || 'pending';
+
     const updateData = {
       registered_by: currentEmployee.id,
       registered_at: new Date().toISOString(),
@@ -2781,10 +3389,17 @@ export class HRDisabilitiesComponent {
       )
       .subscribe({
         next: async () => {
+          // Registrar en auditoría
+          await this.auditService.logChange({
+            timeoffId: id,
+            changedBy: currentEmployee.id,
+            action: 'registered',
+            oldStatus,
+            newStatus: 'registered',
+            comment: 'Solicitud registrada en el sistema',
+          });
+
           // Obtener la solicitud para notificar al empleado
-          const request = this.compensatoryTimeoffsApi
-            .value()
-            ?.find((r) => r.id === id);
           if (request) {
             // Enviar notificación al empleado sobre la aprobación final
             await this.notifyEmployee(id, request, 'approved');
@@ -2796,6 +3411,13 @@ export class HRDisabilitiesComponent {
             detail: 'Solicitud registrada correctamente',
           });
           this.compensatoryTimeoffsApi.reload();
+          // Recargar historial si el diálogo está abierto
+          if (
+            this.showCompensatoryDetailsDialog() &&
+            this.selectedCompensatoryRequest()?.id === id
+          ) {
+            this.loadAuditHistory(id);
+          }
         },
         error: () => {
           this.messageService.add({
