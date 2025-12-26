@@ -22,15 +22,15 @@ import { Branch } from '../models';
   imports: [Card, Button, Toast, NgClass],
   template: `
     <div
-      class="w-full h-screen flex flex-col items-center justify-center p-4 relative animated-gradient-container"
+      class="w-full flex flex-col items-center justify-center relative animated-gradient-container"
       [ngClass]="{ 'naz-theme': isNaz() }"
-      style="overflow: hidden;"
+      style="overflow: hidden; min-height: 100vh; min-height: 100dvh;"
     >
       <p-toast />
       <div
-        class="login-container flex flex-col items-center justify-center w-full h-full relative z-10"
+        class="login-container flex flex-col items-center justify-center w-full relative z-10"
       >
-        <div class="logo-wrapper mb-8 md:mb-12">
+        <div class="logo-wrapper">
           <div class="logo-selector-container">
             @if (canChangeOrganization()) {
               <button
@@ -133,14 +133,18 @@ import { Branch } from '../models';
     
     /* Login Container */
     .login-container {
-      padding: 2rem 1rem;
-      min-height: 100vh;
+      padding: 1rem 0.75rem;
+      min-height: auto;
       position: relative;
+      justify-content: flex-start;
+      padding-top: 2rem;
     }
     
     @media (min-width: 768px) {
       .login-container {
         padding: 3rem 2rem;
+        min-height: 100vh;
+        justify-content: center;
       }
     }
 
@@ -346,22 +350,38 @@ import { Branch } from '../models';
     
     /* Logo */
     .logo-wrapper {
-      padding: 2rem 0;
+      padding: 0.5rem 0;
+      margin-bottom: 1rem;
       animation: logo-entrance 0.8s ease-out;
     }
     
+    @media (min-width: 768px) {
+      .logo-wrapper {
+        padding: 2rem 0;
+        margin-bottom: 0;
+      }
+    }
+    
     .logo-image {
-      height: 5rem;
+      height: 3.5rem;
       width: auto;
+      max-width: 90vw;
       object-fit: contain;
       filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.4)) 
               drop-shadow(0 4px 12px rgba(255, 255, 255, 0.1));
       transition: transform 0.3s ease;
     }
     
+    @media (min-width: 480px) {
+      .logo-image {
+        height: 4.5rem;
+      }
+    }
+    
     @media (min-width: 768px) {
       .logo-image {
         height: 6rem;
+        max-width: none;
       }
     }
     
@@ -402,6 +422,13 @@ import { Branch } from '../models';
       overflow: visible;
     }
     
+    @media (max-width: 767px) {
+      .login-card {
+        max-width: 100%;
+        border-radius: 12px !important;
+      }
+    }
+    
     .login-card ::ng-deep .p-card {
       background: transparent !important;
       border: none !important;
@@ -409,12 +436,12 @@ import { Branch } from '../models';
     }
     
     .login-card ::ng-deep .p-card-body {
-      padding: 2rem 1.5rem !important;
+      padding: 1.5rem 1rem !important;
       overflow: visible !important;
     }
 
     .login-card ::ng-deep .p-card-footer {
-      padding: 0 1.5rem 1.5rem 1.5rem !important;
+      padding: 0 1rem 1rem 1rem !important;
       overflow: visible !important;
     }
     
@@ -442,17 +469,30 @@ import { Branch } from '../models';
     /* Typography */
     .card-title-wrapper {
       text-align: center;
-      padding: 0.5rem 0;
+      padding: 0.25rem 0;
+    }
+    
+    @media (min-width: 768px) {
+      .card-title-wrapper {
+        padding: 0.5rem 0;
+      }
     }
     
     .card-subtitle {
       color: rgba(200, 200, 200, 0.7);
-      font-size: 0.75rem;
+      font-size: 0.625rem;
       font-weight: 500;
       letter-spacing: 0.1em;
       text-transform: uppercase;
-      margin-bottom: 0.75rem;
+      margin-bottom: 0.5rem;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+    
+    @media (min-width: 480px) {
+      .card-subtitle {
+        font-size: 0.6875rem;
+        margin-bottom: 0.625rem;
+      }
     }
     
     @media (min-width: 768px) {
@@ -464,32 +504,48 @@ import { Branch } from '../models';
     
     .card-title {
       color: #f5f5f5;
-      font-size: 1.75rem;
+      font-size: 1.375rem;
       font-weight: 600;
       letter-spacing: -0.02em;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.2;
+    }
+    
+    @media (min-width: 480px) {
+      .card-title {
+        font-size: 1.5rem;
+      }
     }
     
     @media (min-width: 768px) {
       .card-title {
         font-size: 2rem;
+        line-height: 1.3;
       }
     }
     
     .card-description {
       color: rgba(180, 180, 180, 0.8);
-      font-size: 0.875rem;
-      margin-top: 0.5rem;
+      font-size: 0.75rem;
+      margin-top: 0.375rem;
       text-align: center;
       font-weight: 400;
-      line-height: 1.5;
+      line-height: 1.4;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+    
+    @media (min-width: 480px) {
+      .card-description {
+        font-size: 0.8125rem;
+        margin-top: 0.5rem;
+      }
     }
     
     @media (min-width: 768px) {
       .card-description {
         font-size: 0.9375rem;
         margin-top: 0.75rem;
+        line-height: 1.5;
       }
     }
     
@@ -506,8 +562,14 @@ import { Branch } from '../models';
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding-top: 1.5rem;
+      padding-top: 1rem;
       width: 100%;
+    }
+    
+    @media (min-width: 768px) {
+      .card-footer {
+        padding-top: 1.5rem;
+      }
     }
 
     
@@ -533,6 +595,13 @@ import { Branch } from '../models';
         0 0 0 1px rgba(255, 255, 255, 0.05);
       backdrop-filter: blur(12px);
       -webkit-backdrop-filter: blur(12px);
+      width: 100%;
+    }
+    
+    @media (min-width: 768px) {
+      .switch-container {
+        width: auto;
+      }
     }
 
     /* Switch Buttons - Estilos base iguales para ambos */
@@ -890,39 +959,52 @@ import { Branch } from '../models';
     }
     
     
-    /* Responsive adjustments */
-    @media (max-width: 640px) {
+    /* Responsive adjustments adicionales para móvil */
+    @media (max-width: 767px) {
+      .animated-gradient-container {
+        min-height: 100vh;
+        min-height: 100dvh;
+        padding: 0.75rem;
+      }
+      
       .login-container {
-        padding: 1.5rem 1rem;
+        padding: 1rem 0.5rem;
+        padding-top: 1.5rem;
+        padding-bottom: 1.5rem;
+        gap: 1rem;
       }
       
-      .logo-wrapper {
-        padding: 1.5rem 0;
-        margin-bottom: 1.5rem;
+      @media (min-width: 480px) {
+        .animated-gradient-container {
+          padding: 1rem;
+        }
+        
+        .login-container {
+          padding: 1rem 0.75rem;
+        }
       }
       
-      .logo-image {
-        height: 8rem;
+      .login-card ::ng-deep .p-card-footer {
+        padding: 0 1rem 1.25rem 1rem !important;
       }
       
-      .login-card {
-        max-width: 100%;
-      }
-      
-      .login-card ::ng-deep .p-card-body {
-        padding: 1.5rem 1.25rem !important;
-      }
-      
-      .card-title {
-        font-size: 1.5rem;
-      }
-      
-      .card-subtitle {
-        font-size: 0.6875rem;
-      }
-      
-      .card-description {
-        font-size: 0.8125rem;
+      /* Ajustes para textos muy pequeños */
+      @media (max-width: 360px) {
+        .card-title {
+          font-size: 1.25rem;
+        }
+        
+        .card-subtitle {
+          font-size: 0.5625rem;
+        }
+        
+        .card-description {
+          font-size: 0.6875rem;
+        }
+        
+        .logo-image {
+          height: 3rem;
+        }
       }
     }
     
@@ -1068,18 +1150,38 @@ import { Branch } from '../models';
       font-size: 1.25rem;
     }
 
-    @media (max-width: 640px) {
+    @media (max-width: 767px) {
       .logo-selector-container {
-        gap: 1rem;
+        gap: 0.75rem;
+        max-width: 100%;
+      }
+      
+      @media (max-width: 480px) {
+        .logo-selector-container {
+          gap: 0.5rem;
+        }
       }
 
       .arrow-button {
         width: 2rem;
         height: 2rem;
       }
+      
+      @media (max-width: 360px) {
+        .arrow-button {
+          width: 1.75rem;
+          height: 1.75rem;
+        }
+      }
 
       .arrow-button i {
         font-size: 1rem;
+      }
+      
+      @media (max-width: 360px) {
+        .arrow-button i {
+          font-size: 0.875rem;
+        }
       }
     }
 
