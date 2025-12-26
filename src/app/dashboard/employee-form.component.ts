@@ -493,13 +493,14 @@ import {
                 <div class="input-container">
                   <label for="company">Empresa</label>
                   <p-select
-                    [options]="store.companies.entities()"
+                    [options]="availableCompanies()"
                     optionLabel="name"
                     optionValue="id"
                     inputId="company"
                     formControlName="company_id"
                     placeholder="Seleccione una empresa"
                     appendTo="body"
+                    [disabled]="!store.isAdmin() && availableCompanies().length === 1"
                   />
                 </div>
                 <div class="input-container">
@@ -769,6 +770,26 @@ export class EmployeeFormComponent implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private http = inject(HttpClient);
+
+  // Computed para filtrar empresas: solo mostrar la empresa actual, excepto para admins
+  public availableCompanies = computed(() => {
+    const allCompanies = this.store.companies.entities();
+    const isAdmin = this.store.isAdmin();
+    
+    // Si es admin, mostrar todas las empresas
+    if (isAdmin) {
+      return allCompanies;
+    }
+    
+    // Si no es admin, filtrar por company_id actual
+    const currentCompanyId = this.organizationService.getCurrentCompanyId();
+    if (!currentCompanyId) {
+      return [];
+    }
+    
+    return allCompanies.filter(company => company.id === currentCompanyId);
+  });
+
   public form = new FormGroup({
     id: new FormControl(v4(), { nonNullable: true }),
     first_name: new FormControl('', {
@@ -999,6 +1020,28 @@ export class EmployeeFormComponent implements OnInit {
     effect(
       () => {
         this.form.get('hourly_salary')?.patchValue(this.hourlySalary());
+      },
+      { injector: this.injector }
+    );
+
+    // Effect para establecer company_id por defecto si no es admin
+    effect(
+      () => {
+        const isAdmin = this.store.isAdmin();
+        const currentCompanyId = this.organizationService.getCurrentCompanyId();
+        const companyControl = this.form.get('company_id');
+        const currentCompanyIdValue = companyControl?.value;
+        
+        // Si no es admin y no hay company_id establecido, establecer el actual
+        if (!isAdmin && currentCompanyId && !currentCompanyIdValue) {
+          companyControl?.setValue(currentCompanyId, { emitEvent: false });
+        }
+        
+        // Si no es admin y hay una empresa disponible, asegurar que esté seleccionada
+        const available = this.availableCompanies();
+        if (!isAdmin && available.length === 1 && !currentCompanyIdValue) {
+          companyControl?.setValue(available[0].id, { emitEvent: false });
+        }
       },
       { injector: this.injector }
     );

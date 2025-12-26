@@ -13,7 +13,7 @@ import {
   signal,
   ViewChild,
 } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import {
   FormControl,
   FormGroup,
@@ -21,6 +21,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { Router } from '@angular/router';
+import { AuthService } from '@auth0/auth0-angular';
 import { differenceInMinutes, format } from 'date-fns';
 import * as OTPAuth from 'otpauth';
 import { ConfirmationService, MessageService } from 'primeng/api';
@@ -45,9 +46,9 @@ import {
   TimelogType,
 } from './models';
 import { TrimPipe } from './pipes/trim.pipe';
+import { DiagnosticService } from './services/diagnostic.service';
 import { IpMonitorService } from './services/ip-monitor.service';
 import { OrganizationService } from './services/organization.service';
-import { DiagnosticService } from './services/diagnostic.service';
 
 @Component({
   selector: 'pt-timeclock',
@@ -106,7 +107,9 @@ import { DiagnosticService } from './services/diagnostic.service';
         }
         <p-card class="w-full max-w-lg mx-auto timeclock-card relative z-10">
           <ng-template #title>
-            <div class="flex flex-col gap-1.5 sm:gap-2 md:gap-2.5 items-center px-2 py-1">
+            <div
+              class="flex flex-col gap-1.5 sm:gap-2 md:gap-2.5 items-center px-2 py-1"
+            >
               <div
                 class="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-gray-100 text-center w-full break-words"
               >
@@ -129,7 +132,9 @@ import { DiagnosticService } from './services/diagnostic.service';
                 >
                   {{ formattedTime() }}
                 </div>
-                <div class="text-[10px] sm:text-xs md:text-sm text-gray-300 text-center break-words px-1">
+                <div
+                  class="text-[10px] sm:text-xs md:text-sm text-gray-300 text-center break-words px-1"
+                >
                   {{ formattedDate() }}
                 </div>
               </div>
@@ -155,7 +160,9 @@ import { DiagnosticService } from './services/diagnostic.service';
                   "
                 ></i>
               </div>
-              <span class="flex-shrink-0">Seleccione la sucursal y empleado</span>
+              <span class="flex-shrink-0"
+                >Seleccione la sucursal y empleado</span
+              >
             </div>
           </ng-template>
           <form
@@ -192,9 +199,9 @@ import { DiagnosticService } from './services/diagnostic.service';
                 [disabled]="!canChangeBranch()"
               />
               @if (!canChangeBranch() && form.get('branch_id')?.value) {
-                <p class="text-xs text-gray-400 mt-1 text-center">
-                  Sucursal detectada automáticamente por IP
-                </p>
+              <p class="text-xs text-gray-400 mt-1 text-center">
+                Sucursal detectada automáticamente por IP
+              </p>
               }
             </div>
             }
@@ -295,7 +302,9 @@ import { DiagnosticService } from './services/diagnostic.service';
             <!-- Validation Messages -->
             @if (form.get('employee')?.invalid && form.get('employee')?.touched)
             {
-            <div class="text-gray-400 text-[11px] sm:text-xs text-center w-full mt-1 px-2">
+            <div
+              class="text-gray-400 text-[11px] sm:text-xs text-center w-full mt-1 px-2"
+            >
               Debe seleccionar un empleado para continuar.
             </div>
             }
@@ -960,6 +969,11 @@ export class TimeclockComponent implements OnDestroy {
   private organizationService = inject(OrganizationService);
   private destroyRef = inject(DestroyRef);
   private diagnosticService = inject(DiagnosticService);
+  private authService = inject(AuthService);
+  // Signal para el usuario actual (reactivo)
+  private currentUser = toSignal(this.authService.user$, {
+    initialValue: null,
+  });
   // Get IP address - try multiple methods to get real IP even from localhost
   public currentIP = signal<string>('127.0.0.1');
   public isProcessing = signal<boolean>(false);
@@ -975,6 +989,18 @@ export class TimeclockComponent implements OnDestroy {
   );
   // Ya no hay tablas naz_*, todo es por company_id
   private employeesTable = computed(() => 'employees');
+
+  // Computed para verificar si es super admin (soporte2 o mercadeo)
+  public isSuperAdmin = computed(() => {
+    const user = this.currentUser();
+    if (!user?.email) return false;
+    const email = user.email.toLowerCase();
+    const superAdminEmails = [
+      'mercadeo@blackdogpanama.com',
+      'soporte2@blackdogpanama.com',
+    ];
+    return superAdminEmails.includes(email);
+  });
 
   private injector = inject(Injector);
   private timeInterval: any;
@@ -1107,16 +1133,22 @@ export class TimeclockComponent implements OnDestroy {
           !this.form.get('branch_id')?.value
         ) {
           if (isNaz) {
-            // For Naz: auto-select "Calle 50" branch
-            const calle50Branch = branches.find((b: Branch) => {
+            // For Naz: auto-select "Naz" branch, o la primera disponible
+            const nazBranch = branches.find((b: Branch) => {
               const name = b.name.toLowerCase();
-              return (
-                (name.includes('calle 50') || name.includes('calle50')) &&
-                b.company_id === selectedCompanyId
-              );
+              return name === 'naz' && b.company_id === selectedCompanyId;
             }) as Branch | undefined;
-            if (calle50Branch) {
-              this.form.get('branch_id')?.setValue(calle50Branch.id);
+
+            if (nazBranch) {
+              this.form.get('branch_id')?.setValue(nazBranch.id);
+            } else if (branches.length > 0) {
+              // Si no encuentra "Naz", seleccionar la primera sucursal disponible de Naz
+              const firstNazBranch = branches.find(
+                (b: Branch) => b.company_id === selectedCompanyId
+              );
+              if (firstNazBranch) {
+                this.form.get('branch_id')?.setValue(firstNazBranch.id);
+              }
             }
           } else {
             // For Black Dog: auto-select branch by IP if found
@@ -1500,14 +1532,24 @@ export class TimeclockComponent implements OnDestroy {
   // Computed signals to select the correct resource based on organization
   // Ya no se usan tablas naz_*, todo es por company_id
   public currentCompaniesResource = computed<Company[] | undefined>(() => {
-    return this.companiesResource.value();
+    const companies = this.companiesResource.value();
+    if (!companies) return undefined;
+
+    // Siempre filtrar por company_id actual (incluso para super admins)
+    // El super admin puede cambiar de organización, pero cuando está en una, solo ve esa
+    const companyId = this.organizationService.getCurrentCompanyId();
+    if (companyId) {
+      return companies.filter((c) => c.id === companyId);
+    }
+    return companies;
   });
 
   public currentBranchesResource = computed<Branch[] | undefined>(() => {
     const branches = this.branchesResource.value();
     if (!branches) return undefined;
 
-    // Filtrar branches por company_id actual si está disponible
+    // Siempre filtrar por company_id actual (incluso para super admins)
+    // El super admin puede cambiar de organización, pero cuando está en una, solo ve esa
     const companyId = this.organizationService.getCurrentCompanyId();
     if (companyId) {
       return branches.filter((b) => b.company_id === companyId);
@@ -1555,7 +1597,8 @@ export class TimeclockComponent implements OnDestroy {
       is_active: 'eq.true',
     };
 
-    // Filtrar por company_id siempre (ya no hay tablas naz_*)
+    // Siempre filtrar por company_id (incluso para super admins)
+    // El super admin puede cambiar de organización, pero cuando está en una, solo ve esa
     if (companyId) {
       params.company_id = `eq.${companyId}`;
     }
