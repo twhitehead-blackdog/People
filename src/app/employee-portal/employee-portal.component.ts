@@ -5583,7 +5583,38 @@ export class EmployeePortalComponent {
       );
 
       // Enviar notificación a Verley (HR que revisa)
-      await this.notifyHRReviewer(response[0]?.id || response?.id);
+      const timeoffId = response[0]?.id || response?.id;
+      await this.notifyHRReviewer(timeoffId);
+
+      // Crear notificación en hr_messages para el usuario
+      const currentEmp = this.currentEmployee();
+      if (currentEmp && timeoffId) {
+        try {
+          await firstValueFrom(
+            this.http.post(
+              `${process.env['ENV_SUPABASE_URL']}/rest/v1/hr_messages`,
+              {
+                employee_id: currentEmp.id,
+                related_type: 'timeoff',
+                related_id: timeoffId,
+                message_type: 'compensatory_request',
+                title: 'Solicitud de tiempo compensatorio enviada',
+                message: 'Tu solicitud de tiempo compensatorio ha sido enviada y está pendiente de revisión.',
+                is_read: false,
+              },
+              {
+                headers: {
+                  'Content-Type': 'application/json',
+                  Prefer: 'return=representation',
+                },
+              }
+            )
+          );
+        } catch (error) {
+          console.error('Error al crear notificación para el usuario:', error);
+          // No fallar el flujo principal si la notificación falla
+        }
+      }
 
       this.messageService.add({
         severity: 'success',

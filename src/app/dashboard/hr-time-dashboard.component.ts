@@ -479,11 +479,11 @@ export class HRTimeDashboardComponent {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`,
       method: 'GET',
       params: {
-        // Usar sintaxis explícita de foreign key para especificar la relación employee_id
+        // Ahora podemos filtrar directamente por company_id ya que se agregó el campo a la tabla
         select: '*,employee:employees!time_offs_employee_id_fkey(id,first_name,father_name,company_id),type:timeoff_types(name)',
         is_approved: 'eq.false',
-        // Filtrar por company_id del empleado
-        'employee.company_id': `eq.${companyId}`,
+        // Filtrar directamente por company_id (campo agregado a la tabla)
+        company_id: `eq.${companyId}`,
         order: 'created_at.desc',
         limit: '10',
       },

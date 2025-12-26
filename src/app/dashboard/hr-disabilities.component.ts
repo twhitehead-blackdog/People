@@ -1973,14 +1973,18 @@ export class HRDisabilitiesComponent {
   // API para obtener incapacidades con información del empleado
   public disabilitiesApi = httpResource<Disability[]>(() => {
     const companyId = this.organizationService.getCurrentCompanyId();
+
+    if (!companyId) {
+      return undefined; // No hacer request si no hay company_id
+    }
+
     const params: any = {
-      select: `*,employee:employees(id,first_name,father_name,mother_name,work_email,position:positions(name),branch:branches(name))`,
+      // Ahora podemos filtrar directamente por company_id ya que se agregó el campo a la tabla
+      select: `id,employee_id,start_date,end_date,description,document_url,status,reviewed_by,reviewed_at,review_notes,rejection_comment,created_at,updated_at,company_id,employee:employees!employee_disabilities_employee_id_fkey(id,first_name,father_name,mother_name,work_email,company_id,position:positions(name),branch:branches(name))`,
+      // Filtrar directamente por company_id (campo agregado a la tabla)
+      company_id: `eq.${companyId}`,
       order: 'created_at.desc',
     };
-
-    // Nota: employee_disabilities no tiene company_id directamente, pero podemos filtrar por employee.company_id
-    // Por ahora, dejamos que el filtro se haga a través de la relación employee
-    // Si necesitamos filtrar, podríamos agregar un filtro adicional
 
     return {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_disabilities`,
@@ -2704,12 +2708,12 @@ export class HRDisabilitiesComponent {
       return undefined; // No hacer request si no hay company_id
     }
 
-    // Usar sintaxis explícita de foreign key para especificar la relación employee_id
+    // Ahora podemos filtrar directamente por company_id ya que se agregó el campo a la tabla
     const params: any = {
-      select: `id,employee_id,type_id,date_from,date_to,notes,is_approved,compensatory_type,compensatory_amount,review_status,reviewed_by,reviewed_at,registered_by,registered_at,rejection_comment,created_at,type:timeoff_types(id,name),employee:employees!time_offs_employee_id_fkey(id,first_name,father_name,work_email,company_id,position:positions(name),branch:branches(name))`,
+      select: `id,employee_id,type_id,date_from,date_to,notes,is_approved,compensatory_type,compensatory_amount,review_status,reviewed_by,reviewed_at,registered_by,registered_at,rejection_comment,created_at,company_id,type:timeoff_types(id,name),employee:employees!time_offs_employee_id_fkey(id,first_name,father_name,work_email,company_id,position:positions(name),branch:branches(name))`,
       type_id: `eq.${compensatoryTypeId}`,
-      // Filtrar por company_id del empleado
-      'employee.company_id': `eq.${companyId}`,
+      // Filtrar directamente por company_id (campo agregado a la tabla)
+      company_id: `eq.${companyId}`,
       order: 'created_at.desc',
     };
 
@@ -3479,6 +3483,8 @@ export class HRDisabilitiesComponent {
 
           // Obtener la solicitud para notificar al empleado
           if (status === 'approved' && request) {
+            // Enviar notificación al empleado sobre la aprobación
+            await this.notifyEmployee(id, request, 'approved');
             // Enviar notificación a Lia para que registre
             await this.notifyLiaForRegistration(id, request);
           } else if (status === 'rejected' && request) {

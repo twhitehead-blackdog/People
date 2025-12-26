@@ -925,13 +925,14 @@ export class TimelogsComponent {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`,
       method: 'GET',
       params: {
+        // Ahora podemos filtrar directamente por company_id ya que se agregó el campo a la tabla
         select:
-          'id,type_id,employee_id,date_from,date_to,is_approved,type:timeoff_types(id,name),employee:employees!time_offs_employee_id_fkey(company_id)',
+          'id,type_id,employee_id,date_from,date_to,is_approved,company_id,type:timeoff_types(id,name),employee:employees!time_offs_employee_id_fkey(company_id)',
         date_from: `lte.${format(end, 'yyyy-MM-dd')}`,
         date_to: `gte.${format(start, 'yyyy-MM-dd')}`,
         is_approved: 'eq.true',
-        // Filtrar por company_id del empleado
-        'employee.company_id': `eq.${companyId}`,
+        // Filtrar directamente por company_id (campo agregado a la tabla)
+        company_id: `eq.${companyId}`,
       },
     };
   });
