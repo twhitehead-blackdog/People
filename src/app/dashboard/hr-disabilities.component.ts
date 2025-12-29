@@ -7,6 +7,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { DomSanitizer } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import {
@@ -1086,7 +1087,7 @@ interface CompensatoryRequest {
     <p-dialog
       [(visible)]="showDetailsDialog"
       [modal]="true"
-      [style]="{ width: '600px' }"
+      [style]="{ width: '90vw', maxWidth: '900px' }"
       [header]="'Detalles de Incapacidad'"
       [draggable]="false"
       [resizable]="false"
@@ -1168,16 +1169,83 @@ interface CompensatoryRequest {
           />
         </div>
         @if (selectedDisability()!.document_url) {
-        <div>
-          <label class="block text-sm font-medium text-gray-400 mb-1"
-            >Documento</label
-          >
-          <p-button
-            icon="pi pi-download"
-            label="Descargar Documento"
-            (onClick)="downloadDocument(selectedDisability()!.document_url!)"
-            class="w-full"
-          />
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <label class="block text-sm font-medium text-gray-400 mb-0"
+              >Documento de Incapacidad</label
+            >
+            <p-button
+              icon="pi pi-download"
+              label="Descargar"
+              (onClick)="downloadDocument(selectedDisability()!.document_url!)"
+              severity="info"
+              [text]="true"
+              size="small"
+            />
+          </div>
+          <div class="flex items-center justify-between">
+            <p class="text-gray-300 mb-0 text-sm">
+              <i class="pi pi-file mr-2"></i>
+              Documento adjunto
+            </p>
+            <div class="flex items-center gap-2">
+              <p-button
+                icon="pi pi-search-minus"
+                (onClick)="zoomOut()"
+                [text]="true"
+                [rounded]="true"
+                severity="secondary"
+                size="small"
+                [disabled]="zoomLevel() <= 0.5"
+                pTooltip="Alejar"
+              />
+              <span class="text-sm text-gray-400 min-w-[60px] text-center">
+                {{ (zoomLevel() * 100).toFixed(0) }}%
+              </span>
+              <p-button
+                icon="pi pi-search-plus"
+                (onClick)="zoomIn()"
+                [text]="true"
+                [rounded]="true"
+                severity="secondary"
+                size="small"
+                [disabled]="zoomLevel() >= 2"
+                pTooltip="Acercar"
+              />
+              <p-button
+                label="Reset"
+                (onClick)="resetZoom()"
+                [text]="true"
+                severity="secondary"
+                size="small"
+                pTooltip="Restablecer zoom"
+              />
+            </div>
+          </div>
+          <div class="border border-gray-700 rounded-lg overflow-hidden bg-gray-900">
+            <div class="overflow-auto max-h-[600px] bg-gray-800" style="padding: 20px;">
+              <div 
+                class="pdf-container"
+                [style.transform]="'scale(' + zoomLevel() + ')'"
+                [style.transform-origin]="'top left'"
+                style="width: 100%; min-height: 800px;"
+              >
+                <object
+                  [data]="pdfUrl()"
+                  type="application/pdf"
+                  class="w-full"
+                  style="min-height: 800px; border: none;"
+                >
+                  <p class="text-gray-400 p-4">
+                    No se puede mostrar el PDF. 
+                    <a [href]="pdfUrlForLink()" target="_blank" class="text-blue-400 underline">
+                      Abrir en nueva pestaña
+                    </a>
+                  </p>
+                </object>
+              </div>
+            </div>
+          </div>
         </div>
         }
         <div>
@@ -1968,6 +2036,7 @@ export class HRDisabilitiesComponent {
   private dashboardStore = inject(DashboardStore);
   private router = inject(Router);
   private auditService = inject(TimeoffAuditService);
+  private sanitizer = inject(DomSanitizer);
 
   // Método para navegar a diferentes pestañas
   public navigateToTab(
@@ -2031,6 +2100,26 @@ export class HRDisabilitiesComponent {
   public auditHistory = signal<TimeoffAuditLog[]>([]);
   public isLoadingAuditHistory = signal(false);
   public employeeOvertimeHours = signal<number>(0);
+  public zoomLevel = signal(1);
+
+  // Signal computado para la URL del PDF sanitizada
+  public pdfUrl = computed(() => {
+    const disability = this.selectedDisability();
+    if (!disability?.document_url) {
+      return this.sanitizer.bypassSecurityTrustResourceUrl('');
+    }
+    const pdfUrl = `${disability.document_url}#toolbar=1&navpanes=1&scrollbar=1`;
+    return this.sanitizer.bypassSecurityTrustResourceUrl(pdfUrl);
+  });
+
+  // URL sanitizada para el enlace de fallback
+  public pdfUrlForLink = computed(() => {
+    const disability = this.selectedDisability();
+    if (!disability?.document_url) {
+      return this.sanitizer.bypassSecurityTrustUrl('');
+    }
+    return this.sanitizer.bypassSecurityTrustUrl(disability.document_url);
+  });
   public isLoadingOvertimeHours = signal<boolean>(false);
   public employeeOvertimeDays = signal<
     Array<{
@@ -3823,6 +3912,24 @@ export class HRDisabilitiesComponent {
 
   public downloadDocument(url: string): void {
     window.open(url, '_blank');
+  }
+
+  public zoomIn() {
+    const current = this.zoomLevel();
+    if (current < 2) {
+      this.zoomLevel.set(Math.min(current + 0.25, 2));
+    }
+  }
+
+  public zoomOut() {
+    const current = this.zoomLevel();
+    if (current > 0.5) {
+      this.zoomLevel.set(Math.max(current - 0.25, 0.5));
+    }
+  }
+
+  public resetZoom() {
+    this.zoomLevel.set(1);
   }
 
   public saveDisabilityRejectionComment(): void {
