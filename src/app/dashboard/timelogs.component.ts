@@ -534,11 +534,11 @@ import { EmployeesStore } from '../stores/employees.store';
                   </span>
                   @if(log.insufficientHours) {
                   <p-tag
-                    value="Menos de 9h"
+                    value="Menos de 8h"
                     severity="danger"
                     icon="pi pi-clock"
                     [pTooltip]="
-                      'El empleado no cumplió las 9 horas requeridas en la empresa (ej: 7am-4pm, 8am-5pm, 11am-8pm)'
+                      'El empleado no cumplió las 8 horas de trabajo requeridas (sin contar el tiempo de almuerzo)'
                     "
                     tooltipPosition="top"
                     [style]="{
@@ -645,7 +645,7 @@ export class TimelogsComponent {
 
   // Calcular el ancho máximo para los tags de horas en columna Horas Trabajadas
   public maxHoursTagWidth = computed(() => {
-    const maxLength = 'Menos de 9h'.length;
+    const maxLength = 'Menos de 8h'.length;
     const calculatedWidth = Math.max(100, maxLength * 8 + 24);
     return `${calculatedWidth}px`;
   });
@@ -1485,7 +1485,7 @@ export class TimelogsComponent {
             }
           }
 
-          // Validar horas trabajadas (9 horas totales en la empresa: 7am-4pm, 8am-5pm, 11am-8pm)
+          // Validar horas trabajadas (8 horas de trabajo, sin contar almuerzo)
           // Se calcula desde la hora establecida del horario, no desde la entrada real
           if (
             acc[index].entry &&
@@ -1529,30 +1529,24 @@ export class TimelogsComponent {
                   : 0;
 
               const workMinutes = totalMinutes - lunchTime;
-              const totalHours = totalMinutes / 60; // Horas totales en la empresa
+              const totalHours = workMinutes / 60; // Horas trabajadas (sin almuerzo)
               acc[index].totalHours = totalHours;
 
-              // Calcular horas extras: más de 9 horas totales (8 horas de trabajo + 1 hora de almuerzo)
-              // 9 horas = 540 minutos
-              const requiredTotalMinutes = 540; // 9 horas totales (540 minutos)
-              const overtimeByTotalTime =
-                totalMinutes > requiredTotalMinutes
-                  ? totalMinutes - requiredTotalMinutes
+              // Calcular horas extras: más de 8 horas de trabajo (sin contar almuerzo)
+              // 8 horas = 480 minutos
+              const requiredWorkMinutes = 480; // 8 horas de trabajo (480 minutos)
+              const overtimeByWorkTime =
+                workMinutes > requiredWorkMinutes
+                  ? workMinutes - requiredWorkMinutes
                   : 0;
 
-              // Calcular minutos excedidos del almuerzo (más de 60 minutos)
-              // Si el almuerzo excede 60 minutos, ese tiempo extra NO es trabajo y debe restarse de las horas extras
-              const lunchExceededMinutes = lunchTime > 60 ? lunchTime - 60 : 0;
-
-              // RESTAR el exceso de almuerzo de las horas extras (porque ese tiempo no es trabajo)
-              const totalOvertimeMinutes = Math.max(
-                0,
-                overtimeByTotalTime - lunchExceededMinutes
-              );
+              // Las horas extras se calculan solo sobre el trabajo, no sobre el exceso de almuerzo
+              const totalOvertimeMinutes = Math.max(0, overtimeByWorkTime);
               acc[index].overtimeHours =
                 totalOvertimeMinutes > 0 ? totalOvertimeMinutes / 60 : 0;
 
-              if (totalMinutes < requiredTotalMinutes) {
+              // Validar que haya trabajado al menos 8 horas (sin contar almuerzo)
+              if (workMinutes < requiredWorkMinutes) {
                 acc[index].insufficientHours = true;
               }
             }
@@ -1584,27 +1578,20 @@ export class TimelogsComponent {
             }
 
             const workMinutes = totalMinutes - lunchTime;
-            // Validar que totalMinutes sea válido antes de dividir
-            const totalHours = totalMinutes > 0 ? totalMinutes / 60 : 0;
+            // Validar que workMinutes sea válido antes de dividir
+            const totalHours = workMinutes > 0 ? workMinutes / 60 : 0;
             acc[index].totalHours = totalHours;
 
-            // Calcular horas extras: más de 9 horas totales (8 horas de trabajo + 1 hora de almuerzo)
-            // 9 horas = 540 minutos
-            const requiredTotalMinutes = 540; // 9 horas totales (540 minutos)
-            const overtimeByTotalTime =
-              totalMinutes > requiredTotalMinutes
-                ? totalMinutes - requiredTotalMinutes
+            // Calcular horas extras: más de 8 horas de trabajo (sin contar almuerzo)
+            // 8 horas = 480 minutos
+            const requiredWorkMinutes = 480; // 8 horas de trabajo (480 minutos)
+            const overtimeByWorkTime =
+              workMinutes > requiredWorkMinutes
+                ? workMinutes - requiredWorkMinutes
                 : 0;
 
-            // Calcular minutos excedidos del almuerzo (más de 60 minutos)
-            // Si el almuerzo excede 60 minutos, ese tiempo extra NO es trabajo y debe restarse de las horas extras
-            const lunchExceededMinutes = lunchTime > 60 ? lunchTime - 60 : 0;
-
-            // RESTAR el exceso de almuerzo de las horas extras (porque ese tiempo no es trabajo)
-            const totalOvertimeMinutes = Math.max(
-              0,
-              overtimeByTotalTime - lunchExceededMinutes
-            );
+            // Las horas extras se calculan solo sobre el trabajo
+            const totalOvertimeMinutes = Math.max(0, overtimeByWorkTime);
             acc[index].overtimeHours =
               totalOvertimeMinutes > 0 ? totalOvertimeMinutes / 60 : 0;
           }
