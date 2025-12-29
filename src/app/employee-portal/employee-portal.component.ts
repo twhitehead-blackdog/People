@@ -34,8 +34,9 @@ import { Textarea } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
+import { v4 } from 'uuid';
 import { CalendarComponent, CalendarMarkerData } from '../calendar.component';
-import { TimeLogEnum } from '../models';
+import { TimeLogEnum, TimeOff } from '../models';
 import { EmployeePortalNavigationService } from '../services/employee-portal-navigation.service';
 import { NotificationsService } from '../services/notifications.service';
 import { OrganizationService } from '../services/organization.service';
@@ -1526,6 +1527,171 @@ import { EmployeesStore } from '../stores/employees.store';
               </p-table>
             </div>
             }
+          </div>
+        </p-card>
+      </div>
+      }
+
+      <!-- Solicitar Vacaciones Section -->
+      @if (activeSection() === 'vacations') {
+      <div id="vacations" class="section-content">
+        <p-card>
+          <ng-template #title>
+            <div class="flex items-center justify-between w-full">
+              <div class="flex items-center gap-2">
+                <i class="pi pi-calendar-plus text-purple-400"></i>
+                <span>Solicitar Vacaciones</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <p-button
+                  icon="pi pi-times"
+                  [rounded]="true"
+                  [text]="true"
+                  severity="secondary"
+                  [outlined]="true"
+                  (click)="activeSection.set('management')"
+                  pTooltip="Volver a Gestiones"
+                  [style]="{ width: '2.5rem', height: '2.5rem' }"
+                />
+              </div>
+            </div>
+          </ng-template>
+          <ng-template #subtitle
+            >Solicita tus días de vacaciones</ng-template
+          >
+
+          <div class="flex flex-col gap-6">
+            <!-- Formulario de Solicitud -->
+            <div class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
+              <h3 class="text-lg font-semibold text-white mb-4">
+                Nueva Solicitud de Vacaciones
+              </h3>
+              
+              <div class="flex flex-col gap-4">
+                <!-- Rango de Fechas -->
+                <div class="input-container">
+                  <label for="vacation-date-range" class="block text-sm text-gray-400 mb-2">
+                    Período de Vacaciones
+                  </label>
+                  <p-datepicker
+                    id="vacation-date-range"
+                    [(ngModel)]="vacationDateRange"
+                    selectionMode="range"
+                    appendTo="body"
+                    [minDate]="minVacationDate"
+                    class="w-full"
+                    [showIcon]="true"
+                  />
+                  @if (vacationDateRange()?.length === 2) {
+                    <p class="text-sm text-gray-500 mt-2">
+                      Días solicitados: {{ calculateVacationDays() }}
+                    </p>
+                  }
+                </div>
+
+                <!-- Motivo/Comentarios -->
+                <div class="input-container">
+                  <label for="vacation-reason" class="block text-sm text-gray-400 mb-2">
+                    Motivo o Comentarios (opcional)
+                  </label>
+                  <textarea
+                    pTextarea
+                    id="vacation-reason"
+                    [(ngModel)]="vacationReason"
+                    rows="4"
+                    placeholder="Describe el motivo de tu solicitud de vacaciones..."
+                    class="w-full"
+                  ></textarea>
+                </div>
+
+                <!-- Botón de Envío -->
+                <div class="flex justify-end gap-3">
+                  <p-button
+                    label="Cancelar"
+                    icon="pi pi-times"
+                    severity="secondary"
+                    [outlined]="true"
+                    (click)="resetVacationForm()"
+                  />
+                  <p-button
+                    label="Solicitar Vacaciones"
+                    icon="pi pi-send"
+                    severity="success"
+                    [loading]="submittingVacation()"
+                    [disabled]="!canSubmitVacation() || submittingVacation()"
+                    (click)="submitVacationRequest()"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Lista de Solicitudes de Vacaciones -->
+            <div class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
+              <h3 class="text-lg font-semibold text-white mb-4">
+                Mis Solicitudes de Vacaciones
+              </h3>
+              
+              @if (myVacationRequests().length === 0 && !vacationTimeoffsApi.isLoading()) {
+                <div class="text-center py-8">
+                  <i class="pi pi-calendar-times text-4xl text-gray-500 mb-4"></i>
+                  <p class="text-gray-400">No has realizado ninguna solicitud de vacaciones.</p>
+                </div>
+              } @else {
+                <div class="overflow-x-auto">
+                  <p-table
+                    [value]="myVacationRequests()"
+                    [rows]="10"
+                    paginator
+                    [loading]="vacationTimeoffsApi.isLoading()"
+                    styleClass="p-datatable-sm md:p-datatable-lg"
+                    [scrollable]="true"
+                    scrollHeight="400px"
+                    [responsiveLayout]="'scroll'"
+                  >
+                    <ng-template #header>
+                      <tr>
+                        <th>Fecha de Solicitud</th>
+                        <th>Período</th>
+                        <th>Días</th>
+                        <th>Estado</th>
+                        <th>Comentarios</th>
+                      </tr>
+                    </ng-template>
+                    <ng-template #body let-request>
+                      <tr>
+                        <td>{{ request.created_at | date : 'mediumDate' }}</td>
+                        <td>
+                          {{ request.date_from | date : 'shortDate' }} - 
+                          {{ request.date_to | date : 'shortDate' }}
+                        </td>
+                        <td>
+                          {{ calculateDaysBetween(request.date_from, request.date_to) }}
+                        </td>
+                        <td>
+                          <span
+                            class="px-2 py-1 rounded text-xs font-semibold"
+                            [class.bg-yellow-500]="!request.is_approved && isDateFuture(request.date_from)"
+                            [class.bg-green-500]="request.is_approved"
+                            [class.bg-red-500]="!request.is_approved && !isDateFuture(request.date_from)"
+                          >
+                            {{
+                              request.is_approved
+                                ? 'Aprobada'
+                                : isDateFuture(request.date_from)
+                                ? 'Pendiente'
+                                : 'Rechazada'
+                            }}
+                          </span>
+                        </td>
+                        <td>
+                          {{ request.notes && request.notes.length > 0 ? request.notes[0] : '-' }}
+                        </td>
+                      </tr>
+                    </ng-template>
+                  </p-table>
+                </div>
+              }
+            </div>
           </div>
         </p-card>
       </div>
@@ -4648,6 +4814,12 @@ export class EmployeePortalComponent {
   public submittingCompensatory = signal(false);
   public showTutorialDialog = signal(false);
 
+  // Signals para formulario de vacaciones
+  public vacationDateRange = signal<Date[] | null>(null);
+  public vacationReason = signal('');
+  public submittingVacation = signal(false);
+  public minVacationDate = new Date(); // No permitir fechas pasadas
+
   // Dialog para detalles de solicitud
   public showRequestDetailsDialog = signal(false);
   public selectedRequestDetails = signal<any>(null);
@@ -4767,6 +4939,37 @@ export class EmployeePortalComponent {
     },
     {
       // CRÍTICO: defaultValue evita que el resource lance error si falla la primera carga
+      defaultValue: [],
+    }
+  );
+
+  // API para obtener todas las solicitudes de vacaciones
+  public vacationTimeoffsApi = httpResource<any[]>(
+    () => {
+      if (!this.currentEmployee()?.id) return undefined;
+      const companyId = this.organizationService.getCurrentCompanyId();
+
+      if (!companyId) {
+        return undefined;
+      }
+
+      // ID del tipo de timeoff "Vacaciones"
+      const vacationTypeId = '00000000-0000-0000-0000-000000000001';
+
+      const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`;
+      const select = `*,type:timeoff_types(id,name)`;
+
+      let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
+      url += `&employee_id=eq.${this.currentEmployee()!.id}`;
+      url += `&type_id=eq.${vacationTypeId}`;
+      url += `&order=date_from.desc`;
+
+      return {
+        url,
+        method: 'GET',
+      };
+    },
+    {
       defaultValue: [],
     }
   );
@@ -5588,6 +5791,157 @@ export class EmployeePortalComponent {
       });
     } finally {
       this.submittingCompensatory.set(false);
+    }
+  }
+
+  // Métodos para vacaciones
+  public canSubmitVacation = computed(() => {
+    const range = this.vacationDateRange();
+    return range && range.length === 2 && range[0] && range[1];
+  });
+
+  public calculateVacationDays = computed(() => {
+    const range = this.vacationDateRange();
+    if (!range || range.length !== 2 || !range[0] || !range[1]) {
+      return 0;
+    }
+    return this.calculateDaysBetween(range[0], range[1]);
+  });
+
+  public calculateDaysBetween(dateFrom: Date | string, dateTo: Date | string): number {
+    const from = typeof dateFrom === 'string' ? new Date(dateFrom) : dateFrom;
+    const to = typeof dateTo === 'string' ? new Date(dateTo) : dateTo;
+    return differenceInDays(to, from) + 1; // +1 para incluir ambos días
+  }
+
+  public isDateFuture(date: Date | string): boolean {
+    const dateObj = typeof date === 'string' ? new Date(date) : date;
+    return dateObj > new Date();
+  }
+
+  public myVacationRequests = computed(() => {
+    if (this.vacationTimeoffsApi.status() === 'error') {
+      return [];
+    }
+    return this.vacationTimeoffsApi.value() ?? [];
+  });
+
+  public resetVacationForm() {
+    this.vacationDateRange.set(null);
+    this.vacationReason.set('');
+  }
+
+  public async submitVacationRequest() {
+    const range = this.vacationDateRange();
+    if (!range || range.length !== 2 || !range[0] || !range[1]) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Por favor selecciona un rango de fechas válido',
+      });
+      return;
+    }
+
+    const employee = this.currentEmployee();
+    if (!employee) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo identificar al empleado',
+      });
+      return;
+    }
+
+    this.submittingVacation.set(true);
+
+    try {
+      const vacationTypeId = '00000000-0000-0000-0000-000000000001';
+      const dateFrom = format(range[0], 'yyyy-MM-dd');
+      const dateTo = format(range[1], 'yyyy-MM-dd');
+      const notes = this.vacationReason() ? [this.vacationReason()] : [];
+
+      const timeoffData: any = {
+        id: v4(),
+        employee_id: employee.id,
+        type_id: vacationTypeId,
+        date_from: dateFrom,
+        date_to: dateTo,
+        notes,
+        is_approved: false, // Las vacaciones requieren aprobación
+      };
+
+      const response = await firstValueFrom(
+        this.http.post<any>(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`,
+          timeoffData,
+          {
+            headers: {
+              'Content-Type': 'application/json',
+              Prefer: 'return=representation',
+            },
+          }
+        )
+      );
+
+      // Enviar notificación a HR que revisa
+      const timeoffId = response[0]?.id || response?.id;
+      await this.notifyHRReviewer(timeoffId);
+
+      // Crear notificación en hr_messages para el usuario
+      if (timeoffId) {
+        try {
+          await firstValueFrom(
+            this.http.post(
+              `${process.env['ENV_SUPABASE_URL']}/rest/v1/hr_messages`,
+              {
+                employee_id: employee.id,
+                related_type: 'timeoff',
+                related_id: timeoffId,
+                message_type: 'vacation_request',
+                title: 'Solicitud de vacaciones enviada',
+                message:
+                  'Tu solicitud de vacaciones ha sido enviada y está pendiente de revisión.',
+                is_read: false,
+              },
+              {
+                headers: {
+                  'Content-Type': 'application/json',
+                  Prefer: 'return=representation',
+                },
+              }
+            )
+          );
+        } catch (error) {
+          console.error('Error al crear notificación para el usuario:', error);
+        }
+      }
+
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Solicitud Enviada',
+        detail: 'Tu solicitud de vacaciones ha sido enviada para revisión',
+      });
+
+      // Limpiar formulario
+      this.resetVacationForm();
+
+      // Recargar lista
+      if (
+        this.vacationTimeoffsApi &&
+        typeof this.vacationTimeoffsApi.reload === 'function' &&
+        this.vacationTimeoffsApi.status() !== 'error'
+      ) {
+        this.vacationTimeoffsApi.reload();
+      }
+    } catch (error: any) {
+      console.error('Error submitting vacation request:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo enviar la solicitud. Por favor intenta de nuevo.',
+      });
+    } finally {
+      this.submittingVacation.set(false);
     }
   }
 

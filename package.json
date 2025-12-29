@@ -1,15 +1,16 @@
 {
   "name": "@people/source",
-  "version": "0.0.0",
+  "version": "2.0.0",
   "license": "MIT",
   "scripts": {
     "start": "nx serve",
     "start:dev": "concurrently \"nx serve\" \"tsx server.ts\"",
     "server": "tsx server.ts",
-    "build": "nx build",
+    "build": "npm run update-version && nx build",
     "test": "nx run people:test --codeCoverage=true",
     "setup:env": "powershell -ExecutionPolicy Bypass -File ./scripts/setup-env.ps1",
-    "verify": "powershell -ExecutionPolicy Bypass -File ./scripts/verify-setup.ps1"
+    "verify": "powershell -ExecutionPolicy Bypass -File ./scripts/verify-setup.ps1",
+    "update-version": "node scripts/update-version.js"
   },
   "private": true,
   "dependencies": {

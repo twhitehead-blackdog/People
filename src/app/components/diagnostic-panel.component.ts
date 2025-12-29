@@ -190,16 +190,11 @@ export class DiagnosticPanelComponent implements OnInit, OnDestroy {
     }
 
     // Verificar estado inicial después de un segundo
+    // No agregar mensaje informativo como error - solo log en desarrollo
     setTimeout(() => {
       const initialErrors = this.diagnosticService.getErrors();
-      console.log('🔍 [Diagnóstico] Errores iniciales:', initialErrors.length);
-      if (initialErrors.length === 0) {
-        // Agregar un mensaje informativo si no hay errores
-        this.diagnosticService.addError({
-          type: 'other',
-          message: '✅ Panel de diagnóstico activo - Esperando errores...',
-          details: { status: 'ready' },
-        });
+      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+        console.log('🔍 [Diagnóstico] Errores iniciales:', initialErrors.length);
       }
     }, 1000);
   }

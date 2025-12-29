@@ -32,6 +32,16 @@ type State = {
   lastUpdated: Date | null;
 };
 
+// Duración de caché por tipo de entidad (en segundos)
+const CACHE_DURATION: Record<string, number> = {
+  companies: 15 * 60,      // 15 minutos - catálogo que cambia poco
+  branches: 15 * 60,       // 15 minutos - catálogo que cambia poco
+  schedules: 10 * 60,      // 10 minutos - horarios que cambian ocasionalmente
+  employees: 5 * 60,       // 5 minutos - datos que pueden cambiar más frecuentemente
+  timelogs: 30,            // 30 segundos - datos dinámicos
+  default: 5 * 60,         // 5 minutos por defecto
+};
+
 export function withCustomEntities<T extends { id: EntityId }>({
   name,
   query = '*',
@@ -218,11 +228,16 @@ export function withCustomEntities<T extends { id: EntityId }>({
           patchState(state, { selectedEntityId: null }),
         fetchItems: rxMethod<void>(
           pipe(
-            filter(
-              () =>
+            filter(() => {
+              const tableName = getTable();
+              // Obtener duración de caché específica para esta entidad o usar default
+              const cacheDuration = CACHE_DURATION[tableName] || CACHE_DURATION['default'];
+              
+              return (
                 state.lastUpdated() === null ||
-                differenceInSeconds(new Date(), state.lastUpdated()!) > 30
-            ),
+                differenceInSeconds(new Date(), state.lastUpdated()!) > cacheDuration
+              );
+            }),
             tap(() => patchState(state, { isLoading: true, error: null })),
             switchMap(() => {
               const tableName = getTable();

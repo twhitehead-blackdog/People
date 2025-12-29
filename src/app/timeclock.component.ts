@@ -13,7 +13,7 @@ import {
   signal,
   ViewChild,
 } from '@angular/core';
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   FormControl,
   FormGroup,
@@ -21,7 +21,6 @@ import {
   Validators,
 } from '@angular/forms';
 import { Router } from '@angular/router';
-import { AuthService } from '@auth0/auth0-angular';
 import { differenceInMinutes, format } from 'date-fns';
 import * as OTPAuth from 'otpauth';
 import { ConfirmationService, MessageService } from 'primeng/api';
@@ -32,7 +31,7 @@ import { InputOtp } from 'primeng/inputotp';
 import { Select } from 'primeng/select';
 import { Toast } from 'primeng/toast';
 import { catchError, EMPTY, Observable, of } from 'rxjs';
-import { map, switchMap } from 'rxjs/operators';
+import { map } from 'rxjs/operators';
 import {
   Branch,
   Company,
@@ -969,11 +968,6 @@ export class TimeclockComponent implements OnDestroy {
   private organizationService = inject(OrganizationService);
   private destroyRef = inject(DestroyRef);
   private diagnosticService = inject(DiagnosticService);
-  private authService = inject(AuthService);
-  // Signal para el usuario actual (reactivo)
-  private currentUser = toSignal(this.authService.user$, {
-    initialValue: null,
-  });
   // Get IP address - try multiple methods to get real IP even from localhost
   public currentIP = signal<string>('127.0.0.1');
   public isProcessing = signal<boolean>(false);
@@ -989,18 +983,6 @@ export class TimeclockComponent implements OnDestroy {
   );
   // Ya no hay tablas naz_*, todo es por company_id
   private employeesTable = computed(() => 'employees');
-
-  // Computed para verificar si es super admin (soporte2 o mercadeo)
-  public isSuperAdmin = computed(() => {
-    const user = this.currentUser();
-    if (!user?.email) return false;
-    const email = user.email.toLowerCase();
-    const superAdminEmails = [
-      'mercadeo@blackdogpanama.com',
-      'soporte2@blackdogpanama.com',
-    ];
-    return superAdminEmails.includes(email);
-  });
 
   private injector = inject(Injector);
   private timeInterval: any;
@@ -1133,22 +1115,16 @@ export class TimeclockComponent implements OnDestroy {
           !this.form.get('branch_id')?.value
         ) {
           if (isNaz) {
-            // For Naz: auto-select "Naz" branch, o la primera disponible
-            const nazBranch = branches.find((b: Branch) => {
+            // For Naz: auto-select "Calle 50" branch
+            const calle50Branch = branches.find((b: Branch) => {
               const name = b.name.toLowerCase();
-              return name === 'naz' && b.company_id === selectedCompanyId;
-            }) as Branch | undefined;
-
-            if (nazBranch) {
-              this.form.get('branch_id')?.setValue(nazBranch.id);
-            } else if (branches.length > 0) {
-              // Si no encuentra "Naz", seleccionar la primera sucursal disponible de Naz
-              const firstNazBranch = branches.find(
-                (b: Branch) => b.company_id === selectedCompanyId
+              return (
+                (name.includes('calle 50') || name.includes('calle50')) &&
+                b.company_id === selectedCompanyId
               );
-              if (firstNazBranch) {
-                this.form.get('branch_id')?.setValue(firstNazBranch.id);
-              }
+            }) as Branch | undefined;
+            if (calle50Branch) {
+              this.form.get('branch_id')?.setValue(calle50Branch.id);
             }
           } else {
             // For Black Dog: auto-select branch by IP if found
@@ -1532,24 +1508,14 @@ export class TimeclockComponent implements OnDestroy {
   // Computed signals to select the correct resource based on organization
   // Ya no se usan tablas naz_*, todo es por company_id
   public currentCompaniesResource = computed<Company[] | undefined>(() => {
-    const companies = this.companiesResource.value();
-    if (!companies) return undefined;
-
-    // Siempre filtrar por company_id actual (incluso para super admins)
-    // El super admin puede cambiar de organización, pero cuando está en una, solo ve esa
-    const companyId = this.organizationService.getCurrentCompanyId();
-    if (companyId) {
-      return companies.filter((c) => c.id === companyId);
-    }
-    return companies;
+    return this.companiesResource.value();
   });
 
   public currentBranchesResource = computed<Branch[] | undefined>(() => {
     const branches = this.branchesResource.value();
     if (!branches) return undefined;
 
-    // Siempre filtrar por company_id actual (incluso para super admins)
-    // El super admin puede cambiar de organización, pero cuando está en una, solo ve esa
+    // Filtrar branches por company_id actual si está disponible
     const companyId = this.organizationService.getCurrentCompanyId();
     if (companyId) {
       return branches.filter((b) => b.company_id === companyId);
@@ -1597,8 +1563,7 @@ export class TimeclockComponent implements OnDestroy {
       is_active: 'eq.true',
     };
 
-    // Siempre filtrar por company_id (incluso para super admins)
-    // El super admin puede cambiar de organización, pero cuando está en una, solo ve esa
+    // Filtrar por company_id siempre (ya no hay tablas naz_*)
     if (companyId) {
       params.company_id = `eq.${companyId}`;
     }
@@ -2137,10 +2102,6 @@ export class TimeclockComponent implements OnDestroy {
     employeeName: string
   ) {
     const now = new Date();
-    // Ya no se usan tablas naz_*, todo es por company_id
-    const tableName = 'timelogs';
-    const invalidField = 'invalid_ip';
-
     // Validar IP normalmente
     const invalidValue = !this.validIP();
 
@@ -2159,122 +2120,40 @@ export class TimeclockComponent implements OnDestroy {
       return;
     }
 
-    // Log adicional antes de enviar
-    console.log('📤 Enviando POST a', tableName, 'con:', {
-      employee_id: employeeId,
-      branch_id: branchId,
-      company_id: finalCompanyId,
-      type,
-      invalidField,
-      invalidValue,
-    });
-
+    // Usar RPC para procesar todo en una sola transacción
     this.http
-      .post(`${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`, {
-        employee_id: employeeId,
-        branch_id: branchId,
-        company_id: finalCompanyId,
-        type,
-        ip: this.getIP(),
-        [invalidField]: invalidValue,
+      .post<{
+        success: boolean;
+        timelog_id?: string;
+        delay?: number | null;
+        exitDiff?: { minutes: number; isEarly: boolean } | null;
+        lunchEndDiff?: number | null;
+        lunchExceededMinutes?: number | null;
+        schedule?: {
+          id: string;
+          name: string;
+          entry_time: string;
+          exit_time: string;
+          day_off: boolean;
+          minutes_tolerance: number;
+        } | null;
+        hasSchedule?: boolean;
+        isDayOff?: boolean;
+        error?: string;
+        error_code?: string;
+      }>(`${process.env['ENV_SUPABASE_URL']}/rest/v1/rpc/process_timelog`, {
+        p_employee_id: employeeId,
+        p_company_id: finalCompanyId,
+        p_branch_id: branchId,
+        p_type: type,
+        p_ip: this.getIP(),
+        p_invalid_ip: invalidValue,
       })
       .pipe(
-        switchMap(() => {
-          // Check timing based on type
-          if (type === 'entry') {
-            return this.getEmployeeSchedule(employeeId).pipe(
-              map((schedule) => {
-                const delay = this.calculateDelay(now, schedule?.schedule);
-                return { delay, exitDiff: null, schedule, lunchEndDiff: null };
-              }),
-              catchError(() =>
-                of({
-                  delay: null,
-                  exitDiff: null,
-                  schedule: null,
-                  lunchEndDiff: null,
-                })
-              )
-            );
-          } else if (type === 'exit') {
-            return this.getEmployeeSchedule(employeeId).pipe(
-              map((schedule) => {
-                const exitDiff = this.calculateExitDifference(
-                  now,
-                  schedule?.schedule
-                );
-                return { delay: null, exitDiff, schedule, lunchEndDiff: null };
-              }),
-              catchError(() =>
-                of({
-                  delay: null,
-                  exitDiff: null,
-                  schedule: null,
-                  lunchEndDiff: null,
-                })
-              )
-            );
-          } else if (type === 'lunch_end') {
-            return this.getLunchStartTimelog(employeeId).pipe(
-              map((lunchStartLog) => {
-                if (!lunchStartLog) {
-                  return {
-                    delay: null,
-                    exitDiff: null,
-                    schedule: null,
-                    lunchEndDiff: null,
-                    lunchExceededMinutes: null,
-                  };
-                }
-
-                const lunchStartTime = new Date(lunchStartLog.created_at);
-                const result = this.calculateLunchEndDifference(
-                  now,
-                  lunchStartTime,
-                  null // Ya no necesitamos el schedule
-                );
-
-                return {
-                  delay: null,
-                  exitDiff: null,
-                  schedule: null,
-                  lunchEndDiff: result?.shouldShowWarning
-                    ? result.exceededMinutes
-                    : null,
-                  lunchExceededMinutes: result?.exceededMinutes || 0,
-                };
-              }),
-              catchError(() =>
-                of({
-                  delay: null,
-                  exitDiff: null,
-                  schedule: null,
-                  lunchEndDiff: null,
-                  lunchExceededMinutes: null,
-                })
-              )
-            );
-          }
-          return of({
-            delay: null,
-            exitDiff: null,
-            schedule: null,
-            lunchEndDiff: null,
-            lunchExceededMinutes: null,
-          });
-        }),
         catchError((error) => {
           this.isProcessing.set(false);
           const isNaz = this.isNazCompany();
           console.error('Error al procesar timelog:', error);
-          console.error('Datos enviados:', {
-            employee_id: employeeId,
-            branch_id: branchId,
-            company_id: finalCompanyId,
-            type,
-            tableName,
-            isNaz,
-          });
 
           let errorMessage = 'Algo salió mal, intente nuevamente';
 
@@ -2289,7 +2168,7 @@ export class TimeclockComponent implements OnDestroy {
             )}...) o compañía (${finalCompanyId.substring(
               0,
               8
-            )}...) seleccionados no existen en la tabla ${tableName}. Verifique que los datos sean correctos para ${
+            )}...) seleccionados no existen. Verifique que los datos sean correctos para ${
               isNaz ? 'Naz' : 'Black Dog'
             }.`;
           } else if (error?.status === 422) {
@@ -2308,7 +2187,7 @@ export class TimeclockComponent implements OnDestroy {
             severity: 'error',
             summary: 'Error',
             detail: errorMessage,
-            life: 10000, // Mostrar por 10 segundos para que se pueda leer
+            life: 10000,
           });
 
           // Resetear el formulario si hay un error de constraint (409)
@@ -2324,6 +2203,18 @@ export class TimeclockComponent implements OnDestroy {
       )
       .subscribe({
         next: (result) => {
+          // Verificar si la RPC retornó error
+          if (!result.success) {
+            this.isProcessing.set(false);
+            this.message.add({
+              severity: 'error',
+              summary: 'Error',
+              detail: result.error || 'Error al procesar la marcación',
+              life: 10000,
+            });
+            return;
+          }
+
           const typeLabel =
             this.types.find((t) => t.value === type)?.label || type;
           let message = `<div style="text-align: center;">
@@ -2337,9 +2228,9 @@ export class TimeclockComponent implements OnDestroy {
           if (result.delay !== null && result.delay !== undefined) {
             const delayFormatted = this.formatTimeDifference(result.delay);
             message += `<br><div style="color: #ef4444; font-weight: bold; text-align: center;">😱 Marcaste tarde: ${delayFormatted} de retraso</div>`;
-          } else if (type === 'entry' && result.schedule === null) {
+          } else if (type === 'entry' && !result.hasSchedule) {
             message += `<br><div style="color: #6b7280; font-style: italic; text-align: center;">ℹ️ No se encontró horario configurado para hoy</div>`;
-          } else if (type === 'entry' && result.schedule?.schedule?.day_off) {
+          } else if (type === 'entry' && result.isDayOff) {
             message += `<br><div style="color: #6b7280; font-style: italic; text-align: center;">ℹ️ Día libre</div>`;
           } else if (type === 'entry') {
             message += `<br><div style="color: #10b981; font-weight: bold; text-align: center;">✓ Marcaste a tiempo</div>`;
@@ -2355,9 +2246,9 @@ export class TimeclockComponent implements OnDestroy {
             } else {
               message += `<br><div style="color: #10b981; font-weight: bold; text-align: center;">✓ Saliste después: ${diffFormatted} después de la hora programada</div>`;
             }
-          } else if (type === 'exit' && result.schedule === null) {
+          } else if (type === 'exit' && !result.hasSchedule) {
             message += `<br><div style="color: #6b7280; font-style: italic; text-align: center;">ℹ️ No se encontró horario configurado para hoy</div>`;
-          } else if (type === 'exit' && result.schedule?.schedule?.day_off) {
+          } else if (type === 'exit' && result.isDayOff) {
             message += `<br><div style="color: #6b7280; font-style: italic; text-align: center;">ℹ️ Día libre</div>`;
           } else if (type === 'exit') {
             message += `<br><div style="color: #10b981; font-weight: bold; text-align: center;">✓ Saliste a tiempo</div>`;
@@ -2365,25 +2256,20 @@ export class TimeclockComponent implements OnDestroy {
 
           // Check lunch time for lunch_end
           if (type === 'lunch_end') {
-            const lunchEndDiff =
-              'lunchEndDiff' in result &&
-              result.lunchEndDiff !== null &&
-              result.lunchEndDiff !== undefined
-                ? result.lunchEndDiff
-                : null;
-            const lunchExceededMinutes =
-              'lunchExceededMinutes' in result &&
-              result.lunchExceededMinutes !== null &&
-              result.lunchExceededMinutes !== undefined
-                ? result.lunchExceededMinutes
-                : null;
+            const lunchEndDiff = result.lunchEndDiff ?? null;
+            const lunchExceededMinutes = result.lunchExceededMinutes ?? null;
 
-            if (lunchEndDiff !== null && lunchEndDiff > 0) {
+            if (
+              lunchEndDiff !== null &&
+              lunchEndDiff !== undefined &&
+              lunchEndDiff > 0
+            ) {
               // Mostrar advertencia solo si excede más de 5 minutos
               const diffFormatted = this.formatTimeDifference(lunchEndDiff);
               message += `<br><div style="color: #f59e0b; font-weight: bold; text-align: center;">⚠️ Retraso de ${diffFormatted} en el almuerzo</div>`;
             } else if (
               lunchExceededMinutes !== null &&
+              lunchExceededMinutes !== undefined &&
               lunchExceededMinutes > 0 &&
               lunchExceededMinutes <= 5
             ) {
@@ -2394,33 +2280,7 @@ export class TimeclockComponent implements OnDestroy {
             }
           }
 
-          // Si es lunch_end y hay tiempo excedido, acumularlo
-          if (
-            type === 'lunch_end' &&
-            'lunchExceededMinutes' in result &&
-            result.lunchExceededMinutes &&
-            result.lunchExceededMinutes > 0
-          ) {
-            // Llamar a la función SQL para incrementar el tiempo excedido de forma segura
-            this.http
-              .post(
-                `${process.env['ENV_SUPABASE_URL']}/rest/v1/rpc/increment_lunch_exceeded_minutes`,
-                {
-                  p_employee_id: employeeId,
-                  p_minutes: result.lunchExceededMinutes,
-                }
-              )
-              .pipe(
-                catchError((error) => {
-                  console.error(
-                    'Error al actualizar tiempo excedido acumulado:',
-                    error
-                  );
-                  return EMPTY;
-                })
-              )
-              .subscribe();
-          }
+          // Nota: El tiempo excedido ya se acumuló en la RPC, no necesitamos llamar a increment_lunch_exceeded_minutes
 
           this.isProcessing.set(false);
           this.confirmation.confirm({

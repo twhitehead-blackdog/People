@@ -1,13 +1,24 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { AuthService } from '@auth0/auth0-angular';
-import { catchError, switchMap, throwError } from 'rxjs';
+import { catchError, finalize, switchMap, tap, throwError } from 'rxjs';
 import { DiagnosticService } from '../services/diagnostic.service';
+
+// Detectar si estamos en desarrollo
+const isDevelopment = typeof process !== 'undefined' && 
+  (process.env['NODE_ENV'] === 'development' || 
+   !process.env['NODE_ENV'] || 
+   window.location.hostname === 'localhost' || 
+   window.location.hostname === '127.0.0.1');
 
 export const httpInterceptor: HttpInterceptorFn = (req, next) => {
   const diagnosticService = inject(DiagnosticService);
 
   if (req.url.includes('supabase')) {
+    // Logging de métricas (solo en desarrollo)
+    const startTime = isDevelopment ? performance.now() : null;
+    const method = req.method;
+    const url = req.url.replace(process.env['ENV_SUPABASE_URL'] || '', '');
     // Para peticiones a settings, job_applications, timeoffs, hr_messages, notifications y employee_disabilities,
     // usar service_role key para bypassar RLS
     // Para otras peticiones, usar anon key
@@ -27,23 +38,6 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
       isHrMessagesRequest ||
       isEmployeeDisabilitiesRequest;
 
-    // Debug: Log para verificar qué se está detectando
-    if (isJobApplicationsRequest) {
-      console.log(
-        '[DEBUG] 🔍 Interceptor: Detectada petición a job_applications'
-      );
-      console.log('[DEBUG] 🔍 URL:', req.url);
-      console.log('[DEBUG] 🔍 needsServiceRoleKey:', needsServiceRoleKey);
-      console.log(
-        '[DEBUG] 🔍 ENV_SUPABASE_SERVICE_ROLE_KEY disponible:',
-        !!process.env['ENV_SUPABASE_SERVICE_ROLE_KEY']
-      );
-      console.log(
-        '[DEBUG] 🔍 ENV_SUPABASE_TOKEN disponible:',
-        !!process.env['ENV_SUPABASE_TOKEN']
-      );
-    }
-
     // Para Service Role Key, intentar todas las variantes posibles
     // ENV_SUPABASE_TOKEN y ENV_SUPABASE_SERVICE_ROLE_KEY deberían ser la misma clave
     const supabaseKey = needsServiceRoleKey
@@ -55,43 +49,6 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
       : process.env['ENV_SUPABASE_ANON_KEY'] ??
         process.env['ENV_SUPABASE_API_KEY'] ??
         '';
-
-    // Debug adicional: verificar qué key se está usando realmente
-    if (isJobApplicationsRequest) {
-      const usedKey = needsServiceRoleKey
-        ? process.env['ENV_SUPABASE_SERVICE_ROLE_KEY']
-          ? 'ENV_SUPABASE_SERVICE_ROLE_KEY'
-          : process.env['ENV_SUPABASE_TOKEN']
-          ? 'ENV_SUPABASE_TOKEN'
-          : process.env['ENV_SUPABASE_ANON_KEY']
-          ? 'ENV_SUPABASE_ANON_KEY'
-          : process.env['ENV_SUPABASE_API_KEY']
-          ? 'ENV_SUPABASE_API_KEY'
-          : 'NINGUNA'
-        : process.env['ENV_SUPABASE_ANON_KEY']
-        ? 'ENV_SUPABASE_ANON_KEY'
-        : process.env['ENV_SUPABASE_API_KEY']
-        ? 'ENV_SUPABASE_API_KEY'
-        : 'NINGUNA';
-      console.log('[DEBUG] 🔑 Key usada:', usedKey);
-      console.log(
-        '[DEBUG] 🔑 Primeros 20 chars de key:',
-        supabaseKey ? supabaseKey.substring(0, 20) + '...' : 'VACÍA'
-      );
-    }
-
-    // Debug: Log para verificar qué key se está usando
-    if (isJobApplicationsRequest) {
-      console.log(
-        '[DEBUG] 🔑 Key que se usará:',
-        needsServiceRoleKey ? 'Service Role Key' : 'Anon Key'
-      );
-      console.log('[DEBUG] 🔑 Key disponible:', !!supabaseKey);
-      console.log(
-        '[DEBUG] 🔑 Longitud de key:',
-        supabaseKey ? supabaseKey.length : 0
-      );
-    }
 
     // Si es una petición que necesita service role key y no hay disponible, mostrar error más claro
     if (needsServiceRoleKey && !supabaseKey) {
@@ -125,7 +82,22 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
       headers,
     });
     return next(request).pipe(
+      tap({
+        next: () => {
+          // Logging de duración de request exitoso (solo en desarrollo)
+          if (isDevelopment && startTime !== null) {
+            const duration = Math.round(performance.now() - startTime);
+            console.log(`[${method}] ${url} - ${duration}ms`);
+          }
+        },
+      }),
       catchError((error) => {
+        // Logging de errores (solo en desarrollo)
+        if (isDevelopment && startTime !== null) {
+          const duration = Math.round(performance.now() - startTime);
+          console.error(`[${method}] ${url} - ERROR ${error.status || 'NETWORK'} - ${duration}ms`);
+        }
+
         // Capturar errores de Supabase
         if (error.status === 401 || error.status === 403) {
           diagnosticService.addSupabaseError(

@@ -1,4 +1,5 @@
 import { NgClass } from '@angular/common';
+import { HttpClient } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -7,15 +8,15 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { AuthService } from '@auth0/auth0-angular';
-import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
+import { AuthService } from '@auth0/auth0-angular';
+import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { Toast } from 'primeng/toast';
-import { MessageService } from 'primeng/api';
-import { OrganizationService } from '../services/organization.service';
 import { Branch } from '../models';
+import { OrganizationService } from '../services/organization.service';
+import { APP_VERSION } from '../version';
 
 @Component({
   selector: 'pt-login',
@@ -24,7 +25,7 @@ import { Branch } from '../models';
     <div
       class="w-full flex flex-col items-center justify-center relative animated-gradient-container"
       [ngClass]="{ 'naz-theme': isNaz() }"
-      style="overflow: hidden; min-height: 100vh; min-height: 100dvh;"
+      style="overflow: visible; min-height: 100vh; min-height: 100dvh;"
     >
       <p-toast />
       <div
@@ -33,14 +34,14 @@ import { Branch } from '../models';
         <div class="logo-wrapper">
           <div class="logo-selector-container">
             @if (canChangeOrganization()) {
-              <button
-                type="button"
-                class="arrow-button arrow-left"
-                (click)="previousOrganization()"
-                aria-label="Organización anterior"
-              >
-                <i class="pi pi-chevron-left"></i>
-              </button>
+            <button
+              type="button"
+              class="arrow-button arrow-left"
+              (click)="previousOrganization()"
+              aria-label="Organización anterior"
+            >
+              <i class="pi pi-chevron-left"></i>
+            </button>
             }
             <div class="logo-container">
               <img
@@ -52,14 +53,14 @@ import { Branch } from '../models';
               />
             </div>
             @if (canChangeOrganization()) {
-              <button
-                type="button"
-                class="arrow-button arrow-right"
-                (click)="nextOrganization()"
-                aria-label="Siguiente organización"
-              >
-                <i class="pi pi-chevron-right"></i>
-              </button>
+            <button
+              type="button"
+              class="arrow-button arrow-right"
+              (click)="nextOrganization()"
+              aria-label="Siguiente organización"
+            >
+              <i class="pi pi-chevron-right"></i>
+            </button>
             }
           </div>
         </div>
@@ -122,6 +123,11 @@ import { Branch } from '../models';
           </ng-template>
         </p-card>
       </div>
+
+      <!-- Versión en la esquina inferior derecha -->
+      <div class="version-badge" [ngClass]="{ 'naz-version': isNaz() }">
+        v{{ appVersion }}
+      </div>
     </div>
   `,
   styles: `
@@ -137,12 +143,14 @@ import { Branch } from '../models';
       min-height: auto;
       position: relative;
       justify-content: flex-start;
-      padding-top: 2rem;
+      padding-top: 8rem;
+      overflow: visible;
     }
     
     @media (min-width: 768px) {
       .login-container {
         padding: 3rem 2rem;
+        padding-top: 10rem;
         min-height: 100vh;
         justify-content: center;
       }
@@ -1324,6 +1332,54 @@ import { Branch } from '../models';
       border: 1px solid rgba(255, 255, 255, 0.1) !important;
       box-shadow: none !important;
     }
+
+    /* Badge de versión */
+    .version-badge {
+      position: fixed;
+      bottom: 1rem;
+      right: 1rem;
+      padding: 0.375rem 0.75rem;
+      background: rgba(20, 20, 20, 0.85);
+      border: 1px solid rgba(150, 150, 150, 0.2);
+      border-radius: 8px;
+      color: rgba(200, 200, 200, 0.7);
+      font-size: 0.75rem;
+      font-weight: 500;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      z-index: 1000;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+    }
+    
+    .version-badge:hover {
+      background: rgba(30, 30, 30, 0.95);
+      color: rgba(255, 255, 255, 0.9);
+      border-color: rgba(150, 150, 150, 0.3);
+    }
+    
+    /* Versión para tema Naz */
+    .naz-version {
+      background: rgba(13, 13, 13, 0.85) !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      color: #C6C2BF !important;
+    }
+    
+    .naz-version:hover {
+      background: rgba(13, 13, 13, 0.95) !important;
+      border-color: rgba(255, 255, 255, 0.2) !important;
+      color: #FFFFFF !important;
+    }
+    
+    @media (max-width: 767px) {
+      .version-badge {
+        bottom: 0.75rem;
+        right: 0.75rem;
+        font-size: 0.6875rem;
+        padding: 0.25rem 0.5rem;
+      }
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -1336,9 +1392,12 @@ export class LoginComponent {
   public activeMode = signal<'dashboard' | 'kiosk'>('dashboard');
   public isFlying = signal<boolean>(false);
 
+  // Versión de la aplicación (leída automáticamente desde package.json)
+  public appVersion = APP_VERSION;
+
   // Signal para la IP actual
   private currentIP = signal<string | null>(null);
-  
+
   // Signal para las sucursales
   private branches = signal<Branch[]>([]);
 
@@ -1355,7 +1414,9 @@ export class LoginComponent {
   public canChangeOrganization = computed(() => {
     // Verificar si el easter egg está activado
     if (typeof window !== 'undefined' && window.localStorage) {
-      const easterEggActivated = window.localStorage.getItem('easter_egg_activated');
+      const easterEggActivated = window.localStorage.getItem(
+        'easter_egg_activated'
+      );
       if (easterEggActivated === 'true') {
         return true;
       }
@@ -1367,7 +1428,7 @@ export class LoginComponent {
     }
 
     const ip = this.currentIP();
-    
+
     // Si no se puede detectar la IP o es localhost, permitir cambio
     if (!ip || ip === '127.0.0.1') {
       return true;
@@ -1380,24 +1441,26 @@ export class LoginComponent {
     }
 
     // Verificar si la IP actual coincide con alguna sucursal
-    const matchingBranch = branchesList.find((branch) => branch.ip && branch.ip.trim() === ip);
-    
+    const matchingBranch = branchesList.find(
+      (branch) => branch.ip && branch.ip.trim() === ip
+    );
+
     // Si hay una sucursal que coincide con la IP
     if (matchingBranch) {
       // Verificar si es oficina central (nombre contiene "central" o "oficina central")
       const branchName = matchingBranch.name?.toLowerCase() || '';
       const branchShortName = matchingBranch.short_name?.toLowerCase() || '';
-      const isCentralOffice = 
-        branchName.includes('central') || 
+      const isCentralOffice =
+        branchName.includes('central') ||
         branchName.includes('oficina central') ||
         branchShortName.includes('central') ||
         branchShortName.includes('oficina central');
-      
+
       // Si es oficina central, permitir cambio
       if (isCentralOffice) {
         return true;
       }
-      
+
       // Si no es oficina central, NO permitir cambiar organización
       return false;
     }
@@ -1425,23 +1488,24 @@ export class LoginComponent {
     // Obtener IP y sucursales al inicializar
     this.fetchCurrentIP();
     this.fetchBranches();
-    
+
     // Forzar Black Dog si estamos en una IP de sucursal (excepto para soporte2 o easter egg activado)
     effect(() => {
       const ip = this.currentIP();
       const canChange = this.canChangeOrganization();
       const isSupport = this.isSupportUser();
-      
+
       // Verificar si el easter egg está activado
-      const easterEggActivated = typeof window !== 'undefined' && window.localStorage
-        ? window.localStorage.getItem('easter_egg_activated') === 'true'
-        : false;
-      
+      const easterEggActivated =
+        typeof window !== 'undefined' && window.localStorage
+          ? window.localStorage.getItem('easter_egg_activated') === 'true'
+          : false;
+
       // No forzar si es soporte2 o si el easter egg está activado
       if (isSupport || easterEggActivated) {
         return;
       }
-      
+
       if (!canChange && ip && ip !== '127.0.0.1') {
         // Si no se puede cambiar y estamos en una IP de sucursal, forzar Black Dog
         if (this.organizationService.isNaz()) {
@@ -1490,12 +1554,14 @@ export class LoginComponent {
     // Esperar a que los company_ids estén listos
     console.log('⏳ Esperando a que los company_ids estén listos...');
     await this.organizationService.waitForCompanyIds();
-    
+
     const currentCompanyId = this.organizationService.getCurrentCompanyId();
     const currentOrg = this.organizationService.currentOrganization;
-    
+
     if (!currentCompanyId) {
-      console.error('❌ No se pudo obtener company_id. Usando organización por defecto.');
+      console.error(
+        '❌ No se pudo obtener company_id. Usando organización por defecto.'
+      );
       // Asegurar que al menos tengamos una organización
       if (!currentOrg) {
         this.organizationService.setOrganization('blackdog');
@@ -1503,14 +1569,22 @@ export class LoginComponent {
       // Intentar sincronizar de nuevo
       const retryCompanyId = this.organizationService.getCurrentCompanyId();
       if (retryCompanyId) {
-        console.log('✅ Company ID obtenido después de establecer organización por defecto:', retryCompanyId);
+        console.log(
+          '✅ Company ID obtenido después de establecer organización por defecto:',
+          retryCompanyId
+        );
       }
     }
-    
+
     const finalCompanyId = this.organizationService.getCurrentCompanyId();
     const finalOrg = this.organizationService.currentOrganization;
-    console.log('🚀 Iniciando sesión con organización:', finalOrg, 'company_id:', finalCompanyId);
-    
+    console.log(
+      '🚀 Iniciando sesión con organización:',
+      finalOrg,
+      'company_id:',
+      finalCompanyId
+    );
+
     // Usar Auth0 para iniciar sesión
     this.auth.loginWithRedirect();
   }
@@ -1536,13 +1610,15 @@ export class LoginComponent {
       },
       error: () => {
         // Si falla, intentar obtener IP vía WebRTC como fallback
-        this.getIPViaWebRTC().then((ip) => {
-          this.currentIP.set(ip);
-          console.log('📍 IP detectada vía WebRTC:', ip);
-        }).catch(() => {
-          // Si todo falla, usar localhost como fallback
-          this.currentIP.set('127.0.0.1');
-        });
+        this.getIPViaWebRTC()
+          .then((ip) => {
+            this.currentIP.set(ip);
+            console.log('📍 IP detectada vía WebRTC:', ip);
+          })
+          .catch(() => {
+            // Si todo falla, usar localhost como fallback
+            this.currentIP.set('127.0.0.1');
+          });
       },
     });
   }
@@ -1551,23 +1627,22 @@ export class LoginComponent {
    * Obtiene las sucursales desde la base de datos
    */
   private fetchBranches(): void {
-    this.http.get<Branch[]>(
-      `${process.env['ENV_SUPABASE_URL']}/rest/v1/branches`,
-      {
+    this.http
+      .get<Branch[]>(`${process.env['ENV_SUPABASE_URL']}/rest/v1/branches`, {
         params: {
           select: 'ip',
           is_active: 'eq.true',
         },
-      }
-    ).subscribe({
-      next: (branches) => {
-        this.branches.set(branches);
-        console.log('📍 Sucursales cargadas:', branches.length);
-      },
-      error: (error) => {
-        console.error('Error obteniendo sucursales:', error);
-      },
-    });
+      })
+      .subscribe({
+        next: (branches) => {
+          this.branches.set(branches);
+          console.log('📍 Sucursales cargadas:', branches.length);
+        },
+        error: (error) => {
+          console.error('Error obteniendo sucursales:', error);
+        },
+      });
   }
 
   /**
@@ -1638,5 +1713,4 @@ export class LoginComponent {
       }, 3000);
     });
   }
-
 }

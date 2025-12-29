@@ -142,9 +142,9 @@ import { ScreenLockComponent } from '../components/screen-lock.component';
                   <i class="pi pi-money-bill text-base"></i>
                   <span>Nómina</span></a
                 >
-                } @if(store.hasDashboardAccess() && ((store.isAdmin() ||
-                (store.isScheduleAdmin() && !store.hasPortalAccessOnly())) ||
-                store.hasTimeManagementAccess())) {
+                } @if((store.hasDashboardAccess() && (store.isAdmin() ||
+                (store.isScheduleAdmin() && !store.hasPortalAccessOnly()))) ||
+                store.hasTimeManagementAccess()) {
                 <a
                   (click)="navigateTo('time-management')"
                   [class.selected]="isTimeManagementActive()"
@@ -246,9 +246,9 @@ import { ScreenLockComponent } from '../components/screen-lock.component';
               ><i class="pi pi-building text-lg"></i>
               <span>Administración</span></a
             >
-            } @if(store.hasDashboardAccess() && ((store.isAdmin() ||
-            (store.isScheduleAdmin() && !store.hasPortalAccessOnly())) ||
-            store.hasTimeManagementAccess())) {
+            } @if((store.hasDashboardAccess() && (store.isAdmin() ||
+            (store.isScheduleAdmin() && !store.hasPortalAccessOnly()))) ||
+            store.hasTimeManagementAccess()) {
             <a
               (click)="navigateTo('time-management'); toggleMenu()"
               [class.bg-gray-700]="isTimeManagementActive()"
@@ -891,7 +891,8 @@ export class DashboardComponent {
     ];
 
     // Agregar Gestión de Tienda para gerentes, administradores y Gerente de Tienda
-    if (hasDashboardAccess && (isAdmin || isScheduleAdmin || hasTimeManagementAccess)) {
+    // Si tiene hasTimeManagementAccess, mostrar independientemente de hasDashboardAccess
+    if ((hasDashboardAccess && (isAdmin || isScheduleAdmin)) || hasTimeManagementAccess) {
       items.push({
         label: 'Gestión de Tienda',
         icon: 'pi pi-shop',
@@ -989,7 +990,10 @@ export class DashboardComponent {
 
     // Agregar opción de cambiar organización
     // Si no estás en Naz, mostrar "Cambiar a Naz" que activa easter egg, cambia a Naz, cierra sesión y redirige al login
-    if (!this.organizationService.isNaz()) {
+    // SOLO mostrar a soporte2@blackdogpanama.com - verificación estricta
+    const employee = this.store.currentEmployee();
+    const isSupportUserStrict = employee?.work_email?.toLowerCase() === 'soporte2@blackdogpanama.com';
+    if (!this.organizationService.isNaz() && isSupportUserStrict) {
       items.push({
         label: 'Cambiar a Naz',
         icon: 'pi pi-refresh',

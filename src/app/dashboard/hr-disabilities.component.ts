@@ -208,7 +208,7 @@ interface CompensatoryRequest {
                   : 'text-gray-400 hover:text-white hover:bg-neutral-700/50')"
             >
               <i class="pi pi-heart mr-1.5 text-xs"></i>
-              Gestión de Solicitudes
+              Incapacidades
               @if (pendingCount() > 0) {
               <span class="ml-1.5 px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full text-xs font-bold">
                 {{ pendingCount() }}
@@ -238,7 +238,17 @@ interface CompensatoryRequest {
                   : 'text-gray-400 hover:text-white hover:bg-neutral-700/50')"
             >
               <i class="pi pi-file-edit mr-1.5 text-xs"></i>
-              Solicitar Documentos
+              Solicitudes de Documentos
+            </button>
+            <button
+              (click)="navigateToTab('vacations')"
+              [class]="'px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 ' + 
+                (activeTab() === 'vacations' 
+                  ? 'bg-gradient-to-r from-cyan-500/20 to-cyan-600/20 text-cyan-300 shadow-md border border-cyan-400/30' 
+                  : 'text-gray-400 hover:text-white hover:bg-neutral-700/50')"
+            >
+              <i class="pi pi-calendar mr-1.5 text-xs"></i>
+              Vacaciones
             </button>
             <button
               (click)="navigateToTab('suggestions')"
@@ -428,38 +438,7 @@ interface CompensatoryRequest {
                   <i class="pi pi-list text-cyan-400 text-sm"></i>
                   Solicitudes
                 </h3>
-                @if (selectedDisabilities().length > 0) {
-                <span class="px-2 py-0.5 bg-cyan-500/20 text-cyan-300 rounded text-xs font-medium">
-                  {{ selectedDisabilities().length }} seleccionada(s)
-                </span>
-                }
               </div>
-              @if (selectedDisabilities().length > 0) {
-              <div class="flex items-center gap-1">
-                <p-button
-                  [label]="'Aprobar'"
-                  icon="pi pi-check"
-                  severity="success"
-                  size="small"
-                  (onClick)="bulkApprove()"
-                />
-                <p-button
-                  [label]="'Rechazar'"
-                  icon="pi pi-times"
-                  severity="danger"
-                  size="small"
-                  (onClick)="bulkReject()"
-                />
-                <p-button
-                  icon="pi pi-times"
-                  [text]="true"
-                  severity="secondary"
-                  size="small"
-                  (onClick)="selectedDisabilities.set([])"
-                  pTooltip="Limpiar selección"
-                />
-              </div>
-              }
             </div>
             
             @if (disabilitiesApi.isLoading()) {
@@ -503,13 +482,6 @@ interface CompensatoryRequest {
               >
                 <ng-template pTemplate="header">
                   <tr>
-                    <th style="width: 40px; padding: 0.5rem;">
-                      <p-checkbox 
-                        [binary]="true"
-                        [ngModel]="isAllSelected()"
-                        (ngModelChange)="toggleSelectAll($event)"
-                      />
-                    </th>
                     <th style="width: 180px; padding: 0.5rem;">
                       <div class="flex items-center gap-1">
                         <i class="pi pi-user text-cyan-400 text-xs"></i>
@@ -532,6 +504,12 @@ interface CompensatoryRequest {
                       <div class="flex items-center gap-1">
                         <i class="pi pi-clock text-cyan-400 text-xs"></i>
                         <span class="text-xs">Días</span>
+                      </div>
+                    </th>
+                    <th style="width: 120px; padding: 0.5rem;">
+                      <div class="flex items-center gap-1">
+                        <i class="pi pi-calendar-plus text-cyan-400 text-xs"></i>
+                        <span class="text-xs">Fecha Solicitud</span>
                       </div>
                     </th>
                     <th style="padding: 0.5rem;">
@@ -561,16 +539,8 @@ interface CompensatoryRequest {
                   </tr>
                 </ng-template>
                 <ng-template pTemplate="body" let-disability>
-                  <tr [class.bg-cyan-500/5]="selectedDisabilities().includes(disability.id)"
-                      class="hover:bg-neutral-700/30 transition-colors cursor-pointer"
+                  <tr class="hover:bg-neutral-700/30 transition-colors cursor-pointer"
                       (click)="viewDetails(disability)">
-                    <td style="padding: 0.5rem;" (click)="$event.stopPropagation()">
-                      <p-checkbox 
-                        [binary]="true"
-                        [ngModel]="selectedDisabilities().includes(disability.id)"
-                        (ngModelChange)="toggleDisabilitySelection(disability.id, $event)"
-                      />
-                    </td>
                     <td style="padding: 0.5rem;">
                       <div class="flex items-center gap-1.5">
                         <div class="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-500/20 to-cyan-600/20 flex items-center justify-center flex-shrink-0">
@@ -605,6 +575,11 @@ interface CompensatoryRequest {
                             disability.end_date
                           )
                         }}
+                      </span>
+                    </td>
+                    <td style="padding: 0.5rem;">
+                      <span class="text-xs text-gray-300">
+                        {{ disability.created_at | date : 'dd/MM/yyyy' }}
                       </span>
                     </td>
                     <td style="padding: 0.5rem;">
@@ -1080,6 +1055,15 @@ interface CompensatoryRequest {
           </div>
         </div>
         }
+
+        @if (activeTab() === 'vacations') {
+        <!-- Dashboard de Vacaciones -->
+        <div class="space-y-3">
+          <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-6">
+            <p class="text-gray-400 text-center">Vista de vacaciones - En desarrollo</p>
+          </div>
+        </div>
+        }
       </div>
     </div>
 
@@ -1088,92 +1072,205 @@ interface CompensatoryRequest {
       [(visible)]="showDetailsDialog"
       [modal]="true"
       [style]="{ width: '90vw', maxWidth: '900px' }"
-      [header]="'Detalles de Incapacidad'"
       [draggable]="false"
       [resizable]="false"
       [dismissableMask]="true"
     >
+      <ng-template pTemplate="header">
+        <div class="flex items-center justify-between w-full">
+          <span class="text-lg font-semibold text-white">Detalles de Incapacidad</span>
+          <div class="flex items-center gap-2">
+            <p-button
+              icon="pi pi-history"
+              [rounded]="true"
+              [text]="true"
+              severity="secondary"
+              (onClick)="showAuditSidebar.set(!showAuditSidebar())"
+              [class.bg-blue-500/20]="showAuditSidebar()"
+              [class.text-blue-400]="showAuditSidebar()"
+              pTooltip="Ver historial de cambios"
+              tooltipPosition="left"
+              size="small"
+            />
+          </div>
+        </div>
+      </ng-template>
       @if (selectedDisability()) {
       <div class="space-y-4 pt-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-400 mb-1"
-            >Empleado</label
-          >
-          <p class="text-white">
-            {{ selectedDisability()!.employee?.first_name }}
-            {{ selectedDisability()!.employee?.father_name }}
-            {{ selectedDisability()!.employee?.mother_name }}
-          </p>
-          <p class="text-sm text-gray-400">
-            {{ selectedDisability()!.employee?.work_email }}
-          </p>
-          @if (selectedDisability()!.employee?.position?.name) {
-          <p class="text-sm text-gray-500">
-            {{ selectedDisability()!.employee?.position?.name }}
-          </p>
-          } @if (selectedDisability()!.employee?.branch?.name) {
-          <p class="text-sm text-gray-500">
-            Sucursal: {{ selectedDisability()!.employee?.branch?.name }}
-          </p>
-          }
-        </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-400 mb-1"
-              >Fecha Inicio</label
-            >
-            <p class="text-white">
-              {{ selectedDisability()!.start_date | date : 'dd/MM/yyyy' }}
-            </p>
+        <!-- Información del Empleado y Resumen de Incapacidad (lado a lado) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Información del Empleado -->
+          <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
+            <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+              <i class="pi pi-user text-blue-400"></i>
+              Información del Empleado
+            </h3>
+            <div class="space-y-2">
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Nombre</label
+                >
+                <p class="text-white">
+                  {{ selectedDisability()!.employee?.first_name }}
+                  {{ selectedDisability()!.employee?.father_name }}
+                  {{ selectedDisability()!.employee?.mother_name }}
+                </p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Email</label
+                >
+                <p class="text-white">
+                  {{ selectedDisability()!.employee?.work_email }}
+                </p>
+              </div>
+              @if (selectedDisability()!.employee?.position?.name) {
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Cargo</label
+                >
+                <p class="text-white">
+                  {{ selectedDisability()!.employee?.position?.name }}
+                </p>
+              </div>
+              }
+              @if (selectedDisability()!.employee?.branch?.name) {
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Sucursal</label
+                >
+                <p class="text-white">
+                  {{ selectedDisability()!.employee?.branch?.name }}
+                </p>
+              </div>
+              }
+            </div>
           </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-400 mb-1"
-              >Fecha Fin</label
-            >
-            <p class="text-white">
-              {{ selectedDisability()!.end_date | date : 'dd/MM/yyyy' }}
-            </p>
+
+          <!-- Resumen de Incapacidad -->
+          <div class="p-4 bg-gradient-to-r from-blue-500/20 to-blue-600/10 border border-blue-400/30 rounded-lg">
+            <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+              <i class="pi pi-calendar-check text-blue-400"></i>
+              Resumen de Incapacidad
+            </h3>
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <p class="text-sm text-gray-400 mb-1">Duración total</p>
+                <p class="text-3xl font-bold text-blue-300">
+                  {{
+                    calculateDays(
+                      selectedDisability()!.start_date,
+                      selectedDisability()!.end_date
+                    )
+                  }} días
+                </p>
+              </div>
+              <div class="w-20 h-20 rounded-full bg-blue-500/20 flex items-center justify-center">
+                <i class="pi pi-calendar-check text-blue-400 text-3xl"></i>
+              </div>
+            </div>
+            <div class="mt-3 space-y-2">
+              <div class="bg-blue-500/10 border border-blue-400/30 rounded-lg p-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-semibold text-blue-300">
+                    Fecha Inicio
+                  </span>
+                  <span class="text-xs font-bold text-blue-400">
+                    {{ selectedDisability()!.start_date | date : 'dd/MM/yyyy' }}
+                  </span>
+                </div>
+              </div>
+              <div class="bg-blue-500/10 border border-blue-400/30 rounded-lg p-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-semibold text-blue-300">
+                    Fecha Fin
+                  </span>
+                  <span class="text-xs font-bold text-blue-400">
+                    {{ selectedDisability()!.end_date | date : 'dd/MM/yyyy' }}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-400 mb-1"
-            >Duración</label
-          >
-          <p class="text-white">
-            {{
-              calculateDays(
-                selectedDisability()!.start_date,
-                selectedDisability()!.end_date
-              )
-            }}
-            días
-          </p>
+
+        <!-- Información de la Incapacidad -->
+        <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
+          <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+            <i class="pi pi-info-circle text-blue-400"></i>
+            Información de la Incapacidad
+          </h3>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Fecha de Inicio</label
+              >
+              <p class="text-white">
+                {{ selectedDisability()!.start_date | date : 'dd/MM/yyyy' }}
+              </p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Fecha de Fin</label
+              >
+              <p class="text-white">
+                {{ selectedDisability()!.end_date | date : 'dd/MM/yyyy' }}
+              </p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Duración</label
+              >
+              <p class="text-white">
+                {{
+                  calculateDays(
+                    selectedDisability()!.start_date,
+                    selectedDisability()!.end_date
+                  )
+                }}
+                día(s)
+              </p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Estado</label
+              >
+              <p-tag
+                [value]="getStatusLabel(selectedDisability()!.status)"
+                [severity]="getStatusSeverity(selectedDisability()!.status)"
+              />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Fecha de Solicitud</label
+              >
+              <p class="text-white">
+                {{ selectedDisability()!.created_at | date : 'dd/MM/yyyy HH:mm' }}
+              </p>
+            </div>
+          </div>
         </div>
+
         @if (selectedDisability()!.description) {
-        <div>
-          <label class="block text-sm font-medium text-gray-400 mb-1"
-            >Descripción</label
-          >
+        <!-- Descripción -->
+        <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
+          <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+            <i class="pi pi-comment text-blue-400"></i>
+            Descripción
+          </h3>
           <p class="text-white whitespace-pre-wrap">
             {{ selectedDisability()!.description }}
           </p>
         </div>
         }
-        <div>
-          <label class="block text-sm font-medium text-gray-400 mb-1"
-            >Estado</label
-          >
-          <p-tag
-            [value]="getStatusLabel(selectedDisability()!.status)"
-            [severity]="getStatusSeverity(selectedDisability()!.status)"
-          />
-        </div>
         @if (selectedDisability()!.document_url) {
-        <div class="space-y-4">
-          <div class="flex items-center justify-between">
-            <label class="block text-sm font-medium text-gray-400 mb-0"
-              >Documento de Incapacidad</label
-            >
+        <!-- Documento de Incapacidad -->
+        <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+              <i class="pi pi-file text-blue-400"></i>
+              Documento de Incapacidad
+            </h3>
             <p-button
               icon="pi pi-download"
               label="Descargar"
@@ -1183,7 +1280,7 @@ interface CompensatoryRequest {
               size="small"
             />
           </div>
-          <div class="flex items-center justify-between">
+          <div class="flex items-center justify-between mb-3">
             <p class="text-gray-300 mb-0 text-sm">
               <i class="pi pi-file mr-2"></i>
               Documento adjunto
@@ -1248,19 +1345,14 @@ interface CompensatoryRequest {
           </div>
         </div>
         }
-        <div>
-          <label class="block text-sm font-medium text-gray-400 mb-1"
-            >Fecha de Creación</label
-          >
-          <p class="text-white">
-            {{ selectedDisability()!.created_at | date : 'dd/MM/yyyy HH:mm' }}
-          </p>
-        </div>
+
         @if (selectedDisability()!.status === 'rejected') {
-        <div>
-          <label class="block text-sm font-medium text-gray-400 mb-2">
-            Motivo de Rechazo (editable)
-          </label>
+        <!-- Motivo de Rechazo -->
+        <div class="p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+          <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+            <i class="pi pi-exclamation-triangle text-red-400"></i>
+            Motivo de Rechazo
+          </h3>
           <textarea
             pInputTextarea
             [(ngModel)]="disabilityRejectionComment"
@@ -1279,6 +1371,31 @@ interface CompensatoryRequest {
           </div>
         </div>
         }
+
+        <!-- Gestión de Estado -->
+        <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
+          <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+            <i class="pi pi-cog text-blue-400"></i>
+            Gestión de Estado
+          </h3>
+          <div class="flex gap-2">
+            @for (status of statusOptions; track status.value) {
+            <p-button
+              [label]="status.label"
+              [severity]="
+                status.value === 'approved'
+                  ? 'success'
+                  : status.value === 'rejected'
+                  ? 'danger'
+                  : 'warn'
+              "
+              [outlined]="selectedDisability()!.status !== status.value"
+              (onClick)="updateDisabilityStatusFromDialog(status.value)"
+              [disabled]="selectedDisability()!.status === status.value"
+            />
+            }
+          </div>
+        </div>
       </div>
       }
     </p-dialog>
@@ -2040,12 +2157,16 @@ export class HRDisabilitiesComponent {
 
   // Método para navegar a diferentes pestañas
   public navigateToTab(
-    tab: 'disabilities' | 'compensatory' | 'documents' | 'suggestions'
+    tab: 'disabilities' | 'compensatory' | 'documents' | 'vacations' | 'suggestions'
   ): void {
     if (tab === 'documents') {
       // Navegar a la ruta de solicitudes de documentos (si existe) o mostrar contenido embebido
       this.activeTab.set('documents');
       // TODO: Implementar vista de solicitudes de documentos
+    } else if (tab === 'vacations') {
+      // Cambiar a la pestaña de vacaciones
+      this.activeTab.set('vacations');
+      // TODO: Implementar vista de vacaciones
     } else if (tab === 'suggestions') {
       // Navegar al buzón de sugerencias
       this.router.navigate(['admin', 'suggestions-inbox']);
@@ -2085,7 +2206,7 @@ export class HRDisabilitiesComponent {
 
   // Nuevas señales para el dashboard mejorado
   public activeTab = signal<
-    'disabilities' | 'compensatory' | 'documents' | 'suggestions'
+    'disabilities' | 'compensatory' | 'documents' | 'vacations' | 'suggestions'
   >('disabilities');
   public showFilters = signal(false);
   public showCompensatoryFilters = signal(false);
@@ -4030,15 +4151,29 @@ export class HRDisabilitiesComponent {
     });
   }
 
-  private updateDisabilityStatus(
+  public updateDisabilityStatusFromDialog(statusValue: string): void {
+    const disability = this.selectedDisability();
+    if (!disability) return;
+    
+    const validStatus = statusValue as 'pending' | 'approved' | 'rejected';
+    if (['pending', 'approved', 'rejected'].includes(statusValue)) {
+      this.updateDisabilityStatus(disability.id, validStatus);
+    }
+  }
+
+  public updateDisabilityStatus(
     id: string,
-    status: 'approved' | 'rejected',
+    status: 'pending' | 'approved' | 'rejected',
     rejectionComment?: string
   ): void {
     const updateData: any = {
       status,
-      reviewed_at: new Date().toISOString(),
     };
+
+    // Solo actualizar reviewed_at si no es pending
+    if (status !== 'pending') {
+      updateData.reviewed_at = new Date().toISOString();
+    }
 
     if (status === 'rejected' && rejectionComment) {
       updateData.rejection_comment = rejectionComment;
@@ -4051,14 +4186,26 @@ export class HRDisabilitiesComponent {
       )
       .subscribe({
         next: () => {
+          const statusMessages: Record<string, string> = {
+            approved: 'aprobada',
+            rejected: 'rechazada',
+            pending: 'marcada como pendiente',
+          };
           this.messageService.add({
             severity: 'success',
             summary: 'Éxito',
-            detail: `Incapacidad ${
-              status === 'approved' ? 'aprobada' : 'rechazada'
-            } correctamente`,
+            detail: `Incapacidad ${statusMessages[status]} correctamente`,
           });
           this.disabilitiesApi.reload();
+          // Recargar la incapacidad seleccionada si es la misma
+          if (this.selectedDisability()?.id === id) {
+            this.disabilitiesApi.reload();
+            // Actualizar el objeto local
+            const updated = this.disabilitiesApi.value()?.find((d) => d.id === id);
+            if (updated) {
+              this.selectedDisability.set(updated);
+            }
+          }
         },
         error: () => {
           this.messageService.add({

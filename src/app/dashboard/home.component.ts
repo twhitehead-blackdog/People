@@ -3696,10 +3696,10 @@ export class HomeComponent {
     // Query timelogs for entry times (type = 'entry')
     // Build URL manually because we need multiple filters on created_at
     // Include 'type' field in select to ensure it's available in the response
-    // IMPORTANTE: Agregar limit=10000 para obtener todos los registros del mes (Supabase limita a 1000 por defecto)
+    // IMPORTANTE: Usar limit=5000 para optimizar rendimiento (Supabase limita a 1000 por defecto)
     // El interceptor HTTP agregará el header Range automáticamente para peticiones a timelogs
     const companyId = this.organizationService.getCurrentCompanyId();
-    let url = `${baseUrl}/rest/v1/timelogs?select=created_at,employee_id,type,employee:employees!inner(first_name,father_name,is_active)&type=eq.entry&created_at=gte.${from}&created_at=lte.${to}&order=created_at.asc&limit=10000`;
+    let url = `${baseUrl}/rest/v1/timelogs?select=created_at,employee_id,type,employee:employees!inner(first_name,father_name,is_active)&type=eq.entry&created_at=gte.${from}&created_at=lte.${to}&order=created_at.asc&limit=5000`;
     
     // Filtrar solo empleados activos
     url += `&employee.is_active=eq.true`;
@@ -3709,10 +3709,12 @@ export class HomeComponent {
       url += `&company_id=eq.${companyId}`;
     }
     
-    // Debug logs para verificar la consulta
-    console.log('[HomeComponent] latesFromTimelogs URL:', url);
-    console.log('[HomeComponent] Company ID:', companyId);
-    console.log('[HomeComponent] Date range:', from, 'to', to);
+    // Debug logs solo en desarrollo
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      console.log('[HomeComponent] latesFromTimelogs URL:', url);
+      console.log('[HomeComponent] Company ID:', companyId);
+      console.log('[HomeComponent] Date range:', from, 'to', to);
+    }
     
     return {
       url,
@@ -3762,11 +3764,13 @@ export class HomeComponent {
       // siempre que el employee tenga el company_id correcto
     }
     
-    // Debug logs para verificar la consulta
-    console.log('[HomeComponent] employeeSchedules URL:', url);
-    console.log('[HomeComponent] employeeSchedules - Company ID:', companyId);
-    console.log('[HomeComponent] employeeSchedules - Month range:', monthStart, 'to', monthEnd);
-    console.log('[HomeComponent] employeeSchedules - Estrategia: Filtrando a través de employee.company_id');
+    // Debug logs solo en desarrollo
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      console.log('[HomeComponent] employeeSchedules URL:', url);
+      console.log('[HomeComponent] employeeSchedules - Company ID:', companyId);
+      console.log('[HomeComponent] employeeSchedules - Month range:', monthStart, 'to', monthEnd);
+      console.log('[HomeComponent] employeeSchedules - Estrategia: Filtrando a través de employee.company_id');
+    }
     
     return {
       url,
@@ -3788,26 +3792,28 @@ export class HomeComponent {
         if (error) {
           console.error('[HomeComponent] employeeSchedules - Error:', error);
         } else if (schedules) {
-          console.log('[HomeComponent] employeeSchedules - Respuesta recibida:', schedules.length, 'schedules');
-          if (schedules.length === 0) {
-            console.warn('[HomeComponent] employeeSchedules - ⚠️ No hay schedules. Verificar:');
-            console.warn('  - Company ID:', companyId);
-            console.warn('  - URL completa:', `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules?select=*,schedule:schedules(*)&start_date=lte.${format(endOfMonth(new Date()), 'yyyy-MM-dd')}&end_date=gte.${format(startOfMonth(new Date()), 'yyyy-MM-dd')}&company_id=eq.${companyId}`);
-            console.warn('  - Posibles causas:');
-            console.warn('    1. No hay employee_schedules con este company_id');
-            console.warn('    2. Los schedules no se solapan con el mes actual');
-            console.warn('    3. Problema con políticas RLS en Supabase');
-          } else {
-            console.log('[HomeComponent] employeeSchedules - Muestra (primeros 3):', 
-              schedules.slice(0, 3).map(s => ({
-                id: s.id,
-                employee_id: s.employee_id,
-                company_id: s.company_id,
-                start_date: s.start_date,
-                end_date: s.end_date,
-                schedule: s.schedule ? { id: s.schedule.id, name: s.schedule.name } : null,
-              }))
-            );
+          if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+            console.log('[HomeComponent] employeeSchedules - Respuesta recibida:', schedules.length, 'schedules');
+            if (schedules.length === 0) {
+              console.warn('[HomeComponent] employeeSchedules - ⚠️ No hay schedules. Verificar:');
+              console.warn('  - Company ID:', companyId);
+              console.warn('  - URL completa:', `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules?select=*,schedule:schedules(*)&start_date=lte.${format(endOfMonth(new Date()), 'yyyy-MM-dd')}&end_date=gte.${format(startOfMonth(new Date()), 'yyyy-MM-dd')}&company_id=eq.${companyId}`);
+              console.warn('  - Posibles causas:');
+              console.warn('    1. No hay employee_schedules con este company_id');
+              console.warn('    2. Los schedules no se solapan con el mes actual');
+              console.warn('    3. Problema con políticas RLS en Supabase');
+            } else {
+              console.log('[HomeComponent] employeeSchedules - Muestra (primeros 3):', 
+                schedules.slice(0, 3).map(s => ({
+                  id: s.id,
+                  employee_id: s.employee_id,
+                  company_id: s.company_id,
+                  start_date: s.start_date,
+                  end_date: s.end_date,
+                  schedule: s.schedule ? { id: s.schedule.id, name: s.schedule.name } : null,
+                }))
+              );
+            }
           }
         }
       }
@@ -4383,15 +4389,17 @@ export class HomeComponent {
     }
     
     if (schedules.length > 0) {
-      console.log('[HomeComponent] latesDailyChartData - Muestra de schedules (primeros 3):', 
-        schedules.slice(0, 3).map(s => ({
-          id: s.id,
-          employee_id: s.employee_id,
-          start_date: s.start_date,
-          end_date: s.end_date,
-          schedule: s.schedule ? { id: s.schedule.id, name: s.schedule.name, entry_time: s.schedule.entry_time } : null,
-        }))
-      );
+      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+        console.log('[HomeComponent] latesDailyChartData - Muestra de schedules (primeros 3):', 
+          schedules.slice(0, 3).map(s => ({
+            id: s.id,
+            employee_id: s.employee_id,
+            start_date: s.start_date,
+            end_date: s.end_date,
+            schedule: s.schedule ? { id: s.schedule.id, name: s.schedule.name, entry_time: s.schedule.entry_time } : null,
+          }))
+        );
+      }
     } else {
       // Solo mostrar warning si hay un error real, no cuando simplemente no hay datos todavía
       const schedulesError = this.employeeSchedules.error();
@@ -5107,8 +5115,9 @@ export class HomeComponent {
     const timelogsError = this.latesFromTimelogs.error();
     const schedulesError = this.employeeSchedules.error();
     
-    // Solo mostrar logs de debug si hay datos o errores, no durante la carga inicial
-    if (timelogs.length > 0 || schedules.length > 0 || timelogsError || schedulesError) {
+    // Solo mostrar logs de debug si hay datos o errores, no durante la carga inicial (solo en desarrollo)
+    if ((timelogs.length > 0 || schedules.length > 0 || timelogsError || schedulesError) && 
+        typeof window !== 'undefined' && window.location.hostname === 'localhost') {
       console.log('[HomeComponent] getMonthlyLates - Timelogs cargados:', timelogs.length);
       console.log('[HomeComponent] getMonthlyLates - Schedules cargados:', schedules.length);
       console.log('[HomeComponent] getMonthlyLates - Company ID:', this.organizationService.getCurrentCompanyId());
@@ -5220,21 +5229,25 @@ export class HomeComponent {
         }
       }
 
-      console.log('[HomeComponent] getMonthlyLates - Tardanzas calculadas:', lateCount);
-      console.log('[HomeComponent] getMonthlyLates - Entradas sin schedule:', entriesWithoutSchedule);
-      console.log('[HomeComponent] getMonthlyLates - Entradas con errores de schedule:', entriesWithScheduleErrors);
-      console.log('[HomeComponent] getMonthlyLates - Entradas procesadas:', entriesProcessed);
+      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+        console.log('[HomeComponent] getMonthlyLates - Tardanzas calculadas:', lateCount);
+        console.log('[HomeComponent] getMonthlyLates - Entradas sin schedule:', entriesWithoutSchedule);
+        console.log('[HomeComponent] getMonthlyLates - Entradas con errores de schedule:', entriesWithScheduleErrors);
+        console.log('[HomeComponent] getMonthlyLates - Entradas procesadas:', entriesProcessed);
+      }
       return lateCount;
     } else {
       // Solo mostrar warnings si hay errores reales, no cuando simplemente no hay datos
       // (puede ser que no haya timelogs o schedules para el mes actual, lo cual es válido)
       if (timelogsError || schedulesError) {
-        console.warn('[HomeComponent] getMonthlyLates - ⚠️ Error al cargar datos para calcular tardanzas:');
-        if (timelogsError) {
-          console.warn('  - Error en latesFromTimelogs:', timelogsError);
-        }
-        if (schedulesError) {
-          console.warn('  - Error en employeeSchedules:', schedulesError);
+        if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+          console.warn('[HomeComponent] getMonthlyLates - ⚠️ Error al cargar datos para calcular tardanzas:');
+          if (timelogsError) {
+            console.warn('  - Error en latesFromTimelogs:', timelogsError);
+          }
+          if (schedulesError) {
+            console.warn('  - Error en employeeSchedules:', schedulesError);
+          }
         }
       } else if (timelogs.length === 0 && schedules.length === 0) {
         // Solo mostrar warning si no hay datos Y no están cargando (datos realmente vacíos)

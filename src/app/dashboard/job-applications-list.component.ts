@@ -639,21 +639,8 @@ export class JobApplicationsListComponent implements OnInit {
   constructor() {
     // Cargar el estado de la feria y fecha de entrevistas desde settings
     effect(() => {
-      console.log('[DEBUG] 🔄 EFFECT EJECUTADO - Verificando condiciones...');
-      console.log(
-        '[DEBUG] isUpdatingJobFairStatus:',
-        this.isUpdatingJobFairStatus()
-      );
-      console.log(
-        '[DEBUG] isUpdatingInterviewDate:',
-        this.isUpdatingInterviewDate()
-      );
-
       // No actualizar si estamos en medio de una actualización manual
       if (this.isUpdatingJobFairStatus() || this.isUpdatingInterviewDate()) {
-        console.log(
-          '[DEBUG] ⏸️ Ignorando actualización de settings - actualización manual en progreso'
-        );
         return;
       }
       
@@ -661,9 +648,6 @@ export class JobApplicationsListComponent implements OnInit {
       // Esto previene ciclos infinitos en Railway donde el timing puede ser diferente
       const timeSinceLastUpdate = Date.now() - this.lastManualUpdateTimestamp;
       if (timeSinceLastUpdate < 3000) {
-        console.log(
-          `[DEBUG] ⏸️ Ignorando actualización de settings - cambio manual reciente (hace ${timeSinceLastUpdate}ms)`
-        );
         return;
       }
 
@@ -671,42 +655,25 @@ export class JobApplicationsListComponent implements OnInit {
       const isLoading = this.jobFairSettingsApi.isLoading();
       const error = this.jobFairSettingsApi.error();
       
-      console.log(
-        '[DEBUG] 📥 Settings cargados desde API:',
-        JSON.stringify(settings, null, 2)
-      );
-      console.log('[DEBUG] 📥 Cantidad de settings:', settings?.length || 0);
-      console.log('[DEBUG] 📥 isLoading:', isLoading);
-      console.log('[DEBUG] 📥 error:', error);
-      
       // Si está cargando, no hacer nada todavía
       if (isLoading) {
-        console.log('[DEBUG] ⏳ Settings aún cargando, esperando...');
         return;
       }
       
       // Si hay error, loguearlo pero continuar
       if (error) {
-        console.error('[DEBUG] ❌ Error cargando settings:', error);
+        console.error('Error cargando settings:', error);
       }
 
       if (settings && settings.length > 0) {
         const enabledSetting = settings.find(
           (s) => s.key === 'job_fair_enabled'
         );
-        console.log(
-          '[DEBUG] Setting job_fair_enabled encontrado:',
-          enabledSetting
-        );
 
         if (enabledSetting) {
           const enabledValue = enabledSetting.value === 'true';
           // Solo actualizar si el valor realmente cambió
           if (this.jobFairEnabled() !== enabledValue) {
-            console.log(
-              '[DEBUG] Estableciendo jobFairEnabled a:',
-              enabledValue
-            );
             this.jobFairEnabled.set(enabledValue);
           }
         }
@@ -718,23 +685,6 @@ export class JobApplicationsListComponent implements OnInit {
         const endDateSetting = settings.find(
           (s) => s.key === 'job_fair_end_date'
         );
-        console.log('[DEBUG] Setting job_fair_start_date:', startDateSetting);
-        console.log('[DEBUG] Setting job_fair_end_date:', endDateSetting);
-
-        console.log('[DEBUG] 📅 Valores RAW de fechas:');
-        console.log(
-          '[DEBUG]   - startDateSetting.value:',
-          startDateSetting?.value
-        );
-        console.log('[DEBUG]   - endDateSetting.value:', endDateSetting?.value);
-        console.log(
-          '[DEBUG]   - startDateSetting.value?.trim():',
-          startDateSetting?.value?.trim()
-        );
-        console.log(
-          '[DEBUG]   - endDateSetting.value?.trim():',
-          endDateSetting?.value?.trim()
-        );
 
         const startDate =
           startDateSetting?.value && startDateSetting.value.trim() !== ''
@@ -744,36 +694,10 @@ export class JobApplicationsListComponent implements OnInit {
           endDateSetting?.value && endDateSetting.value.trim() !== ''
             ? this.parseLocalDateString(endDateSetting.value)
             : null;
-        console.log(
-          '[DEBUG] 📅 Fechas parseadas - Inicio:',
-          startDate,
-          'Fin:',
-          endDate
-        );
 
         // Solo actualizar si realmente cambió (evitar loops)
         const currentRange = this.jobFairDateRange;
         const newRange = startDate || endDate ? [startDate, endDate] : null;
-
-        console.log('[DEBUG] 🔄 Comparando rangos:');
-        console.log('[DEBUG]   - currentRange:', currentRange);
-        console.log('[DEBUG]   - newRange:', newRange);
-        console.log(
-          '[DEBUG]   - currentRange[0]?.getTime():',
-          currentRange?.[0]?.getTime()
-        );
-        console.log(
-          '[DEBUG]   - newRange[0]?.getTime():',
-          newRange?.[0]?.getTime()
-        );
-        console.log(
-          '[DEBUG]   - currentRange[1]?.getTime():',
-          currentRange?.[1]?.getTime()
-        );
-        console.log(
-          '[DEBUG]   - newRange[1]?.getTime():',
-          newRange?.[1]?.getTime()
-        );
 
         // Comparar fechas para evitar actualizaciones innecesarias
         const rangesEqual =
@@ -783,30 +707,10 @@ export class JobApplicationsListComponent implements OnInit {
             currentRange[0]?.getTime() === newRange[0]?.getTime() &&
             currentRange[1]?.getTime() === newRange[1]?.getTime());
 
-        console.log('[DEBUG] 🔄 rangesEqual:', rangesEqual);
-
         if (!rangesEqual) {
-          console.log(
-            '[DEBUG] ⚠️ ACTUALIZANDO jobFairDateRange - valores diferentes'
-          );
-          console.log('[DEBUG]   - ANTES:', this.jobFairDateRange);
           this.jobFairDateRange = newRange;
-          console.log('[DEBUG]   - DESPUÉS:', this.jobFairDateRange);
-        } else {
-          console.log(
-            '[DEBUG] ✅ jobFairDateRange sin cambios, manteniendo valor actual'
-          );
         }
-      } else {
-        console.log('[DEBUG] ⚠️ No se encontraron settings o array vacío');
-        console.log('[DEBUG]   - settings es null?:', settings === null);
-        console.log(
-          '[DEBUG]   - settings es undefined?:',
-          settings === undefined
-        );
-        console.log('[DEBUG]   - settings.length?:', settings?.length);
       }
-      console.log('[DEBUG] ✅ EFFECT FINALIZADO');
     });
   }
 
@@ -889,13 +793,9 @@ export class JobApplicationsListComponent implements OnInit {
   }
 
   async onJobFairDateRangeChange() {
-    console.log('[DEBUG] onJobFairDateRangeChange - Iniciando...');
-    console.log('[DEBUG] jobFairDateRange actual:', this.jobFairDateRange);
-
     this.isUpdatingInterviewDate.set(true);
     try {
       const dateRange = this.jobFairDateRange;
-      console.log('[DEBUG] dateRange recibido:', dateRange);
 
       if (
         !dateRange ||
@@ -903,7 +803,6 @@ export class JobApplicationsListComponent implements OnInit {
         (!dateRange[0] && !dateRange[1])
       ) {
         // Si se limpió el rango, eliminar ambos settings
-        console.log('[DEBUG] Rango vacío, limpiando fechas...');
         await this.clearJobFairDates();
         this.messageService.add({
           severity: 'success',
@@ -919,8 +818,6 @@ export class JobApplicationsListComponent implements OnInit {
       }
 
       const [startDate, endDate] = dateRange;
-      console.log('[DEBUG] Fecha inicio:', startDate);
-      console.log('[DEBUG] Fecha fin:', endDate);
 
       // Normalizar las fechas para asegurar que estén en hora local a medianoche
       let normalizedStartDate: Date | null = null;
@@ -953,16 +850,8 @@ export class JobApplicationsListComponent implements OnInit {
         ? this.formatDateToLocalString(normalizedEndDate)
         : '';
 
-      console.log(
-        '[DEBUG] Fechas formateadas - Inicio:',
-        startDateString,
-        'Fin:',
-        endDateString
-      );
-
       // Guardar fecha de inicio usando UPSERT (más robusto con RLS)
       if (startDateString) {
-        console.log('[DEBUG] Guardando fecha de inicio...');
         // Primero intentar actualizar si existe
         const existingStartSettings = await firstValueFrom(
           this.http.get<any[]>(
@@ -977,27 +866,11 @@ export class JobApplicationsListComponent implements OnInit {
           )
         );
 
-        console.log(
-          '[DEBUG] Settings de inicio existentes:',
-          existingStartSettings
-        );
-
         if (existingStartSettings && existingStartSettings.length > 0) {
           // Actualizar existente usando PATCH con ID directamente (más confiable)
           const settingId = existingStartSettings[0].id;
-          console.log(
-            '[DEBUG] Actualizando setting de inicio con ID:',
-            settingId
-          );
           try {
-            console.log('[DEBUG] 🔧 Enviando PATCH para fecha inicio...');
-            console.log(
-              '[DEBUG]   - URL:',
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${settingId}&select=*`
-            );
-            console.log('[DEBUG]   - Body:', { value: startDateString });
-
-            const updateResult = await firstValueFrom(
+            await firstValueFrom(
               this.http.patch(
                 `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${settingId}&select=*`,
                 { value: startDateString },
@@ -1006,29 +879,13 @@ export class JobApplicationsListComponent implements OnInit {
                 }
               )
             );
-            console.log(
-              '[DEBUG] ✅ Resultado de actualización de inicio:',
-              JSON.stringify(updateResult, null, 2)
-            );
-            console.log('[DEBUG]   - Tipo:', typeof updateResult);
-            console.log('[DEBUG]   - Es array?:', Array.isArray(updateResult));
-            console.log(
-              '[DEBUG]   - Longitud:',
-              Array.isArray(updateResult) ? updateResult.length : 'N/A'
-            );
-            if (Array.isArray(updateResult) && updateResult.length === 0) {
-              console.warn(
-                '[DEBUG] ⚠️ PATCH de fecha inicio retornó array vacío.'
-              );
-            }
           } catch (error: any) {
-            console.error('[DEBUG] ❌ Error actualizando fecha inicio:', error);
+            console.error('Error actualizando fecha inicio:', error);
             throw error;
           }
         } else {
           // Crear nuevo usando POST
-          console.log('[DEBUG] Creando nuevo setting de inicio...');
-          const createResult = await firstValueFrom(
+          await firstValueFrom(
             this.http.post(
               `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
               {
@@ -1043,7 +900,6 @@ export class JobApplicationsListComponent implements OnInit {
               }
             )
           );
-          console.log('[DEBUG] Resultado de creación de inicio:', createResult);
         }
       } else {
         // Si no hay fecha, limpiar el setting existente
@@ -1076,7 +932,6 @@ export class JobApplicationsListComponent implements OnInit {
 
       // Guardar fecha de fin usando UPSERT (más robusto con RLS)
       if (endDateString) {
-        console.log('[DEBUG] Guardando fecha de fin...');
         // Primero intentar actualizar si existe
         const existingEndSettings = await firstValueFrom(
           this.http.get<any[]>(
@@ -1090,21 +945,12 @@ export class JobApplicationsListComponent implements OnInit {
             }
           )
         );
-        console.log('[DEBUG] Settings de fin existentes:', existingEndSettings);
 
         if (existingEndSettings && existingEndSettings.length > 0) {
           // Actualizar existente usando PATCH con ID directamente (más confiable)
           const settingId = existingEndSettings[0].id;
-          console.log('[DEBUG] Actualizando setting de fin con ID:', settingId);
           try {
-            console.log('[DEBUG] 🔧 Enviando PATCH para fecha fin...');
-            console.log(
-              '[DEBUG]   - URL:',
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${settingId}&select=*`
-            );
-            console.log('[DEBUG]   - Body:', { value: endDateString });
-
-            const updateResult = await firstValueFrom(
+            await firstValueFrom(
               this.http.patch(
                 `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${settingId}&select=*`,
                 { value: endDateString },
@@ -1113,29 +959,13 @@ export class JobApplicationsListComponent implements OnInit {
                 }
               )
             );
-            console.log(
-              '[DEBUG] ✅ Resultado de actualización de fin:',
-              JSON.stringify(updateResult, null, 2)
-            );
-            console.log('[DEBUG]   - Tipo:', typeof updateResult);
-            console.log('[DEBUG]   - Es array?:', Array.isArray(updateResult));
-            console.log(
-              '[DEBUG]   - Longitud:',
-              Array.isArray(updateResult) ? updateResult.length : 'N/A'
-            );
-            if (Array.isArray(updateResult) && updateResult.length === 0) {
-              console.warn(
-                '[DEBUG] ⚠️ PATCH de fecha fin retornó array vacío.'
-              );
-            }
           } catch (error: any) {
-            console.error('[DEBUG] ❌ Error actualizando fecha fin:', error);
+            console.error('Error actualizando fecha fin:', error);
             throw error;
           }
         } else {
           // Crear nuevo usando POST
-          console.log('[DEBUG] Creando nuevo setting de fin...');
-          const createResult = await firstValueFrom(
+          await firstValueFrom(
             this.http.post(
               `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
               {
@@ -1150,7 +980,6 @@ export class JobApplicationsListComponent implements OnInit {
               }
             )
           );
-          console.log('[DEBUG] Resultado de creación de fin:', createResult);
         }
       } else {
         // Si no hay fecha, limpiar el setting existente
@@ -1181,7 +1010,6 @@ export class JobApplicationsListComponent implements OnInit {
         }
       }
 
-      console.log('[DEBUG] ✅ Guardado exitoso de fechas');
       this.messageService.add({
         severity: 'success',
         summary: 'Duración actualizada',
@@ -1199,34 +1027,18 @@ export class JobApplicationsListComponent implements OnInit {
 
       // Registrar timestamp de la actualización manual
       this.lastManualUpdateTimestamp = Date.now();
-      console.log('[DEBUG] 📝 Timestamp de actualización manual registrado:', this.lastManualUpdateTimestamp);
 
       // NO hacer reload explícito - esto puede causar ciclos infinitos en Railway
       // En su lugar, simplemente esperar un tiempo antes de permitir que el effect se ejecute
       // El effect se ejecutará naturalmente cuando detecte cambios en la API
-      console.log('[DEBUG] ⏰ Esperando antes de permitir que effect se ejecute...');
-      console.log(
-        '[DEBUG]   - Estado actual isUpdatingInterviewDate:',
-        this.isUpdatingInterviewDate()
-      );
       
       // Esperar un tiempo suficiente para que la petición se complete y se estabilice
       // En Railway, las peticiones pueden ser más lentas, así que aumentamos el delay
       setTimeout(() => {
-        console.log(
-          '[DEBUG] ✅ Permitiendo que effect se ejecute nuevamente (después de 2 segundos)'
-        );
         this.isUpdatingInterviewDate.set(false);
       }, 2000); // Aumentado a 2 segundos para Railway
     } catch (error: any) {
-      console.error(
-        '[DEBUG] ❌ Error actualizando duración de la feria:',
-        error
-      );
-      console.error('[DEBUG] Error completo:', JSON.stringify(error, null, 2));
-      console.error('[DEBUG] Error status:', error?.status);
-      console.error('[DEBUG] Error statusText:', error?.statusText);
-      console.error('[DEBUG] Error error:', error?.error);
+      console.error('Error actualizando duración de la feria:', error);
 
       const errorMessage =
         error?.error?.message || error?.message || 'Error desconocido';
@@ -1319,16 +1131,11 @@ export class JobApplicationsListComponent implements OnInit {
   }
 
   async onJobFairEnabledChange() {
-    console.log('[DEBUG] onJobFairEnabledChange - Iniciando...');
-    console.log('[DEBUG] jobFairEnabled actual:', this.jobFairEnabled());
-
     this.isUpdatingJobFairStatus.set(true);
     try {
       const newValue = this.jobFairEnabled() ? 'true' : 'false';
-      console.log('[DEBUG] Nuevo valor a guardar:', newValue);
 
       // Verificar si ya existe el setting
-      console.log('[DEBUG] Verificando si existe setting job_fair_enabled...');
       const existingSettings = await firstValueFrom(
         this.http.get<any[]>(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
@@ -1341,17 +1148,12 @@ export class JobApplicationsListComponent implements OnInit {
           }
         )
       );
-      console.log('[DEBUG] Settings existentes encontrados:', existingSettings);
 
       if (existingSettings && existingSettings.length > 0) {
         // Actualizar setting existente usando PATCH con ID directamente (más confiable)
         const settingId = existingSettings[0].id;
-        console.log(
-          '[DEBUG] Actualizando setting existente con ID:',
-          settingId
-        );
         try {
-          const updateResult = await firstValueFrom(
+          await firstValueFrom(
             this.http.patch(
               `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${settingId}&select=*`,
               { value: newValue },
@@ -1360,20 +1162,13 @@ export class JobApplicationsListComponent implements OnInit {
               }
             )
           );
-          console.log('[DEBUG] Resultado de actualización:', updateResult);
-          if (Array.isArray(updateResult) && updateResult.length === 0) {
-            console.warn(
-              '[DEBUG] ⚠️ PATCH retornó array vacío. Verificar RLS o que el registro exista.'
-            );
-          }
         } catch (error: any) {
-          console.error('[DEBUG] ❌ Error en PATCH:', error);
+          console.error('Error en PATCH:', error);
           throw error;
         }
       } else {
         // Crear nuevo setting usando POST
-        console.log('[DEBUG] Creando nuevo setting...');
-        const createResult = await firstValueFrom(
+        await firstValueFrom(
           this.http.post(
             `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
             {
@@ -1388,10 +1183,8 @@ export class JobApplicationsListComponent implements OnInit {
             }
           )
         );
-        console.log('[DEBUG] Resultado de creación:', createResult);
       }
 
-      console.log('[DEBUG] ✅ Guardado exitoso, mostrando mensaje de éxito');
       this.messageService.add({
         severity: 'success',
         summary: 'Estado actualizado',
@@ -1402,34 +1195,20 @@ export class JobApplicationsListComponent implements OnInit {
 
       // Registrar timestamp de la actualización manual
       this.lastManualUpdateTimestamp = Date.now();
-      console.log('[DEBUG] 📝 Timestamp de actualización manual registrado:', this.lastManualUpdateTimestamp);
 
       // NO hacer reload explícito - esto puede causar ciclos infinitos en Railway
       // En su lugar, simplemente esperar un tiempo antes de permitir que el effect se ejecute
       // El effect se ejecutará naturalmente cuando detecte cambios en la API
-      console.log('[DEBUG] ⏰ Esperando antes de permitir que effect se ejecute...');
-      console.log(
-        '[DEBUG]   - Estado actual isUpdatingJobFairStatus:',
-        this.isUpdatingJobFairStatus()
-      );
       
       // Esperar un tiempo suficiente para que la petición se complete y se estabilice
       // En Railway, las peticiones pueden ser más lentas, así que aumentamos el delay
       setTimeout(() => {
-        console.log(
-          '[DEBUG] ✅ Permitiendo que effect se ejecute nuevamente (después de 2 segundos)'
-        );
         this.isUpdatingJobFairStatus.set(false);
       }, 2000); // Aumentado a 2 segundos para Railway
     } catch (error: any) {
-      console.error('[DEBUG] ❌ Error actualizando estado de la feria:', error);
-      console.error('[DEBUG] Error completo:', JSON.stringify(error, null, 2));
-      console.error('[DEBUG] Error status:', error?.status);
-      console.error('[DEBUG] Error statusText:', error?.statusText);
-      console.error('[DEBUG] Error error:', error?.error);
+      console.error('Error actualizando estado de la feria:', error);
 
       // Revertir el cambio
-      console.log('[DEBUG] Revirtiendo cambio de jobFairEnabled...');
       this.jobFairEnabled.set(!this.jobFairEnabled());
       const errorMessage =
         error?.error?.message || error?.message || 'Error desconocido';
