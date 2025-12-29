@@ -32,8 +32,12 @@ import {
   colorVariants,
   Employee,
   getScheduleColorInlineStyle as getColorStyle,
+  DayLog,
+  EmployeeScheduleData,
+  TimeoffData,
 } from '../models';
 import { OrganizationService } from '../services/organization.service';
+import { LoggerService } from '../services/logger.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
 
@@ -258,8 +262,8 @@ import { EmployeesStore } from '../stores/employees.store';
         }
       </div>
 
-      <!-- Total Excedido fuera del panel de filtros -->
-      @if(selectedEmployee() && selectedEmployeeLunchExceeded() !== null) {
+      <!-- Total Excedido de Almuerzo -->
+      @if(selectedEmployee()) {
       <div
         class="mb-4 p-3 bg-neutral-800/50 rounded-lg border border-neutral-700/50"
       >
@@ -267,17 +271,44 @@ import { EmployeesStore } from '../stores/employees.store';
           <i class="pi pi-info-circle text-yellow-400"></i>
           <div class="flex-1">
             <span class="text-sm font-medium text-gray-300"
-              >Total Excedido - {{ selectedEmployee()?.first_name }}
+              >Total Excedido de Almuerzo - {{ selectedEmployee()?.first_name }}
               {{ selectedEmployee()?.father_name }}</span
             >
           </div>
           <div class="flex items-center gap-2">
-            @if(selectedEmployeeLunchExceeded()! > 0) {
+            @if(totalLunchExceededMinutes() > 0) {
             <p-tag
               severity="warn"
-              [value]="
-                formatLunchExceededTotal(selectedEmployeeLunchExceeded()!)
-              "
+              [value]="formatLunchExceededTotal(totalLunchExceededMinutes())"
+              icon="pi pi-clock"
+              styleClass="text-xs"
+            />
+            } @else {
+            <span class="text-sm text-gray-400">0 minutos</span>
+            }
+          </div>
+        </div>
+      </div>
+      }
+
+      <!-- Total de Retrasos -->
+      @if(selectedEmployee()) {
+      <div
+        class="mb-4 p-3 bg-neutral-800/50 rounded-lg border border-neutral-700/50"
+      >
+        <div class="flex items-center gap-3">
+          <i class="pi pi-info-circle text-red-400"></i>
+          <div class="flex-1">
+            <span class="text-sm font-medium text-gray-300"
+              >Total de Retrasos - {{ selectedEmployee()?.first_name }}
+              {{ selectedEmployee()?.father_name }}</span
+            >
+          </div>
+          <div class="flex items-center gap-2">
+            @if(totalDelayMinutes() > 0) {
+            <p-tag
+              severity="danger"
+              [value]="formatLunchExceededTotal(totalDelayMinutes())"
               icon="pi pi-clock"
               styleClass="text-xs"
             />
@@ -611,7 +642,7 @@ export class TimelogsComponent {
   // Calcular el ancho máximo para los badges de horario
   public maxScheduleBadgeWidth = computed(() => {
     const schedules = this.schedules.value() || [];
-    const scheduleNames = schedules.map((s: any) => s.name || 'Sin horario');
+    const scheduleNames = schedules.map((s) => s.schedule?.name || 'Sin horario');
     const maxLength = Math.max(
       ...scheduleNames.map((name: string) => name.length),
       'Sin horario'.length
@@ -657,13 +688,33 @@ export class TimelogsComponent {
   public store = inject(DashboardStore);
   public onlyDelayed = signal(false);
   public organizationService = inject(OrganizationService);
+  private logger = inject(LoggerService);
   private injector = inject(Injector);
 
   // Computed para verificar si es Naz
   public isNaz = computed(() => this.organizationService.isNaz());
 
+  // Helper para validar y obtener la URL base de Supabase
+  private getSupabaseBaseUrl(): string {
+    const baseUrl = process.env['ENV_SUPABASE_URL'];
+    if (!baseUrl) {
+      const errorMsg = 'ENV_SUPABASE_URL no está configurada';
+      this.logger.error('[TimelogsComponent]', errorMsg);
+      this.message.add({
+        severity: 'error',
+        summary: 'Error de configuración',
+        detail: 'La URL de Supabase no está configurada. Contacte al administrador.',
+      });
+      throw new Error(errorMsg);
+    }
+    return baseUrl;
+  }
+
   // Helper para agregar filtro de company_id a los parámetros
-  private addCompanyFilter(params: any, tableName: string): any {
+  private addCompanyFilter(
+    params: Record<string, string>,
+    tableName: string
+  ): Record<string, string> {
     const companyId = this.organizationService.getCurrentCompanyId();
     if (!companyId) {
       return params;
@@ -693,6 +744,7 @@ export class TimelogsComponent {
 
   // Helper computed para normalizar el rango de fechas
   // Si solo hay una fecha, usar esa misma fecha como inicio y fin
+  // Valida que el rango no exceda 1 año (365 días)
   public normalizedDateRange = computed(() => {
     const range = this.dateRange();
     if (!range || range.length === 0) {
@@ -700,6 +752,28 @@ export class TimelogsComponent {
     }
     const start = range[0];
     const end = range[1] || range[0]; // Si no hay segunda fecha, usar la primera
+
+    // Validar que el rango no exceda 1 año (365 días)
+    if (start && end) {
+      const daysDifference = differenceInMinutes(end, start) / (60 * 24);
+      if (daysDifference > 365) {
+        this.logger.warn(
+          '[TimelogsComponent] Rango de fechas excede 1 año:',
+          daysDifference,
+          'días'
+        );
+        this.message.add({
+          severity: 'warn',
+          summary: 'Rango de fechas muy amplio',
+          detail:
+            'El rango de fechas seleccionado excede 1 año (365 días). Por favor, seleccione un rango más corto para mejorar el rendimiento.',
+        });
+        // Limitar el rango a 365 días desde la fecha de inicio
+        const limitedEnd = addDays(start, 365);
+        return { start, end: limitedEnd };
+      }
+    }
+
     return { start, end };
   });
 
@@ -854,6 +928,66 @@ export class TimelogsComponent {
     return employee.total_lunch_exceeded_minutes ?? null;
   });
 
+  // Computed para calcular el total de minutos excedidos de almuerzo en el rango seleccionado
+  public totalLunchExceededMinutes = computed(() => {
+    const logs = this.filteredDaylogs();
+    const { start: startDate, end: endDate } = this.normalizedDateRange();
+    
+    if (!startDate || !endDate) {
+      return 0;
+    }
+
+    const normalizedStart = new Date(startDate);
+    normalizedStart.setHours(0, 0, 0, 0);
+    const dateRangeStart = format(normalizedStart, 'yyyy-MM-dd');
+
+    const normalizedEnd = new Date(endDate);
+    normalizedEnd.setHours(0, 0, 0, 0);
+    const dateRangeEnd = format(normalizedEnd, 'yyyy-MM-dd');
+
+    return logs
+      .filter((log) => {
+        const dayStr = log.day || '';
+        return dayStr >= dateRangeStart && dayStr <= dateRangeEnd;
+      })
+      .reduce((total, log) => {
+        if (log.lunchExceeded && log.lunchMinutes && log.lunchMinutes > 60) {
+          return total + (log.lunchMinutes - 60);
+        }
+        return total;
+      }, 0);
+  });
+
+  // Computed para calcular el total de minutos de retraso en el rango seleccionado
+  public totalDelayMinutes = computed(() => {
+    const logs = this.filteredDaylogs();
+    const { start: startDate, end: endDate } = this.normalizedDateRange();
+    
+    if (!startDate || !endDate) {
+      return 0;
+    }
+
+    const normalizedStart = new Date(startDate);
+    normalizedStart.setHours(0, 0, 0, 0);
+    const dateRangeStart = format(normalizedStart, 'yyyy-MM-dd');
+
+    const normalizedEnd = new Date(endDate);
+    normalizedEnd.setHours(0, 0, 0, 0);
+    const dateRangeEnd = format(normalizedEnd, 'yyyy-MM-dd');
+
+    return logs
+      .filter((log) => {
+        const dayStr = log.day || '';
+        return dayStr >= dateRangeStart && dayStr <= dateRangeEnd;
+      })
+      .reduce((total, log) => {
+        if (log.delay && typeof log.delay === 'number') {
+          return total + log.delay;
+        }
+        return total;
+      }, 0);
+  });
+
   days = computed(() => {
     const { start: startDate, end: endDate } = this.normalizedDateRange();
 
@@ -880,14 +1014,14 @@ export class TimelogsComponent {
     return days.sort();
   });
 
-  public schedules = httpResource<any[]>(() => {
+  public schedules = httpResource<EmployeeScheduleData[]>(() => {
     const { start, end } = this.normalizedDateRange();
     if (!start || !end) {
       return undefined;
     }
 
     // Construir URL manualmente para asegurar que los filtros se apliquen correctamente
-    const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`;
+    const baseUrl = `${this.getSupabaseBaseUrl()}/rest/v1/employee_schedules`;
     const companyId = this.organizationService.getCurrentCompanyId();
     const startDate = format(start, 'yyyy-MM-dd');
     const endDate = format(end, 'yyyy-MM-dd');
@@ -910,7 +1044,7 @@ export class TimelogsComponent {
     };
   });
 
-  public timeoffs = httpResource<any[]>(() => {
+  public timeoffs = httpResource<TimeoffData[]>(() => {
     const { start, end } = this.normalizedDateRange();
     if (!start || !end) {
       return undefined;
@@ -922,7 +1056,7 @@ export class TimelogsComponent {
     }
     
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`,
+      url: `${this.getSupabaseBaseUrl()}/rest/v1/timeoffs`,
       method: 'GET',
       params: {
         // Ahora podemos filtrar directamente por company_id ya que se agregó el campo a la tabla
@@ -945,10 +1079,10 @@ export class TimelogsComponent {
 
     // Construir URL manualmente para tener control total sobre los filtros
     // PostgREST/Supabase requiere construir la URL manualmente cuando hay múltiples filtros en el mismo campo
-    const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`;
+    const baseUrl = `${this.getSupabaseBaseUrl()}/rest/v1/timelogs`;
     const companyId = this.organizationService.getCurrentCompanyId();
-    const startDate = format(start, "yyyy-MM-dd'T'06:00:00");
-    const endDate = format(addDays(end, 1), "yyyy-MM-dd'T'06:00:00");
+    const startDate = format(start, "yyyy-MM-dd'T'00:00:00");
+    const endDate = format(addDays(end, 1), "yyyy-MM-dd'T'00:00:00");
 
     // Construir select con relaciones (solo empleados activos)
     const select = `*,employee:employees!inner(id,first_name,father_name,is_active,branch:branches(id, name)),branch:branches(id, name, short_name)`;
@@ -973,15 +1107,15 @@ export class TimelogsComponent {
     url += `&order=created_at.asc`;
 
     // Debug: Log para timelogs
-    console.log('[TimelogsComponent] Cargando timelogs con URL:', url);
-    console.log('[TimelogsComponent] Company ID:', companyId);
-    console.log(
+    this.logger.debug('[TimelogsComponent] Cargando timelogs con URL:', url);
+    this.logger.debug('[TimelogsComponent] Company ID:', companyId);
+    this.logger.debug(
       '[TimelogsComponent] Rango de fechas:',
       format(start, 'yyyy-MM-dd'),
       'a',
       format(end, 'yyyy-MM-dd')
     );
-    console.log(
+    this.logger.debug(
       '[TimelogsComponent] Employee ID:',
       this.employeeId() || 'Todos'
     );
@@ -992,6 +1126,63 @@ export class TimelogsComponent {
     };
   });
 
+  // Helper para obtener mensaje de error específico según el tipo
+  private getErrorMessage(error: any): { summary: string; detail: string } {
+    if (!error) {
+      return {
+        summary: 'Error desconocido',
+        detail: 'Ocurrió un error inesperado',
+      };
+    }
+
+    // Error de red (sin conexión, timeout, etc.)
+    if (
+      error.message?.includes('Network') ||
+      error.message?.includes('Failed to fetch') ||
+      error.message?.includes('timeout')
+    ) {
+      return {
+        summary: 'Error de conexión',
+        detail:
+          'No se pudo conectar con el servidor. Verifique su conexión a internet e intente nuevamente.',
+      };
+    }
+
+    // Error de autenticación (401)
+    if (error.status === 401 || error.status === 403) {
+      return {
+        summary: 'Error de autenticación',
+        detail:
+          'Su sesión ha expirado o no tiene permisos. Por favor, inicie sesión nuevamente.',
+      };
+    }
+
+    // Error del servidor (500, 502, 503, etc.)
+    if (error.status >= 500) {
+      return {
+        summary: 'Error del servidor',
+        detail:
+          'El servidor está experimentando problemas. Por favor, intente más tarde o contacte al administrador.',
+      };
+    }
+
+    // Error de cliente (400, 404, etc.)
+    if (error.status >= 400 && error.status < 500) {
+      return {
+        summary: 'Error en la solicitud',
+        detail:
+          'La solicitud no pudo ser procesada. Verifique los filtros seleccionados e intente nuevamente.',
+      };
+    }
+
+    // Error genérico
+    return {
+      summary: 'Error al cargar datos',
+      detail:
+        'No se pudieron cargar las marcaciones. Por favor, intente nuevamente.',
+    };
+  }
+
   // Computed para detectar errores en las peticiones HTTP
   public hasError = computed(() => {
     const logsError = this.logs.error();
@@ -999,22 +1190,38 @@ export class TimelogsComponent {
     const timeoffsError = this.timeoffs.error();
 
     if (logsError || schedulesError || timeoffsError) {
-      console.error('[TimelogsComponent] ❌ Error cargando datos:', {
+      // Determinar qué recurso falló
+      const primaryError = logsError || schedulesError || timeoffsError;
+      const errorMessage = this.getErrorMessage(primaryError);
+
+      this.logger.error('[TimelogsComponent] ❌ Error cargando datos:', {
         logs: logsError,
         schedules: schedulesError,
         timeoffs: timeoffsError,
+        primaryError,
       });
 
-      this.message.add({
-        severity: 'error',
-        summary: 'Error al cargar datos',
-        detail:
-          'No se pudieron cargar las marcaciones. Por favor, intente nuevamente.',
-      });
+      // Solo mostrar el mensaje una vez (evitar duplicados)
+      if (!this._errorShown) {
+        this.message.add({
+          severity: 'error',
+          summary: errorMessage.summary,
+          detail: errorMessage.detail,
+        });
+        this._errorShown = true;
+        // Resetear el flag después de un tiempo para permitir mostrar errores futuros
+        setTimeout(() => {
+          this._errorShown = false;
+        }, 5000);
+      }
+
       return true;
     }
+    this._errorShown = false;
     return false;
   });
+
+  private _errorShown = false;
 
   constructor() {
     // Debug: Effect para verificar datos cargados
@@ -1031,33 +1238,33 @@ export class TimelogsComponent {
         const schedulesCount = schedulesData?.length ?? 0;
         const timeoffsCount = timeoffsData?.length ?? 0;
 
-        console.log('[TimelogsComponent] 📊 Datos cargados:', {
+        this.logger.debug('[TimelogsComponent] 📊 Datos cargados:', {
           timelogs: timelogsCount,
           employee_schedules: schedulesCount,
           timeoffs: timeoffsCount,
         });
 
         if (logsError) {
-          console.error(
+          this.logger.error(
             '[TimelogsComponent] ❌ Error cargando timelogs:',
             logsError
           );
         }
         if (schedulesError) {
-          console.error(
+          this.logger.error(
             '[TimelogsComponent] ❌ Error cargando employee_schedules:',
             schedulesError
           );
         }
         if (timeoffsError) {
-          console.error(
+          this.logger.error(
             '[TimelogsComponent] ❌ Error cargando timeoffs:',
             timeoffsError
           );
         }
 
         if (logsData && logsData.length === 0 && !logsError) {
-          console.warn(
+          this.logger.warn(
             '[TimelogsComponent] ⚠️ No se encontraron timelogs. Verificar:',
             {
               company_id: this.organizationService.getCurrentCompanyId(),
@@ -1069,11 +1276,11 @@ export class TimelogsComponent {
 
         // Mostrar muestra de timelogs si hay datos
         if (logsData && logsData.length > 0) {
-          console.log(
+          this.logger.debug(
             '[TimelogsComponent] ✅ Timelogs encontrados:',
             timelogsCount
           );
-          console.log(
+          this.logger.debug(
             '[TimelogsComponent] 📋 Muestra (primeros 5):',
             logsData.slice(0, 5).map((log) => ({
               id: log.id,
@@ -1088,9 +1295,9 @@ export class TimelogsComponent {
               branch: log.branch ? log.branch.name : 'N/A',
             }))
           );
-          console.log(
+          this.logger.debug(
             '[TimelogsComponent] 📊 Distribución por company_id:',
-            logsData.reduce((acc: any, log: any) => {
+            logsData.reduce((acc: Record<string, number>, log) => {
               const cid = log.company_id || 'NULL';
               acc[cid] = (acc[cid] || 0) + 1;
               return acc;
@@ -1104,12 +1311,12 @@ export class TimelogsComponent {
             (log) => log.company_id !== currentCompanyId
           );
           if (wrongCompanyId.length > 0) {
-            console.warn(
+            this.logger.warn(
               '[TimelogsComponent] ⚠️ Timelogs con company_id incorrecto:',
               wrongCompanyId.length
             );
-            console.warn('  - Company ID esperado:', currentCompanyId);
-            console.warn(
+            this.logger.warn('  - Company ID esperado:', currentCompanyId);
+            this.logger.warn(
               '  - Timelogs con company_id diferente:',
               wrongCompanyId.slice(0, 3).map((log) => ({
                 id: log.id,
@@ -1119,16 +1326,16 @@ export class TimelogsComponent {
             );
           }
         } else if (!logsError) {
-          console.warn('[TimelogsComponent] ⚠️ No se encontraron timelogs');
-          console.warn(
+          this.logger.warn('[TimelogsComponent] ⚠️ No se encontraron timelogs');
+          this.logger.warn(
             '  - Verificar que existan timelogs en la base de datos para:'
           );
-          console.warn(
+          this.logger.warn(
             '    * Company ID:',
             this.organizationService.getCurrentCompanyId()
           );
-          console.warn('    * Rango de fechas:', this.dateRange());
-          console.warn('    * Employee ID:', this.employeeId() || 'Todos');
+          this.logger.warn('    * Rango de fechas:', this.dateRange());
+          this.logger.warn('    * Employee ID:', this.employeeId() || 'Todos');
         }
       },
       { injector: this.injector }
@@ -1146,7 +1353,7 @@ export class TimelogsComponent {
       employee_id?: string;
     } = {
       select: `*,employee:employees(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)`,
-      created_at: `gte.${format(start, 'yyyy-MM-dd 06:00:00')}`,
+      created_at: `gte.${format(start, 'yyyy-MM-dd 00:00:00')}`,
     };
     if (this.employeeId()) {
       params['employee_id'] = `eq.${this.employeeId()}`;
@@ -1155,12 +1362,11 @@ export class TimelogsComponent {
   });
 
   public dayLogs = computed(() => {
-    // Obtener el rango de fechas para filtrar
-    const startDate = this.dateRange()?.[0];
-    const endDate = this.dateRange()?.[1];
+    // Obtener el rango de fechas para filtrar (usa normalizedDateRange para manejar fecha única)
+    const { start: startDate, end: endDate } = this.normalizedDateRange();
 
     if (!startDate || !endDate) {
-      console.log('[TimelogsComponent] ⚠️ dayLogs: No hay rango de fechas');
+      this.logger.debug('[TimelogsComponent] ⚠️ dayLogs: No hay rango de fechas');
       return [];
     }
 
@@ -1179,7 +1385,7 @@ export class TimelogsComponent {
     const timeoffsData = this.timeoffs.value() ?? [];
     const daysList = this.days();
 
-    console.log('[TimelogsComponent] 📊 dayLogs - Datos de entrada:', {
+    this.logger.debug('[TimelogsComponent] 📊 dayLogs - Datos de entrada:', {
       timelogs: logsData.length,
       employee_schedules: schedulesData.length,
       timeoffs: timeoffsData.length,
@@ -1258,24 +1464,7 @@ export class TimelogsComponent {
     }
 
     // Crear estructura inicial: TODOS los días del rango para TODOS los empleados
-    const acc: {
-      employee: Partial<Employee>;
-      day: string;
-      schedule?: any;
-      delay?: number | string;
-      alert?: string;
-      scheduleError?: boolean;
-      lunchExceeded?: boolean;
-      lunchMinutes?: number;
-      earlyExit?: boolean;
-      insufficientHours?: boolean;
-      totalHours?: number;
-      overtimeHours?: number; // Horas extras (más de 9 horas totales)
-      entry?: { date: Date; branch: Branch };
-      lunch_start?: { date: Date; branch: Branch };
-      lunch_end?: { date: Date; branch: Branch };
-      exit?: { date: Date; branch: Branch };
-    }[] = [];
+    const acc: DayLog[] = [];
 
     // Para cada empleado, crear registros para TODOS los días del rango en orden
     uniqueEmployees.forEach((employee) => {
@@ -1314,7 +1503,7 @@ export class TimelogsComponent {
       });
     });
 
-    console.log('[TimelogsComponent] 📊 dayLogs - Antes de procesar:', {
+    this.logger.debug('[TimelogsComponent] 📊 dayLogs - Antes de procesar:', {
       filteredLogs: filteredLogs.length,
       uniqueEmployees: uniqueEmployees.size,
       daysList: daysList.length,
@@ -1323,26 +1512,7 @@ export class TimelogsComponent {
 
     // Ahora procesar los logs para actualizar los registros creados
     const result = filteredLogs
-      .reduce<
-        {
-          employee: Partial<Employee>;
-          day: string;
-          schedule?: any;
-          delay?: number | string;
-          alert?: string;
-          scheduleError?: boolean;
-          lunchExceeded?: boolean;
-          lunchMinutes?: number;
-          earlyExit?: boolean;
-          insufficientHours?: boolean;
-          totalHours?: number;
-          overtimeHours?: number; // Horas extras (más de 9 horas totales)
-          entry?: { date: Date; branch: Branch };
-          lunch_start?: { date: Date; branch: Branch };
-          lunch_end?: { date: Date; branch: Branch };
-          exit?: { date: Date; branch: Branch };
-        }[]
-      >((acc, x) => {
+      .reduce<DayLog[]>((acc, x) => {
         // Solo procesar si el día está dentro del rango
         if (x.day < dateRangeStart || x.day > dateRangeEnd) {
           return acc;
@@ -1405,12 +1575,28 @@ export class TimelogsComponent {
           acc[index].scheduleError = true; // Error crítico: marcó en día de feriado/permiso (no hay horario válido)
         }
 
+        // Marcar como "Feriado" incluso si no hay marcaciones (para que se muestre en la tabla)
+        if (hasTimeOff && !hasMark) {
+          acc[index].alert = 'Feriado';
+          // No es un error si no hay marcaciones, solo información
+          acc[index].scheduleError = false;
+        }
+
         // SIEMPRE marcar como error si el schedule es feriado/día libre y hay marcaciones
         if (isScheduleFeriado && hasMark) {
           acc[index].alert = acc[index].schedule?.schedule?.day_off
             ? 'Día Libre'
             : 'Feriado';
           acc[index].scheduleError = true; // Error crítico: marcó en día feriado/libre (no debería tener marcaciones)
+        }
+
+        // Marcar como "Día Libre" o "Feriado" incluso si no hay marcaciones (para que se muestre en la tabla)
+        if (isScheduleFeriado && !hasMark) {
+          acc[index].alert = acc[index].schedule?.schedule?.day_off
+            ? 'Día Libre'
+            : 'Feriado';
+          // No es un error si no hay marcaciones, solo información
+          acc[index].scheduleError = false;
         }
 
         if (hasMark) {
@@ -1420,7 +1606,7 @@ export class TimelogsComponent {
             if (!acc[index].scheduleError) {
               acc[index].scheduleError = true;
             }
-          } else if (acc[index].schedule) {
+          } else if (acc[index].schedule?.schedule) {
             if (acc[index].schedule.schedule.day_off || isScheduleFeriado) {
               // Si es día libre o feriado pero el empleado marcó, es un error de configuración
               acc[index].delay = 'DIA LIBRE';
@@ -1433,10 +1619,15 @@ export class TimelogsComponent {
               if (acc[index].entry) {
                 const entryTime = format(acc[index].entry.date, 'hh:mm:ss');
                 const scheduleTime = acc[index].schedule.schedule.entry_time;
-                const delay = this.calcTimeDiff(entryTime, scheduleTime);
+                if (scheduleTime) {
+                  const scheduleTimeStr = typeof scheduleTime === 'string' 
+                    ? scheduleTime 
+                    : format(new Date(scheduleTime), 'HH:mm:ss');
+                  const delay = this.calcTimeDiff(entryTime, scheduleTimeStr);
 
-                if (delay > acc[index].schedule.schedule.minutes_tolerance) {
-                  acc[index].delay = delay;
+                  if (delay > (acc[index].schedule.schedule.minutes_tolerance || 0)) {
+                    acc[index].delay = delay;
+                  }
                 }
               }
             }
@@ -1459,7 +1650,7 @@ export class TimelogsComponent {
 
           // Validar salida temprana
           if (
-            acc[index].schedule &&
+            acc[index].schedule?.schedule &&
             acc[index].exit &&
             !acc[index].schedule.schedule.day_off
           ) {
@@ -1490,7 +1681,7 @@ export class TimelogsComponent {
           if (
             acc[index].entry &&
             acc[index].exit &&
-            acc[index].schedule &&
+            acc[index].schedule?.schedule &&
             !acc[index].schedule.schedule.day_off
           ) {
             const scheduleEntryTime = acc[index].schedule.schedule.entry_time;
@@ -1501,19 +1692,59 @@ export class TimelogsComponent {
               const entryDate = new Date(acc[index].entry.date);
               const exitDate = new Date(acc[index].exit.date);
 
+              // Validar que las fechas sean válidas
+              if (
+                isNaN(entryDate.getTime()) ||
+                isNaN(exitDate.getTime()) ||
+                exitDate <= entryDate
+              ) {
+                this.logger.warn(
+                  '[TimelogsComponent] Fechas inválidas o salida anterior a entrada',
+                  {
+                    entry: acc[index].entry.date,
+                    exit: acc[index].exit.date,
+                    employee: acc[index].employee?.first_name,
+                  }
+                );
+                acc[index].totalHours = 0;
+                acc[index].overtimeHours = 0;
+                return acc;
+              }
+
               // Calcular desde la entrada REAL hasta la salida REAL
               const totalMinutes = differenceInMinutes(exitDate, entryDate);
 
               // Calcular tiempo de almuerzo (solo restar 1 hora = 60 minutos máximo)
               let lunchTimeToSubtract = 0;
               if (acc[index].lunch_start && acc[index].lunch_end) {
-                const actualLunchMinutes = differenceInMinutes(
-                  acc[index].lunch_end.date,
-                  acc[index].lunch_start.date
-                );
-                // Solo restar 60 minutos (1 hora permitida), el exceso no cuenta como trabajo
-                // El exceso se acumula automáticamente en total_lunch_exceeded_minutes
-                lunchTimeToSubtract = Math.min(actualLunchMinutes, 60);
+                const lunchStartDate = new Date(acc[index].lunch_start.date);
+                const lunchEndDate = new Date(acc[index].lunch_end.date);
+
+                // Validar que las fechas de almuerzo sean válidas y que lunch_end > lunch_start
+                if (
+                  !isNaN(lunchStartDate.getTime()) &&
+                  !isNaN(lunchEndDate.getTime()) &&
+                  lunchEndDate > lunchStartDate
+                ) {
+                  const actualLunchMinutes = differenceInMinutes(
+                    lunchEndDate,
+                    lunchStartDate
+                  );
+                  // Solo restar 60 minutos (1 hora permitida), el exceso no cuenta como trabajo
+                  // El exceso se acumula automáticamente en total_lunch_exceeded_minutes
+                  if (actualLunchMinutes > 0) {
+                    lunchTimeToSubtract = Math.min(actualLunchMinutes, 60);
+                  }
+                } else {
+                  this.logger.warn(
+                    '[TimelogsComponent] Fechas de almuerzo inválidas o lunch_end <= lunch_start',
+                    {
+                      lunch_start: acc[index].lunch_start.date,
+                      lunch_end: acc[index].lunch_end.date,
+                      employee: acc[index].employee?.first_name,
+                    }
+                  );
+                }
               }
 
               const workMinutes = totalMinutes - lunchTimeToSubtract;
@@ -1540,10 +1771,29 @@ export class TimelogsComponent {
             }
           } else if (acc[index].entry && acc[index].exit) {
             // Si no hay horario establecido, calcular desde la entrada real
-            const totalMinutes = differenceInMinutes(
-              acc[index].exit.date,
-              acc[index].entry.date
-            );
+            const entryDate = new Date(acc[index].entry.date);
+            const exitDate = new Date(acc[index].exit.date);
+
+            // Validar que las fechas sean válidas y que exitDate > entryDate
+            if (
+              isNaN(entryDate.getTime()) ||
+              isNaN(exitDate.getTime()) ||
+              exitDate <= entryDate
+            ) {
+              this.logger.warn(
+                '[TimelogsComponent] Fechas inválidas o salida anterior a entrada (sin horario)',
+                {
+                  entry: acc[index].entry.date,
+                  exit: acc[index].exit.date,
+                  employee: acc[index].employee?.first_name,
+                }
+              );
+              acc[index].totalHours = 0;
+              acc[index].overtimeHours = 0;
+              return acc;
+            }
+
+            const totalMinutes = differenceInMinutes(exitDate, entryDate);
             
             // Calcular tiempo de almuerzo (solo restar 1 hora = 60 minutos máximo)
             let lunchTimeToSubtract = 0;
@@ -1552,18 +1802,35 @@ export class TimelogsComponent {
               const lunchEnd = acc[index].lunch_end.date;
 
               // Validar que las fechas sean válidas
-              if (
-                lunchStart &&
-                lunchEnd &&
-                !isNaN(new Date(lunchStart).getTime()) &&
-                !isNaN(new Date(lunchEnd).getTime())
-              ) {
-                const actualLunchMinutes = differenceInMinutes(lunchEnd, lunchStart);
-                // Solo usar si la diferencia es positiva y razonable (máximo 3 horas)
-                if (actualLunchMinutes > 0 && actualLunchMinutes <= 180) {
-                  // Solo restar 60 minutos (1 hora permitida), el exceso no cuenta como trabajo
-                  // El exceso se acumula automáticamente en total_lunch_exceeded_minutes
-                  lunchTimeToSubtract = Math.min(actualLunchMinutes, 60);
+              if (lunchStart && lunchEnd) {
+                const lunchStartDate = new Date(lunchStart);
+                const lunchEndDate = new Date(lunchEnd);
+
+                // Validar que las fechas sean válidas y que lunch_end > lunch_start
+                if (
+                  !isNaN(lunchStartDate.getTime()) &&
+                  !isNaN(lunchEndDate.getTime()) &&
+                  lunchEndDate > lunchStartDate
+                ) {
+                  const actualLunchMinutes = differenceInMinutes(
+                    lunchEndDate,
+                    lunchStartDate
+                  );
+                  // Solo usar si la diferencia es positiva y razonable (máximo 3 horas)
+                  if (actualLunchMinutes > 0 && actualLunchMinutes <= 180) {
+                    // Solo restar 60 minutos (1 hora permitida), el exceso no cuenta como trabajo
+                    // El exceso se acumula automáticamente en total_lunch_exceeded_minutes
+                    lunchTimeToSubtract = Math.min(actualLunchMinutes, 60);
+                  }
+                } else {
+                  this.logger.warn(
+                    '[TimelogsComponent] Fechas de almuerzo inválidas o lunch_end <= lunch_start (sin horario)',
+                    {
+                      lunch_start: lunchStart,
+                      lunch_end: lunchEnd,
+                      employee: acc[index].employee?.first_name,
+                    }
+                  );
                 }
               }
             }
@@ -1588,7 +1855,7 @@ export class TimelogsComponent {
           }
         } else {
           // Si no hay marcación pero hay schedule, calcular retraso si aplica
-          if (acc[index].schedule && !acc[index].schedule.schedule.day_off) {
+          if (acc[index].schedule?.schedule && !acc[index].schedule.schedule.day_off) {
             // No hay nada que hacer aquí, el delay se calcula cuando hay entrada
           }
         }
@@ -1615,7 +1882,7 @@ export class TimelogsComponent {
         return dayStr >= dateRangeStart && dayStr <= dateRangeEnd;
       });
 
-    console.log('[TimelogsComponent] ✅ dayLogs - Procesamiento completado:', {
+    this.logger.debug('[TimelogsComponent] ✅ dayLogs - Procesamiento completado:', {
       totalRegistros: result.length,
       conEntrada: result.filter((x) => x.entry).length,
       conSalida: result.filter((x) => x.exit).length,
@@ -1738,7 +2005,7 @@ export class TimelogsComponent {
     });
 
     // Retornar los datos filtrados en el mismo orden (ya están ordenados por dayLogs)
-    console.log(
+    this.logger.debug(
       '[TimelogsComponent] ✅ filteredDaylogs - Filtrado completado:',
       {
         totalAntes: dayLogsData.length,
@@ -1860,7 +2127,9 @@ export class TimelogsComponent {
     return getColorStyle(color);
   }
 
-  public getScheduleTooltip(schedule: any): string | undefined {
+  public getScheduleTooltip(
+    schedule: EmployeeScheduleData | undefined
+  ): string | undefined {
     if (schedule && schedule.approved === false) {
       return 'Horario pendiente de aprobación';
     }
@@ -2144,7 +2413,7 @@ export class TimelogsComponent {
         detail: `El archivo ${fileName} se ha descargado correctamente`,
       });
     } catch (error) {
-      console.error('Error generating report:', error);
+      this.logger.error('Error generating report:', error);
       this.message.add({
         severity: 'error',
         summary: 'Error',

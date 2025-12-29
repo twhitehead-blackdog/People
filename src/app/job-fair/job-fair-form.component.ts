@@ -1123,7 +1123,7 @@ export class JobFairFormComponent implements OnInit {
 
   formatPhoneNumber(event: Event) {
     const input = event.target as HTMLInputElement;
-    let value = input.value || '';
+    const value = input.value || '';
 
     // Remover todo excepto números
     const numbers = value.replace(/\D/g, '');

@@ -12,6 +12,7 @@ import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
+import { firstValueFrom } from 'rxjs';
 
 interface Suggestion {
   id: string;
@@ -628,8 +629,8 @@ export class SuggestionsInboxComponent {
 
     for (const message of unreadMessages) {
       try {
-        await this.http
-          .patch(
+        await firstValueFrom(
+          this.http.patch(
             `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages?id=eq.${message.id}`,
             { is_read: true, read_at: new Date().toISOString() },
             {
@@ -639,7 +640,7 @@ export class SuggestionsInboxComponent {
               },
             }
           )
-          .toPromise();
+        );
       } catch (error: any) {
         console.error('Error marking message as read:', error);
       }
@@ -662,27 +663,26 @@ export class SuggestionsInboxComponent {
     }
 
     try {
-      await this.http
-        .delete(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages?complaint_id=eq.${suggestion.id}`,
-          {
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }
-        )
-        .toPromise();
+      // Primero eliminar todos los mensajes de la conversación
+      const deleteMessagesRequest = this.http.delete(
+        `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages?complaint_id=eq.${suggestion.id}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      await firstValueFrom(deleteMessagesRequest);
 
-      await this.http
-        .delete(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaints?id=eq.${suggestion.id}`,
-          {
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }
-        )
-        .toPromise();
+      const deleteSuggestionRequest = this.http.delete(
+        `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaints?id=eq.${suggestion.id}`,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      await firstValueFrom(deleteSuggestionRequest);
 
       this.selectedSuggestion.set(null);
       this.suggestionsApi.reload();
@@ -718,12 +718,12 @@ export class SuggestionsInboxComponent {
     };
 
     try {
-      await this.http
-        .post(
+      await firstValueFrom(
+        this.http.post(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages`,
           messageData
         )
-        .toPromise();
+      );
 
       this.messageService.add({
         severity: 'success',
@@ -822,8 +822,8 @@ export class SuggestionsInboxComponent {
     if (!targetSuggestion) return;
 
     try {
-      await this.http
-        .patch(
+      await firstValueFrom(
+        this.http.patch(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaints?id=eq.${targetSuggestion.id}`,
           { status: newStatus },
           {
@@ -833,7 +833,7 @@ export class SuggestionsInboxComponent {
             },
           }
         )
-        .toPromise();
+      );
 
       this.messageService.add({
         severity: 'success',
@@ -867,8 +867,8 @@ export class SuggestionsInboxComponent {
     if (!targetSuggestion) return;
 
     try {
-      await this.http
-        .patch(
+      await firstValueFrom(
+        this.http.patch(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaints?id=eq.${targetSuggestion.id}`,
           { priority: newPriority },
           {
@@ -878,7 +878,7 @@ export class SuggestionsInboxComponent {
             },
           }
         )
-        .toPromise();
+      );
 
       this.messageService.add({
         severity: 'success',
@@ -916,8 +916,8 @@ export class SuggestionsInboxComponent {
     if (!suggestion) return;
 
     try {
-      await this.http
-        .patch(
+      await firstValueFrom(
+        this.http.patch(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaints?id=eq.${suggestion.id}`,
           { 
             status: 'closed',
@@ -931,7 +931,7 @@ export class SuggestionsInboxComponent {
             },
           }
         )
-        .toPromise();
+      );
 
       this.messageService.add({
         severity: 'success',
@@ -959,8 +959,8 @@ export class SuggestionsInboxComponent {
     if (!suggestion) return;
 
     try {
-      await this.http
-        .patch(
+      await firstValueFrom(
+        this.http.patch(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaints?id=eq.${suggestion.id}`,
           { 
             closed: false,
@@ -974,7 +974,7 @@ export class SuggestionsInboxComponent {
             },
           }
         )
-        .toPromise();
+      );
 
       this.messageService.add({
         severity: 'success',

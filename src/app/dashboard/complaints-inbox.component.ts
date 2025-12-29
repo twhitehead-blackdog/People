@@ -17,6 +17,7 @@ import { Tag } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { EmployeesStore } from '../stores/employees.store';
+import { firstValueFrom } from 'rxjs';
 
 interface Complaint {
   id: string;
@@ -692,8 +693,8 @@ export class ComplaintsInboxComponent {
 
     for (const message of unreadMessages) {
       try {
-        await this.http
-          .patch(
+        await firstValueFrom(
+          this.http.patch(
             `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages?id=eq.${message.id}`,
             { is_read: true, read_at: new Date().toISOString() },
             {
@@ -703,7 +704,7 @@ export class ComplaintsInboxComponent {
               },
             }
           )
-          .toPromise();
+        );
       } catch (error: any) {
         console.error('Error marking message as read:', error);
       }
@@ -733,8 +734,8 @@ export class ComplaintsInboxComponent {
 
     try {
       // Primero eliminar todos los mensajes de la conversación
-      await this.http
-        .delete(
+      await firstValueFrom(
+        this.http.delete(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages?complaint_id=eq.${complaint.id}`,
           {
             headers: {
@@ -742,11 +743,11 @@ export class ComplaintsInboxComponent {
             },
           }
         )
-        .toPromise();
+      );
 
       // Luego eliminar la queja
-      await this.http
-        .delete(
+      await firstValueFrom(
+        this.http.delete(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaints?id=eq.${complaint.id}`,
           {
             headers: {
@@ -754,7 +755,7 @@ export class ComplaintsInboxComponent {
             },
           }
         )
-        .toPromise();
+      );
 
       this.selectedComplaint.set(null);
       this.complaintsApi.reload();
@@ -794,12 +795,12 @@ export class ComplaintsInboxComponent {
     };
 
     try {
-      await this.http
-        .post(
+      await firstValueFrom(
+        this.http.post(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages`,
           messageData
         )
-        .toPromise();
+      );
 
       this.messageService.add({
         severity: 'success',
@@ -916,8 +917,8 @@ export class ComplaintsInboxComponent {
     if (!targetComplaint) return;
 
     try {
-      await this.http
-        .patch(
+      await firstValueFrom(
+        this.http.patch(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaints?id=eq.${targetComplaint.id}`,
           { status: newStatus },
           {
@@ -927,7 +928,7 @@ export class ComplaintsInboxComponent {
             },
           }
         )
-        .toPromise();
+      );
 
       this.messageService.add({
         severity: 'success',
@@ -970,8 +971,8 @@ export class ComplaintsInboxComponent {
     if (!targetComplaint) return;
 
     try {
-      await this.http
-        .patch(
+      await firstValueFrom(
+        this.http.patch(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaints?id=eq.${targetComplaint.id}`,
           { priority: newPriority },
           {
@@ -981,7 +982,7 @@ export class ComplaintsInboxComponent {
             },
           }
         )
-        .toPromise();
+      );
 
       this.messageService.add({
         severity: 'success',
@@ -1027,8 +1028,8 @@ export class ComplaintsInboxComponent {
     if (!complaint) return;
 
     try {
-      await this.http
-        .patch(
+      await firstValueFrom(
+        this.http.patch(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaints?id=eq.${complaint.id}`,
           {
             status: 'closed',
@@ -1042,7 +1043,7 @@ export class ComplaintsInboxComponent {
             },
           }
         )
-        .toPromise();
+      );
 
       this.messageService.add({
         severity: 'success',
@@ -1072,8 +1073,8 @@ export class ComplaintsInboxComponent {
     if (!complaint) return;
 
     try {
-      await this.http
-        .patch(
+      await firstValueFrom(
+        this.http.patch(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaints?id=eq.${complaint.id}`,
           {
             closed: false,
@@ -1087,7 +1088,7 @@ export class ComplaintsInboxComponent {
             },
           }
         )
-        .toPromise();
+      );
 
       this.messageService.add({
         severity: 'success',

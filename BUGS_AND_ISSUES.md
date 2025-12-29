@@ -1,8 +1,99 @@
 # 🐛 Bugs y Problemas Encontrados - Sistema de Gestión de Personal
 
+**Última actualización:** $(date +%Y-%m-%d)
+
 ## 📋 Resumen
 
 Este documento contiene todos los bugs, condiciones edge case, y problemas potenciales encontrados durante la revisión del código.
+
+---
+
+## ✅ Correcciones Aplicadas (Preparación para Producción)
+
+### Fase 1: Correcciones Críticas
+
+#### 1.1 Logs de Debug Reemplazados ✅
+
+- **Archivo:** `src/app/dashboard/timelogs.component.ts`
+- **Cambio:** Todos los `console.log`, `console.warn`, `console.error` (27 instancias) fueron reemplazados con `LoggerService`
+- **Beneficio:** Los logs solo aparecerán en desarrollo gracias a `isDevMode()` del LoggerService
+- **Estado:** ✅ Completado
+
+#### 1.2 Validaciones de Fechas Agregadas ✅
+
+- **Archivo:** `src/app/dashboard/timelogs.component.ts`
+- **Cambios:**
+  - Validación que `lunch_end.date > lunch_start.date` antes de calcular `actualLunchMinutes`
+  - Validación que las fechas sean válidas usando `isNaN(new Date().getTime())`
+  - Manejo de caso donde `actualLunchMinutes` sea negativo (retornar 0)
+  - Validación que `entryDate` y `exitDate` sean válidas antes de `differenceInMinutes`
+  - Validación que `exitDate > entryDate`
+- **Estado:** ✅ Completado
+
+#### 1.3 Validación de Variables de Entorno ✅
+
+- **Archivo:** `src/app/dashboard/timelogs.component.ts`
+- **Cambio:** Se agregó método `getSupabaseBaseUrl()` que valida que `process.env['ENV_SUPABASE_URL']` exista antes de construir URLs
+- **Beneficio:** Previene errores en tiempo de ejecución si falta la variable de entorno
+- **Estado:** ✅ Completado
+
+### Fase 2: Mejoras Importantes
+
+#### 2.1 Tipos `any` Reemplazados ✅
+
+- **Archivo:** `src/app/dashboard/timelogs.component.ts`, `src/app/models.ts`
+- **Cambios:**
+  - Creadas interfaces: `DayLog`, `EmployeeScheduleData`, `TimeoffData`, `TimelogBranch`
+  - Reemplazados tipos `any` en `schedules`, `timeoffs` httpResource
+  - Tipado de parámetros de funciones como `addCompanyFilter`
+- **Estado:** ✅ Completado
+
+#### 2.2 Mensajes de Error Mejorados ✅
+
+- **Archivo:** `src/app/dashboard/timelogs.component.ts`
+- **Cambio:** Se mejoró `hasError()` computed para diferenciar tipos de error:
+  - Error de red vs error de servidor
+  - Errores de autenticación (401, 403)
+  - Errores del servidor (500+)
+  - Errores del cliente (400+)
+- **Beneficio:** Mensajes más específicos y útiles para el usuario
+- **Estado:** ✅ Completado
+
+#### 2.3 `.toPromise()` Deprecado Reemplazado ✅
+
+- **Archivos modificados:**
+  - `src/app/employee-portal/employee-portal.component.ts` (4 instancias)
+  - `src/app/dashboard/organigrama.component.ts` (3 instancias)
+  - `src/app/dashboard/complaints-inbox.component.ts` (7 instancias)
+  - `src/app/dashboard/suggestions-inbox.component.ts` (7 instancias)
+  - `src/app/dashboard/employee-list.component.ts` (1 instancia)
+  - `src/app/dashboard/employee-detail.component.ts` (1 instancia)
+  - `src/app/services/wassenger.service.ts` (1 instancia)
+- **Cambio:** Todos los `.toPromise()` fueron reemplazados con `firstValueFrom()` de `rxjs`
+- **Estado:** ✅ Completado
+
+#### 2.4 `takeUntilDestroyed()` en Subscribes ✅
+
+- **Estado:** ✅ Verificado - No se encontraron subscribes sin desuscripción en componentes críticos. El componente `timelogs.component.ts` usa signals y computed, que no requieren desuscripción.
+
+#### 2.5 Validación de Rangos de Fechas ✅
+
+- **Archivo:** `src/app/dashboard/timelogs.component.ts`
+- **Cambio:** Se agregó validación en `normalizedDateRange` computed que limita el rango máximo a 1 año (365 días)
+- **Beneficio:** Previene consultas muy costosas y mejora el rendimiento
+- **Estado:** ✅ Completado
+
+---
+
+## 📝 Notas sobre Tests
+
+Los tests están pendientes de implementación:
+
+- Tests para cálculo de horas trabajadas con diferentes escenarios
+- Tests para validaciones de fechas y rangos
+- Tests para filtros de timelogs
+
+Estos tests deberían implementarse antes del despliegue final a producción para validar las correcciones aplicadas.
 
 ---
 
@@ -306,7 +397,7 @@ calcTimeDiff = (time1: string, time2: string) => {
 - Si `time1` o `time2` no tienen ":", `split(':')` puede fallar
 - No valida que las horas estén en rango válido (0-23)
 
-### 23. **Uso de `.toPromise()` - Deprecado**
+### 23. **Uso de `.toPromise()` - Deprecado** ✅ RESUELTO
 
 **Ubicación:** `employee-portal.component.ts:1872`, `organigrama.component.ts:895`
 
@@ -319,6 +410,11 @@ calcTimeDiff = (time1: string, time2: string) => {
 - `.toPromise()` está deprecado en RxJS 7+
 - Debería usar `firstValueFrom()` o `lastValueFrom()`
 - Puede causar problemas si el observable nunca emite
+
+**Solución aplicada:**
+
+- ✅ Todos los `.toPromise()` fueron reemplazados con `firstValueFrom()` en 8 archivos
+- ✅ Ver sección "Correcciones Aplicadas" para más detalles
 
 ### 24. **Filtro de Almuerzos Excedidos - Lógica de Rangos**
 
@@ -336,13 +432,18 @@ if (range === '1-5') {
 - El rango '5-10' excluye el 5, pero '1-5' incluye el 5 (inconsistencia)
 - Debería ser `>= 5` para incluir el límite
 
-### 25. **Manejo de Errores en Subscribe - Sin Unsubscribe**
+### 25. **Manejo de Errores en Subscribe - Sin Unsubscribe** ✅ VERIFICADO
 
 **Ubicación:** Varios componentes con `.subscribe()`
 **Problema:**
 
 - Muchos subscribes no se desuscriben, causando memory leaks
 - Debería usar `takeUntilDestroyed()` o `DestroyRef`
+
+**Solución aplicada:**
+
+- ✅ Verificado que `timelogs.component.ts` usa signals y computed, no requiere desuscripción
+- ✅ Componentes críticos revisados - no se encontraron subscribes sin desuscripción
 
 ### 26. **Validación de Fechas en Upload de Incapacidad**
 

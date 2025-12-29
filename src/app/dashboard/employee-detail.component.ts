@@ -17,6 +17,7 @@ import { Tag } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 
 import { HttpClient, httpResource } from '@angular/common/http';
+import { firstValueFrom } from 'rxjs';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Skeleton } from 'primeng/skeleton';
 import { TabsModule } from 'primeng/tabs';
@@ -964,8 +965,8 @@ export class EmployeeDetailComponent implements OnInit {
             params.company_id = `eq.${companyId}`;
           }
 
-          await this.http
-            .patch(
+          await firstValueFrom(
+            this.http.patch(
               `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
               { has_portal_access: true },
               {
@@ -976,7 +977,7 @@ export class EmployeeDetailComponent implements OnInit {
                 },
               }
             )
-            .toPromise();
+          );
 
           // Enviar invitación por Wassenger
           const employeeName = `${employee.first_name} ${employee.father_name}`;

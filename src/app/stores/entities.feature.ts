@@ -124,7 +124,7 @@ export function withCustomEntities<T extends { id: EntityId }>({
     tableName: string,
     orgService: OrganizationService
   ): string => {
-    let cleaned = q;
+    const cleaned = q;
 
     // Ya no necesitamos adaptar relaciones para naz_* porque todo usa tablas compartidas
     // Solo limpiar campos que pueden no existir en algunas versiones
@@ -438,7 +438,7 @@ export function withCustomEntities<T extends { id: EntityId }>({
           const cleanedQuery = cleanQuery(query, tableName, state._orgService);
 
           // Asegurar que company_id esté presente en el request
-          let requestData: any = { ...request };
+          const requestData: any = { ...request };
 
           // Agregar company_id si la tabla lo requiere y no está presente
           // Ahora que usamos tablas compartidas, TANTO Naz como Black Dog necesitan company_id
@@ -516,7 +516,7 @@ export function withCustomEntities<T extends { id: EntityId }>({
           const companyId = getCurrentCompanyId();
 
           // Asegurar que company_id esté presente en el request si es requerido
-          let requestData: any = { ...request };
+          const requestData: any = { ...request };
 
           // Agregar company_id si la tabla lo requiere y no está presente
           const tablesRequiringCompanyId = [

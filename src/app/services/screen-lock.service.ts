@@ -59,7 +59,7 @@ export class ScreenLockService {
   /**
    * Habilita el bloqueo de pantalla
    */
-  public enable(employee: any, timeoutMinutes: number = 15): void {
+  public enable(employee: any, timeoutMinutes = 15): void {
     this.isEnabled.set(true);
     this.currentEmployee.set(employee);
     this.lockTimeout.set(timeoutMinutes * 60 * 1000);

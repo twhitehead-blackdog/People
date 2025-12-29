@@ -650,7 +650,7 @@ import { EmployeesStore } from '../stores/employees.store';
                 </div>
               </p-card>
 
-              <!-- Buzón de Quejas -->
+              <!-- Buzón de Sugerencias -->
               <p-card 
                 class="cursor-pointer hover:shadow-lg transition-all" 
                 (click)="activeSection.set('complaints')"
@@ -659,7 +659,7 @@ import { EmployeesStore } from '../stores/employees.store';
                   <div class="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center">
                     <i class="pi pi-comments text-yellow-400 text-xl"></i>
                   </div>
-                  <h3 class="text-lg font-semibold text-white m-0">Buzón de Quejas</h3>
+                  <h3 class="text-lg font-semibold text-white m-0">Buzón de Sugerencias</h3>
                   <p class="text-sm text-gray-400 m-0">
                     Expresa tus inquietudes de forma anónima
                   </p>
@@ -1345,11 +1345,11 @@ import { EmployeesStore } from '../stores/employees.store';
       </div>
       }
 
-      <!-- Buzón de Quejas Section -->
+      <!-- Buzón de Sugerencias Section -->
       @if (activeSection() === 'complaints') {
       <div id="complaints" class="section-content">
         <p-card>
-          <ng-template #title>Buzón de Quejas Anónimas</ng-template>
+          <ng-template #title>Buzón de Sugerencias</ng-template>
           <ng-template #subtitle
             >Expresa tus inquietudes de forma anónima y
             confidencial</ng-template
@@ -1365,7 +1365,7 @@ import { EmployeesStore } from '../stores/employees.store';
                     Tu privacidad está protegida
                   </p>
                   <p class="text-sm text-gray-300">
-                    Todas las quejas son completamente anónimas. Tu identidad no
+                    Todas las sugerencias son completamente anónimas. Tu identidad no
                     será revelada a menos que lo autorices explícitamente.
                   </p>
                 </div>
@@ -1389,14 +1389,14 @@ import { EmployeesStore } from '../stores/employees.store';
             </div>
             <div>
               <label class="block text-sm text-gray-400 mb-2"
-                >Describe tu queja o sugerencia</label
+                >Describe tu sugerencia</label
               >
               <textarea
                 pTextarea
                 [ngModel]="complaintText()"
                 (ngModelChange)="complaintText.set($event)"
                 rows="6"
-                placeholder="Describe detalladamente tu queja, sugerencia o inquietud..."
+                placeholder="Describe detalladamente tu sugerencia o inquietud..."
                 class="w-full"
               ></textarea>
             </div>
@@ -1431,7 +1431,7 @@ import { EmployeesStore } from '../stores/employees.store';
             }
             <div class="flex justify-end">
               <p-button
-                label="Enviar Queja"
+                label="Enviar Sugerencia"
                 icon="pi pi-send"
                 severity="warn"
                 [loading]="submittingComplaint()"
@@ -1441,15 +1441,15 @@ import { EmployeesStore } from '../stores/employees.store';
             </div>
           </div>
 
-          <!-- Lista de quejas/conversaciones enviadas -->
+          <!-- Lista de sugerencias/conversaciones enviadas -->
           <div class="mt-6">
             <h3 class="text-lg font-semibold text-white mb-4">
-              Mis Quejas y Conversaciones
+              Mis Sugerencias y Conversaciones
             </h3>
             @if(myComplaints().length === 0 && !complaintsApi.isLoading()) {
             <div class="text-center py-8">
               <i class="pi pi-inbox text-4xl text-gray-500 mb-4"></i>
-              <p class="text-gray-400">No has enviado ninguna queja todavía.</p>
+              <p class="text-gray-400">No has enviado ninguna sugerencia todavía.</p>
             </div>
             } @else {
             <div class="overflow-x-auto">
@@ -3181,7 +3181,7 @@ import { EmployeesStore } from '../stores/employees.store';
               <div class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
                 <div class="flex items-center gap-2 mb-3">
                   <i class="pi pi-comment text-yellow-400"></i>
-                  <span class="text-sm text-gray-400 font-medium">Detalles de la Queja</span>
+                  <span class="text-sm text-gray-400 font-medium">Detalles de la Sugerencia</span>
                 </div>
                 <p class="text-white text-sm whitespace-pre-wrap">
                   {{ data.complaint || request.description }}
@@ -3202,72 +3202,6 @@ import { EmployeesStore } from '../stores/employees.store';
             </div>
           }
         </div>
-      }
-
-    <p-dialog
-      [(visible)]="showRequestDetailsDialog"
-      [modal]="true"
-      [style]="{ width: '90vw', maxWidth: '600px' }"
-      [draggable]="false"
-      [resizable]="false"
-      [closable]="true"
-      styleClass="request-details-dialog"
-    >
-      <ng-template #header>
-        <div class="flex items-center gap-2">
-          <i class="pi pi-info-circle text-amber-400"></i>
-          <span class="text-lg font-semibold text-white">Detalles de Solicitud</span>
-        </div>
-      </ng-template>
-      @if (selectedRequestDetails()) {
-      @let data = selectedRequestDetails();
-      <div class="space-y-4">
-        <!-- Información básica -->
-        <div class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700/50">
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <p class="text-xs text-gray-400 m-0 mb-1">Tipo</p>
-              <p class="text-white font-semibold m-0">{{ data.type }}</p>
-            </div>
-            <div>
-              <p class="text-xs text-gray-400 m-0 mb-1">Estado</p>
-              <p class="text-white font-semibold m-0">{{ data.status }}</p>
-            </div>
-            <div>
-              <p class="text-xs text-gray-400 m-0 mb-1">Fecha de Solicitud</p>
-              <p class="text-white m-0">{{ data.created_at | date: 'dd/MM/yyyy' }}</p>
-            </div>
-            @if (data.response_date) {
-            <div>
-              <p class="text-xs text-gray-400 m-0 mb-1">Fecha de Respuesta</p>
-              <p class="text-white m-0">{{ data.response_date | date: 'dd/MM/yyyy' }}</p>
-            </div>
-            }
-          </div>
-        </div>
-
-        <!-- Descripción/Contenido -->
-        @if (data.complaint || data.description) {
-        <div class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700/50">
-          <p class="text-sm text-gray-400 m-0 mb-2">Descripción</p>
-          <p class="text-white text-sm whitespace-pre-wrap">
-            {{ data.complaint || data.description }}
-          </p>
-        </div>
-        }
-
-        <!-- Botón para ver conversación -->
-        <div class="flex justify-end">
-          <p-button
-            label="Ver Conversación"
-            icon="pi pi-comments"
-            severity="secondary"
-            [outlined]="true"
-            [rounded]="true"
-            (onClick)="closeRequestDetailsDialog(); viewResponse(data)"
-          />
-        </div>
-      </div>
       }
     </p-dialog>
 
@@ -4938,7 +4872,7 @@ export class EmployeePortalComponent {
         request_type: 'complaint',
         created_at: req.created_at,
         status: this.getUnifiedRequestStatus(req, 'complaint'),
-        title: `Queja - ${this.getComplaintCategoryLabel(req.category)}`,
+        title: `Sugerencia - ${this.getComplaintCategoryLabel(req.category)}`,
         description: req.complaint || '',
         originalData: req,
       });
@@ -5158,7 +5092,7 @@ export class EmployeePortalComponent {
       compensatory: 'Tiempo Compensatorio',
       disability: 'Incapacidad',
       document: 'Documento',
-      complaint: 'Queja',
+      complaint: 'Sugerencia',
       vacation: 'Vacaciones',
     };
     return labels[type] || type;
@@ -5179,7 +5113,7 @@ export class EmployeePortalComponent {
     { label: 'Tiempo Compensatorio', value: 'compensatory' },
     { label: 'Incapacidad', value: 'disability' },
     { label: 'Documento', value: 'document' },
-    { label: 'Queja', value: 'complaint' },
+    { label: 'Sugerencia', value: 'complaint' },
     { label: 'Vacaciones', value: 'vacation' },
   ];
 
@@ -5805,8 +5739,8 @@ export class EmployeePortalComponent {
         params.company_id = `eq.${companyId}`;
       }
 
-      await this.http
-        .patch(
+      await firstValueFrom(
+        this.http.patch(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
           updateData,
           {
@@ -5817,7 +5751,7 @@ export class EmployeePortalComponent {
             },
           }
         )
-        .toPromise();
+      );
 
       this.messageService.add({
         severity: 'success',
@@ -6031,8 +5965,8 @@ export class EmployeePortalComponent {
     if (!this.canSubmitComplaint()) {
       this.messageService.add({
         severity: 'warn',
-        summary: 'Queja Muy Corta',
-        detail: 'Por favor describe tu queja con al menos 10 caracteres',
+        summary: 'Sugerencia Muy Corta',
+        detail: 'Por favor describe tu sugerencia con al menos 10 caracteres',
       });
       return;
     }
@@ -6066,7 +6000,7 @@ export class EmployeePortalComponent {
           const complaint = Array.isArray(response) ? response[0] : response;
 
           if (complaint && complaint.id) {
-            // Crear el primer mensaje con el texto de la queja
+            // Crear el primer mensaje con el texto de la sugerencia
             const messageData = {
               complaint_id: complaint.id,
               sender_id: this.allowContact()
@@ -6079,8 +6013,8 @@ export class EmployeePortalComponent {
             };
 
             try {
-              await this.http
-                .post(
+              await firstValueFrom(
+                this.http.post(
                   `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages`,
                   messageData,
                   {
@@ -6090,14 +6024,14 @@ export class EmployeePortalComponent {
                     },
                   }
                 )
-                .toPromise();
+              );
 
               this.messageService.add({
                 severity: 'success',
-                summary: 'Queja Enviada',
+                summary: 'Sugerencia Enviada',
                 detail: this.allowContact()
-                  ? 'Tu queja ha sido enviada. Recibirás respuesta de RRHH pronto.'
-                  : 'Tu queja ha sido enviada de forma anónima. Recibirás respuesta de RRHH pronto.',
+                  ? 'Tu sugerencia ha sido enviada. Recibirás respuesta de RRHH pronto.'
+                  : 'Tu sugerencia ha sido enviada de forma anónima. Recibirás respuesta de RRHH pronto.',
               });
 
               // Reset form
@@ -6111,9 +6045,9 @@ export class EmployeePortalComponent {
               // La queja se creó pero el mensaje no, mostrar advertencia
               this.messageService.add({
                 severity: 'warn',
-                summary: 'Queja Enviada',
+                summary: 'Sugerencia Enviada',
                 detail:
-                  'La queja fue creada pero hubo un problema al crear el mensaje. Contacta a RRHH si no recibes respuesta.',
+                  'La sugerencia fue creada pero hubo un problema al crear el mensaje. Contacta a RRHH si no recibes respuesta.',
               });
               this.complaintsApi.reload();
               this.submittingComplaint.set(false);
@@ -6122,7 +6056,7 @@ export class EmployeePortalComponent {
             this.messageService.add({
               severity: 'error',
               summary: 'Error',
-              detail: 'No se pudo obtener el ID de la queja creada',
+              detail: 'No se pudo obtener el ID de la sugerencia creada',
             });
             this.submittingComplaint.set(false);
           }
@@ -6135,7 +6069,7 @@ export class EmployeePortalComponent {
             detail:
               error?.error?.message ||
               error?.message ||
-              'No se pudo enviar la queja. Por favor intenta de nuevo.',
+              'No se pudo enviar la sugerencia. Por favor intenta de nuevo.',
           });
           this.submittingComplaint.set(false);
         },
@@ -6224,8 +6158,8 @@ export class EmployeePortalComponent {
     // Marcar todos los mensajes de HR como leídos
     for (const message of unreadMessages) {
       try {
-        await this.http
-          .patch(
+        await firstValueFrom(
+          this.http.patch(
             `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages?id=eq.${message.id}`,
             { is_read: true, read_at: new Date().toISOString() },
             {
@@ -6235,7 +6169,7 @@ export class EmployeePortalComponent {
               },
             }
           )
-          .toPromise();
+        );
       } catch (error: any) {
         console.error('Error marking message as read:', error);
       }
@@ -6281,8 +6215,8 @@ export class EmployeePortalComponent {
     };
 
     try {
-      await this.http
-        .post(
+      await firstValueFrom(
+        this.http.post(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages`,
           messageData,
           {
@@ -6292,7 +6226,7 @@ export class EmployeePortalComponent {
             },
           }
         )
-        .toPromise();
+      );
 
       this.messageService.add({
         severity: 'success',

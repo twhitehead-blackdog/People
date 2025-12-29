@@ -10,6 +10,7 @@ import {
   signal,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { firstValueFrom } from 'rxjs';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
@@ -908,8 +909,8 @@ export class EmployeeListComponent implements OnInit {
             params.company_id = `eq.${companyId}`;
           }
 
-          const updateResponse = await this.http
-            .patch(
+          const updateResponse = await firstValueFrom(
+            this.http.patch(
               `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
               { has_portal_access: true },
               {
@@ -920,7 +921,7 @@ export class EmployeeListComponent implements OnInit {
                 },
               }
             )
-            .toPromise();
+          );
 
           // Enviar invitación por Wassenger
           const portalUrl = `${process.env['ENV_APP_URL']}/my-portal`;

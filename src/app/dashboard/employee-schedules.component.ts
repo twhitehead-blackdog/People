@@ -20,6 +20,7 @@ import { colorVariants, EmployeeSchedule } from '../models';
 import { TimePipe } from '../pipes/time.pipe';
 import { OrganizationService } from '../services/organization.service';
 import { EmployeeSchedulesFormComponent } from './employee-schedules-form.component';
+import { LoggerService } from '../services/logger.service';
 @Component({
   selector: 'pt-employee-schedules',
   imports: [Button, CalendarComponent, Popover, Tooltip, TimePipe, NgClass],
@@ -105,6 +106,7 @@ export class EmployeeSchedulesComponent {
   private message = inject(MessageService);
   private confirm = inject(ConfirmationService);
   private organizationService = inject(OrganizationService);
+  private logger = inject(LoggerService);
 
   public employeeSchedules = computed(() =>
     this.resourceSchedules
@@ -190,7 +192,7 @@ export class EmployeeSchedulesComponent {
           )
           .pipe(
             catchError((error) => {
-              console.error(error);
+              this.logger.error('[EmployeeSchedulesComponent] Error al eliminar horario:', error);
               this.message.add({
                 severity: 'error',
                 summary: 'Error',

@@ -656,3 +656,52 @@ export type NazAttendanceSheet = {
   justified_hours?: number;
   created_at?: Date;
 };
+
+// Interfaces para TimelogsComponent
+export interface TimelogBranch {
+  date: Date;
+  branch: Branch;
+  id?: string;
+}
+
+export interface EmployeeScheduleData {
+  id: string;
+  employee_id: string;
+  start_date: string;
+  end_date: string;
+  approved: boolean;
+  schedule?: Schedule;
+}
+
+export interface TimeoffData {
+  id: string;
+  type_id: string;
+  employee_id: string;
+  date_from: string;
+  date_to: string;
+  is_approved: boolean;
+  company_id?: string;
+  type?: TimeOffType;
+  employee?: {
+    company_id?: string;
+  };
+}
+
+export interface DayLog {
+  employee: Partial<Employee>;
+  day: string;
+  schedule?: EmployeeScheduleData;
+  delay?: number | string;
+  alert?: string;
+  scheduleError?: boolean;
+  lunchExceeded?: boolean;
+  lunchMinutes?: number;
+  earlyExit?: boolean;
+  insufficientHours?: boolean;
+  totalHours?: number;
+  overtimeHours?: number;
+  entry?: TimelogBranch;
+  lunch_start?: TimelogBranch;
+  lunch_end?: TimelogBranch;
+  exit?: TimelogBranch;
+}

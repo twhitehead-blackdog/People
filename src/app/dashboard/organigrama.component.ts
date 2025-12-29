@@ -18,7 +18,8 @@ import { PositionsStore } from '../stores/positions.store';
 import { EmployeesStore } from '../stores/employees.store';
 import { Position, Employee } from '../models';
 import { catchError } from 'rxjs/operators';
-import { of } from 'rxjs';
+import { of, firstValueFrom } from 'rxjs';
+import { LoggerService } from '../services/logger.service';
 
 interface OrgNode {
   position: Position;
@@ -702,14 +703,16 @@ export class OrganigramaComponent {
     return rootPositions.map((p) => buildTree(p));
   });
 
+  private logger = inject(LoggerService);
+
   // Convertir el árbol a formato compatible con PrimeNG OrganizationChart
   public orgChartData = computed(() => {
     const nodes = this.rootNodes();
-    console.log('rootNodes:', nodes);
-    console.log('orgStructure:', Array.from(this.orgStructure().entries()));
+    this.logger.debug('[OrganigramaComponent] rootNodes:', nodes);
+    this.logger.debug('[OrganigramaComponent] orgStructure:', Array.from(this.orgStructure().entries()));
     
     if (nodes.length === 0) {
-      console.log('No hay nodos raíz');
+      this.logger.debug('[OrganigramaComponent] No hay nodos raíz');
       return [];
     }
 
@@ -726,7 +729,7 @@ export class OrganigramaComponent {
           ? node.children.map(child => convertToPrimeNGFormat(child))
           : undefined,
       };
-      console.log('Converted node:', result);
+      this.logger.debug('[OrganigramaComponent] Converted node:', result);
       return result;
     };
 
@@ -751,23 +754,23 @@ export class OrganigramaComponent {
         expanded: true,
         children: nodes.map(node => convertToPrimeNGFormat(node)),
       }];
-      console.log('Multiple roots, created virtual root:', result);
+      this.logger.debug('[OrganigramaComponent] Multiple roots, created virtual root:', result);
       return result;
     }
 
     const result = nodes.map(node => convertToPrimeNGFormat(node));
-    console.log('Single root result:', result);
+    this.logger.debug('[OrganigramaComponent] Single root result:', result);
     return result;
   });
 
   public loadStructure() {
     const baseUrl = process.env['ENV_SUPABASE_URL']!;
-    console.log('Loading structure from:', `${baseUrl}/rest/v1/organization_chart`);
+    this.logger.debug('[OrganigramaComponent] Loading structure from:', `${baseUrl}/rest/v1/organization_chart`);
     this.http
       .get<any[]>(`${baseUrl}/rest/v1/organization_chart?select=position_id,parent_position_id`)
       .subscribe({
         next: (data) => {
-          console.log('Loaded structure data:', data);
+          this.logger.debug('[OrganigramaComponent] Loaded structure data:', data);
           const structure = new Map<string, Set<string | null>>();
           
           // Agrupar por position_id para manejar múltiples padres
@@ -784,7 +787,7 @@ export class OrganigramaComponent {
             }
           });
           
-          console.log('Parsed structure:', Array.from(structure.entries()).map(([k, v]) => [k, Array.from(v)]));
+          this.logger.debug('[OrganigramaComponent] Parsed structure:', Array.from(structure.entries()).map(([k, v]) => [k, Array.from(v)]));
           this.orgStructure.set(structure);
           this.originalStructure.set(new Map(structure));
           this.messageService.add({
@@ -794,7 +797,7 @@ export class OrganigramaComponent {
           });
         },
         error: (error) => {
-          console.error('Error loading structure:', error);
+          this.logger.error('[OrganigramaComponent] Error loading structure:', error);
           // Si la tabla no existe, inicializar vacío
           this.orgStructure.set(new Map<string, Set<string | null>>());
           this.originalStructure.set(new Map<string, Set<string | null>>());
@@ -822,7 +825,7 @@ export class OrganigramaComponent {
       }
     });
 
-    console.log('Saving structure with records:', records);
+    this.logger.debug('[OrganigramaComponent] Saving structure with records:', records);
 
     if (records.length === 0) {
       // Si no hay registros, eliminar todos los existentes
@@ -841,7 +844,7 @@ export class OrganigramaComponent {
             this.loadStructure();
           },
           error: (error) => {
-            console.error('Error deleting all records:', error);
+            this.logger.error('[OrganigramaComponent] Error deleting all records:', error);
             // Aún así marcar como guardado si no hay registros
             this.originalStructure.set(new Map(structure));
             this.messageService.add({
@@ -860,7 +863,7 @@ export class OrganigramaComponent {
       .get<any[]>(`${baseUrl}/rest/v1/organization_chart?select=position_id`)
       .subscribe({
         next: (existingRecords) => {
-          console.log('Existing records:', existingRecords);
+          this.logger.debug('[OrganigramaComponent] Existing records:', existingRecords);
           const existingPositionIds = new Set(existingRecords.map(r => r.position_id));
           const newPositionIds = new Set(records.map(r => r.position_id));
           
@@ -878,7 +881,7 @@ export class OrganigramaComponent {
             // Hacer PATCH individual para cada registro (actualiza si existe)
             // Si falla, hacer POST (crea nuevo)
             const upsertOperations = records.map(record => {
-              return this.http
+              const request = this.http
                 .patch(`${baseUrl}/rest/v1/organization_chart`, record, {
                   params: { position_id: `eq.${record.position_id}` }
                 })
@@ -891,13 +894,13 @@ export class OrganigramaComponent {
                     // Si es otro error, propagarlo
                     throw error;
                   })
-                )
-                .toPromise();
+                );
+              return firstValueFrom(request);
             });
 
             Promise.all(upsertOperations)
               .then(() => {
-                console.log('Records upserted successfully');
+                this.logger.debug('[OrganigramaComponent] Records upserted successfully');
                 this.originalStructure.set(new Map(structure));
                 this.messageService.add({
                   severity: 'success',
@@ -907,7 +910,7 @@ export class OrganigramaComponent {
                 this.loadStructure();
               })
               .catch((error) => {
-                console.error('Error upserting records:', error);
+                this.logger.error('[OrganigramaComponent] Error upserting records:', error);
                 this.messageService.add({
                   severity: 'error',
                   summary: 'Error',
@@ -919,18 +922,20 @@ export class OrganigramaComponent {
           // Eliminar registros que ya no están en la estructura
           if (toDelete.length > 0) {
             const deleteOperations = toDelete.map(positionId =>
-              this.http.delete(`${baseUrl}/rest/v1/organization_chart`, {
-                params: { position_id: `eq.${positionId}` }
-              }).toPromise()
+              firstValueFrom(
+                this.http.delete(`${baseUrl}/rest/v1/organization_chart`, {
+                  params: { position_id: `eq.${positionId}` }
+                })
+              )
             );
 
             Promise.all(deleteOperations)
               .then(() => {
-                console.log('Deleted old records:', toDelete.length);
+                this.logger.debug('[OrganigramaComponent] Deleted old records:', toDelete.length);
                 upsertRecords();
               })
               .catch((error) => {
-                console.error('Error deleting records:', error);
+                this.logger.error('[OrganigramaComponent] Error deleting records:', error);
                 // Continuar con la inserción aunque falle el delete
                 upsertRecords();
               });
@@ -939,10 +944,12 @@ export class OrganigramaComponent {
           }
         },
         error: (error) => {
-          console.error('Error fetching existing records:', error);
+          this.logger.error('[OrganigramaComponent] Error fetching existing records:', error);
           // Si falla obtener los existentes, intentar insertar directamente
           const insertOperations = records.map(record =>
-            this.http.post(`${baseUrl}/rest/v1/organization_chart`, record).toPromise()
+            firstValueFrom(
+              this.http.post(`${baseUrl}/rest/v1/organization_chart`, record)
+            )
           );
 
           Promise.all(insertOperations)
@@ -956,7 +963,7 @@ export class OrganigramaComponent {
               this.loadStructure();
             })
             .catch((error) => {
-              console.error('Error inserting records:', error);
+              this.logger.error('[OrganigramaComponent] Error inserting records:', error);
               this.messageService.add({
                 severity: 'error',
                 summary: 'Error',

@@ -39,6 +39,7 @@ import {
 import { TrimPipe } from '../pipes/trim.pipe';
 import { OrganizationService } from '../services/organization.service';
 import { DashboardStore } from '../stores/dashboard.store';
+import { LoggerService } from '../services/logger.service';
 
 @Component({
   selector: 'pt-employee-schedules-form',
@@ -207,11 +208,12 @@ export class EmployeeSchedulesFormComponent implements OnInit {
   }
   public store = inject(DashboardStore);
   private destroyRef = inject(DestroyRef);
+  private logger = inject(LoggerService);
   private originalSchedule: any = null;
-  private singleDayEdit: boolean = false;
+  private singleDayEdit = false;
   private weekStart: Date | null = null;
   private weekEnd: Date | null = null;
-  private employeeHasSchedulesInWeek: boolean = false;
+  private employeeHasSchedulesInWeek = false;
 
   ngOnInit(): void {
     const {
@@ -432,7 +434,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
           this.dialogRef.close();
         },
         error: (error) => {
-          console.error(error);
+          this.logger.error('[EmployeeSchedulesFormComponent] Error al guardar horarios:', error);
           this.loading.set(false);
           this.message.add({
             severity: 'error',
@@ -486,7 +488,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
           this.dialogRef.close();
         },
         error: (error) => {
-          console.error(error);
+          this.logger.error('[EmployeeSchedulesFormComponent] Error al guardar horarios:', error);
           this.loading.set(false);
           this.message.add({
             severity: 'error',
@@ -692,7 +694,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
           this.dialogRef.close();
         },
         error: (error) => {
-          console.error(error);
+          this.logger.error('[EmployeeSchedulesFormComponent] Error al guardar horarios:', error);
           this.loading.set(false);
           this.message.add({
             severity: 'error',

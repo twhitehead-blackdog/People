@@ -1,6 +1,7 @@
 import { HttpClient, httpResource } from '@angular/common/http';
 import { computed, inject, Injectable } from '@angular/core';
 import { MessageService } from 'primeng/api';
+import { firstValueFrom } from 'rxjs';
 
 interface Setting {
   key: string;
@@ -55,8 +56,8 @@ export class WassengerService {
 
     try {
       // Usar el endpoint proxy del servidor para evitar problemas de CORS
-      const response = await this.http
-        .post<{ success: boolean; data?: any; error?: string }>(
+      const response = await firstValueFrom(
+        this.http.post<{ success: boolean; data?: any; error?: string }>(
           '/api/wassenger/send-message',
           {
             phoneNumber,
@@ -64,7 +65,7 @@ export class WassengerService {
             apiKey: settings.api_key,
           }
         )
-        .toPromise();
+      );
 
       if (response?.success) {
         return true;
