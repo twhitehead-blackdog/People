@@ -21,7 +21,7 @@ import {
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { differenceInSeconds } from 'date-fns';
 import { ConfirmationService, MessageService } from 'primeng/api';
-import { filter, forkJoin, Observable, pipe, switchMap, tap } from 'rxjs';
+import { filter, Observable, pipe, switchMap, tap } from 'rxjs';
 import { OrganizationService } from '../services/organization.service';
 import { getTableNameFromService } from '../utils/table-helper';
 
@@ -233,53 +233,7 @@ export function withCustomEntities<T extends { id: EntityId }>({
                 state._orgService
               );
 
-              // Para banks, creditors y positions, hacer dos queries separadas y combinarlas
-              // porque PostgREST tiene problemas con la sintaxis or= en algunos casos
-              // Positions puede tener company_id NULL temporalmente (durante migración)
-              if (
-                (tableName === 'banks' ||
-                  tableName === 'creditors' ||
-                  tableName === 'positions') &&
-                companyId
-              ) {
-                const baseParams = { select: cleanedQuery, order: order };
-
-                // Query 1: company_id = companyId
-                const query1 = state._http.get<T[]>(
-                  `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
-                  { params: { ...baseParams, company_id: `eq.${companyId}` } }
-                );
-
-                // Query 2: company_id IS NULL
-                const query2 = state._http.get<T[]>(
-                  `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
-                  { params: { ...baseParams, company_id: 'is.null' } }
-                );
-
-                // Combinar ambas queries y eliminar duplicados
-                return forkJoin([query1, query2]).pipe(
-                  tapResponse({
-                    next: ([entities1, entities2]) => {
-                      // Combinar y eliminar duplicados por ID
-                      const combined = [...entities1, ...entities2];
-                      const unique = combined.filter(
-                        (item, index, self) =>
-                          index === self.findIndex((t) => t.id === item.id)
-                      );
-                      patchState(state, setAllEntities(unique), {
-                        lastUpdated: new Date(),
-                      });
-                    },
-                    error: (error: unknown) => {
-                      console.error(`[${name}] Error fetching items:`, error);
-                      patchState(state, { error });
-                    },
-                    finalize: () => patchState(state, { isLoading: false }),
-                  })
-                );
-              }
-
-              // Para otras tablas, usar el filtro normal
+              // Usar el filtro normal que maneja correctamente banks, creditors y positions con or=
               const params = addCompanyFilter(
                 { select: cleanedQuery, order: order },
                 companyId,
@@ -328,51 +282,7 @@ export function withCustomEntities<T extends { id: EntityId }>({
                 state._orgService
               );
 
-              // Para banks, creditors y positions, hacer dos queries separadas y combinarlas
-              // Positions puede tener company_id NULL temporalmente (durante migración)
-              if (
-                (tableName === 'banks' ||
-                  tableName === 'creditors' ||
-                  tableName === 'positions') &&
-                companyId
-              ) {
-                const baseParams = { select: cleanedQuery, order: order };
-
-                // Query 1: company_id = companyId
-                const query1 = state._http.get<T[]>(
-                  `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
-                  { params: { ...baseParams, company_id: `eq.${companyId}` } }
-                );
-
-                // Query 2: company_id IS NULL
-                const query2 = state._http.get<T[]>(
-                  `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
-                  { params: { ...baseParams, company_id: 'is.null' } }
-                );
-
-                // Combinar ambas queries y eliminar duplicados
-                return forkJoin([query1, query2]).pipe(
-                  tapResponse({
-                    next: ([entities1, entities2]) => {
-                      // Combinar y eliminar duplicados por ID
-                      const combined = [...entities1, ...entities2];
-                      const unique = combined.filter(
-                        (item, index, self) =>
-                          index === self.findIndex((t) => t.id === item.id)
-                      );
-                      patchState(state, setAllEntities(unique), {
-                        lastUpdated: new Date(),
-                      });
-                    },
-                    error: (error) => {
-                      patchState(state, { error });
-                    },
-                    finalize: () => patchState(state, { isLoading: false }),
-                  })
-                );
-              }
-
-              // Para otras tablas, usar el filtro normal
+              // Usar el filtro normal que maneja correctamente banks, creditors y positions con or=
               const params = addCompanyFilter(
                 { select: cleanedQuery, order: order },
                 companyId,

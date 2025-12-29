@@ -122,6 +122,9 @@ export class BranchesFormComponent implements OnInit {
   private organizationService = inject(OrganizationService);
 
   ngOnInit() {
+    // Cargar empresas si no están cargadas
+    this.store.companies.fetchItems();
+    
     const { branch } = this.dialogConfig.data;
     if (branch) {
       this.form.patchValue({

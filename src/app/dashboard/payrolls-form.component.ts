@@ -80,6 +80,9 @@ export class PayrollsFormComponent implements OnInit {
   private messageService = inject(MessageService);
 
   ngOnInit(): void {
+    // Cargar empresas si no están cargadas
+    this.store.companies.fetchItems();
+    
     const { payroll } = this.dialogConfig.data;
     if (payroll) {
       this.form.patchValue({

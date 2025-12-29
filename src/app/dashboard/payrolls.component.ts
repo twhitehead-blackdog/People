@@ -82,6 +82,11 @@ export class PayrollsComponent {
   public dialog = inject(DialogService);
   public store = inject(PayrollsStore);
 
+  constructor() {
+    // Cargar planillas al inicializar el componente
+    this.store.fetchItems();
+  }
+
   public editPayroll(payroll?: Payroll) {
     this.dialog.open(PayrollsFormComponent, {
       header: 'Agregar planilla',

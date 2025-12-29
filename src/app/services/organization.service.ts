@@ -73,8 +73,13 @@ export class OrganizationService {
       this._currentOrganization.set(saved);
     }
 
-    // Inicializar company_ids de Naz y Black Dog
-    this.initializeCompanyIds();
+    // Inicializar company_ids de Naz y Black Dog de forma asíncrona no bloqueante
+    // Usar setTimeout para diferir la ejecución y no bloquear el constructor
+    setTimeout(() => {
+      this.initializeCompanyIds().catch((error) => {
+        console.error('❌ Error en inicialización asíncrona de company_ids:', error);
+      });
+    }, 0);
 
     // Sincronizar company_id cuando cambia la organización
     // Solo sincronizar si los company_ids ya están listos
@@ -191,13 +196,11 @@ export class OrganizationService {
         }
       }
 
-      // Marcar como listo ANTES de sincronizar para que el effect pueda funcionar
+      // Marcar como listo - el effect se encargará de sincronizar automáticamente
       this._companyIdsReady.set(true);
-      console.log('✅ Company IDs inicializados correctamente');
-
-      // Sincronizar company_id actual después de obtener los IDs
-      // Esto se ejecutará después de marcar como listo para que el effect también pueda ejecutarse
-      this.syncCompanyIdFromOrganization(this._currentOrganization());
+      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+        console.log('✅ Company IDs inicializados correctamente');
+      }
     } catch (error) {
       console.error('❌ Error inicializando company_ids:', error);
       // Marcar como listo aunque haya error para no bloquear la app

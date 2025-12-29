@@ -358,15 +358,24 @@ export class DiagnosticService {
 
   /**
    * Verificar errores silenciados
+   * NOTA: En producción, las variables de entorno se inyectan en build time
+   * y están disponibles como strings literales, no como process.env en runtime.
+   * Esta función solo debe ejecutarse en desarrollo para detectar problemas de configuración.
    */
   private checkForSilentErrors(): void {
+    // Solo verificar en desarrollo (localhost) para evitar errores falsos en producción
+    if (typeof window === 'undefined' || window.location.hostname !== 'localhost') {
+      return;
+    }
+
     // Solo verificar una vez cada 10 segundos para evitar spam
     const lastCheck = (this as any).lastSilentCheck || 0;
     const now = Date.now();
     if (now - lastCheck < 10000) return;
     (this as any).lastSilentCheck = now;
 
-    // Verificar variables de entorno críticas
+    // Verificar variables de entorno críticas (solo en desarrollo)
+    // En producción, estas variables están inyectadas en build time y no se pueden verificar así
     const supabaseUrl = process.env['ENV_SUPABASE_URL'];
     const supabaseKey = process.env['ENV_SUPABASE_ANON_KEY'];
     const apiUrl = process.env['ENV_API_URL'];

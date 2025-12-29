@@ -99,6 +99,11 @@ export class CompaniesComponent {
   private dialog = inject(DialogService);
   public companies = computed(() => this.store.entities());
 
+  constructor() {
+    // Cargar empresas al inicializar el componente
+    this.store.fetchItems();
+  }
+
   editCompany(company?: Company) {
     this.dialog.open(CompaniesFormComponent, {
       header: 'Agregar empresa',

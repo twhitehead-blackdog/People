@@ -93,6 +93,11 @@ export class DepartmentsFormComponent implements OnInit {
   });
 
   ngOnInit() {
+    // Cargar empresas si no están cargadas
+    if (!this.organizationService.isNaz()) {
+      this.store.companies.fetchItems();
+    }
+    
     const { department } = this.dialog.data;
     if (department) {
       this.form.patchValue({

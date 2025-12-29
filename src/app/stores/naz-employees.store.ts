@@ -1,5 +1,5 @@
 import { computed } from '@angular/core';
-import { signalStore, withComputed, withHooks } from '@ngrx/signals';
+import { signalStore, withComputed } from '@ngrx/signals';
 import { NazEmployee } from '../models';
 import { withCustomEntities } from './entities.feature';
 
@@ -29,7 +29,7 @@ export const NazEmployeesStore = signalStore(
       employeesList,
       activeEmployees,
     };
-  }),
-  withHooks({ onInit: ({ fetchItems }) => fetchItems() })
+  })
+  // Carga lazy: los componentes deben llamar fetchItems() manualmente (solo si la organización es Naz)
 );
 

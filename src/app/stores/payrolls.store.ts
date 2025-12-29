@@ -1,4 +1,4 @@
-import { signalStore, withHooks } from '@ngrx/signals';
+import { signalStore } from '@ngrx/signals';
 import { Payroll } from '../models';
 import { withCustomEntities } from './entities.feature';
 
@@ -8,8 +8,6 @@ export const PayrollsStore = signalStore(
     // payrolls ahora tiene versión naz_* (naz_payrolls)
     // La foreign key apunta a companies o naz_companies según la organización
     query: '*, company:companies(*)',
-  }),
-  withHooks({
-    onInit: ({ fetchItems }) => fetchItems(),
   })
+  // Carga lazy: los componentes deben llamar fetchItems() manualmente
 );
