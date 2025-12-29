@@ -1486,7 +1486,7 @@ export class TimelogsComponent {
           }
 
           // Validar horas trabajadas (8 horas de trabajo, sin contar almuerzo)
-          // Se calcula desde la hora establecida del horario, no desde la entrada real
+          // Se calcula desde la ENTRADA REAL, no desde la hora del horario
           if (
             acc[index].entry &&
             acc[index].exit &&
@@ -1497,38 +1497,26 @@ export class TimelogsComponent {
             const scheduleExitTime = acc[index].schedule.schedule.exit_time;
 
             if (scheduleEntryTime && scheduleExitTime) {
-              // Crear fechas usando la hora establecida del horario
+              // Usar ENTRADA REAL, no la hora del horario
               const entryDate = new Date(acc[index].entry.date);
               const exitDate = new Date(acc[index].exit.date);
 
-              // Convertir scheduleEntryTime a string si es Date
-              const entryTimeStr =
-                typeof scheduleEntryTime === 'string'
-                  ? scheduleEntryTime
-                  : format(new Date(scheduleEntryTime), 'HH:mm:ss');
-
-              // Establecer la hora de entrada según el horario establecido
-              const entryParts = entryTimeStr.split(':');
-              entryDate.setHours(
-                +entryParts[0],
-                +entryParts[1],
-                +entryParts[2] || 0,
-                0
-              );
-
-              // Calcular desde la hora establecida hasta la salida real
+              // Calcular desde la entrada REAL hasta la salida REAL
               const totalMinutes = differenceInMinutes(exitDate, entryDate);
 
-              // Restar tiempo de almuerzo si existe
-              const lunchTime =
-                acc[index].lunch_start && acc[index].lunch_end
-                  ? differenceInMinutes(
-                      acc[index].lunch_end.date,
-                      acc[index].lunch_start.date
-                    )
-                  : 0;
+              // Calcular tiempo de almuerzo (solo restar 1 hora = 60 minutos máximo)
+              let lunchTimeToSubtract = 0;
+              if (acc[index].lunch_start && acc[index].lunch_end) {
+                const actualLunchMinutes = differenceInMinutes(
+                  acc[index].lunch_end.date,
+                  acc[index].lunch_start.date
+                );
+                // Solo restar 60 minutos (1 hora permitida), el exceso no cuenta como trabajo
+                // El exceso se acumula automáticamente en total_lunch_exceeded_minutes
+                lunchTimeToSubtract = Math.min(actualLunchMinutes, 60);
+              }
 
-              const workMinutes = totalMinutes - lunchTime;
+              const workMinutes = totalMinutes - lunchTimeToSubtract;
               const totalHours = workMinutes / 60; // Horas trabajadas (sin almuerzo)
               acc[index].totalHours = totalHours;
 
@@ -1540,7 +1528,7 @@ export class TimelogsComponent {
                   ? workMinutes - requiredWorkMinutes
                   : 0;
 
-              // Las horas extras se calculan solo sobre el trabajo, no sobre el exceso de almuerzo
+              // Las horas extras se calculan solo sobre el trabajo
               const totalOvertimeMinutes = Math.max(0, overtimeByWorkTime);
               acc[index].overtimeHours =
                 totalOvertimeMinutes > 0 ? totalOvertimeMinutes / 60 : 0;
@@ -1556,8 +1544,9 @@ export class TimelogsComponent {
               acc[index].exit.date,
               acc[index].entry.date
             );
-            // Validar y calcular tiempo de almuerzo
-            let lunchTime = 0;
+            
+            // Calcular tiempo de almuerzo (solo restar 1 hora = 60 minutos máximo)
+            let lunchTimeToSubtract = 0;
             if (acc[index].lunch_start && acc[index].lunch_end) {
               const lunchStart = acc[index].lunch_start.date;
               const lunchEnd = acc[index].lunch_end.date;
@@ -1569,15 +1558,17 @@ export class TimelogsComponent {
                 !isNaN(new Date(lunchStart).getTime()) &&
                 !isNaN(new Date(lunchEnd).getTime())
               ) {
-                const diff = differenceInMinutes(lunchEnd, lunchStart);
+                const actualLunchMinutes = differenceInMinutes(lunchEnd, lunchStart);
                 // Solo usar si la diferencia es positiva y razonable (máximo 3 horas)
-                if (diff > 0 && diff <= 180) {
-                  lunchTime = diff;
+                if (actualLunchMinutes > 0 && actualLunchMinutes <= 180) {
+                  // Solo restar 60 minutos (1 hora permitida), el exceso no cuenta como trabajo
+                  // El exceso se acumula automáticamente en total_lunch_exceeded_minutes
+                  lunchTimeToSubtract = Math.min(actualLunchMinutes, 60);
                 }
               }
             }
 
-            const workMinutes = totalMinutes - lunchTime;
+            const workMinutes = totalMinutes - lunchTimeToSubtract;
             // Validar que workMinutes sea válido antes de dividir
             const totalHours = workMinutes > 0 ? workMinutes / 60 : 0;
             acc[index].totalHours = totalHours;
