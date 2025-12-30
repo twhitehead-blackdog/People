@@ -53,8 +53,15 @@ th {
   @apply flex flex-col gap-1.5 w-full justify-end;
   label {
     @apply text-xs;
-    @apply text-slate-500 dark:text-slate-500;
-    @apply text-slate-600 light:text-slate-600;
+    transition: color 0.3s ease;
+  }
+
+  html.dark & label {
+    @apply text-slate-500;
+  }
+
+  html.light & label {
+    @apply text-slate-600;
   }
 
   .p-select,
