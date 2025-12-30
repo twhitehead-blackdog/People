@@ -482,56 +482,56 @@ interface CompensatoryRequest {
               >
                 <ng-template pTemplate="header">
                   <tr>
-                    <th style="width: 180px; padding: 0.5rem;">
+                    <th style="width: 180px; padding: 0.5rem; text-align: left;">
                       <div class="flex items-center gap-1">
                         <i class="pi pi-user text-cyan-400 text-xs"></i>
                         <span class="text-xs">Empleado</span>
                       </div>
                     </th>
-                    <th style="width: 100px; padding: 0.5rem;">
-                      <div class="flex items-center gap-1">
-                        <i class="pi pi-calendar text-cyan-400 text-xs"></i>
-                        <span class="text-xs">Inicio</span>
-                      </div>
-                    </th>
-                    <th style="width: 100px; padding: 0.5rem;">
-                      <div class="flex items-center gap-1">
-                        <i class="pi pi-calendar-times text-cyan-400 text-xs"></i>
-                        <span class="text-xs">Fin</span>
-                      </div>
-                    </th>
-                    <th style="width: 70px; padding: 0.5rem;">
-                      <div class="flex items-center gap-1">
-                        <i class="pi pi-clock text-cyan-400 text-xs"></i>
-                        <span class="text-xs">Días</span>
-                      </div>
-                    </th>
-                    <th style="width: 120px; padding: 0.5rem;">
-                      <div class="flex items-center gap-1">
+                    <th style="width: 120px; padding: 0.5rem; text-align: center;">
+                      <div class="flex items-center justify-center gap-1">
                         <i class="pi pi-calendar-plus text-cyan-400 text-xs"></i>
                         <span class="text-xs">Fecha Solicitud</span>
                       </div>
                     </th>
-                    <th style="padding: 0.5rem;">
-                      <div class="flex items-center gap-1">
+                    <th style="width: 100px; padding: 0.5rem; text-align: center;">
+                      <div class="flex items-center justify-center gap-1">
+                        <i class="pi pi-calendar text-cyan-400 text-xs"></i>
+                        <span class="text-xs">Inicio</span>
+                      </div>
+                    </th>
+                    <th style="width: 100px; padding: 0.5rem; text-align: center;">
+                      <div class="flex items-center justify-center gap-1">
+                        <i class="pi pi-calendar-times text-cyan-400 text-xs"></i>
+                        <span class="text-xs">Fin</span>
+                      </div>
+                    </th>
+                    <th style="width: 70px; padding: 0.5rem; text-align: center;">
+                      <div class="flex items-center justify-center gap-1">
+                        <i class="pi pi-clock text-cyan-400 text-xs"></i>
+                        <span class="text-xs">Días</span>
+                      </div>
+                    </th>
+                    <th style="padding: 0.5rem; text-align: center;">
+                      <div class="flex items-center justify-center gap-1">
                         <i class="pi pi-file-edit text-cyan-400 text-xs"></i>
                         <span class="text-xs">Descripción</span>
                       </div>
                     </th>
-                    <th style="width: 100px; padding: 0.5rem;">
-                      <div class="flex items-center gap-1">
+                    <th style="width: 100px; padding: 0.5rem; text-align: center;">
+                      <div class="flex items-center justify-center gap-1">
                         <i class="pi pi-tag text-cyan-400 text-xs"></i>
                         <span class="text-xs">Estado</span>
                       </div>
                     </th>
-                    <th style="width: 70px; padding: 0.5rem;">
-                      <div class="flex items-center gap-1">
+                    <th style="width: 70px; padding: 0.5rem; text-align: center;">
+                      <div class="flex items-center justify-center gap-1">
                         <i class="pi pi-paperclip text-cyan-400 text-xs"></i>
                         <span class="text-xs">Doc</span>
                       </div>
                     </th>
-                    <th style="width: 120px; padding: 0.5rem;">
-                      <div class="flex items-center gap-1">
+                    <th style="width: 120px; padding: 0.5rem; text-align: center;">
+                      <div class="flex items-center justify-center gap-1">
                         <i class="pi pi-cog text-cyan-400 text-xs"></i>
                         <span class="text-xs">Acciones</span>
                       </div>
@@ -541,7 +541,7 @@ interface CompensatoryRequest {
                 <ng-template pTemplate="body" let-disability>
                   <tr class="hover:bg-neutral-700/30 transition-colors cursor-pointer"
                       (click)="viewDetails(disability)">
-                    <td style="padding: 0.5rem;">
+                    <td style="padding: 0.5rem; text-align: left;">
                       <div class="flex items-center gap-1.5">
                         <div class="w-6 h-6 rounded-full bg-gradient-to-br from-cyan-500/20 to-cyan-600/20 flex items-center justify-center flex-shrink-0">
                           <i class="pi pi-user text-cyan-400 text-[10px]"></i>
@@ -557,17 +557,22 @@ interface CompensatoryRequest {
                         </div>
                       </div>
                     </td>
-                    <td style="padding: 0.5rem;">
+                    <td style="padding: 0.5rem; text-align: center;">
+                      <span class="text-xs text-gray-300">
+                        {{ disability.created_at | date : 'dd/MM/yyyy' }}
+                      </span>
+                    </td>
+                    <td style="padding: 0.5rem; text-align: center;">
                       <span class="text-xs text-gray-300">
                         {{ disability.start_date | date : 'dd/MM/yyyy' }}
                       </span>
                     </td>
-                    <td style="padding: 0.5rem;">
+                    <td style="padding: 0.5rem; text-align: center;">
                       <span class="text-xs text-gray-300">
                         {{ disability.end_date | date : 'dd/MM/yyyy' }}
                       </span>
                     </td>
-                    <td style="padding: 0.5rem;">
+                    <td style="padding: 0.5rem; text-align: center;">
                       <span class="inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-blue-500/20 text-blue-300 rounded text-xs font-semibold">
                         {{
                           calculateDays(
@@ -577,12 +582,7 @@ interface CompensatoryRequest {
                         }}
                       </span>
                     </td>
-                    <td style="padding: 0.5rem;">
-                      <span class="text-xs text-gray-300">
-                        {{ disability.created_at | date : 'dd/MM/yyyy' }}
-                      </span>
-                    </td>
-                    <td style="padding: 0.5rem;">
+                    <td style="padding: 0.5rem; text-align: center;">
                       @if (disability.description) {
                       <span
                         class="text-xs text-gray-300 cursor-help inline-block max-w-[150px] truncate"
@@ -595,7 +595,7 @@ interface CompensatoryRequest {
                       <span class="text-gray-500 text-xs">-</span>
                       }
                     </td>
-                    <td style="padding: 0.5rem;">
+                    <td style="padding: 0.5rem; text-align: center;">
                       <p-tag
                         [value]="getStatusLabel(disability.status)"
                         [severity]="getStatusSeverity(disability.status)"
@@ -603,7 +603,7 @@ interface CompensatoryRequest {
                         [style]="{'font-size': '0.7rem', 'padding': '0.125rem 0.5rem'}"
                       />
                     </td>
-                    <td style="padding: 0.5rem;">
+                    <td style="padding: 0.5rem; text-align: center;">
                       @if (disability.document_url) {
                       <p-button
                         icon="pi pi-download"
@@ -619,7 +619,7 @@ interface CompensatoryRequest {
                       <span class="text-gray-500 text-xs">-</span>
                       }
                     </td>
-                    <td style="padding: 0.5rem;" (click)="$event.stopPropagation()">
+                    <td style="padding: 0.5rem; text-align: center;" (click)="$event.stopPropagation()">
                       <div class="flex gap-0.5">
                         @if (disability.status === 'pending') {
                         <p-button
@@ -870,16 +870,16 @@ interface CompensatoryRequest {
               </ng-template>
               <ng-template pTemplate="header">
                 <tr>
-                  <th style="width: 100px; padding: 0.4rem; text-align: center;">
-                    <div class="flex items-center justify-center gap-1">
-                      <i class="pi pi-calendar-check text-cyan-400 text-xs"></i>
-                      <span class="text-xs">Fecha Solicitud</span>
-                    </div>
-                  </th>
                   <th style="width: 160px; padding: 0.4rem; text-align: left;">
                     <div class="flex items-center gap-1">
                       <i class="pi pi-user text-cyan-400 text-xs"></i>
                       <span class="text-xs">Empleado</span>
+                    </div>
+                  </th>
+                  <th style="width: 100px; padding: 0.4rem; text-align: center;">
+                    <div class="flex items-center justify-center gap-1">
+                      <i class="pi pi-calendar-check text-cyan-400 text-xs"></i>
+                      <span class="text-xs">Fecha Solicitud</span>
                     </div>
                   </th>
                   <th style="width: 70px; padding: 0.4rem; text-align: center;">
@@ -923,11 +923,6 @@ interface CompensatoryRequest {
               <ng-template pTemplate="body" let-request>
                 <tr class="hover:bg-neutral-700/30 transition-colors cursor-pointer"
                     (click)="viewCompensatoryDetails(request)">
-                  <td style="padding: 0.4rem; text-align: center;">
-                    <span class="text-xs text-gray-300">
-                      {{ request.created_at | date : 'dd/MM/yyyy' }}
-                    </span>
-                  </td>
                   <td style="padding: 0.4rem;">
                     <div class="flex items-center gap-1">
                       <div class="w-5 h-5 rounded-full bg-gradient-to-br from-cyan-500/20 to-cyan-600/20 flex items-center justify-center flex-shrink-0">
@@ -942,6 +937,11 @@ interface CompensatoryRequest {
                         </span>
                       </div>
                     </div>
+                  </td>
+                  <td style="padding: 0.4rem; text-align: center;">
+                    <span class="text-xs text-gray-300">
+                      {{ request.created_at | date : 'dd/MM/yyyy' }}
+                    </span>
                   </td>
                   <td style="padding: 0.4rem; text-align: center;">
                     @let compensatoryType = getCompensatoryTypeFromNotes(request);

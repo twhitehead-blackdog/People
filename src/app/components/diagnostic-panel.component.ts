@@ -6,6 +6,9 @@ import { ScrollPanel } from 'primeng/scrollpanel';
 import { Tag } from 'primeng/tag';
 import { Subject, takeUntil } from 'rxjs';
 import { DiagnosticService, DiagnosticError } from '../services/diagnostic.service';
+import { OrganizationService } from '../services/organization.service';
+import { ScreenLockService } from '../services/screen-lock.service';
+import { AuthService } from '@auth0/auth0-angular';
 
 @Component({
   selector: 'pt-diagnostic-panel',
@@ -35,6 +38,16 @@ import { DiagnosticService, DiagnosticError } from '../services/diagnostic.servi
               (click)="testErrorCapture()"
               title="Probar captura de errores"
             />
+            @if (!organizationService.isNaz()) {
+            <p-button
+              icon="pi pi-sync"
+              [text]="true"
+              [rounded]="true"
+              severity="secondary"
+              (click)="changeToNaz()"
+              title="Cambiar a Naz"
+            />
+            }
             <p-button
               icon="pi pi-refresh"
               [text]="true"
@@ -149,6 +162,9 @@ import { DiagnosticService, DiagnosticError } from '../services/diagnostic.servi
 })
 export class DiagnosticPanelComponent implements OnInit, OnDestroy {
   private diagnosticService = inject(DiagnosticService);
+  public organizationService = inject(OrganizationService);
+  private screenLockService = inject(ScreenLockService);
+  private auth = inject(AuthService);
   private destroy$ = new Subject<void>();
 
   isVisible = false;
@@ -254,6 +270,36 @@ export class DiagnosticPanelComponent implements OnInit, OnDestroy {
       { test: true },
       'Test stack trace'
     );
+  }
+
+  /**
+   * Cambia a Naz: libera la pantalla principal y cambia la organización
+   */
+  changeToNaz(): void {
+    // Liberar la pantalla principal si está bloqueada
+    if (this.screenLockService.isLocked()) {
+      this.screenLockService.disable();
+    }
+
+    // Activar easter egg (quitar todas las restricciones)
+    if (typeof window !== 'undefined' && window.localStorage) {
+      window.localStorage.setItem('easter_egg_activated', 'true');
+      window.localStorage.setItem('easter_egg_logo_clicks', '10');
+      window.localStorage.setItem('easter_egg_login_attempts', '3');
+    }
+
+    // Establecer organización a Naz
+    this.organizationService.setOrganization('naz');
+
+    // Limpiar selección de organización antes de cerrar sesión
+    this.organizationService.clearOrganization();
+
+    // Cerrar sesión con Auth0 y redirigir al login
+    this.auth.logout({
+      logoutParams: {
+        returnTo: window.location.origin + '/login'
+      }
+    });
   }
 
   getErrorCount(type: DiagnosticError['type']): number {

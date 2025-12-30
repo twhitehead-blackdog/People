@@ -8,14 +8,15 @@ import { NgxSpinnerComponent, NgxSpinnerService } from 'ngx-spinner';
 import { OrganizationService } from './services/organization.service';
 import { DiagnosticPanelComponent } from './components/diagnostic-panel.component';
 import { DiagnosticService } from './services/diagnostic.service';
+import { ThemeService } from './services/theme.service';
 
 @Component({
   imports: [RouterOutlet, NgxSpinnerComponent, DiagnosticPanelComponent],
   providers: [MessageService],
   selector: 'pt-root',
   template: ` <router-outlet />
-    <ngx-spinner type="ball-scale-multiple" bdColor="rgba(0, 0, 0, 1)">
-      <p class="text-white">Cargando...</p></ngx-spinner
+    <ngx-spinner type="ball-scale-multiple" [bdColor]="spinnerBgColor()">
+      <p [class]="spinnerTextClass()">Cargando...</p></ngx-spinner
     >
     <pt-diagnostic-panel />`,
   styles: ``,
@@ -26,20 +27,25 @@ export class AppComponent implements OnInit {
   private auth = inject(AuthService);
   private organizationService = inject(OrganizationService);
   private diagnosticService = inject(DiagnosticService);
+  private themeService = inject(ThemeService);
+
+  // Computed para el color de fondo del spinner según el tema
+  spinnerBgColor = () => {
+    return this.themeService.isDark() ? 'rgba(0, 0, 0, 1)' : 'rgba(255, 255, 255, 0.9)';
+  };
+
+  // Computed para la clase de texto del spinner según el tema
+  spinnerTextClass = () => {
+    return this.themeService.isDark() ? 'text-white' : 'text-gray-900';
+  };
 
   ngOnInit() {
     // Inicializar servicio de diagnóstico temprano
     // Esto asegura que capture errores desde el inicio
     console.log('🔍 [App] Inicializando aplicación...');
     
-    // Forzar modo oscuro siempre y prevenir flash de fondo blanco
-    if (typeof document !== 'undefined') {
-      document.documentElement.classList.add('dark');
-      document.body.classList.add('dark');
-      document.documentElement.style.colorScheme = 'dark';
-      document.documentElement.style.backgroundColor = '#000000';
-      document.body.style.backgroundColor = '#000000';
-    }
+    // El servicio de tema se inicializa automáticamente y aplica el tema guardado
+    // No necesitamos forzar modo oscuro aquí, el servicio lo maneja
 
     // Inicializar company_ids temprano si estamos en login o página principal
     const currentUrl = this.router.url;

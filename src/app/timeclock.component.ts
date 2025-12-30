@@ -373,7 +373,6 @@ import { OrganizationService } from './services/organization.service';
     </div>`,
   styles: `
     .animated-gradient-container {
-      background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 25%, #000000 50%, #0d0d0d 75%, #2a2a2a 100%);
       position: relative;
       min-height: 100vh;
       overflow-y: auto;
@@ -381,6 +380,15 @@ import { OrganizationService } from './services/organization.service';
       display: flex;
       align-items: center;
       justify-content: center;
+      transition: background 0.3s ease;
+    }
+
+    :host-context(html.dark) .animated-gradient-container {
+      background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 25%, #000000 50%, #0d0d0d 75%, #2a2a2a 100%);
+    }
+
+    :host-context(html.light) .animated-gradient-container {
+      background: linear-gradient(135deg, #f5f5f5 0%, #ffffff 25%, #fafafa 50%, #ffffff 75%, #f0f0f0 100%);
     }
     
     /* Beautiful custom scrollbar */
@@ -388,23 +396,42 @@ import { OrganizationService } from './services/organization.service';
       width: 10px;
     }
     
-    .animated-gradient-container::-webkit-scrollbar-track {
+    :host-context(html.dark) .animated-gradient-container::-webkit-scrollbar-track {
       background: rgba(0, 0, 0, 0.3);
       border-radius: 10px;
       margin: 10px 0;
     }
+
+    :host-context(html.light) .animated-gradient-container::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: 10px;
+      margin: 10px 0;
+    }
     
-    .animated-gradient-container::-webkit-scrollbar-thumb {
+    :host-context(html.dark) .animated-gradient-container::-webkit-scrollbar-thumb {
       background: linear-gradient(180deg, rgba(107, 114, 128, 0.6) 0%, rgba(107, 114, 128, 0.4) 100%);
       border-radius: 10px;
       border: 2px solid rgba(0, 0, 0, 0.2);
       box-shadow: 0 0 10px rgba(107, 114, 128, 0.3);
       transition: all 0.3s ease;
     }
+
+    :host-context(html.light) .animated-gradient-container::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, rgba(107, 114, 128, 0.4) 0%, rgba(107, 114, 128, 0.3) 100%);
+      border-radius: 10px;
+      border: 2px solid rgba(255, 255, 255, 0.5);
+      box-shadow: 0 0 10px rgba(107, 114, 128, 0.2);
+      transition: all 0.3s ease;
+    }
     
-    .animated-gradient-container::-webkit-scrollbar-thumb:hover {
+    :host-context(html.dark) .animated-gradient-container::-webkit-scrollbar-thumb:hover {
       background: linear-gradient(180deg, rgba(107, 114, 128, 0.8) 0%, rgba(107, 114, 128, 0.6) 100%);
       box-shadow: 0 0 15px rgba(107, 114, 128, 0.5);
+    }
+
+    :host-context(html.light) .animated-gradient-container::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(180deg, rgba(107, 114, 128, 0.6) 0%, rgba(107, 114, 128, 0.5) 100%);
+      box-shadow: 0 0 15px rgba(107, 114, 128, 0.3);
     }
     
     .animated-gradient-container::-webkit-scrollbar-thumb:active {
@@ -760,7 +787,7 @@ import { OrganizationService } from './services/organization.service';
     
     /* Fondo Naz - negro con animación de lava lamp plateada */
     .naz-theme .animated-gradient-container {
-      background: #000000;
+      /* Background handled by theme service */
       position: relative;
       overflow: hidden;
     }

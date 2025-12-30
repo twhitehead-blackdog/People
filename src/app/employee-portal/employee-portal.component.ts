@@ -1214,132 +1214,290 @@ import { EmployeesStore } from '../stores/employees.store';
       @if (activeSection() === 'documents') {
       <div id="documents" class="section-content">
         <p-card>
-          <ng-template #title>Solicitar Documentos</ng-template>
+          <ng-template #title>
+            <div class="flex items-center justify-between w-full">
+              <div class="flex items-center gap-2">
+                <i class="pi pi-file-edit text-green-400"></i>
+                <span>Solicitar Documentos</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <p-button
+                  icon="pi pi-refresh"
+                  [rounded]="true"
+                  [text]="true"
+                  severity="secondary"
+                  [outlined]="true"
+                  (click)="documentRequestsApi.reload()"
+                  pTooltip="Recargar solicitudes"
+                  [style]="{ width: '2.5rem', height: '2.5rem' }"
+                  [loading]="documentRequestsApi.isLoading()"
+                />
+                <p-button
+                  icon="pi pi-times"
+                  [rounded]="true"
+                  [text]="true"
+                  severity="secondary"
+                  [outlined]="true"
+                  (click)="activeSection.set('management')"
+                  pTooltip="Volver a Gestiones"
+                  [style]="{ width: '2.5rem', height: '2.5rem' }"
+                />
+              </div>
+            </div>
+          </ng-template>
           <ng-template #subtitle
             >Solicita cartas de trabajo u otros documentos</ng-template
           >
-          <div class="flex flex-col gap-4">
-            <div>
-              <label class="block text-sm text-gray-400 mb-2"
-                >Tipo de Documento</label
-              >
-              <select pInputText [(ngModel)]="documentType" class="w-full">
-                <option value="work_letter">Carta de Trabajo</option>
-                <option value="salary_certificate">
-                  Certificado de Salario
-                </option>
-                <option value="employment_certificate">
-                  Certificado de Empleo
-                </option>
-                <option value="other">Otro</option>
-              </select>
-            </div>
-            @if(documentType() === 'other') {
-            <div>
-              <label class="block text-sm text-gray-400 mb-2"
-                >Especificar Documento</label
-              >
-              <input
-                pInputText
-                [(ngModel)]="customDocumentType"
-                placeholder="Describe el documento que necesitas"
-                class="w-full"
-              />
-            </div>
-            }
-            <div>
-              <label class="block text-sm text-gray-400 mb-2"
-                >Motivo o Uso del Documento</label
-              >
-              <textarea
-                pInputTextarea
-                [(ngModel)]="documentReason"
-                rows="3"
-                placeholder="Ej: Para trámite bancario, visa, etc."
-                class="w-full"
-              ></textarea>
-            </div>
-            <div>
-              <label class="block text-sm text-gray-400 mb-2"
-                >Fecha Requerida (opcional)</label
-              >
-              <p-datepicker
-                [(ngModel)]="documentRequiredDate"
-                appendTo="body"
-                class="w-full"
-              />
-            </div>
-            <div class="flex justify-end">
-              <p-button
-                label="Solicitar Documento"
-                icon="pi pi-send"
-                [loading]="submittingDocument()"
-                (click)="submitDocumentRequest()"
-              />
-            </div>
-          </div>
 
-          <!-- Lista de solicitudes -->
-          <div class="mt-6">
-            <h3 class="text-lg font-semibold text-white mb-4">
-              Mis Solicitudes
-            </h3>
-            <div class="overflow-x-auto">
-              <p-table
-                [value]="myDocumentRequests()"
-                [rows]="10"
-                paginator
-                [loading]="documentRequestsApi.isLoading()"
-                styleClass="p-datatable-sm md:p-datatable-lg"
-                [scrollable]="true"
-                scrollHeight="400px"
-                [responsiveLayout]="'scroll'"
-              >
-                <ng-template #header>
-                  <tr>
-                    <th>Fecha de Solicitud</th>
-                    <th>Tipo de Documento</th>
-                    <th>Motivo</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                  </tr>
-                </ng-template>
-                <ng-template #body let-request>
-                  <tr>
-                    <td>{{ request.created_at | date : 'mediumDate' }}</td>
-                    <td>{{ getDocumentTypeLabel(request.document_type) }}</td>
-                    <td>{{ request.reason || '-' }}</td>
-                    <td>
-                      <span
-                        class="px-2 py-1 rounded text-xs font-semibold"
-                        [class.bg-yellow-500]="request.status === 'pending'"
-                        [class.bg-green-500]="request.status === 'approved'"
-                        [class.bg-red-500]="request.status === 'rejected'"
-                      >
-                        {{
-                          request.status === 'pending'
-                            ? 'Pendiente'
-                            : request.status === 'approved'
-                            ? 'Aprobada'
-                            : 'Rechazada'
-                        }}
-                      </span>
-                    </td>
-                    <td>
-                      @if(request.status === 'approved' && request.document_url)
-                      {
-                      <p-button
-                        icon="pi pi-download"
-                        severity="success"
-                        size="small"
-                        (click)="downloadDocument(request.document_url)"
-                        pTooltip="Descargar documento"
-                      />
-                      }
-                    </td>
-                  </tr>
-                </ng-template>
-              </p-table>
+          <div class="flex flex-col gap-6">
+            <!-- Formulario de Solicitud -->
+            <div class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
+              <h3 class="text-lg font-semibold text-white mb-4">
+                Nueva Solicitud de Documento
+              </h3>
+              
+              <div class="flex flex-col gap-4">
+                <div>
+                  <label class="block text-sm text-gray-400 mb-2">
+                    <i class="pi pi-file mr-2 text-green-400"></i>
+                    Tipo de Documento <span class="text-red-400">*</span>
+                  </label>
+                  <p-select
+                    [(ngModel)]="documentType"
+                    [options]="documentTypeOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Selecciona el tipo de documento"
+                    appendTo="body"
+                    class="w-full"
+                  />
+                </div>
+                
+                @if(documentType() === 'other') {
+                <div>
+                  <label class="block text-sm text-gray-400 mb-2">
+                    <i class="pi pi-edit mr-2 text-green-400"></i>
+                    Especificar Documento <span class="text-red-400">*</span>
+                  </label>
+                  <input
+                    pInputText
+                    [(ngModel)]="customDocumentType"
+                    placeholder="Describe el documento que necesitas"
+                    class="w-full"
+                    [maxlength]="100"
+                  />
+                  <small class="text-gray-500 text-xs mt-1 block text-right">
+                    {{ customDocumentType().length || 0 }}/100 caracteres
+                  </small>
+                </div>
+                }
+                
+                <div>
+                  <label class="block text-sm text-gray-400 mb-2">
+                    <i class="pi pi-comment mr-2 text-green-400"></i>
+                    Motivo o Uso del Documento <span class="text-red-400">*</span>
+                  </label>
+                  <textarea
+                    pTextarea
+                    [(ngModel)]="documentReason"
+                    rows="4"
+                    placeholder="Ej: Para trámite bancario, visa, solicitud de préstamo, etc."
+                    class="w-full"
+                    [maxlength]="500"
+                  ></textarea>
+                  <small class="text-gray-500 text-xs mt-1 block text-right">
+                    {{ documentReason().length || 0 }}/500 caracteres
+                  </small>
+                </div>
+                
+                <div>
+                  <label class="block text-sm text-gray-400 mb-2">
+                    <i class="pi pi-calendar mr-2 text-green-400"></i>
+                    Fecha Requerida (opcional)
+                  </label>
+                  <p-datepicker
+                    [(ngModel)]="documentRequiredDate"
+                    appendTo="body"
+                    [minDate]="today"
+                    [showIcon]="true"
+                    dateFormat="dd/mm/yy"
+                    placeholder="Selecciona fecha requerida"
+                    class="w-full"
+                  />
+                  @if (documentRequiredDate()) {
+                  <small class="text-gray-500 text-xs mt-1 block">
+                    <i class="pi pi-info-circle mr-1"></i>
+                    Documento requerido para: {{ documentRequiredDate() | date : 'fullDate' }}
+                  </small>
+                  }
+                </div>
+                
+                <!-- Botones de Acción -->
+                <div class="flex justify-end gap-3 pt-2">
+                  <p-button
+                    label="Cancelar"
+                    icon="pi pi-times"
+                    severity="secondary"
+                    [outlined]="true"
+                    [rounded]="true"
+                    (click)="resetDocumentForm()"
+                  />
+                  <p-button
+                    label="Solicitar Documento"
+                    icon="pi pi-send"
+                    severity="success"
+                    [rounded]="true"
+                    [loading]="submittingDocument()"
+                    [disabled]="!canSubmitDocument() || submittingDocument()"
+                    (click)="submitDocumentRequest()"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Lista de Solicitudes de Documentos -->
+            <div class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-white m-0">
+                  Mis Solicitudes de Documentos
+                </h3>
+                <p-button
+                  icon="pi pi-refresh"
+                  [rounded]="true"
+                  [text]="true"
+                  severity="secondary"
+                  [loading]="documentRequestsApi.isLoading()"
+                  (click)="documentRequestsApi.reload()"
+                  pTooltip="Actualizar lista"
+                />
+              </div>
+              
+              @if (myDocumentRequests().length === 0 && !documentRequestsApi.isLoading()) {
+                <div class="text-center py-12">
+                  <div class="w-20 h-20 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-4">
+                    <i class="pi pi-file-times text-4xl text-green-400"></i>
+                  </div>
+                  <h4 class="text-lg font-semibold text-white mb-2">No hay solicitudes</h4>
+                  <p class="text-gray-400 mb-4">No has realizado ninguna solicitud de documentos todavía.</p>
+                </div>
+              } @else if (documentRequestsApi.isLoading()) {
+                <div class="flex justify-center items-center py-12">
+                  <div class="flex flex-col items-center gap-3">
+                    <i class="pi pi-spin pi-spinner text-4xl text-green-400"></i>
+                    <p class="text-gray-400">Cargando solicitudes...</p>
+                  </div>
+                </div>
+              } @else {
+                <div class="overflow-x-auto">
+                  <p-table
+                    [value]="myDocumentRequests()"
+                    [rows]="10"
+                    paginator
+                    [loading]="documentRequestsApi.isLoading()"
+                    styleClass="p-datatable-sm md:p-datatable-lg"
+                    [scrollable]="true"
+                    scrollHeight="400px"
+                    [responsiveLayout]="'scroll'"
+                    [rowHover]="true"
+                  >
+                    <ng-template #header>
+                      <tr>
+                        <th>Fecha de Solicitud</th>
+                        <th>Tipo de Documento</th>
+                        <th>Motivo</th>
+                        <th>Fecha Requerida</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                      </tr>
+                    </ng-template>
+                    <ng-template #body let-request>
+                      <tr>
+                        <td>
+                          <div class="flex flex-col">
+                            <span class="font-medium">{{ request.created_at | date : 'mediumDate' }}</span>
+                            <span class="text-xs text-gray-500">{{ request.created_at | date : 'shortTime' }}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <div class="flex items-center gap-2">
+                            <i class="pi pi-file text-green-400"></i>
+                            <span class="font-semibold text-white">
+                              {{ getDocumentTypeLabel(request.document_type) }}
+                            </span>
+                          </div>
+                          @if (request.custom_document_type) {
+                          <small class="text-gray-400 text-xs block mt-1">
+                            {{ request.custom_document_type }}
+                          </small>
+                          }
+                        </td>
+                        <td>
+                          <span class="text-sm text-gray-300">
+                            {{ request.reason && request.reason.length > 50 ? (request.reason.substring(0, 50) + '...') : (request.reason || '-') }}
+                          </span>
+                        </td>
+                        <td>
+                          @if (request.required_date) {
+                          <span class="text-sm text-gray-300">
+                            {{ request.required_date | date : 'shortDate' }}
+                          </span>
+                          } @else {
+                          <span class="text-gray-500 text-sm">-</span>
+                          }
+                        </td>
+                        <td>
+                          <span
+                            class="px-3 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1"
+                            [class.bg-yellow-500/20]="request.status === 'pending'"
+                            [class.text-yellow-300]="request.status === 'pending'"
+                            [class.bg-green-500/20]="request.status === 'approved'"
+                            [class.text-green-300]="request.status === 'approved'"
+                            [class.bg-red-500/20]="request.status === 'rejected'"
+                            [class.text-red-300]="request.status === 'rejected'"
+                          >
+                            @if (request.status === 'approved') {
+                              <i class="pi pi-check-circle"></i>
+                            } @else if (request.status === 'pending') {
+                              <i class="pi pi-clock"></i>
+                            } @else {
+                              <i class="pi pi-times-circle"></i>
+                            }
+                            {{
+                              request.status === 'pending'
+                                ? 'Pendiente'
+                                : request.status === 'approved'
+                                ? 'Aprobada'
+                                : 'Rechazada'
+                            }}
+                          </span>
+                        </td>
+                        <td>
+                          @if(request.status === 'approved' && request.document_url) {
+                          <p-button
+                            icon="pi pi-download"
+                            severity="success"
+                            size="small"
+                            [rounded]="true"
+                            [text]="true"
+                            (click)="downloadDocument(request.document_url)"
+                            pTooltip="Descargar documento"
+                          />
+                          } @else {
+                          <span class="text-gray-500 text-xs">-</span>
+                          }
+                        </td>
+                      </tr>
+                    </ng-template>
+                    <ng-template #emptymessage>
+                      <tr>
+                        <td colspan="6" class="text-center py-8">
+                          <p class="text-gray-400">No hay solicitudes de documentos</p>
+                        </td>
+                      </tr>
+                    </ng-template>
+                  </p-table>
+                </div>
+              }
             </div>
           </div>
         </p-card>
@@ -1569,25 +1727,48 @@ import { EmployeesStore } from '../stores/employees.store';
               
               <div class="flex flex-col gap-4">
                 <!-- Rango de Fechas -->
-                <div class="input-container">
-                  <label for="vacation-date-range" class="block text-sm text-gray-400 mb-2">
-                    Período de Vacaciones
-                  </label>
-                  <p-datepicker
-                    id="vacation-date-range"
-                    [(ngModel)]="vacationDateRange"
-                    selectionMode="range"
-                    appendTo="body"
-                    [minDate]="minVacationDate"
-                    class="w-full"
-                    [showIcon]="true"
-                  />
-                  @if (vacationDateRange()?.length === 2) {
-                    <p class="text-sm text-gray-500 mt-2">
-                      Días solicitados: {{ calculateVacationDays() }}
-                    </p>
-                  }
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div class="input-container">
+                    <label for="vacation-start-date" class="block text-sm text-gray-400 mb-2">
+                      Fecha de Inicio <span class="text-red-400">*</span>
+                    </label>
+                    <p-datepicker
+                      id="vacation-start-date"
+                      [(ngModel)]="vacationStartDate"
+                      appendTo="body"
+                      [minDate]="minVacationDate"
+                      [maxDate]="maxVacationDate()"
+                      class="w-full"
+                      [showIcon]="true"
+                      dateFormat="dd/mm/yy"
+                      placeholder="Selecciona fecha inicio"
+                    />
+                  </div>
+                  <div class="input-container">
+                    <label for="vacation-end-date" class="block text-sm text-gray-400 mb-2">
+                      Fecha de Fin <span class="text-red-400">*</span>
+                    </label>
+                    <p-datepicker
+                      id="vacation-end-date"
+                      [(ngModel)]="vacationEndDate"
+                      appendTo="body"
+                      [minDate]="vacationStartDate() || minVacationDate"
+                      [maxDate]="maxVacationDate()"
+                      class="w-full"
+                      [showIcon]="true"
+                      dateFormat="dd/mm/yy"
+                      placeholder="Selecciona fecha fin"
+                    />
+                  </div>
                 </div>
+                @if (vacationStartDate() && vacationEndDate()) {
+                  <div class="mt-2 flex items-center gap-2">
+                    <i class="pi pi-info-circle text-purple-400"></i>
+                    <p class="text-sm text-gray-400 m-0">
+                      Días solicitados: <span class="font-semibold text-white">{{ calculateVacationDays() }}</span>
+                    </p>
+                  </div>
+                }
 
                 <!-- Motivo/Comentarios -->
                 <div class="input-container">
@@ -1601,22 +1782,28 @@ import { EmployeesStore } from '../stores/employees.store';
                     rows="4"
                     placeholder="Describe el motivo de tu solicitud de vacaciones..."
                     class="w-full"
+                    [maxlength]="500"
                   ></textarea>
+                  <p class="text-xs text-gray-500 mt-1">
+                    {{ vacationReason().length }}/500 caracteres
+                  </p>
                 </div>
 
                 <!-- Botón de Envío -->
-                <div class="flex justify-end gap-3">
+                <div class="flex justify-end gap-3 pt-2">
                   <p-button
                     label="Cancelar"
                     icon="pi pi-times"
                     severity="secondary"
                     [outlined]="true"
+                    [rounded]="true"
                     (click)="resetVacationForm()"
                   />
                   <p-button
                     label="Solicitar Vacaciones"
                     icon="pi pi-send"
                     severity="success"
+                    [rounded]="true"
                     [loading]="submittingVacation()"
                     [disabled]="!canSubmitVacation() || submittingVacation()"
                     (click)="submitVacationRequest()"
@@ -1627,14 +1814,35 @@ import { EmployeesStore } from '../stores/employees.store';
 
             <!-- Lista de Solicitudes de Vacaciones -->
             <div class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
-              <h3 class="text-lg font-semibold text-white mb-4">
-                Mis Solicitudes de Vacaciones
-              </h3>
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-white m-0">
+                  Mis Solicitudes de Vacaciones
+                </h3>
+                <p-button
+                  icon="pi pi-refresh"
+                  [rounded]="true"
+                  [text]="true"
+                  severity="secondary"
+                  [loading]="vacationTimeoffsApi.isLoading()"
+                  (click)="reloadVacationRequests()"
+                  pTooltip="Actualizar lista"
+                />
+              </div>
               
               @if (myVacationRequests().length === 0 && !vacationTimeoffsApi.isLoading()) {
-                <div class="text-center py-8">
-                  <i class="pi pi-calendar-times text-4xl text-gray-500 mb-4"></i>
-                  <p class="text-gray-400">No has realizado ninguna solicitud de vacaciones.</p>
+                <div class="text-center py-12">
+                  <div class="w-20 h-20 rounded-full bg-purple-500/10 flex items-center justify-center mx-auto mb-4">
+                    <i class="pi pi-calendar-times text-4xl text-purple-400"></i>
+                  </div>
+                  <h4 class="text-lg font-semibold text-white mb-2">No hay solicitudes</h4>
+                  <p class="text-gray-400 mb-4">No has realizado ninguna solicitud de vacaciones todavía.</p>
+                </div>
+              } @else if (vacationTimeoffsApi.isLoading()) {
+                <div class="flex justify-center items-center py-12">
+                  <div class="flex flex-col items-center gap-3">
+                    <i class="pi pi-spin pi-spinner text-4xl text-purple-400"></i>
+                    <p class="text-gray-400">Cargando solicitudes...</p>
+                  </div>
                 </div>
               } @else {
                 <div class="overflow-x-auto">
@@ -1647,6 +1855,7 @@ import { EmployeesStore } from '../stores/employees.store';
                     [scrollable]="true"
                     scrollHeight="400px"
                     [responsiveLayout]="'scroll'"
+                    [rowHover]="true"
                   >
                     <ng-template #header>
                       <tr>
@@ -1659,21 +1868,41 @@ import { EmployeesStore } from '../stores/employees.store';
                     </ng-template>
                     <ng-template #body let-request>
                       <tr>
-                        <td>{{ request.created_at | date : 'mediumDate' }}</td>
                         <td>
-                          {{ request.date_from | date : 'shortDate' }} - 
-                          {{ request.date_to | date : 'shortDate' }}
+                          <div class="flex flex-col">
+                            <span class="font-medium">{{ request.created_at | date : 'mediumDate' }}</span>
+                            <span class="text-xs text-gray-500">{{ request.created_at | date : 'shortTime' }}</span>
+                          </div>
                         </td>
                         <td>
-                          {{ calculateDaysBetween(request.date_from, request.date_to) }}
+                          <div class="flex flex-col">
+                            <span class="font-medium">{{ request.date_from | date : 'shortDate' }}</span>
+                            <span class="text-xs text-gray-500">hasta</span>
+                            <span class="font-medium">{{ request.date_to | date : 'shortDate' }}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <span class="font-semibold text-purple-400">
+                            {{ calculateDaysBetween(request.date_from, request.date_to) }} día(s)
+                          </span>
                         </td>
                         <td>
                           <span
-                            class="px-2 py-1 rounded text-xs font-semibold"
-                            [class.bg-yellow-500]="!request.is_approved && isDateFuture(request.date_from)"
-                            [class.bg-green-500]="request.is_approved"
-                            [class.bg-red-500]="!request.is_approved && !isDateFuture(request.date_from)"
+                            class="px-3 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1"
+                            [class.bg-yellow-500/20]="!request.is_approved && isDateFuture(request.date_from)"
+                            [class.text-yellow-300]="!request.is_approved && isDateFuture(request.date_from)"
+                            [class.bg-green-500/20]="request.is_approved"
+                            [class.text-green-300]="request.is_approved"
+                            [class.bg-red-500/20]="!request.is_approved && !isDateFuture(request.date_from)"
+                            [class.text-red-300]="!request.is_approved && !isDateFuture(request.date_from)"
                           >
+                            @if (request.is_approved) {
+                              <i class="pi pi-check-circle"></i>
+                            } @else if (isDateFuture(request.date_from)) {
+                              <i class="pi pi-clock"></i>
+                            } @else {
+                              <i class="pi pi-times-circle"></i>
+                            }
                             {{
                               request.is_approved
                                 ? 'Aprobada'
@@ -1684,7 +1913,16 @@ import { EmployeesStore } from '../stores/employees.store';
                           </span>
                         </td>
                         <td>
-                          {{ request.notes && request.notes.length > 0 ? request.notes[0] : '-' }}
+                          <span class="text-sm text-gray-300">
+                            {{ request.notes && request.notes.length > 0 ? (request.notes[0].length > 50 ? (request.notes[0].substring(0, 50) + '...') : request.notes[0]) : '-' }}
+                          </span>
+                        </td>
+                      </tr>
+                    </ng-template>
+                    <ng-template #emptymessage>
+                      <tr>
+                        <td colspan="5" class="text-center py-8">
+                          <p class="text-gray-400">No hay solicitudes de vacaciones</p>
                         </td>
                       </tr>
                     </ng-template>
@@ -4033,6 +4271,38 @@ export class EmployeePortalComponent {
   public documentRequiredDate = signal<Date | null>(null);
   public submittingDocument = signal(false);
 
+  // Opciones para el tipo de documento
+  public documentTypeOptions = [
+    { label: 'Carta de Trabajo', value: 'work_letter' },
+    { label: 'Certificado de Salario', value: 'salary_certificate' },
+    { label: 'Certificado de Empleo', value: 'employment_certificate' },
+    { label: 'Otro', value: 'other' },
+  ];
+
+  // Validación para poder enviar solicitud de documento
+  public canSubmitDocument = computed(() => {
+    const type = this.documentType();
+    const reason = this.documentReason().trim();
+    
+    if (!reason || reason.length < 10) {
+      return false;
+    }
+    
+    if (type === 'other') {
+      return this.customDocumentType().trim().length > 0;
+    }
+    
+    return true;
+  });
+
+  // Método para resetear el formulario de documentos
+  public resetDocumentForm(): void {
+    this.documentType.set('work_letter');
+    this.customDocumentType.set('');
+    this.documentReason.set('');
+    this.documentRequiredDate.set(null);
+  }
+
   public documentRequestsApi = httpResource<any[]>(() => {
     if (!this.currentEmployee()?.id) return undefined;
     return {
@@ -4815,10 +5085,16 @@ export class EmployeePortalComponent {
   public showTutorialDialog = signal(false);
 
   // Signals para formulario de vacaciones
-  public vacationDateRange = signal<Date[] | null>(null);
+  public vacationStartDate = signal<Date | null>(null);
+  public vacationEndDate = signal<Date | null>(null);
   public vacationReason = signal('');
   public submittingVacation = signal(false);
   public minVacationDate = new Date(); // No permitir fechas pasadas
+  public maxVacationDate = computed(() => {
+    const date = new Date();
+    date.setFullYear(date.getFullYear() + 1); // Máximo 1 año en el futuro
+    return date;
+  });
 
   // Dialog para detalles de solicitud
   public showRequestDetailsDialog = signal(false);
@@ -5794,50 +6070,160 @@ export class EmployeePortalComponent {
     }
   }
 
-  // Métodos para vacaciones
+  // ============================================
+  // MÉTODOS PARA VACACIONES
+  // ============================================
+
+  /**
+   * Valida si se puede enviar la solicitud de vacaciones
+   */
   public canSubmitVacation = computed(() => {
-    const range = this.vacationDateRange();
-    return range && range.length === 2 && range[0] && range[1];
+    const startDate = this.vacationStartDate();
+    const endDate = this.vacationEndDate();
+    
+    if (!startDate || !endDate) {
+      return false;
+    }
+    
+    // Validar que la fecha de inicio no sea pasada
+    const today = startOfDay(new Date());
+    const start = startOfDay(startDate);
+    if (start < today) {
+      return false;
+    }
+    
+    // Validar que la fecha de fin sea mayor o igual a la de inicio
+    const end = startOfDay(endDate);
+    if (end < start) {
+      return false;
+    }
+    
+    return true;
   });
 
+  /**
+   * Calcula el número de días de vacaciones solicitados
+   */
   public calculateVacationDays = computed(() => {
-    const range = this.vacationDateRange();
-    if (!range || range.length !== 2 || !range[0] || !range[1]) {
+    const startDate = this.vacationStartDate();
+    const endDate = this.vacationEndDate();
+    
+    if (!startDate || !endDate) {
       return 0;
     }
-    return this.calculateDaysBetween(range[0], range[1]);
+    
+    return this.calculateDaysBetween(startDate, endDate);
   });
 
+  /**
+   * Calcula los días entre dos fechas (incluyendo ambos días)
+   */
   public calculateDaysBetween(dateFrom: Date | string, dateTo: Date | string): number {
-    const from = typeof dateFrom === 'string' ? new Date(dateFrom) : dateFrom;
-    const to = typeof dateTo === 'string' ? new Date(dateTo) : dateTo;
-    return differenceInDays(to, from) + 1; // +1 para incluir ambos días
+    try {
+      const from = typeof dateFrom === 'string' ? new Date(dateFrom) : dateFrom;
+      const to = typeof dateTo === 'string' ? new Date(dateTo) : dateTo;
+      
+      if (isNaN(from.getTime()) || isNaN(to.getTime())) {
+        return 0;
+      }
+      
+      return differenceInDays(to, from) + 1; // +1 para incluir ambos días
+    } catch (error) {
+      console.error('Error calculating days between dates:', error);
+      return 0;
+    }
   }
 
+  /**
+   * Verifica si una fecha es futura
+   */
   public isDateFuture(date: Date | string): boolean {
-    const dateObj = typeof date === 'string' ? new Date(date) : date;
-    return dateObj > new Date();
+    try {
+      const dateObj = typeof date === 'string' ? new Date(date) : date;
+      if (isNaN(dateObj.getTime())) {
+        return false;
+      }
+      return dateObj > new Date();
+    } catch (error) {
+      console.error('Error checking if date is future:', error);
+      return false;
+    }
   }
 
+  /**
+   * Obtiene todas las solicitudes de vacaciones del empleado
+   */
   public myVacationRequests = computed(() => {
     if (this.vacationTimeoffsApi.status() === 'error') {
       return [];
     }
-    return this.vacationTimeoffsApi.value() ?? [];
+    const requests = this.vacationTimeoffsApi.value() ?? [];
+    // Ordenar por fecha de inicio descendente
+    return [...requests].sort((a, b) => {
+      const dateA = new Date(a.date_from).getTime();
+      const dateB = new Date(b.date_from).getTime();
+      return dateB - dateA;
+    });
   });
 
-  public resetVacationForm() {
-    this.vacationDateRange.set(null);
+  /**
+   * Limpia el formulario de vacaciones
+   */
+  public resetVacationForm(): void {
+    this.vacationStartDate.set(null);
+    this.vacationEndDate.set(null);
     this.vacationReason.set('');
   }
 
-  public async submitVacationRequest() {
-    const range = this.vacationDateRange();
-    if (!range || range.length !== 2 || !range[0] || !range[1]) {
+  /**
+   * Recarga las solicitudes de vacaciones
+   */
+  public reloadVacationRequests(): void {
+    if (
+      this.vacationTimeoffsApi &&
+      typeof this.vacationTimeoffsApi.reload === 'function' &&
+      this.vacationTimeoffsApi.status() !== 'error'
+    ) {
+      this.vacationTimeoffsApi.reload();
+    }
+  }
+
+  /**
+   * Envía la solicitud de vacaciones
+   */
+  public async submitVacationRequest(): Promise<void> {
+    // Validaciones
+    const startDate = this.vacationStartDate();
+    const endDate = this.vacationEndDate();
+    
+    if (!startDate || !endDate) {
       this.messageService.add({
         severity: 'error',
-        summary: 'Error',
-        detail: 'Por favor selecciona un rango de fechas válido',
+        summary: 'Error de Validación',
+        detail: 'Por favor selecciona ambas fechas (inicio y fin)',
+      });
+      return;
+    }
+
+    // Validar que la fecha de inicio no sea pasada
+    const today = startOfDay(new Date());
+    const start = startOfDay(startDate);
+    if (start < today) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error de Validación',
+        detail: 'La fecha de inicio no puede ser anterior a hoy',
+      });
+      return;
+    }
+
+    // Validar que la fecha de fin sea mayor o igual a la de inicio
+    const end = startOfDay(endDate);
+    if (end < start) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error de Validación',
+        detail: 'La fecha de fin debe ser mayor o igual a la fecha de inicio',
       });
       return;
     }
@@ -5847,7 +6233,7 @@ export class EmployeePortalComponent {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'No se pudo identificar al empleado',
+        detail: 'No se pudo identificar al empleado. Por favor recarga la página.',
       });
       return;
     }
@@ -5855,25 +6241,39 @@ export class EmployeePortalComponent {
     this.submittingVacation.set(true);
 
     try {
+      // ID del tipo de timeoff "Vacaciones"
       const vacationTypeId = '00000000-0000-0000-0000-000000000001';
-      const dateFrom = format(range[0], 'yyyy-MM-dd');
-      const dateTo = format(range[1], 'yyyy-MM-dd');
-      const notes = this.vacationReason() ? [this.vacationReason()] : [];
+      
+      // Formatear fechas
+      const dateFrom = format(start, 'yyyy-MM-dd');
+      const dateTo = format(end, 'yyyy-MM-dd');
+      
+      // Preparar notas
+      const notes: string[] = [];
+      if (this.vacationReason().trim()) {
+        notes.push(this.vacationReason().trim());
+      }
 
-      const timeoffData: any = {
+      // Crear el objeto de solicitud
+      const timeoffData: TimeOff = {
         id: v4(),
         employee_id: employee.id,
         type_id: vacationTypeId,
-        date_from: dateFrom,
-        date_to: dateTo,
+        date_from: startDate,
+        date_to: endDate,
         notes,
         is_approved: false, // Las vacaciones requieren aprobación
       };
 
+      // Enviar solicitud
       const response = await firstValueFrom(
         this.http.post<any>(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`,
-          timeoffData,
+          {
+            ...timeoffData,
+            date_from: dateFrom,
+            date_to: dateTo,
+          },
           {
             headers: {
               'Content-Type': 'application/json',
@@ -5883,62 +6283,77 @@ export class EmployeePortalComponent {
         )
       );
 
-      // Enviar notificación a HR que revisa
-      const timeoffId = response[0]?.id || response?.id;
-      await this.notifyHRReviewer(timeoffId);
-
-      // Crear notificación en hr_messages para el usuario
-      if (timeoffId) {
-        try {
-          await firstValueFrom(
-            this.http.post(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/hr_messages`,
-              {
-                employee_id: employee.id,
-                related_type: 'timeoff',
-                related_id: timeoffId,
-                message_type: 'vacation_request',
-                title: 'Solicitud de vacaciones enviada',
-                message:
-                  'Tu solicitud de vacaciones ha sido enviada y está pendiente de revisión.',
-                is_read: false,
-              },
-              {
-                headers: {
-                  'Content-Type': 'application/json',
-                  Prefer: 'return=representation',
-                },
-              }
-            )
-          );
-        } catch (error) {
-          console.error('Error al crear notificación para el usuario:', error);
-        }
+      // Obtener el ID de la solicitud creada
+      const timeoffId = Array.isArray(response) ? response[0]?.id : response?.id;
+      
+      if (!timeoffId) {
+        throw new Error('No se recibió el ID de la solicitud creada');
       }
 
+      // Enviar notificación a HR que revisa
+      try {
+        await this.notifyHRReviewer(timeoffId);
+      } catch (error) {
+        console.error('Error al notificar a HR:', error);
+        // No fallar el flujo principal si la notificación falla
+      }
+
+      // Crear notificación en hr_messages para el usuario
+      try {
+        await firstValueFrom(
+          this.http.post(
+            `${process.env['ENV_SUPABASE_URL']}/rest/v1/hr_messages`,
+            {
+              employee_id: employee.id,
+              related_type: 'timeoff',
+              related_id: timeoffId,
+              message_type: 'vacation_request',
+              title: 'Solicitud de vacaciones enviada',
+              message: `Tu solicitud de vacaciones del ${format(startDate, 'dd/MM/yyyy')} al ${format(endDate, 'dd/MM/yyyy')} ha sido enviada y está pendiente de revisión.`,
+              is_read: false,
+            },
+            {
+              headers: {
+                'Content-Type': 'application/json',
+                Prefer: 'return=representation',
+              },
+            }
+          )
+        );
+      } catch (error) {
+        console.error('Error al crear notificación para el usuario:', error);
+        // No fallar el flujo principal si la notificación falla
+      }
+
+      // Mostrar mensaje de éxito
       this.messageService.add({
         severity: 'success',
         summary: 'Solicitud Enviada',
-        detail: 'Tu solicitud de vacaciones ha sido enviada para revisión',
+        detail: `Tu solicitud de vacaciones ha sido enviada para revisión. Período: ${format(startDate, 'dd/MM/yyyy')} - ${format(endDate, 'dd/MM/yyyy')}`,
+        life: 5000,
       });
 
       // Limpiar formulario
       this.resetVacationForm();
 
-      // Recargar lista
-      if (
-        this.vacationTimeoffsApi &&
-        typeof this.vacationTimeoffsApi.reload === 'function' &&
-        this.vacationTimeoffsApi.status() !== 'error'
-      ) {
-        this.vacationTimeoffsApi.reload();
-      }
+      // Recargar lista de solicitudes
+      this.reloadVacationRequests();
+      
     } catch (error: any) {
       console.error('Error submitting vacation request:', error);
+      
+      let errorMessage = 'No se pudo enviar la solicitud. Por favor intenta de nuevo.';
+      if (error?.error?.message) {
+        errorMessage = error.error.message;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'No se pudo enviar la solicitud. Por favor intenta de nuevo.',
+        detail: errorMessage,
+        life: 5000,
       });
     } finally {
       this.submittingVacation.set(false);
@@ -6294,10 +6709,7 @@ export class EmployeePortalComponent {
           });
 
           // Reset form
-          this.documentType.set('work_letter');
-          this.customDocumentType.set('');
-          this.documentReason.set('');
-          this.documentRequiredDate.set(null);
+          this.resetDocumentForm();
           this.documentRequestsApi.reload();
           this.submittingDocument.set(false);
         },

@@ -132,9 +132,19 @@ import { APP_VERSION } from '../version';
   `,
   styles: `
     .animated-gradient-container {
-      background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 25%, #000000 50%, #0d0d0d 75%, #2a2a2a 100%);
       position: relative;
       overflow: hidden;
+      transition: background 0.3s ease;
+    }
+
+    /* Modo Oscuro - Fondo por defecto */
+    :host-context(html.dark) .animated-gradient-container {
+      background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 25%, #000000 50%, #0d0d0d 75%, #2a2a2a 100%);
+    }
+
+    /* Modo Claro - Fondo claro */
+    :host-context(html.light) .animated-gradient-container {
+      background: linear-gradient(135deg, #f5f5f5 0%, #ffffff 25%, #fafafa 50%, #ffffff 75%, #f0f0f0 100%);
     }
     
     /* Login Container */
@@ -160,9 +170,14 @@ import { APP_VERSION } from '../version';
        TEMA BLACK DOG - ESTILOS
        ============================================ */
     
-    /* Fondo Black Dog - gradiente oscuro */
-    .animated-gradient-container:not(.naz-theme) {
+    /* Fondo Black Dog - Modo Oscuro */
+    :host-context(html.dark) .animated-gradient-container:not(.naz-theme) {
       background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 25%, #000000 50%, #0d0d0d 75%, #2a2a2a 100%);
+    }
+
+    /* Fondo Black Dog - Modo Claro */
+    :host-context(html.light) .animated-gradient-container:not(.naz-theme) {
+      background: linear-gradient(135deg, #f5f5f5 0%, #ffffff 25%, #fafafa 50%, #ffffff 75%, #f0f0f0 100%);
     }
 
     /* ============================================
@@ -420,6 +435,12 @@ import { APP_VERSION } from '../version';
       max-width: 420px;
       animation: card-entrance 0.6s ease-out 0.2s both;
       border-radius: 16px !important;
+      transition: all 0.3s ease;
+      overflow: visible;
+    }
+
+    /* Login Card - Modo Oscuro */
+    :host-context(html.dark) .login-card {
       border: 1px solid rgba(150, 150, 150, 0.2) !important;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
                   0 2px 8px rgba(0, 0, 0, 0.2),
@@ -427,7 +448,17 @@ import { APP_VERSION } from '../version';
       backdrop-filter: blur(20px) saturate(180%);
       -webkit-backdrop-filter: blur(20px) saturate(180%);
       background: rgba(20, 20, 20, 0.75) !important;
-      overflow: visible;
+    }
+
+    /* Login Card - Modo Claro */
+    :host-context(html.light) .login-card {
+      border: 1px solid rgba(0, 0, 0, 0.1) !important;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1),
+                  0 2px 8px rgba(0, 0, 0, 0.05),
+                  inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      background: rgba(255, 255, 255, 0.95) !important;
     }
     
     @media (max-width: 767px) {
@@ -487,13 +518,21 @@ import { APP_VERSION } from '../version';
     }
     
     .card-subtitle {
-      color: rgba(200, 200, 200, 0.7);
       font-size: 0.625rem;
       font-weight: 500;
       letter-spacing: 0.1em;
       text-transform: uppercase;
       margin-bottom: 0.5rem;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      transition: color 0.3s ease;
+    }
+
+    :host-context(html.dark) .card-subtitle {
+      color: rgba(200, 200, 200, 0.7);
+    }
+
+    :host-context(html.light) .card-subtitle {
+      color: rgba(100, 100, 100, 0.8);
     }
     
     @media (min-width: 480px) {
@@ -511,12 +550,20 @@ import { APP_VERSION } from '../version';
     }
     
     .card-title {
-      color: #f5f5f5;
       font-size: 1.375rem;
       font-weight: 600;
       letter-spacing: -0.02em;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       line-height: 1.2;
+      transition: color 0.3s ease;
+    }
+
+    :host-context(html.dark) .card-title {
+      color: #f5f5f5;
+    }
+
+    :host-context(html.light) .card-title {
+      color: #1f2937;
     }
     
     @media (min-width: 480px) {
@@ -533,13 +580,21 @@ import { APP_VERSION } from '../version';
     }
     
     .card-description {
-      color: rgba(180, 180, 180, 0.8);
       font-size: 0.75rem;
       margin-top: 0.375rem;
       text-align: center;
       font-weight: 400;
       line-height: 1.4;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      transition: color 0.3s ease;
+    }
+
+    :host-context(html.dark) .card-description {
+      color: rgba(180, 180, 180, 0.8);
+    }
+
+    :host-context(html.light) .card-description {
+      color: rgba(75, 85, 99, 0.9);
     }
     
     @media (min-width: 480px) {
@@ -593,17 +648,30 @@ import { APP_VERSION } from '../version';
       display: inline-flex;
       align-items: center;
       gap: 0.75rem;
-      background: rgba(20, 20, 20, 0.95);
       border-radius: 16px;
       padding: 0.5rem 0.75rem;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      width: 100%;
+    }
+
+    :host-context(html.dark) .switch-container {
+      background: rgba(20, 20, 20, 0.95);
       border: 1px solid rgba(100, 100, 100, 0.2);
       box-shadow: 
         inset 0 2px 4px rgba(0, 0, 0, 0.5),
         0 4px 16px rgba(0, 0, 0, 0.4),
         0 0 0 1px rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      width: 100%;
+    }
+
+    :host-context(html.light) .switch-container {
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      box-shadow: 
+        inset 0 2px 4px rgba(255, 255, 255, 0.8),
+        0 4px 16px rgba(0, 0, 0, 0.1),
+        0 0 0 1px rgba(0, 0, 0, 0.05);
     }
     
     @media (min-width: 768px) {
@@ -648,7 +716,6 @@ import { APP_VERSION } from '../version';
       min-height: 3rem !important;
       background: transparent !important;
       border: 1px solid transparent !important;
-      color: rgba(255, 255, 255, 0.7) !important;
       text-shadow: none !important;
       box-shadow: none !important;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
@@ -658,6 +725,14 @@ import { APP_VERSION } from '../version';
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
+    }
+
+    :host-context(html.dark) .switch-button:not(.switch-button-active) ::ng-deep .p-button {
+      color: rgba(255, 255, 255, 0.7) !important;
+    }
+
+    :host-context(html.light) .switch-button:not(.switch-button-active) ::ng-deep .p-button {
+      color: rgba(0, 0, 0, 0.6) !important;
     }
 
     /* Iconos de botones inactivos - mismo color para ambos */
@@ -698,16 +773,20 @@ import { APP_VERSION } from '../version';
       font-size: 1.125rem !important;
       margin-right: 1rem !important;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-      color: rgba(255, 255, 255, 0.7) !important;
       filter: none !important;
       text-shadow: none !important;
       flex-shrink: 0 !important;
     }
 
     /* Asegurar que ambos botones inactivos tengan iconos con el mismo color */
-    .switch-button-dashboard:not(.switch-button-active) ::ng-deep .p-button-icon,
-    .switch-button-kiosk:not(.switch-button-active) ::ng-deep .p-button-icon {
+    :host-context(html.dark) .switch-button-dashboard:not(.switch-button-active) ::ng-deep .p-button-icon,
+    :host-context(html.dark) .switch-button-kiosk:not(.switch-button-active) ::ng-deep .p-button-icon {
       color: rgba(255, 255, 255, 0.7) !important;
+    }
+
+    :host-context(html.light) .switch-button-dashboard:not(.switch-button-active) ::ng-deep .p-button-icon,
+    :host-context(html.light) .switch-button-kiosk:not(.switch-button-active) ::ng-deep .p-button-icon {
+      color: rgba(0, 0, 0, 0.6) !important;
     }
 
     /* Hover en botones inactivos - cambiar a amarillo (solo Black Dog) */
@@ -1339,24 +1418,40 @@ import { APP_VERSION } from '../version';
       bottom: 1rem;
       right: 1rem;
       padding: 0.375rem 0.75rem;
-      background: rgba(20, 20, 20, 0.85);
-      border: 1px solid rgba(150, 150, 150, 0.2);
       border-radius: 8px;
-      color: rgba(200, 200, 200, 0.7);
       font-size: 0.75rem;
       font-weight: 500;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       z-index: 1000;
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
       transition: all 0.3s ease;
     }
-    
-    .version-badge:hover {
+
+    :host-context(html.dark) .version-badge {
+      background: rgba(20, 20, 20, 0.85);
+      border: 1px solid rgba(150, 150, 150, 0.2);
+      color: rgba(200, 200, 200, 0.7);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    }
+
+    :host-context(html.dark) .version-badge:hover {
       background: rgba(30, 30, 30, 0.95);
       color: rgba(255, 255, 255, 0.9);
       border-color: rgba(150, 150, 150, 0.3);
+    }
+
+    :host-context(html.light) .version-badge {
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(0, 0, 0, 0.1);
+      color: rgba(75, 85, 99, 0.8);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    :host-context(html.light) .version-badge:hover {
+      background: rgba(255, 255, 255, 0.95);
+      color: rgba(0, 0, 0, 0.9);
+      border-color: rgba(0, 0, 0, 0.2);
     }
     
     /* Versión para tema Naz */

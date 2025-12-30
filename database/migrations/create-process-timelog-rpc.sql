@@ -43,7 +43,7 @@ BEGIN
     p_employee_id,
     p_company_id,
     p_branch_id,
-    p_type,
+    p_type::timelog_type, -- CAST explícito de VARCHAR a ENUM
     p_ip,
     p_invalid_ip,
     v_now

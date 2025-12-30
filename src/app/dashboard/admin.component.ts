@@ -11,6 +11,7 @@ import {
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { NgClass } from '@angular/common';
 import { OrganizationService } from '../services/organization.service';
+import { DashboardStore } from '../stores/dashboard.store';
 
 @Component({
   selector: 'pt-admin',
@@ -51,6 +52,7 @@ import { OrganizationService } from '../services/organization.service';
               (mouseleave)="closeDropdown()"
             >
               <!-- Tiempo -->
+              @if (canViewTimeDashboard()) {
               <a
                 routerLink="hr/time-dashboard"
                 class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
@@ -60,6 +62,7 @@ import { OrganizationService } from '../services/organization.service';
                 <i class="pi pi-clock text-sm"></i>
                 <span>Tiempo</span>
               </a>
+              }
               <!-- Gestión de Solicitudes -->
               <a
                 routerLink="hr/disabilities"
@@ -199,7 +202,7 @@ import { OrganizationService } from '../services/organization.service';
         </div>
       </div>
     </header>
-    <main class="bg-neutral-900 min-h-screen" [ngClass]="{ 'naz-main': isNaz() }">
+    <main class="min-h-screen dark:bg-neutral-900 light:bg-gray-50" [ngClass]="{ 'naz-main': isNaz() }">
       <div class="mx-auto px-4 py-6 sm:px-6 lg:px-8">
         <router-outlet />
       </div>
@@ -207,44 +210,88 @@ import { OrganizationService } from '../services/organization.service';
   </div>`,
   styles: `
     .selected {
-      @apply bg-gradient-to-r from-gray-700/80 to-gray-600/80 text-white shadow-md transition-all duration-300 ease-in-out;
+      @apply shadow-md transition-all duration-300 ease-in-out;
       border-left: 3px solid #FBBF24;
     }
 
-    /* Tema Naz */
-    .naz-theme header.naz-header {
+    :host-context(html.dark) .selected {
+      @apply bg-gradient-to-r from-gray-700/80 to-gray-600/80 text-white;
+    }
+
+    :host-context(html.light) .selected {
+      @apply bg-gradient-to-r from-gray-100 to-gray-200 text-gray-900;
+    }
+
+    /* Tema Naz - Modo Oscuro */
+    :host-context(html.dark) .naz-theme header.naz-header {
       background: #000000 !important;
       border-bottom-color: rgba(255, 255, 255, 0.10) !important;
     }
 
-    .naz-theme .naz-header a,
-    .naz-theme .naz-header div {
+    :host-context(html.dark) .naz-theme .naz-header a,
+    :host-context(html.dark) .naz-theme .naz-header div {
       color: #C6C2BF !important;
     }
 
-    .naz-theme .naz-header a:hover,
-    .naz-theme .naz-header div:hover {
+    :host-context(html.dark) .naz-theme .naz-header a:hover,
+    :host-context(html.dark) .naz-theme .naz-header div:hover {
       color: #FFFFFF !important;
       background: rgba(255, 255, 255, 0.10) !important;
     }
 
-    .naz-theme .naz-header .selected {
+    :host-context(html.dark) .naz-theme .naz-header .selected {
       background: #0D0D0D !important;
       color: #FFFFFF !important;
       border-left-color: #FFFFFF !important;
     }
 
-    .naz-theme .naz-header [class*="bg-neutral-700"] {
+    :host-context(html.dark) .naz-theme .naz-header [class*="bg-neutral-700"] {
       background: #0D0D0D !important;
       color: #FFFFFF !important;
     }
 
-    .naz-theme .naz-header [class*="text-amber-300"] {
+    :host-context(html.dark) .naz-theme .naz-header [class*="text-amber-300"] {
       color: #FFFFFF !important;
     }
 
-    .naz-theme main.naz-main {
+    :host-context(html.dark) .naz-theme main.naz-main {
       background: #000000 !important;
+    }
+
+    /* Tema Naz - Modo Claro */
+    :host-context(html.light) .naz-theme header.naz-header {
+      background: #ffffff !important;
+      border-bottom-color: rgba(0, 0, 0, 0.10) !important;
+    }
+
+    :host-context(html.light) .naz-theme .naz-header a,
+    :host-context(html.light) .naz-theme .naz-header div {
+      color: #4b5563 !important;
+    }
+
+    :host-context(html.light) .naz-theme .naz-header a:hover,
+    :host-context(html.light) .naz-theme .naz-header div:hover {
+      color: #000000 !important;
+      background: rgba(0, 0, 0, 0.05) !important;
+    }
+
+    :host-context(html.light) .naz-theme .naz-header .selected {
+      background: #f5f5f5 !important;
+      color: #000000 !important;
+      border-left-color: #C6C2BF !important;
+    }
+
+    :host-context(html.light) .naz-theme .naz-header [class*="bg-neutral-700"] {
+      background: #f5f5f5 !important;
+      color: #000000 !important;
+    }
+
+    :host-context(html.light) .naz-theme .naz-header [class*="text-amber-300"] {
+      color: #1f2937 !important;
+    }
+
+    :host-context(html.light) .naz-theme main.naz-main {
+      background: #ffffff !important;
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -254,9 +301,16 @@ export class AdminComponent implements OnInit, OnDestroy {
   private refreshInterval?: number;
   private dropdownTimeout?: number;
   public organizationService = inject(OrganizationService);
+  private dashboardStore = inject(DashboardStore);
   
   // Computed para verificar si es Naz
   public isNaz = computed(() => this.organizationService.isNaz());
+
+  // Computed para verificar si el usuario actual es soporte2@blackdogpanama.com
+  public canViewTimeDashboard = computed(() => {
+    const currentEmployee = this.dashboardStore.currentEmployee();
+    return currentEmployee?.work_email?.toLowerCase() === 'soporte2@blackdogpanama.com';
+  });
 
   // Estado de los dropdowns
   public openDropdownId = signal<string | null>(null);

@@ -358,12 +358,22 @@ import { ScreenLockComponent } from '../components/screen-lock.component';
       }
       
       ::ng-deep .p-menu {
-        background: #1f2937 !important;
-        border: 1px solid rgba(251, 191, 36, 0.2) !important;
         border-radius: 0.5rem !important;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
         padding: 0.5rem !important;
         z-index: 1002 !important;
+        transition: all 0.3s ease !important;
+      }
+
+      :host-context(html.dark) ::ng-deep .p-menu {
+        background: #1f2937 !important;
+        border: 1px solid rgba(251, 191, 36, 0.2) !important;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
+      }
+
+      :host-context(html.light) ::ng-deep .p-menu {
+        background: #ffffff !important;
+        border: 1px solid rgba(251, 191, 36, 0.3) !important;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15) !important;
       }
 
       /* Asegurar que el menú móvil tenga z-index alto */
@@ -383,12 +393,20 @@ import { ScreenLockComponent } from '../components/screen-lock.component';
         background: rgba(251, 191, 36, 0.1) !important;
       }
       
-      ::ng-deep .p-menu .p-menuitem-link .p-menuitem-text {
+      :host-context(html.dark) ::ng-deep .p-menu .p-menuitem-link .p-menuitem-text {
         color: #e5e7eb !important;
       }
-      
-      ::ng-deep .p-menu .p-menuitem-link:hover .p-menuitem-text {
+
+      :host-context(html.dark) ::ng-deep .p-menu .p-menuitem-link:hover .p-menuitem-text {
         color: #ffffff !important;
+      }
+
+      :host-context(html.light) ::ng-deep .p-menu .p-menuitem-link .p-menuitem-text {
+        color: #1f2937 !important;
+      }
+
+      :host-context(html.light) ::ng-deep .p-menu .p-menuitem-link:hover .p-menuitem-text {
+        color: #000000 !important;
       }
       
       ::ng-deep .p-menu .p-menuitem-link .p-menuitem-icon {
@@ -507,12 +525,20 @@ import { ScreenLockComponent } from '../components/screen-lock.component';
         }
       }
 
-      /* Tema Naz */
-      :host-context(.naz-theme) nav,
-      .naz-theme nav,
-      nav.naz-nav {
+      /* Tema Naz - Modo Oscuro */
+      :host-context(html.dark) :host-context(.naz-theme) nav,
+      :host-context(html.dark) .naz-theme nav,
+      :host-context(html.dark) nav.naz-nav {
         background: #000000 !important;
         border-bottom-color: rgba(255, 255, 255, 0.10) !important;
+      }
+
+      /* Tema Naz - Modo Claro */
+      :host-context(html.light) :host-context(.naz-theme) nav,
+      :host-context(html.light) .naz-theme nav,
+      :host-context(html.light) nav.naz-nav {
+        background: #ffffff !important;
+        border-bottom-color: rgba(0, 0, 0, 0.10) !important;
       }
 
       :host-context(.naz-theme) .header-menu a,
@@ -986,50 +1012,6 @@ export class DashboardComponent {
       items.push({
         separator: true,
       });
-    }
-
-    // Agregar opción de cambiar organización
-    // Si no estás en Naz, mostrar "Cambiar a Naz" que activa easter egg, cambia a Naz, cierra sesión y redirige al login
-    // SOLO mostrar a soporte2@blackdogpanama.com - verificación estricta
-    const employee = this.store.currentEmployee();
-    const isSupportUserStrict = employee?.work_email?.toLowerCase() === 'soporte2@blackdogpanama.com';
-    if (!this.organizationService.isNaz() && isSupportUserStrict) {
-      items.push({
-        label: 'Cambiar a Naz',
-        icon: 'pi pi-refresh',
-        command: () => {
-          // Activar easter egg (quitar todas las restricciones)
-          if (typeof window !== 'undefined' && window.localStorage) {
-            window.localStorage.setItem('easter_egg_activated', 'true');
-            window.localStorage.setItem('easter_egg_logo_clicks', '10');
-            window.localStorage.setItem('easter_egg_login_attempts', '3');
-          }
-
-          // Establecer organización a Naz
-          this.organizationService.setOrganization('naz');
-
-          // Limpiar selección de organización antes de cerrar sesión
-          this.organizationService.clearOrganization();
-
-          // Cerrar sesión con Auth0 y redirigir al login
-          this.auth.logout({
-            logoutParams: {
-              returnTo: window.location.origin + '/login'
-            }
-          });
-        },
-      });
-    } else {
-      // Si ya está en Naz, mostrar opción normal para cambiar a Black Dog (solo si tiene permisos)
-      if (this.canChangeOrganization()) {
-        items.push({
-          label: 'Cambiar a Black Dog',
-          icon: 'pi pi-refresh',
-          command: () => {
-            this.organizationService.toggleOrganization();
-          },
-        });
-      }
     }
 
     items.push(
