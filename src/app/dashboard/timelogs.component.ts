@@ -12,6 +12,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { addDays, differenceInMinutes, format, startOfMonth } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import { es } from 'date-fns/locale';
 import { trim } from 'lodash';
 import { MessageService } from 'primeng/api';
@@ -28,16 +29,15 @@ import { ToggleSwitch } from 'primeng/toggleswitch';
 import { TooltipModule } from 'primeng/tooltip';
 import { utils, writeFile } from 'xlsx';
 import {
-  Branch,
   colorVariants,
-  Employee,
-  getScheduleColorInlineStyle as getColorStyle,
   DayLog,
+  Employee,
   EmployeeScheduleData,
+  getScheduleColorInlineStyle as getColorStyle,
   TimeoffData,
 } from '../models';
-import { OrganizationService } from '../services/organization.service';
 import { LoggerService } from '../services/logger.service';
+import { OrganizationService } from '../services/organization.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
 
@@ -234,6 +234,18 @@ import { EmployeesStore } from '../stores/employees.store';
                     >Almuerzo excedido</label
                   >
                 </div>
+                <div class="flex items-center gap-1.5">
+                  <p-toggleSwitch
+                    inputId="onlyMarcaciones"
+                    [(ngModel)]="onlyWithMarcaciones"
+                    [style]="{ transform: 'scale(0.85)' }"
+                  />
+                  <label
+                    for="onlyMarcaciones"
+                    class="text-xs text-gray-300 cursor-pointer whitespace-nowrap"
+                    >Solo marcaciones</label
+                  >
+                </div>
               </div>
             </div>
 
@@ -247,6 +259,27 @@ import { EmployeesStore } from '../stores/employees.store';
                 inputId="lunchExceeded"
                 [(ngModel)]="lunchExceededRange"
                 [options]="lunchExceededOptions"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Todos"
+                showClear
+                appendTo="body"
+                class="w-full"
+                [style]="{ 'font-size': '0.875rem' }"
+              />
+            </div>
+            }
+
+            <!-- Filtro de Rango de Retrasos (condicional) -->
+            @if (onlyDelayed()) {
+            <div class="flex-1 min-w-[160px]">
+              <label class="block text-xs font-medium text-gray-300 mb-1">
+                <i class="pi pi-clock mr-1 text-xs"></i>Rango de Retraso
+              </label>
+              <p-select
+                inputId="delayRange"
+                [(ngModel)]="delayRange"
+                [options]="delayRangeOptions"
                 optionLabel="label"
                 optionValue="value"
                 placeholder="Todos"
@@ -271,7 +304,8 @@ import { EmployeesStore } from '../stores/employees.store';
           <i class="pi pi-info-circle text-yellow-400"></i>
           <div class="flex-1">
             <span class="text-sm font-medium text-gray-300"
-              >Total Excedido de Almuerzo - {{ selectedEmployee()?.first_name }}
+              >Total Excedido de Almuerzo -
+              {{ selectedEmployee()?.first_name }}
               {{ selectedEmployee()?.father_name }}</span
             >
           </div>
@@ -457,7 +491,13 @@ import { EmployeesStore } from '../stores/employees.store';
                     [value]="'Retraso de ' + log.delay + ' min'"
                     severity="danger"
                     icon="pi pi-clock"
-                    [pTooltip]="'El empleado llegó tarde al trabajo'"
+                    [pTooltip]="
+                      'El empleado llegó ' +
+                      log.delay +
+                      ' minutos después de la tolerancia permitida (' +
+                      delayToleranceMinutes() +
+                      ' min)'
+                    "
                     tooltipPosition="top"
                     [style]="{
                       'min-width': maxDelayTagWidth(),
@@ -626,6 +666,9 @@ import { EmployeesStore } from '../stores/employees.store';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TimelogsComponent {
+  // Zona horaria de Panamá para todas las conversiones de fechas
+  private readonly TIMEZONE = 'America/Panama';
+
   // Calcular el ancho máximo para los tags de alertas en columna Empleado
   public maxEmployeeTagWidth = computed(() => {
     const possibleTags = [
@@ -642,7 +685,9 @@ export class TimelogsComponent {
   // Calcular el ancho máximo para los badges de horario
   public maxScheduleBadgeWidth = computed(() => {
     const schedules = this.schedules.value() || [];
-    const scheduleNames = schedules.map((s) => s.schedule?.name || 'Sin horario');
+    const scheduleNames = schedules.map(
+      (s) => s.schedule?.name || 'Sin horario'
+    );
     const maxLength = Math.max(
       ...scheduleNames.map((name: string) => name.length),
       'Sin horario'.length
@@ -703,7 +748,8 @@ export class TimelogsComponent {
       this.message.add({
         severity: 'error',
         summary: 'Error de configuración',
-        detail: 'La URL de Supabase no está configurada. Contacte al administrador.',
+        detail:
+          'La URL de Supabase no está configurada. Contacte al administrador.',
       });
       throw new Error(errorMsg);
     }
@@ -781,6 +827,9 @@ export class TimelogsComponent {
   public onlyEarlyExit = signal(false);
   public onlyLunchExceeded = signal(false);
   public lunchExceededRange = signal<string | null>(null);
+  public onlyWithMarcaciones = signal(true); // Activar por defecto para mostrar solo días con marcaciones
+  public delayToleranceMinutes = signal(5); // Tolerancia por defecto de 5 minutos
+  public delayRange = signal<string | null>(null);
   public filtersExpanded = signal(false);
 
   // Computed para verificar si hay filtros activos
@@ -790,6 +839,7 @@ export class TimelogsComponent {
       this.onlyErrors() ||
       this.onlyEarlyExit() ||
       this.onlyLunchExceeded() ||
+      this.onlyWithMarcaciones() ||
       !!this.employeeId() ||
       !!this.branchId() ||
       !!this.employeeSearch() ||
@@ -803,6 +853,7 @@ export class TimelogsComponent {
     if (this.onlyErrors()) count++;
     if (this.onlyEarlyExit()) count++;
     if (this.onlyLunchExceeded()) count++;
+    if (this.onlyWithMarcaciones()) count++;
     if (this.employeeId()) count++;
     if (this.branchId()) count++;
     if (this.employeeSearch()) count++;
@@ -815,6 +866,13 @@ export class TimelogsComponent {
     { label: '1-5 minutos excedidos', value: '1-5' },
     { label: '5-10 minutos excedidos', value: '5-10' },
     { label: '10 o más minutos excedidos', value: '10+' },
+  ];
+
+  // Opciones para el filtro de rango de retrasos
+  public delayRangeOptions = [
+    { label: '1-5 min', value: '1-5' },
+    { label: '5-10 min', value: '5-10' },
+    { label: '10+ min', value: '10+' },
   ];
 
   // IDs de tipos de permisos/feriados que NO deberían tener marcaciones
@@ -860,6 +918,55 @@ export class TimelogsComponent {
   private message = inject(MessageService);
   public colorVariants = colorVariants;
 
+  // Helper optimizado para buscar empleados por palabras que empiecen con el término de búsqueda
+  private matchesEmployeeSearch(
+    emp: Partial<Employee>,
+    searchTerm: string
+  ): boolean {
+    if (!searchTerm) return false;
+
+    // Normalizar término de búsqueda una sola vez
+    const trimmedSearch = searchTerm.toLowerCase().trim();
+    if (!trimmedSearch) return false;
+
+    // Normalizar nombres del empleado una sola vez (lazy evaluation)
+    const firstName = (emp.first_name || '').trim().toLowerCase();
+    const fatherName = (emp.father_name || '').trim().toLowerCase();
+    const middleName = (emp.middle_name || '').trim().toLowerCase();
+    const motherName = (emp.mother_name || '').trim().toLowerCase();
+
+    // Detectar si hay múltiples palabras
+    const spaceIndex = trimmedSearch.indexOf(' ');
+    if (spaceIndex === -1) {
+      // Una sola palabra: buscar en cualquier campo (orden optimizado)
+      const word = trimmedSearch;
+      return (
+        firstName.startsWith(word) ||
+        fatherName.startsWith(word) ||
+        middleName.startsWith(word) ||
+        motherName.startsWith(word)
+      );
+    }
+
+    // Múltiples palabras: dividir y buscar cada una
+    const searchWords = trimmedSearch.split(/\s+/).filter((w) => w.length > 0);
+    if (searchWords.length === 0) return false;
+
+    // Para cada palabra, verificar que empiece en algún campo (orden optimizado)
+    // Salir temprano si alguna palabra no coincide
+    for (const word of searchWords) {
+      if (
+        !firstName.startsWith(word) &&
+        !fatherName.startsWith(word) &&
+        !middleName.startsWith(word) &&
+        !motherName.startsWith(word)
+      ) {
+        return false; // Early return si una palabra no coincide
+      }
+    }
+    return true;
+  }
+
   // Computed mejorado para encontrar el empleado seleccionado
   // Busca por employeeId si existe, o por employeeSearch si solo hay un resultado único
   public selectedEmployee = computed(() => {
@@ -870,44 +977,11 @@ export class TimelogsComponent {
         .find((x) => x.id === this.employeeId());
     }
 
-    // Si hay búsqueda de texto, buscar empleados que coincidan (misma lógica que filteredDaylogs)
+    // Si hay búsqueda de texto, buscar empleados que coincidan
     const searchTerm = this.employeeSearch()?.toLowerCase().trim() || '';
     if (searchTerm) {
       const matchingEmployees = this.employees.employeesList().filter((emp) => {
-        // Aplicar trim a cada campo para evitar problemas con espacios en la BD
-        const firstName = (emp.first_name || '').trim().toLowerCase();
-        const middleName = (emp.middle_name || '').trim().toLowerCase();
-        const fatherName = (emp.father_name || '').trim().toLowerCase();
-        const motherName = (emp.mother_name || '').trim().toLowerCase();
-
-        // Crear diferentes combinaciones de nombres
-        const shortName = `${firstName} ${fatherName}`.trim();
-        const fullName =
-          `${firstName} ${middleName} ${fatherName} ${motherName}`.trim();
-        const allNames = [firstName, middleName, fatherName, motherName].filter(
-          (n) => n.length > 0 // Filtrar también strings vacíos después del trim
-        );
-
-        // Si el searchTerm tiene múltiples palabras, buscar que todas estén presentes
-        const searchWords = searchTerm.split(/\s+/).filter((w) => w.length > 0);
-
-        if (searchWords.length === 1) {
-          // Búsqueda de una sola palabra: buscar en cualquier campo
-          const word = searchWords[0];
-          return (
-            fullName.includes(word) ||
-            shortName.includes(word) ||
-            allNames.some((name) => name.includes(word))
-          );
-        } else {
-          // Búsqueda de múltiples palabras: todas deben estar presentes en algún campo
-          return searchWords.every(
-            (word) =>
-              fullName.includes(word) ||
-              shortName.includes(word) ||
-              allNames.some((name) => name.includes(word))
-          );
-        }
+        return this.matchesEmployeeSearch(emp, searchTerm);
       });
 
       // Solo retornar si hay exactamente un empleado que coincida
@@ -932,7 +1006,7 @@ export class TimelogsComponent {
   public totalLunchExceededMinutes = computed(() => {
     const logs = this.filteredDaylogs();
     const { start: startDate, end: endDate } = this.normalizedDateRange();
-    
+
     if (!startDate || !endDate) {
       return 0;
     }
@@ -946,11 +1020,11 @@ export class TimelogsComponent {
     const dateRangeEnd = format(normalizedEnd, 'yyyy-MM-dd');
 
     return logs
-      .filter((log) => {
+      .filter((log: DayLog) => {
         const dayStr = log.day || '';
         return dayStr >= dateRangeStart && dayStr <= dateRangeEnd;
       })
-      .reduce((total, log) => {
+      .reduce((total: number, log: DayLog) => {
         if (log.lunchExceeded && log.lunchMinutes && log.lunchMinutes > 60) {
           return total + (log.lunchMinutes - 60);
         }
@@ -962,7 +1036,7 @@ export class TimelogsComponent {
   public totalDelayMinutes = computed(() => {
     const logs = this.filteredDaylogs();
     const { start: startDate, end: endDate } = this.normalizedDateRange();
-    
+
     if (!startDate || !endDate) {
       return 0;
     }
@@ -976,11 +1050,11 @@ export class TimelogsComponent {
     const dateRangeEnd = format(normalizedEnd, 'yyyy-MM-dd');
 
     return logs
-      .filter((log) => {
+      .filter((log: DayLog) => {
         const dayStr = log.day || '';
         return dayStr >= dateRangeStart && dayStr <= dateRangeEnd;
       })
-      .reduce((total, log) => {
+      .reduce((total: number, log: DayLog) => {
         if (log.delay && typeof log.delay === 'number') {
           return total + log.delay;
         }
@@ -1030,8 +1104,10 @@ export class TimelogsComponent {
     let url = `${baseUrl}?select=${encodeURIComponent(
       select
     )},employee:employees(id,company_id)`;
-    url += `&start_date=gte.${startDate}`;
-    url += `&end_date=lte.${endDate}`;
+    // Corregir: usar lógica de solapamiento (igual que timeoffs)
+    // Un schedule se solapa con el rango si: start_date <= endDate AND end_date >= startDate
+    url += `&start_date=lte.${endDate}`;
+    url += `&end_date=gte.${startDate}`;
 
     // Filtrar a través de employees.company_id (funciona incluso si employee_schedules no tiene company_id)
     if (companyId) {
@@ -1049,12 +1125,12 @@ export class TimelogsComponent {
     if (!start || !end) {
       return undefined;
     }
-    
+
     const companyId = this.organizationService.getCurrentCompanyId();
     if (!companyId) {
       return undefined;
     }
-    
+
     return {
       url: `${this.getSupabaseBaseUrl()}/rest/v1/timeoffs`,
       method: 'GET',
@@ -1071,60 +1147,152 @@ export class TimelogsComponent {
     };
   });
 
-  public logs = httpResource<any[]>(() => {
-    const { start, end } = this.normalizedDateRange();
-    if (!start || !end) {
-      return undefined;
-    }
-
-    // Construir URL manualmente para tener control total sobre los filtros
-    // PostgREST/Supabase requiere construir la URL manualmente cuando hay múltiples filtros en el mismo campo
+  // Helper para construir la request de timelogs
+  private buildLogsRequest(start: Date, end: Date) {
     const baseUrl = `${this.getSupabaseBaseUrl()}/rest/v1/timelogs`;
     const companyId = this.organizationService.getCurrentCompanyId();
-    const startDate = format(start, "yyyy-MM-dd'T'00:00:00");
-    const endDate = format(addDays(end, 1), "yyyy-MM-dd'T'00:00:00");
 
-    // Construir select con relaciones (solo empleados activos)
+    // Convertir las fechas locales de Panamá a UTC para la query
+    const startDateStrPanama =
+      formatInTimeZone(start, this.TIMEZONE, 'yyyy-MM-dd') + 'T00:00:00-05:00';
+    const endDateStrPanama =
+      formatInTimeZone(addDays(end, 1), this.TIMEZONE, 'yyyy-MM-dd') +
+      'T00:00:00-05:00';
+
+    const startDateObj = new Date(startDateStrPanama);
+    const endDateObj = new Date(endDateStrPanama);
+
+    const startDate = startDateObj.toISOString().split('.')[0] + 'Z';
+    const endDate = endDateObj.toISOString().split('.')[0] + 'Z';
+
     const select = `*,employee:employees!inner(id,first_name,father_name,is_active,branch:branches(id, name)),branch:branches(id, name, short_name)`;
 
-    // Construir URL con todos los parámetros
     let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
     url += `&created_at=gte.${startDate}`;
     url += `&created_at=lte.${endDate}`;
-
-    // Filtrar solo empleados activos
     url += `&employee.is_active=eq.true`;
 
     if (this.employeeId()) {
       url += `&employee_id=eq.${this.employeeId()}`;
     }
 
-    // Filtrar directamente por company_id de timelogs (la tabla tiene este campo)
     if (companyId) {
       url += `&company_id=eq.${companyId}`;
     }
 
     url += `&order=created_at.asc`;
 
-    // Debug: Log para timelogs
-    this.logger.debug('[TimelogsComponent] Cargando timelogs con URL:', url);
-    this.logger.debug('[TimelogsComponent] Company ID:', companyId);
-    this.logger.debug(
-      '[TimelogsComponent] Rango de fechas:',
-      format(start, 'yyyy-MM-dd'),
-      'a',
-      format(end, 'yyyy-MM-dd')
-    );
-    this.logger.debug(
-      '[TimelogsComponent] Employee ID:',
-      this.employeeId() || 'Todos'
-    );
-
     return {
       url,
       method: 'GET',
     };
+  }
+
+  // Consulta para timelogs antes o hasta el 22 de diciembre
+  public logsBefore22 = httpResource<any[]>(() => {
+    const { start, end } = this.normalizedDateRange();
+    if (!start || !end) {
+      return undefined;
+    }
+
+    const cutoffDate = new Date('2025-12-22');
+    const startStr = format(start, 'yyyy-MM-dd');
+    const endStr = format(end, 'yyyy-MM-dd');
+    const cutoffStr = '2025-12-22';
+
+    // Si el rango completo está después del 22, no hacer esta query
+    if (startStr > cutoffStr) {
+      return undefined;
+    }
+
+    // Si el rango cruza el 22, solo traer hasta el 22
+    const endDateForQuery = endStr > cutoffStr ? cutoffDate : end;
+
+    return this.buildLogsRequest(start, endDateForQuery);
   });
+
+  // Consulta para timelogs después del 22 de diciembre
+  public logsAfter22 = httpResource<any[]>(() => {
+    const { start, end } = this.normalizedDateRange();
+    if (!start || !end) {
+      return undefined;
+    }
+
+    const cutoffDate = new Date('2025-12-23');
+    const startStr = format(start, 'yyyy-MM-dd');
+    const endStr = format(end, 'yyyy-MM-dd');
+    const cutoffStr = '2025-12-23';
+
+    // Si el rango completo está antes o hasta el 22, no hacer esta query
+    if (endStr < cutoffStr) {
+      return undefined;
+    }
+
+    // Si el rango cruza el 22, empezar desde el 23
+    const startDateForQuery = startStr < cutoffStr ? cutoffDate : start;
+
+    return this.buildLogsRequest(startDateForQuery, end);
+  });
+
+  // Computed que combina ambos resultados manteniendo la API de httpResource
+  private _logsComputed = computed(() => {
+    const { start, end } = this.normalizedDateRange();
+    if (!start || !end) {
+      return {
+        value: () => [],
+        isLoading: () => false,
+        error: () => undefined,
+      };
+    }
+
+    const startStr = format(start, 'yyyy-MM-dd');
+    const endStr = format(end, 'yyyy-MM-dd');
+    const cutoffStr = '2025-12-22';
+
+    const before22Data = this.logsBefore22.value() ?? [];
+    const after22Data = this.logsAfter22.value() ?? [];
+
+    // Si el rango completo está antes o hasta el 22, usar solo logsBefore22
+    if (endStr <= cutoffStr) {
+      return {
+        value: () => before22Data,
+        isLoading: () => this.logsBefore22.isLoading(),
+        error: () => this.logsBefore22.error(),
+      };
+    }
+
+    // Si el rango completo está después del 22, usar solo logsAfter22
+    if (startStr > cutoffStr) {
+      return {
+        value: () => after22Data,
+        isLoading: () => this.logsAfter22.isLoading(),
+        error: () => this.logsAfter22.error(),
+      };
+    }
+
+    // Si el rango cruza el 22, combinar ambos
+    const combined = [...before22Data, ...after22Data];
+
+    return {
+      value: () => combined,
+      isLoading: () =>
+        this.logsBefore22.isLoading() || this.logsAfter22.isLoading(),
+      error: () => this.logsBefore22.error() || this.logsAfter22.error(),
+    };
+  });
+
+  // Proxy para mantener la API de httpResource
+  public logs = {
+    value: (): any[] => {
+      return this._logsComputed().value();
+    },
+    isLoading: (): boolean => {
+      return this._logsComputed().isLoading();
+    },
+    error: (): any => {
+      return this._logsComputed().error();
+    },
+  } as any;
 
   // Helper para obtener mensaje de error específico según el tipo
   private getErrorMessage(error: any): { summary: string; detail: string } {
@@ -1185,7 +1353,7 @@ export class TimelogsComponent {
 
   // Computed para detectar errores en las peticiones HTTP
   public hasError = computed(() => {
-    const logsError = this.logs.error();
+    const logsError = this._logsComputed().error();
     const schedulesError = this.schedules.error();
     const timeoffsError = this.timeoffs.error();
 
@@ -1224,25 +1392,12 @@ export class TimelogsComponent {
   private _errorShown = false;
 
   constructor() {
-    // Debug: Effect para verificar datos cargados
+    // Effect para manejar errores
     effect(
       () => {
-        const logsData = this.logs.value();
-        const schedulesData = this.schedules.value();
-        const timeoffsData = this.timeoffs.value();
         const logsError = this.logs.error();
         const schedulesError = this.schedules.error();
         const timeoffsError = this.timeoffs.error();
-
-        const timelogsCount = logsData?.length ?? 0;
-        const schedulesCount = schedulesData?.length ?? 0;
-        const timeoffsCount = timeoffsData?.length ?? 0;
-
-        this.logger.debug('[TimelogsComponent] 📊 Datos cargados:', {
-          timelogs: timelogsCount,
-          employee_schedules: schedulesCount,
-          timeoffs: timeoffsCount,
-        });
 
         if (logsError) {
           this.logger.error(
@@ -1263,68 +1418,16 @@ export class TimelogsComponent {
           );
         }
 
+        const logsData = this.logs.value();
         if (logsData && logsData.length === 0 && !logsError) {
           this.logger.warn(
-            '[TimelogsComponent] ⚠️ No se encontraron timelogs. Verificar:',
+            '[TimelogsComponent] ⚠️ No se encontraron timelogs',
             {
               company_id: this.organizationService.getCurrentCompanyId(),
               dateRange: this.dateRange(),
               employeeId: this.employeeId() || 'Todos',
             }
           );
-        }
-
-        // Mostrar muestra de timelogs si hay datos
-        if (logsData && logsData.length > 0) {
-          this.logger.debug(
-            '[TimelogsComponent] ✅ Timelogs encontrados:',
-            timelogsCount
-          );
-          this.logger.debug(
-            '[TimelogsComponent] 📋 Muestra (primeros 5):',
-            logsData.slice(0, 5).map((log) => ({
-              id: log.id,
-              employee_id: log.employee_id,
-              company_id: log.company_id,
-              branch_id: log.branch_id,
-              type: log.type,
-              created_at: log.created_at,
-              employee: log.employee
-                ? `${log.employee.first_name} ${log.employee.father_name}`
-                : 'N/A',
-              branch: log.branch ? log.branch.name : 'N/A',
-            }))
-          );
-          this.logger.debug(
-            '[TimelogsComponent] 📊 Distribución por company_id:',
-            logsData.reduce((acc: Record<string, number>, log) => {
-              const cid = log.company_id || 'NULL';
-              acc[cid] = (acc[cid] || 0) + 1;
-              return acc;
-            }, {})
-          );
-
-          // Verificar si hay timelogs con company_id diferente
-          const currentCompanyId =
-            this.organizationService.getCurrentCompanyId();
-          const wrongCompanyId = logsData.filter(
-            (log) => log.company_id !== currentCompanyId
-          );
-          if (wrongCompanyId.length > 0) {
-            this.logger.warn(
-              '[TimelogsComponent] ⚠️ Timelogs con company_id incorrecto:',
-              wrongCompanyId.length
-            );
-            this.logger.warn('  - Company ID esperado:', currentCompanyId);
-            this.logger.warn(
-              '  - Timelogs con company_id diferente:',
-              wrongCompanyId.slice(0, 3).map((log) => ({
-                id: log.id,
-                company_id: log.company_id,
-                employee_id: log.employee_id,
-              }))
-            );
-          }
         } else if (!logsError) {
           this.logger.warn('[TimelogsComponent] ⚠️ No se encontraron timelogs');
           this.logger.warn(
@@ -1366,7 +1469,9 @@ export class TimelogsComponent {
     const { start: startDate, end: endDate } = this.normalizedDateRange();
 
     if (!startDate || !endDate) {
-      this.logger.debug('[TimelogsComponent] ⚠️ dayLogs: No hay rango de fechas');
+      this.logger.debug(
+        '[TimelogsComponent] ⚠️ dayLogs: No hay rango de fechas'
+      );
       return [];
     }
 
@@ -1384,14 +1489,6 @@ export class TimelogsComponent {
     const schedulesData = this.schedules.value() ?? [];
     const timeoffsData = this.timeoffs.value() ?? [];
     const daysList = this.days();
-
-    this.logger.debug('[TimelogsComponent] 📊 dayLogs - Datos de entrada:', {
-      timelogs: logsData.length,
-      employee_schedules: schedulesData.length,
-      timeoffs: timeoffsData.length,
-      days: daysList.length,
-      dateRange: `${dateRangeStart} a ${dateRangeEnd}`,
-    });
 
     // Validar que daysList esté completo y ordenado
     if (
@@ -1412,29 +1509,54 @@ export class TimelogsComponent {
 
     // Primero obtener todos los logs filtrados
     const filteredLogs = logsData
-      .filter((x) =>
+      .filter((x: any) =>
         this.branchId() ? x.employee?.branch?.id === this.branchId() : true
       )
-      .map((x) => {
-        const logDate = new Date(x.created_at);
-        logDate.setHours(0, 0, 0, 0);
-        return { ...x, day: format(logDate, 'yyyy-MM-dd') };
+      .map((x: any) => {
+        // Convertir created_at de UTC (viene de Supabase) a hora local de Panamá
+        // x.created_at viene en formato ISO string desde Supabase (UTC)
+        const logDateUTC = new Date(x.created_at);
+        // Usar formatInTimeZone directamente para obtener la fecha en formato yyyy-MM-dd
+        // en la zona horaria de Panamá, sin crear un Date intermedio que pueda cambiar el día
+        const dayStr = formatInTimeZone(
+          logDateUTC,
+          this.TIMEZONE,
+          'yyyy-MM-dd'
+        );
+
+        return { ...x, day: dayStr };
       })
       // Filtrar logs que estén dentro del rango seleccionado (solo fechas válidas)
-      .filter((x) => {
+      .filter((x: any) => {
         const logDay = x.day;
-        return (
+        const dentroRango =
           logDay >= dateRangeStart &&
           logDay <= dateRangeEnd &&
-          logDay !== format(new Date('1900-01-01'), 'yyyy-MM-dd')
-        );
+          logDay !== format(new Date('1900-01-01'), 'yyyy-MM-dd');
+
+        return dentroRango;
       });
 
     // Obtener empleados únicos que tienen logs en el rango o que están activos
     const uniqueEmployees = new Map<string, Partial<Employee>>();
 
+    // Si hay búsqueda por nombre, incluir empleados que coincidan incluso si no tienen timelogs
+    const searchTerm = this.employeeSearch()?.toLowerCase().trim() || '';
+    if (searchTerm) {
+      this.employees.employeesList().forEach((emp) => {
+        if (!emp.is_active) return;
+
+        if (
+          this.matchesEmployeeSearch(emp, searchTerm) &&
+          !uniqueEmployees.has(emp.id)
+        ) {
+          uniqueEmployees.set(emp.id, emp);
+        }
+      });
+    }
+
     // Primero agregar empleados que tienen logs, pero usar datos completos de employeesList
-    filteredLogs.forEach((log) => {
+    filteredLogs.forEach((log: any) => {
       if (log.employee?.id && !uniqueEmployees.has(log.employee.id)) {
         // Buscar el empleado completo en employeesList para obtener total_lunch_exceeded_minutes
         const fullEmployee = this.employees
@@ -1454,8 +1576,8 @@ export class TimelogsComponent {
       }
     }
 
-    // Si no hay empleados únicos, usar todos los empleados activos
-    if (uniqueEmployees.size === 0) {
+    // Si no hay empleados únicos y no hay búsqueda, usar todos los empleados activos
+    if (uniqueEmployees.size === 0 && !searchTerm) {
       this.employees.employeesList().forEach((emp) => {
         if (emp.is_active) {
           uniqueEmployees.set(emp.id, emp);
@@ -1474,13 +1596,69 @@ export class TimelogsComponent {
           return;
         }
 
-        // Buscar schedule que corresponda a este día
-        const schedule = schedulesData.find(
+        // Buscar schedule que corresponda a este día, considerando el día de la semana
+        const dayDate = new Date(day + 'T00:00:00');
+        const dayOfWeek = dayDate.getDay(); // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
+
+        // Buscar schedules que coincidan con el rango de fechas
+        const matchingSchedules = schedulesData.filter(
           (schedule) =>
             schedule.employee_id === employee.id &&
             schedule.start_date <= day &&
             schedule.end_date >= day
         );
+
+        // Si hay múltiples schedules, intentar encontrar el más específico
+        // Priorizar schedules que no sean "Dia Libre" o "Feriado" para días laborales
+        let schedule = matchingSchedules[0]; // Por defecto, el primero
+
+        if (matchingSchedules.length > 1) {
+          // Para días laborales (Lunes-Viernes = 1-5), priorizar schedules que NO sean día libre
+          if (dayOfWeek >= 1 && dayOfWeek <= 5) {
+            const workSchedule = matchingSchedules.find(
+              (s) =>
+                s.schedule &&
+                !s.schedule.day_off &&
+                !this.restrictedScheduleIds.includes(s.schedule.id || '') &&
+                !this.restrictedScheduleNames.some((name) =>
+                  s.schedule?.name?.toLowerCase().includes(name)
+                )
+            );
+            if (workSchedule) {
+              schedule = workSchedule;
+            }
+          }
+          // Para sábado (6), buscar "Dia Libre"
+          else if (dayOfWeek === 6) {
+            const dayOffSchedule = matchingSchedules.find(
+              (s) =>
+                s.schedule?.day_off ||
+                this.restrictedScheduleNames.some(
+                  (name) =>
+                    s.schedule?.name?.toLowerCase().includes('dia libre') ||
+                    s.schedule?.name?.toLowerCase().includes('día libre')
+                )
+            );
+            if (dayOffSchedule) {
+              schedule = dayOffSchedule;
+            }
+          }
+          // Para domingo (0), buscar "Feriado"
+          else if (dayOfWeek === 0) {
+            const holidaySchedule = matchingSchedules.find(
+              (s) =>
+                this.restrictedScheduleIds.includes(s.schedule?.id || '') ||
+                this.restrictedScheduleNames.some((name) =>
+                  s.schedule?.name?.toLowerCase().includes('feriado')
+                )
+            );
+            if (holidaySchedule) {
+              schedule = holidaySchedule;
+            }
+          }
+        } else if (matchingSchedules.length === 1) {
+          schedule = matchingSchedules[0];
+        }
 
         acc.push({
           employee,
@@ -1503,23 +1681,16 @@ export class TimelogsComponent {
       });
     });
 
-    this.logger.debug('[TimelogsComponent] 📊 dayLogs - Antes de procesar:', {
-      filteredLogs: filteredLogs.length,
-      uniqueEmployees: uniqueEmployees.size,
-      daysList: daysList.length,
-      accInicial: acc.length,
-    });
-
     // Ahora procesar los logs para actualizar los registros creados
-    const result = filteredLogs
-      .reduce<DayLog[]>((acc, x) => {
+    const result = (filteredLogs as any[])
+      .reduce<DayLog[]>((acc: DayLog[], x: any) => {
         // Solo procesar si el día está dentro del rango
         if (x.day < dateRangeStart || x.day > dateRangeEnd) {
           return acc;
         }
 
         const index = acc.findIndex(
-          (y) => y.day === x.day && y.employee.id === x.employee.id
+          (y: DayLog) => y.day === x.day && y.employee.id === x.employee.id
         );
 
         // Si no se encuentra el índice, significa que el día no está en this.days()
@@ -1620,13 +1791,23 @@ export class TimelogsComponent {
                 const entryTime = format(acc[index].entry.date, 'hh:mm:ss');
                 const scheduleTime = acc[index].schedule.schedule.entry_time;
                 if (scheduleTime) {
-                  const scheduleTimeStr = typeof scheduleTime === 'string' 
-                    ? scheduleTime 
-                    : format(new Date(scheduleTime), 'HH:mm:ss');
-                  const delay = this.calcTimeDiff(entryTime, scheduleTimeStr);
+                  const scheduleTimeStr =
+                    typeof scheduleTime === 'string'
+                      ? scheduleTime
+                      : format(new Date(scheduleTime), 'HH:mm:ss');
+                  const delayTotal = this.calcTimeDiff(
+                    entryTime,
+                    scheduleTimeStr
+                  );
 
-                  if (delay > (acc[index].schedule.schedule.minutes_tolerance || 0)) {
-                    acc[index].delay = delay;
+                  // Aplicar tolerancia: solo contar el exceso sobre la tolerancia
+                  const tolerance = this.delayToleranceMinutes();
+                  if (delayTotal > tolerance) {
+                    // Solo guardar el exceso sobre la tolerancia
+                    acc[index].delay = delayTotal - tolerance;
+                  } else {
+                    // Si está dentro de la tolerancia, no es retraso
+                    acc[index].delay = undefined;
                   }
                 }
               }
@@ -1701,9 +1882,17 @@ export class TimelogsComponent {
                 this.logger.warn(
                   '[TimelogsComponent] Fechas inválidas o salida anterior a entrada',
                   {
+                    day: acc[index].day,
                     entry: acc[index].entry.date,
                     exit: acc[index].exit.date,
-                    employee: acc[index].employee?.first_name,
+                    entryDateUTC: entryDate.toISOString(),
+                    exitDateUTC: exitDate.toISOString(),
+                    employee: `${acc[index].employee?.first_name} ${acc[index].employee?.father_name}`,
+                    employee_id: acc[index].employee?.id,
+                    diferencia_segundos:
+                      exitDate <= entryDate
+                        ? (exitDate.getTime() - entryDate.getTime()) / 1000
+                        : null,
                   }
                 );
                 acc[index].totalHours = 0;
@@ -1783,9 +1972,17 @@ export class TimelogsComponent {
               this.logger.warn(
                 '[TimelogsComponent] Fechas inválidas o salida anterior a entrada (sin horario)',
                 {
+                  day: acc[index].day,
                   entry: acc[index].entry.date,
                   exit: acc[index].exit.date,
-                  employee: acc[index].employee?.first_name,
+                  entryDateUTC: entryDate.toISOString(),
+                  exitDateUTC: exitDate.toISOString(),
+                  employee: `${acc[index].employee?.first_name} ${acc[index].employee?.father_name}`,
+                  employee_id: acc[index].employee?.id,
+                  diferencia_segundos:
+                    exitDate <= entryDate
+                      ? (exitDate.getTime() - entryDate.getTime()) / 1000
+                      : null,
                 }
               );
               acc[index].totalHours = 0;
@@ -1794,7 +1991,7 @@ export class TimelogsComponent {
             }
 
             const totalMinutes = differenceInMinutes(exitDate, entryDate);
-            
+
             // Calcular tiempo de almuerzo (solo restar 1 hora = 60 minutos máximo)
             let lunchTimeToSubtract = 0;
             if (acc[index].lunch_start && acc[index].lunch_end) {
@@ -1855,14 +2052,17 @@ export class TimelogsComponent {
           }
         } else {
           // Si no hay marcación pero hay schedule, calcular retraso si aplica
-          if (acc[index].schedule?.schedule && !acc[index].schedule.schedule.day_off) {
+          if (
+            acc[index].schedule?.schedule &&
+            !acc[index].schedule.schedule.day_off
+          ) {
             // No hay nada que hacer aquí, el delay se calcula cuando hay entrada
           }
         }
 
         return acc;
       }, acc) // Usar el array inicial que ya tiene todos los días
-      .sort((a, b) => {
+      .sort((a: DayLog, b: DayLog) => {
         // Ordenar primero por fecha (asegurar orden cronológico), luego por nombre de empleado
         const dateA = new Date(a.day + 'T00:00:00').getTime();
         const dateB = new Date(b.day + 'T00:00:00').getTime();
@@ -1876,22 +2076,11 @@ export class TimelogsComponent {
         return nameA.localeCompare(nameB);
       })
       // Filtrar días finales que estén dentro del rango (validación final)
-      .filter((x) => {
+      .filter((x: DayLog) => {
         const dayStr = x.day;
         // Asegurar que la fecha esté en el rango correcto
         return dayStr >= dateRangeStart && dayStr <= dateRangeEnd;
       });
-
-    this.logger.debug('[TimelogsComponent] ✅ dayLogs - Procesamiento completado:', {
-      totalRegistros: result.length,
-      conEntrada: result.filter((x) => x.entry).length,
-      conSalida: result.filter((x) => x.exit).length,
-      conAlmuerzo: result.filter((x) => x.lunch_start && x.lunch_end).length,
-      conErrores: result.filter((x) => x.scheduleError).length,
-      conAlertas: result.filter((x) => x.alert).length,
-      conMarcaciones: result.filter((x) => x.entry || x.lunch_start || x.exit)
-        .length,
-    });
 
     return result;
   });
@@ -1901,7 +2090,7 @@ export class TimelogsComponent {
     const searchTerm = this.employeeSearch()?.toLowerCase().trim() || '';
 
     // Filtrar manteniendo el mismo orden que dayLogs
-    const filtered = dayLogsData.filter((x) => {
+    const filtered = dayLogsData.filter((x: DayLog) => {
       // Filtrar por employeeId si está seleccionado
       if (this.employeeId()) {
         if (x.employee?.id !== this.employeeId()) {
@@ -1959,8 +2148,38 @@ export class TimelogsComponent {
         }
       }
 
+      // Filtro: Solo marcaciones (ocultar días sin ninguna marcación)
+      if (this.onlyWithMarcaciones()) {
+        const hasMarcaciones =
+          x.entry || x.lunch_start || x.lunch_end || x.exit;
+        if (!hasMarcaciones) {
+          return false;
+        }
+      }
+
       if (this.onlyDelayed()) {
-        return x.delay !== undefined;
+        // Solo considerar delays numéricos (excluir 'DIA LIBRE' y otros strings)
+        if (typeof x.delay !== 'number' || x.delay === undefined) {
+          return false;
+        }
+
+        const range = this.delayRange();
+        // Si no hay rango seleccionado (está en "Todos"), mostrar todos los retrasos
+        if (!range) {
+          return true; // Mostrar todos los retrasos
+        }
+
+        // x.delay ya contiene solo el exceso sobre la tolerancia
+        const delayMinutes = x.delay;
+
+        if (range === '1-5') {
+          return delayMinutes >= 1 && delayMinutes <= 5;
+        } else if (range === '5-10') {
+          return delayMinutes >= 5 && delayMinutes <= 10; // Incluir el 5 para consistencia
+        } else if (range === '10+') {
+          return delayMinutes > 10;
+        }
+        return false;
       }
       if (this.onlyEarlyExit()) {
         return x.earlyExit === true;
@@ -2005,19 +2224,7 @@ export class TimelogsComponent {
     });
 
     // Retornar los datos filtrados en el mismo orden (ya están ordenados por dayLogs)
-    this.logger.debug(
-      '[TimelogsComponent] ✅ filteredDaylogs - Filtrado completado:',
-      {
-        totalAntes: dayLogsData.length,
-        totalDespues: filtered.length,
-        filtrosAplicados: {
-          onlyDelayed: this.onlyDelayed(),
-          onlyErrors: this.onlyErrors(),
-          onlyEarlyExit: this.onlyEarlyExit(),
-          onlyLunchExceeded: this.onlyLunchExceeded(),
-        },
-      }
-    );
+    // Log eliminado - no es crítico para debugging
 
     return filtered;
   });
@@ -2164,12 +2371,12 @@ export class TimelogsComponent {
 
     // Filtrar y ordenar datos antes de mapear (usando x.day que está en formato 'yyyy-MM-dd')
     const sortedAndFilteredData = filteredData
-      .filter((x) => {
+      .filter((x: DayLog) => {
         // x.day ya está en formato 'yyyy-MM-dd', comparar directamente como string
         const dayStr = x.day || '';
         return dayStr >= dateRangeStart && dayStr <= dateRangeEnd;
       })
-      .sort((a, b) => {
+      .sort((a: DayLog, b: DayLog) => {
         // Ordenar por fecha (x.day está en formato 'yyyy-MM-dd', perfecto para ordenar como string)
         const dayA = a.day || '';
         const dayB = b.day || '';
@@ -2189,7 +2396,7 @@ export class TimelogsComponent {
       });
 
     // Mapear datos ya ordenados
-    const mappedData = sortedAndFilteredData.map((x) => {
+    const mappedData = sortedAndFilteredData.map((x: DayLog) => {
       const lunchMinutes = x.lunchMinutes || 0;
       const exceededMinutes = lunchMinutes > 60 ? lunchMinutes - 60 : 0;
       const lunchExceeded = x.lunchExceeded
