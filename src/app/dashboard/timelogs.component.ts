@@ -88,13 +88,24 @@ import { EmployeesStore } from '../stores/employees.store';
       </ng-template>
       <!-- Búsqueda y Fecha (fuera del panel) -->
       <div class="flex flex-col md:flex-row gap-3 items-center mb-4">
-        <div class="flex-1 w-full md:w-auto">
+        <div class="flex-1 w-full md:w-auto flex gap-2">
           <input
             pInputText
             type="text"
-            [(ngModel)]="employeeSearch"
+            [ngModel]="employeeSearchInput()"
+            (ngModelChange)="employeeSearchInput.set($event)"
+            (keyup.enter)="onEmployeeSearchEnter()"
             placeholder="Buscar empleado por nombre..."
-            class="w-full text-sm"
+            class="flex-1 text-sm"
+          />
+          <p-button
+            icon="pi pi-search"
+            (click)="onEmployeeSearchEnter()"
+            [rounded]="true"
+            severity="primary"
+            [style]="{ 'min-width': '44px', height: '44px' }"
+            [pTooltip]="'Buscar'"
+            tooltipPosition="top"
           />
         </div>
         <div class="w-full md:w-auto">
@@ -729,7 +740,8 @@ export class TimelogsComponent {
   public dateRange = signal<Date[]>([startOfMonth(new Date()), new Date()]);
   public employeeId = model<string>();
   public branchId = model<string>();
-  public employeeSearch = model<string>('');
+  public employeeSearch = model<string>(''); // Valor de búsqueda real (se actualiza con Enter)
+  public employeeSearchInput = signal<string>(''); // Valor temporal del input
   public store = inject(DashboardStore);
   public onlyDelayed = signal(false);
   public organizationService = inject(OrganizationService);
@@ -917,6 +929,11 @@ export class TimelogsComponent {
   public loading = signal(false);
   private message = inject(MessageService);
   public colorVariants = colorVariants;
+
+  // Método para actualizar la búsqueda cuando se presiona Enter
+  public onEmployeeSearchEnter(): void {
+    this.employeeSearch.set(this.employeeSearchInput());
+  }
 
   // Helper optimizado para buscar empleados por palabras que empiecen con el término de búsqueda
   private matchesEmployeeSearch(
