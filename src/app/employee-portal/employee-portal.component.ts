@@ -41,7 +41,18 @@ import { EmployeePortalNavigationService } from '../services/employee-portal-nav
 import { NotificationsService } from '../services/notifications.service';
 import { OrganizationService } from '../services/organization.service';
 import { DashboardStore } from '../stores/dashboard.store';
+import { EmployeePortalStore } from '../stores/employee-portal.store';
 import { EmployeesStore } from '../stores/employees.store';
+import { EmployeePortalCompensatoryComponent } from './components/employee-portal-compensatory.component';
+import { EmployeePortalComplaintsComponent } from './components/employee-portal-complaints.component';
+import { EmployeePortalDashboardComponent } from './components/employee-portal-dashboard.component';
+import { EmployeePortalDisabilitiesComponent } from './components/employee-portal-disabilities.component';
+import { EmployeePortalDocumentsComponent } from './components/employee-portal-documents.component';
+import { EmployeePortalLatesComponent } from './components/employee-portal-lates.component';
+import { EmployeePortalManagementNavigationComponent } from './components/employee-portal-management-navigation.component';
+import { EmployeePortalTimelogsComponent } from './components/employee-portal-timelogs.component';
+import { EmployeePortalVacationsComponent } from './components/employee-portal-vacations.component';
+import { EmployeePortalApiService } from './services/employee-portal-api.service';
 
 @Component({
   selector: 'pt-employee-portal',
@@ -63,8 +74,17 @@ import { EmployeesStore } from '../stores/employees.store';
     Select,
     NgClass,
     CalendarComponent,
+    EmployeePortalDashboardComponent,
+    EmployeePortalManagementNavigationComponent,
+    EmployeePortalTimelogsComponent,
+    EmployeePortalLatesComponent,
+    EmployeePortalDisabilitiesComponent,
+    EmployeePortalDocumentsComponent,
+    EmployeePortalVacationsComponent,
+    EmployeePortalComplaintsComponent,
+    EmployeePortalCompensatoryComponent,
   ],
-  providers: [MessageService],
+  providers: [MessageService, EmployeePortalStore],
   template: `
     <div class="portal-content">
       <!-- Dashboard Section -->
@@ -72,533 +92,16 @@ import { EmployeesStore } from '../stores/employees.store';
       <div id="dashboard" class="section-content">
         @if (currentEmployee()) {
         <div class="flex flex-col gap-6">
-          <!-- Welcome Card -->
-          <p-card class="dashboard-welcome-card">
-            <div
-              class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
-            >
-              <div class="flex items-center gap-4">
-                <div
-                  class="w-16 h-16 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg"
-                >
-                  <i class="pi pi-user text-white text-2xl"></i>
-                </div>
-                <div>
-                  <h2 class="text-2xl font-bold text-white m-0">
-                    ¡Hola, {{ currentEmployee()?.first_name }}!
-                  </h2>
-                  <p class="text-gray-400 m-0 mt-1">
-                    {{ currentEmployee()?.position?.name || 'Sin cargo' }} -
-                    {{ currentEmployee()?.branch?.name || 'Sin sucursal' }}
-                  </p>
-                </div>
-              </div>
-              <div class="text-right">
-                <p class="text-sm text-gray-400 m-0">Hoy es</p>
-                <p class="text-lg font-semibold text-white m-0">
-                  {{ getCurrentDate() | date : 'fullDate' }}
-                </p>
-              </div>
-            </div>
-          </p-card>
-
-          <!-- Stats Grid -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <!-- Días Trabajados Este Mes -->
-            <p-card class="dashboard-stat-card">
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="text-sm text-gray-400 m-0 mb-1">Días Trabajados</p>
-                  <p class="text-2xl font-bold text-white m-0">
-                    {{ daysWorkedThisMonth() }}
-                  </p>
-                  <p class="text-xs text-gray-500 m-0 mt-1">Este mes</p>
-                </div>
-                <div
-                  class="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center"
-                >
-                  <i class="pi pi-calendar text-blue-400 text-xl"></i>
-                </div>
-              </div>
-            </p-card>
-
-            <!-- Tardanzas Este Mes -->
-            <p-card class="dashboard-stat-card">
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="text-sm text-gray-400 m-0 mb-1">Tardanzas</p>
-                  <p class="text-2xl font-bold text-white m-0">
-                    {{ myLates().length }}
-                  </p>
-                  <p class="text-xs text-gray-500 m-0 mt-1">Este mes</p>
-                </div>
-                <div
-                  class="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center"
-                >
-                  <i class="pi pi-clock text-red-400 text-xl"></i>
-                </div>
-              </div>
-            </p-card>
-
-            <!-- Horas de Compensatorio Aprobadas -->
-            <p-card class="dashboard-stat-card">
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="text-sm text-gray-400 m-0 mb-1">Horas de Compensatorio Aprobadas</p>
-                  <p class="text-2xl font-bold text-white m-0">
-                    {{ approvedCompensatoryHours() }}
-                  </p>
-                  <p class="text-xs text-gray-500 m-0 mt-1">Total aprobadas</p>
-                </div>
-                <div
-                  class="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center"
-                >
-                  <i class="pi pi-check-circle text-green-400 text-xl"></i>
-                </div>
-              </div>
-            </p-card>
-
-            <!-- Salario Mensual -->
-            <p-card class="dashboard-stat-card">
-              <div class="flex items-center justify-between">
-                <div>
-                  <p class="text-sm text-gray-400 m-0 mb-1">Salario Mensual</p>
-                  <p 
-                    class="text-2xl font-bold text-green-400 m-0 cursor-pointer hover:text-green-300 transition-colors"
-                    (click)="showSalary.set(!showSalary())"
-                    [title]="showSalary() ? 'Ocultar salario' : 'Click para ver salario'"
-                  >
-                    @if (showSalary()) {
-                      {{ currentEmployee()?.monthly_salary | currency : '$' }}
-                    } @else {
-                      <span class="text-gray-500">••••••</span>
-                    }
-                  </p>
-                  <p class="text-xs text-gray-500 m-0 mt-1">Base</p>
-                </div>
-                <div
-                  class="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center cursor-pointer hover:bg-amber-500/30 transition-colors"
-                  (click)="showSalary.set(!showSalary())"
-                  [title]="showSalary() ? 'Ocultar salario' : 'Click para ver salario'"
-                >
-                  <i 
-                    [class]="showSalary() ? 'pi pi-eye-slash text-amber-400 text-xl' : 'pi pi-eye text-amber-400 text-xl'"
-                  ></i>
-                </div>
-              </div>
-            </p-card>
-          </div>
-
-          <!-- Recent Activity and Quick Info -->
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Marcaciones Recientes -->
-            <p-card>
-              <ng-template #title>
-                <div class="flex items-center gap-2">
-                  <i class="pi pi-calendar-clock text-amber-400"></i>
-                  <span>Marcaciones Recientes</span>
-                </div>
-              </ng-template>
-              <div class="flex flex-col gap-3">
-                @if (recentTimelogs().length > 0) { @for (event of
-                recentTimelogs(); track event.id) {
-                <div
-                  class="flex items-center justify-between p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50 hover:bg-neutral-800/70 transition-colors"
-                >
-                  <div class="flex items-center gap-3">
-                    <div
-                      class="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center"
-                    >
-                      <i [class]="'pi ' + event.icon + ' text-amber-400'"></i>
-                    </div>
-                    <div>
-                      <p class="text-white font-semibold m-0">
-                        {{ event.typeLabel }}
-                      </p>
-                      <p class="text-sm text-gray-400 m-0">
-                        {{ event.day | date : 'mediumDate' }} a las {{ event.time }}
-                        @if (event.branch?.name) {
-                          - {{ event.branch.name }}
-                        }
-                      </p>
-                    </div>
-                  </div>
-                  <div class="flex flex-col items-end gap-1">
-                    <span
-                      class="text-xs text-gray-500 font-medium"
-                    >
-                      {{ event.date | date : 'short' }}
-                    </span>
-                    @if (event.type === 'entry') {
-                      <span
-                        class="text-xs text-green-400 font-semibold px-2 py-1 rounded bg-green-500/20"
-                      >
-                        Entrada
-                      </span>
-                    } @else if (event.type === 'exit') {
-                      <span
-                        class="text-xs text-blue-400 font-semibold px-2 py-1 rounded bg-blue-500/20"
-                      >
-                        Salida
-                      </span>
-                    } @else if (event.type === 'lunch_start' || event.type === 'lunch_end') {
-                      <span
-                        class="text-xs text-amber-400 font-semibold px-2 py-1 rounded bg-amber-500/20"
-                      >
-                        Almuerzo
-                      </span>
-                    }
-                  </div>
-                </div>
-                } } @else {
-                <p class="text-gray-400 text-center py-4">
-                  No hay marcaciones recientes
-                </p>
-                }
-              </div>
-            </p-card>
-
-            <!-- Información Rápida -->
-            <p-card>
-              <ng-template #title>
-                <div class="flex items-center gap-2">
-                  <i class="pi pi-info-circle text-amber-400"></i>
-                  <span>Información Rápida</span>
-                </div>
-              </ng-template>
-              <div class="flex flex-col gap-3">
-                <div
-                  class="flex items-center justify-between p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
-                >
-                  <div class="flex items-center gap-3">
-                    <i class="pi pi-building text-amber-400"></i>
-                    <span class="text-gray-400">Sucursal:</span>
-                  </div>
-                  <span class="text-white font-semibold">{{
-                    currentEmployee()?.branch?.name || 'N/A'
-                  }}</span>
-                </div>
-                <div
-                  class="flex items-center justify-between p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
-                >
-                  <div class="flex items-center gap-3">
-                    <i class="pi pi-sitemap text-amber-400"></i>
-                    <span class="text-gray-400">Departamento:</span>
-                  </div>
-                  <span class="text-white font-semibold">{{
-                    currentEmployee()?.department?.name || 'N/A'
-                  }}</span>
-                </div>
-                <div
-                  class="flex items-center justify-between p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
-                >
-                  <div class="flex items-center gap-3">
-                    <i class="pi pi-calendar text-amber-400"></i>
-                    <span class="text-gray-400">Fecha de Ingreso:</span>
-                  </div>
-                  <span class="text-white font-semibold">{{
-                    currentEmployee()?.start_date | date : 'shortDate'
-                  }}</span>
-                </div>
-                <div
-                  class="flex items-center justify-between p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
-                >
-                  <div class="flex items-center gap-3">
-                    <i class="pi pi-envelope text-amber-400"></i>
-                    <span class="text-gray-400">Email:</span>
-                  </div>
-                  <span class="text-white font-semibold text-sm">{{
-                    currentEmployee()?.work_email || 'N/A'
-                  }}</span>
-                </div>
-              </div>
-            </p-card>
-          </div>
-        </div>
-        }
-      </div>
-      }
-
-      <!-- Mi Perfil Section -->
-      @if (activeSection() === 'profile') {
-      <div id="profile" class="section-content">
-        @if (currentEmployee()) {
-        <div class="flex flex-col gap-6">
-          <!-- Header Card con Avatar -->
-          <p-card class="profile-header-card">
-            <div class="flex flex-col md:flex-row items-start md:items-center gap-6">
-              <div class="flex items-center gap-4">
-                <div
-                  class="w-20 h-20 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-lg border-4 border-neutral-800"
-                >
-                  <i class="pi pi-user text-white text-3xl"></i>
-                </div>
-                <div>
-                  <h2 class="text-2xl font-bold text-white m-0">
-                    {{ currentEmployee()?.first_name }}
-                    {{ currentEmployee()?.father_name }}
-                  </h2>
-                  <p class="text-gray-400 m-0 mt-1 flex items-center gap-2">
-                    <i class="pi pi-briefcase text-amber-400"></i>
-                    {{ currentEmployee()?.position?.name || 'Sin cargo' }}
-                  </p>
-                  <p class="text-gray-500 text-sm m-0 mt-1 flex items-center gap-2">
-                    <i class="pi pi-building text-gray-500"></i>
-                    {{ currentEmployee()?.branch?.name || 'Sin sucursal' }}
-                  </p>
-                </div>
-              </div>
-              <div class="ml-auto">
-                <p-button
-                  [label]="editMode() ? 'Cancelar' : 'Editar Datos'"
-                  [icon]="editMode() ? 'pi pi-times' : 'pi pi-pencil'"
-                  [severity]="editMode() ? 'secondary' : 'primary'"
-                  [outlined]="!editMode()"
-                  (click)="toggleEditMode()"
-                />
-              </div>
-            </div>
-          </p-card>
-
-          <!-- Información General -->
-          <p-card>
-            <ng-template #title>
-              <div class="flex items-center gap-2">
-                <i class="pi pi-info-circle text-amber-400"></i>
-                <span>Información General</span>
-              </div>
-            </ng-template>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <!-- Nombre Completo -->
-              <div class="p-4 rounded-lg bg-gradient-to-br from-neutral-800/50 to-neutral-900/50 border border-neutral-700/50 hover:border-amber-500/30 transition-all">
-                <div class="flex items-center gap-3 mb-2">
-                  <div class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-                    <i class="pi pi-user text-blue-400"></i>
-                  </div>
-                  <label class="text-sm text-gray-400 font-medium">Nombre Completo</label>
-                </div>
-                <p class="text-white font-semibold text-base m-0">
-                  {{ currentEmployee()?.first_name }}
-                  {{ currentEmployee()?.middle_name }}
-                  {{ currentEmployee()?.father_name }}
-                  {{ currentEmployee()?.mother_name }}
-                </p>
-              </div>
-
-              <!-- Cargo -->
-              <div class="p-4 rounded-lg bg-gradient-to-br from-neutral-800/50 to-neutral-900/50 border border-neutral-700/50 hover:border-amber-500/30 transition-all">
-                <div class="flex items-center gap-3 mb-2">
-                  <div class="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
-                    <i class="pi pi-briefcase text-purple-400"></i>
-                  </div>
-                  <label class="text-sm text-gray-400 font-medium">Cargo</label>
-                </div>
-                <p class="text-white font-semibold text-base m-0">
-                  {{ currentEmployee()?.position?.name || 'Sin cargo' }}
-                </p>
-              </div>
-
-              <!-- Sucursal -->
-              <div class="p-4 rounded-lg bg-gradient-to-br from-neutral-800/50 to-neutral-900/50 border border-neutral-700/50 hover:border-amber-500/30 transition-all">
-                <div class="flex items-center gap-3 mb-2">
-                  <div class="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
-                    <i class="pi pi-building text-green-400"></i>
-                  </div>
-                  <label class="text-sm text-gray-400 font-medium">Sucursal</label>
-                </div>
-                <p class="text-white font-semibold text-base m-0">
-                  {{ currentEmployee()?.branch?.name || 'Sin sucursal' }}
-                </p>
-              </div>
-
-              <!-- Departamento -->
-              <div class="p-4 rounded-lg bg-gradient-to-br from-neutral-800/50 to-neutral-900/50 border border-neutral-700/50 hover:border-amber-500/30 transition-all">
-                <div class="flex items-center gap-3 mb-2">
-                  <div class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
-                    <i class="pi pi-sitemap text-cyan-400"></i>
-                  </div>
-                  <label class="text-sm text-gray-400 font-medium">Departamento</label>
-                </div>
-                <p class="text-white font-semibold text-base m-0">
-                  {{ currentEmployee()?.department?.name || 'Sin departamento' }}
-                </p>
-              </div>
-
-              <!-- Fecha de Ingreso -->
-              <div class="p-4 rounded-lg bg-gradient-to-br from-neutral-800/50 to-neutral-900/50 border border-neutral-700/50 hover:border-amber-500/30 transition-all">
-                <div class="flex items-center gap-3 mb-2">
-                  <div class="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">
-                    <i class="pi pi-calendar text-orange-400"></i>
-                  </div>
-                  <label class="text-sm text-gray-400 font-medium">Fecha de Ingreso</label>
-                </div>
-                <p class="text-white font-semibold text-base m-0">
-                  {{ currentEmployee()?.start_date | date : 'fullDate' }}
-                </p>
-              </div>
-
-              <!-- Salario Mensual -->
-              <div class="p-4 rounded-lg bg-gradient-to-br from-neutral-800/50 to-neutral-900/50 border border-neutral-700/50 hover:border-amber-500/30 transition-all">
-                <div class="flex items-center gap-3 mb-2">
-                  <div class="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
-                    <i class="pi pi-dollar text-amber-400"></i>
-                  </div>
-                  <label class="text-sm text-gray-400 font-medium">Salario Mensual</label>
-                </div>
-                <p 
-                  class="text-white font-semibold text-base m-0 cursor-pointer hover:text-amber-300 transition-colors inline-flex items-center gap-2"
-                  (click)="showSalary.set(!showSalary())"
-                  [title]="showSalary() ? 'Ocultar salario' : 'Click para ver salario'"
-                >
-                  @if (showSalary()) {
-                    {{ currentEmployee()?.monthly_salary | currency : '$' }}
-                  } @else {
-                    <span class="text-gray-500">••••••</span>
-                  }
-                  <i 
-                    [class]="showSalary() ? 'pi pi-eye-slash text-gray-400' : 'pi pi-eye text-gray-400'"
-                    class="hover:text-amber-400 transition-colors"
-                  ></i>
-                </p>
-              </div>
-            </div>
-          </p-card>
-
-          <!-- Datos de Contacto -->
-          <p-card>
-            <ng-template #title>
-              <div class="flex items-center gap-2">
-                <i class="pi pi-phone text-amber-400"></i>
-                <span>Datos de Contacto</span>
-              </div>
-            </ng-template>
-            @if (!editMode()) {
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <!-- Email Personal -->
-              <div class="p-4 rounded-lg bg-gradient-to-br from-neutral-800/50 to-neutral-900/50 border border-neutral-700/50 hover:border-blue-500/30 transition-all">
-                <div class="flex items-center gap-3 mb-2">
-                  <div class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
-                    <i class="pi pi-envelope text-blue-400"></i>
-                  </div>
-                  <label class="text-sm text-gray-400 font-medium">Email Personal</label>
-                </div>
-                <p class="text-white font-semibold text-base m-0 break-all">
-                  {{ currentEmployee()?.email || 'Sin email' }}
-                </p>
-              </div>
-
-              <!-- Email Laboral -->
-              @if (showWorkEmail()) {
-              <div class="p-4 rounded-lg bg-gradient-to-br from-neutral-800/50 to-neutral-900/50 border border-neutral-700/50 hover:border-green-500/30 transition-all">
-                <div class="flex items-center gap-3 mb-2">
-                  <div class="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
-                    <i class="pi pi-envelope text-green-400"></i>
-                  </div>
-                  <label class="text-sm text-gray-400 font-medium">Email Laboral</label>
-                </div>
-                <p class="text-white font-semibold text-base m-0 break-all">
-                  {{ currentEmployee()?.work_email || 'Sin email' }}
-                </p>
-              </div>
-              }
-
-              <!-- Teléfono -->
-              <div class="p-4 rounded-lg bg-gradient-to-br from-neutral-800/50 to-neutral-900/50 border border-neutral-700/50 hover:border-purple-500/30 transition-all">
-                <div class="flex items-center gap-3 mb-2">
-                  <div class="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
-                    <i class="pi pi-phone text-purple-400"></i>
-                  </div>
-                  <label class="text-sm text-gray-400 font-medium">Teléfono</label>
-                </div>
-                <p class="text-white font-semibold text-base m-0">
-                  {{ currentEmployee()?.phone_number || 'Sin teléfono' }}
-                </p>
-              </div>
-
-              <!-- Dirección -->
-              <div class="p-4 rounded-lg bg-gradient-to-br from-neutral-800/50 to-neutral-900/50 border border-neutral-700/50 hover:border-cyan-500/30 transition-all md:col-span-2">
-                <div class="flex items-center gap-3 mb-2">
-                  <div class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
-                    <i class="pi pi-map-marker text-cyan-400"></i>
-                  </div>
-                  <label class="text-sm text-gray-400 font-medium">Dirección</label>
-                </div>
-                <p class="text-white font-semibold text-base m-0">
-                  {{ currentEmployee()?.address || 'Sin dirección' }}
-                </p>
-              </div>
-            </div>
-            } @else {
-            <!-- Modo Edición -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="text-sm text-gray-400 mb-2 block font-medium"
-                  >Email Personal</label
-                >
-                <input
-                  pInputText
-                  [ngModel]="editEmail()"
-                  (ngModelChange)="editEmail.set($event)"
-                  placeholder="correo@ejemplo.com"
-                  class="w-full"
-                />
-              </div>
-              @if (showWorkEmail()) {
-              <div>
-                <label class="text-sm text-gray-400 mb-2 block font-medium"
-                  >Email Laboral</label
-                >
-                <input
-                  pInputText
-                  [ngModel]="editWorkEmail()"
-                  (ngModelChange)="editWorkEmail.set($event)"
-                  placeholder="correo@empresa.com"
-                  class="w-full"
-                />
-              </div>
-              }
-              <div>
-                <label class="text-sm text-gray-400 mb-2 block font-medium"
-                  >Teléfono</label
-                >
-                <input
-                  pInputText
-                  [ngModel]="editPhone()"
-                  (ngModelChange)="editPhone.set($event)"
-                  placeholder="+507 1234-5678"
-                  class="w-full"
-                />
-              </div>
-              <div>
-                <label class="text-sm text-gray-400 mb-2 block font-medium"
-                  >Dirección</label
-                >
-                <input
-                  pInputText
-                  [ngModel]="editAddress()"
-                  (ngModelChange)="editAddress.set($event)"
-                  placeholder="Calle, Ciudad, Provincia"
-                  class="w-full"
-                />
-              </div>
-              <div class="md:col-span-2 flex justify-end gap-3 mt-4 pt-4 border-t border-neutral-700">
-                <p-button
-                  label="Cancelar"
-                  severity="secondary"
-                  outlined
-                  icon="pi pi-times"
-                  (click)="cancelEdit()"
-                />
-                <p-button
-                  label="Guardar Cambios"
-                  icon="pi pi-save"
-                  (click)="savePersonalData()"
-                  [loading]="savingPersonalData()"
-                />
-              </div>
-            </div>
-            }
-          </p-card>
+          <pt-employee-portal-dashboard
+            [employee]="currentEmployee() ?? null"
+            [daysWorkedThisMonth]="daysWorkedThisMonth()"
+            [myLates]="myLates()"
+            [approvedCompensatoryHours]="approvedCompensatoryHours()"
+            [recentTimelogs]="recentTimelogs()"
+            [currentDate]="getCurrentDate()"
+            [showSalary]="showSalary()"
+            (toggleSalary)="toggleSalary()"
+          />
         </div>
         }
       </div>
@@ -618,104 +121,12 @@ import { EmployeesStore } from '../stores/employees.store';
             >Accede a todos los formularios y solicitudes disponibles</ng-template
           >
           <div class="flex flex-col gap-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              <!-- Incapacidades -->
-              <p-card 
-                class="cursor-pointer hover:shadow-lg transition-all" 
-                (click)="activeSection.set('disabilities')"
-              >
-                <div class="flex flex-col items-center text-center gap-3">
-                  <div class="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
-                    <i class="pi pi-file-plus text-blue-400 text-xl"></i>
-                  </div>
-                  <h3 class="text-lg font-semibold text-white m-0">Incapacidades</h3>
-                  <p class="text-sm text-gray-400 m-0">
-                    Sube documentos de incapacidad médica
-                  </p>
-                </div>
-              </p-card>
-
-              <!-- Solicitar Documentos -->
-              <p-card 
-                class="cursor-pointer hover:shadow-lg transition-all" 
-                (click)="activeSection.set('documents')"
-              >
-                <div class="flex flex-col items-center text-center gap-3">
-                  <div class="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
-                    <i class="pi pi-file-edit text-green-400 text-xl"></i>
-                  </div>
-                  <h3 class="text-lg font-semibold text-white m-0">Solicitar Documentos</h3>
-                  <p class="text-sm text-gray-400 m-0">
-                    Solicita cartas de trabajo u otros documentos
-                  </p>
-                </div>
-              </p-card>
-
-              <!-- Buzón de Sugerencias -->
-              <p-card 
-                class="cursor-pointer hover:shadow-lg transition-all" 
-                (click)="activeSection.set('complaints')"
-              >
-                <div class="flex flex-col items-center text-center gap-3">
-                  <div class="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center">
-                    <i class="pi pi-comments text-yellow-400 text-xl"></i>
-                  </div>
-                  <h3 class="text-lg font-semibold text-white m-0">Buzón de Sugerencias</h3>
-                  <p class="text-sm text-gray-400 m-0">
-                    Expresa tus inquietudes de forma anónima
-                  </p>
-                </div>
-              </p-card>
-
-              <!-- Solicitar Vacaciones -->
-              <p-card 
-                class="cursor-pointer hover:shadow-lg transition-all" 
-                (click)="activeSection.set('vacations')"
-              >
-                <div class="flex flex-col items-center text-center gap-3">
-                  <div class="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center">
-                    <i class="pi pi-calendar-plus text-purple-400 text-xl"></i>
-                  </div>
-                  <h3 class="text-lg font-semibold text-white m-0">Solicitar Vacaciones</h3>
-                  <p class="text-sm text-gray-400 m-0">
-                    Solicita tus días de vacaciones
-                  </p>
-                </div>
-              </p-card>
-
-              <!-- Tiempo Compensatorio -->
-              <p-card 
-                class="cursor-pointer hover:shadow-lg transition-all" 
-                (click)="activeSection.set('compensatory')"
-              >
-                <div class="flex flex-col items-center text-center gap-3">
-                  <div class="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center">
-                    <i class="pi pi-clock text-cyan-400 text-xl"></i>
-                  </div>
-                  <h3 class="text-lg font-semibold text-white m-0">Tiempo Compensatorio</h3>
-                  <p class="text-sm text-gray-400 m-0">
-                    Solicita tiempo compensatorio por horas extras
-                  </p>
-                </div>
-              </p-card>
-
-              <!-- Mis Solicitudes -->
-              <p-card 
-                class="cursor-pointer hover:shadow-lg transition-all" 
-                (click)="activeSection.set('my-requests')"
-              >
-                <div class="flex flex-col items-center text-center gap-3">
-                  <div class="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center">
-                    <i class="pi pi-list text-indigo-400 text-xl"></i>
-                  </div>
-                  <h3 class="text-lg font-semibold text-white m-0">Mis Solicitudes</h3>
-                  <p class="text-sm text-gray-400 m-0">
-                    Visualiza todas tus solicitudes
-                  </p>
-                </div>
-              </p-card>
-            </div>
+            <pt-employee-portal-management-navigation
+              [activeSection]="activeSection()"
+              (sectionChange)="setActiveSection($event)"
+            />
           </div>
+
         </p-card>
       </div>
       }
@@ -723,1563 +134,394 @@ import { EmployeesStore } from '../stores/employees.store';
       <!-- Mis Marcaciones Section -->
       @if (activeSection() === 'timelogs') {
       <div id="timelogs" class="section-content">
-        <p-card>
-          <ng-template #title>
-            <div class="flex items-center justify-between w-full">
-              <div class="flex items-center gap-2">
-                <i class="pi pi-calendar-clock text-amber-400"></i>
-                <span>Calendario de Marcaciones</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <p-button
-                  [icon]="timelogViewMode() === 'calendar' ? 'pi pi-table' : 'pi pi-calendar'"
-                  [label]="timelogViewMode() === 'calendar' ? 'Vista Tabla' : 'Vista Calendario'"
-                  [outlined]="true"
-                  severity="secondary"
-                  size="small"
-                  (onClick)="timelogViewMode.set(timelogViewMode() === 'calendar' ? 'table' : 'calendar')"
-                  [pTooltip]="timelogViewMode() === 'calendar' ? 'Cambiar a vista de tabla' : 'Cambiar a vista de calendario'"
-                  tooltipPosition="left"
-                />
-              </div>
-            </div>
-          </ng-template>
-          <ng-template #subtitle
-            >{{ timelogViewMode() === 'calendar' ? 'Visualiza tus marcaciones en formato calendario' : 'Visualiza tus marcaciones en formato tabla' }}</ng-template
-          >
-          
-          <div class="mt-2"></div>
-          
-          @if (monthTimelogsApi.isLoading()) {
-            <div class="flex items-center justify-center py-12">
-              <i class="pi pi-spin pi-spinner text-4xl text-amber-400"></i>
-            </div>
-          } @else {
-            @if (timelogViewMode() === 'calendar') {
-              <!-- Calendario bonito usando pt-calendar -->
-              <pt-calendar
-                [markers]="timelogMarkers()"
-                [markerTpl]="timelogMarkerTemplate"
-                [currentDateInput]="calendarMonth()"
-                (monthChange)="onCalendarMonthChange($event)"
-              />
-            } @else {
-              <!-- Vista de tabla -->
-              <div class="overflow-x-auto">
-                <p-table
-                  [value]="monthTimelogs()"
-                  [rows]="25"
-                  [rowsPerPageOptions]="[10, 25, 50, 100]"
-                  paginator
-                  paginatorDropdownAppendTo="body"
-                  showGridlines
-                  stripedRows
-                  styleClass="p-datatable-sm"
-                  [scrollable]="true"
-                  scrollHeight="calc(100vh - 400px)"
-                >
-                  <ng-template #header>
-                    <tr>
-                      <th>Fecha</th>
-                      <th>Entrada</th>
-                      <th>Inicio Almuerzo</th>
-                      <th>Fin Almuerzo</th>
-                      <th>Salida</th>
-                      <th>Horas Trabajadas</th>
-                      <th>Estado</th>
-                    </tr>
-                  </ng-template>
-                  <ng-template #body let-log>
-                    <tr>
-                      <td class="font-semibold">{{ log.day | date : 'fullDate' }}</td>
-                      <td>
-                        @if (log.entry) {
-                          <div class="flex items-center gap-2">
-                            <i class="pi pi-sign-in text-green-400"></i>
-                            <span>{{ log.entry.date | date : 'HH:mm' }}</span>
-                            @if (log.entry.branch) {
-                              <span class="text-xs text-gray-400">({{ log.entry.branch.short_name || log.entry.branch.name }})</span>
-                            }
-                          </div>
-                        } @else {
-                          <span class="text-gray-500">-</span>
-                        }
-                      </td>
-                      <td>
-                        @if (log.lunch_start) {
-                          <div class="flex items-center gap-2">
-                            <i class="pi pi-clock text-amber-400"></i>
-                            <span>{{ log.lunch_start.date | date : 'HH:mm' }}</span>
-                            @if (log.lunch_start.branch) {
-                              <span class="text-xs text-gray-400">({{ log.lunch_start.branch.short_name || log.lunch_start.branch.name }})</span>
-                            }
-                          </div>
-                        } @else {
-                          <span class="text-gray-500">-</span>
-                        }
-                      </td>
-                      <td>
-                        @if (log.lunch_end) {
-                          <div class="flex items-center gap-2">
-                            <i class="pi pi-clock text-amber-400"></i>
-                            <span>{{ log.lunch_end.date | date : 'HH:mm' }}</span>
-                            @if (log.lunch_end.branch) {
-                              <span class="text-xs text-gray-400">({{ log.lunch_end.branch.short_name || log.lunch_end.branch.name }})</span>
-                            }
-                          </div>
-                        } @else {
-                          <span class="text-gray-500">-</span>
-                        }
-                      </td>
-                      <td>
-                        @if (log.exit) {
-                          <div class="flex items-center gap-2">
-                            <i class="pi pi-sign-out text-blue-400"></i>
-                            <span>{{ log.exit.date | date : 'HH:mm' }}</span>
-                            @if (log.exit.branch) {
-                              <span class="text-xs text-gray-400">({{ log.exit.branch.short_name || log.exit.branch.name }})</span>
-                            }
-                          </div>
-                        } @else {
-                          <span class="text-gray-500">-</span>
-                        }
-                      </td>
-                      <td>
-                        @if (log.entry && log.exit) {
-                          @let workedHours = calculateWorkedHours(
-                            log.entry.date, 
-                            log.exit.date, 
-                            log.lunch_start?.date, 
-                            log.lunch_end?.date
-                          );
-                          <span class="font-semibold text-amber-300">{{ workedHours }}</span>
-                        } @else {
-                          <span class="text-gray-500">-</span>
-                        }
-                      </td>
-                      <td>
-                        @let hasEntry = log?.entry;
-                        @let hasExit = log?.exit;
-                        @let hasDelay = log?.delay && typeof log?.delay === 'number';
-                        @let isComplete = hasEntry && hasExit;
-                        @let isIncomplete = hasEntry && !hasExit;
-                        
-                        <div class="flex items-center gap-2">
-                          @if (isComplete && !hasDelay) {
-                            <span class="px-2 py-1 rounded text-xs font-semibold bg-green-500/20 text-green-300">
-                              <i class="pi pi-check-circle mr-1"></i>Completo
-                            </span>
-                          } @else if (isIncomplete) {
-                            <span class="px-2 py-1 rounded text-xs font-semibold bg-yellow-500/20 text-yellow-300">
-                              <i class="pi pi-exclamation-triangle mr-1"></i>Incompleto
-                            </span>
-                          } @else if (hasDelay) {
-                            <span class="px-2 py-1 rounded text-xs font-semibold bg-red-500/20 text-red-300">
-                              <i class="pi pi-clock mr-1"></i>Retraso {{ log.delay }}m
-                            </span>
-                          } @else {
-                            <span class="px-2 py-1 rounded text-xs font-semibold bg-gray-500/20 text-gray-400">
-                              Sin datos
-                            </span>
-                          }
-                        </div>
-                      </td>
-                    </tr>
-                  </ng-template>
-                  <ng-template #emptymessage>
-                    <tr>
-                      <td colspan="7">
-                        <div class="flex flex-col items-center justify-center gap-4 py-8">
-                          <i class="pi pi-calendar-times text-4xl text-gray-500"></i>
-                          <p class="text-gray-400">No hay marcaciones para este mes</p>
-                        </div>
-                      </td>
-                    </tr>
-                  </ng-template>
-                </p-table>
-              </div>
-            }
-            
-            <!-- Template para mostrar los markers en el calendario tipo mapa -->
-            <ng-template #timelogMarkerTemplate let-markers>
-              <div class="flex flex-col gap-1.5 w-full h-full">
-                @for (marker of markers; track marker.data.day) {
-                  @let log = marker.data;
-                  @let hasEntry = log?.entry;
-                  @let hasExit = log?.exit;
-                  @let hasLunchStart = log?.lunch_start;
-                  @let hasLunchEnd = log?.lunch_end;
-                  @let hasDelay = log?.delay && typeof log?.delay === 'number';
-                  @let workedHours = log?.entry && log?.exit ? calculateWorkedHours(
-                    log.entry.date, 
-                    log.exit.date, 
-                    log.lunch_start?.date, 
-                    log.lunch_end?.date
-                  ) : null;
-                  @let isComplete = hasEntry && hasExit;
-                  @let isIncomplete = hasEntry && !hasExit;
-                  
+        <pt-employee-portal-timelogs
+          [isLoading]="monthTimelogsApi.isLoading()"
+          [timelogViewMode]="timelogViewMode()"
+          (viewModeChange)="timelogViewMode.set($event)"
+          [monthTimelogs]="monthTimelogs()"
+          [timelogMarkers]="timelogMarkers()"
+          [calendarMonth]="calendarMonth()"
+          (monthChange)="onCalendarMonthChange($event)"
+          [calculateWorkedHours]="calculateWorkedHours.bind(this)"
+        />
+      </div>
+      }
+
+      <!-- Mi Perfil Section -->
+      @if (activeSection() === 'profile') {
+      <div id="profile" class="section-content">
+        @if (currentEmployee()) {
+        <div class="space-y-4">
+          <!-- Header Card -->
+          <p-card class="shadow-lg border border-neutral-700/50">
+            <ng-template #title>
+              <div class="flex items-center justify-between w-full">
+                <div class="flex items-center gap-3">
                   <div
-                    class="flex flex-col gap-1 p-1.5 rounded-md shadow-sm border transition-all duration-200 w-full"
-                    [class.bg-gradient-to-br]="true"
-                    [class.from-green-600/30]="isComplete && !hasDelay"
-                    [class.to-green-500/20]="isComplete && !hasDelay"
-                    [class.from-yellow-600/30]="isIncomplete"
-                    [class.to-yellow-500/20]="isIncomplete"
-                    [class.from-red-600/30]="hasDelay"
-                    [class.to-red-500/20]="hasDelay"
-                    [class.border-green-400]="isComplete && !hasDelay"
-                    [class.border-yellow-400]="isIncomplete"
-                    [class.border-red-400]="hasDelay"
+                    class="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center"
                   >
-                    <!-- Header compacto con badges de estado -->
-                    <div class="flex items-center justify-end mb-0.5">
-                      <div class="flex items-center gap-0.5">
-                        @if (isComplete) {
-                          <span class="text-[8px] bg-green-500/50 text-white px-1 py-0.5 rounded font-semibold">
-                            ✓
-                          </span>
-                        } @else if (isIncomplete) {
-                          <span class="text-[8px] bg-yellow-500/50 text-white px-1 py-0.5 rounded font-semibold">
-                            ⚠
-                          </span>
-                        }
-                        @if (hasDelay) {
-                          <span class="text-[8px] bg-red-500/70 text-white px-1 py-0.5 rounded font-semibold">
-                            {{ log.delay }}m
-                          </span>
-                        }
-                      </div>
-                    </div>
-
-                    <!-- Timeline compacto -->
-                    <div class="flex flex-col gap-1">
-                      <!-- Entrada -->
-                      @if (hasEntry) {
-                        <div class="flex items-center gap-1">
-                          <i class="pi pi-sign-in text-[9px] text-green-300"></i>
-                          <span class="text-[10px] text-white font-semibold">{{ log.entry.date | date : 'HH:mm' }}</span>
-                        </div>
-                      }
-
-                      <!-- Almuerzo -->
-                      @if (hasLunchStart || hasLunchEnd) {
-                        <div class="flex items-center gap-1">
-                          <i class="pi pi-clock text-[9px] text-amber-300"></i>
-                          <span class="text-[10px] text-white">
-                            @if (hasLunchStart && hasLunchEnd) {
-                              {{ log.lunch_start.date | date : 'HH:mm' }}-{{ log.lunch_end.date | date : 'HH:mm' }}
-                            } @else if (hasLunchStart) {
-                              {{ log.lunch_start.date | date : 'HH:mm' }}
-                            } @else {
-                              {{ log.lunch_end.date | date : 'HH:mm' }}
-                            }
-                          </span>
-                        </div>
-                      }
-
-                      <!-- Salida -->
-                      @if (hasExit) {
-                        <div class="flex items-center gap-1">
-                          <i class="pi pi-sign-out text-[9px] text-blue-300"></i>
-                          <span class="text-[10px] text-white font-semibold">{{ log.exit.date | date : 'HH:mm' }}</span>
-                        </div>
-                      }
-
-                      <!-- Horas trabajadas -->
-                      @if (workedHours) {
-                        <div class="flex items-center gap-1 mt-0.5 pt-0.5 border-t border-white/10">
-                          <i class="pi pi-hourglass text-[9px] text-amber-400"></i>
-                          <span class="text-[9px] font-bold text-amber-300">{{ workedHours }}</span>
-                        </div>
-                      }
-                    </div>
+                    <i class="pi pi-user text-white text-xl"></i>
                   </div>
+                  <div>
+                    <h3 class="text-xl font-bold text-white m-0">
+                      {{ currentEmployee()?.first_name }}
+                      {{ currentEmployee()?.father_name }}
+                    </h3>
+                    <p class="text-sm text-gray-400 m-0 mt-1">
+                      {{ currentEmployee()?.position?.name }}
+                    </p>
+                  </div>
+                </div>
+                @if (!editMode()) {
+                <p-button
+                  label="Editar"
+                  icon="pi pi-pencil"
+                  (onClick)="toggleEditMode()"
+                  rounded
+                  severity="secondary"
+                  outlined
+                />
+                } @else {
+                <div class="flex gap-2">
+                  <p-button
+                    label="Cancelar"
+                    severity="secondary"
+                    outlined
+                    rounded
+                    (onClick)="cancelEdit()"
+                  />
+                  <p-button
+                    label="Guardar cambios"
+                    icon="pi pi-save"
+                    rounded
+                    [loading]="savingPersonalData()"
+                    (onClick)="savePersonalData()"
+                  />
+                </div>
                 }
               </div>
             </ng-template>
-          }
-        </p-card>
+          </p-card>
+
+          <!-- Información Básica Card -->
+          <p-card class="shadow-lg border border-neutral-700/50">
+            <ng-template #title>
+              <div class="flex items-center gap-2">
+                <i class="pi pi-id-card text-lg text-amber-400"></i>
+                <h4 class="text-base font-bold text-white m-0">
+                  Información Básica
+                </h4>
+              </div>
+            </ng-template>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div
+                class="flex flex-col p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
+              >
+                <dt
+                  class="text-xs font-semibold text-amber-400 mb-1 uppercase tracking-wide"
+                >
+                  Código de Empleado
+                </dt>
+                <dd class="text-sm text-gray-200 font-medium">
+                  {{ currentEmployee()?.employee_number || '-' }}
+                </dd>
+              </div>
+              <div
+                class="flex flex-col p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
+              >
+                <dt
+                  class="text-xs font-semibold text-amber-400 mb-1 uppercase tracking-wide"
+                >
+                  Fecha de Ingreso
+                </dt>
+                <dd class="text-sm text-gray-200 font-medium">
+                  {{ currentEmployee()?.start_date | date : 'mediumDate' }}
+                </dd>
+              </div>
+              <div
+                class="flex flex-col p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
+              >
+                <dt
+                  class="text-xs font-semibold text-amber-400 mb-1 uppercase tracking-wide"
+                >
+                  Sucursal
+                </dt>
+                <dd class="text-sm text-gray-200 font-medium">
+                  {{ currentEmployee()?.branch?.name || '-' }}
+                </dd>
+              </div>
+              <div
+                class="flex flex-col p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
+              >
+                <dt
+                  class="text-xs font-semibold text-amber-400 mb-1 uppercase tracking-wide"
+                >
+                  Departamento
+                </dt>
+                <dd class="text-sm text-gray-200 font-medium">
+                  {{ currentEmployee()?.department?.name || '-' }}
+                </dd>
+              </div>
+            </div>
+          </p-card>
+
+          <!-- Información de Contacto Card -->
+          <p-card class="shadow-lg border border-neutral-700/50">
+            <ng-template #title>
+              <div class="flex items-center gap-2">
+                <i class="pi pi-phone text-lg text-amber-400"></i>
+                <h4 class="text-base font-bold text-white m-0">
+                  Información de Contacto
+                </h4>
+              </div>
+            </ng-template>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div
+                class="flex flex-col p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
+              >
+                <dt
+                  class="text-xs font-semibold text-amber-400 mb-1 uppercase tracking-wide"
+                >
+                  Email Personal
+                </dt>
+                <dd class="text-sm text-gray-200 font-medium">
+                  @if (!editMode()) {
+                    {{ currentEmployee()?.email || '-' }}
+                  } @else {
+                    <input
+                      pInputText
+                      type="email"
+                      [ngModel]="editEmail()"
+                      (ngModelChange)="editEmail.set($event)"
+                      placeholder="Correo personal"
+                      class="w-full"
+                    />
+                  }
+                </dd>
+              </div>
+              <div
+                class="flex flex-col p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
+              >
+                <dt
+                  class="text-xs font-semibold text-amber-400 mb-1 uppercase tracking-wide"
+                >
+                  Email Laboral
+                </dt>
+                <dd class="text-sm text-gray-200 font-medium">
+                  @if (!editMode()) {
+                    {{ currentEmployee()?.work_email || '-' }}
+                  } @else {
+                    <input
+                      pInputText
+                      type="email"
+                      [ngModel]="editWorkEmail()"
+                      (ngModelChange)="editWorkEmail.set($event)"
+                      placeholder="Correo corporativo"
+                      class="w-full"
+                    />
+                  }
+                </dd>
+              </div>
+              <div
+                class="flex flex-col p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
+              >
+                <dt
+                  class="text-xs font-semibold text-amber-400 mb-1 uppercase tracking-wide"
+                >
+                  Teléfono
+                </dt>
+                <dd class="text-sm text-gray-200 font-medium">
+                  @if (!editMode()) {
+                    {{ currentEmployee()?.phone_number || '-' }}
+                  } @else {
+                    <input
+                      pInputText
+                      type="text"
+                      [ngModel]="editPhone()"
+                      (ngModelChange)="editPhone.set($event)"
+                      placeholder="Número de teléfono"
+                      class="w-full"
+                    />
+                  }
+                </dd>
+              </div>
+              <div
+                class="flex flex-col p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50 md:col-span-2"
+              >
+                <dt
+                  class="text-xs font-semibold text-amber-400 mb-1 uppercase tracking-wide"
+                >
+                  Dirección
+                </dt>
+                <dd class="text-sm text-gray-200 font-medium">
+                  @if (!editMode()) {
+                    {{ currentEmployee()?.address || '-' }}
+                  } @else {
+                    <textarea
+                      pInputTextarea
+                      [ngModel]="editAddress()"
+                      (ngModelChange)="editAddress.set($event)"
+                      rows="3"
+                      placeholder="Dirección"
+                      class="w-full"
+                    ></textarea>
+                  }
+                </dd>
+              </div>
+            </div>
+          </p-card>
+        } @else {
+        <div class="flex justify-center items-center h-64">
+          <p class="text-gray-400 text-lg">Cargando información del empleado...</p>
+        </div>
+        }
       </div>
       }
 
       <!-- Mis Tardanzas Section -->
       @if (activeSection() === 'lates') {
       <div id="lates" class="section-content">
-        <p-card>
-          <div class="overflow-x-auto">
-            <p-table
-              [value]="myLates()"
-              [rows]="10"
-              [rowsPerPageOptions]="[10, 20, 50]"
-              paginator
-              paginatorDropdownAppendTo="body"
-              styleClass="p-datatable-sm md:p-datatable-lg"
-              [scrollable]="true"
-              scrollHeight="400px"
-              [responsiveLayout]="'scroll'"
-            >
-              <ng-template #header>
-                <tr>
-                  <th>Fecha</th>
-                  <th>Horario Programado</th>
-                  <th>Hora de Entrada</th>
-                  <th>Minutos de Retraso</th>
-                </tr>
-              </ng-template>
-              <ng-template #body let-late>
-                <tr>
-                  <td>{{ late.date | date : 'fullDate' }}</td>
-                  <td>{{ late.scheduled_time || '-' }}</td>
-                  <td>{{ late.actual_time || '-' }}</td>
-                  <td>
-                    <span
-                      class="font-semibold"
-                      [class.text-yellow-400]="late.minutes <= 10"
-                      [class.text-red-400]="late.minutes > 10"
-                    >
-                      {{ late.minutes }} min
-                    </span>
-                  </td>
-                </tr>
-              </ng-template>
-              <ng-template #emptymessage>
-                <tr>
-                  <td colspan="4">
-                    <div
-                      class="flex flex-col items-center justify-center gap-4 py-8"
-                    >
-                      <i class="pi pi-check-circle text-green-400 text-4xl"></i>
-                      <p class="text-gray-400">
-                        ¡Excelente! No tienes tardanzas este mes
-                      </p>
-                    </div>
-                  </td>
-                </tr>
-              </ng-template>
-            </p-table>
-          </div>
-        </p-card>
+        <pt-employee-portal-lates [lates]="myLates()" />
       </div>
       }
 
       <!-- Incapacidades Section -->
       @if (activeSection() === 'disabilities') {
       <div id="disabilities" class="section-content">
-        <p-card>
-          <ng-template #title>
-            <div class="flex items-center justify-between w-full">
-              <div class="flex items-center gap-2">
-                <i class="pi pi-file-medical text-cyan-400"></i>
-                <span>Subir Incapacidad</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <p-button
-                  icon="pi pi-times"
-                  [rounded]="true"
-                  [text]="true"
-                  severity="secondary"
-                  [outlined]="true"
-                  (click)="activeSection.set('management')"
-                  pTooltip="Volver a Gestiones"
-                  [style]="{ width: '2.5rem', height: '2.5rem' }"
-                />
-              </div>
-            </div>
-          </ng-template>
-          <ng-template #subtitle
-            >Carga documentos de incapacidad médica</ng-template
-          >
-
-          <!-- Paso 1: Fechas de Incapacidad -->
-          <div class="mb-6 p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
-            <div class="flex items-center gap-3 mb-4">
-              <div class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
-                <i class="pi pi-calendar text-cyan-400"></i>
-              </div>
-              <h3 class="text-lg font-semibold text-white m-0">Paso 1: Período de Incapacidad</h3>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm text-gray-400 mb-2 font-medium">
-                  <i class="pi pi-calendar-plus mr-2"></i>Inicio de Incapacidad
-                </label>
-                <p-datepicker
-                  [(ngModel)]="disabilityStartDate"
-                  appendTo="body"
-                  class="w-full"
-                  placeholder="Selecciona fecha inicio"
-                />
-              </div>
-              <div>
-                <label class="block text-sm text-gray-400 mb-2 font-medium">
-                  <i class="pi pi-calendar-minus mr-2"></i>Fin de Incapacidad
-                </label>
-                <p-datepicker
-                  [(ngModel)]="disabilityEndDate"
-                  appendTo="body"
-                  class="w-full"
-                  placeholder="Selecciona fecha fin"
-                />
-              </div>
-            </div>
-          </div>
-
-          <!-- Paso 2: Descripción (Opcional) -->
-          <div class="mb-6 p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
-            <div class="flex items-center gap-3 mb-4">
-              <div class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
-                <i class="pi pi-comment text-cyan-400"></i>
-              </div>
-              <h3 class="text-lg font-semibold text-white m-0">Paso 2: Descripción (Opcional)</h3>
-            </div>
-            <textarea
-              id="disability-description"
-              pInputTextarea
-              [(ngModel)]="disabilityDescription"
-              rows="3"
-              placeholder="Describe el motivo de la incapacidad..."
-              class="w-full"
-            ></textarea>
-          </div>
-
-          <!-- Paso 3: Documento de Incapacidad -->
-          <div class="mb-6 p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
-            <div class="flex items-center gap-3 mb-4">
-              <div class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
-                <i class="pi pi-file text-cyan-400"></i>
-              </div>
-              <h3 class="text-lg font-semibold text-white m-0">Paso 3: Documento de Incapacidad</h3>
-            </div>
-            <p-fileUpload
-              mode="basic"
-              accept="image/*,.pdf"
-              maxFileSize="5000000"
-              [auto]="false"
-              chooseLabel="Seleccionar Archivo"
-              (onSelect)="onFileSelect($event)"
-              class="w-full"
-            />
-            <p class="text-xs text-gray-500 mt-2">
-              Formatos permitidos: PDF, JPG, PNG (máx. 5MB)
-            </p>
-            @if (selectedFile()) {
-              <div class="mt-3 p-3 bg-cyan-500/10 border border-cyan-500/30 rounded-lg flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                  <i class="pi pi-file text-cyan-400"></i>
-                  <span class="text-sm text-gray-300">{{ selectedFile()!.name }}</span>
-                </div>
-                <p-button
-                  icon="pi pi-times"
-                  severity="danger"
-                  text
-                  rounded
-                  size="small"
-                  (onClick)="selectedFile.set(null)"
-                  pTooltip="Eliminar archivo"
-                />
-              </div>
-            }
-          </div>
-
-          <!-- Resumen y Botón de Envío -->
-          <div class="flex flex-col md:flex-row items-center justify-between gap-4 p-5 rounded-lg bg-gradient-to-r from-cyan-500/10 to-cyan-600/5 border border-cyan-400/30 shadow-lg">
-            @if (disabilityStartDate() && disabilityEndDate()) {
-              <div class="flex items-center gap-3">
-                <div class="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center">
-                  <i class="pi pi-check-circle text-cyan-400 text-xl"></i>
-                </div>
-                <div>
-                  <p class="text-sm text-gray-400 m-0">Período de Incapacidad</p>
-                  <p class="text-xl font-bold text-cyan-300 m-0">
-                    {{ calculateDays(disabilityStartDate()!, disabilityEndDate()!) }} día(s)
-                  </p>
-                </div>
-              </div>
-            }
-            <p-button
-              label="Subir Incapacidad"
-              icon="pi pi-upload"
-              [loading]="uploadingDisability()"
-              [disabled]="!disabilityStartDate() || !disabilityEndDate() || !selectedFile() || uploadingDisability()"
-              (click)="uploadDisability()"
-              class="ml-auto"
-            />
-          </div>
-        </p-card>
+        <pt-employee-portal-disabilities
+          [startDate]="disabilityStartDate()"
+          (startDateChange)="disabilityStartDate.set($event)"
+          [endDate]="disabilityEndDate()"
+          (endDateChange)="disabilityEndDate.set($event)"
+          [description]="disabilityDescription()"
+          (descriptionChange)="disabilityDescription.set($event)"
+          [selectedFile]="selectedFile()"
+          (fileChange)="selectedFile.set($event)"
+          [uploading]="uploadingDisability()"
+          (submit)="uploadDisability()"
+          (closeManagement)="setActiveSection('management')"
+          [calculateDays]="calculateDays.bind(this)"
+        />
       </div>
       }
 
       <!-- Solicitar Documentos Section -->
       @if (activeSection() === 'documents') {
       <div id="documents" class="section-content">
-        <p-card>
-          <ng-template #title>
-            <div class="flex items-center justify-between w-full">
-              <div class="flex items-center gap-2">
-                <i class="pi pi-file-edit text-green-400"></i>
-                <span>Solicitar Documentos</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <p-button
-                  icon="pi pi-refresh"
-                  [rounded]="true"
-                  [text]="true"
-                  severity="secondary"
-                  [outlined]="true"
-                  (click)="documentRequestsApi.reload()"
-                  pTooltip="Recargar solicitudes"
-                  [style]="{ width: '2.5rem', height: '2.5rem' }"
-                  [loading]="documentRequestsApi.isLoading()"
-                />
-                <p-button
-                  icon="pi pi-times"
-                  [rounded]="true"
-                  [text]="true"
-                  severity="secondary"
-                  [outlined]="true"
-                  (click)="activeSection.set('management')"
-                  pTooltip="Volver a Gestiones"
-                  [style]="{ width: '2.5rem', height: '2.5rem' }"
-                />
-              </div>
-            </div>
-          </ng-template>
-          <ng-template #subtitle
-            >Solicita cartas de trabajo u otros documentos</ng-template
-          >
-
-          <div class="flex flex-col gap-6">
-            <!-- Formulario de Solicitud -->
-            <div class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
-              <h3 class="text-lg font-semibold text-white mb-4">
-                Nueva Solicitud de Documento
-              </h3>
-              
-              <div class="flex flex-col gap-4">
-                <div>
-                  <label class="block text-sm text-gray-400 mb-2">
-                    <i class="pi pi-file mr-2 text-green-400"></i>
-                    Tipo de Documento <span class="text-red-400">*</span>
-                  </label>
-                  <p-select
-                    [(ngModel)]="documentType"
-                    [options]="documentTypeOptions"
-                    optionLabel="label"
-                    optionValue="value"
-                    placeholder="Selecciona el tipo de documento"
-                    appendTo="body"
-                    class="w-full"
-                  />
-                </div>
-                
-                @if(documentType() === 'other') {
-                <div>
-                  <label class="block text-sm text-gray-400 mb-2">
-                    <i class="pi pi-edit mr-2 text-green-400"></i>
-                    Especificar Documento <span class="text-red-400">*</span>
-                  </label>
-                  <input
-                    pInputText
-                    [(ngModel)]="customDocumentType"
-                    placeholder="Describe el documento que necesitas"
-                    class="w-full"
-                    [maxlength]="100"
-                  />
-                  <small class="text-gray-500 text-xs mt-1 block text-right">
-                    {{ customDocumentType().length || 0 }}/100 caracteres
-                  </small>
-                </div>
-                }
-                
-                <div>
-                  <label class="block text-sm text-gray-400 mb-2">
-                    <i class="pi pi-comment mr-2 text-green-400"></i>
-                    Motivo o Uso del Documento <span class="text-red-400">*</span>
-                  </label>
-                  <textarea
-                    pTextarea
-                    [(ngModel)]="documentReason"
-                    rows="4"
-                    placeholder="Ej: Para trámite bancario, visa, solicitud de préstamo, etc."
-                    class="w-full"
-                    [maxlength]="500"
-                  ></textarea>
-                  <small class="text-gray-500 text-xs mt-1 block text-right">
-                    {{ documentReason().length || 0 }}/500 caracteres
-                  </small>
-                </div>
-                
-                <div>
-                  <label class="block text-sm text-gray-400 mb-2">
-                    <i class="pi pi-calendar mr-2 text-green-400"></i>
-                    Fecha Requerida (opcional)
-                  </label>
-                  <p-datepicker
-                    [(ngModel)]="documentRequiredDate"
-                    appendTo="body"
-                    [minDate]="today"
-                    [showIcon]="true"
-                    dateFormat="dd/mm/yy"
-                    placeholder="Selecciona fecha requerida"
-                    class="w-full"
-                  />
-                  @if (documentRequiredDate()) {
-                  <small class="text-gray-500 text-xs mt-1 block">
-                    <i class="pi pi-info-circle mr-1"></i>
-                    Documento requerido para: {{ documentRequiredDate() | date : 'fullDate' }}
-                  </small>
-                  }
-                </div>
-                
-                <!-- Botones de Acción -->
-                <div class="flex justify-end gap-3 pt-2">
-                  <p-button
-                    label="Cancelar"
-                    icon="pi pi-times"
-                    severity="secondary"
-                    [outlined]="true"
-                    [rounded]="true"
-                    (click)="resetDocumentForm()"
-                  />
-                  <p-button
-                    label="Solicitar Documento"
-                    icon="pi pi-send"
-                    severity="success"
-                    [rounded]="true"
-                    [loading]="submittingDocument()"
-                    [disabled]="!canSubmitDocument() || submittingDocument()"
-                    (click)="submitDocumentRequest()"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <!-- Lista de Solicitudes de Documentos -->
-            <div class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
-              <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold text-white m-0">
-                  Mis Solicitudes de Documentos
-                </h3>
-                <p-button
-                  icon="pi pi-refresh"
-                  [rounded]="true"
-                  [text]="true"
-                  severity="secondary"
-                  [loading]="documentRequestsApi.isLoading()"
-                  (click)="documentRequestsApi.reload()"
-                  pTooltip="Actualizar lista"
-                />
-              </div>
-              
-              @if (myDocumentRequests().length === 0 && !documentRequestsApi.isLoading()) {
-                <div class="text-center py-12">
-                  <div class="w-20 h-20 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-4">
-                    <i class="pi pi-file-times text-4xl text-green-400"></i>
-                  </div>
-                  <h4 class="text-lg font-semibold text-white mb-2">No hay solicitudes</h4>
-                  <p class="text-gray-400 mb-4">No has realizado ninguna solicitud de documentos todavía.</p>
-                </div>
-              } @else if (documentRequestsApi.isLoading()) {
-                <div class="flex justify-center items-center py-12">
-                  <div class="flex flex-col items-center gap-3">
-                    <i class="pi pi-spin pi-spinner text-4xl text-green-400"></i>
-                    <p class="text-gray-400">Cargando solicitudes...</p>
-                  </div>
-                </div>
-              } @else {
-                <div class="overflow-x-auto">
-                  <p-table
-                    [value]="myDocumentRequests()"
-                    [rows]="10"
-                    paginator
-                    [loading]="documentRequestsApi.isLoading()"
-                    styleClass="p-datatable-sm md:p-datatable-lg"
-                    [scrollable]="true"
-                    scrollHeight="400px"
-                    [responsiveLayout]="'scroll'"
-                    [rowHover]="true"
-                  >
-                    <ng-template #header>
-                      <tr>
-                        <th>Fecha de Solicitud</th>
-                        <th>Tipo de Documento</th>
-                        <th>Motivo</th>
-                        <th>Fecha Requerida</th>
-                        <th>Estado</th>
-                        <th>Acciones</th>
-                      </tr>
-                    </ng-template>
-                    <ng-template #body let-request>
-                      <tr>
-                        <td>
-                          <div class="flex flex-col">
-                            <span class="font-medium">{{ request.created_at | date : 'mediumDate' }}</span>
-                            <span class="text-xs text-gray-500">{{ request.created_at | date : 'shortTime' }}</span>
-                          </div>
-                        </td>
-                        <td>
-                          <div class="flex items-center gap-2">
-                            <i class="pi pi-file text-green-400"></i>
-                            <span class="font-semibold text-white">
-                              {{ getDocumentTypeLabel(request.document_type) }}
-                            </span>
-                          </div>
-                          @if (request.custom_document_type) {
-                          <small class="text-gray-400 text-xs block mt-1">
-                            {{ request.custom_document_type }}
-                          </small>
-                          }
-                        </td>
-                        <td>
-                          <span class="text-sm text-gray-300">
-                            {{ request.reason && request.reason.length > 50 ? (request.reason.substring(0, 50) + '...') : (request.reason || '-') }}
-                          </span>
-                        </td>
-                        <td>
-                          @if (request.required_date) {
-                          <span class="text-sm text-gray-300">
-                            {{ request.required_date | date : 'shortDate' }}
-                          </span>
-                          } @else {
-                          <span class="text-gray-500 text-sm">-</span>
-                          }
-                        </td>
-                        <td>
-                          <span
-                            class="px-3 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1"
-                            [class.bg-yellow-500/20]="request.status === 'pending'"
-                            [class.text-yellow-300]="request.status === 'pending'"
-                            [class.bg-green-500/20]="request.status === 'approved'"
-                            [class.text-green-300]="request.status === 'approved'"
-                            [class.bg-red-500/20]="request.status === 'rejected'"
-                            [class.text-red-300]="request.status === 'rejected'"
-                          >
-                            @if (request.status === 'approved') {
-                              <i class="pi pi-check-circle"></i>
-                            } @else if (request.status === 'pending') {
-                              <i class="pi pi-clock"></i>
-                            } @else {
-                              <i class="pi pi-times-circle"></i>
-                            }
-                            {{
-                              request.status === 'pending'
-                                ? 'Pendiente'
-                                : request.status === 'approved'
-                                ? 'Aprobada'
-                                : 'Rechazada'
-                            }}
-                          </span>
-                        </td>
-                        <td>
-                          @if(request.status === 'approved' && request.document_url) {
-                          <p-button
-                            icon="pi pi-download"
-                            severity="success"
-                            size="small"
-                            [rounded]="true"
-                            [text]="true"
-                            (click)="downloadDocument(request.document_url)"
-                            pTooltip="Descargar documento"
-                          />
-                          } @else {
-                          <span class="text-gray-500 text-xs">-</span>
-                          }
-                        </td>
-                      </tr>
-                    </ng-template>
-                    <ng-template #emptymessage>
-                      <tr>
-                        <td colspan="6" class="text-center py-8">
-                          <p class="text-gray-400">No hay solicitudes de documentos</p>
-                        </td>
-                      </tr>
-                    </ng-template>
-                  </p-table>
-                </div>
-              }
-            </div>
-          </div>
-        </p-card>
+        <pt-employee-portal-documents
+          [documentTypeOptions]="documentTypeOptions"
+          [documentType]="documentType()"
+          (documentTypeChange)="setDocumentType($event)"
+          [customDocumentType]="customDocumentType()"
+          (customDocumentTypeChange)="setCustomDocumentType($event)"
+          [documentReason]="documentReason()"
+          (documentReasonChange)="setDocumentReason($event)"
+          [documentRequiredDate]="documentRequiredDate()"
+          (documentRequiredDateChange)="setDocumentRequiredDate($event)"
+          [today]="today"
+          [canSubmit]="canSubmitDocument()"
+          [submitting]="submittingDocument()"
+          [documentRequests]="myDocumentRequests()"
+          [requestsLoading]="documentRequestsApi.isLoading()"
+          (submitDocument)="submitDocumentRequest()"
+          (resetDocument)="resetDocumentForm()"
+          (reloadRequests)="documentRequestsApi.reload()"
+          [getDocumentTypeLabel]="getDocumentTypeLabel.bind(this)"
+          [downloadDocument]="downloadDocument.bind(this)"
+(closeSection)="setActiveSection('management')"
+        />
       </div>
       }
 
       <!-- Buzón de Sugerencias Section -->
       @if (activeSection() === 'complaints') {
       <div id="complaints" class="section-content">
-        <p-card>
-          <ng-template #title>Buzón de Sugerencias</ng-template>
-          <ng-template #subtitle
-            >Expresa tus inquietudes de forma anónima y
-            confidencial</ng-template
-          >
-          <div class="flex flex-col gap-4">
-            <div
-              class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4"
-            >
-              <div class="flex items-start gap-3">
-                <i class="pi pi-info-circle text-yellow-400 text-xl"></i>
-                <div class="flex-1">
-                  <p class="text-yellow-300 font-semibold mb-2">
-                    Tu privacidad está protegida
-                  </p>
-                  <p class="text-sm text-gray-300">
-                    Todas las sugerencias son completamente anónimas. Tu identidad no
-                    será revelada a menos que lo autorices explícitamente.
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div>
-              <label class="block text-sm text-gray-400 mb-2">Categoría</label>
-              <select
-                pInputText
-                [ngModel]="complaintCategory()"
-                (ngModelChange)="complaintCategory.set($event)"
-                class="w-full"
-              >
-                <option value="work_environment">Ambiente Laboral</option>
-                <option value="harassment">Acoso o Discriminación</option>
-                <option value="safety">Seguridad</option>
-                <option value="management">Supervisión/Gerencia</option>
-                <option value="benefits">Beneficios</option>
-                <option value="other">Otro</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-sm text-gray-400 mb-2"
-                >Describe tu sugerencia</label
-              >
-              <textarea
-                pTextarea
-                [ngModel]="complaintText()"
-                (ngModelChange)="complaintText.set($event)"
-                rows="6"
-                placeholder="Describe detalladamente tu sugerencia o inquietud..."
-                class="w-full"
-              ></textarea>
-            </div>
-            <div class="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="allowContact"
-                [ngModel]="allowContact()"
-                (ngModelChange)="allowContact.set($event)"
-              />
-              <label for="allowContact" class="text-sm text-gray-300"
-                >Permitir que RRHH me contacte para seguimiento
-                (opcional)</label
-              >
-            </div>
-            @if(allowContact()) {
-            <div>
-              <label class="block text-sm text-gray-400 mb-2"
-                >Forma de Contacto Preferida</label
-              >
-              <select
-                pInputText
-                [ngModel]="contactMethod()"
-                (ngModelChange)="contactMethod.set($event)"
-                class="w-full"
-              >
-                <option value="email">Email</option>
-                <option value="phone">Teléfono</option>
-                <option value="meeting">Reunión Presencial</option>
-              </select>
-            </div>
-            }
-            <div class="flex justify-end">
-              <p-button
-                label="Enviar Sugerencia"
-                icon="pi pi-send"
-                severity="warn"
-                [loading]="submittingComplaint()"
-                [disabled]="!canSubmitComplaint() || submittingComplaint()"
-                (click)="submitComplaint()"
-              />
-            </div>
-          </div>
-
-          <!-- Lista de sugerencias/conversaciones enviadas -->
-          <div class="mt-6">
-            <h3 class="text-lg font-semibold text-white mb-4">
-              Mis Sugerencias y Conversaciones
-            </h3>
-            @if(myComplaints().length === 0 && !complaintsApi.isLoading()) {
-            <div class="text-center py-8">
-              <i class="pi pi-inbox text-4xl text-gray-500 mb-4"></i>
-              <p class="text-gray-400">No has enviado ninguna sugerencia todavía.</p>
-            </div>
-            } @else {
-            <div class="overflow-x-auto">
-              <p-table
-                [value]="myComplaints()"
-                [rows]="10"
-                paginator
-                [loading]="complaintsApi.isLoading()"
-                styleClass="p-datatable-sm md:p-datatable-lg"
-                [scrollable]="true"
-                scrollHeight="400px"
-                [responsiveLayout]="'scroll'"
-              >
-                <ng-template #header>
-                  <tr>
-                    <th>Fecha</th>
-                    <th>Categoría</th>
-                    <th>Estado</th>
-                    <th>Última Actividad</th>
-                    <th>Acciones</th>
-                  </tr>
-                </ng-template>
-                <ng-template #body let-complaint>
-                  <tr
-                    [ngClass]="{
-                      'bg-amber-500/10': hasUnreadMessages(complaint)
-                    }"
-                  >
-                    <td>{{ complaint.created_at | date : 'mediumDate' }}</td>
-                    <td>{{ getComplaintCategoryLabel(complaint.category) }}</td>
-                    <td>
-                      <span
-                        class="px-2 py-1 rounded text-xs font-semibold"
-                        [class.bg-yellow-500]="complaint.status === 'pending'"
-                        [class.bg-green-500]="complaint.status === 'resolved'"
-                        [class.bg-blue-500]="complaint.status === 'in_review'"
-                      >
-                        {{
-                          complaint.status === 'pending'
-                            ? 'Pendiente'
-                            : complaint.status === 'resolved'
-                            ? 'Resuelta'
-                            : 'En Revisión'
-                        }}
-                      </span>
-                    </td>
-                    <td class="text-sm text-gray-400">
-                      {{
-                        complaint.last_message_at || complaint.updated_at
-                          | date : 'short'
-                      }}
-                      @if(hasUnreadMessages(complaint)) {
-                      <i
-                        class="pi pi-circle-fill text-amber-400 text-xs ml-2"
-                      ></i>
-                      }
-                    </td>
-                    <td>
-                      <p-button
-                        icon="pi pi-comments"
-                        severity="info"
-                        size="small"
-                        [label]="
-                          hasUnreadMessages(complaint)
-                            ? 'Ver Conversación (Nuevo)'
-                            : 'Ver Conversación'
-                        "
-                        (click)="viewResponse(complaint)"
-                        pTooltip="Abrir conversación"
-                      />
-                    </td>
-                  </tr>
-                </ng-template>
-              </p-table>
-            </div>
-            }
-          </div>
-        </p-card>
+        <pt-employee-portal-complaints
+          [complaintCategory]="complaintCategory()"
+          (complaintCategoryChange)="setComplaintCategory($event)"
+          [complaintText]="complaintText()"
+          (complaintTextChange)="setComplaintText($event)"
+          [allowContact]="allowContact()"
+          (allowContactChange)="setAllowContact($event)"
+          [contactMethod]="contactMethod()"
+          (contactMethodChange)="setContactMethod($event)"
+          [submitting]="submittingComplaint()"
+          [canSubmit]="canSubmitComplaint()"
+          (submitComplaint)="submitComplaint()"
+          [complaints]="myComplaints()"
+          [complaintsLoading]="complaintsApi.isLoading()"
+          [hasUnreadMessages]="hasUnreadMessages.bind(this)"
+          [getStatusLabel]="getUnifiedStatusLabel.bind(this)"
+          [getLabel]="getComplaintCategoryLabel.bind(this)"
+          [getRequestTypeLabel]="getRequestTypeLabel.bind(this)"
+          (openConversation)="viewResponse($event)"
+          (reloadComplaints)="complaintsApi.reload()"
+          (closeSection)="setActiveSection('management')"
+        />
       </div>
       }
 
-      <!-- Solicitar Vacaciones Section -->
+<!-- Solicitar Vacaciones Section -->
       @if (activeSection() === 'vacations') {
       <div id="vacations" class="section-content">
-        <p-card>
-          <ng-template #title>
-            <div class="flex items-center justify-between w-full">
-              <div class="flex items-center gap-2">
-                <i class="pi pi-calendar-plus text-purple-400"></i>
-                <span>Solicitar Vacaciones</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <p-button
-                  icon="pi pi-times"
-                  [rounded]="true"
-                  [text]="true"
-                  severity="secondary"
-                  [outlined]="true"
-                  (click)="activeSection.set('management')"
-                  pTooltip="Volver a Gestiones"
-                  [style]="{ width: '2.5rem', height: '2.5rem' }"
-                />
-              </div>
-            </div>
-          </ng-template>
-          <ng-template #subtitle
-            >Solicita tus días de vacaciones</ng-template
-          >
-
-          <div class="flex flex-col gap-6">
-            <!-- Formulario de Solicitud -->
-            <div class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
-              <h3 class="text-lg font-semibold text-white mb-4">
-                Nueva Solicitud de Vacaciones
-              </h3>
-              
-              <div class="flex flex-col gap-4">
-                <!-- Rango de Fechas -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div class="input-container">
-                    <label for="vacation-start-date" class="block text-sm text-gray-400 mb-2">
-                      Fecha de Inicio <span class="text-red-400">*</span>
-                    </label>
-                    <p-datepicker
-                      id="vacation-start-date"
-                      [(ngModel)]="vacationStartDate"
-                      appendTo="body"
-                      [minDate]="minVacationDate"
-                      [maxDate]="maxVacationDate()"
-                      class="w-full"
-                      [showIcon]="true"
-                      dateFormat="dd/mm/yy"
-                      placeholder="Selecciona fecha inicio"
-                    />
-                  </div>
-                  <div class="input-container">
-                    <label for="vacation-end-date" class="block text-sm text-gray-400 mb-2">
-                      Fecha de Fin <span class="text-red-400">*</span>
-                    </label>
-                    <p-datepicker
-                      id="vacation-end-date"
-                      [(ngModel)]="vacationEndDate"
-                      appendTo="body"
-                      [minDate]="vacationStartDate() || minVacationDate"
-                      [maxDate]="maxVacationDate()"
-                      class="w-full"
-                      [showIcon]="true"
-                      dateFormat="dd/mm/yy"
-                      placeholder="Selecciona fecha fin"
-                    />
-                  </div>
-                </div>
-                @if (vacationStartDate() && vacationEndDate()) {
-                  <div class="mt-2 flex items-center gap-2">
-                    <i class="pi pi-info-circle text-purple-400"></i>
-                    <p class="text-sm text-gray-400 m-0">
-                      Días solicitados: <span class="font-semibold text-white">{{ calculateVacationDays() }}</span>
-                    </p>
-                  </div>
-                }
-
-                <!-- Motivo/Comentarios -->
-                <div class="input-container">
-                  <label for="vacation-reason" class="block text-sm text-gray-400 mb-2">
-                    Motivo o Comentarios (opcional)
-                  </label>
-                  <textarea
-                    pTextarea
-                    id="vacation-reason"
-                    [(ngModel)]="vacationReason"
-                    rows="4"
-                    placeholder="Describe el motivo de tu solicitud de vacaciones..."
-                    class="w-full"
-                    [maxlength]="500"
-                  ></textarea>
-                  <p class="text-xs text-gray-500 mt-1">
-                    {{ vacationReason().length }}/500 caracteres
-                  </p>
-                </div>
-
-                <!-- Botón de Envío -->
-                <div class="flex justify-end gap-3 pt-2">
-                  <p-button
-                    label="Cancelar"
-                    icon="pi pi-times"
-                    severity="secondary"
-                    [outlined]="true"
-                    [rounded]="true"
-                    (click)="resetVacationForm()"
-                  />
-                  <p-button
-                    label="Solicitar Vacaciones"
-                    icon="pi pi-send"
-                    severity="success"
-                    [rounded]="true"
-                    [loading]="submittingVacation()"
-                    [disabled]="!canSubmitVacation() || submittingVacation()"
-                    (click)="submitVacationRequest()"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <!-- Lista de Solicitudes de Vacaciones -->
-            <div class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
-              <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold text-white m-0">
-                  Mis Solicitudes de Vacaciones
-                </h3>
-                <p-button
-                  icon="pi pi-refresh"
-                  [rounded]="true"
-                  [text]="true"
-                  severity="secondary"
-                  [loading]="vacationTimeoffsApi.isLoading()"
-                  (click)="reloadVacationRequests()"
-                  pTooltip="Actualizar lista"
-                />
-              </div>
-              
-              @if (myVacationRequests().length === 0 && !vacationTimeoffsApi.isLoading()) {
-                <div class="text-center py-12">
-                  <div class="w-20 h-20 rounded-full bg-purple-500/10 flex items-center justify-center mx-auto mb-4">
-                    <i class="pi pi-calendar-times text-4xl text-purple-400"></i>
-                  </div>
-                  <h4 class="text-lg font-semibold text-white mb-2">No hay solicitudes</h4>
-                  <p class="text-gray-400 mb-4">No has realizado ninguna solicitud de vacaciones todavía.</p>
-                </div>
-              } @else if (vacationTimeoffsApi.isLoading()) {
-                <div class="flex justify-center items-center py-12">
-                  <div class="flex flex-col items-center gap-3">
-                    <i class="pi pi-spin pi-spinner text-4xl text-purple-400"></i>
-                    <p class="text-gray-400">Cargando solicitudes...</p>
-                  </div>
-                </div>
-              } @else {
-                <div class="overflow-x-auto">
-                  <p-table
-                    [value]="myVacationRequests()"
-                    [rows]="10"
-                    paginator
-                    [loading]="vacationTimeoffsApi.isLoading()"
-                    styleClass="p-datatable-sm md:p-datatable-lg"
-                    [scrollable]="true"
-                    scrollHeight="400px"
-                    [responsiveLayout]="'scroll'"
-                    [rowHover]="true"
-                  >
-                    <ng-template #header>
-                      <tr>
-                        <th>Fecha de Solicitud</th>
-                        <th>Período</th>
-                        <th>Días</th>
-                        <th>Estado</th>
-                        <th>Comentarios</th>
-                      </tr>
-                    </ng-template>
-                    <ng-template #body let-request>
-                      <tr>
-                        <td>
-                          <div class="flex flex-col">
-                            <span class="font-medium">{{ request.created_at | date : 'mediumDate' }}</span>
-                            <span class="text-xs text-gray-500">{{ request.created_at | date : 'shortTime' }}</span>
-                          </div>
-                        </td>
-                        <td>
-                          <div class="flex flex-col">
-                            <span class="font-medium">{{ request.date_from | date : 'shortDate' }}</span>
-                            <span class="text-xs text-gray-500">hasta</span>
-                            <span class="font-medium">{{ request.date_to | date : 'shortDate' }}</span>
-                          </div>
-                        </td>
-                        <td>
-                          <span class="font-semibold text-purple-400">
-                            {{ calculateDaysBetween(request.date_from, request.date_to) }} día(s)
-                          </span>
-                        </td>
-                        <td>
-                          <span
-                            class="px-3 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1"
-                            [class.bg-yellow-500/20]="!request.is_approved && isDateFuture(request.date_from)"
-                            [class.text-yellow-300]="!request.is_approved && isDateFuture(request.date_from)"
-                            [class.bg-green-500/20]="request.is_approved"
-                            [class.text-green-300]="request.is_approved"
-                            [class.bg-red-500/20]="!request.is_approved && !isDateFuture(request.date_from)"
-                            [class.text-red-300]="!request.is_approved && !isDateFuture(request.date_from)"
-                          >
-                            @if (request.is_approved) {
-                              <i class="pi pi-check-circle"></i>
-                            } @else if (isDateFuture(request.date_from)) {
-                              <i class="pi pi-clock"></i>
-                            } @else {
-                              <i class="pi pi-times-circle"></i>
-                            }
-                            {{
-                              request.is_approved
-                                ? 'Aprobada'
-                                : isDateFuture(request.date_from)
-                                ? 'Pendiente'
-                                : 'Rechazada'
-                            }}
-                          </span>
-                        </td>
-                        <td>
-                          <span class="text-sm text-gray-300">
-                            {{ request.notes && request.notes.length > 0 ? (request.notes[0].length > 50 ? (request.notes[0].substring(0, 50) + '...') : request.notes[0]) : '-' }}
-                          </span>
-                        </td>
-                      </tr>
-                    </ng-template>
-                    <ng-template #emptymessage>
-                      <tr>
-                        <td colspan="5" class="text-center py-8">
-                          <p class="text-gray-400">No hay solicitudes de vacaciones</p>
-                        </td>
-                      </tr>
-                    </ng-template>
-                  </p-table>
-                </div>
-              }
-            </div>
-          </div>
-        </p-card>
+        <pt-employee-portal-vacations
+          [minVacationDate]="minVacationDate"
+          [maxVacationDate]="maxVacationDate()"
+          [vacationStartDate]="vacationStartDate()"
+          (vacationStartDateChange)="setVacationStartDate($event)"
+          [vacationEndDate]="vacationEndDate()"
+          (vacationEndDateChange)="setVacationEndDate($event)"
+          [vacationReason]="vacationReason()"
+          (vacationReasonChange)="setVacationReason($event)"
+          [submitting]="submittingVacation()"
+          [canSubmit]="canSubmitVacation()"
+          (submit)="submitVacationRequest()"
+          (resetForm)="resetVacationForm()"
+          [vacationRequests]="myVacationRequests()"
+          [requestsLoading]="vacationTimeoffsApi.isLoading()"
+          (reloadList)="reloadVacationRequests()"
+          (closeSection)="setActiveSection('management')"
+          [calculateVacationDays]="calculateVacationDays.bind(this)"
+          [calculateDaysBetween]="calculateDaysBetween.bind(this)"
+          [isDateFuture]="isDateFuture.bind(this)"
+        />
       </div>
       }
 
-      <!-- Tiempo Compensatorio Section -->
+<!-- Tiempo Compensatorio Section -->
       @if (activeSection() === 'compensatory') {
       <div id="compensatory" class="section-content">
-        <p-card>
-          <ng-template #title>
-            <div class="flex items-center justify-between w-full">
-              <div class="flex items-center gap-2">
-                <i class="pi pi-clock text-cyan-400"></i>
-                <span>Solicitar Tiempo Compensatorio</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <p-button
-                  icon="pi pi-question-circle"
-                  [rounded]="true"
-                  [text]="true"
-                  severity="secondary"
-                  [outlined]="true"
-                  (click)="showTutorialDialog.set(true)"
-                  pTooltip="¿Cómo funciona el tiempo compensatorio?"
-                  [style]="{ width: '2.5rem', height: '2.5rem' }"
-                />
-                <p-button
-                  icon="pi pi-times"
-                  [rounded]="true"
-                  [text]="true"
-                  severity="secondary"
-                  [outlined]="true"
-                  (click)="activeSection.set('management')"
-                  pTooltip="Volver a Gestiones"
-                  [style]="{ width: '2.5rem', height: '2.5rem' }"
-                />
-              </div>
-            </div>
-          </ng-template>
-          <ng-template #subtitle
-            >Solicita tiempo compensatorio basado en tus horas extras trabajadas</ng-template
-          >
-
-          <!-- Paso 1: Selección de Tipo -->
-          <div class="mb-6 p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
-            <div class="flex items-center gap-3 mb-4">
-              <div class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
-                <i class="pi pi-list text-cyan-400"></i>
-              </div>
-              <h3 class="text-lg font-semibold text-white m-0">Paso 1: Selecciona el Tipo</h3>
-            </div>
-            <div class="flex gap-6">
-              <div 
-                class="flex-1 p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-lg"
-                [class.border-cyan-400]="compensatoryType() === 'hours'"
-                [class.bg-cyan-500/10]="compensatoryType() === 'hours'"
-                [class.border-neutral-600]="compensatoryType() !== 'hours'"
-                [class.bg-neutral-700/30]="compensatoryType() !== 'hours'"
-                (click)="compensatoryType.set('hours')"
-              >
-                <div class="flex items-center gap-3">
-                  <input
-                    type="radio"
-                    id="compensatory-hours"
-                    name="compensatory-type"
-                    [value]="'hours'"
-                    [(ngModel)]="compensatoryType"
-                    class="w-5 h-5 text-cyan-400"
-                  />
-                  <label for="compensatory-hours" class="text-base font-medium text-gray-300 cursor-pointer flex-1">
-                    <div class="flex items-center gap-2">
-                      <i class="pi pi-clock text-cyan-400"></i>
-                      <span>Horas</span>
-                    </div>
-                  </label>
-                </div>
-                <p class="text-xs text-gray-400 mt-2 ml-8">Solicita compensatorio por horas específicas</p>
-              </div>
-              <div 
-                class="flex-1 p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-lg"
-                [class.border-cyan-400]="compensatoryType() === 'days'"
-                [class.bg-cyan-500/10]="compensatoryType() === 'days'"
-                [class.border-neutral-600]="compensatoryType() !== 'days'"
-                [class.bg-neutral-700/30]="compensatoryType() !== 'days'"
-                (click)="compensatoryType.set('days')"
-              >
-                <div class="flex items-center gap-3">
-                  <input
-                    type="radio"
-                    id="compensatory-days"
-                    name="compensatory-type"
-                    [value]="'days'"
-                    [(ngModel)]="compensatoryType"
-                    class="w-5 h-5 text-cyan-400"
-                  />
-                  <label for="compensatory-days" class="text-base font-medium text-gray-300 cursor-pointer flex-1">
-                    <div class="flex items-center gap-2">
-                      <i class="pi pi-calendar text-cyan-400"></i>
-                      <span>Días</span>
-                    </div>
-                  </label>
-                </div>
-                <p class="text-xs text-gray-400 mt-2 ml-8">Solicita compensatorio por días completos</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Paso 2: Fechas Condicionales -->
-          <div class="mb-6 p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
-            <div class="flex items-center gap-3 mb-4">
-              <div class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
-                <i class="pi pi-calendar text-cyan-400"></i>
-              </div>
-              <h3 class="text-lg font-semibold text-white m-0">Paso 2: Fecha del Compensatorio</h3>
-            </div>
-            
-            @if (compensatoryType() === 'hours') {
-              <!-- Si es Horas: Fecha + Rango de Horas -->
-              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label class="block text-sm text-gray-400 mb-2 font-medium">
-                    <i class="pi pi-calendar mr-2"></i>Fecha
-                  </label>
-                  <p-datepicker
-                    [(ngModel)]="compensatoryDate"
-                    appendTo="body"
-                    class="w-full"
-                    [minDate]="minPastDate"
-                    [maxDate]="maxFutureDate"
-                    placeholder="Selecciona la fecha"
-                    [showIcon]="true"
-                    dateFormat="dd/mm/yy"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm text-gray-400 mb-2 font-medium">
-                    <i class="pi pi-clock mr-2"></i>Hora Inicio
-                  </label>
-                  <p-datepicker
-                    [(ngModel)]="compensatoryTimeStart"
-                    appendTo="body"
-                    class="w-full"
-                    timeOnly
-                    hourFormat="12"
-                    placeholder="Hora inicio"
-                    [showIcon]="true"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm text-gray-400 mb-2 font-medium">
-                    <i class="pi pi-clock mr-2"></i>Hora Fin
-                  </label>
-                  <p-datepicker
-                    [(ngModel)]="compensatoryTimeEnd"
-                    appendTo="body"
-                    class="w-full"
-                    timeOnly
-                    hourFormat="12"
-                    placeholder="Hora fin"
-                    [showIcon]="true"
-                  />
-                </div>
-              </div>
-            } @else {
-              <!-- Si es Días: Fecha Inicio + Fecha Fin -->
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-sm text-gray-400 mb-2 font-medium">
-                    <i class="pi pi-calendar-plus mr-2"></i>Fecha de Inicio
-                  </label>
-                  <p-datepicker
-                    [(ngModel)]="compensatoryStartDate"
-                    appendTo="body"
-                    class="w-full"
-                    [minDate]="minPastDate"
-                    [maxDate]="maxFutureDate"
-                    placeholder="Selecciona fecha inicio"
-                    [showIcon]="true"
-                    dateFormat="dd/mm/yy"
-                  />
-                </div>
-                <div>
-                  <label class="block text-sm text-gray-400 mb-2 font-medium">
-                    <i class="pi pi-calendar-minus mr-2"></i>Fecha de Fin
-                  </label>
-                  <p-datepicker
-                    [(ngModel)]="compensatoryEndDate"
-                    appendTo="body"
-                    class="w-full"
-                    [minDate]="compensatoryStartDate() || minPastDate"
-                    [maxDate]="maxFutureDate"
-                    placeholder="Selecciona fecha fin"
-                    [showIcon]="true"
-                    dateFormat="dd/mm/yy"
-                  />
-                </div>
-              </div>
-            }
-          </div>
-
-          <!-- Paso 3: Motivo (opcional) -->
-          <div class="mb-6 p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
-            <div class="flex items-center gap-3 mb-4">
-              <div class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
-                <i class="pi pi-comment text-cyan-400"></i>
-              </div>
-              <h3 class="text-lg font-semibold text-white m-0">Paso 3: Motivo (Opcional)</h3>
-            </div>
-            <textarea
-              pInputTextarea
-              [(ngModel)]="compensatoryReason"
-              rows="3"
-              placeholder="Describe el motivo de la solicitud..."
-              class="w-full"
-            ></textarea>
-          </div>
-
-          <!-- Paso 4: Fechas donde trabajó horas extra -->
-          <div class="mb-6 p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
-            <div class="flex items-center gap-3 mb-4">
-              <div class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
-                <i class="pi pi-clock text-cyan-400"></i>
-              </div>
-              <h3 class="text-lg font-semibold text-white m-0">Paso 4: Fechas donde trabajé horas extra</h3>
-            </div>
-            <p class="text-sm text-gray-400 mb-4">
-              Ingresa manualmente las fechas donde trabajaste horas extra. RRHH revisará esta información 
-              junto con tus marcaciones para verificar que el tiempo solicitado es correcto.
-            </p>
-            
-            <!-- Campo para agregar fechas -->
-            <div class="flex flex-col sm:flex-row gap-3 mb-4">
-              <div class="flex-1">
-                <label class="block text-sm text-gray-400 mb-2">Agregar fecha</label>
-                <p-datepicker
-                  [(ngModel)]="newOvertimeDate"
-                  appendTo="body"
-                  dateFormat="dd/mm/yy"
-                  placeholder="Selecciona una fecha"
-                  [maxDate]="today"
-                  class="w-full"
-                />
-              </div>
-              <div class="flex items-end">
-                <p-button
-                  label="Agregar Fecha"
-                  icon="pi pi-plus"
-                  severity="success"
-                  [disabled]="!newOvertimeDate()"
-                  (onClick)="addManualOvertimeDate()"
-                  class="w-full sm:w-auto"
-                />
-              </div>
-            </div>
-
-            <!-- Lista de fechas agregadas -->
-            @if (manualOvertimeDates().length === 0) {
-              <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
-                <div class="flex items-start gap-3">
-                  <i class="pi pi-info-circle text-yellow-400 text-xl"></i>
-                  <div>
-                    <p class="text-yellow-300 font-semibold mb-1">No hay fechas agregadas</p>
-                    <p class="text-sm text-gray-300">
-                      Agrega las fechas donde trabajaste horas extra usando el campo de arriba.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            } @else {
-              <div class="space-y-2">
-                <h4 class="text-sm font-semibold text-gray-300 mb-3">
-                  Fechas agregadas ({{ manualOvertimeDates().length }}):
-                </h4>
-                <div class="flex flex-col gap-2">
-                  @for (date of manualOvertimeDates(); track $index) {
-                    <div class="flex items-center justify-between p-3 rounded-lg bg-neutral-700/50 border border-neutral-600/50">
-                      <div class="flex items-center gap-3">
-                        <i class="pi pi-calendar text-cyan-400"></i>
-                        <span class="text-white font-medium">
-                          {{ date | date : 'fullDate' }}
-                        </span>
-                      </div>
-                      <p-button
-                        icon="pi pi-times"
-                        severity="danger"
-                        text
-                        rounded
-                        size="small"
-                        (onClick)="removeManualOvertimeDate($index)"
-                        pTooltip="Eliminar fecha"
-                      />
-                    </div>
-                  }
-                </div>
-              </div>
-            }
-
-            <!-- Información para RRHH -->
-            <div class="mt-4 p-3 bg-cyan-500/10 border border-cyan-500/30 rounded-lg">
-              <div class="flex items-start gap-2">
-                <i class="pi pi-info-circle text-cyan-400 mt-0.5"></i>
-                <div>
-                  <p class="text-sm text-gray-300">
-                    <strong>Nota para RRHH:</strong> Esta información será revisada junto con las marcaciones 
-                    del empleado para verificar las horas extra trabajadas y aprobar la solicitud.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Resumen y Botón de Envío -->
-          <div class="flex flex-col md:flex-row items-center justify-between gap-4 p-5 rounded-lg bg-gradient-to-r from-cyan-500/10 to-cyan-600/5 border border-cyan-400/30 shadow-lg">
-            @if (compensatoryAmount() > 0) {
-              <div class="flex items-center gap-3">
-                <div class="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center">
-                  <i class="pi pi-check-circle text-cyan-400 text-xl"></i>
-                </div>
-                <div>
-                  <p class="text-sm text-gray-400 m-0">Total a Solicitar</p>
-                  <p class="text-xl font-bold text-cyan-300 m-0">
-                    @if (compensatoryType() === 'hours') {
-                      {{ compensatoryAmount().toFixed(1) }} hora(s)
-                    } @else {
-                      {{ compensatoryAmount() }} día(s)
-                    }
-                  </p>
-                </div>
-              </div>
-            }
-            <p-button
-              label="Solicitar Tiempo Compensatorio"
-              icon="pi pi-send"
-              [loading]="submittingCompensatory()"
-              [disabled]="!canSubmitCompensatory() || submittingCompensatory()"
-              (click)="submitCompensatoryRequest()"
-              class="ml-auto"
-            />
-          </div>
-          
-          <div class="mt-6 flex justify-end">
-            <p-button
-              label="Ver Mis Solicitudes"
-              icon="pi pi-list"
-              severity="secondary"
-              [outlined]="true"
-              (click)="activeSection.set('my-requests')"
-            />
-          </div>
-        </p-card>
+        <pt-employee-portal-compensatory
+          [compensatoryType]="compensatoryType()"
+          (compensatoryTypeChange)="setCompensatoryType($event)"
+          [compensatoryDate]="compensatoryDate()"
+          (compensatoryDateChange)="setCompensatoryDate($event)"
+          [compensatoryTimeStart]="compensatoryTimeStart()"
+          (compensatoryTimeStartChange)="setCompensatoryTimeStart($event)"
+          [compensatoryTimeEnd]="compensatoryTimeEnd()"
+          (compensatoryTimeEndChange)="setCompensatoryTimeEnd($event)"
+          [compensatoryStartDate]="compensatoryStartDate()"
+          (compensatoryStartDateChange)="setCompensatoryStartDate($event)"
+          [compensatoryEndDate]="compensatoryEndDate()"
+          (compensatoryEndDateChange)="setCompensatoryEndDate($event)"
+          [compensatoryReason]="compensatoryReason()"
+          (compensatoryReasonChange)="setCompensatoryReason($event)"
+          [manualOvertimeDates]="manualOvertimeDates()"
+          [newOvertimeDate]="newOvertimeDate()"
+          (newOvertimeDateChange)="setNewOvertimeDate($event)"
+          (addManualDate)="addManualOvertimeDate()"
+          (removeManualDate)="removeManualOvertimeDate($event)"
+          [compensatoryAmount]="compensatoryAmount()"
+          [canSubmit]="canSubmitCompensatory()"
+          [submitting]="submittingCompensatory()"
+          [minPastDate]="minPastDate"
+          [maxFutureDate]="maxFutureDate"
+          [today]="today"
+          (submit)="submitCompensatoryRequest()"
+          (openTutorial)="setShowTutorialDialog(true)"
+          (closeSection)="setActiveSection('management')"
+          (viewRequests)="setActiveSection('my-requests')"
+        />
       </div>
       }
 
@@ -2296,7 +538,7 @@ import { EmployeesStore } from '../stores/employees.store';
               <p-button
                 label="Nueva Solicitud"
                 icon="pi pi-plus"
-                (click)="activeSection.set('management')"
+                (click)="setActiveSection('management')"
               />
             </div>
           </ng-template>
@@ -2490,7 +732,7 @@ import { EmployeesStore } from '../stores/employees.store';
             <p-button
               label="Ir a Gestiones"
               icon="pi pi-briefcase"
-              (click)="activeSection.set('management')"
+              (click)="setActiveSection('management')"
               severity="success"
               [rounded]="true"
             />
@@ -3035,7 +1277,8 @@ import { EmployeesStore } from '../stores/employees.store';
 
     <!-- Dialog de Tutorial de Tiempo Compensatorio -->
     <p-dialog
-      [(visible)]="showTutorialDialog"
+      [visible]="showTutorialDialog()"
+      (onHide)="setShowTutorialDialog(false)"
       [modal]="true"
       [style]="{ width: '90vw', maxWidth: '800px' }"
       [draggable]="false"
@@ -3198,7 +1441,7 @@ import { EmployeesStore } from '../stores/employees.store';
           <p-button
             label="Entendido"
             icon="pi pi-check"
-            (onClick)="showTutorialDialog.set(false)"
+            (onClick)="setShowTutorialDialog(false)"
             severity="success"
             [rounded]="true"
           />
@@ -3776,16 +2019,6 @@ import { EmployeesStore } from '../stores/employees.store';
       }
     }
 
-    /* Profile Header Card Styles */
-    ::ng-deep .profile-header-card .p-card-body {
-      background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(251, 191, 36, 0.05) 100%);
-      border: 1px solid rgba(251, 191, 36, 0.2);
-    }
-
-    /* Profile Info Cards Hover Effect */
-    .p-4.rounded-lg:hover {
-      transform: translateY(-2px);
-    }
 
     /* Better spacing on mobile */
     @media (max-width: 640px) {
@@ -3807,17 +2040,19 @@ import { EmployeesStore } from '../stores/employees.store';
 export class EmployeePortalComponent {
   public store = inject(DashboardStore);
   public employees = inject(EmployeesStore);
+  public portalStore = inject(EmployeePortalStore);
   public messageService = inject(MessageService);
   private http = inject(HttpClient);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private organizationService = inject(OrganizationService);
+  private employeePortalApi = inject(EmployeePortalApiService);
   private navigationService = inject(EmployeePortalNavigationService);
   public notificationsService = inject(NotificationsService);
   private readonly companyEmailDomain = '@blackdogpanama.com';
 
   public currentEmployee = computed(() => this.store.currentEmployee());
-  public activeSection = signal<string>('dashboard');
+  public activeSection = this.portalStore.activeSection;
 
   // Notificaciones
   public notifications = computed(() =>
@@ -3832,8 +2067,6 @@ export class EmployeePortalComponent {
     return workEmail.endsWith(this.companyEmailDomain);
   });
 
-  public showSalary = signal(false);
-
   // Verificar si el usuario es HR o Admin
   public isHRorAdmin = computed(() => {
     const isAdmin = this.store.isAdmin();
@@ -3846,6 +2079,132 @@ export class EmployeePortalComponent {
     return isAdmin || isHR;
   });
 
+  public setActiveSection(section: string): void {
+    this.portalStore.setActiveSection(section);
+  }
+
+  public showSalary = this.portalStore.showSalary;
+  public vacationStartDate = this.portalStore.vacationStartDate;
+  public vacationEndDate = this.portalStore.vacationEndDate;
+  public vacationReason = this.portalStore.vacationReason;
+  public submittingVacation = this.portalStore.submittingVacation;
+  public compensatoryStartDate = this.portalStore.compensatoryStartDate;
+  public compensatoryEndDate = this.portalStore.compensatoryEndDate;
+  public compensatoryType = this.portalStore.compensatoryType;
+  public compensatoryReason = this.portalStore.compensatoryReason;
+  public submittingCompensatory = this.portalStore.submittingCompensatory;
+  public compensatoryDate = this.portalStore.compensatoryDate;
+  public compensatoryTimeStart = this.portalStore.compensatoryTimeStart;
+  public compensatoryTimeEnd = this.portalStore.compensatoryTimeEnd;
+  public selectedOvertimeDays = this.portalStore.selectedOvertimeDays;
+  public manualOvertimeDates = this.portalStore.manualOvertimeDates;
+  public newOvertimeDate = this.portalStore.newOvertimeDate;
+  public showTutorialDialog = this.portalStore.showTutorialDialog;
+
+  public setVacationStartDate(value: Date | null): void {
+    this.portalStore.setVacationStartDate(value);
+  }
+
+  public setVacationEndDate(value: Date | null): void {
+    this.portalStore.setVacationEndDate(value);
+  }
+
+  public setVacationReason(value: string): void {
+    this.portalStore.setVacationReason(value);
+  }
+
+  public setSubmittingVacation(value: boolean): void {
+    this.portalStore.setSubmittingVacation(value);
+  }
+
+  public resetVacationForm(): void {
+    this.portalStore.resetVacationForm();
+  }
+
+  public setCompensatoryType(value: 'hours' | 'days'): void {
+    this.portalStore.setCompensatoryType(value);
+  }
+
+  public setCompensatoryStartDate(value: Date | null): void {
+    this.portalStore.setCompensatoryStartDate(value);
+  }
+
+  public setCompensatoryEndDate(value: Date | null): void {
+    this.portalStore.setCompensatoryEndDate(value);
+  }
+
+  public setCompensatoryReason(value: string): void {
+    this.portalStore.setCompensatoryReason(value);
+  }
+
+  public setSubmittingCompensatory(value: boolean): void {
+    this.portalStore.setSubmittingCompensatory(value);
+  }
+
+  public setShowTutorialDialog(value: boolean): void {
+    this.portalStore.setShowTutorialDialog(value);
+  }
+
+  public setCompensatoryDate(value: Date | null): void {
+    this.portalStore.setCompensatoryDate(value);
+  }
+
+  public setCompensatoryTimeStart(value: Date | null): void {
+    this.portalStore.setCompensatoryTimeStart(value);
+  }
+
+  public setCompensatoryTimeEnd(value: Date | null): void {
+    this.portalStore.setCompensatoryTimeEnd(value);
+  }
+
+  public toggleOvertimeDay(day: string): void {
+    this.portalStore.toggleOvertimeDay(day);
+  }
+
+  public setManualOvertimeDates(value: Date[]): void {
+    this.portalStore.setManualOvertimeDates(value);
+  }
+
+  public setNewOvertimeDate(value: Date | null): void {
+    this.portalStore.setNewOvertimeDate(value);
+  }
+
+  public toggleSalary(): void {
+    this.portalStore.toggleShowSalary();
+  }
+
+  public setDocumentType(value: string): void {
+    this.portalStore.setDocumentType(value);
+  }
+
+  public setCustomDocumentType(value: string): void {
+    this.portalStore.setCustomDocumentType(value);
+  }
+
+  public setDocumentReason(value: string): void {
+    this.portalStore.setDocumentReason(value);
+  }
+
+  public setDocumentRequiredDate(value: Date | null): void {
+    this.portalStore.setDocumentRequiredDate(value);
+  }
+
+  public setComplaintCategory(value: string): void {
+    this.portalStore.setComplaintCategory(value);
+  }
+
+  public setComplaintText(value: string): void {
+    this.portalStore.setComplaintText(value);
+  }
+
+  public setAllowContact(value: boolean): void {
+    this.portalStore.setAllowContact(value);
+  }
+
+  public setContactMethod(value: string): void {
+    this.portalStore.setContactMethod(value);
+  }
+
   constructor() {
     // Inicializar notificaciones cuando cambia el empleado actual
     effect(() => {
@@ -3854,58 +2213,28 @@ export class EmployeePortalComponent {
         this.notificationsService.setCurrentEmployeeId(employeeId);
       }
     });
-    console.log('[EmployeePortal] Constructor - Inicializando componente');
     // Inicializar con el fragmento actual si existe
     const currentFragment = this.route.snapshot.fragment;
-    console.log(
-      '[EmployeePortal] Constructor - Fragmento actual:',
-      currentFragment
-    );
     if (currentFragment) {
-      this.activeSection.set(currentFragment);
-      console.log(
-        '[EmployeePortal] Constructor - Sección activa establecida a:',
-        currentFragment
-      );
+      this.setActiveSection(currentFragment);
     } else {
-      this.activeSection.set('dashboard');
-      console.log(
-        '[EmployeePortal] Constructor - Sección activa establecida a: dashboard (por defecto)'
-      );
+      this.setActiveSection('dashboard');
     }
 
     // Suscribirse a cambios de fragmento
     this.route.fragment.subscribe((fragment) => {
-      console.log(
-        '[EmployeePortal] Fragment changed - Nuevo fragmento:',
-        fragment
-      );
       if (fragment) {
-        console.log(
-          '[EmployeePortal] Fragment changed - Estableciendo sección activa a:',
-          fragment
-        );
-        this.activeSection.set(fragment);
+        this.setActiveSection(fragment);
         // Hacer scroll a la sección después de un pequeño delay
         setTimeout(() => {
           const element = document.getElementById(fragment);
           if (element) {
-            console.log(
-              '[EmployeePortal] Fragment changed - Elemento encontrado, haciendo scroll'
-            );
             element.scrollIntoView({ behavior: 'smooth', block: 'start' });
           } else {
-            console.log(
-              '[EmployeePortal] Fragment changed - Elemento NO encontrado para:',
-              fragment
-            );
           }
         }, 100);
       } else {
-        console.log(
-          '[EmployeePortal] Fragment changed - No hay fragmento, estableciendo dashboard'
-        );
-        this.activeSection.set('dashboard');
+        this.setActiveSection('dashboard');
       }
     });
 
@@ -3916,9 +2245,6 @@ export class EmployeePortalComponent {
         // Sección timelogs activada - no se requiere logging
       }
       if (section === 'management' || section === 'gestiones') {
-        console.log(
-          '[Gestiones] Effect - Sección gestiones/management activada'
-        );
       }
     });
 
@@ -3934,7 +2260,7 @@ export class EmployeePortalComponent {
     effect(() => {
       const targetSection = this.navigationService.navigateToSection();
       if (targetSection) {
-        this.activeSection.set(targetSection);
+        this.setActiveSection(targetSection);
         // Actualizar la URL también
         this.router.navigate(['/employee-portal'], {
           fragment: targetSection,
@@ -4265,11 +2591,12 @@ export class EmployeePortalComponent {
   public myDisabilities = computed(() => this.disabilitiesApi.value() ?? []);
 
   // Document Requests
-  public documentType = signal('work_letter');
-  public customDocumentType = signal('');
-  public documentReason = signal('');
-  public documentRequiredDate = signal<Date | null>(null);
-  public submittingDocument = signal(false);
+  public documentType = this.portalStore.documentType;
+  public customDocumentType = this.portalStore.customDocumentType;
+  public documentReason = this.portalStore.documentReason;
+  public documentRequiredDate = this.portalStore.documentRequiredDate;
+  public submittingDocument = this.portalStore.submittingDocument;
+  public canSubmitDocument = this.portalStore.canSubmitDocument;
 
   // Opciones para el tipo de documento
   public documentTypeOptions = [
@@ -4279,28 +2606,9 @@ export class EmployeePortalComponent {
     { label: 'Otro', value: 'other' },
   ];
 
-  // Validación para poder enviar solicitud de documento
-  public canSubmitDocument = computed(() => {
-    const type = this.documentType();
-    const reason = this.documentReason().trim();
-    
-    if (!reason || reason.length < 10) {
-      return false;
-    }
-    
-    if (type === 'other') {
-      return this.customDocumentType().trim().length > 0;
-    }
-    
-    return true;
-  });
-
   // Método para resetear el formulario de documentos
   public resetDocumentForm(): void {
-    this.documentType.set('work_letter');
-    this.customDocumentType.set('');
-    this.documentReason.set('');
-    this.documentRequiredDate.set(null);
+    this.portalStore.resetDocumentForm();
   }
 
   public documentRequestsApi = httpResource<any[]>(() => {
@@ -4321,19 +2629,14 @@ export class EmployeePortalComponent {
   );
 
   // Complaints
-  public complaintCategory = signal('work_environment');
-  public complaintText = signal('');
-  public allowContact = signal(false);
-  public contactMethod = signal('email');
-  public submittingComplaint = signal(false);
+  public complaintCategory = this.portalStore.complaintCategory;
+  public complaintText = this.portalStore.complaintText;
+  public allowContact = this.portalStore.allowContact;
+  public contactMethod = this.portalStore.contactMethod;
+  public submittingComplaint = this.portalStore.submittingComplaint;
+  public canSubmitComplaint = this.portalStore.canSubmitComplaint;
   public responseDialogVisible = signal(false);
   public selectedComplaint = signal<any>(null);
-
-  // Computed: Validación del formulario de quejas
-  public canSubmitComplaint = computed(() => {
-    const text = this.complaintText();
-    return text && text.trim().length >= 10;
-  });
 
   public complaintsApi = httpResource<any[]>(() => {
     if (!this.currentEmployee()?.id) return undefined;
@@ -5076,19 +3379,9 @@ export class EmployeePortalComponent {
     }
   );
 
-  // Signals para formulario de tiempo compensatorio
-  public compensatoryStartDate = signal<Date | null>(null);
-  public compensatoryEndDate = signal<Date | null>(null);
-  public compensatoryType = signal<'hours' | 'days'>('hours');
-  public compensatoryReason = signal('');
-  public submittingCompensatory = signal(false);
-  public showTutorialDialog = signal(false);
-
-  // Signals para formulario de vacaciones
-  public vacationStartDate = signal<Date | null>(null);
-  public vacationEndDate = signal<Date | null>(null);
-  public vacationReason = signal('');
-  public submittingVacation = signal(false);
+  // Dialog para detalles de solicitud
+  public showRequestDetailsDialog = signal(false);
+  public selectedRequestDetails = signal<any>(null);
   public minVacationDate = new Date(); // No permitir fechas pasadas
   public maxVacationDate = computed(() => {
     const date = new Date();
@@ -5096,17 +3389,7 @@ export class EmployeePortalComponent {
     return date;
   });
 
-  // Dialog para detalles de solicitud
-  public showRequestDetailsDialog = signal(false);
-  public selectedRequestDetails = signal<any>(null);
-
   // Nuevos signals para el formulario mejorado
-  public compensatoryDate = signal<Date | null>(null); // Fecha cuando tipo es "hours"
-  public compensatoryTimeStart = signal<Date | null>(null); // Hora inicio cuando tipo es "hours"
-  public compensatoryTimeEnd = signal<Date | null>(null); // Hora fin cuando tipo es "hours"
-  public selectedOvertimeDays = signal<Set<string>>(new Set()); // Días seleccionados con horas extras
-  public manualOvertimeDates = signal<Date[]>([]); // Fechas manuales de horas extra ingresadas por el empleado
-  public newOvertimeDate = signal<Date | null>(null); // Fecha temporal para agregar
 
   // Constantes de validación para tiempo compensatorio
   private readonly MAX_FUTURE_DAYS = 90; // Máximo 90 días en el futuro
@@ -5131,22 +3414,10 @@ export class EmployeePortalComponent {
     return date;
   }
 
-  // Métodos helper para manejar selección de días
-  public toggleOvertimeDay(day: string): void {
-    const current = new Set(this.selectedOvertimeDays());
-    if (current.has(day)) {
-      current.delete(day);
-    } else {
-      current.add(day);
-    }
-    this.selectedOvertimeDays.set(current);
-  }
-
   public isDaySelected(day: string): boolean {
     return this.selectedOvertimeDays().has(day);
   }
 
-  // Método para agregar una fecha manual de horas extra
   public addManualOvertimeDate() {
     const date = this.newOvertimeDate();
     if (!date) return;
@@ -5154,7 +3425,6 @@ export class EmployeePortalComponent {
     const dateStr = format(date, 'yyyy-MM-dd');
     const existingDates = this.manualOvertimeDates();
 
-    // Verificar que no esté duplicada
     const isDuplicate = existingDates.some(
       (d) => format(d, 'yyyy-MM-dd') === dateStr
     );
@@ -5167,16 +3437,14 @@ export class EmployeePortalComponent {
       return;
     }
 
-    // Agregar la fecha
-    this.manualOvertimeDates.set([...existingDates, date]);
-    this.newOvertimeDate.set(null);
+    this.setManualOvertimeDates([...existingDates, date]);
+    this.setNewOvertimeDate(null);
   }
 
-  // Método para eliminar una fecha manual
   public removeManualOvertimeDate(index: number) {
     const dates = this.manualOvertimeDates();
     dates.splice(index, 1);
-    this.manualOvertimeDates.set([...dates]);
+    this.setManualOvertimeDates([...dates]);
   }
 
   // API para obtener todas las solicitudes de tiempo compensatorio (no solo aprobadas)
@@ -5879,7 +4147,7 @@ export class EmployeePortalComponent {
       }
     }
 
-    this.submittingCompensatory.set(true);
+    this.setSubmittingCompensatory(true);
 
     const amount = this.compensatoryAmount();
 
@@ -5986,52 +4254,30 @@ export class EmployeePortalComponent {
     };
 
     try {
-      const response = await firstValueFrom(
-        this.http.post<any>(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`,
-          timeoffData,
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              Prefer: 'return=representation',
-            },
-          }
-        )
+      const response = await this.employeePortalApi.createTimeoffRequest(
+        timeoffData
       );
 
-      // Enviar notificación a Verley (HR que revisa)
       const timeoffId = response[0]?.id || response?.id;
-      await this.notifyHRReviewer(timeoffId);
+      await this.employeePortalApi.notifyHrReviewer(
+        timeoffId,
+        this.currentEmployee() ?? null
+      );
 
-      // Crear notificación en hr_messages para el usuario
       const currentEmp = this.currentEmployee();
       if (currentEmp && timeoffId) {
-        try {
-          await firstValueFrom(
-            this.http.post(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/hr_messages`,
-              {
-                employee_id: currentEmp.id,
-                related_type: 'timeoff',
-                related_id: timeoffId,
-                message_type: 'compensatory_request',
-                title: 'Solicitud de tiempo compensatorio enviada',
-                message:
-                  'Tu solicitud de tiempo compensatorio ha sido enviada y está pendiente de revisión.',
-                is_read: false,
-              },
-              {
-                headers: {
-                  'Content-Type': 'application/json',
-                  Prefer: 'return=representation',
-                },
-              }
-            )
-          );
-        } catch (error) {
-          console.error('Error al crear notificación para el usuario:', error);
-          // No fallar el flujo principal si la notificación falla
-        }
+        await this.employeePortalApi.createHrMessages([
+          {
+            employee_id: currentEmp.id,
+            related_type: 'timeoff',
+            related_id: timeoffId,
+            message_type: 'compensatory_request',
+            title: 'Solicitud de tiempo compensatorio enviada',
+            message:
+              'Tu solicitud de tiempo compensatorio ha sido enviada y está pendiente de revisión.',
+            is_read: false,
+          },
+        ]);
       }
 
       this.messageService.add({
@@ -6042,15 +4288,15 @@ export class EmployeePortalComponent {
       });
 
       // Reset form
-      this.compensatoryStartDate.set(null);
-      this.compensatoryEndDate.set(null);
-      this.compensatoryDate.set(null);
-      this.compensatoryTimeStart.set(null);
-      this.compensatoryTimeEnd.set(null);
-      this.compensatoryType.set('hours');
-      this.compensatoryReason.set('');
-      this.manualOvertimeDates.set([]);
-      this.newOvertimeDate.set(null);
+      this.setCompensatoryStartDate(null);
+      this.setCompensatoryEndDate(null);
+      this.setCompensatoryDate(null);
+      this.setCompensatoryTimeStart(null);
+      this.setCompensatoryTimeEnd(null);
+      this.setCompensatoryType('hours');
+      this.setCompensatoryReason('');
+      this.setManualOvertimeDates([]);
+      this.setNewOvertimeDate(null);
       if (
         this.compensatoryTimeoffsApi &&
         typeof this.compensatoryTimeoffsApi.reload === 'function' &&
@@ -6066,7 +4312,7 @@ export class EmployeePortalComponent {
         detail: 'No se pudo enviar la solicitud. Por favor intenta de nuevo.',
       });
     } finally {
-      this.submittingCompensatory.set(false);
+      this.setSubmittingCompensatory(false);
     }
   }
 
@@ -6080,24 +4326,24 @@ export class EmployeePortalComponent {
   public canSubmitVacation = computed(() => {
     const startDate = this.vacationStartDate();
     const endDate = this.vacationEndDate();
-    
+
     if (!startDate || !endDate) {
       return false;
     }
-    
+
     // Validar que la fecha de inicio no sea pasada
     const today = startOfDay(new Date());
     const start = startOfDay(startDate);
     if (start < today) {
       return false;
     }
-    
+
     // Validar que la fecha de fin sea mayor o igual a la de inicio
     const end = startOfDay(endDate);
     if (end < start) {
       return false;
     }
-    
+
     return true;
   });
 
@@ -6107,26 +4353,29 @@ export class EmployeePortalComponent {
   public calculateVacationDays = computed(() => {
     const startDate = this.vacationStartDate();
     const endDate = this.vacationEndDate();
-    
+
     if (!startDate || !endDate) {
       return 0;
     }
-    
+
     return this.calculateDaysBetween(startDate, endDate);
   });
 
   /**
    * Calcula los días entre dos fechas (incluyendo ambos días)
    */
-  public calculateDaysBetween(dateFrom: Date | string, dateTo: Date | string): number {
+  public calculateDaysBetween(
+    dateFrom: Date | string,
+    dateTo: Date | string
+  ): number {
     try {
       const from = typeof dateFrom === 'string' ? new Date(dateFrom) : dateFrom;
       const to = typeof dateTo === 'string' ? new Date(dateTo) : dateTo;
-      
+
       if (isNaN(from.getTime()) || isNaN(to.getTime())) {
         return 0;
       }
-      
+
       return differenceInDays(to, from) + 1; // +1 para incluir ambos días
     } catch (error) {
       console.error('Error calculating days between dates:', error);
@@ -6167,15 +4416,6 @@ export class EmployeePortalComponent {
   });
 
   /**
-   * Limpia el formulario de vacaciones
-   */
-  public resetVacationForm(): void {
-    this.vacationStartDate.set(null);
-    this.vacationEndDate.set(null);
-    this.vacationReason.set('');
-  }
-
-  /**
    * Recarga las solicitudes de vacaciones
    */
   public reloadVacationRequests(): void {
@@ -6195,7 +4435,7 @@ export class EmployeePortalComponent {
     // Validaciones
     const startDate = this.vacationStartDate();
     const endDate = this.vacationEndDate();
-    
+
     if (!startDate || !endDate) {
       this.messageService.add({
         severity: 'error',
@@ -6233,28 +4473,23 @@ export class EmployeePortalComponent {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'No se pudo identificar al empleado. Por favor recarga la página.',
+        detail:
+          'No se pudo identificar al empleado. Por favor recarga la página.',
       });
       return;
     }
 
-    this.submittingVacation.set(true);
+    this.setSubmittingVacation(true);
 
     try {
-      // ID del tipo de timeoff "Vacaciones"
       const vacationTypeId = '00000000-0000-0000-0000-000000000001';
-      
-      // Formatear fechas
       const dateFrom = format(start, 'yyyy-MM-dd');
       const dateTo = format(end, 'yyyy-MM-dd');
-      
-      // Preparar notas
       const notes: string[] = [];
       if (this.vacationReason().trim()) {
         notes.push(this.vacationReason().trim());
       }
 
-      // Crear el objeto de solicitud
       const timeoffData: TimeOff = {
         id: v4(),
         employee_id: employee.id,
@@ -6262,93 +4497,71 @@ export class EmployeePortalComponent {
         date_from: startDate,
         date_to: endDate,
         notes,
-        is_approved: false, // Las vacaciones requieren aprobación
+        is_approved: false,
       };
 
-      // Enviar solicitud
-      const response = await firstValueFrom(
-        this.http.post<any>(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`,
-          {
-            ...timeoffData,
-            date_from: dateFrom,
-            date_to: dateTo,
-          },
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              Prefer: 'return=representation',
-            },
-          }
-        )
-      );
+      const response = await this.employeePortalApi.createTimeoffRequest({
+        ...timeoffData,
+        date_from: dateFrom,
+        date_to: dateTo,
+      });
 
-      // Obtener el ID de la solicitud creada
-      const timeoffId = Array.isArray(response) ? response[0]?.id : response?.id;
-      
+      const timeoffId = Array.isArray(response)
+        ? response[0]?.id
+        : response?.id;
       if (!timeoffId) {
         throw new Error('No se recibió el ID de la solicitud creada');
       }
 
-      // Enviar notificación a HR que revisa
-      try {
-        await this.notifyHRReviewer(timeoffId);
-      } catch (error) {
-        console.error('Error al notificar a HR:', error);
-        // No fallar el flujo principal si la notificación falla
+      await this.employeePortalApi.notifyHrReviewer(
+        timeoffId,
+        employee ?? null
+      );
+
+      const currentEmp = this.currentEmployee();
+      if (currentEmp && timeoffId) {
+        await this.employeePortalApi.createHrMessages([
+          {
+            employee_id: currentEmp.id,
+            related_type: 'timeoff',
+            related_id: timeoffId,
+            message_type: 'vacation_request',
+            title: 'Solicitud de vacaciones enviada',
+            message: `Tu solicitud de vacaciones del ${format(
+              startDate,
+              'dd/MM/yyyy'
+            )} al ${format(
+              endDate,
+              'dd/MM/yyyy'
+            )} ha sido enviada y está pendiente de revisión.`,
+            is_read: false,
+          },
+        ]);
       }
 
-      // Crear notificación en hr_messages para el usuario
-      try {
-        await firstValueFrom(
-          this.http.post(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/hr_messages`,
-            {
-              employee_id: employee.id,
-              related_type: 'timeoff',
-              related_id: timeoffId,
-              message_type: 'vacation_request',
-              title: 'Solicitud de vacaciones enviada',
-              message: `Tu solicitud de vacaciones del ${format(startDate, 'dd/MM/yyyy')} al ${format(endDate, 'dd/MM/yyyy')} ha sido enviada y está pendiente de revisión.`,
-              is_read: false,
-            },
-            {
-              headers: {
-                'Content-Type': 'application/json',
-                Prefer: 'return=representation',
-              },
-            }
-          )
-        );
-      } catch (error) {
-        console.error('Error al crear notificación para el usuario:', error);
-        // No fallar el flujo principal si la notificación falla
-      }
-
-      // Mostrar mensaje de éxito
       this.messageService.add({
         severity: 'success',
         summary: 'Solicitud Enviada',
-        detail: `Tu solicitud de vacaciones ha sido enviada para revisión. Período: ${format(startDate, 'dd/MM/yyyy')} - ${format(endDate, 'dd/MM/yyyy')}`,
+        detail: `Tu solicitud de vacaciones ha sido enviada para revisión. Período: ${format(
+          startDate,
+          'dd/MM/yyyy'
+        )} - ${format(endDate, 'dd/MM/yyyy')}`,
         life: 5000,
       });
 
-      // Limpiar formulario
       this.resetVacationForm();
-
-      // Recargar lista de solicitudes
       this.reloadVacationRequests();
-      
     } catch (error: any) {
       console.error('Error submitting vacation request:', error);
-      
-      let errorMessage = 'No se pudo enviar la solicitud. Por favor intenta de nuevo.';
+
+      let errorMessage =
+        'No se pudo enviar la solicitud. Por favor intenta de nuevo.';
       if (error?.error?.message) {
         errorMessage = error.error.message;
       } else if (error?.message) {
         errorMessage = error.message;
       }
-      
+
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
@@ -6356,86 +4569,7 @@ export class EmployeePortalComponent {
         life: 5000,
       });
     } finally {
-      this.submittingVacation.set(false);
-    }
-  }
-
-  // Función helper para notificar a Verley (HR que revisa)
-  private async notifyHRReviewer(timeoffId: string): Promise<void> {
-    try {
-      const companyId = this.organizationService.getCurrentCompanyId();
-      if (!companyId) return;
-
-      // Buscar posición exacta de Verley: "Encargada de Recursos Humanos"
-      const verleyPositions = await firstValueFrom(
-        this.http.get<any[]>(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/positions`,
-          {
-            params: {
-              select: 'id',
-              name: 'eq.Encargada de Recursos Humanos',
-              company_id: `eq.${companyId}`,
-            },
-          }
-        )
-      );
-
-      if (!verleyPositions || verleyPositions.length === 0) {
-        console.warn(
-          'No se encontró la posición "Encargada de Recursos Humanos"'
-        );
-        return;
-      }
-
-      const verleyPositionIds = verleyPositions.map((p) => p.id);
-
-      // Buscar empleados con esa posición (Verley)
-      const hrEmployees = await firstValueFrom(
-        this.http.get<any[]>(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
-          {
-            params: {
-              select: 'id,first_name,father_name',
-              position_id: `in.(${verleyPositionIds.join(',')})`,
-              company_id: `eq.${companyId}`,
-              is_active: 'eq.true',
-            },
-          }
-        )
-      );
-
-      if (!hrEmployees || hrEmployees.length === 0) {
-        console.warn('No se encontraron empleados HR (Verley) para notificar');
-        return;
-      }
-
-      const currentEmp = this.currentEmployee();
-      // Enviar notificación a todos los HR encontrados
-      const notifications = hrEmployees.map((hr) => ({
-        employee_id: hr.id,
-        related_type: 'timeoff',
-        related_id: timeoffId,
-        message_type: 'compensatory_request',
-        title: 'Nueva Solicitud de Tiempo Compensatorio',
-        message: `${currentEmp?.first_name} ${currentEmp?.father_name} ha enviado una solicitud de tiempo compensatorio que requiere tu revisión.`,
-        created_by: currentEmp?.id || null,
-      }));
-
-      await firstValueFrom(
-        this.http.post(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/hr_messages`,
-          notifications,
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              Prefer: 'return=representation',
-            },
-          }
-        )
-      );
-    } catch (error) {
-      console.error('Error enviando notificación a HR:', error);
-      // No fallar la solicitud si la notificación falla
+      this.setSubmittingVacation(false);
     }
   }
 
@@ -6501,25 +4635,10 @@ export class EmployeePortalComponent {
       if (this.editAddress()) updateData.address = this.editAddress();
 
       const companyId = this.organizationService.getCurrentCompanyId();
-      const params: any = { id: `eq.${this.currentEmployee()!.id}` };
-
-      // Agregar filtro por company_id para seguridad
-      if (companyId) {
-        params.company_id = `eq.${companyId}`;
-      }
-
-      await firstValueFrom(
-        this.http.patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
-          updateData,
-          {
-            params,
-            headers: {
-              'Content-Type': 'application/json',
-              Prefer: 'return=representation',
-            },
-          }
-        )
+      await this.employeePortalApi.updateEmployeeProfile(
+        this.currentEmployee()!.id,
+        updateData,
+        companyId || undefined
       );
 
       this.messageService.add({
@@ -6666,7 +4785,8 @@ export class EmployeePortalComponent {
   }
 
   public async submitDocumentRequest(): Promise<void> {
-    if (!this.documentReason().trim()) {
+    const reason = this.documentReason();
+    if (!reason.trim()) {
       this.messageService.add({
         severity: 'warn',
         summary: 'Campo Requerido',
@@ -6675,7 +4795,7 @@ export class EmployeePortalComponent {
       return;
     }
 
-    this.submittingDocument.set(true);
+    this.portalStore.setSubmittingDocument(true);
 
     const documentType =
       this.documentType() === 'other'
@@ -6711,7 +4831,7 @@ export class EmployeePortalComponent {
           // Reset form
           this.resetDocumentForm();
           this.documentRequestsApi.reload();
-          this.submittingDocument.set(false);
+          this.portalStore.setSubmittingDocument(false);
         },
         error: (error) => {
           console.error('Error submitting document request:', error);
@@ -6722,7 +4842,7 @@ export class EmployeePortalComponent {
               error.error?.message ||
               'No se pudo enviar la solicitud. Por favor intenta de nuevo.',
           });
-          this.submittingDocument.set(false);
+          this.portalStore.setSubmittingDocument(false);
         },
       });
   }
@@ -6737,15 +4857,16 @@ export class EmployeePortalComponent {
       return;
     }
 
-    this.submittingComplaint.set(true);
+    this.portalStore.setSubmittingComplaint(true);
 
+    const allowContact = this.allowContact();
     const complaintData = {
-      employee_id: this.allowContact() ? this.currentEmployee()!.id : null, // NULL for anonymous (visible to HR)
-      creator_employee_id: this.currentEmployee()!.id, // Always set, even for anonymous (for internal use)
+      employee_id: allowContact ? this.currentEmployee()!.id : null,
+      creator_employee_id: this.currentEmployee()!.id,
       category: this.complaintCategory(),
       complaint: this.complaintText(),
-      allow_contact: this.allowContact(),
-      contact_method: this.allowContact() ? this.contactMethod() : null,
+      allow_contact: allowContact,
+      contact_method: allowContact ? this.contactMethod() : null,
       status: 'pending',
     };
 
@@ -6762,20 +4883,16 @@ export class EmployeePortalComponent {
       )
       .subscribe({
         next: async (response: any) => {
-          // La respuesta puede ser un array o un objeto único
           const complaint = Array.isArray(response) ? response[0] : response;
 
           if (complaint && complaint.id) {
-            // Crear el primer mensaje con el texto de la sugerencia
             const messageData = {
               complaint_id: complaint.id,
-              sender_id: this.allowContact()
-                ? this.currentEmployee()!.id
-                : null,
+              sender_id: allowContact ? this.currentEmployee()!.id : null,
               sender_type: 'employee',
-              is_anonymous: !this.allowContact(),
+              is_anonymous: !allowContact,
               message: this.complaintText().trim(),
-              thread_id: complaint.thread_id || complaint.id, // Usar thread_id o id como fallback
+              thread_id: complaint.thread_id || complaint.id,
             };
 
             try {
@@ -6795,20 +4912,18 @@ export class EmployeePortalComponent {
               this.messageService.add({
                 severity: 'success',
                 summary: 'Sugerencia Enviada',
-                detail: this.allowContact()
+                detail: allowContact
                   ? 'Tu sugerencia ha sido enviada. Recibirás respuesta de RRHH pronto.'
                   : 'Tu sugerencia ha sido enviada de forma anónima. Recibirás respuesta de RRHH pronto.',
               });
 
-              // Reset form
-              this.complaintText.set('');
-              this.complaintCategory.set('work_environment');
-              this.allowContact.set(false);
+              this.portalStore.setComplaintText('');
+              this.portalStore.setComplaintCategory('work_environment');
+              this.portalStore.setAllowContact(false);
               this.complaintsApi.reload();
-              this.submittingComplaint.set(false);
+              this.portalStore.setSubmittingComplaint(false);
             } catch (messageError: any) {
               console.error('Error creating message:', messageError);
-              // La queja se creó pero el mensaje no, mostrar advertencia
               this.messageService.add({
                 severity: 'warn',
                 summary: 'Sugerencia Enviada',
@@ -6816,7 +4931,7 @@ export class EmployeePortalComponent {
                   'La sugerencia fue creada pero hubo un problema al crear el mensaje. Contacta a RRHH si no recibes respuesta.',
               });
               this.complaintsApi.reload();
-              this.submittingComplaint.set(false);
+              this.portalStore.setSubmittingComplaint(false);
             }
           } else {
             this.messageService.add({
@@ -6824,7 +4939,7 @@ export class EmployeePortalComponent {
               summary: 'Error',
               detail: 'No se pudo obtener el ID de la sugerencia creada',
             });
-            this.submittingComplaint.set(false);
+            this.portalStore.setSubmittingComplaint(false);
           }
         },
         error: (error: any) => {
@@ -6837,7 +4952,7 @@ export class EmployeePortalComponent {
               error?.message ||
               'No se pudo enviar la sugerencia. Por favor intenta de nuevo.',
           });
-          this.submittingComplaint.set(false);
+          this.portalStore.setSubmittingComplaint(false);
         },
       });
   }
