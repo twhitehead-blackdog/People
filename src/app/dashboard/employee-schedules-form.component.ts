@@ -38,9 +38,9 @@ import {
   getScheduleColorInlineStyle as getColorStyle,
 } from '../models';
 import { TrimPipe } from '../pipes/trim.pipe';
+import { LoggerService } from '../services/logger.service';
 import { OrganizationService } from '../services/organization.service';
 import { DashboardStore } from '../stores/dashboard.store';
-import { LoggerService } from '../services/logger.service';
 
 @Component({
   selector: 'pt-employee-schedules-form',
@@ -71,14 +71,9 @@ import { LoggerService } from '../services/logger.service';
         >
           <ng-template #selectedItem let-selected>
             @if(selected) {
-              {{ selected.father_name | trim }}, {{ selected.first_name | trim }}
-            } @else {
-              @if(form.get('employee_id')?.value) {
-                Cargando empleado...
-              } @else {
-                Seleccionar empleado
-              }
-            }
+            {{ selected.father_name | trim }}, {{ selected.first_name | trim }}
+            } @else { @if(form.get('employee_id')?.value) { Cargando empleado...
+            } @else { Seleccionar empleado } }
           </ng-template>
           <ng-template let-item #item>
             {{ item.father_name | trim }}, {{ item.first_name | trim }}
@@ -225,8 +220,8 @@ export class EmployeeSchedulesFormComponent implements OnInit {
   private employeeHasSchedulesInWeek = false;
 
   // Filtrar solo empleados activos para el selector
-  public activeEmployeesList = computed(() => 
-    this.store.employees.employeesList().filter(emp => emp.is_active)
+  public activeEmployeesList = computed(() =>
+    this.store.employees.employeesList().filter((emp) => emp.is_active)
   );
 
   ngOnInit(): void {
@@ -254,7 +249,9 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       this.form.get('branch_id')?.patchValue(branch);
     } else if (employee_id) {
       // Buscar el empleado y usar su sucursal como valor por defecto
-      const employee = this.store.employees.entities().find(emp => emp.id === employee_id);
+      const employee = this.store.employees
+        .entities()
+        .find((emp) => emp.id === employee_id);
       if (employee?.branch_id) {
         this.form.get('branch_id')?.patchValue(employee.branch_id);
       }
@@ -267,8 +264,10 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     }
     if (employee_id) {
       // Asegurar que el empleado esté cargado antes de establecer el valor
-      const employee = this.store.employees.entities().find(emp => emp.id === employee_id);
-      
+      const employee = this.store.employees
+        .entities()
+        .find((emp) => emp.id === employee_id);
+
       if (!employee) {
         // Si el empleado no está en la lista, cargarlo
         this.store.employees.ensureEmployeeLoaded(employee_id);
@@ -277,24 +276,35 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       } else {
         this.form.patchValue({ employee_id });
       }
-      
+
       this.form.get('employee_id')?.disable();
 
       // Si no hay horarios en la semana y se está creando uno nuevo,
       // establecer el rango para toda la semana SOLO si no se pasó una fecha específica
       // y si el usuario no ha establecido fechas manualmente
-      if (!this.employeeHasSchedulesInWeek && this.weekStart && this.weekEnd && !date) {
+      if (
+        !this.employeeHasSchedulesInWeek &&
+        this.weekStart &&
+        this.weekEnd &&
+        !date
+      ) {
         // Solo establecer el rango automáticamente si las fechas no han sido modificadas
         const currentStartDate = this.form.get('start_date')?.value;
         const currentEndDate = this.form.get('end_date')?.value;
-        
+
         // Si las fechas están en su valor por defecto (hoy), establecer la semana completa
-        if (!currentStartDate || !currentEndDate || 
-            (isSameDay(currentStartDate, new Date()) && isSameDay(currentEndDate, new Date()))) {
+        if (
+          !currentStartDate ||
+          !currentEndDate ||
+          (isSameDay(currentStartDate, new Date()) &&
+            isSameDay(currentEndDate, new Date()))
+        ) {
           const startDateObj = toDate(this.weekStart, {
             timeZone: 'America/Panama',
           });
-          const endDateObj = toDate(this.weekEnd, { timeZone: 'America/Panama' });
+          const endDateObj = toDate(this.weekEnd, {
+            timeZone: 'America/Panama',
+          });
           this.form.get('start_date')?.patchValue(startDateObj);
           this.form.get('end_date')?.patchValue(endDateObj);
         }
@@ -317,14 +327,22 @@ export class EmployeeSchedulesFormComponent implements OnInit {
 
       // Asegurar que el empleado esté cargado
       if (scheduleEmployeeId) {
-        const employee = this.store.employees.entities().find(emp => emp.id === scheduleEmployeeId);
+        const employee = this.store.employees
+          .entities()
+          .find((emp) => emp.id === scheduleEmployeeId);
         if (!employee) {
           this.store.employees.ensureEmployeeLoaded(scheduleEmployeeId);
         }
       }
 
       // Si no hay branch_id en el horario, usar la sucursal del empleado como fallback
-      const finalBranchId = branch_id || (scheduleEmployeeId ? this.store.employees.entities().find(emp => emp.id === scheduleEmployeeId)?.branch_id : null);
+      const finalBranchId =
+        branch_id ||
+        (scheduleEmployeeId
+          ? this.store.employees
+              .entities()
+              .find((emp) => emp.id === scheduleEmployeeId)?.branch_id
+          : null);
 
       const startDateObj = toDate(start_date, { timeZone: 'America/Panama' });
       const endDateObj = toDate(end_date, { timeZone: 'America/Panama' });
@@ -394,18 +412,19 @@ export class EmployeeSchedulesFormComponent implements OnInit {
 
   saveChanges(): void {
     this.loading.set(true);
-    
+
     // Verificar permisos antes de guardar
     if (!this.store.canManageSchedules()) {
       this.message.add({
         severity: 'error',
         summary: 'Sin permisos',
-        detail: 'No tienes permisos para guardar horarios. Solo los administradores, gerentes de tienda, aprobadores de horarios y personal de administración pueden guardar horarios.',
+        detail:
+          'No tienes permisos para guardar horarios. Solo los administradores, gerentes de tienda, aprobadores de horarios y personal de administración pueden guardar horarios.',
       });
       this.loading.set(false);
       return;
     }
-    
+
     const value = this.form.getRawValue();
     if (this.form.invalid) {
       this.message.add({
@@ -422,7 +441,8 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       this.message.add({
         severity: 'error',
         summary: 'Sin permisos',
-        detail: 'No tienes permisos para aprobar horarios. Solo los aprobadores de horarios pueden aprobar.',
+        detail:
+          'No tienes permisos para aprobar horarios. Solo los aprobadores de horarios pueden aprobar.',
       });
       this.loading.set(false);
       return;
@@ -434,12 +454,13 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       const endDate = new Date(value.end_date);
       startDate.setHours(0, 0, 0, 0);
       endDate.setHours(0, 0, 0, 0);
-      
+
       if (startDate > endDate) {
         this.message.add({
           severity: 'error',
           summary: 'Rango de fechas inválido',
-          detail: 'La fecha de inicio debe ser anterior o igual a la fecha de fin.',
+          detail:
+            'La fecha de inicio debe ser anterior o igual a la fecha de fin.',
         });
         this.loading.set(false);
         return;
@@ -451,7 +472,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     // Verificar si el usuario estableció fechas específicas diferentes a la semana completa
     const userStartDate = value.start_date ? new Date(value.start_date) : null;
     const userEndDate = value.end_date ? new Date(value.end_date) : null;
-    
+
     if (userStartDate && userEndDate) {
       userStartDate.setHours(0, 0, 0, 0);
       userEndDate.setHours(0, 0, 0, 0);
@@ -459,14 +480,18 @@ export class EmployeeSchedulesFormComponent implements OnInit {
 
     const weekStartDate = this.weekStart ? new Date(this.weekStart) : null;
     const weekEndDate = this.weekEnd ? new Date(this.weekEnd) : null;
-    
+
     if (weekStartDate && weekEndDate) {
       weekStartDate.setHours(0, 0, 0, 0);
       weekEndDate.setHours(0, 0, 0, 0);
     }
 
     // Verificar si las fechas del usuario son diferentes a la semana completa
-    const datesMatchWeek = userStartDate && userEndDate && weekStartDate && weekEndDate &&
+    const datesMatchWeek =
+      userStartDate &&
+      userEndDate &&
+      weekStartDate &&
+      weekEndDate &&
       userStartDate.getTime() === weekStartDate.getTime() &&
       userEndDate.getTime() === weekEndDate.getTime();
 
@@ -503,8 +528,12 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     // IMPORTANTE: Formatear fechas a strings antes de enviar
     const requestData: any = {
       ...value,
-      start_date: value.start_date ? format(new Date(value.start_date), 'yyyy-MM-dd') : null,
-      end_date: value.end_date ? format(new Date(value.end_date), 'yyyy-MM-dd') : null,
+      start_date: value.start_date
+        ? format(new Date(value.start_date), 'yyyy-MM-dd')
+        : null,
+      end_date: value.end_date
+        ? format(new Date(value.end_date), 'yyyy-MM-dd')
+        : null,
     };
     if (companyId && !requestData.company_id) {
       requestData.company_id = companyId;
@@ -518,16 +547,20 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     // Construir updateData sin el id (el id va en los params, no en el body)
     const formRawValue = this.form.getRawValue();
     const { id, ...formDataWithoutId } = formRawValue;
-    
+
     const updateData: any = {
       ...formDataWithoutId,
-      start_date: value.start_date ? format(new Date(value.start_date), 'yyyy-MM-dd') : null,
-      end_date: value.end_date ? format(new Date(value.end_date), 'yyyy-MM-dd') : null,
+      start_date: value.start_date
+        ? format(new Date(value.start_date), 'yyyy-MM-dd')
+        : null,
+      end_date: value.end_date
+        ? format(new Date(value.end_date), 'yyyy-MM-dd')
+        : null,
     };
     if (companyId && !updateData.company_id) {
       updateData.company_id = companyId;
     }
-    
+
     // Asegurar que schedule_id esté incluido si existe en el formulario
     if (value.schedule_id && !updateData.schedule_id) {
       updateData.schedule_id = value.schedule_id;
@@ -539,7 +572,9 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       {
         params: {
           id: `eq.${value.id}`,
-          ...(companyId ? { company_id: `eq.${companyId}` } : {}),
+          // NO incluir company_id en los params del PATCH
+          // El id es suficiente para identificar el registro único
+          // El company_id puede ser NULL en algunos registros antiguos, lo que causaría que no se encuentre el registro
         },
       }
     );
@@ -550,36 +585,40 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     // (que significa que se está dividiendo un rango multi-día y se generó un nuevo ID)
     const hasEmployeeSchedule = !!this.dialog.data.employee_schedule;
     const hasOriginalSchedule = !!this.originalSchedule;
-    
+
     // Hacer UPDATE si hay employee_schedule Y:
     // 1. El ID del formulario coincide con el ID original (edición normal de un horario existente)
     // 2. O no es singleDayEdit (para asegurar que se actualice en lugar de crear)
-    const idMatches = hasOriginalSchedule && value.id === this.originalSchedule.id;
-    const shouldUpdate = hasEmployeeSchedule && (idMatches || !this.singleDayEdit);
-    
+    const idMatches =
+      hasOriginalSchedule && value.id === this.originalSchedule.id;
+    const shouldUpdate =
+      hasEmployeeSchedule && (idMatches || !this.singleDayEdit);
+
     // Log para depuración
     if (hasEmployeeSchedule) {
-      this.logger.debug('[EmployeeSchedulesFormComponent] Editando horario existente:', {
-        formId: value.id,
-        originalId: this.originalSchedule?.id,
-        idMatches,
-        singleDayEdit: this.singleDayEdit,
-        shouldUpdate: shouldUpdate,
-        updateData: updateData,
-        originalScheduleId: this.originalSchedule?.schedule_id,
-        newScheduleId: value.schedule_id
-      });
+      this.logger.debug(
+        '[EmployeeSchedulesFormComponent] Editando horario existente:',
+        {
+          formId: value.id,
+          originalId: this.originalSchedule?.id,
+          idMatches,
+          singleDayEdit: this.singleDayEdit,
+          shouldUpdate: shouldUpdate,
+          updateData: updateData,
+          originalScheduleId: this.originalSchedule?.schedule_id,
+          newScheduleId: value.schedule_id,
+        }
+      );
     }
-    
-    iif(
-      () => shouldUpdate,
-      updateRequest,
-      createRequest
-    )
+
+    iif(() => shouldUpdate, updateRequest, createRequest)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (response) => {
-          this.logger.debug('[EmployeeSchedulesFormComponent] Respuesta del servidor:', response);
+          this.logger.debug(
+            '[EmployeeSchedulesFormComponent] Respuesta del servidor:',
+            response
+          );
           this.message.add({
             severity: 'success',
             summary: 'Cambios guardados',
@@ -588,19 +627,25 @@ export class EmployeeSchedulesFormComponent implements OnInit {
           this.dialogRef.close();
         },
         error: (error) => {
-          this.logger.error('[EmployeeSchedulesFormComponent] Error al guardar horarios:', {
-            error,
-            errorMessage: error?.message,
-            errorStatus: error?.status,
-            errorBody: error?.error,
-            updateData,
-            shouldUpdate
-          });
+          this.logger.error(
+            '[EmployeeSchedulesFormComponent] Error al guardar horarios:',
+            {
+              error,
+              errorMessage: error?.message,
+              errorStatus: error?.status,
+              errorBody: error?.error,
+              updateData,
+              shouldUpdate,
+            }
+          );
           this.loading.set(false);
           this.message.add({
             severity: 'error',
             summary: 'Error al guardar',
-            detail: error?.error?.message || error?.message || 'Ocurrió un error al guardar los cambios.',
+            detail:
+              error?.error?.message ||
+              error?.message ||
+              'Ocurrió un error al guardar los cambios.',
           });
         },
       });
@@ -615,12 +660,13 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       this.message.add({
         severity: 'error',
         summary: 'Sin permisos',
-        detail: 'No tienes permisos para crear horarios. Solo los administradores, gerentes de tienda, aprobadores de horarios y personal de administración pueden crear horarios.',
+        detail:
+          'No tienes permisos para crear horarios. Solo los administradores, gerentes de tienda, aprobadores de horarios y personal de administración pueden crear horarios.',
       });
       this.loading.set(false);
       return;
     }
-    
+
     if (!this.weekStart || !this.weekEnd) return;
 
     // Crear un horario para cada día de la semana
@@ -660,7 +706,10 @@ export class EmployeeSchedulesFormComponent implements OnInit {
           this.dialogRef.close();
         },
         error: (error) => {
-          this.logger.error('[EmployeeSchedulesFormComponent] Error al guardar horarios:', error);
+          this.logger.error(
+            '[EmployeeSchedulesFormComponent] Error al guardar horarios:',
+            error
+          );
           this.loading.set(false);
           this.message.add({
             severity: 'error',
@@ -714,12 +763,13 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       this.message.add({
         severity: 'error',
         summary: 'Sin permisos',
-        detail: 'No tienes permisos para modificar horarios. Solo los administradores, gerentes de tienda, aprobadores de horarios y personal de administración pueden modificar horarios.',
+        detail:
+          'No tienes permisos para modificar horarios. Solo los administradores, gerentes de tienda, aprobadores de horarios y personal de administración pueden modificar horarios.',
       });
       this.loading.set(false);
       return;
     }
-    
+
     if (!this.originalSchedule) return;
 
     const originalStart = toDate(this.originalSchedule.start_date, {
@@ -845,15 +895,21 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     // 3. Crear el nuevo turno para el día seleccionado
     // IMPORTANTE: Siempre generar un ID nuevo para evitar conflictos con el turno original
     // Usar branch_id del formulario, o del original si no está disponible
-    const finalBranchId = newScheduleData.branch_id || this.originalSchedule.branch_id;
+    const finalBranchId =
+      newScheduleData.branch_id || this.originalSchedule.branch_id;
     const newScheduleRequest: any = {
       id: v4(), // Generar nuevo ID para el nuevo turno
-      employee_id: newScheduleData.employee_id || this.originalSchedule.employee_id,
-      schedule_id: newScheduleData.schedule_id || this.originalSchedule.schedule_id,
+      employee_id:
+        newScheduleData.employee_id || this.originalSchedule.employee_id,
+      schedule_id:
+        newScheduleData.schedule_id || this.originalSchedule.schedule_id,
       branch_id: finalBranchId,
       start_date: format(newStart, 'yyyy-MM-dd'),
       end_date: format(newEnd, 'yyyy-MM-dd'),
-      approved: newScheduleData.approved !== undefined ? newScheduleData.approved : this.originalSchedule.approved,
+      approved:
+        newScheduleData.approved !== undefined
+          ? newScheduleData.approved
+          : this.originalSchedule.approved,
     };
     if (companyId) {
       newScheduleRequest.company_id = companyId;
@@ -879,7 +935,10 @@ export class EmployeeSchedulesFormComponent implements OnInit {
           this.dialogRef.close();
         },
         error: (error) => {
-          this.logger.error('[EmployeeSchedulesFormComponent] Error al guardar horarios:', error);
+          this.logger.error(
+            '[EmployeeSchedulesFormComponent] Error al guardar horarios:',
+            error
+          );
           this.loading.set(false);
           this.message.add({
             severity: 'error',
