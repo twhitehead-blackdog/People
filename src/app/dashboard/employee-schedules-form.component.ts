@@ -515,13 +515,22 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       requestData
     );
 
+    // Construir updateData sin el id (el id va en los params, no en el body)
+    const formRawValue = this.form.getRawValue();
+    const { id, ...formDataWithoutId } = formRawValue;
+    
     const updateData: any = {
-      ...this.form.getRawValue(),
+      ...formDataWithoutId,
       start_date: value.start_date ? format(new Date(value.start_date), 'yyyy-MM-dd') : null,
       end_date: value.end_date ? format(new Date(value.end_date), 'yyyy-MM-dd') : null,
     };
     if (companyId && !updateData.company_id) {
       updateData.company_id = companyId;
+    }
+    
+    // Asegurar que schedule_id esté incluido si existe en el formulario
+    if (value.schedule_id && !updateData.schedule_id) {
+      updateData.schedule_id = value.schedule_id;
     }
 
     const updateRequest = this.http.patch(
@@ -555,7 +564,10 @@ export class EmployeeSchedulesFormComponent implements OnInit {
         originalId: this.originalSchedule?.id,
         idMatches,
         singleDayEdit: this.singleDayEdit,
-        shouldUpdate: shouldUpdate
+        shouldUpdate: shouldUpdate,
+        updateData: updateData,
+        originalScheduleId: this.originalSchedule?.schedule_id,
+        newScheduleId: value.schedule_id
       });
     }
     
@@ -566,7 +578,8 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     )
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: () => {
+        next: (response) => {
+          this.logger.debug('[EmployeeSchedulesFormComponent] Respuesta del servidor:', response);
           this.message.add({
             severity: 'success',
             summary: 'Cambios guardados',
@@ -575,12 +588,19 @@ export class EmployeeSchedulesFormComponent implements OnInit {
           this.dialogRef.close();
         },
         error: (error) => {
-          this.logger.error('[EmployeeSchedulesFormComponent] Error al guardar horarios:', error);
+          this.logger.error('[EmployeeSchedulesFormComponent] Error al guardar horarios:', {
+            error,
+            errorMessage: error?.message,
+            errorStatus: error?.status,
+            errorBody: error?.error,
+            updateData,
+            shouldUpdate
+          });
           this.loading.set(false);
           this.message.add({
             severity: 'error',
             summary: 'Error al guardar',
-            detail: 'Ocurrió un error al guardar los cambios.',
+            detail: error?.error?.message || error?.message || 'Ocurrió un error al guardar los cambios.',
           });
         },
       });
