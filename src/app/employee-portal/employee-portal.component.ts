@@ -370,6 +370,7 @@ import { EmployeePortalApiService } from './services/employee-portal-api.service
               </div>
             </div>
           </p-card>
+        </div>
         } @else {
         <div class="flex justify-center items-center h-64">
           <p class="text-gray-400 text-lg">Cargando información del empleado...</p>
