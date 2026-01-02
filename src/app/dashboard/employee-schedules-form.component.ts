@@ -256,19 +256,20 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       this.form.get('employee_id')?.disable();
 
       // Si no hay horarios en la semana y se está creando uno nuevo,
-      // establecer el rango para toda la semana
-      if (!this.employeeHasSchedulesInWeek && this.weekStart && this.weekEnd) {
-        const startDateObj = toDate(this.weekStart, {
-          timeZone: 'America/Panama',
-        });
-        const endDateObj = toDate(this.weekEnd, { timeZone: 'America/Panama' });
-
-        // Si se pasó un date específico, usar ese día; si no, usar toda la semana
-        if (date) {
-          const dateObj = toDate(date, { timeZone: 'America/Panama' });
-          this.form.get('start_date')?.patchValue(dateObj);
-          this.form.get('end_date')?.patchValue(dateObj);
-        } else {
+      // establecer el rango para toda la semana SOLO si no se pasó una fecha específica
+      // y si el usuario no ha establecido fechas manualmente
+      if (!this.employeeHasSchedulesInWeek && this.weekStart && this.weekEnd && !date) {
+        // Solo establecer el rango automáticamente si las fechas no han sido modificadas
+        const currentStartDate = this.form.get('start_date')?.value;
+        const currentEndDate = this.form.get('end_date')?.value;
+        
+        // Si las fechas están en su valor por defecto (hoy), establecer la semana completa
+        if (!currentStartDate || !currentEndDate || 
+            (isSameDay(currentStartDate, new Date()) && isSameDay(currentEndDate, new Date()))) {
+          const startDateObj = toDate(this.weekStart, {
+            timeZone: 'America/Panama',
+          });
+          const endDateObj = toDate(this.weekEnd, { timeZone: 'America/Panama' });
           this.form.get('start_date')?.patchValue(startDateObj);
           this.form.get('end_date')?.patchValue(endDateObj);
         }
@@ -354,6 +355,18 @@ export class EmployeeSchedulesFormComponent implements OnInit {
 
   saveChanges(): void {
     this.loading.set(true);
+    
+    // Verificar permisos antes de guardar
+    if (!this.store.isAdmin() && !this.store.isScheduleAdmin()) {
+      this.message.add({
+        severity: 'error',
+        summary: 'Sin permisos',
+        detail: 'No tienes permisos para guardar horarios. Solo los administradores y gerentes de tienda pueden guardar horarios.',
+      });
+      this.loading.set(false);
+      return;
+    }
+    
     const value = this.form.getRawValue();
     if (this.form.invalid) {
       this.message.add({
@@ -364,15 +377,70 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       this.loading.set(false);
       return;
     }
+
+    // Validar que solo schedule_approver pueda aprobar
+    if (value.approved && !this.store.isScheduleApprover()) {
+      this.message.add({
+        severity: 'error',
+        summary: 'Sin permisos',
+        detail: 'No tienes permisos para aprobar horarios. Solo los aprobadores de horarios pueden aprobar.',
+      });
+      this.loading.set(false);
+      return;
+    }
+
+    // Validar que la fecha de inicio sea menor o igual a la fecha de fin
+    if (value.start_date && value.end_date) {
+      const startDate = new Date(value.start_date);
+      const endDate = new Date(value.end_date);
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(0, 0, 0, 0);
+      
+      if (startDate > endDate) {
+        this.message.add({
+          severity: 'error',
+          summary: 'Rango de fechas inválido',
+          detail: 'La fecha de inicio debe ser anterior o igual a la fecha de fin.',
+        });
+        this.loading.set(false);
+        return;
+      }
+    }
+
     const companyId = this.organizationService.getCurrentCompanyId();
 
-    // Si no hay horarios en la semana y se está creando uno nuevo,
-    // crear un horario para cada día de la semana
+    // Verificar si el usuario estableció fechas específicas diferentes a la semana completa
+    const userStartDate = value.start_date ? new Date(value.start_date) : null;
+    const userEndDate = value.end_date ? new Date(value.end_date) : null;
+    
+    if (userStartDate && userEndDate) {
+      userStartDate.setHours(0, 0, 0, 0);
+      userEndDate.setHours(0, 0, 0, 0);
+    }
+
+    const weekStartDate = this.weekStart ? new Date(this.weekStart) : null;
+    const weekEndDate = this.weekEnd ? new Date(this.weekEnd) : null;
+    
+    if (weekStartDate && weekEndDate) {
+      weekStartDate.setHours(0, 0, 0, 0);
+      weekEndDate.setHours(0, 0, 0, 0);
+    }
+
+    // Verificar si las fechas del usuario son diferentes a la semana completa
+    const datesMatchWeek = userStartDate && userEndDate && weekStartDate && weekEndDate &&
+      userStartDate.getTime() === weekStartDate.getTime() &&
+      userEndDate.getTime() === weekEndDate.getTime();
+
+    // Solo crear horarios para toda la semana si:
+    // 1. No hay horarios previos en la semana
+    // 2. No se está editando un horario existente
+    // 3. Las fechas del usuario coinciden con la semana completa (no las modificó)
     if (
       !this.employeeHasSchedulesInWeek &&
       !this.dialog.data.employee_schedule &&
       this.weekStart &&
-      this.weekEnd
+      this.weekEnd &&
+      datesMatchWeek
     ) {
       this.createWeekSchedules(value, companyId);
       return;
@@ -449,6 +517,17 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     scheduleData: any,
     companyId: string | null
   ): void {
+    // Verificar permisos antes de crear horarios
+    if (!this.store.isAdmin() && !this.store.isScheduleAdmin()) {
+      this.message.add({
+        severity: 'error',
+        summary: 'Sin permisos',
+        detail: 'No tienes permisos para crear horarios. Solo los administradores y gerentes de tienda pueden crear horarios.',
+      });
+      this.loading.set(false);
+      return;
+    }
+    
     if (!this.weekStart || !this.weekEnd) return;
 
     // Crear un horario para cada día de la semana
@@ -537,6 +616,17 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     newScheduleData: any,
     companyId: string | null
   ): void {
+    // Verificar permisos antes de dividir y guardar
+    if (!this.store.isAdmin() && !this.store.isScheduleAdmin()) {
+      this.message.add({
+        severity: 'error',
+        summary: 'Sin permisos',
+        detail: 'No tienes permisos para modificar horarios. Solo los administradores y gerentes de tienda pueden modificar horarios.',
+      });
+      this.loading.set(false);
+      return;
+    }
+    
     if (!this.originalSchedule) return;
 
     const originalStart = toDate(this.originalSchedule.start_date, {

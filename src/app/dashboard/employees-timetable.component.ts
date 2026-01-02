@@ -232,6 +232,7 @@ import { EmployeeSchedulesFormComponent } from './employee-schedules-form.compon
                 <div>
                   <span class="font-medium block mb-2">Opciones</span>
                   <ul class="list-non flex flex-col">
+                    @if(store.isAdmin() || store.isScheduleAdmin()) {
                     <li
                       class="flex items-center gap-2 p-2 hover:bg-emphasis cursor-pointer rounded-md"
                       (click)="
@@ -251,6 +252,7 @@ import { EmployeeSchedulesFormComponent } from './employee-schedules-form.compon
                       <i class="pi pi-trash text-red-700"></i>
                       Eliminar
                     </li>
+                    }
                     @if(store.isScheduleApprover()) {
                     <li
                       class="flex items-center gap-2 p-2 hover:bg-emphasis cursor-pointer rounded-md"
@@ -264,6 +266,7 @@ import { EmployeeSchedulesFormComponent } from './employee-schedules-form.compon
                 </div>
               </p-popover>
               } @else {
+              @if(store.isAdmin() || store.isScheduleAdmin()) {
               <p-button
                 icon="pi pi-plus"
                 outlined
@@ -274,6 +277,7 @@ import { EmployeeSchedulesFormComponent } from './employee-schedules-form.compon
                 "
                 class="hover:bg-neutral-700 hover:border-amber-400 hover:text-amber-400 transition-all"
               />
+              }
               }
             </td>
             }
@@ -811,6 +815,16 @@ export class EmployeesTimetableComponent implements OnInit {
     employee_schedule?: EmployeeSchedule;
     date?: Date;
   } = {}): void {
+    // Verificar permisos antes de abrir el diálogo
+    if (!this.store.isAdmin() && !this.store.isScheduleAdmin()) {
+      this.message.add({
+        severity: 'warn',
+        summary: 'Sin permisos',
+        detail: 'No tienes permisos para editar horarios. Solo los administradores y gerentes de tienda pueden editar horarios.',
+      });
+      return;
+    }
+
     // Verificar si el empleado tiene horarios en la semana actual
     const employeeHasSchedulesInWeek = employee_id
       ? this.shifts()?.some(
@@ -849,6 +863,16 @@ export class EmployeesTimetableComponent implements OnInit {
   public isPast = (date: Date) => isBefore(date, new Date());
 
   deleteSchedule(id: string) {
+    // Verificar permisos antes de eliminar
+    if (!this.store.isAdmin() && !this.store.isScheduleAdmin()) {
+      this.message.add({
+        severity: 'warn',
+        summary: 'Sin permisos',
+        detail: 'No tienes permisos para eliminar horarios. Solo los administradores y gerentes de tienda pueden eliminar horarios.',
+      });
+      return;
+    }
+
     this.confirm.confirm({
       header: 'Eliminar horario',
       message: '¿Estás seguro de eliminar este horario?',
