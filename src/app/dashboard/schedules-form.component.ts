@@ -23,6 +23,7 @@ import { ToggleSwitch } from 'primeng/toggleswitch';
 import { v4 } from 'uuid';
 import { colorVariants } from '../models';
 import { SchedulesStore } from '../stores/schedules.store';
+import { DashboardStore } from '../stores/dashboard.store';
 
 @Component({
   selector: 'pt-schedules-form',
@@ -205,6 +206,7 @@ export class SchedulesFormComponent implements OnInit {
   public dialogRef = inject(DynamicDialogRef);
   private dialog = inject(DynamicDialogConfig);
   public state = inject(SchedulesStore);
+  public store = inject(DashboardStore);
   private message = inject(MessageService);
 
   public colorVariants = colorVariants;
@@ -271,6 +273,16 @@ export class SchedulesFormComponent implements OnInit {
   }
 
   saveChanges() {
+    // Verificar permisos antes de guardar
+    if (!this.store.canManageSchedules()) {
+      this.message.add({
+        severity: 'error',
+        summary: 'Sin permisos',
+        detail: 'Solo los administradores, gerentes de tienda, aprobadores de horarios y personal de administración pueden crear o editar horarios base.',
+      });
+      return;
+    }
+    
     if (this.form.invalid) {
       this.message.add({
         severity: 'error',

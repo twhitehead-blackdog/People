@@ -8,6 +8,7 @@ import {
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
+import { MessageService } from 'primeng/api';
 import { TableModule } from 'primeng/table';
 import {
   colorVariants,
@@ -16,6 +17,7 @@ import {
 } from '../models';
 import { TimePipe } from '../pipes/time.pipe';
 import { SchedulesStore } from '../stores/schedules.store';
+import { DashboardStore } from '../stores/dashboard.store';
 import { SchedulesFormComponent } from './schedules-form.component';
 
 @Component({
@@ -32,12 +34,14 @@ import { SchedulesFormComponent } from './schedules-form.component';
           </p>
         </div>
         <div class="flex gap-2">
+          @if(dashboardStore.canManageSchedules()) {
           <p-button
             label="Nuevo"
             icon="pi pi-plus-circle"
             (onClick)="editSchedule()"
             rounded
           />
+          }
         </div>
       </div>
     </ng-template>
@@ -120,6 +124,8 @@ import { SchedulesFormComponent } from './schedules-form.component';
 })
 export class SchedulesComponent {
   public store = inject(SchedulesStore);
+  public dashboardStore = inject(DashboardStore);
+  public message = inject(MessageService);
   public schedules = computed(() => [...this.store.entities()]);
 
   public dialogService = inject(DialogService);
@@ -135,6 +141,16 @@ export class SchedulesComponent {
   }
 
   editSchedule(schedule?: Schedule) {
+    // Verificar permisos antes de abrir el formulario
+    if (!this.dashboardStore.canManageSchedules()) {
+      this.message.add({
+        severity: 'warn',
+        summary: 'Sin permisos',
+        detail: 'Solo los administradores, gerentes de tienda, aprobadores de horarios y personal de administración pueden crear o editar horarios base.',
+      });
+      return;
+    }
+    
     this.ref = this.dialogService.open(SchedulesFormComponent, {
       header: 'Editar horario',
       modal: true,

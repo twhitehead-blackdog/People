@@ -202,6 +202,36 @@ export const DashboardStore = signalStore(
         return employee?.position?.schedule_approver || false;
       });
 
+      // Método unificado: verifica si el usuario puede gestionar horarios
+      // Incluye: Admin, Schedule Admin, Schedule Approver, y personal de Administración
+      const canManageSchedules = computed(() => {
+        const employee = currentEmployee();
+
+        // Verificar si es Admin
+        if (isAdmin()) {
+          return true;
+        }
+
+        // Verificar si es Schedule Admin
+        if (isScheduleAdmin()) {
+          return true;
+        }
+
+        // Verificar si es Schedule Approver
+        if (isScheduleApprover()) {
+          return true;
+        }
+
+        // Verificar si pertenece al departamento de Administración
+        const deptName = employee?.department?.name?.toLowerCase() || '';
+        const isAdministration =
+          deptName.includes('administración') ||
+          deptName.includes('administracion') ||
+          deptName.includes('administrac');
+
+        return isAdministration;
+      });
+
       const currentBranch = computed(() => currentEmployee()?.branch);
 
       const branchesCount = computed(
@@ -865,6 +895,7 @@ export const DashboardStore = signalStore(
         hasPortalAccessOnly,
         isScheduleAdmin,
         isScheduleApprover,
+        canManageSchedules,
         hasTimeManagementAccess,
         hasDashboardAccess,
         currentBranch,

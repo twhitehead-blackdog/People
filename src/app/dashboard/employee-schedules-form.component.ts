@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   DestroyRef,
   inject,
   OnInit,
@@ -61,7 +62,7 @@ import { LoggerService } from '../services/logger.service';
         <p-select
           inputId="employee_id"
           formControlName="employee_id"
-          [options]="store.employees.employeesList()"
+          [options]="activeEmployeesList()"
           optionValue="id"
           placeholder="Seleccionar empleado"
           filter
@@ -69,7 +70,15 @@ import { LoggerService } from '../services/logger.service';
           appendTo="body"
         >
           <ng-template #selectedItem let-selected>
-            {{ selected.father_name | trim }}, {{ selected.first_name | trim }}
+            @if(selected) {
+              {{ selected.father_name | trim }}, {{ selected.first_name | trim }}
+            } @else {
+              @if(form.get('employee_id')?.value) {
+                Cargando empleado...
+              } @else {
+                Seleccionar empleado
+              }
+            }
           </ng-template>
           <ng-template let-item #item>
             {{ item.father_name | trim }}, {{ item.first_name | trim }}
@@ -215,6 +224,11 @@ export class EmployeeSchedulesFormComponent implements OnInit {
   private weekEnd: Date | null = null;
   private employeeHasSchedulesInWeek = false;
 
+  // Filtrar solo empleados activos para el selector
+  public activeEmployeesList = computed(() => 
+    this.store.employees.employeesList().filter(emp => emp.is_active)
+  );
+
   ngOnInit(): void {
     const {
       employee_schedule,
@@ -252,7 +266,18 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       this.form.get('end_date')?.patchValue(dateObj);
     }
     if (employee_id) {
-      this.form.patchValue({ employee_id });
+      // Asegurar que el empleado esté cargado antes de establecer el valor
+      const employee = this.store.employees.entities().find(emp => emp.id === employee_id);
+      
+      if (!employee) {
+        // Si el empleado no está en la lista, cargarlo
+        this.store.employees.ensureEmployeeLoaded(employee_id);
+        // Establecer el valor de todas formas, el componente se actualizará cuando se cargue
+        this.form.patchValue({ employee_id });
+      } else {
+        this.form.patchValue({ employee_id });
+      }
+      
       this.form.get('employee_id')?.disable();
 
       // Si no hay horarios en la semana y se está creando uno nuevo,
@@ -279,7 +304,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     if (employee_schedule) {
       const {
         id,
-        employee_id,
+        employee_id: scheduleEmployeeId,
         schedule_id,
         start_date,
         end_date,
@@ -290,8 +315,16 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       // Guardar el turno original para comparación
       this.originalSchedule = employee_schedule;
 
+      // Asegurar que el empleado esté cargado
+      if (scheduleEmployeeId) {
+        const employee = this.store.employees.entities().find(emp => emp.id === scheduleEmployeeId);
+        if (!employee) {
+          this.store.employees.ensureEmployeeLoaded(scheduleEmployeeId);
+        }
+      }
+
       // Si no hay branch_id en el horario, usar la sucursal del empleado como fallback
-      const finalBranchId = branch_id || (employee_id ? this.store.employees.entities().find(emp => emp.id === employee_id)?.branch_id : null);
+      const finalBranchId = branch_id || (scheduleEmployeeId ? this.store.employees.entities().find(emp => emp.id === scheduleEmployeeId)?.branch_id : null);
 
       const startDateObj = toDate(start_date, { timeZone: 'America/Panama' });
       const endDateObj = toDate(end_date, { timeZone: 'America/Panama' });
@@ -308,7 +341,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
           // Comportamiento normal: cargar y actualizar el turno existente
           this.form.patchValue({
             id,
-            employee_id,
+            employee_id: scheduleEmployeeId,
             schedule_id,
             branch_id: finalBranchId,
             approved,
@@ -326,11 +359,17 @@ export class EmployeeSchedulesFormComponent implements OnInit {
           this.form.get('branch_id')?.patchValue(finalBranchId);
           // Generar nuevo ID para el nuevo turno
           this.form.get('id')?.patchValue(v4());
+          // IMPORTANTE: Establecer employee_id y schedule_id del original
+          this.form.patchValue({
+            employee_id: scheduleEmployeeId,
+            schedule_id,
+            approved,
+          });
         } else {
           // Comportamiento normal: cargar todo el rango
           this.form.patchValue({
             id,
-            employee_id,
+            employee_id: scheduleEmployeeId,
             schedule_id,
             branch_id: finalBranchId,
             approved,
@@ -342,7 +381,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
         // Comportamiento normal: cargar todo el rango
         this.form.patchValue({
           id,
-          employee_id,
+          employee_id: scheduleEmployeeId,
           schedule_id,
           branch_id: finalBranchId,
           approved,
@@ -357,11 +396,11 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     this.loading.set(true);
     
     // Verificar permisos antes de guardar
-    if (!this.store.isAdmin() && !this.store.isScheduleAdmin()) {
+    if (!this.store.canManageSchedules()) {
       this.message.add({
         severity: 'error',
         summary: 'Sin permisos',
-        detail: 'No tienes permisos para guardar horarios. Solo los administradores y gerentes de tienda pueden guardar horarios.',
+        detail: 'No tienes permisos para guardar horarios. Solo los administradores, gerentes de tienda, aprobadores de horarios y personal de administración pueden guardar horarios.',
       });
       this.loading.set(false);
       return;
@@ -461,7 +500,12 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     }
 
     // Comportamiento normal: crear o actualizar
-    const requestData: any = { ...value };
+    // IMPORTANTE: Formatear fechas a strings antes de enviar
+    const requestData: any = {
+      ...value,
+      start_date: value.start_date ? format(new Date(value.start_date), 'yyyy-MM-dd') : null,
+      end_date: value.end_date ? format(new Date(value.end_date), 'yyyy-MM-dd') : null,
+    };
     if (companyId && !requestData.company_id) {
       requestData.company_id = companyId;
     }
@@ -471,7 +515,11 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       requestData
     );
 
-    const updateData: any = { ...this.form.getRawValue() };
+    const updateData: any = {
+      ...this.form.getRawValue(),
+      start_date: value.start_date ? format(new Date(value.start_date), 'yyyy-MM-dd') : null,
+      end_date: value.end_date ? format(new Date(value.end_date), 'yyyy-MM-dd') : null,
+    };
     if (companyId && !updateData.company_id) {
       updateData.company_id = companyId;
     }
@@ -518,11 +566,11 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     companyId: string | null
   ): void {
     // Verificar permisos antes de crear horarios
-    if (!this.store.isAdmin() && !this.store.isScheduleAdmin()) {
+    if (!this.store.canManageSchedules()) {
       this.message.add({
         severity: 'error',
         summary: 'Sin permisos',
-        detail: 'No tienes permisos para crear horarios. Solo los administradores y gerentes de tienda pueden crear horarios.',
+        detail: 'No tienes permisos para crear horarios. Solo los administradores, gerentes de tienda, aprobadores de horarios y personal de administración pueden crear horarios.',
       });
       this.loading.set(false);
       return;
@@ -617,11 +665,11 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     companyId: string | null
   ): void {
     // Verificar permisos antes de dividir y guardar
-    if (!this.store.isAdmin() && !this.store.isScheduleAdmin()) {
+    if (!this.store.canManageSchedules()) {
       this.message.add({
         severity: 'error',
         summary: 'Sin permisos',
-        detail: 'No tienes permisos para modificar horarios. Solo los administradores y gerentes de tienda pueden modificar horarios.',
+        detail: 'No tienes permisos para modificar horarios. Solo los administradores, gerentes de tienda, aprobadores de horarios y personal de administración pueden modificar horarios.',
       });
       this.loading.set(false);
       return;
@@ -751,14 +799,16 @@ export class EmployeeSchedulesFormComponent implements OnInit {
 
     // 3. Crear el nuevo turno para el día seleccionado
     // IMPORTANTE: Siempre generar un ID nuevo para evitar conflictos con el turno original
+    // Usar branch_id del formulario, o del original si no está disponible
+    const finalBranchId = newScheduleData.branch_id || this.originalSchedule.branch_id;
     const newScheduleRequest: any = {
       id: v4(), // Generar nuevo ID para el nuevo turno
-      employee_id: newScheduleData.employee_id,
-      schedule_id: newScheduleData.schedule_id,
-      branch_id: newScheduleData.branch_id,
+      employee_id: newScheduleData.employee_id || this.originalSchedule.employee_id,
+      schedule_id: newScheduleData.schedule_id || this.originalSchedule.schedule_id,
+      branch_id: finalBranchId,
       start_date: format(newStart, 'yyyy-MM-dd'),
       end_date: format(newEnd, 'yyyy-MM-dd'),
-      approved: newScheduleData.approved,
+      approved: newScheduleData.approved !== undefined ? newScheduleData.approved : this.originalSchedule.approved,
     };
     if (companyId) {
       newScheduleRequest.company_id = companyId;

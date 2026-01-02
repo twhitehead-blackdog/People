@@ -22,10 +22,12 @@ import {
   getDate,
   getWeek,
   isBefore,
+  isSameDay,
   isWithinInterval,
   startOfDay,
   startOfMonth,
   startOfWeek,
+  subDays,
   subWeeks,
 } from 'date-fns';
 import { toDate } from 'date-fns-tz';
@@ -41,7 +43,8 @@ import { Select } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { ToggleSwitch, ToggleSwitchChangeEvent } from 'primeng/toggleswitch';
 import { Tooltip } from 'primeng/tooltip';
-import { catchError, EMPTY } from 'rxjs';
+import { catchError, EMPTY, forkJoin } from 'rxjs';
+import { v4 } from 'uuid';
 import { colorVariants, EmployeeSchedule } from '../models';
 import { OrganizationService } from '../services/organization.service';
 import { DashboardStore } from '../stores/dashboard.store';
@@ -232,7 +235,7 @@ import { EmployeeSchedulesFormComponent } from './employee-schedules-form.compon
                 <div>
                   <span class="font-medium block mb-2">Opciones</span>
                   <ul class="list-non flex flex-col">
-                    @if(store.isAdmin() || store.isScheduleAdmin()) {
+                    @if(store.canManageSchedules()) {
                     <li
                       class="flex items-center gap-2 p-2 hover:bg-emphasis cursor-pointer rounded-md"
                       (click)="
@@ -247,7 +250,7 @@ import { EmployeeSchedulesFormComponent } from './employee-schedules-form.compon
                     </li>
                     <li
                       class="flex items-center gap-2 p-2 hover:bg-emphasis cursor-pointer rounded-md"
-                      (click)="deleteSchedule(day.shift.id)"
+                      (click)="deleteSchedule(day.shift, day.date)"
                     >
                       <i class="pi pi-trash text-red-700"></i>
                       Eliminar
@@ -266,7 +269,7 @@ import { EmployeeSchedulesFormComponent } from './employee-schedules-form.compon
                 </div>
               </p-popover>
               } @else {
-              @if(store.isAdmin() || store.isScheduleAdmin()) {
+              @if(store.canManageSchedules()) {
               <p-button
                 icon="pi pi-plus"
                 outlined
@@ -816,11 +819,11 @@ export class EmployeesTimetableComponent implements OnInit {
     date?: Date;
   } = {}): void {
     // Verificar permisos antes de abrir el diálogo
-    if (!this.store.isAdmin() && !this.store.isScheduleAdmin()) {
+    if (!this.store.canManageSchedules()) {
       this.message.add({
         severity: 'warn',
         summary: 'Sin permisos',
-        detail: 'No tienes permisos para editar horarios. Solo los administradores y gerentes de tienda pueden editar horarios.',
+        detail: 'No tienes permisos para editar horarios. Solo los administradores, gerentes de tienda, aprobadores de horarios y personal de administración pueden editar horarios.',
       });
       return;
     }
@@ -862,20 +865,24 @@ export class EmployeesTimetableComponent implements OnInit {
 
   public isPast = (date: Date) => isBefore(date, new Date());
 
-  deleteSchedule(id: string) {
+  deleteSchedule(employee_schedule: EmployeeSchedule, date?: Date) {
     // Verificar permisos antes de eliminar
-    if (!this.store.isAdmin() && !this.store.isScheduleAdmin()) {
+    if (!this.store.canManageSchedules()) {
       this.message.add({
         severity: 'warn',
         summary: 'Sin permisos',
-        detail: 'No tienes permisos para eliminar horarios. Solo los administradores y gerentes de tienda pueden eliminar horarios.',
+        detail: 'No tienes permisos para eliminar horarios. Solo los administradores, gerentes de tienda, aprobadores de horarios y personal de administración pueden eliminar horarios.',
       });
       return;
     }
 
+    const message = date 
+      ? '¿Estás seguro de eliminar el horario de este día específico?'
+      : '¿Estás seguro de eliminar este horario?';
+
     this.confirm.confirm({
       header: 'Eliminar horario',
-      message: '¿Estás seguro de eliminar este horario?',
+      message,
       icon: 'pi pi-info-circle',
       rejectButtonProps: {
         label: 'Cancelar',
@@ -888,7 +895,25 @@ export class EmployeesTimetableComponent implements OnInit {
       },
       accept: () => {
         const companyId = this.organizationService.getCurrentCompanyId();
-        const params: any = { id: `eq.${id}` };
+        
+        // Si se pasó una fecha específica y el horario es un rango de múltiples días,
+        // dividir el rango y eliminar solo ese día
+        if (date && employee_schedule) {
+          const startDateObj = toDate(employee_schedule.start_date, { timeZone: 'America/Panama' });
+          const endDateObj = toDate(employee_schedule.end_date, { timeZone: 'America/Panama' });
+          const dateObj = toDate(date, { timeZone: 'America/Panama' });
+          const isSingleDay = isSameDay(startDateObj, endDateObj);
+          const dateIsInRange = dateObj >= startDateObj && dateObj <= endDateObj;
+
+          // Si es un rango de múltiples días y la fecha está en el rango, dividir
+          if (!isSingleDay && dateIsInRange) {
+            this.deleteSingleDayFromRange(employee_schedule, dateObj, companyId);
+            return;
+          }
+        }
+
+        // Si es un solo día o no se pasó fecha específica, eliminar directamente
+        const params: any = { id: `eq.${employee_schedule.id}` };
 
         // Agregar filtro por company_id para seguridad
         if (companyId) {
@@ -923,6 +948,166 @@ export class EmployeesTimetableComponent implements OnInit {
           });
       },
     });
+  }
+
+  private deleteSingleDayFromRange(
+    schedule: EmployeeSchedule,
+    dateToDelete: Date,
+    companyId: string | null
+  ): void {
+    const startDateObj = toDate(schedule.start_date, { timeZone: 'America/Panama' });
+    const endDateObj = toDate(schedule.end_date, { timeZone: 'America/Panama' });
+    const requests: any[] = [];
+
+    // Caso 1: El día a eliminar es el primer día del rango
+    if (isSameDay(startDateObj, dateToDelete)) {
+      // Actualizar el turno original para que empiece al día siguiente
+      if (addDays(dateToDelete, 1) <= endDateObj) {
+        const updateData: any = {
+          start_date: format(addDays(dateToDelete, 1), 'yyyy-MM-dd'),
+          end_date: format(endDateObj, 'yyyy-MM-dd'),
+          schedule_id: schedule.schedule_id,
+          branch_id: schedule.branch_id,
+          approved: schedule.approved,
+        };
+        if (companyId) updateData.company_id = companyId;
+
+        requests.push(
+          this.http.patch(
+            `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+            updateData,
+            {
+              params: {
+                id: `eq.${schedule.id}`,
+                ...(companyId ? { company_id: `eq.${companyId}` } : {}),
+              },
+            }
+          )
+        );
+      } else {
+        // Si solo queda un día, eliminar el horario completo
+        const params: any = { id: `eq.${schedule.id}` };
+        if (companyId) {
+          params.company_id = `eq.${companyId}`;
+        }
+        requests.push(
+          this.http.delete(
+            `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+            { params }
+          )
+        );
+      }
+    }
+    // Caso 2: El día a eliminar es el último día del rango
+    else if (isSameDay(endDateObj, dateToDelete)) {
+      // Actualizar el turno original para que termine el día anterior
+      if (subDays(dateToDelete, 1) >= startDateObj) {
+        const updateData: any = {
+          start_date: format(startDateObj, 'yyyy-MM-dd'),
+          end_date: format(subDays(dateToDelete, 1), 'yyyy-MM-dd'),
+          schedule_id: schedule.schedule_id,
+          branch_id: schedule.branch_id,
+          approved: schedule.approved,
+        };
+        if (companyId) updateData.company_id = companyId;
+
+        requests.push(
+          this.http.patch(
+            `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+            updateData,
+            {
+              params: {
+                id: `eq.${schedule.id}`,
+                ...(companyId ? { company_id: `eq.${companyId}` } : {}),
+              },
+            }
+          )
+        );
+      } else {
+        // Si solo queda un día, eliminar el horario completo
+        const params: any = { id: `eq.${schedule.id}` };
+        if (companyId) {
+          params.company_id = `eq.${companyId}`;
+        }
+        requests.push(
+          this.http.delete(
+            `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+            { params }
+          )
+        );
+      }
+    }
+    // Caso 3: El día a eliminar está en el medio del rango
+    else {
+      // Dividir en dos turnos: uno antes y uno después del día a eliminar
+      // 1. Actualizar el turno original para que termine el día anterior
+      const updateData1: any = {
+        start_date: format(startDateObj, 'yyyy-MM-dd'),
+        end_date: format(subDays(dateToDelete, 1), 'yyyy-MM-dd'),
+        schedule_id: schedule.schedule_id,
+        branch_id: schedule.branch_id,
+        approved: schedule.approved,
+      };
+      if (companyId) updateData1.company_id = companyId;
+
+      requests.push(
+        this.http.patch(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+          updateData1,
+          {
+            params: {
+              id: `eq.${schedule.id}`,
+              ...(companyId ? { company_id: `eq.${companyId}` } : {}),
+            },
+          }
+        )
+      );
+
+      // 2. Crear un nuevo turno para el período después del día a eliminar
+      if (addDays(dateToDelete, 1) <= endDateObj) {
+        const createData2: any = {
+          id: v4(),
+          employee_id: schedule.employee_id,
+          schedule_id: schedule.schedule_id,
+          branch_id: schedule.branch_id,
+          start_date: format(addDays(dateToDelete, 1), 'yyyy-MM-dd'),
+          end_date: format(endDateObj, 'yyyy-MM-dd'),
+          approved: schedule.approved,
+        };
+        if (companyId) createData2.company_id = companyId;
+
+        requests.push(
+          this.http.post(
+            `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+            createData2
+          )
+        );
+      }
+    }
+
+    // Ejecutar todas las operaciones en paralelo
+    forkJoin(requests)
+      .pipe(
+        catchError((error) => {
+          console.error(error);
+          this.message.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Ha ocurrido un error al eliminar el horario',
+          });
+          return EMPTY;
+        })
+      )
+      .subscribe({
+        next: () => {
+          this.message.add({
+            severity: 'success',
+            summary: 'Éxito',
+            detail: 'Horario eliminado correctamente',
+          });
+          this.schedulesResource.reload();
+        },
+      });
   }
 
   public approveSchedule(id: string) {
