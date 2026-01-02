@@ -534,8 +534,33 @@ export class EmployeeSchedulesFormComponent implements OnInit {
         },
       }
     );
+
+    // CORRECCIÓN: Determinar si debemos hacer UPDATE o CREATE
+    // Regla principal: Si hay un employee_schedule en los datos del diálogo, significa que estamos editando
+    // un horario existente. En ese caso, hacer UPDATE a menos que singleDayEdit sea true
+    // (que significa que se está dividiendo un rango multi-día y se generó un nuevo ID)
+    const hasEmployeeSchedule = !!this.dialog.data.employee_schedule;
+    const hasOriginalSchedule = !!this.originalSchedule;
+    
+    // Hacer UPDATE si hay employee_schedule Y:
+    // 1. El ID del formulario coincide con el ID original (edición normal de un horario existente)
+    // 2. O no es singleDayEdit (para asegurar que se actualice en lugar de crear)
+    const idMatches = hasOriginalSchedule && value.id === this.originalSchedule.id;
+    const shouldUpdate = hasEmployeeSchedule && (idMatches || !this.singleDayEdit);
+    
+    // Log para depuración
+    if (hasEmployeeSchedule) {
+      this.logger.debug('[EmployeeSchedulesFormComponent] Editando horario existente:', {
+        formId: value.id,
+        originalId: this.originalSchedule?.id,
+        idMatches,
+        singleDayEdit: this.singleDayEdit,
+        shouldUpdate: shouldUpdate
+      });
+    }
+    
     iif(
-      () => this.dialog.data.employee_schedule && !this.singleDayEdit,
+      () => shouldUpdate,
       updateRequest,
       createRequest
     )
