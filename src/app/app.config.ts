@@ -29,6 +29,7 @@ import { httpInterceptor } from './interceptors/http.interceptor';
 import { errorInterceptor } from './interceptors/error.interceptor';
 import { JobApplicationsStore } from './stores/job-applications.store';
 import { PositionsStore } from './stores/positions.store';
+import { EmployeePortalStore } from './stores/employee-portal.store';
 registerLocaleData(localeEs, 'es-MX');
 
 const MyPreset = definePreset(Aura, {
@@ -93,6 +94,8 @@ export const appConfig: ApplicationConfig = {
     // Stores para el módulo de Feria de Empleo
     PositionsStore,
     JobApplicationsStore,
+    // Store para el Portal de Empleados
+    EmployeePortalStore,
     importProvidersFrom(
       NgxSpinnerModule.forRoot({ type: 'ball-scale-multiple' })
     ),

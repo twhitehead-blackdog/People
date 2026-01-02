@@ -109,20 +109,7 @@ const initialState: EmployeePortalState = {
 export const EmployeePortalStore = signalStore(
   withState(initialState),
   withComputed((state) => ({
-    activeSection: computed(() => state.activeSection()),
-    dateRange: computed(() => state.dateRange()),
-    calendarMonth: computed(() => state.calendarMonth()),
-    timelogViewMode: computed(() => state.timelogViewMode()),
-    conversationDialogVisible: computed(() => state.conversationDialogVisible()),
-    selectedComplaintId: computed(() => state.selectedComplaintId()),
-    replyMessage: computed(() => state.replyMessage()),
-    sendingReply: computed(() => state.sendingReply()),
-    showSalary: computed(() => state.showSalary()),
-    documentType: computed(() => state.documentForm().type),
-    customDocumentType: computed(() => state.documentForm().customType),
-    documentReason: computed(() => state.documentForm().reason),
-    documentRequiredDate: computed(() => state.documentForm().requiredDate),
-    submittingDocument: computed(() => state.documentForm().submitting),
+    // Solo mantener computed para valores derivados o transformados
     canSubmitDocument: computed(() => {
       const { type, customType, reason } = state.documentForm();
       const trimmedReason = reason.trim();
@@ -134,36 +121,11 @@ export const EmployeePortalStore = signalStore(
       }
       return true;
     }),
-    complaintCategory: computed(() => state.complaintForm().category),
-    complaintText: computed(() => state.complaintForm().text),
-    allowContact: computed(() => state.complaintForm().allowContact),
-    contactMethod: computed(() => state.complaintForm().contactMethod),
-    submittingComplaint: computed(() => state.complaintForm().submitting),
     canSubmitComplaint: computed(() => state.complaintForm().text.trim().length >= 10),
-    vacationStartDate: computed(() => state.vacationForm().startDate),
-    vacationEndDate: computed(() => state.vacationForm().endDate),
-    vacationReason: computed(() => state.vacationForm().reason),
-    submittingVacation: computed(() => state.vacationForm().submitting),
-    compensatoryStartDate: computed(() => state.compensatoryForm().startDate),
-    compensatoryEndDate: computed(() => state.compensatoryForm().endDate),
-    compensatoryType: computed(() => state.compensatoryForm().type),
-    compensatoryReason: computed(() => state.compensatoryForm().reason),
-    submittingCompensatory: computed(() => state.compensatoryForm().submitting),
-    showTutorialDialog: computed(() => state.compensatoryForm().showTutorial),
-    compensatoryDate: computed(() => state.compensatoryForm().compensatoryDate),
-    compensatoryTimeStart: computed(
-      () => state.compensatoryForm().compensatoryTimeStart
-    ),
-    compensatoryTimeEnd: computed(
-      () => state.compensatoryForm().compensatoryTimeEnd
-    ),
+    // Transforma array a Set para facilitar operaciones
     selectedOvertimeDays: computed(
       () => new Set(state.compensatoryForm().selectedOvertimeDays)
     ),
-    manualOvertimeDates: computed(
-      () => state.compensatoryForm().manualOvertimeDates
-    ),
-    newOvertimeDate: computed(() => state.compensatoryForm().newOvertimeDate),
   })),
   withMethods((state) => ({
     setActiveSection(section: string) {
