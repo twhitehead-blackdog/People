@@ -2,11 +2,12 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { Card } from 'primeng/card';
 import { TableModule } from 'primeng/table';
+import { PanamaDatePipe } from '../../pipes/panama-date.pipe';
 
 @Component({
   selector: 'pt-employee-portal-lates',
   standalone: true,
-  imports: [CommonModule, Card, TableModule],
+  imports: [CommonModule, Card, TableModule, PanamaDatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <p-card>
@@ -32,7 +33,7 @@ import { TableModule } from 'primeng/table';
           </ng-template>
           <ng-template #body let-late>
             <tr>
-              <td>{{ late.date | date : 'fullDate' }}</td>
+              <td>{{ late.date | panamaDate : 'fullDate' }}</td>
               <td>{{ late.scheduled_time || '-' }}</td>
               <td>{{ late.actual_time || '-' }}</td>
               <td>

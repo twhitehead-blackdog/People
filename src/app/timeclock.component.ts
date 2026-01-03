@@ -1,5 +1,5 @@
 import { NgClass } from '@angular/common';
-import { HttpClient, httpResource } from '@angular/common/http';
+import { HttpClient, HttpResponse, httpResource } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -22,6 +22,7 @@ import {
 } from '@angular/forms';
 import { Router } from '@angular/router';
 import { differenceInMinutes, format } from 'date-fns';
+import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 import * as OTPAuth from 'otpauth';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
@@ -48,6 +49,7 @@ import { TrimPipe } from './pipes/trim.pipe';
 import { DiagnosticService } from './services/diagnostic.service';
 import { IpMonitorService } from './services/ip-monitor.service';
 import { OrganizationService } from './services/organization.service';
+import { TimeSyncService } from './services/time-sync.service';
 
 @Component({
   selector: 'pt-timeclock',
@@ -993,8 +995,10 @@ export class TimeclockComponent implements OnDestroy {
   private router = inject(Router);
   private ipMonitor = inject(IpMonitorService);
   private organizationService = inject(OrganizationService);
+  private timeSync = inject(TimeSyncService);
   private destroyRef = inject(DestroyRef);
   private diagnosticService = inject(DiagnosticService);
+  private readonly DISPLAY_TIMEZONE = 'America/Panama';
   // Get IP address - try multiple methods to get real IP even from localhost
   public currentIP = signal<string>('127.0.0.1');
   public isProcessing = signal<boolean>(false);
@@ -1027,8 +1031,12 @@ export class TimeclockComponent implements OnDestroy {
     const isKioskRoute = this.router.url.includes('/timeclock-kiosk');
     this.isKioskMode.set(isKioskRoute);
 
+    // Sincronizar reloj con hora del servidor (sin tocar DB).
+    // Esto evita depender del reloj/zona horaria del dispositivo.
+    this.timeSync.init();
+
     this.timeInterval = setInterval(() => {
-      this.currentTime.set(new Date());
+      this.currentTime.set(this.timeSync.now());
     }, 1000);
 
     // Initialize available types
@@ -1458,7 +1466,11 @@ export class TimeclockComponent implements OnDestroy {
 
   // Format time for display (12-hour format with AM/PM)
   formattedTime = computed(() => {
-    return format(this.currentTime(), 'h:mm:ss aaa');
+    return formatInTimeZone(
+      this.currentTime(),
+      this.DISPLAY_TIMEZONE,
+      'h:mm:ss aaa'
+    );
   });
 
   // Format date for display
@@ -1486,7 +1498,7 @@ export class TimeclockComponent implements OnDestroy {
       'noviembre',
       'diciembre',
     ];
-    const date = this.currentTime();
+    const date = toZonedTime(this.currentTime(), this.DISPLAY_TIMEZONE);
     return `${days[date.getDay()]}, ${date.getDate()} de ${
       months[date.getMonth()]
     } de ${date.getFullYear()}`;
@@ -2128,7 +2140,6 @@ export class TimeclockComponent implements OnDestroy {
     type: string,
     employeeName: string
   ) {
-    const now = new Date();
     // Validar IP normalmente
     const invalidValue = !this.validIP();
 
@@ -2168,14 +2179,18 @@ export class TimeclockComponent implements OnDestroy {
         isDayOff?: boolean;
         error?: string;
         error_code?: string;
-      }>(`${process.env['ENV_SUPABASE_URL']}/rest/v1/rpc/process_timelog`, {
-        p_employee_id: employeeId,
-        p_company_id: finalCompanyId,
-        p_branch_id: branchId,
-        p_type: type,
-        p_ip: this.getIP(),
-        p_invalid_ip: invalidValue,
-      })
+      }>(
+        `${process.env['ENV_SUPABASE_URL']}/rest/v1/rpc/process_timelog`,
+        {
+          p_employee_id: employeeId,
+          p_company_id: finalCompanyId,
+          p_branch_id: branchId,
+          p_type: type,
+          p_ip: this.getIP(),
+          p_invalid_ip: invalidValue,
+        },
+        { observe: 'response' }
+      )
       .pipe(
         catchError((error) => {
           this.isProcessing.set(false);
@@ -2229,7 +2244,38 @@ export class TimeclockComponent implements OnDestroy {
         })
       )
       .subscribe({
-        next: (result) => {
+        next: (response: HttpResponse<{
+          success: boolean;
+          timelog_id?: string;
+          delay?: number | null;
+          exitDiff?: { minutes: number; isEarly: boolean } | null;
+          lunchEndDiff?: number | null;
+          lunchExceededMinutes?: number | null;
+          schedule?: {
+            id: string;
+            name: string;
+            entry_time: string;
+            exit_time: string;
+            day_off: boolean;
+            minutes_tolerance: number;
+          } | null;
+          hasSchedule?: boolean;
+          isDayOff?: boolean;
+          error?: string;
+          error_code?: string;
+        }>) => {
+          const result = response.body;
+          if (!result) {
+            this.isProcessing.set(false);
+            this.message.add({
+              severity: 'error',
+              summary: 'Error',
+              detail: 'Respuesta inválida del servidor (sin body).',
+              life: 10000,
+            });
+            return;
+          }
+
           // Verificar si la RPC retornó error
           if (!result.success) {
             this.isProcessing.set(false);
@@ -2242,11 +2288,19 @@ export class TimeclockComponent implements OnDestroy {
             return;
           }
 
+          // Hora oficial: header Date del servidor. Fallback: reloj sincronizado por offset.
+          const dateHeader = response.headers.get('Date');
+          const serverHeaderMs = dateHeader ? new Date(dateHeader).getTime() : NaN;
+          const officialTime = Number.isNaN(serverHeaderMs)
+            ? this.timeSync.now()
+            : new Date(serverHeaderMs);
+
           const typeLabel =
             this.types.find((t) => t.value === type)?.label || type;
           let message = `<div style="text-align: center;">
-            <div style="margin-bottom: 0.5rem;"><b>${typeLabel}</b> registrada exitosamente a las <b>${format(
-            now,
+            <div style="margin-bottom: 0.5rem;"><b>${typeLabel}</b> registrada exitosamente a las <b>${formatInTimeZone(
+            officialTime,
+            this.DISPLAY_TIMEZONE,
             'h:mm:ss aaa'
           )}</b></div>
           </div>`;

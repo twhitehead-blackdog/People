@@ -3,6 +3,7 @@ import { format } from 'date-fns';
 import { MessageService } from 'primeng/api';
 import { Employee } from '../../models';
 import { EmployeePortalStore } from '../../stores/employee-portal.store';
+import { getBooleanSetting } from '../../utils/settings-http.utils';
 
 type DocumentFormState = {
   type: string;
@@ -72,13 +73,70 @@ export function submitDocumentRequest(
       requestData
     )
     .subscribe({
-      next: () => {
+      next: (created: any) => {
         messageService.add({
           severity: 'success',
           summary: 'Éxito',
           detail:
             'Solicitud enviada correctamente. Recibirás una notificación cuando esté lista.',
         });
+
+        // Notificación por correo a RRHH (configurable en settings)
+        void (async () => {
+          const shouldNotify = await getBooleanSetting(
+            http,
+            'hr_email_notify_documents',
+            true
+          );
+          if (!shouldNotify) return;
+
+          const employee = currentEmployee();
+          const employeeName =
+            [employee?.first_name, employee?.father_name]
+              .filter(Boolean)
+              .join(' ') || 'Un empleado';
+
+          const createdRow = Array.isArray(created) ? created[0] : created;
+          const requestId = createdRow?.id ?? undefined;
+
+          const requiredDateText = requestData.required_date
+            ? String(requestData.required_date)
+            : 'N/A';
+
+          const subject = `Nueva solicitud de documento - ${employeeName}`;
+          const safeReason = String(requestData.reason || '')
+            .split('\n')
+            .join('<br/>');
+
+          const html = `
+            <div style="font-family: Arial, sans-serif; line-height: 1.4;">
+              <h2 style="margin: 0 0 12px;">Nueva solicitud de documento</h2>
+              <p style="margin: 0 0 12px;">
+                Se ha enviado una nueva solicitud de documento desde Gestiones.
+              </p>
+              <ul>
+                <li><strong>Empleado:</strong> ${employeeName}</li>
+                <li><strong>Tipo:</strong> ${requestData.document_type}</li>
+                <li><strong>Motivo:</strong> ${safeReason}</li>
+                <li><strong>Fecha requerida:</strong> ${requiredDateText}</li>
+                ${requestId ? `<li><strong>ID:</strong> ${requestId}</li>` : ''}
+              </ul>
+              <p style="color:#666; font-size: 12px; margin-top: 16px;">
+                Este mensaje fue generado automáticamente por People.
+              </p>
+            </div>
+          `;
+
+          http.post('/api/email/send', {
+            to: 'Verley@blackdogpanama.com',
+            subject,
+            html,
+            fromName: 'People - RRHH',
+          }).subscribe({
+            next: () => {},
+            error: (e) => console.warn('[DocumentRequest] No se pudo enviar email a RRHH', e),
+          });
+        })();
 
         resetForm();
         reloadRequests();

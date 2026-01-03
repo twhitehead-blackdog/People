@@ -43,10 +43,12 @@ import { TooltipModule } from 'primeng/tooltip';
 import { filter, firstValueFrom } from 'rxjs';
 import { CalendarComponent, CalendarMarkerData } from '../calendar.component';
 import { TimeLogEnum } from '../models';
+import { PanamaDatePipe } from '../pipes/panama-date.pipe';
 import { NotificationsService } from '../services/notifications.service';
 import { OrganizationService } from '../services/organization.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
+import { getBooleanSetting } from '../utils/settings-http.utils';
 
 @Component({
   selector: 'pt-employee-portal',
@@ -56,6 +58,7 @@ import { EmployeesStore } from '../stores/employees.store';
     TableModule,
     TagModule,
     DatePipe,
+    PanamaDatePipe,
     Button,
     DatePicker,
     DropdownModule,
@@ -229,13 +232,13 @@ import { EmployeesStore } from '../stores/employees.store';
                       </div>
                       <div>
                         <p class="text-white font-semibold m-0">
-                          {{ log.day | date : 'mediumDate' }}
+                          {{ log.day | panamaDate : 'mediumDate' }}
                         </p>
                         <p class="text-sm text-gray-400 m-0">
                           Entrada:
                           {{
                             log.entry?.date
-                              ? (log.entry.date | date : 'hh:mm a')
+                              ? (log.entry.date | panamaDate : 'hh:mm a')
                               : 'Sin registro'
                           }}
                         </p>
@@ -1134,7 +1137,7 @@ import { EmployeesStore } from '../stores/employees.store';
                       <!-- Header con fecha y estado -->
                       <div class="flex items-center justify-between mb-1 pb-1 border-b border-white/10">
                         <span class="text-[10px] font-bold uppercase tracking-wide text-white/80">
-                          {{ log.day | date : 'EEE d' }}
+                          {{ log.day | panamaDate : 'EEE d' }}
                         </span>
                         @if (isComplete) {
                           <span class="text-[9px] bg-green-500/50 text-white px-1.5 py-0.5 rounded-full font-semibold">
@@ -1162,7 +1165,7 @@ import { EmployeesStore } from '../stores/employees.store';
                             </div>
                             <div class="flex-1">
                               <div class="text-[11px] text-gray-300 font-medium">Entrada</div>
-                              <div class="text-[13px] text-white font-bold">{{ log.entry.date | date : 'HH:mm' }}</div>
+                              <div class="text-[13px] text-white font-bold">{{ log.entry.date | panamaDate : 'HH:mm' }}</div>
                             </div>
                             @if (log.entry.branch?.name) {
                               <div class="text-[9px] text-gray-400 truncate max-w-[60px]">
@@ -1182,13 +1185,13 @@ import { EmployeesStore } from '../stores/employees.store';
                               <div class="text-[11px] text-gray-300 font-medium">Almuerzo</div>
                               <div class="flex items-center gap-2 text-[12px]">
                                 @if (hasLunchStart) {
-                                  <span class="text-white font-semibold">{{ log.lunch_start.date | date : 'HH:mm' }}</span>
+                                  <span class="text-white font-semibold">{{ log.lunch_start.date | panamaDate : 'HH:mm' }}</span>
                                 }
                                 @if (hasLunchStart && hasLunchEnd) {
                                   <span class="text-gray-500">→</span>
                                 }
                                 @if (hasLunchEnd) {
-                                  <span class="text-white font-semibold">{{ log.lunch_end.date | date : 'HH:mm' }}</span>
+                                  <span class="text-white font-semibold">{{ log.lunch_end.date | panamaDate : 'HH:mm' }}</span>
                                 }
                               </div>
                             </div>
@@ -1203,7 +1206,7 @@ import { EmployeesStore } from '../stores/employees.store';
                             </div>
                             <div class="flex-1">
                               <div class="text-[11px] text-gray-300 font-medium">Salida</div>
-                              <div class="text-[13px] text-white font-bold">{{ log.exit.date | date : 'HH:mm' }}</div>
+                              <div class="text-[13px] text-white font-bold">{{ log.exit.date | panamaDate : 'HH:mm' }}</div>
                             </div>
                             @if (log.exit.branch?.name) {
                               <div class="text-[9px] text-gray-400 truncate max-w-[60px]">
@@ -1257,7 +1260,7 @@ import { EmployeesStore } from '../stores/employees.store';
                 </ng-template>
                 <ng-template #body let-late>
                   <tr>
-                    <td>{{ late.date | date : 'fullDate' }}</td>
+                    <td>{{ late.date | panamaDate : 'fullDate' }}</td>
                     <td>{{ late.scheduled_time || '-' }}</td>
                     <td>{{ late.actual_time || '-' }}</td>
                     <td>
@@ -4367,13 +4370,88 @@ export class EmployeePortalComponent {
         )
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
-          next: () => {
+          next: (created: any) => {
             this.messageService.add({
               severity: 'success',
               summary: 'Éxito',
               detail:
                 'Incapacidad subida correctamente. Está pendiente de revisión.',
             });
+
+            // Notificación por correo a RRHH (configurable en settings)
+            void (async () => {
+              const shouldNotify = await getBooleanSetting(
+                this.http,
+                'hr_email_notify_disabilities',
+                true
+              );
+              if (!shouldNotify) return;
+
+              const employeeName =
+                [
+                  this.currentEmployee()?.first_name,
+                  this.currentEmployee()?.father_name,
+                ]
+                  .filter(Boolean)
+                  .join(' ') || 'Un empleado';
+
+              const createdRow = Array.isArray(created) ? created[0] : created;
+              const disabilityId = createdRow?.id ?? undefined;
+
+              const safeDescription = String(
+                disabilityData.description || 'N/A'
+              )
+                .split('\n')
+                .join('<br/>');
+
+              const subject = `Nueva incapacidad subida - ${employeeName}`;
+              const html = `
+                <div style="font-family: Arial, sans-serif; line-height: 1.4;">
+                  <h2 style="margin: 0 0 12px;">Nueva incapacidad (Gestiones)</h2>
+                  <p style="margin: 0 0 12px;">
+                    Un empleado ha subido una incapacidad médica que requiere revisión.
+                  </p>
+                  <ul>
+                    <li><strong>Empleado:</strong> ${employeeName}</li>
+                    <li><strong>Inicio:</strong> ${
+                      disabilityData.start_date
+                    }</li>
+                    <li><strong>Fin:</strong> ${disabilityData.end_date}</li>
+                    <li><strong>Descripción:</strong> ${safeDescription}</li>
+                    <li><strong>Documento:</strong> ${
+                      disabilityData.document_url
+                        ? `<a href="${disabilityData.document_url}">Abrir documento</a>`
+                        : 'N/A'
+                    }</li>
+                    ${
+                      disabilityId
+                        ? `<li><strong>ID:</strong> ${disabilityId}</li>`
+                        : ''
+                    }
+                  </ul>
+                  <p style="color:#666; font-size: 12px; margin-top: 16px;">
+                    Este mensaje fue generado automáticamente por People.
+                  </p>
+                </div>
+              `;
+
+              this.http
+                .post('/api/email/send', {
+                  to: 'Verley@blackdogpanama.com',
+                  subject,
+                  html,
+                  fromName: 'People - RRHH',
+                })
+                .pipe(takeUntilDestroyed(this.destroyRef))
+                .subscribe({
+                  next: () => {},
+                  error: (e) =>
+                    console.warn(
+                      '[DisabilityUpload] No se pudo enviar email a RRHH',
+                      e
+                    ),
+                });
+            })();
 
             // Reset form
             this.disabilityStartDate.set(null);
@@ -4454,13 +4532,82 @@ export class EmployeePortalComponent {
       )
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: () => {
+        next: (created: any) => {
           this.messageService.add({
             severity: 'success',
             summary: 'Éxito',
             detail:
               'Solicitud enviada correctamente. Recibirás una notificación cuando esté lista.',
           });
+
+          // Notificación por correo a RRHH (configurable en settings)
+          void (async () => {
+            const shouldNotify = await getBooleanSetting(
+              this.http,
+              'hr_email_notify_documents',
+              true
+            );
+            if (!shouldNotify) return;
+
+            const employeeName =
+              [
+                this.currentEmployee()?.first_name,
+                this.currentEmployee()?.father_name,
+              ]
+                .filter(Boolean)
+                .join(' ') || 'Un empleado';
+
+            const createdRow = Array.isArray(created) ? created[0] : created;
+            const requestId = createdRow?.id ?? undefined;
+
+            const safeReason = String(requestData.reason || '')
+              .split('\n')
+              .join('<br/>');
+            const requiredDateText = requestData.required_date
+              ? String(requestData.required_date)
+              : 'N/A';
+
+            const subject = `Nueva solicitud de documento - ${employeeName}`;
+            const html = `
+              <div style="font-family: Arial, sans-serif; line-height: 1.4;">
+                <h2 style="margin: 0 0 12px;">Nueva solicitud de documento</h2>
+                <p style="margin: 0 0 12px;">
+                  Se ha enviado una nueva solicitud de documento desde Gestiones.
+                </p>
+                <ul>
+                  <li><strong>Empleado:</strong> ${employeeName}</li>
+                  <li><strong>Tipo:</strong> ${requestData.document_type}</li>
+                  <li><strong>Motivo:</strong> ${safeReason}</li>
+                  <li><strong>Fecha requerida:</strong> ${requiredDateText}</li>
+                  ${
+                    requestId
+                      ? `<li><strong>ID:</strong> ${requestId}</li>`
+                      : ''
+                  }
+                </ul>
+                <p style="color:#666; font-size: 12px; margin-top: 16px;">
+                  Este mensaje fue generado automáticamente por People.
+                </p>
+              </div>
+            `;
+
+            this.http
+              .post('/api/email/send', {
+                to: 'Verley@blackdogpanama.com',
+                subject,
+                html,
+                fromName: 'People - RRHH',
+              })
+              .pipe(takeUntilDestroyed(this.destroyRef))
+              .subscribe({
+                next: () => {},
+                error: (e) =>
+                  console.warn(
+                    '[DocumentRequest] No se pudo enviar email a RRHH',
+                    e
+                  ),
+              });
+          })();
 
           // Reset form
           this.documentType.set('work_letter');

@@ -1,8 +1,6 @@
 import dotenv from 'dotenv';
 import express from 'express';
 import nodemailer from 'nodemailer';
-import jwt from 'jsonwebtoken';
-import crypto from 'crypto';
 
 // Cargar variables de entorno desde .env
 dotenv.config();
@@ -233,14 +231,77 @@ export function app(): express.Express {
         health: '/api/health',
         clientIp: '/api/client-ip',
         wassenger: '/api/wassenger/send-message',
-        email: '/api/email/send'
-      }
+        email: '/api/email/send',
+      },
     });
   });
 
   // Health check endpoint
   server.get('/api/health', (req, res) => {
     res.json({ status: 'ok', message: 'Server is running' });
+  });
+
+  /**
+   * Endpoint para obtener la hora "oficial" del sistema sin depender del reloj del dispositivo.
+   * Lee la hora desde el header HTTP `Date` de Supabase (server-side, sin restricciones CORS)
+   * y la devuelve en el body.
+   */
+  server.get('/api/server-time', async (req, res) => {
+    const supabaseUrl = process.env['ENV_SUPABASE_URL'];
+    const supabaseKey =
+      process.env['ENV_SUPABASE_ANON_KEY'] ??
+      process.env['ENV_SUPABASE_API_KEY'] ??
+      '';
+
+    // Fallback: si no hay config, devolver hora del servidor Node
+    if (!supabaseUrl || !supabaseKey) {
+      res.json({
+        server_time: new Date().toISOString(),
+        source: 'node',
+      });
+      return;
+    }
+
+    try {
+      // Petición liviana: solo para capturar el header Date del servidor Supabase
+      const resp = await fetch(
+        `${supabaseUrl}/rest/v1/companies?select=id&limit=1`,
+        {
+          method: 'GET',
+          headers: {
+            apikey: supabaseKey,
+            Authorization: `Bearer ${supabaseKey}`,
+            Accept: 'application/json',
+          },
+        }
+      );
+
+      const dateHeader = resp.headers.get('date') || resp.headers.get('Date');
+      if (dateHeader) {
+        const ms = new Date(dateHeader).getTime();
+        res.json({
+          server_time: Number.isNaN(ms)
+            ? new Date().toISOString()
+            : new Date(ms).toISOString(),
+          source: 'supabase-date-header',
+        });
+        return;
+      }
+
+      // Si por alguna razón no viene Date, fallback a hora del servidor Node
+      res.json({
+        server_time: new Date().toISOString(),
+        source: 'node-fallback-no-date',
+      });
+      return;
+    } catch (error: any) {
+      console.error('Error en /api/server-time:', error);
+      res.json({
+        server_time: new Date().toISOString(),
+        source: 'node-fallback-error',
+      });
+      return;
+    }
   });
 
   // Endpoint para obtener la IP real del cliente

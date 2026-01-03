@@ -12,6 +12,7 @@ import { TableModule } from 'primeng/table';
 import { TooltipModule } from 'primeng/tooltip';
 
 import { CalendarComponent, CalendarMarkerData } from '../../calendar.component';
+import { PanamaDatePipe } from '../../pipes/panama-date.pipe';
 
 @Component({
   selector: 'pt-employee-portal-timelogs',
@@ -23,6 +24,7 @@ import { CalendarComponent, CalendarMarkerData } from '../../calendar.component'
     TableModule,
     TooltipModule,
     CalendarComponent,
+    PanamaDatePipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -102,12 +104,14 @@ import { CalendarComponent, CalendarMarkerData } from '../../calendar.component'
             </ng-template>
             <ng-template #body let-log>
               <tr>
-                <td class="font-semibold">{{ log.day | date : 'fullDate' }}</td>
+                <td class="font-semibold">
+                  {{ log.day | panamaDate : 'fullDate' }}
+                </td>
                 <td>
                   @if (log.entry) {
                   <div class="flex items-center gap-2">
                     <i class="pi pi-sign-in text-green-400"></i>
-                    <span>{{ log.entry.date | date : 'HH:mm' }}</span>
+                    <span>{{ log.entry.date | panamaDate : 'HH:mm' }}</span>
                     @if (log.entry.branch) {
                     <span class="text-xs text-gray-400">
                       ({{ log.entry.branch.short_name || log.entry.branch.name }})
@@ -120,14 +124,16 @@ import { CalendarComponent, CalendarMarkerData } from '../../calendar.component'
                 </td>
                 <td>
                   @if (log.lunch_start) {
-                  <span>{{ log.lunch_start.date | date : 'HH:mm' }}</span>
+                  <span>
+                    {{ log.lunch_start.date | panamaDate : 'HH:mm' }}
+                  </span>
                   } @else {
                   <span class="text-gray-500">-</span>
                   }
                 </td>
                 <td>
                   @if (log.lunch_end) {
-                  <span>{{ log.lunch_end.date | date : 'HH:mm' }}</span>
+                  <span>{{ log.lunch_end.date | panamaDate : 'HH:mm' }}</span>
                   } @else {
                   <span class="text-gray-500">-</span>
                   }
@@ -136,7 +142,7 @@ import { CalendarComponent, CalendarMarkerData } from '../../calendar.component'
                   @if (log.exit) {
                   <div class="flex items-center gap-2">
                     <i class="pi pi-sign-out text-blue-400"></i>
-                    <span>{{ log.exit.date | date : 'HH:mm' }}</span>
+                    <span>{{ log.exit.date | panamaDate : 'HH:mm' }}</span>
                   </div>
                   } @else {
                   <span class="text-gray-500">-</span>
@@ -258,7 +264,7 @@ import { CalendarComponent, CalendarMarkerData } from '../../calendar.component'
               <div class="flex items-center gap-1">
                 <i class="pi pi-sign-in text-[9px] text-green-300"></i>
                 <span class="text-[10px] text-white font-semibold">
-                  {{ log.entry.date | date : 'HH:mm' }}
+                  {{ log.entry.date | panamaDate : 'HH:mm' }}
                 </span>
               </div>
               }
@@ -268,12 +274,12 @@ import { CalendarComponent, CalendarMarkerData } from '../../calendar.component'
                 <i class="pi pi-clock text-[9px] text-amber-300"></i>
                 <span class="text-[10px] text-white">
                   @if (hasLunchStart && hasLunchEnd) {
-                  {{ log.lunch_start.date | date : 'HH:mm' }}-
-                  {{ log.lunch_end.date | date : 'HH:mm' }}
+                  {{ log.lunch_start.date | panamaDate : 'HH:mm' }}-
+                  {{ log.lunch_end.date | panamaDate : 'HH:mm' }}
                   } @else if (hasLunchStart) {
-                  {{ log.lunch_start.date | date : 'HH:mm' }}
+                  {{ log.lunch_start.date | panamaDate : 'HH:mm' }}
                   } @else {
-                  {{ log.lunch_end.date | date : 'HH:mm' }}
+                  {{ log.lunch_end.date | panamaDate : 'HH:mm' }}
                   }
                 </span>
               </div>
@@ -283,7 +289,7 @@ import { CalendarComponent, CalendarMarkerData } from '../../calendar.component'
               <div class="flex items-center gap-1">
                 <i class="pi pi-sign-out text-[9px] text-blue-300"></i>
                 <span class="text-[10px] text-white font-semibold">
-                  {{ log.exit.date | date : 'HH:mm' }}
+                  {{ log.exit.date | panamaDate : 'HH:mm' }}
                 </span>
               </div>
               }

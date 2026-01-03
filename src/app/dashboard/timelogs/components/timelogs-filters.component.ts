@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, Input, Signal, WritableSignal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, Signal, WritableSignal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
@@ -271,10 +271,10 @@ export class TimelogsFiltersComponent {
   @Input() public delayRangeOptions!: { label: string; value: string }[];
   @Input() public hasActiveFilters!: Signal<boolean>;
   @Input() public activeFiltersCount!: Signal<number>;
-  @Input() public onEmployeeSearchEnter!: () => void;
+  @Output() public search = new EventEmitter<void>();
 
   public handleSearch(): void {
-    this.onEmployeeSearchEnter?.();
+    this.search.emit();
   }
 
   public toggleFilters(): void {

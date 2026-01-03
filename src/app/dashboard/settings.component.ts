@@ -47,6 +47,10 @@ interface Setting {
             <i class="pi pi-comments mr-2"></i>
             Wassenger
           </p-tab>
+          <p-tab value="1">
+            <i class="pi pi-envelope mr-2"></i>
+            Notificaciones
+          </p-tab>
         </p-tablist>
 
         <!-- Tab: Wassenger -->
@@ -144,6 +148,67 @@ interface Setting {
             </div>
           </p-card>
         </p-tabpanel>
+
+        <!-- Tab: Notificaciones -->
+        <p-tabpanel value="1">
+          <p-card>
+            <ng-template #title>Notificaciones por correo (RRHH)</ng-template>
+            <ng-template #subtitle>
+              Activa o desactiva qué gestiones generan un email de aviso a RRHH.
+            </ng-template>
+
+            <div class="flex flex-col gap-6">
+              <div class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+                <div class="flex items-start gap-3">
+                  <i class="pi pi-info-circle text-blue-400 text-xl"></i>
+                  <div class="flex-1">
+                    <p class="text-blue-300 font-semibold mb-2">
+                      ¿Qué hace esto?
+                    </p>
+                    <p class="text-sm text-gray-300 m-0">
+                      Cuando un empleado envía una solicitud desde “Gestiones”, el sistema puede enviar un correo de notificación
+                      a RRHH. Estos switches controlan qué tipos disparan el email.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Solicitudes de documentos -->
+              <div class="flex items-center justify-between p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
+                <div class="flex flex-col gap-2">
+                  <label class="text-sm font-semibold text-white">
+                    Solicitudes de Documentos
+                  </label>
+                  <p class="text-xs text-gray-400">
+                    Enviar correo cuando se cree una solicitud de documento (carta de trabajo, certificados, etc.)
+                  </p>
+                </div>
+                <p-toggleSwitch
+                  [(ngModel)]="hrEmailNotifyDocuments"
+                  (ngModelChange)="onHrEmailNotifyDocumentsChange()"
+                  [disabled]="saving()"
+                />
+              </div>
+
+              <!-- Incapacidades -->
+              <div class="flex items-center justify-between p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
+                <div class="flex flex-col gap-2">
+                  <label class="text-sm font-semibold text-white">
+                    Incapacidades (documento adjunto)
+                  </label>
+                  <p class="text-xs text-gray-400">
+                    Enviar correo cuando se suba una incapacidad médica en Gestiones.
+                  </p>
+                </div>
+                <p-toggleSwitch
+                  [(ngModel)]="hrEmailNotifyDisabilities"
+                  (ngModelChange)="onHrEmailNotifyDisabilitiesChange()"
+                  [disabled]="saving()"
+                />
+              </div>
+            </div>
+          </p-card>
+        </p-tabpanel>
       </p-tabs>
     </div>
 
@@ -168,13 +233,17 @@ export class SettingsComponent {
   public wassengerApiKey = signal('');
   public wassengerApiKeyValue = signal<string | null>(null);
 
+  // Notificaciones por correo (RRHH)
+  public hrEmailNotifyDocuments = signal(true);
+  public hrEmailNotifyDisabilities = signal(true);
+
   // Cargar configuraciones
   public settingsApi = httpResource<Setting[]>(() => ({
     url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
     method: 'GET',
     params: {
       select: '*',
-      key: `in.(wassenger_api_key,wassenger_enabled)`,
+      key: `in.(wassenger_api_key,wassenger_enabled,hr_email_notify_documents,hr_email_notify_disabilities)`,
       order: 'key.asc',
     },
   }));
@@ -186,6 +255,12 @@ export class SettingsComponent {
       if (settings) {
         const wassengerKey = settings.find((s) => s.key === 'wassenger_api_key');
         const wassengerEnabled = settings.find((s) => s.key === 'wassenger_enabled');
+        const hrEmailNotifyDocuments = settings.find(
+          (s) => s.key === 'hr_email_notify_documents'
+        );
+        const hrEmailNotifyDisabilities = settings.find(
+          (s) => s.key === 'hr_email_notify_disabilities'
+        );
 
         if (wassengerKey) {
           this.wassengerApiKeyValue.set(wassengerKey.value ? '***' : null);
@@ -194,12 +269,24 @@ export class SettingsComponent {
         if (wassengerEnabled) {
           this.wassengerEnabled.set(wassengerEnabled.value === 'true');
         }
+
+        // Defaults: true (si no existe el setting aún)
+        this.hrEmailNotifyDocuments.set(
+          hrEmailNotifyDocuments ? hrEmailNotifyDocuments.value === 'true' : true
+        );
+        this.hrEmailNotifyDisabilities.set(
+          hrEmailNotifyDisabilities ? hrEmailNotifyDisabilities.value === 'true' : true
+        );
       }
     });
   }
 
   public onWassengerEnabledChange(): void {
-    this.saveSetting('wassenger_enabled', this.wassengerEnabled() ? 'true' : 'false');
+    this.saveSetting(
+      'wassenger_enabled',
+      this.wassengerEnabled() ? 'true' : 'false',
+      { category: 'integrations' }
+    );
   }
 
   public saveWassengerApiKey(): void {
@@ -212,11 +299,37 @@ export class SettingsComponent {
       return;
     }
 
-    this.saveSetting('wassenger_api_key', this.wassengerApiKey().trim());
+    this.saveSetting('wassenger_api_key', this.wassengerApiKey().trim(), {
+      category: 'integrations',
+      isEncrypted: true,
+    });
   }
 
-  private saveSetting(key: string, value: string): void {
+  public onHrEmailNotifyDocumentsChange(): void {
+    this.saveSetting(
+      'hr_email_notify_documents',
+      this.hrEmailNotifyDocuments() ? 'true' : 'false',
+      { category: 'notifications' }
+    );
+  }
+
+  public onHrEmailNotifyDisabilitiesChange(): void {
+    this.saveSetting(
+      'hr_email_notify_disabilities',
+      this.hrEmailNotifyDisabilities() ? 'true' : 'false',
+      { category: 'notifications' }
+    );
+  }
+
+  private saveSetting(
+    key: string,
+    value: string,
+    opts?: { category?: string; isEncrypted?: boolean }
+  ): void {
     this.saving.set(true);
+    const category = opts?.category ?? 'general';
+    const isEncrypted =
+      opts?.isEncrypted ?? (key.includes('api_key') || key.includes('password'));
 
     // Primero intentar actualizar
     this.http
@@ -253,8 +366,8 @@ export class SettingsComponent {
             .post(`${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`, {
               key,
               value,
-              category: 'integrations',
-              is_encrypted: key.includes('api_key') || key.includes('password'),
+              category,
+              is_encrypted: isEncrypted,
             })
             .subscribe({
               next: () => {

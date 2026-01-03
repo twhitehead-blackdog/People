@@ -10,23 +10,14 @@ import {
   model,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { addDays, differenceInMinutes, format, startOfMonth } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
-import { es } from 'date-fns/locale';
 import { trim } from 'lodash';
 import { MessageService } from 'primeng/api';
-import { Avatar } from 'primeng/avatar';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
-import { DatePicker } from 'primeng/datepicker';
-import { InputText } from 'primeng/inputtext';
-import { Select } from 'primeng/select';
-import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
-import { ToggleSwitch } from 'primeng/toggleswitch';
-import { TooltipModule } from 'primeng/tooltip';
 import { utils, writeFile } from 'xlsx';
 import {
   colorVariants,
@@ -40,25 +31,31 @@ import { LoggerService } from '../services/logger.service';
 import { OrganizationService } from '../services/organization.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
+import { TimelogsFiltersComponent } from './timelogs/components/timelogs-filters.component';
+import { TimelogsTableComponent } from './timelogs/components/timelogs-table.component';
+import { TimelogsApiService } from './timelogs/timelogs-api.service';
+import {
+  formatHours,
+  formatLunchExceededTotal,
+  getAlertIcon,
+  getAlertSeverity,
+  getAlertTooltip,
+} from './timelogs/utils/alert.utils';
+import { matchesEmployeeSearch } from './timelogs/utils/employee-search.utils';
+import { calcTimeDiff } from './timelogs/utils/time.utils';
 
 @Component({
   selector: 'pt-timelogs',
   imports: [
     Button,
     Card,
-    Select,
-    DatePicker,
-    InputText,
-    FormsModule,
-    DatePipe,
-    TableModule,
     Tag,
-    TooltipModule,
-    Avatar,
+    DatePipe,
     ToastModule,
     NgClass,
     NgStyle,
-    ToggleSwitch,
+    TimelogsFiltersComponent,
+    TimelogsTableComponent,
   ],
   template: `<div [ngClass]="{ 'naz-theme': isNaz() }">
     <p-card>
@@ -86,225 +83,28 @@ import { EmployeesStore } from '../stores/employees.store';
           </div>
         </div>
       </ng-template>
-      <!-- Búsqueda y Fecha (fuera del panel) -->
-      <div class="flex flex-col md:flex-row gap-3 items-center mb-4">
-        <div class="flex-1 w-full md:w-auto flex gap-2">
-          <input
-            pInputText
-            type="text"
-            [ngModel]="employeeSearchInput()"
-            (ngModelChange)="employeeSearchInput.set($event)"
-            (keyup.enter)="onEmployeeSearchEnter()"
-            placeholder="Buscar empleado por nombre..."
-            class="flex-1 text-sm"
-          />
-          <p-button
-            icon="pi pi-search"
-            (click)="onEmployeeSearchEnter()"
-            [rounded]="true"
-            severity="primary"
-            [style]="{ 'min-width': '44px', height: '44px' }"
-            [pTooltip]="'Buscar'"
-            tooltipPosition="top"
-          />
-        </div>
-        <div class="w-full md:w-auto">
-          <p-datepicker
-            placeholder="Fecha o rango de fechas"
-            selectionMode="range"
-            appendTo="body"
-            [(ngModel)]="dateRange"
-            [showIcon]="true"
-            dateFormat="dd/mm/yy"
-            class="w-full"
-          />
-        </div>
-      </div>
-
-      <!-- Panel de Filtros Colapsable -->
-      <div
-        class="mb-4 bg-neutral-800/50 rounded-lg border border-neutral-700/50 overflow-hidden"
-      >
-        <!-- Header del panel de filtros -->
-        <button
-          type="button"
-          (click)="filtersExpanded.set(!filtersExpanded())"
-          class="w-full flex items-center justify-between p-3 hover:bg-neutral-700/30 transition-colors"
-        >
-          <div class="flex items-center gap-2">
-            <i class="pi pi-filter text-yellow-400 text-sm"></i>
-            <span class="text-base font-semibold text-white">Filtros</span>
-            @if (hasActiveFilters()) {
-            <span
-              class="px-2 py-0.5 bg-cyan-500/20 text-cyan-300 text-xs font-semibold rounded-full"
-            >
-              {{ getActiveFiltersCount() }} activo(s)
-            </span>
-            }
-          </div>
-          <i
-            class="pi transition-transform duration-300 text-sm"
-            [class.pi-chevron-down]="!filtersExpanded()"
-            [class.pi-chevron-up]="filtersExpanded()"
-            [class.text-gray-400]="true"
-          ></i>
-        </button>
-
-        <!-- Contenido desplegable -->
-        @if (filtersExpanded()) {
-        <div class="px-3 pb-3 border-t border-neutral-700/50 pt-3">
-          <div class="flex flex-wrap items-end gap-3">
-            <!-- Filtro por Empleado -->
-            <div class="flex-1 min-w-[160px]">
-              <label class="block text-xs font-medium text-gray-300 mb-1">
-                <i class="pi pi-user mr-1 text-xs"></i>Empleado
-              </label>
-              <p-select
-                [options]="activeEmployeesList()"
-                optionLabel="short_name"
-                optionValue="id"
-                placeholder="TODOS"
-                filter
-                showClear
-                appendTo="body"
-                [(ngModel)]="employeeId"
-                class="w-full"
-                [style]="{ 'font-size': '0.875rem' }"
-              />
-            </div>
-
-            <!-- Filtro por Sucursal -->
-            <div class="flex-1 min-w-[160px]">
-              <label class="block text-xs font-medium text-gray-300 mb-1">
-                <i class="pi pi-building mr-1 text-xs"></i>Sucursal
-              </label>
-              <p-select
-                placeholder="TODAS"
-                [(ngModel)]="branchId"
-                [options]="store.branches.entities()"
-                optionLabel="name"
-                optionValue="id"
-                showClear
-                appendTo="body"
-                class="w-full"
-                [style]="{ 'font-size': '0.875rem' }"
-              />
-            </div>
-
-            <!-- Filtros de Alertas - Reorganizado en grid 2x2 -->
-            <div class="flex-1 min-w-[240px]">
-              <label class="block text-xs font-medium text-gray-300 mb-1">
-                <i class="pi pi-exclamation-triangle mr-1 text-xs"></i>Alertas
-              </label>
-              <div class="grid grid-cols-2 gap-x-3 gap-y-1">
-                <div class="flex items-center gap-1.5">
-                  <p-toggleSwitch
-                    inputId="delayed"
-                    [(ngModel)]="onlyDelayed"
-                    [style]="{ transform: 'scale(0.85)' }"
-                  />
-                  <label
-                    for="delayed"
-                    class="text-xs text-gray-300 cursor-pointer whitespace-nowrap"
-                    >Retrasos</label
-                  >
-                </div>
-                <div class="flex items-center gap-1.5">
-                  <p-toggleSwitch
-                    inputId="errors"
-                    [(ngModel)]="onlyErrors"
-                    [style]="{ transform: 'scale(0.85)' }"
-                  />
-                  <label
-                    for="errors"
-                    class="text-xs text-gray-300 cursor-pointer whitespace-nowrap"
-                    >Errores</label
-                  >
-                </div>
-                <div class="flex items-center gap-1.5">
-                  <p-toggleSwitch
-                    inputId="earlyExit"
-                    [(ngModel)]="onlyEarlyExit"
-                    [style]="{ transform: 'scale(0.85)' }"
-                  />
-                  <label
-                    for="earlyExit"
-                    class="text-xs text-gray-300 cursor-pointer whitespace-nowrap"
-                    >Salida temprana</label
-                  >
-                </div>
-                <div class="flex items-center gap-1.5">
-                  <p-toggleSwitch
-                    inputId="lunchExceededToggle"
-                    [(ngModel)]="onlyLunchExceeded"
-                    [style]="{ transform: 'scale(0.85)' }"
-                  />
-                  <label
-                    for="lunchExceededToggle"
-                    class="text-xs text-gray-300 cursor-pointer whitespace-nowrap"
-                    >Almuerzo excedido</label
-                  >
-                </div>
-                <div class="flex items-center gap-1.5">
-                  <p-toggleSwitch
-                    inputId="onlyMarcaciones"
-                    [(ngModel)]="onlyWithMarcaciones"
-                    [style]="{ transform: 'scale(0.85)' }"
-                  />
-                  <label
-                    for="onlyMarcaciones"
-                    class="text-xs text-gray-300 cursor-pointer whitespace-nowrap"
-                    >Solo marcaciones</label
-                  >
-                </div>
-              </div>
-            </div>
-
-            <!-- Filtro de Almuerzo Excedido (condicional) -->
-            @if (onlyLunchExceeded()) {
-            <div class="flex-1 min-w-[160px]">
-              <label class="block text-xs font-medium text-gray-300 mb-1">
-                <i class="pi pi-clock mr-1 text-xs"></i>Rango de Exceso
-              </label>
-              <p-select
-                inputId="lunchExceeded"
-                [(ngModel)]="lunchExceededRange"
-                [options]="lunchExceededOptions"
-                optionLabel="label"
-                optionValue="value"
-                placeholder="Todos"
-                showClear
-                appendTo="body"
-                class="w-full"
-                [style]="{ 'font-size': '0.875rem' }"
-              />
-            </div>
-            }
-
-            <!-- Filtro de Rango de Retrasos (condicional) -->
-            @if (onlyDelayed()) {
-            <div class="flex-1 min-w-[160px]">
-              <label class="block text-xs font-medium text-gray-300 mb-1">
-                <i class="pi pi-clock mr-1 text-xs"></i>Rango de Retraso
-              </label>
-              <p-select
-                inputId="delayRange"
-                [(ngModel)]="delayRange"
-                [options]="delayRangeOptions"
-                optionLabel="label"
-                optionValue="value"
-                placeholder="Todos"
-                showClear
-                appendTo="body"
-                class="w-full"
-                [style]="{ 'font-size': '0.875rem' }"
-              />
-            </div>
-            }
-          </div>
-        </div>
-        }
-      </div>
+      <pt-timelogs-filters
+        [dateRange]="dateRange"
+        [employeeSearchInput]="employeeSearchInput"
+        [employeeId]="employeeId"
+        [branchId]="branchId"
+        [onlyDelayed]="onlyDelayed"
+        [onlyErrors]="onlyErrors"
+        [onlyEarlyExit]="onlyEarlyExit"
+        [onlyLunchExceeded]="onlyLunchExceeded"
+        [onlyWithMarcaciones]="onlyWithMarcaciones"
+        [lunchExceededRange]="lunchExceededRange"
+        [delayRange]="delayRange"
+        [delayToleranceMinutes]="delayToleranceMinutes"
+        [filtersExpanded]="filtersExpanded"
+        [activeEmployeesList]="activeEmployeesList"
+        [branchOptions]="branchOptionsList"
+        [lunchExceededOptions]="lunchExceededOptions"
+        [delayRangeOptions]="delayRangeOptions"
+        [hasActiveFilters]="hasActiveFilters"
+        [activeFiltersCount]="getActiveFiltersCount"
+        (search)="onEmployeeSearchEnter()"
+      ></pt-timelogs-filters>
 
       <!-- Total Excedido de Almuerzo -->
       @if(selectedEmployee()) {
@@ -366,307 +166,18 @@ import { EmployeesStore } from '../stores/employees.store';
       } @if (hasError()) {
       <!-- Error handling, toast will be shown -->
       }
-      <div class="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
-        <p-table
-          [value]="filteredDaylogs()"
-          [rows]="25"
-          [rowsPerPageOptions]="[10, 25, 50, 100, 200]"
-          paginator
-          paginatorDropdownAppendTo="body"
-          showGridlines
-          stripedRows
-          [loading]="this.logs.isLoading()"
-          [scrollable]="true"
-          [scrollHeight]="'calc(100vh - 400px)'"
-          styleClass="min-w-full"
-        >
-          <ng-template #header>
-            <tr>
-              <th>Empleado</th>
-              <th>Día</th>
-              <th>Horario</th>
-              <th>Entrada</th>
-              <th>Inicio de almuerzo</th>
-              <th>Fin de almuerzo</th>
-              <th>Salida</th>
-              <th>Horas Trabajadas</th>
-              <th>Horas Extras</th>
-            </tr>
-          </ng-template>
-          <ng-template #body let-log>
-            <tr
-              [ngClass]="{
-                'bg-amber-50/10': log.alert,
-                'bg-red-50/10': log.scheduleError
-              }"
-            >
-              <td>
-                <div class="flex flex-col gap-1">
-                  <div class="flex items-center gap-2">
-                    @if(log.employee.employee_number) {
-                    <span class="text-xs text-gray-400 font-mono">{{
-                      log.employee.employee_number
-                    }}</span>
-                    }
-                    {{ log.employee.first_name }} {{ log.employee.father_name }}
-                    @if(log.scheduleError) {
-                    <p-tag
-                      value="Error de Horario"
-                      severity="danger"
-                      icon="pi pi-exclamation-triangle"
-                      [pTooltip]="
-                        log.alert +
-                        ': El empleado trabajó pero está marcado como feriado/día libre. No hay horario válido para estas marcaciones. El gerente debe corregir la configuración.'
-                      "
-                      tooltipPosition="top"
-                      [style]="{
-                        'min-width': maxEmployeeTagWidth(),
-                        display: 'inline-block',
-                        'text-align': 'center'
-                      }"
-                      styleClass="ml-2"
-                    />
-                    } @else if(log.alert) {
-                    <p-tag
-                      [value]="log.alert"
-                      [severity]="getAlertSeverity(log.alert)"
-                      [icon]="getAlertIcon(log.alert)"
-                      [pTooltip]="getAlertTooltip(log.alert)"
-                      tooltipPosition="top"
-                      [style]="{
-                        'min-width': maxEmployeeTagWidth(),
-                        display: 'inline-block',
-                        'text-align': 'center'
-                      }"
-                      styleClass="ml-2"
-                    />
-                    }
-                  </div>
-                </div>
-              </td>
-              <td>{{ log.day | date : 'mediumDate' }}</td>
-              <td>
-                <span
-                  class="rounded text-sm px-2 py-1 font-semibold inline-flex items-center justify-center gap-1"
-                  [ngClass]="
-                    (log.schedule?.schedule?.color &&
-                    colorVariants[log.schedule.schedule.color]
-                      ? colorVariants[log.schedule.schedule.color]
-                      : '') +
-                    (log.schedule && log.schedule.approved === false
-                      ? ' opacity-60'
-                      : '')
-                  "
-                  [ngStyle]="
-                    log.schedule?.schedule?.color &&
-                    !colorVariants[log.schedule.schedule.color]
-                      ? getScheduleColorInlineStyle(log.schedule.schedule.color)
-                      : null
-                  "
-                  [style]="{
-                    'min-width': maxScheduleBadgeWidth(),
-                    'text-align': 'center'
-                  }"
-                  [pTooltip]="getScheduleTooltip(log.schedule)"
-                  tooltipPosition="top"
-                  >{{ log?.schedule?.schedule?.name || 'Sin horario' }}
-                  @if(log.schedule && log.schedule.approved === false) {
-                  <i
-                    class="pi pi-exclamation-circle text-yellow-200 text-[10px] animate-pulse flex-shrink-0 drop-shadow-[0_0_4px_rgba(251,191,36,0.8)]"
-                  ></i>
-                  } @else if(log.schedule && log.schedule.approved === true) {
-                  <i
-                    class="pi pi-check-circle text-green-400 text-[10px] flex-shrink-0"
-                  ></i>
-                  }
-                </span>
-              </td>
-              <td>
-                <div class="flex gap-2 items-center">
-                  @if(log.entry) {
-                  <p-avatar
-                    class="cursor-pointer"
-                    shape="circle"
-                    [label]="log.entry?.branch.short_name"
-                    [pTooltip]="log.entry?.branch.name"
-                    tooltipPosition="top"
-                  />}
-                  <span
-                    [ngClass]="{
-                      'text-red-500 font-semibold': log.delay
-                    }"
-                    >{{ log.entry?.date | date : 'hh:mm a' }}</span
-                  >
-                  @if(log.delay) {
-                  <p-tag
-                    [value]="'Retraso de ' + log.delay + ' min'"
-                    severity="danger"
-                    icon="pi pi-clock"
-                    [pTooltip]="
-                      'El empleado llegó ' +
-                      log.delay +
-                      ' minutos después de la tolerancia permitida (' +
-                      delayToleranceMinutes() +
-                      ' min)'
-                    "
-                    tooltipPosition="top"
-                    [style]="{
-                      'min-width': maxDelayTagWidth(),
-                      display: 'inline-block',
-                      'text-align': 'center'
-                    }"
-                    styleClass="ml-2"
-                  />
-                  }
-                </div>
-              </td>
-              <td>
-                <div class="flex gap-2 items-center">
-                  @if(log.lunch_start) {
-                  <p-avatar
-                    shape="circle"
-                    [label]="log.lunch_start?.branch.short_name"
-                    [pTooltip]="log.lunch_start?.branch.name"
-                    tooltipPosition="top"
-                  />
-                  }
-                  {{ log.lunch_start?.date | date : 'hh:mm a' }}
-                </div>
-              </td>
-              <td>
-                <div class="flex gap-2 items-center">
-                  @if(log.lunch_end) {
-                  <p-avatar
-                    shape="circle"
-                    [label]="log.lunch_end?.branch.short_name"
-                    [pTooltip]="log.lunch_end?.branch.name"
-                    tooltipPosition="top"
-                  />}
-                  <span
-                    [ngClass]="{
-                      'text-red-500 font-semibold': log.lunchExceeded
-                    }"
-                    >{{ log.lunch_end?.date | date : 'hh:mm a' }}</span
-                  >
-                  @if(log.lunchExceeded && log.lunchMinutes) {
-                  <p-tag
-                    [value]="'Almuerzo +' + (log.lunchMinutes - 60) + ' min'"
-                    severity="danger"
-                    icon="pi pi-exclamation-triangle"
-                    [pTooltip]="
-                      'El tiempo de almuerzo excede los 60 minutos permitidos por ' +
-                      (log.lunchMinutes - 60) +
-                      ' minutos'
-                    "
-                    tooltipPosition="top"
-                    [style]="{
-                      'min-width': maxLunchTagWidth(),
-                      display: 'inline-block',
-                      'text-align': 'center'
-                    }"
-                    styleClass="ml-2"
-                  />
-                  }
-                </div>
-              </td>
-              <td>
-                <div class="flex gap-2 items-center">
-                  @if(log.exit) {
-                  <p-avatar
-                    shape="circle"
-                    [label]="log.exit?.branch.short_name"
-                    [pTooltip]="log.exit?.branch.name"
-                    tooltipPosition="top"
-                  />}
-                  <span
-                    [ngClass]="{
-                      'text-red-500 font-semibold': log.earlyExit
-                    }"
-                    >{{ log.exit?.date | date : 'hh:mm a' }}</span
-                  >
-                  @if(log.earlyExit) {
-                  <p-tag
-                    value="Salida temprana"
-                    severity="danger"
-                    icon="pi pi-exclamation-triangle"
-                    [pTooltip]="
-                      'El empleado salió antes del horario laboral establecido'
-                    "
-                    tooltipPosition="top"
-                    [style]="{
-                      'min-width': maxExitTagWidth(),
-                      display: 'inline-block',
-                      'text-align': 'center'
-                    }"
-                    styleClass="ml-2"
-                  />
-                  }
-                </div>
-              </td>
-              <td>
-                <div class="flex gap-2 items-center">
-                  <span
-                    [ngClass]="{
-                      'text-red-500 font-semibold': log.insufficientHours,
-                      'text-green-500 font-semibold':
-                        !log.insufficientHours && log.totalHours
-                    }"
-                  >
-                    {{ log.totalHours ? formatHours(log.totalHours) : '-' }}
-                  </span>
-                  @if(log.insufficientHours) {
-                  <p-tag
-                    value="Menos de 8h"
-                    severity="danger"
-                    icon="pi pi-clock"
-                    [pTooltip]="
-                      'El empleado no cumplió las 8 horas de trabajo requeridas (sin contar el tiempo de almuerzo)'
-                    "
-                    tooltipPosition="top"
-                    [style]="{
-                      'min-width': maxHoursTagWidth(),
-                      display: 'inline-block',
-                      'text-align': 'center'
-                    }"
-                    styleClass="ml-2"
-                  />
-                  }
-                </div>
-              </td>
-              <td>
-                <div class="flex gap-2 items-center">
-                  <span
-                    [ngClass]="{
-                      'text-green-500 font-semibold':
-                        log.overtimeHours && log.overtimeHours > 0,
-                      'text-gray-400':
-                        !log.overtimeHours || log.overtimeHours === 0
-                    }"
-                  >
-                    {{
-                      log.overtimeHours ? formatHours(log.overtimeHours) : '-'
-                    }}
-                  </span>
-                </div>
-              </td>
-            </tr>
-          </ng-template>
-          <ng-template #emptymessage>
-            <tr>
-              <td colspan="8">
-                <div class="flex flex-col items-center justify-center gap-4">
-                  <p>No se encontraron registros</p>
-                  <p-button
-                    label="Limpiar"
-                    icon="pi pi-refresh"
-                    (click)="employeeId.set('')"
-                  />
-                </div>
-              </td>
-            </tr>
-          </ng-template>
-        </p-table>
-      </div>
+      <pt-timelogs-table
+        [logs]="filteredDaylogs"
+        [isLoading]="logs.isLoading()"
+        [delayToleranceMinutes]="delayToleranceMinutes"
+        [employeeId]="employeeId"
+        [maxEmployeeTagWidth]="maxEmployeeTagWidth()"
+        [maxScheduleBadgeWidth]="maxScheduleBadgeWidth()"
+        [maxDelayTagWidth]="maxDelayTagWidth()"
+        [maxLunchTagWidth]="maxLunchTagWidth()"
+        [maxExitTagWidth]="maxExitTagWidth()"
+        [maxHoursTagWidth]="maxHoursTagWidth()"
+      ></pt-timelogs-table>
     </p-card>
   </div>`,
   styles: `
@@ -747,6 +258,7 @@ export class TimelogsComponent {
   public organizationService = inject(OrganizationService);
   private logger = inject(LoggerService);
   private injector = inject(Injector);
+  public timelogsApiService = inject(TimelogsApiService);
 
   // Computed para verificar si es Naz
   public isNaz = computed(() => this.organizationService.isNaz());
@@ -925,64 +437,21 @@ export class TimelogsComponent {
   public activeEmployeesList = computed(() =>
     this.employees.employeesList().filter((emp) => emp.is_active)
   );
+  public branchOptionsList = computed(() => this.store.branches.entities());
 
   public loading = signal(false);
   private message = inject(MessageService);
   public colorVariants = colorVariants;
+  public formatHours = formatHours;
+  public formatLunchExceededTotal = formatLunchExceededTotal;
+  public getAlertSeverity = getAlertSeverity;
+  public getAlertIcon = getAlertIcon;
+  public getAlertTooltip = getAlertTooltip;
 
   // Método para actualizar la búsqueda cuando se presiona Enter
-  public onEmployeeSearchEnter(): void {
+  public onEmployeeSearchEnter = (): void => {
     this.employeeSearch.set(this.employeeSearchInput());
-  }
-
-  // Helper optimizado para buscar empleados por palabras que empiecen con el término de búsqueda
-  private matchesEmployeeSearch(
-    emp: Partial<Employee>,
-    searchTerm: string
-  ): boolean {
-    if (!searchTerm) return false;
-
-    // Normalizar término de búsqueda una sola vez
-    const trimmedSearch = searchTerm.toLowerCase().trim();
-    if (!trimmedSearch) return false;
-
-    // Normalizar nombres del empleado una sola vez (lazy evaluation)
-    const firstName = (emp.first_name || '').trim().toLowerCase();
-    const fatherName = (emp.father_name || '').trim().toLowerCase();
-    const middleName = (emp.middle_name || '').trim().toLowerCase();
-    const motherName = (emp.mother_name || '').trim().toLowerCase();
-
-    // Detectar si hay múltiples palabras
-    const spaceIndex = trimmedSearch.indexOf(' ');
-    if (spaceIndex === -1) {
-      // Una sola palabra: buscar en cualquier campo (orden optimizado)
-      const word = trimmedSearch;
-      return (
-        firstName.startsWith(word) ||
-        fatherName.startsWith(word) ||
-        middleName.startsWith(word) ||
-        motherName.startsWith(word)
-      );
-    }
-
-    // Múltiples palabras: dividir y buscar cada una
-    const searchWords = trimmedSearch.split(/\s+/).filter((w) => w.length > 0);
-    if (searchWords.length === 0) return false;
-
-    // Para cada palabra, verificar que empiece en algún campo (orden optimizado)
-    // Salir temprano si alguna palabra no coincide
-    for (const word of searchWords) {
-      if (
-        !firstName.startsWith(word) &&
-        !fatherName.startsWith(word) &&
-        !middleName.startsWith(word) &&
-        !motherName.startsWith(word)
-      ) {
-        return false; // Early return si una palabra no coincide
-      }
-    }
-    return true;
-  }
+  };
 
   // Computed mejorado para encontrar el empleado seleccionado
   // Busca por employeeId si existe, o por employeeSearch si solo hay un resultado único
@@ -998,7 +467,7 @@ export class TimelogsComponent {
     const searchTerm = this.employeeSearch()?.toLowerCase().trim() || '';
     if (searchTerm) {
       const matchingEmployees = this.employees.employeesList().filter((emp) => {
-        return this.matchesEmployeeSearch(emp, searchTerm);
+        return matchesEmployeeSearch(emp, searchTerm);
       });
 
       // Solo retornar si hay exactamente un empleado que coincida
@@ -1164,47 +633,6 @@ export class TimelogsComponent {
     };
   });
 
-  // Helper para construir la request de timelogs
-  private buildLogsRequest(start: Date, end: Date) {
-    const baseUrl = `${this.getSupabaseBaseUrl()}/rest/v1/timelogs`;
-    const companyId = this.organizationService.getCurrentCompanyId();
-
-    // Convertir las fechas locales de Panamá a UTC para la query
-    const startDateStrPanama =
-      formatInTimeZone(start, this.TIMEZONE, 'yyyy-MM-dd') + 'T00:00:00-05:00';
-    const endDateStrPanama =
-      formatInTimeZone(addDays(end, 1), this.TIMEZONE, 'yyyy-MM-dd') +
-      'T00:00:00-05:00';
-
-    const startDateObj = new Date(startDateStrPanama);
-    const endDateObj = new Date(endDateStrPanama);
-
-    const startDate = startDateObj.toISOString().split('.')[0] + 'Z';
-    const endDate = endDateObj.toISOString().split('.')[0] + 'Z';
-
-    const select = `*,employee:employees!inner(id,first_name,father_name,is_active,branch:branches(id, name)),branch:branches(id, name, short_name)`;
-
-    let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
-    url += `&created_at=gte.${startDate}`;
-    url += `&created_at=lte.${endDate}`;
-    url += `&employee.is_active=eq.true`;
-
-    if (this.employeeId()) {
-      url += `&employee_id=eq.${this.employeeId()}`;
-    }
-
-    if (companyId) {
-      url += `&company_id=eq.${companyId}`;
-    }
-
-    url += `&order=created_at.asc`;
-
-    return {
-      url,
-      method: 'GET',
-    };
-  }
-
   // Consulta para timelogs antes o hasta el 22 de diciembre
   public logsBefore22 = httpResource<any[]>(() => {
     const { start, end } = this.normalizedDateRange();
@@ -1212,20 +640,20 @@ export class TimelogsComponent {
       return undefined;
     }
 
-    const cutoffDate = new Date('2025-12-22');
-    const startStr = format(start, 'yyyy-MM-dd');
-    const endStr = format(end, 'yyyy-MM-dd');
-    const cutoffStr = '2025-12-22';
+    const { beforeRange } = this.timelogsApiService.splitDateRange({
+      start,
+      end,
+    });
 
-    // Si el rango completo está después del 22, no hacer esta query
-    if (startStr > cutoffStr) {
+    if (!beforeRange) {
       return undefined;
     }
 
-    // Si el rango cruza el 22, solo traer hasta el 22
-    const endDateForQuery = endStr > cutoffStr ? cutoffDate : end;
-
-    return this.buildLogsRequest(start, endDateForQuery);
+    return this.timelogsApiService.buildLogsRequest(
+      beforeRange.start,
+      beforeRange.end,
+      this.employeeId()
+    );
   });
 
   // Consulta para timelogs después del 22 de diciembre
@@ -1235,20 +663,20 @@ export class TimelogsComponent {
       return undefined;
     }
 
-    const cutoffDate = new Date('2025-12-23');
-    const startStr = format(start, 'yyyy-MM-dd');
-    const endStr = format(end, 'yyyy-MM-dd');
-    const cutoffStr = '2025-12-23';
+    const { afterRange } = this.timelogsApiService.splitDateRange({
+      start,
+      end,
+    });
 
-    // Si el rango completo está antes o hasta el 22, no hacer esta query
-    if (endStr < cutoffStr) {
+    if (!afterRange) {
       return undefined;
     }
 
-    // Si el rango cruza el 22, empezar desde el 23
-    const startDateForQuery = startStr < cutoffStr ? cutoffDate : start;
-
-    return this.buildLogsRequest(startDateForQuery, end);
+    return this.timelogsApiService.buildLogsRequest(
+      afterRange.start,
+      afterRange.end,
+      this.employeeId()
+    );
   });
 
   // Computed que combina ambos resultados manteniendo la API de httpResource
@@ -1564,7 +992,7 @@ export class TimelogsComponent {
         if (!emp.is_active) return;
 
         if (
-          this.matchesEmployeeSearch(emp, searchTerm) &&
+          matchesEmployeeSearch(emp, searchTerm) &&
           !uniqueEmployees.has(emp.id)
         ) {
           uniqueEmployees.set(emp.id, emp);
@@ -1723,7 +1151,7 @@ export class TimelogsComponent {
 
         // Detectar alertas cuando hay marcación
         const dayDate = new Date(acc[index].day);
-        const dayStr = format(dayDate, 'yyyy-MM-dd');
+        const dayStr = formatInTimeZone(dayDate, this.TIMEZONE, 'yyyy-MM-dd');
         const timeoffForDay = timeoffsData.find((timeoff) => {
           if (timeoff.employee_id !== acc[index].employee.id) return false;
           const fromStr = format(new Date(timeoff.date_from), 'yyyy-MM-dd');
@@ -1805,17 +1233,18 @@ export class TimelogsComponent {
             } else {
               // Calcular retraso si hay entrada
               if (acc[index].entry) {
-                const entryTime = format(acc[index].entry.date, 'hh:mm:ss');
+                const entryTime = formatInTimeZone(
+                  acc[index].entry.date,
+                  this.TIMEZONE,
+                  'HH:mm:ss'
+                );
                 const scheduleTime = acc[index].schedule.schedule.entry_time;
                 if (scheduleTime) {
                   const scheduleTimeStr =
                     typeof scheduleTime === 'string'
                       ? scheduleTime
                       : format(new Date(scheduleTime), 'HH:mm:ss');
-                  const delayTotal = this.calcTimeDiff(
-                    entryTime,
-                    scheduleTimeStr
-                  );
+                  const delayTotal = calcTimeDiff(entryTime, scheduleTimeStr);
 
                   // Aplicar tolerancia: solo contar el exceso sobre la tolerancia
                   const tolerance = this.delayToleranceMinutes();
@@ -1852,7 +1281,11 @@ export class TimelogsComponent {
             acc[index].exit &&
             !acc[index].schedule.schedule.day_off
           ) {
-            const exitTime = format(acc[index].exit.date, 'HH:mm:ss');
+            const exitTime = formatInTimeZone(
+              acc[index].exit.date,
+              this.TIMEZONE,
+              'HH:mm:ss'
+            );
             const scheduleExitTime = acc[index].schedule.schedule.exit_time;
             if (scheduleExitTime) {
               // Convertir scheduleExitTime a string si es Date
@@ -2246,107 +1679,6 @@ export class TimelogsComponent {
     return filtered;
   });
 
-  calcTimeDiff = (time1: string, time2: string) => {
-    if (!time1 || !time2) {
-      return 0;
-    }
-
-    // Validar formato de hora (debe tener :)
-    if (!time1.includes(':') || !time2.includes(':')) {
-      return 0;
-    }
-
-    const valueStart = time1.split(':');
-    const valueEnd = time2.split(':');
-
-    // Validar que tenga al menos horas y minutos
-    if (valueStart.length < 2 || valueEnd.length < 2) {
-      return 0;
-    }
-
-    const hours1 = parseInt(valueStart[0], 10);
-    const minutes1 = parseInt(valueStart[1], 10);
-    const hours2 = parseInt(valueEnd[0], 10);
-    const minutes2 = parseInt(valueEnd[1], 10);
-
-    // Validar que sean números válidos y estén en rango
-    if (
-      isNaN(hours1) ||
-      isNaN(minutes1) ||
-      isNaN(hours2) ||
-      isNaN(minutes2) ||
-      hours1 < 0 ||
-      hours1 > 23 ||
-      minutes1 < 0 ||
-      minutes1 > 59 ||
-      hours2 < 0 ||
-      hours2 > 23 ||
-      minutes2 < 0 ||
-      minutes2 > 59
-    ) {
-      return 0;
-    }
-
-    const timeStart = new Date();
-    const timeEnd = new Date();
-
-    timeStart.setHours(hours1, minutes1, 0, 0);
-    timeEnd.setHours(hours2, minutes2, 0, 0);
-
-    return differenceInMinutes(timeStart, timeEnd);
-  };
-
-  getAlertSeverity(alert: string): 'warn' | 'danger' | 'info' {
-    switch (alert) {
-      case 'Día Libre':
-        return 'warn';
-      case 'Feriado':
-        return 'info';
-      case 'Sin Horario':
-        return 'danger';
-      default:
-        return 'warn';
-    }
-  }
-
-  getAlertIcon(alert: string): string {
-    switch (alert) {
-      case 'Día Libre':
-        return 'pi pi-calendar-times';
-      case 'Feriado':
-        return 'pi pi-calendar';
-      case 'Sin Horario':
-        return 'pi pi-exclamation-triangle';
-      default:
-        return 'pi pi-info-circle';
-    }
-  }
-
-  getAlertTooltip(alert: string): string {
-    switch (alert) {
-      case 'Día Libre':
-        return 'El empleado marcó en un día que está configurado como día libre en su horario';
-      case 'Feriado':
-        return 'El empleado marcó en un día que tiene un permiso/feriado aprobado';
-      case 'Sin Horario':
-        return 'El empleado marcó pero no tiene un horario establecido para este día';
-      default:
-        return '';
-    }
-  }
-
-  public formatLunchExceededTotal(minutes: number): string {
-    if (minutes === 0) {
-      return '0';
-    }
-    if (minutes < 60) {
-      return `${minutes} min`;
-    }
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return mins > 0 ? `${hours}h ${mins}min` : `${hours}h`;
-  }
-
   public getScheduleColorInlineStyle(color: string | undefined | null) {
     return getColorStyle(color);
   }
@@ -2358,12 +1690,6 @@ export class TimelogsComponent {
       return 'Horario pendiente de aprobación';
     }
     return undefined;
-  }
-
-  formatHours(hours: number): string {
-    const h = Math.floor(hours);
-    const m = Math.round((hours - h) * 60);
-    return `${h}h ${m}m`;
   }
 
   public timelogsReport = computed(() => {
@@ -2437,7 +1763,7 @@ export class TimelogsComponent {
       let entrada = '';
       if (x.entry?.date) {
         try {
-          entrada = format(x.entry.date, 'hh:mm a');
+          entrada = formatInTimeZone(x.entry.date, this.TIMEZONE, 'hh:mm a');
           if (x.entry.branch?.short_name) {
             entrada += ` (${x.entry.branch.short_name})`;
           }
@@ -2457,7 +1783,11 @@ export class TimelogsComponent {
       let inicioAlmuerzo = '';
       if (x.lunch_start?.date) {
         try {
-          inicioAlmuerzo = format(x.lunch_start.date, 'hh:mm a');
+          inicioAlmuerzo = formatInTimeZone(
+            x.lunch_start.date,
+            this.TIMEZONE,
+            'hh:mm a'
+          );
           if (x.lunch_start.branch?.short_name) {
             inicioAlmuerzo += ` (${x.lunch_start.branch.short_name})`;
           }
@@ -2472,7 +1802,11 @@ export class TimelogsComponent {
       let finAlmuerzo = '';
       if (x.lunch_end?.date) {
         try {
-          finAlmuerzo = format(x.lunch_end.date, 'hh:mm a');
+          finAlmuerzo = formatInTimeZone(
+            x.lunch_end.date,
+            this.TIMEZONE,
+            'hh:mm a'
+          );
           if (x.lunch_end.branch?.short_name) {
             finAlmuerzo += ` (${x.lunch_end.branch.short_name})`;
           }
@@ -2491,7 +1825,7 @@ export class TimelogsComponent {
       let salida = '';
       if (x.exit?.date) {
         try {
-          salida = format(x.exit.date, 'hh:mm a');
+          salida = formatInTimeZone(x.exit.date, this.TIMEZONE, 'hh:mm a');
           if (x.exit.branch?.short_name) {
             salida += ` (${x.exit.branch.short_name})`;
           }
@@ -2510,7 +1844,11 @@ export class TimelogsComponent {
       try {
         const dayDate = new Date(x.day + 'T00:00:00'); // Asegurar parseo correcto
         if (!isNaN(dayDate.getTime())) {
-          formattedDate = format(dayDate, 'd MMM yyyy', { locale: es });
+          formattedDate = formatInTimeZone(
+            dayDate,
+            this.TIMEZONE,
+            'd MMM yyyy'
+          );
         } else {
           formattedDate = x.day || '';
         }
@@ -2581,19 +1919,23 @@ export class TimelogsComponent {
       // Agregar información del reporte
       const reportInfo = [
         ['REPORTE DE MARCACIONES'],
-        ['Fecha de generación:', format(new Date(), 'dd/MM/yyyy HH:mm')],
+        [
+          'Fecha de generación:',
+          formatInTimeZone(new Date(), this.TIMEZONE, 'dd/MM/yyyy HH:mm'),
+        ],
         [
           'Período:',
           (() => {
             const { start, end } = this.normalizedDateRange();
             if (!start || !end) return 'Sin fecha';
             if (start.getTime() === end.getTime()) {
-              return format(start, 'dd/MM/yyyy');
+              return formatInTimeZone(start, this.TIMEZONE, 'dd/MM/yyyy');
             }
-            return `${format(start, 'dd/MM/yyyy')} - ${format(
-              end,
+            return `${formatInTimeZone(
+              start,
+              this.TIMEZONE,
               'dd/MM/yyyy'
-            )}`;
+            )} - ${formatInTimeZone(end, this.TIMEZONE, 'dd/MM/yyyy')}`;
           })(),
         ],
         ['Total de registros:', data.length],
@@ -2624,10 +1966,11 @@ export class TimelogsComponent {
             '_'
           )
         : 'GLOBAL';
-      const fileName = `${name}_${format(start, 'yyyyMMdd')}-${format(
-        end,
+      const fileName = `${name}_${formatInTimeZone(
+        start,
+        this.TIMEZONE,
         'yyyyMMdd'
-      )}.xlsx`;
+      )}-${formatInTimeZone(end, this.TIMEZONE, 'yyyyMMdd')}.xlsx`;
 
       writeFile(wb, fileName);
 

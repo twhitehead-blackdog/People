@@ -11,6 +11,7 @@ import {
   colorVariants,
   getScheduleColorInlineStyle as getColorStyle,
 } from '../../../models';
+import { PanamaDatePipe } from '../../../pipes/panama-date.pipe';
 import {
   formatHours,
   getAlertIcon,
@@ -21,7 +22,17 @@ import {
 @Component({
   selector: 'pt-timelogs-table',
   standalone: true,
-  imports: [CommonModule, TableModule, Tag, Avatar, Button, TooltipModule, NgClass, NgStyle],
+  imports: [
+    CommonModule,
+    TableModule,
+    Tag,
+    Avatar,
+    Button,
+    TooltipModule,
+    NgClass,
+    NgStyle,
+    PanamaDatePipe,
+  ],
   template: `
     <div class="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
       <p-table
@@ -100,7 +111,7 @@ import {
                 </div>
               </div>
             </td>
-            <td>{{ log.day | date: 'mediumDate' }}</td>
+            <td>{{ log.day | panamaDate: 'mediumDate' }}</td>
             <td>
               <span
                 class="rounded text-sm px-2 py-1 font-semibold inline-flex items-center justify-center gap-1"
@@ -151,7 +162,7 @@ import {
                   [ngClass]="{
                     'text-red-500 font-semibold': log.delay
                   }"
-                  >{{ log.entry?.date | date: 'hh:mm a' }}</span
+                  >{{ log.entry?.date | panamaDate: 'hh:mm a' }}</span
                 >
                 <p-tag
                   *ngIf="log.delay"
@@ -185,7 +196,7 @@ import {
                   [pTooltip]="log.lunch_start?.branch.name"
                   tooltipPosition="top"
                 ></p-avatar>
-                {{ log.lunch_start?.date | date: 'hh:mm a' }}
+                {{ log.lunch_start?.date | panamaDate: 'hh:mm a' }}
               </div>
             </td>
             <td>
@@ -202,7 +213,7 @@ import {
                   [ngClass]="{
                     'text-red-500 font-semibold': log.lunchExceeded
                   }"
-                  >{{ log.lunch_end?.date | date: 'hh:mm a' }}</span
+                  >{{ log.lunch_end?.date | panamaDate: 'hh:mm a' }}</span
                 >
                 <p-tag
                   *ngIf="log.lunchExceeded && log.lunchMinutes"
@@ -237,7 +248,7 @@ import {
                   [ngClass]="{
                     'text-red-500 font-semibold': log.earlyExit
                   }"
-                  >{{ log.exit?.date | date: 'hh:mm a' }}</span
+                  >{{ log.exit?.date | panamaDate: 'hh:mm a' }}</span
                 >
                 <p-tag
                   *ngIf="log.earlyExit"

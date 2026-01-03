@@ -18,6 +18,7 @@ import {
   startOfMonth,
   subMonths,
 } from 'date-fns';
+import { formatInTimeZone } from 'date-fns-tz';
 import { BaseChartDirective } from 'ng2-charts';
 import { CardModule } from 'primeng/card';
 import { DialogModule } from 'primeng/dialog';
@@ -3552,6 +3553,24 @@ import { OrganizationService } from '../services/organization.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HomeComponent {
+  private readonly TIMEZONE = 'America/Panama';
+
+  private pad2(n: number): string {
+    return String(n).padStart(2, '0');
+  }
+
+  private getPanamaNowParts(): { year: number; month: number; day: number } {
+    const now = new Date();
+    const year = parseInt(formatInTimeZone(now, this.TIMEZONE, 'yyyy'), 10);
+    const month = parseInt(formatInTimeZone(now, this.TIMEZONE, 'MM'), 10); // 1-12
+    const day = parseInt(formatInTimeZone(now, this.TIMEZONE, 'd'), 10);
+    return { year, month, day };
+  }
+
+  private getDaysInMonth(year: number, month: number): number {
+    // month: 1-12
+    return new Date(Date.UTC(year, month, 0)).getUTCDate();
+  }
   public state = inject(DashboardStore);
   public employees = inject(EmployeesStore);
   private organizationService = inject(OrganizationService);
@@ -3677,21 +3696,12 @@ export class HomeComponent {
   // Calculate tardiness from timelogs + schedules (real-time, no need for attendance_sheets)
   public latesFromTimelogs = httpResource<any[]>(() => {
     const baseUrl = process.env['ENV_SUPABASE_URL']!;
-    const now = new Date();
-    // Usar inicio del mes a las 00:00:00 y fin del día actual a las 23:59:59
-    // Formato ISO 8601 para Supabase/PostgREST
-    const monthStart = startOfMonth(now);
-    const from = format(monthStart, "yyyy-MM-dd'T'00:00:00");
-    // Incluir hasta el final del día actual (no solo hasta el final del mes)
-    const todayEnd = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate(),
-      23,
-      59,
-      59
-    );
-    const to = format(todayEnd, "yyyy-MM-dd'T'HH:mm:ss");
+    // Rango en Panamá (no depende del timezone del dispositivo) y convertido a UTC ISO para PostgREST
+    const { year, month, day } = this.getPanamaNowParts();
+    const fromPanama = `${year}-${this.pad2(month)}-01T00:00:00-05:00`;
+    const toPanama = `${year}-${this.pad2(month)}-${this.pad2(day)}T23:59:59-05:00`;
+    const from = new Date(fromPanama).toISOString().split('.')[0] + 'Z';
+    const to = new Date(toPanama).toISOString().split('.')[0] + 'Z';
 
     // Query timelogs for entry times (type = 'entry')
     // Build URL manually because we need multiple filters on created_at
@@ -3724,12 +3734,11 @@ export class HomeComponent {
 
   public employeeSchedules = httpResource<any[]>(() => {
     const baseUrl = process.env['ENV_SUPABASE_URL']!;
-    const now = new Date();
-    // Use date-only format for DATE field comparisons
-    // Incluir horarios que se solapen con CUALQUIER día del mes actual
-    // Esto es importante porque algunos horarios pueden terminar después del día actual
-    const monthStart = format(startOfMonth(now), 'yyyy-MM-dd');
-    const monthEnd = format(endOfMonth(now), 'yyyy-MM-dd');
+    // Mes actual en Panamá (date-only), para que el mes no cambie por timezone del dispositivo
+    const { year, month } = this.getPanamaNowParts();
+    const daysInMonth = this.getDaysInMonth(year, month);
+    const monthStart = `${year}-${this.pad2(month)}-01`;
+    const monthEnd = `${year}-${this.pad2(month)}-${this.pad2(daysInMonth)}`;
 
     // Query employee schedules that overlap with the current month
     // A schedule overlaps if: start_date <= month_end AND end_date >= month_start
@@ -3943,8 +3952,8 @@ export class HomeComponent {
             },
             title: (ctx: any) => {
               const dayNum = ctx[0]?.dataIndex + 1;
-              const now = new Date();
-              const monthName = this.getMonthNameSpanish(now);
+              const { month } = this.getPanamaNowParts();
+              const monthName = this.getMonthNameSpanish(month - 1);
               return `Día ${dayNum} ${monthName}`;
             },
           },
@@ -3990,9 +3999,9 @@ export class HomeComponent {
               return bMinutes - aMinutes;
             });
 
-            const now = new Date();
             const dayNum = idx + 1;
-            const monthName = this.getMonthNameSpanish(now);
+            const { month } = this.getPanamaNowParts();
+            const monthName = this.getMonthNameSpanish(month - 1);
             const title = `Tardanzas - Día ${dayNum} ${monthName}`;
 
             this.lateDialogTitle.set(title);
@@ -4096,9 +4105,9 @@ export class HomeComponent {
             });
 
             // Format title: "Día 1 Nov"
-            const now = new Date();
             const dayNum = idx + 1;
-            const monthName = this.getMonthNameSpanish(now);
+            const { month } = this.getPanamaNowParts();
+            const monthName = this.getMonthNameSpanish(month - 1);
             const title = `Tardanzas - Día ${dayNum} ${monthName}`;
 
             this.lateDialogTitle.set(title);
@@ -4356,11 +4365,11 @@ export class HomeComponent {
     // Removed the activeSection check so it always calculates
     // This allows getMonthlyLates() to work even if the section isn't active yet
 
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const daysSoFar = now.getDate();
+    // Fecha actual en Panamá (para que el gráfico sea estable ante timezone del dispositivo)
+    const { year, month, day } = this.getPanamaNowParts();
+    const monthIndex = month - 1; // 0-11
+    const daysInMonth = this.getDaysInMonth(year, month);
+    const daysSoFar = day;
 
     // Labels: 1 .. daysInMonth (gráfico del 1 al día actual; los futuros van en 0)
     const labels = Array.from({ length: daysSoFar }, (_, i) => `${i + 1}`);
@@ -4434,16 +4443,23 @@ export class HomeComponent {
         }
 
         const entryTime = new Date(log.created_at);
-        // Verificar que la entrada esté en el mes actual (sin filtrar por día específico)
-        const entryMonth = entryTime.getMonth();
-        const entryYear = entryTime.getFullYear();
-        const entryDay = entryTime.getDate();
+        // Mes/año/día de la marcación en Panamá
+        const entryYear = parseInt(
+          formatInTimeZone(entryTime, this.TIMEZONE, 'yyyy'),
+          10
+        );
+        const entryMonthIndex =
+          parseInt(formatInTimeZone(entryTime, this.TIMEZONE, 'MM'), 10) - 1;
 
-        if (entryMonth !== month || entryYear !== year) {
+        if (entryMonthIndex !== monthIndex || entryYear !== year) {
           continue; // Skip entries outside current month
         }
-
-        const dayKey = `${log.employee_id}_${format(entryTime, 'yyyy-MM-dd')}`;
+        const entryDayStr = formatInTimeZone(
+          entryTime,
+          this.TIMEZONE,
+          'yyyy-MM-dd'
+        );
+        const dayKey = `${log.employee_id}_${entryDayStr}`;
         if (!entriesByEmployeeDay.has(dayKey)) {
           entriesByEmployeeDay.set(dayKey, {
             employee_id: log.employee_id,
@@ -4451,7 +4467,7 @@ export class HomeComponent {
               log.employee?.father_name ?? ''
             }`.trim(),
             entry_time: entryTime,
-            day: format(entryTime, 'yyyy-MM-dd'),
+            day: entryDayStr,
           });
         }
       }
@@ -4489,7 +4505,11 @@ export class HomeComponent {
         // entry_time puede venir como string "HH:mm:ss" o como Date object
         let scheduledEntry: string;
         if (schedule.schedule.entry_time instanceof Date) {
-          scheduledEntry = format(schedule.schedule.entry_time, 'HH:mm:ss');
+          scheduledEntry = formatInTimeZone(
+            schedule.schedule.entry_time,
+            this.TIMEZONE,
+            'HH:mm:ss'
+          );
         } else if (typeof schedule.schedule.entry_time === 'string') {
           // Asegurar formato HH:mm:ss (agregar segundos si faltan)
           const parts = schedule.schedule.entry_time.split(':');
@@ -4502,7 +4522,11 @@ export class HomeComponent {
         } else {
           continue; // Skip si no hay entry_time válido
         }
-        const actualEntry = format(entry.entry_time, 'HH:mm:ss'); // Formato 24h para comparar con scheduledEntry
+        const actualEntry = formatInTimeZone(
+          entry.entry_time,
+          this.TIMEZONE,
+          'HH:mm:ss'
+        ); // Formato 24h para comparar con scheduledEntry
         const minutesLate = this.calcTimeDiff(actualEntry, scheduledEntry);
         const tolerance = schedule.schedule.minutes_tolerance ?? 0;
 
@@ -4532,7 +4556,7 @@ export class HomeComponent {
     const customDetails: any[] = [];
 
     for (let d = 1; d <= daysSoFar; d++) {
-      const dateKey = format(new Date(year, month, d), 'yyyy-MM-dd');
+      const dateKey = `${year}-${this.pad2(month)}-${this.pad2(d)}`;
       const count = totalsByDate.get(dateKey) ?? 0;
       const names = namesByDate.get(dateKey) ?? [];
       const details = detailsByDate.get(dateKey) ?? [];
@@ -4553,8 +4577,10 @@ export class HomeComponent {
           fill: true,
           tension: 0.4,
           borderWidth: 3,
-          pointRadius: 0,
-          pointHoverRadius: 6,
+          // Puntos solo donde hay tardanzas (más fácil de hoverear sin ensuciar el gráfico)
+          pointRadius: (ctx: any) => ((ctx?.parsed?.y ?? 0) > 0 ? 3 : 0),
+          pointHoverRadius: (ctx: any) => ((ctx?.parsed?.y ?? 0) > 0 ? 8 : 0),
+          pointHitRadius: (ctx: any) => ((ctx?.parsed?.y ?? 0) > 0 ? 12 : 0),
           pointBackgroundColor: '#FCD34D',
           pointBorderColor: '#fff',
           pointBorderWidth: 2,
@@ -5132,9 +5158,9 @@ export class HomeComponent {
 
     if (timelogs.length > 0 && schedules.length > 0) {
       let lateCount = 0;
-      const timelogsNow = new Date();
-      const timelogsCurrentMonth = timelogsNow.getMonth();
-      const timelogsCurrentYear = timelogsNow.getFullYear();
+      const { year, month } = this.getPanamaNowParts();
+      const timelogsCurrentMonthIndex = month - 1;
+      const timelogsCurrentYear = year;
 
       // Group timelogs by employee and day (first entry of the day)
       const entriesByEmployeeDay = new Map<string, any>();
@@ -5146,17 +5172,26 @@ export class HomeComponent {
         }
 
         const entryTime = new Date(log.created_at);
-        const logMonth = entryTime.getMonth();
-        const logYear = entryTime.getFullYear();
+        const logYear = parseInt(
+          formatInTimeZone(entryTime, this.TIMEZONE, 'yyyy'),
+          10
+        );
+        const logMonthIndex =
+          parseInt(formatInTimeZone(entryTime, this.TIMEZONE, 'MM'), 10) - 1;
 
         if (
-          logMonth !== timelogsCurrentMonth ||
+          logMonthIndex !== timelogsCurrentMonthIndex ||
           logYear !== timelogsCurrentYear
         ) {
           continue; // Skip dates outside current month
         }
 
-        const dayKey = `${log.employee_id}_${format(entryTime, 'yyyy-MM-dd')}`;
+        const entryDayStr = formatInTimeZone(
+          entryTime,
+          this.TIMEZONE,
+          'yyyy-MM-dd'
+        );
+        const dayKey = `${log.employee_id}_${entryDayStr}`;
 
         // Keep only the first entry of the day
         if (!entriesByEmployeeDay.has(dayKey)) {
@@ -5166,7 +5201,7 @@ export class HomeComponent {
               log.employee?.father_name ?? ''
             }`.trim(),
             entry_time: entryTime,
-            day: format(entryTime, 'yyyy-MM-dd'),
+            day: entryDayStr,
           });
         }
       }
@@ -5207,7 +5242,11 @@ export class HomeComponent {
         // entry_time puede venir como string "HH:mm:ss" o como Date object
         let scheduledEntry: string;
         if (schedule.schedule.entry_time instanceof Date) {
-          scheduledEntry = format(schedule.schedule.entry_time, 'HH:mm:ss');
+          scheduledEntry = formatInTimeZone(
+            schedule.schedule.entry_time,
+            this.TIMEZONE,
+            'HH:mm:ss'
+          );
         } else if (typeof schedule.schedule.entry_time === 'string') {
           // Asegurar formato HH:mm:ss (agregar segundos si faltan)
           const parts = schedule.schedule.entry_time.split(':');
@@ -5220,7 +5259,11 @@ export class HomeComponent {
         } else {
           continue; // Skip si no hay entry_time válido
         }
-        const actualEntry = format(entry.entry_time, 'HH:mm:ss'); // Formato 24h para comparar con scheduledEntry
+        const actualEntry = formatInTimeZone(
+          entry.entry_time,
+          this.TIMEZONE,
+          'HH:mm:ss'
+        ); // Formato 24h para comparar con scheduledEntry
         const minutesLate = this.calcTimeDiff(actualEntry, scheduledEntry);
         const tolerance = schedule.schedule.minutes_tolerance ?? 0;
 
@@ -5472,8 +5515,8 @@ export class HomeComponent {
   public selectedMonthLabel = signal<string>('');
   public selectedMonthIndex = signal<number>(-1);
 
-  // Helper to get month name in Spanish
-  private getMonthNameSpanish(date: Date): string {
+  // Helper to get month name in Spanish (mes 0-11)
+  private getMonthNameSpanish(monthIndex: number): string {
     const months = [
       'Ene',
       'Feb',
@@ -5488,7 +5531,7 @@ export class HomeComponent {
       'Nov',
       'Dic',
     ];
-    return months[date.getMonth()];
+    return months[monthIndex] ?? '';
   }
 
   public onLatesChartClick(evt: any) {
@@ -5523,9 +5566,9 @@ export class HomeComponent {
     });
 
     // Format title: "Día 1 Nov"
-    const now = new Date();
     const dayNum = idx + 1;
-    const monthName = this.getMonthNameSpanish(now);
+    const { month } = this.getPanamaNowParts();
+    const monthName = this.getMonthNameSpanish(month - 1);
     const title = `Tardanzas - Día ${dayNum} ${monthName}`;
 
     this.lateDialogTitle.set(title);
