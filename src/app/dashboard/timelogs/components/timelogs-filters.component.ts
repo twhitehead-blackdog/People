@@ -1,12 +1,20 @@
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, Signal, WritableSignal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+  Signal,
+  WritableSignal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
 import { DatePicker } from 'primeng/datepicker';
+import { InputNumber } from 'primeng/inputnumber';
 import { InputText } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
 import { ToggleSwitch } from 'primeng/toggleswitch';
-import { InputNumber } from 'primeng/inputnumber';
 import { TooltipModule } from 'primeng/tooltip';
 import { Employee } from '../../../models';
 
@@ -60,7 +68,9 @@ import { Employee } from '../../../models';
       </div>
     </div>
 
-    <div class="mb-4 bg-neutral-800/50 rounded-lg border border-neutral-700/50 overflow-hidden">
+    <div
+      class="mb-4 bg-neutral-800/50 rounded-lg border border-neutral-700/50 overflow-hidden"
+    >
       <button
         type="button"
         (click)="toggleFilters()"
@@ -84,11 +94,16 @@ import { Employee } from '../../../models';
         ></i>
       </button>
 
-      <div *ngIf="filtersExpanded()" class="px-3 pb-3 border-t border-neutral-700/50 pt-3">
+      <div
+        *ngIf="filtersExpanded()"
+        class="px-3 pb-3 border-t border-neutral-700/50 pt-3"
+      >
         <div class="flex flex-wrap items-end gap-3">
           <div class="flex-1 min-w-[140px] flex flex-col gap-4">
             <div>
-              <label class="block text-xs font-medium text-gray-300 mb-1 text-center">
+              <label
+                class="block text-xs font-medium text-gray-300 mb-1 text-center"
+              >
                 <i class="pi pi-user mr-1 text-xs"></i>Empleado
               </label>
               <p-select
@@ -106,7 +121,9 @@ import { Employee } from '../../../models';
               />
             </div>
             <div>
-              <label class="block text-xs font-medium text-gray-300 mb-1 text-center">
+              <label
+                class="block text-xs font-medium text-gray-300 mb-1 text-center"
+              >
                 <i class="pi pi-building mr-1 text-xs"></i>Sucursal
               </label>
               <p-select
@@ -125,7 +142,9 @@ import { Employee } from '../../../models';
           </div>
 
           <div class="flex-1 min-w-[200px]">
-            <label class="block text-xs font-medium text-gray-300 mb-1 text-center">
+            <label
+              class="block text-xs font-medium text-gray-300 mb-1 text-center"
+            >
               <i class="pi pi-exclamation-triangle mr-1 text-xs"></i>Alertas
             </label>
             <div class="grid grid-cols-2 gap-x-3 gap-y-1">
@@ -149,7 +168,9 @@ import { Employee } from '../../../models';
                   (ngModelChange)="onlyErrors.set($event)"
                   [style]="{ transform: 'scale(0.85)' }"
                 />
-                <label for="errors" class="text-xs text-gray-300 cursor-pointer whitespace-nowrap"
+                <label
+                  for="errors"
+                  class="text-xs text-gray-300 cursor-pointer whitespace-nowrap"
                   >Errores</label
                 >
               </div>
@@ -232,7 +253,9 @@ import { Employee } from '../../../models';
           </div>
 
           <div class="flex-1 min-w-[140px] flex flex-col gap-2">
-            <label class="block text-xs font-medium text-gray-300 mb-1 text-center">
+            <label
+              class="block text-xs font-medium text-gray-300 mb-1 text-center"
+            >
               <i class="pi pi-clock mr-1 text-xs"></i>Tolerancia
             </label>
             <p-inputNumber
