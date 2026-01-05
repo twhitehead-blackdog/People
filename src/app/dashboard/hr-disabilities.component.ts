@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { HttpClient, httpResource } from '@angular/common/http';
+import { HttpClient, HttpParams, httpResource } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -3547,16 +3547,19 @@ export class HRDisabilitiesComponent {
       console.log(`[DEBUG] Loading overtime for employee ${employeeId}, range: ${startDayStr} to ${endDayStr}`);
 
       // Traer marcaciones históricas por created_at (la tabla no tiene columna 'day')
+      const timelogParams = new HttpParams()
+        .set('select', 'type,created_at,employee_id,company_id')
+        .set('employee_id', `eq.${employeeId}`)
+        .set('company_id', `eq.${companyId}`)
+        .set('created_at', `gte.${startTimestamp}`)
+        .append('created_at', `lte.${endTimestamp}`)
+        .set('order', 'created_at.asc');
+
       const timelogs = await firstValueFrom(
-        this.http.get<any[]>(`${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`, {
-          params: {
-            select: 'type,created_at,employee_id,company_id',
-            employee_id: `eq.${employeeId}`,
-            company_id: `eq.${companyId}`,
-            created_at: `gte.${startTimestamp},lte.${endTimestamp}`,
-            order: 'created_at.asc',
-          },
-        })
+        this.http.get<any[]>(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`,
+          { params: timelogParams }
+        )
       );
 
       console.log(`[DEBUG] Found ${timelogs.length} timelogs for employee ${employeeId}`);
@@ -3567,17 +3570,17 @@ export class HRDisabilitiesComponent {
       }
 
       // Consumido (auditable) dentro del mismo rango
+      const consumptionParams = new HttpParams()
+        .set('select', 'overtime_day,hours_used')
+        .set('employee_id', `eq.${employeeId}`)
+        .set('company_id', `eq.${companyId}`)
+        .set('overtime_day', `gte.${startDayStr}`)
+        .append('overtime_day', `lte.${endDayStr}`);
+
       const consumptions = await firstValueFrom(
         this.http.get<any[]>(
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/overtime_consumptions`,
-          {
-            params: {
-              select: 'overtime_day,hours_used',
-              employee_id: `eq.${employeeId}`,
-              company_id: `eq.${companyId}`,
-              overtime_day: `gte.${startDayStr},lte.${endDayStr}`,
-            },
-          }
+          { params: consumptionParams }
         )
       );
 
