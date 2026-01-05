@@ -233,6 +233,36 @@ import { OrganizationService } from '../services/organization.service';
                 </div>
               </div>
             </div>
+            <div
+              class="kpi-card kpi-card-clickable top-lates-card"
+              pTooltip="Muestra el top de empleados con más tardanzas en el mes actual. Haz clic para ver la lista completa ordenada por número de tardanzas."
+              tooltipPosition="top"
+              (click)="openTopLatesDialog()"
+            >
+              <div class="kpi-icon">
+                <i class="pi pi-exclamation-triangle"></i>
+              </div>
+              <div class="kpi-content">
+                <div class="kpi-label">Top Tardanzas</div>
+                <div class="kpi-value">{{ getTopLatesCount() }}</div>
+                <div class="kpi-sublabel">{{ getTopLatesEmployeeName() }}</div>
+              </div>
+            </div>
+            <div
+              class="kpi-card kpi-card-clickable top-absences-card"
+              pTooltip="Muestra el top de empleados con más ausencias en el mes actual. Haz clic para ver la lista completa ordenada por número de ausencias."
+              tooltipPosition="top"
+              (click)="openTopAbsencesDialog()"
+            >
+              <div class="kpi-icon">
+                <i class="pi pi-ban"></i>
+              </div>
+              <div class="kpi-content">
+                <div class="kpi-label">Top Ausencias</div>
+                <div class="kpi-value">{{ getTopAbsencesCount() }}</div>
+                <div class="kpi-sublabel">{{ getTopAbsencesEmployeeName() }}</div>
+              </div>
+            </div>
             <!-- Segunda fila: Movimientos del personal -->
             <div
               class="kpi-card hires-exits-vs-card kpi-card-clickable"
@@ -771,6 +801,61 @@ import { OrganizationService } from '../services/organization.service';
                   </li>
                 </ul>
               </div>
+            </div>
+          </p-dialog>
+          <!-- Dialog for top lates -->
+          <p-dialog
+            [visible]="topLatesDialogVisible()"
+            (visibleChange)="topLatesDialogVisible.set($event)"
+            [modal]="true"
+            [closable]="true"
+            [draggable]="false"
+            [resizable]="false"
+            [dismissableMask]="true"
+            [style]="{ width: '600px' }"
+            header="Top de Empleados con Más Tardanzas"
+            styleClass="late-details-dialog top-lates-dialog"
+          >
+            <div
+              class="flex flex-col gap-0"
+              style="padding: 1.5rem 2rem; min-height: 100px;"
+            >
+              <div
+                class="text-sm text-gray-300 text-center py-4"
+                *ngIf="topLatesList().length === 0"
+              >
+                No hay tardanzas registradas este mes.
+              </div>
+              <ul *ngIf="topLatesList().length > 0" class="top-lates-list">
+                <li
+                  class="top-lates-list-item"
+                  *ngFor="let item of topLatesList(); let i = index"
+                >
+                  <div class="top-lates-item-content">
+                    <div
+                      class="top-lates-rank"
+                      [class.rank-1]="i === 0"
+                      [class.rank-2]="i === 1"
+                      [class.rank-3]="i === 2"
+                    >
+                      {{ i + 1 }}
+                    </div>
+                    <div class="top-lates-details">
+                      <div class="top-lates-name-row">
+                        <span class="top-lates-name">{{ item.employee_name }}</span>
+                      </div>
+                      <div class="top-lates-info-row">
+                        <span class="top-lates-count">{{ item.count }} tardanza{{ item.count > 1 ? 's' : '' }}</span>
+                      </div>
+                    </div>
+                    <div class="top-lates-right-section">
+                      <div class="top-lates-badge" [class.badge-high]="item.count >= 5" [class.badge-medium]="item.count >= 3 && item.count < 5">
+                        {{ item.count }}
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              </ul>
             </div>
           </p-dialog>
           <!-- Dialog for month-specific hires and exits details -->
@@ -3604,6 +3689,406 @@ import { OrganizationService } from '../services/organization.service';
       background: linear-gradient(180deg, #fbbf24, #f59e0b);
     }
 
+    /* Top Lates Dialog Styles */
+    .top-lates-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    .top-lates-list-item {
+      background: transparent;
+      border: none;
+      padding: 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.2s ease;
+    }
+
+    .top-lates-list-item:first-child .top-lates-item-content {
+      padding-top: 0;
+    }
+
+    .top-lates-list-item:last-child {
+      border-bottom: none;
+    }
+
+    .top-lates-list-item:hover {
+      background: rgba(251, 191, 36, 0.05);
+    }
+
+    .top-lates-item-content {
+      display: flex;
+      gap: 0.875rem;
+      align-items: center;
+      padding: 0.875rem 0;
+    }
+
+    .top-lates-rank {
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 1rem;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .top-lates-rank.rank-1 {
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.3), rgba(245, 158, 11, 0.2));
+      border-color: rgba(251, 191, 36, 0.6);
+      color: #fbbf24;
+      font-size: 1.125rem;
+    }
+
+    .top-lates-rank.rank-2 {
+      background: linear-gradient(135deg, rgba(156, 163, 175, 0.3), rgba(107, 114, 128, 0.2));
+      border-color: rgba(156, 163, 175, 0.6);
+      color: #9ca3af;
+    }
+
+    .top-lates-rank.rank-3 {
+      background: linear-gradient(135deg, rgba(180, 83, 9, 0.3), rgba(154, 52, 18, 0.2));
+      border-color: rgba(180, 83, 9, 0.6);
+      color: #b45309;
+    }
+
+    .top-lates-details {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      min-width: 0;
+    }
+
+    .top-lates-name-row {
+      display: flex;
+      align-items: center;
+    }
+
+    .top-lates-name {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #ffffff;
+    }
+
+    .top-lates-info-row {
+      display: flex;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      color: #9ca3af;
+    }
+
+    .top-lates-count {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .top-lates-right-section {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.375rem;
+    }
+
+    .top-lates-badge {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #fbbf24;
+      line-height: 1;
+      font-family: 'Segoe UI', sans-serif;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.375rem;
+      background: rgba(251, 191, 36, 0.1);
+      border: 1px solid rgba(251, 191, 36, 0.3);
+    }
+
+    .top-lates-badge.badge-medium {
+      color: #f59e0b;
+      background: rgba(245, 158, 11, 0.15);
+      border-color: rgba(245, 158, 11, 0.4);
+    }
+
+    .top-lates-badge.badge-high {
+      color: #ef4444;
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.4);
+    }
+
+    .top-lates-dialog ul {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(251, 191, 36, 0.4) rgba(255, 255, 255, 0.05);
+    }
+
+    .top-lates-dialog ul::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    .top-lates-dialog ul::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      margin: 4px 0;
+    }
+
+    .top-lates-dialog ul::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, rgba(251, 191, 36, 0.6), rgba(245, 158, 11, 0.4));
+      border-radius: 10px;
+      border: 2px solid rgba(24, 24, 27, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    .top-lates-dialog ul::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(180deg, rgba(251, 191, 36, 0.8), rgba(245, 158, 11, 0.6));
+      box-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+    }
+
+    .top-lates-dialog ul::-webkit-scrollbar-thumb:active {
+      background: linear-gradient(180deg, #fbbf24, #f59e0b);
+    }
+
+    /* Top Absences Card */
+    .top-absences-card {
+      background: #18181b;
+      backdrop-filter: blur(10px);
+      border: 2px solid rgba(168, 85, 247, 0.3);
+      border-radius: 0.75rem;
+      padding: 0.75rem;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(168, 85, 247, 0.1);
+      display: flex;
+      gap: 0.75rem;
+      transition: all 0.3s ease;
+      animation: cardEntrance 0.25s ease-out;
+      min-height: fit-content;
+      position: relative;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .top-absences-card:hover {
+      transform: translateY(-2px);
+      border-color: rgba(168, 85, 247, 0.5);
+      box-shadow: 0 15px 50px rgba(0, 0, 0, 0.6), 0 0 30px rgba(168, 85, 247, 0.2);
+    }
+
+    .top-absences-card .kpi-icon {
+      font-size: 1.75rem;
+      color: #a855f7;
+      min-width: 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .top-absences-card .kpi-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      min-width: 0;
+    }
+
+    .top-absences-card .kpi-label {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.8);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .top-absences-card .kpi-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #a855f7;
+      line-height: 1.2;
+    }
+
+    .top-absences-card .kpi-sublabel {
+      font-size: 0.625rem;
+      color: rgba(255, 255, 255, 0.6);
+      margin-top: 0.125rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* Top Absences Dialog Styles */
+    .top-absences-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    .top-absences-list-item {
+      background: transparent;
+      border: none;
+      padding: 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.2s ease;
+    }
+
+    .top-absences-list-item:first-child .top-absences-item-content {
+      padding-top: 0;
+    }
+
+    .top-absences-list-item:last-child {
+      border-bottom: none;
+    }
+
+    .top-absences-list-item:hover {
+      background: rgba(168, 85, 247, 0.05);
+    }
+
+    .top-absences-item-content {
+      display: flex;
+      gap: 0.875rem;
+      align-items: center;
+      padding: 0.875rem 0;
+    }
+
+    .top-absences-rank {
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 1rem;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.1);
+      color: #ffffff;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .top-absences-rank.rank-1 {
+      background: linear-gradient(135deg, rgba(168, 85, 247, 0.3), rgba(147, 51, 234, 0.2));
+      border-color: rgba(168, 85, 247, 0.6);
+      color: #a855f7;
+      font-size: 1.125rem;
+    }
+
+    .top-absences-rank.rank-2 {
+      background: linear-gradient(135deg, rgba(156, 163, 175, 0.3), rgba(107, 114, 128, 0.2));
+      border-color: rgba(156, 163, 175, 0.6);
+      color: #9ca3af;
+    }
+
+    .top-absences-rank.rank-3 {
+      background: linear-gradient(135deg, rgba(124, 58, 237, 0.3), rgba(109, 40, 217, 0.2));
+      border-color: rgba(124, 58, 237, 0.6);
+      color: #7c3aed;
+    }
+
+    .top-absences-details {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      min-width: 0;
+    }
+
+    .top-absences-name-row {
+      display: flex;
+      align-items: center;
+    }
+
+    .top-absences-name {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #ffffff;
+    }
+
+    .top-absences-info-row {
+      display: flex;
+      gap: 0.5rem;
+      font-size: 0.75rem;
+      color: #9ca3af;
+    }
+
+    .top-absences-count {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .top-absences-right-section {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.375rem;
+    }
+
+    .top-absences-badge {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #a855f7;
+      line-height: 1;
+      font-family: 'Segoe UI', sans-serif;
+      padding: 0.25rem 0.5rem;
+      border-radius: 0.375rem;
+      background: rgba(168, 85, 247, 0.1);
+      border: 1px solid rgba(168, 85, 247, 0.3);
+    }
+
+    .top-absences-badge.badge-medium {
+      color: #9333ea;
+      background: rgba(147, 51, 234, 0.15);
+      border-color: rgba(147, 51, 234, 0.4);
+    }
+
+    .top-absences-badge.badge-high {
+      color: #ef4444;
+      background: rgba(239, 68, 68, 0.15);
+      border-color: rgba(239, 68, 68, 0.4);
+    }
+
+    .top-absences-dialog ul {
+      scrollbar-width: thin;
+      scrollbar-color: rgba(168, 85, 247, 0.4) rgba(255, 255, 255, 0.05);
+    }
+
+    .top-absences-dialog ul::-webkit-scrollbar {
+      width: 10px;
+    }
+
+    .top-absences-dialog ul::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      margin: 4px 0;
+    }
+
+    .top-absences-dialog ul::-webkit-scrollbar-thumb {
+      background: linear-gradient(180deg, rgba(168, 85, 247, 0.6), rgba(147, 51, 234, 0.4));
+      border-radius: 10px;
+      border: 2px solid rgba(24, 24, 27, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    .top-absences-dialog ul::-webkit-scrollbar-thumb:hover {
+      background: linear-gradient(180deg, rgba(168, 85, 247, 0.8), rgba(147, 51, 234, 0.6));
+      box-shadow: 0 0 10px rgba(168, 85, 247, 0.3);
+    }
+
+    .top-absences-dialog ul::-webkit-scrollbar-thumb:active {
+      background: linear-gradient(180deg, #a855f7, #9333ea);
+    }
+
     /* Lates Dialog Styles */
     .lates-list-item {
       background: transparent;
@@ -5510,6 +5995,283 @@ export class HomeComponent {
     return 0;
   }
 
+  // Calculate top employees with most lates
+  public topLatesList = computed(() => {
+    const timelogs = this.latesFromTimelogs.value() ?? [];
+    const schedules = this.employeeSchedules.value() ?? [];
+    
+    if (timelogs.length === 0 || schedules.length === 0) {
+      return [];
+    }
+
+    const { year, month } = this.getPanamaNowParts();
+    const currentMonthIndex = month - 1;
+    const currentYear = year;
+
+    // Group timelogs by employee and day (first entry of the day)
+    const entriesByEmployeeDay = new Map<string, any>();
+
+    for (const log of timelogs) {
+      if (log.type !== 'entry') {
+        continue;
+      }
+
+      const entryTime = new Date(log.created_at);
+      const logYear = parseInt(
+        formatInTimeZone(entryTime, this.TIMEZONE, 'yyyy'),
+        10
+      );
+      const logMonthIndex =
+        parseInt(formatInTimeZone(entryTime, this.TIMEZONE, 'MM'), 10) - 1;
+
+      if (
+        logMonthIndex !== currentMonthIndex ||
+        logYear !== currentYear
+      ) {
+        continue;
+      }
+
+      const entryDayStr = formatInTimeZone(
+        entryTime,
+        this.TIMEZONE,
+        'yyyy-MM-dd'
+      );
+      const dayKey = `${log.employee_id}_${entryDayStr}`;
+
+      if (!entriesByEmployeeDay.has(dayKey)) {
+        entriesByEmployeeDay.set(dayKey, {
+          employee_id: log.employee_id,
+          employee_name: `${log.employee?.first_name ?? ''} ${
+            log.employee?.father_name ?? ''
+          }`.trim(),
+          entry_time: entryTime,
+          day: entryDayStr,
+        });
+      }
+    }
+
+    // Count lates per employee
+    const latesByEmployee = new Map<string, { employee_name: string; count: number }>();
+
+    for (const [_, entry] of entriesByEmployeeDay) {
+      const schedule = schedules.find(
+        (s: any) =>
+          s.employee_id === entry.employee_id &&
+          s.start_date <= entry.day &&
+          s.end_date >= entry.day
+      );
+
+      if (!schedule || !schedule.schedule?.entry_time) {
+        continue;
+      }
+
+      const scheduleId = schedule.schedule.id;
+      const isFeriado = scheduleId === '3d07f626-d58f-4203-bac5-f6e35557e0ad';
+      const isDiaLibre =
+        scheduleId === 'c01dff8f-ce0d-498f-a473-46418576e589';
+      if (isFeriado || isDiaLibre || schedule.schedule?.day_off) {
+        continue;
+      }
+
+      let scheduledEntry: string;
+      if (schedule.schedule.entry_time instanceof Date) {
+        scheduledEntry = formatInTimeZone(
+          schedule.schedule.entry_time,
+          this.TIMEZONE,
+          'HH:mm:ss'
+        );
+      } else if (typeof schedule.schedule.entry_time === 'string') {
+        const parts = schedule.schedule.entry_time.split(':');
+        scheduledEntry =
+          parts.length >= 2
+            ? `${parts[0].padStart(2, '0')}:${parts[1].padStart(2, '0')}:${(
+                parts[2] || '00'
+              ).padStart(2, '0')}`
+            : schedule.schedule.entry_time;
+      } else {
+        continue;
+      }
+
+      const actualEntry = formatInTimeZone(
+        entry.entry_time,
+        this.TIMEZONE,
+        'HH:mm:ss'
+      );
+      const minutesLate = this.calcTimeDiff(actualEntry, scheduledEntry);
+      const tolerance = schedule.schedule.minutes_tolerance ?? 0;
+
+      if (minutesLate > tolerance) {
+        const employeeId = entry.employee_id;
+        if (!latesByEmployee.has(employeeId)) {
+          latesByEmployee.set(employeeId, {
+            employee_name: entry.employee_name,
+            count: 0,
+          });
+        }
+        const current = latesByEmployee.get(employeeId)!;
+        current.count++;
+      }
+    }
+
+    // Convert to array and sort by count descending
+    return Array.from(latesByEmployee.values())
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 20); // Top 20
+  });
+
+  public getTopLatesCount(): number {
+    const topList = this.topLatesList();
+    return topList.length > 0 ? topList[0].count : 0;
+  }
+
+  public getTopLatesEmployeeName(): string {
+    const topList = this.topLatesList();
+    if (topList.length > 0) {
+      const name = topList[0].employee_name;
+      return name.length > 20 ? name.substring(0, 20) + '...' : name;
+    }
+    return 'Ninguno';
+  }
+
+  public openTopLatesDialog(): void {
+    this.topLatesDialogVisible.set(true);
+  }
+
+  // Calculate top employees with most absences
+  // An absence is when an employee has a schedule but no entry timelog for that day
+  public topAbsencesList = computed(() => {
+    const timelogs = this.latesFromTimelogs.value() ?? [];
+    const schedules = this.employeeSchedules.value() ?? [];
+    
+    if (schedules.length === 0) {
+      return [];
+    }
+
+    const { year, month } = this.getPanamaNowParts();
+    const currentMonthIndex = month - 1;
+    const currentYear = year;
+    const daysInMonth = this.getDaysInMonth(year, month);
+    const daysSoFar = new Date().getDate();
+
+    // Get all entry timelogs for current month grouped by employee and day
+    const entriesByEmployeeDay = new Map<string, boolean>();
+
+    for (const log of timelogs) {
+      if (log.type !== 'entry') {
+        continue;
+      }
+
+      const entryTime = new Date(log.created_at);
+      const logYear = parseInt(
+        formatInTimeZone(entryTime, this.TIMEZONE, 'yyyy'),
+        10
+      );
+      const logMonthIndex =
+        parseInt(formatInTimeZone(entryTime, this.TIMEZONE, 'MM'), 10) - 1;
+
+      if (
+        logMonthIndex !== currentMonthIndex ||
+        logYear !== currentYear
+      ) {
+        continue;
+      }
+
+      const entryDayStr = formatInTimeZone(
+        entryTime,
+        this.TIMEZONE,
+        'yyyy-MM-dd'
+      );
+      const dayKey = `${log.employee_id}_${entryDayStr}`;
+      entriesByEmployeeDay.set(dayKey, true);
+    }
+
+    // Count absences per employee
+    const absencesByEmployee = new Map<string, { employee_name: string; count: number }>();
+
+    // For each day of the month so far, check if employee had schedule but no entry
+    for (let day = 1; day <= daysSoFar; day++) {
+      const checkDate = new Date(year, currentMonthIndex, day);
+      const checkDateStr = formatInTimeZone(checkDate, this.TIMEZONE, 'yyyy-MM-dd');
+
+      // Get all employees who should have worked this day (have a schedule)
+      const employeesWithSchedule = schedules.filter((s: any) => {
+        if (s.start_date > checkDateStr || s.end_date < checkDateStr) {
+          return false;
+        }
+
+        // Exclude holidays and days off
+        const scheduleId = s.schedule?.id;
+        const isFeriado = scheduleId === '3d07f626-d58f-4203-bac5-f6e35557e0ad';
+        const isDiaLibre =
+          scheduleId === 'c01dff8f-ce0d-498f-a473-46418576e589';
+        if (isFeriado || isDiaLibre || s.schedule?.day_off) {
+          return false;
+        }
+
+        // Check if it's a work day (not Sunday by default, but could be configured)
+        const dayOfWeek = checkDate.getDay();
+        // You might want to add logic here to check if the schedule applies to this day of week
+        // For now, we'll assume schedules apply to all weekdays
+
+        return s.schedule?.entry_time != null;
+      });
+
+      // For each employee with schedule, check if they have an entry
+      for (const schedule of employeesWithSchedule) {
+        const dayKey = `${schedule.employee_id}_${checkDateStr}`;
+        const hasEntry = entriesByEmployeeDay.has(dayKey);
+
+        if (!hasEntry) {
+          // This is an absence
+          const employeeId = schedule.employee_id;
+          if (!absencesByEmployee.has(employeeId)) {
+            // Try to get employee name from schedule or from employees store
+            let employeeName = 'Empleado desconocido';
+            if (schedule.employee) {
+              employeeName = `${schedule.employee.first_name ?? ''} ${schedule.employee.father_name ?? ''}`.trim();
+            } else {
+              // Fallback: try to get from employees store
+              const employees = this.employees.entities();
+              const employee = employees.find(e => e.id === employeeId);
+              if (employee) {
+                employeeName = `${employee.first_name ?? ''} ${employee.father_name ?? ''}`.trim();
+              }
+            }
+            absencesByEmployee.set(employeeId, {
+              employee_name: employeeName,
+              count: 0,
+            });
+          }
+          const current = absencesByEmployee.get(employeeId)!;
+          current.count++;
+        }
+      }
+    }
+
+    // Convert to array and sort by count descending
+    return Array.from(absencesByEmployee.values())
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 20); // Top 20
+  });
+
+  public getTopAbsencesCount(): number {
+    const topList = this.topAbsencesList();
+    return topList.length > 0 ? topList[0].count : 0;
+  }
+
+  public getTopAbsencesEmployeeName(): string {
+    const topList = this.topAbsencesList();
+    if (topList.length > 0) {
+      const name = topList[0].employee_name;
+      return name.length > 20 ? name.substring(0, 20) + '...' : name;
+    }
+    return 'Ninguno';
+  }
+
+  public openTopAbsencesDialog(): void {
+    this.topAbsencesDialogVisible.set(true);
+  }
+
   // Helper function to calculate time difference in minutes
   // Returns positive minutes if actualTime is later than scheduledTime (person is late)
   // Returns negative minutes if actualTime is earlier than scheduledTime (person is early)
@@ -5722,6 +6484,12 @@ export class HomeComponent {
   public monthHiresExitsTab = signal<'hires' | 'exits'>('hires');
   public selectedMonthLabel = signal<string>('');
   public selectedMonthIndex = signal<number>(-1);
+
+  // Top Lates Dialog
+  public topLatesDialogVisible = signal(false);
+
+  // Top Absences Dialog
+  public topAbsencesDialogVisible = signal(false);
 
   // Helper to get month name in Spanish (mes 0-11)
   private getMonthNameSpanish(monthIndex: number): string {
