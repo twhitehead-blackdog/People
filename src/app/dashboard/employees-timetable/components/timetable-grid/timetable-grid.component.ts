@@ -67,6 +67,7 @@ type EmployeeWithDays = {
                 (delete)="onDeleteShift($event)"
                 (approve)="onApproveShift($event)"
                 (add)="onAddShift($event)"
+                (viewAudit)="onViewAudit($event)"
               />
             </td>
           }
@@ -88,6 +89,7 @@ export class TimetableGridComponent {
   public deleteShift = output<{ shift: any; date?: Date }>();
   public approveShift = output<string>();
   public addShift = output<{ employee_id: string; date: Date }>();
+  public viewAudit = output<{ employeeId: string; date: Date }>();
 
   public onEditShift(event: { shift: any; date: Date }): void {
     this.editShift.emit({ employee_schedule: event.shift, date: event.date });
@@ -103,5 +105,9 @@ export class TimetableGridComponent {
 
   public onAddShift(event: { employeeId: string; date: Date }): void {
     this.addShift.emit({ employee_id: event.employeeId, date: event.date });
+  }
+
+  public onViewAudit(event: { employeeId: string; date: Date }): void {
+    this.viewAudit.emit(event);
   }
 }

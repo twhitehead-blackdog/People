@@ -34,7 +34,7 @@ import { SchedulesFormComponent } from './schedules-form.component';
           </p>
         </div>
         <div class="flex gap-2">
-          @if(dashboardStore.canManageSchedules()) {
+          @if(dashboardStore.isAdmin()) {
           <p-button
             label="Nuevo"
             icon="pi pi-plus-circle"
@@ -142,11 +142,11 @@ export class SchedulesComponent {
 
   editSchedule(schedule?: Schedule) {
     // Verificar permisos antes de abrir el formulario
-    if (!this.dashboardStore.canManageSchedules()) {
+    if (!this.dashboardStore.isAdmin()) {
       this.message.add({
         severity: 'warn',
         summary: 'Sin permisos',
-        detail: 'Solo los administradores, gerentes de tienda, aprobadores de horarios y personal de administración pueden crear o editar horarios base.',
+        detail: 'Solo los administradores pueden crear o editar horarios base.',
       });
       return;
     }

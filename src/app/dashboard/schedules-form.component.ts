@@ -274,11 +274,11 @@ export class SchedulesFormComponent implements OnInit {
 
   saveChanges() {
     // Verificar permisos antes de guardar
-    if (!this.store.canManageSchedules()) {
+    if (!this.store.isAdmin()) {
       this.message.add({
         severity: 'error',
         summary: 'Sin permisos',
-        detail: 'Solo los administradores, gerentes de tienda, aprobadores de horarios y personal de administración pueden crear o editar horarios base.',
+        detail: 'Solo los administradores pueden crear o editar horarios base.',
       });
       return;
     }

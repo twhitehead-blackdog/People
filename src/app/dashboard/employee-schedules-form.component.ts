@@ -25,6 +25,7 @@ import {
   subDays,
 } from 'date-fns';
 import { toDate } from 'date-fns-tz';
+import { es } from 'date-fns/locale';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { DatePicker } from 'primeng/datepicker';
@@ -40,6 +41,7 @@ import {
 import { TrimPipe } from '../pipes/trim.pipe';
 import { LoggerService } from '../services/logger.service';
 import { OrganizationService } from '../services/organization.service';
+import { ScheduleAuditService } from '../services/schedule-audit.service';
 import { DashboardStore } from '../stores/dashboard.store';
 
 @Component({
@@ -84,7 +86,7 @@ import { DashboardStore } from '../stores/dashboard.store';
         <label for="schedule_id">Turno</label>
         <p-select
           inputId="schedule_id"
-          [options]="store.schedules.entities()"
+          [options]="availableSchedules()"
           optionLabel="name"
           optionValue="id"
           formControlName="schedule_id"
@@ -213,6 +215,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
   public store = inject(DashboardStore);
   private destroyRef = inject(DestroyRef);
   private logger = inject(LoggerService);
+  private auditService = inject(ScheduleAuditService);
   private originalSchedule: any = null;
   private singleDayEdit = false;
   private weekStart: Date | null = null;
@@ -223,6 +226,24 @@ export class EmployeeSchedulesFormComponent implements OnInit {
   public activeEmployeesList = computed(() =>
     this.store.employees.employeesList().filter((emp) => emp.is_active)
   );
+
+  // ID del turno "Compensatorio" - solo admins pueden seleccionarlo
+  private readonly COMPENSATORY_SCHEDULE_ID =
+    'f2d92995-96a0-414f-b64a-9823db776745';
+
+  // Filtrar turnos disponibles según permisos (ocultar Compensatorio para no-admins)
+  public availableSchedules = computed(() => {
+    const allSchedules = this.store.schedules.entities() ?? [];
+    if (this.store.isAdmin()) return allSchedules;
+
+    return allSchedules.filter((schedule: any) => {
+      const scheduleName = String(schedule?.name ?? '').toLowerCase();
+      return (
+        schedule?.id !== this.COMPENSATORY_SCHEDULE_ID &&
+        !scheduleName.includes('compensatorio')
+      );
+    });
+  });
 
   ngOnInit(): void {
     const {
@@ -448,6 +469,21 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       return;
     }
 
+    // Validar que solo admins puedan asignar turno "Compensatorio"
+    if (
+      value.schedule_id === this.COMPENSATORY_SCHEDULE_ID &&
+      !this.store.isAdmin()
+    ) {
+      this.message.add({
+        severity: 'error',
+        summary: 'Sin permisos',
+        detail:
+          'Solo los administradores pueden asignar el turno "Compensatorio".',
+      });
+      this.loading.set(false);
+      return;
+    }
+
     // Validar que la fecha de inicio sea menor o igual a la fecha de fin
     if (value.start_date && value.end_date) {
       const startDate = new Date(value.start_date);
@@ -614,11 +650,220 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     iif(() => shouldUpdate, updateRequest, createRequest)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (response) => {
+        next: async (response) => {
           this.logger.debug(
             '[EmployeeSchedulesFormComponent] Respuesta del servidor:',
             response
           );
+
+          // Registrar auditoría
+          const currentEmployeeId = this.store.currentEmployee()?.id;
+          if (!currentEmployeeId) {
+            console.warn(
+              '⚠️ No se pudo obtener el ID del empleado actual para auditoría'
+            );
+            return;
+          }
+
+          const scheduleId = Array.isArray(response)
+            ? (response[0] as any)?.id
+            : (response as any)?.id || value.id;
+
+          if (!scheduleId) {
+            console.error(
+              '❌ No se pudo obtener el ID del horario para auditoría:',
+              {
+                response,
+                valueId: value.id,
+                shouldUpdate,
+              }
+            );
+            return;
+          }
+
+          console.log('📝 Registrando auditoría:', {
+            action: shouldUpdate ? 'updated' : 'created',
+            scheduleId,
+            employeeId: value.employee_id,
+            currentEmployeeId,
+          });
+
+          try {
+            if (shouldUpdate) {
+              // Actualización
+              const oldSchedule = this.store.schedules
+                .entities()
+                .find((s) => s.id === this.originalSchedule?.schedule_id);
+              const newSchedule = this.store.schedules
+                .entities()
+                .find((s) => s.id === value.schedule_id);
+              const employee = this.store.employees
+                .entities()
+                .find((e) => e.id === value.employee_id);
+              const oldBranch = this.store.branches
+                .entities()
+                .find((b) => b.id === this.originalSchedule?.branch_id);
+              const newBranch = this.store.branches
+                .entities()
+                .find((b) => b.id === value.branch_id);
+
+              const oldStartFormatted = this.originalSchedule?.start_date
+                ? format(
+                    toDate(this.originalSchedule.start_date, {
+                      timeZone: 'America/Panama',
+                    }),
+                    'dd/MM/yyyy'
+                  )
+                : '';
+              const oldEndFormatted = this.originalSchedule?.end_date
+                ? format(
+                    toDate(this.originalSchedule.end_date, {
+                      timeZone: 'America/Panama',
+                    }),
+                    'dd/MM/yyyy'
+                  )
+                : '';
+              const newStartFormatted = value.start_date
+                ? format(new Date(value.start_date), 'dd/MM/yyyy')
+                : '';
+              const newEndFormatted = value.end_date
+                ? format(new Date(value.end_date), 'dd/MM/yyyy')
+                : '';
+
+              await this.auditService.logChange({
+                employeeScheduleId: scheduleId,
+                changedBy: currentEmployeeId,
+                action: 'updated',
+                oldStatus: this.originalSchedule?.approved,
+                newStatus: value.approved,
+                oldValue: this.originalSchedule
+                  ? {
+                      employee_id: this.originalSchedule.employee_id,
+                      employee_name: employee
+                        ? `${employee.first_name} ${employee.father_name}`
+                        : 'Desconocido',
+                      schedule_id: this.originalSchedule.schedule_id,
+                      schedule_name: oldSchedule?.name || 'Desconocido',
+                      branch_id: this.originalSchedule.branch_id,
+                      branch_name: oldBranch?.name || 'Desconocido',
+                      start_date: this.originalSchedule.start_date,
+                      end_date: this.originalSchedule.end_date,
+                      start_date_formatted: oldStartFormatted,
+                      end_date_formatted: oldEndFormatted,
+                      approved: this.originalSchedule.approved,
+                    }
+                  : null,
+                newValue: {
+                  employee_id: value.employee_id,
+                  employee_name: employee
+                    ? `${employee.first_name} ${employee.father_name}`
+                    : 'Desconocido',
+                  schedule_id: value.schedule_id,
+                  schedule_name: newSchedule?.name || 'Desconocido',
+                  branch_id: value.branch_id,
+                  branch_name: newBranch?.name || 'Desconocido',
+                  start_date: value.start_date,
+                  end_date: value.end_date,
+                  start_date_formatted: newStartFormatted,
+                  end_date_formatted: newEndFormatted,
+                  approved: value.approved,
+                },
+                comment: this.singleDayEdit
+                  ? `Horario "${
+                      oldSchedule?.name || 'Desconocido'
+                    }" dividido (día específico modificado) para ${
+                      employee
+                        ? `${employee.first_name} ${employee.father_name}`
+                        : 'empleado'
+                    }`
+                  : `Horario "${
+                      oldSchedule?.name || 'Desconocido'
+                    }" actualizado para ${
+                      employee
+                        ? `${employee.first_name} ${employee.father_name}`
+                        : 'empleado'
+                    }: ${oldStartFormatted} - ${oldEndFormatted} → ${newStartFormatted} - ${newEndFormatted}${
+                      oldSchedule?.name !== newSchedule?.name
+                        ? ` (turno cambiado a "${
+                            newSchedule?.name || 'Desconocido'
+                          }")`
+                        : ''
+                    }${
+                      oldBranch?.name !== newBranch?.name
+                        ? ` (sucursal cambiada de ${
+                            oldBranch?.name || 'Desconocido'
+                          } a ${newBranch?.name || 'Desconocido'})`
+                        : ''
+                    }`,
+              });
+            } else {
+              // Creación
+              const schedule = this.store.schedules
+                .entities()
+                .find((s) => s.id === value.schedule_id);
+              const employee = this.store.employees
+                .entities()
+                .find((e) => e.id === value.employee_id);
+              const branch = this.store.branches
+                .entities()
+                .find((b) => b.id === value.branch_id);
+
+              const startDate = value.start_date
+                ? format(new Date(value.start_date), 'dd/MM/yyyy')
+                : '';
+              const endDate = value.end_date
+                ? format(new Date(value.end_date), 'dd/MM/yyyy')
+                : '';
+              const isSingleDay = startDate === endDate;
+
+              await this.auditService.logChange({
+                employeeScheduleId: scheduleId,
+                changedBy: currentEmployeeId,
+                action: 'created',
+                oldStatus: false,
+                newStatus: value.approved,
+                newValue: {
+                  employee_id: value.employee_id,
+                  employee_name: employee
+                    ? `${employee.first_name} ${employee.father_name}`
+                    : 'Desconocido',
+                  schedule_id: value.schedule_id,
+                  schedule_name: schedule?.name || 'Desconocido',
+                  branch_id: value.branch_id,
+                  branch_name: branch?.name || 'Desconocido',
+                  start_date: value.start_date,
+                  end_date: value.end_date,
+                  start_date_formatted: startDate,
+                  end_date_formatted: endDate,
+                  is_single_day: isSingleDay,
+                  approved: value.approved,
+                },
+                comment: isSingleDay
+                  ? `Horario "${schedule?.name || 'Desconocido'}" creado para ${
+                      employee
+                        ? `${employee.first_name} ${employee.father_name}`
+                        : 'empleado'
+                    } el día ${startDate}${
+                      branch ? ` en sucursal ${branch.name}` : ''
+                    }`
+                  : `Horario "${schedule?.name || 'Desconocido'}" creado para ${
+                      employee
+                        ? `${employee.first_name} ${employee.father_name}`
+                        : 'empleado'
+                    } del ${startDate} al ${endDate}${
+                      branch ? ` en sucursal ${branch.name}` : ''
+                    }`,
+              });
+            }
+          } catch (auditError) {
+            console.error('❌ Error al registrar auditoría:', auditError);
+            // No interrumpir el flujo principal si falla la auditoría
+            this.logger.error(
+              '[EmployeeSchedulesFormComponent] Error al registrar auditoría:',
+              auditError
+            );
+          }
+
           this.message.add({
             severity: 'success',
             summary: 'Cambios guardados',
@@ -697,7 +942,66 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     forkJoin(requests)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: () => {
+        next: async (responses) => {
+          // Registrar auditoría para cada horario creado
+          const currentEmployeeId = this.store.currentEmployee()?.id;
+          if (currentEmployeeId) {
+            const schedule = this.store.schedules
+              .entities()
+              .find((s) => s.id === scheduleData.schedule_id);
+            const employee = this.store.employees
+              .entities()
+              .find((e) => e.id === scheduleData.employee_id);
+            const branch = this.store.branches
+              .entities()
+              .find((b) => b.id === scheduleData.branch_id);
+
+            for (let i = 0; i < responses.length; i++) {
+              const response = responses[i];
+              const scheduleId = Array.isArray(response)
+                ? (response[0] as any)?.id
+                : (response as any)?.id;
+              if (scheduleId) {
+                const dayDate = format(weekDays[i], 'dd/MM/yyyy');
+                const dayName = format(weekDays[i], 'EEEE', { locale: es }); // Nombre del día
+
+                await this.auditService.logChange({
+                  employeeScheduleId: scheduleId,
+                  changedBy: currentEmployeeId,
+                  action: 'created',
+                  oldStatus: false,
+                  newStatus: scheduleData.approved,
+                  newValue: {
+                    employee_id: scheduleData.employee_id,
+                    employee_name: employee
+                      ? `${employee.first_name} ${employee.father_name}`
+                      : 'Desconocido',
+                    schedule_id: scheduleData.schedule_id,
+                    schedule_name: schedule?.name || 'Desconocido',
+                    branch_id: scheduleData.branch_id,
+                    branch_name: branch?.name || 'Desconocido',
+                    start_date: format(weekDays[i], 'yyyy-MM-dd'),
+                    end_date: format(weekDays[i], 'yyyy-MM-dd'),
+                    start_date_formatted: dayDate,
+                    end_date_formatted: dayDate,
+                    day_name: dayName,
+                    is_single_day: true,
+                    approved: scheduleData.approved,
+                  },
+                  comment: `Horario "${
+                    schedule?.name || 'Desconocido'
+                  }" creado para ${
+                    employee
+                      ? `${employee.first_name} ${employee.father_name}`
+                      : 'empleado'
+                  } el ${dayName} ${dayDate}${
+                    branch ? ` en sucursal ${branch.name}` : ''
+                  } (semana completa)`,
+                });
+              }
+            }
+          }
+
           this.message.add({
             severity: 'success',
             summary: 'Horarios creados',
@@ -926,7 +1230,126 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     forkJoin(requests)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: () => {
+        next: async (responses) => {
+          // Registrar auditoría para la operación de división
+          const currentEmployeeId = this.store.currentEmployee()?.id;
+          if (currentEmployeeId) {
+            const schedule = this.store.schedules
+              .entities()
+              .find(
+                (s) =>
+                  s.id ===
+                  (newScheduleData.schedule_id ||
+                    this.originalSchedule.schedule_id)
+              );
+            const employee = this.store.employees
+              .entities()
+              .find(
+                (e) =>
+                  e.id ===
+                  (newScheduleData.employee_id ||
+                    this.originalSchedule.employee_id)
+              );
+            const branch = this.store.branches
+              .entities()
+              .find((b) => b.id === finalBranchId);
+            const originalBranch = this.store.branches
+              .entities()
+              .find((b) => b.id === this.originalSchedule.branch_id);
+
+            const newStartFormatted = format(newStart, 'dd/MM/yyyy');
+            const newEndFormatted = format(newEnd, 'yyyy-MM-dd');
+            const originalStartFormatted = format(
+              toDate(this.originalSchedule.start_date, {
+                timeZone: 'America/Panama',
+              }),
+              'dd/MM/yyyy'
+            );
+            const originalEndFormatted = format(
+              toDate(this.originalSchedule.end_date, {
+                timeZone: 'America/Panama',
+              }),
+              'dd/MM/yyyy'
+            );
+            const isSingleDay = isSameDay(newStart, newEnd);
+            const dayName = isSingleDay
+              ? format(newStart, 'EEEE', { locale: es })
+              : '';
+
+            // Obtener el ID del nuevo horario creado (último response)
+            const lastResponse = Array.isArray(responses[responses.length - 1])
+              ? responses[responses.length - 1][0]
+              : responses[responses.length - 1];
+            const newScheduleId = lastResponse?.id;
+
+            // Registrar que se dividió el horario original
+            await this.auditService.logChange({
+              employeeScheduleId: this.originalSchedule.id,
+              changedBy: currentEmployeeId,
+              action: 'split',
+              oldStatus: this.originalSchedule.approved,
+              newStatus: this.originalSchedule.approved, // El estado no cambia
+              oldValue: {
+                employee_id: this.originalSchedule.employee_id,
+                employee_name: employee
+                  ? `${employee.first_name} ${employee.father_name}`
+                  : 'Desconocido',
+                schedule_id: this.originalSchedule.schedule_id,
+                schedule_name: schedule?.name || 'Desconocido',
+                branch_id: this.originalSchedule.branch_id,
+                branch_name: originalBranch?.name || 'Desconocido',
+                start_date: this.originalSchedule.start_date,
+                end_date: this.originalSchedule.end_date,
+                start_date_formatted: originalStartFormatted,
+                end_date_formatted: originalEndFormatted,
+                approved: this.originalSchedule.approved,
+              },
+              newValue: {
+                employee_id:
+                  newScheduleData.employee_id ||
+                  this.originalSchedule.employee_id,
+                employee_name: employee
+                  ? `${employee.first_name} ${employee.father_name}`
+                  : 'Desconocido',
+                schedule_id:
+                  newScheduleData.schedule_id ||
+                  this.originalSchedule.schedule_id,
+                schedule_name: schedule?.name || 'Desconocido',
+                branch_id: finalBranchId,
+                branch_name: branch?.name || 'Desconocido',
+                start_date: format(newStart, 'yyyy-MM-dd'),
+                end_date: format(newEnd, 'yyyy-MM-dd'),
+                start_date_formatted: newStartFormatted,
+                end_date_formatted: format(newEnd, 'dd/MM/yyyy'),
+                day_name: dayName,
+                is_single_day: isSingleDay,
+                new_schedule_id: newScheduleId,
+                approved:
+                  newScheduleData.approved !== undefined
+                    ? newScheduleData.approved
+                    : this.originalSchedule.approved,
+              },
+              comment: isSingleDay
+                ? `Horario "${
+                    schedule?.name || 'Desconocido'
+                  }" dividido: día específico ${dayName} ${newStartFormatted} extraído del rango ${originalStartFormatted} - ${originalEndFormatted} para ${
+                    employee
+                      ? `${employee.first_name} ${employee.father_name}`
+                      : 'empleado'
+                  }${branch ? ` en sucursal ${branch.name}` : ''}`
+                : `Horario "${
+                    schedule?.name || 'Desconocido'
+                  }" dividido: rango ${newStartFormatted} - ${format(
+                    newEnd,
+                    'dd/MM/yyyy'
+                  )} extraído del rango ${originalStartFormatted} - ${originalEndFormatted} para ${
+                    employee
+                      ? `${employee.first_name} ${employee.father_name}`
+                      : 'empleado'
+                  }${branch ? ` en sucursal ${branch.name}` : ''}`,
+            });
+          }
+
           this.message.add({
             severity: 'success',
             summary: 'Cambios guardados',

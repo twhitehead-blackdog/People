@@ -23,18 +23,26 @@ import {
   subDays,
 } from 'date-fns';
 import { toDate } from 'date-fns-tz';
+import { es } from 'date-fns/locale';
 import { ConfirmationService, MenuItem, MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
+import { Calendar } from 'primeng/calendar';
 import { Card } from 'primeng/card';
 import { Dialog } from 'primeng/dialog';
+import { DropdownModule } from 'primeng/dropdown';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { InputText } from 'primeng/inputtext';
+import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { ToggleSwitch, ToggleSwitchChangeEvent } from 'primeng/toggleswitch';
 import { catchError, EMPTY, forkJoin } from 'rxjs';
 import { v4 } from 'uuid';
 import { colorVariants, EmployeeSchedule } from '../models';
 import { OrganizationService } from '../services/organization.service';
+import {
+  ScheduleAuditLog,
+  ScheduleAuditService,
+} from '../services/schedule-audit.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { AddEmployeeToBranchDialogComponent } from './add-employee-to-branch-dialog.component';
 import { EmployeeSchedulesFormComponent } from './employee-schedules-form.component';
@@ -68,9 +76,13 @@ import {
     TableModule,
     Button,
     NgClass,
+    DatePipe,
     ToggleSwitch,
     Dialog,
     InputText,
+    SelectModule,
+    Calendar,
+    DropdownModule,
     TimetableFiltersComponent,
     TimetableHeaderComponent,
     TimetableGridComponent,
@@ -104,7 +116,9 @@ import {
           [currentBranch]="filterService.currentBranch"
           [currentPosition]="filterService.currentPosition"
         >
-          <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-2 w-full">
+          <div
+            class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-2 w-full"
+          >
             <pt-timetable-header
               [currentWeekLabel]="currentWeek()"
               [menuItems]="menuItems"
@@ -121,6 +135,17 @@ import {
               (onClick)="openAddEmployeeDialog()"
             />
             }
+            <p-button
+              icon="pi pi-history"
+              severity="info"
+              outlined
+              rounded
+              size="small"
+              pTooltip="Historial de auditoría de turnos"
+              tooltipPosition="top"
+              class="ml-2"
+              (onClick)="openAuditHistoryDialog()"
+            />
           </div>
         </pt-timetable-filters>
       </div>
@@ -134,6 +159,7 @@ import {
         (deleteShift)="deleteSchedule($event.shift, $event.date)"
         (approveShift)="approveSchedule($event)"
         (addShift)="editSchedule($event)"
+        (viewAudit)="onViewSpecificAudit($event)"
       />
     </p-card>
     <p-dialog
@@ -166,7 +192,331 @@ import {
       [selectedMonthOption]="selectedMonthOption()"
       (monthChange)="onMonthChange($event)"
       (confirm)="goToSelectedWeek()"
-    /> `,
+    />
+
+    <!-- Dialog de Historial de Auditoría de Turnos -->
+    <p-dialog
+      [visible]="showAuditHistoryDialog()"
+      (visibleChange)="showAuditHistoryDialog.set($event)"
+      [modal]="true"
+      [style]="{ width: '90vw', maxWidth: '1200px' }"
+      [header]="'Historial de Auditoría - Turnos'"
+      [draggable]="false"
+      [resizable]="false"
+      [dismissableMask]="true"
+      [closable]="true"
+      (onHide)="showAuditHistoryDialog.set(false)"
+    >
+      <div class="space-y-4 pt-4">
+        <!-- Filtros Avanzados -->
+        <div
+          class="bg-gradient-to-br from-neutral-800/80 to-neutral-800/60 rounded-lg border border-neutral-700/50 backdrop-blur-sm"
+        >
+          <div
+            class="p-2 border-b border-neutral-700/50 flex items-center justify-between cursor-pointer"
+            (click)="showAuditFilters.set(!showAuditFilters())"
+          >
+            <div class="flex items-center gap-2">
+              <i class="pi pi-filter text-cyan-400 text-sm"></i>
+              <h3 class="text-sm font-semibold text-white m-0">
+                Filtros Avanzados
+              </h3>
+              @if (hasActiveAuditFilters()) {
+              <span
+                class="px-1.5 py-0.5 bg-cyan-500/20 text-cyan-300 rounded-full text-[10px] font-bold"
+              >
+                {{ getActiveAuditFiltersCount() }} activos
+              </span>
+              }
+            </div>
+            <i
+              class="pi text-sm"
+              [class.pi-chevron-down]="!showAuditFilters()"
+              [class.pi-chevron-up]="showAuditFilters()"
+              [class.text-gray-400]="!showAuditFilters()"
+              [class.text-cyan-400]="showAuditFilters()"
+            ></i>
+          </div>
+
+          @if (showAuditFilters()) {
+          <div class="p-3 space-y-2 animate-fade-in">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2">
+              <div>
+                <label class="block text-xs font-medium text-gray-300 mb-1">
+                  <i class="pi pi-user mr-1 text-cyan-400 text-xs"></i>Empleado
+                </label>
+                <p-select
+                  [options]="store.employees.employeesList()"
+                  optionLabel="short_name"
+                  optionValue="id"
+                  [(ngModel)]="selectedEmployeeFilter"
+                  placeholder="Todos"
+                  [showClear]="true"
+                  filter
+                  appendTo="body"
+                  class="w-full text-sm"
+                  [style]="{ height: '32px' }"
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-300 mb-1">
+                  <i class="pi pi-calendar mr-1 text-cyan-400 text-xs"></i>Rango
+                  de Fechas
+                </label>
+                <p-calendar
+                  [(ngModel)]="selectedDateRange"
+                  selectionMode="range"
+                  [showIcon]="true"
+                  dateFormat="dd/mm/yy"
+                  placeholder="Seleccionar"
+                  [showClear]="true"
+                  class="w-full text-sm"
+                  [inputStyle]="{ height: '32px', padding: '0.375rem' }"
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-300 mb-1">
+                  <i class="pi pi-tag mr-1 text-cyan-400 text-xs"></i>Tipo de
+                  Acción
+                </label>
+                <p-dropdown
+                  [options]="auditActionOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  [(ngModel)]="selectedActionFilter"
+                  placeholder="Todas"
+                  [showClear]="true"
+                  class="w-full text-sm"
+                  [style]="{ height: '32px' }"
+                />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-300 mb-1">
+                  <i class="pi pi-search mr-1 text-cyan-400 text-xs"></i
+                  >Búsqueda
+                </label>
+                <input
+                  type="text"
+                  pInputText
+                  placeholder="Buscar..."
+                  [(ngModel)]="auditSearchText"
+                  class="w-full text-sm py-1.5 bg-neutral-900/50 border-neutral-600"
+                />
+              </div>
+            </div>
+
+            <div
+              class="flex items-center justify-between pt-2 border-t border-neutral-700/50"
+            >
+              <p-button
+                label="Limpiar Todo"
+                icon="pi pi-filter-slash"
+                [outlined]="true"
+                severity="secondary"
+                (onClick)="clearAuditFilters()"
+                [disabled]="!hasActiveAuditFilters()"
+                size="small"
+              />
+              <div class="flex items-center gap-2 text-sm text-gray-400">
+                <i class="pi pi-info-circle"></i>
+                <span
+                  >{{ auditHistoryComputed().length }} de
+                  {{ allAuditHistory().length }} resultados</span
+                >
+              </div>
+            </div>
+          </div>
+          }
+        </div>
+
+        <!-- Lista de Historial -->
+        @if (isLoadingAuditHistory()) {
+        <div class="flex items-center justify-center gap-2 text-gray-400 py-8">
+          <i class="pi pi-spin pi-spinner"></i>
+          <span>Cargando historial de auditoría...</span>
+        </div>
+        } @else if (auditHistoryComputed().length === 0) {
+        <div class="text-center py-8 text-gray-400">
+          <i class="pi pi-info-circle text-4xl mb-4"></i>
+          <p>No hay registros de auditoría disponibles</p>
+        </div>
+        } @else {
+        <div class="space-y-3 max-h-[60vh] overflow-y-auto">
+          @for (log of auditHistoryComputed(); track log.id) {
+          <div
+            class="p-4 rounded-lg bg-neutral-800/50 border border-neutral-700 hover:bg-neutral-800 transition-colors"
+          >
+            <div class="flex items-start gap-3">
+              <div
+                class="w-10 h-10 rounded-full flex items-center justify-center bg-neutral-700/50"
+              >
+                <i
+                  [class]="
+                    'pi ' +
+                    getAuditActionIcon(log.action) +
+                    ' text-lg ' +
+                    getAuditActionColor(log.action)
+                  "
+                ></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between mb-2">
+                  <div>
+                    <div class="text-white font-semibold">
+                      {{
+                        log.changed_by_employee
+                          ? log.changed_by_employee.first_name +
+                            ' ' +
+                            log.changed_by_employee.father_name
+                          : 'Usuario desconocido'
+                      }}
+                    </div>
+                    <div class="text-sm text-gray-400">
+                      {{ getAuditActionLabel(log.action) }}
+                      @if (log.employee_schedule?.employee) {
+                      <span class="text-gray-500">
+                        - {{ log.employee_schedule?.employee?.first_name }}
+                        {{ log.employee_schedule?.employee?.father_name }}
+                      </span>
+                      }
+                    </div>
+                  </div>
+                  <div class="text-xs text-gray-500">
+                    {{ log.changed_at | date : 'dd/MM/yyyy HH:mm' }}
+                  </div>
+                </div>
+                @if (log.comment) {
+                <div
+                  class="text-sm text-gray-300 mt-2 p-2 bg-neutral-900/50 rounded border-l-2 border-cyan-400"
+                >
+                  {{ log.comment }}
+                </div>
+                } @if (log.old_status !== null && log.new_status !== null &&
+                log.old_status !== log.new_status) {
+                <div class="flex items-center gap-2 mt-2 text-xs">
+                  <span class="text-gray-400">Estado:</span>
+                  <span
+                    class="px-2 py-1 rounded bg-yellow-500/20 text-yellow-400"
+                    >{{ log.old_status ? 'Aprobado' : 'Pendiente' }}</span
+                  >
+                  <i class="pi pi-arrow-right text-gray-500"></i>
+                  <span
+                    class="px-2 py-1 rounded bg-green-500/20 text-green-400"
+                    >{{ log.new_status ? 'Aprobado' : 'Pendiente' }}</span
+                  >
+                </div>
+                }
+                <div class="text-xs text-gray-500 mt-2">
+                  ID del horario:
+                  <span class="font-mono text-gray-400">
+                    {{
+                      log.employee_schedule_id
+                        ? log.employee_schedule_id.substring(0, 8) + '...'
+                        : '—'
+                    }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+          }
+        </div>
+        }
+      </div>
+    </p-dialog>
+
+    <!-- Dialog de Historial de Auditoría Específica -->
+    <p-dialog
+      [visible]="showSpecificAuditDialog()"
+      (visibleChange)="showSpecificAuditDialog.set($event)"
+      [modal]="true"
+      [style]="{ width: '90vw', maxWidth: '800px' }"
+      [header]="getSpecificAuditDialogHeader()"
+      [draggable]="false"
+      [resizable]="false"
+      [dismissableMask]="true"
+      [closable]="true"
+      (onHide)="showSpecificAuditDialog.set(false)"
+    >
+      <div class="space-y-4 pt-4">
+        @if (isLoadingSpecificAudit()) {
+        <div class="flex items-center justify-center gap-2 text-gray-400 py-8">
+          <i class="pi pi-spin pi-spinner"></i>
+          <span>Cargando historial de auditoría...</span>
+        </div>
+        } @else if (specificAuditHistory().length === 0) {
+        <div class="text-center py-8 text-gray-400">
+          <i class="pi pi-info-circle text-4xl mb-4"></i>
+          <p>No hay registros de auditoría para este día</p>
+        </div>
+        } @else {
+        <div class="space-y-3 max-h-[60vh] overflow-y-auto">
+          @for (log of specificAuditHistory(); track log.id) {
+          <div
+            class="p-4 rounded-lg bg-neutral-800/50 border border-neutral-700 hover:bg-neutral-800 transition-colors"
+          >
+            <div class="flex items-start gap-3">
+              <div
+                class="w-10 h-10 rounded-full flex items-center justify-center bg-neutral-700/50"
+              >
+                <i
+                  [class]="
+                    'pi ' +
+                    getAuditActionIcon(log.action) +
+                    ' text-lg ' +
+                    getAuditActionColor(log.action)
+                  "
+                ></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between mb-2">
+                  <div>
+                    <div class="text-white font-semibold">
+                      {{
+                        log.changed_by_employee
+                          ? log.changed_by_employee.first_name +
+                            ' ' +
+                            log.changed_by_employee.father_name
+                          : 'Usuario desconocido'
+                      }}
+                    </div>
+                    <div class="text-sm text-gray-400">
+                      {{ getAuditActionLabel(log.action) }}
+                    </div>
+                  </div>
+                  <div class="text-xs text-gray-500">
+                    {{ log.changed_at | date : 'dd/MM/yyyy HH:mm' }}
+                  </div>
+                </div>
+                @if (log.comment) {
+                <div
+                  class="text-sm text-gray-300 mt-2 p-2 bg-neutral-900/50 rounded border-l-2 border-cyan-400"
+                >
+                  {{ log.comment }}
+                </div>
+                } @if (log.old_status !== null && log.new_status !== null &&
+                log.old_status !== log.new_status) {
+                <div class="flex items-center gap-2 mt-2 text-xs">
+                  <span class="text-gray-400">Estado:</span>
+                  <span
+                    class="px-2 py-1 rounded bg-yellow-500/20 text-yellow-400"
+                    >{{ log.old_status ? 'Aprobado' : 'Pendiente' }}</span
+                  >
+                  <i class="pi pi-arrow-right text-gray-500"></i>
+                  <span
+                    class="px-2 py-1 rounded bg-green-500/20 text-green-400"
+                    >{{ log.new_status ? 'Aprobado' : 'Pendiente' }}</span
+                  >
+                </div>
+                }
+              </div>
+            </div>
+          </div>
+          }
+        </div>
+        }
+      </div>
+    </p-dialog> `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EmployeesTimetableComponent implements OnInit {
@@ -181,13 +531,34 @@ export class EmployeesTimetableComponent implements OnInit {
   });
   public selectedWeek = signal<number>(1);
   public disableBranch = signal(true);
+  public showAuditHistoryDialog = signal(false);
+
+  // Historial de auditoría general
+  public isLoadingAuditHistory = signal(false);
+  public allAuditHistory = signal<ScheduleAuditLog[]>([]);
+
+  // Filtros de auditoría
+  public showAuditFilters = signal(false);
+  public selectedEmployeeFilter = signal<string | null>(null);
+  public selectedDateRange = signal<Date[] | null>(null);
+  public selectedActionFilter = signal<string | null>(null);
+  public auditSearchText = signal<string>('');
+
+  // Dialog de auditoría específica
+  public showSpecificAuditDialog = signal(false);
+  public selectedAuditEmployeeId = signal<string | null>(null);
+  public selectedAuditDate = signal<Date | null>(null);
+  public specificAuditHistory = signal<ScheduleAuditLog[]>([]);
+  public isLoadingSpecificAudit = signal(false);
   private http = inject(HttpClient);
   private confirm = inject(ConfirmationService);
   private organizationService = inject(OrganizationService);
+  private dialogService = inject(DialogService);
   public permissionsService = inject(TimetablePermissionsService);
   public filterService = inject(TimetableFilterService);
   public navigationService = inject(TimetableNavigationService);
   public injector = inject(Injector);
+  private auditService = inject(ScheduleAuditService);
 
   public isHRDepartment = this.permissionsService.isHRDepartment;
 
@@ -198,7 +569,6 @@ export class EmployeesTimetableComponent implements OnInit {
   public currentWeek = this.navigationService.currentWeek;
 
   public colorVariants = colorVariants;
-
 
   days = computed(() => generateWeekDays(this.start()));
 
@@ -498,7 +868,7 @@ export class EmployeesTimetableComponent implements OnInit {
         label: 'Eliminar',
         severity: 'danger',
       },
-      accept: () => {
+      accept: async () => {
         const companyId = this.organizationService.getCurrentCompanyId();
 
         // Si se pasó una fecha específica y el horario es un rango de múltiples días,
@@ -534,6 +904,90 @@ export class EmployeesTimetableComponent implements OnInit {
           params.company_id = `eq.${companyId}`;
         }
 
+        // IMPORTANTE: Registrar auditoría ANTES de eliminar el horario
+        // para evitar problemas con ON DELETE CASCADE
+        const currentEmployeeId = this.store.currentEmployee()?.id;
+        if (currentEmployeeId) {
+          const schedule = this.store.schedules
+            .entities()
+            .find((s) => s.id === employee_schedule.schedule_id);
+          const employee = this.store.employees
+            .entities()
+            .find((e) => e.id === employee_schedule.employee_id);
+          const branch = this.store.branches
+            .entities()
+            .find((b) => b.id === employee_schedule.branch_id);
+
+          const startDateFormatted = format(
+            toDate(employee_schedule.start_date, {
+              timeZone: 'America/Panama',
+            }),
+            'dd/MM/yyyy'
+          );
+          const endDateFormatted = format(
+            toDate(employee_schedule.end_date, {
+              timeZone: 'America/Panama',
+            }),
+            'dd/MM/yyyy'
+          );
+          const isSingleDay = isSameDay(
+            toDate(employee_schedule.start_date, {
+              timeZone: 'America/Panama',
+            }),
+            toDate(employee_schedule.end_date, {
+              timeZone: 'America/Panama',
+            })
+          );
+
+          // Registrar auditoría ANTES de eliminar
+          await this.auditService.logChange({
+            employeeScheduleId: employee_schedule.id,
+            changedBy: currentEmployeeId,
+            action: 'deleted',
+            oldStatus: employee_schedule.approved,
+            newStatus: false,
+            oldValue: {
+              employee_id: employee_schedule.employee_id,
+              employee_name: employee
+                ? `${employee.first_name} ${employee.father_name}`
+                : 'Desconocido',
+              schedule_id: employee_schedule.schedule_id,
+              schedule_name: schedule?.name || 'Desconocido',
+              branch_id: employee_schedule.branch_id,
+              branch_name: branch?.name || 'Desconocido',
+              start_date: employee_schedule.start_date,
+              end_date: employee_schedule.end_date,
+              start_date_formatted: startDateFormatted,
+              end_date_formatted: endDateFormatted,
+              is_single_day: isSingleDay,
+              approved: employee_schedule.approved,
+            },
+            newValue: null,
+            comment: date
+              ? `Día ${format(date, 'dd/MM/yyyy')} eliminado del horario "${
+                  schedule?.name || 'Desconocido'
+                }" para ${
+                  employee
+                    ? `${employee.first_name} ${employee.father_name}`
+                    : 'empleado'
+                }${
+                  branch ? ` en sucursal ${branch.name}` : ''
+                } (rango original: ${startDateFormatted} - ${endDateFormatted})`
+              : `Horario "${
+                  schedule?.name || 'Desconocido'
+                }" eliminado completamente para ${
+                  employee
+                    ? `${employee.first_name} ${employee.father_name}`
+                    : 'empleado'
+                }${
+                  isSingleDay
+                    ? ` el día ${startDateFormatted}`
+                    : ` del ${startDateFormatted} al ${endDateFormatted}`
+                }${branch ? ` en sucursal ${branch.name}` : ''}`,
+          });
+        }
+
+        // Ahora eliminar el horario
         this.http
           .delete(
             `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
@@ -717,7 +1171,79 @@ export class EmployeesTimetableComponent implements OnInit {
         })
       )
       .subscribe({
-        next: () => {
+        next: async () => {
+          // Registrar auditoría cuando se elimina un día específico de un rango
+          const currentEmployeeId = this.store.currentEmployee()?.id;
+          if (currentEmployeeId) {
+            const scheduleType = this.store.schedules
+              .entities()
+              .find((s) => s.id === schedule.schedule_id);
+            const employee = this.store.employees
+              .entities()
+              .find((e) => e.id === schedule.employee_id);
+            const branch = this.store.branches
+              .entities()
+              .find((b) => b.id === schedule.branch_id);
+
+            const dateStr = format(dateToDelete, 'yyyy-MM-dd');
+            const dateFormatted = format(dateToDelete, 'dd/MM/yyyy');
+            const dayName = format(dateToDelete, 'EEEE', { locale: es });
+            const originalStartFormatted = format(
+              toDate(schedule.start_date, { timeZone: 'America/Panama' }),
+              'dd/MM/yyyy'
+            );
+            const originalEndFormatted = format(
+              toDate(schedule.end_date, { timeZone: 'America/Panama' }),
+              'dd/MM/yyyy'
+            );
+
+            // Registrar auditoría para el horario original que se modificó/dividió
+            await this.auditService.logChange({
+              employeeScheduleId: schedule.id,
+              changedBy: currentEmployeeId,
+              action: 'split_range', // Acción específica para división por eliminación
+              oldStatus: schedule.approved,
+              newStatus: schedule.approved, // Mantiene el mismo estado
+              oldValue: {
+                employee_id: schedule.employee_id,
+                employee_name: employee
+                  ? `${employee.first_name} ${employee.father_name}`
+                  : 'Desconocido',
+                schedule_id: schedule.schedule_id,
+                schedule_name: scheduleType?.name || 'Desconocido',
+                branch_id: schedule.branch_id,
+                branch_name: branch?.name || 'Desconocido',
+                start_date: schedule.start_date,
+                end_date: schedule.end_date,
+                start_date_formatted: originalStartFormatted,
+                end_date_formatted: originalEndFormatted,
+                approved: schedule.approved,
+              },
+              newValue: {
+                date_removed: dateStr,
+                date_removed_formatted: dateFormatted,
+                day_name: dayName,
+                operation: 'day_deleted_from_range',
+                // Información del rango original completo
+                original_range: {
+                  start_date: schedule.start_date,
+                  end_date: schedule.end_date,
+                  start_date_formatted: originalStartFormatted,
+                  end_date_formatted: originalEndFormatted,
+                },
+              },
+              comment: `Día ${dayName} ${dateFormatted} eliminado del horario "${
+                scheduleType?.name || 'Desconocido'
+              }" para ${
+                employee
+                  ? `${employee.first_name} ${employee.father_name}`
+                  : 'empleado'
+              }${
+                branch ? ` en sucursal ${branch.name}` : ''
+              } (rango original: ${originalStartFormatted} - ${originalEndFormatted})`,
+            });
+          }
+
           this.message.add({
             severity: 'success',
             summary: 'Éxito',
@@ -742,7 +1268,7 @@ export class EmployeesTimetableComponent implements OnInit {
         label: 'Aprobar',
         severity: 'success',
       },
-      accept: () => {
+      accept: async () => {
         const companyId = this.organizationService.getCurrentCompanyId();
         const params: any = { id: `eq.${id}` };
 
@@ -751,6 +1277,96 @@ export class EmployeesTimetableComponent implements OnInit {
           params.company_id = `eq.${companyId}`;
         }
 
+        // Obtener información del horario ANTES de aprobarlo para auditoría
+        const scheduleToApprove = this.shifts()?.find((s) => s.id === id);
+        const currentEmployeeId = this.store.currentEmployee()?.id;
+
+        if (currentEmployeeId && scheduleToApprove) {
+          const schedule = this.store.schedules
+            .entities()
+            .find((s) => s.id === scheduleToApprove.schedule_id);
+          const employee = this.store.employees
+            .entities()
+            .find((e) => e.id === scheduleToApprove.employee_id);
+          const branch = this.store.branches
+            .entities()
+            .find((b) => b.id === scheduleToApprove.branch_id);
+
+          const startDateFormatted = format(
+            toDate(scheduleToApprove.start_date, {
+              timeZone: 'America/Panama',
+            }),
+            'dd/MM/yyyy'
+          );
+          const endDateFormatted = format(
+            toDate(scheduleToApprove.end_date, {
+              timeZone: 'America/Panama',
+            }),
+            'dd/MM/yyyy'
+          );
+          const isSingleDay = isSameDay(
+            toDate(scheduleToApprove.start_date, {
+              timeZone: 'America/Panama',
+            }),
+            toDate(scheduleToApprove.end_date, {
+              timeZone: 'America/Panama',
+            })
+          );
+
+          // Registrar auditoría ANTES de aprobar
+          await this.auditService.logChange({
+            employeeScheduleId: id,
+            changedBy: currentEmployeeId,
+            action: 'approved',
+            oldStatus: scheduleToApprove.approved || false,
+            newStatus: true,
+            oldValue: {
+              employee_id: scheduleToApprove.employee_id,
+              employee_name: employee
+                ? `${employee.first_name} ${employee.father_name}`
+                : 'Desconocido',
+              schedule_id: scheduleToApprove.schedule_id,
+              schedule_name: schedule?.name || 'Desconocido',
+              branch_id: scheduleToApprove.branch_id,
+              branch_name: branch?.name || 'Desconocido',
+              start_date: scheduleToApprove.start_date,
+              end_date: scheduleToApprove.end_date,
+              start_date_formatted: startDateFormatted,
+              end_date_formatted: endDateFormatted,
+              is_single_day: isSingleDay,
+              approved: scheduleToApprove.approved || false,
+            },
+            newValue: {
+              employee_id: scheduleToApprove.employee_id,
+              employee_name: employee
+                ? `${employee.first_name} ${employee.father_name}`
+                : 'Desconocido',
+              schedule_id: scheduleToApprove.schedule_id,
+              schedule_name: schedule?.name || 'Desconocido',
+              branch_id: scheduleToApprove.branch_id,
+              branch_name: branch?.name || 'Desconocido',
+              start_date: scheduleToApprove.start_date,
+              end_date: scheduleToApprove.end_date,
+              start_date_formatted: startDateFormatted,
+              end_date_formatted: endDateFormatted,
+              is_single_day: isSingleDay,
+              approved: true,
+            },
+            comment: `Horario "${
+              schedule?.name || 'Desconocido'
+            }" aprobado para ${
+              employee
+                ? `${employee.first_name} ${employee.father_name}`
+                : 'empleado'
+            }${
+              isSingleDay
+                ? ` el día ${startDateFormatted}`
+                : ` del ${startDateFormatted} al ${endDateFormatted}`
+            }${branch ? ` en sucursal ${branch.name}` : ''}`,
+          });
+        }
+
+        // Ahora aprobar el horario
         this.http
           .patch(
             `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
@@ -828,5 +1444,203 @@ export class EmployeesTimetableComponent implements OnInit {
           this.schedulesResource.reload();
         }
       });
+  }
+
+  public openAuditHistoryDialog() {
+    this.loadAuditHistory();
+    this.showAuditHistoryDialog.set(true);
+  }
+
+  private async loadAuditHistory() {
+    this.isLoadingAuditHistory.set(true);
+    try {
+      const history = await this.auditService.getAllAuditHistory().toPromise();
+      this.allAuditHistory.set(history || []);
+    } catch (error) {
+      console.error('Error cargando historial de auditoría:', error);
+      this.allAuditHistory.set([]);
+    } finally {
+      this.isLoadingAuditHistory.set(false);
+    }
+  }
+
+  // Computed para filtros activos
+  public hasActiveAuditFilters = computed(() => {
+    return (
+      !!this.selectedEmployeeFilter() ||
+      !!this.selectedDateRange() ||
+      !!this.selectedActionFilter() ||
+      !!this.auditSearchText().trim()
+    );
+  });
+
+  public getActiveAuditFiltersCount = computed(() => {
+    let count = 0;
+    if (this.selectedEmployeeFilter()) count++;
+    if (this.selectedDateRange()) count++;
+    if (this.selectedActionFilter()) count++;
+    if (this.auditSearchText().trim()) count++;
+    return count;
+  });
+
+  // Computed para historial filtrado
+  public filteredAuditHistory = computed(() => {
+    let filtered = [...this.allAuditHistory()];
+
+    // Filtro por empleado
+    if (this.selectedEmployeeFilter()) {
+      filtered = filtered.filter(
+        (log) =>
+          log.employee_schedule?.employee_id === this.selectedEmployeeFilter()
+      );
+    }
+
+    // Filtro por rango de fechas
+    if (this.selectedDateRange() && this.selectedDateRange()!.length === 2) {
+      const [start, end] = this.selectedDateRange()!;
+      filtered = filtered.filter((log) => {
+        const logDate = new Date(log.changed_at);
+        return logDate >= start && logDate <= end;
+      });
+    }
+
+    // Filtro por acción
+    if (this.selectedActionFilter()) {
+      filtered = filtered.filter(
+        (log) => log.action === this.selectedActionFilter()
+      );
+    }
+
+    // Filtro por texto libre
+    const searchText = this.auditSearchText().toLowerCase().trim();
+    if (searchText) {
+      filtered = filtered.filter((log) => {
+        const employeeName =
+          log.employee_schedule?.employee?.first_name +
+          ' ' +
+          log.employee_schedule?.employee?.father_name;
+        const changedByName =
+          log.changed_by_employee?.first_name +
+          ' ' +
+          log.changed_by_employee?.father_name;
+        const comment = log.comment || '';
+        return (
+          employeeName?.toLowerCase().includes(searchText) ||
+          changedByName?.toLowerCase().includes(searchText) ||
+          comment.toLowerCase().includes(searchText) ||
+          this.getAuditActionLabel(log.action)
+            .toLowerCase()
+            .includes(searchText)
+        );
+      });
+    }
+
+    return filtered;
+  });
+
+  // Historial filtrado (computed que se actualiza automáticamente)
+  public auditHistoryComputed = computed(() => {
+    return this.filteredAuditHistory();
+  });
+
+  public clearAuditFilters() {
+    this.selectedEmployeeFilter.set(null);
+    this.selectedDateRange.set(null);
+    this.selectedActionFilter.set(null);
+    this.auditSearchText.set('');
+  }
+
+  // Opciones para dropdown de acciones
+  public auditActionOptions = [
+    { label: 'Todas', value: null },
+    { label: 'Creado', value: 'created' },
+    { label: 'Editado', value: 'updated' },
+    { label: 'Eliminado', value: 'deleted' },
+    { label: 'Aprobado', value: 'approved' },
+    { label: 'Rechazado', value: 'rejected' },
+    { label: 'Dividido', value: 'split' },
+    { label: 'Día eliminado de rango', value: 'split_range' },
+  ];
+
+  // Métodos para dialog específico
+  public onViewSpecificAudit(event: { employeeId: string; date: Date }) {
+    this.selectedAuditEmployeeId.set(event.employeeId);
+    this.selectedAuditDate.set(event.date);
+    this.loadSpecificAuditHistory(event.employeeId, event.date);
+    this.showSpecificAuditDialog.set(true);
+  }
+
+  private async loadSpecificAuditHistory(employeeId: string, date: Date) {
+    this.isLoadingSpecificAudit.set(true);
+    try {
+      const history = await this.auditService
+        .getAuditHistoryByEmployeeAndDate(employeeId, date)
+        .toPromise();
+      this.specificAuditHistory.set(history || []);
+    } catch (error) {
+      console.error('Error cargando auditoría específica:', error);
+      this.specificAuditHistory.set([]);
+    } finally {
+      this.isLoadingSpecificAudit.set(false);
+    }
+  }
+
+  public getEmployeeName(employeeId: string): string {
+    const employee = this.store.employees
+      .entities()
+      .find((e) => e.id === employeeId);
+    return employee
+      ? `${employee.first_name} ${employee.father_name}`
+      : 'Empleado desconocido';
+  }
+
+  public getSpecificAuditDialogHeader = computed(() => {
+    const employeeName = this.selectedAuditEmployeeId()
+      ? this.getEmployeeName(this.selectedAuditEmployeeId()!)
+      : '';
+    const dateStr = this.selectedAuditDate()
+      ? format(this.selectedAuditDate()!, 'dd/MM/yyyy')
+      : '';
+    return `Historial de Auditoría - ${employeeName} - ${dateStr}`;
+  });
+
+  // Métodos helper para mostrar información del historial
+  public getAuditActionLabel(action: ScheduleAuditLog['action']): string {
+    const labels = {
+      created: 'Creado',
+      updated: 'Actualizado',
+      deleted: 'Eliminado',
+      approved: 'Aprobado',
+      rejected: 'Rechazado',
+      split: 'Dividido',
+      split_range: 'Día eliminado de rango',
+    };
+    return labels[action] || action;
+  }
+
+  public getAuditActionIcon(action: ScheduleAuditLog['action']): string {
+    const icons = {
+      created: 'pi-plus-circle',
+      updated: 'pi-pencil',
+      deleted: 'pi-trash',
+      approved: 'pi-check-circle',
+      rejected: 'pi-times-circle',
+      split: 'pi-arrows-split',
+      split_range: 'pi-calendar-minus',
+    };
+    return icons[action] || 'pi-info-circle';
+  }
+
+  public getAuditActionColor(action: ScheduleAuditLog['action']): string {
+    const colors = {
+      created: 'text-green-400',
+      updated: 'text-blue-400',
+      deleted: 'text-red-400',
+      approved: 'text-green-400',
+      rejected: 'text-red-400',
+      split: 'text-orange-400',
+      split_range: 'text-yellow-400',
+    };
+    return colors[action] || 'text-gray-400';
   }
 }

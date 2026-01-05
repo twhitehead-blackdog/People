@@ -56,8 +56,15 @@ import { Tooltip } from 'primeng/tooltip';
         </div>
       </ng-template>
       <p-popover #options>
-        <div>
-          <span class="font-medium block mb-2">Opciones</span>
+        <div class="relative">
+          <!-- Icono de auditoría en esquina superior derecha -->
+          <i
+            class="pi pi-history absolute top-0 right-0 text-xs text-gray-400 hover:text-cyan-400 cursor-pointer transition-colors z-10"
+            pTooltip="Ver historial de auditoría de este día"
+            tooltipPosition="left"
+            (click)="onViewAudit(); options.hide()"
+          ></i>
+          <span class="font-medium block mb-2 pr-6">Opciones</span>
           <ul class="list-non flex flex-col">
             @if (canManageSchedules()) {
               <li
@@ -114,6 +121,7 @@ export class ShiftCellComponent {
   public delete = output<{ shift: EmployeeSchedule; date?: Date }>();
   public approve = output<string>();
   public add = output<{ employeeId: string; date: Date }>();
+  public viewAudit = output<{ employeeId: string; date: Date }>();
 
   // Exponer colorVariants para uso en template
   public colorVariants = colorVariants;
@@ -146,5 +154,9 @@ export class ShiftCellComponent {
 
   public onAdd(): void {
     this.add.emit({ employeeId: this.employeeId(), date: this.date() });
+  }
+
+  public onViewAudit(): void {
+    this.viewAudit.emit({ employeeId: this.employeeId(), date: this.date() });
   }
 }

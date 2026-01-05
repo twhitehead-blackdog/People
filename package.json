@@ -1,6 +1,6 @@
 {
   "name": "@people/source",
-  "version": "2.0.5",
+  "version": "2.0.4",
   "license": "MIT",
   "scripts": {
     "start": "nx serve",
@@ -54,6 +54,7 @@
     "primeicons": "^7.0.0",
     "primeng": "^19.0.9",
     "qrcode": "^1.5.4",
+    "resend": "^6.6.0",
     "rxjs": "~7.8.0",
     "tailwindcss-primeui": "^0.3.4",
     "totp-generator": "^1.0.0",

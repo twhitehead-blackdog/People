@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import express from 'express';
 import nodemailer from 'nodemailer';
+import { Resend } from 'resend';
 import path from 'path';
 
 // Cargar variables de entorno desde .env
@@ -159,6 +160,58 @@ export function app(): express.Express {
   server.post('/api/email/send', async (req, res) => {
     try {
       const { to, subject, html, text, fromEmail, fromName } = req.body;
+
+      if (!to || !subject || !html) {
+        return res.status(400).json({
+          error: 'Missing required fields: to, subject, html',
+        });
+      }
+
+      // Preparar destinatarios (puede ser string o array)
+      const recipients = Array.isArray(to) ? to : [to];
+
+      // Intentar usar Resend primero (más confiable y fácil de configurar)
+      const resendApiKey = process.env['ENV_RESEND_API_KEY'];
+      if (resendApiKey) {
+        try {
+          const resend = new Resend(resendApiKey);
+          const noreplyEmail =
+            process.env['ENV_SMTP_NOREPLY_EMAIL'] ||
+            process.env['ENV_RESEND_FROM_EMAIL'] ||
+            'noreply@blackdogpanama.com';
+          const noreplyName =
+            process.env['ENV_SMTP_NOREPLY_NAME'] ||
+            process.env['ENV_RESEND_FROM_NAME'] ||
+            'Black Dog';
+          const senderEmail = fromEmail || noreplyEmail;
+          const senderName = fromName || noreplyName;
+
+          const { data, error } = await resend.emails.send({
+            from: `${senderName} <${senderEmail}>`,
+            to: recipients,
+            subject: subject,
+            html: html,
+            text: text || html.replace(/<[^>]*>/g, ''),
+          });
+
+          if (error) {
+            safeLogger.error('❌ Error sending email via Resend', error);
+            throw new Error(error.message || 'Error desconocido de Resend');
+          }
+
+          safeLogger.safeLog('✅ Email enviado exitosamente via Resend', {
+            to: recipients.join(', '),
+            messageId: data?.id,
+          });
+
+          return res.json({ success: true, data: { messageId: data?.id } });
+        } catch (resendError: any) {
+          safeLogger.error('❌ Error con Resend, intentando SMTP como fallback', resendError);
+          // Continuar con SMTP como fallback
+        }
+      }
+
+      // Fallback a SMTP si no hay Resend o si Resend falló
       const smtpHost = process.env['ENV_SMTP_HOST'] || 'smtp.gmail.com';
       const smtpPort = parseInt(process.env['ENV_SMTP_PORT'] || '587');
       const smtpUser = process.env['ENV_SMTP_USER'];
@@ -173,13 +226,7 @@ export function app(): express.Express {
         return res.status(500).json({
           error: 'Email service not configured',
           message:
-            'ENV_SMTP_USER o ENV_SMTP_PASSWORD no están configuradas. Por favor configura estas variables en tu archivo .env',
-        });
-      }
-
-      if (!to || !subject || !html) {
-        return res.status(400).json({
-          error: 'Missing required fields: to, subject, html',
+            'ENV_RESEND_API_KEY o (ENV_SMTP_USER y ENV_SMTP_PASSWORD) no están configuradas. Por favor configura alguna de estas opciones en tu archivo .env',
         });
       }
 
@@ -201,9 +248,6 @@ export function app(): express.Express {
         },
       });
 
-      // Preparar destinatarios (puede ser string o array)
-      const recipients = Array.isArray(to) ? to : [to];
-
       // Enviar email
       const info = await transporter.sendMail({
         from: `${senderName} <${senderEmail}>`,
@@ -213,7 +257,7 @@ export function app(): express.Express {
         text: text || html.replace(/<[^>]*>/g, ''), // Convertir HTML a texto si no se proporciona
       });
 
-      safeLogger.safeLog('✅ Email enviado exitosamente', {
+      safeLogger.safeLog('✅ Email enviado exitosamente via SMTP', {
         to: recipients.join(', '),
         messageId: info.messageId,
       });
