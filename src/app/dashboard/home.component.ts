@@ -4056,6 +4056,14 @@ import { OrganizationService } from '../services/organization.service';
       flex-direction: column;
       gap: 0.25rem;
       min-width: 0;
+      overflow: hidden;
+    }
+
+    .top-absences-name-row {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      overflow: hidden;
     }
 
     .top-absences-name-row {
@@ -4067,6 +4075,11 @@ import { OrganizationService } from '../services/organization.service';
       font-size: 0.875rem;
       font-weight: 600;
       color: #ffffff;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: block;
     }
 
     .top-absences-info-row {
@@ -6280,17 +6293,18 @@ export class HomeComponent {
           // This is an absence
           const employeeId = schedule.employee_id;
           if (!absencesByEmployee.has(employeeId)) {
-            // Try to get employee name from schedule or from employees store
+            // Get employee name from employees store (more reliable)
             let employeeName = 'Empleado desconocido';
-            if (schedule.employee) {
+            const employees = this.employees.entities();
+            const employee = employees.find(e => e.id === employeeId);
+            if (employee) {
+              employeeName = `${employee.first_name ?? ''} ${employee.father_name ?? ''}`.trim();
+            } else if (schedule.employee) {
+              // Fallback: try from schedule if available
               employeeName = `${schedule.employee.first_name ?? ''} ${schedule.employee.father_name ?? ''}`.trim();
-            } else {
-              // Fallback: try to get from employees store
-              const employees = this.employees.entities();
-              const employee = employees.find(e => e.id === employeeId);
-              if (employee) {
-                employeeName = `${employee.first_name ?? ''} ${employee.father_name ?? ''}`.trim();
-              }
+            }
+            if (!employeeName || employeeName === '') {
+              employeeName = 'Empleado desconocido';
             }
             absencesByEmployee.set(employeeId, {
               employee_name: employeeName,
