@@ -1,8 +1,11 @@
+import { HttpClient } from '@angular/common/http';
 import { format } from 'date-fns';
 import { MessageService } from 'primeng/api';
+import { firstValueFrom } from 'rxjs';
 import { Employee } from '../../models';
-import { EmployeePortalApiService } from '../services/employee-portal-api.service';
 import { EmployeePortalStore } from '../../stores/employee-portal.store';
+import { getBooleanSetting } from '../../utils/settings-http.utils';
+import { EmployeePortalApiService } from '../services/employee-portal-api.service';
 
 type CompensatoryFormState = {
   type: 'hours' | 'days';
@@ -27,6 +30,7 @@ type CompensatoryActionsDependencies = {
   api: EmployeePortalApiService;
   messageService: MessageService;
   currentEmployee: () => Employee | null | undefined;
+  http: HttpClient;
   formState: CompensatoryFormState;
   constants: CompensatoryConstants;
   canSubmit: () => boolean;
@@ -46,6 +50,7 @@ export async function submitCompensatoryRequest(
     api,
     messageService,
     currentEmployee,
+    http,
     formState,
     constants,
     canSubmit,
@@ -158,6 +163,7 @@ export async function submitCompensatoryRequest(
   // Determinar date_from y date_to según el tipo
   let dateFrom: string;
   let dateTo: string;
+  let displayRange = '';
 
   if (type === 'hours') {
     // Si es horas, combinar fecha con hora inicio y hora fin
@@ -184,10 +190,18 @@ export async function submitCompensatoryRequest(
 
     dateFrom = format(startDateTime, 'yyyy-MM-dd HH:mm:ss');
     dateTo = format(endDateTime, 'yyyy-MM-dd HH:mm:ss');
+    displayRange = `${format(startDateTime, 'dd/MM/yyyy')} ${format(
+      startDateTime,
+      'HH:mm'
+    )} - ${format(endDateTime, 'HH:mm')}`;
   } else {
     // Si es días, usar las fechas de inicio y fin
     dateFrom = format(formState.startDate!, 'yyyy-MM-dd');
     dateTo = format(formState.endDate!, 'yyyy-MM-dd');
+    displayRange = `${format(formState.startDate!, 'dd/MM/yyyy')} - ${format(
+      formState.endDate!,
+      'dd/MM/yyyy'
+    )}`;
   }
 
   // Calcular horas si es por días (asumiendo 8 horas por día)
@@ -258,10 +272,72 @@ export async function submitCompensatoryRequest(
     const response = await api.createTimeoffRequest(timeoffData);
 
     const timeoffId = response[0]?.id || response?.id;
-    await api.notifyHrReviewer(
-      timeoffId,
-      currentEmployee() ?? null
+    await api.notifyHrReviewer(timeoffId, currentEmployee() ?? null);
+
+    const shouldNotifyCompensatory = await getBooleanSetting(
+      http,
+      'hr_email_notify_compensatory',
+      true
     );
+    if (shouldNotifyCompensatory && timeoffId) {
+      const employeeName =
+        [currentEmployee()?.first_name, currentEmployee()?.father_name]
+          .filter(Boolean)
+          .join(' ') || 'Un empleado';
+
+      const safeReason = String(reason || 'N/A')
+        .split('\n')
+        .join('<br/>');
+
+      const manualDatesHtml =
+        manualDates.length > 0
+          ? `<p style="margin: 16px 0 8px;"><strong>Fechas extra ingresadas:</strong></p>
+            <ul style="margin:0 0 12px; padding-left: 20px; color: #444;">
+              ${manualDates
+                .map((date) => `<li>${format(date, 'dd/MM/yyyy')}</li>`)
+                .join('')}
+            </ul>`
+          : '';
+
+      const subject = `Nueva solicitud de tiempo compensatorio - ${employeeName}`;
+      const html = `
+        <div style="font-family: Arial, sans-serif; line-height: 1.4;">
+          <h2 style="margin: 0 0 12px;">Nueva solicitud de tiempo compensatorio</h2>
+          <p style="margin: 0 0 12px;">
+            Esta solicitud fue registrada desde Gestiones y requiere revisión por parte de RRHH.
+          </p>
+          <ul style="margin:0 0 12px; padding-left: 20px;">
+            <li><strong>Empleado:</strong> ${employeeName}</li>
+            <li><strong>Tipo:</strong> ${
+              type === 'days' ? 'Días' : 'Horas'
+            }</li>
+            <li><strong>Cantidad:</strong> ${amount}</li>
+            <li><strong>Rango solicitado:</strong> ${displayRange}</li>
+            <li><strong>Motivo:</strong> ${safeReason}</li>
+          </ul>
+          ${manualDatesHtml}
+          <p style="color:#666; font-size: 12px; margin-top: 16px;">
+            Este mensaje fue generado automáticamente por People.
+          </p>
+        </div>
+      `;
+
+      try {
+        await firstValueFrom(
+          http.post('/api/email/send', {
+            to: ['Verley@blackdogpanama.com', 'soporte2@blackdogpanama.com'],
+            subject,
+            html,
+            fromName: 'People - RRHH',
+          })
+        );
+      } catch (emailError) {
+        console.warn(
+          '[CompensatoryRequest] No se pudo enviar email a RRHH',
+          emailError
+        );
+      }
+    }
 
     const currentEmp = currentEmployee();
     if (currentEmp && timeoffId) {

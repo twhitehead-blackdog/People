@@ -206,6 +206,23 @@ interface Setting {
                   [disabled]="saving()"
                 />
               </div>
+
+              <!-- Tiempo compensatorio -->
+              <div class="flex items-center justify-between p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
+                <div class="flex flex-col gap-2">
+                  <label class="text-sm font-semibold text-white">
+                    Tiempo Compensatorio
+                  </label>
+                  <p class="text-xs text-gray-400">
+                    Enviar correo cuando se cree una solicitud de tiempo compensatorio desde Gestiones.
+                  </p>
+                </div>
+                <p-toggleSwitch
+                  [(ngModel)]="hrEmailNotifyCompensatory"
+                  (ngModelChange)="onHrEmailNotifyCompensatoryChange()"
+                  [disabled]="saving()"
+                />
+              </div>
             </div>
           </p-card>
         </p-tabpanel>
@@ -236,6 +253,7 @@ export class SettingsComponent {
   // Notificaciones por correo (RRHH)
   public hrEmailNotifyDocuments = signal(true);
   public hrEmailNotifyDisabilities = signal(true);
+  public hrEmailNotifyCompensatory = signal(true);
 
   // Cargar configuraciones
   public settingsApi = httpResource<Setting[]>(() => ({
@@ -243,7 +261,7 @@ export class SettingsComponent {
     method: 'GET',
     params: {
       select: '*',
-      key: `in.(wassenger_api_key,wassenger_enabled,hr_email_notify_documents,hr_email_notify_disabilities)`,
+      key: `in.(wassenger_api_key,wassenger_enabled,hr_email_notify_documents,hr_email_notify_disabilities,hr_email_notify_compensatory)`,
       order: 'key.asc',
     },
   }));
@@ -261,6 +279,9 @@ export class SettingsComponent {
         const hrEmailNotifyDisabilities = settings.find(
           (s) => s.key === 'hr_email_notify_disabilities'
         );
+        const hrEmailNotifyCompensatory = settings.find(
+          (s) => s.key === 'hr_email_notify_compensatory'
+        );
 
         if (wassengerKey) {
           this.wassengerApiKeyValue.set(wassengerKey.value ? '***' : null);
@@ -276,6 +297,11 @@ export class SettingsComponent {
         );
         this.hrEmailNotifyDisabilities.set(
           hrEmailNotifyDisabilities ? hrEmailNotifyDisabilities.value === 'true' : true
+        );
+        this.hrEmailNotifyCompensatory.set(
+          hrEmailNotifyCompensatory
+            ? hrEmailNotifyCompensatory.value === 'true'
+            : true
         );
       }
     });
@@ -317,6 +343,14 @@ export class SettingsComponent {
     this.saveSetting(
       'hr_email_notify_disabilities',
       this.hrEmailNotifyDisabilities() ? 'true' : 'false',
+      { category: 'notifications' }
+    );
+  }
+
+  public onHrEmailNotifyCompensatoryChange(): void {
+    this.saveSetting(
+      'hr_email_notify_compensatory',
+      this.hrEmailNotifyCompensatory() ? 'true' : 'false',
       { category: 'notifications' }
     );
   }

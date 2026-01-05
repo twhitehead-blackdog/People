@@ -1,4 +1,4 @@
-import { CurrencyPipe, DatePipe, NgClass } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { HttpClient, httpResource } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
@@ -17,19 +17,9 @@ import {
   startOfDay,
 } from 'date-fns';
 import { MessageService } from 'primeng/api';
-import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
-import { DatePicker } from 'primeng/datepicker';
-import { DialogModule } from 'primeng/dialog';
-import { FileUpload } from 'primeng/fileupload';
-import { InputText } from 'primeng/inputtext';
-import { Select } from 'primeng/select';
-import { TableModule } from 'primeng/table';
-import { Textarea } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
-import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
-import { CalendarComponent } from '../calendar.component';
 import { EmployeePortalNavigationService } from '../services/employee-portal-navigation.service';
 import { NotificationsService } from '../services/notifications.service';
 import { OrganizationService } from '../services/organization.service';
@@ -74,22 +64,9 @@ import { calculateHoursFromDates } from './utils/employee-portal-time.utils';
   selector: 'pt-employee-portal',
   standalone: true,
   imports: [
+    CommonModule,
     Card,
-    TableModule,
-    DatePipe,
-    CurrencyPipe,
-    Button,
-    DatePicker,
-    FormsModule,
-    InputText,
-    Textarea,
-    FileUpload,
-    DialogModule,
     ToastModule,
-    TooltipModule,
-    Select,
-    NgClass,
-    CalendarComponent,
     EmployeePortalDashboardComponent,
     EmployeePortalManagementNavigationComponent,
     EmployeePortalTimelogsComponent,
@@ -226,7 +203,7 @@ import { calculateHoursFromDates } from './utils/employee-portal-time.utils';
           [selectedFile]="selectedFile()"
           (fileChange)="selectedFile.set($event)"
           [uploading]="uploadingDisability()"
-          (submit)="uploadDisability()"
+          (submitRequest)="uploadDisability()"
           (closeManagement)="setActiveSection('management')"
           [calculateDays]="calculateDays.bind(this)"
         />
@@ -303,7 +280,7 @@ import { calculateHoursFromDates } from './utils/employee-portal-time.utils';
           (vacationReasonChange)="setVacationReason($event)"
           [submitting]="portalStore.vacationForm().submitting"
           [canSubmit]="canSubmitVacation()"
-          (submit)="submitVacationRequest()"
+          (submitRequest)="submitVacationRequest()"
           (resetForm)="resetVacationForm()"
           [vacationRequests]="myVacationRequests()"
           [requestsLoading]="vacationTimeoffsApi.isLoading()"
@@ -351,7 +328,7 @@ import { calculateHoursFromDates } from './utils/employee-portal-time.utils';
           [minPastDate]="minPastDate"
           [maxFutureDate]="maxFutureDate"
           [today]="today"
-          (submit)="submitCompensatoryRequest()"
+          (submitRequest)="submitCompensatoryRequest()"
           (openTutorial)="setShowTutorialDialog(true)"
           (closeSection)="setActiveSection('management')"
           (viewRequests)="setActiveSection('my-requests')"
@@ -430,7 +407,7 @@ import { calculateHoursFromDates } from './utils/employee-portal-time.utils';
       [sendingReply]="portalStore.sendingReply()"
       [isLoading]="complaintMessagesApi.isLoading()"
       [getComplaintCategoryLabel]="getComplaintCategoryLabel.bind(this)"
-      (close)="closeConversation()"
+      (closed)="closeConversation()"
       (sendReply)="sendReply()"
       (replyMessageChange)="portalStore.setReplyMessage($event)"
     />
@@ -438,7 +415,7 @@ import { calculateHoursFromDates } from './utils/employee-portal-time.utils';
     <!-- Dialog de Tutorial de Tiempo Compensatorio -->
     <pt-employee-portal-compensatory-tutorial-dialog
       [visible]="portalStore.compensatoryForm().showTutorial"
-      (close)="setShowTutorialDialog(false)"
+      (closed)="setShowTutorialDialog(false)"
     />
 
     <!-- Dialog para Detalles de Solicitud -->
@@ -452,7 +429,7 @@ import { calculateHoursFromDates } from './utils/employee-portal-time.utils';
       [formatHoursMinutes]="formatHoursMinutes.bind(this)"
       [formatDateWithTimeRange]="formatDateWithTimeRange.bind(this)"
       [hasTimeInfo]="hasTimeInfo.bind(this)"
-      (close)="closeRequestDetailsDialog()"
+      (closed)="closeRequestDetailsDialog()"
       (viewResponse)="closeRequestDetailsDialog(); viewResponse($event)"
       (downloadDocument)="downloadDocument($event)"
     />
@@ -817,7 +794,6 @@ export class EmployeePortalComponent {
           const element = document.getElementById(fragment);
           if (element) {
             element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          } else {
           }
         }, 100);
       } else {
@@ -830,8 +806,6 @@ export class EmployeePortalComponent {
       const section = this.portalStore.activeSection();
       if (section === 'timelogs') {
         // Sección timelogs activada - no se requiere logging
-      }
-      if (section === 'management' || section === 'gestiones') {
       }
     });
 
@@ -1350,6 +1324,7 @@ export class EmployeePortalComponent {
       store: this.portalStore,
       api: this.employeePortalApi,
       messageService: this.messageService,
+      http: this.http,
       currentEmployee: () => this.currentEmployee(),
       formState: {
         type: this.portalStore.compensatoryForm().type,
