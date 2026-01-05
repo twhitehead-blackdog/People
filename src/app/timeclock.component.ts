@@ -2309,14 +2309,22 @@ export class TimeclockComponent implements OnDestroy {
           </div>`;
 
           // Add late warning for entry if applicable
+          let isLate = false;
           if (result.delay !== null && result.delay !== undefined) {
+            isLate = true;
             const delayFormatted = this.formatTimeDifference(result.delay);
             message += `<br><div style="color: #ef4444; font-weight: bold; text-align: center;">😱 Marcaste tarde: ${delayFormatted} de retraso</div>`;
+            // Reproducir sonido de fracaso
+            this.playFailureSound();
           } else if (type === 'entry' && !result.hasSchedule) {
             message += `<br><div style="color: #6b7280; font-style: italic; text-align: center;">ℹ️ No se encontró horario configurado para hoy</div>`;
+            // No reproducir sonido si no hay horario
           } else if (type === 'entry' && result.isDayOff) {
             message += `<br><div style="color: #6b7280; font-style: italic; text-align: center;">ℹ️ Día libre</div>`;
+            // No reproducir sonido en día libre
           } else if (type === 'entry') {
+            // Reproducir sonido de éxito
+            this.playSuccessSound();
             message += `<br><div style="color: #10b981; font-weight: bold; text-align: center;">✓ Marcaste a tiempo</div>`;
           }
 
@@ -2366,29 +2374,221 @@ export class TimeclockComponent implements OnDestroy {
 
           // Nota: El tiempo excedido ya se acumuló en la RPC, no necesitamos llamar a increment_lunch_exceeded_minutes
 
-          this.isProcessing.set(false);
-          this.confirmation.confirm({
-            message,
-            key: 'confirm1',
-            header: 'Éxito',
-            icon: 'pi pi-check',
-            acceptLabel: 'Aceptar',
-            rejectVisible: false,
-            accept: () => {
-              this.form.get('otp')?.reset();
-              this.form.get('employee')?.reset();
-              this.showKeypad.set(false);
-              // Solo validar IP si NO es Naz
-              if (!this.isNazCompany() && !this.validIP()) {
-                this.alertInvalidIP();
+          // Calcular racha si marcó a tiempo (solo para entry)
+          if (type === 'entry' && !isLate && result.hasSchedule && !result.isDayOff) {
+            this.calculateAndShowStreak(employeeId).then((streakInfo) => {
+              let finalMessage = message;
+              if (streakInfo > 0) {
+                const fireEmojis = '🔥'.repeat(Math.min(Math.floor(streakInfo / 5) + 1, 5));
+                finalMessage += `<br><div style="color: #f59e0b; font-weight: bold; text-align: center; font-size: 1.1em; margin-top: 0.5rem;">${fireEmojis} Racha de ${streakInfo} día${streakInfo > 1 ? 's' : ''} consecutivo${streakInfo > 1 ? 's' : ''} ${fireEmojis}</div>`;
               }
-            },
-          });
+              this.showConfirmationDialog(finalMessage);
+            });
+          } else {
+            this.showConfirmationDialog(message);
+          }
         },
         error: () => {
           this.isProcessing.set(false);
         },
       });
+  }
+
+  // Mostrar diálogo de confirmación
+  private showConfirmationDialog(message: string): void {
+    this.isProcessing.set(false);
+    this.confirmation.confirm({
+      message,
+      key: 'confirm1',
+      header: 'Éxito',
+      icon: 'pi pi-check',
+      acceptLabel: 'Aceptar',
+      rejectVisible: false,
+      accept: () => {
+        this.form.get('otp')?.reset();
+        this.form.get('employee')?.reset();
+        this.showKeypad.set(false);
+        // Solo validar IP si NO es Naz
+        if (!this.isNazCompany() && !this.validIP()) {
+          this.alertInvalidIP();
+        }
+      },
+    });
+  }
+
+  // Reproducir sonido de éxito
+  private playSuccessSound(): void {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      // Frecuencia ascendente (éxito) - tono agradable
+      oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
+      oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1); // E5
+      oscillator.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.2); // G5
+
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3);
+    } catch (error) {
+      // Silenciar errores de audio (puede fallar en algunos navegadores)
+    }
+  }
+
+  // Reproducir sonido de fracaso
+  private playFailureSound(): void {
+    try {
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+
+      // Frecuencia descendente (fracaso) - tono bajo
+      oscillator.frequency.setValueAtTime(392.00, audioContext.currentTime); // G4
+      oscillator.frequency.setValueAtTime(311.13, audioContext.currentTime + 0.1); // D#4
+      oscillator.frequency.setValueAtTime(261.63, audioContext.currentTime + 0.2); // C4
+
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.3);
+    } catch (error) {
+      // Silenciar errores de audio (puede fallar en algunos navegadores)
+    }
+  }
+
+  // Calcular racha de días consecutivos marcando a tiempo
+  private async calculateAndShowStreak(employeeId: string): Promise<number> {
+    try {
+      const { year, month, day } = this.getPanamaNowParts();
+      
+      // Obtener timelogs de entrada del empleado (últimos 100 días)
+      const timelogs = await this.http
+        .get<TimeLog[]>(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs?employee_id=eq.${employeeId}&type=eq.entry&order=created_at.desc&limit=100`,
+          {
+            headers: {
+              apikey: process.env['ENV_SUPABASE_ANON_KEY']!,
+              Authorization: `Bearer ${process.env['ENV_SUPABASE_ANON_KEY']}`,
+            },
+          }
+        )
+        .pipe(
+          catchError(() => of([])),
+          map((logs) => logs || [])
+        )
+        .toPromise();
+
+      if (!timelogs || timelogs.length === 0) {
+        return 0;
+      }
+
+      // Obtener schedules del empleado
+      const schedules = await this.http
+        .get<EmployeeSchedule[]>(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules?employee_id=eq.${employeeId}&select=*,schedule:schedules(*)&order=start_date.desc&limit=100`,
+          {
+            headers: {
+              apikey: process.env['ENV_SUPABASE_ANON_KEY']!,
+              Authorization: `Bearer ${process.env['ENV_SUPABASE_ANON_KEY']}`,
+            },
+          }
+        )
+        .pipe(
+          catchError(() => of([])),
+          map((scheds) => scheds || [])
+        )
+        .toPromise();
+
+      if (!schedules || schedules.length === 0) {
+        return 0;
+      }
+
+      // Calcular racha: días consecutivos marcando a tiempo (hacia atrás desde hoy)
+      let streak = 0;
+      const checkedDates = new Set<string>();
+
+      // Ordenar timelogs por fecha (más reciente primero)
+      const sortedLogs = [...timelogs].sort((a, b) => {
+        const dateA = new Date(a.created_at);
+        const dateB = new Date(b.created_at);
+        return dateB.getTime() - dateA.getTime();
+      });
+
+      for (const log of sortedLogs) {
+        const logDate = new Date(log.created_at);
+        const logDateStr = format(logDate, 'yyyy-MM-dd');
+        
+        // Evitar contar el mismo día dos veces
+        if (checkedDates.has(logDateStr)) {
+          continue;
+        }
+        checkedDates.add(logDateStr);
+
+        // Verificar si este día fue a tiempo
+        const schedule = schedules.find(
+          (s) => {
+            const startDate = s.start_date instanceof Date ? s.start_date : new Date(s.start_date);
+            const endDate = s.end_date instanceof Date ? s.end_date : new Date(s.end_date);
+            const startDateStr = format(startDate, 'yyyy-MM-dd');
+            const endDateStr = format(endDate, 'yyyy-MM-dd');
+            return startDateStr <= logDateStr && endDateStr >= logDateStr && !s.schedule?.day_off;
+          }
+        );
+
+        if (!schedule || !schedule.schedule?.entry_time) {
+          // Sin horario = no cuenta para la racha, pero no la rompe
+          continue;
+        }
+
+        // Verificar si fue tarde usando la misma lógica que calculateIsLate
+        const entryTimeZoned = toZonedTime(logDate, 'America/Panama');
+        const entryTimeStr = format(entryTimeZoned, 'HH:mm:ss');
+        const scheduledTimeStr =
+          typeof schedule.schedule.entry_time === 'string'
+            ? schedule.schedule.entry_time
+            : format(new Date(schedule.schedule.entry_time), 'HH:mm:ss');
+
+        const entryParts = entryTimeStr.split(':');
+        const scheduledParts = scheduledTimeStr.split(':');
+        
+        const entryMinutes = +entryParts[0] * 60 + +entryParts[1];
+        const scheduledMinutes = +scheduledParts[0] * 60 + +scheduledParts[1];
+        const tolerance = schedule.schedule.minutes_tolerance ?? 0;
+
+        // Si marcó a tiempo (dentro de la tolerancia), incrementar racha
+        if (entryMinutes <= scheduledMinutes + tolerance) {
+          streak++;
+        } else {
+          // Marcó tarde, rompe la racha
+          break;
+        }
+      }
+
+      return streak;
+    } catch (error) {
+      // Si hay error, retornar 0
+      return 0;
+    }
+  }
+
+  // Helper para obtener partes de fecha en Panamá
+  private getPanamaNowParts(): { year: number; month: number; day: number } {
+    const now = toZonedTime(new Date(), 'America/Panama');
+    return {
+      year: now.getFullYear(),
+      month: now.getMonth() + 1,
+      day: now.getDate(),
+    };
   }
 
   private alertInvalidIP() {
