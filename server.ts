@@ -1,9 +1,51 @@
 import dotenv from 'dotenv';
 import express from 'express';
 import nodemailer from 'nodemailer';
+import path from 'path';
 
 // Cargar variables de entorno desde .env
 dotenv.config();
+
+// Helper para logging seguro en producción
+const isProduction = process.env['NODE_ENV'] === 'production';
+const safeLogger = {
+  log: (...args: any[]) => {
+    if (!isProduction) console.log(...args);
+  },
+  error: (message: string, error?: any) => {
+    if (isProduction) {
+      console.error(message);
+      if (error?.message) console.error('Error:', error.message);
+    } else {
+      console.error(message, error);
+    }
+  },
+  warn: (message: string, ...args: any[]) => {
+    if (isProduction) {
+      console.warn(message);
+    } else {
+      console.warn(message, ...args);
+    }
+  },
+  safeLog: (message: string, data?: Record<string, any>) => {
+    if (!isProduction && data) {
+      const safeData = Object.keys(data).reduce((acc, key) => {
+        const value = data[key];
+        if (typeof value === 'string' && value.length > 3) {
+          acc[key] = `${value.substring(0, 3)}***`;
+        } else if (typeof value === 'object' && value !== null) {
+          acc[key] = '[Object]';
+        } else {
+          acc[key] = value;
+        }
+        return acc;
+      }, {} as Record<string, any>);
+      console.log(message, safeData);
+    } else if (isProduction) {
+      console.log(message);
+    }
+  },
+};
 
 // The Express app is exported so that it can be used by serverless Functions.
 export function app(): express.Express {
@@ -105,7 +147,7 @@ export function app(): express.Express {
 
       return res.json({ success: true, data: responseData });
     } catch (error: any) {
-      console.error('Error en proxy de Wassenger:', error);
+      safeLogger.error('Error en proxy de Wassenger', error);
       return res.status(500).json({
         error: 'Error interno del servidor',
         message: error.message,
@@ -127,12 +169,7 @@ export function app(): express.Express {
       const noreplyName = process.env['ENV_SMTP_NOREPLY_NAME'] || 'Black Dog';
 
       if (!smtpUser || !smtpPassword) {
-        console.error('❌ Configuración SMTP faltante:', {
-          hasUser: !!smtpUser,
-          hasPassword: !!smtpPassword,
-          host: smtpHost,
-          port: smtpPort,
-        });
+        safeLogger.error('❌ Configuración SMTP faltante');
         return res.status(500).json({
           error: 'Email service not configured',
           message:
@@ -176,21 +213,13 @@ export function app(): express.Express {
         text: text || html.replace(/<[^>]*>/g, ''), // Convertir HTML a texto si no se proporciona
       });
 
-      console.log('✅ Email enviado exitosamente:', {
+      safeLogger.safeLog('✅ Email enviado exitosamente', {
         to: recipients.join(', '),
         messageId: info.messageId,
       });
       return res.json({ success: true, data: { messageId: info.messageId } });
     } catch (error: any) {
-      console.error('❌ Error sending email:', error);
-      console.error('❌ Detalles del error:', {
-        message: error.message,
-        code: error.code,
-        command: error.command,
-        response: error.response,
-        responseCode: error.responseCode,
-        responseMessage: error.responseMessage,
-      });
+      safeLogger.error('❌ Error sending email', error);
 
       // Mensaje de error más descriptivo
       let errorMessage = 'Error desconocido al enviar el email';
@@ -221,19 +250,32 @@ export function app(): express.Express {
     }
   });
 
-  // Root endpoint - información básica del servidor
+  // Root endpoint - información básica del servidor (solo para peticiones API)
+  // Para peticiones del navegador, servir index.html directamente
   server.get('/', (req, res) => {
-    res.json({
-      status: 'ok',
-      message: 'People API Server is running',
-      version: '1.0.0',
-      endpoints: {
-        health: '/api/health',
-        clientIp: '/api/client-ip',
-        wassenger: '/api/wassenger/send-message',
-        email: '/api/email/send',
-      },
-    });
+    // Solo servir JSON si es una petición API explícita
+    if (req.headers.accept && req.headers.accept.includes('application/json')) {
+      res.json({
+        status: 'ok',
+        message: 'People API Server is running',
+        version: '1.0.0',
+        endpoints: {
+          health: '/api/health',
+          clientIp: '/api/client-ip',
+          serverTime: '/api/server-time',
+          wassenger: '/api/wassenger/send-message',
+          email: '/api/email/send',
+        },
+      });
+    } else {
+      // Para peticiones del navegador, servir index.html directamente
+      res.sendFile(path.join(distFolder, 'index.html'), (err) => {
+        if (err) {
+          safeLogger.error('Error sirviendo index.html en /', err);
+          res.status(500).send('Error loading application');
+        }
+      });
+    }
   });
 
   // Health check endpoint
@@ -295,7 +337,7 @@ export function app(): express.Express {
       });
       return;
     } catch (error: any) {
-      console.error('Error en /api/server-time:', error);
+      safeLogger.error('Error en /api/server-time', error);
       res.json({
         server_time: new Date().toISOString(),
         source: 'node-fallback-error',
@@ -367,7 +409,7 @@ export function app(): express.Express {
       return;
     } catch (error: any) {
       // Manejar cualquier error inesperado
-      console.error('Error en /api/client-ip:', error);
+      safeLogger.error('Error en /api/client-ip', error);
       res.status(200).json({
         ip: null,
         error: 'Error al obtener IP del cliente',
@@ -375,6 +417,54 @@ export function app(): express.Express {
       });
       return;
     }
+  });
+
+  // Servir archivos estáticos del frontend Angular
+  const distFolder = path.join(__dirname, '../../dist/people/browser');
+  
+  // Servir archivos estáticos con el prefijo /people-test
+  server.use('/people-test', express.static(distFolder, {
+    setHeaders: (res, filePath) => {
+      // Asegurar que los archivos JS se sirvan con el MIME type correcto
+      if (filePath.endsWith('.js')) {
+        res.setHeader('Content-Type', 'application/javascript; charset=UTF-8');
+      } else if (filePath.endsWith('.css')) {
+        res.setHeader('Content-Type', 'text/css; charset=UTF-8');
+      }
+    },
+    fallthrough: true, // Permitir que el catch-all maneje si no encuentra el archivo
+  }));
+
+  // También servir desde la raíz (por si Traefik quita el prefijo)
+  // Usar fallthrough: true para que si no encuentra el archivo, continúe al catch-all
+  server.use(express.static(distFolder, {
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('.js')) {
+        res.setHeader('Content-Type', 'application/javascript; charset=UTF-8');
+      } else if (filePath.endsWith('.css')) {
+        res.setHeader('Content-Type', 'text/css; charset=UTF-8');
+      }
+    },
+    fallthrough: true, // Permitir que el catch-all maneje si no encuentra el archivo
+  }));
+
+  // Catch-all route: enviar el index.html para cualquier ruta no API
+  // Esto permite que Angular Router maneje las rutas del frontend
+  // IMPORTANTE: Esta ruta debe ir DESPUÉS de express.static para que funcione correctamente
+  server.get('*', (req, res) => {
+    // Ignorar rutas de API
+    if (req.path.startsWith('/api/')) {
+      res.status(404).json({ error: 'API endpoint not found' });
+      return;
+    }
+    
+    // Servir index.html para todas las demás rutas (SPA routing)
+    res.sendFile(path.join(distFolder, 'index.html'), (err) => {
+      if (err) {
+        safeLogger.error('Error sirviendo index.html', err);
+        res.status(500).send('Error loading application');
+      }
+    });
   });
 
   return server;
@@ -390,26 +480,23 @@ function run(): void {
   const smtpUser = process.env['ENV_SMTP_USER'];
   const smtpPassword = process.env['ENV_SMTP_PASSWORD'];
 
-  console.log('📧 Configuración SMTP:', {
+  safeLogger.safeLog('📧 Configuración SMTP', {
     host: smtpHost,
     port: smtpPort,
-    user: smtpUser ? `${smtpUser.substring(0, 3)}***` : 'NO CONFIGURADO',
+    user: smtpUser || 'NO CONFIGURADO',
     hasPassword: !!smtpPassword,
   });
 
   if (!smtpUser || !smtpPassword) {
-    console.warn(
+    safeLogger.warn(
       '⚠️  ADVERTENCIA: Variables SMTP no configuradas. El servicio de email no funcionará.'
-    );
-    console.warn(
-      '   Configura ENV_SMTP_USER y ENV_SMTP_PASSWORD en tu archivo .env'
     );
   }
 
   // Start up the Node server
   const server = app();
   server.listen(port, () => {
-    console.log(`Node Express server listening on http://localhost:${port}`);
+    safeLogger.log(`Node Express server listening on http://localhost:${port}`);
   });
 }
 

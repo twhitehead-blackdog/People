@@ -17,6 +17,7 @@ import { Toast } from 'primeng/toast';
 import { Branch } from '../models';
 import { OrganizationService } from '../services/organization.service';
 import { APP_VERSION } from '../version';
+import { logger } from '../utils/logger';
 
 @Component({
   selector: 'pt-login',
@@ -192,79 +193,16 @@ import { APP_VERSION } from '../version';
       min-height: 100vh;
     }
 
-    /* Animación de lava lamp plateada - cubre toda la pantalla */
+    /* Animación de lava lamp plateada - DESACTIVADA */
     .naz-theme .animated-gradient-container::before {
-      content: '';
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      min-height: 200vh;
-      background: 
-        repeating-linear-gradient(
-          45deg,
-          rgba(255, 255, 255, 0.5) 0%,
-          rgba(255, 255, 255, 0.6) 2%,
-          rgba(229, 226, 223, 0.65) 4%,
-          rgba(198, 194, 191, 0.55) 6%,
-          transparent 8%,
-          transparent 12%,
-          rgba(198, 194, 191, 0.5) 14%,
-          rgba(229, 226, 223, 0.6) 16%,
-          rgba(255, 255, 255, 0.55) 18%,
-          transparent 20%
-        ),
-        linear-gradient(
-          135deg,
-          rgba(255, 255, 255, 0.6) 0%,
-          rgba(229, 226, 223, 0.7) 25%,
-          rgba(198, 194, 191, 0.6) 50%,
-          rgba(229, 226, 223, 0.65) 75%,
-          rgba(255, 255, 255, 0.55) 100%
-        );
-      animation: silverLavaFlow 25s ease-in-out infinite;
-      z-index: 0;
-      filter: blur(25px);
-      pointer-events: none;
+      display: none;
     }
 
     .naz-theme .animated-gradient-container::after {
-      content: '';
-      position: absolute;
-      top: -50%;
-      right: -50%;
-      width: 200%;
-      height: 200%;
-      min-height: 200vh;
-      background: 
-        repeating-linear-gradient(
-          -45deg,
-          rgba(229, 226, 223, 0.55) 0%,
-          rgba(255, 255, 255, 0.65) 2%,
-          rgba(198, 194, 191, 0.6) 4%,
-          rgba(229, 226, 223, 0.5) 6%,
-          transparent 8%,
-          transparent 12%,
-          rgba(255, 255, 255, 0.55) 14%,
-          rgba(198, 194, 191, 0.65) 16%,
-          rgba(229, 226, 223, 0.6) 18%,
-          transparent 20%
-        ),
-        linear-gradient(
-          -135deg,
-          rgba(198, 194, 191, 0.7) 0%,
-          rgba(229, 226, 223, 0.75) 30%,
-          rgba(255, 255, 255, 0.65) 60%,
-          rgba(198, 194, 191, 0.6) 100%
-        );
-      animation: silverLavaFlow 30s ease-in-out infinite reverse;
-      z-index: 0;
-      filter: blur(30px);
-      pointer-events: none;
+      display: none;
     }
 
-    /* Animación de lava lamp plateada también en login-container para tema Naz */
+    /* Animación de lava lamp plateada también en login-container - DESACTIVADA */
     .naz-theme .login-container {
       background: transparent;
       position: relative;
@@ -272,74 +210,20 @@ import { APP_VERSION } from '../version';
     }
 
     .naz-theme .login-container::before {
-      content: '';
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      min-height: 200vh;
-      background: 
-        repeating-linear-gradient(
-          45deg,
-          rgba(255, 255, 255, 0.5) 0%,
-          rgba(255, 255, 255, 0.6) 2%,
-          rgba(229, 226, 223, 0.65) 4%,
-          rgba(198, 194, 191, 0.55) 6%,
-          transparent 8%,
-          transparent 12%,
-          rgba(198, 194, 191, 0.5) 14%,
-          rgba(229, 226, 223, 0.6) 16%,
-          rgba(255, 255, 255, 0.55) 18%,
-          transparent 20%
-        ),
-        linear-gradient(
-          135deg,
-          rgba(255, 255, 255, 0.6) 0%,
-          rgba(229, 226, 223, 0.7) 25%,
-          rgba(198, 194, 191, 0.6) 50%,
-          rgba(229, 226, 223, 0.65) 75%,
-          rgba(255, 255, 255, 0.55) 100%
-        );
-      animation: silverLavaFlow 25s ease-in-out infinite;
-      z-index: 0;
-      filter: blur(25px);
-      pointer-events: none;
+      display: none;
     }
 
     .naz-theme .login-container::after {
-      content: '';
-      position: absolute;
-      top: -50%;
-      right: -50%;
-      width: 200%;
-      height: 200%;
-      min-height: 200vh;
-      background: 
-        repeating-linear-gradient(
-          -45deg,
-          rgba(229, 226, 223, 0.55) 0%,
-          rgba(255, 255, 255, 0.65) 2%,
-          rgba(198, 194, 191, 0.6) 4%,
-          rgba(229, 226, 223, 0.5) 6%,
-          transparent 8%,
-          transparent 12%,
-          rgba(255, 255, 255, 0.55) 14%,
-          rgba(198, 194, 191, 0.65) 16%,
-          rgba(229, 226, 223, 0.6) 18%,
-          transparent 20%
-        ),
-        linear-gradient(
-          -135deg,
-          rgba(198, 194, 191, 0.7) 0%,
-          rgba(229, 226, 223, 0.75) 30%,
-          rgba(255, 255, 255, 0.65) 60%,
-          rgba(198, 194, 191, 0.6) 100%
-        );
-      animation: silverLavaFlow 30s ease-in-out infinite reverse;
-      z-index: 0;
-      filter: blur(30px);
-      pointer-events: none;
+      display: none;
+    }
+
+    /* Código anterior comentado - animaciones desactivadas
+    .naz-theme .login-container::before {
+      display: none;
+    }
+
+    .naz-theme .login-container::after {
+      display: none;
     }
 
     /* Asegurar que el contenido esté por encima de la animación */
@@ -1605,24 +1489,20 @@ export class LoginComponent {
         // Si no se puede cambiar y estamos en una IP de sucursal, forzar Black Dog
         if (this.organizationService.isNaz()) {
           this.organizationService.setOrganization('blackdog');
-          console.log('🔒 Forzando Black Dog por IP de sucursal:', ip);
+          logger.debug('🔒 Forzando Black Dog por IP de sucursal');
         }
       }
     });
   }
 
   nextOrganization() {
-    console.log('🔄 Cambiando a siguiente organización desde login');
+    logger.debug('🔄 Cambiando a siguiente organización desde login');
     this.organizationService.nextOrganization();
-    const currentCompanyId = this.organizationService.getCurrentCompanyId();
-    console.log('✅ Company ID actual después del cambio:', currentCompanyId);
   }
 
   previousOrganization() {
-    console.log('🔄 Cambiando a organización anterior desde login');
+    logger.debug('🔄 Cambiando a organización anterior desde login');
     this.organizationService.previousOrganization();
-    const currentCompanyId = this.organizationService.getCurrentCompanyId();
-    console.log('✅ Company ID actual después del cambio:', currentCompanyId);
   }
 
   setMode(mode: 'dashboard' | 'kiosk') {
@@ -1647,38 +1527,19 @@ export class LoginComponent {
 
   async signIn() {
     // Esperar a que los company_ids estén listos
-    console.log('⏳ Esperando a que los company_ids estén listos...');
+    logger.debug('⏳ Esperando a que los company_ids estén listos...');
     await this.organizationService.waitForCompanyIds();
 
     const currentCompanyId = this.organizationService.getCurrentCompanyId();
     const currentOrg = this.organizationService.currentOrganization;
 
     if (!currentCompanyId) {
-      console.error(
-        '❌ No se pudo obtener company_id. Usando organización por defecto.'
-      );
+      logger.error('❌ No se pudo obtener company_id. Usando organización por defecto.');
       // Asegurar que al menos tengamos una organización
       if (!currentOrg) {
         this.organizationService.setOrganization('blackdog');
       }
-      // Intentar sincronizar de nuevo
-      const retryCompanyId = this.organizationService.getCurrentCompanyId();
-      if (retryCompanyId) {
-        console.log(
-          '✅ Company ID obtenido después de establecer organización por defecto:',
-          retryCompanyId
-        );
-      }
     }
-
-    const finalCompanyId = this.organizationService.getCurrentCompanyId();
-    const finalOrg = this.organizationService.currentOrganization;
-    console.log(
-      '🚀 Iniciando sesión con organización:',
-      finalOrg,
-      'company_id:',
-      finalCompanyId
-    );
 
     // Usar Auth0 para iniciar sesión
     this.auth.loginWithRedirect();
@@ -1700,7 +1561,7 @@ export class LoginComponent {
         if (response?.ip) {
           const ip = response.ip.trim();
           this.currentIP.set(ip);
-          console.log('📍 IP detectada en login:', ip);
+          logger.debug('📍 IP detectada en login');
         }
       },
       error: () => {
@@ -1708,7 +1569,7 @@ export class LoginComponent {
         this.getIPViaWebRTC()
           .then((ip) => {
             this.currentIP.set(ip);
-            console.log('📍 IP detectada vía WebRTC:', ip);
+            logger.debug('📍 IP detectada vía WebRTC');
           })
           .catch(() => {
             // Si todo falla, usar localhost como fallback
@@ -1732,10 +1593,10 @@ export class LoginComponent {
       .subscribe({
         next: (branches) => {
           this.branches.set(branches);
-          console.log('📍 Sucursales cargadas:', branches.length);
+          logger.debug(`📍 Sucursales cargadas: ${branches.length}`);
         },
         error: (error) => {
-          console.error('Error obteniendo sucursales:', error);
+          logger.error('Error obteniendo sucursales', error);
         },
       });
   }

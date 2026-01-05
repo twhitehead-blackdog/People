@@ -51,13 +51,16 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
         '';
 
     // Si es una petición que necesita service role key y no hay disponible, mostrar error más claro
+    // Solo en desarrollo para evitar exponer información sensible
     if (needsServiceRoleKey && !supabaseKey) {
-      console.error(
-        '[ERROR] No se encontró ENV_SUPABASE_SERVICE_ROLE_KEY para peticiones a ' +
-          (isSettingsRequest ? 'settings' : 'job_applications') +
-          '. ' +
-          'Por favor, agrega esta variable a tu archivo .env y reinicia la aplicación.'
-      );
+      if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+        console.error(
+          '[ERROR] No se encontró ENV_SUPABASE_SERVICE_ROLE_KEY para peticiones a ' +
+            (isSettingsRequest ? 'settings' : 'job_applications') +
+            '. ' +
+            'Por favor, agrega esta variable a tu archivo .env y reinicia la aplicación.'
+        );
+      }
     }
 
     let headers = req.headers
@@ -85,9 +88,13 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
       tap({
         next: () => {
           // Logging de duración de request exitoso (solo en desarrollo)
+          // NO loguear en producción para evitar exponer URLs de la base de datos
           if (isDevelopment && startTime !== null) {
             const duration = Math.round(performance.now() - startTime);
-            console.log(`[${method}] ${url} - ${duration}ms`);
+            // Solo loguear en localhost, nunca en producción
+            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+              console.log(`[${method}] ${url} - ${duration}ms`);
+            }
           }
         },
       }),

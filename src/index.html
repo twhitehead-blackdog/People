@@ -1,6 +1,134 @@
 <!DOCTYPE html>
 <html lang="en" class="dark">
   <head>
+    <script>
+      // EJECUTAR PRIMERO: Interceptar y filtrar logs de XHR y URLs de base de datos en producción
+      (function() {
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        
+        if (!isLocalhost) {
+          // Patrones a filtrar (URLs de base de datos, XHR logs, etc.)
+          const sensitivePatterns = [
+            /XHR finished loading/i,
+            /XHR failed loading/i,
+            /XHR/i,
+            /supabase\.co/i,
+            /rest\/v1\//i,
+            /storage\/v1\//i,
+            /companies\?select/i,
+            /positions\?select/i,
+            /settings\?select/i,
+            /job_applications/i,
+            /branches\?select/i,
+            /company_id=eq\./i,
+            /email=eq\./i,
+            /phone_number/i,
+            /\.supabase\.co/i,
+            /fsrptlzaqjkcutoiivjr/i, // ID del proyecto Supabase
+            /\[PositionsStore\]/i,
+            /Cargando posiciones/i,
+            /Posiciones recibidas/i,
+            /Company ID:/i,
+          ];
+          
+          // Función para verificar si un mensaje contiene información sensible
+          function containsSensitiveInfo(...args) {
+            try {
+              const message = args.map(arg => {
+                if (typeof arg === 'string') return arg;
+                if (typeof arg === 'object' && arg !== null) {
+                  try {
+                    return JSON.stringify(arg);
+                  } catch {
+                    return String(arg);
+                  }
+                }
+                return String(arg);
+              }).join(' ');
+              return sensitivePatterns.some(pattern => pattern.test(message));
+            } catch {
+              return false;
+            }
+          }
+          
+          // Guardar las funciones originales ANTES de que Angular las use
+          const originalLog = console.log;
+          const originalWarn = console.warn;
+          const originalError = console.error;
+          const originalInfo = console.info;
+          const originalDebug = console.debug;
+          
+          // Usar Proxy para interceptar console de manera más agresiva
+          try {
+            const consoleProxy = new Proxy(console, {
+              get: function(target, prop) {
+                if (prop === 'log' || prop === 'warn' || prop === 'error' || prop === 'info' || prop === 'debug') {
+                  return function(...args) {
+                    if (containsSensitiveInfo(...args)) {
+                      return; // No mostrar en producción
+                    }
+                    return target[prop].apply(target, args);
+                  };
+                }
+                return target[prop];
+              }
+            });
+            
+            // Reemplazar console con el proxy
+            window.console = consoleProxy;
+          } catch (e) {
+            // Fallback: usar Object.defineProperty
+            const createFilteredMethod = (original) => {
+              return function(...args) {
+                if (containsSensitiveInfo(...args)) {
+                  return; // No mostrar en producción
+                }
+                return original.apply(console, args);
+              };
+            };
+            
+            try {
+              Object.defineProperty(console, 'log', {
+                value: createFilteredMethod(originalLog),
+                writable: true,
+                configurable: true
+              });
+              
+              Object.defineProperty(console, 'warn', {
+                value: createFilteredMethod(originalWarn),
+                writable: true,
+                configurable: true
+              });
+              
+              Object.defineProperty(console, 'error', {
+                value: createFilteredMethod(originalError),
+                writable: true,
+                configurable: true
+              });
+              
+              Object.defineProperty(console, 'info', {
+                value: createFilteredMethod(originalInfo),
+                writable: true,
+                configurable: true
+              });
+              
+              Object.defineProperty(console, 'debug', {
+                value: createFilteredMethod(originalDebug),
+                writable: true,
+                configurable: true
+              });
+            } catch (e2) {
+              // Último fallback: asignación directa
+              console.log = createFilteredMethod(originalLog);
+              console.warn = createFilteredMethod(originalWarn);
+              console.error = createFilteredMethod(originalError);
+              console.info = createFilteredMethod(originalInfo);
+              console.debug = createFilteredMethod(originalDebug);
+            }
+          }
+        }
+      })();
+    </script>
     <meta charset="utf-8" />
     <title>People | Registro de Empleados</title>
     <base href="/" />

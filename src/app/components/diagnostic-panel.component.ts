@@ -177,15 +177,18 @@ export class DiagnosticPanelComponent implements OnInit, OnDestroy {
   };
 
   ngOnInit(): void {
-    console.log('🔍 [Diagnóstico] Panel inicializado');
+    // Solo log en desarrollo
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      console.log('[Diagnóstico] Panel inicializado');
+    }
     
     // Suscribirse a cambios de visibilidad
     this.diagnosticService.isVisible$
       .pipe(takeUntil(this.destroy$))
       .subscribe(visible => {
         this.isVisible = visible;
-        if (visible) {
-          console.log('🔍 [Diagnóstico] Panel visible, errores actuales:', this.diagnosticService.getErrors().length);
+        if (visible && typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+          console.log('[Diagnóstico] Panel visible, errores actuales:', this.diagnosticService.getErrors().length);
         }
       });
 
@@ -195,8 +198,8 @@ export class DiagnosticPanelComponent implements OnInit, OnDestroy {
       .subscribe(errors => {
         this.errors = errors;
         this.errorCount = errors.length;
-        if (errors.length > 0) {
-          console.log('🔍 [Diagnóstico] Nuevo error capturado:', errors[0].message);
+        if (errors.length > 0 && typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+          console.log('[Diagnóstico] Nuevo error capturado:', errors[0].message);
         }
       });
 
@@ -210,7 +213,7 @@ export class DiagnosticPanelComponent implements OnInit, OnDestroy {
     setTimeout(() => {
       const initialErrors = this.diagnosticService.getErrors();
       if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-        console.log('🔍 [Diagnóstico] Errores iniciales:', initialErrors.length);
+        console.log('[Diagnóstico] Errores iniciales:', initialErrors.length);
       }
     }, 1000);
   }
