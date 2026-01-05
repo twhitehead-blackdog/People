@@ -2475,6 +2475,13 @@ import { OrganizationService } from '../services/organization.service';
       gap: 1.5rem;
     }
 
+    @media (max-width: 768px) {
+      .charts-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem;
+      }
+    }
+
     .chart-card {
       background: #18181b;
       border: 2px solid rgba(251, 191, 36, 0.5);
@@ -2613,6 +2620,13 @@ import { OrganizationService } from '../services/organization.service';
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
       gap: 1.5rem;
+    }
+
+    @media (max-width: 768px) {
+      .events-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem;
+      }
     }
 
     .event-card {
@@ -2810,7 +2824,48 @@ import { OrganizationService } from '../services/organization.service';
       }
     }
 
-    /* Responsive */
+    /* Responsive - Mobile First */
+    @media (max-width: 768px) {
+      .events-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem;
+      }
+
+      .kpi-grid:not(.executive-kpi-grid) {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
+        gap: 0.75rem;
+      }
+
+      .kpi-card {
+        min-height: auto;
+        padding: 0.875rem !important;
+      }
+
+      .kpi-value {
+        font-size: 1.5rem !important;
+      }
+
+      .kpi-label {
+        font-size: 0.75rem !important;
+      }
+
+      .kpi-sublabel {
+        font-size: 0.6875rem !important;
+      }
+
+      .chart-card {
+        padding: 1rem !important;
+      }
+
+      .chart-container {
+        min-height: 250px !important;
+      }
+
+      .sparkline-box {
+        height: 60px !important;
+      }
+    }
+
     @media (max-width: 1024px) {
       .dashboard-sidebar {
         top: 0;
@@ -2942,6 +2997,29 @@ import { OrganizationService } from '../services/organization.service';
     @media (max-width: 768px) {
       .dashboard-container {
         padding: 4rem 1rem 3rem;
+      }
+
+      /* En móvil, el executive grid debe ser de 1 columna */
+      .executive-kpi-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1rem;
+      }
+
+      /* Todos los cards en móvil ocupan 1 columna completa */
+      .executive-kpi-grid > .kpi-card {
+        grid-column: span 1 !important;
+        grid-row: auto !important;
+        min-height: auto;
+      }
+
+      /* Ajustar padding en móvil */
+      .executive-kpi-grid > .kpi-card {
+        padding: 1rem !important;
+      }
+
+      /* Asegurar que los gráficos se ajusten en móvil */
+      .kpi-card .kpi-content {
+        min-height: auto;
       }
 
       .gender-vs-card {
