@@ -15,6 +15,7 @@ import {
   endOfMonth,
   format,
   startOfMonth,
+  subDays,
 } from 'date-fns';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
@@ -68,6 +69,7 @@ interface Disability {
 interface CompensatoryRequest {
   id: string;
   employee_id: string;
+  company_id?: string;
   employee?: {
     id: string;
     first_name: string;
@@ -1086,8 +1088,7 @@ interface CompensatoryRequest {
               [text]="true"
               severity="secondary"
               (onClick)="showAuditSidebar.set(!showAuditSidebar())"
-              [class.bg-blue-500/20]="showAuditSidebar()"
-              [class.text-blue-400]="showAuditSidebar()"
+              [styleClass]="showAuditSidebar() ? 'bg-blue-500/20 text-blue-400' : ''"
               pTooltip="Ver historial de cambios"
               tooltipPosition="left"
               size="small"
@@ -1419,8 +1420,7 @@ interface CompensatoryRequest {
               [text]="true"
               severity="secondary"
               (onClick)="showAuditSidebar.set(!showAuditSidebar())"
-              [class.bg-cyan-500/20]="showAuditSidebar()"
-              [class.text-cyan-400]="showAuditSidebar()"
+              [styleClass]="showAuditSidebar() ? 'bg-cyan-500/20 text-cyan-400' : ''"
               pTooltip="Ver historial de cambios"
               tooltipPosition="left"
               size="small"
@@ -1478,11 +1478,11 @@ interface CompensatoryRequest {
             </div>
           </div>
 
-          <!-- Horas Extras Disponibles -->
+          <!-- Horas Extra Pendientes (histórico) -->
           <div class="p-4 bg-gradient-to-r from-cyan-500/20 to-cyan-600/10 border border-cyan-400/30 rounded-lg">
             <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
               <i class="pi pi-clock text-cyan-400"></i>
-              Horas Extras Disponibles
+              Horas Extra Pendientes (histórico)
             </h3>
             @if (isLoadingOvertimeHours()) {
             <div class="flex items-center gap-2 text-gray-400">
@@ -1492,7 +1492,7 @@ interface CompensatoryRequest {
             } @else {
             <div class="flex items-center justify-between mb-3">
               <div>
-                <p class="text-sm text-gray-400 mb-1">Total de horas extras acumuladas (mes actual)</p>
+                <p class="text-sm text-gray-400 mb-1">Total pendiente (no usado)</p>
                 <p class="text-3xl font-bold text-cyan-300">
                   {{ employeeOvertimeHours().toFixed(1) }}h
                 </p>
@@ -1504,7 +1504,9 @@ interface CompensatoryRequest {
             @if (employeeOvertimeDays().length > 0) {
               <!-- Mostrar días con horas extras -->
               <div class="mt-3">
-                <p class="text-xs font-medium text-gray-300 mb-2">Días con horas extras trabajadas:</p>
+                <p class="text-xs font-medium text-gray-300 mb-2">
+                  Días con saldo pendiente (mostrando últimos {{ employeeOvertimeDays().length }}):
+                </p>
                 <div class="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
                   @for (day of employeeOvertimeDays(); track day.day) {
                     <div class="bg-cyan-500/10 border border-cyan-400/30 rounded-lg p-2 hover:bg-cyan-500/20 transition-colors">
@@ -1513,7 +1515,7 @@ interface CompensatoryRequest {
                           {{ formatDate(day.day) }}
                         </span>
                         <span class="text-xs font-bold text-cyan-400">
-                          +{{ day.overtimeHours.toFixed(1) }}h
+                          {{ day.overtimeHours.toFixed(1) }}h
                         </span>
                       </div>
                       @if (day.entryTime && day.exitTime) {
@@ -1524,10 +1526,23 @@ interface CompensatoryRequest {
                     </div>
                   }
                 </div>
+                <div class="mt-3 flex items-center justify-between gap-2">
+                  <p class="text-[11px] text-gray-400 m-0">
+                    Cargando histórico: últimos {{ overtimeHistoryWindowDays() }} días
+                  </p>
+                  <p-button
+                    label="Cargar más"
+                    icon="pi pi-plus"
+                    size="small"
+                    severity="secondary"
+                    [outlined]="true"
+                    (onClick)="loadMoreOvertimeHistory()"
+                  />
+                </div>
               </div>
             } @else {
               <p class="text-xs text-gray-400 mt-3">
-                El empleado no tiene horas extras acumuladas este mes. Las horas extras se generan cuando se trabaja más de 8 horas en un día.
+                No hay días con horas extra pendientes dentro del rango cargado.
               </p>
             }
             }
@@ -2242,6 +2257,18 @@ export class HRDisabilitiesComponent {
     return this.sanitizer.bypassSecurityTrustUrl(disability.document_url);
   });
   public isLoadingOvertimeHours = signal<boolean>(false);
+  // Historial: por defecto cargamos 1 año hacia atrás y permitimos ampliar
+  public overtimeHistoryWindowDays = signal<number>(365);
+  // Lista completa (dentro del rango cargado) para consumo/ordenamiento
+  public employeeOvertimeDaysAll = signal<
+    Array<{
+      day: string;
+      overtimeHours: number;
+      entryTime?: string;
+      exitTime?: string;
+      totalHours?: number;
+    }>
+  >([]);
   public employeeOvertimeDays = signal<
     Array<{
       day: string;
@@ -3506,49 +3533,117 @@ export class HRDisabilitiesComponent {
         return;
       }
 
-      // Obtener timelogs del mes actual
-      const startDate = startOfMonth(new Date());
-      const endDate = endOfMonth(new Date());
+      const today = new Date();
+      const endDay = format(today, 'yyyy-MM-dd');
+      const startDay = format(
+        subDays(today, this.overtimeHistoryWindowDays()),
+        'yyyy-MM-dd'
+      );
 
-      const startDateStr = format(startDate, "yyyy-MM-dd'T'06:00:00");
-      const endDateStr = format(endDate, "yyyy-MM-dd'T'06:00:00");
+      console.log(`[DEBUG] Loading overtime for employee ${employeeId}, range: ${startDay} to ${endDay}`);
 
+      // Traer marcaciones históricas por "day" (día trabajado), no por created_at
       const timelogs = await firstValueFrom(
+        this.http.get<any[]>(`${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`, {
+          params: {
+            select: 'day,type,created_at,employee_id,company_id',
+            employee_id: `eq.${employeeId}`,
+            company_id: `eq.${companyId}`,
+            day: `gte.${startDay},lte.${endDay}`,
+            order: 'day.asc,created_at.asc',
+          },
+        })
+      );
+
+      console.log(`[DEBUG] Found ${timelogs.length} timelogs for employee ${employeeId}`);
+      if (timelogs.length > 0) {
+        console.log('[DEBUG] Sample timelog:', timelogs[0]);
+        console.log('[DEBUG] Timelog days:', [...new Set(timelogs.map(t => t.day))]);
+      }
+
+      // Consumido (auditable) dentro del mismo rango
+      const consumptions = await firstValueFrom(
         this.http.get<any[]>(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`,
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/overtime_consumptions`,
           {
             params: {
-              select: '*',
+              select: 'overtime_day,hours_used',
               employee_id: `eq.${employeeId}`,
-              company_id: `eq.${companyId}`, // Filtrar directamente por company_id
-              created_at: `gte.${startDateStr},lte.${endDateStr}`,
-              order: 'created_at.asc',
+              company_id: `eq.${companyId}`,
+              overtime_day: `gte.${startDay},lte.${endDay}`,
             },
           }
         )
       );
 
-      // Procesar timelogs similar a employee-portal
-      const processedLogs = this.processTimelogsForOvertime(timelogs);
-      const totalHours = this.calculateTotalOvertimeHours(processedLogs);
-      this.employeeOvertimeHours.set(totalHours);
+      console.log(`[DEBUG] Found ${consumptions?.length || 0} consumptions for employee ${employeeId}`);
+      if (consumptions && consumptions.length > 0) {
+        console.log('[DEBUG] Sample consumption:', consumptions[0]);
+      }
 
-      // Guardar días con horas extras para mostrar
-      const overtimeDays = this.extractOvertimeDays(processedLogs);
-      this.employeeOvertimeDays.set(overtimeDays);
+      const consumedByDay = this.sumConsumedHoursByDay(consumptions ?? []);
+      console.log('[DEBUG] Consumed by day:', Object.fromEntries(consumedByDay));
+
+      // Procesar timelogs similar a Marcaciones (8h netas sin almuerzo)
+      const processedLogs = this.processTimelogsForOvertime(timelogs);
+      console.log(`[DEBUG] Processed ${processedLogs.length} days with complete entry/exit`);
+
+      const overtimeDaysRaw = this.extractOvertimeDays(processedLogs);
+      console.log(`[DEBUG] Days with overtime before consumption: ${overtimeDaysRaw.length}`);
+      if (overtimeDaysRaw.length > 0) {
+        console.log('[DEBUG] Sample overtime day:', overtimeDaysRaw[0]);
+      }
+
+      // Restar consumos y dejar solo días con saldo > 0
+      const overtimeDaysRemaining = overtimeDaysRaw
+        .map((d) => {
+          const consumed = consumedByDay.get(d.day) ?? 0;
+          const remaining = Math.max(0, d.overtimeHours - consumed);
+          console.log(`[DEBUG] Day ${d.day}: ${d.overtimeHours}h overtime - ${consumed}h consumed = ${remaining}h remaining`);
+          return { ...d, overtimeHours: remaining };
+        })
+        .filter((d) => d.overtimeHours > 0)
+        .sort((a, b) => b.day.localeCompare(a.day));
+
+      const totalRemaining = overtimeDaysRemaining.reduce(
+        (acc, d) => acc + d.overtimeHours,
+        0
+      );
+
+      console.log(`[DEBUG] Final result: ${overtimeDaysRemaining.length} days with ${totalRemaining}h remaining overtime`);
+
+      this.employeeOvertimeHours.set(totalRemaining);
+      this.employeeOvertimeDaysAll.set(overtimeDaysRemaining);
+      this.employeeOvertimeDays.set(overtimeDaysRemaining.slice(0, 200));
     } catch (error) {
       console.error('Error loading overtime hours:', error);
       this.employeeOvertimeHours.set(0);
+      this.employeeOvertimeDaysAll.set([]);
       this.employeeOvertimeDays.set([]);
     } finally {
       this.isLoadingOvertimeHours.set(false);
     }
   }
 
+  private sumConsumedHoursByDay(rows: Array<{ overtime_day?: string; hours_used?: any }>): Map<string, number> {
+    const map = new Map<string, number>();
+    for (const r of rows) {
+      const day = r?.overtime_day ? String(r.overtime_day).slice(0, 10) : null;
+      if (!day) continue;
+      const hours = Number(r?.hours_used ?? 0);
+      if (!Number.isFinite(hours) || hours <= 0) continue;
+      map.set(day, (map.get(day) ?? 0) + hours);
+    }
+    return map;
+  }
+
   // Procesar timelogs para agrupar por día
   private processTimelogsForOvertime(timelogs: any[]): any[] {
     const processed = timelogs
-      .map((x) => ({ ...x, day: format(new Date(x.created_at), 'yyyy-MM-dd') }))
+      .map((x) => ({
+        ...x,
+        day: x.day ? String(x.day).slice(0, 10) : format(new Date(x.created_at), 'yyyy-MM-dd'),
+      }))
       .reduce<any[]>((acc, x) => {
         const existing = acc.find((item) => item.day === x.day);
         if (!existing) {
@@ -3597,7 +3692,7 @@ export class HRDisabilitiesComponent {
 
       const totalMinutes = differenceInMinutes(exitDate, entryDate);
 
-      const lunchTime =
+      const lunchMinutes =
         log.lunch_start && log.lunch_end
           ? differenceInMinutes(
               new Date(log.lunch_end.date),
@@ -3605,22 +3700,13 @@ export class HRDisabilitiesComponent {
             )
           : 0;
 
-      // Calcular horas extras: más de 9 horas totales (8 horas + 1 hora de almuerzo)
-      const requiredTotalMinutes = 540;
-      const overtimeByTotalTime =
-        totalMinutes > requiredTotalMinutes
-          ? totalMinutes - requiredTotalMinutes
-          : 0;
+      // Regla igual a Marcaciones: overtime sobre trabajo neto (sin contar almuerzo, máximo 60m)
+      const lunchToSubtract = Math.max(0, Math.min(lunchMinutes, 60));
+      const workMinutes = totalMinutes - lunchToSubtract;
+      const requiredWorkMinutes = 480; // 8 horas de trabajo
+      const overtimeMinutes = Math.max(0, workMinutes - requiredWorkMinutes);
 
-      // Si el almuerzo excede 60 minutos, ese tiempo extra NO es trabajo y debe restarse de las horas extras
-      const lunchExceededMinutes = lunchTime > 60 ? lunchTime - 60 : 0;
-
-      // RESTAR el exceso de almuerzo de las horas extras (porque ese tiempo no es trabajo)
-      const dayOvertimeMinutes = Math.max(
-        0,
-        overtimeByTotalTime - lunchExceededMinutes
-      );
-      totalOvertimeMinutes += dayOvertimeMinutes;
+      totalOvertimeMinutes += overtimeMinutes;
     });
 
     return totalOvertimeMinutes / 60;
@@ -3651,7 +3737,7 @@ export class HRDisabilitiesComponent {
       if (isNaN(entryDate.getTime()) || isNaN(exitDate.getTime())) return;
 
       const totalMinutes = differenceInMinutes(exitDate, entryDate);
-      const lunchTime =
+      const lunchMinutes =
         log.lunch_start && log.lunch_end
           ? differenceInMinutes(
               new Date(log.lunch_end.date),
@@ -3659,30 +3745,20 @@ export class HRDisabilitiesComponent {
             )
           : 0;
 
-      // Calcular horas extras: más de 9 horas totales (8 horas + 1 hora de almuerzo)
-      const requiredTotalMinutes = 540;
-      const overtimeByTotalTime =
-        totalMinutes > requiredTotalMinutes
-          ? totalMinutes - requiredTotalMinutes
-          : 0;
-
-      // Si el almuerzo excede 60 minutos, ese tiempo extra NO es trabajo y debe restarse de las horas extras
-      const lunchExceededMinutes = lunchTime > 60 ? lunchTime - 60 : 0;
-
-      // RESTAR el exceso de almuerzo de las horas extras (porque ese tiempo no es trabajo)
-      const dayOvertimeMinutes = Math.max(
-        0,
-        overtimeByTotalTime - lunchExceededMinutes
-      );
+      // Regla igual a Marcaciones: overtime sobre trabajo neto (sin contar almuerzo, máximo 60m)
+      const lunchToSubtract = Math.max(0, Math.min(lunchMinutes, 60));
+      const workMinutes = totalMinutes - lunchToSubtract;
+      const requiredWorkMinutes = 480; // 8 horas de trabajo
+      const overtimeMinutes = Math.max(0, workMinutes - requiredWorkMinutes);
 
       // Solo agregar días con horas extras > 0
-      if (dayOvertimeMinutes > 0) {
+      if (overtimeMinutes > 0) {
         overtimeDays.push({
           day: log.day,
-          overtimeHours: dayOvertimeMinutes / 60,
+          overtimeHours: overtimeMinutes / 60,
           entryTime: format(entryDate, 'HH:mm'),
           exitTime: format(exitDate, 'HH:mm'),
-          totalHours: totalMinutes / 60,
+          totalHours: workMinutes / 60,
         });
       }
     });
@@ -3728,6 +3804,15 @@ export class HRDisabilitiesComponent {
         this.registerCompensatoryTimeoff(request.id);
       },
     });
+  }
+
+  public loadMoreOvertimeHistory(): void {
+    const req = this.selectedCompensatoryRequest();
+    if (!req?.employee_id) return;
+
+    // Ampliar ventana histórica (1 año más) y recargar cálculo
+    this.overtimeHistoryWindowDays.set(this.overtimeHistoryWindowDays() + 365);
+    void this.loadEmployeeOvertimeHours(req.employee_id);
   }
 
   private updateCompensatoryReviewStatus(
@@ -3785,6 +3870,17 @@ export class HRDisabilitiesComponent {
             await this.notifyEmployee(id, request, 'approved');
             // Enviar notificación a Lia para que registre
             await this.notifyLiaForRegistration(id, request);
+
+            // Consumir horas extra (auditable) al aprobar. Best-effort: no bloquea aprobación.
+            try {
+              await this.consumeOvertimeForApprovedRequest(request, oldStatus);
+              // Refrescar panel de overtime si está abierto
+              if (this.showCompensatoryDetailsDialog()) {
+                void this.loadEmployeeOvertimeHours(request.employee_id);
+              }
+            } catch (e) {
+              console.warn('[HRDisabilities] No se pudo consumir overtime automáticamente', e);
+            }
           } else if (status === 'rejected' && request) {
             // Enviar notificación al empleado sobre el rechazo
             await this.notifyEmployee(
@@ -3819,6 +3915,142 @@ export class HRDisabilitiesComponent {
           });
         },
       });
+  }
+
+  private parseDDMMYYYYToISO(dateStr: string): string | null {
+    const parts = String(dateStr).trim().split('/');
+    if (parts.length !== 3) return null;
+    const [dd, mm, yyyy] = parts;
+    const day = Number(dd);
+    const month = Number(mm);
+    const year = Number(yyyy);
+    if (!Number.isFinite(day) || !Number.isFinite(month) || !Number.isFinite(year)) return null;
+    if (day < 1 || day > 31 || month < 1 || month > 12 || year < 1900) return null;
+    try {
+      const d = new Date(year, month - 1, day);
+      if (isNaN(d.getTime())) return null;
+      return format(d, 'yyyy-MM-dd');
+    } catch {
+      return null;
+    }
+  }
+
+  private async consumeOvertimeForApprovedRequest(
+    request: CompensatoryRequest,
+    oldStatus: string
+  ): Promise<void> {
+    // Evitar dobles consumos si ya estaba aprobado antes
+    if (oldStatus === 'approved') {
+      return;
+    }
+
+    const companyId = this.organizationService.getCurrentCompanyId();
+    const actor = this.dashboardStore.currentEmployee();
+    if (!companyId || !actor) return;
+
+    const quantity = this.getCompensatoryQuantity(request);
+    const requestedHours = quantity?.isDays ? quantity.value * 8 : quantity?.value ?? 0;
+    if (!requestedHours || requestedHours <= 0) return;
+
+    // Prioridad: fechas manuales ingresadas por el empleado
+    const manualDates = this.getManualOvertimeDates(request);
+    const manualIsoDays = manualDates
+      .map((d) => this.parseDDMMYYYYToISO(d))
+      .filter(Boolean) as string[];
+
+    let candidates: Array<{ day: string; remainingHours: number }> = [];
+
+    if (manualIsoDays.length > 0) {
+      // Traer timelogs y consumos solo para esas fechas (histórico)
+      const timelogs = await firstValueFrom(
+        this.http.get<any[]>(`${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`, {
+          params: {
+            select: 'day,type,created_at,employee_id,company_id',
+            employee_id: `eq.${request.employee_id}`,
+            company_id: `eq.${companyId}`,
+            day: `in.(${manualIsoDays.join(',')})`,
+            order: 'day.asc,created_at.asc',
+          },
+        })
+      );
+
+      const consumptions = await firstValueFrom(
+        this.http.get<any[]>(`${process.env['ENV_SUPABASE_URL']}/rest/v1/overtime_consumptions`, {
+          params: {
+            select: 'overtime_day,hours_used',
+            employee_id: `eq.${request.employee_id}`,
+            company_id: `eq.${companyId}`,
+            overtime_day: `in.(${manualIsoDays.join(',')})`,
+          },
+        })
+      );
+
+      const consumedByDay = this.sumConsumedHoursByDay(consumptions ?? []);
+      const processed = this.processTimelogsForOvertime(timelogs ?? []);
+      const overtimeDays = this.extractOvertimeDays(processed);
+      const overtimeByDay = new Map(overtimeDays.map((d) => [d.day, d.overtimeHours]));
+
+      candidates = manualIsoDays
+        .map((day) => {
+          const overtime = overtimeByDay.get(day) ?? 0;
+          const consumed = consumedByDay.get(day) ?? 0;
+          return { day, remainingHours: Math.max(0, overtime - consumed) };
+        })
+        .filter((x) => x.remainingHours > 0);
+    } else {
+      // Fallback: usar los días con saldo ya calculados (rango cargado)
+      candidates = (this.employeeOvertimeDaysAll() ?? [])
+        .map((d) => ({ day: d.day, remainingHours: d.overtimeHours }))
+        .filter((x) => x.remainingHours > 0);
+    }
+
+    // Consumir desde los días más antiguos primero (FIFO)
+    candidates.sort((a, b) => a.day.localeCompare(b.day));
+
+    let remainingToAllocate = requestedHours;
+    const rows: Array<Record<string, unknown>> = [];
+
+    for (const c of candidates) {
+      if (remainingToAllocate <= 0) break;
+      const use = Math.min(c.remainingHours, remainingToAllocate);
+      if (use <= 0) continue;
+
+      // Redondeo defensivo a 2 decimales para NUMERIC(6,2)
+      const hoursUsed = Math.round(use * 100) / 100;
+      if (hoursUsed <= 0) continue;
+
+      rows.push({
+        company_id: companyId,
+        employee_id: request.employee_id,
+        timeoff_id: request.id,
+        overtime_day: c.day,
+        hours_used: hoursUsed,
+        created_by: actor.id,
+        comment: 'Consumido automáticamente al aprobar compensatorio',
+      });
+
+      remainingToAllocate -= hoursUsed;
+    }
+
+    if (!rows.length) return;
+
+    await firstValueFrom(
+      this.http.post(`${process.env['ENV_SUPABASE_URL']}/rest/v1/overtime_consumptions`, rows, {
+        headers: { 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      })
+    );
+
+    await this.auditService.logChange({
+      timeoffId: request.id,
+      changedBy: actor.id,
+      action: 'updated',
+      oldStatus,
+      newStatus: 'approved',
+      comment: `Overtime consumido automáticamente al aprobar: ${rows
+        .map((r: any) => `${String(r.overtime_day)}=${String(r.hours_used)}h`)
+        .join(', ')}`,
+      newValue: { overtime_consumptions: rows },
+    });
   }
 
   private registerCompensatoryTimeoff(id: string): void {
