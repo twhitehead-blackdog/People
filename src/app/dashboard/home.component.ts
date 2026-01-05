@@ -2828,41 +2828,91 @@ import { OrganizationService } from '../services/organization.service';
     @media (max-width: 768px) {
       .events-grid {
         grid-template-columns: 1fr !important;
-        gap: 1rem;
+        gap: 0.75rem;
+        width: 100%;
+        max-width: 100%;
       }
 
       .kpi-grid:not(.executive-kpi-grid) {
-        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
+        grid-template-columns: 1fr !important;
         gap: 0.75rem;
+        width: 100%;
+        max-width: 100%;
+      }
+
+      .kpi-grid:not(.executive-kpi-grid) > .kpi-card {
+        width: 100%;
+        max-width: 100%;
+        grid-column: 1 / -1 !important;
       }
 
       .kpi-card {
         min-height: auto;
         padding: 0.875rem !important;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+      }
+
+      .kpi-icon {
+        font-size: 1.5rem !important;
+        min-width: 2rem;
       }
 
       .kpi-value {
         font-size: 1.5rem !important;
+        line-height: 1.2;
       }
 
       .kpi-label {
-        font-size: 0.75rem !important;
+        font-size: 0.6875rem !important;
+        line-height: 1.3;
       }
 
       .kpi-sublabel {
-        font-size: 0.6875rem !important;
+        font-size: 0.625rem !important;
       }
 
       .chart-card {
         padding: 1rem !important;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
       }
 
       .chart-container {
-        min-height: 250px !important;
+        min-height: 200px !important;
+        width: 100%;
+        max-width: 100%;
       }
 
       .sparkline-box {
-        height: 60px !important;
+        height: 50px !important;
+        width: 100%;
+        max-width: 100%;
+      }
+
+      /* Ajustar headcount card */
+      .headcount-card {
+        width: 100%;
+        max-width: 100%;
+      }
+
+      .headcount-header {
+        width: 100%;
+      }
+
+      /* Ajustar hires-exits card */
+      .hires-exits-chart-wrapper {
+        width: 100% !important;
+        max-width: 100% !important;
+        height: 80px !important;
+      }
+
+      .hires-exits-legend {
+        flex-direction: column;
+        gap: 0.5rem;
+        width: 100%;
       }
     }
 
@@ -2995,40 +3045,103 @@ import { OrganizationService } from '../services/organization.service';
     }
 
     @media (max-width: 768px) {
+      /* Prevenir overflow horizontal */
+      .dashboard-wrapper {
+        overflow-x: hidden;
+        width: 100%;
+        max-width: 100vw;
+      }
+
       .dashboard-container {
-        padding: 4rem 1rem 3rem;
+        padding: 4rem 0.75rem 3rem;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
+      }
+
+      .section-content {
+        width: 100%;
+        max-width: 100%;
+        overflow-x: hidden;
       }
 
       /* En móvil, el executive grid debe ser de 1 columna */
       .executive-kpi-grid {
         grid-template-columns: 1fr !important;
-        gap: 1rem;
+        gap: 0.75rem;
+        width: 100%;
+        max-width: 100%;
       }
 
       /* Todos los cards en móvil ocupan 1 columna completa */
       .executive-kpi-grid > .kpi-card {
-        grid-column: span 1 !important;
+        grid-column: 1 / -1 !important;
         grid-row: auto !important;
         min-height: auto;
+        width: 100%;
+        max-width: 100%;
+        margin: 0;
       }
 
       /* Ajustar padding en móvil */
       .executive-kpi-grid > .kpi-card {
-        padding: 1rem !important;
+        padding: 0.875rem !important;
       }
 
       /* Asegurar que los gráficos se ajusten en móvil */
       .kpi-card .kpi-content {
         min-height: auto;
+        width: 100%;
+        max-width: 100%;
+      }
+
+      /* Ajustar tamaños de fuente en móvil */
+      .kpi-value {
+        font-size: 1.75rem !important;
+        line-height: 1.2;
+      }
+
+      .kpi-label {
+        font-size: 0.6875rem !important;
+        line-height: 1.3;
+      }
+
+      .kpi-sublabel {
+        font-size: 0.625rem !important;
       }
 
       .gender-vs-card {
-        grid-column: span 1;
+        grid-column: span 1 !important;
+        width: 100%;
       }
 
       .gender-vs-container {
         flex-direction: column;
-        gap: 1rem;
+        gap: 0.75rem;
+        width: 100%;
+      }
+
+      /* Ajustar gráficos de género en móvil */
+      .gender-chart-container {
+        width: 100%;
+        max-width: 100%;
+      }
+
+      .gender-chart-wrapper {
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+
+      /* Ajustar sparkline en móvil */
+      .sparkline-box {
+        width: 100%;
+        max-width: 100%;
+        height: 50px !important;
+      }
+
+      .kpi-sparkline {
+        width: 100% !important;
+        max-width: 100% !important;
       }
 
       .male-side,
