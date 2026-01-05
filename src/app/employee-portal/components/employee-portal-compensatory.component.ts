@@ -10,13 +10,13 @@ import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { DatePicker } from 'primeng/datepicker';
-import { Textarea } from 'primeng/textarea';
+import { InputTextarea } from 'primeng/inputtextarea';
 import { TooltipModule } from 'primeng/tooltip';
 
 @Component({
   selector: 'pt-employee-portal-compensatory',
   standalone: true,
-  imports: [CommonModule, FormsModule, Card, Button, DatePicker, Textarea, TooltipModule],
+  imports: [CommonModule, FormsModule, Card, Button, DatePicker, InputTextarea, TooltipModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <p-card>
@@ -66,9 +66,11 @@ import { TooltipModule } from 'primeng/tooltip';
             <div
               class="flex-1 p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-lg"
               [class.border-cyan-400]="compensatoryType === 'hours'"
-              [class.bg-cyan-500/10]="compensatoryType === 'hours'"
               [class.border-neutral-600]="compensatoryType !== 'hours'"
-              [class.bg-neutral-700/30]="compensatoryType !== 'hours'"
+              [ngClass]="{
+                'bg-cyan-500/10': compensatoryType === 'hours',
+                'bg-neutral-700/30': compensatoryType !== 'hours'
+              }"
               (click)="compensatoryTypeChange.emit('hours')"
             >
               <div class="flex items-center gap-3">
@@ -91,9 +93,11 @@ import { TooltipModule } from 'primeng/tooltip';
             <div
               class="flex-1 p-4 rounded-lg border-2 cursor-pointer transition-all duration-200 hover:shadow-lg"
               [class.border-cyan-400]="compensatoryType === 'days'"
-              [class.bg-cyan-500/10]="compensatoryType === 'days'"
               [class.border-neutral-600]="compensatoryType !== 'days'"
-              [class.bg-neutral-700/30]="compensatoryType !== 'days'"
+              [ngClass]="{
+                'bg-cyan-500/10': compensatoryType === 'days',
+                'bg-neutral-700/30': compensatoryType !== 'days'
+              }"
               (click)="compensatoryTypeChange.emit('days')"
             >
               <div class="flex items-center gap-3">
@@ -136,7 +140,6 @@ import { TooltipModule } from 'primeng/tooltip';
                 appendTo="body"
                 class="w-full"
                 [minDate]="minPastDate"
-                [maxDate]="maxFutureDate"
                 placeholder="Selecciona la fecha"
                 [showIcon]="true"
                 dateFormat="dd/mm/yy"
@@ -185,7 +188,6 @@ import { TooltipModule } from 'primeng/tooltip';
                 appendTo="body"
                 class="w-full"
                 [minDate]="minPastDate"
-                [maxDate]="maxFutureDate"
                 placeholder="Selecciona fecha inicio"
                 [showIcon]="true"
                 dateFormat="dd/mm/yy"
@@ -201,7 +203,6 @@ import { TooltipModule } from 'primeng/tooltip';
                 appendTo="body"
                 class="w-full"
                 [minDate]="compensatoryStartDate || minPastDate"
-                [maxDate]="maxFutureDate"
                 placeholder="Selecciona fecha fin"
                 [showIcon]="true"
                 dateFormat="dd/mm/yy"
@@ -265,7 +266,7 @@ import { TooltipModule } from 'primeng/tooltip';
             </div>
           </div>
 
-          @if (!manualOvertimeDates?.length) {
+          @if (!manualOvertimeDates.length) {
           <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4">
             <div class="flex items-start gap-3">
               <i class="pi pi-info-circle text-yellow-400 text-xl"></i>
@@ -279,11 +280,11 @@ import { TooltipModule } from 'primeng/tooltip';
           </div>
           } @else {
           <div class="space-y-2">
-            <h4 class="text-sm font-semibold text-gray-300 mb-3">
-              Fechas agregadas ({{ manualOvertimeDates?.length }}):
-            </h4>
+              <h4 class="text-sm font-semibold text-gray-300 mb-3">
+              Fechas agregadas ({{ manualOvertimeDates.length }}):
+              </h4>
             <div class="flex flex-col gap-2">
-              @for (date of manualOvertimeDates || []; track $index) {
+              @for (date of manualOvertimeDates; track $index) {
               <div class="flex items-center justify-between p-3 rounded-lg bg-neutral-700/50 border border-neutral-600/50">
                 <div class="flex items-center gap-3">
                   <i class="pi pi-calendar text-cyan-400"></i>
@@ -342,7 +343,7 @@ import { TooltipModule } from 'primeng/tooltip';
             icon="pi pi-send"
             [loading]="submitting"
             [disabled]="!canSubmit || submitting"
-            (onClick)="submit.emit()"
+            (onClick)="submitRequest.emit()"
             class="ml-auto"
           />
         </div>
@@ -384,9 +385,8 @@ export class EmployeePortalCompensatoryComponent {
   @Input() canSubmit = false;
   @Input() submitting = false;
   @Input() minPastDate: Date = new Date();
-  @Input() maxFutureDate: Date = new Date();
   @Input() today: Date = new Date();
-  @Output() submit = new EventEmitter<void>();
+  @Output() submitRequest = new EventEmitter<void>();
   @Output() openTutorial = new EventEmitter<void>();
   @Output() closeSection = new EventEmitter<void>();
   @Output() viewRequests = new EventEmitter<void>();

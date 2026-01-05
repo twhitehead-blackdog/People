@@ -326,7 +326,6 @@ import { calculateHoursFromDates } from './utils/employee-portal-time.utils';
           [canSubmit]="canSubmitCompensatory()"
           [submitting]="portalStore.compensatoryForm().submitting"
           [minPastDate]="minPastDate"
-          [maxFutureDate]="maxFutureDate"
           [today]="today"
           (submitRequest)="submitCompensatoryRequest()"
           (openTutorial)="setShowTutorialDialog(true)"
@@ -1123,13 +1122,6 @@ export class EmployeePortalComponent {
   // Propiedad para obtener la fecha actual (para usar en templates)
   public get today(): Date {
     return new Date();
-  }
-
-  // Propiedades computadas para límites de fechas
-  public get maxFutureDate(): Date {
-    const date = new Date();
-    date.setDate(date.getDate() + this.MAX_FUTURE_DAYS);
-    return date;
   }
 
   public get minPastDate(): Date {
