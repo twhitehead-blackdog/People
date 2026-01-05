@@ -202,7 +202,7 @@ import { logger } from '../utils/logger';
       display: none;
     }
 
-    /* Animación de lava lamp plateada también en login-container para tema Naz */
+    /* Animación de lava lamp plateada también en login-container - DESACTIVADA */
     .naz-theme .login-container {
       background: transparent;
       position: relative;
@@ -210,74 +210,20 @@ import { logger } from '../utils/logger';
     }
 
     .naz-theme .login-container::before {
-      content: '';
-      position: absolute;
-      top: -50%;
-      left: -50%;
-      width: 200%;
-      height: 200%;
-      min-height: 200vh;
-      background: 
-        repeating-linear-gradient(
-          45deg,
-          rgba(255, 255, 255, 0.5) 0%,
-          rgba(255, 255, 255, 0.6) 2%,
-          rgba(229, 226, 223, 0.65) 4%,
-          rgba(198, 194, 191, 0.55) 6%,
-          transparent 8%,
-          transparent 12%,
-          rgba(198, 194, 191, 0.5) 14%,
-          rgba(229, 226, 223, 0.6) 16%,
-          rgba(255, 255, 255, 0.55) 18%,
-          transparent 20%
-        ),
-        linear-gradient(
-          135deg,
-          rgba(255, 255, 255, 0.6) 0%,
-          rgba(229, 226, 223, 0.7) 25%,
-          rgba(198, 194, 191, 0.6) 50%,
-          rgba(229, 226, 223, 0.65) 75%,
-          rgba(255, 255, 255, 0.55) 100%
-        );
-      animation: silverLavaFlow 25s ease-in-out infinite;
-      z-index: 0;
-      filter: blur(25px);
-      pointer-events: none;
+      display: none;
     }
 
     .naz-theme .login-container::after {
-      content: '';
-      position: absolute;
-      top: -50%;
-      right: -50%;
-      width: 200%;
-      height: 200%;
-      min-height: 200vh;
-      background: 
-        repeating-linear-gradient(
-          -45deg,
-          rgba(229, 226, 223, 0.55) 0%,
-          rgba(255, 255, 255, 0.65) 2%,
-          rgba(198, 194, 191, 0.6) 4%,
-          rgba(229, 226, 223, 0.5) 6%,
-          transparent 8%,
-          transparent 12%,
-          rgba(255, 255, 255, 0.55) 14%,
-          rgba(198, 194, 191, 0.65) 16%,
-          rgba(229, 226, 223, 0.6) 18%,
-          transparent 20%
-        ),
-        linear-gradient(
-          -135deg,
-          rgba(198, 194, 191, 0.7) 0%,
-          rgba(229, 226, 223, 0.75) 30%,
-          rgba(255, 255, 255, 0.65) 60%,
-          rgba(198, 194, 191, 0.6) 100%
-        );
-      animation: silverLavaFlow 30s ease-in-out infinite reverse;
-      z-index: 0;
-      filter: blur(30px);
-      pointer-events: none;
+      display: none;
+    }
+
+    /* Código anterior comentado - animaciones desactivadas
+    .naz-theme .login-container::before {
+      display: none;
+    }
+
+    .naz-theme .login-container::after {
+      display: none;
     }
 
     /* Asegurar que el contenido esté por encima de la animación */
