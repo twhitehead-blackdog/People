@@ -1,5 +1,5 @@
 import { Component, input, output, TemplateRef } from '@angular/core';
-import { CommonModule, DatePipe, NgClass, NgTemplateOutlet } from '@angular/common';
+import { CommonModule, NgTemplateOutlet } from '@angular/common';
 import { TableModule } from 'primeng/table';
 import { ShiftCellComponent } from '../shift-cell/shift-cell.component';
 
@@ -18,7 +18,7 @@ type EmployeeWithDays = {
 @Component({
   selector: 'pt-timetable-grid',
   standalone: true,
-  imports: [CommonModule, TableModule, DatePipe, NgClass, ShiftCellComponent],
+  imports: [CommonModule, TableModule, ShiftCellComponent],
   template: `
     <p-table
       [value]="employees()"

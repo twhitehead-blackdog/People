@@ -1,4 +1,4 @@
-import { DatePipe, NgClass, NgStyle } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { httpResource } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
@@ -47,13 +47,11 @@ import { calcTimeDiff } from './timelogs/utils/time.utils';
 @Component({
   selector: 'pt-timelogs',
   imports: [
+    CommonModule,
     Button,
     Card,
     Tag,
-    DatePipe,
     ToastModule,
-    NgClass,
-    NgStyle,
     TimelogsFiltersComponent,
     TimelogsTableComponent,
   ],
@@ -103,7 +101,7 @@ import { calcTimeDiff } from './timelogs/utils/time.utils';
         [delayRangeOptions]="delayRangeOptions"
         [hasActiveFilters]="hasActiveFilters"
         [activeFiltersCount]="getActiveFiltersCount"
-        (search)="onEmployeeSearchEnter()"
+        (searchRequested)="onEmployeeSearchEnter()"
       ></pt-timelogs-filters>
 
       <!-- Total Excedido de Almuerzo -->

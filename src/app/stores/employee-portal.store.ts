@@ -106,7 +106,7 @@ const initialState: EmployeePortalState = {
   },
 };
 
-export const EmployeePortalStore = signalStore(
+export const EmployeePortalStore = signalStore({ providedIn: 'root' },
   withState(initialState),
   withComputed((state) => ({
     // Solo mantener computed para valores derivados o transformados

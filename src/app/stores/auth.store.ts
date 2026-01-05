@@ -18,7 +18,7 @@ type State = {
   currentEmployeeId: string | null;
 };
 
-export const AuthStore = signalStore(
+export const AuthStore = signalStore({ providedIn: 'root' },
   withState<State>({
     currentEmployeeId: null,
   }),

@@ -18,7 +18,7 @@ type State = {
   timeoff_types: TimeOffType[];
 };
 
-export const EmployeesStore = signalStore(
+export const EmployeesStore = signalStore({ providedIn: 'root' },
   withState<State>({ timeoff_types: [] }),
   withCustomEntities<Employee>({
     name: 'employees',

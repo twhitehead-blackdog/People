@@ -9,7 +9,6 @@ import { provideAnimationsAsync } from '@angular/platform-browser/animations/asy
 import {
   provideRouter,
   withComponentInputBinding,
-  withDisabledInitialNavigation,
   withRouterConfig,
   withViewTransitions,
 } from '@angular/router';
@@ -25,11 +24,11 @@ import { providePrimeNG } from 'primeng/config';
 import es from '../../public/i18n/es.json';
 import { appRoutes } from './app.routes';
 import { apiUrlInterceptor } from './interceptors/api-url.interceptor';
-import { httpInterceptor } from './interceptors/http.interceptor';
 import { errorInterceptor } from './interceptors/error.interceptor';
+import { httpInterceptor } from './interceptors/http.interceptor';
+import { EmployeePortalStore } from './stores/employee-portal.store';
 import { JobApplicationsStore } from './stores/job-applications.store';
 import { PositionsStore } from './stores/positions.store';
-import { EmployeePortalStore } from './stores/employee-portal.store';
 registerLocaleData(localeEs, 'es-MX');
 
 const MyPreset = definePreset(Aura, {
@@ -59,7 +58,9 @@ export const appConfig: ApplicationConfig = {
       withViewTransitions()
     ),
     provideAnimationsAsync(),
-    provideHttpClient(withInterceptors([apiUrlInterceptor, httpInterceptor, errorInterceptor])),
+    provideHttpClient(
+      withInterceptors([apiUrlInterceptor, httpInterceptor, errorInterceptor])
+    ),
     provideAuth0({
       domain: process.env['ENV_AUTH0_DOMAIN'] ?? '',
       clientId: process.env['ENV_AUTH0_CLIENT_ID'] ?? '',

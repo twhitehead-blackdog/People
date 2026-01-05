@@ -8,9 +8,9 @@ import {
   inject,
   signal,
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
+  addDays,
   differenceInDays,
   differenceInMinutes,
   format,
@@ -769,6 +769,10 @@ export class EmployeePortalComponent {
   }
 
   constructor() {
+    // Fechas estables para template (evita que el DatePicker se “resetee” en cada change detection)
+    this.today = startOfDay(new Date());
+    this.minPastDate = addDays(this.today, -this.MAX_PAST_DAYS);
+
     // Inicializar notificaciones cuando cambia el empleado actual
     effect(() => {
       const employeeId = this.currentEmployee()?.id;
@@ -1119,16 +1123,8 @@ export class EmployeePortalComponent {
   private readonly MAX_PAST_DAYS = 30; // Máximo 30 días en el pasado
   private readonly MAX_CONSECUTIVE_DAYS = 7; // Máximo 7 días consecutivos
 
-  // Propiedad para obtener la fecha actual (para usar en templates)
-  public get today(): Date {
-    return new Date();
-  }
-
-  public get minPastDate(): Date {
-    const date = new Date();
-    date.setDate(date.getDate() - this.MAX_PAST_DAYS);
-    return date;
-  }
+  public today!: Date;
+  public minPastDate!: Date;
 
   public isDaySelected(day: string): boolean {
     return this.portalStore.selectedOvertimeDays().has(day);

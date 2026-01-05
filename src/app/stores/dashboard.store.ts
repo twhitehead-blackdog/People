@@ -38,7 +38,7 @@ const initialState: State = {
   currentEmployeeId: null,
 };
 
-export const DashboardStore = signalStore(
+export const DashboardStore = signalStore({ providedIn: 'root' },
   withState(initialState),
   withProps(() => ({
     companies: inject(CompaniesStore),

@@ -135,21 +135,20 @@ export class DiagnosticService {
 
     const originalError = console.error;
     const originalWarn = console.warn;
-    const self = this;
 
-    console.error = function(...args: any[]) {
+    console.error = (...args: any[]) => {
       const message = args.map(arg => 
         typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
       ).join(' ');
       
       // No capturar nuestros propios mensajes de diagnóstico
       if (!message.includes('[Diagnóstico]')) {
-        self.addConsoleError(message, args.length > 1 ? args.slice(1) : undefined);
+        this.addConsoleError(message, args.length > 1 ? args.slice(1) : undefined);
       }
       originalError.apply(console, args);
     };
 
-    console.warn = function(...args: any[]) {
+    console.warn = (...args: any[]) => {
       const message = args.map(arg => 
         typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
       ).join(' ');
@@ -157,14 +156,14 @@ export class DiagnosticService {
       // No capturar nuestros propios mensajes de diagnóstico
       if (!message.includes('[Diagnóstico]')) {
         // Capturar TODOS los warnings (más agresivo)
-        self.addConsoleError(`WARNING: ${message}`, args.length > 1 ? args.slice(1) : undefined);
+        this.addConsoleError(`WARNING: ${message}`, args.length > 1 ? args.slice(1) : undefined);
       }
       originalWarn.apply(console, args);
     };
 
     // Capturar errores no manejados
     window.addEventListener('error', (event) => {
-      self.addConsoleError(
+      this.addConsoleError(
         event.message,
         {
           filename: event.filename,
@@ -177,7 +176,7 @@ export class DiagnosticService {
 
     // Capturar promesas rechazadas
     window.addEventListener('unhandledrejection', (event) => {
-      self.addConsoleError(
+      this.addConsoleError(
         `Unhandled Promise Rejection: ${event.reason}`,
         event.reason,
         event.reason?.stack
@@ -294,14 +293,12 @@ export class DiagnosticService {
     if (typeof window === 'undefined') return;
 
     const originalFetch = window.fetch;
-    const self = this;
-
-    window.fetch = async function(...args: Parameters<typeof fetch>): Promise<Response> {
+    window.fetch = async (...args: Parameters<typeof fetch>): Promise<Response> => {
       const [url, options] = args;
       const urlString = typeof url === 'string' ? url : url.toString();
 
       try {
-        const response = await originalFetch.apply(this, args);
+        const response = await originalFetch(...args);
         
         // Si la respuesta no es exitosa, registrar el error
         if (!response.ok) {
@@ -311,7 +308,7 @@ export class DiagnosticService {
             headersObj[key] = value;
           });
 
-          self.addHttpError(
+          this.addHttpError(
             urlString,
             response.status,
             `Fetch failed: ${response.statusText}`,
@@ -326,7 +323,7 @@ export class DiagnosticService {
         return response;
       } catch (error: any) {
         // Error de red (no se pudo conectar)
-        self.addNetworkError(
+        this.addNetworkError(
           urlString,
           error.message || 'Network request failed',
           {

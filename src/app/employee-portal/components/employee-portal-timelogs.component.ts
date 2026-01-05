@@ -165,12 +165,14 @@ import { PanamaDatePipe } from '../../pipes/panama-date.pipe';
                 <td>
                   <span
                     class="px-2 py-0.5 rounded-full text-xs font-semibold"
-                    [class.bg-green-500/20]="!!log.entry && !!log.exit"
                     [class.text-green-300]="!!log.entry && !!log.exit"
-                    [class.bg-yellow-500/20]="!!log.entry && !log.exit"
                     [class.text-yellow-300]="!!log.entry && !log.exit"
-                    [class.bg-red-500/20]="!!log.delay"
                     [class.text-red-300]="!!log.delay"
+                    [ngClass]="{
+                      'bg-green-500/20': !!log.entry && !!log.exit,
+                      'bg-yellow-500/20': !!log.entry && !log.exit,
+                      'bg-red-500/20': !!log.delay
+                    }"
                   >
                     @if (log.delay) {
                       Retraso
@@ -224,12 +226,11 @@ import { PanamaDatePipe } from '../../pipes/panama-date.pipe';
           <div
             class="flex flex-col gap-1 p-1.5 rounded-md shadow-sm border transition-all duration-200 w-full"
             [class.bg-gradient-to-br]="true"
-            [class.from-green-600/30]="isComplete && !hasDelay"
-            [class.to-green-500/20]="isComplete && !hasDelay"
-            [class.from-yellow-600/30]="isIncomplete"
-            [class.to-yellow-500/20]="isIncomplete"
-            [class.from-red-600/30]="hasDelay"
-            [class.to-red-500/20]="hasDelay"
+            [ngClass]="{
+              'from-green-600/30 to-green-500/20': isComplete && !hasDelay,
+              'from-yellow-600/30 to-yellow-500/20': isIncomplete,
+              'from-red-600/30 to-red-500/20': hasDelay
+            }"
             [class.border-green-400]="isComplete && !hasDelay"
             [class.border-yellow-400]="isIncomplete"
             [class.border-red-400]="hasDelay"

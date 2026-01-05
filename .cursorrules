@@ -1,0 +1,125 @@
+# 🧠 PeopleBD – Cursor Rules (Proyecto Existente)
+
+## ⚠️ CONTEXTO CRÍTICO
+
+Este es un proyecto Angular EXISTENTE y en producción.
+❌ NO recrear arquitectura
+❌ NO mover carpetas arbitrariamente
+❌ NO reescribir componentes completos
+
+Cursor debe:
+✅ entender
+✅ refactorizar incrementalmente
+✅ extraer responsabilidades
+✅ mantener comportamiento idéntico
+
+---
+
+## 🧱 Arquitectura base (NO cambiar)
+
+- Angular standalone components
+- Signals + computed
+- Services para lógica de negocio
+- Utils para funciones puras
+- Stores (@ngrx/signals) para estado compartido
+- Components = orquestadores, no lógica pesada
+
+---
+
+## 🧭 Reglas de Refactorización (OBLIGATORIAS)
+
+### 1️⃣ Refactor SIEMPRE incremental
+
+- Un commit = una responsabilidad
+- Cada commit debe:
+  - compilar
+  - cargar
+  - permitir navegación básica
+- Nunca mezclar:
+  - UI + lógica
+  - refactor + feature
+
+---
+
+### 2️⃣ Qué SÍ puede quedarse en un Component
+
+✅ Inyección de servicios / stores  
+✅ Signals locales simples  
+✅ Computed de alto nivel  
+✅ Wiring de Inputs / Outputs  
+✅ Navegación interna  
+✅ Effects de sincronización
+
+---
+
+### 3️⃣ Qué NO debe quedarse en un Component
+
+❌ Validaciones complejas  
+❌ Construcción de payloads  
+❌ Lógica de permisos  
+❌ Cálculos de fechas/horas  
+❌ Acceso directo a APIs  
+❌ Helpers reutilizables
+
+> Si un método supera **30–40 líneas**, debe salir.
+
+---
+
+### 4️⃣ Dónde va cada cosa
+
+| Tipo de lógica    | Destino                   |
+| ----------------- | ------------------------- |
+| Cálculos puros    | `/utils/*.utils.ts`       |
+| Reglas de negocio | `/services/*.service.ts`  |
+| Submits complejos | `/actions/*.actions.ts`   |
+| Estado compartido | `/stores/*.store.ts`      |
+| HTML grande       | Subcomponentes standalone |
+
+---
+
+### 5️⃣ Límites (objetivos, no dogma)
+
+- Component TS: **<500 líneas** (ideal <300)
+- Template HTML: **<150 líneas**
+- Service: **<200 líneas**
+- Utils: **funciones puras, pequeñas**
+- Store: crecer está permitido (centraliza complejidad)
+
+---
+
+## 🧪 Seguridad y estabilidad
+
+- NO cambiar contratos existentes
+- NO cambiar nombres de inputs/outputs sin necesidad
+- NO introducir nuevas dependencias
+- NO romper UX ni flujos
+
+---
+
+## 📊 Prioridad de trabajo
+
+1️⃣ Bugs / estabilidad  
+2️⃣ Refactor de lógica pesada  
+3️⃣ División de componentes grandes  
+4️⃣ Store y estado  
+5️⃣ UI / estética
+
+---
+
+## 🆘 Cuando Cursor se bloquee
+
+Antes de inventar:
+
+- Buscar patrones existentes en el repo
+- Reutilizar services/stores ya creados
+- Preguntar antes de hacer cambios estructurales
+
+---
+
+## 🎯 Objetivo final
+
+- Código legible
+- Bajo riesgo
+- Fácil de mantener
+- Contexto reducido para Cursor
+- Refactors sin miedo

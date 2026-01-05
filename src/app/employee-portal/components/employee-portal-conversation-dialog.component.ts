@@ -2,7 +2,7 @@ import { DatePipe, NgClass } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
-import { Textarea } from 'primeng/textarea';
+import { InputTextarea } from 'primeng/inputtextarea';
 
 type Complaint = {
   id: string;
@@ -21,7 +21,7 @@ type Message = {
 @Component({
   selector: 'pt-employee-portal-conversation-dialog',
   standalone: true,
-  imports: [Button, Textarea, FormsModule, DatePipe, NgClass],
+  imports: [Button, InputTextarea, FormsModule, DatePipe, NgClass],
   template: `
     @if (visible()) {
     <div
@@ -164,12 +164,12 @@ export class EmployeePortalConversationDialogComponent {
   public getComplaintCategoryLabel = input.required<(category: string) => string>();
 
   // Outputs
-  public close = output<void>();
+  public closed = output<void>();
   public sendReply = output<void>();
   public replyMessageChange = output<string>();
 
   public onClose(): void {
-    this.close.emit();
+    this.closed.emit();
   }
 
   public onSendReply(): void {

@@ -3,7 +3,7 @@ import { signalStore, withComputed } from '@ngrx/signals';
 import { NazEmployee } from '../models';
 import { withCustomEntities } from './entities.feature';
 
-export const NazEmployeesStore = signalStore(
+export const NazEmployeesStore = signalStore({ providedIn: 'root' },
   withCustomEntities<NazEmployee>({
     name: 'naz_employees',
     query:

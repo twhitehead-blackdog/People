@@ -182,7 +182,7 @@ export async function uploadDisability(
                 fromName: 'People - RRHH',
               })
               .subscribe({
-                next: () => {},
+                next: () => undefined,
                 error: (e) =>
                   console.warn(
                     '[DisabilityUpload] No se pudo enviar email a RRHH',

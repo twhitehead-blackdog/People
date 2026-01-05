@@ -1823,7 +1823,7 @@ interface CompensatoryRequest {
                   Total pendiente (no usado)
                 </p>
                 <p class="text-3xl font-bold text-cyan-300">
-                  {{ employeeOvertimeHours().toFixed(1) }}h
+                  {{ formatHoursMinutes(employeeOvertimeHours()) }}
                 </p>
               </div>
               <div
@@ -1849,7 +1849,7 @@ interface CompensatoryRequest {
                       {{ formatDate(day.day) }}
                     </span>
                     <span class="text-xs font-bold text-cyan-400">
-                      {{ day.overtimeHours.toFixed(1) }}h
+                      {{ formatHoursMinutes(day.overtimeHours) }}
                     </span>
                   </div>
                   @if (day.entryTime && day.exitTime) {
@@ -2001,43 +2001,35 @@ interface CompensatoryRequest {
             </div>
           </div>
 
-          @let overtimeDaysForRequest =
-          getOvertimeDaysFromNotes(selectedCompensatoryRequest()!) || [];
-          @if (overtimeDaysForRequest.length > 0) {
+          @let manualDatesForRequest =
+          getManualOvertimeDates(selectedCompensatoryRequest()!); @if
+          (manualDatesForRequest.length > 0) {
           <div
             class="mt-4 p-3 bg-neutral-900/40 rounded-lg border border-cyan-500/20"
           >
             <div class="flex items-center gap-2 mb-2">
               <i class="pi pi-calendar-check text-cyan-400 text-sm"></i>
-              <span
-                class="text-sm font-semibold text-gray-300"
+              <span class="text-sm font-semibold text-gray-300"
                 >Días reportados con horas extra</span
               >
             </div>
             <div class="flex flex-wrap gap-2 text-xs text-gray-300">
-              @for (const entry of overtimeDaysForRequest; track entry.day) {
+              @for (date of manualDatesForRequest; track date) {
               <span
                 class="px-3 py-1.5 rounded-lg h-fit bg-cyan-500/10 border border-cyan-400/30 flex flex-col gap-0.5"
-                [pTooltip]="
-                  entry.entryTime && entry.exitTime
-                    ? entry.entryTime + ' - ' + entry.exitTime
-                    : null
-                "
                 tooltipPosition="top"
               >
                 <span class="font-semibold text-white">
-                  {{ formatDate(entry.day) }}
+                  {{ date }}
                 </span>
                 <span class="text-gray-300">
-                  {{ formatHoursMinutes(entry.overtimeHours) }}
+                  {{ getManualDateSaldoLabel(date) }}
                 </span>
               </span>
               }
             </div>
           </div>
-          }
-
-          @let reason =
+          } @let reason =
           getCompensatoryReasonFromNotes(selectedCompensatoryRequest()!); @if
           (reason) {
           <div class="mt-4">
@@ -2086,29 +2078,6 @@ interface CompensatoryRequest {
           </div>
           }
         </div>
-
-        <!-- Fechas manuales donde trabajó horas extra -->
-        @let manualDates =
-        getManualOvertimeDates(selectedCompensatoryRequest()!); @if
-        (manualDates.length > 0) {
-        <div
-          class="mt-4 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700"
-        >
-          <label class="block text-sm font-medium text-gray-400 mb-2">
-            <i class="pi pi-calendar-check mr-2 text-cyan-400"></i>
-            Fechas donde trabajó horas extra (ingresadas manualmente)
-          </label>
-          <div class="flex flex-wrap gap-2">
-            @for (date of manualDates; track date) {
-            <span
-              class="px-3 py-1.5 bg-cyan-500/20 text-cyan-300 rounded-lg text-sm font-medium border border-cyan-400/30"
-            >
-              {{ date }}
-            </span>
-            }
-          </div>
-        </div>
-        }
 
         <!-- Fechas donde trabajó horas extra -->
         @if (getOvertimeDaysFromNotes(selectedCompensatoryRequest()!)) {
@@ -4011,6 +3980,21 @@ export class HRDisabilitiesComponent {
     }
 
     return dates;
+  }
+
+  public getManualDateSaldoLabel(dateStr: string): string {
+    const isoDay = this.parseDDMMYYYYToISO(dateStr);
+    if (!isoDay) return 'Fecha inválida';
+
+    const match = this.employeeOvertimeDaysAll().find((d) => d.day === isoDay);
+    if (!match) return 'Sin saldo en rango cargado';
+
+    const remaining = Number(match.overtimeHours ?? 0);
+    if (!Number.isFinite(remaining) || remaining <= 0) {
+      return 'Sin saldo en rango cargado';
+    }
+
+    return this.formatHoursMinutes(remaining);
   }
 
   // Método helper para calcular horas extras de un empleado específico

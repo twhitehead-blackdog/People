@@ -1,12 +1,5 @@
 import { CommonModule, DatePipe } from '@angular/common';
-import {
-  Component,
-  computed,
-  effect,
-  inject,
-  input,
-  signal,
-} from '@angular/core';
+import { Component, computed, effect, inject, input } from '@angular/core';
 import { Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { NotificationsService } from '../services/notifications.service';
@@ -18,10 +11,7 @@ import { NotificationsService } from '../services/notifications.service';
   template: `
     @if (isVisible()) {
     <!-- Overlay para cerrar al hacer clic fuera -->
-    <div
-      class="fixed inset-0 z-[1000]"
-      (click)="close()"
-    ></div>
+    <div class="fixed inset-0 z-[1000]" (click)="close()"></div>
     <!-- Dropdown -->
     <div
       class="absolute right-0 top-full mt-2 w-[400px] max-w-[90vw] bg-gradient-to-br from-neutral-900 via-neutral-900 to-neutral-800 border border-neutral-700/50 rounded-lg shadow-2xl z-[1001] overflow-hidden"
@@ -56,7 +46,7 @@ import { NotificationsService } from '../services/notifications.service';
           @for (notification of recentNotifications(); track notification.id) {
           <div
             class="px-4 py-3 hover:bg-neutral-800/50 transition-colors cursor-pointer"
-            [class.bg-neutral-800/30]="!notification.is_read"
+            [ngClass]="{ 'bg-neutral-800/30': !notification.is_read }"
             (click)="markAsRead(notification.id)"
           >
             <div class="flex items-start gap-3">
@@ -65,7 +55,10 @@ import { NotificationsService } from '../services/notifications.service';
                 class="flex-shrink-0 w-10 h-10 rounded-full bg-gradient-to-br from-cyan-500/20 to-cyan-600/20 border border-cyan-400/30 flex items-center justify-center"
               >
                 <i
-                  [class]="getNotificationIcon(notification.message_type) + ' text-cyan-400'"
+                  [class]="
+                    getNotificationIcon(notification.message_type) +
+                    ' text-cyan-400'
+                  "
                 ></i>
               </div>
               <!-- Contenido -->
@@ -88,7 +81,7 @@ import { NotificationsService } from '../services/notifications.service';
                 </p>
                 <div class="flex items-center justify-between">
                   <span class="text-xs text-gray-500">
-                    {{ notification.created_at | date: 'dd/MM/yyyy HH:mm' }}
+                    {{ notification.created_at | date : 'dd/MM/yyyy HH:mm' }}
                   </span>
                   @if (notification.related_type) {
                   <span
@@ -107,9 +100,7 @@ import { NotificationsService } from '../services/notifications.service';
       </div>
 
       <!-- Footer con botón Ir al buzón -->
-      <div
-        class="px-4 py-3 border-t border-neutral-700/50 bg-neutral-800/50"
-      >
+      <div class="px-4 py-3 border-t border-neutral-700/50 bg-neutral-800/50">
         <p-button
           label="Ir al buzón"
           icon="pi pi-inbox"
@@ -192,4 +183,3 @@ export class NotificationsDropdownComponent {
     return labels[relatedType] || relatedType;
   }
 }
-

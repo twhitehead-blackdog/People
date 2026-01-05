@@ -3,12 +3,11 @@ import { FormsModule } from '@angular/forms';
 import { Branch, Position } from '../../../../models';
 import { InputText } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
-import { Button } from 'primeng/button';
 
 @Component({
   selector: 'pt-timetable-filters',
   standalone: true,
-  imports: [FormsModule, InputText, Select, Button],
+  imports: [FormsModule, InputText, Select],
   template: `
     <div class="flex lg:flex-row flex-col gap-2 mb-2">
       <input

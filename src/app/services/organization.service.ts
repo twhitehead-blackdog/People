@@ -1,5 +1,5 @@
 import { HttpClient } from '@angular/common/http';
-import { computed, effect, Injectable, signal } from '@angular/core';
+import { computed, effect, inject, Injectable, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 
 export type Organization = 'blackdog' | 'naz';
@@ -66,7 +66,9 @@ export class OrganizationService {
     return this._companyIdsReady.asReadonly();
   }
 
-  constructor(private http: HttpClient) {
+  private readonly http = inject(HttpClient);
+
+  constructor() {
     // Cargar desde localStorage al inicializar
     const saved = this.loadFromStorage();
     if (saved) {

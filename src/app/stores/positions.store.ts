@@ -2,7 +2,7 @@ import { signalStore } from '@ngrx/signals';
 import { Position } from '../models';
 import { withCustomEntities } from './entities.feature';
 
-export const PositionsStore = signalStore(
+export const PositionsStore = signalStore({ providedIn: 'root' },
   withCustomEntities<Position>({
     name: 'positions',
     query: 'id,name,department_id,available_for_job_fair,admin,schedule_admin,schedule_approver,dashboard_access,default_view,department:departments(id, name)',

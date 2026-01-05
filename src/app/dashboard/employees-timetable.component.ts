@@ -29,12 +29,8 @@ import { Card } from 'primeng/card';
 import { Dialog } from 'primeng/dialog';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { InputText } from 'primeng/inputtext';
-import { Menu } from 'primeng/menu';
-import { Popover } from 'primeng/popover';
-import { Select } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { ToggleSwitch, ToggleSwitchChangeEvent } from 'primeng/toggleswitch';
-import { Tooltip } from 'primeng/tooltip';
 import { catchError, EMPTY, forkJoin } from 'rxjs';
 import { v4 } from 'uuid';
 import { colorVariants, EmployeeSchedule } from '../models';
@@ -43,7 +39,6 @@ import { DashboardStore } from '../stores/dashboard.store';
 import { AddEmployeeToBranchDialogComponent } from './add-employee-to-branch-dialog.component';
 import { EmployeeSchedulesFormComponent } from './employee-schedules-form.component';
 import { MonthWeekSelectorComponent } from './employees-timetable/components/month-week-selector/month-week-selector.component';
-import { ShiftCellComponent } from './employees-timetable/components/shift-cell/shift-cell.component';
 import { TimetableFiltersComponent } from './employees-timetable/components/timetable-filters/timetable-filters.component';
 import { TimetableGridComponent } from './employees-timetable/components/timetable-grid/timetable-grid.component';
 import { TimetableHeaderComponent } from './employees-timetable/components/timetable-header/timetable-header.component';
@@ -68,22 +63,16 @@ import {
     TimetableFilterService,
   ],
   imports: [
-    Select,
     Card,
     FormsModule,
     TableModule,
-    Menu,
     Button,
-    DatePipe,
     NgClass,
-    Tooltip,
-    Popover,
     ToggleSwitch,
     Dialog,
     InputText,
     TimetableFiltersComponent,
     TimetableHeaderComponent,
-    ShiftCellComponent,
     TimetableGridComponent,
     MonthWeekSelectorComponent,
   ],

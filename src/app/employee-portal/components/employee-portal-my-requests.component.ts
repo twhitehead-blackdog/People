@@ -273,12 +273,13 @@ type UnifiedRequest = {
         @for (request of filteredRequests(); track request.id) {
           @let data = request.originalData;
         <div
-          class="bg-gradient-to-r from-neutral-800 to-neutral-800/80 border rounded-xl p-5 hover:shadow-lg transition-all duration-300 cursor-pointer"
-          [class.border-yellow-500/30]="request.status === 'pending'"
-          [class.border-green-500/30]="request.status === 'approved'"
-          [class.border-red-500/30]="request.status === 'rejected'"
-          [class.border-cyan-500/30]="request.status === 'in_registry'"
-          [class.hover:border-cyan-400/50]="true"
+          class="bg-gradient-to-r from-neutral-800 to-neutral-800/80 border rounded-xl p-5 hover:shadow-lg transition-all duration-300 cursor-pointer hover:border-cyan-400/50"
+          [ngClass]="{
+            'border-yellow-500/30': request.status === 'pending',
+            'border-green-500/30': request.status === 'approved',
+            'border-red-500/30': request.status === 'rejected',
+            'border-cyan-500/30': request.status === 'in_registry'
+          }"
           (click)="onViewRequestDetails(request)"
         >
           <div class="flex flex-col md:flex-row md:items-start gap-4">
@@ -286,10 +287,12 @@ type UnifiedRequest = {
             <div class="flex-shrink-0">
               <div
                 class="w-16 h-16 rounded-xl flex items-center justify-center text-2xl"
-                [class.bg-yellow-500/20]="request.status === 'pending'"
-                [class.bg-green-500/20]="request.status === 'approved'"
-                [class.bg-red-500/20]="request.status === 'rejected'"
-                [class.bg-cyan-500/20]="request.status === 'in_registry'"
+                [ngClass]="{
+                  'bg-yellow-500/20': request.status === 'pending',
+                  'bg-green-500/20': request.status === 'approved',
+                  'bg-red-500/20': request.status === 'rejected',
+                  'bg-cyan-500/20': request.status === 'in_registry'
+                }"
               >
                 @if (request.request_type === 'compensatory') {
                   <i class="pi pi-clock text-cyan-400"></i>
@@ -325,14 +328,16 @@ type UnifiedRequest = {
                 <div class="flex items-center gap-2">
                   <span
                     class="px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2"
-                    [class.bg-yellow-500/20]="request.status === 'pending'"
                     [class.text-yellow-300]="request.status === 'pending'"
-                    [class.bg-green-500/20]="request.status === 'approved'"
                     [class.text-green-300]="request.status === 'approved'"
-                    [class.bg-red-500/20]="request.status === 'rejected'"
                     [class.text-red-300]="request.status === 'rejected'"
-                    [class.bg-cyan-500/20]="request.status === 'in_registry'"
                     [class.text-cyan-300]="request.status === 'in_registry'"
+                    [ngClass]="{
+                      'bg-yellow-500/20': request.status === 'pending',
+                      'bg-green-500/20': request.status === 'approved',
+                      'bg-red-500/20': request.status === 'rejected',
+                      'bg-cyan-500/20': request.status === 'in_registry'
+                    }"
                   >
                     @if (request.status === 'approved') {
                       <i class="pi pi-check-circle"></i>

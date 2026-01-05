@@ -9,13 +9,13 @@ import {
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
-import { InputTextarea } from 'primeng/inputtextarea';
+import { Textarea } from 'primeng/textarea';
 import { TooltipModule } from 'primeng/tooltip';
 
 @Component({
   selector: 'pt-employee-portal-complaints',
   standalone: true,
-  imports: [CommonModule, FormsModule, Card, Button, InputTextarea, TooltipModule],
+  imports: [CommonModule, FormsModule, Card, Button, Textarea, TooltipModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <p-card>
@@ -119,20 +119,24 @@ import { TooltipModule } from 'primeng/tooltip';
             <div
               *ngFor="let complaint of complaints"
               class="bg-neutral-900/80 border rounded-xl p-5 hover:shadow-lg transition-all duration-300 cursor-pointer"
-              [class.border-yellow-500/30]="complaint.status === 'pending'"
-              [class.border-green-500/30]="complaint.status === 'approved'"
-              [class.border-red-500/30]="complaint.status === 'rejected'"
-              [class.border-cyan-500/30]="complaint.status === 'in_review'"
+              [ngClass]="{
+                'border-yellow-500/30': complaint.status === 'pending',
+                'border-green-500/30': complaint.status === 'approved',
+                'border-red-500/30': complaint.status === 'rejected',
+                'border-cyan-500/30': complaint.status === 'in_review'
+              }"
               (click)="openConversation.emit(complaint)"
             >
               <div class="flex flex-col md:flex-row md:items-start gap-4">
                 <div class="flex-shrink-0">
                   <div
                     class="w-16 h-16 rounded-xl flex items-center justify-center text-2xl"
-                    [class.bg-yellow-500/20]="complaint.status === 'pending'"
-                    [class.bg-green-500/20]="complaint.status === 'approved'"
-                    [class.bg-red-500/20]="complaint.status === 'rejected'"
-                    [class.bg-cyan-500/20]="complaint.status === 'in_review'"
+                    [ngClass]="{
+                      'bg-yellow-500/20': complaint.status === 'pending',
+                      'bg-green-500/20': complaint.status === 'approved',
+                      'bg-red-500/20': complaint.status === 'rejected',
+                      'bg-cyan-500/20': complaint.status === 'in_review'
+                    }"
                   >
                     <i class="pi pi-comments text-yellow-400"></i>
                   </div>
@@ -151,14 +155,16 @@ import { TooltipModule } from 'primeng/tooltip';
                     <div class="flex items-center gap-2">
                       <span
                         class="px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2"
-                        [class.bg-yellow-500/20]="complaint.status === 'pending'"
                         [class.text-yellow-300]="complaint.status === 'pending'"
-                        [class.bg-green-500/20]="complaint.status === 'approved'"
                         [class.text-green-300]="complaint.status === 'approved'"
-                        [class.bg-red-500/20]="complaint.status === 'rejected'"
                         [class.text-red-300]="complaint.status === 'rejected'"
-                        [class.bg-cyan-500/20]="complaint.status === 'in_review'"
                         [class.text-cyan-300]="complaint.status === 'in_review'"
+                        [ngClass]="{
+                          'bg-yellow-500/20': complaint.status === 'pending',
+                          'bg-green-500/20': complaint.status === 'approved',
+                          'bg-red-500/20': complaint.status === 'rejected',
+                          'bg-cyan-500/20': complaint.status === 'in_review'
+                        }"
                       >
                         <i
                           class="pi"

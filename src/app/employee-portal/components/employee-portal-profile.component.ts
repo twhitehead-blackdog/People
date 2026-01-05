@@ -1,24 +1,15 @@
-import { DatePipe, NgClass } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { InputText } from 'primeng/inputtext';
-import { Textarea } from 'primeng/textarea';
 import { Employee } from '../../models';
 
 @Component({
   selector: 'pt-employee-portal-profile',
   standalone: true,
-  imports: [
-    Card,
-    Button,
-    InputText,
-    Textarea,
-    FormsModule,
-    DatePipe,
-    NgClass,
-  ],
+  imports: [Card, Button, InputText, FormsModule, DatePipe],
   template: `
     <div class="space-y-4">
       <!-- Header Card -->

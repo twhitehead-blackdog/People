@@ -187,9 +187,9 @@ export class EmployeePortalCompensatoryTutorialDialogComponent {
   public visible = input.required<boolean>();
 
   // Outputs
-  public close = output<void>();
+  public closed = output<void>();
 
   public onClose(): void {
-    this.close.emit();
+    this.closed.emit();
   }
 }

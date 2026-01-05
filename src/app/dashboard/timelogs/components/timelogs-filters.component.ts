@@ -294,10 +294,10 @@ export class TimelogsFiltersComponent {
   @Input() public delayRangeOptions!: { label: string; value: string }[];
   @Input() public hasActiveFilters!: Signal<boolean>;
   @Input() public activeFiltersCount!: Signal<number>;
-  @Output() public search = new EventEmitter<void>();
+  @Output() public searchRequested = new EventEmitter<void>();
 
   public handleSearch(): void {
-    this.search.emit();
+    this.searchRequested.emit();
   }
 
   public toggleFilters(): void {

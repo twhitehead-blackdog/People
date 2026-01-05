@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { addDays, format } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { LoggerService } from '../../services/logger.service';
@@ -12,10 +12,8 @@ export class TimelogsApiService {
   private readonly cutoffBeforeStr = '2025-12-22';
   private readonly cutoffAfterStr = '2025-12-23';
 
-  constructor(
-    private organizationService: OrganizationService,
-    private logger: LoggerService
-  ) {}
+  private readonly organizationService = inject(OrganizationService);
+  private readonly logger = inject(LoggerService);
 
   private clone(date: Date): Date {
     return new Date(date.getTime());

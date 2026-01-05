@@ -54,8 +54,10 @@ type Notification = {
         @for (notification of notifications(); track notification.id) {
         <div
           class="rounded-lg bg-neutral-800/50 border border-neutral-700/50 p-4 hover:bg-neutral-800/70 transition-all cursor-pointer"
-          [class.bg-neutral-800/70]="!notification.is_read"
-          [class.border-amber-400/50]="!notification.is_read"
+          [ngClass]="{
+            'bg-neutral-800/70': !notification.is_read,
+            'border-amber-400/50': !notification.is_read
+          }"
           (click)="onMarkAsRead(notification.id)"
         >
           <div class="flex items-start gap-4">

@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
-import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 
 import { Employee } from '../../models';
@@ -18,7 +17,7 @@ interface DashboardTimelogEvent {
 @Component({
   selector: 'pt-employee-portal-dashboard',
   standalone: true,
-  imports: [CommonModule, Card, Button],
+  imports: [CommonModule, Card],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="flex flex-col gap-6">
@@ -176,9 +175,11 @@ interface DashboardTimelogEvent {
                 </span>
                 <span
                   class="text-xs font-semibold px-2 py-1 rounded"
-                  [class.bg-green-500/20]="event.type === 'entry'"
-                  [class.bg-blue-500/20]="event.type === 'exit'"
-                  [class.bg-amber-500/20]="event.type === 'lunch_start' || event.type === 'lunch_end'"
+                  [ngClass]="{
+                    'bg-green-500/20': event.type === 'entry',
+                    'bg-blue-500/20': event.type === 'exit',
+                    'bg-amber-500/20': event.type === 'lunch_start' || event.type === 'lunch_end'
+                  }"
                 >
                   @if (event.type === 'entry') {
                     Entrada

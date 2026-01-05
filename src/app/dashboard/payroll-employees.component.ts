@@ -154,8 +154,8 @@ export class PayrollEmployeesComponent {
       const term = this.searchTerm();
       if (term) {
         // Remover caracteres de control y limitar a 200 caracteres
-        // eslint-disable-next-line no-control-regex
         const sanitized = term
+          // eslint-disable-next-line no-control-regex
           .replace(/[\x00-\x1F\x7F]/g, '')
           .substring(0, 200);
         if (sanitized !== term) {

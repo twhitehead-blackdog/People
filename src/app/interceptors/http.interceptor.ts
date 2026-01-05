@@ -1,15 +1,15 @@
 import { HttpInterceptorFn } from '@angular/common/http';
-import { inject } from '@angular/core';
+import { inject, isDevMode } from '@angular/core';
 import { AuthService } from '@auth0/auth0-angular';
 import { catchError, finalize, switchMap, tap, throwError } from 'rxjs';
 import { DiagnosticService } from '../services/diagnostic.service';
 
 // Detectar si estamos en desarrollo
-const isDevelopment = typeof process !== 'undefined' && 
-  (process.env['NODE_ENV'] === 'development' || 
-   !process.env['NODE_ENV'] || 
-   window.location.hostname === 'localhost' || 
-   window.location.hostname === '127.0.0.1');
+const isDevelopment =
+  isDevMode() ||
+  (typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1'));
 
 export const httpInterceptor: HttpInterceptorFn = (req, next) => {
   const diagnosticService = inject(DiagnosticService);

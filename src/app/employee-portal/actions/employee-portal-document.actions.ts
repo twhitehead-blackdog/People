@@ -133,7 +133,7 @@ export function submitDocumentRequest(
             html,
             fromName: 'People - RRHH',
           }).subscribe({
-            next: () => {},
+            next: () => undefined,
             error: (e) => console.warn('[DocumentRequest] No se pudo enviar email a RRHH', e),
           });
         })();

@@ -1,3 +1,6 @@
+import { setupZoneTestEnv } from 'jest-preset-angular/setup-env/zone';
+import { TextDecoder, TextEncoder } from 'util';
+
 // Make this file a module
 export {};
 
@@ -8,6 +11,9 @@ globalThis.ngJest = {
     errorOnUnknownProperties: true,
   },
 };
+
+// Inicializa el entorno de pruebas de Angular para Jest (TestBed, Zone.js, etc.)
+setupZoneTestEnv();
 
 declare global {
   interface Window {
@@ -30,6 +36,10 @@ window.process = {
     ENV_SUPABASE_TOKEN: '',
   },
 };
+
+// Polyfill para librerías (ej: Auth0) que requieren TextEncoder/TextDecoder en Jest/Node
+(globalThis as any).TextEncoder ??= TextEncoder;
+(globalThis as any).TextDecoder ??= TextDecoder;
 
 // jest-preset-angular 15.0.0+ handles setup automatically via preset
 // No manual import needed

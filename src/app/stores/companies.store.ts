@@ -2,7 +2,7 @@ import { signalStore } from '@ngrx/signals';
 import { Company } from '../models';
 import { withCustomEntities } from './entities.feature';
 
-export const CompaniesStore = signalStore(
+export const CompaniesStore = signalStore({ providedIn: 'root' },
   withCustomEntities<Company>({ name: 'companies' })
   // Carga lazy: los componentes deben llamar fetchItems() manualmente
 );

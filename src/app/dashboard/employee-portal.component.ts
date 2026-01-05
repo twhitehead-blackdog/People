@@ -74,7 +74,10 @@ import { getBooleanSetting } from '../utils/settings-http.utils';
   ],
   providers: [MessageService],
   template: `
-    <div class="mx-2 sm:mx-4 md:mx-6 flex flex-col gap-4 py-4 sm:py-6" [ngClass]="{ 'naz-theme': isNaz() }">
+    <div
+      class="mx-2 sm:mx-4 md:mx-6 flex flex-col gap-4 py-4 sm:py-6"
+      [ngClass]="{ 'naz-theme': isNaz() }"
+    >
       <div class="flex items-center justify-between">
         <h1 class="text-xl sm:text-2xl font-bold text-white">
           <i class="pi pi-user mr-2"></i>
@@ -84,7 +87,11 @@ import { getBooleanSetting } from '../utils/settings-http.utils';
       </div>
 
       <!-- DEBUG: activeTabIndex en template = {{ activeTabIndex() }} -->
-      <p-tabs [value]="activeTabIndex().toString()" (valueChange)="onTabChange($event)" scrollable>
+      <p-tabs
+        [value]="activeTabIndex().toString()"
+        (valueChange)="onTabChange($event)"
+        scrollable
+      >
         <p-tablist>
           <p-tab value="0">
             <i class="pi pi-home mr-2"></i>
@@ -191,11 +198,15 @@ import { getBooleanSetting } from '../utils/settings-http.utils';
               <p-card class="dashboard-stat-card">
                 <div class="flex items-center justify-between">
                   <div>
-                    <p class="text-sm text-gray-400 m-0 mb-1">Horas de Compensatorio Aprobadas</p>
+                    <p class="text-sm text-gray-400 m-0 mb-1">
+                      Horas de Compensatorio Aprobadas
+                    </p>
                     <p class="text-2xl font-bold text-white m-0">
                       {{ approvedCompensatoryHours() }}
                     </p>
-                    <p class="text-xs text-gray-500 m-0 mt-1">Total aprobadas</p>
+                    <p class="text-xs text-gray-500 m-0 mt-1">
+                      Total aprobadas
+                    </p>
                   </div>
                   <div
                     class="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center"
@@ -325,15 +336,24 @@ import { getBooleanSetting } from '../utils/settings-http.utils';
           </div>
           }
         </div>
-        }
-
-        @if (activeTabIndex() === 1) {
+        } @if (activeTabIndex() === 1) {
         <!-- Tab 1: Gestiones - activeTabIndex = {{ activeTabIndex() }} -->
-        <div class="tab-content" style="background: rgba(255,0,0,0.1); border: 2px solid red; padding: 1rem;">
-          <div style="background: rgba(0,255,0,0.1); padding: 1rem; margin-bottom: 1rem;">
-            <strong>DEBUG: Tab Gestiones está activo - activeTabIndex = {{ activeTabIndex() }}</strong>
+        <div
+          class="tab-content"
+          style="background: rgba(255,0,0,0.1); border: 2px solid red; padding: 1rem;"
+        >
+          <div
+            style="background: rgba(0,255,0,0.1); padding: 1rem; margin-bottom: 1rem;"
+          >
+            <strong
+              >DEBUG: Tab Gestiones está activo - activeTabIndex =
+              {{ activeTabIndex() }}</strong
+            >
           </div>
-          <div class="flex flex-col gap-6" style="min-height: 400px; padding: 1rem 0;">
+          <div
+            class="flex flex-col gap-6"
+            style="min-height: 400px; padding: 1rem 0;"
+          >
             <div>
               <h2 class="text-2xl font-bold text-white mb-2">Gestiones</h2>
               <p class="text-gray-400">
@@ -343,12 +363,19 @@ import { getBooleanSetting } from '../utils/settings-http.utils';
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               <!-- Incapacidades -->
-              <p-card class="cursor-pointer hover:shadow-lg transition-all" (click)="openGestionForm('disabilities')">
+              <p-card
+                class="cursor-pointer hover:shadow-lg transition-all"
+                (click)="openGestionForm('disabilities')"
+              >
                 <div class="flex flex-col items-center text-center gap-3">
-                  <div class="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
+                  <div
+                    class="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center"
+                  >
                     <i class="pi pi-file-plus text-blue-400 text-xl"></i>
                   </div>
-                  <h3 class="text-lg font-semibold text-white m-0">Incapacidades</h3>
+                  <h3 class="text-lg font-semibold text-white m-0">
+                    Incapacidades
+                  </h3>
                   <p class="text-sm text-gray-400 m-0">
                     Sube documentos de incapacidad médica
                   </p>
@@ -356,12 +383,19 @@ import { getBooleanSetting } from '../utils/settings-http.utils';
               </p-card>
 
               <!-- Solicitar Documentos -->
-              <p-card class="cursor-pointer hover:shadow-lg transition-all" (click)="openGestionForm('documents')">
+              <p-card
+                class="cursor-pointer hover:shadow-lg transition-all"
+                (click)="openGestionForm('documents')"
+              >
                 <div class="flex flex-col items-center text-center gap-3">
-                  <div class="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center">
+                  <div
+                    class="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center"
+                  >
                     <i class="pi pi-file-edit text-green-400 text-xl"></i>
                   </div>
-                  <h3 class="text-lg font-semibold text-white m-0">Solicitar Documentos</h3>
+                  <h3 class="text-lg font-semibold text-white m-0">
+                    Solicitar Documentos
+                  </h3>
                   <p class="text-sm text-gray-400 m-0">
                     Solicita cartas de trabajo u otros documentos
                   </p>
@@ -369,12 +403,19 @@ import { getBooleanSetting } from '../utils/settings-http.utils';
               </p-card>
 
               <!-- Buzón de Quejas -->
-              <p-card class="cursor-pointer hover:shadow-lg transition-all" (click)="openGestionForm('complaints')">
+              <p-card
+                class="cursor-pointer hover:shadow-lg transition-all"
+                (click)="openGestionForm('complaints')"
+              >
                 <div class="flex flex-col items-center text-center gap-3">
-                  <div class="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                  <div
+                    class="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center"
+                  >
                     <i class="pi pi-comments text-yellow-400 text-xl"></i>
                   </div>
-                  <h3 class="text-lg font-semibold text-white m-0">Buzón de Sugerencias</h3>
+                  <h3 class="text-lg font-semibold text-white m-0">
+                    Buzón de Sugerencias
+                  </h3>
                   <p class="text-sm text-gray-400 m-0">
                     Expresa tus inquietudes de forma anónima
                   </p>
@@ -382,12 +423,19 @@ import { getBooleanSetting } from '../utils/settings-http.utils';
               </p-card>
 
               <!-- Solicitar Vacaciones -->
-              <p-card class="cursor-pointer hover:shadow-lg transition-all" (click)="openGestionForm('vacations')">
+              <p-card
+                class="cursor-pointer hover:shadow-lg transition-all"
+                (click)="openGestionForm('vacations')"
+              >
                 <div class="flex flex-col items-center text-center gap-3">
-                  <div class="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center">
+                  <div
+                    class="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center"
+                  >
                     <i class="pi pi-calendar-plus text-purple-400 text-xl"></i>
                   </div>
-                  <h3 class="text-lg font-semibold text-white m-0">Solicitar Vacaciones</h3>
+                  <h3 class="text-lg font-semibold text-white m-0">
+                    Solicitar Vacaciones
+                  </h3>
                   <p class="text-sm text-gray-400 m-0">
                     Solicita tus días de vacaciones
                   </p>
@@ -395,12 +443,19 @@ import { getBooleanSetting } from '../utils/settings-http.utils';
               </p-card>
 
               <!-- Solicitar Licencia -->
-              <p-card class="cursor-pointer hover:shadow-lg transition-all" (click)="openGestionForm('license')">
+              <p-card
+                class="cursor-pointer hover:shadow-lg transition-all"
+                (click)="openGestionForm('license')"
+              >
                 <div class="flex flex-col items-center text-center gap-3">
-                  <div class="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center">
+                  <div
+                    class="w-12 h-12 rounded-full bg-orange-500/20 flex items-center justify-center"
+                  >
                     <i class="pi pi-calendar text-orange-400 text-xl"></i>
                   </div>
-                  <h3 class="text-lg font-semibold text-white m-0">Solicitar Licencia</h3>
+                  <h3 class="text-lg font-semibold text-white m-0">
+                    Solicitar Licencia
+                  </h3>
                   <p class="text-sm text-gray-400 m-0">
                     Solicita una licencia sin goce de sueldo
                   </p>
@@ -408,12 +463,19 @@ import { getBooleanSetting } from '../utils/settings-http.utils';
               </p-card>
 
               <!-- Solicitar Permiso Personal -->
-              <p-card class="cursor-pointer hover:shadow-lg transition-all" (click)="openGestionForm('personal')">
+              <p-card
+                class="cursor-pointer hover:shadow-lg transition-all"
+                (click)="openGestionForm('personal')"
+              >
                 <div class="flex flex-col items-center text-center gap-3">
-                  <div class="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center">
+                  <div
+                    class="w-12 h-12 rounded-full bg-indigo-500/20 flex items-center justify-center"
+                  >
                     <i class="pi pi-user text-indigo-400 text-xl"></i>
                   </div>
-                  <h3 class="text-lg font-semibold text-white m-0">Permiso Personal</h3>
+                  <h3 class="text-lg font-semibold text-white m-0">
+                    Permiso Personal
+                  </h3>
                   <p class="text-sm text-gray-400 m-0">
                     Solicita un permiso por asuntos personales
                   </p>
@@ -421,12 +483,19 @@ import { getBooleanSetting } from '../utils/settings-http.utils';
               </p-card>
 
               <!-- Solicitar Licencia de Maternidad -->
-              <p-card class="cursor-pointer hover:shadow-lg transition-all" (click)="openGestionForm('maternity')">
+              <p-card
+                class="cursor-pointer hover:shadow-lg transition-all"
+                (click)="openGestionForm('maternity')"
+              >
                 <div class="flex flex-col items-center text-center gap-3">
-                  <div class="w-12 h-12 rounded-full bg-pink-500/20 flex items-center justify-center">
+                  <div
+                    class="w-12 h-12 rounded-full bg-pink-500/20 flex items-center justify-center"
+                  >
                     <i class="pi pi-heart text-pink-400 text-xl"></i>
                   </div>
-                  <h3 class="text-lg font-semibold text-white m-0">Licencia de Maternidad</h3>
+                  <h3 class="text-lg font-semibold text-white m-0">
+                    Licencia de Maternidad
+                  </h3>
                   <p class="text-sm text-gray-400 m-0">
                     Solicita tu licencia de maternidad pagada
                   </p>
@@ -606,8 +675,9 @@ import { getBooleanSetting } from '../utils/settings-http.utils';
                         Tu privacidad está protegida
                       </p>
                       <p class="text-sm text-gray-300">
-                        Todas las quejas son completamente anónimas. Tu identidad
-                        no será revelada a menos que lo autorices explícitamente.
+                        Todas las quejas son completamente anónimas. Tu
+                        identidad no será revelada a menos que lo autorices
+                        explícitamente.
                       </p>
                     </div>
                   </div>
@@ -691,7 +761,9 @@ import { getBooleanSetting } from '../utils/settings-http.utils';
                 </div>
               </div>
             </div>
-            } @else if (activeGestionForm() === 'vacations' || activeGestionForm() === 'license' || activeGestionForm() === 'personal' || activeGestionForm() === 'maternity') {
+            } @else if (activeGestionForm() === 'vacations' ||
+            activeGestionForm() === 'license' || activeGestionForm() ===
+            'personal' || activeGestionForm() === 'maternity') {
             <!-- Formulario de Vacaciones/Licencias -->
             <div class="gestion-form-content">
               <div class="flex flex-col gap-4">
@@ -782,14 +854,19 @@ import { getBooleanSetting } from '../utils/settings-http.utils';
           >
             <div class="flex flex-col gap-4">
               <!-- Header con filtros y acciones -->
-              @if (!notificationsService.notificationsApi.isLoading() && myNotifications().length > 0) {
-              <div class="flex items-center justify-between gap-3 pb-3 border-b border-neutral-700">
+              @if (!notificationsService.notificationsApi.isLoading() &&
+              myNotifications().length > 0) {
+              <div
+                class="flex items-center justify-between gap-3 pb-3 border-b border-neutral-700"
+              >
                 <!-- Filtros -->
                 <div class="flex items-center gap-2">
                   <button
                     type="button"
                     (click)="notificationFilter.set('all')"
-                    [class.bg-amber-500/20]="notificationFilter() === 'all'"
+                    [ngClass]="{
+                      'bg-amber-500/20': notificationFilter() === 'all'
+                    }"
                     [class.text-amber-400]="notificationFilter() === 'all'"
                     [class.text-gray-400]="notificationFilter() !== 'all'"
                     class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors hover:bg-neutral-700/50"
@@ -799,7 +876,9 @@ import { getBooleanSetting } from '../utils/settings-http.utils';
                   <button
                     type="button"
                     (click)="notificationFilter.set('unread')"
-                    [class.bg-amber-500/20]="notificationFilter() === 'unread'"
+                    [ngClass]="{
+                      'bg-amber-500/20': notificationFilter() === 'unread'
+                    }"
                     [class.text-amber-400]="notificationFilter() === 'unread'"
                     [class.text-gray-400]="notificationFilter() !== 'unread'"
                     class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors hover:bg-neutral-700/50"
@@ -809,7 +888,9 @@ import { getBooleanSetting } from '../utils/settings-http.utils';
                   <button
                     type="button"
                     (click)="notificationFilter.set('read')"
-                    [class.bg-amber-500/20]="notificationFilter() === 'read'"
+                    [ngClass]="{
+                      'bg-amber-500/20': notificationFilter() === 'read'
+                    }"
                     [class.text-amber-400]="notificationFilter() === 'read'"
                     [class.text-gray-400]="notificationFilter() !== 'read'"
                     class="px-3 py-1.5 rounded-lg text-sm font-medium transition-colors hover:bg-neutral-700/50"
@@ -830,33 +911,31 @@ import { getBooleanSetting } from '../utils/settings-http.utils';
                 </button>
                 }
               </div>
-              }
-              
-              @if (notificationsService.notificationsApi.isLoading()) {
+              } @if (notificationsService.notificationsApi.isLoading()) {
               <div class="flex items-center justify-center py-8">
                 <i class="pi pi-spin pi-spinner text-2xl text-gray-400"></i>
               </div>
               } @else if (filteredNotifications().length === 0) {
-              <div class="flex flex-col items-center justify-center py-8 text-center">
+              <div
+                class="flex flex-col items-center justify-center py-8 text-center"
+              >
                 <i class="pi pi-bell text-4xl text-gray-500 mb-4"></i>
                 <p class="text-gray-400">
-                  @if (notificationFilter() === 'unread') {
-                    No tienes notificaciones no leídas
-                  } @else if (notificationFilter() === 'read') {
-                    No tienes notificaciones leídas
-                  } @else {
-                    No tienes notificaciones
-                  }
+                  @if (notificationFilter() === 'unread') { No tienes
+                  notificaciones no leídas } @else if (notificationFilter() ===
+                  'read') { No tienes notificaciones leídas } @else { No tienes
+                  notificaciones }
                 </p>
               </div>
               } @else {
               <div class="flex flex-col gap-2 max-h-[60vh] overflow-y-auto">
-                @for (notification of filteredNotifications(); track notification.id) {
+                @for (notification of filteredNotifications(); track
+                notification.id) {
                 <div
                   class="p-4 rounded-lg border transition-all"
                   [class.bg-neutral-800]="!notification.is_read"
                   [class.bg-neutral-900]="notification.is_read"
-                  [class.border-amber-500/30]="!notification.is_read"
+                  [ngClass]="{ 'border-amber-500/30': !notification.is_read }"
                   [class.border-neutral-700]="notification.is_read"
                 >
                   <div class="flex items-start justify-between gap-3">
@@ -864,13 +943,18 @@ import { getBooleanSetting } from '../utils/settings-http.utils';
                       <div class="flex items-center gap-2 mb-1">
                         <!-- Icono según tipo de mensaje -->
                         <i
-                          [class]="getNotificationIcon(notification.message_type)"
+                          [class]="
+                            getNotificationIcon(notification.message_type)
+                          "
                           class="text-base flex-shrink-0"
                           [class.text-amber-400]="!notification.is_read"
                           [class.text-gray-500]="notification.is_read"
                         ></i>
                         <h4 class="font-semibold text-white m-0 flex-1">
-                          {{ notification.title || getNotificationTitle(notification.message_type) }}
+                          {{
+                            notification.title ||
+                              getNotificationTitle(notification.message_type)
+                          }}
                         </h4>
                         @if (!notification.is_read) {
                         <span
@@ -887,7 +971,9 @@ import { getBooleanSetting } from '../utils/settings-http.utils';
                         </p>
                         @if (notification.message_type) {
                         <span class="text-gray-600 text-xs">
-                          {{ getNotificationTypeLabel(notification.message_type) }}
+                          {{
+                            getNotificationTypeLabel(notification.message_type)
+                          }}
                         </span>
                         }
                       </div>
@@ -899,7 +985,9 @@ import { getBooleanSetting } from '../utils/settings-http.utils';
                       class="p-2 rounded-lg hover:bg-neutral-700 transition-colors flex-shrink-0"
                       pTooltip="Marcar como leída"
                     >
-                      <i class="pi pi-check text-sm text-gray-400 hover:text-amber-400"></i>
+                      <i
+                        class="pi pi-check text-sm text-gray-400 hover:text-amber-400"
+                      ></i>
                     </button>
                     }
                   </div>
@@ -910,9 +998,7 @@ import { getBooleanSetting } from '../utils/settings-http.utils';
             </div>
           </p-dialog>
         </div>
-        }
-
-        @if (activeTabIndex() === 2) {
+        } @if (activeTabIndex() === 2) {
         <!-- Tab 2: Mi Perfil -->
         <div class="tab-content">
           <p-card>
@@ -968,7 +1054,7 @@ import { getBooleanSetting } from '../utils/settings-http.utils';
                     {{ currentEmployee()?.start_date | date : 'fullDate' }}
                   </p>
                 </div>
-                  <!-- Salario Mensual oculto -->
+                <!-- Salario Mensual oculto -->
               </div>
 
               <!-- Información editable -->
@@ -1072,16 +1158,16 @@ import { getBooleanSetting } from '../utils/settings-http.utils';
             }
           </p-card>
         </div>
-        }
-
-        @if (activeTabIndex() === 3) {
+        } @if (activeTabIndex() === 3) {
         <!-- Tab 3: Mis Marcaciones -->
         <div class="tab-content">
           <p-card>
             <ng-template #title>
               <div class="flex items-center justify-between w-full">
                 <div>
-                  <h3 class="text-xl font-bold text-white m-0">Calendario de Marcaciones</h3>
+                  <h3 class="text-xl font-bold text-white m-0">
+                    Calendario de Marcaciones
+                  </h3>
                   <p class="text-sm text-gray-400 m-0 mt-1">
                     {{ calendarMonth() | date : 'MMMM yyyy' }}
                   </p>
@@ -1094,147 +1180,184 @@ import { getBooleanSetting } from '../utils/settings-http.utils';
             <ng-template #subtitle
               >Visualiza tus marcaciones en formato calendario</ng-template
             >
-            
+
             @if (monthTimelogsApi.isLoading()) {
-              <div class="flex items-center justify-center py-12">
-                <i class="pi pi-spin pi-spinner text-4xl text-amber-400"></i>
-              </div>
+            <div class="flex items-center justify-center py-12">
+              <i class="pi pi-spin pi-spinner text-4xl text-amber-400"></i>
+            </div>
             } @else {
-              <!-- Calendario bonito usando pt-calendar -->
-              <pt-calendar
-                [markers]="timelogMarkers()"
-                [markerTpl]="timelogMarkerTemplate"
-                (monthChange)="onCalendarMonthChange($event)"
-              />
-              
-              <!-- Template para mostrar los markers en el calendario tipo mapa -->
-              <ng-template #timelogMarkerTemplate let-markers>
-                <div class="flex flex-col gap-1.5 w-full h-full">
-                  @for (marker of markers; track marker.data.day) {
-                    @let log = marker.data;
-                    @let hasEntry = log?.entry;
-                    @let hasExit = log?.exit;
-                    @let hasLunchStart = log?.lunch_start;
-                    @let hasLunchEnd = log?.lunch_end;
-                    @let hasDelay = log?.delay && typeof log?.delay === 'number';
-                    @let workedHours = log?.entry && log?.exit ? calculateWorkedHours(log.entry.date, log.exit.date) : null;
-                    @let isComplete = hasEntry && hasExit;
-                    @let isIncomplete = hasEntry && !hasExit;
-                    
-                    <div
-                      class="flex flex-col gap-1.5 p-2 rounded-lg shadow-md border-2 transition-all duration-200 hover:scale-105 hover:shadow-lg w-full min-h-[80px]"
-                      [class.bg-gradient-to-br]="true"
-                      [class.from-green-600/30]="isComplete && !hasDelay"
-                      [class.to-green-500/20]="isComplete && !hasDelay"
-                      [class.from-yellow-600/30]="isIncomplete"
-                      [class.to-yellow-500/20]="isIncomplete"
-                      [class.from-red-600/30]="hasDelay"
-                      [class.to-red-500/20]="hasDelay"
-                      [class.border-green-400]="isComplete && !hasDelay"
-                      [class.border-yellow-400]="isIncomplete"
-                      [class.border-red-400]="hasDelay"
+            <!-- Calendario bonito usando pt-calendar -->
+            <pt-calendar
+              [markers]="timelogMarkers()"
+              [markerTpl]="timelogMarkerTemplate"
+              (monthChange)="onCalendarMonthChange($event)"
+            />
+
+            <!-- Template para mostrar los markers en el calendario tipo mapa -->
+            <ng-template #timelogMarkerTemplate let-markers>
+              <div class="flex flex-col gap-1.5 w-full h-full">
+                @for (marker of markers; track marker.data.day) { @let log =
+                marker.data; @let hasEntry = log?.entry; @let hasExit =
+                log?.exit; @let hasLunchStart = log?.lunch_start; @let
+                hasLunchEnd = log?.lunch_end; @let hasDelay = log?.delay &&
+                typeof log?.delay === 'number'; @let workedHours = log?.entry &&
+                log?.exit ? calculateWorkedHours(log.entry.date, log.exit.date)
+                : null; @let isComplete = hasEntry && hasExit; @let isIncomplete
+                = hasEntry && !hasExit;
+
+                <div
+                  class="flex flex-col gap-1.5 p-2 rounded-lg shadow-md border-2 transition-all duration-200 hover:scale-105 hover:shadow-lg w-full min-h-[80px]"
+                  [class.bg-gradient-to-br]="true"
+                  [ngClass]="{
+                    'from-green-600/30 to-green-500/20':
+                      isComplete && !hasDelay,
+                    'from-yellow-600/30 to-yellow-500/20': isIncomplete,
+                    'from-red-600/30 to-red-500/20': hasDelay
+                  }"
+                  [class.border-green-400]="isComplete && !hasDelay"
+                  [class.border-yellow-400]="isIncomplete"
+                  [class.border-red-400]="hasDelay"
+                >
+                  <!-- Header con fecha y estado -->
+                  <div
+                    class="flex items-center justify-between mb-1 pb-1 border-b border-white/10"
+                  >
+                    <span
+                      class="text-[10px] font-bold uppercase tracking-wide text-white/80"
                     >
-                      <!-- Header con fecha y estado -->
-                      <div class="flex items-center justify-between mb-1 pb-1 border-b border-white/10">
-                        <span class="text-[10px] font-bold uppercase tracking-wide text-white/80">
-                          {{ log.day | panamaDate : 'EEE d' }}
-                        </span>
-                        @if (isComplete) {
-                          <span class="text-[9px] bg-green-500/50 text-white px-1.5 py-0.5 rounded-full font-semibold">
-                            ✓ Completo
-                          </span>
-                        } @else if (isIncomplete) {
-                          <span class="text-[9px] bg-yellow-500/50 text-white px-1.5 py-0.5 rounded-full font-semibold">
-                            ⚠ Pendiente
-                          </span>
-                        }
-                        @if (hasDelay) {
-                          <span class="text-[9px] bg-red-500/70 text-white px-1.5 py-0.5 rounded-full font-semibold animate-pulse">
-                            ⏰ {{ log.delay }}m
-                          </span>
-                        }
+                      {{ log.day | panamaDate : 'EEE d' }}
+                    </span>
+                    @if (isComplete) {
+                    <span
+                      class="text-[9px] bg-green-500/50 text-white px-1.5 py-0.5 rounded-full font-semibold"
+                    >
+                      ✓ Completo
+                    </span>
+                    } @else if (isIncomplete) {
+                    <span
+                      class="text-[9px] bg-yellow-500/50 text-white px-1.5 py-0.5 rounded-full font-semibold"
+                    >
+                      ⚠ Pendiente
+                    </span>
+                    } @if (hasDelay) {
+                    <span
+                      class="text-[9px] bg-red-500/70 text-white px-1.5 py-0.5 rounded-full font-semibold animate-pulse"
+                    >
+                      ⏰ {{ log.delay }}m
+                    </span>
+                    }
+                  </div>
+
+                  <!-- Timeline visual tipo mapa -->
+                  <div class="flex flex-col gap-1.5">
+                    <!-- Entrada -->
+                    @if (hasEntry) {
+                    <div
+                      class="flex items-center gap-2 p-1.5 rounded-md bg-white/5 border border-green-400/30"
+                    >
+                      <div
+                        class="flex items-center justify-center w-5 h-5 rounded-full bg-green-500/30 border-2 border-green-400"
+                      >
+                        <i class="pi pi-sign-in text-[10px] text-green-300"></i>
                       </div>
+                      <div class="flex-1">
+                        <div class="text-[11px] text-gray-300 font-medium">
+                          Entrada
+                        </div>
+                        <div class="text-[13px] text-white font-bold">
+                          {{ log.entry.date | panamaDate : 'HH:mm' }}
+                        </div>
+                      </div>
+                      @if (log.entry.branch?.name) {
+                      <div
+                        class="text-[9px] text-gray-400 truncate max-w-[60px]"
+                      >
+                        {{ log.entry.branch.name }}
+                      </div>
+                      }
+                    </div>
+                    }
 
-                      <!-- Timeline visual tipo mapa -->
-                      <div class="flex flex-col gap-1.5">
-                        <!-- Entrada -->
-                        @if (hasEntry) {
-                          <div class="flex items-center gap-2 p-1.5 rounded-md bg-white/5 border border-green-400/30">
-                            <div class="flex items-center justify-center w-5 h-5 rounded-full bg-green-500/30 border-2 border-green-400">
-                              <i class="pi pi-sign-in text-[10px] text-green-300"></i>
-                            </div>
-                            <div class="flex-1">
-                              <div class="text-[11px] text-gray-300 font-medium">Entrada</div>
-                              <div class="text-[13px] text-white font-bold">{{ log.entry.date | panamaDate : 'HH:mm' }}</div>
-                            </div>
-                            @if (log.entry.branch?.name) {
-                              <div class="text-[9px] text-gray-400 truncate max-w-[60px]">
-                                {{ log.entry.branch.name }}
-                              </div>
-                            }
-                          </div>
-                        }
-
-                        <!-- Almuerzo -->
-                        @if (hasLunchStart || hasLunchEnd) {
-                          <div class="flex items-center gap-2 p-1.5 rounded-md bg-white/5 border border-amber-400/30">
-                            <div class="flex items-center justify-center w-5 h-5 rounded-full bg-amber-500/30 border-2 border-amber-400">
-                              <i class="pi pi-clock text-[10px] text-amber-300"></i>
-                            </div>
-                            <div class="flex-1">
-                              <div class="text-[11px] text-gray-300 font-medium">Almuerzo</div>
-                              <div class="flex items-center gap-2 text-[12px]">
-                                @if (hasLunchStart) {
-                                  <span class="text-white font-semibold">{{ log.lunch_start.date | panamaDate : 'HH:mm' }}</span>
-                                }
-                                @if (hasLunchStart && hasLunchEnd) {
-                                  <span class="text-gray-500">→</span>
-                                }
-                                @if (hasLunchEnd) {
-                                  <span class="text-white font-semibold">{{ log.lunch_end.date | panamaDate : 'HH:mm' }}</span>
-                                }
-                              </div>
-                            </div>
-                          </div>
-                        }
-
-                        <!-- Salida -->
-                        @if (hasExit) {
-                          <div class="flex items-center gap-2 p-1.5 rounded-md bg-white/5 border border-blue-400/30">
-                            <div class="flex items-center justify-center w-5 h-5 rounded-full bg-blue-500/30 border-2 border-blue-400">
-                              <i class="pi pi-sign-out text-[10px] text-blue-300"></i>
-                            </div>
-                            <div class="flex-1">
-                              <div class="text-[11px] text-gray-300 font-medium">Salida</div>
-                              <div class="text-[13px] text-white font-bold">{{ log.exit.date | panamaDate : 'HH:mm' }}</div>
-                            </div>
-                            @if (log.exit.branch?.name) {
-                              <div class="text-[9px] text-gray-400 truncate max-w-[60px]">
-                                {{ log.exit.branch.name }}
-                              </div>
-                            }
-                          </div>
-                        }
-
-                        <!-- Horas trabajadas -->
-                        @if (workedHours) {
-                          <div class="flex items-center justify-center gap-1.5 mt-1 pt-1.5 border-t border-white/10">
-                            <i class="pi pi-hourglass text-amber-400 text-xs"></i>
-                            <span class="text-[12px] font-bold text-amber-300">{{ workedHours }}</span>
-                            <span class="text-[10px] text-gray-400">horas</span>
-                          </div>
-                        }
+                    <!-- Almuerzo -->
+                    @if (hasLunchStart || hasLunchEnd) {
+                    <div
+                      class="flex items-center gap-2 p-1.5 rounded-md bg-white/5 border border-amber-400/30"
+                    >
+                      <div
+                        class="flex items-center justify-center w-5 h-5 rounded-full bg-amber-500/30 border-2 border-amber-400"
+                      >
+                        <i class="pi pi-clock text-[10px] text-amber-300"></i>
+                      </div>
+                      <div class="flex-1">
+                        <div class="text-[11px] text-gray-300 font-medium">
+                          Almuerzo
+                        </div>
+                        <div class="flex items-center gap-2 text-[12px]">
+                          @if (hasLunchStart) {
+                          <span class="text-white font-semibold">{{
+                            log.lunch_start.date | panamaDate : 'HH:mm'
+                          }}</span>
+                          } @if (hasLunchStart && hasLunchEnd) {
+                          <span class="text-gray-500">→</span>
+                          } @if (hasLunchEnd) {
+                          <span class="text-white font-semibold">{{
+                            log.lunch_end.date | panamaDate : 'HH:mm'
+                          }}</span>
+                          }
+                        </div>
                       </div>
                     </div>
-                  }
+                    }
+
+                    <!-- Salida -->
+                    @if (hasExit) {
+                    <div
+                      class="flex items-center gap-2 p-1.5 rounded-md bg-white/5 border border-blue-400/30"
+                    >
+                      <div
+                        class="flex items-center justify-center w-5 h-5 rounded-full bg-blue-500/30 border-2 border-blue-400"
+                      >
+                        <i class="pi pi-sign-out text-[10px] text-blue-300"></i>
+                      </div>
+                      <div class="flex-1">
+                        <div class="text-[11px] text-gray-300 font-medium">
+                          Salida
+                        </div>
+                        <div class="text-[13px] text-white font-bold">
+                          {{ log.exit.date | panamaDate : 'HH:mm' }}
+                        </div>
+                      </div>
+                      @if (log.exit.branch?.name) {
+                      <div
+                        class="text-[9px] text-gray-400 truncate max-w-[60px]"
+                      >
+                        {{ log.exit.branch.name }}
+                      </div>
+                      }
+                    </div>
+                    }
+
+                    <!-- Horas trabajadas -->
+                    @if (workedHours) {
+                    <div
+                      class="flex items-center justify-center gap-1.5 mt-1 pt-1.5 border-t border-white/10"
+                    >
+                      <i class="pi pi-hourglass text-amber-400 text-xs"></i>
+                      <span class="text-[12px] font-bold text-amber-300">{{
+                        workedHours
+                      }}</span>
+                      <span class="text-[10px] text-gray-400">horas</span>
+                    </div>
+                    }
+                  </div>
                 </div>
-              </ng-template>
+                }
+              </div>
+            </ng-template>
             }
           </p-card>
         </div>
-        }
-
-        @if (activeTabIndex() === 4) {
+        } @if (activeTabIndex() === 4) {
         <!-- Tab 4: Mis Tardanzas -->
         <div class="tab-content">
           <p-card>
@@ -1408,7 +1531,8 @@ import { getBooleanSetting } from '../utils/settings-http.utils';
                       </td>
                       <td>
                         @if (disability.status === 'rejected' &&
-                        (disability.rejection_comment || disability.review_notes)) {
+                        (disability.rejection_comment ||
+                        disability.review_notes)) {
                         <span
                           class="px-2 py-1 rounded text-xs font-semibold cursor-help"
                           [class.bg-yellow-500]="
@@ -1418,7 +1542,12 @@ import { getBooleanSetting } from '../utils/settings-http.utils';
                             disability.status === 'approved'
                           "
                           [class.bg-red-500]="disability.status === 'rejected'"
-                          [pTooltip]="'Motivo: ' + (disability.rejection_comment || disability.review_notes || 'Sin motivo especificado')"
+                          [pTooltip]="
+                            'Motivo: ' +
+                            (disability.rejection_comment ||
+                              disability.review_notes ||
+                              'Sin motivo especificado')
+                          "
                           tooltipPosition="top"
                         >
                           {{
@@ -4444,7 +4573,7 @@ export class EmployeePortalComponent {
                 })
                 .pipe(takeUntilDestroyed(this.destroyRef))
                 .subscribe({
-                  next: () => {},
+                  next: () => undefined,
                   error: (e) =>
                     console.warn(
                       '[DisabilityUpload] No se pudo enviar email a RRHH',
@@ -4600,7 +4729,7 @@ export class EmployeePortalComponent {
               })
               .pipe(takeUntilDestroyed(this.destroyRef))
               .subscribe({
-                next: () => {},
+                next: () => undefined,
                 error: (e) =>
                   console.warn(
                     '[DocumentRequest] No se pudo enviar email a RRHH',

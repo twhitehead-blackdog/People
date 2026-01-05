@@ -42,14 +42,16 @@ type UnifiedRequest = {
               <p class="text-sm text-gray-400 mb-1">Estado</p>
               <span
                 class="px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 w-fit"
-                [class.bg-yellow-500/20]="req.status === 'pending'"
                 [class.text-yellow-300]="req.status === 'pending'"
-                [class.bg-green-500/20]="req.status === 'approved'"
                 [class.text-green-300]="req.status === 'approved'"
-                [class.bg-red-500/20]="req.status === 'rejected'"
                 [class.text-red-300]="req.status === 'rejected'"
-                [class.bg-cyan-500/20]="req.status === 'in_registry'"
                 [class.text-cyan-300]="req.status === 'in_registry'"
+                [ngClass]="{
+                  'bg-yellow-500/20': req.status === 'pending',
+                  'bg-green-500/20': req.status === 'approved',
+                  'bg-red-500/20': req.status === 'rejected',
+                  'bg-cyan-500/20': req.status === 'in_registry'
+                }"
               >
                 @if (req.status === 'approved') {
                   <i class="pi pi-check-circle"></i>
@@ -445,12 +447,12 @@ export class EmployeePortalRequestDetailsDialogComponent {
   public hasTimeInfo = input.required<(date: string | Date | null | undefined) => boolean>();
 
   // Outputs
-  public close = output<void>();
+  public closed = output<void>();
   public viewResponse = output<any>();
   public downloadDocument = output<string>();
 
   public onClose(): void {
-    this.close.emit();
+    this.closed.emit();
   }
 
   public onViewResponse(complaint: any): void {

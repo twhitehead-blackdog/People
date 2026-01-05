@@ -89,13 +89,12 @@ import { Button } from 'primeng/button';
           }
         </div>
         <footer
-          class="flex h-7 w-7 p-1 flex-shrink-0 items-center justify-center rounded-full text-base font-bold md:absolute md:bottom-2 md:right-2 md:self-end bg-gradient-to-br from-amber-500/30 to-amber-600/20 border-2 border-amber-400/50 text-white shadow-md"
-          [class.bg-gradient-to-br]="day.isToday"
-          [class.from-amber-500]="day.isToday"
-          [class.to-amber-600]="day.isToday"
-          [class.border-amber-400]="day.isToday"
-          [class.bg-neutral-800/70]="!day.isToday"
-          [class.border-neutral-700/50]="!day.isToday"
+          class="flex h-7 w-7 p-1 flex-shrink-0 items-center justify-center rounded-full text-base font-bold md:absolute md:bottom-2 md:right-2 md:self-end border-2 text-white shadow-md"
+          [ngClass]="
+            day.isToday
+              ? 'bg-gradient-to-br from-amber-500/30 to-amber-600/20 border-amber-400/50'
+              : 'bg-neutral-800/70 border-neutral-700/50'
+          "
         >
           {{ day.day | date : 'd' }}
         </footer>

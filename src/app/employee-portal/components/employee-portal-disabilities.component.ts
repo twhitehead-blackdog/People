@@ -10,7 +10,7 @@ import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { DatePicker } from 'primeng/datepicker';
 import { FileUpload } from 'primeng/fileupload';
-import { Textarea } from 'primeng/textarea';
+import { InputTextarea } from 'primeng/inputtextarea';
 import { TooltipModule } from 'primeng/tooltip';
 import { FormsModule } from '@angular/forms';
 
@@ -22,7 +22,7 @@ import { FormsModule } from '@angular/forms';
     FormsModule,
     Card,
     DatePicker,
-    Textarea,
+    InputTextarea,
     FileUpload,
     Button,
     TooltipModule,
@@ -185,7 +185,7 @@ import { FormsModule } from '@angular/forms';
             !selectedFile ||
             uploading
           "
-          (onClick)="submit.emit()"
+          (onClick)="submitRequest.emit()"
           class="ml-auto"
         />
       </div>
@@ -202,7 +202,7 @@ export class EmployeePortalDisabilitiesComponent {
   @Input() selectedFile: File | null = null;
   @Output() fileChange = new EventEmitter<File | null>();
   @Input() uploading = false;
-  @Output() submit = new EventEmitter<void>();
+  @Output() submitRequest = new EventEmitter<void>();
   @Output() closeManagement = new EventEmitter<void>();
   @Input() calculateDays: (start: Date, end: Date) => number = () => 0;
 

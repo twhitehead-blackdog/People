@@ -2,7 +2,7 @@ import { signalStore, withHooks } from '@ngrx/signals';
 import { Department } from '../models';
 import { withCustomEntities } from './entities.feature';
 
-export const DepartmentsStore = signalStore(
+export const DepartmentsStore = signalStore({ providedIn: 'root' },
   withCustomEntities<Department>({ name: 'departments' }),
   withHooks({ onInit: ({ fetchItems }) => fetchItems() })
 );

@@ -2,7 +2,7 @@ import { signalStore } from '@ngrx/signals';
 import { Payroll } from '../models';
 import { withCustomEntities } from './entities.feature';
 
-export const PayrollsStore = signalStore(
+export const PayrollsStore = signalStore({ providedIn: 'root' },
   withCustomEntities<Payroll>({
     name: 'payrolls',
     // payrolls ahora tiene versión naz_* (naz_payrolls)

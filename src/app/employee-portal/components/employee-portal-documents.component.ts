@@ -106,7 +106,7 @@ import { Select } from 'primeng/select';
                 maxlength="100"
               />
               <small class="text-gray-500 text-xs mt-1 block text-right">
-                {{ customDocumentType?.length || 0 }}/100 caracteres
+                {{ customDocumentType.length || 0 }}/100 caracteres
               </small>
             </div>
             }
@@ -126,7 +126,7 @@ import { Select } from 'primeng/select';
                 maxlength="500"
               ></textarea>
               <small class="text-gray-500 text-xs mt-1 block text-right">
-                {{ documentReason?.length || 0 }}/500 caracteres
+                {{ documentReason.length || 0 }}/500 caracteres
               </small>
             </div>
 
@@ -189,7 +189,7 @@ import { Select } from 'primeng/select';
             />
           </div>
 
-          @if (documentRequests?.length === 0 && !requestsLoading) {
+          @if (documentRequests.length === 0 && !requestsLoading) {
           <div class="text-center py-12">
             <div class="w-20 h-20 rounded-full bg-green-500/10 flex items-center justify-center mx-auto mb-4">
               <i class="pi pi-file-times text-4xl text-green-400"></i>
@@ -265,12 +265,14 @@ import { Select } from 'primeng/select';
                   <td>
                     <span
                       class="px-3 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1"
-                      [class.bg-yellow-500/20]="request.status === 'pending'"
                       [class.text-yellow-300]="request.status === 'pending'"
-                      [class.bg-green-500/20]="request.status === 'approved'"
                       [class.text-green-300]="request.status === 'approved'"
-                      [class.bg-red-500/20]="request.status === 'rejected'"
                       [class.text-red-300]="request.status === 'rejected'"
+                      [ngClass]="{
+                        'bg-yellow-500/20': request.status === 'pending',
+                        'bg-green-500/20': request.status === 'approved',
+                        'bg-red-500/20': request.status === 'rejected'
+                      }"
                     >
                       @if (request.status === 'approved') {
                       <i class="pi pi-check-circle"></i>
@@ -336,7 +338,7 @@ export class EmployeePortalDocumentsComponent {
   @Input() documentRequests: any[] = [];
   @Input() requestsLoading = false;
   @Input() getDocumentTypeLabel: (type: string) => string = () => '';
-  @Input() downloadDocument: (url?: string | null) => void = () => {};
+  @Input() downloadDocument: (url?: string | null) => void = () => undefined;
   @Output() submitDocument = new EventEmitter<void>();
   @Output() resetDocument = new EventEmitter<void>();
   @Output() reloadRequests = new EventEmitter<void>();

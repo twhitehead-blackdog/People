@@ -110,7 +110,7 @@ import { Textarea } from 'primeng/textarea';
                 maxlength="500"
               ></textarea>
               <p class="text-xs text-gray-500 mt-1">
-                {{ (vacationReason?.length ?? 0) }}/500 caracteres
+                {{ vacationReason.length }}/500 caracteres
               </p>
             </div>
 
@@ -130,7 +130,7 @@ import { Textarea } from 'primeng/textarea';
                 [rounded]="true"
                 [loading]="submitting"
                 [disabled]="!canSubmit || submitting"
-                (onClick)="submit.emit()"
+                (onClick)="submitRequest.emit()"
               />
             </div>
           </div>
@@ -150,7 +150,7 @@ import { Textarea } from 'primeng/textarea';
             />
           </div>
 
-          @if (vacationRequests?.length === 0 && !requestsLoading) {
+          @if (vacationRequests.length === 0 && !requestsLoading) {
           <div class="text-center py-12">
             <div class="w-20 h-20 rounded-full bg-purple-500/10 flex items-center justify-center mx-auto mb-4">
               <i class="pi pi-calendar-times text-4xl text-purple-400"></i>
@@ -210,12 +210,14 @@ import { Textarea } from 'primeng/textarea';
                   <td>
                     <span
                       class="px-3 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1"
-                      [class.bg-yellow-500/20]="!request.is_approved && isDateFuture(request.date_from)"
                       [class.text-yellow-300]="!request.is_approved && isDateFuture(request.date_from)"
-                      [class.bg-green-500/20]="request.is_approved"
                       [class.text-green-300]="request.is_approved"
-                      [class.bg-red-500/20]="!request.is_approved && !isDateFuture(request.date_from)"
                       [class.text-red-300]="!request.is_approved && !isDateFuture(request.date_from)"
+                      [ngClass]="{
+                        'bg-yellow-500/20': !request.is_approved && isDateFuture(request.date_from),
+                        'bg-green-500/20': request.is_approved,
+                        'bg-red-500/20': !request.is_approved && !isDateFuture(request.date_from)
+                      }"
                     >
                       @if (request.is_approved) {
                       <i class="pi pi-check-circle"></i>
@@ -272,7 +274,7 @@ export class EmployeePortalVacationsComponent {
   @Output() vacationReasonChange = new EventEmitter<string>();
   @Input() submitting = false;
   @Input() canSubmit = false;
-  @Output() submit = new EventEmitter<void>();
+  @Output() submitRequest = new EventEmitter<void>();
   @Output() resetForm = new EventEmitter<void>();
   @Input() vacationRequests: any[] = [];
   @Input() requestsLoading = false;
