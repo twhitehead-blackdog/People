@@ -148,12 +148,6 @@ import { HttpClient } from '@angular/common/http';
               cerrada. Por favor, intenta nuevamente más tarde o contacta con
               Recursos Humanos para más información.
             </p>
-            <p-button
-              label="Volver al Inicio"
-              icon="pi pi-home"
-              (click)="goToLogin()"
-              class="mt-4"
-            />
           </div>
         </p-card>
         }
@@ -340,19 +334,18 @@ import { HttpClient } from '@angular/common/http';
                 >
                   Aspiración Salarial (Opcional)
                 </label>
-                <p-inputNumber
-                  id="salary_expectation"
-                  formControlName="salary_expectation"
-                  mode="decimal"
-                  [min]="0"
-                  [max]="999999.99"
-                  [minFractionDigits]="2"
-                  [maxFractionDigits]="2"
-                  placeholder="B/. 800.00"
-                  prefix="B/. "
-                  class="w-full"
-                  [useGrouping]="true"
-                />
+                <div class="relative">
+                  <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-300 font-medium z-10 pointer-events-none">B/.</span>
+                  <input
+                    type="text"
+                    id="salary_expectation"
+                    formControlName="salary_expectation"
+                    placeholder="800.00"
+                    class="w-full pl-12 p-3 rounded-lg bg-gray-800 border border-gray-600 text-white focus:border-yellow-400 focus:outline-none"
+                    (input)="onSalaryInput($event)"
+                    (blur)="onSalaryBlur()"
+                  />
+                </div>
               </div>
             </div>
 
@@ -480,12 +473,6 @@ import { HttpClient } from '@angular/common/http';
               Te contactaremos por email o teléfono para coordinar una cita de
               entrevista.
             </p>
-            <p-button
-              label="Volver al Inicio"
-              icon="pi pi-home"
-              (click)="goToLogin()"
-              class="mt-4"
-            />
           </div>
         </p-card>
         }
@@ -1613,6 +1600,44 @@ Revisa la aplicación en el sistema de gestión.`;
 
   goToLogin() {
     this.router.navigate(['/login']);
+  }
+
+  onSalaryInput(event: Event) {
+    const input = event.target as HTMLInputElement;
+    let value = input.value;
+    
+    // Permitir solo números, punto decimal y espacios (que se eliminarán)
+    value = value.replace(/[^\d.]/g, '');
+    
+    // Permitir solo un punto decimal
+    const parts = value.split('.');
+    if (parts.length > 2) {
+      value = parts[0] + '.' + parts.slice(1).join('');
+    }
+    
+    // Limitar a 2 decimales
+    if (parts.length === 2 && parts[1].length > 2) {
+      value = parts[0] + '.' + parts[1].substring(0, 2);
+    }
+    
+    // Actualizar el valor del input
+    input.value = value;
+    
+    // Actualizar el FormControl
+    const numValue = value === '' ? null : parseFloat(value);
+    this.applicationForm.patchValue({ salary_expectation: numValue }, { emitEvent: false });
+  }
+
+  onSalaryBlur() {
+    const control = this.applicationForm.get('salary_expectation');
+    if (control) {
+      const value = control.value;
+      if (value !== null && (isNaN(value) || value < 0)) {
+        control.setValue(null);
+      } else if (value !== null && value > 9999999.99) {
+        control.setValue(9999999.99);
+      }
+    }
   }
 
   // Parsear string YYYY-MM-DD a Date en zona horaria local (no UTC)
