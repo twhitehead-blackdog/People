@@ -12,8 +12,10 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import {
   differenceInMinutes,
+  endOfDay,
   endOfMonth,
   format,
+  startOfDay,
   startOfMonth,
   subDays,
 } from 'date-fns';
@@ -3534,23 +3536,25 @@ export class HRDisabilitiesComponent {
       }
 
       const today = new Date();
-      const endDay = format(today, 'yyyy-MM-dd');
-      const startDay = format(
-        subDays(today, this.overtimeHistoryWindowDays()),
-        'yyyy-MM-dd'
-      );
+      const endDate = endOfDay(today);
+      const startDate = startOfDay(subDays(today, this.overtimeHistoryWindowDays()));
 
-      console.log(`[DEBUG] Loading overtime for employee ${employeeId}, range: ${startDay} to ${endDay}`);
+      const startDayStr = format(startDate, 'yyyy-MM-dd');
+      const endDayStr = format(endDate, 'yyyy-MM-dd');
+      const startTimestamp = format(startDate, "yyyy-MM-dd'T'HH:mm:ss");
+      const endTimestamp = format(endDate, "yyyy-MM-dd'T'HH:mm:ss");
 
-      // Traer marcaciones históricas por "day" (día trabajado), no por created_at
+      console.log(`[DEBUG] Loading overtime for employee ${employeeId}, range: ${startDayStr} to ${endDayStr}`);
+
+      // Traer marcaciones históricas por created_at (la tabla no tiene columna 'day')
       const timelogs = await firstValueFrom(
         this.http.get<any[]>(`${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`, {
           params: {
-            select: 'day,type,created_at,employee_id,company_id',
+            select: 'type,created_at,employee_id,company_id',
             employee_id: `eq.${employeeId}`,
             company_id: `eq.${companyId}`,
-            day: `gte.${startDay},lte.${endDay}`,
-            order: 'day.asc,created_at.asc',
+            created_at: `gte.${startTimestamp},lte.${endTimestamp}`,
+            order: 'created_at.asc',
           },
         })
       );
@@ -3558,7 +3562,8 @@ export class HRDisabilitiesComponent {
       console.log(`[DEBUG] Found ${timelogs.length} timelogs for employee ${employeeId}`);
       if (timelogs.length > 0) {
         console.log('[DEBUG] Sample timelog:', timelogs[0]);
-        console.log('[DEBUG] Timelog days:', [...new Set(timelogs.map(t => t.day))]);
+        const uniqueDays = [...new Set(timelogs.map(t => format(new Date(t.created_at), 'yyyy-MM-dd')))];
+        console.log('[DEBUG] Timelog days:', uniqueDays);
       }
 
       // Consumido (auditable) dentro del mismo rango
@@ -3570,7 +3575,7 @@ export class HRDisabilitiesComponent {
               select: 'overtime_day,hours_used',
               employee_id: `eq.${employeeId}`,
               company_id: `eq.${companyId}`,
-              overtime_day: `gte.${startDay},lte.${endDay}`,
+              overtime_day: `gte.${startDayStr},lte.${endDayStr}`,
             },
           }
         )
