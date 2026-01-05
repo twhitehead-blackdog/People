@@ -242,19 +242,28 @@ export async function submitCompensatoryRequest(
 
   // Agregar información de fechas donde trabajó horas extra (fechas manuales)
   const manualDates = formState.manualOvertimeDates;
-  if (manualDates.length > 0) {
+  console.log('[DEBUG Compensatory] Fechas manuales recibidas:', manualDates);
+  console.log('[DEBUG Compensatory] Tipo de manualDates:', typeof manualDates, Array.isArray(manualDates));
+  console.log('[DEBUG Compensatory] Longitud de manualDates:', manualDates?.length);
+
+  if (manualDates && manualDates.length > 0) {
+    console.log('[DEBUG Compensatory] Agregando fechas manuales a las notas');
     notes.push('');
     notes.push(
       '--- Fechas donde trabajó horas extra (ingresadas manualmente) ---'
     );
     notes.push('');
-    manualDates.forEach((date) => {
-      notes.push(`- ${format(date, 'dd/MM/yyyy')}`);
+    manualDates.forEach((date, index) => {
+      const formattedDate = `- ${format(date, 'dd/MM/yyyy')}`;
+      console.log(`[DEBUG Compensatory] Agregando fecha ${index + 1}:`, formattedDate, 'Fecha original:', date);
+      notes.push(formattedDate);
     });
     notes.push('');
     notes.push(
       'RRHH revisará estas fechas junto con las marcaciones del empleado para verificar las horas extra trabajadas.'
     );
+  } else {
+    console.log('[DEBUG Compensatory] No hay fechas manuales para agregar');
   }
 
   const timeoffData: any = {
@@ -268,8 +277,14 @@ export async function submitCompensatoryRequest(
     compensatory_amount: amount,
   };
 
+  console.log('[DEBUG Compensatory] Payload completo a enviar:', JSON.stringify(timeoffData, null, 2));
+  console.log('[DEBUG Compensatory] Array de notas:', notes);
+  console.log('[DEBUG Compensatory] Tipo de notes:', Array.isArray(notes));
+  console.log('[DEBUG Compensatory] Longitud de notes:', notes.length);
+
   try {
     const response = await api.createTimeoffRequest(timeoffData);
+    console.log('[DEBUG Compensatory] Respuesta del servidor:', response);
 
     const timeoffId = response[0]?.id || response?.id;
     await api.notifyHrReviewer(timeoffId, currentEmployee() ?? null);

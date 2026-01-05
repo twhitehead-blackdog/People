@@ -9,17 +9,10 @@ import {
   signal,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import {
-  addDays,
-  differenceInDays,
-  differenceInMinutes,
-  format,
-  startOfDay,
-} from 'date-fns';
+import { addDays, differenceInDays, format, startOfDay } from 'date-fns';
 import { MessageService } from 'primeng/api';
 import { Card } from 'primeng/card';
 import { ToastModule } from 'primeng/toast';
-import { firstValueFrom } from 'rxjs';
 import { EmployeePortalNavigationService } from '../services/employee-portal-navigation.service';
 import { NotificationsService } from '../services/notifications.service';
 import { OrganizationService } from '../services/organization.service';
@@ -47,9 +40,13 @@ import { EmployeePortalRequestDetailsDialogComponent } from './components/employ
 import { EmployeePortalTimelogsComponent } from './components/employee-portal-timelogs.component';
 import { EmployeePortalVacationsComponent } from './components/employee-portal-vacations.component';
 import { EmployeePortalApiService } from './services/employee-portal-api.service';
+import { EmployeePortalConversationService } from './services/employee-portal-conversation.service';
+import { EmployeePortalProfileService } from './services/employee-portal-profile.service';
 import { EmployeePortalRequestsService } from './services/employee-portal-requests.service';
 import { EmployeePortalTimelogsService } from './services/employee-portal-timelogs.service';
 import {
+  calculateCompensatoryAmount,
+  canSubmitCompensatory,
   getCompensatoryQuantity,
   getCompensatoryReasonFromNotes,
 } from './utils/employee-portal-compensatory.utils';
@@ -58,7 +55,12 @@ import {
   calculateDaysBetween,
   isDateFuture,
 } from './utils/employee-portal-date.utils';
-import { calculateHoursFromDates } from './utils/employee-portal-time.utils';
+import {
+  calculateHoursFromDates,
+  formatDateWithTimeRange,
+  formatHoursMinutes,
+  hasTimeInfo,
+} from './utils/employee-portal-time.utils';
 
 @Component({
   selector: 'pt-employee-portal',
@@ -89,6 +91,8 @@ import { calculateHoursFromDates } from './utils/employee-portal-time.utils';
     MessageService,
     EmployeePortalTimelogsService,
     EmployeePortalRequestsService,
+    EmployeePortalConversationService,
+    EmployeePortalProfileService,
   ],
   template: `
     <div class="portal-content">
@@ -632,6 +636,8 @@ export class EmployeePortalComponent {
   public notificationsService = inject(NotificationsService);
   public timelogsService = inject(EmployeePortalTimelogsService);
   public requestsService = inject(EmployeePortalRequestsService);
+  public conversationService = inject(EmployeePortalConversationService);
+  public profileService = inject(EmployeePortalProfileService);
   private readonly companyEmailDomain = '@blackdogpanama.com';
 
   public currentEmployee = computed(() => this.store.currentEmployee());
@@ -812,12 +818,9 @@ export class EmployeePortalComponent {
       }
     });
 
-    // Inicializar notificaciones cuando cambia el empleado actual
+    // Configurar getter de quejas en el servicio de conversación
     effect(() => {
-      const employeeId = this.currentEmployee()?.id;
-      if (employeeId) {
-        this.notificationsService.setCurrentEmployeeId(employeeId);
-      }
+      this.conversationService.setMyComplaintsGetter(() => this.myComplaints());
     });
 
     // Suscribirse a cambios de navegación desde el layout
@@ -895,74 +898,17 @@ export class EmployeePortalComponent {
   public documentRequestsApi = this.requestsService.documentRequestsApi;
   public myDocumentRequests = this.requestsService.allDocumentRequests;
 
-  // Complaints - usar portalStore directamente
-  public responseDialogVisible = signal(false);
-  public selectedComplaint = signal<any>(null);
-
   // Delegar complaints al servicio
   public complaintsApi = this.requestsService.complaintsApi;
   public myComplaints = this.requestsService.allComplaints;
 
-  // API para mensajes de una queja específica
-  public complaintMessagesApi = httpResource<any[]>(() => {
-    const complaint = this.selectedComplaint();
-    if (!complaint) return undefined;
-    return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages`,
-      method: 'GET',
-      params: {
-        select: '*',
-        complaint_id: `eq.${complaint.id}`,
-        order: 'created_at.asc',
-      },
-    };
-  });
-
-  public conversationMessages = computed(
-    () => this.complaintMessagesApi.value() ?? []
-  );
-
-  // API para obtener todos los mensajes sin leer de HR (por complaint_id)
-  public unreadMessagesApi = httpResource<any[]>(() => {
-    if (!this.currentEmployee()?.id) return undefined;
-    return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages`,
-      method: 'GET',
-      params: {
-        select: 'complaint_id',
-        sender_type: 'eq.hr',
-        is_read: 'eq.false',
-      },
-    };
-  });
-
-  // Computed: Set de quejas con mensajes sin leer del empleado
-  public unreadMessagesMap = computed(() => {
-    const messages = this.unreadMessagesApi.value() ?? [];
-    const myComplaints = this.myComplaints();
-
-    if (myComplaints.length === 0 || messages.length === 0)
-      return new Set<string>();
-
-    // Crear un Set de complaint_ids de las quejas del empleado
-    const myComplaintIds = new Set(myComplaints.map((c: any) => c.id));
-
-    // Filtrar mensajes sin leer que pertenecen a las quejas del empleado
-    const unreadSet = new Set<string>();
-    messages.forEach((msg: any) => {
-      if (msg.complaint_id && myComplaintIds.has(msg.complaint_id)) {
-        unreadSet.add(msg.complaint_id);
-      }
-    });
-
-    return unreadSet;
-  });
-
-  public unreadComplaintsCount = computed(() => {
-    return this.unreadMessagesMap().size;
-  });
-
-  // Señales para conversación - usar del store
+  // Delegar lógica de conversación al servicio
+  public selectedComplaint = this.conversationService.selectedComplaint;
+  public complaintMessagesApi = this.conversationService.complaintMessagesApi;
+  public conversationMessages = this.conversationService.conversationMessages;
+  public unreadMessagesApi = this.conversationService.unreadMessagesApi;
+  public unreadMessagesMap = this.conversationService.unreadMessagesMap;
+  public unreadComplaintsCount = this.conversationService.unreadComplaintsCount;
 
   // Helper methods - delegados a utils y servicios
   public calculateWorkedHours = this.timelogsService.calculateWorkedHours;
@@ -970,6 +916,9 @@ export class EmployeePortalComponent {
   public calculateHoursFromDates = calculateHoursFromDates;
   public getCompensatoryReasonFromNotes = getCompensatoryReasonFromNotes;
   public getCompensatoryQuantity = getCompensatoryQuantity;
+  public formatHoursMinutes = formatHoursMinutes;
+  public formatDateWithTimeRange = formatDateWithTimeRange;
+  public hasTimeInfo = hasTimeInfo;
 
   public getScheduleColor(color: string): string {
     const colorMap: Record<string, string> = {
@@ -1013,54 +962,6 @@ export class EmployeePortalComponent {
     const details = this.overtimeDaysDetails();
     const total = details.reduce((sum, day) => sum + day.overtimeHours, 0);
     return this.formatHoursMinutes(total);
-  }
-
-  // Método helper para verificar si una fecha tiene información de tiempo
-  public hasTimeInfo(dateValue: string | Date | null | undefined): boolean {
-    if (!dateValue) return false;
-    const dateStr = String(dateValue);
-    return dateStr.includes(' ') || dateStr.includes('T');
-  }
-
-  // Método helper para formatear el rango de horas desde fechas datetime
-  public formatDateWithTimeRange(
-    dateFrom: string | Date,
-    dateTo: string | Date
-  ): string {
-    try {
-      const from = new Date(dateFrom);
-      const to = new Date(dateTo);
-
-      if (isNaN(from.getTime()) || isNaN(to.getTime())) {
-        return '';
-      }
-
-      const fromTime = format(from, 'HH:mm');
-      const toTime = format(to, 'HH:mm');
-
-      return `de ${fromTime} a ${toTime}`;
-    } catch (error) {
-      console.error('Error formatting date range:', error);
-      return '';
-    }
-  }
-
-  // Helper para formatear horas en formato horas y minutos
-  public formatHoursMinutes(hours: number | string): string {
-    const hoursNum = typeof hours === 'string' ? parseFloat(hours) : hours;
-    if (isNaN(hoursNum) || hoursNum <= 0) return '0m';
-
-    const totalMinutes = Math.round(hoursNum * 60);
-    const hoursPart = Math.floor(totalMinutes / 60);
-    const minutesPart = totalMinutes % 60;
-
-    if (hoursPart === 0) {
-      return `${minutesPart}m`;
-    } else if (minutesPart === 0) {
-      return `${hoursPart}h`;
-    } else {
-      return `${hoursPart}h ${minutesPart}m`;
-    }
   }
 
   // Timeoffs API para compensatorios
@@ -1228,86 +1129,47 @@ export class EmployeePortalComponent {
 
   // Computed: Calcular el total de horas/días automáticamente
   public compensatoryAmount = computed(() => {
-    const type = this.portalStore.compensatoryForm().type;
-
-    if (type === 'hours') {
-      const date = this.portalStore.compensatoryForm().compensatoryDate;
-      const timeStart =
-        this.portalStore.compensatoryForm().compensatoryTimeStart;
-      const timeEnd = this.portalStore.compensatoryForm().compensatoryTimeEnd;
-
-      if (!date || !timeStart || !timeEnd) {
-        return 0;
-      }
-
-      // Calcular diferencia en horas
-      const startDateTime = new Date(date);
-      startDateTime.setHours(timeStart.getHours());
-      startDateTime.setMinutes(timeStart.getMinutes());
-      startDateTime.setSeconds(0);
-      startDateTime.setMilliseconds(0);
-
-      const endDateTime = new Date(date);
-      endDateTime.setHours(timeEnd.getHours());
-      endDateTime.setMinutes(timeEnd.getMinutes());
-      endDateTime.setSeconds(0);
-      endDateTime.setMilliseconds(0);
-
-      // Si la hora fin es menor que la hora inicio, asumir que es del día siguiente
-      if (endDateTime < startDateTime) {
-        endDateTime.setDate(endDateTime.getDate() + 1);
-      }
-
-      const diffMinutes = differenceInMinutes(endDateTime, startDateTime);
-      const diffHours = diffMinutes / 60;
-
-      return Math.max(0, diffHours);
-    } else {
-      // Si es días, calcular diferencia en días
-      const startDate = this.portalStore.compensatoryForm().startDate;
-      const endDate = this.portalStore.compensatoryForm().endDate;
-
-      if (!startDate || !endDate) {
-        return 0;
-      }
-
-      const diffDays = differenceInDays(endDate, startDate) + 1; // +1 para incluir ambos días
-      return Math.max(0, diffDays);
-    }
+    return calculateCompensatoryAmount({
+      type: this.portalStore.compensatoryForm().type,
+      date: this.portalStore.compensatoryForm().compensatoryDate,
+      timeStart: this.portalStore.compensatoryForm().compensatoryTimeStart,
+      timeEnd: this.portalStore.compensatoryForm().compensatoryTimeEnd,
+      startDate: this.portalStore.compensatoryForm().startDate,
+      endDate: this.portalStore.compensatoryForm().endDate,
+    });
   });
 
   // Validar si se puede enviar la solicitud
   public canSubmitCompensatory = computed(() => {
-    const type = this.portalStore.compensatoryForm().type;
-    const amount = this.compensatoryAmount();
-
-    if (amount <= 0) {
-      return false;
-    }
-
-    if (type === 'hours') {
-      // Si es horas, debe tener fecha y ambas horas
-      const date = this.portalStore.compensatoryForm().compensatoryDate;
-      const timeStart =
-        this.portalStore.compensatoryForm().compensatoryTimeStart;
-      const timeEnd = this.portalStore.compensatoryForm().compensatoryTimeEnd;
-      if (!date || !timeStart || !timeEnd) {
-        return false;
-      }
-    } else {
-      // Si es días, debe tener fecha inicio y fin
-      const startDate = this.portalStore.compensatoryForm().startDate;
-      const endDate = this.portalStore.compensatoryForm().endDate;
-      if (!startDate || !endDate || endDate < startDate) {
-        return false;
-      }
-    }
-
-    return true;
+    return canSubmitCompensatory({
+      type: this.portalStore.compensatoryForm().type,
+      amount: this.compensatoryAmount(),
+      date: this.portalStore.compensatoryForm().compensatoryDate,
+      timeStart: this.portalStore.compensatoryForm().compensatoryTimeStart,
+      timeEnd: this.portalStore.compensatoryForm().compensatoryTimeEnd,
+      startDate: this.portalStore.compensatoryForm().startDate,
+      endDate: this.portalStore.compensatoryForm().endDate,
+    });
   });
 
   // Función para enviar solicitud de tiempo compensatorio
   public async submitCompensatoryRequest(): Promise<void> {
+    const manualDates = this.portalStore.compensatoryForm().manualOvertimeDates;
+    console.log(
+      '[DEBUG Component] Fechas manuales antes de enviar:',
+      manualDates
+    );
+    console.log(
+      '[DEBUG Component] Tipo:',
+      typeof manualDates,
+      Array.isArray(manualDates)
+    );
+    console.log('[DEBUG Component] Longitud:', manualDates?.length);
+    console.log(
+      '[DEBUG Component] Form completo:',
+      this.portalStore.compensatoryForm()
+    );
+
     await submitCompensatoryRequest({
       store: this.portalStore,
       api: this.employeePortalApi,
@@ -1322,8 +1184,7 @@ export class EmployeePortalComponent {
         timeStart: this.portalStore.compensatoryForm().compensatoryTimeStart,
         timeEnd: this.portalStore.compensatoryForm().compensatoryTimeEnd,
         reason: this.portalStore.compensatoryForm().reason,
-        manualOvertimeDates:
-          this.portalStore.compensatoryForm().manualOvertimeDates,
+        manualOvertimeDates: manualDates,
         amount: this.compensatoryAmount(),
       },
       constants: {
@@ -1469,72 +1330,16 @@ export class EmployeePortalComponent {
     return totalHours;
   });
 
-  // Edit mode for personal data
-  public editMode = signal(false);
-  public editEmail = signal('');
-  public editWorkEmail = signal('');
-  public editPhone = signal('');
-  public editAddress = signal('');
-  public savingPersonalData = signal(false);
-
-  public toggleEditMode() {
-    if (!this.editMode()) {
-      // Entrar en modo edición - cargar valores actuales
-      const emp = this.currentEmployee();
-      this.editEmail.set(emp?.email || '');
-      this.editWorkEmail.set(emp?.work_email || '');
-      this.editPhone.set(emp?.phone_number || '');
-      this.editAddress.set(emp?.address || '');
-    }
-    this.editMode.update((v) => !v);
-  }
-
-  public cancelEdit() {
-    this.editMode.set(false);
-    this.editEmail.set('');
-    this.editWorkEmail.set('');
-    this.editPhone.set('');
-    this.editAddress.set('');
-  }
-
-  public async savePersonalData() {
-    if (!this.currentEmployee()?.id) return;
-
-    this.savingPersonalData.set(true);
-    try {
-      const updateData: any = {};
-      if (this.editEmail()) updateData.email = this.editEmail();
-      if (this.editWorkEmail()) updateData.work_email = this.editWorkEmail();
-      if (this.editPhone()) updateData.phone_number = this.editPhone();
-      if (this.editAddress()) updateData.address = this.editAddress();
-
-      const companyId = this.organizationService.getCurrentCompanyId();
-      await this.employeePortalApi.updateEmployeeProfile(
-        this.currentEmployee()!.id,
-        updateData,
-        companyId || undefined
-      );
-
-      this.messageService.add({
-        severity: 'success',
-        summary: 'Datos actualizados',
-        detail: 'Tus datos personales han sido actualizados correctamente',
-      });
-
-      // Recargar datos del empleado
-      this.store.employees.fetchItems();
-      this.editMode.set(false);
-    } catch (error: any) {
-      console.error('Error updating personal data:', error);
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Error',
-        detail: 'No se pudieron actualizar los datos',
-      });
-    } finally {
-      this.savingPersonalData.set(false);
-    }
-  }
+  // Delegar lógica de perfil al servicio
+  public editMode = this.profileService.editMode;
+  public editEmail = this.profileService.editEmail;
+  public editWorkEmail = this.profileService.editWorkEmail;
+  public editPhone = this.profileService.editPhone;
+  public editAddress = this.profileService.editAddress;
+  public savingPersonalData = this.profileService.savingPersonalData;
+  public toggleEditMode = () => this.profileService.toggleEditMode();
+  public cancelEdit = () => this.profileService.cancelEdit();
+  public savePersonalData = () => this.profileService.savePersonalData();
 
   public async uploadDisability(): Promise<void> {
     await uploadDisability({
@@ -1633,60 +1438,22 @@ export class EmployeePortalComponent {
   }
 
   public viewResponse(complaint: any): void {
-    this.selectedComplaint.set(complaint);
+    this.conversationService.selectedComplaint.set(complaint);
     this.portalStore.openConversation(complaint.id);
     this.portalStore.setReplyMessage('');
+    // Configurar getter de quejas en el servicio
+    this.conversationService.setMyComplaintsGetter(() => this.myComplaints());
     // Recargar mensajes cuando se abre la conversación
     this.complaintMessagesApi.reload();
     // Marcar mensajes de HR como leídos cuando el empleado abre la conversación
-    this.markMessagesAsRead(complaint);
-  }
-
-  public async markMessagesAsRead(complaint: any): Promise<void> {
-    // Esperar a que se carguen los mensajes
-    if (!this.complaintMessagesApi.value()) {
-      // Esperar un poco para que se carguen los mensajes
-      setTimeout(() => this.markMessagesAsRead(complaint), 500);
-      return;
-    }
-
-    const messages = this.complaintMessagesApi.value() || [];
-    // Marcar mensajes de HR como leídos cuando el empleado los ve
-    const unreadMessages = messages.filter(
-      (m) => m.sender_type === 'hr' && !m.is_read
-    );
-
-    if (unreadMessages.length === 0) return;
-
-    // Marcar todos los mensajes de HR como leídos
-    for (const message of unreadMessages) {
-      try {
-        await firstValueFrom(
-          this.http.patch(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages?id=eq.${message.id}`,
-            { is_read: true, read_at: new Date().toISOString() },
-            {
-              headers: {
-                'Content-Type': 'application/json',
-                Prefer: 'return=representation',
-              },
-            }
-          )
-        );
-      } catch (error: any) {
-        console.error('Error marking message as read:', error);
-      }
-    }
-
-    // Recargar mensajes para actualizar el estado
-    this.complaintMessagesApi.reload();
-    // Recargar quejas para actualizar contadores
-    this.complaintsApi.reload();
+    this.conversationService.markMessagesAsRead(complaint).then(() => {
+      this.complaintsApi.reload();
+    });
   }
 
   public closeConversation(): void {
     this.portalStore.closeConversation();
-    this.selectedComplaint.set(null);
+    this.conversationService.selectedComplaint.set(null);
     // Recargar quejas para actualizar contadores
     this.complaintsApi.reload();
   }
@@ -1696,70 +1463,20 @@ export class EmployeePortalComponent {
     if (!complaint || !this.portalStore.replyMessage().trim()) return;
 
     this.portalStore.setSendingReply(true);
-    const currentEmployee = this.currentEmployee();
-    if (!currentEmployee) {
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Error',
-        detail: 'No se pudo identificar al usuario actual',
-      });
-      this.portalStore.setSendingReply(false);
-      return;
-    }
-
-    const messageData = {
-      complaint_id: complaint.id,
-      sender_id: currentEmployee.id,
-      sender_type: 'employee',
-      is_anonymous: false, // Si la queja ya tiene employee_id, no puede ser anónima
-      message: this.portalStore.replyMessage().trim(),
-      thread_id: complaint.thread_id || complaint.id,
-    };
-
-    try {
-      await firstValueFrom(
-        this.http.post(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages`,
-          messageData,
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              Prefer: 'return=representation',
-            },
-          }
-        )
-      );
-
-      this.messageService.add({
-        severity: 'success',
-        summary: 'Mensaje Enviado',
-        detail: 'Tu respuesta ha sido enviada correctamente',
-      });
-
-      this.portalStore.setReplyMessage('');
-      this.complaintMessagesApi.reload();
-      this.complaintsApi.reload();
-      this.portalStore.setSendingReply(false);
-    } catch (error: any) {
-      console.error('Error sending reply:', error);
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Error',
-        detail: error.error?.message || 'No se pudo enviar el mensaje',
-      });
-      this.portalStore.setSendingReply(false);
-    }
+    await this.conversationService.sendReply(
+      this.portalStore.replyMessage(),
+      complaint
+    );
+    this.portalStore.setReplyMessage('');
+    this.complaintsApi.reload();
+    this.portalStore.setSendingReply(false);
   }
 
   public hasUnreadMessages(complaint: any): boolean {
-    // Primero verificar si hay mensajes sin leer de la conversación actual
-    if (complaint.id === this.selectedComplaint()?.id) {
-      const messages = this.conversationMessages();
-      return messages.some((m) => m.sender_type === 'hr' && !m.is_read);
-    }
-
-    // Si no está seleccionada, usar el mapa de mensajes sin leer
-    return this.unreadMessagesMap().has(complaint.id);
+    return this.conversationService.hasUnreadMessages(
+      complaint,
+      this.selectedComplaint()?.id || null
+    );
   }
 
   // Métodos para manejar notificaciones

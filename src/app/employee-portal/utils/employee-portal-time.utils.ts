@@ -1,4 +1,4 @@
-import { differenceInMinutes } from 'date-fns';
+import { differenceInMinutes, format } from 'date-fns';
 
 /**
  * Calcula las horas trabajadas entre entrada y salida, restando el tiempo de almuerzo
@@ -51,6 +51,60 @@ export function calculateWorkedHours(
   const hours = Math.floor(workMinutes / 60);
   const mins = workMinutes % 60;
   return `${hours}h ${mins}m`;
+}
+
+/**
+ * Formatea horas en formato "Xh Ym" o solo minutos si es menor a 1 hora
+ */
+export function formatHoursMinutes(hours: number | string): string {
+  const hoursNum = typeof hours === 'string' ? parseFloat(hours) : hours;
+  if (isNaN(hoursNum) || hoursNum <= 0) return '0m';
+
+  const totalMinutes = Math.round(hoursNum * 60);
+  const hoursPart = Math.floor(totalMinutes / 60);
+  const minutesPart = totalMinutes % 60;
+
+  if (hoursPart === 0) {
+    return `${minutesPart}m`;
+  } else if (minutesPart === 0) {
+    return `${hoursPart}h`;
+  } else {
+    return `${hoursPart}h ${minutesPart}m`;
+  }
+}
+
+/**
+ * Verifica si una fecha tiene información de tiempo (datetime)
+ */
+export function hasTimeInfo(dateValue: string | Date | null | undefined): boolean {
+  if (!dateValue) return false;
+  const dateStr = String(dateValue);
+  return dateStr.includes(' ') || dateStr.includes('T');
+}
+
+/**
+ * Formatea el rango de horas desde fechas datetime
+ */
+export function formatDateWithTimeRange(
+  dateFrom: string | Date,
+  dateTo: string | Date
+): string {
+  try {
+    const from = new Date(dateFrom);
+    const to = new Date(dateTo);
+
+    if (isNaN(from.getTime()) || isNaN(to.getTime())) {
+      return '';
+    }
+
+    const fromTime = format(from, 'HH:mm');
+    const toTime = format(to, 'HH:mm');
+
+    return `de ${fromTime} a ${toTime}`;
+  } catch (error) {
+    console.error('Error formatting date range:', error);
+    return '';
+  }
 }
 
 /**

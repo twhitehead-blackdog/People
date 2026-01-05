@@ -1,3 +1,4 @@
+import { differenceInDays, differenceInMinutes, startOfDay } from 'date-fns';
 import { calculateDays } from './employee-portal-date.utils';
 import { calculateHoursFromDates } from './employee-portal-time.utils';
 
@@ -154,4 +155,88 @@ export function getCompensatoryQuantity(data: any): {
     }
     return { value: hours, isDays: false };
   }
+}
+
+/**
+ * Calcula el total de horas/días de una solicitud compensatoria
+ */
+export function calculateCompensatoryAmount(params: {
+  type: 'hours' | 'days';
+  date?: Date | null;
+  timeStart?: Date | null;
+  timeEnd?: Date | null;
+  startDate?: Date | null;
+  endDate?: Date | null;
+}): number {
+  const { type, date, timeStart, timeEnd, startDate, endDate } = params;
+
+  if (type === 'hours') {
+    if (!date || !timeStart || !timeEnd) {
+      return 0;
+    }
+
+    // Calcular diferencia en horas
+    const startDateTime = new Date(date);
+    startDateTime.setHours(timeStart.getHours());
+    startDateTime.setMinutes(timeStart.getMinutes());
+    startDateTime.setSeconds(0);
+    startDateTime.setMilliseconds(0);
+
+    const endDateTime = new Date(date);
+    endDateTime.setHours(timeEnd.getHours());
+    endDateTime.setMinutes(timeEnd.getMinutes());
+    endDateTime.setSeconds(0);
+    endDateTime.setMilliseconds(0);
+
+    // Si la hora fin es menor que la hora inicio, asumir que es del día siguiente
+    if (endDateTime < startDateTime) {
+      endDateTime.setDate(endDateTime.getDate() + 1);
+    }
+
+    const diffMinutes = differenceInMinutes(endDateTime, startDateTime);
+    const diffHours = diffMinutes / 60;
+
+    return Math.max(0, diffHours);
+  } else {
+    // Si es días, calcular diferencia en días
+    if (!startDate || !endDate) {
+      return 0;
+    }
+
+    const diffDays = differenceInDays(endDate, startDate) + 1; // +1 para incluir ambos días
+    return Math.max(0, diffDays);
+  }
+}
+
+/**
+ * Valida si se puede enviar una solicitud compensatoria
+ */
+export function canSubmitCompensatory(params: {
+  type: 'hours' | 'days';
+  amount: number;
+  date?: Date | null;
+  timeStart?: Date | null;
+  timeEnd?: Date | null;
+  startDate?: Date | null;
+  endDate?: Date | null;
+}): boolean {
+  const { type, amount, date, timeStart, timeEnd, startDate, endDate } = params;
+
+  if (amount <= 0) {
+    return false;
+  }
+
+  if (type === 'hours') {
+    // Si es horas, debe tener fecha y ambas horas
+    if (!date || !timeStart || !timeEnd) {
+      return false;
+    }
+  } else {
+    // Si es días, debe tener fecha inicio y fin
+    if (!startDate || !endDate || endDate < startDate) {
+      return false;
+    }
+  }
+
+  return true;
 }

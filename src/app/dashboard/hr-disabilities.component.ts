@@ -1999,37 +1999,33 @@ interface CompensatoryRequest {
                 "
               />
             </div>
-          </div>
-
-          @let manualDatesForRequest =
-          getManualOvertimeDates(selectedCompensatoryRequest()!); @if
-          (manualDatesForRequest.length > 0) {
-          <div
-            class="mt-4 p-3 bg-neutral-900/40 rounded-lg border border-cyan-500/20"
-          >
-            <div class="flex items-center gap-2 mb-2">
-              <i class="pi pi-calendar-check text-cyan-400 text-sm"></i>
-              <span class="text-sm font-semibold text-gray-300"
-                >Días reportados con horas extra</span
+            @let manualDatesForRequest =
+            getManualOvertimeDates(selectedCompensatoryRequest()!); 
+            <!-- DEBUG: manualDatesForRequest.length = {{ manualDatesForRequest.length }} -->
+            @if
+            (manualDatesForRequest.length > 0) {
+            <div class="col-span-2">
+              <label class="block text-sm font-medium text-gray-400 mb-2"
+                >Días donde trabajó horas extra (reportados por el empleado)</label
               >
-            </div>
-            <div class="flex flex-wrap gap-2 text-xs text-gray-300">
-              @for (date of manualDatesForRequest; track date) {
-              <span
-                class="px-3 py-1.5 rounded-lg h-fit bg-cyan-500/10 border border-cyan-400/30 flex flex-col gap-0.5"
-                tooltipPosition="top"
-              >
-                <span class="font-semibold text-white">
-                  {{ date }}
+              <div class="flex flex-wrap gap-2">
+                @for (date of manualDatesForRequest; track date) {
+                <span
+                  class="px-3 py-1.5 rounded-lg h-fit bg-cyan-500/10 border border-cyan-400/30 flex flex-col gap-0.5"
+                  tooltipPosition="top"
+                >
+                  <span class="font-semibold text-white text-sm">
+                    {{ date }}
+                  </span>
+                  <span class="text-gray-300 text-xs">
+                    {{ getManualDateSaldoLabel(date) }}
+                  </span>
                 </span>
-                <span class="text-gray-300">
-                  {{ getManualDateSaldoLabel(date) }}
-                </span>
-              </span>
-              }
+                }
+              </div>
             </div>
-          </div>
-          } @let reason =
+            }
+          </div> @let reason =
           getCompensatoryReasonFromNotes(selectedCompensatoryRequest()!); @if
           (reason) {
           <div class="mt-4">
@@ -3946,13 +3942,39 @@ export class HRDisabilitiesComponent {
 
   // Función para extraer las fechas manuales desde notes
   public getManualOvertimeDates(request: CompensatoryRequest): string[] {
-    if (!request.notes) return [];
+    if (!request.notes) {
+      console.log('[DEBUG HR] No hay notes en el request');
+      return [];
+    }
 
-    const notesArray = Array.isArray(request.notes)
-      ? request.notes
-      : typeof request.notes === 'string'
-      ? [request.notes]
-      : [];
+    console.log('[DEBUG HR] request.notes recibido:', request.notes);
+    console.log('[DEBUG HR] Tipo de request.notes:', typeof request.notes, Array.isArray(request.notes));
+
+    let notesArray: string[] = [];
+    
+    if (Array.isArray(request.notes)) {
+      notesArray = request.notes;
+      console.log('[DEBUG HR] Notes es un array:', notesArray);
+    } else if (typeof request.notes === 'string') {
+      // Intentar parsear como JSON primero
+      try {
+        const parsed = JSON.parse(request.notes);
+        if (Array.isArray(parsed)) {
+          notesArray = parsed;
+          console.log('[DEBUG HR] Notes parseado como JSON array:', notesArray);
+        } else {
+          notesArray = [request.notes];
+          console.log('[DEBUG HR] Notes es string simple, convertido a array:', notesArray);
+        }
+      } catch (e) {
+        // No es JSON válido, tratarlo como string simple
+        notesArray = [request.notes];
+        console.log('[DEBUG HR] Notes no es JSON válido, tratado como string simple:', notesArray);
+      }
+    } else {
+      console.log('[DEBUG HR] Notes tiene tipo inesperado:', typeof request.notes);
+      return [];
+    }
 
     const startIndex = notesArray.findIndex(
       (note) =>
@@ -3962,7 +3984,12 @@ export class HRDisabilitiesComponent {
         )
     );
 
-    if (startIndex === -1) return [];
+    console.log('[DEBUG HR] Índice de inicio encontrado:', startIndex);
+
+    if (startIndex === -1) {
+      console.log('[DEBUG HR] No se encontró el patrón de fechas manuales');
+      return [];
+    }
 
     const dates: string[] = [];
     for (let i = startIndex + 1; i < notesArray.length; i++) {
@@ -3972,13 +3999,20 @@ export class HRDisabilitiesComponent {
         const match = note.match(/^\s*-\s*(\d{2}\/\d{2}\/\d{4})/);
         if (match) {
           dates.push(match[1]);
-        } else if (note.trim() === '' || note.includes('RRHH revisará')) {
-          // Si encontramos línea vacía o el texto final, parar
+          console.log('[DEBUG HR] Fecha encontrada:', match[1]);
+        } else if (note.includes('RRHH revisará')) {
+          // Si encontramos el texto final, parar
+          console.log('[DEBUG HR] Fin de fechas encontrado en índice:', i);
           break;
         }
+        // Si es línea vacía, continuar sin hacer nada (no romper el loop)
       }
     }
 
+    console.log('[DEBUG HR] Fechas manuales extraídas:', dates);
+    console.log('[DEBUG HR] Longitud del array de fechas:', dates.length);
+    console.log('[DEBUG HR] ¿Array vacío?:', dates.length === 0);
+    console.log('[DEBUG HR] Retornando fechas:', dates);
     return dates;
   }
 
