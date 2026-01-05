@@ -1418,6 +1418,9 @@ import { OrganizationService } from '../services/organization.service';
       display: flex;
       position: relative;
       background: #000000;
+      width: 100%;
+      max-width: 100vw;
+      overflow-x: hidden;
     }
 
     .dashboard-container {
@@ -1429,6 +1432,10 @@ import { OrganizationService } from '../services/organization.service';
       font-family: 'Segoe UI', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       transition: margin-left 0.3s ease;
       position: relative;
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
+      box-sizing: border-box;
     }
 
     .dashboard-sidebar.collapsed ~ .dashboard-container {
