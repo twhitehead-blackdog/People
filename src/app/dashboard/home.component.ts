@@ -858,6 +858,61 @@ import { OrganizationService } from '../services/organization.service';
               </ul>
             </div>
           </p-dialog>
+          <!-- Dialog for top absences -->
+          <p-dialog
+            [visible]="topAbsencesDialogVisible()"
+            (visibleChange)="topAbsencesDialogVisible.set($event)"
+            [modal]="true"
+            [closable]="true"
+            [draggable]="false"
+            [resizable]="false"
+            [dismissableMask]="true"
+            [style]="{ width: '600px' }"
+            header="Top de Empleados con Más Ausencias"
+            styleClass="late-details-dialog top-absences-dialog"
+          >
+            <div
+              class="flex flex-col gap-0"
+              style="padding: 1.5rem 2rem; min-height: 100px;"
+            >
+              <div
+                class="text-sm text-gray-300 text-center py-4"
+                *ngIf="topAbsencesList().length === 0"
+              >
+                No hay ausencias registradas este mes.
+              </div>
+              <ul *ngIf="topAbsencesList().length > 0" class="top-absences-list">
+                <li
+                  class="top-absences-list-item"
+                  *ngFor="let item of topAbsencesList(); let i = index"
+                >
+                  <div class="top-absences-item-content">
+                    <div
+                      class="top-absences-rank"
+                      [class.rank-1]="i === 0"
+                      [class.rank-2]="i === 1"
+                      [class.rank-3]="i === 2"
+                    >
+                      {{ i + 1 }}
+                    </div>
+                    <div class="top-absences-details">
+                      <div class="top-absences-name-row">
+                        <span class="top-absences-name">{{ item.employee_name }}</span>
+                      </div>
+                      <div class="top-absences-info-row">
+                        <span class="top-absences-count">{{ item.count }} ausencia{{ item.count > 1 ? 's' : '' }}</span>
+                      </div>
+                    </div>
+                    <div class="top-absences-right-section">
+                      <div class="top-absences-badge" [class.badge-high]="item.count >= 5" [class.badge-medium]="item.count >= 3 && item.count < 5">
+                        {{ item.count }}
+                      </div>
+                    </div>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </p-dialog>
           <!-- Dialog for month-specific hires and exits details -->
           <p-dialog
             [visible]="monthHiresExitsDialogVisible()"
