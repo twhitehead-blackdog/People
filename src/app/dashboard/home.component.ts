@@ -3802,26 +3802,32 @@ export class HomeComponent {
           console.error('[HomeComponent] employeeSchedules - Error:', error);
         } else if (schedules) {
           if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-            console.log('[HomeComponent] employeeSchedules - Respuesta recibida:', schedules.length, 'schedules');
-            if (schedules.length === 0) {
-              console.warn('[HomeComponent] employeeSchedules - ⚠️ No hay schedules. Verificar:');
-              console.warn('  - Company ID:', companyId);
-              console.warn('  - URL completa:', `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules?select=*,schedule:schedules(*)&start_date=lte.${format(endOfMonth(new Date()), 'yyyy-MM-dd')}&end_date=gte.${format(startOfMonth(new Date()), 'yyyy-MM-dd')}&company_id=eq.${companyId}`);
-              console.warn('  - Posibles causas:');
-              console.warn('    1. No hay employee_schedules con este company_id');
-              console.warn('    2. Los schedules no se solapan con el mes actual');
-              console.warn('    3. Problema con políticas RLS en Supabase');
-            } else {
-              console.log('[HomeComponent] employeeSchedules - Muestra (primeros 3):', 
-                schedules.slice(0, 3).map(s => ({
-                  id: s.id,
-                  employee_id: s.employee_id,
-                  company_id: s.company_id,
-                  start_date: s.start_date,
-                  end_date: s.end_date,
-                  schedule: s.schedule ? { id: s.schedule.id, name: s.schedule.name } : null,
-                }))
-              );
+            // Solo log en desarrollo
+            if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+              console.log('[HomeComponent] employeeSchedules - Respuesta recibida:', schedules.length, 'schedules');
+              if (schedules.length === 0) {
+                console.warn('[HomeComponent] employeeSchedules - No hay schedules. Verificar:');
+                console.warn('  - Company ID:', companyId);
+                // No mostrar URL completa en producción para evitar exponer información de la base de datos
+              if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                console.warn('  - URL completa:', `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules?select=*,schedule:schedules(*)&start_date=lte.${format(endOfMonth(new Date()), 'yyyy-MM-dd')}&end_date=gte.${format(startOfMonth(new Date()), 'yyyy-MM-dd')}&company_id=eq.${companyId}`);
+              }
+                console.warn('  - Posibles causas:');
+                console.warn('    1. No hay employee_schedules con este company_id');
+                console.warn('    2. Los schedules no se solapan con el mes actual');
+                console.warn('    3. Problema con políticas RLS en Supabase');
+              } else {
+                console.log('[HomeComponent] employeeSchedules - Muestra (primeros 3):', 
+                  schedules.slice(0, 3).map(s => ({
+                    id: s.id,
+                    employee_id: s.employee_id,
+                    company_id: s.company_id,
+                    start_date: s.start_date,
+                    end_date: s.end_date,
+                    schedule: s.schedule ? { id: s.schedule.id, name: s.schedule.name } : null,
+                  }))
+                );
+              }
             }
           }
         }
@@ -4415,9 +4421,12 @@ export class HomeComponent {
       const schedulesLoading = this.employeeSchedules.isLoading();
       
       if (schedulesError) {
-        console.warn('[HomeComponent] latesDailyChartData - ⚠️ Error al cargar schedules:');
-        console.warn('  - Company ID:', this.organizationService.getCurrentCompanyId());
-        console.warn('  - Error en employeeSchedules:', schedulesError);
+        // Solo log en desarrollo
+        if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+          console.warn('[HomeComponent] latesDailyChartData - Error al cargar schedules:');
+          console.warn('  - Company ID:', this.organizationService.getCurrentCompanyId());
+          console.warn('  - Error en employeeSchedules:', schedulesError);
+        }
       } else if (!schedulesLoading && schedules.length === 0) {
         // Solo mostrar warning si no están cargando y realmente no hay datos
         // (puede ser normal si no hay schedules para el mes actual)
@@ -5283,8 +5292,9 @@ export class HomeComponent {
       // Solo mostrar warnings si hay errores reales, no cuando simplemente no hay datos
       // (puede ser que no haya timelogs o schedules para el mes actual, lo cual es válido)
       if (timelogsError || schedulesError) {
+        // Solo log en desarrollo
         if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-          console.warn('[HomeComponent] getMonthlyLates - ⚠️ Error al cargar datos para calcular tardanzas:');
+          console.warn('[HomeComponent] getMonthlyLates - Error al cargar datos para calcular tardanzas:');
           if (timelogsError) {
             console.warn('  - Error en latesFromTimelogs:', timelogsError);
           }

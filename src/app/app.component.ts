@@ -42,7 +42,10 @@ export class AppComponent implements OnInit {
   ngOnInit() {
     // Inicializar servicio de diagnóstico temprano
     // Esto asegura que capture errores desde el inicio
-    console.log('🔍 [App] Inicializando aplicación...');
+    // Solo log en desarrollo
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      console.log('[App] Inicializando aplicación...');
+    }
     
     // El servicio de tema se inicializa automáticamente y aplica el tema guardado
     // No necesitamos forzar modo oscuro aquí, el servicio lo maneja
@@ -50,16 +53,25 @@ export class AppComponent implements OnInit {
     // Inicializar company_ids temprano si estamos en login o página principal
     const currentUrl = this.router.url;
     if (currentUrl === '/login' || currentUrl === '/') {
-      console.log('🔄 Inicializando company_ids temprano en:', currentUrl);
+      // Solo log en desarrollo
+      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+        console.log('[App] Inicializando company_ids temprano en:', currentUrl);
+      }
       // Los company_ids se cargarán automáticamente en el constructor del servicio
       // pero podemos esperar a que estén listos para asegurar que estén disponibles
       this.organizationService
         .waitForCompanyIds()
         .then(() => {
-          console.log('✅ Company IDs listos para usar en la aplicación');
+          // Solo log en desarrollo
+          if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+            console.log('[App] Company IDs listos para usar en la aplicación');
+          }
         })
         .catch((error) => {
-          console.error('❌ Error esperando company_ids:', error);
+          // Solo log en desarrollo
+          if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+            console.error('[App] Error esperando company_ids:', error);
+          }
         });
     }
 

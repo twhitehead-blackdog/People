@@ -17,6 +17,7 @@ import { Toast } from 'primeng/toast';
 import { Branch } from '../models';
 import { OrganizationService } from '../services/organization.service';
 import { APP_VERSION } from '../version';
+import { logger } from '../utils/logger';
 
 @Component({
   selector: 'pt-login',
@@ -1605,24 +1606,20 @@ export class LoginComponent {
         // Si no se puede cambiar y estamos en una IP de sucursal, forzar Black Dog
         if (this.organizationService.isNaz()) {
           this.organizationService.setOrganization('blackdog');
-          console.log('🔒 Forzando Black Dog por IP de sucursal:', ip);
+          logger.debug('🔒 Forzando Black Dog por IP de sucursal');
         }
       }
     });
   }
 
   nextOrganization() {
-    console.log('🔄 Cambiando a siguiente organización desde login');
+    logger.debug('🔄 Cambiando a siguiente organización desde login');
     this.organizationService.nextOrganization();
-    const currentCompanyId = this.organizationService.getCurrentCompanyId();
-    console.log('✅ Company ID actual después del cambio:', currentCompanyId);
   }
 
   previousOrganization() {
-    console.log('🔄 Cambiando a organización anterior desde login');
+    logger.debug('🔄 Cambiando a organización anterior desde login');
     this.organizationService.previousOrganization();
-    const currentCompanyId = this.organizationService.getCurrentCompanyId();
-    console.log('✅ Company ID actual después del cambio:', currentCompanyId);
   }
 
   setMode(mode: 'dashboard' | 'kiosk') {
@@ -1647,38 +1644,19 @@ export class LoginComponent {
 
   async signIn() {
     // Esperar a que los company_ids estén listos
-    console.log('⏳ Esperando a que los company_ids estén listos...');
+    logger.debug('⏳ Esperando a que los company_ids estén listos...');
     await this.organizationService.waitForCompanyIds();
 
     const currentCompanyId = this.organizationService.getCurrentCompanyId();
     const currentOrg = this.organizationService.currentOrganization;
 
     if (!currentCompanyId) {
-      console.error(
-        '❌ No se pudo obtener company_id. Usando organización por defecto.'
-      );
+      logger.error('❌ No se pudo obtener company_id. Usando organización por defecto.');
       // Asegurar que al menos tengamos una organización
       if (!currentOrg) {
         this.organizationService.setOrganization('blackdog');
       }
-      // Intentar sincronizar de nuevo
-      const retryCompanyId = this.organizationService.getCurrentCompanyId();
-      if (retryCompanyId) {
-        console.log(
-          '✅ Company ID obtenido después de establecer organización por defecto:',
-          retryCompanyId
-        );
-      }
     }
-
-    const finalCompanyId = this.organizationService.getCurrentCompanyId();
-    const finalOrg = this.organizationService.currentOrganization;
-    console.log(
-      '🚀 Iniciando sesión con organización:',
-      finalOrg,
-      'company_id:',
-      finalCompanyId
-    );
 
     // Usar Auth0 para iniciar sesión
     this.auth.loginWithRedirect();
@@ -1700,7 +1678,7 @@ export class LoginComponent {
         if (response?.ip) {
           const ip = response.ip.trim();
           this.currentIP.set(ip);
-          console.log('📍 IP detectada en login:', ip);
+          logger.debug('📍 IP detectada en login');
         }
       },
       error: () => {
@@ -1708,7 +1686,7 @@ export class LoginComponent {
         this.getIPViaWebRTC()
           .then((ip) => {
             this.currentIP.set(ip);
-            console.log('📍 IP detectada vía WebRTC:', ip);
+            logger.debug('📍 IP detectada vía WebRTC');
           })
           .catch(() => {
             // Si todo falla, usar localhost como fallback
@@ -1732,10 +1710,10 @@ export class LoginComponent {
       .subscribe({
         next: (branches) => {
           this.branches.set(branches);
-          console.log('📍 Sucursales cargadas:', branches.length);
+          logger.debug(`📍 Sucursales cargadas: ${branches.length}`);
         },
         error: (error) => {
-          console.error('Error obteniendo sucursales:', error);
+          logger.error('Error obteniendo sucursales', error);
         },
       });
   }

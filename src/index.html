@@ -23,6 +23,59 @@
           document.documentElement.classList.add('dark');
         });
       }
+
+      // Interceptar y filtrar logs de XHR y URLs de base de datos en producción
+      (function() {
+        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+        
+        // Guardar las funciones originales
+        const originalLog = console.log;
+        const originalWarn = console.warn;
+        const originalError = console.error;
+        
+        // Patrones a filtrar (URLs de base de datos, XHR logs, etc.)
+        const sensitivePatterns = [
+          /XHR finished loading/i,
+          /supabase\.co/i,
+          /rest\/v1\//i,
+          /companies\?select/i,
+          /positions\?select/i,
+          /settings\?select/i,
+          /company_id=eq\./i,
+        ];
+        
+        // Función para verificar si un mensaje contiene información sensible
+        function containsSensitiveInfo(...args) {
+          const message = args.join(' ');
+          return sensitivePatterns.some(pattern => pattern.test(message));
+        }
+        
+        // Sobrescribir console.log
+        console.log = function(...args) {
+          if (!isLocalhost && containsSensitiveInfo(...args)) {
+            return; // No mostrar en producción
+          }
+          originalLog.apply(console, args);
+        };
+        
+        // Sobrescribir console.warn
+        console.warn = function(...args) {
+          if (!isLocalhost && containsSensitiveInfo(...args)) {
+            return; // No mostrar en producción
+          }
+          originalWarn.apply(console, args);
+        };
+        
+        // Sobrescribir console.error (mantener errores pero sin detalles sensibles)
+        console.error = function(...args) {
+          if (!isLocalhost && containsSensitiveInfo(...args)) {
+            // En producción, solo mostrar un mensaje genérico
+            originalError.apply(console, ['[Error]']);
+            return;
+          }
+          originalError.apply(console, args);
+        };
+      })();
     </script>
   </head>
   <body class="dark">

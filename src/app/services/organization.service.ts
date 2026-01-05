@@ -77,7 +77,10 @@ export class OrganizationService {
     // Usar setTimeout para diferir la ejecución y no bloquear el constructor
     setTimeout(() => {
       this.initializeCompanyIds().catch((error) => {
-        console.error('❌ Error en inicialización asíncrona de company_ids:', error);
+        // Solo mostrar error completo en desarrollo
+        if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+          console.error('[Organization] Error en inicialización asíncrona de company_ids:', error);
+        }
       });
     }, 0);
 
@@ -99,7 +102,13 @@ export class OrganizationService {
     try {
       const baseUrl = process.env['ENV_SUPABASE_URL'];
       if (!baseUrl) {
-        console.warn('⚠️ ENV_SUPABASE_URL no está definido');
+        // Solo mostrar warning en desarrollo
+        if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+          // Solo loguear en desarrollo
+          if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+            console.warn('[Organization] ENV_SUPABASE_URL no está definido');
+          }
+        }
         this._companyIdsReady.set(true); // Marcar como listo aunque falle
         return;
       }
@@ -128,12 +137,10 @@ export class OrganizationService {
         const nazCompany = exactMatch || nazResponse[0];
         if (nazCompany) {
           this._nazCompanyId = nazCompany.id;
-          console.log(
-            '✅ Company ID de Naz cargado:',
-            this._nazCompanyId,
-            'nombre:',
-            nazCompany.name
-          );
+          // Solo log en desarrollo
+          if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+            console.log('[Organization] Company ID de Naz cargado');
+          }
         }
       }
 
@@ -157,12 +164,10 @@ export class OrganizationService {
         // Usar la primera coincidencia (ya está ordenada por created_at)
         const blackdogCompany = bdResponse[0];
         this._blackdogCompanyId = blackdogCompany.id;
-        console.log(
-          '✅ Company ID de Blackdog cargado:',
-          this._blackdogCompanyId,
-          'nombre:',
-          blackdogCompany.name
-        );
+        // Solo log en desarrollo
+        if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+          console.log('[Organization] Company ID de Blackdog cargado');
+        }
       } else {
         // Si no encuentra con "blackdog", intentar con "black" y "dog" separados
         const bdResponse2 = await firstValueFrom(
@@ -186,12 +191,10 @@ export class OrganizationService {
           );
           if (blackdogMatch) {
             this._blackdogCompanyId = blackdogMatch.id;
-            console.log(
-              '✅ Company ID de Blackdog cargado (búsqueda alternativa):',
-              this._blackdogCompanyId,
-              'nombre:',
-              blackdogMatch.name
-            );
+            // Solo log en desarrollo
+            if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+              console.log('[Organization] Company ID de Blackdog cargado (búsqueda alternativa)');
+            }
           }
         }
       }
@@ -199,10 +202,13 @@ export class OrganizationService {
       // Marcar como listo - el effect se encargará de sincronizar automáticamente
       this._companyIdsReady.set(true);
       if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-        console.log('✅ Company IDs inicializados correctamente');
+        console.log('[Organization] Company IDs inicializados correctamente');
       }
     } catch (error) {
-      console.error('❌ Error inicializando company_ids:', error);
+      // Solo mostrar error completo en desarrollo
+      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+        console.error('[Organization] Error inicializando company_ids:', error);
+      }
       // Marcar como listo aunque haya error para no bloquear la app
       this._companyIdsReady.set(true);
     }
@@ -227,7 +233,10 @@ export class OrganizationService {
           if (timeoutId) {
             clearTimeout(timeoutId);
           }
-          console.log('✅ Company IDs listos después de esperar');
+          // Solo log en desarrollo
+          if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+            console.log('[Organization] Company IDs listos después de esperar');
+          }
           resolve();
         }
       }, 100);
@@ -235,8 +244,8 @@ export class OrganizationService {
       // Timeout de seguridad
       timeoutId = setTimeout(() => {
         clearInterval(checkInterval);
-        // Solo mostrar warning si realmente no están listos
-        if (!this._companyIdsReady()) {
+        // Solo mostrar warning si realmente no están listos y en desarrollo
+        if (!this._companyIdsReady() && typeof window !== 'undefined' && window.location.hostname === 'localhost') {
           console.warn(
             '⚠️ Timeout esperando company_ids, continuando de todas formas'
           );
@@ -259,28 +268,29 @@ export class OrganizationService {
 
     if (org === 'naz' && this._nazCompanyId) {
       companyId = this._nazCompanyId;
-      console.log('🔄 Sincronizando company_id para Naz:', companyId);
+      // Solo log en desarrollo
+      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+        console.log('[Organization] Sincronizando company_id para Naz');
+      }
     } else if (org === 'blackdog' && this._blackdogCompanyId) {
       companyId = this._blackdogCompanyId;
-      console.log('🔄 Sincronizando company_id para Black Dog:', companyId);
+      // Solo log en desarrollo
+      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+        console.log('[Organization] Sincronizando company_id para Black Dog');
+      }
     }
 
     if (companyId) {
       this._currentCompanyId.set(companyId);
       this.saveCompanyIdToStorage(companyId);
-      console.log(
-        '✅ Company ID actualizado:',
-        companyId,
-        'para organización:',
-        org
-      );
+      // Solo log en desarrollo
+      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+        console.log('[Organization] Company ID actualizado para organización:', org);
+      }
     } else {
       // Solo mostrar warning si los company_ids están listos pero no se encontró el ID
-      if (this._companyIdsReady()) {
-        console.warn(
-          '⚠️ No se pudo obtener company_id para organización:',
-          org
-        );
+      if (this._companyIdsReady() && typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+        console.warn('[Organization] No se pudo obtener company_id para organización:', org);
       }
     }
   }
@@ -296,7 +306,12 @@ export class OrganizationService {
     try {
       return localStorage.getItem(this.STORAGE_KEY_COMPANY_ID);
     } catch (error) {
-      console.error('Error loading company_id from localStorage:', error);
+      // Solo mostrar error completo en desarrollo
+      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+        console.error('Error loading company_id from localStorage:', error);
+      } else {
+        console.error('Error loading company_id from localStorage');
+      }
       return null;
     }
   }
@@ -312,7 +327,12 @@ export class OrganizationService {
     try {
       localStorage.setItem(this.STORAGE_KEY_COMPANY_ID, companyId);
     } catch (error) {
-      console.error('Error saving company_id to localStorage:', error);
+      // Solo mostrar error completo en desarrollo
+      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+        console.error('Error saving company_id to localStorage:', error);
+      } else {
+        console.error('Error saving company_id to localStorage');
+      }
     }
   }
 
@@ -320,7 +340,10 @@ export class OrganizationService {
    * Cambia la organización seleccionada
    */
   setOrganization(org: Organization): void {
-    console.log('🔄 Cambiando organización a:', org);
+    // Solo log en desarrollo
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      console.log('[Organization] Cambiando organización a:', org);
+    }
     this._currentOrganization.set(org);
     this.saveToStorage(org);
     // syncCompanyIdFromOrganization se ejecutará automáticamente por el effect
@@ -347,7 +370,10 @@ export class OrganizationService {
    * Limpia la selección de organización (útil al cerrar sesión)
    */
   clearOrganization(): void {
-    console.log('🧹 Limpiando selección de organización...');
+    // Solo log en desarrollo
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      console.log('🧹 Limpiando selección de organización...');
+    }
     this._currentOrganization.set('blackdog'); // Resetear a Black Dog por defecto
     this._currentCompanyId.set(null);
 
@@ -358,7 +384,12 @@ export class OrganizationService {
         window.localStorage.removeItem(this.STORAGE_KEY_COMPANY_ID);
       }
     } catch (error) {
-      console.error('Error clearing organization from localStorage:', error);
+      // Solo mostrar error completo en desarrollo
+      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+        console.error('Error clearing organization from localStorage:', error);
+      } else {
+        console.error('Error clearing organization from localStorage');
+      }
     }
   }
 
@@ -413,7 +444,12 @@ export class OrganizationService {
         return saved as Organization;
       }
     } catch (error) {
-      console.error('Error loading organization from localStorage:', error);
+      // Solo mostrar error completo en desarrollo
+      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+        console.error('Error loading organization from localStorage:', error);
+      } else {
+        console.error('Error loading organization from localStorage');
+      }
     }
 
     return 'blackdog'; // Default
@@ -430,7 +466,12 @@ export class OrganizationService {
     try {
       localStorage.setItem(this.STORAGE_KEY, org);
     } catch (error) {
-      console.error('Error saving organization to localStorage:', error);
+      // Solo mostrar error completo en desarrollo
+      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+        console.error('Error saving organization to localStorage:', error);
+      } else {
+        console.error('Error saving organization to localStorage');
+      }
     }
   }
 }

@@ -2075,11 +2075,14 @@ export class TimeclockComponent implements OnDestroy {
       companies.length > 0 &&
       !companies.some((c) => c.id === finalCompanyId)
     ) {
-      console.warn('⚠️ Company ID no encontrado en lista:', {
-        finalCompanyId,
-        companiesList: companies.map((c) => ({ id: c.id, name: c.name })),
-        isNaz,
-      });
+      // Solo log en desarrollo
+      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+        console.warn('[Timeclock] Company ID no encontrado en lista:', {
+          finalCompanyId,
+          companiesList: companies.map((c) => ({ id: c.id, name: c.name })),
+          isNaz,
+        });
+      }
       this.isProcessing.set(false);
       this.message.add({
         severity: 'error',

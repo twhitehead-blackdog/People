@@ -955,7 +955,10 @@ export const DashboardStore = signalStore(
       // El empleado no está en entities o no tiene position
       // Usar ensureEmployeeLoaded que carga sin filtrar por company_id
       state.employees.ensureEmployeeLoaded(employeeId);
-      console.log('🔄 Cargando empleado actual en EmployeesStore:', employeeId);
+      // Solo log en desarrollo
+      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+        console.log('[DashboardStore] Cargando empleado actual:', employeeId);
+      }
     },
   })),
   withHooks({

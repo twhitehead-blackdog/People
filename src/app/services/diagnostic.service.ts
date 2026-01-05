@@ -25,9 +25,9 @@ export class DiagnosticService {
   private maxErrors = 100; // Mantener solo los últimos 100 errores
 
   constructor() {
-    // Log de inicialización
-    if (typeof window !== 'undefined') {
-      console.log('🔍 [Diagnóstico] Servicio inicializado');
+    // Log de inicialización solo en desarrollo
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      console.log('[Diagnóstico] Servicio inicializado');
     }
     
     // Capturar errores de consola
@@ -63,8 +63,10 @@ export class DiagnosticService {
     const newErrors = [diagnosticError, ...currentErrors].slice(0, this.maxErrors);
     this.errorsSubject.next(newErrors);
 
-    // También loguear en consola para debugging
-    console.error('🔴 [Diagnóstico]', error.type.toUpperCase(), ':', error.message, error.details || '');
+    // También loguear en consola para debugging solo en desarrollo
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      console.error('[Diagnóstico]', error.type.toUpperCase(), ':', error.message, error.details || '');
+    }
   }
 
   /**
@@ -184,7 +186,10 @@ export class DiagnosticService {
       );
     });
 
-    console.log('🔍 [Diagnóstico] Captura de errores de consola configurada');
+    // Solo log en desarrollo
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      console.log('[Diagnóstico] Captura de errores de consola configurada');
+    }
   }
 
   /**
@@ -338,7 +343,10 @@ export class DiagnosticService {
       }
     };
 
-    console.log('🔍 [Diagnóstico] Captura de errores de fetch configurada');
+    // Solo log en desarrollo
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      console.log('[Diagnóstico] Captura de errores de fetch configurada');
+    }
   }
 
   /**

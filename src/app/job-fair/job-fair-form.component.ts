@@ -790,7 +790,6 @@ export class JobFairFormComponent implements OnInit {
 
     // Si no hay posiciones cargadas, retornar array vacío
     if (allPositions.length === 0) {
-      console.log('No hay posiciones cargadas aún');
       return [];
     }
 
@@ -798,16 +797,6 @@ export class JobFairFormComponent implements OnInit {
     // Si available_for_job_fair es null o undefined, asumir que está disponible (true por defecto)
     const availablePositions = allPositions.filter(
       (pos) => pos.available_for_job_fair !== false
-    );
-
-    console.log('Total de posiciones cargadas:', allPositions.length);
-    console.log(
-      'Posiciones disponibles para feria:',
-      availablePositions.length
-    );
-    console.log(
-      'Posiciones disponibles:',
-      availablePositions.map((p) => p.name)
     );
 
     // Lista específica de nombres de posiciones que deben aparecer
@@ -918,12 +907,6 @@ export class JobFairFormComponent implements OnInit {
       return exactMatch || keywordMatch;
     });
 
-    console.log(
-      'Posiciones filtradas:',
-      filtered.length,
-      filtered.map((p) => p.name)
-    );
-
     // Para la feria de empleo, mostrar solo las posiciones disponibles (available_for_job_fair = true)
     // Si hay posiciones filtradas, priorizarlas ordenándolas primero
     let result: typeof availablePositions;
@@ -932,16 +915,8 @@ export class JobFairFormComponent implements OnInit {
       const filteredIds = new Set(filtered.map((p) => p.id));
       const others = availablePositions.filter((p) => !filteredIds.has(p.id));
       result = [...filtered, ...others];
-      console.log(
-        'Posiciones que se mostrarán (filtradas primero):',
-        result.length
-      );
     } else {
       // Si no hay coincidencias, mostrar todas las posiciones disponibles para feria
-      console.log(
-        'No se encontraron coincidencias, mostrando todas las posiciones disponibles:',
-        availablePositions.length
-      );
       result = availablePositions;
     }
 
@@ -1040,7 +1015,10 @@ export class JobFairFormComponent implements OnInit {
     try {
       const blackdogCompanyId = this.orgService.getBlackdogCompanyId();
       if (!blackdogCompanyId) {
-        console.warn('⚠️ No se encontró company_id de Black Dog, cargando todas las posiciones...');
+        // Solo log en desarrollo
+        if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+          console.warn('[JobFair] No se encontró company_id de Black Dog, cargando todas las posiciones...');
+        }
         this.positionsStore.reloadItems();
         return;
       }
@@ -1062,12 +1040,13 @@ export class JobFairFormComponent implements OnInit {
       // Actualizar el store con las posiciones de Black Dog
       // Necesitamos acceder al método interno del store para actualizar las entidades
       // Por ahora, usaremos un enfoque diferente: cargar directamente y usar computed
-      console.log('✅ Posiciones de Black Dog cargadas para feria:', positions.length);
-      
       // Guardar las posiciones en un signal local para usar en availablePositions
       this.jobFairPositions.set(positions);
     } catch (error) {
-      console.error('❌ Error cargando posiciones de Black Dog:', error);
+      // Solo log en desarrollo
+      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+        console.error('[JobFair] Error cargando posiciones de Black Dog:', error);
+      }
       // Fallback: cargar desde el store normal
       this.positionsStore.reloadItems();
     }
@@ -1353,11 +1332,6 @@ export class JobFairFormComponent implements OnInit {
 
     // Usar .subscribe() directamente como en uploadDisability() - confiar en el interceptor
     // NO pasar headers explícitos, el interceptor los agregará automáticamente
-    console.log('📤 Enviando aplicación:', applicationData);
-    console.log(
-      '🔗 URL:',
-      `${process.env['ENV_SUPABASE_URL']}/rest/v1/job_applications`
-    );
 
     this.http
       .post(
@@ -1367,16 +1341,22 @@ export class JobFairFormComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (response) => {
-          console.log('✅ Aplicación creada exitosamente:', response);
+          // Solo log en desarrollo
+          if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+            console.log('[JobFair] Aplicación creada exitosamente:', response);
+          }
 
           // 4. Enviar notificaciones (opcional, puede fallar sin afectar el éxito)
           this.sendNotifications(applicationData).catch((err) => {
             // El formulario ya se guardó exitosamente, solo falló el envío de correo
             const isTimeout = err?.error?.code === 'ETIMEDOUT' || err?.error?.message?.includes('timeout');
-            if (isTimeout) {
-              console.warn('⚠️ No se pudo enviar el email de confirmación (timeout SMTP). La aplicación se guardó correctamente.');
-            } else {
-              console.warn('⚠️ No se pudo enviar el email de confirmación. La aplicación se guardó correctamente.');
+            // Solo log en desarrollo
+            if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+              if (isTimeout) {
+                console.warn('[JobFair] No se pudo enviar el email de confirmación (timeout SMTP). La aplicación se guardó correctamente.');
+              } else {
+                console.warn('[JobFair] No se pudo enviar el email de confirmación. La aplicación se guardó correctamente.');
+              }
             }
           });
 
@@ -1389,11 +1369,14 @@ export class JobFairFormComponent implements OnInit {
           this.isSubmitting.set(false);
         },
         error: (error: any) => {
-          console.error('❌ Error submitting application:', error);
-          console.error('❌ Error status:', error?.status);
-          console.error('❌ Error message:', error?.message);
-          console.error('❌ Error error:', error?.error);
-          console.error('❌ Error completo:', JSON.stringify(error, null, 2));
+          // Solo log en desarrollo
+          if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+            console.error('[JobFair] Error submitting application:', error);
+            console.error('[JobFair] Error status:', error?.status);
+            console.error('[JobFair] Error message:', error?.message);
+            console.error('[JobFair] Error error:', error?.error);
+            console.error('[JobFair] Error completo:', JSON.stringify(error, null, 2));
+          }
 
           this.isSuccess.set(false);
 
@@ -1582,21 +1565,24 @@ Black Dog`;
           fromName: 'Black Dog - Feria de Empleo', // Nombre personalizado para la feria
         })
       );
-      console.log(
-        '✅ Email de confirmación enviado al candidato:',
-        candidateEmail
-      );
+      // Solo log en desarrollo
+      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+        console.log('[JobFair] Email de confirmación enviado al candidato:', candidateEmail);
+      }
     } catch (error: any) {
       // No fallar el proceso completo si el email falla
       // El formulario ya se guardó en la BD, solo falló la notificación
       const errorMessage = error?.error?.message || error?.message || 'Error desconocido';
       const isTimeout = error?.error?.code === 'ETIMEDOUT' || errorMessage.includes('timeout');
       
-      if (isTimeout) {
-        console.warn('⚠️ No se pudo enviar el email de confirmación (timeout de conexión SMTP). La aplicación se guardó correctamente.');
-        console.warn('   Esto puede deberse a problemas de red o configuración SMTP en el servidor.');
-      } else {
-        console.warn('⚠️ No se pudo enviar el email de confirmación. La aplicación se guardó correctamente.');
+      // Solo log en desarrollo
+      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+        if (isTimeout) {
+          console.warn('[JobFair] No se pudo enviar el email de confirmación (timeout de conexión SMTP). La aplicación se guardó correctamente.');
+          console.warn('[JobFair] Esto puede deberse a problemas de red o configuración SMTP en el servidor.');
+        } else {
+          console.warn('[JobFair] No se pudo enviar el email de confirmación. La aplicación se guardó correctamente.');
+        }
       }
       // No lanzar el error - el formulario ya se guardó exitosamente
     }
@@ -1618,8 +1604,6 @@ Fecha: ${new Date().toLocaleString('es-PA')}
 
 Revisa la aplicación en el sistema de gestión.`;
 
-    // Por ahora mantener el log, se puede implementar email interno después
-    console.log('Notificación interna:', internalMessage);
     // TODO: Opcional - Enviar email interno a RRHH también
   }
 
