@@ -35,7 +35,7 @@ import { InputText } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { ToggleSwitch, ToggleSwitchChangeEvent } from 'primeng/toggleswitch';
-import { catchError, EMPTY, forkJoin } from 'rxjs';
+import { catchError, EMPTY, forkJoin, firstValueFrom } from 'rxjs';
 import { v4 } from 'uuid';
 import { colorVariants, EmployeeSchedule } from '../models';
 import { OrganizationService } from '../services/organization.service';
@@ -50,6 +50,7 @@ import { MonthWeekSelectorComponent } from './employees-timetable/components/mon
 import { TimetableFiltersComponent } from './employees-timetable/components/timetable-filters/timetable-filters.component';
 import { TimetableGridComponent } from './employees-timetable/components/timetable-grid/timetable-grid.component';
 import { TimetableHeaderComponent } from './employees-timetable/components/timetable-header/timetable-header.component';
+import { ApiUrlService } from './services/api-url.service';
 import { TimetableFilterService } from './services/timetable-filter.service';
 import { TimetableNavigationService } from './services/timetable-navigation.service';
 import { TimetablePermissionsService } from './services/timetable-permissions.service';
@@ -559,6 +560,7 @@ export class EmployeesTimetableComponent implements OnInit {
   public navigationService = inject(TimetableNavigationService);
   public injector = inject(Injector);
   private auditService = inject(ScheduleAuditService);
+  private apiUrl = inject(ApiUrlService);
 
   public isHRDepartment = this.permissionsService.isHRDepartment;
 
@@ -650,15 +652,19 @@ export class EmployeesTimetableComponent implements OnInit {
     const startDate = format(this.start(), 'yyyy-MM-dd');
     const endDate = format(this.end(), 'yyyy-MM-dd');
 
-    // Construir URL manualmente para filtrar a través de employee.company_id
-    let url = `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules?select=*,schedule:schedules(*),branch:branches(id, name, short_name),employee:employees(id,company_id)`;
-    url += `&start_date=lte.${endDate}`;
-    url += `&end_date=gte.${startDate}`;
+    // Construir URL usando ApiUrlService
+    const params: Record<string, string> = {
+      select: '*,schedule:schedules(*),branch:branches(id, name, short_name),employee:employees(id,company_id)',
+      'start_date': `lte.${endDate}`,
+      'end_date': `gte.${startDate}`,
+    };
 
     // Filtrar a través de employees.company_id (funciona incluso si employee_schedules no tiene company_id)
     if (companyId) {
-      url += `&employee.company_id=eq.${companyId}`;
+      params['employee.company_id'] = `eq.${companyId}`;
     }
+
+    const url = this.apiUrl.build('rest/v1/employee_schedules', params);
 
     return {
       url,
@@ -990,8 +996,8 @@ export class EmployeesTimetableComponent implements OnInit {
         // Ahora eliminar el horario
         this.http
           .delete(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
-            { params }
+            this.apiUrl.build('rest/v1/employee_schedules', params),
+            {}
           )
           .pipe(
             catchError((error) => {
@@ -1046,7 +1052,7 @@ export class EmployeesTimetableComponent implements OnInit {
 
         requests.push(
           this.http.patch(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+            this.apiUrl.baseUrl + '/rest/v1/employee_schedules',
             updateData,
             {
               params: {
@@ -1064,7 +1070,7 @@ export class EmployeesTimetableComponent implements OnInit {
         }
         requests.push(
           this.http.delete(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+            this.apiUrl.baseUrl + '/rest/v1/employee_schedules',
             { params }
           )
         );
@@ -1085,7 +1091,7 @@ export class EmployeesTimetableComponent implements OnInit {
 
         requests.push(
           this.http.patch(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+            this.apiUrl.baseUrl + '/rest/v1/employee_schedules',
             updateData,
             {
               params: {
@@ -1103,7 +1109,7 @@ export class EmployeesTimetableComponent implements OnInit {
         }
         requests.push(
           this.http.delete(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+            this.apiUrl.baseUrl + '/rest/v1/employee_schedules',
             { params }
           )
         );
@@ -1124,7 +1130,7 @@ export class EmployeesTimetableComponent implements OnInit {
 
       requests.push(
         this.http.patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+          this.apiUrl.baseUrl + '/rest/v1/employee_schedules',
           updateData1,
           {
             params: {
@@ -1150,7 +1156,7 @@ export class EmployeesTimetableComponent implements OnInit {
 
         requests.push(
           this.http.post(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+            this.apiUrl.baseUrl + '/rest/v1/employee_schedules',
             createData2
           )
         );
@@ -1369,7 +1375,7 @@ export class EmployeesTimetableComponent implements OnInit {
         // Ahora aprobar el horario
         this.http
           .patch(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+            this.apiUrl.baseUrl + '/rest/v1/employee_schedules',
             { approved: true },
             { params }
           )
@@ -1454,7 +1460,7 @@ export class EmployeesTimetableComponent implements OnInit {
   private async loadAuditHistory() {
     this.isLoadingAuditHistory.set(true);
     try {
-      const history = await this.auditService.getAllAuditHistory().toPromise();
+      const history = await firstValueFrom(this.auditService.getAllAuditHistory());
       this.allAuditHistory.set(history || []);
     } catch (error) {
       console.error('Error cargando historial de auditoría:', error);
@@ -1573,9 +1579,9 @@ export class EmployeesTimetableComponent implements OnInit {
   private async loadSpecificAuditHistory(employeeId: string, date: Date) {
     this.isLoadingSpecificAudit.set(true);
     try {
-      const history = await this.auditService
-        .getAuditHistoryByEmployeeAndDate(employeeId, date)
-        .toPromise();
+      const history = await firstValueFrom(
+        this.auditService.getAuditHistoryByEmployeeAndDate(employeeId, date)
+      );
       this.specificAuditHistory.set(history || []);
     } catch (error) {
       console.error('Error cargando auditoría específica:', error);
