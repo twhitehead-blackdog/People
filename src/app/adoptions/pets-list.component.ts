@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { , ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -1285,7 +1285,7 @@ export class PetsListComponent {
         next: () => {
           // El store se actualizarÃ¡ automÃ¡ticamente
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error al actualizar favorito:', error);
         },
       });
@@ -1307,5 +1307,6 @@ export class PetsListComponent {
     });
   }
 }
+
 
 

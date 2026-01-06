@@ -33,7 +33,7 @@ export class ImageUploadService {
    */
   uploadImage(
     file: File,
-    folder: string = 'pets',
+    folder = 'pets',
     fileName?: string
   ): Observable<UploadResult> {
     // Validar que sea una imagen
@@ -126,7 +126,7 @@ export class ImageUploadService {
           )
           .subscribe({
             next: (result) => observer.next(result),
-            error: (error) => observer.error(error),
+            error: (error: any) => observer.error(error),
             complete: () => observer.complete(),
           });
       };
@@ -147,7 +147,7 @@ export class ImageUploadService {
    */
   uploadMultipleImages(
     files: File[],
-    folder: string = 'pets'
+    folder = 'pets'
   ): Observable<UploadResult[]> {
     const uploadObservables = files.map((file) => this.uploadImage(file, folder));
     
@@ -167,7 +167,7 @@ export class ImageUploadService {
               observer.complete();
             }
           },
-          error: (error) => {
+          error: (error: any) => {
             if (!hasError) {
               hasError = true;
               observer.error(error);

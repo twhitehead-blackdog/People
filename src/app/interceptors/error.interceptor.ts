@@ -91,7 +91,7 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
       let errorMessage = 'Ocurrió un error inesperado';
       let errorSummary = 'Error';
-      let errorDetails: string[] = [];
+      const errorDetails: string[] = [];
 
       // Agregar información del contexto
       errorDetails.push(`Método: ${method}`);

@@ -1,4 +1,4 @@
-﻿import { , ChangeDetectionStrategy } from '@angular/core';
+﻿import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SelectModule } from 'primeng/select';
@@ -489,6 +489,7 @@ export class BreedSelectorComponent {
     this.breedChanged.emit(breedData);
   }
 }
+
 
 
 

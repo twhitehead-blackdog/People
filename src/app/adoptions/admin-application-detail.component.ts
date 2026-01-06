@@ -1,13 +1,20 @@
 ﻿import { CommonModule } from '@angular/common';
-import { , ChangeDetectionStrategy } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  effect,
+  inject,
+  OnInit,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { InputText } from 'primeng/inputtext';
-import { TextareaModule } from 'primeng/textarea';
 import { TagModule } from 'primeng/tag';
+import { TextareaModule } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { AdoptionApplication } from '../models';
 import { AdoptionApplicationsStore } from '../stores/adoption-applications.store';
@@ -113,18 +120,20 @@ import { AdoptionApplicationsStore } from '../stores/adoption-applications.store
               <label>Motivo de AdopciÃ³n:</label>
               <span>{{ application()!.reason_for_adoption }}</span>
             </div>
-            }
-            @if (application()!.living_situation) {
+            } @if (application()!.living_situation) {
             <div class="info-item">
               <label>SituaciÃ³n de Vivienda:</label>
-              <span>{{ getLivingSituationLabel(application()!.living_situation) }}</span>
+              <span>{{
+                getLivingSituationLabel(application()!.living_situation)
+              }}</span>
             </div>
             }
             <div class="info-item">
               <label>Tiene otras mascotas:</label>
               <span>{{ application()!.has_other_pets ? 'SÃ­' : 'No' }}</span>
             </div>
-            @if (application()!.has_other_pets && application()!.other_pets_info) {
+            @if (application()!.has_other_pets &&
+            application()!.other_pets_info) {
             <div class="info-item full-width">
               <label>InformaciÃ³n sobre otras mascotas:</label>
               <span>{{ application()!.other_pets_info }}</span>
@@ -139,12 +148,13 @@ import { AdoptionApplicationsStore } from '../stores/adoption-applications.store
               <label>InformaciÃ³n sobre los niÃ±os:</label>
               <span>{{ application()!.children_info }}</span>
             </div>
-            }
-            @if (application()!.personality && application()!.personality.length > 0) {
+            } @if (application()!.personality &&
+            application()!.personality.length > 0) {
             <div class="info-item full-width">
               <label>Personalidad preferida:</label>
               <div class="personality-tags">
-                @for (personality of application()!.personality; track personality) {
+                @for (personality of application()!.personality; track
+                personality) {
                 <p-tag [value]="personality" />
                 }
               </div>
@@ -182,11 +192,16 @@ import { AdoptionApplicationsStore } from '../stores/adoption-applications.store
           </ng-template>
           <div class="history-section">
             <div class="history-item">
-              <span class="history-date">Creada: {{ formatDate(application()!.created_at) }}</span>
+              <span class="history-date"
+                >Creada: {{ formatDate(application()!.created_at) }}</span
+              >
             </div>
-            @if (application()!.updated_at && application()!.updated_at !== application()!.created_at) {
+            @if (application()!.updated_at && application()!.updated_at !==
+            application()!.created_at) {
             <div class="history-item">
-              <span class="history-date">Actualizada: {{ formatDate(application()!.updated_at) }}</span>
+              <span class="history-date"
+                >Actualizada: {{ formatDate(application()!.updated_at) }}</span
+              >
             </div>
             }
           </div>
@@ -209,8 +224,7 @@ import { AdoptionApplicationsStore } from '../stores/adoption-applications.store
             (onClick)="rejectApplication()"
             [loading]="isLoading()"
           />
-          }
-          @if (application()!.status === 'approved') {
+          } @if (application()!.status === 'approved') {
           <p-button
             label="Marcar como Completada"
             icon="pi pi-check-circle"
@@ -414,7 +428,9 @@ export class AdminApplicationDetailComponent implements OnInit {
         this.notes.set(selected.notes || '');
       } else {
         // Si no estÃ¡ en el store, buscar en las entidades
-        const app = this.applicationsStore.entities().find((a) => a.id === applicationId);
+        const app = this.applicationsStore
+          .entities()
+          .find((a) => a.id === applicationId);
         if (app) {
           this.application.set(app);
           this.notes.set(app.notes || '');
@@ -525,7 +541,9 @@ export class AdminApplicationDetailComponent implements OnInit {
     this.applicationsStore.editItem(updated).subscribe({
       next: () => {
         // Actualizar desde el store para obtener los datos mÃ¡s recientes
-        const updatedApp = this.applicationsStore.entities().find((a) => a.id === app.id);
+        const updatedApp = this.applicationsStore
+          .entities()
+          .find((a) => a.id === app.id);
         if (updatedApp) {
           this.application.set(updatedApp);
         } else {
@@ -538,7 +556,7 @@ export class AdminApplicationDetailComponent implements OnInit {
         });
         this.isLoading.set(false);
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error al aprobar solicitud:', error);
         this.messageService.add({
           severity: 'error',
@@ -562,7 +580,9 @@ export class AdminApplicationDetailComponent implements OnInit {
     this.applicationsStore.editItem(updated).subscribe({
       next: () => {
         // Actualizar desde el store para obtener los datos mÃ¡s recientes
-        const updatedApp = this.applicationsStore.entities().find((a) => a.id === app.id);
+        const updatedApp = this.applicationsStore
+          .entities()
+          .find((a) => a.id === app.id);
         if (updatedApp) {
           this.application.set(updatedApp);
         } else {
@@ -575,7 +595,7 @@ export class AdminApplicationDetailComponent implements OnInit {
         });
         this.isLoading.set(false);
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error al rechazar solicitud:', error);
         this.messageService.add({
           severity: 'error',
@@ -604,7 +624,8 @@ export class AdminApplicationDetailComponent implements OnInit {
           this.messageService.add({
             severity: 'success',
             summary: 'AdopciÃ³n completada',
-            detail: 'La adopciÃ³n ha sido marcada como completada y la mascota ya no estÃ¡ disponible',
+            detail:
+              'La adopciÃ³n ha sido marcada como completada y la mascota ya no estÃ¡ disponible',
           });
           this.application.set(updated);
           this.isLoading.set(false);
@@ -643,10 +664,8 @@ export class AdminApplicationDetailComponent implements OnInit {
   }
 
   public goBack(): void {
-    this.router.navigate(['/adoptions/admin'], { queryParams: { tab: 'applications' } });
+    this.router.navigate(['/adoptions/admin'], {
+      queryParams: { tab: 'applications' },
+    });
   }
 }
-
-
-
-

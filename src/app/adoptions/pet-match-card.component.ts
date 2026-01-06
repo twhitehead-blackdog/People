@@ -1,4 +1,4 @@
-﻿import { , ChangeDetectionStrategy } from '@angular/core';
+﻿import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Router } from '@angular/router';
@@ -1825,6 +1825,7 @@ export class PetMatchCardComponent {
     this.showFullscreenImage.set(false);
   }
 }
+
 
 
 

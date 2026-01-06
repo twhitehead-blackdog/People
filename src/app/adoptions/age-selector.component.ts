@@ -1,4 +1,4 @@
-﻿import { , ChangeDetectionStrategy } from '@angular/core';
+﻿import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { InputNumber } from 'primeng/inputnumber';
@@ -319,6 +319,7 @@ export class AgeSelectorComponent {
     this.ageChanged.emit(ageData);
   }
 }
+
 
 
 

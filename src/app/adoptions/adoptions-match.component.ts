@@ -1,4 +1,4 @@
-﻿import { , ChangeDetectionStrategy } from '@angular/core';
+﻿import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { InputTextModule } from 'primeng/inputtext';
@@ -573,6 +573,7 @@ export class AdoptionsMatchComponent {
     this.findMatch();
   }
 }
+
 
 
 

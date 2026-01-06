@@ -1,4 +1,4 @@
-﻿import { , ChangeDetectionStrategy } from '@angular/core';
+﻿import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule, ViewportScroller } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Button } from 'primeng/button';
@@ -799,6 +799,7 @@ export class PetDetailComponent implements OnInit, AfterViewInit {
     return labels[size] || size;
   }
 }
+
 
 
 

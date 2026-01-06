@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { , ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 
 @Component({
   selector: 'pt-adoptions-hero',
@@ -209,6 +209,7 @@ import { , ChangeDetectionStrategy } from '@angular/core';
   ],
 })
 export class AdoptionsHeroComponent {}
+
 
 
 

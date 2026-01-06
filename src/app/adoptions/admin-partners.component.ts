@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { , ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
@@ -717,6 +717,7 @@ export class AdminPartnersComponent {
     return option ? option.label : type;
   }
 }
+
 
 
 

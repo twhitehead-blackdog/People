@@ -204,7 +204,7 @@ export function withCustomEntities<T extends { id: EntityId }>({
                   }
                 });
               },
-              error: (error) => {
+              error: (error: any) => {
                 patchState(state, { error });
                 state._message.add({
                   severity: 'error',
@@ -285,7 +285,7 @@ export function withCustomEntities<T extends { id: EntityId }>({
                   }
                 ).subscribe();
               },
-              error: (error) => {
+              error: (error: any) => {
                 patchState(state, { error });
                 state._message.add({
                   severity: 'error',
@@ -346,7 +346,7 @@ export function withCustomEntities<T extends { id: EntityId }>({
                       }
                     ).subscribe();
                   },
-                  error: (error) => {
+                  error: (error: any) => {
                     state._message.add({
                       severity: 'error',
                       detail: 'Algo salio mal, intente de nuevo',

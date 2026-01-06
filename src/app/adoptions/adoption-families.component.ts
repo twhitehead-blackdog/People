@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { , ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { Button } from 'primeng/button';
 import { AdoptiveFamiliesStore } from '../stores/adoptive-families.store';
 
@@ -668,6 +668,7 @@ export class AdoptionFamiliesComponent {
     // AquÃ­ se podrÃ­a abrir un formulario o redirigir a una pÃ¡gina de contacto
   }
 }
+
 
 
 

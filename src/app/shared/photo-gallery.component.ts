@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { , ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { ImageUploadService, UploadResult } from '../services/image-upload.service';
 import { Button } from 'primeng/button';
 import { ProgressBarModule } from 'primeng/progressbar';
@@ -950,7 +950,7 @@ export class PhotoGalleryComponent implements OnInit {
           detail: 'La foto se ha subido correctamente',
         });
       },
-      error: (error) => {
+      error: (error: any) => {
         this.photos.update((current) => {
           const updated = [...current];
           updated[index] = {
@@ -1050,6 +1050,7 @@ export class PhotoGalleryComponent implements OnInit {
     this.currentCarouselIndex.set(index);
   }
 }
+
 
 
 

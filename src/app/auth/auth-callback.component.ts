@@ -1,4 +1,4 @@
-﻿import { , ChangeDetectionStrategy } from '@angular/core';
+﻿import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from './auth.service';
@@ -120,6 +120,7 @@ export class AuthCallbackComponent implements OnInit {
     }
   }
 }
+
 
 
 

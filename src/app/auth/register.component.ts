@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { , ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
 import { MessageService } from 'primeng/api';
@@ -425,6 +425,7 @@ export class RegisterComponent implements OnInit {
     this.router.navigate(['/adoptions']);
   }
 }
+
 
 
 

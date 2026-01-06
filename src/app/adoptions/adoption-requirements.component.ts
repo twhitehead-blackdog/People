@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { , ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { AdoptionRequirementsStore } from '../stores/adoption-requirements.store';
 
 @Component({
@@ -393,6 +393,7 @@ export class AdoptionRequirementsComponent {
       .sort((a, b) => (a.order || 0) - (b.order || 0));
   });
 }
+
 
 
 

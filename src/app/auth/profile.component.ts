@@ -1,4 +1,4 @@
-﻿import { , ChangeDetectionStrategy } from '@angular/core';
+﻿import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule, AsyncPipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -1760,7 +1760,7 @@ export class ProfileComponent implements OnInit {
           detail: 'La mascota se ha eliminado de tus favoritos',
         });
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error al eliminar favorito:', error);
         this.messageService.add({
           severity: 'error',
@@ -1777,6 +1777,7 @@ export class ProfileComponent implements OnInit {
     this.dateTo.set(null);
   }
 }
+
 
 
 

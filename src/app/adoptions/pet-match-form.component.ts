@@ -1,4 +1,4 @@
-﻿import { , ChangeDetectionStrategy } from '@angular/core';
+﻿import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -1246,7 +1246,7 @@ export class PetMatchFormComponent implements OnInit {
           }
           this.createPetMatch(petMatch);
         },
-        error: (error) => {
+        error: (error: any) => {
           this.messageService.add({
             severity: 'error',
             summary: 'Error',
@@ -1287,6 +1287,7 @@ export class PetMatchFormComponent implements OnInit {
     this.router.navigate(['/adoptions/busco-pareja']);
   }
 }
+
 
 
 

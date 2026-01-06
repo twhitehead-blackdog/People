@@ -1,4 +1,4 @@
-﻿import { , ChangeDetectionStrategy } from '@angular/core';
+﻿import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AdoptionsHeroComponent } from './adoptions-hero.component';
@@ -779,6 +779,7 @@ export class AdoptionsHomeComponent implements OnInit {
     console.log('Navegar a ayuda');
   }
 }
+
 
 
 

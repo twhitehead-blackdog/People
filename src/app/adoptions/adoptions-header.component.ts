@@ -1,5 +1,5 @@
 ﻿import { AsyncPipe, CommonModule } from '@angular/common';
-import { , ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { AuthWrapperService } from '../auth/auth-wrapper.service';
@@ -658,6 +658,7 @@ export class AdoptionsHeaderComponent {
     this.router.navigate(['/adoptions/busco-pareja']);
   }
 }
+
 
 
 

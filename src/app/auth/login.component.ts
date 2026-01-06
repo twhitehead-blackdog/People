@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { , ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
 import { AuthWrapperService } from './auth-wrapper.service';
@@ -437,6 +437,7 @@ export class LoginComponent implements OnInit {
     this.router.navigate(['/adoptions']);
   }
 }
+
 
 
 

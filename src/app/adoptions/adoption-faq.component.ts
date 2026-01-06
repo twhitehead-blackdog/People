@@ -1,4 +1,4 @@
-﻿import { , ChangeDetectionStrategy } from '@angular/core';
+﻿import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FAQStore } from '../stores/faq.store';
 import { FAQItem as FAQItemModel } from '../models';
@@ -602,6 +602,7 @@ export class AdoptionFAQComponent {
     }
   }
 }
+
 
 
 

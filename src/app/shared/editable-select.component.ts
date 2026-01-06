@@ -245,12 +245,12 @@ export interface EditableOption {
 export class EditableSelectComponent implements OnInit, OnChanges {
   @Input() options: EditableOption[] = [];
   @Input() selectedValue: string | null = null;
-  @Input() placeholder: string = 'Seleccionar...';
-  @Input() disabled: boolean = false;
-  @Input() styleClass: string = 'w-full';
-  @Input() name: string = '';
-  @Input() optionLabel: string = 'label';
-  @Input() optionValue: string = 'value';
+  @Input() placeholder = 'Seleccionar...';
+  @Input() disabled = false;
+  @Input() styleClass = 'w-full';
+  @Input() name = '';
+  @Input() optionLabel = 'label';
+  @Input() optionValue = 'value';
 
   @Output() valueChange = new EventEmitter<string | null>();
   @Output() optionsChange = new EventEmitter<EditableOption[]>();

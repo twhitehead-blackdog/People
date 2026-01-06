@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { , ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { BadgeModule } from 'primeng/badge';
@@ -781,6 +781,7 @@ export class AdminPanelComponent implements OnInit {
     this.selectTab(event.index);
   }
 }
+
 
 
 

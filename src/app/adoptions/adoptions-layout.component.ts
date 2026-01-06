@@ -1,4 +1,4 @@
-﻿import { , ChangeDetectionStrategy } from '@angular/core';
+﻿import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
@@ -68,6 +68,7 @@ export class AdoptionsLayoutComponent {
   private darkModeService = inject(DarkModeService);
   public isDarkMode = this.darkModeService.isDarkMode;
 }
+
 
 
 

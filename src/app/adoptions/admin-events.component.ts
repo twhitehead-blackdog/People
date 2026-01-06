@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { , ChangeDetectionStrategy } from '@angular/core';
+import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
@@ -511,8 +511,8 @@ export class AdminEventsComponent {
     { label: 'Otro', value: 'other' },
   ];
 
-  public foundationOptions = computed(() => 
-    this.foundationsStore.entities().filter(f => f.is_active)
+  public foundationOptions = computed(() =>
+    this.foundationsStore.entities().filter((f: any) => f.is_active)
   );
 
   public onGlobalFilter(event: any): void {
@@ -705,6 +705,7 @@ export class AdminEventsComponent {
     });
   }
 }
+
 
 
 

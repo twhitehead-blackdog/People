@@ -1,4 +1,4 @@
-﻿import { , ChangeDetectionStrategy } from '@angular/core';
+﻿import { Component, computed, inject, signal, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -880,6 +880,7 @@ export class UserPetFormComponent implements OnInit {
     this.router.navigate(['/adoptions/profile']);
   }
 }
+
 
 
 

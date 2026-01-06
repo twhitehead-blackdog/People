@@ -385,7 +385,7 @@ export class AdminApplicationsComponent {
           detail: 'La solicitud ha sido aprobada correctamente',
         });
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error al aprobar solicitud:', error);
         this.messageService.add({
           severity: 'error',
@@ -411,7 +411,7 @@ export class AdminApplicationsComponent {
           detail: 'La solicitud ha sido rechazada',
         });
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error al rechazar solicitud:', error);
         this.messageService.add({
           severity: 'error',
