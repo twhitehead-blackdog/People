@@ -104,3 +104,31 @@ Objetivo final:
 ✔ Código legible
 ✔ Bajo riesgo
 ✔ Fácil de mantener
+
+────────────────────────────────────────
+🚫 PROHIBICIONES ADICIONALES (FASE 1)
+────────────────────────────────────────
+❌ No usar `.toPromise()` (usar firstValueFrom/lastValueFrom)
+❌ No acceder a `process.env` fuera de `ApiUrlService`
+
+────────────────────────────────────────
+🌐 SUPABASE Y HTTP
+────────────────────────────────────────
+- Usar `ApiUrlService` para baseURL y params
+- `httpResource`: defaultValue y manejo de error
+- Filtrar/paginar en server-side
+- Incluir `company_id` donde aplique
+- Evitar selects con múltiples relaciones innecesarias
+
+────────────────────────────────────────
+⏱️ FECHAS Y TIMEZONE
+────────────────────────────────────────
+- TZ America/Panama
+- Normalizar rangos y cachear
+
+────────────────────────────────────────
+🧪 LOGGING Y ERRORES
+────────────────────────────────────────
+- Usar `LoggerService` cuando esté disponible
+- Mensajes de error específicos
+- No lanzar errores desde `computed`
