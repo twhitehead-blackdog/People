@@ -1,5 +1,5 @@
 import { Component, input, output } from '@angular/core';
-import { NgClass } from '@angular/common';
+import { DatePipe, NgClass } from '@angular/common';
 import { VetBranchAssignment } from '../models';
 import { Button } from 'primeng/button';
 import { Popover } from 'primeng/popover';
@@ -8,7 +8,7 @@ import { Tooltip } from 'primeng/tooltip';
 @Component({
   selector: 'pt-vet-branch-cell',
   standalone: true,
-  imports: [NgClass, Button, Popover, Tooltip],
+  imports: [NgClass, DatePipe, Button, Popover, Tooltip],
   template: `
     @if (assignment(); as assignmentValue) {
       <div
