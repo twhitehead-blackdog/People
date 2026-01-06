@@ -1,5 +1,5 @@
 ﻿import { AsyncPipe, CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { , ChangeDetectionStrategy } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs/operators';
 import { AuthWrapperService } from '../auth/auth-wrapper.service';
@@ -8,7 +8,7 @@ import { DemoModeService } from './demo-mode.service';
 @Component({
   selector: 'pt-adoptions-header',
   standalone: true,
-  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, AsyncPipe],
   template: `
     <header class="adoptions-header">
@@ -658,4 +658,6 @@ export class AdoptionsHeaderComponent {
     this.router.navigate(['/adoptions/busco-pareja']);
   }
 }
+
+
 

@@ -1,4 +1,4 @@
-import { Component, signal, inject, OnInit } from '@angular/core';
+﻿import { , ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AdoptionsHeroComponent } from './adoptions-hero.component';
@@ -17,7 +17,7 @@ import { filter, take } from 'rxjs/operators';
 @Component({
   selector: 'pt-adoptions-home',
   standalone: true,
-  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     AdoptionsHeroComponent,
@@ -42,7 +42,7 @@ import { filter, take } from 'rxjs/operators';
         <div class="adoption-plan-section-inner">
           <h2 class="plan-title">Descubre nuestro plan de adopciones responsables</h2>
           <p class="plan-description">
-            ¡Te acompañamos en esta nueva etapa! Conoce un poco más sobre la adopción de perros y la adopción de gatos.
+            Â¡Te acompaÃ±amos en esta nueva etapa! Conoce un poco mÃ¡s sobre la adopciÃ³n de perros y la adopciÃ³n de gatos.
           </p>
           <div class="animate-banner">
             <div class="banner-content">
@@ -51,18 +51,18 @@ import { filter, take } from 'rxjs/operators';
                 <div class="text-underline"></div>
               </div>
               <div class="pet-silhouettes">
-                <span class="pet-emoji pet-1">🐕</span>
-                <span class="pet-emoji pet-2">🐈</span>
-                <span class="pet-emoji pet-3">🐶</span>
-                <span class="pet-emoji pet-4">🐱</span>
-                <span class="pet-emoji pet-5">🐈</span>
+                <span class="pet-emoji pet-1">ðŸ•</span>
+                <span class="pet-emoji pet-2">ðŸˆ</span>
+                <span class="pet-emoji pet-3">ðŸ¶</span>
+                <span class="pet-emoji pet-4">ðŸ±</span>
+                <span class="pet-emoji pet-5">ðŸˆ</span>
               </div>
             </div>
             <div class="banner-shine"></div>
           </div>
           <div class="adoption-buttons-row">
             <p-button
-              label="🤝 FUNDACIONES"
+              label="ðŸ¤ FUNDACIONES"
               [style]="{
                 background: '#ffffff',
                 border: '2px solid #fbbf24',
@@ -74,7 +74,7 @@ import { filter, take } from 'rxjs/operators';
               (onClick)="navigateToFoundations()"
             />
             <p-button
-              label="FORMULARIO DE ADOPCIÓN"
+              label="FORMULARIO DE ADOPCIÃ“N"
               [style]="{
                 background: '#fbbf24',
                 border: 'none',
@@ -85,7 +85,7 @@ import { filter, take } from 'rxjs/operators';
               }"
             />
             <p-button
-              label="❤️ QUIERO AYUDAR"
+              label="â¤ï¸ QUIERO AYUDAR"
               [style]="{
                 background: '#ffffff',
                 border: '2px solid #fbbf24',
@@ -102,27 +102,27 @@ import { filter, take } from 'rxjs/operators';
 
       <div class="navigation-tabs">
         <a href="/adoptions/busco-pareja" class="nav-tab">
-          <span class="tab-icon">💕</span>
+          <span class="tab-icon">ðŸ’•</span>
           <span>BUSCO PAREJA</span>
         </a>
         <a href="#requisitos" class="nav-tab" (click)="scrollToSection('requisitos', $event)">
-          <span class="tab-icon">📄</span>
-          <span>REQUISITOS DE ADOPCIÓN</span>
+          <span class="tab-icon">ðŸ“„</span>
+          <span>REQUISITOS DE ADOPCIÃ“N</span>
         </a>
         <a href="#faq" class="nav-tab" (click)="scrollToSection('faq', $event)">
-          <span class="tab-icon">❓</span>
+          <span class="tab-icon">â“</span>
           <span>PREGUNTAS FRECUENTES</span>
         </a>
         <a href="#eventos" class="nav-tab" (click)="scrollToSection('eventos', $event)">
-          <span class="tab-icon">📅</span>
+          <span class="tab-icon">ðŸ“…</span>
           <span>CALENDARIO</span>
         </a>
         <a href="#familias" class="nav-tab" (click)="scrollToSection('familias', $event)">
-          <span class="tab-icon">🏠</span>
+          <span class="tab-icon">ðŸ </span>
           <span>FAMILIAS</span>
         </a>
         <a href="#aliados" class="nav-tab" (click)="scrollToSection('aliados', $event)">
-          <span class="tab-icon">🐾</span>
+          <span class="tab-icon">ðŸ¾</span>
           <span>ALIADOS BLACK DOG</span>
         </a>
       </div>
@@ -513,7 +513,7 @@ import { filter, take } from 'rxjs/operators';
         z-index: 0;
       }
 
-      /* Asegurar que no haya bordes o líneas decorativas al final de las secciones */
+      /* Asegurar que no haya bordes o lÃ­neas decorativas al final de las secciones */
       ::ng-deep .section-anchor > * {
         border-bottom: 1px solid #374151 !important;
       }
@@ -626,15 +626,15 @@ export class AdoptionsHomeComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // No redirigir automáticamente desde la página principal
-    // La redirección a admin solo ocurre después del login
+    // No redirigir automÃ¡ticamente desde la pÃ¡gina principal
+    // La redirecciÃ³n a admin solo ocurre despuÃ©s del login
   }
 
   private initializeDemoData(): void {
     const demoFoundation: Foundation = {
       id: 'demo-foundation-1',
-      name: 'Fundación Black Dog',
-      address: 'Calle 50, San Francisco, Ciudad de Panamá',
+      name: 'FundaciÃ³n Black Dog',
+      address: 'Calle 50, San Francisco, Ciudad de PanamÃ¡',
       phone_number: '+507 6474-5436',
       email: 'info@blackdog.pa',
       is_active: true,
@@ -642,8 +642,8 @@ export class AdoptionsHomeComponent implements OnInit {
 
     const demoFoundation2: Foundation = {
       id: 'demo-foundation-2',
-      name: 'Refugio de Mascotas Panamá',
-      address: 'Vía España, Panamá',
+      name: 'Refugio de Mascotas PanamÃ¡',
+      address: 'VÃ­a EspaÃ±a, PanamÃ¡',
       phone_number: '+507 2234-5678',
       email: 'info@refugio.pa',
       is_active: true,
@@ -658,7 +658,7 @@ export class AdoptionsHomeComponent implements OnInit {
         age: 2,
         gender: 'M',
         size: 'large',
-        description: 'Firulais es un perro muy amigable y juguetón. Le encanta jugar con niños y otros perros. Está buscando un hogar lleno de amor y espacio para correr.',
+        description: 'Firulais es un perro muy amigable y juguetÃ³n. Le encanta jugar con niÃ±os y otros perros. EstÃ¡ buscando un hogar lleno de amor y espacio para correr.',
         health_status: 'Saludable',
         is_vaccinated: true,
         is_sterilized: true,
@@ -675,7 +675,7 @@ export class AdoptionsHomeComponent implements OnInit {
         age: 3,
         gender: 'F',
         size: 'small',
-        description: 'Luna es una gata tranquila y cariñosa. Le gusta descansar en lugares cómodos y recibir mimos. Perfecta para un hogar tranquilo.',
+        description: 'Luna es una gata tranquila y cariÃ±osa. Le gusta descansar en lugares cÃ³modos y recibir mimos. Perfecta para un hogar tranquilo.',
         health_status: 'Saludable',
         is_vaccinated: true,
         is_sterilized: true,
@@ -692,7 +692,7 @@ export class AdoptionsHomeComponent implements OnInit {
         age: 1,
         gender: 'M',
         size: 'medium',
-        description: 'Max es un cachorro muy activo y juguetón. Necesita una familia que le dedique tiempo para jugar y hacer ejercicio.',
+        description: 'Max es un cachorro muy activo y juguetÃ³n. Necesita una familia que le dedique tiempo para jugar y hacer ejercicio.',
         health_status: 'Saludable',
         is_vaccinated: true,
         is_sterilized: false,
@@ -705,11 +705,11 @@ export class AdoptionsHomeComponent implements OnInit {
         id: 'demo-pet-4',
         name: 'Misu',
         species: 'cat',
-        breed: 'Siamés',
+        breed: 'SiamÃ©s',
         age: 2,
         gender: 'F',
         size: 'small',
-        description: 'Misu es una gata muy sociable y curiosa. Le encanta explorar y jugar. Ideal para familias con niños mayores.',
+        description: 'Misu es una gata muy sociable y curiosa. Le encanta explorar y jugar. Ideal para familias con niÃ±os mayores.',
         health_status: 'Saludable',
         is_vaccinated: true,
         is_sterilized: true,
@@ -726,7 +726,7 @@ export class AdoptionsHomeComponent implements OnInit {
         age: 4,
         gender: 'M',
         size: 'large',
-        description: 'Toby es un perro muy leal y protector. Perfecto para una familia que busca un compañero fiel y cariñoso.',
+        description: 'Toby es un perro muy leal y protector. Perfecto para una familia que busca un compaÃ±ero fiel y cariÃ±oso.',
         health_status: 'Saludable',
         is_vaccinated: true,
         is_sterilized: true,
@@ -743,7 +743,7 @@ export class AdoptionsHomeComponent implements OnInit {
         age: 1,
         gender: 'F',
         size: 'small',
-        description: 'Nina es una gatita joven y enérgica. Le encanta jugar y explorar. Necesita un hogar con espacio para correr y jugar.',
+        description: 'Nina es una gatita joven y enÃ©rgica. Le encanta jugar y explorar. Necesita un hogar con espacio para correr y jugar.',
         health_status: 'Saludable',
         is_vaccinated: true,
         is_sterilized: true,
@@ -770,13 +770,15 @@ export class AdoptionsHomeComponent implements OnInit {
   }
 
   public navigateToFoundations(): void {
-    // Implementar navegación a fundaciones
+    // Implementar navegaciÃ³n a fundaciones
     console.log('Navegar a fundaciones');
   }
 
   public navigateToHelp(): void {
-    // Implementar navegación a ayuda
+    // Implementar navegaciÃ³n a ayuda
     console.log('Navegar a ayuda');
   }
 }
+
+
 

@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { , ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
@@ -18,7 +18,7 @@ import { FAQStore } from '../stores/faq.store';
 @Component({
   selector: 'pt-admin-faq',
   standalone: true,
-  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -596,5 +596,7 @@ export class AdminFAQComponent {
     this.faqStore.deleteItem(faq.id);
   }
 }
+
+
 
 

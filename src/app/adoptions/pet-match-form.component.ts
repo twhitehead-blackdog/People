@@ -1,4 +1,4 @@
-﻿import { Component, signal, inject, computed, OnInit } from '@angular/core';
+﻿import { , ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -23,7 +23,7 @@ import { AgeSelectorComponent, AgeData } from './age-selector.component';
 @Component({
   selector: 'pt-pet-match-form',
   standalone: true,
-  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -1287,5 +1287,7 @@ export class PetMatchFormComponent implements OnInit {
     this.router.navigate(['/adoptions/busco-pareja']);
   }
 }
+
+
 
 

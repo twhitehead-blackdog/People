@@ -1,5 +1,6 @@
 ﻿import { CommonModule } from '@angular/common';
 import {
+  ChangeDetectionStrategy,
   Component,
   EventEmitter,
   Input,
@@ -23,7 +24,7 @@ export interface EditableOption {
 @Component({
   selector: 'pt-editable-select',
   standalone: true,
-  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -376,4 +377,6 @@ export class EditableSelectComponent implements OnInit, OnChanges {
     return option[this.optionValue] || option.value || '';
   }
 }
+
+
 

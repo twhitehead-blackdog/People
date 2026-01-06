@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { , ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
@@ -15,7 +15,7 @@ import { AuditLogsStore } from '../stores/audit-logs.store';
 @Component({
   selector: 'pt-admin-audit-logs',
   standalone: true,
-  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -588,5 +588,7 @@ export class AdminAuditLogsComponent {
     return JSON.stringify(obj, null, 2);
   }
 }
+
+
 
 

@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { Component, signal } from '@angular/core';
+import { , ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
@@ -7,7 +7,7 @@ import { InputTextModule } from 'primeng/inputtext';
 @Component({
   selector: 'pt-adoptions-footer',
   standalone: true,
-  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, InputTextModule, Button],
   template: `
     <footer class="adoptions-footer">
@@ -782,4 +782,6 @@ export class AdoptionsFooterComponent {
     }
   }
 }
+
+
 

@@ -1,4 +1,4 @@
-﻿import { Component, signal, output, computed } from '@angular/core';
+﻿import { , ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { InputTextModule } from 'primeng/inputtext';
@@ -22,7 +22,7 @@ export interface PetMatchFilters {
 @Component({
   selector: 'pt-pet-match-filters',
   standalone: true,
-  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -363,5 +363,7 @@ export class PetMatchFiltersComponent {
     this.onFilterChange();
   }
 }
+
+
 
 

@@ -1,4 +1,4 @@
-﻿import { Component, computed, inject, signal } from '@angular/core';
+﻿import { , ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FAQStore } from '../stores/faq.store';
 import { FAQItem as FAQItemModel } from '../models';
@@ -6,7 +6,7 @@ import { FAQItem as FAQItemModel } from '../models';
 @Component({
   selector: 'pt-adoption-faq',
   standalone: true,
-  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
     <div class="faq-section">
@@ -602,5 +602,7 @@ export class AdoptionFAQComponent {
     }
   }
 }
+
+
 
 

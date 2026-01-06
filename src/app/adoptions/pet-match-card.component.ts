@@ -1,4 +1,4 @@
-﻿import { Component, input, inject, signal } from '@angular/core';
+﻿import { , ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Router } from '@angular/router';
@@ -11,7 +11,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
 @Component({
   selector: 'pt-pet-match-card',
   standalone: true,
-  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, TagModule, DialogModule, Button],
   template: `
     <div class="pet-match-card" (mouseenter)="isHovered.set(true)" (mouseleave)="isHovered.set(false)">
@@ -1825,5 +1825,7 @@ export class PetMatchCardComponent {
     this.showFullscreenImage.set(false);
   }
 }
+
+
 
 

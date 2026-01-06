@@ -1,4 +1,4 @@
-﻿import { Component, input, output, signal, computed, effect } from '@angular/core';
+﻿import { , ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { InputNumber } from 'primeng/inputnumber';
@@ -16,7 +16,7 @@ export interface AgeData {
 @Component({
   selector: 'pt-age-selector',
   standalone: true,
-  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, InputNumber, CalendarModule, Button],
   template: `
     <div class="age-selector">
@@ -319,5 +319,7 @@ export class AgeSelectorComponent {
     this.ageChanged.emit(ageData);
   }
 }
+
+
 
 

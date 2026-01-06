@@ -1,4 +1,4 @@
-﻿import { Component, computed, inject, signal } from '@angular/core';
+﻿import { , ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Button } from 'primeng/button';
@@ -14,7 +14,7 @@ import { PetMatchFiltersComponent, PetMatchFilters } from './pet-match-filters.c
 @Component({
   selector: 'pt-pet-matches-section',
   standalone: true,
-  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, Button, ToastModule, PetMatchCardComponent, PetMatchFiltersComponent],
   providers: [MessageService],
   template: `
@@ -1062,5 +1062,7 @@ export class PetMatchesSectionComponent {
     this.demoMatches.set(demoMatches);
   }
 }
+
+
 
 

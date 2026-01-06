@@ -1,12 +1,12 @@
 ﻿import { CommonModule } from '@angular/common';
-import { Component, computed, inject } from '@angular/core';
+import { , ChangeDetectionStrategy } from '@angular/core';
 import { Button } from 'primeng/button';
 import { AdoptiveFamiliesStore } from '../stores/adoptive-families.store';
 
 @Component({
   selector: 'pt-adoption-families',
   standalone: true,
-  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, Button],
   template: `
     <div class="families-section">
@@ -668,4 +668,6 @@ export class AdoptionFamiliesComponent {
     // AquÃ­ se podrÃ­a abrir un formulario o redirigir a una pÃ¡gina de contacto
   }
 }
+
+
 

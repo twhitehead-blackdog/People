@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
+import { , ChangeDetectionStrategy } from '@angular/core';
 import { Card } from 'primeng/card';
 import { Button } from 'primeng/button';
 import { SplitButtonModule } from 'primeng/splitbutton';
@@ -13,7 +13,7 @@ import { FoundationsStore } from '../stores/foundations.store';
 @Component({
   selector: 'pt-admin-dashboard',
   standalone: true,
-  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, Card, Button, SplitButtonModule],
   template: `
     <div class="dashboard-container">
@@ -554,5 +554,7 @@ export class AdminDashboardComponent implements OnInit {
     this.exportService.exportStatistics(format);
   }
 }
+
+
 
 

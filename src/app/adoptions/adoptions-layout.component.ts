@@ -1,4 +1,4 @@
-﻿import { Component, inject } from '@angular/core';
+﻿import { , ChangeDetectionStrategy } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ToastModule } from 'primeng/toast';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
@@ -14,7 +14,7 @@ import { DarkModeService } from './dark-mode.service';
 @Component({
   selector: 'pt-adoptions-layout',
   standalone: true,
-  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [
     FoundationsStore,
     PetsStore,
@@ -68,4 +68,6 @@ export class AdoptionsLayoutComponent {
   private darkModeService = inject(DarkModeService);
   public isDarkMode = this.darkModeService.isDarkMode;
 }
+
+
 

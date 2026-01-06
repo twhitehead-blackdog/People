@@ -1,4 +1,4 @@
-﻿import { Component, input, output, signal, computed, inject, effect } from '@angular/core';
+﻿import { , ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { SelectModule } from 'primeng/select';
@@ -17,7 +17,7 @@ export interface BreedData {
 @Component({
   selector: 'pt-breed-selector',
   standalone: true,
-  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, SelectModule, InputNumber],
   template: `
     <div class="breed-selector">
@@ -489,5 +489,7 @@ export class BreedSelectorComponent {
     this.breedChanged.emit(breedData);
   }
 }
+
+
 
 

@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { , ChangeDetectionStrategy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { BadgeModule } from 'primeng/badge';
@@ -25,7 +25,7 @@ import { AdminPetMatchesComponent } from './admin-pet-matches.component';
 @Component({
   selector: 'pt-admin-panel',
   standalone: true,
-  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     ToastModule,
@@ -781,4 +781,6 @@ export class AdminPanelComponent implements OnInit {
     this.selectTab(event.index);
   }
 }
+
+
 

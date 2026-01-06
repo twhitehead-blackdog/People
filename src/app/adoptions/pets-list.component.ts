@@ -1,5 +1,5 @@
-import { CommonModule } from '@angular/common';
-import { Component, computed, inject, input, signal } from '@angular/core';
+﻿import { CommonModule } from '@angular/common';
+import { , ChangeDetectionStrategy } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -11,7 +11,6 @@ import { Button } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
-import { VirtualScrollerModule } from 'primeng/virtualscroller';
 import { Pet, AdoptionApplication } from '../models';
 import { FoundationsStore } from '../stores/foundations.store';
 import { PetsStore } from '../stores/pets.store';
@@ -22,13 +21,13 @@ import { MatchFilters } from './adoptions-match.component';
 @Component({
   selector: 'pt-pets-list',
   standalone: true,
-  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, Button, TagModule, DialogModule, TooltipModule, VirtualScrollerModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [CommonModule, FormsModule, Button, TagModule, DialogModule, TooltipModule],
   template: `
     <div class="pets-list-container">
       <div class="pets-list-inner">
         <div class="section-header">
-          <h1 class="section-title">LOS RECIÉN LLEGADOS</h1>
+          <h1 class="section-title">LOS RECIÃ‰N LLEGADOS</h1>
           <div class="view-toggle">
             <button
               type="button"
@@ -37,7 +36,7 @@ import { MatchFilters } from './adoptions-match.component';
               (click)="setViewMode('grid')"
               title="Vista de tarjetas"
             >
-              <span>⊞</span>
+              <span>âŠž</span>
             </button>
             <button
               type="button"
@@ -46,18 +45,13 @@ import { MatchFilters } from './adoptions-match.component';
               (click)="setViewMode('list')"
               title="Vista de lista"
             >
-              <span>☰</span>
+              <span>â˜°</span>
             </button>
           </div>
         </div>
 
         <div class="pets-list" [class.list-view]="viewMode() === 'list'">
-          <p-virtualScroller
-            [value]="filteredPets()"
-            [itemSize]="viewMode() === 'grid' ? 320 : 120"
-            [scrollHeight]="'60vh'"
-            styleClass="virtual-scroller">
-            <ng-template pTemplate="item" let-pet>
+          @for (pet of filteredPets(); track pet.id) {
           <div class="pet-card" (click)="viewPet(pet.id)">
             <div class="pet-image-container">
               @if (!pet.is_available) {
@@ -77,7 +71,7 @@ import { MatchFilters } from './adoptions-match.component';
                 (click)="toggleFavorite(pet, $event)"
                 title="{{ isFavorite(pet.id) ? 'Quitar de favoritos' : 'Agregar a favoritos' }}"
               >
-                {{ isFavorite(pet.id) ? '❤️' : '🤍' }}
+                {{ isFavorite(pet.id) ? 'â¤ï¸' : 'ðŸ¤' }}
               </button>
               } @else {
               <div class="pet-image-placeholder">
@@ -89,7 +83,7 @@ import { MatchFilters } from './adoptions-match.component';
                   (click)="toggleFavorite(pet, $event)"
                   title="{{ isFavorite(pet.id) ? 'Quitar de favoritos' : 'Agregar a favoritos' }}"
                 >
-                  {{ isFavorite(pet.id) ? '❤️' : '🤍' }}
+                  {{ isFavorite(pet.id) ? 'â¤ï¸' : 'ðŸ¤' }}
                 </button>
               </div>
               }
@@ -99,9 +93,9 @@ import { MatchFilters } from './adoptions-match.component';
               <div class="pet-header">
                 <h3 class="pet-name">
                   @if (pet.species === 'dog') {
-                  <span class="gender-icon">♂</span>
+                  <span class="gender-icon">â™‚</span>
                   } @else if (pet.species === 'cat') {
-                  <span class="gender-icon">♀</span>
+                  <span class="gender-icon">â™€</span>
                   }
                   {{ pet.name }}
                 </h3>
@@ -114,14 +108,14 @@ import { MatchFilters } from './adoptions-match.component';
                       pet.gender === 'M' ? 'Macho' : 'Hembra'
                     }}</span>
                     @if (pet.species === 'dog') {
-                    <span class="gender-icon">♂</span>
+                    <span class="gender-icon">â™‚</span>
                     } @else if (pet.species === 'cat') {
-                    <span class="gender-icon">♀</span>
+                    <span class="gender-icon">â™€</span>
                     }
                   </div>
                   <div class="pet-detail-item size-item">
-                    <span class="detail-label">Tamaño</span>
-                    <span class="paw-prints" [title]="getSizeLabel(pet.size)">🐾 🐾 🐾</span>
+                    <span class="detail-label">TamaÃ±o</span>
+                    <span class="paw-prints" [title]="getSizeLabel(pet.size)">ðŸ¾ ðŸ¾ ðŸ¾</span>
                     <span class="size-tooltip">{{ getSizeLabel(pet.size) }}</span>
                   </div>
                   <div class="pet-detail-item">
@@ -141,7 +135,7 @@ import { MatchFilters } from './adoptions-match.component';
                   </div>
                   @if (pet.location_detail) {
                   <div class="pet-location-info">
-                    <span class="plus-icon">➕</span>
+                    <span class="plus-icon">âž•</span>
                     <span>{{ pet.location_detail }}</span>
                   </div>
                   }
@@ -162,7 +156,7 @@ import { MatchFilters } from './adoptions-match.component';
                     tooltipPosition="top"
                   />
                   <p class="interest-count">
-                    {{ getInterestCount(pet.id) }} personas están interesadas
+                    {{ getInterestCount(pet.id) }} personas estÃ¡n interesadas
                   </p>
                   <div class="action-links">
                     <a
@@ -170,7 +164,7 @@ import { MatchFilters } from './adoptions-match.component';
                       class="action-link"
                       (click)="sharePet(pet, $event)"
                     >
-                      <span>📤</span>
+                      <span>ðŸ“¤</span>
                       Compartir
                     </a>
                     <a
@@ -178,8 +172,8 @@ import { MatchFilters } from './adoptions-match.component';
                       class="action-link"
                       (click)="showMoreInfo(pet, $event)"
                     >
-                      <span>➕</span>
-                      + Más Información
+                      <span>âž•</span>
+                      + MÃ¡s InformaciÃ³n
                     </a>
                   </div>
                 </div>
@@ -189,9 +183,9 @@ import { MatchFilters } from './adoptions-match.component';
                     <span class="detail-value">{{ getWeight(pet) }} Kg</span>
                   </div>
                   <div class="detail-row">
-                    <span class="detail-label">Años:</span>
+                    <span class="detail-label">AÃ±os:</span>
                     <span class="detail-value"
-                      >{{ pet.age ? pet.age.toFixed(1) : '0.4' }} años</span
+                      >{{ pet.age ? pet.age.toFixed(1) : '0.4' }} aÃ±os</span
                     >
                   </div>
                   @if (pet.location_type) {
@@ -201,9 +195,9 @@ import { MatchFilters } from './adoptions-match.component';
                   </div>
                   }
                   <div class="detail-row">
-                    <span class="detail-label">Ubicación:</span>
+                    <span class="detail-label">UbicaciÃ³n:</span>
                     <span class="detail-value">{{
-                      pet.foundation?.name || 'Sin ubicación'
+                      pet.foundation?.name || 'Sin ubicaciÃ³n'
                     }}</span>
                   </div>
                   @if (pet.location_detail || pet.foundation?.name) {
@@ -223,14 +217,12 @@ import { MatchFilters } from './adoptions-match.component';
               </div>
             </div>
           </div>
-            </ng-template>
-            <ng-template pTemplate="empty">
-              <div class="empty-state">
-                <span style="font-size: 4rem;">📥</span>
-                <p>No se encontraron mascotas disponibles</p>
-              </div>
-            </ng-template>
-          </p-virtualScroller>
+          } @empty {
+          <div class="empty-state">
+            <span style="font-size: 4rem;">📥</span>
+            <p>No se encontraron mascotas disponibles</p>
+          </div>
+          }
         </div>
       </div>
     </div>
@@ -240,7 +232,7 @@ import { MatchFilters } from './adoptions-match.component';
       [modal]="true"
       [dismissableMask]="true"
       [style]="{ width: '600px' }"
-      header="Más Información"
+      header="MÃ¡s InformaciÃ³n"
     >
       @if (selectedPet()) {
       <div class="pet-details-dialog">
@@ -250,27 +242,27 @@ import { MatchFilters } from './adoptions-match.component';
           {{ getSpeciesLabel(selectedPet()!.species) }}
         </p>
         <p>
-          <strong>Fundación:</strong>
-          {{ selectedPet()!.foundation?.name || 'Sin fundación' }}
+          <strong>FundaciÃ³n:</strong>
+          {{ selectedPet()!.foundation?.name || 'Sin fundaciÃ³n' }}
         </p>
         @if (selectedPet()!.age) {
-        <p><strong>Edad:</strong> {{ selectedPet()!.age }} años</p>
+        <p><strong>Edad:</strong> {{ selectedPet()!.age }} aÃ±os</p>
         }
         <p>
-          <strong>Género:</strong>
+          <strong>GÃ©nero:</strong>
           {{ selectedPet()!.gender === 'M' ? 'Macho' : 'Hembra' }}
         </p>
-        <p><strong>Tamaño:</strong> {{ getSizeLabel(selectedPet()!.size) }}</p>
+        <p><strong>TamaÃ±o:</strong> {{ getSizeLabel(selectedPet()!.size) }}</p>
         @if (selectedPet()!.description) {
-        <p><strong>Descripción:</strong> {{ selectedPet()!.description }}</p>
+        <p><strong>DescripciÃ³n:</strong> {{ selectedPet()!.description }}</p>
         } @if (selectedPet()!.health_status) {
         <p>
           <strong>Estado de salud:</strong> {{ selectedPet()!.health_status }}
         </p>
         } @if (selectedPet()!.is_vaccinated) {
-        <p><strong>Vacunado:</strong> Sí</p>
+        <p><strong>Vacunado:</strong> SÃ­</p>
         }         @if (selectedPet()!.is_sterilized) {
-        <p><strong>Esterilizado:</strong> Sí</p>
+        <p><strong>Esterilizado:</strong> SÃ­</p>
         }
         @if (selectedPet()!.personality; as personality) {
           @if (personality.length > 0) {
@@ -285,10 +277,10 @@ import { MatchFilters } from './adoptions-match.component';
           }
         }
         @if (selectedPet()!.location_type) {
-        <p><strong>Ubicación (Tipo):</strong> {{ selectedPet()!.location_type }}</p>
+        <p><strong>UbicaciÃ³n (Tipo):</strong> {{ selectedPet()!.location_type }}</p>
         }
         @if (selectedPet()!.location_detail) {
-        <p><strong>Ubicación (Detalle):</strong> {{ selectedPet()!.location_detail }}</p>
+        <p><strong>UbicaciÃ³n (Detalle):</strong> {{ selectedPet()!.location_detail }}</p>
         }
         @if (selectedPet()!.weight) {
         <p><strong>Peso:</strong> {{ selectedPet()!.weight }} Kg</p>
@@ -1003,36 +995,6 @@ import { MatchFilters } from './adoptions-match.component';
         }
       }
 
-      /* Virtual Scroller Styles */
-      .virtual-scroller {
-        width: 100%;
-        height: 100%;
-      }
-
-      .virtual-scroller .p-virtualscroller-content {
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-      }
-
-      .virtual-scroller .p-virtualscroller-item {
-        width: 100%;
-      }
-
-      /* Grid view */
-      .pets-list:not(.list-view) .virtual-scroller .p-virtualscroller-content {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-        gap: 2rem;
-        justify-items: center;
-      }
-
-      /* List view */
-      .pets-list.list-view .virtual-scroller .p-virtualscroller-content {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-      }
     `,
   ],
 })
@@ -1057,7 +1019,7 @@ export class PetsListComponent {
   public viewMode = signal<'grid' | 'list'>('list');
 
   public filteredPets = computed(() => {
-    // Usar datos de ejemplo si el switch está activado
+    // Usar datos de ejemplo si el switch estÃ¡ activado
     let pets = this.useDemoData()
       ? this.demoPets().filter((p) => p.is_available)
       : this.petsStore.entities().filter((p) => p.is_available);
@@ -1125,7 +1087,7 @@ export class PetsListComponent {
 
   public getSizeLabel(size: string): string {
     const labels: Record<string, string> = {
-      small: 'Pequeño',
+      small: 'PequeÃ±o',
       medium: 'Mediano',
       large: 'Grande',
     };
@@ -1134,17 +1096,17 @@ export class PetsListComponent {
 
   public getPersonalityLabel(value: string): string {
     const labels: Record<string, string> = {
-      jugueton: 'Juguetón',
+      jugueton: 'JuguetÃ³n',
       tranquilo: 'Tranquilo',
-      carinoso: 'Cariñoso',
+      carinoso: 'CariÃ±oso',
       independiente: 'Independiente',
       sociable: 'Sociable',
       activo: 'Activo',
       protector: 'Protector',
-      timido: 'Tímido',
+      timido: 'TÃ­mido',
       curioso: 'Curioso',
-      energetico: 'Energético',
-      docil: 'Dócil',
+      energetico: 'EnergÃ©tico',
+      docil: 'DÃ³cil',
     };
     return labels[value] || value;
   }
@@ -1154,16 +1116,16 @@ export class PetsListComponent {
   }
 
   public getMapIframeUrl(pet: Pet): string {
-    // Verificar si tenemos coordenadas específicas
+    // Verificar si tenemos coordenadas especÃ­ficas
     const coords = this.getMapCoordinates(pet);
     if (coords) {
-      // Usar coordenadas directamente con zoom estático y fijo
-      // bbox más pequeño = zoom más cercano (0.002 es un zoom medio-cercano)
+      // Usar coordenadas directamente con zoom estÃ¡tico y fijo
+      // bbox mÃ¡s pequeÃ±o = zoom mÃ¡s cercano (0.002 es un zoom medio-cercano)
       const bbox = `${coords.lon - 0.002},${coords.lat - 0.002},${coords.lon + 0.002},${coords.lat + 0.002}`;
       return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${coords.lat},${coords.lon}`;
     }
 
-    // Si no hay coordenadas, usar geocodificación
+    // Si no hay coordenadas, usar geocodificaciÃ³n
     const address = this.getMapAddress(pet);
     const cacheKey = `address_${address}`;
     
@@ -1173,19 +1135,19 @@ export class PetsListComponent {
       return cached;
     }
 
-    // Cargar el mapa de forma asíncrona
+    // Cargar el mapa de forma asÃ­ncrona
     this.loadMapForAddress(address).then(url => {
       const currentUrls = { ...this.mapUrls() };
       currentUrls[cacheKey] = url;
       this.mapUrls.set(currentUrls);
     });
 
-    // Retornar URL temporal mientras se carga (mapa genérico de Panamá)
+    // Retornar URL temporal mientras se carga (mapa genÃ©rico de PanamÃ¡)
     return `https://www.openstreetmap.org/export/embed.html?bbox=-79.5,8.9,-79.4,9.0&layer=mapnik&marker=8.95,-79.45`;
   }
 
   private async loadMapForAddress(address: string): Promise<string> {
-    // Geocodificar la dirección usando Nominatim (gratis, sin API key)
+    // Geocodificar la direcciÃ³n usando Nominatim (gratis, sin API key)
     try {
       const response = await fetch(
         `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`,
@@ -1199,19 +1161,19 @@ export class PetsListComponent {
       if (data && data.length > 0) {
         const lat = parseFloat(data[0].lat);
         const lon = parseFloat(data[0].lon);
-        // Usar OpenStreetMap con zoom muy cercano (equivalente a 3 toques más de zoom)
-        // bbox más pequeño = zoom más cercano (0.0005 es aproximadamente 3 niveles de zoom más)
+        // Usar OpenStreetMap con zoom muy cercano (equivalente a 3 toques mÃ¡s de zoom)
+        // bbox mÃ¡s pequeÃ±o = zoom mÃ¡s cercano (0.0005 es aproximadamente 3 niveles de zoom mÃ¡s)
         const bbox = `${lon - 0.0005},${lat - 0.0005},${lon + 0.0005},${lat + 0.0005}`;
         return `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lon}`;
       }
     } catch (error) {
       // Error silencioso
     }
-    // Fallback: mostrar un mapa genérico de Panamá
+    // Fallback: mostrar un mapa genÃ©rico de PanamÃ¡
     return `https://www.openstreetmap.org/export/embed.html?bbox=-79.5,8.9,-79.4,9.0&layer=mapnik&marker=8.95,-79.45`;
   }
 
-  // Computed signal que calcula el contador real de interés basado en las solicitudes
+  // Computed signal que calcula el contador real de interÃ©s basado en las solicitudes
   private interestCountsMap = computed(() => {
     const map = new Map<string, number>();
     const applications = this.applicationsStore.entities();
@@ -1235,7 +1197,7 @@ export class PetsListComponent {
     if (pet.weight) {
       return pet.weight;
     }
-    // Valor por defecto basado en el tamaño si no hay peso
+    // Valor por defecto basado en el tamaÃ±o si no hay peso
     const weightMap: Record<string, number> = {
       small: 1,
       medium: 5,
@@ -1252,17 +1214,17 @@ export class PetsListComponent {
     if (pet.foundation?.name) {
       return pet.foundation.name;
     }
-    return 'Panamá, Panamá'; // Fallback genérico
+    return 'PanamÃ¡, PanamÃ¡'; // Fallback genÃ©rico
   }
 
   public getMapCoordinates(pet: Pet): { lat: number; lon: number } | null {
-    // Coordenadas específicas para Black Dog en Calle 50
+    // Coordenadas especÃ­ficas para Black Dog en Calle 50
     if (pet.foundation?.name && pet.foundation.name.toLowerCase().includes('black dog')) {
       return { lat: 8.992360, lon: -79.505932 };
     }
     
     // Si hay location_detail, intentar geocodificar
-    // Por ahora retornamos null para usar geocodificación
+    // Por ahora retornamos null para usar geocodificaciÃ³n
     return null;
   }
 
@@ -1271,7 +1233,7 @@ export class PetsListComponent {
     if (navigator.share) {
       navigator.share({
         title: `Adopta a ${pet.name}`,
-        text: `Mira esta mascota disponible para adopción: ${pet.name}`,
+        text: `Mira esta mascota disponible para adopciÃ³n: ${pet.name}`,
         url: window.location.href,
       });
     } else {
@@ -1321,7 +1283,7 @@ export class PetsListComponent {
 
       this.favoritesStore.toggleFavorite(user.email, pet.id).subscribe({
         next: () => {
-          // El store se actualizará automáticamente
+          // El store se actualizarÃ¡ automÃ¡ticamente
         },
         error: (error) => {
           console.error('Error al actualizar favorito:', error);
@@ -1340,8 +1302,10 @@ export class PetsListComponent {
         return;
       }
       
-      // Solo navegar al formulario de adopción
+      // Solo navegar al formulario de adopciÃ³n
       this.router.navigate(['/adoptions/adoptar', pet.id]);
     });
   }
 }
+
+

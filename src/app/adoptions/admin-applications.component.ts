@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { , ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
@@ -22,7 +22,7 @@ type AdoptionApplicationsStoreWithCustomMethods = InstanceType<typeof AdoptionAp
 @Component({
   selector: 'pt-admin-applications',
   standalone: true,
-  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -447,5 +447,7 @@ export class AdminApplicationsComponent {
     });
   }
 }
+
+
 
 

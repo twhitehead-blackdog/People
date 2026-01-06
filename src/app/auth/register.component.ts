@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { , ChangeDetectionStrategy } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
 import { MessageService } from 'primeng/api';
@@ -9,7 +9,7 @@ import { ToastModule } from 'primeng/toast';
 @Component({
   selector: 'pt-register',
   standalone: true,
-  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, RouterLink, Button, ToastModule],
   providers: [MessageService],
   template: `
@@ -425,4 +425,6 @@ export class RegisterComponent implements OnInit {
     this.router.navigate(['/adoptions']);
   }
 }
+
+
 

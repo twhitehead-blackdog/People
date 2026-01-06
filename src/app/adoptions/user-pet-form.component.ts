@@ -1,4 +1,4 @@
-﻿import { Component, inject, OnInit, signal, computed, input, effect } from '@angular/core';
+﻿import { , ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -22,7 +22,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
 @Component({
   selector: 'pt-user-pet-form',
   standalone: true,
-  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -880,5 +880,7 @@ export class UserPetFormComponent implements OnInit {
     this.router.navigate(['/adoptions/profile']);
   }
 }
+
+
 
 

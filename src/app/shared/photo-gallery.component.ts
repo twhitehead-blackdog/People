@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, inject, input, OnInit, output, signal, viewChild, ElementRef } from '@angular/core';
+import { , ChangeDetectionStrategy } from '@angular/core';
 import { ImageUploadService, UploadResult } from '../services/image-upload.service';
 import { Button } from 'primeng/button';
 import { ProgressBarModule } from 'primeng/progressbar';
@@ -17,7 +17,7 @@ export interface PhotoItem {
 @Component({
   selector: 'pt-photo-gallery',
   standalone: true,
-  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, Button, ProgressBarModule, ToastModule],
   providers: [MessageService],
   template: `
@@ -1050,5 +1050,7 @@ export class PhotoGalleryComponent implements OnInit {
     this.currentCarouselIndex.set(index);
   }
 }
+
+
 
 

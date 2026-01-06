@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { , ChangeDetectionStrategy } from '@angular/core';
 import { Router } from '@angular/router';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
@@ -11,7 +11,7 @@ import { Notification, NotificationService, NotificationType } from '../services
 @Component({
   selector: 'pt-notifications-panel',
   standalone: true,
-  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, Button, Card, OverlayPanelModule, TagModule, BadgeModule],
   template: `
     <div class="notifications-panel">
@@ -438,5 +438,7 @@ export class NotificationsPanelComponent {
     }
   }
 }
+
+
 
 

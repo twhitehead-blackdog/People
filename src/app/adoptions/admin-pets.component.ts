@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { , ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
@@ -27,7 +27,7 @@ import { PhotoGalleryComponent } from '../shared/photo-gallery.component';
 @Component({
   selector: 'pt-admin-pets',
   standalone: true,
-  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -1843,5 +1843,7 @@ export class AdminPetsComponent {
     this.petForm.photos = photos;
   }
 }
+
+
 
 

@@ -1,10 +1,10 @@
 ﻿import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { , ChangeDetectionStrategy } from '@angular/core';
 
 @Component({
   selector: 'pt-adoptions-hero',
   standalone: true,
-  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
     <section class="hero-section">
@@ -209,4 +209,6 @@ import { Component } from '@angular/core';
   ],
 })
 export class AdoptionsHeroComponent {}
+
+
 

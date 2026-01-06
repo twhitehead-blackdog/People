@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { , ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
@@ -17,7 +17,7 @@ import { PartnersStore } from '../stores/partners.store';
 @Component({
   selector: 'pt-admin-partners',
   standalone: true,
-  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -717,5 +717,7 @@ export class AdminPartnersComponent {
     return option ? option.label : type;
   }
 }
+
+
 
 

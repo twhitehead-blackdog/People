@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { , ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
@@ -17,7 +17,7 @@ import { AdoptionRequirementsStore } from '../stores/adoption-requirements.store
 @Component({
   selector: 'pt-admin-requirements',
   standalone: true,
-  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -534,5 +534,7 @@ export class AdminRequirementsComponent {
     this.requirementsStore.deleteItem(requirement.id);
   }
 }
+
+
 
 

@@ -1,5 +1,5 @@
 ﻿import { CommonModule } from '@angular/common';
-import { Component, effect, inject, OnInit, signal } from '@angular/core';
+import { , ChangeDetectionStrategy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
@@ -15,7 +15,7 @@ import { AdoptionApplicationsStore } from '../stores/adoption-applications.store
 @Component({
   selector: 'pt-admin-application-detail',
   standalone: true,
-  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -646,5 +646,7 @@ export class AdminApplicationDetailComponent implements OnInit {
     this.router.navigate(['/adoptions/admin'], { queryParams: { tab: 'applications' } });
   }
 }
+
+
 
 

@@ -1,4 +1,4 @@
-﻿import { Component, signal, output, computed, inject } from '@angular/core';
+﻿import { , ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { InputTextModule } from 'primeng/inputtext';
@@ -28,7 +28,7 @@ export interface MatchFilters {
 @Component({
   selector: 'pt-adoptions-match',
   standalone: true,
-  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -573,5 +573,7 @@ export class AdoptionsMatchComponent {
     this.findMatch();
   }
 }
+
+
 
 

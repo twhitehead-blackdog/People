@@ -1,6 +1,7 @@
 ﻿import { CommonModule } from '@angular/common';
 import {
   AfterViewInit,
+  ChangeDetectionStrategy,
   Component,
   computed,
   ElementRef,
@@ -14,7 +15,7 @@ import { EventsStore } from '../stores/events.store';
 @Component({
   selector: 'pt-adoption-events',
   standalone: true,
-  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
     <div class="events-section">
@@ -1093,4 +1094,6 @@ export class AdoptionEventsComponent implements AfterViewInit {
     console.log('Navegar a ayuda');
   }
 }
+
+
 

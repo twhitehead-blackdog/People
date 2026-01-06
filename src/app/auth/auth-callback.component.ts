@@ -1,4 +1,4 @@
-﻿import { Component, inject, OnInit } from '@angular/core';
+﻿import { , ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from './auth.service';
@@ -8,7 +8,7 @@ import { ToastModule } from 'primeng/toast';
 @Component({
   selector: 'pt-auth-callback',
   standalone: true,
-  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, ToastModule],
   providers: [MessageService],
   template: `
@@ -120,5 +120,7 @@ export class AuthCallbackComponent implements OnInit {
     }
   }
 }
+
+
 
 

@@ -1,4 +1,4 @@
-﻿import { Component, signal, inject, OnInit, computed } from '@angular/core';
+﻿import { , ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule, AsyncPipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -22,7 +22,7 @@ import { PetsStore } from '../stores/pets.store';
 @Component({
   selector: 'pt-profile',
   standalone: true,
-  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -1777,5 +1777,7 @@ export class ProfileComponent implements OnInit {
     this.dateTo.set(null);
   }
 }
+
+
 
 

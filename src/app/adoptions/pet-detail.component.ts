@@ -1,4 +1,4 @@
-﻿import { Component, inject, signal, OnInit, computed, AfterViewInit, effect } from '@angular/core';
+﻿import { , ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule, ViewportScroller } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Button } from 'primeng/button';
@@ -15,7 +15,7 @@ import { take } from 'rxjs/operators';
 @Component({
   selector: 'pt-pet-detail',
   standalone: true,
-  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     Button,
@@ -799,5 +799,7 @@ export class PetDetailComponent implements OnInit, AfterViewInit {
     return labels[size] || size;
   }
 }
+
+
 
 
