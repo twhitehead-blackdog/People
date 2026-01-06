@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+﻿import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Button } from 'primeng/button';
@@ -14,6 +14,7 @@ import { PetMatchFiltersComponent, PetMatchFilters } from './pet-match-filters.c
 @Component({
   selector: 'pt-pet-matches-section',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, Button, ToastModule, PetMatchCardComponent, PetMatchFiltersComponent],
   providers: [MessageService],
   template: `
@@ -22,48 +23,48 @@ import { PetMatchFiltersComponent, PetMatchFilters } from './pet-match-filters.c
       <!-- Hero Section -->
       <div class="hero-section">
         <div class="hero-background-elements">
-          <div class="animated-emoji emoji-1">🐕</div>
-          <div class="animated-emoji emoji-2">💕</div>
-          <div class="animated-emoji emoji-3">🐱</div>
-          <div class="animated-emoji emoji-4">✨</div>
+          <div class="animated-emoji emoji-1">ðŸ•</div>
+          <div class="animated-emoji emoji-2">ðŸ’•</div>
+          <div class="animated-emoji emoji-3">ðŸ±</div>
+          <div class="animated-emoji emoji-4">âœ¨</div>
         </div>
 
         <div class="hero-content">
           <div class="hero-text">
             <div class="hero-title-wrapper">
               <div class="heart-icon-wrapper heart-1">
-                <span class="heart-icon">❤️</span>
-                <span class="sparkle-icon sparkle-1">✨</span>
+                <span class="heart-icon">â¤ï¸</span>
+                <span class="sparkle-icon sparkle-1">âœ¨</span>
               </div>
               <h1 class="hero-title">BUSCO PAREJA</h1>
               <div class="heart-icon-wrapper heart-2">
-                <span class="heart-icon">❤️</span>
-                <span class="sparkle-icon sparkle-2">✨</span>
+                <span class="heart-icon">â¤ï¸</span>
+                <span class="sparkle-icon sparkle-2">âœ¨</span>
               </div>
             </div>
             
             <p class="hero-subtitle">
-              💝 ¡El Tinder de las mascotas! Encuentra la pareja perfecta para tu peludo amigo 🐾
+              ðŸ’ Â¡El Tinder de las mascotas! Encuentra la pareja perfecta para tu peludo amigo ðŸ¾
             </p>
 
             <!-- Stats -->
             <div class="hero-stats">
               <div class="stat-badge stat-1">
-                <span class="stat-icon">👥</span>
+                <span class="stat-icon">ðŸ‘¥</span>
                 <span class="stat-text">{{ filteredMatches().length }} mascotas disponibles</span>
               </div>
               <div class="stat-badge stat-2">
-                <span class="stat-icon">📈</span>
-                <span class="stat-text">¡En tendencia!</span>
+                <span class="stat-icon">ðŸ“ˆ</span>
+                <span class="stat-text">Â¡En tendencia!</span>
               </div>
               <div class="stat-badge stat-3">
-                <span class="stat-icon">⭐</span>
+                <span class="stat-icon">â­</span>
                 <span class="stat-text">100% Gratis</span>
               </div>
             </div>
             
             <p-button
-              label="➕ ¡Publicar Mi Mascota Ahora! 🚀"
+              label="âž• Â¡Publicar Mi Mascota Ahora! ðŸš€"
               [style]="{
                 background: 'linear-gradient(to right, #ec4899, #a855f7, #FDB022)',
                 border: 'none',
@@ -97,21 +98,21 @@ import { PetMatchFiltersComponent, PetMatchFilters } from './pet-match-filters.c
               [class.active]="activeTab() === 'all'"
               (click)="setActiveTab('all')"
             >
-              ✨ Todos
+              âœ¨ Todos
             </button>
             <button 
               class="tab-trigger" 
               [class.active]="activeTab() === 'dog'"
               (click)="setActiveTab('dog')"
             >
-              🐕 Perritos
+              ðŸ• Perritos
             </button>
             <button 
               class="tab-trigger" 
               [class.active]="activeTab() === 'cat'"
               (click)="setActiveTab('cat')"
             >
-              🐱 Gatitos
+              ðŸ± Gatitos
             </button>
           </div>
         </div>
@@ -119,9 +120,9 @@ import { PetMatchFiltersComponent, PetMatchFilters } from './pet-match-filters.c
         <!-- Results count -->
         <div class="results-count">
           <div class="results-badge">
-            <span class="sparkle-icon">✨</span>
+            <span class="sparkle-icon">âœ¨</span>
             Mostrando <span class="count-number">{{ filteredByTab().length }}</span> 
-            {{ filteredByTab().length === 1 ? 'mascota disponible' : 'mascotas disponibles' }} 💕
+            {{ filteredByTab().length === 1 ? 'mascota disponible' : 'mascotas disponibles' }} ðŸ’•
           </div>
         </div>
 
@@ -135,21 +136,21 @@ import { PetMatchFiltersComponent, PetMatchFilters } from './pet-match-filters.c
             <div class="empty-state">
               <div class="empty-heart-wrapper">
                 <div class="empty-heart-main">
-                  <span class="empty-heart-icon">❤️</span>
+                  <span class="empty-heart-icon">â¤ï¸</span>
                 </div>
                 <div class="empty-heart-small-1">
-                  <span class="empty-heart-icon">❤️</span>
+                  <span class="empty-heart-icon">â¤ï¸</span>
                 </div>
                 <div class="empty-heart-small-2">
-                  <span class="empty-sparkle-icon">✨</span>
+                  <span class="empty-sparkle-icon">âœ¨</span>
                 </div>
               </div>
-              <h3 class="empty-title">¡Ups! No hay mascotas aquí 🐾</h3>
+              <h3 class="empty-title">Â¡Ups! No hay mascotas aquÃ­ ðŸ¾</h3>
               <p class="empty-description">
-                Parece que no encontramos ninguna mascota buscando amor. ¡Sé el primero en publicar y ayuda a tu peludo a encontrar su media naranja! 💕
+                Parece que no encontramos ninguna mascota buscando amor. Â¡SÃ© el primero en publicar y ayuda a tu peludo a encontrar su media naranja! ðŸ’•
               </p>
               <p-button
-                label="➕ ¡Publicar Mi Mascota Ahora! ✨"
+                label="âž• Â¡Publicar Mi Mascota Ahora! âœ¨"
                 [style]="{
                   background: 'linear-gradient(to right, #FDB022, #fcd34d, #fbbf24)',
                   border: 'none',
@@ -165,9 +166,9 @@ import { PetMatchFiltersComponent, PetMatchFilters } from './pet-match-filters.c
                 [disabled]="!isAuthenticated()"
               />
               <div class="empty-decorative">
-                <span class="decorative-emoji">🐕</span>
-                <span class="decorative-emoji">💝</span>
-                <span class="decorative-emoji">🐱</span>
+                <span class="decorative-emoji">ðŸ•</span>
+                <span class="decorative-emoji">ðŸ’</span>
+                <span class="decorative-emoji">ðŸ±</span>
               </div>
             </div>
           }
@@ -684,7 +685,7 @@ export class PetMatchesSectionComponent {
   }
 
   public filteredMatches = computed(() => {
-    // Usar datos demo si el modo demo está activado, sino usar datos reales
+    // Usar datos demo si el modo demo estÃ¡ activado, sino usar datos reales
     let matches = this.useDemoData() 
       ? this.demoMatches().filter((m) => m.is_active)
       : this.petMatchesStore.entities().filter((m) => m.is_active);
@@ -699,12 +700,12 @@ export class PetMatchesSectionComponent {
       matches = matches.filter((m) => m.species === filters.species);
     }
 
-    // Filtrar por género
+    // Filtrar por gÃ©nero
     if (filters.gender) {
       matches = matches.filter((m) => m.gender === filters.gender);
     }
 
-    // Filtrar por tamaño
+    // Filtrar por tamaÃ±o
     if (filters.size) {
       matches = matches.filter((m) => m.size === filters.size);
     }
@@ -717,7 +718,7 @@ export class PetMatchesSectionComponent {
       matches = matches.filter((m) => m.age !== undefined && m.age <= filters.maxAge!);
     }
 
-    // Filtrar por ubicación
+    // Filtrar por ubicaciÃ³n
     if (filters.location) {
       const locationLower = filters.location.toLowerCase();
       matches = matches.filter((m) => {
@@ -738,7 +739,7 @@ export class PetMatchesSectionComponent {
       matches = matches.filter((m) => m.preferred_breed_match === filters.preferredBreedMatch);
     }
 
-    // Filtrar por término de búsqueda
+    // Filtrar por tÃ©rmino de bÃºsqueda
     if (filters.searchTerm) {
       const searchLower = filters.searchTerm.toLowerCase();
       matches = matches.filter((m) => {
@@ -761,11 +762,11 @@ export class PetMatchesSectionComponent {
     if (!this.isAuthenticated()) {
       this.messageService.add({
         severity: 'info',
-        summary: 'Inicio de sesión requerido',
-        detail: 'Por favor inicia sesión para publicar tu mascota buscando pareja',
+        summary: 'Inicio de sesiÃ³n requerido',
+        detail: 'Por favor inicia sesiÃ³n para publicar tu mascota buscando pareja',
         life: 3000
       });
-      // Pequeño delay para que el usuario vea el mensaje antes de redirigir
+      // PequeÃ±o delay para que el usuario vea el mensaje antes de redirigir
       setTimeout(() => {
         this.router.navigate(['/auth/login'], {
           queryParams: { returnUrl: '/adoptions/busco-pareja/publicar' }
@@ -774,12 +775,12 @@ export class PetMatchesSectionComponent {
       return;
     }
     
-    // Navegar al formulario de publicación
+    // Navegar al formulario de publicaciÃ³n
     this.router.navigate(['/adoptions/busco-pareja/publicar']).then((success) => {
       if (success) {
         this.messageService.add({
           severity: 'success',
-          summary: '¡Vamos a publicar!',
+          summary: 'Â¡Vamos a publicar!',
           detail: 'Completa el formulario para encontrar la pareja perfecta para tu mascota',
           life: 3000
         });
@@ -812,16 +813,16 @@ export class PetMatchesSectionComponent {
         size: 'large',
         color: 'Dorado',
         weight: 28,
-        description: 'Max es un perro muy cariñoso y juguetón. Le encanta jugar en el parque y está buscando una pareja para compartir aventuras. Es muy sociable y se lleva bien con otros perros.',
+        description: 'Max es un perro muy cariÃ±oso y juguetÃ³n. Le encanta jugar en el parque y estÃ¡ buscando una pareja para compartir aventuras. Es muy sociable y se lleva bien con otros perros.',
         health_status: 'Saludable, vacunado y esterilizado',
-        location: 'Ciudad de Panamá, San Francisco',
+        location: 'Ciudad de PanamÃ¡, San Francisco',
         contact_info: {
           email: 'max.owner@demo.com',
           phone: '+507 6123-4567',
           preferred_contact: 'both'
         },
         preferred_breed_match: 'both',
-        personality: ['amigable', 'juguetón', 'sociable', 'activo'],
+        personality: ['amigable', 'juguetÃ³n', 'sociable', 'activo'],
         photos: ['assets/dog1.jpg'],
         is_vaccinated: true,
         is_sterilized: true,
@@ -844,16 +845,16 @@ export class PetMatchesSectionComponent {
         size: 'small',
         color: 'Blanco y gris',
         weight: 4,
-        description: 'Luna es una gata muy dulce y tranquila. Le encanta recibir mimos y está buscando un compañero felino para compartir su hogar. Es muy cariñosa y se adapta bien a nuevos ambientes.',
+        description: 'Luna es una gata muy dulce y tranquila. Le encanta recibir mimos y estÃ¡ buscando un compaÃ±ero felino para compartir su hogar. Es muy cariÃ±osa y se adapta bien a nuevos ambientes.',
         health_status: 'Saludable, vacunada y esterilizada',
-        location: 'Panamá, Bella Vista',
+        location: 'PanamÃ¡, Bella Vista',
         contact_info: {
           email: 'luna.owner@demo.com',
           phone: '+507 6234-5678',
           preferred_contact: 'email'
         },
         preferred_breed_match: 'same',
-        personality: ['tranquila', 'cariñosa', 'dócil', 'curiosa'],
+        personality: ['tranquila', 'cariÃ±osa', 'dÃ³cil', 'curiosa'],
         photos: ['assets/cat1.jpg'],
         is_vaccinated: true,
         is_sterilized: true,
@@ -866,9 +867,9 @@ export class PetMatchesSectionComponent {
         user_id: 'demo-user-3',
         pet_name: 'Rocky',
         species: 'dog',
-        breed: 'Bulldog Francés',
+        breed: 'Bulldog FrancÃ©s',
         breed_type: 'pure',
-        breed_primary: 'Bulldog Francés',
+        breed_primary: 'Bulldog FrancÃ©s',
         age: 1,
         age_years: 1,
         age_months: 6,
@@ -876,16 +877,16 @@ export class PetMatchesSectionComponent {
         size: 'small',
         color: 'Atigrado',
         weight: 12,
-        description: 'Rocky es un perrito muy enérgico y divertido. Aunque es pequeño, tiene mucha personalidad. Está buscando una pareja para jugar y hacer ejercicio juntos.',
+        description: 'Rocky es un perrito muy enÃ©rgico y divertido. Aunque es pequeÃ±o, tiene mucha personalidad. EstÃ¡ buscando una pareja para jugar y hacer ejercicio juntos.',
         health_status: 'Saludable, vacunado',
-        location: 'Panamá, El Cangrejo',
+        location: 'PanamÃ¡, El Cangrejo',
         contact_info: {
           email: 'rocky.owner@demo.com',
           phone: '+507 6345-6789',
           preferred_contact: 'phone'
         },
         preferred_breed_match: 'different',
-        personality: ['enérgico', 'divertido', 'juguetón', 'inteligente'],
+        personality: ['enÃ©rgico', 'divertido', 'juguetÃ³n', 'inteligente'],
         photos: ['assets/dog2.jpg'],
         is_vaccinated: true,
         is_sterilized: false,
@@ -898,19 +899,19 @@ export class PetMatchesSectionComponent {
         user_id: 'demo-user-4',
         pet_name: 'Mia',
         species: 'cat',
-        breed: 'Siamés',
+        breed: 'SiamÃ©s',
         breed_type: 'pure',
-        breed_primary: 'Siamés',
+        breed_primary: 'SiamÃ©s',
         age: 1,
         age_years: 1,
         age_months: 8,
         gender: 'F',
         size: 'small',
-        color: 'Crema y marrón',
+        color: 'Crema y marrÃ³n',
         weight: 3.5,
-        description: 'Mia es una gatita muy curiosa y activa. Le encanta explorar y jugar. Está buscando un compañero felino con quien compartir sus aventuras diarias.',
+        description: 'Mia es una gatita muy curiosa y activa. Le encanta explorar y jugar. EstÃ¡ buscando un compaÃ±ero felino con quien compartir sus aventuras diarias.',
         health_status: 'Saludable, vacunada y esterilizada',
-        location: 'Panamá, Obarrio',
+        location: 'PanamÃ¡, Obarrio',
         contact_info: {
           email: 'mia.owner@demo.com',
           phone: '+507 6456-7890',
@@ -940,16 +941,16 @@ export class PetMatchesSectionComponent {
         size: 'large',
         color: 'Negro',
         weight: 32,
-        description: 'Toby es un perro muy leal y protector. Es muy cariñoso con su familia y está buscando una pareja para formar una familia. Le encanta nadar y jugar al aire libre.',
+        description: 'Toby es un perro muy leal y protector. Es muy cariÃ±oso con su familia y estÃ¡ buscando una pareja para formar una familia. Le encanta nadar y jugar al aire libre.',
         health_status: 'Saludable, vacunado y esterilizado',
-        location: 'Panamá, Costa del Este',
+        location: 'PanamÃ¡, Costa del Este',
         contact_info: {
           email: 'toby.owner@demo.com',
           phone: '+507 6567-8901',
           preferred_contact: 'email'
         },
         preferred_breed_match: 'same',
-        personality: ['leal', 'protector', 'cariñoso', 'activo'],
+        personality: ['leal', 'protector', 'cariÃ±oso', 'activo'],
         photos: ['assets/dog3.jpg'],
         is_vaccinated: true,
         is_sterilized: true,
@@ -965,7 +966,7 @@ export class PetMatchesSectionComponent {
         breed: 'Mestiza',
         breed_type: 'mixed',
         breed_primary: 'Persa',
-        breed_secondary: 'Siamés',
+        breed_secondary: 'SiamÃ©s',
         breed_percentage_primary: 60,
         breed_percentage_secondary: 40,
         age: 1,
@@ -975,16 +976,16 @@ export class PetMatchesSectionComponent {
         size: 'small',
         color: 'Tricolor',
         weight: 3,
-        description: 'Nina es una gatita joven y muy juguetona. Es una mezcla de Persa y Siamés, lo que le da una personalidad única. Está buscando un compañero para jugar y crecer juntos.',
+        description: 'Nina es una gatita joven y muy juguetona. Es una mezcla de Persa y SiamÃ©s, lo que le da una personalidad Ãºnica. EstÃ¡ buscando un compaÃ±ero para jugar y crecer juntos.',
         health_status: 'Saludable, vacunada y esterilizada',
-        location: 'Panamá, San Francisco',
+        location: 'PanamÃ¡, San Francisco',
         contact_info: {
           email: 'nina.owner@demo.com',
           phone: '+507 6678-9012',
           preferred_contact: 'both'
         },
         preferred_breed_match: 'both',
-        personality: ['juguetona', 'curiosa', 'cariñosa', 'activa'],
+        personality: ['juguetona', 'curiosa', 'cariÃ±osa', 'activa'],
         photos: ['assets/cat3.jpg'],
         is_vaccinated: true,
         is_sterilized: true,
@@ -997,19 +998,19 @@ export class PetMatchesSectionComponent {
         user_id: 'demo-user-7',
         pet_name: 'Zeus',
         species: 'dog',
-        breed: 'Pastor Alemán',
+        breed: 'Pastor AlemÃ¡n',
         breed_type: 'pure',
-        breed_primary: 'Pastor Alemán',
+        breed_primary: 'Pastor AlemÃ¡n',
         age: 5,
         age_years: 5,
         age_months: 0,
         gender: 'M',
         size: 'large',
-        color: 'Negro y marrón',
+        color: 'Negro y marrÃ³n',
         weight: 35,
-        description: 'Zeus es un perro muy inteligente y entrenado. Es excelente con niños y está buscando una pareja para formar una familia. Le encanta hacer ejercicio y aprender nuevos trucos.',
+        description: 'Zeus es un perro muy inteligente y entrenado. Es excelente con niÃ±os y estÃ¡ buscando una pareja para formar una familia. Le encanta hacer ejercicio y aprender nuevos trucos.',
         health_status: 'Saludable, vacunado y esterilizado',
-        location: 'Panamá, Clayton',
+        location: 'PanamÃ¡, Clayton',
         contact_info: {
           email: 'zeus.owner@demo.com',
           phone: '+507 6789-0123',
@@ -1039,16 +1040,16 @@ export class PetMatchesSectionComponent {
         size: 'medium',
         color: 'Gris',
         weight: 5,
-        description: 'Chloe es una gata muy tranquila y elegante. Le encanta descansar en lugares cómodos y recibir atención. Está buscando un compañero tranquilo con quien compartir su espacio.',
+        description: 'Chloe es una gata muy tranquila y elegante. Le encanta descansar en lugares cÃ³modos y recibir atenciÃ³n. EstÃ¡ buscando un compaÃ±ero tranquilo con quien compartir su espacio.',
         health_status: 'Saludable, vacunada y esterilizada',
-        location: 'Panamá, Punta Pacífica',
+        location: 'PanamÃ¡, Punta PacÃ­fica',
         contact_info: {
           email: 'chloe.owner@demo.com',
           phone: '+507 6890-1234',
           preferred_contact: 'email'
         },
         preferred_breed_match: 'same',
-        personality: ['tranquila', 'elegante', 'cariñosa', 'dócil'],
+        personality: ['tranquila', 'elegante', 'cariÃ±osa', 'dÃ³cil'],
         photos: ['assets/cat1.jpg'],
         is_vaccinated: true,
         is_sterilized: true,
@@ -1061,4 +1062,5 @@ export class PetMatchesSectionComponent {
     this.demoMatches.set(demoMatches);
   }
 }
+
 

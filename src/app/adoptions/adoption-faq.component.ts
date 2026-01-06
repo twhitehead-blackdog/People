@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+﻿import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FAQStore } from '../stores/faq.store';
 import { FAQItem as FAQItemModel } from '../models';
@@ -6,6 +6,7 @@ import { FAQItem as FAQItemModel } from '../models';
 @Component({
   selector: 'pt-adoption-faq',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
     <div class="faq-section">
@@ -26,28 +27,28 @@ import { FAQItem as FAQItemModel } from '../models';
         </div>
         <div class="faq-content">
           <h2 class="faq-title">
-            PREGUNTAS FRECUENTES SOBRE ADOPCIÓN DE MASCOTAS
+            PREGUNTAS FRECUENTES SOBRE ADOPCIÃ“N DE MASCOTAS
           </h2>
           <div class="faq-intro">
             <p>
               En Black Dog conectamos humanos con su mascota. Sabemos la importancia
-              de que no haya ningún animal sin familia y por eso apoyamos y
-              ayudamos a rescatistas y fundaciones todos los días para lograrlo.
+              de que no haya ningÃºn animal sin familia y por eso apoyamos y
+              ayudamos a rescatistas y fundaciones todos los dÃ­as para lograrlo.
             </p>
             <p>
-              Si estás pensando sumar un amigo peludo tenés que saber el
-              compromiso que esto implica. No sólo será tu compañía sino un
-              integrante más de la familia. Por lo que te recomendamos planifiques
-              bien su llegada, asegúrate que todos estén de acuerdo y que en tu
-              edificio o casa se permitan mascotas. Tené en cuenta los gastos
-              mensuales relacionados, cuidados generales que necesitará para que se
-              encuentre saludable y cómodo y con quién dejarlo en caso de salir de
+              Si estÃ¡s pensando sumar un amigo peludo tenÃ©s que saber el
+              compromiso que esto implica. No sÃ³lo serÃ¡ tu compaÃ±Ã­a sino un
+              integrante mÃ¡s de la familia. Por lo que te recomendamos planifiques
+              bien su llegada, asegÃºrate que todos estÃ©n de acuerdo y que en tu
+              edificio o casa se permitan mascotas. TenÃ© en cuenta los gastos
+              mensuales relacionados, cuidados generales que necesitarÃ¡ para que se
+              encuentre saludable y cÃ³modo y con quiÃ©n dejarlo en caso de salir de
               vacaciones.
             </p>
             <p class="faq-cta">
               <strong
-                >Te dejamos acá un resumen de las preguntas que recibimos siempre
-                así te ayudamos a prepararte en lo que se viene</strong
+                >Te dejamos acÃ¡ un resumen de las preguntas que recibimos siempre
+                asÃ­ te ayudamos a prepararte en lo que se viene</strong
               >
             </p>
           </div>
@@ -70,7 +71,7 @@ import { FAQItem as FAQItemModel } from '../models';
                 >
                   <span>{{ item.question }}</span>
                   <span class="faq-icon">{{
-                    expandedIndex() === i ? '▼' : '▶'
+                    expandedIndex() === i ? 'â–¼' : 'â–¶'
                   }}</span>
                 </button>
                 @if (expandedIndex() === i) {
@@ -601,4 +602,5 @@ export class AdoptionFAQComponent {
     }
   }
 }
+
 

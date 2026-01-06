@@ -1,16 +1,17 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 
 @Component({
   selector: 'pt-adoptions-hero',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
     <section class="hero-section">
       <div class="hero-content">
         <div class="hero-text">
           <div class="house-icon">
-            <span>🏠</span>
+            <span>ðŸ </span>
           </div>
           <h1 class="hero-title">CONECTANDO HUMANOS CON SUS MASCOTAS</h1>
           <p class="hero-subtitle">
@@ -208,3 +209,4 @@ import { Component } from '@angular/core';
   ],
 })
 export class AdoptionsHeroComponent {}
+

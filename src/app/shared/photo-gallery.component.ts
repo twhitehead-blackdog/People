@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, inject, input, OnInit, output, signal, viewChild, ElementRef } from '@angular/core';
 import { ImageUploadService, UploadResult } from '../services/image-upload.service';
 import { Button } from 'primeng/button';
@@ -17,14 +17,15 @@ export interface PhotoItem {
 @Component({
   selector: 'pt-photo-gallery',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, Button, ProgressBarModule, ToastModule],
   providers: [MessageService],
   template: `
     <p-toast />
     <div class="photo-gallery">
       <div class="gallery-header">
-        <h3 class="gallery-title">Galería de Fotos</h3>
-        <p class="gallery-subtitle">Arrastra y suelta imágenes o haz clic para seleccionar</p>
+        <h3 class="gallery-title">GalerÃ­a de Fotos</h3>
+        <p class="gallery-subtitle">Arrastra y suelta imÃ¡genes o haz clic para seleccionar</p>
       </div>
 
       <!-- Zona de drop -->
@@ -48,10 +49,10 @@ export interface PhotoItem {
         />
         @if (photos().length === 0) {
           <div class="drop-zone-content">
-            <div class="drop-icon">📷</div>
-            <p class="drop-text">Arrastra imágenes aquí</p>
+            <div class="drop-icon">ðŸ“·</div>
+            <p class="drop-text">Arrastra imÃ¡genes aquÃ­</p>
             <p class="drop-hint">o haz clic para seleccionar</p>
-            <p class="drop-formats">Formatos: JPG, PNG, GIF, WEBP (máx. 10MB)</p>
+            <p class="drop-formats">Formatos: JPG, PNG, GIF, WEBP (mÃ¡x. 10MB)</p>
           </div>
         } @else {
           <div class="photos-grid">
@@ -68,7 +69,7 @@ export interface PhotoItem {
                   }
                   @if (photo.error) {
                     <div class="error-overlay">
-                      <span class="error-icon">⚠️</span>
+                      <span class="error-icon">âš ï¸</span>
                       <p class="error-text">{{ photo.error }}</p>
                     </div>
                   }
@@ -87,7 +88,7 @@ export interface PhotoItem {
                       title="Eliminar"
                       [disabled]="photo.uploading"
                     >
-                      🗑️
+                      ðŸ—‘ï¸
                     </button>
                     @if (i > 0) {
                       <button
@@ -96,7 +97,7 @@ export interface PhotoItem {
                         title="Mover izquierda"
                         [disabled]="photo.uploading"
                       >
-                        ←
+                        â†
                       </button>
                     }
                     @if (i < photos().length - 1) {
@@ -106,7 +107,7 @@ export interface PhotoItem {
                         title="Mover derecha"
                         [disabled]="photo.uploading"
                       >
-                        →
+                        â†’
                       </button>
                     }
                   </div>
@@ -119,7 +120,7 @@ export interface PhotoItem {
             @if (photos().length < maxPhotos()) {
               <div class="photo-item add-photo" (click)="fileInput.click(); $event.stopPropagation()">
                 <div class="add-photo-content">
-                  <span class="add-icon">➕</span>
+                  <span class="add-icon">âž•</span>
                   <p class="add-text">Agregar foto</p>
                 </div>
               </div>
@@ -133,7 +134,7 @@ export interface PhotoItem {
           <p class="photo-count">
             {{ photos().length }} / {{ maxPhotos() }} fotos
             @if (photos().length === maxPhotos()) {
-              <span class="max-reached">(Máximo alcanzado)</span>
+              <span class="max-reached">(MÃ¡ximo alcanzado)</span>
             }
           </p>
           <div class="footer-actions">
@@ -161,7 +162,7 @@ export interface PhotoItem {
           <div class="carousel-preview-header">
             <h4 class="carousel-preview-title">Vista Previa del Perfil</h4>
             <button class="carousel-preview-close" (click)="toggleCarouselMode()" title="Cerrar vista previa">
-              ✕
+              âœ•
             </button>
           </div>
           <div class="carousel-preview-content">
@@ -172,7 +173,7 @@ export interface PhotoItem {
                 [disabled]="currentCarouselIndex() === 0"
                 title="Foto anterior"
               >
-                ‹
+                â€¹
               </button>
               <div class="carousel-main-image">
                 <img
@@ -190,7 +191,7 @@ export interface PhotoItem {
                 [disabled]="currentCarouselIndex() === photos().length - 1"
                 title="Foto siguiente"
               >
-                ›
+                â€º
               </button>
             </div>
             <div class="carousel-thumbnails-wrapper">
@@ -841,13 +842,13 @@ export class PhotoGalleryComponent implements OnInit {
   }
 
   public onDropZoneClick(event: MouseEvent): void {
-    // Solo abrir el selector de archivos si se hace click en el área vacía
-    // No abrir si se hace click en una foto o en un botón
+    // Solo abrir el selector de archivos si se hace click en el Ã¡rea vacÃ­a
+    // No abrir si se hace click en una foto o en un botÃ³n
     const target = event.target as HTMLElement;
     
     // Si hay fotos, verificar que no se haga click en ellas
     if (this.photos().length > 0) {
-      // Si se hace click en una foto, botón o en el grid, no hacer nada
+      // Si se hace click en una foto, botÃ³n o en el grid, no hacer nada
       if (
         target.closest('.photo-item') ||
         target.closest('.photo-actions') ||
@@ -860,7 +861,7 @@ export class PhotoGalleryComponent implements OnInit {
       }
     }
     
-    // Abrir el selector de archivos solo si se hace click en el área vacía
+    // Abrir el selector de archivos solo si se hace click en el Ã¡rea vacÃ­a
     const fileInput = this.fileInputRef()?.nativeElement;
     if (fileInput) {
       event.stopPropagation();
@@ -880,7 +881,7 @@ export class PhotoGalleryComponent implements OnInit {
     if (remainingSlots <= 0) {
       this.messageService.add({
         severity: 'warn',
-        summary: 'Límite alcanzado',
+        summary: 'LÃ­mite alcanzado',
         detail: `Solo puedes agregar hasta ${this.maxPhotos()} fotos`,
       });
       return;
@@ -894,8 +895,8 @@ export class PhotoGalleryComponent implements OnInit {
       if (!validation.valid) {
         this.messageService.add({
           severity: 'error',
-          summary: 'Archivo inválido',
-          detail: validation.error || 'El archivo no es válido',
+          summary: 'Archivo invÃ¡lido',
+          detail: validation.error || 'El archivo no es vÃ¡lido',
         });
         return;
       }
@@ -1049,4 +1050,5 @@ export class PhotoGalleryComponent implements OnInit {
     this.currentCarouselIndex.set(index);
   }
 }
+
 

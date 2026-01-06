@@ -1,4 +1,4 @@
-import { Component, signal, inject, computed, OnInit } from '@angular/core';
+﻿import { Component, signal, inject, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -23,6 +23,7 @@ import { AgeSelectorComponent, AgeData } from './age-selector.component';
 @Component({
   selector: 'pt-pet-match-form',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -45,28 +46,28 @@ import { AgeSelectorComponent, AgeData } from './age-selector.component';
       <!-- Hero Section -->
       <div class="hero-section">
         <div class="hero-background-elements">
-          <div class="animated-emoji emoji-1">🐕</div>
-          <div class="animated-emoji emoji-2">💕</div>
-          <div class="animated-emoji emoji-3">🐱</div>
-          <div class="animated-emoji emoji-4">✨</div>
+          <div class="animated-emoji emoji-1">ðŸ•</div>
+          <div class="animated-emoji emoji-2">ðŸ’•</div>
+          <div class="animated-emoji emoji-3">ðŸ±</div>
+          <div class="animated-emoji emoji-4">âœ¨</div>
         </div>
 
         <div class="hero-content">
           <div class="hero-text">
             <div class="hero-title-wrapper">
               <div class="heart-icon-wrapper heart-1">
-                <span class="heart-icon">❤️</span>
-                <span class="sparkle-icon sparkle-1">✨</span>
+                <span class="heart-icon">â¤ï¸</span>
+                <span class="sparkle-icon sparkle-1">âœ¨</span>
               </div>
               <h1 class="hero-title">PUBLICAR MASCOTA</h1>
               <div class="heart-icon-wrapper heart-2">
-                <span class="heart-icon">❤️</span>
-                <span class="sparkle-icon sparkle-2">✨</span>
+                <span class="heart-icon">â¤ï¸</span>
+                <span class="sparkle-icon sparkle-2">âœ¨</span>
               </div>
             </div>
             
             <p class="hero-subtitle">
-              💝 Completa el formulario con los detalles de tu mascota para encontrar la pareja perfecta 🐾
+              ðŸ’ Completa el formulario con los detalles de tu mascota para encontrar la pareja perfecta ðŸ¾
             </p>
           </div>
         </div>
@@ -79,27 +80,27 @@ import { AgeSelectorComponent, AgeData } from './age-selector.component';
         <!-- Selector de Mascota del Perfil -->
         @if (myPets().length > 0) {
           <div class="form-section highlight-section">
-            <h3 class="section-title">🐾 Selecciona una Mascota de tu Perfil</h3>
+            <h3 class="section-title">ðŸ¾ Selecciona una Mascota de tu Perfil</h3>
             <div class="form-group">
               <p-select
                 [(ngModel)]="selectedPetId"
                 [options]="petOptions()"
                 optionLabel="label"
                 optionValue="value"
-                placeholder="Selecciona una mascota o crea una nueva publicación"
+                placeholder="Selecciona una mascota o crea una nueva publicaciÃ³n"
                 [showClear]="true"
                 (onChange)="onPetSelected()"
                 [style]="{ width: '100%' }"
               />
               <small class="form-hint">
-                💡 Si seleccionas una mascota, el formulario se llenará automáticamente con sus datos
+                ðŸ’¡ Si seleccionas una mascota, el formulario se llenarÃ¡ automÃ¡ticamente con sus datos
               </small>
             </div>
           </div>
         }
 
         <div class="form-section">
-          <h3 class="section-title">📋 Información Básica</h3>
+          <h3 class="section-title">ðŸ“‹ InformaciÃ³n BÃ¡sica</h3>
           
           <div class="form-row">
             <div class="form-group">
@@ -152,7 +153,7 @@ import { AgeSelectorComponent, AgeData } from './age-selector.component';
             </div>
 
             <div class="form-group">
-              <label for="gender">Género *</label>
+              <label for="gender">GÃ©nero *</label>
               <div class="gender-selector">
                 <button
                   type="button"
@@ -161,7 +162,7 @@ import { AgeSelectorComponent, AgeData } from './age-selector.component';
                   (click)="setGender('M')"
                   [disabled]="isLoading()"
                 >
-                  <span class="gender-icon">♂️</span>
+                  <span class="gender-icon">â™‚ï¸</span>
                   <span>Macho</span>
                 </button>
                 <button
@@ -171,7 +172,7 @@ import { AgeSelectorComponent, AgeData } from './age-selector.component';
                   (click)="setGender('F')"
                   [disabled]="isLoading()"
                 >
-                  <span class="gender-icon">♀️</span>
+                  <span class="gender-icon">â™€ï¸</span>
                   <span>Hembra</span>
                 </button>
               </div>
@@ -180,7 +181,7 @@ import { AgeSelectorComponent, AgeData } from './age-selector.component';
 
           <div class="form-row">
             <div class="form-group">
-              <label for="size">Tamaño *</label>
+              <label for="size">TamaÃ±o *</label>
               <p-select
                 id="size"
                 name="size"
@@ -188,7 +189,7 @@ import { AgeSelectorComponent, AgeData } from './age-selector.component';
                 [options]="sizeOptions"
                 optionLabel="label"
                 optionValue="value"
-                placeholder="Seleccionar tamaño"
+                placeholder="Seleccionar tamaÃ±o"
                 [disabled]="isLoading()"
                 [style]="{ width: '100%' }"
               />
@@ -205,7 +206,7 @@ import { AgeSelectorComponent, AgeData } from './age-selector.component';
                 [(ngModel)]="petMatchForm.color"
                 name="color"
                 [disabled]="isLoading()"
-                placeholder="Ej: Negro, Blanco, Marrón"
+                placeholder="Ej: Negro, Blanco, MarrÃ³n"
               />
             </div>
 
@@ -234,7 +235,7 @@ import { AgeSelectorComponent, AgeData } from './age-selector.component';
           
           <div class="form-row">
             <div class="form-group">
-              <label for="preferred_breed_match">¿Qué tipo de pareja buscas? *</label>
+              <label for="preferred_breed_match">Â¿QuÃ© tipo de pareja buscas? *</label>
               <p-select
                 id="preferred_breed_match"
                 name="preferred_breed_match"
@@ -252,7 +253,7 @@ import { AgeSelectorComponent, AgeData } from './age-selector.component';
             </div>
 
             <div class="form-group">
-              <label for="preferred_size">Tamaño preferido</label>
+              <label for="preferred_size">TamaÃ±o preferido</label>
               <p-select
                 id="preferred_size"
                 name="preferred_size"
@@ -260,7 +261,7 @@ import { AgeSelectorComponent, AgeData } from './age-selector.component';
                 [options]="sizeOptions"
                 optionLabel="label"
                 optionValue="value"
-                placeholder="Cualquier tamaño"
+                placeholder="Cualquier tamaÃ±o"
                 [showClear]="true"
                 [disabled]="isLoading()"
                 [style]="{ width: '100%' }"
@@ -270,7 +271,7 @@ import { AgeSelectorComponent, AgeData } from './age-selector.component';
 
           <div class="form-row">
             <div class="form-group">
-              <label for="preferred_age_min">Edad preferida (años)</label>
+              <label for="preferred_age_min">Edad preferida (aÃ±os)</label>
               <div class="age-range-group">
                 <p-inputNumber
                   id="preferred_age_min"
@@ -278,7 +279,7 @@ import { AgeSelectorComponent, AgeData } from './age-selector.component';
                   [(ngModel)]="petMatchForm.preferred_age_min"
                   [min]="0"
                   [max]="20"
-                  placeholder="Mín"
+                  placeholder="MÃ­n"
                   [disabled]="isLoading()"
                   [style]="{ width: '100%' }"
                 />
@@ -289,12 +290,12 @@ import { AgeSelectorComponent, AgeData } from './age-selector.component';
                   [(ngModel)]="petMatchForm.preferred_age_max"
                   [min]="0"
                   [max]="20"
-                  placeholder="Máx"
+                  placeholder="MÃ¡x"
                   [disabled]="isLoading()"
                   [style]="{ width: '100%' }"
                 />
               </div>
-              <small class="form-hint">Deja vacío para cualquier edad</small>
+              <small class="form-hint">Deja vacÃ­o para cualquier edad</small>
             </div>
 
             <div class="form-group">
@@ -311,22 +312,22 @@ import { AgeSelectorComponent, AgeData } from './age-selector.component';
                   } @else if (petMatchForm.gender === 'F') {
                     Notificar si ya tiene un perrito
                   } @else {
-                    Notificar si ya tiene una mascota del género opuesto
+                    Notificar si ya tiene una mascota del gÃ©nero opuesto
                   }
                 </span>
               </label>
               <small class="form-hint">
-                Si está marcado, recibirás notificaciones cuando alguien con una mascota del género opuesto publique
+                Si estÃ¡ marcado, recibirÃ¡s notificaciones cuando alguien con una mascota del gÃ©nero opuesto publique
               </small>
             </div>
           </div>
         </div>
 
         <div class="form-section">
-          <h3 class="section-title">Descripción y Detalles</h3>
+          <h3 class="section-title">DescripciÃ³n y Detalles</h3>
           
           <div class="form-group">
-            <label for="description">Descripción</label>
+            <label for="description">DescripciÃ³n</label>
             <textarea
               id="description"
               pTextarea
@@ -334,7 +335,7 @@ import { AgeSelectorComponent, AgeData } from './age-selector.component';
               name="description"
               [rows]="4"
               [disabled]="isLoading()"
-              placeholder="Describe la personalidad, comportamiento y características especiales de tu mascota..."
+              placeholder="Describe la personalidad, comportamiento y caracterÃ­sticas especiales de tu mascota..."
             ></textarea>
           </div>
 
@@ -347,7 +348,7 @@ import { AgeSelectorComponent, AgeData } from './age-selector.component';
               [options]="personalityOptions()"
               optionLabel="label"
               optionValue="value"
-              placeholder="Seleccione una o más opciones..."
+              placeholder="Seleccione una o mÃ¡s opciones..."
               [displaySelectedLabel]="true"
               [maxSelectedLabels]="3"
               [showToggleAll]="false"
@@ -358,10 +359,10 @@ import { AgeSelectorComponent, AgeData } from './age-selector.component';
         </div>
 
         <div class="form-section">
-          <h3 class="section-title">Ubicación y Contacto</h3>
+          <h3 class="section-title">UbicaciÃ³n y Contacto</h3>
           
           <div class="form-group">
-            <label for="location">Ubicación</label>
+            <label for="location">UbicaciÃ³n</label>
             <input
               id="location"
               type="text"
@@ -369,7 +370,7 @@ import { AgeSelectorComponent, AgeData } from './age-selector.component';
               [(ngModel)]="petMatchForm.location"
               name="location"
               [disabled]="isLoading()"
-              placeholder="Ej: Ciudad de Panamá, San Francisco, etc."
+              placeholder="Ej: Ciudad de PanamÃ¡, San Francisco, etc."
             />
           </div>
 
@@ -389,7 +390,7 @@ import { AgeSelectorComponent, AgeData } from './age-selector.component';
             </div>
 
             <div class="form-group">
-              <label for="contact_phone">Teléfono de contacto</label>
+              <label for="contact_phone">TelÃ©fono de contacto</label>
               <input
                 id="contact_phone"
                 type="tel"
@@ -719,7 +720,7 @@ import { AgeSelectorComponent, AgeData } from './age-selector.component';
         flex-shrink: 0;
       }
 
-      /* Espacio adicional después del selector de raza */
+      /* Espacio adicional despuÃ©s del selector de raza */
       pt-breed-selector {
         display: block;
         margin-bottom: 2rem;
@@ -985,7 +986,7 @@ export class PetMatchFormComponent implements OnInit {
   ];
 
   public sizeOptions = [
-    { label: 'Pequeño', value: 'small' },
+    { label: 'PequeÃ±o', value: 'small' },
     { label: 'Mediano', value: 'medium' },
     { label: 'Grande', value: 'large' },
   ];
@@ -998,23 +999,23 @@ export class PetMatchFormComponent implements OnInit {
 
   public preferredContactOptions = [
     { label: 'Email', value: 'email' },
-    { label: 'Teléfono', value: 'phone' },
+    { label: 'TelÃ©fono', value: 'phone' },
     { label: 'Ambos', value: 'both' },
   ];
 
-  // Opciones estáticas de personalidad como fallback
+  // Opciones estÃ¡ticas de personalidad como fallback
   private static readonly DEFAULT_PERSONALITY_OPTIONS = [
-    { label: 'Juguetón', value: 'jugueton' },
+    { label: 'JuguetÃ³n', value: 'jugueton' },
     { label: 'Tranquilo', value: 'tranquilo' },
-    { label: 'Cariñoso', value: 'carinoso' },
+    { label: 'CariÃ±oso', value: 'carinoso' },
     { label: 'Independiente', value: 'independiente' },
     { label: 'Sociable', value: 'sociable' },
     { label: 'Activo', value: 'activo' },
     { label: 'Protector', value: 'protector' },
-    { label: 'Tímido', value: 'timido' },
+    { label: 'TÃ­mido', value: 'timido' },
     { label: 'Curioso', value: 'curioso' },
-    { label: 'Energético', value: 'energetico' },
-    { label: 'Dócil', value: 'docil' },
+    { label: 'EnergÃ©tico', value: 'energetico' },
+    { label: 'DÃ³cil', value: 'docil' },
     { label: 'Amigable', value: 'amigable' },
     { label: 'Inteligente', value: 'inteligente' },
     { label: 'Leal', value: 'leal' },
@@ -1029,7 +1030,7 @@ export class PetMatchFormComponent implements OnInit {
         value: trait.value,
       }));
     }
-    // Fallback a opciones estáticas si no hay datos en el store
+    // Fallback a opciones estÃ¡ticas si no hay datos en el store
     return PetMatchFormComponent.DEFAULT_PERSONALITY_OPTIONS;
   });
 
@@ -1041,7 +1042,7 @@ export class PetMatchFormComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    // Pre-llenar email con el del usuario autenticado si está disponible
+    // Pre-llenar email con el del usuario autenticado si estÃ¡ disponible
     const user = this.authWrapper.currentUser();
     if (user && user.email) {
       this.contactInfo.email = user.email;
@@ -1060,12 +1061,12 @@ export class PetMatchFormComponent implements OnInit {
   }
 
   private loadPetFromProfile(petId: string): void {
-    // Buscar la mascota en myPets (ya está cargado)
+    // Buscar la mascota en myPets (ya estÃ¡ cargado)
     const pet = this.myPets().find((p: UserPet) => p.id === petId);
     if (pet) {
       this.fillFormFromPet(pet);
     } else {
-      // Si no está, usar entityMap del store
+      // Si no estÃ¡, usar entityMap del store
       const petFromMap = this.userPetsStore.entityMap()[petId];
       if (petFromMap) {
         this.fillFormFromPet(petFromMap);
@@ -1265,7 +1266,7 @@ export class PetMatchFormComponent implements OnInit {
       next: () => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Éxito',
+          summary: 'Ã‰xito',
           detail: 'Mascota publicada correctamente y agregada a Mis Mascotas',
         });
         this.router.navigate(['/adoptions/busco-pareja']);
@@ -1286,4 +1287,5 @@ export class PetMatchFormComponent implements OnInit {
     this.router.navigate(['/adoptions/busco-pareja']);
   }
 }
+
 

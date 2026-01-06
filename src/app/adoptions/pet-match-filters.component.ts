@@ -1,4 +1,4 @@
-import { Component, signal, output, computed } from '@angular/core';
+﻿import { Component, signal, output, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { InputTextModule } from 'primeng/inputtext';
@@ -22,6 +22,7 @@ export interface PetMatchFilters {
 @Component({
   selector: 'pt-pet-match-filters',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -35,22 +36,22 @@ export interface PetMatchFilters {
     <div class="filters-container">
       <!-- Search bar -->
       <div class="search-bar-wrapper">
-        <span class="search-icon">🔍</span>
+        <span class="search-icon">ðŸ”</span>
         <input
           type="text"
           pInputText
-          placeholder="¿Buscas a alguien especial? 🔍"
+          placeholder="Â¿Buscas a alguien especial? ðŸ”"
           [(ngModel)]="searchTerm"
           (input)="onFilterChange()"
           class="search-input"
         />
-        <span class="sparkle-icon">✨</span>
+        <span class="sparkle-icon">âœ¨</span>
       </div>
 
       <!-- Filter toggle -->
       <div class="filters-toggle-row">
         <p-button
-          label="Filtros Mágicos ✨"
+          label="Filtros MÃ¡gicos âœ¨"
           icon="pi pi-sliders-h"
           severity="secondary"
           [outlined]="true"
@@ -81,13 +82,13 @@ export interface PetMatchFilters {
         <div class="filters-content">
           <div class="filters-grid">
             <div class="filter-group">
-              <label class="filter-label">🐾 Especie</label>
+              <label class="filter-label">ðŸ¾ Especie</label>
               <p-dropdown
                 [(ngModel)]="species"
                 [options]="speciesOptions"
                 optionLabel="label"
                 optionValue="value"
-                placeholder="✨ Todos"
+                placeholder="âœ¨ Todos"
                 [showClear]="true"
                 (onChange)="onFilterChange()"
                 [style]="{ width: '100%' }"
@@ -95,13 +96,13 @@ export interface PetMatchFilters {
             </div>
 
             <div class="filter-group">
-              <label class="filter-label">💝 Género</label>
+              <label class="filter-label">ðŸ’ GÃ©nero</label>
               <p-dropdown
                 [(ngModel)]="gender"
                 [options]="genderOptions"
                 optionLabel="label"
                 optionValue="value"
-                placeholder="✨ Todos"
+                placeholder="âœ¨ Todos"
                 [showClear]="true"
                 (onChange)="onFilterChange()"
                 [style]="{ width: '100%' }"
@@ -109,13 +110,13 @@ export interface PetMatchFilters {
             </div>
 
             <div class="filter-group">
-              <label class="filter-label">📏 Tamaño</label>
+              <label class="filter-label">ðŸ“ TamaÃ±o</label>
               <p-dropdown
                 [(ngModel)]="size"
                 [options]="sizeOptions"
                 optionLabel="label"
                 optionValue="value"
-                placeholder="✨ Todos"
+                placeholder="âœ¨ Todos"
                 [showClear]="true"
                 (onChange)="onFilterChange()"
                 [style]="{ width: '100%' }"
@@ -123,7 +124,7 @@ export interface PetMatchFilters {
             </div>
 
             <div class="filter-group">
-              <label class="filter-label">🎨 Raza</label>
+              <label class="filter-label">ðŸŽ¨ Raza</label>
               <input
                 type="text"
                 pInputText
@@ -323,7 +324,7 @@ export class PetMatchFiltersComponent {
   ];
 
   public sizeOptions = [
-    { label: 'Pequeño', value: 'small' },
+    { label: 'PequeÃ±o', value: 'small' },
     { label: 'Mediano', value: 'medium' },
     { label: 'Grande', value: 'large' },
   ];
@@ -362,4 +363,5 @@ export class PetMatchFiltersComponent {
     this.onFilterChange();
   }
 }
+
 

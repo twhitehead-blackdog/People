@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -25,6 +25,7 @@ import { AgeSelectorComponent } from './age-selector.component';
 @Component({
   selector: 'pt-admin-pet-matches',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -49,10 +50,10 @@ import { AgeSelectorComponent } from './age-selector.component';
     <p-toast />
     <div class="pet-matches-management">
       <div class="section-header">
-        <h2>Gestión de "Busco Pareja"</h2>
+        <h2>GestiÃ³n de "Busco Pareja"</h2>
         <div class="header-actions">
           <p-button
-            label="Nueva Publicación"
+            label="Nueva PublicaciÃ³n"
             icon="pi pi-plus"
             (onClick)="openNewMatchDialog()"
             [style]="{
@@ -129,7 +130,7 @@ import { AgeSelectorComponent } from './age-selector.component';
             <tr>
               <th>Mascota</th>
               <th>Especie</th>
-              <th>Género</th>
+              <th>GÃ©nero</th>
               <th>Edad</th>
               <th>Estado</th>
               <th>Fecha</th>
@@ -210,14 +211,14 @@ import { AgeSelectorComponent } from './age-selector.component';
       (visibleChange)="showMatchDialog.set($event)"
       [modal]="true"
       [style]="{ width: '90vw', maxWidth: '900px' }"
-      [header]="editingMatch() ? 'Editar Publicación' : 'Nueva Publicación'"
+      [header]="editingMatch() ? 'Editar PublicaciÃ³n' : 'Nueva PublicaciÃ³n'"
       (onHide)="resetForm()"
       [draggable]="false"
       [resizable]="false"
     >
       <form (ngSubmit)="saveMatch()" class="match-form">
         <div class="form-section">
-          <h3 class="section-title">Información Básica</h3>
+          <h3 class="section-title">InformaciÃ³n BÃ¡sica</h3>
           
           <div class="form-row">
             <div class="form-group">
@@ -269,7 +270,7 @@ import { AgeSelectorComponent } from './age-selector.component';
             </div>
 
             <div class="form-group">
-              <label for="gender">Género *</label>
+              <label for="gender">GÃ©nero *</label>
               <p-select
                 id="gender"
                 name="gender"
@@ -277,7 +278,7 @@ import { AgeSelectorComponent } from './age-selector.component';
                 [options]="genderOptions"
                 optionLabel="label"
                 optionValue="value"
-                placeholder="Seleccionar género"
+                placeholder="Seleccionar gÃ©nero"
                 [disabled]="isLoading()"
                 [style]="{ width: '100%' }"
               />
@@ -286,7 +287,7 @@ import { AgeSelectorComponent } from './age-selector.component';
 
           <div class="form-row">
             <div class="form-group">
-              <label for="size">Tamaño *</label>
+              <label for="size">TamaÃ±o *</label>
               <p-select
                 id="size"
                 name="size"
@@ -294,7 +295,7 @@ import { AgeSelectorComponent } from './age-selector.component';
                 [options]="sizeOptions"
                 optionLabel="label"
                 optionValue="value"
-                placeholder="Seleccionar tamaño"
+                placeholder="Seleccionar tamaÃ±o"
                 [disabled]="isLoading()"
                 [style]="{ width: '100%' }"
               />
@@ -333,7 +334,7 @@ import { AgeSelectorComponent } from './age-selector.component';
           </div>
 
           <div class="form-group">
-            <label for="description">Descripción</label>
+            <label for="description">DescripciÃ³n</label>
             <textarea
               id="description"
               pTextarea
@@ -341,7 +342,7 @@ import { AgeSelectorComponent } from './age-selector.component';
               name="description"
               rows="4"
               [disabled]="isLoading()"
-              placeholder="Cuéntanos sobre la mascota..."
+              placeholder="CuÃ©ntanos sobre la mascota..."
             ></textarea>
           </div>
 
@@ -403,7 +404,7 @@ import { AgeSelectorComponent } from './age-selector.component';
 
           <div class="form-row">
             <div class="form-group">
-              <label for="preferred_age_min">Edad preferida (mín. años)</label>
+              <label for="preferred_age_min">Edad preferida (mÃ­n. aÃ±os)</label>
               <p-inputNumber
                 id="preferred_age_min"
                 name="preferred_age_min"
@@ -416,7 +417,7 @@ import { AgeSelectorComponent } from './age-selector.component';
               />
             </div>
             <div class="form-group">
-              <label for="preferred_age_max">Edad preferida (máx. años)</label>
+              <label for="preferred_age_max">Edad preferida (mÃ¡x. aÃ±os)</label>
               <p-inputNumber
                 id="preferred_age_max"
                 name="preferred_age_max"
@@ -431,7 +432,7 @@ import { AgeSelectorComponent } from './age-selector.component';
           </div>
 
           <div class="form-group">
-            <label for="preferred_size">Tamaño preferido de pareja</label>
+            <label for="preferred_size">TamaÃ±o preferido de pareja</label>
             <p-select
               id="preferred_size"
               name="preferred_size"
@@ -439,7 +440,7 @@ import { AgeSelectorComponent } from './age-selector.component';
               [options]="sizeOptions"
               optionLabel="label"
               optionValue="value"
-              placeholder="Cualquier tamaño"
+              placeholder="Cualquier tamaÃ±o"
               [showClear]="true"
               [disabled]="isLoading()"
               [style]="{ width: '100%' }"
@@ -472,7 +473,7 @@ import { AgeSelectorComponent } from './age-selector.component';
               [options]="personalityOptions()"
               optionLabel="label"
               optionValue="value"
-              placeholder="Seleccione una o más opciones..."
+              placeholder="Seleccione una o mÃ¡s opciones..."
               [displaySelectedLabel]="true"
               [maxSelectedLabels]="3"
               [showToggleAll]="false"
@@ -507,7 +508,7 @@ import { AgeSelectorComponent } from './age-selector.component';
               inputId="is_active"
               [disabled]="isLoading()"
             />
-            <label for="is_active" class="checkbox-label">Publicación activa</label>
+            <label for="is_active" class="checkbox-label">PublicaciÃ³n activa</label>
           </div>
         </div>
 
@@ -548,7 +549,7 @@ import { AgeSelectorComponent } from './age-selector.component';
       (visibleChange)="showDetailsDialog.set($event)"
       [modal]="true"
       [style]="{ width: '90vw', maxWidth: '700px' }"
-      header="Detalles de la Publicación"
+      header="Detalles de la PublicaciÃ³n"
       [draggable]="false"
       [resizable]="false"
     >
@@ -574,16 +575,16 @@ import { AgeSelectorComponent } from './age-selector.component';
 
           <div class="details-content">
             <div class="details-section">
-              <h3>Información Básica</h3>
+              <h3>InformaciÃ³n BÃ¡sica</h3>
               <div class="details-grid">
                 <div class="details-item">
                   <strong>Especie:</strong> {{ getSpeciesLabel(selectedMatch()!.species) }}
                 </div>
                 <div class="details-item">
-                  <strong>Género:</strong> {{ selectedMatch()!.gender === 'M' ? 'Macho' : 'Hembra' }}
+                  <strong>GÃ©nero:</strong> {{ selectedMatch()!.gender === 'M' ? 'Macho' : 'Hembra' }}
                 </div>
                 <div class="details-item">
-                  <strong>Tamaño:</strong> {{ getSizeLabel(selectedMatch()!.size) }}
+                  <strong>TamaÃ±o:</strong> {{ getSizeLabel(selectedMatch()!.size) }}
                 </div>
                 <div class="details-item">
                   <strong>Edad:</strong> {{ formatAge(selectedMatch()!) }}
@@ -611,7 +612,7 @@ import { AgeSelectorComponent } from './age-selector.component';
 
             @if (selectedMatch()!.description) {
               <div class="details-section">
-                <h3>Descripción</h3>
+                <h3>DescripciÃ³n</h3>
                 <p>{{ selectedMatch()!.description }}</p>
               </div>
             }
@@ -625,16 +626,16 @@ import { AgeSelectorComponent } from './age-selector.component';
                 @if (selectedMatch()!.preferred_age_min || selectedMatch()!.preferred_age_max) {
                   <div class="details-item">
                     <strong>Edad preferida:</strong>
-                    {{ selectedMatch()!.preferred_age_min || 0 }} - {{ selectedMatch()!.preferred_age_max || 30 }} años
+                    {{ selectedMatch()!.preferred_age_min || 0 }} - {{ selectedMatch()!.preferred_age_max || 30 }} aÃ±os
                   </div>
                 }
                 @if (selectedMatch()!.preferred_size) {
                   <div class="details-item">
-                    <strong>Tamaño preferido:</strong> {{ getSizeLabel(selectedMatch()!.preferred_size!) }}
+                    <strong>TamaÃ±o preferido:</strong> {{ getSizeLabel(selectedMatch()!.preferred_size!) }}
                   </div>
                 }
                 <div class="details-item">
-                  <strong>Notificaciones:</strong> {{ selectedMatch()!.notify_if_has_pet ? 'Sí' : 'No' }}
+                  <strong>Notificaciones:</strong> {{ selectedMatch()!.notify_if_has_pet ? 'SÃ­' : 'No' }}
                 </div>
               </div>
             </div>
@@ -657,10 +658,10 @@ import { AgeSelectorComponent } from './age-selector.component';
                   <strong>Estado:</strong> {{ selectedMatch()!.health_status || 'No especificado' }}
                 </div>
                 <div class="details-item">
-                  <strong>Vacunado:</strong> {{ selectedMatch()!.is_vaccinated ? 'Sí' : 'No' }}
+                  <strong>Vacunado:</strong> {{ selectedMatch()!.is_vaccinated ? 'SÃ­' : 'No' }}
                 </div>
                 <div class="details-item">
-                  <strong>Esterilizado:</strong> {{ selectedMatch()!.is_sterilized ? 'Sí' : 'No' }}
+                  <strong>Esterilizado:</strong> {{ selectedMatch()!.is_sterilized ? 'SÃ­' : 'No' }}
                 </div>
               </div>
             </div>
@@ -1017,9 +1018,9 @@ export class AdminPetMatchesComponent {
   };
 
   public speciesOptions = [
-    { label: '🐕 Perro', value: 'dog' },
-    { label: '🐱 Gato', value: 'cat' },
-    { label: '🐾 Otro', value: 'other' },
+    { label: 'ðŸ• Perro', value: 'dog' },
+    { label: 'ðŸ± Gato', value: 'cat' },
+    { label: 'ðŸ¾ Otro', value: 'other' },
   ];
 
   public genderOptions = [
@@ -1028,7 +1029,7 @@ export class AdminPetMatchesComponent {
   ];
 
   public sizeOptions = [
-    { label: 'Pequeño', value: 'small' },
+    { label: 'PequeÃ±o', value: 'small' },
     { label: 'Mediano', value: 'medium' },
     { label: 'Grande', value: 'large' },
   ];
@@ -1058,19 +1059,19 @@ export class AdminPetMatchesComponent {
         value: trait.id,
       }));
     }
-    // Fallback estático si el store está vacío
+    // Fallback estÃ¡tico si el store estÃ¡ vacÃ­o
     return [
-      { label: 'Juguetón', value: 'jugueton' },
+      { label: 'JuguetÃ³n', value: 'jugueton' },
       { label: 'Tranquilo', value: 'tranquilo' },
-      { label: 'Cariñoso', value: 'carinoso' },
+      { label: 'CariÃ±oso', value: 'carinoso' },
       { label: 'Independiente', value: 'independiente' },
       { label: 'Sociable', value: 'sociable' },
       { label: 'Activo', value: 'activo' },
       { label: 'Protector', value: 'protector' },
-      { label: 'Tímido', value: 'timido' },
+      { label: 'TÃ­mido', value: 'timido' },
       { label: 'Curioso', value: 'curioso' },
-      { label: 'Energético', value: 'energetico' },
-      { label: 'Dócil', value: 'docil' },
+      { label: 'EnergÃ©tico', value: 'energetico' },
+      { label: 'DÃ³cil', value: 'docil' },
     ];
   });
 
@@ -1116,7 +1117,7 @@ export class AdminPetMatchesComponent {
   }
 
   public applyFilters(): void {
-    // Los filtros se aplican automáticamente a través del computed
+    // Los filtros se aplican automÃ¡ticamente a travÃ©s del computed
   }
 
   public openNewMatchDialog(): void {
@@ -1194,20 +1195,20 @@ export class AdminPetMatchesComponent {
         await this.petMatchesStore.editItem(fullMatchData).toPromise();
         this.messageService.add({
           severity: 'success',
-          summary: '¡Éxito!',
-          detail: 'Publicación actualizada correctamente',
+          summary: 'Â¡Ã‰xito!',
+          detail: 'PublicaciÃ³n actualizada correctamente',
         });
       } else {
         const fullMatchData: PetMatch = {
           ...matchData,
           id: crypto.randomUUID(),
-          user_id: '', // Esto debería venir del usuario autenticado
+          user_id: '', // Esto deberÃ­a venir del usuario autenticado
         } as PetMatch;
         await this.petMatchesStore.createItem(fullMatchData).toPromise();
         this.messageService.add({
           severity: 'success',
-          summary: '¡Éxito!',
-          detail: 'Publicación creada correctamente',
+          summary: 'Â¡Ã‰xito!',
+          detail: 'PublicaciÃ³n creada correctamente',
         });
       }
 
@@ -1217,7 +1218,7 @@ export class AdminPetMatchesComponent {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: error.message || 'No se pudo guardar la publicación',
+        detail: error.message || 'No se pudo guardar la publicaciÃ³n',
       });
     } finally {
       this.isLoading.set(false);
@@ -1234,14 +1235,14 @@ export class AdminPetMatchesComponent {
       await this.petMatchesStore.editItem(updatedMatch).toPromise();
       this.messageService.add({
         severity: 'success',
-        summary: '¡Éxito!',
-        detail: `Publicación ${updatedMatch.is_active ? 'activada' : 'desactivada'} correctamente`,
+        summary: 'Â¡Ã‰xito!',
+        detail: `PublicaciÃ³n ${updatedMatch.is_active ? 'activada' : 'desactivada'} correctamente`,
       });
     } catch (error: any) {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: error.message || 'No se pudo actualizar la publicación',
+        detail: error.message || 'No se pudo actualizar la publicaciÃ³n',
       });
     } finally {
       this.isLoading.set(false);
@@ -1249,7 +1250,7 @@ export class AdminPetMatchesComponent {
   }
 
   public deleteMatch(match: PetMatch): void {
-    if (!confirm(`¿Estás seguro de que deseas eliminar la publicación de "${match.pet_name}"?`)) {
+    if (!confirm(`Â¿EstÃ¡s seguro de que deseas eliminar la publicaciÃ³n de "${match.pet_name}"?`)) {
       return;
     }
 
@@ -1258,14 +1259,14 @@ export class AdminPetMatchesComponent {
       this.petMatchesStore.deleteItem(match.id);
       this.messageService.add({
         severity: 'success',
-        summary: '¡Éxito!',
-        detail: 'Publicación eliminada correctamente',
+        summary: 'Â¡Ã‰xito!',
+        detail: 'PublicaciÃ³n eliminada correctamente',
       });
     } catch (error: any) {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: error.message || 'No se pudo eliminar la publicación',
+        detail: error.message || 'No se pudo eliminar la publicaciÃ³n',
       });
     } finally {
       this.isLoading.set(false);
@@ -1301,7 +1302,7 @@ export class AdminPetMatchesComponent {
 
   public getSizeLabel(size: string): string {
     const labels: Record<string, string> = {
-      small: 'Pequeño',
+      small: 'PequeÃ±o',
       medium: 'Mediano',
       large: 'Grande',
     };
@@ -1320,12 +1321,12 @@ export class AdminPetMatchesComponent {
   public formatAge(match: PetMatch): string {
     if (match.age_years !== undefined) {
       if (match.age_months !== undefined && match.age_months > 0) {
-        return `${match.age_years} años y ${match.age_months} meses`;
+        return `${match.age_years} aÃ±os y ${match.age_months} meses`;
       }
-      return `${match.age_years} años`;
+      return `${match.age_years} aÃ±os`;
     }
     if (match.age !== undefined) {
-      return `${match.age.toFixed(1)} años`;
+      return `${match.age.toFixed(1)} aÃ±os`;
     }
     return 'N/A';
   }
@@ -1340,4 +1341,5 @@ export class AdminPetMatchesComponent {
     });
   }
 }
+
 

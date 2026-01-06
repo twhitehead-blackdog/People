@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
@@ -18,6 +18,7 @@ import { FAQStore } from '../stores/faq.store';
 @Component({
   selector: 'pt-admin-faq',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -37,7 +38,7 @@ import { FAQStore } from '../stores/faq.store';
     <p-toast />
     <div class="faq-container">
       <div class="section-header">
-        <h2>Gestión de Preguntas Frecuentes</h2>
+        <h2>GestiÃ³n de Preguntas Frecuentes</h2>
         <p-button
           label="Nueva Pregunta"
           icon="pi pi-plus"
@@ -81,7 +82,7 @@ import { FAQStore } from '../stores/faq.store';
               </th>
               <th>Pregunta</th>
               <th>Respuesta</th>
-              <th>Categoría</th>
+              <th>CategorÃ­a</th>
               <th>Estado</th>
               <th>Acciones</th>
             </tr>
@@ -99,7 +100,7 @@ import { FAQStore } from '../stores/faq.store';
                 @if (faq.category) {
                   <p-tag [value]="faq.category" severity="info" />
                 } @else {
-                  <span class="no-category">Sin categoría</span>
+                  <span class="no-category">Sin categorÃ­a</span>
                 }
               </td>
               <td>
@@ -171,17 +172,17 @@ import { FAQStore } from '../stores/faq.store';
             required
             [style]="{ width: '100%' }"
           />
-          <small class="form-hint">El orden determina la posición en la lista</small>
+          <small class="form-hint">El orden determina la posiciÃ³n en la lista</small>
         </div>
 
         <div class="form-group">
-          <label for="category">Categoría</label>
+          <label for="category">CategorÃ­a</label>
           <p-select
             id="category"
             [(ngModel)]="faqForm.category"
             name="category"
             [options]="categoryOptions"
-            placeholder="Seleccionar categoría (opcional)"
+            placeholder="Seleccionar categorÃ­a (opcional)"
             [showClear]="true"
             [disabled]="isLoading()"
             [style]="{ width: '100%' }"
@@ -198,7 +199,7 @@ import { FAQStore } from '../stores/faq.store';
             name="question"
             required
             [disabled]="isLoading()"
-            placeholder="Ej: ¿Cuánto tiempo toma el proceso de adopción?"
+            placeholder="Ej: Â¿CuÃ¡nto tiempo toma el proceso de adopciÃ³n?"
           />
         </div>
 
@@ -345,7 +346,7 @@ import { FAQStore } from '../stores/faq.store';
         overflow-x: auto;
       }
 
-      /* Asegurar que los diálogos no se sobrepongan */
+      /* Asegurar que los diÃ¡logos no se sobrepongan */
       ::ng-deep .p-dialog {
         z-index: 1100 !important;
         position: fixed !important;
@@ -432,7 +433,7 @@ export class AdminFAQComponent {
   public globalFilter = signal('');
 
   public categoryOptions = [
-    { label: 'Adopción', value: 'Adopción' },
+    { label: 'AdopciÃ³n', value: 'AdopciÃ³n' },
     { label: 'Cuidados', value: 'Cuidados' },
     { label: 'Proceso', value: 'Proceso' },
     { label: 'Requisitos', value: 'Requisitos' },
@@ -576,7 +577,7 @@ export class AdminFAQComponent {
         this.messageService.add({
           severity: 'success',
           summary: 'Estado actualizado',
-          detail: `La pregunta ahora está ${updated.is_active ? 'activa' : 'inactiva'}`,
+          detail: `La pregunta ahora estÃ¡ ${updated.is_active ? 'activa' : 'inactiva'}`,
         });
         this.isLoading.set(false);
       },
@@ -595,4 +596,5 @@ export class AdminFAQComponent {
     this.faqStore.deleteItem(faq.id);
   }
 }
+
 

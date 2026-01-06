@@ -17,6 +17,7 @@ import { filter, take } from 'rxjs/operators';
 @Component({
   selector: 'pt-adoptions-home',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     AdoptionsHeroComponent,

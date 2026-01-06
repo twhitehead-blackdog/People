@@ -1,4 +1,4 @@
-import { Component, input, output, signal, computed, effect } from '@angular/core';
+﻿import { Component, input, output, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { InputNumber } from 'primeng/inputnumber';
@@ -16,6 +16,7 @@ export interface AgeData {
 @Component({
   selector: 'pt-age-selector',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, InputNumber, CalendarModule, Button],
   template: `
     <div class="age-selector">
@@ -26,8 +27,8 @@ export interface AgeData {
           [class.active]="ageMode() === 'years_months'"
           (click)="setAgeMode('years_months')"
         >
-          <span class="mode-icon">📅</span>
-          <span>Años y Meses</span>
+          <span class="mode-icon">ðŸ“…</span>
+          <span>AÃ±os y Meses</span>
         </button>
         <button
           type="button"
@@ -35,8 +36,8 @@ export interface AgeData {
           [class.active]="ageMode() === 'birthday'"
           (click)="setAgeMode('birthday')"
         >
-          <span class="mode-icon">🎂</span>
-          <span>Fecha de Cumpleaños</span>
+          <span class="mode-icon">ðŸŽ‚</span>
+          <span>Fecha de CumpleaÃ±os</span>
         </button>
       </div>
 
@@ -44,7 +45,7 @@ export interface AgeData {
         @if (ageMode() === 'years_months') {
           <div class="age-inputs">
             <div class="age-input-group">
-              <label>Años</label>
+              <label>AÃ±os</label>
               <p-inputNumber
                 [(ngModel)]="ageYears"
                 [min]="0"
@@ -68,12 +69,12 @@ export interface AgeData {
           </div>
           @if (calculatedAge()) {
             <div class="age-display">
-              <span class="age-text">💫 Edad: {{ calculatedAge() }}</span>
+              <span class="age-text">ðŸ’« Edad: {{ calculatedAge() }}</span>
             </div>
           }
         } @else {
           <div class="birthday-input">
-            <label>Fecha de Cumpleaños</label>
+            <label>Fecha de CumpleaÃ±os</label>
             <p-calendar
               [(ngModel)]="birthDate"
               [maxDate]="maxDate"
@@ -85,7 +86,7 @@ export interface AgeData {
             />
             @if (calculatedAgeFromBirthday()) {
               <div class="age-display">
-                <span class="age-text">💫 Edad calculada: {{ calculatedAgeFromBirthday() }}</span>
+                <span class="age-text">ðŸ’« Edad calculada: {{ calculatedAgeFromBirthday() }}</span>
               </div>
             }
           </div>
@@ -222,7 +223,7 @@ export class AgeSelectorComponent {
     if (years === null && months === null) {
       return null;
     }
-    const yearsStr = years !== null ? `${years} año${years !== 1 ? 's' : ''}` : '';
+    const yearsStr = years !== null ? `${years} aÃ±o${years !== 1 ? 's' : ''}` : '';
     const monthsStr = months !== null && months > 0 ? `${months} mes${months !== 1 ? 'es' : ''}` : '';
     if (yearsStr && monthsStr) {
       return `${yearsStr} y ${monthsStr}`;
@@ -238,7 +239,7 @@ export class AgeSelectorComponent {
     const today = new Date();
     const years = differenceInYears(today, date);
     const months = differenceInMonths(today, date) % 12;
-    const yearsStr = years > 0 ? `${years} año${years !== 1 ? 's' : ''}` : '';
+    const yearsStr = years > 0 ? `${years} aÃ±o${years !== 1 ? 's' : ''}` : '';
     const monthsStr = months > 0 ? `${months} mes${months !== 1 ? 'es' : ''}` : '';
     if (yearsStr && monthsStr) {
       return `${yearsStr} y ${monthsStr}`;
@@ -307,7 +308,7 @@ export class AgeSelectorComponent {
       ageData.age_months = this.ageMonths() ?? undefined;
     } else {
       ageData.birth_date = this.birthDate() ?? undefined;
-      // Calcular años y meses desde cumpleaños
+      // Calcular aÃ±os y meses desde cumpleaÃ±os
       if (this.birthDate()) {
         const today = new Date();
         ageData.age_years = differenceInYears(today, this.birthDate()!);
@@ -318,4 +319,5 @@ export class AgeSelectorComponent {
     this.ageChanged.emit(ageData);
   }
 }
+
 

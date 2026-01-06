@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit, AfterViewInit, effect } from '@angular/core';
+﻿import { Component, inject, signal, computed, OnInit, AfterViewInit, effect } from '@angular/core';
 import { CommonModule, ViewportScroller } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -21,6 +21,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
 @Component({
   selector: 'pt-adoption-form',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -42,11 +43,11 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
       <!-- Hero Header -->
       <div class="form-hero">
         <div class="hero-content">
-          <div class="hero-icon">🐾</div>
-          <h1 class="hero-title">{{ isEditMode() ? 'Editar Solicitud de Adopción' : 'Solicitud de Adopción' }}</h1>
+          <div class="hero-icon">ðŸ¾</div>
+          <h1 class="hero-title">{{ isEditMode() ? 'Editar Solicitud de AdopciÃ³n' : 'Solicitud de AdopciÃ³n' }}</h1>
           @if (pet()) {
           <div class="pet-info-badge">
-            <span class="pet-emoji">{{ pet()!.species === 'dog' ? '🐕' : pet()!.species === 'cat' ? '🐈' : '🐾' }}</span>
+            <span class="pet-emoji">{{ pet()!.species === 'dog' ? 'ðŸ•' : pet()!.species === 'cat' ? 'ðŸˆ' : 'ðŸ¾' }}</span>
             <span class="pet-name">{{ pet()!.name }}</span>
           </div>
           }
@@ -70,14 +71,14 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
             >
               <div class="step-number">
                 @if (step < currentStep()) {
-                  ✓
+                  âœ“
                 } @else {
                   {{ step }}
                 }
               </div>
               <div class="step-label">
                 @if (step === 1) { Personal }
-                @else if (step === 2) { Dirección }
+                @else if (step === 2) { DirecciÃ³n }
                 @else if (step === 3) { Hogar }
                 @else { Resumen }
               </div>
@@ -92,7 +93,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
         <form [formGroup]="adoptionForm" (ngSubmit)="onSubmit()">
           <!-- Carousel Container -->
           <div class="wizard-carousel">
-            <!-- Botón Cancelar (esquina superior izquierda) -->
+            <!-- BotÃ³n Cancelar (esquina superior izquierda) -->
             <button 
               class="carousel-arrow carousel-arrow-cancel"
               (click)="goBack()"
@@ -122,8 +123,8 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
                   <div class="step-preview-content">
                     @if (currentStep() === 2) {
                       <div class="step-preview-header">
-                        <div class="section-icon">👤</div>
-                        <h4>Información Personal</h4>
+                        <div class="section-icon">ðŸ‘¤</div>
+                        <h4>InformaciÃ³n Personal</h4>
                       </div>
                       <div class="step-preview-info">
                         <p>{{ adoptionForm.get('applicant_name')?.value || 'Sin completar' }}</p>
@@ -131,16 +132,16 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
                       </div>
                     } @else if (currentStep() === 3) {
                       <div class="step-preview-header">
-                        <div class="section-icon">📍</div>
-                        <h4>Dirección</h4>
+                        <div class="section-icon">ðŸ“</div>
+                        <h4>DirecciÃ³n</h4>
                       </div>
                       <div class="step-preview-info">
                         <p>{{ adoptionForm.get('applicant_address')?.value || 'Sin completar' }}</p>
                       </div>
                     } @else if (currentStep() === 4) {
                       <div class="step-preview-header">
-                        <div class="section-icon">🏡</div>
-                        <h4>Información del Hogar</h4>
+                        <div class="section-icon">ðŸ¡</div>
+                        <h4>InformaciÃ³n del Hogar</h4>
                       </div>
                       <div class="step-preview-info">
                         <p>{{ adoptionForm.get('living_situation')?.value ? getLivingSituationLabel(adoptionForm.get('living_situation')?.value) : 'Sin completar' }}</p>
@@ -152,17 +153,17 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
 
               <!-- Paso Actual -->
               <div class="wizard-step-active">
-                <!-- Paso 1: Información Personal -->
+                <!-- Paso 1: InformaciÃ³n Personal -->
                 @if (currentStep() === 1) {
                 <div class="form-section-card wizard-step">
             <div class="section-header">
-              <div class="section-icon">👤</div>
-              <h3>Información Personal</h3>
+              <div class="section-icon">ðŸ‘¤</div>
+              <h3>InformaciÃ³n Personal</h3>
             </div>
             <div class="form-grid">
               <div class="form-field">
                 <label>
-                  <span class="label-icon">📝</span>
+                  <span class="label-icon">ðŸ“</span>
                   Nombre Completo *
                 </label>
                 <input type="text" pInputText formControlName="applicant_name" placeholder="Tu nombre completo" />
@@ -172,18 +173,18 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
               </div>
               <div class="form-field">
                 <label>
-                  <span class="label-icon">📧</span>
+                  <span class="label-icon">ðŸ“§</span>
                   Email *
                 </label>
                 <input type="email" pInputText formControlName="applicant_email" placeholder="tu@email.com" />
                 @if (adoptionForm.get('applicant_email')?.invalid && adoptionForm.get('applicant_email')?.touched) {
-                <small class="error">Email inválido</small>
+                <small class="error">Email invÃ¡lido</small>
                 }
               </div>
               <div class="form-field">
                 <label>
-                  <span class="label-icon">📱</span>
-                  Teléfono *
+                  <span class="label-icon">ðŸ“±</span>
+                  TelÃ©fono *
                 </label>
                 <input 
                   type="tel" 
@@ -194,13 +195,13 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
                   (focus)="onPhoneFocus($event)"
                 />
                 @if (adoptionForm.get('applicant_phone')?.invalid && adoptionForm.get('applicant_phone')?.touched) {
-                <small class="error">El teléfono es requerido</small>
+                <small class="error">El telÃ©fono es requerido</small>
                 }
               </div>
               <div class="form-field">
                 <label>
-                  <span class="label-icon">🆔</span>
-                  Cédula
+                  <span class="label-icon">ðŸ†”</span>
+                  CÃ©dula
                 </label>
                 <input type="text" pInputText formControlName="applicant_document_id" placeholder="Opcional" />
               </div>
@@ -208,54 +209,54 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
           </div>
           }
 
-          <!-- Paso 2: Dirección -->
+          <!-- Paso 2: DirecciÃ³n -->
           @if (currentStep() === 2) {
           <div class="form-section-card wizard-step">
             <div class="section-header">
-              <div class="section-icon">📍</div>
-              <h3>Dirección</h3>
+              <div class="section-icon">ðŸ“</div>
+              <h3>DirecciÃ³n</h3>
             </div>
             <div class="form-field">
               <label>
-                <span class="label-icon">🏠</span>
-                Dirección Completa *
+                <span class="label-icon">ðŸ </span>
+                DirecciÃ³n Completa *
               </label>
               <textarea
                 pTextarea
                 formControlName="applicant_address"
                 rows="3"
-                placeholder="Calle, número, barrio, ciudad..."
+                placeholder="Calle, nÃºmero, barrio, ciudad..."
               ></textarea>
               @if (adoptionForm.get('applicant_address')?.invalid && adoptionForm.get('applicant_address')?.touched) {
-              <small class="error">La dirección es requerida</small>
+              <small class="error">La direcciÃ³n es requerida</small>
               }
             </div>
           </div>
           }
 
-          <!-- Paso 3: Información sobre el Hogar -->
+          <!-- Paso 3: InformaciÃ³n sobre el Hogar -->
           @if (currentStep() === 3) {
           <div class="form-section-card wizard-step">
             <div class="section-header">
-              <div class="section-icon">🏡</div>
-              <h3>Información sobre el Hogar</h3>
+              <div class="section-icon">ðŸ¡</div>
+              <h3>InformaciÃ³n sobre el Hogar</h3>
             </div>
             <div class="form-field">
               <label>
-                <span class="label-icon">💭</span>
-                Motivo de Adopción
+                <span class="label-icon">ðŸ’­</span>
+                Motivo de AdopciÃ³n
               </label>
               <textarea
                 pTextarea
                 formControlName="reason_for_adoption"
                 rows="3"
-                placeholder="Cuéntanos por qué quieres adoptar esta mascota..."
+                placeholder="CuÃ©ntanos por quÃ© quieres adoptar esta mascota..."
               ></textarea>
             </div>
             <div class="form-field">
               <label>
-                <span class="label-icon">🏘️</span>
-                Situación de Vivienda
+                <span class="label-icon">ðŸ˜ï¸</span>
+                SituaciÃ³n de Vivienda
               </label>
               <p-dropdown
                 [options]="livingSituationOptions"
@@ -270,15 +271,15 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
                 inputId="has_other_pets"
               />
               <label for="has_other_pets">
-                <span class="label-icon">🐾</span>
-                ¿Tiene otras mascotas?
+                <span class="label-icon">ðŸ¾</span>
+                Â¿Tiene otras mascotas?
               </label>
             </div>
             @if (adoptionForm.get('has_other_pets')?.value) {
             <div class="form-field checkbox-child">
               <label>
-                <span class="label-icon">📋</span>
-                Información sobre otras mascotas
+                <span class="label-icon">ðŸ“‹</span>
+                InformaciÃ³n sobre otras mascotas
               </label>
               <textarea
                 pTextarea
@@ -295,37 +296,37 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
                 inputId="has_children"
               />
               <label for="has_children">
-                <span class="label-icon">👶</span>
-                ¿Tiene niños?
+                <span class="label-icon">ðŸ‘¶</span>
+                Â¿Tiene niÃ±os?
               </label>
             </div>
             @if (adoptionForm.get('has_children')?.value) {
             <div class="form-field checkbox-child">
               <label>
-                <span class="label-icon">📋</span>
-                Información sobre los niños
+                <span class="label-icon">ðŸ“‹</span>
+                InformaciÃ³n sobre los niÃ±os
               </label>
               <textarea
                 pTextarea
                 formControlName="children_info"
                 rows="2"
-                placeholder="Edades y cantidad de niños..."
+                placeholder="Edades y cantidad de niÃ±os..."
               ></textarea>
             </div>
             }
           </div>
           }
 
-          <!-- Paso 4: Resumen/Revisión -->
+          <!-- Paso 4: Resumen/RevisiÃ³n -->
           @if (currentStep() === 4) {
           <div class="summary-section wizard-step">
             <div class="summary-header">
-              <div class="section-icon">📋</div>
+              <div class="section-icon">ðŸ“‹</div>
               <h3>Resumen de tu Solicitud</h3>
-              <p class="summary-subtitle">Revisa toda la información antes de enviar</p>
+              <p class="summary-subtitle">Revisa toda la informaciÃ³n antes de enviar</p>
             </div>
 
-            <!-- Información de la Mascota -->
+            <!-- InformaciÃ³n de la Mascota -->
             <div class="summary-card">
               <div class="summary-card-header">
                 <h4>Mascota</h4>
@@ -342,10 +343,10 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
               </div>
             </div>
 
-            <!-- Información Personal -->
+            <!-- InformaciÃ³n Personal -->
             <div class="summary-card">
               <div class="summary-card-header">
-                <h4>Información Personal</h4>
+                <h4>InformaciÃ³n Personal</h4>
                 <p-button
                   label="Editar"
                   icon="pi pi-pencil"
@@ -365,22 +366,22 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
                   <span class="summary-value">{{ adoptionForm.get('applicant_email')?.value || 'N/A' }}</span>
                 </div>
                 <div class="summary-item">
-                  <span class="summary-label">Teléfono:</span>
+                  <span class="summary-label">TelÃ©fono:</span>
                   <span class="summary-value">{{ adoptionForm.get('applicant_phone')?.value || 'N/A' }}</span>
                 </div>
                 @if (adoptionForm.get('applicant_document_id')?.value) {
                 <div class="summary-item">
-                  <span class="summary-label">Cédula:</span>
+                  <span class="summary-label">CÃ©dula:</span>
                   <span class="summary-value">{{ adoptionForm.get('applicant_document_id')?.value }}</span>
                 </div>
                 }
               </div>
             </div>
 
-            <!-- Dirección -->
+            <!-- DirecciÃ³n -->
             <div class="summary-card">
               <div class="summary-card-header">
-                <h4>Dirección</h4>
+                <h4>DirecciÃ³n</h4>
                 <p-button
                   label="Editar"
                   icon="pi pi-pencil"
@@ -392,16 +393,16 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
               </div>
               <div class="summary-content">
                 <div class="summary-item">
-                  <span class="summary-label">Dirección:</span>
+                  <span class="summary-label">DirecciÃ³n:</span>
                   <span class="summary-value">{{ adoptionForm.get('applicant_address')?.value || 'N/A' }}</span>
                 </div>
               </div>
             </div>
 
-            <!-- Información del Hogar -->
+            <!-- InformaciÃ³n del Hogar -->
             <div class="summary-card">
               <div class="summary-card-header">
-                <h4>Información del Hogar</h4>
+                <h4>InformaciÃ³n del Hogar</h4>
                 <p-button
                   label="Editar"
                   icon="pi pi-pencil"
@@ -414,33 +415,33 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
               <div class="summary-content">
                 @if (adoptionForm.get('reason_for_adoption')?.value) {
                 <div class="summary-item">
-                  <span class="summary-label">Motivo de Adopción:</span>
+                  <span class="summary-label">Motivo de AdopciÃ³n:</span>
                   <span class="summary-value">{{ adoptionForm.get('reason_for_adoption')?.value }}</span>
                 </div>
                 }
                 @if (adoptionForm.get('living_situation')?.value) {
                 <div class="summary-item">
-                  <span class="summary-label">Situación de Vivienda:</span>
+                  <span class="summary-label">SituaciÃ³n de Vivienda:</span>
                   <span class="summary-value">{{ getLivingSituationLabel(adoptionForm.get('living_situation')?.value) }}</span>
                 </div>
                 }
                 <div class="summary-item">
                   <span class="summary-label">Tiene otras mascotas:</span>
-                  <span class="summary-value">{{ adoptionForm.get('has_other_pets')?.value ? 'Sí' : 'No' }}</span>
+                  <span class="summary-value">{{ adoptionForm.get('has_other_pets')?.value ? 'SÃ­' : 'No' }}</span>
                 </div>
                 @if (adoptionForm.get('has_other_pets')?.value && adoptionForm.get('other_pets_info')?.value) {
                 <div class="summary-item">
-                  <span class="summary-label">Información sobre otras mascotas:</span>
+                  <span class="summary-label">InformaciÃ³n sobre otras mascotas:</span>
                   <span class="summary-value">{{ adoptionForm.get('other_pets_info')?.value }}</span>
                 </div>
                 }
                 <div class="summary-item">
-                  <span class="summary-label">Tiene niños:</span>
-                  <span class="summary-value">{{ adoptionForm.get('has_children')?.value ? 'Sí' : 'No' }}</span>
+                  <span class="summary-label">Tiene niÃ±os:</span>
+                  <span class="summary-value">{{ adoptionForm.get('has_children')?.value ? 'SÃ­' : 'No' }}</span>
                 </div>
                 @if (adoptionForm.get('has_children')?.value && adoptionForm.get('children_info')?.value) {
                 <div class="summary-item">
-                  <span class="summary-label">Información sobre los niños:</span>
+                  <span class="summary-label">InformaciÃ³n sobre los niÃ±os:</span>
                   <span class="summary-value">{{ adoptionForm.get('children_info')?.value }}</span>
                 </div>
                 }
@@ -456,23 +457,23 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
                   <div class="step-preview-content">
                     @if (currentStep() === 1) {
                       <div class="step-preview-header">
-                        <div class="section-icon">📍</div>
-                        <h4>Dirección</h4>
+                        <div class="section-icon">ðŸ“</div>
+                        <h4>DirecciÃ³n</h4>
                       </div>
                       <div class="step-preview-info">
                         <p>Paso siguiente</p>
                       </div>
                     } @else if (currentStep() === 2) {
                       <div class="step-preview-header">
-                        <div class="section-icon">🏡</div>
-                        <h4>Información del Hogar</h4>
+                        <div class="section-icon">ðŸ¡</div>
+                        <h4>InformaciÃ³n del Hogar</h4>
                       </div>
                       <div class="step-preview-info">
                         <p>Paso siguiente</p>
                       </div>
                     } @else if (currentStep() === 3) {
                       <div class="step-preview-header">
-                        <div class="section-icon">📋</div>
+                        <div class="section-icon">ðŸ“‹</div>
                         <h4>Resumen</h4>
                       </div>
                       <div class="step-preview-info">
@@ -484,7 +485,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
               }
             </div>
 
-            <!-- Flecha Derecha o Botón de Confirmación -->
+            <!-- Flecha Derecha o BotÃ³n de ConfirmaciÃ³n -->
             @if (currentStep() < 4) {
               <button 
                 class="carousel-arrow carousel-arrow-right"
@@ -517,13 +518,13 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
           <div class="loading-spinner">
             <i class="pi pi-spin pi-spinner"></i>
           </div>
-          <p>Cargando información de la mascota...</p>
+          <p>Cargando informaciÃ³n de la mascota...</p>
         </div>
         }
       </div>
     </div>
 
-    <!-- Diálogo de Solicitud Existente -->
+    <!-- DiÃ¡logo de Solicitud Existente -->
     <p-dialog
       [visible]="showExistingApplicationDialog()"
       (visibleChange)="showExistingApplicationDialog.set($event)"
@@ -808,7 +809,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
       }
 
       .error::before {
-        content: '⚠️';
+        content: 'âš ï¸';
         font-size: 0.875rem;
       }
 
@@ -934,7 +935,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
         overflow-x: hidden;
       }
 
-      /* Scrollbar personalizado - más discreto */
+      /* Scrollbar personalizado - mÃ¡s discreto */
       .wizard-steps-container::-webkit-scrollbar {
         width: 6px;
       }
@@ -953,7 +954,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
         background: rgba(209, 213, 219, 0.5);
       }
 
-      /* Para Firefox - scrollbar más delgado y transparente */
+      /* Para Firefox - scrollbar mÃ¡s delgado y transparente */
       .wizard-steps-container {
         scrollbar-width: thin;
         scrollbar-color: rgba(209, 213, 219, 0.3) transparent;
@@ -1440,7 +1441,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
         transform: translateY(-2px) !important;
       }
 
-      /* Estilos para el diálogo de solicitud existente */
+      /* Estilos para el diÃ¡logo de solicitud existente */
       .existing-application-dialog {
         padding: 1rem 0;
       }
@@ -1644,7 +1645,7 @@ export class AdoptionFormComponent implements OnInit, AfterViewInit {
       const selectedPet = this.petsStore.selectedEntity();
       if (selectedPet && this.petId && selectedPet.id === this.petId && (!this.pet() || this.pet()!.id !== selectedPet.id)) {
         this.pet.set(selectedPet);
-        // Validar cuando se carga la mascota de forma asíncrona
+        // Validar cuando se carga la mascota de forma asÃ­ncrona
         setTimeout(() => {
           if (this.applicationIdToEdit) {
             this.loadApplicationForEdit();
@@ -1681,14 +1682,14 @@ export class AdoptionFormComponent implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     this.petId = this.route.snapshot.paramMap.get('id');
-    // Verificar si estamos en modo edición
+    // Verificar si estamos en modo ediciÃ³n
     this.applicationIdToEdit = this.route.snapshot.queryParamMap.get('edit');
     
     if (this.petId) {
       const pet = this.petsStore.entities().find((p) => p.id === this.petId);
       if (pet) {
         this.pet.set(pet);
-        // Si estamos en modo edición, cargar la solicitud existente
+        // Si estamos en modo ediciÃ³n, cargar la solicitud existente
         if (this.applicationIdToEdit) {
           this.loadApplicationForEdit();
         } else {
@@ -1697,9 +1698,9 @@ export class AdoptionFormComponent implements OnInit, AfterViewInit {
           this.validateDuplicateApplication();
         }
       } else {
-        // Si no está en el store, seleccionar para cargar los detalles
+        // Si no estÃ¡ en el store, seleccionar para cargar los detalles
         this.petsStore.selectEntity(this.petId);
-        // El effect se encargará de actualizar pet cuando se cargue
+        // El effect se encargarÃ¡ de actualizar pet cuando se cargue
       }
     }
   }
@@ -1746,7 +1747,7 @@ export class AdoptionFormComponent implements OnInit, AfterViewInit {
       this.messageService.add({
         severity: 'warn',
         summary: 'Mascota no disponible',
-        detail: 'Esta mascota ya no está disponible para adopción'
+        detail: 'Esta mascota ya no estÃ¡ disponible para adopciÃ³n'
       });
       setTimeout(() => {
         this.router.navigate(['/adoptions']);
@@ -1767,7 +1768,7 @@ export class AdoptionFormComponent implements OnInit, AfterViewInit {
     );
 
     if (existingApp) {
-      // Guardar la solicitud existente y mostrar el diálogo
+      // Guardar la solicitud existente y mostrar el diÃ¡logo
       this.existingApplication.set(existingApp);
       this.showExistingApplicationDialog.set(true);
     }
@@ -1782,13 +1783,13 @@ export class AdoptionFormComponent implements OnInit, AfterViewInit {
   }
 
   public onSubmit(): void {
-    // Solo permitir envío desde el paso de resumen (paso 4)
+    // Solo permitir envÃ­o desde el paso de resumen (paso 4)
     if (this.currentStep() !== 4) {
       return;
     }
 
     if (this.adoptionForm.invalid || !this.pet()) {
-      // Si el formulario es inválido, validar todo y mostrar errores
+      // Si el formulario es invÃ¡lido, validar todo y mostrar errores
       this.markStepAsTouched(1);
       this.markStepAsTouched(2);
       this.messageService.add({
@@ -1799,18 +1800,18 @@ export class AdoptionFormComponent implements OnInit, AfterViewInit {
       return;
     }
 
-    // Verificar que la mascota sigue disponible (doble verificación)
+    // Verificar que la mascota sigue disponible (doble verificaciÃ³n)
     if (!this.pet()!.is_available) {
       this.messageService.add({
         severity: 'warn',
         summary: 'Mascota no disponible',
-        detail: 'Esta mascota ya no está disponible para adopción'
+        detail: 'Esta mascota ya no estÃ¡ disponible para adopciÃ³n'
       });
       this.router.navigate(['/adoptions']);
       return;
     }
 
-    // Si estamos en modo edición, actualizar la solicitud existente
+    // Si estamos en modo ediciÃ³n, actualizar la solicitud existente
     if (this.isEditMode() && this.applicationIdToEdit) {
       const existingApp = this.existingApplication();
       if (!existingApp) {
@@ -1843,8 +1844,8 @@ export class AdoptionFormComponent implements OnInit, AfterViewInit {
         next: () => {
           this.messageService.add({
             severity: 'success',
-            summary: 'Éxito',
-            detail: 'Solicitud de adopción actualizada correctamente',
+            summary: 'Ã‰xito',
+            detail: 'Solicitud de adopciÃ³n actualizada correctamente',
           });
           setTimeout(() => {
             this.router.navigate(['/adoptions/profile']);
@@ -1857,7 +1858,7 @@ export class AdoptionFormComponent implements OnInit, AfterViewInit {
       return;
     }
 
-    // Verificar duplicados solo si no estamos editando (por si acaso cambió algo entre carga y envío)
+    // Verificar duplicados solo si no estamos editando (por si acaso cambiÃ³ algo entre carga y envÃ­o)
     const user = this.authWrapper.currentUser();
     if (user?.email) {
       const existingApp = this.applicationsStore.entities().find(
@@ -1868,7 +1869,7 @@ export class AdoptionFormComponent implements OnInit, AfterViewInit {
       );
 
       if (existingApp) {
-        // Mostrar diálogo en lugar de solo toast
+        // Mostrar diÃ¡logo en lugar de solo toast
         this.existingApplication.set(existingApp);
         this.showExistingApplicationDialog.set(true);
         return;
@@ -1898,8 +1899,8 @@ export class AdoptionFormComponent implements OnInit, AfterViewInit {
       next: () => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Éxito',
-          detail: 'Solicitud de adopción enviada correctamente',
+          summary: 'Ã‰xito',
+          detail: 'Solicitud de adopciÃ³n enviada correctamente',
         });
         setTimeout(() => {
           this.router.navigate(['/adoptions']);
@@ -1989,13 +1990,13 @@ export class AdoptionFormComponent implements OnInit, AfterViewInit {
 
     switch (step) {
       case 1:
-        // Validar Información Personal
+        // Validar InformaciÃ³n Personal
         return this.isStepValid(1);
       case 2:
-        // Validar Dirección
+        // Validar DirecciÃ³n
         return this.isStepValid(2);
       case 3:
-        // Información del Hogar - todos opcionales, siempre válido
+        // InformaciÃ³n del Hogar - todos opcionales, siempre vÃ¡lido
         return true;
       case 4:
         // Resumen - validar todo
@@ -2008,7 +2009,7 @@ export class AdoptionFormComponent implements OnInit, AfterViewInit {
   public isStepValid(step: number): boolean {
     switch (step) {
       case 1:
-        // Información Personal: nombre, email, teléfono requeridos
+        // InformaciÃ³n Personal: nombre, email, telÃ©fono requeridos
         const nameControl = this.adoptionForm.get('applicant_name');
         const emailControl = this.adoptionForm.get('applicant_email');
         const phoneControl = this.adoptionForm.get('applicant_phone');
@@ -2018,11 +2019,11 @@ export class AdoptionFormComponent implements OnInit, AfterViewInit {
           phoneControl?.valid
         );
       case 2:
-        // Dirección: dirección requerida
+        // DirecciÃ³n: direcciÃ³n requerida
         const addressControl = this.adoptionForm.get('applicant_address');
         return addressControl?.valid ?? false;
       case 3:
-        // Información del Hogar - todos opcionales
+        // InformaciÃ³n del Hogar - todos opcionales
         return true;
       default:
         return false;
@@ -2050,7 +2051,7 @@ export class AdoptionFormComponent implements OnInit, AfterViewInit {
     const input = event.target as HTMLInputElement;
     const currentValue = this.adoptionForm.get('applicant_phone')?.value || '';
     
-    // Si el campo está vacío, prellenar con +507 
+    // Si el campo estÃ¡ vacÃ­o, prellenar con +507 
     if (!currentValue || currentValue.trim() === '') {
       this.adoptionForm.get('applicant_phone')?.setValue('+507 ');
       // Mover el cursor al final
@@ -2064,7 +2065,7 @@ export class AdoptionFormComponent implements OnInit, AfterViewInit {
     const input = event.target as HTMLInputElement;
     let value = input.value;
     
-    // Remover todo excepto números y el prefijo +507
+    // Remover todo excepto nÃºmeros y el prefijo +507
     const digits = value.replace(/[^\d+]/g, '');
     
     // Asegurar que empiece con +507
@@ -2078,14 +2079,14 @@ export class AdoptionFormComponent implements OnInit, AfterViewInit {
         value = '+507 ' + digits;
       }
     } else {
-      // Ya tiene +507, solo formatear los dígitos restantes
+      // Ya tiene +507, solo formatear los dÃ­gitos restantes
       const phoneDigits = digits.substring(4); // Remover +507
       if (phoneDigits.length <= 4) {
         value = '+507 ' + phoneDigits;
       } else if (phoneDigits.length <= 8) {
         value = '+507 ' + phoneDigits.substring(0, 4) + '-' + phoneDigits.substring(4);
       } else {
-        // Limitar a 8 dígitos después de +507
+        // Limitar a 8 dÃ­gitos despuÃ©s de +507
         value = '+507 ' + phoneDigits.substring(0, 4) + '-' + phoneDigits.substring(4, 8);
       }
     }
@@ -2093,7 +2094,7 @@ export class AdoptionFormComponent implements OnInit, AfterViewInit {
     // Actualizar el valor del formulario
     this.adoptionForm.get('applicant_phone')?.setValue(value, { emitEvent: false });
     
-    // Mantener la posición del cursor
+    // Mantener la posiciÃ³n del cursor
     const cursorPosition = input.selectionStart || 0;
     setTimeout(() => {
       const newPosition = Math.min(cursorPosition, value.length);
@@ -2104,7 +2105,7 @@ export class AdoptionFormComponent implements OnInit, AfterViewInit {
   public formatPhoneNumber(value: string): string {
     if (!value) return '+507 ';
     
-    // Remover todo excepto números
+    // Remover todo excepto nÃºmeros
     const digits = value.replace(/[^\d]/g, '');
     
     // Si no empieza con 507, agregarlo
@@ -2121,4 +2122,5 @@ export class AdoptionFormComponent implements OnInit, AfterViewInit {
     }
   }
 }
+
 

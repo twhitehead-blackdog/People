@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
@@ -17,6 +17,7 @@ import { PetsStore } from '../stores/pets.store';
 @Component({
   selector: 'pt-admin-foundations',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -34,9 +35,9 @@ import { PetsStore } from '../stores/pets.store';
     <p-toast />
     <div class="foundations-container">
       <div class="section-header">
-        <h2>Gestión de Fundaciones</h2>
+        <h2>GestiÃ³n de Fundaciones</h2>
         <p-button
-          label="Nueva Fundación"
+          label="Nueva FundaciÃ³n"
           icon="pi pi-plus"
           (onClick)="openNewFoundationDialog()"
           [style]="{
@@ -73,8 +74,8 @@ import { PetsStore } from '../stores/pets.store';
             <tr>
               <th>Nombre</th>
               <th>Email</th>
-              <th>Teléfono</th>
-              <th>Dirección</th>
+              <th>TelÃ©fono</th>
+              <th>DirecciÃ³n</th>
               <th>Estado</th>
               <th>Mascotas</th>
               <th>Acciones</th>
@@ -131,13 +132,13 @@ import { PetsStore } from '../stores/pets.store';
       </p-card>
     </div>
 
-    <!-- Dialog para crear/editar fundación -->
+    <!-- Dialog para crear/editar fundaciÃ³n -->
     <p-dialog
       [visible]="showFoundationDialog()"
       (visibleChange)="showFoundationDialog.set($event)"
       [modal]="true"
       [style]="{ width: '90vw', maxWidth: '600px' }"
-      [header]="editingFoundation() ? 'Editar Fundación' : 'Nueva Fundación'"
+      [header]="editingFoundation() ? 'Editar FundaciÃ³n' : 'Nueva FundaciÃ³n'"
       (onHide)="resetForm()"
       [draggable]="false"
       [resizable]="false"
@@ -157,7 +158,7 @@ import { PetsStore } from '../stores/pets.store';
         </div>
 
         <div class="form-group">
-          <label for="description">Descripción</label>
+          <label for="description">DescripciÃ³n</label>
           <textarea
             id="description"
             pTextarea
@@ -165,12 +166,12 @@ import { PetsStore } from '../stores/pets.store';
             name="description"
             [rows]="3"
             [disabled]="isLoading()"
-            placeholder="Descripción de la fundación..."
+            placeholder="DescripciÃ³n de la fundaciÃ³n..."
           ></textarea>
         </div>
 
         <div class="form-group">
-          <label for="address">Dirección *</label>
+          <label for="address">DirecciÃ³n *</label>
           <input
             id="address"
             type="text"
@@ -184,7 +185,7 @@ import { PetsStore } from '../stores/pets.store';
 
         <div class="form-row">
           <div class="form-group">
-            <label for="phone_number">Teléfono *</label>
+            <label for="phone_number">TelÃ©fono *</label>
             <input
               id="phone_number"
               type="tel"
@@ -231,7 +232,7 @@ import { PetsStore } from '../stores/pets.store';
               name="is_active"
               [disabled]="isLoading()"
             />
-            <span>Fundación activa</span>
+            <span>FundaciÃ³n activa</span>
           </label>
         </div>
 
@@ -374,7 +375,7 @@ import { PetsStore } from '../stores/pets.store';
         overflow-x: auto;
       }
 
-      /* Asegurar que los diálogos no se sobrepongan */
+      /* Asegurar que los diÃ¡logos no se sobrepongan */
       ::ng-deep .p-dialog {
         z-index: 1100 !important;
         position: fixed !important;
@@ -491,8 +492,8 @@ export class AdminFoundationsComponent {
         next: () => {
           this.messageService.add({
             severity: 'success',
-            summary: 'Fundación actualizada',
-            detail: 'La fundación se ha actualizado correctamente',
+            summary: 'FundaciÃ³n actualizada',
+            detail: 'La fundaciÃ³n se ha actualizado correctamente',
           });
           this.resetForm();
           this.isLoading.set(false);
@@ -501,7 +502,7 @@ export class AdminFoundationsComponent {
           this.messageService.add({
             severity: 'error',
             summary: 'Error',
-            detail: error.message || 'No se pudo actualizar la fundación',
+            detail: error.message || 'No se pudo actualizar la fundaciÃ³n',
           });
           this.isLoading.set(false);
         },
@@ -521,8 +522,8 @@ export class AdminFoundationsComponent {
         next: () => {
           this.messageService.add({
             severity: 'success',
-            summary: 'Fundación creada',
-            detail: 'La fundación se ha creado correctamente',
+            summary: 'FundaciÃ³n creada',
+            detail: 'La fundaciÃ³n se ha creado correctamente',
           });
           this.resetForm();
           this.isLoading.set(false);
@@ -531,7 +532,7 @@ export class AdminFoundationsComponent {
           this.messageService.add({
             severity: 'error',
             summary: 'Error',
-            detail: error.message || 'No se pudo crear la fundación',
+            detail: error.message || 'No se pudo crear la fundaciÃ³n',
           });
           this.isLoading.set(false);
         },
@@ -550,7 +551,7 @@ export class AdminFoundationsComponent {
         this.messageService.add({
           severity: 'success',
           summary: 'Estado actualizado',
-          detail: `La fundación ahora está ${updated.is_active ? 'activa' : 'inactiva'}`,
+          detail: `La fundaciÃ³n ahora estÃ¡ ${updated.is_active ? 'activa' : 'inactiva'}`,
         });
         this.isLoading.set(false);
       },
@@ -571,7 +572,7 @@ export class AdminFoundationsComponent {
       this.messageService.add({
         severity: 'warn',
         summary: 'No se puede eliminar',
-        detail: `Esta fundación tiene ${petsCount} mascota(s) asociada(s). Primero debe reasignar o eliminar las mascotas.`,
+        detail: `Esta fundaciÃ³n tiene ${petsCount} mascota(s) asociada(s). Primero debe reasignar o eliminar las mascotas.`,
       });
       return;
     }
@@ -579,4 +580,5 @@ export class AdminFoundationsComponent {
     this.foundationsStore.deleteItem(foundation.id);
   }
 }
+
 

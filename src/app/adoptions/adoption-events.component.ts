@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import {
   AfterViewInit,
   Component,
@@ -14,6 +14,7 @@ import { EventsStore } from '../stores/events.store';
 @Component({
   selector: 'pt-adoption-events',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
     <div class="events-section">
@@ -26,8 +27,8 @@ import { EventsStore } from '../stores/events.store';
           </div>
           } @else if (allEvents().length === 0) {
           <p class="events-message">
-            No hay eventos disponibles. Estate atento a nuestras redes para más
-            información.
+            No hay eventos disponibles. Estate atento a nuestras redes para mÃ¡s
+            informaciÃ³n.
           </p>
           <div class="events-image-container">
             <img
@@ -50,7 +51,7 @@ import { EventsStore } from '../stores/events.store';
                 (click)="scrollCarousel('left')"
                 aria-label="Anterior"
               >
-                ‹
+                â€¹
               </button>
               }
               <div
@@ -84,21 +85,21 @@ import { EventsStore } from '../stores/events.store';
                       }
                       <div class="event-details">
                         <div class="event-detail-item">
-                          <span class="detail-icon">📅</span>
+                          <span class="detail-icon">ðŸ“…</span>
                           <span class="detail-text">{{
                             formatEventDate(event.event_date)
                           }}</span>
                         </div>
                         @if (event.event_time) {
                         <div class="event-detail-item">
-                          <span class="detail-icon">🕐</span>
+                          <span class="detail-icon">ðŸ•</span>
                           <span class="detail-text">{{
                             event.event_time
                           }}</span>
                         </div>
                         } @if (event.location) {
                         <div class="event-detail-item">
-                          <span class="detail-icon">📍</span>
+                          <span class="detail-icon">ðŸ“</span>
                           <span class="detail-text">{{ event.location }}</span>
                         </div>
                         <div class="event-type-badge-container">
@@ -111,7 +112,7 @@ import { EventsStore } from '../stores/events.store';
                         </div>
                         } @if (event.foundation) {
                         <div class="event-detail-item">
-                          <span class="detail-icon">🏢</span>
+                          <span class="detail-icon">ðŸ¢</span>
                           <span class="detail-text">{{
                             event.foundation.name
                           }}</span>
@@ -148,21 +149,21 @@ import { EventsStore } from '../stores/events.store';
                       }
                       <div class="event-details">
                         <div class="event-detail-item">
-                          <span class="detail-icon">📅</span>
+                          <span class="detail-icon">ðŸ“…</span>
                           <span class="detail-text">{{
                             formatEventDate(event.event_date)
                           }}</span>
                         </div>
                         @if (event.event_time) {
                         <div class="event-detail-item">
-                          <span class="detail-icon">🕐</span>
+                          <span class="detail-icon">ðŸ•</span>
                           <span class="detail-text">{{
                             event.event_time
                           }}</span>
                         </div>
                         } @if (event.location) {
                         <div class="event-detail-item">
-                          <span class="detail-icon">📍</span>
+                          <span class="detail-icon">ðŸ“</span>
                           <span class="detail-text">{{ event.location }}</span>
                         </div>
                         <div class="event-type-badge-container">
@@ -184,7 +185,7 @@ import { EventsStore } from '../stores/events.store';
                         </div>
                         } @if (event.foundation) {
                         <div class="event-detail-item">
-                          <span class="detail-icon">🏢</span>
+                          <span class="detail-icon">ðŸ¢</span>
                           <span class="detail-text">{{
                             event.foundation.name
                           }}</span>
@@ -199,7 +200,7 @@ import { EventsStore } from '../stores/events.store';
                         class="event-register-link"
                         (click)="$event.stopPropagation()"
                       >
-                        Registrarse →
+                        Registrarse â†’
                       </a>
                       }
                     </div>
@@ -214,7 +215,7 @@ import { EventsStore } from '../stores/events.store';
                 (click)="scrollCarousel('right')"
                 aria-label="Siguiente"
               >
-                ›
+                â€º
               </button>
               }
             </div>
@@ -861,7 +862,7 @@ export class AdoptionEventsComponent implements AfterViewInit {
       });
   });
 
-  // Eventos pasados (izquierda) - ordenados descendente (más recientes primero)
+  // Eventos pasados (izquierda) - ordenados descendente (mÃ¡s recientes primero)
   public pastEvents = computed(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -875,10 +876,10 @@ export class AdoptionEventsComponent implements AfterViewInit {
         eventDate.setHours(0, 0, 0, 0);
         return eventDate < today;
       })
-      .reverse(); // Más recientes primero
+      .reverse(); // MÃ¡s recientes primero
   });
 
-  // Eventos futuros (derecha) - ordenados ascendente (próximos primero)
+  // Eventos futuros (derecha) - ordenados ascendente (prÃ³ximos primero)
   public upcomingEvents = computed(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -898,7 +899,7 @@ export class AdoptionEventsComponent implements AfterViewInit {
     this.updateScrollButtons();
   }
 
-  // Encontrar y centrar el evento más cercano a hoy
+  // Encontrar y centrar el evento mÃ¡s cercano a hoy
   private centerClosestEvent(): void {
     if (!this.carouselElement?.nativeElement) return;
 
@@ -909,7 +910,7 @@ export class AdoptionEventsComponent implements AfterViewInit {
     let closestCard: HTMLElement | null = null;
     let closestDiff = Infinity;
 
-    // Buscar en eventos pasados (más reciente)
+    // Buscar en eventos pasados (mÃ¡s reciente)
     const pastCards = carousel.querySelectorAll('.past-events .event-card');
     pastCards.forEach((card) => {
       const eventDateStr = (card as HTMLElement).dataset['eventDate'];
@@ -924,7 +925,7 @@ export class AdoptionEventsComponent implements AfterViewInit {
       }
     });
 
-    // Buscar en eventos futuros (más próximo)
+    // Buscar en eventos futuros (mÃ¡s prÃ³ximo)
     const upcomingCards = carousel.querySelectorAll(
       '.upcoming-events .event-card'
     );
@@ -977,7 +978,7 @@ export class AdoptionEventsComponent implements AfterViewInit {
     const cardWidth = card.offsetWidth;
     const carouselWidth = carousel.clientWidth;
 
-    // Calcular la posición para centrar la card
+    // Calcular la posiciÃ³n para centrar la card
     const scrollPosition = cardLeft - carouselWidth / 2 + cardWidth / 2;
 
     carousel.scrollTo({
@@ -1000,7 +1001,7 @@ export class AdoptionEventsComponent implements AfterViewInit {
       carousel.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
 
-    // Actualizar botones después de un breve delay
+    // Actualizar botones despuÃ©s de un breve delay
     setTimeout(() => this.updateScrollButtons(), 300);
   }
 
@@ -1028,7 +1029,7 @@ export class AdoptionEventsComponent implements AfterViewInit {
     const cardsVisible = Math.floor(visibleWidth / cardWidth);
     const totalPastEvents = this.pastEvents().length;
 
-    // Mostrar flecha solo si hay 3 o más eventos pasados que no están visibles
+    // Mostrar flecha solo si hay 3 o mÃ¡s eventos pasados que no estÃ¡n visibles
     return totalPastEvents >= 3 && carousel.scrollLeft > 0;
   }
 
@@ -1042,7 +1043,7 @@ export class AdoptionEventsComponent implements AfterViewInit {
     const scrollRight =
       carousel.scrollWidth - carousel.scrollLeft - carousel.clientWidth;
 
-    // Mostrar flecha solo si hay 3 o más eventos futuros que no están visibles
+    // Mostrar flecha solo si hay 3 o mÃ¡s eventos futuros que no estÃ¡n visibles
     return totalUpcomingEvents >= 3 && scrollRight > 50;
   }
 
@@ -1056,10 +1057,10 @@ export class AdoptionEventsComponent implements AfterViewInit {
 
   public getEventTypeLabel(type: string): string {
     const labels: Record<string, string> = {
-      adoption_fair: 'Feria de Adopción',
+      adoption_fair: 'Feria de AdopciÃ³n',
       workshop: 'Taller',
-      campaign: 'Campaña',
-      fundraiser: 'Recaudación',
+      campaign: 'CampaÃ±a',
+      fundraiser: 'RecaudaciÃ³n',
       other: 'Otro',
     };
     return labels[type] || type;
@@ -1083,12 +1084,13 @@ export class AdoptionEventsComponent implements AfterViewInit {
   }
 
   public navigateToFoundations(): void {
-    // Implementar navegación a fundaciones
+    // Implementar navegaciÃ³n a fundaciones
     console.log('Navegar a fundaciones');
   }
 
   public navigateToHelp(): void {
-    // Implementar navegación a ayuda
+    // Implementar navegaciÃ³n a ayuda
     console.log('Navegar a ayuda');
   }
 }
+

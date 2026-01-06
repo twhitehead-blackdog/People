@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
@@ -27,6 +27,7 @@ import { PhotoGalleryComponent } from '../shared/photo-gallery.component';
 @Component({
   selector: 'pt-admin-pets',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -50,7 +51,7 @@ import { PhotoGalleryComponent } from '../shared/photo-gallery.component';
     <div class="pets-management">
       <div class="section-header">
         <h2>
-          Gestión de Mascotas
+          GestiÃ³n de Mascotas
         </h2>
         <div class="header-actions">
           <p-button
@@ -119,7 +120,7 @@ import { PhotoGalleryComponent } from '../shared/photo-gallery.component';
                   class="search-input"
                 />
                 <p-button
-                  [label]="showAdvancedSearch() ? 'Ocultar Filtros' : 'Búsqueda Avanzada'"
+                  [label]="showAdvancedSearch() ? 'Ocultar Filtros' : 'BÃºsqueda Avanzada'"
                   [icon]="showAdvancedSearch() ? 'pi pi-filter-slash' : 'pi pi-filter'"
                   severity="secondary"
                   [text]="true"
@@ -145,7 +146,7 @@ import { PhotoGalleryComponent } from '../shared/photo-gallery.component';
                         />
                       </div>
                       <div class="filter-group">
-                        <label>Género</label>
+                        <label>GÃ©nero</label>
                         <p-dropdown
                           [(ngModel)]="advancedFilters().gender"
                           [options]="genderFilterOptions"
@@ -158,7 +159,7 @@ import { PhotoGalleryComponent } from '../shared/photo-gallery.component';
                         />
                       </div>
                       <div class="filter-group">
-                        <label>Tamaño</label>
+                        <label>TamaÃ±o</label>
                         <p-dropdown
                           [(ngModel)]="advancedFilters().size"
                           [options]="sizeFilterOptions"
@@ -173,7 +174,7 @@ import { PhotoGalleryComponent } from '../shared/photo-gallery.component';
                     </div>
                     <div class="filter-row">
                       <div class="filter-group">
-                        <label>Edad Mínima</label>
+                        <label>Edad MÃ­nima</label>
                         <p-inputNumber
                           [(ngModel)]="advancedFilters().minAge"
                           [min]="0"
@@ -184,7 +185,7 @@ import { PhotoGalleryComponent } from '../shared/photo-gallery.component';
                         />
                       </div>
                       <div class="filter-group">
-                        <label>Edad Máxima</label>
+                        <label>Edad MÃ¡xima</label>
                         <p-inputNumber
                           [(ngModel)]="advancedFilters().maxAge"
                           [min]="0"
@@ -258,10 +259,10 @@ import { PhotoGalleryComponent } from '../shared/photo-gallery.component';
             <tr>
               <th>Nombre</th>
               <th>Especie</th>
-              <th>Fundación</th>
+              <th>FundaciÃ³n</th>
               <th>Estado</th>
               <th>Edad</th>
-              <th>Género</th>
+              <th>GÃ©nero</th>
               <th>Acciones</th>
             </tr>
           </ng-template>
@@ -273,14 +274,14 @@ import { PhotoGalleryComponent } from '../shared/photo-gallery.component';
                   getSpeciesLabel(pet.species)
                 }}</span>
               </td>
-              <td>{{ pet.foundation?.name || 'Sin fundación' }}</td>
+              <td>{{ pet.foundation?.name || 'Sin fundaciÃ³n' }}</td>
               <td>
                 <p-tag
                   [value]="pet.is_available ? 'Disponible' : 'Adoptada'"
                   [severity]="pet.is_available ? 'success' : 'danger'"
                 />
               </td>
-              <td>{{ pet.age ? pet.age.toFixed(1) : 'N/A' }} años</td>
+              <td>{{ pet.age ? pet.age.toFixed(1) : 'N/A' }} aÃ±os</td>
               <td>{{ pet.gender === 'M' ? 'Macho' : 'Hembra' }}</td>
               <td>
                 <div class="action-buttons">
@@ -378,7 +379,7 @@ import { PhotoGalleryComponent } from '../shared/photo-gallery.component';
           </div>
 
           <div class="form-group">
-            <label for="gender">Género *</label>
+            <label for="gender">GÃ©nero *</label>
             <pt-editable-select
               id="gender"
               name="gender"
@@ -386,7 +387,7 @@ import { PhotoGalleryComponent } from '../shared/photo-gallery.component';
               (valueChange)="onGenderChange($event)"
               [options]="genderOptions()"
               (optionsChange)="genderOptions.set($event)"
-              placeholder="Seleccionar género"
+              placeholder="Seleccionar gÃ©nero"
               [disabled]="isLoading()"
               styleClass="w-full"
             />
@@ -395,7 +396,7 @@ import { PhotoGalleryComponent } from '../shared/photo-gallery.component';
 
         <div class="form-row">
           <div class="form-group">
-            <label for="size">Tamaño *</label>
+            <label for="size">TamaÃ±o *</label>
             <pt-editable-select
               id="size"
               name="size"
@@ -403,14 +404,14 @@ import { PhotoGalleryComponent } from '../shared/photo-gallery.component';
               (valueChange)="onSizeChange($event)"
               [options]="sizeOptions()"
               (optionsChange)="sizeOptions.set($event)"
-              placeholder="Seleccionar tamaño"
+              placeholder="Seleccionar tamaÃ±o"
               [disabled]="isLoading()"
               styleClass="w-full"
             />
           </div>
 
           <div class="form-group">
-            <label for="age">Edad (años)</label>
+            <label for="age">Edad (aÃ±os)</label>
             <input
               id="age"
               type="number"
@@ -441,7 +442,7 @@ import { PhotoGalleryComponent } from '../shared/photo-gallery.component';
           </div>
 
           <div class="form-group">
-            <label for="foundation_id">Fundación *</label>
+            <label for="foundation_id">FundaciÃ³n *</label>
             <p-select
               id="foundation_id"
               name="foundation_id"
@@ -449,7 +450,7 @@ import { PhotoGalleryComponent } from '../shared/photo-gallery.component';
               [options]="foundations()"
               optionLabel="name"
               optionValue="id"
-              placeholder="Seleccionar fundación"
+              placeholder="Seleccionar fundaciÃ³n"
               [disabled]="isLoading()"
               styleClass="w-full"
             />
@@ -477,14 +478,14 @@ import { PhotoGalleryComponent } from '../shared/photo-gallery.component';
               pInputText
               [(ngModel)]="petForm.color"
               name="color"
-              placeholder="Ej: Negro, Blanco, Marrón"
+              placeholder="Ej: Negro, Blanco, MarrÃ³n"
               [disabled]="isLoading()"
             />
           </div>
         </div>
 
         <div class="form-group">
-          <label for="description">Descripción</label>
+          <label for="description">DescripciÃ³n</label>
           <textarea
             id="description"
             pTextarea
@@ -492,7 +493,7 @@ import { PhotoGalleryComponent } from '../shared/photo-gallery.component';
             name="description"
             [rows]="4"
             [disabled]="isLoading()"
-            placeholder="Describe la personalidad, comportamiento y características especiales de la mascota..."
+            placeholder="Describe la personalidad, comportamiento y caracterÃ­sticas especiales de la mascota..."
             class="pet-description-textarea"
           ></textarea>
         </div>
@@ -504,7 +505,7 @@ import { PhotoGalleryComponent } from '../shared/photo-gallery.component';
             name="personality"
             [(ngModel)]="petForm.personality"
             [options]="personalityOptions()"
-            placeholder="Seleccione una o más opciones..."
+            placeholder="Seleccione una o mÃ¡s opciones..."
             [displaySelectedLabel]="true"
             [maxSelectedLabels]="3"
             [showToggleAll]="false"
@@ -530,7 +531,7 @@ import { PhotoGalleryComponent } from '../shared/photo-gallery.component';
           </div>
 
           <div class="form-group">
-            <label for="location_type">En (Tipo de Ubicación)</label>
+            <label for="location_type">En (Tipo de UbicaciÃ³n)</label>
             <pt-editable-select
               id="location_type"
               name="location_type"
@@ -546,7 +547,7 @@ import { PhotoGalleryComponent } from '../shared/photo-gallery.component';
         </div>
 
         <div class="form-group">
-          <label for="location_detail">Ubicación Específica</label>
+          <label for="location_detail">UbicaciÃ³n EspecÃ­fica</label>
           <input
             id="location_detail"
             type="text"
@@ -557,7 +558,7 @@ import { PhotoGalleryComponent } from '../shared/photo-gallery.component';
             [disabled]="isLoading()"
           />
           <small class="form-hint">
-            Este texto se mostrará en la tarjeta de la mascota con el ícono ➕
+            Este texto se mostrarÃ¡ en la tarjeta de la mascota con el Ã­cono âž•
           </small>
         </div>
 
@@ -604,7 +605,7 @@ import { PhotoGalleryComponent } from '../shared/photo-gallery.component';
                 name="is_available"
                 [disabled]="isLoading()"
               />
-              <span>Disponible para adopción</span>
+              <span>Disponible para adopciÃ³n</span>
             </label>
           </div>
 
@@ -685,16 +686,16 @@ import { PhotoGalleryComponent } from '../shared/photo-gallery.component';
 
           <div class="preview-details">
             <div class="preview-section">
-              <h3>Información Básica</h3>
+              <h3>InformaciÃ³n BÃ¡sica</h3>
               <div class="preview-grid">
                 <div class="preview-item">
                   <strong>Especie:</strong> {{ getSpeciesLabel(previewPet()!.species) }}
                 </div>
                 <div class="preview-item">
-                  <strong>Género:</strong> {{ previewPet()!.gender === 'M' ? 'Macho' : 'Hembra' }}
+                  <strong>GÃ©nero:</strong> {{ previewPet()!.gender === 'M' ? 'Macho' : 'Hembra' }}
                 </div>
                 <div class="preview-item">
-                  <strong>Tamaño:</strong> {{ getSizeLabel(previewPet()!.size) }}
+                  <strong>TamaÃ±o:</strong> {{ getSizeLabel(previewPet()!.size) }}
                 </div>
                 <div class="preview-item">
                   <strong>Edad:</strong> {{ formatAge(previewPet()?.age) }}
@@ -715,14 +716,14 @@ import { PhotoGalleryComponent } from '../shared/photo-gallery.component';
                   </div>
                 }
                 <div class="preview-item">
-                  <strong>Fundación:</strong> {{ previewPet()!.foundation?.name || 'Sin fundación' }}
+                  <strong>FundaciÃ³n:</strong> {{ previewPet()!.foundation?.name || 'Sin fundaciÃ³n' }}
                 </div>
               </div>
             </div>
 
             @if (previewPet()!.description) {
               <div class="preview-section">
-                <h3>Descripción</h3>
+                <h3>DescripciÃ³n</h3>
                 <p class="preview-item">{{ previewPet()!.description }}</p>
               </div>
             }
@@ -745,17 +746,17 @@ import { PhotoGalleryComponent } from '../shared/photo-gallery.component';
                   <strong>Estado:</strong> {{ previewPet()!.health_status || 'No especificado' }}
                 </div>
                 <div class="preview-item">
-                  <strong>Vacunado:</strong> {{ previewPet()!.is_vaccinated ? 'Sí' : 'No' }}
+                  <strong>Vacunado:</strong> {{ previewPet()!.is_vaccinated ? 'SÃ­' : 'No' }}
                 </div>
                 <div class="preview-item">
-                  <strong>Esterilizado:</strong> {{ previewPet()!.is_sterilized ? 'Sí' : 'No' }}
+                  <strong>Esterilizado:</strong> {{ previewPet()!.is_sterilized ? 'SÃ­' : 'No' }}
                 </div>
               </div>
             </div>
 
             @if (previewPet()!.location_type || previewPet()!.location_detail) {
               <div class="preview-section">
-                <h3>Ubicación</h3>
+                <h3>UbicaciÃ³n</h3>
                 <div class="preview-grid">
                   @if (previewPet()!.location_type) {
                     <div class="preview-item">
@@ -1093,7 +1094,7 @@ import { PhotoGalleryComponent } from '../shared/photo-gallery.component';
         overflow-x: auto;
       }
 
-      /* Asegurar que los diálogos no se sobrepongan */
+      /* Asegurar que los diÃ¡logos no se sobrepongan */
       ::ng-deep .p-dialog {
         z-index: 1100 !important;
         position: fixed !important;
@@ -1194,7 +1195,7 @@ export class AdminPetsComponent {
   ]);
 
   public sizeOptions = signal<EditableOption[]>([
-    { label: 'Pequeño', value: 'small' },
+    { label: 'PequeÃ±o', value: 'small' },
     { label: 'Mediano', value: 'medium' },
     { label: 'Grande', value: 'large' },
   ]);
@@ -1210,8 +1211,8 @@ export class AdminPetsComponent {
   public healthStatusOptions = signal<EditableOption[]>([
     { label: 'Saludable', value: 'Saludable' },
     { label: 'En tratamiento', value: 'En tratamiento' },
-    { label: 'Necesita atención especial', value: 'Necesita atención especial' },
-    { label: 'Recuperación', value: 'Recuperación' },
+    { label: 'Necesita atenciÃ³n especial', value: 'Necesita atenciÃ³n especial' },
+    { label: 'RecuperaciÃ³n', value: 'RecuperaciÃ³n' },
   ]);
 
   public personalityOptions = computed(() => {
@@ -1242,7 +1243,7 @@ export class AdminPetsComponent {
 
   public getSizeLabel(size: string): string {
     const labels: Record<string, string> = {
-      small: 'Pequeño',
+      small: 'PequeÃ±o',
       medium: 'Mediano',
       large: 'Grande',
     };
@@ -1261,7 +1262,7 @@ export class AdminPetsComponent {
     const filters = this.advancedFilters();
     const search = this.globalFilter().toLowerCase();
 
-    // Filtrar por búsqueda de texto
+    // Filtrar por bÃºsqueda de texto
     if (search) {
       pets = pets.filter(
         (p) =>
@@ -1323,7 +1324,7 @@ export class AdminPetsComponent {
   ];
 
   public sizeFilterOptions = [
-    { label: 'Pequeño', value: 'small' },
+    { label: 'PequeÃ±o', value: 'small' },
     { label: 'Mediano', value: 'medium' },
     { label: 'Grande', value: 'large' },
   ];
@@ -1333,7 +1334,7 @@ export class AdminPetsComponent {
   }
 
   public applyAdvancedFilters(): void {
-    // Los filtros se aplican automáticamente a través del computed filteredPets
+    // Los filtros se aplican automÃ¡ticamente a travÃ©s del computed filteredPets
   }
 
   public updateVaccinatedFilter(checked: boolean): void {
@@ -1430,7 +1431,7 @@ export class AdminPetsComponent {
         this.messageService.add({
           severity: 'success',
           summary: 'Estado actualizado',
-          detail: `La mascota ahora está ${updated.is_archived ? 'archivada' : 'desarchivada'}`,
+          detail: `La mascota ahora estÃ¡ ${updated.is_archived ? 'archivada' : 'desarchivada'}`,
         });
         this.isLoading.set(false);
       },
@@ -1457,7 +1458,7 @@ export class AdminPetsComponent {
     if (age == null) {
       return 'N/A';
     }
-    return age.toFixed(1) + ' años';
+    return age.toFixed(1) + ' aÃ±os';
   }
 
   onGlobalFilter(event: Event): void {
@@ -1473,9 +1474,9 @@ export class AdminPetsComponent {
 
     if (foundationsList.length === 0) {
       const exampleFoundation: Partial<Foundation> = {
-        name: 'Fundación Black Dog',
-        description: 'Fundación dedicada al rescate y adopción de mascotas',
-        address: 'Panamá, Ciudad de Panamá',
+        name: 'FundaciÃ³n Black Dog',
+        description: 'FundaciÃ³n dedicada al rescate y adopciÃ³n de mascotas',
+        address: 'PanamÃ¡, Ciudad de PanamÃ¡',
         phone_number: '+507 1234-5678',
         email: 'contacto@blackdogpanama.com',
         website: 'https://blackdogpanama.com',
@@ -1492,7 +1493,7 @@ export class AdminPetsComponent {
           this.messageService.add({
             severity: 'error',
             summary: 'Error',
-            detail: 'No se pudo crear la fundación de ejemplo: ' + (error.message || 'Error desconocido'),
+            detail: 'No se pudo crear la fundaciÃ³n de ejemplo: ' + (error.message || 'Error desconocido'),
           });
         },
       });
@@ -1514,7 +1515,7 @@ export class AdminPetsComponent {
       color: 'Dorado',
       weight: 28.5,
       description:
-        'Max es un perro muy amigable y juguetón. Le encanta estar con niños y es muy obediente. Tiene mucha energía y necesita ejercicio diario. Es perfecto para familias activas.',
+        'Max es un perro muy amigable y juguetÃ³n. Le encanta estar con niÃ±os y es muy obediente. Tiene mucha energÃ­a y necesita ejercicio diario. Es perfecto para familias activas.',
       health_status: 'Saludable',
       location_type: 'Sede',
       location_detail: 'ME ENCUENTRO EN LA SEDE DE LAS VILLAS',
@@ -1539,10 +1540,10 @@ export class AdminPetsComponent {
       color: 'Blanco y Gris',
       weight: 4.2,
       description:
-        'Luna es una gata muy cariñosa y tranquila. Le encanta acurrucarse y recibir mimos. Es perfecta para personas que buscan una compañera tranquila. Se lleva bien con otros gatos.',
+        'Luna es una gata muy cariÃ±osa y tranquila. Le encanta acurrucarse y recibir mimos. Es perfecta para personas que buscan una compaÃ±era tranquila. Se lleva bien con otros gatos.',
       health_status: 'En tratamiento',
       location_type: 'Tienda',
-      location_detail: 'Tienda Principal - Área de adopciones',
+      location_detail: 'Tienda Principal - Ãrea de adopciones',
       foundation_id: foundationId,
       photos: [
         'https://images.unsplash.com/photo-1574158622682-e40e69881006?w=800',
@@ -1570,7 +1571,7 @@ export class AdminPetsComponent {
     };
 
     const handleError = (error: any) => {
-      console.error('❌ [AdminPets] Error al crear mascota:', error);
+      console.error('âŒ [AdminPets] Error al crear mascota:', error);
       const errorMessage = error.error?.message || error.message || 'No se pudo crear la mascota de ejemplo';
       const errorDetails = error.error?.details || error.error?.hint || '';
       this.messageService.add({
@@ -1784,7 +1785,7 @@ export class AdminPetsComponent {
           this.messageService.add({
             severity: 'success',
             summary: 'Estado actualizado',
-            detail: `La mascota ahora está ${
+            detail: `La mascota ahora estÃ¡ ${
               pet.is_available ? 'adoptada' : 'disponible'
             }`,
           });
@@ -1842,4 +1843,5 @@ export class AdminPetsComponent {
     this.petForm.photos = photos;
   }
 }
+
 

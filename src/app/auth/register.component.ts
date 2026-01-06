@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
@@ -9,6 +9,7 @@ import { ToastModule } from 'primeng/toast';
 @Component({
   selector: 'pt-register',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, RouterLink, Button, ToastModule],
   providers: [MessageService],
   template: `
@@ -20,7 +21,7 @@ import { ToastModule } from 'primeng/toast';
         (click)="goHome()"
         [disabled]="isLoading()"
       >
-        <span class="back-icon">←</span>
+        <span class="back-icon">â†</span>
         <span>Regresar</span>
       </button>
       <div class="register-card">
@@ -32,7 +33,7 @@ import { ToastModule } from 'primeng/toast';
             (click)="goHome()"
           />
           <h1 class="register-title">Crear Cuenta</h1>
-          <p class="register-subtitle">Únete a nuestra comunidad</p>
+          <p class="register-subtitle">Ãšnete a nuestra comunidad</p>
         </div>
 
         <div class="register-form">
@@ -79,8 +80,8 @@ import { ToastModule } from 'primeng/toast';
 
           <div class="login-link">
             <p>
-              ¿Ya tienes una cuenta?
-              <a routerLink="/auth/login">Inicia sesión aquí</a>
+              Â¿Ya tienes una cuenta?
+              <a routerLink="/auth/login">Inicia sesiÃ³n aquÃ­</a>
             </p>
           </div>
         </div>
@@ -399,7 +400,7 @@ export class RegisterComponent implements OnInit {
   isAuthenticated$ = this.auth.isAuthenticated$;
 
   ngOnInit(): void {
-    // Si ya está autenticado, redirigir
+    // Si ya estÃ¡ autenticado, redirigir
     this.auth.isAuthenticated$.subscribe((isAuth) => {
       if (isAuth) {
         this.router.navigate(['/adoptions']);
@@ -409,7 +410,7 @@ export class RegisterComponent implements OnInit {
 
   signUp(): void {
     this.isLoading.set(true);
-    // Marcar que estamos iniciando sesión para detectar el callback
+    // Marcar que estamos iniciando sesiÃ³n para detectar el callback
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('auth0_login_initiated', 'true');
     }
@@ -424,3 +425,4 @@ export class RegisterComponent implements OnInit {
     this.router.navigate(['/adoptions']);
   }
 }
+

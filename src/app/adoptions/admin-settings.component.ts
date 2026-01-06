@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
@@ -19,6 +19,7 @@ import { SystemSettingsStore } from '../stores/system-settings.store';
 @Component({
   selector: 'pt-admin-settings',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -39,9 +40,9 @@ import { SystemSettingsStore } from '../stores/system-settings.store';
     <p-toast />
     <div class="settings-container">
       <div class="section-header">
-        <h2>Configuración del Sistema</h2>
+        <h2>ConfiguraciÃ³n del Sistema</h2>
         <p-button
-          label="Nueva Configuración"
+          label="Nueva ConfiguraciÃ³n"
           icon="pi pi-plus"
           (onClick)="openNewSettingDialog()"
           [style]="{
@@ -66,7 +67,7 @@ import { SystemSettingsStore } from '../stores/system-settings.store';
                 <th>Clave</th>
                 <th>Valor</th>
                 <th>Tipo</th>
-                <th>Público</th>
+                <th>PÃºblico</th>
                 <th>Acciones</th>
               </tr>
             </ng-template>
@@ -84,13 +85,13 @@ import { SystemSettingsStore } from '../stores/system-settings.store';
                   <div class="table-cell-content">
                     @if (setting.value_type === 'boolean') {
                       <p-tag
-                        [value]="setting.value === 'true' ? 'Sí' : 'No'"
+                        [value]="setting.value === 'true' ? 'SÃ­' : 'No'"
                         [severity]="setting.value === 'true' ? 'success' : 'secondary'"
                       />
                     } @else if (setting.value_type === 'json') {
                       <code class="json-value">{{ setting.value?.substring(0, 50) }}{{ setting.value && setting.value.length > 50 ? '...' : '' }}</code>
                     } @else {
-                      {{ setting.value || '(vacío)' }}
+                      {{ setting.value || '(vacÃ­o)' }}
                     }
                   </div>
                 </td>
@@ -105,7 +106,7 @@ import { SystemSettingsStore } from '../stores/system-settings.store';
                 <td>
                   <div class="table-cell-content">
                     <p-tag
-                      [value]="setting.is_public ? 'Sí' : 'No'"
+                      [value]="setting.is_public ? 'SÃ­' : 'No'"
                       [severity]="setting.is_public ? 'success' : 'secondary'"
                     />
                   </div>
@@ -133,7 +134,7 @@ import { SystemSettingsStore } from '../stores/system-settings.store';
             </ng-template>
             <ng-template pTemplate="emptymessage">
               <tr>
-                <td colspan="5">No hay configuraciones en esta categoría</td>
+                <td colspan="5">No hay configuraciones en esta categorÃ­a</td>
               </tr>
             </ng-template>
           </p-table>
@@ -143,10 +144,10 @@ import { SystemSettingsStore } from '../stores/system-settings.store';
       @if (settingsStore.entities().length === 0) {
         <p-card>
           <div class="empty-state">
-            <span class="empty-icon">⚙️</span>
+            <span class="empty-icon">âš™ï¸</span>
             <p>No hay configuraciones definidas</p>
             <p-button
-              label="Crear Primera Configuración"
+              label="Crear Primera ConfiguraciÃ³n"
               icon="pi pi-plus"
               (onClick)="openNewSettingDialog()"
               [style]="{
@@ -162,13 +163,13 @@ import { SystemSettingsStore } from '../stores/system-settings.store';
       }
     </div>
 
-    <!-- Dialog para crear/editar configuración -->
+    <!-- Dialog para crear/editar configuraciÃ³n -->
     <p-dialog
       [visible]="showSettingDialog()"
       (visibleChange)="showSettingDialog.set($event)"
       [modal]="true"
       [style]="{ width: '90vw', maxWidth: '700px' }"
-      [header]="editingSetting() ? 'Editar Configuración' : 'Nueva Configuración'"
+      [header]="editingSetting() ? 'Editar ConfiguraciÃ³n' : 'Nueva ConfiguraciÃ³n'"
       (onHide)="resetForm()"
       [draggable]="false"
       [resizable]="false"
@@ -186,20 +187,20 @@ import { SystemSettingsStore } from '../stores/system-settings.store';
             [disabled]="isLoading() || editingSetting() !== null"
             placeholder="ej: contact_email"
             pattern="[a-z0-9_]+"
-            title="Solo letras minúsculas, números y guiones bajos"
+            title="Solo letras minÃºsculas, nÃºmeros y guiones bajos"
           />
-          <small class="form-hint">Solo letras minúsculas, números y guiones bajos (sin espacios)</small>
+          <small class="form-hint">Solo letras minÃºsculas, nÃºmeros y guiones bajos (sin espacios)</small>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label for="category">Categoría *</label>
+            <label for="category">CategorÃ­a *</label>
             <p-dropdown
               id="category"
               [(ngModel)]="settingForm.category"
               name="category"
               [options]="categoryOptions"
-              placeholder="Seleccionar categoría"
+              placeholder="Seleccionar categorÃ­a"
               [showClear]="false"
               [disabled]="isLoading()"
               required
@@ -255,7 +256,7 @@ import { SystemSettingsStore } from '../stores/system-settings.store';
               [disabled]="isLoading()"
               placeholder='{"key": "value"}'
             ></textarea>
-            <small class="form-hint">Ingresa un JSON válido</small>
+            <small class="form-hint">Ingresa un JSON vÃ¡lido</small>
           } @else {
             <input
               id="value"
@@ -264,13 +265,13 @@ import { SystemSettingsStore } from '../stores/system-settings.store';
               [(ngModel)]="settingForm.value"
               name="value"
               [disabled]="isLoading()"
-              placeholder="Valor de la configuración"
+              placeholder="Valor de la configuraciÃ³n"
             />
           }
         </div>
 
         <div class="form-group">
-          <label for="description">Descripción</label>
+          <label for="description">DescripciÃ³n</label>
           <textarea
             id="description"
             pTextarea
@@ -278,7 +279,7 @@ import { SystemSettingsStore } from '../stores/system-settings.store';
             name="description"
             [rows]="2"
             [disabled]="isLoading()"
-            placeholder="Descripción de esta configuración..."
+            placeholder="DescripciÃ³n de esta configuraciÃ³n..."
           ></textarea>
         </div>
 
@@ -290,7 +291,7 @@ import { SystemSettingsStore } from '../stores/system-settings.store';
               [binary]="true"
               [disabled]="isLoading()"
             />
-            <span>Configuración pública (accesible sin autenticación)</span>
+            <span>ConfiguraciÃ³n pÃºblica (accesible sin autenticaciÃ³n)</span>
           </label>
         </div>
 
@@ -493,7 +494,7 @@ export class AdminSettingsComponent {
   public categoryOptions = [
     { label: 'General', value: 'general' },
     { label: 'Email', value: 'email' },
-    { label: 'Límites', value: 'limits' },
+    { label: 'LÃ­mites', value: 'limits' },
     { label: 'Redes Sociales', value: 'social' },
     { label: 'URLs', value: 'urls' },
     { label: 'Texto', value: 'text' },
@@ -502,13 +503,13 @@ export class AdminSettingsComponent {
 
   public valueTypeOptions = [
     { label: 'Texto', value: 'string' },
-    { label: 'Número', value: 'number' },
+    { label: 'NÃºmero', value: 'number' },
     { label: 'Booleano', value: 'boolean' },
     { label: 'JSON', value: 'json' },
   ];
 
   public booleanOptions = [
-    { label: 'Sí', value: 'true' },
+    { label: 'SÃ­', value: 'true' },
     { label: 'No', value: 'false' },
   ];
 
@@ -599,8 +600,8 @@ export class AdminSettingsComponent {
       } catch (e) {
         this.messageService.add({
           severity: 'error',
-          summary: 'JSON inválido',
-          detail: 'El valor JSON no es válido. Por favor verifica la sintaxis.',
+          summary: 'JSON invÃ¡lido',
+          detail: 'El valor JSON no es vÃ¡lido. Por favor verifica la sintaxis.',
         });
         return;
       }
@@ -624,8 +625,8 @@ export class AdminSettingsComponent {
         next: () => {
           this.messageService.add({
             severity: 'success',
-            summary: 'Configuración actualizada',
-            detail: 'La configuración se ha actualizado correctamente',
+            summary: 'ConfiguraciÃ³n actualizada',
+            detail: 'La configuraciÃ³n se ha actualizado correctamente',
           });
           this.resetForm();
           this.isLoading.set(false);
@@ -634,7 +635,7 @@ export class AdminSettingsComponent {
           this.messageService.add({
             severity: 'error',
             summary: 'Error',
-            detail: error.message || 'No se pudo actualizar la configuración',
+            detail: error.message || 'No se pudo actualizar la configuraciÃ³n',
           });
           this.isLoading.set(false);
         },
@@ -653,8 +654,8 @@ export class AdminSettingsComponent {
         next: () => {
           this.messageService.add({
             severity: 'success',
-            summary: 'Configuración creada',
-            detail: 'La configuración se ha creado correctamente',
+            summary: 'ConfiguraciÃ³n creada',
+            detail: 'La configuraciÃ³n se ha creado correctamente',
           });
           this.resetForm();
           this.isLoading.set(false);
@@ -663,7 +664,7 @@ export class AdminSettingsComponent {
           this.messageService.add({
             severity: 'error',
             summary: 'Error',
-            detail: error.message || 'No se pudo crear la configuración',
+            detail: error.message || 'No se pudo crear la configuraciÃ³n',
           });
           this.isLoading.set(false);
         },
@@ -675,4 +676,5 @@ export class AdminSettingsComponent {
     this.settingsStore.deleteItem(setting.id);
   }
 }
+
 

@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, computed, input, effect } from '@angular/core';
+﻿import { Component, inject, OnInit, signal, computed, input, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -22,6 +22,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
 @Component({
   selector: 'pt-user-pet-form',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -44,28 +45,28 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
       <!-- Hero Section -->
       <div class="hero-section">
         <div class="hero-background-elements">
-          <div class="animated-emoji emoji-1">🐕</div>
-          <div class="animated-emoji emoji-2">💕</div>
-          <div class="animated-emoji emoji-3">🐱</div>
-          <div class="animated-emoji emoji-4">✨</div>
+          <div class="animated-emoji emoji-1">ðŸ•</div>
+          <div class="animated-emoji emoji-2">ðŸ’•</div>
+          <div class="animated-emoji emoji-3">ðŸ±</div>
+          <div class="animated-emoji emoji-4">âœ¨</div>
         </div>
 
         <div class="hero-content">
           <div class="hero-text">
             <div class="hero-title-wrapper">
               <div class="heart-icon-wrapper heart-1">
-                <span class="heart-icon">❤️</span>
-                <span class="sparkle-icon sparkle-1">✨</span>
+                <span class="heart-icon">â¤ï¸</span>
+                <span class="sparkle-icon sparkle-1">âœ¨</span>
               </div>
-              <h1 class="hero-title">{{ isEditMode() ? 'EDITAR MASCOTA' : 'AÑADIR MASCOTA' }}</h1>
+              <h1 class="hero-title">{{ isEditMode() ? 'EDITAR MASCOTA' : 'AÃ‘ADIR MASCOTA' }}</h1>
               <div class="heart-icon-wrapper heart-2">
-                <span class="heart-icon">❤️</span>
-                <span class="sparkle-icon sparkle-2">✨</span>
+                <span class="heart-icon">â¤ï¸</span>
+                <span class="sparkle-icon sparkle-2">âœ¨</span>
               </div>
             </div>
             
             <p class="hero-subtitle">
-              {{ isEditMode() ? '💝 Actualiza la información de tu mascota 🐾' : '💝 Completa el formulario con los detalles de tu mascota 🐾' }}
+              {{ isEditMode() ? 'ðŸ’ Actualiza la informaciÃ³n de tu mascota ðŸ¾' : 'ðŸ’ Completa el formulario con los detalles de tu mascota ðŸ¾' }}
             </p>
           </div>
         </div>
@@ -74,9 +75,9 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
       <!-- Form Container -->
       <div class="user-pet-form-container">
       <form (ngSubmit)="savePet()" class="user-pet-form">
-        <!-- Información Básica -->
+        <!-- InformaciÃ³n BÃ¡sica -->
         <div class="form-section">
-          <h3 class="section-title">📋 Información Básica</h3>
+          <h3 class="section-title">ðŸ“‹ InformaciÃ³n BÃ¡sica</h3>
           
           <div class="form-row">
             <div class="form-group">
@@ -129,7 +130,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
             </div>
 
             <div class="form-group">
-              <label for="gender">Género *</label>
+              <label for="gender">GÃ©nero *</label>
               <p-dropdown
                 id="gender"
                 name="gender"
@@ -137,7 +138,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
                 [options]="genderOptions"
                 optionLabel="label"
                 optionValue="value"
-                placeholder="Seleccionar género"
+                placeholder="Seleccionar gÃ©nero"
                 [disabled]="isLoading()"
                 [style]="{ width: '100%' }"
               />
@@ -146,7 +147,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
 
           <div class="form-row">
             <div class="form-group">
-              <label for="size">Tamaño *</label>
+              <label for="size">TamaÃ±o *</label>
               <p-dropdown
                 id="size"
                 name="size"
@@ -154,7 +155,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
                 [options]="sizeOptions"
                 optionLabel="label"
                 optionValue="value"
-                placeholder="Seleccionar tamaño"
+                placeholder="Seleccionar tamaÃ±o"
                 [disabled]="isLoading()"
                 [style]="{ width: '100%' }"
               />
@@ -193,12 +194,12 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
           </div>
         </div>
 
-        <!-- Descripción y Salud -->
+        <!-- DescripciÃ³n y Salud -->
         <div class="form-section">
-          <h3 class="section-title">💚 Descripción y Salud</h3>
+          <h3 class="section-title">ðŸ’š DescripciÃ³n y Salud</h3>
           
           <div class="form-group">
-            <label for="description">Descripción</label>
+            <label for="description">DescripciÃ³n</label>
             <textarea
               id="description"
               pTextarea
@@ -206,7 +207,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
               name="description"
               rows="4"
               [disabled]="isLoading()"
-              placeholder="Cuéntanos sobre tu mascota..."
+              placeholder="CuÃ©ntanos sobre tu mascota..."
               [autoResize]="true"
             ></textarea>
           </div>
@@ -232,13 +233,13 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
               inputId="is_vaccinated"
               [disabled]="isLoading()"
             />
-            <label for="is_vaccinated" class="checkbox-label">💉 Vacunado</label>
+            <label for="is_vaccinated" class="checkbox-label">ðŸ’‰ Vacunado</label>
           </div>
         </div>
 
         <!-- Personalidad -->
         <div class="form-section">
-          <h3 class="section-title">✨ Personalidad</h3>
+          <h3 class="section-title">âœ¨ Personalidad</h3>
           
           <div class="form-group">
             <label for="personality">Rasgos de Personalidad</label>
@@ -249,7 +250,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
               [options]="personalityOptions()"
               optionLabel="label"
               optionValue="value"
-              placeholder="Seleccione una o más opciones..."
+              placeholder="Seleccione una o mÃ¡s opciones..."
               [displaySelectedLabel]="true"
               [maxSelectedLabels]="3"
               [showToggleAll]="false"
@@ -261,7 +262,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
 
         <!-- Fotos -->
         <div class="form-section">
-          <h3 class="section-title">📷 Fotos</h3>
+          <h3 class="section-title">ðŸ“· Fotos</h3>
           
           <div class="form-group">
             <pt-photo-gallery
@@ -519,7 +520,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
         margin-top: 1rem;
       }
 
-      /* Espacio adicional después del selector de raza */
+      /* Espacio adicional despuÃ©s del selector de raza */
       pt-breed-selector {
         display: block;
         margin-bottom: 2rem;
@@ -687,9 +688,9 @@ export class UserPetFormComponent implements OnInit {
   };
 
   public speciesOptions = [
-    { label: '🐕 Perro', value: 'dog' },
-    { label: '🐱 Gato', value: 'cat' },
-    { label: '🐾 Otro', value: 'other' },
+    { label: 'ðŸ• Perro', value: 'dog' },
+    { label: 'ðŸ± Gato', value: 'cat' },
+    { label: 'ðŸ¾ Otro', value: 'other' },
   ];
 
   public genderOptions = [
@@ -698,7 +699,7 @@ export class UserPetFormComponent implements OnInit {
   ];
 
   public sizeOptions = [
-    { label: 'Pequeño', value: 'small' },
+    { label: 'PequeÃ±o', value: 'small' },
     { label: 'Mediano', value: 'medium' },
     { label: 'Grande', value: 'large' },
   ];
@@ -706,19 +707,19 @@ export class UserPetFormComponent implements OnInit {
   public personalityOptions = computed(() => {
     const traits = this.personalityTraitsStore.activeTraits();
     if (traits.length === 0) {
-      // Fallback a opciones estáticas si no hay datos en el store
+      // Fallback a opciones estÃ¡ticas si no hay datos en el store
       return [
-        { label: 'Juguetón', value: 'jugueton' },
+        { label: 'JuguetÃ³n', value: 'jugueton' },
         { label: 'Tranquilo', value: 'tranquilo' },
-        { label: 'Cariñoso', value: 'carinoso' },
+        { label: 'CariÃ±oso', value: 'carinoso' },
         { label: 'Independiente', value: 'independiente' },
         { label: 'Sociable', value: 'sociable' },
         { label: 'Activo', value: 'activo' },
         { label: 'Protector', value: 'protector' },
-        { label: 'Tímido', value: 'timido' },
+        { label: 'TÃ­mido', value: 'timido' },
         { label: 'Curioso', value: 'curioso' },
-        { label: 'Energético', value: 'energetico' },
-        { label: 'Dócil', value: 'docil' },
+        { label: 'EnergÃ©tico', value: 'energetico' },
+        { label: 'DÃ³cil', value: 'docil' },
         { label: 'Amigable', value: 'amigable' },
         { label: 'Inteligente', value: 'inteligente' },
         { label: 'Leal', value: 'leal' },
@@ -766,7 +767,7 @@ export class UserPetFormComponent implements OnInit {
       });
       this.isLoading.set(false);
     } else {
-      // Si no está, intentar cargarla usando selectEntity
+      // Si no estÃ¡, intentar cargarla usando selectEntity
       this.userPetsStore.selectEntity(id);
       // Esperar un momento y buscar de nuevo
       setTimeout(() => {
@@ -827,7 +828,7 @@ export class UserPetFormComponent implements OnInit {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'Debes iniciar sesión para guardar una mascota',
+        detail: 'Debes iniciar sesiÃ³n para guardar una mascota',
       });
       return;
     }
@@ -847,7 +848,7 @@ export class UserPetFormComponent implements OnInit {
         await this.userPetsStore.editItem(fullPetData).toPromise();
         this.messageService.add({
           severity: 'success',
-          summary: '¡Éxito!',
+          summary: 'Â¡Ã‰xito!',
           detail: 'Mascota actualizada correctamente',
         });
       } else {
@@ -858,7 +859,7 @@ export class UserPetFormComponent implements OnInit {
         await this.userPetsStore.createItem(fullPetData).toPromise();
         this.messageService.add({
           severity: 'success',
-          summary: '¡Éxito!',
+          summary: 'Â¡Ã‰xito!',
           detail: 'Mascota guardada correctamente',
         });
       }
@@ -879,4 +880,5 @@ export class UserPetFormComponent implements OnInit {
     this.router.navigate(['/adoptions/profile']);
   }
 }
+
 

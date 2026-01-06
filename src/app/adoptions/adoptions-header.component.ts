@@ -1,4 +1,4 @@
-import { AsyncPipe, CommonModule } from '@angular/common';
+﻿import { AsyncPipe, CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { NavigationEnd, Router } from '@angular/router';
 import { filter } from 'rxjs/operators';
@@ -8,6 +8,7 @@ import { DemoModeService } from './demo-mode.service';
 @Component({
   selector: 'pt-adoptions-header',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, AsyncPipe],
   template: `
     <header class="adoptions-header">
@@ -37,7 +38,7 @@ import { DemoModeService } from './demo-mode.service';
               <a href="#" class="nav-link" [class.active]="isServicesActive()">
                 Servicios
                 <span class="nav-underline"></span>
-                <span class="dropdown-arrow">▼</span>
+                <span class="dropdown-arrow">â–¼</span>
               </a>
               @if (showServicesMenu()) {
               <div class="dropdown-menu">
@@ -46,14 +47,14 @@ import { DemoModeService } from './demo-mode.service';
                   class="dropdown-item"
                   (click)="navigateToAdoptions($event)"
                 >
-                  🐾 Adopción
+                  ðŸ¾ AdopciÃ³n
                 </a>
                 <a
                   href="/adoptions/busco-pareja"
                   class="dropdown-item"
                   (click)="navigateToBuscoPareja($event)"
                 >
-                  💕 Busco Pareja
+                  ðŸ’• Busco Pareja
                 </a>
               </div>
               }
@@ -92,7 +93,7 @@ import { DemoModeService } from './demo-mode.service';
           </button>
           } @else {
           <button class="login-button" type="button" (click)="goToLogin()">
-            Iniciar Sesión
+            Iniciar SesiÃ³n
           </button>
           }
         </div>
@@ -620,7 +621,7 @@ export class AdoptionsHeaderComponent {
   }
 
   public openUserMenu(event: Event): void {
-    // Implementar menú de usuario
+    // Implementar menÃº de usuario
     console.log('Open user menu');
   }
 
@@ -657,3 +658,4 @@ export class AdoptionsHeaderComponent {
     this.router.navigate(['/adoptions/busco-pareja']);
   }
 }
+

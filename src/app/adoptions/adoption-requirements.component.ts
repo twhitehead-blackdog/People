@@ -1,10 +1,11 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, computed, inject } from '@angular/core';
 import { AdoptionRequirementsStore } from '../stores/adoption-requirements.store';
 
 @Component({
   selector: 'pt-adoption-requirements',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [CommonModule],
   template: `
     <div class="requirements-section">
@@ -392,3 +393,4 @@ export class AdoptionRequirementsComponent {
       .sort((a, b) => (a.order || 0) - (b.order || 0));
   });
 }
+

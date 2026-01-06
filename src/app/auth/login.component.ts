@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
@@ -11,6 +11,7 @@ import { filter, take } from 'rxjs/operators';
 @Component({
   selector: 'pt-login',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, RouterLink, Button, ToastModule],
   providers: [MessageService],
   template: `
@@ -22,7 +23,7 @@ import { filter, take } from 'rxjs/operators';
         (click)="goHome()"
         [disabled]="isLoading()"
       >
-        <span class="back-icon">←</span>
+        <span class="back-icon">â†</span>
         <span>Regresar</span>
       </button>
       <div class="login-card">
@@ -33,14 +34,14 @@ import { filter, take } from 'rxjs/operators';
             class="login-logo"
             (click)="goHome()"
           />
-          <h1 class="login-title">Iniciar Sesión</h1>
+          <h1 class="login-title">Iniciar SesiÃ³n</h1>
           <p class="login-subtitle">Bienvenido de vuelta</p>
         </div>
 
         <div class="login-form">
           <p-button
             type="button"
-            label="Iniciar Sesión"
+            label="Iniciar SesiÃ³n"
             [loading]="isLoading()"
             [disabled]="isLoading()"
             (onClick)="signIn()"
@@ -81,8 +82,8 @@ import { filter, take } from 'rxjs/operators';
 
           <div class="register-link">
             <p>
-              ¿No tienes una cuenta?
-              <a routerLink="/auth/register">Regístrate aquí</a>
+              Â¿No tienes una cuenta?
+              <a routerLink="/auth/register">RegÃ­strate aquÃ­</a>
             </p>
           </div>
         </div>
@@ -414,14 +415,14 @@ export class LoginComponent implements OnInit {
   isAuthenticated$ = this.auth0.isAuthenticated$;
 
   ngOnInit(): void {
-    // No redirigir automáticamente si ya está autenticado
+    // No redirigir automÃ¡ticamente si ya estÃ¡ autenticado
     // El usuario puede navegar libremente, solo necesita login para adoptar
-    // La redirección después del login se maneja en el callback de Auth0
+    // La redirecciÃ³n despuÃ©s del login se maneja en el callback de Auth0
   }
 
   signIn(): void {
     this.isLoading.set(true);
-    // Marcar que estamos iniciando sesión para detectar el callback
+    // Marcar que estamos iniciando sesiÃ³n para detectar el callback
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('auth0_login_initiated', 'true');
     }
@@ -436,3 +437,4 @@ export class LoginComponent implements OnInit {
     this.router.navigate(['/adoptions']);
   }
 }
+

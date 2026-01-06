@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
@@ -19,6 +19,7 @@ import { PersonalityTraitsStore } from '../stores/personality-traits.store';
 @Component({
   selector: 'pt-admin-personalities',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -39,7 +40,7 @@ import { PersonalityTraitsStore } from '../stores/personality-traits.store';
     <p-toast />
     <div class="personalities-container">
       <div class="section-header">
-        <h2>Gestión de Rasgos de Personalidad</h2>
+        <h2>GestiÃ³n de Rasgos de Personalidad</h2>
         <p-button
           label="Nuevo Rasgo"
           icon="pi pi-plus"
@@ -93,7 +94,7 @@ import { PersonalityTraitsStore } from '../stores/personality-traits.store';
                 </td>
                 <td>
                   <div class="table-cell-content">
-                    <span class="trait-icon">{{ trait.icon || '—' }}</span>
+                    <span class="trait-icon">{{ trait.icon || 'â€”' }}</span>
                   </div>
                 </td>
                 <td>
@@ -135,7 +136,7 @@ import { PersonalityTraitsStore } from '../stores/personality-traits.store';
             </ng-template>
             <ng-template pTemplate="emptymessage">
               <tr>
-                <td colspan="6">No hay rasgos en esta categoría</td>
+                <td colspan="6">No hay rasgos en esta categorÃ­a</td>
               </tr>
             </ng-template>
           </p-table>
@@ -145,7 +146,7 @@ import { PersonalityTraitsStore } from '../stores/personality-traits.store';
       @if (traitsStore.entities().length === 0) {
         <p-card>
           <div class="empty-state">
-            <span class="empty-icon">🎭</span>
+            <span class="empty-icon">ðŸŽ­</span>
             <p>No hay rasgos de personalidad definidos</p>
             <p-button
               label="Crear Primer Rasgo"
@@ -187,7 +188,7 @@ import { PersonalityTraitsStore } from '../stores/personality-traits.store';
               name="label"
               required
               [disabled]="isLoading()"
-              placeholder="Ej: Juguetón"
+              placeholder="Ej: JuguetÃ³n"
               (input)="updateValueFromLabel()"
             />
           </div>
@@ -203,27 +204,27 @@ import { PersonalityTraitsStore } from '../stores/personality-traits.store';
               [disabled]="isLoading()"
               placeholder="Ej: jugueton"
               pattern="[a-z0-9_]+"
-              title="Solo letras minúsculas, números y guiones bajos"
+              title="Solo letras minÃºsculas, nÃºmeros y guiones bajos"
             />
           </div>
         </div>
 
         <div class="form-row">
           <div class="form-group">
-            <label for="category">Categoría</label>
+            <label for="category">CategorÃ­a</label>
             <p-dropdown
               id="category"
               [(ngModel)]="traitForm.category"
               name="category"
               [options]="categoryOptions"
-              placeholder="Seleccionar categoría"
+              placeholder="Seleccionar categorÃ­a"
               [showClear]="true"
               [disabled]="isLoading()"
               [style]="{ width: '100%' }"
             />
           </div>
           <div class="form-group">
-            <label for="display_order">Orden de Visualización</label>
+            <label for="display_order">Orden de VisualizaciÃ³n</label>
             <p-inputNumber
               id="display_order"
               [(ngModel)]="traitForm.display_order"
@@ -244,14 +245,14 @@ import { PersonalityTraitsStore } from '../stores/personality-traits.store';
             [(ngModel)]="traitForm.icon"
             name="icon"
             [disabled]="isLoading()"
-            placeholder="Ej: 🎾 o 😊"
+            placeholder="Ej: ðŸŽ¾ o ðŸ˜Š"
             maxlength="2"
           />
-          <small class="form-hint">Emoji o símbolo que represente el rasgo (máx. 2 caracteres)</small>
+          <small class="form-hint">Emoji o sÃ­mbolo que represente el rasgo (mÃ¡x. 2 caracteres)</small>
         </div>
 
         <div class="form-group">
-          <label for="description">Descripción</label>
+          <label for="description">DescripciÃ³n</label>
           <textarea
             id="description"
             pTextarea
@@ -259,7 +260,7 @@ import { PersonalityTraitsStore } from '../stores/personality-traits.store';
             name="description"
             [rows]="3"
             [disabled]="isLoading()"
-            placeholder="Descripción del rasgo de personalidad..."
+            placeholder="DescripciÃ³n del rasgo de personalidad..."
           ></textarea>
         </div>
 
@@ -535,7 +536,7 @@ export class AdminPersonalitiesComponent {
   }
 
   public updateValueFromLabel(): void {
-    // Auto-generar el valor desde la etiqueta si está vacío
+    // Auto-generar el valor desde la etiqueta si estÃ¡ vacÃ­o
     if (!this.traitForm.value && this.traitForm.label) {
       this.traitForm.value = this.traitForm.label
         .toLowerCase()
@@ -636,7 +637,7 @@ export class AdminPersonalitiesComponent {
         this.messageService.add({
           severity: 'success',
           summary: 'Estado actualizado',
-          detail: `El rasgo ahora está ${updated.is_active ? 'activo' : 'inactivo'}`,
+          detail: `El rasgo ahora estÃ¡ ${updated.is_active ? 'activo' : 'inactivo'}`,
         });
         this.isLoading.set(false);
       },
@@ -655,4 +656,5 @@ export class AdminPersonalitiesComponent {
     this.traitsStore.deleteItem(trait.id);
   }
 }
+
 

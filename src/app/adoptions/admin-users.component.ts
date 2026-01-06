@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
@@ -17,6 +17,7 @@ import { AdminUsersStore } from '../stores/admin-users.store';
 @Component({
   selector: 'pt-admin-users',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -35,7 +36,7 @@ import { AdminUsersStore } from '../stores/admin-users.store';
     <p-toast />
     <div class="users-container">
       <div class="section-header">
-        <h2>Gestión de Usuarios Administradores</h2>
+        <h2>GestiÃ³n de Usuarios Administradores</h2>
         <p-button
           label="Nuevo Usuario"
           icon="pi pi-plus"
@@ -78,7 +79,7 @@ import { AdminUsersStore } from '../stores/admin-users.store';
               <th>Email</th>
               <th>Rol</th>
               <th>Estado</th>
-              <th>Último Acceso</th>
+              <th>Ãšltimo Acceso</th>
               <th>Acciones</th>
             </tr>
           </ng-template>
@@ -204,7 +205,7 @@ import { AdminUsersStore } from '../stores/admin-users.store';
               name="full_name"
               required
               [disabled]="isLoading()"
-              placeholder="Juan Pérez"
+              placeholder="Juan PÃ©rez"
             />
           </div>
         </div>
@@ -578,7 +579,7 @@ export class AdminUsersComponent {
         this.messageService.add({
           severity: 'success',
           summary: 'Estado actualizado',
-          detail: `El usuario ahora está ${updated.is_active ? 'activo' : 'inactivo'}`,
+          detail: `El usuario ahora estÃ¡ ${updated.is_active ? 'activo' : 'inactivo'}`,
         });
         this.isLoading.set(false);
       },
@@ -627,4 +628,5 @@ export class AdminUsersComponent {
     });
   }
 }
+
 

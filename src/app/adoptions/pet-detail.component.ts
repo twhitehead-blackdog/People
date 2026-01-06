@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit, computed, AfterViewInit, effect } from '@angular/core';
+﻿import { Component, inject, signal, OnInit, computed, AfterViewInit, effect } from '@angular/core';
 import { CommonModule, ViewportScroller } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Button } from 'primeng/button';
@@ -15,6 +15,7 @@ import { take } from 'rxjs/operators';
 @Component({
   selector: 'pt-pet-detail',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     Button,
@@ -27,7 +28,7 @@ import { take } from 'rxjs/operators';
         <!-- Hero Section with Main Photo -->
         <div class="pet-hero">
           <button class="back-button" (click)="goBack()" title="Volver">
-            ← Volver
+            â† Volver
           </button>
           <div class="hero-image-container">
             @if (!pet()!.is_available) {
@@ -52,7 +53,7 @@ import { take } from 'rxjs/operators';
                     [disabled]="currentPhotoIndex() === 0"
                     title="Foto anterior"
                   >
-                    ‹
+                    â€¹
                   </button>
                   <button
                     class="photo-nav photo-next"
@@ -60,7 +61,7 @@ import { take } from 'rxjs/operators';
                     [disabled]="currentPhotoIndex() === (pet()!.photos?.length ?? 0) - 1"
                     title="Foto siguiente"
                   >
-                    ›
+                    â€º
                   </button>
                   <div class="photo-counter">
                     {{ currentPhotoIndex() + 1 }} / {{ pet()!.photos?.length ?? 0 }}
@@ -72,7 +73,7 @@ import { take } from 'rxjs/operators';
                   (click)="toggleFavorite()"
                   [title]="isFavorite() ? 'Quitar de favoritos' : 'Agregar a favoritos'"
                 >
-                  {{ isFavorite() ? '❤️' : '🤍' }}
+                  {{ isFavorite() ? 'â¤ï¸' : 'ðŸ¤' }}
                 </button>
               </div>
               @if (pet()?.photos && pet()!.photos!.length > 1) {
@@ -90,7 +91,7 @@ import { take } from 'rxjs/operators';
               }
             } @else {
               <div class="no-photo-placeholder">
-                <span class="placeholder-icon">{{ pet()!.species === 'dog' ? '🐕' : pet()!.species === 'cat' ? '🐱' : '🐾' }}</span>
+                <span class="placeholder-icon">{{ pet()!.species === 'dog' ? 'ðŸ•' : pet()!.species === 'cat' ? 'ðŸ±' : 'ðŸ¾' }}</span>
                 <p>Sin fotos disponibles</p>
               </div>
             }
@@ -128,7 +129,7 @@ import { take } from 'rxjs/operators';
 
             @if (pet()!.description) {
               <div class="description-section">
-                <h3 class="section-title">📝 Sobre {{ pet()!.name }}</h3>
+                <h3 class="section-title">ðŸ“ Sobre {{ pet()!.name }}</h3>
                 <p class="description-text">{{ pet()!.description }}</p>
               </div>
             }
@@ -136,47 +137,47 @@ import { take } from 'rxjs/operators';
             <!-- Pet Details Grid -->
             <div class="details-grid">
               <div class="detail-item">
-                <span class="detail-label">🏠 Fundación</span>
+                <span class="detail-label">ðŸ  FundaciÃ³n</span>
                 <span class="detail-value">{{ pet()!.foundation?.name || 'N/A' }}</span>
               </div>
               @if (pet()!.age) {
                 <div class="detail-item">
-                  <span class="detail-label">🎂 Edad</span>
-                  <span class="detail-value">{{ pet()!.age }} años</span>
+                  <span class="detail-label">ðŸŽ‚ Edad</span>
+                  <span class="detail-value">{{ pet()!.age }} aÃ±os</span>
                 </div>
               }
               @if (pet()!.breed) {
                 <div class="detail-item">
-                  <span class="detail-label">🐾 Raza</span>
+                  <span class="detail-label">ðŸ¾ Raza</span>
                   <span class="detail-value">{{ pet()!.breed }}</span>
                 </div>
               }
               @if (pet()!.color) {
                 <div class="detail-item">
-                  <span class="detail-label">🎨 Color</span>
+                  <span class="detail-label">ðŸŽ¨ Color</span>
                   <span class="detail-value">{{ pet()!.color }}</span>
                 </div>
               }
               @if (pet()!.weight) {
                 <div class="detail-item">
-                  <span class="detail-label">⚖️ Peso</span>
+                  <span class="detail-label">âš–ï¸ Peso</span>
                   <span class="detail-value">{{ pet()!.weight }} kg</span>
                 </div>
               }
               <div class="detail-item">
-                <span class="detail-label">💉 Vacunado</span>
+                <span class="detail-label">ðŸ’‰ Vacunado</span>
                 <span class="detail-value">
                   <p-tag
-                    [value]="pet()!.is_vaccinated ? 'Sí' : 'No'"
+                    [value]="pet()!.is_vaccinated ? 'SÃ­' : 'No'"
                     [severity]="pet()!.is_vaccinated ? 'success' : 'danger'"
                   />
                 </span>
               </div>
               <div class="detail-item">
-                <span class="detail-label">✂️ Esterilizado</span>
+                <span class="detail-label">âœ‚ï¸ Esterilizado</span>
                 <span class="detail-value">
                   <p-tag
-                    [value]="pet()!.is_sterilized ? 'Sí' : 'No'"
+                    [value]="pet()!.is_sterilized ? 'SÃ­' : 'No'"
                     [severity]="pet()!.is_sterilized ? 'success' : 'danger'"
                   />
                 </span>
@@ -185,7 +186,7 @@ import { take } from 'rxjs/operators';
 
             @if (pet()!.personality && pet()!.personality!.length > 0) {
               <div class="personality-section">
-                <h3 class="section-title">✨ Personalidad</h3>
+                <h3 class="section-title">âœ¨ Personalidad</h3>
                 <div class="personality-tags">
                   @for (trait of pet()!.personality; track trait) {
                     <p-tag [value]="trait" severity="info" />
@@ -196,21 +197,21 @@ import { take } from 'rxjs/operators';
 
             @if (pet()!.health_status) {
               <div class="health-section">
-                <h3 class="section-title">🏥 Estado de Salud</h3>
+                <h3 class="section-title">ðŸ¥ Estado de Salud</h3>
                 <p class="health-text">{{ pet()!.health_status }}</p>
               </div>
             }
 
             @if (pet()!.foundation) {
               <div class="foundation-section">
-                <h3 class="section-title">🏢 Información de la Fundación</h3>
+                <h3 class="section-title">ðŸ¢ InformaciÃ³n de la FundaciÃ³n</h3>
                 <div class="foundation-info">
                   <p><strong>Nombre:</strong> {{ pet()!.foundation!.name }}</p>
                   @if (pet()!.foundation!.address) {
-                    <p><strong>Dirección:</strong> {{ pet()!.foundation!.address }}</p>
+                    <p><strong>DirecciÃ³n:</strong> {{ pet()!.foundation!.address }}</p>
                   }
                   @if (pet()!.foundation!.phone_number) {
-                    <p><strong>Teléfono:</strong> {{ pet()!.foundation!.phone_number }}</p>
+                    <p><strong>TelÃ©fono:</strong> {{ pet()!.foundation!.phone_number }}</p>
                   }
                   @if (pet()!.foundation!.email) {
                     <p><strong>Email:</strong> {{ pet()!.foundation!.email }}</p>
@@ -264,7 +265,7 @@ import { take } from 'rxjs/operators';
       } @else {
         <div class="loading-state">
           <i class="pi pi-spin pi-spinner" style="font-size: 3rem; color: #FBBF24;"></i>
-          <p>Cargando información de la mascota...</p>
+          <p>Cargando informaciÃ³n de la mascota...</p>
         </div>
       }
     </div>
@@ -703,9 +704,9 @@ export class PetDetailComponent implements OnInit, AfterViewInit {
       if (pet) {
         this.pet.set(pet);
       } else {
-        // Si no está en el store, seleccionar para cargar los detalles
+        // Si no estÃ¡ en el store, seleccionar para cargar los detalles
         this.petsStore.selectEntity(petId);
-        // El effect se encargará de actualizar pet cuando se cargue
+        // El effect se encargarÃ¡ de actualizar pet cuando se cargue
       }
     }
   }
@@ -759,7 +760,7 @@ export class PetDetailComponent implements OnInit, AfterViewInit {
         });
         return;
       }
-      // Solo navegar al formulario de adopción
+      // Solo navegar al formulario de adopciÃ³n
       this.router.navigate(['/adoptions/adoptar', this.pet()!.id]);
     });
   }
@@ -768,7 +769,7 @@ export class PetDetailComponent implements OnInit, AfterViewInit {
     if (navigator.share && this.pet()) {
       navigator.share({
         title: `Adopta a ${this.pet()!.name}`,
-        text: `Mira esta mascota disponible para adopción: ${this.pet()!.name}`,
+        text: `Mira esta mascota disponible para adopciÃ³n: ${this.pet()!.name}`,
         url: window.location.href,
       });
     } else {
@@ -791,11 +792,12 @@ export class PetDetailComponent implements OnInit, AfterViewInit {
 
   getSizeLabel(size: string): string {
     const labels: Record<string, string> = {
-      small: 'Pequeño',
+      small: 'PequeÃ±o',
       medium: 'Mediano',
       large: 'Grande',
     };
     return labels[size] || size;
   }
 }
+
 

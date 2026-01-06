@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, computed, effect, inject, OnInit, signal } from '@angular/core';
 import { Card } from 'primeng/card';
 import { Button } from 'primeng/button';
@@ -13,11 +13,12 @@ import { FoundationsStore } from '../stores/foundations.store';
 @Component({
   selector: 'pt-admin-dashboard',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, Card, Button, SplitButtonModule],
   template: `
     <div class="dashboard-container">
       <div class="dashboard-header">
-        <h2>Dashboard de Estadísticas</h2>
+        <h2>Dashboard de EstadÃ­sticas</h2>
         <div class="header-actions">
           <p-splitButton
             label="Exportar"
@@ -28,23 +29,23 @@ import { FoundationsStore } from '../stores/foundations.store';
             [style]="{ marginRight: '0.5rem' }"
           />
           <p-button
-            label="Forzar Actualización"
+            label="Forzar ActualizaciÃ³n"
             icon="pi pi-refresh"
             (onClick)="refreshStatistics()"
             [loading]="isRefreshing()"
             severity="secondary"
             [style]="{ fontSize: '0.875rem' }"
-            title="Las estadísticas se actualizan automáticamente. Usa este botón para forzar una actualización inmediata."
+            title="Las estadÃ­sticas se actualizan automÃ¡ticamente. Usa este botÃ³n para forzar una actualizaciÃ³n inmediata."
           />
         </div>
       </div>
 
       @if (statistics(); as stats) {
       <div class="metrics-grid">
-        <!-- Métricas de Mascotas -->
+        <!-- MÃ©tricas de Mascotas -->
         <p-card class="metric-card">
           <div class="metric-content">
-            <div class="metric-icon">🐾</div>
+            <div class="metric-icon">ðŸ¾</div>
             <div class="metric-info">
               <span class="metric-label">Total Mascotas</span>
               <span class="metric-value">{{ stats.pets.total }}</span>
@@ -54,7 +55,7 @@ import { FoundationsStore } from '../stores/foundations.store';
 
         <p-card class="metric-card available">
           <div class="metric-content">
-            <div class="metric-icon">✅</div>
+            <div class="metric-icon">âœ…</div>
             <div class="metric-info">
               <span class="metric-label">Disponibles</span>
               <span class="metric-value">{{ stats.pets.available }}</span>
@@ -64,7 +65,7 @@ import { FoundationsStore } from '../stores/foundations.store';
 
         <p-card class="metric-card adopted">
           <div class="metric-content">
-            <div class="metric-icon">❤️</div>
+            <div class="metric-icon">â¤ï¸</div>
             <div class="metric-info">
               <span class="metric-label">Adoptadas</span>
               <span class="metric-value">{{ stats.pets.adopted }}</span>
@@ -74,18 +75,18 @@ import { FoundationsStore } from '../stores/foundations.store';
 
         <p-card class="metric-card rate">
           <div class="metric-content">
-            <div class="metric-icon">📊</div>
+            <div class="metric-icon">ðŸ“Š</div>
             <div class="metric-info">
-              <span class="metric-label">Tasa de Adopción</span>
+              <span class="metric-label">Tasa de AdopciÃ³n</span>
               <span class="metric-value">{{ stats.adoptionRate }}%</span>
             </div>
           </div>
         </p-card>
 
-        <!-- Métricas de Solicitudes -->
+        <!-- MÃ©tricas de Solicitudes -->
         <p-card class="metric-card">
           <div class="metric-content">
-            <div class="metric-icon">📝</div>
+            <div class="metric-icon">ðŸ“</div>
             <div class="metric-info">
               <span class="metric-label">Total Solicitudes</span>
               <span class="metric-value">{{ stats.applications.total }}</span>
@@ -95,7 +96,7 @@ import { FoundationsStore } from '../stores/foundations.store';
 
         <p-card class="metric-card pending">
           <div class="metric-content">
-            <div class="metric-icon">⏳</div>
+            <div class="metric-icon">â³</div>
             <div class="metric-info">
               <span class="metric-label">Pendientes</span>
               <span class="metric-value">{{ stats.applications.pending }}</span>
@@ -105,7 +106,7 @@ import { FoundationsStore } from '../stores/foundations.store';
 
         <p-card class="metric-card approved">
           <div class="metric-content">
-            <div class="metric-icon">✅</div>
+            <div class="metric-icon">âœ…</div>
             <div class="metric-info">
               <span class="metric-label">Aprobadas</span>
               <span class="metric-value">{{ stats.applications.approved }}</span>
@@ -115,7 +116,7 @@ import { FoundationsStore } from '../stores/foundations.store';
 
         <p-card class="metric-card completed">
           <div class="metric-content">
-            <div class="metric-icon">🎉</div>
+            <div class="metric-icon">ðŸŽ‰</div>
             <div class="metric-info">
               <span class="metric-label">Completadas</span>
               <span class="metric-value">{{ stats.applications.completed }}</span>
@@ -125,10 +126,10 @@ import { FoundationsStore } from '../stores/foundations.store';
 
         <p-card class="metric-card time">
           <div class="metric-content">
-            <div class="metric-icon">⏱️</div>
+            <div class="metric-icon">â±ï¸</div>
             <div class="metric-info">
               <span class="metric-label">Tiempo Promedio</span>
-              <span class="metric-value">{{ stats.averageTimeToAdoption }} días</span>
+              <span class="metric-value">{{ stats.averageTimeToAdoption }} dÃ­as</span>
             </div>
           </div>
         </p-card>
@@ -138,7 +139,7 @@ import { FoundationsStore } from '../stores/foundations.store';
       <div class="charts-grid">
         <p-card>
           <ng-template pTemplate="header">
-            <h3>Distribución por Especie</h3>
+            <h3>DistribuciÃ³n por Especie</h3>
           </ng-template>
           <div class="distribution-chart">
             @for (item of stats.pets.bySpecies; track item.species) {
@@ -158,7 +159,7 @@ import { FoundationsStore } from '../stores/foundations.store';
 
         <p-card>
           <ng-template pTemplate="header">
-            <h3>Distribución por Tamaño</h3>
+            <h3>DistribuciÃ³n por TamaÃ±o</h3>
           </ng-template>
           <div class="distribution-chart">
             @for (item of stats.pets.bySize; track item.size) {
@@ -201,11 +202,11 @@ import { FoundationsStore } from '../stores/foundations.store';
         </p-card>
       </div>
 
-      <!-- Mascotas Más Populares -->
+      <!-- Mascotas MÃ¡s Populares -->
       @if (stats.mostPopularPets.length > 0) {
       <p-card>
         <ng-template pTemplate="header">
-          <h3>Mascotas Más Populares</h3>
+          <h3>Mascotas MÃ¡s Populares</h3>
         </ng-template>
         <div class="popular-pets">
           @for (item of stats.mostPopularPets; track item.pet.id) {
@@ -226,7 +227,7 @@ import { FoundationsStore } from '../stores/foundations.store';
       } @else {
       <div class="loading-state">
         <i class="pi pi-spin pi-spinner" style="font-size: 2rem;"></i>
-        <p>Cargando estadísticas...</p>
+        <p>Cargando estadÃ­sticas...</p>
       </div>
       }
     </div>
@@ -476,18 +477,18 @@ export class AdminDashboardComponent implements OnInit {
 
   public isRefreshing = signal(false);
 
-  // Computed signal que se actualiza automáticamente cuando cambian los stores
-  // Depende directamente de los stores para reactividad automática
+  // Computed signal que se actualiza automÃ¡ticamente cuando cambian los stores
+  // Depende directamente de los stores para reactividad automÃ¡tica
   public statistics = computed(() => {
     // Leer los stores para que el computed se actualice cuando cambien
     const pets = this.petsStore.entities();
     const applications = this.applicationsStore.entities();
     const foundations = this.foundationsStore.entities();
     
-    // Invalidar caché para forzar recálculo con datos frescos
+    // Invalidar cachÃ© para forzar recÃ¡lculo con datos frescos
     this.statisticsService.invalidateCache();
     
-    // Retornar estadísticas calculadas con los datos actuales
+    // Retornar estadÃ­sticas calculadas con los datos actuales
     return this.statisticsService.getStatistics();
   });
 
@@ -506,14 +507,14 @@ export class AdminDashboardComponent implements OnInit {
 
   constructor() {
     // Efecto que se ejecuta cuando cambian los datos en los stores
-    // Esto fuerza la invalidación del caché cuando cambian los datos
+    // Esto fuerza la invalidaciÃ³n del cachÃ© cuando cambian los datos
     effect(() => {
       // Leer los stores para que el effect se active cuando cambien
       const pets = this.petsStore.entities();
       const applications = this.applicationsStore.entities();
       const foundations = this.foundationsStore.entities();
       
-      // Invalidar caché para que se recalculen las estadísticas con datos frescos
+      // Invalidar cachÃ© para que se recalculen las estadÃ­sticas con datos frescos
       // Solo invalidar si hay datos (evitar invalidaciones innecesarias al inicio)
       if (pets.length > 0 || applications.length > 0 || foundations.length > 0) {
         this.statisticsService.invalidateCache();
@@ -522,19 +523,19 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    // Las estadísticas se calculan automáticamente con el computed signal
+    // Las estadÃ­sticas se calculan automÃ¡ticamente con el computed signal
   }
 
   public refreshStatistics(): void {
     this.isRefreshing.set(true);
-    // Invalidar caché y forzar recálculo
+    // Invalidar cachÃ© y forzar recÃ¡lculo
     this.statisticsService.invalidateCache();
-    // Forzar actualización de los stores
+    // Forzar actualizaciÃ³n de los stores
     this.petsStore.fetchItems();
     this.applicationsStore.fetchItems();
     this.foundationsStore.fetchItems();
     
-    // El computed signal se actualizará automáticamente
+    // El computed signal se actualizarÃ¡ automÃ¡ticamente
     setTimeout(() => {
       this.isRefreshing.set(false);
     }, 500);
@@ -553,4 +554,5 @@ export class AdminDashboardComponent implements OnInit {
     this.exportService.exportStatistics(format);
   }
 }
+
 

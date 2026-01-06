@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, effect, inject, OnInit, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
@@ -15,6 +15,7 @@ import { AdoptionApplicationsStore } from '../stores/adoption-applications.store
 @Component({
   selector: 'pt-admin-application-detail',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -37,7 +38,7 @@ import { AdoptionApplicationsStore } from '../stores/adoption-applications.store
           severity="secondary"
           (onClick)="goBack()"
         />
-        <h2>Detalles de Solicitud de Adopción</h2>
+        <h2>Detalles de Solicitud de AdopciÃ³n</h2>
         <p-tag
           [value]="getStatusLabel(application()!.status)"
           [severity]="getStatusSeverity(application()!.status)"
@@ -45,10 +46,10 @@ import { AdoptionApplicationsStore } from '../stores/adoption-applications.store
       </div>
 
       <div class="detail-content">
-        <!-- Información del Solicitante -->
+        <!-- InformaciÃ³n del Solicitante -->
         <p-card>
           <ng-template pTemplate="header">
-            <h3>Información del Solicitante</h3>
+            <h3>InformaciÃ³n del Solicitante</h3>
           </ng-template>
           <div class="info-grid">
             <div class="info-item">
@@ -60,23 +61,23 @@ import { AdoptionApplicationsStore } from '../stores/adoption-applications.store
               <span>{{ application()!.applicant_email }}</span>
             </div>
             <div class="info-item">
-              <label>Teléfono:</label>
+              <label>TelÃ©fono:</label>
               <span>{{ application()!.applicant_phone }}</span>
             </div>
             <div class="info-item">
-              <label>Dirección:</label>
+              <label>DirecciÃ³n:</label>
               <span>{{ application()!.applicant_address }}</span>
             </div>
             @if (application()!.applicant_document_id) {
             <div class="info-item">
-              <label>Cédula:</label>
+              <label>CÃ©dula:</label>
               <span>{{ application()!.applicant_document_id }}</span>
             </div>
             }
           </div>
         </p-card>
 
-        <!-- Información de la Mascota -->
+        <!-- InformaciÃ³n de la Mascota -->
         <p-card>
           <ng-template pTemplate="header">
             <h3>Mascota Solicitada</h3>
@@ -94,48 +95,48 @@ import { AdoptionApplicationsStore } from '../stores/adoption-applications.store
               <span>{{ getSpeciesLabel(application()!.pet.species) }}</span>
             </div>
             <div class="info-item">
-              <label>Fundación:</label>
+              <label>FundaciÃ³n:</label>
               <span>{{ application()!.pet.foundation?.name || 'N/A' }}</span>
             </div>
           </div>
           }
         </p-card>
 
-        <!-- Información del Hogar -->
+        <!-- InformaciÃ³n del Hogar -->
         <p-card>
           <ng-template pTemplate="header">
-            <h3>Información del Hogar</h3>
+            <h3>InformaciÃ³n del Hogar</h3>
           </ng-template>
           <div class="info-grid">
             @if (application()!.reason_for_adoption) {
             <div class="info-item full-width">
-              <label>Motivo de Adopción:</label>
+              <label>Motivo de AdopciÃ³n:</label>
               <span>{{ application()!.reason_for_adoption }}</span>
             </div>
             }
             @if (application()!.living_situation) {
             <div class="info-item">
-              <label>Situación de Vivienda:</label>
+              <label>SituaciÃ³n de Vivienda:</label>
               <span>{{ getLivingSituationLabel(application()!.living_situation) }}</span>
             </div>
             }
             <div class="info-item">
               <label>Tiene otras mascotas:</label>
-              <span>{{ application()!.has_other_pets ? 'Sí' : 'No' }}</span>
+              <span>{{ application()!.has_other_pets ? 'SÃ­' : 'No' }}</span>
             </div>
             @if (application()!.has_other_pets && application()!.other_pets_info) {
             <div class="info-item full-width">
-              <label>Información sobre otras mascotas:</label>
+              <label>InformaciÃ³n sobre otras mascotas:</label>
               <span>{{ application()!.other_pets_info }}</span>
             </div>
             }
             <div class="info-item">
-              <label>Tiene niños:</label>
-              <span>{{ application()!.has_children ? 'Sí' : 'No' }}</span>
+              <label>Tiene niÃ±os:</label>
+              <span>{{ application()!.has_children ? 'SÃ­' : 'No' }}</span>
             </div>
             @if (application()!.has_children && application()!.children_info) {
             <div class="info-item full-width">
-              <label>Información sobre los niños:</label>
+              <label>InformaciÃ³n sobre los niÃ±os:</label>
               <span>{{ application()!.children_info }}</span>
             </div>
             }
@@ -223,7 +224,7 @@ import { AdoptionApplicationsStore } from '../stores/adoption-applications.store
       } @else {
       <div class="loading-state">
         <i class="pi pi-spin pi-spinner" style="font-size: 2rem;"></i>
-        <p>Cargando información de la solicitud...</p>
+        <p>Cargando informaciÃ³n de la solicitud...</p>
       </div>
       }
     </div>
@@ -412,7 +413,7 @@ export class AdminApplicationDetailComponent implements OnInit {
         this.application.set(selected);
         this.notes.set(selected.notes || '');
       } else {
-        // Si no está en el store, buscar en las entidades
+        // Si no estÃ¡ en el store, buscar en las entidades
         const app = this.applicationsStore.entities().find((a) => a.id === applicationId);
         if (app) {
           this.application.set(app);
@@ -523,7 +524,7 @@ export class AdminApplicationDetailComponent implements OnInit {
     };
     this.applicationsStore.editItem(updated).subscribe({
       next: () => {
-        // Actualizar desde el store para obtener los datos más recientes
+        // Actualizar desde el store para obtener los datos mÃ¡s recientes
         const updatedApp = this.applicationsStore.entities().find((a) => a.id === app.id);
         if (updatedApp) {
           this.application.set(updatedApp);
@@ -560,7 +561,7 @@ export class AdminApplicationDetailComponent implements OnInit {
     };
     this.applicationsStore.editItem(updated).subscribe({
       next: () => {
-        // Actualizar desde el store para obtener los datos más recientes
+        // Actualizar desde el store para obtener los datos mÃ¡s recientes
         const updatedApp = this.applicationsStore.entities().find((a) => a.id === app.id);
         if (updatedApp) {
           this.application.set(updatedApp);
@@ -595,15 +596,15 @@ export class AdminApplicationDetailComponent implements OnInit {
       ...app,
       status: 'completed',
     };
-    // Usar updateApplicationStatus para manejar la lógica especial cuando se completa
+    // Usar updateApplicationStatus para manejar la lÃ³gica especial cuando se completa
     const store = this.applicationsStore as any;
     if (store.updateApplicationStatus) {
       store.updateApplicationStatus(updated).subscribe({
         next: () => {
           this.messageService.add({
             severity: 'success',
-            summary: 'Adopción completada',
-            detail: 'La adopción ha sido marcada como completada y la mascota ya no está disponible',
+            summary: 'AdopciÃ³n completada',
+            detail: 'La adopciÃ³n ha sido marcada como completada y la mascota ya no estÃ¡ disponible',
           });
           this.application.set(updated);
           this.isLoading.set(false);
@@ -612,19 +613,19 @@ export class AdminApplicationDetailComponent implements OnInit {
           this.messageService.add({
             severity: 'error',
             summary: 'Error',
-            detail: 'No se pudo completar la adopción',
+            detail: 'No se pudo completar la adopciÃ³n',
           });
           this.isLoading.set(false);
         },
       });
     } else {
-      // Fallback al método normal
+      // Fallback al mÃ©todo normal
       this.applicationsStore.editItem(updated).subscribe({
         next: () => {
           this.messageService.add({
             severity: 'success',
-            summary: 'Adopción completada',
-            detail: 'La adopción ha sido marcada como completada',
+            summary: 'AdopciÃ³n completada',
+            detail: 'La adopciÃ³n ha sido marcada como completada',
           });
           this.application.set(updated);
           this.isLoading.set(false);
@@ -633,7 +634,7 @@ export class AdminApplicationDetailComponent implements OnInit {
           this.messageService.add({
             severity: 'error',
             summary: 'Error',
-            detail: 'No se pudo completar la adopción',
+            detail: 'No se pudo completar la adopciÃ³n',
           });
           this.isLoading.set(false);
         },
@@ -645,4 +646,5 @@ export class AdminApplicationDetailComponent implements OnInit {
     this.router.navigate(['/adoptions/admin'], { queryParams: { tab: 'applications' } });
   }
 }
+
 

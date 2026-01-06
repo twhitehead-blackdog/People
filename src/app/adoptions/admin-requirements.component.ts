@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
@@ -17,6 +17,7 @@ import { AdoptionRequirementsStore } from '../stores/adoption-requirements.store
 @Component({
   selector: 'pt-admin-requirements',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -35,7 +36,7 @@ import { AdoptionRequirementsStore } from '../stores/adoption-requirements.store
     <p-toast />
     <div class="requirements-container">
       <div class="section-header">
-        <h2>Gestión de Requisitos de Adopción</h2>
+        <h2>GestiÃ³n de Requisitos de AdopciÃ³n</h2>
         <p-button
           label="Nuevo Requisito"
           icon="pi pi-plus"
@@ -77,8 +78,8 @@ import { AdoptionRequirementsStore } from '../stores/adoption-requirements.store
               <th pSortableColumn="order">
                 Orden <p-sortIcon field="order" />
               </th>
-              <th>Título</th>
-              <th>Descripción</th>
+              <th>TÃ­tulo</th>
+              <th>DescripciÃ³n</th>
               <th>Estado</th>
               <th>Acciones</th>
             </tr>
@@ -159,11 +160,11 @@ import { AdoptionRequirementsStore } from '../stores/adoption-requirements.store
             required
             [style]="{ width: '100%' }"
           />
-          <small class="form-hint">El orden determina la posición en la lista de requisitos</small>
+          <small class="form-hint">El orden determina la posiciÃ³n en la lista de requisitos</small>
         </div>
 
         <div class="form-group">
-          <label for="title">Título *</label>
+          <label for="title">TÃ­tulo *</label>
           <input
             id="title"
             type="text"
@@ -172,12 +173,12 @@ import { AdoptionRequirementsStore } from '../stores/adoption-requirements.store
             name="title"
             required
             [disabled]="isLoading()"
-            placeholder="Ej: Ser mayor de 21 años"
+            placeholder="Ej: Ser mayor de 21 aÃ±os"
           />
         </div>
 
         <div class="form-group">
-          <label for="description">Descripción *</label>
+          <label for="description">DescripciÃ³n *</label>
           <textarea
             id="description"
             pTextarea
@@ -185,7 +186,7 @@ import { AdoptionRequirementsStore } from '../stores/adoption-requirements.store
             name="description"
             [rows]="4"
             [disabled]="isLoading()"
-            placeholder="Descripción detallada del requisito..."
+            placeholder="DescripciÃ³n detallada del requisito..."
             required
           ></textarea>
         </div>
@@ -303,7 +304,7 @@ import { AdoptionRequirementsStore } from '../stores/adoption-requirements.store
         overflow-x: auto;
       }
 
-      /* Asegurar que los diálogos no se sobrepongan */
+      /* Asegurar que los diÃ¡logos no se sobrepongan */
       ::ng-deep .p-dialog {
         z-index: 1100 !important;
         position: fixed !important;
@@ -514,7 +515,7 @@ export class AdminRequirementsComponent {
         this.messageService.add({
           severity: 'success',
           summary: 'Estado actualizado',
-          detail: `El requisito ahora está ${updated.is_active ? 'activo' : 'inactivo'}`,
+          detail: `El requisito ahora estÃ¡ ${updated.is_active ? 'activo' : 'inactivo'}`,
         });
         this.isLoading.set(false);
       },
@@ -533,4 +534,5 @@ export class AdminRequirementsComponent {
     this.requirementsStore.deleteItem(requirement.id);
   }
 }
+
 

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, computed, inject } from '@angular/core';
 import { Button } from 'primeng/button';
 import { AdoptiveFamiliesStore } from '../stores/adoptive-families.store';
@@ -6,13 +6,14 @@ import { AdoptiveFamiliesStore } from '../stores/adoptive-families.store';
 @Component({
   selector: 'pt-adoption-families',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, Button],
   template: `
     <div class="families-section">
       <div class="families-container">
         <h2 class="families-title">FAMILIAS BLACK DOG</h2>
         <p class="families-subtitle">
-          Gracias a nuestra campaña de Adopción Responsable estas familias
+          Gracias a nuestra campaÃ±a de AdopciÃ³n Responsable estas familias
           reciben #AmorPuro.
         </p>
         @if (familiesStore.isLoading()) {
@@ -25,7 +26,7 @@ import { AdoptiveFamiliesStore } from '../stores/adoptive-families.store';
               <div class="family-card-image">
                 <div class="family-card-header">
                   <div class="header-shape header-shape-yellow"></div>
-                  <h3 class="header-text">CUÉNTANOS TU HISTORIA</h3>
+                  <h3 class="header-text">CUÃ‰NTANOS TU HISTORIA</h3>
                   <div class="header-shape header-shape-gray"></div>
                 </div>
                 <div class="family-card-content">
@@ -34,7 +35,7 @@ import { AdoptiveFamiliesStore } from '../stores/adoptive-families.store';
                     alt="Gato con comida"
                     class="family-pet-image"
                   />
-                  <div class="heart-icon">💛</div>
+                  <div class="heart-icon">ðŸ’›</div>
                 </div>
               </div>
             </div>
@@ -51,7 +52,7 @@ import { AdoptiveFamiliesStore } from '../stores/adoptive-families.store';
                       class="family-photo"
                       (error)="onImageError($event)"
                     />
-                    <div class="heart-icon">💛</div>
+                    <div class="heart-icon">ðŸ’›</div>
                   </div>
                 } @else if (family.pet && family.pet.photos && family.pet.photos.length > 0) {
                   <div class="family-photo-container">
@@ -61,7 +62,7 @@ import { AdoptiveFamiliesStore } from '../stores/adoptive-families.store';
                       class="family-photo"
                       (error)="onImageError($event)"
                     />
-                    <div class="heart-icon">💛</div>
+                    <div class="heart-icon">ðŸ’›</div>
                   </div>
                 } @else {
                   <div class="family-card-image">
@@ -76,7 +77,7 @@ import { AdoptiveFamiliesStore } from '../stores/adoptive-families.store';
                         [alt]="family.family_name"
                         class="family-pet-image"
                       />
-                      <div class="heart-icon">💛</div>
+                      <div class="heart-icon">ðŸ’›</div>
                     </div>
                   </div>
                 }
@@ -84,7 +85,7 @@ import { AdoptiveFamiliesStore } from '../stores/adoptive-families.store';
                   <div class="certificate">
                     <div class="certificate-header">
                       <span class="certificate-logo">Black Dog</span>
-                      <span class="certificate-paw">🐾</span>
+                      <span class="certificate-paw">ðŸ¾</span>
                     </div>
                     <div class="certificate-content">
                       <p class="certificate-name">{{ family.contact_name }}</p>
@@ -95,11 +96,11 @@ import { AdoptiveFamiliesStore } from '../stores/adoptive-families.store';
                     </div>
                     <div class="certificate-footer">
                       @if (family.pet?.species === 'dog') {
-                        🐕
+                        ðŸ•
                       } @else if (family.pet?.species === 'cat') {
-                        🐱
+                        ðŸ±
                       } @else {
-                        🐾
+                        ðŸ¾
                       }
                     </div>
                   </div>
@@ -111,7 +112,7 @@ import { AdoptiveFamiliesStore } from '../stores/adoptive-families.store';
                 <div class="family-card-image">
                   <div class="family-card-header">
                     <div class="header-shape header-shape-yellow"></div>
-                    <h3 class="header-text">CUÉNTANOS TU HISTORIA</h3>
+                    <h3 class="header-text">CUÃ‰NTANOS TU HISTORIA</h3>
                     <div class="header-shape header-shape-gray"></div>
                   </div>
                   <div class="family-card-content">
@@ -120,7 +121,7 @@ import { AdoptiveFamiliesStore } from '../stores/adoptive-families.store';
                       alt="Gato con comida"
                       class="family-pet-image"
                     />
-                    <div class="heart-icon">💛</div>
+                    <div class="heart-icon">ðŸ’›</div>
                   </div>
                 </div>
               </div>
@@ -129,7 +130,7 @@ import { AdoptiveFamiliesStore } from '../stores/adoptive-families.store';
         }
         <div class="families-cta">
           <p-button
-            label="¡Cuéntanos tu historia!"
+            label="Â¡CuÃ©ntanos tu historia!"
             [style]="{
               background: '#fbbf24',
               border: 'none',
@@ -653,7 +654,7 @@ export class AdoptionFamiliesComponent {
     return this.familiesStore
       .entities()
       .filter((family) => family.is_active && family.is_featured)
-      .slice(0, 6); // Mostrar máximo 6 familias destacadas
+      .slice(0, 6); // Mostrar mÃ¡ximo 6 familias destacadas
   });
 
   public onImageError(event: Event): void {
@@ -664,6 +665,7 @@ export class AdoptionFamiliesComponent {
   public shareStory(): void {
     // Implementar funcionalidad para compartir historia
     console.log('Compartir historia');
-    // Aquí se podría abrir un formulario o redirigir a una página de contacto
+    // AquÃ­ se podrÃ­a abrir un formulario o redirigir a una pÃ¡gina de contacto
   }
 }
+

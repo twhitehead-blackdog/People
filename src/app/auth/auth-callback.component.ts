@@ -1,4 +1,4 @@
-import { Component, inject, OnInit } from '@angular/core';
+﻿import { Component, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from './auth.service';
@@ -8,6 +8,7 @@ import { ToastModule } from 'primeng/toast';
 @Component({
   selector: 'pt-auth-callback',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, ToastModule],
   providers: [MessageService],
   template: `
@@ -16,7 +17,7 @@ import { ToastModule } from 'primeng/toast';
       <div class="callback-card">
         <div class="spinner-container">
           <div class="spinner"></div>
-          <p class="loading-text">Procesando autenticación...</p>
+          <p class="loading-text">Procesando autenticaciÃ³n...</p>
         </div>
       </div>
     </div>
@@ -87,8 +88,8 @@ export class AuthCallbackComponent implements OnInit {
       if (result.success) {
         this.messageService.add({
           severity: 'success',
-          summary: '¡Bienvenido!',
-          detail: 'Has iniciado sesión correctamente con Google',
+          summary: 'Â¡Bienvenido!',
+          detail: 'Has iniciado sesiÃ³n correctamente con Google',
         });
 
         setTimeout(() => {
@@ -97,8 +98,8 @@ export class AuthCallbackComponent implements OnInit {
       } else {
         this.messageService.add({
           severity: 'error',
-          summary: 'Error al iniciar sesión',
-          detail: result.error || 'No se pudo completar la autenticación',
+          summary: 'Error al iniciar sesiÃ³n',
+          detail: result.error || 'No se pudo completar la autenticaciÃ³n',
         });
 
         setTimeout(() => {
@@ -110,7 +111,7 @@ export class AuthCallbackComponent implements OnInit {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'Ocurrió un error al procesar la autenticación',
+        detail: 'OcurriÃ³ un error al procesar la autenticaciÃ³n',
       });
 
       setTimeout(() => {
@@ -119,4 +120,5 @@ export class AuthCallbackComponent implements OnInit {
     }
   }
 }
+
 

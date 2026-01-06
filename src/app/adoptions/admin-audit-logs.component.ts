@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
@@ -15,6 +15,7 @@ import { AuditLogsStore } from '../stores/audit-logs.store';
 @Component({
   selector: 'pt-admin-audit-logs',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -31,7 +32,7 @@ import { AuditLogsStore } from '../stores/audit-logs.store';
     <p-toast />
     <div class="audit-logs-container">
       <div class="section-header">
-        <h2>Registro de Auditoría</h2>
+        <h2>Registro de AuditorÃ­a</h2>
         <div class="header-info">
           <span class="info-text">Registro de todas las acciones realizadas en el sistema</span>
         </div>
@@ -74,7 +75,7 @@ import { AuditLogsStore } from '../stores/audit-logs.store';
                 [options]="actionOptions"
                 optionLabel="label"
                 optionValue="value"
-                placeholder="Filtrar por acción"
+                placeholder="Filtrar por acciÃ³n"
                 [showClear]="true"
                 (onChange)="onActionFilterChange()"
                 [style]="{ width: '180px' }"
@@ -86,7 +87,7 @@ import { AuditLogsStore } from '../stores/audit-logs.store';
               <th>Fecha/Hora</th>
               <th>Entidad</th>
               <th>ID Entidad</th>
-              <th>Acción</th>
+              <th>AcciÃ³n</th>
               <th>Usuario</th>
               <th>IP</th>
               <th>Detalles</th>
@@ -145,7 +146,7 @@ import { AuditLogsStore } from '../stores/audit-logs.store';
           </ng-template>
           <ng-template pTemplate="emptymessage">
             <tr>
-              <td colspan="7">No se encontraron registros de auditoría</td>
+              <td colspan="7">No se encontraron registros de auditorÃ­a</td>
             </tr>
           </ng-template>
         </p-table>
@@ -158,14 +159,14 @@ import { AuditLogsStore } from '../stores/audit-logs.store';
       (visibleChange)="showLogDialog.set($event)"
       [modal]="true"
       [style]="{ width: '90vw', maxWidth: '800px' }"
-      [header]="'Detalles del Registro de Auditoría'"
+      [header]="'Detalles del Registro de AuditorÃ­a'"
       [draggable]="false"
       [resizable]="false"
     >
       @if (selectedLog()) {
         <div class="log-details">
           <div class="detail-section">
-            <h3>Información General</h3>
+            <h3>InformaciÃ³n General</h3>
             <div class="detail-grid">
               <div class="detail-item">
                 <span class="detail-label">Fecha/Hora:</span>
@@ -180,7 +181,7 @@ import { AuditLogsStore } from '../stores/audit-logs.store';
                 <span class="detail-value"><code>{{ selectedLog()!.entity_id }}</code></span>
               </div>
               <div class="detail-item">
-                <span class="detail-label">Acción:</span>
+                <span class="detail-label">AcciÃ³n:</span>
                 <span class="detail-value">{{ getActionLabel(selectedLog()!.action) }}</span>
               </div>
               <div class="detail-item">
@@ -218,7 +219,7 @@ import { AuditLogsStore } from '../stores/audit-logs.store';
                       }
                       @if (change.new !== undefined) {
                         <div class="change-new">
-                          <span class="change-label">Después:</span>
+                          <span class="change-label">DespuÃ©s:</span>
                           <code>{{ formatChangeValue(change.new) }}</code>
                         </div>
                       }
@@ -309,7 +310,7 @@ import { AuditLogsStore } from '../stores/audit-logs.store';
         padding: 0.5rem 0;
       }
 
-      /* Asegurar que los diálogos no se sobrepongan */
+      /* Asegurar que los diÃ¡logos no se sobrepongan */
       ::ng-deep .p-dialog {
         z-index: 1100 !important;
         position: fixed !important;
@@ -471,13 +472,13 @@ export class AdminAuditLogsComponent {
   public entityTypeOptions = [
     { label: 'Mascota', value: 'pet' },
     { label: 'Solicitud', value: 'application' },
-    { label: 'Fundación', value: 'foundation' },
+    { label: 'FundaciÃ³n', value: 'foundation' },
     { label: 'Requisito', value: 'requirement' },
     { label: 'FAQ', value: 'faq' },
     { label: 'Evento', value: 'event' },
     { label: 'Familia', value: 'family' },
     { label: 'Aliado', value: 'partner' },
-    { label: 'Interés', value: 'interest' },
+    { label: 'InterÃ©s', value: 'interest' },
   ];
 
   public actionOptions = [
@@ -501,15 +502,15 @@ export class AdminAuditLogsComponent {
 
   public onGlobalFilter(event: Event): void {
     const target = event.target as HTMLInputElement;
-    // El filtro global se maneja automáticamente por PrimeNG
+    // El filtro global se maneja automÃ¡ticamente por PrimeNG
   }
 
   public onEntityTypeFilterChange(): void {
-    // El filtro se aplica automáticamente a través de globalFilters()
+    // El filtro se aplica automÃ¡ticamente a travÃ©s de globalFilters()
   }
 
   public onActionFilterChange(): void {
-    // El filtro se aplica automáticamente a través de globalFilters()
+    // El filtro se aplica automÃ¡ticamente a travÃ©s de globalFilters()
   }
 
   public viewLogDetails(log: AuditLog): void {
@@ -587,4 +588,5 @@ export class AdminAuditLogsComponent {
     return JSON.stringify(obj, null, 2);
   }
 }
+
 

@@ -11,6 +11,7 @@ import { Button } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
+import { VirtualScrollerModule } from 'primeng/virtualscroller';
 import { Pet, AdoptionApplication } from '../models';
 import { FoundationsStore } from '../stores/foundations.store';
 import { PetsStore } from '../stores/pets.store';
@@ -21,7 +22,8 @@ import { MatchFilters } from './adoptions-match.component';
 @Component({
   selector: 'pt-pets-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, Button, TagModule, DialogModule, TooltipModule],
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
+  imports: [CommonModule, FormsModule, Button, TagModule, DialogModule, TooltipModule, VirtualScrollerModule],
   template: `
     <div class="pets-list-container">
       <div class="pets-list-inner">
@@ -50,7 +52,12 @@ import { MatchFilters } from './adoptions-match.component';
         </div>
 
         <div class="pets-list" [class.list-view]="viewMode() === 'list'">
-          @for (pet of filteredPets(); track pet.id) {
+          <p-virtualScroller
+            [value]="filteredPets()"
+            [itemSize]="viewMode() === 'grid' ? 320 : 120"
+            [scrollHeight]="'60vh'"
+            styleClass="virtual-scroller">
+            <ng-template pTemplate="item" let-pet>
           <div class="pet-card" (click)="viewPet(pet.id)">
             <div class="pet-image-container">
               @if (!pet.is_available) {
@@ -216,12 +223,14 @@ import { MatchFilters } from './adoptions-match.component';
               </div>
             </div>
           </div>
-          } @empty {
-          <div class="empty-state">
-            <span style="font-size: 4rem;">📥</span>
-            <p>No se encontraron mascotas disponibles</p>
-          </div>
-          }
+            </ng-template>
+            <ng-template pTemplate="empty">
+              <div class="empty-state">
+                <span style="font-size: 4rem;">📥</span>
+                <p>No se encontraron mascotas disponibles</p>
+              </div>
+            </ng-template>
+          </p-virtualScroller>
         </div>
       </div>
     </div>
@@ -992,6 +1001,37 @@ import { MatchFilters } from './adoptions-match.component';
         .pets-list:not(.list-view) {
           grid-template-columns: 1fr;
         }
+      }
+
+      /* Virtual Scroller Styles */
+      .virtual-scroller {
+        width: 100%;
+        height: 100%;
+      }
+
+      .virtual-scroller .p-virtualscroller-content {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .virtual-scroller .p-virtualscroller-item {
+        width: 100%;
+      }
+
+      /* Grid view */
+      .pets-list:not(.list-view) .virtual-scroller .p-virtualscroller-content {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 2rem;
+        justify-items: center;
+      }
+
+      /* List view */
+      .pets-list.list-view .virtual-scroller .p-virtualscroller-content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
       }
     `,
   ],

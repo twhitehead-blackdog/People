@@ -1,4 +1,4 @@
-import { Component, input, inject, signal } from '@angular/core';
+﻿import { Component, input, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Router } from '@angular/router';
@@ -11,6 +11,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
 @Component({
   selector: 'pt-pet-match-card',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, TagModule, DialogModule, Button],
   template: `
     <div class="pet-match-card" (mouseenter)="isHovered.set(true)" (mouseleave)="isHovered.set(false)">
@@ -38,12 +39,12 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
           [class.liked]="isLiked()"
           (click)="toggleLike($event)"
         >
-          <span class="heart-icon">❤️</span>
+          <span class="heart-icon">â¤ï¸</span>
         </button>
         
         <!-- Type badge -->
         <div class="type-badge">
-          {{ petMatch().species === 'dog' ? '🐕 Perrito' : '🐱 Gatito' }}
+          {{ petMatch().species === 'dog' ? 'ðŸ• Perrito' : 'ðŸ± Gatito' }}
         </div>
 
       </div>
@@ -55,10 +56,10 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
             <h3 class="pet-name">{{ petMatch().pet_name }}</h3>
             <div class="pet-breed-section">
               @if (petMatch().breed_type === 'pure' && petMatch().breed_primary) {
-                <span class="breed-badge pure">⭐ {{ petMatch().breed_primary }}</span>
+                <span class="breed-badge pure">â­ {{ petMatch().breed_primary }}</span>
               } @else if (petMatch().breed_type === 'mixed' && petMatch().breed_primary && petMatch().breed_secondary) {
                 <span class="breed-badge mixed">
-                  🔀 {{ petMatch().breed_primary }}
+                  ðŸ”€ {{ petMatch().breed_primary }}
                   @if (petMatch().breed_percentage_primary) {
                     <span class="breed-percentage">({{ petMatch().breed_percentage_primary }}%)</span>
                   }
@@ -70,24 +71,24 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
               } @else if (petMatch().breed) {
                 <span class="breed-badge">{{ petMatch().breed }}</span>
               } @else {
-                <span class="breed-badge none">🐾 Sin raza específica</span>
+                <span class="breed-badge none">ðŸ¾ Sin raza especÃ­fica</span>
               }
             </div>
           </div>
           <div class="gender-badge" [class.male]="petMatch().gender === 'M'" [class.female]="petMatch().gender === 'F'">
-            {{ petMatch().gender === 'M' ? '♂️ Macho' : '♀️ Hembra' }}
+            {{ petMatch().gender === 'M' ? 'â™‚ï¸ Macho' : 'â™€ï¸ Hembra' }}
           </div>
         </div>
 
         <div class="pet-details">
           <div class="detail-item">
             <div class="detail-icon-wrapper purple">
-              <span class="detail-icon">📅</span>
+              <span class="detail-icon">ðŸ“…</span>
             </div>
             <span class="detail-text">
               @if (petMatch().age_years !== undefined || petMatch().age_months !== undefined) {
                 @if (petMatch().age_years !== undefined && petMatch().age_years! > 0) {
-                  {{ petMatch().age_years }} año{{ petMatch().age_years! !== 1 ? 's' : '' }}
+                  {{ petMatch().age_years }} aÃ±o{{ petMatch().age_years! !== 1 ? 's' : '' }}
                 }
                 @if (petMatch().age_months !== undefined && petMatch().age_months! > 0) {
                   @if (petMatch().age_years !== undefined && petMatch().age_years! > 0) {
@@ -96,7 +97,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
                   {{ petMatch().age_months }} mes{{ petMatch().age_months! !== 1 ? 'es' : '' }}
                 }
               } @else if (petMatch().age) {
-                {{ petMatch().age!.toFixed(1) }} años
+                {{ petMatch().age!.toFixed(1) }} aÃ±os
               } @else {
                 No especificada
               }
@@ -105,7 +106,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
           @if (petMatch().location) {
           <div class="detail-item">
             <div class="detail-icon-wrapper pink">
-              <span class="detail-icon">📍</span>
+              <span class="detail-icon">ðŸ“</span>
             </div>
             <span class="detail-text">{{ petMatch().location }}</span>
           </div>
@@ -114,7 +115,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
 
         <div class="pet-badges">
           <div class="size-badge">{{ getSizeLabel(petMatch().size) }}</div>
-          <div class="available-badge">✨ Disponible</div>
+          <div class="available-badge">âœ¨ Disponible</div>
         </div>
 
         <button 
@@ -122,7 +123,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
           (click)="showMoreInfo($event)"
           [class.scaled]="isHovered()"
         >
-          ℹ️ Ver Perfil Completo
+          â„¹ï¸ Ver Perfil Completo
         </button>
       </div>
     </div>
@@ -161,13 +162,13 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
             (click)="showPetDetails = false"
             type="button"
           >
-            <span class="close-icon">✕</span>
+            <span class="close-icon">âœ•</span>
           </button>
           
           <!-- Type badge -->
           <div class="type-badge-header">
             <span class="type-badge-text">
-              {{ petMatch().species === 'dog' ? '🐕 Perrito' : '🐱 Gatito' }}
+              {{ petMatch().species === 'dog' ? 'ðŸ• Perrito' : 'ðŸ± Gatito' }}
             </span>
           </div>
 
@@ -177,9 +178,9 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
               class="fullscreen-button"
               (click)="openImageFullscreen()"
               type="button"
-              title="Ver imagen en tamaño completo"
+              title="Ver imagen en tamaÃ±o completo"
             >
-              <span class="fullscreen-icon">🔍</span>
+              <span class="fullscreen-icon">ðŸ”</span>
             </button>
           }
 
@@ -188,7 +189,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
             <div class="header-info-left">
               <h2 class="header-pet-name">{{ petMatch().pet_name }}</h2>
               <p class="header-pet-breed">
-                {{ getBreedDisplay() }} • {{ getAgeDisplay() }}
+                {{ getBreedDisplay() }} â€¢ {{ getAgeDisplay() }}
               </p>
             </div>
             
@@ -198,7 +199,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
               (click)="toggleLike($event)"
               type="button"
             >
-              <span class="header-heart-icon">❤️</span>
+              <span class="header-heart-icon">â¤ï¸</span>
             </button>
           </div>
         </div>
@@ -211,7 +212,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
               (click)="closeImageFullscreen()"
               type="button"
             >
-              <span class="close-icon">✕</span>
+              <span class="close-icon">âœ•</span>
             </button>
             <div class="lightbox-content" (click)="$event.stopPropagation()">
               @if (petMatch().photos && petMatch().photos!.length > 0) {
@@ -231,15 +232,15 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
           <div class="quick-info-grid">
             <div class="quick-info-card">
               <div class="quick-info-icon-wrapper" [class.male]="petMatch().gender === 'M'" [class.female]="petMatch().gender === 'F'">
-                <span class="quick-info-icon">{{ petMatch().gender === 'M' ? '♂️' : '♀️' }}</span>
+                <span class="quick-info-icon">{{ petMatch().gender === 'M' ? 'â™‚ï¸' : 'â™€ï¸' }}</span>
               </div>
-              <p class="quick-info-label">Género</p>
+              <p class="quick-info-label">GÃ©nero</p>
               <p class="quick-info-value">{{ petMatch().gender === 'M' ? 'Macho' : 'Hembra' }}</p>
             </div>
 
             <div class="quick-info-card">
               <div class="quick-info-icon-wrapper purple">
-                <span class="quick-info-icon">⚖️</span>
+                <span class="quick-info-icon">âš–ï¸</span>
               </div>
               <p class="quick-info-label">Peso</p>
               <p class="quick-info-value">{{ getWeightDisplay() }}</p>
@@ -247,7 +248,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
 
             <div class="quick-info-card">
               <div class="quick-info-icon-wrapper green">
-                <span class="quick-info-icon">📏</span>
+                <span class="quick-info-icon">ðŸ“</span>
               </div>
               <p class="quick-info-label">Altura</p>
               <p class="quick-info-value">{{ getHeightDisplay() }}</p>
@@ -255,9 +256,9 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
 
             <div class="quick-info-card">
               <div class="quick-info-icon-wrapper yellow">
-                <span class="quick-info-icon">📍</span>
+                <span class="quick-info-icon">ðŸ“</span>
               </div>
-              <p class="quick-info-label">Ubicación</p>
+              <p class="quick-info-label">UbicaciÃ³n</p>
               <p class="quick-info-value">{{ petMatch().location || 'No especificada' }}</p>
             </div>
           </div>
@@ -265,17 +266,17 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
           <!-- Health Status -->
           <div class="info-section health-section">
             <h3 class="section-title">
-              <span class="section-icon">🏆</span>
+              <span class="section-icon">ðŸ†</span>
               Estado de Salud
             </h3>
             <div class="health-badges">
               @if (petMatch().is_vaccinated) {
-                <span class="health-badge vaccinated">✅ Vacunado</span>
+                <span class="health-badge vaccinated">âœ… Vacunado</span>
               }
               @if (petMatch().is_sterilized) {
-                <span class="health-badge sterilized">✅ Esterilizado</span>
+                <span class="health-badge sterilized">âœ… Esterilizado</span>
               }
-              <span class="health-badge healthy">✅ Saludable</span>
+              <span class="health-badge healthy">âœ… Saludable</span>
             </div>
           </div>
 
@@ -283,7 +284,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
           @if (petMatch().personality && petMatch().personality!.length > 0) {
           <div class="info-section personality-section">
             <h3 class="section-title">
-              <span class="section-icon">✨</span>
+              <span class="section-icon">âœ¨</span>
               Personalidad
             </h3>
             <div class="personality-badges">
@@ -298,7 +299,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
           @if (petMatch().description) {
           <div class="info-section description-section">
             <h3 class="section-title">
-              <span class="section-icon">ℹ️</span>
+              <span class="section-icon">â„¹ï¸</span>
               Sobre {{ petMatch().pet_name }}
             </h3>
             <p class="description-text">{{ petMatch().description }}</p>
@@ -308,12 +309,12 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
           <!-- Looking for Partner -->
           <div class="info-section looking-for-section">
             <h3 class="section-title">
-              <span class="section-icon">❤️</span>
+              <span class="section-icon">â¤ï¸</span>
               Buscando Pareja
             </h3>
             <div class="preferences-grid">
               <div class="preference-item">
-                <p class="preference-label">Género buscado</p>
+                <p class="preference-label">GÃ©nero buscado</p>
                 <p class="preference-value">{{ getPreferredGender() }}</p>
               </div>
               <div class="preference-item">
@@ -321,7 +322,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
                 <p class="preference-value">{{ getPreferredAgeRange() }}</p>
               </div>
               <div class="preference-item">
-                <p class="preference-label">Tamaño preferido</p>
+                <p class="preference-label">TamaÃ±o preferido</p>
                 <p class="preference-value">{{ getPreferredSize() }}</p>
               </div>
             </div>
@@ -333,7 +334,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
           <!-- Owner Info -->
           @if (petMatch().user) {
           <div class="info-section owner-section">
-            <h3 class="section-title">Información del Dueño</h3>
+            <h3 class="section-title">InformaciÃ³n del DueÃ±o</h3>
             <div class="owner-info">
               <div class="owner-avatar">
                 <span class="owner-initials">{{ getOwnerInitials() }}</span>
@@ -349,7 +350,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
           <!-- Action Buttons -->
           <div class="action-buttons">
             <p-button
-              label="¡Quiero Conocer a {{ petMatch().pet_name }}! 💕"
+              label="Â¡Quiero Conocer a {{ petMatch().pet_name }}! ðŸ’•"
               [style]="{
                 background: 'linear-gradient(to right, #ec4899, #a855f7, #FDB022)',
                 border: 'none',
@@ -383,7 +384,7 @@ import { AuthWrapperService } from '../auth/auth-wrapper.service';
           <!-- Report -->
           <div class="report-section">
             <button class="report-button" (click)="reportProfile($event)" type="button">
-              <span class="report-icon">🚩</span>
+              <span class="report-icon">ðŸš©</span>
               Reportar perfil
             </button>
           </div>
@@ -1634,7 +1635,7 @@ export class PetMatchCardComponent {
 
   public getSizeLabel(size: string): string {
     const labels: Record<string, string> = {
-      small: 'Pequeño',
+      small: 'PequeÃ±o',
       medium: 'Mediano',
       large: 'Grande',
     };
@@ -1643,17 +1644,17 @@ export class PetMatchCardComponent {
 
   public getPersonalityLabel(value: string): string {
     const labels: Record<string, string> = {
-      jugueton: 'Juguetón',
+      jugueton: 'JuguetÃ³n',
       tranquilo: 'Tranquilo',
-      carinoso: 'Cariñoso',
+      carinoso: 'CariÃ±oso',
       independiente: 'Independiente',
       sociable: 'Sociable',
       activo: 'Activo',
       protector: 'Protector',
-      timido: 'Tímido',
+      timido: 'TÃ­mido',
       curioso: 'Curioso',
-      energetico: 'Energético',
-      docil: 'Dócil',
+      energetico: 'EnergÃ©tico',
+      docil: 'DÃ³cil',
     };
     return labels[value] || value;
   }
@@ -1699,7 +1700,7 @@ export class PetMatchCardComponent {
 
   public onModalHide(): void {
     this.showPetDetails = false;
-    // Cerrar también el lightbox si está abierto
+    // Cerrar tambiÃ©n el lightbox si estÃ¡ abierto
     this.showFullscreenImage.set(false);
   }
 
@@ -1723,7 +1724,7 @@ export class PetMatchCardComponent {
     } else if (match.breed) {
       return match.breed;
     }
-    return 'Sin raza específica';
+    return 'Sin raza especÃ­fica';
   }
 
   public getAgeDisplay(): string {
@@ -1731,14 +1732,14 @@ export class PetMatchCardComponent {
     if (match.age_years !== undefined || match.age_months !== undefined) {
       const parts: string[] = [];
       if (match.age_years !== undefined && match.age_years! > 0) {
-        parts.push(`${match.age_years} año${match.age_years! !== 1 ? 's' : ''}`);
+        parts.push(`${match.age_years} aÃ±o${match.age_years! !== 1 ? 's' : ''}`);
       }
       if (match.age_months !== undefined && match.age_months! > 0) {
         parts.push(`${match.age_months} mes${match.age_months! !== 1 ? 'es' : ''}`);
       }
       return parts.join(' y ') || 'No especificada';
     } else if (match.age) {
-      return `${match.age.toFixed(1)} años`;
+      return `${match.age.toFixed(1)} aÃ±os`;
     }
     return 'No especificada';
   }
@@ -1748,7 +1749,7 @@ export class PetMatchCardComponent {
     if (weight) {
       return `${weight} kg`;
     }
-    // Estimar peso basado en tamaño
+    // Estimar peso basado en tamaÃ±o
     const size = this.petMatch().size;
     if (size === 'large') return '30 kg';
     if (size === 'medium') return '15 kg';
@@ -1756,7 +1757,7 @@ export class PetMatchCardComponent {
   }
 
   public getHeightDisplay(): string {
-    // Estimar altura basada en tamaño
+    // Estimar altura basada en tamaÃ±o
     const size = this.petMatch().size;
     if (size === 'large') return '60 cm';
     if (size === 'medium') return '40 cm';
@@ -1765,7 +1766,7 @@ export class PetMatchCardComponent {
 
   public getPreferredGender(): string {
     const match = this.petMatch();
-    // Si busca pareja, generalmente busca el género opuesto
+    // Si busca pareja, generalmente busca el gÃ©nero opuesto
     return match.gender === 'M' ? 'Hembra' : 'Macho';
   }
 
@@ -1773,10 +1774,10 @@ export class PetMatchCardComponent {
     const match = this.petMatch();
     const age = match.age || (match.age_years || 0);
     // Rango basado en la edad actual
-    if (age <= 1) return '1-3 años';
-    if (age <= 3) return '1-5 años';
-    if (age <= 5) return '3-7 años';
-    return '5-10 años';
+    if (age <= 1) return '1-3 aÃ±os';
+    if (age <= 3) return '1-5 aÃ±os';
+    if (age <= 5) return '3-7 aÃ±os';
+    return '5-10 aÃ±os';
   }
 
   public getPreferredSize(): string {
@@ -1810,7 +1811,7 @@ export class PetMatchCardComponent {
 
   public reportProfile(event: Event): void {
     event.preventDefault();
-    // Implementar lógica de reporte
+    // Implementar lÃ³gica de reporte
     console.log('Reportar perfil:', this.petMatch().id);
   }
 
@@ -1824,4 +1825,5 @@ export class PetMatchCardComponent {
     this.showFullscreenImage.set(false);
   }
 }
+
 

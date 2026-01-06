@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
@@ -25,6 +25,7 @@ import { AdminPetMatchesComponent } from './admin-pet-matches.component';
 @Component({
   selector: 'pt-admin-panel',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     ToastModule,
@@ -52,8 +53,8 @@ import { AdminPetMatchesComponent } from './admin-pet-matches.component';
       <!-- Dashboard Header -->
       <div class="dashboard-header">
         <div class="header-left">
-          <h1 class="dashboard-title">Panel de Administración</h1>
-          <p class="dashboard-subtitle">Gestiona el contenido y configuración del sistema</p>
+          <h1 class="dashboard-title">Panel de AdministraciÃ³n</h1>
+          <p class="dashboard-subtitle">Gestiona el contenido y configuraciÃ³n del sistema</p>
         </div>
       </div>
 
@@ -67,9 +68,9 @@ import { AdminPetMatchesComponent } from './admin-pet-matches.component';
               class="category-header"
               (click)="toggleCategory('servicios')"
             >
-              <span class="category-icon">🛠️</span>
+              <span class="category-icon">ðŸ› ï¸</span>
               <span class="category-title">Servicios</span>
-              <span class="category-arrow" [class.open]="selectedCategory() === 'servicios'">▼</span>
+              <span class="category-arrow" [class.open]="selectedCategory() === 'servicios'">â–¼</span>
             </button>
             <div class="category-content" [class.open]="selectedCategory() === 'servicios'">
               <button 
@@ -77,7 +78,7 @@ import { AdminPetMatchesComponent } from './admin-pet-matches.component';
                 [class.active]="activeTabIndex === 14"
                 (click)="selectTab(14)"
               >
-                <span class="item-icon">💕</span>
+                <span class="item-icon">ðŸ’•</span>
                 <span class="item-label">Busco Pareja</span>
               </button>
             </div>
@@ -88,7 +89,7 @@ import { AdminPetMatchesComponent } from './admin-pet-matches.component';
               class="category-header"
               (click)="selectTab(0)"
             >
-              <span class="category-icon">📊</span>
+              <span class="category-icon">ðŸ“Š</span>
               <span class="category-title">Dashboard</span>
             </button>
           </div>
@@ -98,9 +99,9 @@ import { AdminPetMatchesComponent } from './admin-pet-matches.component';
               class="category-header"
               (click)="toggleCategory('gestion')"
             >
-              <span class="category-icon">📋</span>
-              <span class="category-title">Gestión de Contenido</span>
-              <span class="category-arrow" [class.open]="selectedCategory() === 'gestion'">▼</span>
+              <span class="category-icon">ðŸ“‹</span>
+              <span class="category-title">GestiÃ³n de Contenido</span>
+              <span class="category-arrow" [class.open]="selectedCategory() === 'gestion'">â–¼</span>
             </button>
             <div class="category-content" [class.open]="selectedCategory() === 'gestion'">
               <button 
@@ -108,7 +109,7 @@ import { AdminPetMatchesComponent } from './admin-pet-matches.component';
                 [class.active]="activeTabIndex === 1"
                 (click)="selectTab(1)"
               >
-                <span class="item-icon">🐾</span>
+                <span class="item-icon">ðŸ¾</span>
                 <span class="item-label">Mascotas</span>
               </button>
               <button 
@@ -116,7 +117,7 @@ import { AdminPetMatchesComponent } from './admin-pet-matches.component';
                 [class.active]="activeTabIndex === 2"
                 (click)="selectTab(2)"
               >
-                <span class="item-icon">📝</span>
+                <span class="item-icon">ðŸ“</span>
                 <span class="item-label">{{ applicationsTabHeader() }}</span>
                 @if (pendingApplicationsCount() > 0) {
                   <span class="item-badge">{{ pendingApplicationsCount() }}</span>
@@ -127,7 +128,7 @@ import { AdminPetMatchesComponent } from './admin-pet-matches.component';
                 [class.active]="activeTabIndex === 3"
                 (click)="selectTab(3)"
               >
-                <span class="item-icon">🏢</span>
+                <span class="item-icon">ðŸ¢</span>
                 <span class="item-label">Fundaciones</span>
               </button>
               <button 
@@ -135,7 +136,7 @@ import { AdminPetMatchesComponent } from './admin-pet-matches.component';
                 [class.active]="activeTabIndex === 7"
                 (click)="selectTab(7)"
               >
-                <span class="item-icon">👥</span>
+                <span class="item-icon">ðŸ‘¥</span>
                 <span class="item-label">Familias</span>
               </button>
               <button 
@@ -143,7 +144,7 @@ import { AdminPetMatchesComponent } from './admin-pet-matches.component';
                 [class.active]="activeTabIndex === 8"
                 (click)="selectTab(8)"
               >
-                <span class="item-icon">🤝</span>
+                <span class="item-icon">ðŸ¤</span>
                 <span class="item-label">Aliados</span>
               </button>
               <button 
@@ -151,7 +152,7 @@ import { AdminPetMatchesComponent } from './admin-pet-matches.component';
                 [class.active]="activeTabIndex === 9"
                 (click)="selectTab(9)"
               >
-                <span class="item-icon">❤️</span>
+                <span class="item-icon">â¤ï¸</span>
                 <span class="item-label">Intereses</span>
               </button>
             </div>
@@ -162,9 +163,9 @@ import { AdminPetMatchesComponent } from './admin-pet-matches.component';
               class="category-header"
               (click)="toggleCategory('contenido')"
             >
-              <span class="category-icon">📄</span>
+              <span class="category-icon">ðŸ“„</span>
               <span class="category-title">Contenido</span>
-              <span class="category-arrow" [class.open]="selectedCategory() === 'contenido'">▼</span>
+              <span class="category-arrow" [class.open]="selectedCategory() === 'contenido'">â–¼</span>
             </button>
             <div class="category-content" [class.open]="selectedCategory() === 'contenido'">
               <button 
@@ -172,7 +173,7 @@ import { AdminPetMatchesComponent } from './admin-pet-matches.component';
                 [class.active]="activeTabIndex === 4"
                 (click)="selectTab(4)"
               >
-                <span class="item-icon">✅</span>
+                <span class="item-icon">âœ…</span>
                 <span class="item-label">Requisitos</span>
               </button>
               <button 
@@ -180,7 +181,7 @@ import { AdminPetMatchesComponent } from './admin-pet-matches.component';
                 [class.active]="activeTabIndex === 5"
                 (click)="selectTab(5)"
               >
-                <span class="item-icon">❓</span>
+                <span class="item-icon">â“</span>
                 <span class="item-label">FAQ</span>
               </button>
               <button 
@@ -188,7 +189,7 @@ import { AdminPetMatchesComponent } from './admin-pet-matches.component';
                 [class.active]="activeTabIndex === 6"
                 (click)="selectTab(6)"
               >
-                <span class="item-icon">📅</span>
+                <span class="item-icon">ðŸ“…</span>
                 <span class="item-label">Eventos</span>
               </button>
               <button 
@@ -196,7 +197,7 @@ import { AdminPetMatchesComponent } from './admin-pet-matches.component';
                 [class.active]="activeTabIndex === 13"
                 (click)="selectTab(13)"
               >
-                <span class="item-icon">💝</span>
+                <span class="item-icon">ðŸ’</span>
                 <span class="item-label">Personalidades</span>
               </button>
             </div>
@@ -207,9 +208,9 @@ import { AdminPetMatchesComponent } from './admin-pet-matches.component';
               class="category-header"
               (click)="toggleCategory('admin')"
             >
-              <span class="category-icon">⚙️</span>
-              <span class="category-title">Administración</span>
-              <span class="category-arrow" [class.open]="selectedCategory() === 'admin'">▼</span>
+              <span class="category-icon">âš™ï¸</span>
+              <span class="category-title">AdministraciÃ³n</span>
+              <span class="category-arrow" [class.open]="selectedCategory() === 'admin'">â–¼</span>
             </button>
             <div class="category-content" [class.open]="selectedCategory() === 'admin'">
               <button 
@@ -217,7 +218,7 @@ import { AdminPetMatchesComponent } from './admin-pet-matches.component';
                 [class.active]="activeTabIndex === 10"
                 (click)="selectTab(10)"
               >
-                <span class="item-icon">👤</span>
+                <span class="item-icon">ðŸ‘¤</span>
                 <span class="item-label">Usuarios</span>
               </button>
               @if (canViewAuditLogs()) {
@@ -226,8 +227,8 @@ import { AdminPetMatchesComponent } from './admin-pet-matches.component';
                   [class.active]="activeTabIndex === 11"
                   (click)="selectTab(11)"
                 >
-                  <span class="item-icon">📜</span>
-                  <span class="item-label">Auditoría</span>
+                  <span class="item-icon">ðŸ“œ</span>
+                  <span class="item-label">AuditorÃ­a</span>
                 </button>
               }
               <button 
@@ -235,8 +236,8 @@ import { AdminPetMatchesComponent } from './admin-pet-matches.component';
                 [class.active]="activeTabIndex === 12"
                 (click)="selectTab(12)"
               >
-                <span class="item-icon">🔧</span>
-                <span class="item-label">Configuración</span>
+                <span class="item-icon">ðŸ”§</span>
+                <span class="item-label">ConfiguraciÃ³n</span>
               </button>
             </div>
           </div>
@@ -249,7 +250,7 @@ import { AdminPetMatchesComponent } from './admin-pet-matches.component';
           @if (activeTabIndex === -1) {
             <div class="service-redirect">
               <h2>Redirigiendo a Busco Pareja...</h2>
-              <p>Serás redirigido en breve.</p>
+              <p>SerÃ¡s redirigido en breve.</p>
             </div>
           } @else if (activeTabIndex === 0) {
             <pt-admin-dashboard />
@@ -577,7 +578,7 @@ import { AdminPetMatchesComponent } from './admin-pet-matches.component';
         }
       }
 
-      /* Asegurar que los diálogos tengan z-index alto */
+      /* Asegurar que los diÃ¡logos tengan z-index alto */
       ::ng-deep .p-dialog {
         z-index: 1100 !important;
       }
@@ -651,16 +652,16 @@ export class AdminPanelComponent implements OnInit {
     // #region agent log
     fetch('http://127.0.0.1:7242/ingest/c0122114-0a18-454b-b40e-dcae99b0f576',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin-panel.component.ts:225',message:'AdminPanelComponent ngOnInit - inicio',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
     // #endregion
-    // Verificar autenticación y permisos de admin
+    // Verificar autenticaciÃ³n y permisos de admin
     this.authService.isAuthenticated$.subscribe((isAuth) => {
       // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/c0122114-0a18-454b-b40e-dcae99b0f576',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin-panel.component.ts:228',message:'AdminPanelComponent - autenticación verificada',data:{isAuth,isAdmin:this.authService.isAdmin()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7242/ingest/c0122114-0a18-454b-b40e-dcae99b0f576',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'admin-panel.component.ts:228',message:'AdminPanelComponent - autenticaciÃ³n verificada',data:{isAuth,isAdmin:this.authService.isAdmin()},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
       // #endregion
       if (!isAuth) {
         this.messageService.add({
           severity: 'error',
           summary: 'Acceso denegado',
-          detail: 'Debes iniciar sesión para acceder a esta sección',
+          detail: 'Debes iniciar sesiÃ³n para acceder a esta secciÃ³n',
         });
         this.router.navigate(['/auth/login']);
         return;
@@ -671,7 +672,7 @@ export class AdminPanelComponent implements OnInit {
           severity: 'error',
           summary: 'Acceso denegado',
           detail:
-            'No tienes permisos de administrador para acceder a esta sección',
+            'No tienes permisos de administrador para acceder a esta secciÃ³n',
         });
         this.router.navigate(['/adoptions']);
       }
@@ -682,7 +683,7 @@ export class AdminPanelComponent implements OnInit {
         this.currentUserEmail.set(currentUser.email);
       }
       
-      // También suscribirse a cambios del usuario
+      // TambiÃ©n suscribirse a cambios del usuario
       this.authService.user$.subscribe((user) => {
         if (user?.email) {
           this.currentUserEmail.set(user.email);
@@ -690,10 +691,10 @@ export class AdminPanelComponent implements OnInit {
       });
     });
 
-    // Manejar parámetros de ruta para seleccionar tab inicial
+    // Manejar parÃ¡metros de ruta para seleccionar tab inicial
     this.route.queryParams.subscribe((params) => {
       if (params['tab']) {
-        // Ajustar el índice según si la pestaña de auditoría está visible
+        // Ajustar el Ã­ndice segÃºn si la pestaÃ±a de auditorÃ­a estÃ¡ visible
         const canViewAudit = this.canViewAuditLogs();
         const tabMap: Record<string, number> = {
           dashboard: 0,
@@ -706,7 +707,7 @@ export class AdminPanelComponent implements OnInit {
           families: 7,
           partners: 8,
           interests: 9,
-          audit: canViewAudit ? 10 : -1, // -1 si no puede ver auditoría
+          audit: canViewAudit ? 10 : -1, // -1 si no puede ver auditorÃ­a
           users: canViewAudit ? 11 : 10,
           settings: canViewAudit ? 12 : 11,
           personalities: canViewAudit ? 13 : 12,
@@ -731,7 +732,7 @@ export class AdminPanelComponent implements OnInit {
     this.activeTabIndex = index;
     this.selectedTab.set(index);
     
-    // Determinar la categoría basada en el índice
+    // Determinar la categorÃ­a basada en el Ã­ndice
     let category: string | null = null;
     if (index === 0) category = 'dashboard';
     else if ([1, 2, 3, 7, 8, 9].includes(index)) category = 'gestion';
@@ -776,7 +777,8 @@ export class AdminPanelComponent implements OnInit {
   }
 
   onTabChange(event: any): void {
-    // Método legacy, mantener por compatibilidad
+    // MÃ©todo legacy, mantener por compatibilidad
     this.selectTab(event.index);
   }
 }
+

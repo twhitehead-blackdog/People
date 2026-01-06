@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
@@ -17,6 +17,7 @@ import { PartnersStore } from '../stores/partners.store';
 @Component({
   selector: 'pt-admin-partners',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -35,7 +36,7 @@ import { PartnersStore } from '../stores/partners.store';
     <p-toast />
     <div class="partners-container">
       <div class="section-header">
-        <h2>Gestión de Aliados</h2>
+        <h2>GestiÃ³n de Aliados</h2>
         <p-button
           label="Nuevo Aliado"
           icon="pi pi-plus"
@@ -108,7 +109,7 @@ import { PartnersStore } from '../stores/partners.store';
               <td>
                 <div class="table-cell-content">
                   <p-tag
-                    [value]="partner.is_featured ? 'Sí' : 'No'"
+                    [value]="partner.is_featured ? 'SÃ­' : 'No'"
                     [severity]="partner.is_featured ? 'success' : 'secondary'"
                   />
                 </div>
@@ -189,7 +190,7 @@ import { PartnersStore } from '../stores/partners.store';
             name="name"
             required
             [disabled]="isLoading()"
-            placeholder="Ej: Clínica Veterinaria Panamá"
+            placeholder="Ej: ClÃ­nica Veterinaria PanamÃ¡"
           />
         </div>
 
@@ -208,7 +209,7 @@ import { PartnersStore } from '../stores/partners.store';
         </div>
 
         <div class="form-group">
-          <label for="description">Descripción</label>
+          <label for="description">DescripciÃ³n</label>
           <textarea
             id="description"
             pTextarea
@@ -216,7 +217,7 @@ import { PartnersStore } from '../stores/partners.store';
             name="description"
             [rows]="3"
             [disabled]="isLoading()"
-            placeholder="Descripción del aliado y su relación con Black Dog..."
+            placeholder="DescripciÃ³n del aliado y su relaciÃ³n con Black Dog..."
           ></textarea>
         </div>
 
@@ -230,12 +231,12 @@ import { PartnersStore } from '../stores/partners.store';
               [(ngModel)]="partnerForm.contact_name"
               name="contact_name"
               [disabled]="isLoading()"
-              placeholder="Ej: María González"
+              placeholder="Ej: MarÃ­a GonzÃ¡lez"
             />
           </div>
 
           <div class="form-group">
-            <label for="contact_phone">Teléfono</label>
+            <label for="contact_phone">TelÃ©fono</label>
             <input
               id="contact_phone"
               type="tel"
@@ -290,7 +291,7 @@ import { PartnersStore } from '../stores/partners.store';
         </div>
 
         <div class="form-group">
-          <label for="address">Dirección</label>
+          <label for="address">DirecciÃ³n</label>
           <input
             id="address"
             type="text"
@@ -298,7 +299,7 @@ import { PartnersStore } from '../stores/partners.store';
             [(ngModel)]="partnerForm.address"
             name="address"
             [disabled]="isLoading()"
-            placeholder="Ej: Ciudad de Panamá, Panamá"
+            placeholder="Ej: Ciudad de PanamÃ¡, PanamÃ¡"
           />
         </div>
 
@@ -666,7 +667,7 @@ export class AdminPartnersComponent {
         this.messageService.add({
           severity: 'success',
           summary: 'Estado actualizado',
-          detail: `El aliado ahora está ${updated.is_featured ? 'destacado' : 'sin destacar'}`,
+          detail: `El aliado ahora estÃ¡ ${updated.is_featured ? 'destacado' : 'sin destacar'}`,
         });
         this.isLoading.set(false);
       },
@@ -692,7 +693,7 @@ export class AdminPartnersComponent {
         this.messageService.add({
           severity: 'success',
           summary: 'Estado actualizado',
-          detail: `El aliado ahora está ${updated.is_active ? 'activo' : 'inactivo'}`,
+          detail: `El aliado ahora estÃ¡ ${updated.is_active ? 'activo' : 'inactivo'}`,
         });
         this.isLoading.set(false);
       },
@@ -716,4 +717,5 @@ export class AdminPartnersComponent {
     return option ? option.label : type;
   }
 }
+
 

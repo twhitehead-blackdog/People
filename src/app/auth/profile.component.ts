@@ -1,4 +1,4 @@
-import { Component, signal, inject, OnInit, computed } from '@angular/core';
+﻿import { Component, signal, inject, OnInit, computed } from '@angular/core';
 import { CommonModule, AsyncPipe } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -22,6 +22,7 @@ import { PetsStore } from '../stores/pets.store';
 @Component({
   selector: 'pt-profile',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -48,7 +49,7 @@ import { PetsStore } from '../stores/pets.store';
         </div>
         <div class="header-right">
           <p-button
-            label="Cerrar Sesión"
+            label="Cerrar SesiÃ³n"
             icon="pi pi-sign-out"
             severity="secondary"
             (onClick)="logout()"
@@ -80,7 +81,7 @@ import { PetsStore } from '../stores/pets.store';
                 }"
                 shape="circle"
               />
-              <div class="avatar-badge">👤</div>
+              <div class="avatar-badge">ðŸ‘¤</div>
             </div>
             <div class="profile-widget-content">
               <h2 class="widget-user-name">{{ (user$ | async)?.name || (user$ | async)?.email || 'Usuario' }}</h2>
@@ -100,24 +101,24 @@ import { PetsStore } from '../stores/pets.store';
 
           <!-- Quick Stats Widget -->
           <div class="quick-stats-widget">
-            <h3 class="widget-title">📊 Estadísticas Rápidas</h3>
+            <h3 class="widget-title">ðŸ“Š EstadÃ­sticas RÃ¡pidas</h3>
             <div class="quick-stats-grid">
               <div class="quick-stat-card">
-                <div class="quick-stat-icon">📝</div>
+                <div class="quick-stat-icon">ðŸ“</div>
                 <div class="quick-stat-info">
                   <span class="quick-stat-value">{{ adoptionStats().pending + adoptionStats().approved + adoptionStats().rejected }}</span>
                   <span class="quick-stat-label">Solicitudes</span>
                 </div>
               </div>
               <div class="quick-stat-card approved">
-                <div class="quick-stat-icon">✅</div>
+                <div class="quick-stat-icon">âœ…</div>
                 <div class="quick-stat-info">
                   <span class="quick-stat-value">{{ adoptionStats().approved }}</span>
                   <span class="quick-stat-label">Aprobadas</span>
                 </div>
               </div>
               <div class="quick-stat-card pending">
-                <div class="quick-stat-icon">⏳</div>
+                <div class="quick-stat-icon">â³</div>
                 <div class="quick-stat-info">
                   <span class="quick-stat-value">{{ adoptionStats().pending }}</span>
                   <span class="quick-stat-label">Pendientes</span>
@@ -133,9 +134,9 @@ import { PetsStore } from '../stores/pets.store';
           <div class="stats-row">
             <div class="stat-card large">
               <div class="stat-card-header">
-                <h3 class="stat-card-title">🐾 Mis Mascotas</h3>
+                <h3 class="stat-card-title">ðŸ¾ Mis Mascotas</h3>
                 <p-button
-                  label="Añadir"
+                  label="AÃ±adir"
                   icon="pi pi-plus"
                   (onClick)="goToAddPet()"
                   [style]="{
@@ -155,7 +156,7 @@ import { PetsStore } from '../stores/pets.store';
 
             <div class="stat-card">
               <div class="stat-card-header">
-                <h3 class="stat-card-title">💕 Busco Pareja</h3>
+                <h3 class="stat-card-title">ðŸ’• Busco Pareja</h3>
               </div>
               <div class="stat-card-content">
                 <div class="big-number">0</div>
@@ -165,7 +166,7 @@ import { PetsStore } from '../stores/pets.store';
 
             <div class="stat-card">
               <div class="stat-card-header">
-                <h3 class="stat-card-title">📋 Adopciones</h3>
+                <h3 class="stat-card-title">ðŸ“‹ Adopciones</h3>
               </div>
               <div class="stat-card-content">
                 <div class="big-number">{{ adoptionStats().approved }}</div>
@@ -177,7 +178,7 @@ import { PetsStore } from '../stores/pets.store';
           <!-- Info Card -->
           <div class="info-card">
             <div class="info-card-header">
-              <h3 class="info-card-title">📝 Información Personal</h3>
+              <h3 class="info-card-title">ðŸ“ InformaciÃ³n Personal</h3>
             </div>
             <form (ngSubmit)="onSubmit()" class="dashboard-form">
               <div class="form-grid">
@@ -195,7 +196,7 @@ import { PetsStore } from '../stores/pets.store';
                 </div>
 
                 <div class="form-group">
-                  <label for="email">Correo Electrónico</label>
+                  <label for="email">Correo ElectrÃ³nico</label>
                   <input
                     id="email"
                     type="email"
@@ -208,7 +209,7 @@ import { PetsStore } from '../stores/pets.store';
                 </div>
 
                 <div class="form-group">
-                  <label for="phone_number">Teléfono</label>
+                  <label for="phone_number">TelÃ©fono</label>
                   <input
                     id="phone_number"
                     type="tel"
@@ -221,7 +222,7 @@ import { PetsStore } from '../stores/pets.store';
                 </div>
 
                 <div class="form-group">
-                  <label for="document_id">Cédula / Documento</label>
+                  <label for="document_id">CÃ©dula / Documento</label>
                   <input
                     id="document_id"
                     type="text"
@@ -234,14 +235,14 @@ import { PetsStore } from '../stores/pets.store';
                 </div>
 
                 <div class="form-group full-width">
-                  <label for="address">Dirección</label>
+                  <label for="address">DirecciÃ³n</label>
                   <textarea
                     id="address"
                     pInputTextarea
                     [(ngModel)]="formData.address"
                     name="address"
                     rows="3"
-                    placeholder="Tu dirección completa"
+                    placeholder="Tu direcciÃ³n completa"
                     [disabled]="isLoading()"
                     [autoResize]="true"
                   ></textarea>
@@ -285,13 +286,13 @@ import { PetsStore } from '../stores/pets.store';
           <!-- My Favorites Card -->
           <div class="favorites-card">
             <div class="favorites-card-header">
-              <h3 class="favorites-card-title">❤️ Mis Favoritos</h3>
+              <h3 class="favorites-card-title">â¤ï¸ Mis Favoritos</h3>
             </div>
             <div class="favorites-card-content">
               @if (myFavorites().length === 0) {
                 <div class="empty-favorites">
-                  <span class="empty-icon">💛</span>
-                  <p class="empty-text">No tienes mascotas favoritas aún</p>
+                  <span class="empty-icon">ðŸ’›</span>
+                  <p class="empty-text">No tienes mascotas favoritas aÃºn</p>
                   <p-button
                     label="Explorar Mascotas"
                     icon="pi pi-search"
@@ -315,7 +316,7 @@ import { PetsStore } from '../stores/pets.store';
                             <img [src]="favorite.pet.photos[0]" [alt]="favorite.pet.name" />
                           } @else {
                             <div class="favorite-pet-placeholder">
-                              <span class="placeholder-icon">{{ favorite.pet.species === 'dog' ? '🐕' : favorite.pet.species === 'cat' ? '🐱' : '🐾' }}</span>
+                              <span class="placeholder-icon">{{ favorite.pet.species === 'dog' ? 'ðŸ•' : favorite.pet.species === 'cat' ? 'ðŸ±' : 'ðŸ¾' }}</span>
                             </div>
                           }
                           <button
@@ -324,13 +325,13 @@ import { PetsStore } from '../stores/pets.store';
                             (click)="removeFavorite(favorite, $event)"
                             title="Quitar de favoritos"
                           >
-                            ❌
+                            âŒ
                           </button>
                         </div>
                         <div class="favorite-pet-info">
                           <h4 class="favorite-pet-name">{{ favorite.pet.name }}</h4>
                           <p class="favorite-pet-details">
-                            {{ getSpeciesLabel(favorite.pet.species) }} • {{ favorite.pet.gender === 'M' ? 'Macho' : 'Hembra' }}
+                            {{ getSpeciesLabel(favorite.pet.species) }} â€¢ {{ favorite.pet.gender === 'M' ? 'Macho' : 'Hembra' }}
                           </p>
                           <p-tag
                             [value]="favorite.pet.is_available ? 'Disponible' : 'Adoptada'"
@@ -349,7 +350,7 @@ import { PetsStore } from '../stores/pets.store';
           <!-- My Adoption Applications Card -->
           <div class="applications-card">
             <div class="applications-card-header">
-              <h3 class="applications-card-title">📋 Mis Solicitudes de Adopción</h3>
+              <h3 class="applications-card-title">ðŸ“‹ Mis Solicitudes de AdopciÃ³n</h3>
             </div>
             
             <!-- Statistics Summary -->
@@ -419,8 +420,8 @@ import { PetsStore } from '../stores/pets.store';
             <div class="applications-card-content">
               @if (myApplications().length === 0) {
                 <div class="empty-applications">
-                  <span class="empty-icon">📝</span>
-                  <p class="empty-text">No has realizado ninguna solicitud de adopción aún</p>
+                  <span class="empty-icon">ðŸ“</span>
+                  <p class="empty-text">No has realizado ninguna solicitud de adopciÃ³n aÃºn</p>
                   <p-button
                     label="Ver Mascotas Disponibles"
                     icon="pi pi-search"
@@ -505,9 +506,9 @@ import { PetsStore } from '../stores/pets.store';
           <!-- Pets Grid Card -->
           <div class="pets-card">
             <div class="pets-card-header">
-              <h3 class="pets-card-title">🐕 Mis Mascotas</h3>
+              <h3 class="pets-card-title">ðŸ• Mis Mascotas</h3>
               <p-button
-                label="Añadir Mascota"
+                label="AÃ±adir Mascota"
                 icon="pi pi-plus"
                 (onClick)="goToAddPet()"
                 [style]="{
@@ -521,10 +522,10 @@ import { PetsStore } from '../stores/pets.store';
             <div class="pets-card-content">
               @if (myPets().length === 0) {
                 <div class="empty-pets">
-                  <span class="empty-icon">🐾</span>
-                  <p class="empty-text">No tienes mascotas registradas aún</p>
+                  <span class="empty-icon">ðŸ¾</span>
+                  <p class="empty-text">No tienes mascotas registradas aÃºn</p>
                   <p-button
-                    label="Añadir mi Primera Mascota"
+                    label="AÃ±adir mi Primera Mascota"
                     icon="pi pi-plus"
                     (onClick)="goToAddPet()"
                     [style]="{
@@ -545,7 +546,7 @@ import { PetsStore } from '../stores/pets.store';
                           <img [src]="pet.photos[0]" [alt]="pet.name" />
                         } @else {
                           <div class="pet-placeholder">
-                            <span class="placeholder-icon">{{ pet.species === 'dog' ? '🐕' : pet.species === 'cat' ? '🐱' : '🐾' }}</span>
+                            <span class="placeholder-icon">{{ pet.species === 'dog' ? 'ðŸ•' : pet.species === 'cat' ? 'ðŸ±' : 'ðŸ¾' }}</span>
                           </div>
                         }
                         <div class="pet-overlay">
@@ -578,14 +579,14 @@ import { PetsStore } from '../stores/pets.store';
                       <div class="pet-info">
                         <h4 class="pet-name">{{ pet.name }}</h4>
                         <p class="pet-details">
-                          {{ getSpeciesLabel(pet.species) }} • {{ pet.gender === 'M' ? 'Macho' : 'Hembra' }} • {{ getSizeLabel(pet.size) }}
+                          {{ getSpeciesLabel(pet.species) }} â€¢ {{ pet.gender === 'M' ? 'Macho' : 'Hembra' }} â€¢ {{ getSizeLabel(pet.size) }}
                         </p>
                         @if (pet.breed_type === 'pure' && pet.breed_primary) {
-                          <p class="pet-breed">⭐ {{ pet.breed_primary }}</p>
+                          <p class="pet-breed">â­ {{ pet.breed_primary }}</p>
                         } @else if (pet.breed_type === 'mixed' && pet.breed_primary && pet.breed_secondary) {
-                          <p class="pet-breed">🔀 {{ pet.breed_primary }} / {{ pet.breed_secondary }}</p>
+                          <p class="pet-breed">ðŸ”€ {{ pet.breed_primary }} / {{ pet.breed_secondary }}</p>
                         } @else {
-                          <p class="pet-breed">🐾 Sin raza específica</p>
+                          <p class="pet-breed">ðŸ¾ Sin raza especÃ­fica</p>
                         }
                       </div>
                     </div>
@@ -1494,14 +1495,14 @@ export class ProfileComponent implements OnInit {
       apps = apps.filter(app => {
         if (!app.created_at) return false;
         const appDate = new Date(app.created_at);
-        // Agregar un día para incluir el día completo
+        // Agregar un dÃ­a para incluir el dÃ­a completo
         const toDate = new Date(this.dateTo()!);
         toDate.setHours(23, 59, 59, 999);
         return appDate <= toDate;
       });
     }
     
-    // Ordenar por fecha más reciente primero
+    // Ordenar por fecha mÃ¡s reciente primero
     return apps.sort((a, b) => {
       const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
       const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
@@ -1597,7 +1598,7 @@ export class ProfileComponent implements OnInit {
     // Cargar mascotas del usuario
     this.userPetsStore.fetchItems();
 
-    // TODO: Cargar estadísticas de adopciones del usuario
+    // TODO: Cargar estadÃ­sticas de adopciones del usuario
     // Por ahora valores de ejemplo
     this.loadAdoptionStats();
   }
@@ -1617,8 +1618,8 @@ export class ProfileComponent implements OnInit {
   async onSubmit(): Promise<void> {
     this.isLoading.set(true);
 
-    // TODO: Implementar actualización de perfil con Auth0
-    // Por ahora solo mostramos mensaje de éxito
+    // TODO: Implementar actualizaciÃ³n de perfil con Auth0
+    // Por ahora solo mostramos mensaje de Ã©xito
     setTimeout(() => {
       this.isLoading.set(false);
       this.messageService.add({
@@ -1643,7 +1644,7 @@ export class ProfileComponent implements OnInit {
   }
 
   logout(): void {
-    // Usar ENV_APP_URL si está disponible, sino usar window.location.origin
+    // Usar ENV_APP_URL si estÃ¡ disponible, sino usar window.location.origin
     const appUrl = process.env['ENV_APP_URL'] || window.location.origin;
     const returnTo = `${appUrl}/adoptions`;
     
@@ -1669,7 +1670,7 @@ export class ProfileComponent implements OnInit {
 
   getSizeLabel(size: string): string {
     const labels: Record<string, string> = {
-      small: 'Pequeño',
+      small: 'PequeÃ±o',
       medium: 'Mediano',
       large: 'Grande',
     };
@@ -1717,15 +1718,15 @@ export class ProfileComponent implements OnInit {
   }
 
   viewApplication(application: AdoptionApplication): void {
-    // Navegar a la página de detalles de la solicitud
-    // Por ahora, mostrar información en un diálogo o navegar a la página de adopciones
+    // Navegar a la pÃ¡gina de detalles de la solicitud
+    // Por ahora, mostrar informaciÃ³n en un diÃ¡logo o navegar a la pÃ¡gina de adopciones
     this.router.navigate(['/adoptions'], {
       queryParams: { applicationId: application.id },
     });
   }
 
   editApplication(application: AdoptionApplication): void {
-    // Navegar al formulario de adopción para editar
+    // Navegar al formulario de adopciÃ³n para editar
     if (application.pet_id) {
       this.router.navigate(['/adoptions/adoptar', application.pet_id], {
         queryParams: { edit: application.id },
@@ -1738,7 +1739,7 @@ export class ProfileComponent implements OnInit {
   }
 
   viewPet(petId: string): void {
-    // Navegar a la página de detalles de la mascota (se implementará después)
+    // Navegar a la pÃ¡gina de detalles de la mascota (se implementarÃ¡ despuÃ©s)
     this.router.navigate(['/adoptions/mascota', petId]);
   }
 
@@ -1776,4 +1777,5 @@ export class ProfileComponent implements OnInit {
     this.dateTo.set(null);
   }
 }
+
 

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -14,7 +14,7 @@ import { ToastModule } from 'primeng/toast';
 import { AdoptionApplication } from '../models';
 import { AdoptionApplicationsStore } from '../stores/adoption-applications.store';
 
-// Tipo extendido para incluir el método personalizado
+// Tipo extendido para incluir el mÃ©todo personalizado
 type AdoptionApplicationsStoreWithCustomMethods = InstanceType<typeof AdoptionApplicationsStore> & {
   updateApplicationStatus: (request: AdoptionApplication) => import('rxjs').Observable<any>;
 };
@@ -22,6 +22,7 @@ type AdoptionApplicationsStoreWithCustomMethods = InstanceType<typeof AdoptionAp
 @Component({
   selector: 'pt-admin-applications',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -41,7 +42,7 @@ type AdoptionApplicationsStoreWithCustomMethods = InstanceType<typeof AdoptionAp
       <p-card>
         <ng-template pTemplate="header">
           <div class="card-header">
-            <h3>Gestión de Solicitudes de Adopción</h3>
+            <h3>GestiÃ³n de Solicitudes de AdopciÃ³n</h3>
             <div class="header-stats">
               <span class="stat-badge pending">
                 Pendientes: {{ pendingCount() }}
@@ -87,7 +88,7 @@ type AdoptionApplicationsStoreWithCustomMethods = InstanceType<typeof AdoptionAp
             <tr>
               <th>Solicitante</th>
               <th>Email</th>
-              <th>Teléfono</th>
+              <th>TelÃ©fono</th>
               <th>Mascota</th>
               <th>Estado</th>
               <th>Fecha</th>
@@ -322,7 +323,7 @@ export class AdminApplicationsComponent {
   }
 
   public onStatusFilterChange(): void {
-    // El filtro se aplica automáticamente en el computed
+    // El filtro se aplica automÃ¡ticamente en el computed
   }
 
   public getStatusLabel(status: string): string {
@@ -426,24 +427,25 @@ export class AdminApplicationsComponent {
       ...application,
       status: 'completed',
     };
-    // Usar updateApplicationStatus para manejar la lógica especial cuando se completa
+    // Usar updateApplicationStatus para manejar la lÃ³gica especial cuando se completa
     const store = this.applicationsStore as AdoptionApplicationsStoreWithCustomMethods;
     store.updateApplicationStatus(updated).subscribe({
       next: () => {
         this.messageService.add({
           severity: 'success',
-          summary: 'Adopción completada',
-          detail: 'La adopción ha sido marcada como completada y la mascota ya no está disponible',
+          summary: 'AdopciÃ³n completada',
+          detail: 'La adopciÃ³n ha sido marcada como completada y la mascota ya no estÃ¡ disponible',
         });
       },
       error: () => {
         this.messageService.add({
           severity: 'error',
           summary: 'Error',
-          detail: 'No se pudo completar la adopción',
+          detail: 'No se pudo completar la adopciÃ³n',
         });
       },
     });
   }
 }
+
 

@@ -1,4 +1,4 @@
-import { Component, signal, output, computed, inject } from '@angular/core';
+﻿import { Component, signal, output, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { InputTextModule } from 'primeng/inputtext';
@@ -28,6 +28,7 @@ export interface MatchFilters {
 @Component({
   selector: 'pt-adoptions-match',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -41,12 +42,12 @@ export interface MatchFilters {
   template: `
     <div class="match-card">
       <div class="match-header">
-        <h2 class="match-title">¡ENCUENTRA A TU MATCH!</h2>
+        <h2 class="match-title">Â¡ENCUENTRA A TU MATCH!</h2>
       </div>
 
       <div class="match-content">
         <div class="match-question">
-          <p>¿QUÉ TIPO DE MASCOTA BUSCAS?</p>
+          <p>Â¿QUÃ‰ TIPO DE MASCOTA BUSCAS?</p>
         </div>
         <div class="pet-type-buttons">
           <button
@@ -55,7 +56,7 @@ export interface MatchFilters {
             [class.active]="selectedSpecies() === 'cat'"
             (click)="selectSpecies('cat')"
           >
-            <span style="font-size: 3rem;">🐈</span>
+            <span style="font-size: 3rem;">ðŸˆ</span>
             <span>Gato</span>
           </button>
           <button
@@ -64,20 +65,20 @@ export interface MatchFilters {
             [class.active]="selectedSpecies() === 'dog'"
             (click)="selectSpecies('dog')"
           >
-            <span style="font-size: 3rem;">🐕</span>
+            <span style="font-size: 3rem;">ðŸ•</span>
             <span>Perro</span>
           </button>
         </div>
 
         <div class="match-question">
-          <p>¿DÓNDE VIVES?</p>
+          <p>Â¿DÃ“NDE VIVES?</p>
         </div>
         <div class="location-input-container">
-          <span class="location-icon">📍</span>
+          <span class="location-icon">ðŸ“</span>
           <input
             type="text"
             pInputText
-            placeholder="INGRESA TU UBICACIÓN"
+            placeholder="INGRESA TU UBICACIÃ“N"
             [ngModel]="location()"
             (ngModelChange)="location.set($event)"
             class="location-input"
@@ -90,18 +91,18 @@ export interface MatchFilters {
             class="toggle-button"
             (click)="showAdvanced.set(!showAdvanced())"
           >
-            {{ showAdvanced() ? '▼' : '▶' }} Búsqueda Avanzada
+            {{ showAdvanced() ? 'â–¼' : 'â–¶' }} BÃºsqueda Avanzada
           </button>
         </div>
 
         @if (showAdvanced()) {
           <div class="advanced-filters">
             <div class="filter-group">
-              <label>Edad (años)</label>
+              <label>Edad (aÃ±os)</label>
               <div class="age-range">
                 <p-inputNumber
                   [(ngModel)]="ageMin"
-                  placeholder="Mín"
+                  placeholder="MÃ­n"
                   [min]="0"
                   [max]="20"
                   [showButtons]="true"
@@ -110,7 +111,7 @@ export interface MatchFilters {
                 <span>a</span>
                 <p-inputNumber
                   [(ngModel)]="ageMax"
-                  placeholder="Máx"
+                  placeholder="MÃ¡x"
                   [min]="0"
                   [max]="20"
                   [showButtons]="true"
@@ -120,7 +121,7 @@ export interface MatchFilters {
             </div>
 
             <div class="filter-group">
-              <label>Tamaño</label>
+              <label>TamaÃ±o</label>
               <p-dropdown
                 [options]="sizeOptions"
                 [(ngModel)]="selectedSize"
@@ -130,7 +131,7 @@ export interface MatchFilters {
             </div>
 
             <div class="filter-group">
-              <label>Género</label>
+              <label>GÃ©nero</label>
               <p-dropdown
                 [options]="genderOptions"
                 [(ngModel)]="selectedGender"
@@ -163,7 +164,7 @@ export interface MatchFilters {
             </div>
 
             <div class="filter-group">
-              <label>Fundación</label>
+              <label>FundaciÃ³n</label>
               <p-dropdown
                 [options]="foundationOptions()"
                 [(ngModel)]="selectedFoundation"
@@ -494,7 +495,7 @@ export class AdoptionsMatchComponent {
   public filtersChanged = output<MatchFilters>();
 
   public sizeOptions = [
-    { label: 'Pequeño', value: 'small' },
+    { label: 'PequeÃ±o', value: 'small' },
     { label: 'Mediano', value: 'medium' },
     { label: 'Grande', value: 'large' },
   ];
@@ -572,4 +573,5 @@ export class AdoptionsMatchComponent {
     this.findMatch();
   }
 }
+
 

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
@@ -19,6 +19,7 @@ import { FoundationsStore } from '../stores/foundations.store';
 @Component({
   selector: 'pt-admin-events',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -38,7 +39,7 @@ import { FoundationsStore } from '../stores/foundations.store';
     <p-toast />
     <div class="events-container">
       <div class="section-header">
-        <h2>Gestión de Eventos</h2>
+        <h2>GestiÃ³n de Eventos</h2>
         <p-button
           label="Nuevo Evento"
           icon="pi pi-plus"
@@ -77,12 +78,12 @@ import { FoundationsStore } from '../stores/foundations.store';
           </ng-template>
           <ng-template pTemplate="header">
             <tr>
-              <th>Título</th>
+              <th>TÃ­tulo</th>
               <th>Tipo</th>
               <th>Fecha</th>
               <th>Hora</th>
-              <th>Ubicación</th>
-              <th>Fundación</th>
+              <th>UbicaciÃ³n</th>
+              <th>FundaciÃ³n</th>
               <th>Estado</th>
               <th>Acciones</th>
             </tr>
@@ -158,7 +159,7 @@ import { FoundationsStore } from '../stores/foundations.store';
     >
       <form (ngSubmit)="saveEvent()" class="event-form">
         <div class="form-group">
-          <label for="title">Título *</label>
+          <label for="title">TÃ­tulo *</label>
           <input
             id="title"
             type="text"
@@ -167,12 +168,12 @@ import { FoundationsStore } from '../stores/foundations.store';
             name="title"
             required
             [disabled]="isLoading()"
-            placeholder="Ej: Feria de Adopción 2024"
+            placeholder="Ej: Feria de AdopciÃ³n 2024"
           />
         </div>
 
         <div class="form-group">
-          <label for="description">Descripción</label>
+          <label for="description">DescripciÃ³n</label>
           <textarea
             id="description"
             pTextarea
@@ -180,7 +181,7 @@ import { FoundationsStore } from '../stores/foundations.store';
             name="description"
             [rows]="4"
             [disabled]="isLoading()"
-            placeholder="Descripción del evento..."
+            placeholder="DescripciÃ³n del evento..."
           ></textarea>
         </div>
 
@@ -231,7 +232,7 @@ import { FoundationsStore } from '../stores/foundations.store';
           </div>
 
           <div class="form-group">
-            <label for="foundation_id">Fundación (Opcional)</label>
+            <label for="foundation_id">FundaciÃ³n (Opcional)</label>
             <p-select
               id="foundation_id"
               [(ngModel)]="eventForm.foundation_id"
@@ -239,7 +240,7 @@ import { FoundationsStore } from '../stores/foundations.store';
               [options]="foundationOptions()"
               optionLabel="name"
               optionValue="id"
-              placeholder="Seleccionar fundación"
+              placeholder="Seleccionar fundaciÃ³n"
               [showClear]="true"
               [disabled]="isLoading()"
               [style]="{ width: '100%' }"
@@ -248,7 +249,7 @@ import { FoundationsStore } from '../stores/foundations.store';
         </div>
 
         <div class="form-group">
-          <label for="location">Ubicación</label>
+          <label for="location">UbicaciÃ³n</label>
           <input
             id="location"
             type="text"
@@ -256,7 +257,7 @@ import { FoundationsStore } from '../stores/foundations.store';
             [(ngModel)]="eventForm.location"
             name="location"
             [disabled]="isLoading()"
-            placeholder="Ej: Parque Central, Ciudad de Panamá"
+            placeholder="Ej: Parque Central, Ciudad de PanamÃ¡"
           />
         </div>
 
@@ -405,7 +406,7 @@ import { FoundationsStore } from '../stores/foundations.store';
         padding: 0.75rem;
       }
 
-      /* Asegurar que los diálogos no se sobrepongan */
+      /* Asegurar que los diÃ¡logos no se sobrepongan */
       ::ng-deep .p-dialog {
         z-index: 1100 !important;
         position: fixed !important;
@@ -503,10 +504,10 @@ export class AdminEventsComponent {
   };
 
   public eventTypeOptions = [
-    { label: 'Feria de Adopción', value: 'adoption_fair' },
+    { label: 'Feria de AdopciÃ³n', value: 'adoption_fair' },
     { label: 'Taller', value: 'workshop' },
-    { label: 'Campaña', value: 'campaign' },
-    { label: 'Recaudación de Fondos', value: 'fundraiser' },
+    { label: 'CampaÃ±a', value: 'campaign' },
+    { label: 'RecaudaciÃ³n de Fondos', value: 'fundraiser' },
     { label: 'Otro', value: 'other' },
   ];
 
@@ -653,7 +654,7 @@ export class AdminEventsComponent {
         this.messageService.add({
           severity: 'success',
           summary: 'Estado actualizado',
-          detail: `El evento ahora está ${updated.is_active ? 'activo' : 'inactivo'}`,
+          detail: `El evento ahora estÃ¡ ${updated.is_active ? 'activo' : 'inactivo'}`,
         });
         this.isLoading.set(false);
       },
@@ -674,10 +675,10 @@ export class AdminEventsComponent {
 
   public getEventTypeLabel(type: string): string {
     const labels: Record<string, string> = {
-      adoption_fair: 'Feria de Adopción',
+      adoption_fair: 'Feria de AdopciÃ³n',
       workshop: 'Taller',
-      campaign: 'Campaña',
-      fundraiser: 'Recaudación',
+      campaign: 'CampaÃ±a',
+      fundraiser: 'RecaudaciÃ³n',
       other: 'Otro',
     };
     return labels[type] || type;
@@ -704,4 +705,5 @@ export class AdminEventsComponent {
     });
   }
 }
+
 

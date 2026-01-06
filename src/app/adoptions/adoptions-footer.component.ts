@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
@@ -7,12 +7,13 @@ import { InputTextModule } from 'primeng/inputtext';
 @Component({
   selector: 'pt-adoptions-footer',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, InputTextModule, Button],
   template: `
     <footer class="adoptions-footer">
       <div class="footer-content">
         <div class="footer-column">
-          <h3 class="footer-title">¿NECESITAS AYUDA?</h3>
+          <h3 class="footer-title">Â¿NECESITAS AYUDA?</h3>
           <div class="logo-container">
             <img
               src="images/blackdog.png"
@@ -22,17 +23,17 @@ import { InputTextModule } from 'primeng/inputtext';
           </div>
           <div class="contact-details">
             <p class="address">
-              Calle 50, San Francisco, Ciudad de Panamá<br />
+              Calle 50, San Francisco, Ciudad de PanamÃ¡<br />
               (A un lado del KFC, antiguo local de Pizza Hut)
             </p>
             <p class="phone">
-              <span style="color: #ec4899;">📞</span>
+              <span style="color: #ec4899;">ðŸ“ž</span>
               <a href="tel:+50764745436">TEL: +507 6474-5436</a>
             </p>
             <div class="hours">
-              <p>Nuestro horario de atención es:</p>
-              <p>Lun - Sáb: 7:00 a.m. – 8:00 p.m.</p>
-              <p>Dom: 8:00 a.m. – 6:00 p.m.</p>
+              <p>Nuestro horario de atenciÃ³n es:</p>
+              <p>Lun - SÃ¡b: 7:00 a.m. â€“ 8:00 p.m.</p>
+              <p>Dom: 8:00 a.m. â€“ 6:00 p.m.</p>
             </div>
           </div>
         </div>
@@ -47,7 +48,7 @@ import { InputTextModule } from 'primeng/inputtext';
             <a href="#" class="footer-link">Compra por marcas</a>
             <a href="#" class="footer-link">Servicios</a>
             <a href="#" class="footer-link">Sucursales</a>
-            <a href="#" class="footer-link">Políticas</a>
+            <a href="#" class="footer-link">PolÃ­ticas</a>
           </nav>
         </div>
 
@@ -55,15 +56,15 @@ import { InputTextModule } from 'primeng/inputtext';
           <h3 class="footer-title">RECIBE NOVEDADES</h3>
           <div class="newsletter">
             <p class="newsletter-text">
-              ¡Suscríbete a nuestro correo y sé el primero en enterarte de
+              Â¡SuscrÃ­bete a nuestro correo y sÃ© el primero en enterarte de
               nuestras ofertas especiales!
             </p>
             <div class="newsletter-input-container">
-              <span class="newsletter-icon">✉️</span>
+              <span class="newsletter-icon">âœ‰ï¸</span>
               <input
                 type="email"
                 pInputText
-                placeholder="Correo electrónico"
+                placeholder="Correo electrÃ³nico"
                 [(ngModel)]="email"
                 class="newsletter-input"
               />
@@ -80,22 +81,22 @@ import { InputTextModule } from 'primeng/inputtext';
               />
             </div>
             <p class="privacy-text">
-              Al hacer clic en el botón, aceptas la Política de Privacidad y los
-              Términos y Condiciones.
+              Al hacer clic en el botÃ³n, aceptas la PolÃ­tica de Privacidad y los
+              TÃ©rminos y Condiciones.
             </p>
           </div>
 
           <div class="social-media">
-            <h4 class="social-title">SÍGUENOS:</h4>
+            <h4 class="social-title">SÃGUENOS:</h4>
             <div class="social-icons">
               <a href="#" class="social-icon" aria-label="Facebook">
-                <span>📘</span>
+                <span>ðŸ“˜</span>
               </a>
               <a href="#" class="social-icon" aria-label="Instagram">
-                <span>📷</span>
+                <span>ðŸ“·</span>
               </a>
               <a href="#" class="social-icon" aria-label="TikTok">
-                <span>🎵</span>
+                <span>ðŸŽµ</span>
               </a>
             </div>
           </div>
@@ -105,10 +106,10 @@ import { InputTextModule } from 'primeng/inputtext';
       <div class="footer-bottom">
         <div class="footer-bottom-content">
           <p class="copyright">
-            © 2025, Black Dog Panamá 🐕 Hecho con 💝 para las mascotas
+            Â© 2025, Black Dog PanamÃ¡ ðŸ• Hecho con ðŸ’ para las mascotas
           </p>
           <div class="payment-methods">
-            <span class="payment-label">Métodos de pago:</span>
+            <span class="payment-label">MÃ©todos de pago:</span>
             <div class="payment-icons">
               <span class="payment-icon visa">VISA</span>
               <span class="payment-icon mastercard">MC</span>
@@ -396,7 +397,7 @@ import { InputTextModule } from 'primeng/inputtext';
       }
 
       .footer-link::before {
-        content: '→';
+        content: 'â†’';
         position: absolute;
         left: -1rem;
         opacity: 0;
@@ -776,8 +777,9 @@ export class AdoptionsFooterComponent {
   public subscribe(): void {
     if (this.email()) {
       console.log('Subscribe:', this.email());
-      // Implementar suscripción
+      // Implementar suscripciÃ³n
       this.email.set('');
     }
   }
 }
+

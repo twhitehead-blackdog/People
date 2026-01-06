@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import {
   Component,
   EventEmitter,
@@ -23,6 +23,7 @@ export interface EditableOption {
 @Component({
   selector: 'pt-editable-select',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -52,7 +53,7 @@ export interface EditableOption {
           type="button"
           class="action-btn edit-btn"
           (click)="openEditDialogForCurrent()"
-          [attr.aria-label]="'Editar opción seleccionada'"
+          [attr.aria-label]="'Editar opciÃ³n seleccionada'"
           title="Editar"
         >
           <i class="pi pi-pencil"></i>
@@ -61,7 +62,7 @@ export interface EditableOption {
           type="button"
           class="action-btn delete-btn"
           (click)="confirmDeleteCurrent()"
-          [attr.aria-label]="'Borrar opción seleccionada'"
+          [attr.aria-label]="'Borrar opciÃ³n seleccionada'"
           title="Borrar"
         >
           <i class="pi pi-trash"></i>
@@ -71,7 +72,7 @@ export interface EditableOption {
           type="button"
           class="action-btn add-btn"
           (click)="openAddDialog()"
-          [attr.aria-label]="'Agregar nueva opción'"
+          [attr.aria-label]="'Agregar nueva opciÃ³n'"
           title="Agregar nuevo"
         >
           <i class="pi pi-plus"></i>
@@ -79,12 +80,12 @@ export interface EditableOption {
       </div>
     </div>
 
-    <!-- Dialog para editar/agregar opción -->
+    <!-- Dialog para editar/agregar opciÃ³n -->
     <p-dialog
       [visible]="showEditDialog()"
       (visibleChange)="showEditDialog.set($event)"
       [modal]="true"
-      [header]="editingOption() ? 'Editar Opción' : 'Agregar Nueva Opción'"
+      [header]="editingOption() ? 'Editar OpciÃ³n' : 'Agregar Nueva OpciÃ³n'"
       [style]="{ width: '400px' }"
       (onHide)="closeEditDialog()"
     >
@@ -107,11 +108,11 @@ export interface EditableOption {
             type="text"
             pInputText
             [(ngModel)]="editFormValue"
-            placeholder="Ingresa el valor (opcional, se genera automáticamente)"
+            placeholder="Ingresa el valor (opcional, se genera automÃ¡ticamente)"
             class="w-full"
           />
           <small class="form-hint">
-            Si se deja vacío, se generará automáticamente desde la etiqueta
+            Si se deja vacÃ­o, se generarÃ¡ automÃ¡ticamente desde la etiqueta
           </small>
         </div>
         <div class="dialog-actions">
@@ -276,7 +277,7 @@ export class EditableSelectComponent implements OnInit, OnChanges {
   }
 
   private updateDisplayOptions(): void {
-    // No agregamos la opción de "Agregar nuevo" aquí, la manejamos con botones externos
+    // No agregamos la opciÃ³n de "Agregar nuevo" aquÃ­, la manejamos con botones externos
     this.displayOptions.set([...this.options]);
   }
 
@@ -314,12 +315,12 @@ export class EditableSelectComponent implements OnInit, OnChanges {
     }
 
     const option = this.options.find((opt) => this.getOptionValue(opt) === current);
-    if (option && confirm(`¿Estás seguro de que deseas eliminar "${option.label}"?`)) {
+    if (option && confirm(`Â¿EstÃ¡s seguro de que deseas eliminar "${option.label}"?`)) {
       const updatedOptions = this.options.filter(
         (opt) => this.getOptionValue(opt) !== current
       );
 
-      // Si la opción eliminada estaba seleccionada, limpiar la selección
+      // Si la opciÃ³n eliminada estaba seleccionada, limpiar la selecciÃ³n
       this.currentValue.set(null);
       this.valueChange.emit(null);
 
@@ -352,16 +353,16 @@ export class EditableSelectComponent implements OnInit, OnChanges {
     let updatedOptions: EditableOption[];
 
     if (this.editingOption()) {
-      // Editar opción existente
+      // Editar opciÃ³n existente
       updatedOptions = this.options.map((opt) =>
         this.getOptionValue(opt) === this.getOptionValue(this.editingOption()!)
           ? newOption
           : opt
       );
     } else {
-      // Agregar nueva opción
+      // Agregar nueva opciÃ³n
       updatedOptions = [...this.options, newOption];
-      // Seleccionar la nueva opción automáticamente
+      // Seleccionar la nueva opciÃ³n automÃ¡ticamente
       this.currentValue.set(newValue);
       this.valueChange.emit(newValue);
     }
@@ -375,3 +376,4 @@ export class EditableSelectComponent implements OnInit, OnChanges {
     return option[this.optionValue] || option.value || '';
   }
 }
+

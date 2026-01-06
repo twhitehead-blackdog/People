@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
@@ -18,6 +18,7 @@ import { PetsStore } from '../stores/pets.store';
 @Component({
   selector: 'pt-admin-families',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -36,7 +37,7 @@ import { PetsStore } from '../stores/pets.store';
     <p-toast />
     <div class="families-container">
       <div class="section-header">
-        <h2>Gestión de Familias Adoptivas</h2>
+        <h2>GestiÃ³n de Familias Adoptivas</h2>
         <p-button
           label="Nueva Familia"
           icon="pi pi-plus"
@@ -93,7 +94,7 @@ import { PetsStore } from '../stores/pets.store';
               <td>
                 <div class="table-cell-content">
                   <p-tag
-                    [value]="family.is_featured ? 'Sí' : 'No'"
+                    [value]="family.is_featured ? 'SÃ­' : 'No'"
                     [severity]="family.is_featured ? 'success' : 'secondary'"
                   />
                 </div>
@@ -174,7 +175,7 @@ import { PetsStore } from '../stores/pets.store';
             name="family_name"
             required
             [disabled]="isLoading()"
-            placeholder="Ej: Familia García"
+            placeholder="Ej: Familia GarcÃ­a"
           />
         </div>
 
@@ -189,12 +190,12 @@ import { PetsStore } from '../stores/pets.store';
               name="contact_name"
               required
               [disabled]="isLoading()"
-              placeholder="Ej: Juan García"
+              placeholder="Ej: Juan GarcÃ­a"
             />
           </div>
 
           <div class="form-group">
-            <label for="contact_phone">Teléfono *</label>
+            <label for="contact_phone">TelÃ©fono *</label>
             <input
               id="contact_phone"
               type="tel"
@@ -223,7 +224,7 @@ import { PetsStore } from '../stores/pets.store';
         </div>
 
         <div class="form-group">
-          <label for="address">Dirección</label>
+          <label for="address">DirecciÃ³n</label>
           <input
             id="address"
             type="text"
@@ -231,7 +232,7 @@ import { PetsStore } from '../stores/pets.store';
             [(ngModel)]="familyForm.address"
             name="address"
             [disabled]="isLoading()"
-            placeholder="Ej: Ciudad de Panamá, Panamá"
+            placeholder="Ej: Ciudad de PanamÃ¡, PanamÃ¡"
           />
         </div>
 
@@ -275,7 +276,7 @@ import { PetsStore } from '../stores/pets.store';
             name="story"
             [rows]="4"
             [disabled]="isLoading()"
-            placeholder="Cuéntanos la historia de esta familia y su mascota adoptada..."
+            placeholder="CuÃ©ntanos la historia de esta familia y su mascota adoptada..."
           ></textarea>
         </div>
 
@@ -649,7 +650,7 @@ export class AdminFamiliesComponent {
         this.messageService.add({
           severity: 'success',
           summary: 'Estado actualizado',
-          detail: `La familia ahora está ${updated.is_featured ? 'destacada' : 'sin destacar'}`,
+          detail: `La familia ahora estÃ¡ ${updated.is_featured ? 'destacada' : 'sin destacar'}`,
         });
         this.isLoading.set(false);
       },
@@ -675,7 +676,7 @@ export class AdminFamiliesComponent {
         this.messageService.add({
           severity: 'success',
           summary: 'Estado actualizado',
-          detail: `La familia ahora está ${updated.is_active ? 'activa' : 'inactiva'}`,
+          detail: `La familia ahora estÃ¡ ${updated.is_active ? 'activa' : 'inactiva'}`,
         });
         this.isLoading.set(false);
       },
@@ -694,4 +695,5 @@ export class AdminFamiliesComponent {
     this.familiesStore.deleteItem(family.id);
   }
 }
+
 

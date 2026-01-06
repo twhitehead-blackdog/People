@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MessageService } from 'primeng/api';
@@ -18,6 +18,7 @@ import { PetsStore } from '../stores/pets.store';
 @Component({
   selector: 'pt-admin-interests',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule,
     FormsModule,
@@ -36,7 +37,7 @@ import { PetsStore } from '../stores/pets.store';
     <p-toast />
     <div class="interests-container">
       <div class="section-header">
-        <h2>Gestión de Intereses en Mascotas</h2>
+        <h2>GestiÃ³n de Intereses en Mascotas</h2>
         <div class="header-stats">
           <span class="stat-item">
             <strong>{{ activeInterests().length }}</strong> Activos
@@ -89,7 +90,7 @@ import { PetsStore } from '../stores/pets.store';
               <th>Mascota</th>
               <th>Usuario</th>
               <th>Email</th>
-              <th>Teléfono</th>
+              <th>TelÃ©fono</th>
               <th>Notas</th>
               <th>Estado</th>
               <th>Fecha</th>
@@ -173,13 +174,13 @@ import { PetsStore } from '../stores/pets.store';
       </p-card>
     </div>
 
-    <!-- Dialog para editar interés -->
+    <!-- Dialog para editar interÃ©s -->
     <p-dialog
       [visible]="showInterestDialog()"
       (visibleChange)="showInterestDialog.set($event)"
       [modal]="true"
       [style]="{ width: '90vw', maxWidth: '600px' }"
-      [header]="'Editar Interés'"
+      [header]="'Editar InterÃ©s'"
       (onHide)="resetForm()"
       [draggable]="false"
       [resizable]="false"
@@ -213,7 +214,7 @@ import { PetsStore } from '../stores/pets.store';
             />
           </div>
           <div class="form-group">
-            <label for="user_phone">Teléfono</label>
+            <label for="user_phone">TelÃ©fono</label>
             <input
               id="user_phone"
               type="text"
@@ -251,7 +252,7 @@ import { PetsStore } from '../stores/pets.store';
             name="notes"
             [rows]="3"
             [disabled]="isLoading()"
-            placeholder="Notas adicionales sobre este interés..."
+            placeholder="Notas adicionales sobre este interÃ©s..."
           ></textarea>
         </div>
 
@@ -362,7 +363,7 @@ import { PetsStore } from '../stores/pets.store';
         padding: 0.5rem 0;
       }
 
-      /* Asegurar que los diálogos no se sobrepongan */
+      /* Asegurar que los diÃ¡logos no se sobrepongan */
       ::ng-deep .p-dialog {
         z-index: 1100 !important;
         position: fixed !important;
@@ -505,7 +506,7 @@ export class AdminInterestsComponent {
   }
 
   public onStatusFilterChange(): void {
-    // El filtro se aplica automáticamente a través de globalFilters()
+    // El filtro se aplica automÃ¡ticamente a travÃ©s de globalFilters()
   }
 
   public openEditDialog(interest: PetInterest): void {
@@ -563,8 +564,8 @@ export class AdminInterestsComponent {
         next: () => {
           this.messageService.add({
             severity: 'success',
-            summary: 'Interés actualizado',
-            detail: 'El interés se ha actualizado correctamente',
+            summary: 'InterÃ©s actualizado',
+            detail: 'El interÃ©s se ha actualizado correctamente',
           });
           this.resetForm();
           this.isLoading.set(false);
@@ -573,7 +574,7 @@ export class AdminInterestsComponent {
           this.messageService.add({
             severity: 'error',
             summary: 'Error',
-            detail: error.message || 'No se pudo actualizar el interés',
+            detail: error.message || 'No se pudo actualizar el interÃ©s',
           });
           this.isLoading.set(false);
         },
@@ -594,7 +595,7 @@ export class AdminInterestsComponent {
         this.messageService.add({
           severity: 'success',
           summary: 'Estado actualizado',
-          detail: `El interés ahora está ${newStatus === 'contacted' ? 'marcado como contactado' : 'activo'}`,
+          detail: `El interÃ©s ahora estÃ¡ ${newStatus === 'contacted' ? 'marcado como contactado' : 'activo'}`,
         });
         this.isLoading.set(false);
       },
@@ -649,4 +650,5 @@ export class AdminInterestsComponent {
     });
   }
 }
+
 

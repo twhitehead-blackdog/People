@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { Button } from 'primeng/button';
@@ -11,6 +11,7 @@ import { Notification, NotificationService, NotificationType } from '../services
 @Component({
   selector: 'pt-notifications-panel',
   standalone: true,
+  changeDetection: import('@angular/core').ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, Button, Card, OverlayPanelModule, TagModule, BadgeModule],
   template: `
     <div class="notifications-panel">
@@ -21,9 +22,9 @@ import { Notification, NotificationService, NotificationType } from '../services
         [badgeValue]="unreadCount()"
         [badgeSeverity]="'danger'"
         [badgeHidden]="unreadCount() === 0"
-        [title]="unreadCount() > 0 ? unreadCount() + ' notificaciones no leídas' : 'Notificaciones'"
+        [title]="unreadCount() > 0 ? unreadCount() + ' notificaciones no leÃ­das' : 'Notificaciones'"
       >
-        <span class="notification-icon">🔔</span>
+        <span class="notification-icon">ðŸ””</span>
       </button>
 
       <p-overlayPanel #notificationsPanel [dismissable]="true" [showCloseIcon]="true" styleClass="notifications-overlay">
@@ -33,7 +34,7 @@ import { Notification, NotificationService, NotificationType } from '../services
             <div class="header-actions">
               @if (unreadCount() > 0) {
                 <p-button
-                  label="Marcar todas como leídas"
+                  label="Marcar todas como leÃ­das"
                   [text]="true"
                   size="small"
                   (onClick)="markAllAsRead()"
@@ -44,7 +45,7 @@ import { Notification, NotificationService, NotificationType } from '../services
                 />
               }
               <p-button
-                label="Limpiar leídas"
+                label="Limpiar leÃ­das"
                 [text]="true"
                 size="small"
                 severity="secondary"
@@ -60,7 +61,7 @@ import { Notification, NotificationService, NotificationType } from '../services
           <div class="notifications-list">
             @if (notificationService.allNotifications().length === 0) {
               <div class="empty-notifications">
-                <span class="empty-icon">📭</span>
+                <span class="empty-icon">ðŸ“­</span>
                 <p class="empty-text">No hay notificaciones</p>
               </div>
             } @else {
@@ -96,9 +97,9 @@ import { Notification, NotificationService, NotificationType } from '../services
                       <button
                         class="action-btn mark-read"
                         (click)="markAsRead(notification.id, $event)"
-                        title="Marcar como leída"
+                        title="Marcar como leÃ­da"
                       >
-                        ✓
+                        âœ“
                       </button>
                     }
                     <button
@@ -106,7 +107,7 @@ import { Notification, NotificationService, NotificationType } from '../services
                       (click)="removeNotification(notification.id, $event)"
                       title="Eliminar"
                     >
-                      ✕
+                      âœ•
                     </button>
                   </div>
                 </div>
@@ -427,7 +428,7 @@ export class NotificationsPanelComponent {
     const days = Math.floor(hours / 24);
 
     if (days > 0) {
-      return `Hace ${days} día${days > 1 ? 's' : ''}`;
+      return `Hace ${days} dÃ­a${days > 1 ? 's' : ''}`;
     } else if (hours > 0) {
       return `Hace ${hours} hora${hours > 1 ? 's' : ''}`;
     } else if (minutes > 0) {
@@ -437,4 +438,5 @@ export class NotificationsPanelComponent {
     }
   }
 }
+
 
