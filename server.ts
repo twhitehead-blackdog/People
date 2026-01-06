@@ -183,30 +183,53 @@ export function app(): express.Express {
 
           // Configurar SMTP de Resend
           // Host: smtp.resend.com
-          // Port: 465 (SSL) o 587 (TLS)
+          // Puertos: 465 (SSL) o 587 (TLS)
           // User: resend
           // Password: API key
-          const resendSmtpPort = parseInt(
-            process.env['ENV_RESEND_SMTP_PORT'] || '465'
-          );
-          const transporter = nodemailer.createTransport({
-            host: 'smtp.resend.com',
-            port: resendSmtpPort,
-            secure: resendSmtpPort === 465, // true para 465 (SSL), false para 587 (TLS)
-            auth: {
-              user: 'resend',
-              pass: resendApiKey,
-            },
-          });
+          const envPortRaw = process.env['ENV_RESEND_SMTP_PORT'];
+          const envPort = envPortRaw ? parseInt(envPortRaw) : undefined;
+          const portsToTry = envPort ? [envPort] : [465, 587];
 
-          // Enviar email via SMTP de Resend
-          const info = await transporter.sendMail({
-            from: `${senderName} <${senderEmail}>`,
-            to: recipients.join(', '),
-            subject: subject,
-            html: html,
-            text: text || html.replace(/<[^>]*>/g, ''),
-          });
+          let info: any;
+          let lastError: any;
+          for (const port of portsToTry) {
+            try {
+              const transporter = nodemailer.createTransport({
+                host: 'smtp.resend.com',
+                port,
+                secure: port === 465, // SSL para 465; para 587 se usa STARTTLS
+                requireTLS: port === 587,
+                auth: {
+                  user: 'resend',
+                  pass: resendApiKey,
+                },
+              });
+
+              info = await transporter.sendMail({
+                from: `${senderName} <${senderEmail}>`,
+                to: recipients.join(', '),
+                subject: subject,
+                html: html,
+                text: text || html.replace(/<[^>]*>/g, ''),
+              });
+
+              safeLogger.safeLog('✅ Email enviado via Resend SMTP', {
+                to: recipients.join(', '),
+                port,
+              });
+              break;
+            } catch (err: any) {
+              lastError = err;
+              safeLogger.error(
+                `❌ Error con Resend SMTP (port ${port})`,
+                err
+              );
+            }
+          }
+
+          if (!info) {
+            throw lastError || new Error('No se pudo enviar por Resend SMTP');
+          }
 
           safeLogger.safeLog('✅ Email enviado exitosamente via Resend SMTP', {
             to: recipients.join(', '),

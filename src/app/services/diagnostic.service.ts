@@ -17,7 +17,8 @@ export interface DiagnosticError {
 })
 export class DiagnosticService {
   private errorsSubject = new BehaviorSubject<DiagnosticError[]>([]);
-  public errors$: Observable<DiagnosticError[]> = this.errorsSubject.asObservable();
+  public errors$: Observable<DiagnosticError[]> =
+    this.errorsSubject.asObservable();
 
   private isVisibleSubject = new BehaviorSubject<boolean>(false);
   public isVisible$: Observable<boolean> = this.isVisibleSubject.asObservable();
@@ -25,8 +26,32 @@ export class DiagnosticService {
   private maxErrors = 100; // Mantener solo los últimos 100 errores
 
   // Guardar referencias originales de console para evitar loops infinitos
-  private originalConsoleError: typeof console.error = console.error.bind(console);
+  private originalConsoleError: typeof console.error =
+    console.error.bind(console);
   private originalConsoleWarn: typeof console.warn = console.warn.bind(console);
+
+  private safeStringify(value: any): string {
+    try {
+      const seen = new WeakSet<object>();
+      return JSON.stringify(
+        value,
+        (_key, val) => {
+          if (typeof val === 'object' && val !== null) {
+            if (seen.has(val)) return '[Circular]';
+            seen.add(val);
+          }
+          return val;
+        },
+        2
+      );
+    } catch {
+      try {
+        return String(value);
+      } catch {
+        return '[Unserializable]';
+      }
+    }
+  }
 
   constructor() {
     // Guardar referencias ANTES de interceptar para evitar loops infinitos
@@ -37,19 +62,25 @@ export class DiagnosticService {
     }
 
     // Log de inicialización solo en desarrollo
-    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    if (
+      typeof window !== 'undefined' &&
+      window.location.hostname === 'localhost'
+    ) {
       console.log('[Diagnóstico] Servicio inicializado');
     }
-    
+
     // Capturar errores de consola
     this.captureConsoleErrors();
     // Capturar peticiones fetch directamente
     this.captureFetchErrors();
     // Monitorear recursos httpResource
     this.monitorHttpResources();
-    
+
     // Agregar un error de prueba al inicializar (solo en desarrollo)
-    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    if (
+      typeof window !== 'undefined' &&
+      window.location.hostname === 'localhost'
+    ) {
       setTimeout(() => {
         this.addError({
           type: 'other',
@@ -71,11 +102,17 @@ export class DiagnosticService {
     };
 
     const currentErrors = this.errorsSubject.value;
-    const newErrors = [diagnosticError, ...currentErrors].slice(0, this.maxErrors);
+    const newErrors = [diagnosticError, ...currentErrors].slice(
+      0,
+      this.maxErrors
+    );
     this.errorsSubject.next(newErrors);
 
     // Usar originalConsoleError para evitar loops infinitos
-    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    if (
+      typeof window !== 'undefined' &&
+      window.location.hostname === 'localhost'
+    ) {
       if (this.originalConsoleError) {
         this.originalConsoleError(
           '[Diagnóstico]',
@@ -91,7 +128,12 @@ export class DiagnosticService {
   /**
    * Agregar error HTTP
    */
-  addHttpError(url: string, status: number, message: string, details?: any): void {
+  addHttpError(
+    url: string,
+    status: number,
+    message: string,
+    details?: any
+  ): void {
     this.addError({
       type: 'http',
       message: `HTTP ${status}: ${message}`,
@@ -159,27 +201,47 @@ export class DiagnosticService {
     const originalWarn = this.originalConsoleWarn;
 
     console.error = (...args: any[]) => {
-      const message = args.map(arg => 
-        typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
-      ).join(' ');
-      
+      let message = '';
+      try {
+        message = args
+          .map((arg) =>
+            typeof arg === 'object' ? this.safeStringify(arg) : String(arg)
+          )
+          .join(' ');
+      } catch {
+        message = '[Error serializando console.error args]';
+      }
+
       // No capturar nuestros propios mensajes de diagnóstico
       if (!message.includes('[Diagnóstico]')) {
-        this.addConsoleError(message, args.length > 1 ? args.slice(1) : undefined);
+        this.addConsoleError(
+          message,
+          args.length > 1 ? args.slice(1) : undefined
+        );
       }
       // Usar originalError para evitar loops infinitos
       originalError.apply(console, args);
     };
 
     console.warn = (...args: any[]) => {
-      const message = args.map(arg => 
-        typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
-      ).join(' ');
-      
+      let message = '';
+      try {
+        message = args
+          .map((arg) =>
+            typeof arg === 'object' ? this.safeStringify(arg) : String(arg)
+          )
+          .join(' ');
+      } catch {
+        message = '[Error serializando console.warn args]';
+      }
+
       // No capturar nuestros propios mensajes de diagnóstico
       if (!message.includes('[Diagnóstico]')) {
         // Capturar TODOS los warnings (más agresivo)
-        this.addConsoleError(`WARNING: ${message}`, args.length > 1 ? args.slice(1) : undefined);
+        this.addConsoleError(
+          `WARNING: ${message}`,
+          args.length > 1 ? args.slice(1) : undefined
+        );
       }
       // Usar originalWarn para evitar loops infinitos
       originalWarn.apply(console, args);
@@ -208,7 +270,10 @@ export class DiagnosticService {
     });
 
     // Solo log en desarrollo
-    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    if (
+      typeof window !== 'undefined' &&
+      window.location.hostname === 'localhost'
+    ) {
       console.log('[Diagnóstico] Captura de errores de consola configurada');
     }
   }
@@ -231,7 +296,7 @@ export class DiagnosticService {
    * Obtener errores por tipo
    */
   getErrorsByType(type: DiagnosticError['type']): DiagnosticError[] {
-    return this.errorsSubject.value.filter(error => error.type === type);
+    return this.errorsSubject.value.filter((error) => error.type === type);
   }
 
   /**
@@ -276,7 +341,7 @@ export class DiagnosticService {
         const response = await fetch(`${supabaseUrl}/rest/v1/`, {
           method: 'HEAD',
           headers: {
-            'apikey': process.env['ENV_SUPABASE_ANON_KEY'] || '',
+            apikey: process.env['ENV_SUPABASE_ANON_KEY'] || '',
           },
         });
         results.supabase = response.ok;
@@ -295,7 +360,11 @@ export class DiagnosticService {
         results.backend = response.ok;
       }
     } catch (error) {
-      this.addNetworkError('/api/health', 'No se pudo conectar al backend', error);
+      this.addNetworkError(
+        '/api/health',
+        'No se pudo conectar al backend',
+        error
+      );
     }
 
     // Verificar Auth0 (solo verificar configuración)
@@ -320,13 +389,15 @@ export class DiagnosticService {
     if (typeof window === 'undefined') return;
 
     const originalFetch = window.fetch;
-    window.fetch = async (...args: Parameters<typeof fetch>): Promise<Response> => {
+    window.fetch = async (
+      ...args: Parameters<typeof fetch>
+    ): Promise<Response> => {
       const [url, options] = args;
       const urlString = typeof url === 'string' ? url : url.toString();
 
       try {
         const response = await originalFetch(...args);
-        
+
         // Si la respuesta no es exitosa, registrar el error
         if (!response.ok) {
           // Convertir headers a objeto (compatible con todos los navegadores)
@@ -363,7 +434,10 @@ export class DiagnosticService {
     };
 
     // Solo log en desarrollo
-    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    if (
+      typeof window !== 'undefined' &&
+      window.location.hostname === 'localhost'
+    ) {
       console.log('[Diagnóstico] Captura de errores de fetch configurada');
     }
   }
@@ -391,7 +465,10 @@ export class DiagnosticService {
    */
   private checkForSilentErrors(): void {
     // Solo verificar en desarrollo (localhost) para evitar errores falsos en producción
-    if (typeof window === 'undefined' || window.location.hostname !== 'localhost') {
+    if (
+      typeof window === 'undefined' ||
+      window.location.hostname !== 'localhost'
+    ) {
       return;
     }
 
@@ -410,17 +487,18 @@ export class DiagnosticService {
 
     // Solo agregar error si no existe ya uno similar
     const existingErrors = this.errorsSubject.value;
-    const hasSupabaseUrlError = existingErrors.some(e => 
-      e.type === 'supabase' && e.message.includes('ENV_SUPABASE_URL')
+    const hasSupabaseUrlError = existingErrors.some(
+      (e) => e.type === 'supabase' && e.message.includes('ENV_SUPABASE_URL')
     );
-    const hasSupabaseKeyError = existingErrors.some(e => 
-      e.type === 'supabase' && e.message.includes('ENV_SUPABASE_ANON_KEY')
+    const hasSupabaseKeyError = existingErrors.some(
+      (e) =>
+        e.type === 'supabase' && e.message.includes('ENV_SUPABASE_ANON_KEY')
     );
-    const hasApiUrlError = existingErrors.some(e => 
-      e.type === 'network' && e.message.includes('ENV_API_URL')
+    const hasApiUrlError = existingErrors.some(
+      (e) => e.type === 'network' && e.message.includes('ENV_API_URL')
     );
-    const hasAppUrlError = existingErrors.some(e => 
-      e.type === 'auth' && e.message.includes('ENV_APP_URL')
+    const hasAppUrlError = existingErrors.some(
+      (e) => e.type === 'auth' && e.message.includes('ENV_APP_URL')
     );
 
     if (!supabaseUrl && !hasSupabaseUrlError) {
@@ -466,7 +544,9 @@ export class DiagnosticService {
       errorType = 'supabase';
       message = `Error de autenticación: ${error.status}`;
     } else {
-      message = `HTTP ${error.status}: ${error.statusText || 'Error desconocido'}`;
+      message = `HTTP ${error.status}: ${
+        error.statusText || 'Error desconocido'
+      }`;
     }
 
     this.addError({
@@ -481,4 +561,3 @@ export class DiagnosticService {
     });
   }
 }
-
