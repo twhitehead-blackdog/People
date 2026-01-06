@@ -174,48 +174,67 @@ export function app(): express.Express {
       const resendApiKey = process.env['ENV_RESEND_API_KEY'];
       if (resendApiKey) {
         try {
-          const resend = new Resend(resendApiKey);
-          // Usar dominio de prueba de Resend por defecto (sin DKIM necesario)
+          // Usar SMTP de Resend (más confiable que la API REST en algunos entornos)
           const noreplyEmail =
             process.env['ENV_RESEND_FROM_EMAIL'] || 'onboarding@resend.dev';
           const noreplyName = process.env['ENV_RESEND_FROM_NAME'] || 'People';
           const senderEmail = fromEmail || noreplyEmail;
           const senderName = fromName || noreplyName;
 
-          const { data, error } = await resend.emails.send({
+          // Configurar SMTP de Resend
+          // Host: smtp.resend.com
+          // Port: 465 (SSL) o 587 (TLS)
+          // User: resend
+          // Password: API key
+          const resendSmtpPort = parseInt(
+            process.env['ENV_RESEND_SMTP_PORT'] || '465'
+          );
+          const transporter = nodemailer.createTransport({
+            host: 'smtp.resend.com',
+            port: resendSmtpPort,
+            secure: resendSmtpPort === 465, // true para 465 (SSL), false para 587 (TLS)
+            auth: {
+              user: 'resend',
+              pass: resendApiKey,
+            },
+          });
+
+          // Enviar email via SMTP de Resend
+          const info = await transporter.sendMail({
             from: `${senderName} <${senderEmail}>`,
-            to: recipients,
+            to: recipients.join(', '),
             subject: subject,
             html: html,
             text: text || html.replace(/<[^>]*>/g, ''),
           });
 
-          if (error) {
-            safeLogger.error('❌ Error sending email via Resend', error);
-            // Si Resend está configurado, devolver el error directamente (no hacer fallback)
-            return res.status(500).json({
-              error: 'Error al enviar email via Resend',
-              message: error.message || 'Error desconocido de Resend',
-              details:
-                process.env['NODE_ENV'] === 'development' ? error : undefined,
-            });
-          }
-
-          safeLogger.safeLog('✅ Email enviado exitosamente via Resend', {
+          safeLogger.safeLog('✅ Email enviado exitosamente via Resend SMTP', {
             to: recipients.join(', '),
-            messageId: data?.id,
+            messageId: info.messageId,
           });
 
-          return res.json({ success: true, data: { messageId: data?.id } });
+          return res.json({ success: true, data: { messageId: info.messageId } });
         } catch (resendError: any) {
-          safeLogger.error('❌ Error con Resend', resendError);
+          safeLogger.error('❌ Error con Resend SMTP', resendError);
           // Si Resend está configurado pero falló, devolver el error directamente
+          let errorMessage = 'Error desconocido de Resend SMTP';
+          if (resendError.code === 'EAUTH') {
+            errorMessage =
+              'Error de autenticación Resend SMTP. Verifica ENV_RESEND_API_KEY';
+          } else if (resendError.code === 'ECONNECTION') {
+            errorMessage =
+              'No se pudo conectar al servidor SMTP de Resend. Verifica la conexión';
+          } else if (resendError.message) {
+            errorMessage = resendError.message;
+          }
+
           return res.status(500).json({
-            error: 'Error al enviar email via Resend',
-            message: resendError.message || 'Error desconocido de Resend',
+            error: 'Error al enviar email via Resend SMTP',
+            message: errorMessage,
             details:
               process.env['NODE_ENV'] === 'development'
                 ? {
+                    code: resendError.code,
                     message: resendError.message,
                     stack: resendError.stack,
                   }
@@ -224,7 +243,7 @@ export function app(): express.Express {
         }
       }
 
-      // Fallback a SMTP si no hay Resend o si Resend falló
+      // Fallback a SMTP genérico (Gmail, etc.) si no hay Resend configurado
       const smtpHost = process.env['ENV_SMTP_HOST'] || 'smtp.gmail.com';
       const smtpPort = parseInt(process.env['ENV_SMTP_PORT'] || '587');
       const smtpUser = process.env['ENV_SMTP_USER'];
