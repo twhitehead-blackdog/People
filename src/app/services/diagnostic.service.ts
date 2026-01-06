@@ -69,12 +69,20 @@ export class DiagnosticService {
       console.log('[Diagnóstico] Servicio inicializado');
     }
 
-    // Capturar errores de consola
-    this.captureConsoleErrors();
-    // Capturar peticiones fetch directamente
-    this.captureFetchErrors();
-    // Monitorear recursos httpResource
-    this.monitorHttpResources();
+    const isLocalhost =
+      typeof window !== 'undefined' && window.location.hostname === 'localhost';
+
+    // IMPORTANTE: el panel de diagnóstico es una herramienta de desarrollo.
+    // En producción puede interferir con el comportamiento normal de consola/fetch
+    // (y agrandar el bundle). Por eso lo activamos solo en localhost.
+    if (isLocalhost) {
+      // Capturar errores de consola
+      this.captureConsoleErrors();
+      // Capturar peticiones fetch directamente
+      this.captureFetchErrors();
+      // Monitorear recursos httpResource
+      this.monitorHttpResources();
+    }
 
     // Agregar un error de prueba al inicializar (solo en desarrollo)
     if (
