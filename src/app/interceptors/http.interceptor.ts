@@ -79,9 +79,16 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
     // No agregar Content-Type para Storage API (dejar que el navegador lo establezca con boundary)
     // No agregar Prefer para Storage API
     if (!req.url.includes('/storage/v1/')) {
-      headers = headers
-        .set('Prefer', 'return=representation')
-        .set('Content-Type', 'application/json');
+      // Respetar Prefer si ya viene seteado (ej: upsert requiere resolution=merge-duplicates)
+      const existingPrefer = req.headers.get('Prefer');
+      const preferValue =
+        existingPrefer && existingPrefer.trim() !== ''
+          ? existingPrefer.includes('return=representation')
+            ? existingPrefer
+            : `${existingPrefer},return=representation`
+          : 'return=representation';
+
+      headers = headers.set('Prefer', preferValue).set('Content-Type', 'application/json');
     }
 
     // Agregar header Range para peticiones a timelogs que necesitan más de 1000 registros

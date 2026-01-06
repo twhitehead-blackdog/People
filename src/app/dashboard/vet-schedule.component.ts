@@ -264,7 +264,10 @@ export class VetScheduleComponent {
     }
 
     // Overlap de rangos: start_date <= endDate AND end_date >= startDate
-    const and = `(start_date.lte.${format(endDate, 'yyyy-MM-dd')},end_date.gte.${format(startDate, 'yyyy-MM-dd')})`;
+    const and = `(start_date.lte.${format(
+      endDate,
+      'yyyy-MM-dd'
+    )},end_date.gte.${format(startDate, 'yyyy-MM-dd')})`;
 
     this.http
       .get<any[]>(
@@ -272,7 +275,8 @@ export class VetScheduleComponent {
           company_id: `eq.${companyId}`,
           employee_id: `in.(${vetIds.join(',')})`,
           and,
-          select: 'employee_id,start_date,end_date,schedule:schedules(day_off,name)',
+          select:
+            'employee_id,start_date,end_date,schedule:schedules(day_off,name)',
         }),
         {}
       )
@@ -406,7 +410,9 @@ export class VetScheduleComponent {
           }
 
           // Actualizar estado local: reemplazar si existe, si no agregar
-          const withoutOld = this.assignments().filter((a) => a.id !== saved.id);
+          const withoutOld = this.assignments().filter(
+            (a) => a.id !== saved.id
+          );
           this.assignments.set([...withoutOld, saved]);
 
           const wasUpdate =
