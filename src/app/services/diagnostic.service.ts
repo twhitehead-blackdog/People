@@ -24,7 +24,17 @@ export class DiagnosticService {
 
   private maxErrors = 100; // Mantener solo los últimos 100 errores
 
+  // Guardar referencias originales de console para evitar loops infinitos
+  private originalConsoleError: typeof console.error;
+  private originalConsoleWarn: typeof console.warn;
+
   constructor() {
+    // Guardar referencias ANTES de interceptar para evitar loops infinitos
+    if (typeof window !== 'undefined') {
+      this.originalConsoleError = console.error.bind(console);
+      this.originalConsoleWarn = console.warn.bind(console);
+    }
+
     // Log de inicialización solo en desarrollo
     if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
       console.log('[Diagnóstico] Servicio inicializado');
@@ -63,9 +73,17 @@ export class DiagnosticService {
     const newErrors = [diagnosticError, ...currentErrors].slice(0, this.maxErrors);
     this.errorsSubject.next(newErrors);
 
-    // También loguear en consola para debugging solo en desarrollo
+    // Usar originalConsoleError para evitar loops infinitos
     if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-      console.error('[Diagnóstico]', error.type.toUpperCase(), ':', error.message, error.details || '');
+      if (this.originalConsoleError) {
+        this.originalConsoleError(
+          '[Diagnóstico]',
+          error.type.toUpperCase(),
+          ':',
+          error.message,
+          error.details || ''
+        );
+      }
     }
   }
 
@@ -135,8 +153,9 @@ export class DiagnosticService {
   private captureConsoleErrors(): void {
     if (typeof window === 'undefined') return;
 
-    const originalError = console.error;
-    const originalWarn = console.warn;
+    // Usar las referencias originales guardadas en el constructor
+    const originalError = this.originalConsoleError;
+    const originalWarn = this.originalConsoleWarn;
 
     console.error = (...args: any[]) => {
       const message = args.map(arg => 
@@ -147,6 +166,7 @@ export class DiagnosticService {
       if (!message.includes('[Diagnóstico]')) {
         this.addConsoleError(message, args.length > 1 ? args.slice(1) : undefined);
       }
+      // Usar originalError para evitar loops infinitos
       originalError.apply(console, args);
     };
 
@@ -160,6 +180,7 @@ export class DiagnosticService {
         // Capturar TODOS los warnings (más agresivo)
         this.addConsoleError(`WARNING: ${message}`, args.length > 1 ? args.slice(1) : undefined);
       }
+      // Usar originalWarn para evitar loops infinitos
       originalWarn.apply(console, args);
     };
 

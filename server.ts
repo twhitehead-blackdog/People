@@ -192,7 +192,13 @@ export function app(): express.Express {
 
           if (error) {
             safeLogger.error('❌ Error sending email via Resend', error);
-            throw new Error(error.message || 'Error desconocido de Resend');
+            // Si Resend está configurado, devolver el error directamente (no hacer fallback)
+            return res.status(500).json({
+              error: 'Error al enviar email via Resend',
+              message: error.message || 'Error desconocido de Resend',
+              details:
+                process.env['NODE_ENV'] === 'development' ? error : undefined,
+            });
           }
 
           safeLogger.safeLog('✅ Email enviado exitosamente via Resend', {
@@ -202,11 +208,19 @@ export function app(): express.Express {
 
           return res.json({ success: true, data: { messageId: data?.id } });
         } catch (resendError: any) {
-          safeLogger.error(
-            '❌ Error con Resend, intentando SMTP como fallback',
-            resendError
-          );
-          // Continuar con SMTP como fallback
+          safeLogger.error('❌ Error con Resend', resendError);
+          // Si Resend está configurado pero falló, devolver el error directamente
+          return res.status(500).json({
+            error: 'Error al enviar email via Resend',
+            message: resendError.message || 'Error desconocido de Resend',
+            details:
+              process.env['NODE_ENV'] === 'development'
+                ? {
+                    message: resendError.message,
+                    stack: resendError.stack,
+                  }
+                : undefined,
+          });
         }
       }
 
