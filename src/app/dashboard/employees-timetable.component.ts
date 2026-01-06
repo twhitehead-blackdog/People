@@ -318,6 +318,14 @@ import {
                 [disabled]="!hasActiveAuditFilters()"
                 size="small"
               />
+              <p-button
+                label="Aplicar Filtros"
+                icon="pi pi-check"
+                severity="info"
+                (onClick)="loadAuditHistory()"
+                [disabled]="!hasActiveAuditFilters()"
+                size="small"
+              />
               <div class="flex items-center gap-2 text-sm text-gray-400">
                 <i class="pi pi-info-circle"></i>
                 <span
@@ -694,30 +702,50 @@ export class EmployeesTimetableComponent implements OnInit {
       .flat()
   );
 
+  // Precompute intervals by employee_id for O(1) lookup
+  private intervalsByEmployee = computed(() => {
+    const map = new Map<string, Array<{ start: Date; end: Date; shift: any }>>();
+    const shifts = this.shifts();
+    
+    if (!shifts) return map;
+    
+    for (const shift of shifts) {
+      if (!map.has(shift.employee_id)) {
+        map.set(shift.employee_id, []);
+      }
+      
+      map.get(shift.employee_id)!.push({
+        start: startOfDay(toDate(shift.start_date, { timeZone: 'America/Panama' })),
+        end: endOfDay(toDate(shift.end_date, { timeZone: 'America/Panama' })),
+        shift: shift,
+      });
+    }
+    
+    return map;
+  });
+
   public employeeSchedulesList = computed(() =>
-    this.currentEmployees().map((employee) => ({
-      id: employee.id,
-      first_name: employee.first_name,
-      father_name: employee.father_name,
-      position: employee.position
-        ? { name: employee.position.name }
-        : { name: '' },
-      days: employee.days.map((day) => ({
-        ...day,
-        shift: this.shifts()?.find(
-          (shift) =>
-            shift.employee_id === employee.id &&
+    this.currentEmployees().map((employee) => {
+      const intervals = this.intervalsByEmployee().get(employee.id) || [];
+      
+      return {
+        id: employee.id,
+        first_name: employee.first_name,
+        father_name: employee.father_name,
+        position: employee.position
+          ? { name: employee.position.name }
+          : { name: '' },
+        days: employee.days.map((day) => ({
+          ...day,
+          shift: intervals.find((interval) =>
             isWithinInterval(day.date, {
-              start: startOfDay(
-                toDate(shift.start_date, { timeZone: 'America/Panama' })
-              ),
-              end: endOfDay(
-                toDate(shift.end_date, { timeZone: 'America/Panama' })
-              ),
+              start: interval.start,
+              end: interval.end,
             })
-        ),
-      })),
-    }))
+          )?.shift,
+        })),
+      };
+    })
   );
 
   ngOnInit(): void {
@@ -1460,8 +1488,36 @@ export class EmployeesTimetableComponent implements OnInit {
   private async loadAuditHistory() {
     this.isLoadingAuditHistory.set(true);
     try {
-      const history = await firstValueFrom(this.auditService.getAllAuditHistory());
-      this.allAuditHistory.set(history || []);
+      // Si hay filtros activos, usar filtros server-side
+      const hasFilters = this.hasActiveAuditFilters();
+      
+      if (hasFilters) {
+        const params: any = {};
+        
+        if (this.selectedEmployeeFilter()) {
+          params.employeeId = this.selectedEmployeeFilter();
+        }
+        
+        if (this.selectedDateRange() && this.selectedDateRange()!.length === 2) {
+          const [start, end] = this.selectedDateRange()!;
+          params.dateFrom = start;
+          params.dateTo = end;
+        }
+        
+        if (this.selectedActionFilter()) {
+          params.action = this.selectedActionFilter();
+        }
+        
+        // Note: search text filter will still be applied client-side in filteredAuditHistory
+        // as it requires searching across multiple fields
+        
+        const history = await firstValueFrom(this.auditService.getAllAuditHistory(params));
+        this.allAuditHistory.set(history || []);
+      } else {
+        // Sin filtros, cargar todo
+        const history = await firstValueFrom(this.auditService.getAllAuditHistory());
+        this.allAuditHistory.set(history || []);
+      }
     } catch (error) {
       console.error('Error cargando historial de auditoría:', error);
       this.allAuditHistory.set([]);
@@ -1554,6 +1610,8 @@ export class EmployeesTimetableComponent implements OnInit {
     this.selectedDateRange.set(null);
     this.selectedActionFilter.set(null);
     this.auditSearchText.set('');
+    // Reload audit history without filters
+    this.loadAuditHistory();
   }
 
   // Opciones para dropdown de acciones
