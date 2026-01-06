@@ -325,15 +325,19 @@ export class VetScheduleComponent {
   }
 
   // Obtener asignación para empleado y fecha específica
+  private dateKey(value: Date | string): string {
+    // Supabase para columnas DATE suele devolver 'YYYY-MM-DD' (string).
+    if (typeof value === 'string') return value.slice(0, 10);
+    return format(value, 'yyyy-MM-dd');
+  }
+
   getAssignmentForDate(
     employee: Employee,
     date: Date
   ): VetBranchAssignment | null {
     const dateKey = format(date, 'yyyy-MM-dd');
     const employeeAssignments = this.assignments().filter(
-      (a) =>
-        a.employee_id === employee.id &&
-        format(a.date, 'yyyy-MM-dd') === dateKey
+      (a) => a.employee_id === employee.id && this.dateKey(a.date) === dateKey
     );
     return employeeAssignments[0] || null;
   }
@@ -373,7 +377,7 @@ export class VetScheduleComponent {
     const existingAssignment = this.assignments().find(
       (a) =>
         a.employee_id === employee.id &&
-        format(a.date, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
+        this.dateKey(a.date) === format(date, 'yyyy-MM-dd')
     );
 
     const assignmentData = {
@@ -480,7 +484,7 @@ export class VetScheduleComponent {
     const existingAssignment = this.assignments().find(
       (a) =>
         a.employee_id === employee.id &&
-        format(a.date, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
+        this.dateKey(a.date) === format(date, 'yyyy-MM-dd')
     );
 
     if (!existingAssignment) {

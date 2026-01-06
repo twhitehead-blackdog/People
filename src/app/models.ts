@@ -284,9 +284,9 @@ export type VetBranchAssignment = {
   id: string;
   employee_id: string;
   branch_id: string;
-  date: Date;
-  created_at?: Date;
-  updated_at?: Date;
+  date: Date | string;
+  created_at?: Date | string;
+  updated_at?: Date | string;
   company_id?: string;
   branch?: Branch;
   employee?: Employee;
