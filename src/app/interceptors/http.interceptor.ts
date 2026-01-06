@@ -33,13 +33,19 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
     const isNotificationsRequest = req.url.includes('/rest/v1/notifications');
     const isHrMessagesRequest = req.url.includes('/rest/v1/hr_messages');
     const isEmployeeDisabilitiesRequest = req.url.includes('/rest/v1/employee_disabilities');
+    // Horario Vet: por simplicidad el frontend ya controla permisos (solo admin),
+    // así que usamos service_role para evitar problemas de RLS con anon key.
+    const isVetBranchAssignmentsRequest = req.url.includes('/rest/v1/vet_branch_assignments');
+    const isVetBranchAuditRequest = req.url.includes('/rest/v1/vet_branch_audit_log');
     const needsServiceRoleKey =
       isSettingsRequest ||
       isJobApplicationsRequest ||
       isTimeoffsRequest ||
       isNotificationsRequest ||
       isHrMessagesRequest ||
-      isEmployeeDisabilitiesRequest;
+      isEmployeeDisabilitiesRequest ||
+      isVetBranchAssignmentsRequest ||
+      isVetBranchAuditRequest;
 
     // Para Service Role Key, intentar todas las variantes posibles
     // ENV_SUPABASE_TOKEN y ENV_SUPABASE_SERVICE_ROLE_KEY deberían ser la misma clave

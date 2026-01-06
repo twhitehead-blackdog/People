@@ -196,17 +196,16 @@ export class VetScheduleComponent {
       });
       return;
     }
-    if (!companyId) {
-      console.warn('[VetSchedule] No company ID available');
-      this.assignments.set([]);
-      return;
-    }
 
     this.http
       .get<VetBranchAssignment[]>(
         this.apiUrl.build('rest/v1/vet_branch_assignments', {
-          'date.gte': format(startDate, 'yyyy-MM-dd'),
-          'date.lte': format(endDate, 'yyyy-MM-dd'),
+          // PostgREST: no podemos repetir la key "date" porque ApiUrlService usa searchParams.set,
+          // así que usamos el operador and=(...) para rango.
+          and: `(date.gte.${format(startDate, 'yyyy-MM-dd')},date.lte.${format(
+            endDate,
+            'yyyy-MM-dd'
+          )})`,
           company_id: `eq.${companyId}`,
           select:
             '*,branch:branches(id,name,short_name),employee:employees(id,first_name,father_name,position:positions(name))',
