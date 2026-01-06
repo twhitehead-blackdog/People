@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { getEnv } from './env.utils';
 
 export type SettingsMap = Record<string, string | null>;
 
@@ -15,9 +16,15 @@ export async function getSettingsByKeys(
   if (!keys.length) return {};
 
   try {
+    const baseUrl = getEnv('ENV_SUPABASE_URL');
+    if (!baseUrl) {
+      console.warn('[getSettingsByKeys] ENV_SUPABASE_URL no configurada');
+      return {};
+    }
+
     const rows = await firstValueFrom(
       http.get<Array<{ key: string; value: string | null }>>(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+        `${baseUrl}/rest/v1/settings`,
         {
           params: {
             select: 'key,value',
@@ -54,9 +61,10 @@ export async function getBooleanSetting(
   }
 
   const normalized = String(value).trim().toLowerCase();
-  if (normalized === 'true' || normalized === '1' || normalized === 'yes') return true;
-  if (normalized === 'false' || normalized === '0' || normalized === 'no') return false;
+  if (normalized === 'true' || normalized === '1' || normalized === 'yes')
+    return true;
+  if (normalized === 'false' || normalized === '0' || normalized === 'no')
+    return false;
 
   return defaultValue;
 }
-

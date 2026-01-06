@@ -35,15 +35,17 @@ import { InputText } from 'primeng/inputtext';
 import { SelectModule } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { ToggleSwitch, ToggleSwitchChangeEvent } from 'primeng/toggleswitch';
-import { catchError, EMPTY, forkJoin } from 'rxjs';
+import { catchError, EMPTY, firstValueFrom, forkJoin } from 'rxjs';
 import { v4 } from 'uuid';
 import { colorVariants, EmployeeSchedule } from '../models';
+import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
 import {
   ScheduleAuditLog,
   ScheduleAuditService,
 } from '../services/schedule-audit.service';
 import { DashboardStore } from '../stores/dashboard.store';
+import { getEnvString } from '../utils/env.utils';
 import { AddEmployeeToBranchDialogComponent } from './add-employee-to-branch-dialog.component';
 import { EmployeeSchedulesFormComponent } from './employee-schedules-form.component';
 import { MonthWeekSelectorComponent } from './employees-timetable/components/month-week-selector/month-week-selector.component';
@@ -551,6 +553,7 @@ export class EmployeesTimetableComponent implements OnInit {
   public specificAuditHistory = signal<ScheduleAuditLog[]>([]);
   public isLoadingSpecificAudit = signal(false);
   private http = inject(HttpClient);
+  private apiUrl = inject(ApiUrlService);
   private confirm = inject(ConfirmationService);
   private organizationService = inject(OrganizationService);
   private dialogService = inject(DialogService);
@@ -559,6 +562,9 @@ export class EmployeesTimetableComponent implements OnInit {
   public navigationService = inject(TimetableNavigationService);
   public injector = inject(Injector);
   private auditService = inject(ScheduleAuditService);
+
+  private auditReloadTimer: ReturnType<typeof setTimeout> | null = null;
+  private lastAuditHistoryQueryKey: string | null = null;
 
   public isHRDepartment = this.permissionsService.isHRDepartment;
 
@@ -584,7 +590,7 @@ export class EmployeesTimetableComponent implements OnInit {
   }
 
   validateCode(code: HTMLInputElement) {
-    if (code.value === process.env['ENV_UNLOCK_CODE']) {
+    if (code.value === getEnvString('ENV_UNLOCK_CODE')) {
       this.editionLocked.set(false);
       this.unlockModal.set(false);
       code.value = '';
@@ -650,15 +656,13 @@ export class EmployeesTimetableComponent implements OnInit {
     const startDate = format(this.start(), 'yyyy-MM-dd');
     const endDate = format(this.end(), 'yyyy-MM-dd');
 
-    // Construir URL manualmente para filtrar a través de employee.company_id
-    let url = `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules?select=*,schedule:schedules(*),branch:branches(id, name, short_name),employee:employees(id,company_id)`;
-    url += `&start_date=lte.${endDate}`;
-    url += `&end_date=gte.${startDate}`;
-
-    // Filtrar a través de employees.company_id (funciona incluso si employee_schedules no tiene company_id)
-    if (companyId) {
-      url += `&employee.company_id=eq.${companyId}`;
-    }
+    const url = this.apiUrl.build('rest/v1/employee_schedules', {
+      select:
+        '*,schedule:schedules(*),branch:branches(id, name, short_name),employee:employees(id,company_id)',
+      start_date: `lte.${endDate}`,
+      end_date: `gte.${startDate}`,
+      ...(companyId ? { 'employee.company_id': `eq.${companyId}` } : {}),
+    });
 
     return {
       url,
@@ -688,6 +692,76 @@ export class EmployeesTimetableComponent implements OnInit {
       .flat()
   );
 
+  private shiftIntervalsByEmployeeId = computed(() => {
+    const schedules = this.schedulesResource.value() ?? [];
+    const allowedEmployees = new Set(this.currentEmployees().map((e) => e.id));
+
+    const map = new Map<
+      string,
+      Array<{ start: Date; end: Date; shift: any }>
+    >();
+
+    for (const s of schedules) {
+      if (!allowedEmployees.has(s.employee_id)) continue;
+
+      const shift = {
+        id: s.id,
+        employee_id: s.employee_id,
+        branch_id: s.branch_id,
+        start_date: s.start_date,
+        end_date: s.end_date,
+        schedule_id: s.schedule_id,
+        schedule: (s as any).schedule,
+        branch: (s as any).branch,
+        approved: (s as any).approved,
+      };
+
+      const start = startOfDay(
+        toDate(shift.start_date, { timeZone: 'America/Panama' })
+      );
+      const end = endOfDay(
+        toDate(shift.end_date, { timeZone: 'America/Panama' })
+      );
+
+      const list = map.get(shift.employee_id) ?? [];
+      list.push({ start, end, shift });
+      // Mantener ordenado por fecha de inicio para búsqueda binaria
+      list.sort((a, b) => a.start.getTime() - b.start.getTime());
+      map.set(shift.employee_id, list);
+    }
+
+    return map;
+  });
+
+  /**
+   * Búsqueda binaria para encontrar el intervalo que contiene una fecha específica
+   * Los intervalos están ordenados por fecha de inicio
+   */
+  private findIntervalForDate(
+    intervals: Array<{ start: Date; end: Date; shift: any }>,
+    date: Date
+  ): { start: Date; end: Date; shift: any } | null {
+    let left = 0;
+    let right = intervals.length - 1;
+
+    while (left <= right) {
+      const mid = Math.floor((left + right) / 2);
+      const interval = intervals[mid];
+
+      if (date >= interval.start && date <= interval.end) {
+        return interval;
+      }
+
+      if (date < interval.start) {
+        right = mid - 1;
+      } else {
+        left = mid + 1;
+      }
+    }
+
+    return null;
+  }
+
   public employeeSchedulesList = computed(() =>
     this.currentEmployees().map((employee) => ({
       id: employee.id,
@@ -698,18 +772,11 @@ export class EmployeesTimetableComponent implements OnInit {
         : { name: '' },
       days: employee.days.map((day) => ({
         ...day,
-        shift: this.shifts()?.find(
-          (shift) =>
-            shift.employee_id === employee.id &&
-            isWithinInterval(day.date, {
-              start: startOfDay(
-                toDate(shift.start_date, { timeZone: 'America/Panama' })
-              ),
-              end: endOfDay(
-                toDate(shift.end_date, { timeZone: 'America/Panama' })
-              ),
-            })
-        ),
+        shift:
+          this.findIntervalForDate(
+            this.shiftIntervalsByEmployeeId().get(employee.id) ?? [],
+            day.date
+          )?.shift ?? null,
       })),
     }))
   );
@@ -728,6 +795,18 @@ export class EmployeesTimetableComponent implements OnInit {
           this.filterService.currentBranch.set(filterBranchId);
         }
         // Si filterBranchId es null (admin), permitir selección libre
+      },
+      { injector: this.injector }
+    );
+
+    effect(
+      () => {
+        if (!this.showAuditHistoryDialog()) return;
+        // Solo filtros que sí se pueden enviar al server (evitar reload por cada tecla en search)
+        this.selectedEmployeeFilter();
+        this.selectedDateRange();
+        this.selectedActionFilter();
+        this.queueAuditHistoryReload();
       },
       { injector: this.injector }
     );
@@ -989,10 +1068,7 @@ export class EmployeesTimetableComponent implements OnInit {
 
         // Ahora eliminar el horario
         this.http
-          .delete(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
-            { params }
-          )
+          .delete(this.apiUrl.build('rest/v1/employee_schedules'), { params })
           .pipe(
             catchError((error) => {
               console.error(error);
@@ -1046,7 +1122,7 @@ export class EmployeesTimetableComponent implements OnInit {
 
         requests.push(
           this.http.patch(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+            this.apiUrl.build('rest/v1/employee_schedules'),
             updateData,
             {
               params: {
@@ -1063,10 +1139,9 @@ export class EmployeesTimetableComponent implements OnInit {
           params.company_id = `eq.${companyId}`;
         }
         requests.push(
-          this.http.delete(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
-            { params }
-          )
+          this.http.delete(this.apiUrl.build('rest/v1/employee_schedules'), {
+            params,
+          })
         );
       }
     }
@@ -1085,7 +1160,7 @@ export class EmployeesTimetableComponent implements OnInit {
 
         requests.push(
           this.http.patch(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+            this.apiUrl.build('rest/v1/employee_schedules'),
             updateData,
             {
               params: {
@@ -1102,10 +1177,9 @@ export class EmployeesTimetableComponent implements OnInit {
           params.company_id = `eq.${companyId}`;
         }
         requests.push(
-          this.http.delete(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
-            { params }
-          )
+          this.http.delete(this.apiUrl.build('rest/v1/employee_schedules'), {
+            params,
+          })
         );
       }
     }
@@ -1124,7 +1198,7 @@ export class EmployeesTimetableComponent implements OnInit {
 
       requests.push(
         this.http.patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+          this.apiUrl.build('rest/v1/employee_schedules'),
           updateData1,
           {
             params: {
@@ -1150,7 +1224,7 @@ export class EmployeesTimetableComponent implements OnInit {
 
         requests.push(
           this.http.post(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+            this.apiUrl.build('rest/v1/employee_schedules'),
             createData2
           )
         );
@@ -1369,7 +1443,7 @@ export class EmployeesTimetableComponent implements OnInit {
         // Ahora aprobar el horario
         this.http
           .patch(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+            this.apiUrl.build('rest/v1/employee_schedules'),
             { approved: true },
             { params }
           )
@@ -1447,6 +1521,8 @@ export class EmployeesTimetableComponent implements OnInit {
   }
 
   public openAuditHistoryDialog() {
+    // Forzar recarga al abrir (mantener comportamiento anterior: siempre refresca)
+    this.lastAuditHistoryQueryKey = null;
     this.loadAuditHistory();
     this.showAuditHistoryDialog.set(true);
   }
@@ -1454,7 +1530,16 @@ export class EmployeesTimetableComponent implements OnInit {
   private async loadAuditHistory() {
     this.isLoadingAuditHistory.set(true);
     try {
-      const history = await this.auditService.getAllAuditHistory().toPromise();
+      const params = this.getAuditHistoryServerParams();
+      const queryKey = JSON.stringify(params ?? {});
+      if (this.lastAuditHistoryQueryKey === queryKey) {
+        return;
+      }
+      this.lastAuditHistoryQueryKey = queryKey;
+
+      const history = await firstValueFrom(
+        this.auditService.getAllAuditHistory(params)
+      );
       this.allAuditHistory.set(history || []);
     } catch (error) {
       console.error('Error cargando historial de auditoría:', error);
@@ -1462,6 +1547,35 @@ export class EmployeesTimetableComponent implements OnInit {
     } finally {
       this.isLoadingAuditHistory.set(false);
     }
+  }
+
+  private queueAuditHistoryReload() {
+    if (this.auditReloadTimer) clearTimeout(this.auditReloadTimer);
+    this.auditReloadTimer = setTimeout(() => {
+      void this.loadAuditHistory();
+    }, 250);
+  }
+
+  private getAuditHistoryServerParams():
+    | Parameters<ScheduleAuditService['getAllAuditHistory']>[0]
+    | undefined {
+    const employeeId = this.selectedEmployeeFilter() || undefined;
+    const action = (this.selectedActionFilter() || undefined) as
+      | ScheduleAuditLog['action']
+      | undefined;
+
+    let dateFrom: Date | undefined;
+    let dateTo: Date | undefined;
+    const range = this.selectedDateRange();
+    if (range && range.length === 2 && range[0] && range[1]) {
+      dateFrom = startOfDay(range[0]);
+      dateTo = endOfDay(range[1]);
+    }
+
+    const params = { employeeId, dateFrom, dateTo, action };
+
+    if (!employeeId && !dateFrom && !dateTo && !action) return undefined;
+    return params;
   }
 
   // Computed para filtros activos
@@ -1573,9 +1687,9 @@ export class EmployeesTimetableComponent implements OnInit {
   private async loadSpecificAuditHistory(employeeId: string, date: Date) {
     this.isLoadingSpecificAudit.set(true);
     try {
-      const history = await this.auditService
-        .getAuditHistoryByEmployeeAndDate(employeeId, date)
-        .toPromise();
+      const history = await firstValueFrom(
+        this.auditService.getAuditHistoryByEmployeeAndDate(employeeId, date)
+      );
       this.specificAuditHistory.set(history || []);
     } catch (error) {
       console.error('Error cargando auditoría específica:', error);

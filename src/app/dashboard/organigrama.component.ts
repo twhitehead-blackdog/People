@@ -19,6 +19,7 @@ import { EmployeesStore } from '../stores/employees.store';
 import { Position, Employee } from '../models';
 import { catchError } from 'rxjs/operators';
 import { of, firstValueFrom } from 'rxjs';
+import { ApiUrlService } from '../services/api-url.service';
 import { LoggerService } from '../services/logger.service';
 
 interface OrgNode {
@@ -535,6 +536,7 @@ interface OrgNode {
 })
 export class OrganigramaComponent {
   private http = inject(HttpClient);
+  private apiUrl = inject(ApiUrlService);
   private messageService = inject(MessageService);
   public positionsStore = inject(PositionsStore);
   public employeesStore = inject(EmployeesStore);
@@ -764,10 +766,12 @@ export class OrganigramaComponent {
   });
 
   public loadStructure() {
-    const baseUrl = process.env['ENV_SUPABASE_URL']!;
-    this.logger.debug('[OrganigramaComponent] Loading structure from:', `${baseUrl}/rest/v1/organization_chart`);
+    const url = this.apiUrl.build('rest/v1/organization_chart', {
+      select: 'position_id,parent_position_id',
+    });
+    this.logger.debug('[OrganigramaComponent] Loading structure from:', url);
     this.http
-      .get<any[]>(`${baseUrl}/rest/v1/organization_chart?select=position_id,parent_position_id`)
+      .get<any[]>(url)
       .subscribe({
         next: (data) => {
           this.logger.debug('[OrganigramaComponent] Loaded structure data:', data);
@@ -806,7 +810,6 @@ export class OrganigramaComponent {
   }
 
   public saveStructure() {
-    const baseUrl = process.env['ENV_SUPABASE_URL']!;
     const structure = this.orgStructure();
 
     // Preparar los registros a guardar (cada posición puede tener múltiples padres)
@@ -830,7 +833,7 @@ export class OrganigramaComponent {
     if (records.length === 0) {
       // Si no hay registros, eliminar todos los existentes
       this.http
-        .delete(`${baseUrl}/rest/v1/organization_chart`, {
+        .delete(this.apiUrl.build('rest/v1/organization_chart'), {
           params: { position_id: 'not.is.null' } // Eliminar todos
         })
         .subscribe({
@@ -860,7 +863,9 @@ export class OrganigramaComponent {
 
     // Obtener los registros existentes
     this.http
-      .get<any[]>(`${baseUrl}/rest/v1/organization_chart?select=position_id`)
+      .get<any[]>(this.apiUrl.build('rest/v1/organization_chart', {
+        select: 'position_id',
+      }))
       .subscribe({
         next: (existingRecords) => {
           this.logger.debug('[OrganigramaComponent] Existing records:', existingRecords);
@@ -882,14 +887,14 @@ export class OrganigramaComponent {
             // Si falla, hacer POST (crea nuevo)
             const upsertOperations = records.map(record => {
               const request = this.http
-                .patch(`${baseUrl}/rest/v1/organization_chart`, record, {
+                .patch(this.apiUrl.build('rest/v1/organization_chart'), record, {
                   params: { position_id: `eq.${record.position_id}` }
                 })
                 .pipe(
                   catchError((error) => {
                     // Si el PATCH falla (404 o 400), intentar POST
                     if (error.status === 404 || error.status === 400 || error.status === 0) {
-                      return this.http.post(`${baseUrl}/rest/v1/organization_chart`, record);
+                      return this.http.post(this.apiUrl.build('rest/v1/organization_chart'), record);
                     }
                     // Si es otro error, propagarlo
                     throw error;
@@ -923,7 +928,7 @@ export class OrganigramaComponent {
           if (toDelete.length > 0) {
             const deleteOperations = toDelete.map(positionId =>
               firstValueFrom(
-                this.http.delete(`${baseUrl}/rest/v1/organization_chart`, {
+                this.http.delete(this.apiUrl.build('rest/v1/organization_chart'), {
                   params: { position_id: `eq.${positionId}` }
                 })
               )
@@ -948,7 +953,7 @@ export class OrganigramaComponent {
           // Si falla obtener los existentes, intentar insertar directamente
           const insertOperations = records.map(record =>
             firstValueFrom(
-              this.http.post(`${baseUrl}/rest/v1/organization_chart`, record)
+              this.http.post(this.apiUrl.build('rest/v1/organization_chart'), record)
             )
           );
 

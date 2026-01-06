@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { computed, inject } from '@angular/core';
 import { tapResponse } from '@ngrx/operators';
+import { ApiUrlService } from '../services/api-url.service';
 import {
   patchState,
   signalStoreFeature,
@@ -168,12 +169,14 @@ export function withCustomEntities<T extends { id: EntityId }>({
       const _message = inject(MessageService);
       const _confirm = inject(ConfirmationService);
       const _orgService = inject(OrganizationService);
+      const _apiUrl = inject(ApiUrlService);
 
       return {
         _http,
         _message,
         _confirm,
         _orgService,
+        _apiUrl,
       };
     }),
     withComputed(({ entityMap, selectedEntityId }) => ({
@@ -208,10 +211,9 @@ export function withCustomEntities<T extends { id: EntityId }>({
             tableName,
             state._orgService
           );
+          const url = state._apiUrl.build(`rest/v1/${tableName}`, params);
           state._http
-            .get<T>(`${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`, {
-              params,
-            })
+            .get<T>(url)
             .pipe(
               tapResponse({
                 next: (changes) => {
@@ -256,11 +258,9 @@ export function withCustomEntities<T extends { id: EntityId }>({
                 state._orgService
               );
 
+              const url = state._apiUrl.build(`rest/v1/${tableName}`, params);
               return state._http
-                .get<T[]>(
-                  `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
-                  { params }
-                )
+                .get<T[]>(url)
                 .pipe(
                   tapResponse({
                     next: (entities) => {
@@ -314,11 +314,9 @@ export function withCustomEntities<T extends { id: EntityId }>({
                 console.log('[PositionsStore] Company ID:', companyId);
               }
 
+              const url = state._apiUrl.build(`rest/v1/${tableName}`, params);
               return state._http
-                .get<T[]>(
-                  `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
-                  { params }
-                )
+                .get<T[]>(url)
                 .pipe(
                   tapResponse({
                     next: (entities) => {
@@ -405,12 +403,9 @@ export function withCustomEntities<T extends { id: EntityId }>({
             state._orgService
           );
 
+          const url = state._apiUrl.build(`rest/v1/${tableName}`, params);
           return state._http
-            .post<T[]>(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
-              requestData,
-              { params }
-            )
+            .post<T[]>(url, requestData)
             .pipe(
               tapResponse({
                 next: (item) => {
@@ -473,12 +468,9 @@ export function withCustomEntities<T extends { id: EntityId }>({
             state._orgService
           );
 
+          const url = state._apiUrl.build(`rest/v1/${tableName}`, params);
           return state._http
-            .patch(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
-              requestData,
-              { params }
-            )
+            .patch(url, requestData)
             .pipe(
               tap(() => console.log('editItem')),
               tapResponse({
@@ -536,11 +528,9 @@ export function withCustomEntities<T extends { id: EntityId }>({
                 tableName,
                 state._orgService
               );
+              const url = state._apiUrl.build(`rest/v1/${tableName}`, params);
               state._http
-                .delete(
-                  `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
-                  { params }
-                )
+                .delete(url)
                 .pipe(
                   tapResponse({
                     next: () => {

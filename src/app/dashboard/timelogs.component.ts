@@ -27,6 +27,7 @@ import {
   getScheduleColorInlineStyle as getColorStyle,
   TimeoffData,
 } from '../models';
+import { ApiUrlService } from '../services/api-url.service';
 import { LoggerService } from '../services/logger.service';
 import { OrganizationService } from '../services/organization.service';
 import { DashboardStore } from '../stores/dashboard.store';
@@ -255,28 +256,13 @@ export class TimelogsComponent {
   public onlyDelayed = signal(false);
   public organizationService = inject(OrganizationService);
   private logger = inject(LoggerService);
+  private apiUrl = inject(ApiUrlService);
   private injector = inject(Injector);
   public timelogsApiService = inject(TimelogsApiService);
 
   // Computed para verificar si es Naz
   public isNaz = computed(() => this.organizationService.isNaz());
 
-  // Helper para validar y obtener la URL base de Supabase
-  private getSupabaseBaseUrl(): string {
-    const baseUrl = process.env['ENV_SUPABASE_URL'];
-    if (!baseUrl) {
-      const errorMsg = 'ENV_SUPABASE_URL no está configurada';
-      this.logger.error('[TimelogsComponent]', errorMsg);
-      this.message.add({
-        severity: 'error',
-        summary: 'Error de configuración',
-        detail:
-          'La URL de Supabase no está configurada. Contacte al administrador.',
-      });
-      throw new Error(errorMsg);
-    }
-    return baseUrl;
-  }
 
   // Helper para agregar filtro de company_id a los parámetros
   private addCompanyFilter(
@@ -578,25 +564,23 @@ export class TimelogsComponent {
       return undefined;
     }
 
-    // Construir URL manualmente para asegurar que los filtros se apliquen correctamente
-    const baseUrl = `${this.getSupabaseBaseUrl()}/rest/v1/employee_schedules`;
     const companyId = this.organizationService.getCurrentCompanyId();
     const startDate = format(start, 'yyyy-MM-dd');
     const endDate = format(end, 'yyyy-MM-dd');
-    const select = `*,approved,schedule:schedules(*)`;
+    const select = `*,approved,schedule:schedules(*),employee:employees(id,company_id)`;
 
-    let url = `${baseUrl}?select=${encodeURIComponent(
-      select
-    )},employee:employees(id,company_id)`;
-    // Corregir: usar lógica de solapamiento (igual que timeoffs)
-    // Un schedule se solapa con el rango si: start_date <= endDate AND end_date >= startDate
-    url += `&start_date=lte.${endDate}`;
-    url += `&end_date=gte.${startDate}`;
+    const params: Record<string, string> = {
+      select: select,
+      start_date: `lte.${endDate}`,
+      end_date: `gte.${startDate}`,
+    };
 
     // Filtrar a través de employees.company_id (funciona incluso si employee_schedules no tiene company_id)
     if (companyId) {
-      url += `&employee.company_id=eq.${companyId}`;
+      params['employee.company_id'] = `eq.${companyId}`;
     }
+
+    const url = this.apiUrl.build('rest/v1/employee_schedules', params);
 
     return {
       url,
@@ -615,19 +599,18 @@ export class TimelogsComponent {
       return undefined;
     }
 
+    const url = this.apiUrl.build('rest/v1/timeoffs', {
+      select:
+        'id,type_id,employee_id,date_from,date_to,is_approved,company_id,type:timeoff_types(id,name),employee:employees!time_offs_employee_id_fkey(company_id)',
+      date_from: `lte.${format(end, 'yyyy-MM-dd')}`,
+      date_to: `gte.${format(start, 'yyyy-MM-dd')}`,
+      is_approved: 'eq.true',
+      company_id: `eq.${companyId}`,
+    });
+
     return {
-      url: `${this.getSupabaseBaseUrl()}/rest/v1/timeoffs`,
-      method: 'GET',
-      params: {
-        // Ahora podemos filtrar directamente por company_id ya que se agregó el campo a la tabla
-        select:
-          'id,type_id,employee_id,date_from,date_to,is_approved,company_id,type:timeoff_types(id,name),employee:employees!time_offs_employee_id_fkey(company_id)',
-        date_from: `lte.${format(end, 'yyyy-MM-dd')}`,
-        date_to: `gte.${format(start, 'yyyy-MM-dd')}`,
-        is_approved: 'eq.true',
-        // Filtrar directamente por company_id (campo agregado a la tabla)
-        company_id: `eq.${companyId}`,
-      },
+      url,
+      method: 'GET' as const,
     };
   });
 

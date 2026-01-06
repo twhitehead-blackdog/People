@@ -44,11 +44,21 @@ import { filter, firstValueFrom } from 'rxjs';
 import { CalendarComponent, CalendarMarkerData } from '../calendar.component';
 import { TimeLogEnum } from '../models';
 import { PanamaDatePipe } from '../pipes/panama-date.pipe';
+import { ApiUrlService } from '../services/api-url.service';
+import { getEnv } from '../utils/env.utils';
 import { NotificationsService } from '../services/notifications.service';
 import { OrganizationService } from '../services/organization.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
 import { getBooleanSetting } from '../utils/settings-http.utils';
+// Import employee portal components
+import { EmployeePortalDisabilitiesComponent } from '../employee-portal/components/employee-portal-disabilities.component';
+import { EmployeePortalDocumentsComponent } from '../employee-portal/components/employee-portal-documents.component';
+import { EmployeePortalComplaintsComponent } from '../employee-portal/components/employee-portal-complaints.component';
+import { EmployeePortalVacationsComponent } from '../employee-portal/components/employee-portal-vacations.component';
+import { EmployeePortalLicenseComponent } from '../employee-portal/components/employee-portal-license.component';
+import { EmployeePortalPersonalComponent } from '../employee-portal/components/employee-portal-personal.component';
+import { EmployeePortalMaternityComponent } from '../employee-portal/components/employee-portal-maternity.component';
 
 @Component({
   selector: 'pt-employee-portal',
@@ -71,6 +81,13 @@ import { getBooleanSetting } from '../utils/settings-http.utils';
     TooltipModule,
     NgClass,
     CalendarComponent,
+    EmployeePortalDisabilitiesComponent,
+    EmployeePortalDocumentsComponent,
+    EmployeePortalComplaintsComponent,
+    EmployeePortalVacationsComponent,
+    EmployeePortalLicenseComponent,
+    EmployeePortalPersonalComponent,
+    EmployeePortalMaternityComponent,
   ],
   providers: [MessageService],
   template: `
@@ -516,328 +533,134 @@ import { getBooleanSetting } from '../utils/settings-http.utils';
             (onHide)="closeGestionForm()"
           >
             @if (activeGestionForm() === 'disabilities') {
-            <!-- Formulario de Incapacidades -->
-            <div class="gestion-form-content">
-              <div class="flex flex-col gap-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label class="block text-sm text-gray-400 mb-2"
-                      >Inicio de Incapacidad</label
-                    >
-                    <p-datepicker
-                      [(ngModel)]="disabilityStartDate"
-                      appendTo="body"
-                      class="w-full"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-sm text-gray-400 mb-2"
-                      >Fin de Incapacidad</label
-                    >
-                    <p-datepicker
-                      [(ngModel)]="disabilityEndDate"
-                      appendTo="body"
-                      class="w-full"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label class="block text-sm text-gray-400 mb-2"
-                    >Descripción (opcional)</label
-                  >
-                  <textarea
-                    id="disability-description"
-                    pInputTextarea
-                    [(ngModel)]="disabilityDescription"
-                    rows="3"
-                    placeholder="Describe el motivo de la incapacidad..."
-                    class="w-full"
-                  ></textarea>
-                </div>
-                <div>
-                  <label class="block text-sm text-gray-400 mb-2"
-                    >Documento de Incapacidad</label
-                  >
-                  <p-fileUpload
-                    mode="basic"
-                    accept="image/*,.pdf"
-                    maxFileSize="5000000"
-                    [auto]="false"
-                    chooseLabel="Seleccionar Archivo"
-                    (onSelect)="onFileSelect($event)"
-                    class="w-full"
-                  />
-                  <p class="text-xs text-gray-500 mt-2">
-                    Formatos permitidos: PDF, JPG, PNG (máx. 5MB)
-                  </p>
-                </div>
-                <div class="flex justify-end gap-2">
-                  <p-button
-                    label="Cancelar"
-                    severity="secondary"
-                    outlined
-                    (click)="closeGestionForm()"
-                  />
-                  <p-button
-                    label="Subir Incapacidad"
-                    icon="pi pi-upload"
-                    type="button"
-                    [loading]="uploadingDisability()"
-                    [disabled]="uploadingDisability()"
-                    (click)="uploadDisability(); closeGestionForm()"
-                  />
-                </div>
-              </div>
-            </div>
+            <pt-employee-portal-disabilities
+              (closeManagement)="closeGestionForm()"
+            />
             } @else if (activeGestionForm() === 'documents') {
-            <!-- Formulario de Solicitar Documentos -->
-            <div class="gestion-form-content">
-              <div class="flex flex-col gap-4">
-                <div>
-                  <label class="block text-sm text-gray-400 mb-2"
-                    >Tipo de Documento</label
-                  >
-                  <select pInputText [(ngModel)]="documentType" class="w-full">
-                    <option value="work_letter">Carta de Trabajo</option>
-                    <option value="salary_certificate">
-                      Certificado de Salario
-                    </option>
-                    <option value="employment_certificate">
-                      Certificado de Empleo
-                    </option>
-                    <option value="other">Otro</option>
-                  </select>
-                </div>
-                @if(documentType() === 'other') {
-                <div>
-                  <label class="block text-sm text-gray-400 mb-2"
-                    >Especificar Documento</label
-                  >
-                  <input
-                    pInputText
-                    [(ngModel)]="customDocumentType"
-                    placeholder="Describe el documento que necesitas"
-                    class="w-full"
-                  />
-                </div>
-                }
-                <div>
-                  <label class="block text-sm text-gray-400 mb-2"
-                    >Motivo o Uso del Documento</label
-                  >
-                  <textarea
-                    pInputTextarea
-                    [(ngModel)]="documentReason"
-                    rows="3"
-                    placeholder="Ej: Para trámite bancario, visa, etc."
-                    class="w-full"
-                  ></textarea>
-                </div>
-                <div>
-                  <label class="block text-sm text-gray-400 mb-2"
-                    >Fecha Requerida (opcional)</label
-                  >
-                  <p-datepicker
-                    [(ngModel)]="documentRequiredDate"
-                    appendTo="body"
-                    class="w-full"
-                  />
-                </div>
-                <div class="flex justify-end gap-2">
-                  <p-button
-                    label="Cancelar"
-                    severity="secondary"
-                    outlined
-                    (click)="closeGestionForm()"
-                  />
-                  <p-button
-                    label="Solicitar Documento"
-                    icon="pi pi-send"
-                    type="button"
-                    [loading]="submittingDocument()"
-                    [disabled]="submittingDocument()"
-                    (click)="submitDocumentRequest(); closeGestionForm()"
-                  />
-                </div>
-              </div>
-            </div>
+            <pt-employee-portal-documents
+              [documentTypeOptions]="documentTypeOptions"
+              [documentType]="documentType()"
+              (documentTypeChange)="documentType.set($event)"
+              [customDocumentType]="customDocumentType()"
+              (customDocumentTypeChange)="customDocumentType.set($event)"
+              [documentReason]="documentReason()"
+              (documentReasonChange)="documentReason.set($event)"
+              [documentRequiredDate]="documentRequiredDate()"
+              (documentRequiredDateChange)="documentRequiredDate.set($event)"
+              [today]="today"
+              [canSubmit]="canSubmitDocument()"
+              [submitting]="submittingDocument()"
+              [documentRequests]="documentRequests()"
+              [requestsLoading]="loadingDocumentRequests()"
+              [getDocumentTypeLabel]="getDocumentTypeLabel.bind(this)"
+              [downloadDocument]="downloadDocument.bind(this)"
+              (submitDocument)="submitDocumentRequest()"
+              (resetDocument)="resetDocumentForm()"
+              (reloadRequests)="loadDocumentRequests()"
+              (closeSection)="closeGestionForm()"
+            />
             } @else if (activeGestionForm() === 'complaints') {
-            <!-- Formulario de Buzón de Quejas -->
-            <div class="gestion-form-content">
-              <div class="flex flex-col gap-4">
-                <div
-                  class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4"
-                >
-                  <div class="flex items-start gap-3">
-                    <i class="pi pi-info-circle text-yellow-400 text-xl"></i>
-                    <div class="flex-1">
-                      <p class="text-yellow-300 font-semibold mb-2">
-                        Tu privacidad está protegida
-                      </p>
-                      <p class="text-sm text-gray-300">
-                        Todas las quejas son completamente anónimas. Tu
-                        identidad no será revelada a menos que lo autorices
-                        explícitamente.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <label class="block text-sm text-gray-400 mb-2"
-                    >Categoría</label
-                  >
-                  <select
-                    pInputText
-                    [ngModel]="complaintCategory()"
-                    (ngModelChange)="complaintCategory.set($event)"
-                    class="w-full"
-                  >
-                    <option value="work_environment">Ambiente Laboral</option>
-                    <option value="harassment">Acoso o Discriminación</option>
-                    <option value="safety">Seguridad</option>
-                    <option value="management">Supervisión/Gerencia</option>
-                    <option value="benefits">Beneficios</option>
-                    <option value="other">Otro</option>
-                  </select>
-                </div>
-                <div>
-                  <label class="block text-sm text-gray-400 mb-2"
-                    >Describe tu queja o sugerencia</label
-                  >
-                  <textarea
-                    pTextarea
-                    [ngModel]="complaintText()"
-                    (ngModelChange)="complaintText.set($event)"
-                    rows="6"
-                    placeholder="Describe detalladamente tu queja, sugerencia o inquietud..."
-                    class="w-full"
-                  ></textarea>
-                </div>
-                <div class="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="allowContact"
-                    [ngModel]="allowContact()"
-                    (ngModelChange)="allowContact.set($event)"
-                  />
-                  <label for="allowContact" class="text-sm text-gray-300"
-                    >Permitir que RRHH me contacte para seguimiento
-                    (opcional)</label
-                  >
-                </div>
-                @if(allowContact()) {
-                <div>
-                  <label class="block text-sm text-gray-400 mb-2"
-                    >Forma de Contacto Preferida</label
-                  >
-                  <select
-                    pInputText
-                    [ngModel]="contactMethod()"
-                    (ngModelChange)="contactMethod.set($event)"
-                    class="w-full"
-                  >
-                    <option value="email">Email</option>
-                    <option value="phone">Teléfono</option>
-                    <option value="meeting">Reunión Presencial</option>
-                  </select>
-                </div>
-                }
-                <div class="flex justify-end gap-2">
-                  <p-button
-                    label="Cancelar"
-                    severity="secondary"
-                    outlined
-                    (click)="closeGestionForm()"
-                  />
-                  <p-button
-                    label="Enviar Queja"
-                    icon="pi pi-send"
-                    severity="warn"
-                    type="button"
-                    [loading]="submittingComplaint()"
-                    [disabled]="!canSubmitComplaint() || submittingComplaint()"
-                    (click)="submitComplaint(); closeGestionForm()"
-                  />
-                </div>
-              </div>
-            </div>
-            } @else if (activeGestionForm() === 'vacations' ||
-            activeGestionForm() === 'license' || activeGestionForm() ===
-            'personal' || activeGestionForm() === 'maternity') {
-            <!-- Formulario de Vacaciones/Licencias -->
-            <div class="gestion-form-content">
-              <div class="flex flex-col gap-4">
-                <div>
-                  <label class="block text-sm text-gray-400 mb-2"
-                    >Tipo de Solicitud</label
-                  >
-                  <p-dropdown
-                    [options]="timeoffTypes()"
-                    [(ngModel)]="selectedTimeoffType"
-                    optionLabel="name"
-                    optionValue="id"
-                    placeholder="Selecciona el tipo"
-                    class="w-full"
-                    [disabled]="true"
-                  />
-                  <input
-                    type="hidden"
-                    [value]="getTimeoffTypeIdForForm()"
-                    #timeoffTypeInput
-                  />
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label class="block text-sm text-gray-400 mb-2"
-                      >Fecha Inicio</label
-                    >
-                    <p-datepicker
-                      [(ngModel)]="timeoffStartDate"
-                      appendTo="body"
-                      class="w-full"
-                    />
-                  </div>
-                  <div>
-                    <label class="block text-sm text-gray-400 mb-2"
-                      >Fecha Fin</label
-                    >
-                    <p-datepicker
-                      [(ngModel)]="timeoffEndDate"
-                      appendTo="body"
-                      class="w-full"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label class="block text-sm text-gray-400 mb-2"
-                    >Notas (opcional)</label
-                  >
-                  <textarea
-                    pInputTextarea
-                    [(ngModel)]="timeoffNotes"
-                    rows="3"
-                    placeholder="Agrega cualquier información adicional..."
-                    class="w-full"
-                  ></textarea>
-                </div>
-                <div class="flex justify-end gap-2">
-                  <p-button
-                    label="Cancelar"
-                    severity="secondary"
-                    outlined
-                    (click)="closeGestionForm()"
-                  />
-                  <p-button
-                    label="Enviar Solicitud"
-                    icon="pi pi-send"
-                    type="button"
-                    [loading]="submittingTimeoff()"
-                    [disabled]="submittingTimeoff()"
-                    (click)="submitTimeoffRequest(); closeGestionForm()"
-                  />
-                </div>
-              </div>
-            </div>
+            <pt-employee-portal-complaints
+              [complaintCategory]="complaintCategory()"
+              (complaintCategoryChange)="complaintCategory.set($event)"
+              [complaintText]="complaintText()"
+              (complaintTextChange)="complaintText.set($event)"
+              [allowContact]="allowContact()"
+              (allowContactChange)="allowContact.set($event)"
+              [contactMethod]="contactMethod()"
+              (contactMethodChange)="contactMethod.set($event)"
+              [submitting]="submittingComplaint()"
+              [canSubmit]="canSubmitComplaint()"
+              (submitComplaint)="submitComplaint()"
+              (closeSection)="closeGestionForm()"
+            />
+            } @else if (activeGestionForm() === 'vacations') {
+            <pt-employee-portal-vacations
+              [minVacationDate]="minVacationDate"
+              [maxVacationDate]="maxVacationDate"
+              [vacationStartDate]="timeoffStartDate()"
+              (vacationStartDateChange)="timeoffStartDate.set($event)"
+              [vacationEndDate]="timeoffEndDate()"
+              (vacationEndDateChange)="timeoffEndDate.set($event)"
+              [vacationReason]="timeoffNotes()"
+              (vacationReasonChange)="timeoffNotes.set($event)"
+              [submitting]="submittingTimeoff()"
+              [canSubmit]="canSubmitTimeoff()"
+              [vacationRequests]="timeoffRequests()"
+              [requestsLoading]="loadingTimeoffRequests()"
+              [calculateVacationDays]="calculateTimeoffDays.bind(this)"
+              [calculateDaysBetween]="calculateDaysBetween.bind(this)"
+              [isDateFuture]="isDateFuture.bind(this)"
+              (submitRequest)="submitTimeoffRequest()"
+              (resetForm)="resetTimeoffForm()"
+              (reloadList)="loadTimeoffRequests()"
+              (closeSection)="closeGestionForm()"
+            />
+            } @else if (activeGestionForm() === 'license') {
+            <pt-employee-portal-license
+              [minLicenseDate]="minLicenseDate"
+              [maxLicenseDate]="maxLicenseDate"
+              [licenseStartDate]="timeoffStartDate()"
+              (licenseStartDateChange)="timeoffStartDate.set($event)"
+              [licenseEndDate]="timeoffEndDate()"
+              (licenseEndDateChange)="timeoffEndDate.set($event)"
+              [licenseReason]="timeoffNotes()"
+              (licenseReasonChange)="timeoffNotes.set($event)"
+              [submitting]="submittingTimeoff()"
+              [canSubmit]="canSubmitTimeoff()"
+              [licenseRequests]="timeoffRequests()"
+              [requestsLoading]="loadingTimeoffRequests()"
+              [calculateLicenseDays]="calculateTimeoffDays.bind(this)"
+              [calculateDaysBetween]="calculateDaysBetween.bind(this)"
+              [isDateFuture]="isDateFuture.bind(this)"
+              (submitRequest)="submitTimeoffRequest()"
+              (resetForm)="resetTimeoffForm()"
+              (reloadList)="loadTimeoffRequests()"
+              (closeSection)="closeGestionForm()"
+            />
+            } @else if (activeGestionForm() === 'personal') {
+            <pt-employee-portal-personal
+              [minPersonalDate]="minPersonalDate"
+              [maxPersonalDate]="maxPersonalDate"
+              [personalStartDate]="timeoffStartDate()"
+              (personalStartDateChange)="timeoffStartDate.set($event)"
+              [personalEndDate]="timeoffEndDate()"
+              (personalEndDateChange)="timeoffEndDate.set($event)"
+              [personalReason]="timeoffNotes()"
+              (personalReasonChange)="timeoffNotes.set($event)"
+              [submitting]="submittingTimeoff()"
+              [canSubmit]="canSubmitTimeoff()"
+              [personalRequests]="timeoffRequests()"
+              [requestsLoading]="loadingTimeoffRequests()"
+              [calculatePersonalDays]="calculateTimeoffDays.bind(this)"
+              [calculateDaysBetween]="calculateDaysBetween.bind(this)"
+              [isDateFuture]="isDateFuture.bind(this)"
+              (submitRequest)="submitTimeoffRequest()"
+              (resetForm)="resetTimeoffForm()"
+              (reloadList)="loadTimeoffRequests()"
+              (closeSection)="closeGestionForm()"
+            />
+            } @else if (activeGestionForm() === 'maternity') {
+            <pt-employee-portal-maternity
+              [minMaternityDate]="minMaternityDate"
+              [expectedDeliveryDate]="timeoffStartDate()"
+              (expectedDeliveryDateChange)="timeoffStartDate.set($event)"
+              [maternityNotes]="timeoffNotes()"
+              (maternityNotesChange)="timeoffNotes.set($event)"
+              [submitting]="submittingTimeoff()"
+              [canSubmit]="canSubmitTimeoff()"
+              [maternityRequests]="timeoffRequests()"
+              [requestsLoading]="loadingTimeoffRequests()"
+              [calculateMaternityStartDate]="calculateMaternityStartDate.bind(this)"
+              [calculateMaternityEndDate]="calculateMaternityEndDate.bind(this)"
+              [calculateDaysBetween]="calculateDaysBetween.bind(this)"
+              [isDateFuture]="isDateFuture.bind(this)"
+              [downloadDocument]="downloadDocument.bind(this)"
+              (submitRequest)="submitTimeoffRequest()"
+              (resetForm)="resetTimeoffForm()"
+              (reloadList)="loadTimeoffRequests()"
+              (closeSection)="closeGestionForm()"
+            />
             }
           </p-dialog>
           }
@@ -2955,7 +2778,18 @@ export class EmployeePortalComponent {
   public employees = inject(EmployeesStore);
   public messageService = inject(MessageService);
   private http = inject(HttpClient);
+  private apiUrl = inject(ApiUrlService);
   private destroyRef = inject(DestroyRef);
+
+  private buildStorageUrl(path: string): string {
+    const baseUrl = this.apiUrl.baseUrl.replace('/rest/v1', '');
+    return `${baseUrl}/storage/v1/object/${path}`;
+  }
+
+  private buildStoragePublicUrl(path: string): string {
+    const baseUrl = this.apiUrl.baseUrl.replace('/rest/v1', '');
+    return `${baseUrl}/storage/v1/object/public/${path}`;
+  }
   public organizationService = inject(OrganizationService);
   public notificationsService = inject(NotificationsService);
   private router = inject(Router);
@@ -3448,8 +3282,6 @@ export class EmployeePortalComponent {
       return undefined;
     }
 
-    // Construir URL manualmente para aplicar correctamente filtros gte y lte
-    const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`;
     const startDate = format(this.dateRange()[0], "yyyy-MM-dd'T'06:00:00");
     const endDate = format(
       addDays(this.dateRange()[1], 1),
@@ -3457,12 +3289,14 @@ export class EmployeePortalComponent {
     );
     const select = `*,employee:employees(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)`;
 
-    let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
-    url += `&employee_id=eq.${employeeId}`;
-    url += `&company_id=eq.${companyId}`; // Siempre agregar filtro de company_id
-    url += `&created_at=gte.${startDate}`;
-    url += `&created_at=lte.${endDate}`;
-    url += `&order=created_at.asc`;
+    const url = this.apiUrl.build('rest/v1/timelogs', {
+      select: select,
+      employee_id: `eq.${employeeId}`,
+      company_id: `eq.${companyId}`,
+      // Usar 'and' para combinar gte y lte
+      and: `(created_at.gte.${startDate},created_at.lte.${endDate})`,
+      order: 'created_at.asc',
+    });
 
     return {
       url,
@@ -3559,17 +3393,17 @@ export class EmployeePortalComponent {
     const monthStart = startOfMonth(now);
     const monthEnd = endOfMonth(now);
 
-    const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`;
     const startDate = format(monthStart, "yyyy-MM-dd'T'06:00:00");
     const endDate = format(addDays(monthEnd, 1), "yyyy-MM-dd'T'06:00:00");
     const select = `*,employee:employees(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)`;
 
-    let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
-    url += `&employee_id=eq.${employeeId}`;
-    url += `&company_id=eq.${companyId}`;
-    url += `&created_at=gte.${startDate}`;
-    url += `&created_at=lte.${endDate}`;
-    url += `&order=created_at.asc`;
+    const url = this.apiUrl.build('rest/v1/timelogs', {
+      select: select,
+      employee_id: `eq.${employeeId}`,
+      company_id: `eq.${companyId}`,
+      and: `(created_at.gte.${startDate},created_at.lte.${endDate})`,
+      order: 'created_at.asc',
+    });
 
     return {
       url,
@@ -3736,14 +3570,15 @@ export class EmployeePortalComponent {
   public disabilitiesApi = httpResource<any[]>(() => {
     if (!this.currentEmployee()?.id) return undefined;
     // employee_disabilities es compartida entre ambas organizaciones
+    const url = this.apiUrl.build('rest/v1/employee_disabilities', {
+      select: '*',
+      employee_id: `eq.${this.currentEmployee()!.id}`,
+      order: 'created_at.desc',
+    });
+
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_disabilities`,
-      method: 'GET',
-      params: {
-        select: '*',
-        employee_id: `eq.${this.currentEmployee()!.id}`,
-        order: 'created_at.desc',
-      },
+      url,
+      method: 'GET' as const,
     };
   });
 
@@ -3758,9 +3593,11 @@ export class EmployeePortalComponent {
 
   public documentRequestsApi = httpResource<any[]>(() => {
     if (!this.currentEmployee()?.id) return undefined;
+    const url = this.apiUrl.build('rest/v1/document_requests');
+
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/document_requests`,
-      method: 'GET',
+      url,
+      method: 'GET' as const,
       params: {
         select: '*',
         employee_id: `eq.${this.currentEmployee()!.id}`,
@@ -3813,7 +3650,7 @@ export class EmployeePortalComponent {
 
   // Timeoff Types API
   public timeoffTypesApi = httpResource<any[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoff_types`,
+    url: this.apiUrl.build('rest/v1/timeoff_types'),
     method: 'GET',
     params: {
       select: '*',
@@ -3830,6 +3667,16 @@ export class EmployeePortalComponent {
   public timeoffNotes = signal<string>('');
   public submittingTimeoff = signal(false);
 
+  // Date constraints for different request types
+  public minVacationDate = new Date();
+  public maxVacationDate = new Date(new Date().getFullYear() + 1, 11, 31);
+  public minLicenseDate = new Date();
+  public maxLicenseDate = new Date(new Date().getFullYear() + 1, 11, 31);
+  public minPersonalDate = new Date();
+  public maxPersonalDate = new Date(new Date().getFullYear() + 1, 11, 31);
+  public minMaternityDate = new Date();
+  public maxMaternityDate = new Date(new Date().getFullYear() + 1, 11, 31);
+
   // Computed: Validación del formulario de quejas
   public canSubmitComplaint = computed(() => {
     const text = this.complaintText();
@@ -3844,7 +3691,7 @@ export class EmployeePortalComponent {
     // Obtener todas las quejas del empleado (identificadas y anónimas)
     // usando creator_employee_id que siempre está seteado
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaints`,
+      url: this.apiUrl.build('rest/v1/complaints'),
       method: 'GET',
       params: {
         select: '*',
@@ -3864,7 +3711,7 @@ export class EmployeePortalComponent {
     const complaint = this.selectedComplaint();
     if (!complaint) return undefined;
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages`,
+      url: this.apiUrl.build('rest/v1/complaint_messages'),
       method: 'GET',
       params: {
         select: '*',
@@ -3882,7 +3729,7 @@ export class EmployeePortalComponent {
   public unreadMessagesApi = httpResource<any[]>(() => {
     if (!this.currentEmployee()?.id) return undefined;
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages`,
+      url: this.apiUrl.build('rest/v1/complaint_messages'),
       method: 'GET',
       params: {
         select: 'complaint_id',
@@ -4127,7 +3974,6 @@ export class EmployeePortalComponent {
       // ID del tipo de timeoff "Compensatorio"
       const compensatoryTypeId = 'f2d92995-96a0-414f-b64a-9823db776745';
 
-      const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`;
       // La tabla timeoffs tiene múltiples relaciones con employees (employee_id, reviewed_by, registered_by)
       // No necesitamos incluir la relación employee porque:
       // 1. approvedCompensatoryHours solo usa date_from y date_to (campos directos de timeoffs)
@@ -4138,13 +3984,13 @@ export class EmployeePortalComponent {
       // approvedCompensatoryHours solo necesita date_from y date_to (campos directos)
       const select = `*,type:timeoff_types(id,name)`;
 
-      let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
-      url += `&employee_id=eq.${this.currentEmployee()!.id}`;
-      url += `&type_id=eq.${compensatoryTypeId}`;
-      url += `&is_approved=eq.true`;
-      // No necesitamos filtrar por company_id porque employee_id ya garantiza que pertenece al empleado correcto
-      // y el empleado ya está filtrado por company_id a través de currentEmployee()
-      url += `&order=date_from.desc`;
+      const url = this.apiUrl.build('rest/v1/timeoffs', {
+        select: select,
+        employee_id: `eq.${this.currentEmployee()!.id}`,
+        type_id: `eq.${compensatoryTypeId}`,
+        is_approved: 'eq.true',
+        order: 'date_from.desc',
+      });
 
       return {
         url,
@@ -4275,7 +4121,7 @@ export class EmployeePortalComponent {
 
       await firstValueFrom(
         this.http.patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
+          this.apiUrl.build('rest/v1/employees'),
           updateData,
           {
             params,
@@ -4443,14 +4289,14 @@ export class EmployeePortalComponent {
         try {
           // Usar Service Role Key si está disponible, sino usar API Key pública
           const storageKey =
-            process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'] ||
-            process.env['ENV_SUPABASE_ANON_KEY'] ||
-            process.env['ENV_SUPABASE_API_KEY'] ||
+            getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') ||
+            getEnv('ENV_SUPABASE_ANON_KEY') ||
+            getEnv('ENV_SUPABASE_API_KEY') ||
             '';
 
           const uploadResponse = await firstValueFrom(
             this.http.post(
-              `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/disabilities/${fileName}`,
+              this.buildStorageUrl(`disabilities/${fileName}`),
               file, // Enviar el archivo directamente como binario
               {
                 headers: {
@@ -4464,7 +4310,7 @@ export class EmployeePortalComponent {
           );
 
           // Get public URL for the uploaded file
-          documentUrl = `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/public/disabilities/${fileName}`;
+          documentUrl = this.buildStoragePublicUrl(`disabilities/${fileName}`);
         } catch (uploadError: any) {
           console.error('Error uploading file to storage:', uploadError);
           const errorDetail =
@@ -4494,7 +4340,7 @@ export class EmployeePortalComponent {
 
       this.http
         .post(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_disabilities`,
+          this.apiUrl.build('rest/v1/employee_disabilities'),
           disabilityData
         )
         .pipe(takeUntilDestroyed(this.destroyRef))
@@ -4656,7 +4502,7 @@ export class EmployeePortalComponent {
 
     this.http
       .post(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/document_requests`,
+        this.apiUrl.build('rest/v1/document_requests'),
         requestData
       )
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -4789,7 +4635,7 @@ export class EmployeePortalComponent {
 
     this.http
       .post(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaints`,
+        this.apiUrl.build('rest/v1/complaints'),
         complaintData,
         {
           headers: {
@@ -4820,7 +4666,7 @@ export class EmployeePortalComponent {
             try {
               await firstValueFrom(
                 this.http.post(
-                  `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages`,
+                  this.apiUrl.build('rest/v1/complaint_messages'),
                   messageData,
                   {
                     headers: {
@@ -4912,11 +4758,11 @@ export class EmployeePortalComponent {
       let fullUrl = url;
       if (url.startsWith('/disabilities/') || url.startsWith('disabilities/')) {
         const path = url.startsWith('/') ? url.slice(1) : url;
-        fullUrl = `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/public/${path}`;
+        fullUrl = this.buildStoragePublicUrl(path);
       } else if (!url.startsWith('http://') && !url.startsWith('https://')) {
         // Si es una ruta relativa sin prefijo, asumir que es del bucket disabilities
         const path = url.startsWith('/') ? url.slice(1) : url;
-        fullUrl = `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/public/disabilities/${path}`;
+        fullUrl = this.buildStoragePublicUrl(`disabilities/${path}`);
       }
       window.open(fullUrl, '_blank');
     } catch (error) {
@@ -4955,7 +4801,7 @@ export class EmployeePortalComponent {
       try {
         await firstValueFrom(
           this.http.patch(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages?id=eq.${message.id}`,
+            this.apiUrl.build('rest/v1/complaint_messages', { id: `eq.${message.id}` }),
             { is_read: true, read_at: new Date().toISOString() },
             {
               headers: {
@@ -5181,7 +5027,7 @@ export class EmployeePortalComponent {
 
     this.http
       .post(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`,
+        this.apiUrl.build('rest/v1/timeoffs'),
         timeoffData,
         {
           headers: {
@@ -5247,7 +5093,7 @@ export class EmployeePortalComponent {
     try {
       await firstValueFrom(
         this.http.post(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages`,
+          this.apiUrl.build('rest/v1/complaint_messages'),
           messageData,
           {
             headers: {
@@ -5288,5 +5134,131 @@ export class EmployeePortalComponent {
 
     // Si no está seleccionada, usar el mapa de mensajes sin leer
     return this.unreadMessagesMap().has(complaint.id);
+  }
+
+  // Utility methods for date calculations
+  public calculateDaysBetween(start: Date | string, end: Date | string): number {
+    const startDate = typeof start === 'string' ? new Date(start) : start;
+    const endDate = typeof end === 'string' ? new Date(end) : end;
+    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  }
+
+  public isDateFuture(date: Date | string): boolean {
+    const checkDate = typeof date === 'string' ? new Date(date) : date;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    checkDate.setHours(0, 0, 0, 0);
+    return checkDate > today;
+  }
+
+  // Maternity leave calculations (12 weeks from expected delivery date)
+  public calculateMaternityStartDate(): Date {
+    const expectedDate = this.timeoffStartDate();
+    if (!expectedDate) return new Date();
+    // Maternity leave typically starts 6-8 weeks before expected delivery
+    // For simplicity, we'll use 6 weeks before
+    const startDate = new Date(expectedDate);
+    startDate.setDate(startDate.getDate() - (6 * 7)); // 6 weeks before
+    return startDate;
+  }
+
+  public calculateMaternityEndDate(): Date {
+    const startDate = this.calculateMaternityStartDate();
+    // 12 weeks total maternity leave
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + (12 * 7)); // 12 weeks after start
+    return endDate;
+  }
+
+  // Properties for document management
+  public documentTypeOptions = [
+    { label: 'Carta de Trabajo', value: 'work_letter' },
+    { label: 'Certificado de Salario', value: 'salary_certificate' },
+    { label: 'Certificado de Empleo', value: 'employment_certificate' },
+    { label: 'Otro', value: 'other' },
+  ];
+
+  public today = new Date();
+
+  // Date constraints for different timeoff types (using existing properties)
+
+  // Document form validation
+  public canSubmitDocument(): boolean {
+    return !!(
+      this.documentReason() &&
+      this.documentType() &&
+      (this.documentType() !== 'other' || this.customDocumentType())
+    );
+  }
+
+  // Document data signals (using existing signals where possible)
+  public documentRequests = signal<any[]>([]);
+  public loadingDocumentRequests = signal(false);
+
+  // Timeoff form validation
+  public canSubmitTimeoff(): boolean {
+    const start = this.timeoffStartDate();
+    const end = this.timeoffEndDate();
+    return !!(
+      this.selectedTimeoffType() &&
+      start &&
+      end &&
+      start <= end
+    );
+  }
+
+  // Timeoff data signals
+  public timeoffRequests = signal<any[]>([]);
+  public loadingTimeoffRequests = signal(false);
+
+  // Utility methods for timeoff calculations
+  public calculateTimeoffDays(): number {
+    const start = this.timeoffStartDate();
+    const end = this.timeoffEndDate();
+    if (!start || !end) return 0;
+
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  }
+
+  // Document form handlers
+  public resetDocumentForm(): void {
+    this.documentType.set('work_letter');
+    this.customDocumentType.set('');
+    this.documentReason.set('');
+    this.documentRequiredDate.set(null);
+  }
+
+  public loadDocumentRequests(): void {
+    // TODO: Implement document requests loading
+    this.loadingDocumentRequests.set(true);
+    // Simulate loading
+    setTimeout(() => {
+      this.documentRequests.set([]);
+      this.loadingDocumentRequests.set(false);
+    }, 1000);
+  }
+
+  // Timeoff form handlers
+  public resetTimeoffForm(): void {
+    this.timeoffStartDate.set(null);
+    this.timeoffEndDate.set(null);
+    this.timeoffNotes.set('');
+    this.selectedTimeoffType.set(null);
+  }
+
+  public loadTimeoffRequests(): void {
+    // TODO: Implement timeoff requests loading
+    this.loadingTimeoffRequests.set(true);
+    // Simulate loading
+    setTimeout(() => {
+      this.timeoffRequests.set([]);
+      this.loadingTimeoffRequests.set(false);
+    }, 1000);
   }
 }

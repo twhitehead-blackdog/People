@@ -1,6 +1,7 @@
 import { inject, Injectable } from '@angular/core';
 import { addDays, format } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
+import { ApiUrlService } from '../../services/api-url.service';
 import { LoggerService } from '../../services/logger.service';
 import { OrganizationService } from '../../services/organization.service';
 
@@ -14,23 +15,13 @@ export class TimelogsApiService {
 
   private readonly organizationService = inject(OrganizationService);
   private readonly logger = inject(LoggerService);
+  private readonly apiUrl = inject(ApiUrlService);
 
   private clone(date: Date): Date {
     return new Date(date.getTime());
   }
 
-  private getSupabaseBaseUrl(): string {
-    const baseUrl = process.env['ENV_SUPABASE_URL'];
-    if (!baseUrl) {
-      const errorMsg = 'ENV_SUPABASE_URL no está configurada';
-      this.logger.error('[TimelogsApiService]', errorMsg);
-      throw new Error(errorMsg);
-    }
-    return baseUrl;
-  }
-
   public buildLogsRequest(start: Date, end: Date, employeeId?: string) {
-    const baseUrl = `${this.getSupabaseBaseUrl()}/rest/v1/timelogs`;
     const companyId = this.organizationService.getCurrentCompanyId();
 
     const startDateStrPanama =
@@ -45,22 +36,28 @@ export class TimelogsApiService {
     const select =
       '*,employee:employees!inner(id,first_name,father_name,is_active,branch:branches(id, name)),branch:branches(id, name, short_name)';
 
-    let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
-    url += `&created_at=gte.${startDate}`;
-    url += `&created_at=lte.${endDate}`;
-    url += `&employee.is_active=eq.true`;
+    const params: Record<string, string> = {
+      select: select,
+      created_at: `gte.${startDate}`,
+      'employee.is_active': 'eq.true',
+      order: 'created_at.asc',
+    };
 
     if (employeeId) {
-      url += `&employee_id=eq.${employeeId}`;
+      params['employee_id'] = `eq.${employeeId}`;
     }
 
     if (companyId) {
-      url += `&company_id=eq.${companyId}`;
+      params['company_id'] = `eq.${companyId}`;
     }
 
-    url += `&order=created_at.asc`;
+    // Agregar el segundo filtro de fecha usando PostgREST 'and' para combinar condiciones
+    params['and'] = `(created_at.gte.${startDate},created_at.lte.${endDate})`;
+    delete params['created_at']; // Remover el filtro simple ya que usamos 'and'
 
-    return { url, method: 'GET' };
+    const url = this.apiUrl.build('rest/v1/timelogs', params);
+
+    return { url, method: 'GET' as const };
   }
 
   public splitDateRange(range: { start: Date; end: Date }) {

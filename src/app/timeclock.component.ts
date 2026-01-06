@@ -46,6 +46,8 @@ import {
   TimelogType,
 } from './models';
 import { TrimPipe } from './pipes/trim.pipe';
+import { ApiUrlService } from './services/api-url.service';
+import { getEnv } from './utils/env.utils';
 import { DiagnosticService } from './services/diagnostic.service';
 import { IpMonitorService } from './services/ip-monitor.service';
 import { OrganizationService } from './services/organization.service';
@@ -992,6 +994,7 @@ export class TimeclockComponent implements OnDestroy {
   private message = inject(MessageService);
   private confirmation = inject(ConfirmationService);
   private http = inject(HttpClient);
+  private apiUrl = inject(ApiUrlService);
   private router = inject(Router);
   private ipMonitor = inject(IpMonitorService);
   private organizationService = inject(OrganizationService);
@@ -1061,7 +1064,7 @@ export class TimeclockComponent implements OnDestroy {
 
       if (companiesError) {
         this.diagnosticService.addHttpResourceError(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/companies`,
+          this.apiUrl.build('rest/v1/companies'),
           companiesError,
           'companiesResource'
         );
@@ -1069,7 +1072,7 @@ export class TimeclockComponent implements OnDestroy {
 
       if (branchesError) {
         this.diagnosticService.addHttpResourceError(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/branches`,
+          this.apiUrl.build('rest/v1/branches'),
           branchesError,
           'branchesResource'
         );
@@ -1077,7 +1080,7 @@ export class TimeclockComponent implements OnDestroy {
 
       if (employeesError) {
         this.diagnosticService.addHttpResourceError(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
+          this.apiUrl.build('rest/v1/employees'),
           employeesError,
           'employeesResource'
         );
@@ -1527,7 +1530,7 @@ export class TimeclockComponent implements OnDestroy {
   }));
 
   public companiesResource = httpResource<Company[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/companies`,
+    url: this.apiUrl.build('rest/v1/companies'),
     method: 'GET',
     params: {
       select: '*',
@@ -1536,7 +1539,7 @@ export class TimeclockComponent implements OnDestroy {
   }));
 
   public branchesResource = httpResource<Branch[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/branches`,
+    url: this.apiUrl.build('rest/v1/branches'),
     method: 'GET',
     params: {
       select: '*',
@@ -1608,7 +1611,7 @@ export class TimeclockComponent implements OnDestroy {
     }
 
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
+      url: this.apiUrl.build('rest/v1/employees'),
       method: 'GET',
       params,
     };
@@ -1651,10 +1654,9 @@ export class TimeclockComponent implements OnDestroy {
       params.company_id = `eq.${companyId}`;
     }
 
+    const url = this.apiUrl.build('rest/v1/timelogs', params);
     return this.http
-      .get<TimeLog[]>(`${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`, {
-        params,
-      })
+      .get<TimeLog[]>(url)
       .pipe(
         map((timelogs) => {
           if (!timelogs || timelogs.length === 0) {
@@ -1710,7 +1712,7 @@ export class TimeclockComponent implements OnDestroy {
 
     return this.http
       .get<EmployeeSchedule[]>(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+        this.apiUrl.build('rest/v1/employee_schedules'),
         { params }
       )
       .pipe(
@@ -1797,10 +1799,9 @@ export class TimeclockComponent implements OnDestroy {
       params.company_id = `eq.${companyId}`;
     }
 
+    const url = this.apiUrl.build('rest/v1/timelogs', params);
     return this.http
-      .get<TimeLog[]>(`${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`, {
-        params,
-      })
+      .get<TimeLog[]>(url)
       .pipe(
         map((timelogs) => {
           if (!timelogs || timelogs.length === 0) {
@@ -2183,7 +2184,7 @@ export class TimeclockComponent implements OnDestroy {
         error?: string;
         error_code?: string;
       }>(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/rpc/process_timelog`,
+        this.apiUrl.build('rest/v1/rpc/process_timelog'),
         {
           p_employee_id: employeeId,
           p_company_id: finalCompanyId,
@@ -2472,16 +2473,20 @@ export class TimeclockComponent implements OnDestroy {
       const { year, month, day } = this.getPanamaNowParts();
       
       // Obtener timelogs de entrada del empleado (últimos 100 días)
+      const timelogsUrl = this.apiUrl.build('rest/v1/timelogs', {
+        employee_id: `eq.${employeeId}`,
+        type: 'eq.entry',
+        order: 'created_at.desc',
+        limit: '100',
+      });
+      const anonKey = getEnv('ENV_SUPABASE_ANON_KEY');
       const timelogs = await this.http
-        .get<TimeLog[]>(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs?employee_id=eq.${employeeId}&type=eq.entry&order=created_at.desc&limit=100`,
-          {
-            headers: {
-              apikey: process.env['ENV_SUPABASE_ANON_KEY']!,
-              Authorization: `Bearer ${process.env['ENV_SUPABASE_ANON_KEY']}`,
-            },
-          }
-        )
+        .get<TimeLog[]>(timelogsUrl, {
+          headers: {
+            apikey: anonKey!,
+            Authorization: `Bearer ${anonKey}`,
+          },
+        })
         .pipe(
           catchError(() => of([])),
           map((logs) => logs || [])
@@ -2493,16 +2498,19 @@ export class TimeclockComponent implements OnDestroy {
       }
 
       // Obtener schedules del empleado
+      const schedulesUrl = this.apiUrl.build('rest/v1/employee_schedules', {
+        employee_id: `eq.${employeeId}`,
+        select: '*,schedule:schedules(*)',
+        order: 'start_date.desc',
+        limit: '100',
+      });
       const schedules = await this.http
-        .get<EmployeeSchedule[]>(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules?employee_id=eq.${employeeId}&select=*,schedule:schedules(*)&order=start_date.desc&limit=100`,
-          {
-            headers: {
-              apikey: process.env['ENV_SUPABASE_ANON_KEY']!,
-              Authorization: `Bearer ${process.env['ENV_SUPABASE_ANON_KEY']}`,
-            },
-          }
-        )
+        .get<EmployeeSchedule[]>(schedulesUrl, {
+          headers: {
+            apikey: anonKey!,
+            Authorization: `Bearer ${anonKey}`,
+          },
+        })
         .pipe(
           catchError(() => of([])),
           map((scheds) => scheds || [])

@@ -17,7 +17,23 @@
       ],
       "rules": {
         "@typescript-eslint/no-extra-semi": "error",
-        "no-extra-semi": "off"
+        "no-extra-semi": "off",
+        // Prohibir .toPromise() - usar firstValueFrom o lastValueFrom
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "CallExpression[callee.property.name='toPromise']",
+            "message": "Usar firstValueFrom() o lastValueFrom() en lugar de .toPromise(). Ver: https://rxjs.dev/deprecations/toPromise"
+          }
+        ],
+        // Prohibir process.env fuera de ApiUrlService y env.utils
+        "no-restricted-syntax": [
+          "error",
+          {
+            "selector": "MemberExpression[object.name='process'][property.name='env']",
+            "message": "Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env"
+          }
+        ]
       }
     },
     {
@@ -69,6 +85,18 @@
         "plugin:@nx/angular-template"
       ],
       "rules": {}
+    },
+    {
+      "files": [
+        "**/api-url.service.ts",
+        "**/env.utils.ts",
+        "**/logger.ts",
+        "**/main.ts"
+      ],
+      "rules": {
+        // Permitir process.env en estos archivos específicos
+        "no-restricted-syntax": "off"
+      }
     }
   ]
 }

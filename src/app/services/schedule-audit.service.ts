@@ -1,13 +1,21 @@
-import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { inject, Injectable } from '@angular/core';
 import { firstValueFrom, Observable } from 'rxjs';
+import { ApiUrlService } from './api-url.service';
 
 export interface ScheduleAuditLog {
   id: string;
   employee_schedule_id: string;
   changed_by: string;
   changed_at: string;
-  action: 'created' | 'updated' | 'deleted' | 'approved' | 'rejected' | 'split' | 'split_range';
+  action:
+    | 'created'
+    | 'updated'
+    | 'deleted'
+    | 'approved'
+    | 'rejected'
+    | 'split'
+    | 'split_range';
   old_status?: boolean;
   new_status?: boolean;
   old_value?: any;
@@ -36,6 +44,7 @@ export interface ScheduleAuditLog {
 @Injectable({ providedIn: 'root' })
 export class ScheduleAuditService {
   private http = inject(HttpClient);
+  private apiUrl = inject(ApiUrlService);
 
   /**
    * Registrar un cambio en el historial de auditoría de horarios
@@ -57,7 +66,10 @@ export class ScheduleAuditService {
 
     // Validar que tenemos al menos el ID del horario o información en oldValue/newValue
     if (!params.employeeScheduleId && !params.oldValue && !params.newValue) {
-      console.warn('No se proporcionó información suficiente para auditoría:', params);
+      console.warn(
+        'No se proporcionó información suficiente para auditoría:',
+        params
+      );
       return;
     }
 
@@ -77,7 +89,7 @@ export class ScheduleAuditService {
     try {
       const response = await firstValueFrom(
         this.http.post(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/schedule_audit_log`,
+          this.apiUrl.build('rest/v1/schedule_audit_log'),
           auditData,
           {
             headers: {
@@ -113,7 +125,7 @@ export class ScheduleAuditService {
    */
   getAuditHistory(employeeScheduleId: string): Observable<ScheduleAuditLog[]> {
     return this.http.get<ScheduleAuditLog[]>(
-      `${process.env['ENV_SUPABASE_URL']}/rest/v1/schedule_audit_log`,
+      this.apiUrl.build('rest/v1/schedule_audit_log'),
       {
         params: {
           employee_schedule_id: `eq.${employeeScheduleId}`,
@@ -127,9 +139,11 @@ export class ScheduleAuditService {
   /**
    * Obtener historial de auditoría por empleado (todos sus horarios)
    */
-  getAuditHistoryByEmployee(employeeId: string): Observable<ScheduleAuditLog[]> {
+  getAuditHistoryByEmployee(
+    employeeId: string
+  ): Observable<ScheduleAuditLog[]> {
     return this.http.get<ScheduleAuditLog[]>(
-      `${process.env['ENV_SUPABASE_URL']}/rest/v1/schedule_audit_log`,
+      this.apiUrl.build('rest/v1/schedule_audit_log'),
       {
         params: {
           select: `*,changed_by_employee:changed_by(id,first_name,father_name,work_email),employee_schedule:employee_schedules(employee_id,start_date,end_date,employee:employees(id,first_name,father_name))`,
@@ -143,10 +157,13 @@ export class ScheduleAuditService {
   /**
    * Obtener historial de auditoría por empleado y fecha específica
    */
-  getAuditHistoryByEmployeeAndDate(employeeId: string, date: Date): Observable<ScheduleAuditLog[]> {
+  getAuditHistoryByEmployeeAndDate(
+    employeeId: string,
+    date: Date
+  ): Observable<ScheduleAuditLog[]> {
     const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
     return this.http.get<ScheduleAuditLog[]>(
-      `${process.env['ENV_SUPABASE_URL']}/rest/v1/schedule_audit_log`,
+      this.apiUrl.build('rest/v1/schedule_audit_log'),
       {
         params: {
           select: `*,changed_by_employee:changed_by(id,first_name,father_name,work_email),employee_schedule:employee_schedules(employee_id,start_date,end_date,employee:employees(id,first_name,father_name))`,
@@ -162,14 +179,65 @@ export class ScheduleAuditService {
   /**
    * Obtener todo el historial de auditoría con relaciones completas
    */
-  getAllAuditHistory(): Observable<ScheduleAuditLog[]> {
+  getAllAuditHistory(params?: {
+    employeeId?: string;
+    dateFrom?: Date;
+    dateTo?: Date;
+    action?: ScheduleAuditLog['action'];
+    search?: string;
+    page?: number;
+    pageSize?: number;
+  }): Observable<ScheduleAuditLog[]> {
+    const queryParams: Record<string, string> = {
+      select: `*,changed_by_employee:changed_by(id,first_name,father_name,work_email),employee_schedule:employee_schedules(employee_id,start_date,end_date,employee:employees(id,first_name,father_name))`,
+      order: 'changed_at.desc',
+    };
+
+    if (params?.employeeId) {
+      queryParams['employee_schedule.employee_id'] = `eq.${params.employeeId}`;
+    }
+    if (params?.action) {
+      queryParams['action'] = `eq.${params.action}`;
+    }
+    if (params?.dateFrom) {
+      queryParams['changed_at'] = `gte.${params.dateFrom.toISOString()}`;
+    }
+    if (params?.dateTo) {
+      // Si ya hay un filtro en changed_at (gte), PostgREST no soporta duplicar clave;
+      // usamos una clave distinta con operador en el valor si hace falta.
+      // En PostgREST, para combinar, se suele usar `and=(changed_at.gte...,changed_at.lte...)`.
+      // Manteniendo bajo riesgo: si hay dateFrom y dateTo, usamos `and`.
+      if (params?.dateFrom) {
+        delete queryParams['changed_at'];
+        queryParams[
+          'and'
+        ] = `(changed_at.gte.${params.dateFrom.toISOString()},changed_at.lte.${params.dateTo.toISOString()})`;
+      } else {
+        queryParams['changed_at'] = `lte.${params.dateTo.toISOString()}`;
+      }
+    }
+
+    const searchText = params?.search?.trim();
+    if (searchText) {
+      // Bajo riesgo: buscar solo por comentario (columna simple).
+      // Si el backend soporta filtros por relaciones, esto se puede ampliar luego.
+      queryParams['comment'] = `ilike.*${searchText}*`;
+    }
+
+    const pageSize =
+      params?.pageSize && params.pageSize > 0 ? params.pageSize : undefined;
+    const page = params?.page && params.page > 0 ? params.page : undefined;
+    if (pageSize) {
+      queryParams['limit'] = String(pageSize);
+      if (page) {
+        queryParams['offset'] = String((page - 1) * pageSize);
+      }
+    }
+
     return this.http.get<ScheduleAuditLog[]>(
-      `${process.env['ENV_SUPABASE_URL']}/rest/v1/schedule_audit_log`,
+      this.apiUrl.build('rest/v1/schedule_audit_log'),
       {
-        params: {
-          select: `*,changed_by_employee:changed_by(id,first_name,father_name,work_email),employee_schedule:employee_schedules(employee_id,start_date,end_date,employee:employees(id,first_name,father_name))`,
-          order: 'changed_at.desc',
-        },
+        params: queryParams,
       }
     );
   }
