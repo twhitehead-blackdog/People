@@ -1,6 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom, Observable } from 'rxjs';
+import { ApiUrlService } from './api-url.service';
 
 export interface TimeoffAuditLog {
   id: string;
@@ -26,6 +27,7 @@ export interface TimeoffAuditLog {
 @Injectable({ providedIn: 'root' })
 export class TimeoffAuditService {
   private http = inject(HttpClient);
+  private apiUrl = inject(ApiUrlService);
 
   /**
    * Registrar un cambio en el historial de auditoría
@@ -61,7 +63,7 @@ export class TimeoffAuditService {
     try {
       await firstValueFrom(
         this.http.post(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoff_audit_log`,
+          this.apiUrl.build('rest/v1/timeoff_audit_log'),
           auditData,
           {
             headers: {
@@ -82,14 +84,12 @@ export class TimeoffAuditService {
    */
   getAuditHistory(timeoffId: string): Observable<TimeoffAuditLog[]> {
     return this.http.get<TimeoffAuditLog[]>(
-      `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoff_audit_log`,
-      {
-        params: {
-          timeoff_id: `eq.${timeoffId}`,
-          select: `*,changed_by_employee:changed_by(id,first_name,father_name,work_email)`,
-          order: 'changed_at.desc',
-        },
-      }
+      this.apiUrl.build('rest/v1/timeoff_audit_log', {
+        timeoff_id: `eq.${timeoffId}`,
+        select: `*,changed_by_employee:changed_by(id,first_name,father_name,work_email)`,
+        order: 'changed_at.desc',
+      }),
+      {}
     );
   }
 

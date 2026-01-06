@@ -3,6 +3,7 @@ import { CanActivateFn, Router, UrlTree } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
 import { HttpClient } from '@angular/common/http';
 import { map, switchMap, take, of, catchError } from 'rxjs';
+import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
 import { TestModeService } from '../services/test-mode.service';
 
@@ -52,6 +53,7 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
   const router = inject(Router);
   const authService = inject(AuthService);
   const http = inject(HttpClient);
+  const apiUrl = inject(ApiUrlService);
   const orgService = inject(OrganizationService);
   const testModeService = inject(TestModeService);
 
@@ -295,10 +297,8 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
       if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
         console.log('[Guard] Buscando empleado:', { email: user.email, companyId });
       }
-      return http.get<Array<EmployeeWithPosition>>(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
-        { params }
-      ).pipe(
+      const url = apiUrl.build('rest/v1/employees', params);
+      return http.get<Array<EmployeeWithPosition>>(url).pipe(
         catchError((error) => {
           // Solo log en desarrollo
           if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
@@ -311,15 +311,10 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
             position?: { name: string; admin: boolean };
             has_portal_access?: boolean;
             account_approved?: boolean;
-          }>>(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
-            {
-              params: {
-                work_email: `eq.${user.email}`,
-                select: 'id,position:positions(name,admin),has_portal_access,account_approved',
-              },
-            }
-          ).pipe(
+          }>>(apiUrl.build('rest/v1/employees', {
+            work_email: `eq.${user.email}`,
+            select: 'id,position:positions(name,admin),has_portal_access,account_approved',
+          })).pipe(
             switchMap((employees) => {
               // Si se encuentra en employees, usar esos datos
               if (employees && employees.length > 0) {

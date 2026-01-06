@@ -2,6 +2,7 @@ import { HttpClient, httpResource } from '@angular/common/http';
 import { computed, inject, Injectable } from '@angular/core';
 import { MessageService } from 'primeng/api';
 import { firstValueFrom } from 'rxjs';
+import { ApiUrlService } from './api-url.service';
 
 interface Setting {
   key: string;
@@ -13,17 +14,20 @@ interface Setting {
 })
 export class WassengerService {
   private http = inject(HttpClient);
+  private apiUrl = inject(ApiUrlService);
   private messageService = inject(MessageService, { optional: true });
 
   // Obtener configuración de Wassenger
-  public settingsApi = httpResource<Setting[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
-    method: 'GET',
-    params: {
+  public settingsApi = httpResource<Setting[]>(() => {
+    const url = this.apiUrl.build('rest/v1/settings', {
       select: 'key,value',
       key: `in.(wassenger_api_key,wassenger_enabled)`,
-    },
-  }));
+    });
+    return {
+      url,
+      method: 'GET',
+    };
+  });
 
   // Computed para obtener valores fácilmente
   public settings = computed(() => {

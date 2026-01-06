@@ -5,6 +5,7 @@ import {
   inject,
   OnInit,
 } from '@angular/core';
+import { ApiUrlService } from '../services/api-url.service';
 import {
   FormControl,
   FormGroup,
@@ -95,6 +96,7 @@ export class PayrollDeductionsFormComponent implements OnInit {
   public dialog = inject(DynamicDialogRef);
   public dialogConfig = inject(DynamicDialogConfig);
   private http = inject(HttpClient);
+  private apiUrl = inject(ApiUrlService);
   private message = inject(MessageService);
 
   public calculationTypes = [
@@ -144,25 +146,18 @@ export class PayrollDeductionsFormComponent implements OnInit {
     }
     const { deduction } = this.dialogConfig.data;
     if (deduction) {
+      const url = this.apiUrl.build('rest/v1/payroll_deductions', {
+        id: `eq.${deduction.id}`,
+      });
       this.http
-        .patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/payroll_deductions`,
-          this.form.value,
-          {
-            params: {
-              id: `eq.${deduction.id}`,
-            },
-          }
-        )
+        .patch(url, this.form.value)
         .subscribe(() => {
           this.dialog.close();
         });
     } else {
+      const url = this.apiUrl.build('rest/v1/payroll_deductions');
       this.http
-        .post(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/payroll_deductions`,
-          this.form.value
-        )
+        .post(url, this.form.value)
         .subscribe(() => {
           this.dialog.close();
         });

@@ -3,6 +3,7 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
 import { map, of, switchMap, take } from 'rxjs';
+import { ApiUrlService } from '../services/api-url.service';
 
 /**
  * Guard que protege el reloj de marcaciones
@@ -12,6 +13,7 @@ export const timeclockGuard: CanActivateFn = (route, state) => {
   const router = inject(Router);
   const authService = inject(AuthService);
   const http = inject(HttpClient);
+  const apiUrl = inject(ApiUrlService);
 
   // Lista de correos con acceso completo (super admins)
   const superAdminEmails = [
@@ -37,6 +39,10 @@ export const timeclockGuard: CanActivateFn = (route, state) => {
         return of(false);
       }
 
+      const url = apiUrl.build('rest/v1/employees', {
+        work_email: `eq.${user.email}`,
+        select: 'id,position:positions(name,admin),has_portal_access,account_approved',
+      });
       return http
         .get<
           Array<{
@@ -45,13 +51,7 @@ export const timeclockGuard: CanActivateFn = (route, state) => {
             has_portal_access?: boolean;
             account_approved?: boolean;
           }>
-        >(`${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`, {
-          params: {
-            work_email: `eq.${user.email}`,
-            select:
-              'id,position:positions(name,admin),has_portal_access,account_approved',
-          },
-        })
+        >(url)
         .pipe(
           map((employees) => {
             const employee = employees[0];

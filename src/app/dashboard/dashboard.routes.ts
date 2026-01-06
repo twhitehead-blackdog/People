@@ -168,6 +168,11 @@ export const DASHBOARD_ROUTES: Routes = [
               import('./schedules.component').then((x) => x.SchedulesComponent),
           },
           {
+            path: 'vet-schedule',
+            loadComponent: () =>
+              import('./vet-schedule.component').then((x) => x.VetScheduleComponent),
+          },
+          {
             path: 'salon-schedule',
             loadComponent: () =>
               import('./salon-schedule.component').then((x) => x.SalonScheduleComponent),

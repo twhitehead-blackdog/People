@@ -9,6 +9,8 @@ import {
   OnInit,
   signal,
 } from '@angular/core';
+import { ApiUrlService } from '../services/api-url.service';
+import { getEnv } from '../utils/env.utils';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { firstValueFrom } from 'rxjs';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
@@ -685,6 +687,7 @@ import { EmployeeFormComponent } from './employee-form.component';
 export class EmployeeListComponent implements OnInit {
   readonly store = inject(DashboardStore);
   private http = inject(HttpClient);
+  private apiUrl = inject(ApiUrlService);
   private messageService = inject(MessageService);
   private confirmationService = inject(ConfirmationService);
   private wassengerService = inject(WassengerService);
@@ -909,22 +912,18 @@ export class EmployeeListComponent implements OnInit {
             params.company_id = `eq.${companyId}`;
           }
 
+          const url = this.apiUrl.build('rest/v1/employees', params);
           const updateResponse = await firstValueFrom(
-            this.http.patch(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
-              { has_portal_access: true },
-              {
-                params,
-                headers: {
-                  'Content-Type': 'application/json',
-                  Prefer: 'return=representation',
-                },
-              }
-            )
+            this.http.patch(url, { has_portal_access: true }, {
+              headers: {
+                'Content-Type': 'application/json',
+                Prefer: 'return=representation',
+              },
+            })
           );
 
           // Enviar invitación por Wassenger
-          const portalUrl = `${process.env['ENV_APP_URL']}/my-portal`;
+          const portalUrl = `${getEnv('ENV_APP_URL')}/my-portal`;
           const employeeName = `${employee.first_name} ${employee.father_name}`;
           const success = await this.wassengerService.sendPortalInvitation(
             employeeName,

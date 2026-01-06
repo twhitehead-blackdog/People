@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { BehaviorSubject, interval, catchError, map, of, switchMap, Observable } from 'rxjs';
 import { timeout } from 'rxjs/operators';
 import { Branch } from '../models';
+import { ApiUrlService } from './api-url.service';
 import { OrganizationService } from './organization.service';
 
 /**
@@ -15,6 +16,7 @@ import { OrganizationService } from './organization.service';
 })
 export class IpMonitorService {
   private http = inject(HttpClient);
+  private apiUrl = inject(ApiUrlService);
   private router = inject(Router);
   private organizationService = inject(OrganizationService);
   
@@ -88,12 +90,11 @@ export class IpMonitorService {
    */
   private refreshAllowedIPs(): void {
     // El interceptor HTTP ya agrega los headers de Supabase automáticamente
-    this.http.get<Branch[]>(`${process.env['ENV_SUPABASE_URL']}/rest/v1/branches`, {
-      params: {
-        select: 'ip',
-        is_active: 'eq.true'
-      }
-    }).pipe(
+    const url = this.apiUrl.build('rest/v1/branches', {
+      select: 'ip',
+      is_active: 'eq.true'
+    });
+    this.http.get<Branch[]>(url).pipe(
       timeout(5000),
       map((branches) => {
         // Extraer IPs de las sucursales, filtrando valores nulos o vacíos

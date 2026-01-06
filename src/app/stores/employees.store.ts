@@ -8,7 +8,7 @@ import {
   withMethods,
   withState,
 } from '@ngrx/signals';
-import { updateEntity, addEntity } from '@ngrx/signals/entities';
+import { addEntity, updateEntity } from '@ngrx/signals/entities';
 import { differenceInMonths } from 'date-fns';
 import { exhaustMap, firstValueFrom } from 'rxjs';
 import { Employee, Termination, TimeOff, TimeOffType } from '../models';
@@ -18,7 +18,8 @@ type State = {
   timeoff_types: TimeOffType[];
 };
 
-export const EmployeesStore = signalStore({ providedIn: 'root' },
+export const EmployeesStore = signalStore(
+  { providedIn: 'root' },
   withState<State>({ timeoff_types: [] }),
   withCustomEntities<Employee>({
     name: 'employees',
@@ -63,20 +64,14 @@ export const EmployeesStore = signalStore({ providedIn: 'root' },
       }
 
       return state._http
-        .post(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/terminations`,
-          request
-        )
+        .post(state._apiUrl.build('rest/v1/terminations'), request)
         .pipe(
           exhaustMap(() =>
             state._http.patch(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
+              state._apiUrl.build('rest/v1/employees', params),
               {
                 is_active: false,
                 end_date: request.date, // Actualizar también el campo end_date con la fecha de terminación
-              },
-              {
-                params,
               }
             )
           ),
@@ -103,7 +98,7 @@ export const EmployeesStore = signalStore({ providedIn: 'root' },
     saveTimeOff(request: TimeOff) {
       patchState(state, { isLoading: true, error: null });
       return state._http
-        .post(`${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`, request)
+        .post(state._apiUrl.build('rest/v1/timeoffs'), request)
         .pipe(
           tapResponse({
             next: async (response) => {
@@ -121,13 +116,13 @@ export const EmployeesStore = signalStore({ providedIn: 'root' },
 
                 if (timeoffId && request.employee_id) {
                   // Obtener información del tipo de timeoff
-                  const timeoffType = state.timeoff_types().find(
-                    (t) => t.id === request.type_id
-                  );
+                  const timeoffType = state
+                    .timeoff_types()
+                    .find((t) => t.id === request.type_id);
 
                   await firstValueFrom(
                     state._http.post(
-                      `${process.env['ENV_SUPABASE_URL']}/rest/v1/hr_messages`,
+                      state._apiUrl.build('rest/v1/hr_messages'),
                       {
                         employee_id: request.employee_id,
                         related_type: 'timeoff',
@@ -168,9 +163,7 @@ export const EmployeesStore = signalStore({ providedIn: 'root' },
     fetchTimeOffTypes() {
       patchState(state, { isLoading: true });
       return state._http
-        .get<TimeOffType[]>(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoff_types`
-        )
+        .get<TimeOffType[]>(state._apiUrl.build('rest/v1/timeoff_types'))
         .pipe(
           tapResponse({
             next: (items) => {
@@ -205,10 +198,7 @@ export const EmployeesStore = signalStore({ providedIn: 'root' },
       };
 
       state._http
-        .get<Employee[]>(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
-          { params }
-        )
+        .get<Employee[]>(state._apiUrl.build('rest/v1/employees', params), {})
         .pipe(
           tapResponse({
             next: (employees) => {

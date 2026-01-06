@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core
 import { Skeleton } from 'primeng/skeleton';
 import { TabsModule } from 'primeng/tabs';
 import { Payroll } from '../models';
+import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
 import { PayrollDebtsComponent } from './payroll-debts.component';
 import { PayrollDeductionsComponent } from './payroll-deductions.component';
@@ -116,6 +117,7 @@ import { PayrollPaymentsComponent } from './payroll-payments.component';
 })
 export class PayrollsDetailsComponent {
   public payroll_id = input.required<string>();
+  private apiUrl = inject(ApiUrlService);
   private organizationService = inject(OrganizationService);
   
   public payroll = httpResource<Payroll[]>(() => {
@@ -130,10 +132,10 @@ export class PayrollsDetailsComponent {
       params.company_id = `eq.${companyId}`;
     }
     
+    const url = this.apiUrl.build('rest/v1/payrolls', params);
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/payrolls`,
+      url,
       method: 'GET',
-      params,
     };
   });
 }

@@ -5,6 +5,7 @@ import {
   inject,
   OnInit,
 } from '@angular/core';
+import { ApiUrlService } from '../services/api-url.service';
 import {
   FormControl,
   FormGroup,
@@ -159,11 +160,12 @@ export class PayrollDebtsFormComponent implements OnInit {
   public employees = inject(EmployeesStore);
   public creditors = inject(CreditorsStore);
   public store = inject(PayrollsStore);
+  private http = inject(HttpClient);
+  private apiUrl = inject(ApiUrlService);
   public message = inject(MessageService);
 
   public dialog = inject(DynamicDialogRef);
   public dialogConfig = inject(DynamicDialogConfig);
-  private http = inject(HttpClient);
   form = new FormGroup({
     id: new FormControl(v4(), { nonNullable: true }),
     employee_id: new FormControl('', {
@@ -225,16 +227,11 @@ export class PayrollDebtsFormComponent implements OnInit {
     }
     const { debt } = this.dialogConfig.data;
     if (debt) {
+      const url = this.apiUrl.build('rest/v1/payroll_debts', {
+        id: `eq.${debt.id}`,
+      });
       this.http
-        .patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/payroll_debts`,
-          this.form.value,
-          {
-            params: {
-              id: `eq.${debt.id}`,
-            },
-          }
-        )
+        .patch(url, this.form.value)
         .subscribe({
           next: () => {
             this.message.add({
@@ -254,11 +251,9 @@ export class PayrollDebtsFormComponent implements OnInit {
         });
       return;
     }
+    const url = this.apiUrl.build('rest/v1/payroll_debts');
     this.http
-      .post(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/payroll_debts`,
-        this.form.value
-      )
+      .post(url, this.form.value)
       .subscribe({
         next: () => {
           this.message.add({

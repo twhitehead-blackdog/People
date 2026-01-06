@@ -10,6 +10,7 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ApiUrlService } from '../services/api-url.service';
 import {
   FormControl,
   FormGroup,
@@ -206,6 +207,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
   private dialog = inject(DynamicDialogConfig);
   public loading = signal<boolean>(false);
   private http = inject(HttpClient);
+  private apiUrl = inject(ApiUrlService);
   private message = inject(MessageService);
   private organizationService = inject(OrganizationService);
   public colorVariants = colorVariants;
@@ -576,7 +578,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     }
 
     const createRequest = this.http.post(
-      `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+      this.apiUrl.build('rest/v1/employee_schedules'),
       requestData
     );
 
@@ -603,16 +605,9 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     }
 
     const updateRequest = this.http.patch(
-      `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+      this.apiUrl.build('rest/v1/employee_schedules', { id: `eq.${value.id}` }),
       updateData,
-      {
-        params: {
-          id: `eq.${value.id}`,
-          // NO incluir company_id en los params del PATCH
-          // El id es suficiente para identificar el registro único
-          // El company_id puede ser NULL en algunos registros antiguos, lo que causaría que no se encuentre el registro
-        },
-      }
+      {}
     );
 
     // CORRECCIÓN: Determinar si debemos hacer UPDATE o CREATE
@@ -934,7 +929,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
         daySchedule.company_id = companyId;
       }
       return this.http.post(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+        this.apiUrl.build('rest/v1/employee_schedules'),
         daySchedule
       );
     });
@@ -1104,14 +1099,12 @@ export class EmployeeSchedulesFormComponent implements OnInit {
 
         requests.push(
           this.http.patch(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+            this.apiUrl.build('rest/v1/employee_schedules', {
+              id: `eq.${this.originalSchedule.id}`,
+              ...(companyId ? { company_id: `eq.${companyId}` } : {}),
+            }),
             updateData,
-            {
-              params: {
-                id: `eq.${this.originalSchedule.id}`,
-                ...(companyId ? { company_id: `eq.${companyId}` } : {}),
-              },
-            }
+            {}
           )
         );
       }
@@ -1133,7 +1126,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
 
         requests.push(
           this.http.patch(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+            this.apiUrl.build('rest/v1/employee_schedules'),
             updateData,
             {
               params: {
@@ -1162,7 +1155,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
 
       requests.push(
         this.http.patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+          this.apiUrl.build('rest/v1/employee_schedules'),
           updateData1,
           {
             params: {
@@ -1189,7 +1182,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
 
         requests.push(
           this.http.post(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+            this.apiUrl.build('rest/v1/employee_schedules'),
             createData2
           )
         );
@@ -1221,7 +1214,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
 
     requests.push(
       this.http.post(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+        this.apiUrl.build('rest/v1/employee_schedules'),
         newScheduleRequest
       )
     );

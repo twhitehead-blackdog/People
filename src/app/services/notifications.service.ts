@@ -3,26 +3,28 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DestroyRef } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import { ApiUrlService } from './api-url.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class NotificationsService {
   private http = inject(HttpClient);
+  private apiUrl = inject(ApiUrlService);
   private destroyRef = inject(DestroyRef);
 
   // API para obtener notificaciones
   public notificationsApi = httpResource<any[]>(() => {
     const employeeId = this.currentEmployeeId();
     if (!employeeId) return undefined;
+    const url = this.apiUrl.build('rest/v1/hr_messages', {
+      select: '*',
+      employee_id: `eq.${employeeId}`,
+      order: 'created_at.desc',
+    });
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/hr_messages`,
+      url,
       method: 'GET',
-      params: {
-        select: '*',
-        employee_id: `eq.${employeeId}`,
-        order: 'created_at.desc',
-      },
     };
   });
 
@@ -63,7 +65,7 @@ export class NotificationsService {
   public markAsRead(notificationId: string): void {
     this.http
       .patch(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/hr_messages?id=eq.${notificationId}`,
+        this.apiUrl.build('rest/v1/hr_messages', { id: `eq.${notificationId}` }),
         {
           is_read: true,
           read_at: new Date().toISOString(),
@@ -96,7 +98,7 @@ export class NotificationsService {
     // Actualizar todas las notificaciones no leídas
     const updates = unreadIds.map((id) =>
       this.http.patch(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/hr_messages?id=eq.${id}`,
+        this.apiUrl.build('rest/v1/hr_messages', { id: `eq.${id}` }),
         {
           is_read: true,
           read_at: new Date().toISOString(),

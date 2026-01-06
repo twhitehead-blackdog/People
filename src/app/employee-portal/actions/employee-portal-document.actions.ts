@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { format } from 'date-fns';
 import { MessageService } from 'primeng/api';
 import { Employee } from '../../models';
+import { ApiUrlService } from '../../services/api-url.service';
 import { EmployeePortalStore } from '../../stores/employee-portal.store';
 import { getBooleanSetting } from '../../utils/settings-http.utils';
 
@@ -14,6 +15,7 @@ type DocumentFormState = {
 
 type DocumentActionsDependencies = {
   http: HttpClient;
+  apiUrl: ApiUrlService;
   messageService: MessageService;
   store: InstanceType<typeof EmployeePortalStore>;
   currentEmployee: () => Employee | null | undefined;
@@ -31,6 +33,7 @@ export function submitDocumentRequest(
 ): void {
   const {
     http,
+    apiUrl,
     messageService,
     store,
     currentEmployee,
@@ -67,11 +70,9 @@ export function submitDocumentRequest(
     status: 'pending',
   };
 
+  const url = apiUrl.build('rest/v1/document_requests');
   http
-    .post(
-      `${process.env['ENV_SUPABASE_URL']}/rest/v1/document_requests`,
-      requestData
-    )
+    .post(url, requestData)
     .subscribe({
       next: (created: any) => {
         messageService.add({

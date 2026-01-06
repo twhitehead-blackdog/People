@@ -12,6 +12,7 @@ import {
 } from '@ngrx/signals';
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { filter, of, pipe, switchMap } from 'rxjs';
+import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
 
 type State = {
@@ -25,9 +26,10 @@ export const AuthStore = signalStore({ providedIn: 'root' },
   withProps(() => ({
     _auth: inject(AuthService),
     _http: inject(HttpClient),
+    _apiUrl: inject(ApiUrlService),
     _orgService: inject(OrganizationService),
   })),
-  withMethods(({ _auth, _http, _orgService, ...state }) => ({
+  withMethods(({ _auth, _http, _apiUrl, _orgService, ...state }) => ({
     getCurrentEmployee: rxMethod<void>(
       pipe(
         switchMap(() => {
@@ -79,9 +81,7 @@ export const AuthStore = signalStore({ providedIn: 'root' },
                   default_view?: string;
                 };
               }[]
-            >(`${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`, {
-              params,
-            })
+            >(_apiUrl.build(`rest/v1/${tableName}`, params), {})
             .pipe(
               switchMap((resp) => {
                 // Si no se encuentra el empleado y NO es super admin, buscar sin filtro de company_id
@@ -95,8 +95,8 @@ export const AuthStore = signalStore({ providedIn: 'root' },
                     select: `id,company_id,first_name,father_name,work_email,${positionSelect}`,
                   };
                   return _http.get<typeof resp>(
-                    `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
-                    { params: paramsWithoutCompany }
+                    _apiUrl.build(`rest/v1/${tableName}`, paramsWithoutCompany),
+                    {}
                   );
                 }
                 return of(resp || []);

@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { computed, effect, inject, Injectable, signal } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import { ApiUrlService } from './api-url.service';
 
 export type Organization = 'blackdog' | 'naz';
 
@@ -67,6 +68,7 @@ export class OrganizationService {
   }
 
   private readonly http = inject(HttpClient);
+  private readonly apiUrl = inject(ApiUrlService);
 
   constructor() {
     // Cargar desde localStorage al inicializar
@@ -102,7 +104,7 @@ export class OrganizationService {
    */
   private async initializeCompanyIds(): Promise<void> {
     try {
-      const baseUrl = process.env['ENV_SUPABASE_URL'];
+      const baseUrl = this.apiUrl.baseUrl;
       if (!baseUrl) {
         // Solo mostrar warning en desarrollo
         if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {

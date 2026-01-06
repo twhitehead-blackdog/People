@@ -3,6 +3,8 @@ import { format } from 'date-fns';
 import { MessageService } from 'primeng/api';
 import { firstValueFrom } from 'rxjs';
 import { Employee } from '../../models';
+import { ApiUrlService } from '../../services/api-url.service';
+import { getEnv } from '../../utils/env.utils';
 import { getBooleanSetting } from '../../utils/settings-http.utils';
 
 type DisabilityFormState = {
@@ -14,6 +16,7 @@ type DisabilityFormState = {
 
 type DisabilityActionsDependencies = {
   http: HttpClient;
+  apiUrl: ApiUrlService;
   messageService: MessageService;
   currentEmployee: () => Employee | null | undefined;
   formState: DisabilityFormState;
@@ -30,6 +33,7 @@ export async function uploadDisability(
 ): Promise<void> {
   const {
     http,
+    apiUrl,
     messageService,
     currentEmployee,
     formState,
@@ -67,13 +71,13 @@ export async function uploadDisability(
       try {
         // Usar Service Role Key si está disponible, sino usar API Key pública
         const storageKey =
-          process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'] ||
-          process.env['ENV_SUPABASE_API_KEY'] ||
+          getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') ||
+          getEnv('ENV_SUPABASE_API_KEY') ||
           '';
 
+        const uploadUrl = `${apiUrl.baseUrl}/storage/v1/object/disabilities/${fileName}`;
         await firstValueFrom(
-          http.post(
-            `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/disabilities/${fileName}`,
+          http.post(uploadUrl,
             file, // Enviar el archivo directamente como binario
             {
               headers: {

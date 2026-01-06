@@ -1,0 +1,105 @@
+<p-card>
+  <ng-template #title>
+    <div class="vet-schedule-header">
+      <div>
+        <h2 class="vet-schedule-title">Horario Veterinarios</h2>
+        <p class="vet-schedule-subtitle">
+          Gestión de horarios de médicos veterinarios por sucursal
+        </p>
+      </div>
+      <div class="flex gap-2">
+        <p-dropdown
+          [options]="branches()"
+          optionLabel="name"
+          optionValue="id"
+          placeholder="Seleccionar sucursal"
+          [(ngModel)]="selectedBranchId"
+          (onChange)="onBranchChange()"
+          class="w-48"
+        />
+      </div>
+    </div>
+  </ng-template>
+
+  @if (selectedBranchId()) {
+    <p-table
+      [value]="vetEmployees()"
+      [rows]="10"
+      [rowsPerPageOptions]="[10, 20, 50]"
+      sortField="first_name"
+      paginator
+      paginatorDropdownAppendTo="body"
+    >
+      <ng-template #header>
+        <tr>
+          <th pSortableColumn="employee_number">
+            N° Empleado<p-sortIcon field="employee_number" />
+          </th>
+          <th pSortableColumn="full_name">
+            Nombre<p-sortIcon field="full_name" />
+          </th>
+          <th pSortableColumn="position.name">
+            Cargo<p-sortIcon field="position.name" />
+          </th>
+          <th>Horario Actual</th>
+          <th></th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-employee>
+        <tr>
+          <td>{{ employee.employee_number }}</td>
+          <td>{{ employee.first_name }} {{ employee.father_name }}</td>
+          <td>
+            <p-tag [value]="employee.position?.name" severity="info" />
+          </td>
+          <td>
+            @if (getCurrentSchedule(employee)) {
+              <p-tag
+                [value]="getCurrentSchedule(employee)?.name"
+                severity="success"
+              />
+            }             @else {
+              <p-tag value="Sin horario" severity="warn" />
+            }
+          </td>
+          <td>
+            <div class="flex gap-2 items-center">
+              <p-button
+                severity="success"
+                icon="pi pi-calendar-plus"
+                text
+                rounded
+                (onClick)="assignSchedule(employee)"
+                pTooltip="Asignar horario"
+              />
+              <p-button
+                severity="info"
+                icon="pi pi-eye"
+                text
+                rounded
+                (onClick)="viewSchedule(employee)"
+                pTooltip="Ver horario actual"
+              />
+            </div>
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage>
+        <tr>
+          <td colspan="5" class="text-center py-8">
+            <p class="text-gray-400">
+              No hay empleados veterinarios en esta sucursal
+            </p>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  } @else {
+    <div class="empty-state">
+      <i class="pi pi-building empty-state-icon"></i>
+      <p class="empty-state-text">
+        Selecciona una sucursal para ver los horarios veterinarios
+      </p>
+    </div>
+  }
+</p-card>

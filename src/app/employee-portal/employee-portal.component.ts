@@ -13,6 +13,7 @@ import { addDays, differenceInDays, format, startOfDay } from 'date-fns';
 import { MessageService } from 'primeng/api';
 import { Card } from 'primeng/card';
 import { ToastModule } from 'primeng/toast';
+import { ApiUrlService } from '../services/api-url.service';
 import { EmployeePortalNavigationService } from '../services/employee-portal-navigation.service';
 import { NotificationsService } from '../services/notifications.service';
 import { OrganizationService } from '../services/organization.service';
@@ -628,6 +629,7 @@ export class EmployeePortalComponent {
   public portalStore = inject(EmployeePortalStore);
   public messageService = inject(MessageService);
   private http = inject(HttpClient);
+  private apiUrl = inject(ApiUrlService);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private organizationService = inject(OrganizationService);
@@ -977,7 +979,7 @@ export class EmployeePortalComponent {
       // ID del tipo de timeoff "Compensatorio"
       const compensatoryTypeId = 'f2d92995-96a0-414f-b64a-9823db776745';
 
-      const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`;
+      const baseUrl = this.apiUrl.build('rest/v1/timeoffs');
       // La tabla timeoffs tiene múltiples relaciones con employees (employee_id, reviewed_by, registered_by)
       // No necesitamos incluir la relación employee porque:
       // 1. approvedCompensatoryHours solo usa date_from y date_to (campos directos de timeoffs)
@@ -1344,6 +1346,7 @@ export class EmployeePortalComponent {
   public async uploadDisability(): Promise<void> {
     await uploadDisability({
       http: this.http,
+      apiUrl: this.apiUrl,
       messageService: this.messageService,
       currentEmployee: () => this.currentEmployee(),
       formState: {
@@ -1366,6 +1369,7 @@ export class EmployeePortalComponent {
   public async submitDocumentRequest(): Promise<void> {
     submitDocumentRequest({
       http: this.http,
+      apiUrl: this.apiUrl,
       messageService: this.messageService,
       store: this.portalStore,
       currentEmployee: () => this.currentEmployee(),
@@ -1415,11 +1419,11 @@ export class EmployeePortalComponent {
       let fullUrl = url;
       if (url.startsWith('/disabilities/') || url.startsWith('disabilities/')) {
         const path = url.startsWith('/') ? url.slice(1) : url;
-        fullUrl = `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/public/${path}`;
+        fullUrl = `${this.apiUrl.baseUrl}/storage/v1/object/public/${path}`;
       } else if (!url.startsWith('http://') && !url.startsWith('https://')) {
         // Si es una ruta relativa sin prefijo, asumir que es del bucket disabilities
         const path = url.startsWith('/') ? url.slice(1) : url;
-        fullUrl = `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/public/disabilities/${path}`;
+        fullUrl = `${this.apiUrl.baseUrl}/storage/v1/object/public/disabilities/${path}`;
       }
       window.open(fullUrl, '_blank');
     } catch (error) {

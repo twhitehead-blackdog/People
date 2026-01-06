@@ -31,6 +31,25 @@ Cursor debe actuar como ingeniero senior conservador.
   ✅ Mantener comportamiento idéntico
 
 ────────────────────────────────────────
+⚙️ CONFIGURACIÓN CENTRALIZADA (OBLIGATORIO)
+────────────────────────────────────────
+✅ URLs de API: EXCLUSIVAMENTE ApiUrlService.build()
+✅ Variables de entorno: EXCLUSIVAMENTE getEnv()
+✅ Prohibido: process.env directo (bloqueado por ESLint)
+✅ Beneficio: Mantenibilidad, seguridad, testabilidad
+
+Ejemplos correctos:
+```typescript
+// ✅ CORRECTO
+const url = this.apiUrl.build('rest/v1/users', { company_id: 'eq.123' });
+const apiKey = getEnv('ENV_SUPABASE_ANON_KEY');
+
+// ❌ PROHIBIDO
+const url = `${process.env['ENV_SUPABASE_URL']}/rest/v1/users`;
+const apiKey = process.env['ENV_SUPABASE_ANON_KEY'];
+```
+
+────────────────────────────────────────
 🏗️ ARQUITECTURA BASE (NO CAMBIAR)
 ────────────────────────────────────────
 

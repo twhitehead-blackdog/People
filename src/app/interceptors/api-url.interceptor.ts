@@ -1,4 +1,5 @@
 import { HttpInterceptorFn } from '@angular/common/http';
+import { getEnv } from '../utils/env.utils';
 
 /**
  * Interceptor que convierte rutas relativas /api/... a rutas absolutas
@@ -10,7 +11,7 @@ import { HttpInterceptorFn } from '@angular/common/http';
 export const apiUrlInterceptor: HttpInterceptorFn = (req, next) => {
   // Solo interceptar rutas que empiecen con /api/
   if (req.url.startsWith('/api/')) {
-    const apiUrl = process.env['ENV_API_URL'];
+    const apiUrl = getEnv('ENV_API_URL');
     
     // Si ENV_API_URL está configurado, usar ruta absoluta
     if (apiUrl) {

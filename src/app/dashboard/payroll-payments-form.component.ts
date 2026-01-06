@@ -5,6 +5,7 @@ import {
   inject,
   OnInit,
 } from '@angular/core';
+import { ApiUrlService } from '../services/api-url.service';
 import {
   FormControl,
   FormGroup,
@@ -102,6 +103,7 @@ export class PayrollPaymentsFormComponent implements OnInit {
   public modalRef = inject(DynamicDialogRef);
   public dialogConfig = inject(DynamicDialogConfig);
   private http = inject(HttpClient);
+  private apiUrl = inject(ApiUrlService);
   private message = inject(MessageService);
 
   public ngOnInit(): void {
@@ -120,11 +122,9 @@ export class PayrollPaymentsFormComponent implements OnInit {
       markGroupDirty(this.form);
       return;
     }
+    const url = this.apiUrl.build('rest/v1/payroll_payments');
     this.http
-      .post(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/payroll_payments`,
-        this.form.value
-      )
+      .post(url, this.form.value)
       .subscribe(() => {
         this.modalRef.close();
       });

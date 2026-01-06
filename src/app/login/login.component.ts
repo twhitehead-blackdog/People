@@ -15,6 +15,7 @@ import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { Toast } from 'primeng/toast';
 import { Branch } from '../models';
+import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
 import { APP_VERSION } from '../version';
 import { logger } from '../utils/logger';
@@ -1364,6 +1365,7 @@ import { logger } from '../utils/logger';
 })
 export class LoginComponent {
   public auth = inject(AuthService);
+  public apiUrl = inject(ApiUrlService);
   public organizationService = inject(OrganizationService);
   public http = inject(HttpClient);
   public router = inject(Router);
@@ -1583,13 +1585,12 @@ export class LoginComponent {
    * Obtiene las sucursales desde la base de datos
    */
   private fetchBranches(): void {
+    const url = this.apiUrl.build('rest/v1/branches', {
+      select: 'ip',
+      is_active: 'eq.true',
+    });
     this.http
-      .get<Branch[]>(`${process.env['ENV_SUPABASE_URL']}/rest/v1/branches`, {
-        params: {
-          select: 'ip',
-          is_active: 'eq.true',
-        },
-      })
+      .get<Branch[]>(url)
       .subscribe({
         next: (branches) => {
           this.branches.set(branches);

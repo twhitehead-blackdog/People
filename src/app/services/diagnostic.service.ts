@@ -1,5 +1,7 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
+import { ApiUrlService } from './api-url.service';
+import { getEnv } from '../utils/env.utils';
 
 export interface DiagnosticError {
   id: string;
@@ -16,6 +18,8 @@ export interface DiagnosticError {
   providedIn: 'root',
 })
 export class DiagnosticService {
+  private apiUrl = inject(ApiUrlService);
+
   private errorsSubject = new BehaviorSubject<DiagnosticError[]>([]);
   public errors$: Observable<DiagnosticError[]> =
     this.errorsSubject.asObservable();
@@ -344,12 +348,12 @@ export class DiagnosticService {
 
     // Verificar Supabase
     try {
-      const supabaseUrl = process.env['ENV_SUPABASE_URL'];
+      const supabaseUrl = this.apiUrl.baseUrl;
       if (supabaseUrl) {
         const response = await fetch(`${supabaseUrl}/rest/v1/`, {
           method: 'HEAD',
           headers: {
-            apikey: process.env['ENV_SUPABASE_ANON_KEY'] || '',
+            apikey: getEnv('ENV_SUPABASE_ANON_KEY') || '',
           },
         });
         results.supabase = response.ok;
@@ -360,7 +364,7 @@ export class DiagnosticService {
 
     // Verificar Backend
     try {
-      const apiUrl = process.env['ENV_API_URL'];
+      const apiUrl = getEnv('ENV_API_URL');
       if (apiUrl) {
         const response = await fetch(`${apiUrl}/api/health`, {
           method: 'GET',
@@ -376,8 +380,8 @@ export class DiagnosticService {
     }
 
     // Verificar Auth0 (solo verificar configuración)
-    const auth0Domain = process.env['ENV_AUTH0_DOMAIN'];
-    const auth0ClientId = process.env['ENV_AUTH0_CLIENT_ID'];
+    const auth0Domain = getEnv('ENV_AUTH0_DOMAIN');
+    const auth0ClientId = getEnv('ENV_AUTH0_CLIENT_ID');
     results.auth0 = !!(auth0Domain && auth0ClientId);
 
     if (!results.auth0) {
@@ -488,10 +492,10 @@ export class DiagnosticService {
 
     // Verificar variables de entorno críticas (solo en desarrollo)
     // En producción, estas variables están inyectadas en build time y no se pueden verificar así
-    const supabaseUrl = process.env['ENV_SUPABASE_URL'];
-    const supabaseKey = process.env['ENV_SUPABASE_ANON_KEY'];
-    const apiUrl = process.env['ENV_API_URL'];
-    const appUrl = process.env['ENV_APP_URL'];
+    const supabaseUrl = this.apiUrl.baseUrl;
+    const supabaseKey = getEnv('ENV_SUPABASE_ANON_KEY');
+    const apiUrl = getEnv('ENV_API_URL');
+    const appUrl = getEnv('ENV_APP_URL');
 
     // Solo agregar error si no existe ya uno similar
     const existingErrors = this.errorsSubject.value;

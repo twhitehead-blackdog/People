@@ -9,6 +9,7 @@ import { InputText } from 'primeng/inputtext';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { ToastModule } from 'primeng/toast';
 import { TabsModule } from 'primeng/tabs';
+import { ApiUrlService } from '../services/api-url.service';
 import { DashboardStore } from '../stores/dashboard.store';
 
 interface Setting {
@@ -244,6 +245,7 @@ export class SettingsComponent {
   public store = inject(DashboardStore);
   public messageService = inject(MessageService);
   private http = inject(HttpClient);
+  private apiUrl = inject(ApiUrlService);
 
   public saving = signal(false);
   public wassengerEnabled = signal(false);
@@ -256,15 +258,17 @@ export class SettingsComponent {
   public hrEmailNotifyCompensatory = signal(true);
 
   // Cargar configuraciones
-  public settingsApi = httpResource<Setting[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
-    method: 'GET',
-    params: {
+  public settingsApi = httpResource<Setting[]>(() => {
+    const url = this.apiUrl.build('rest/v1/settings', {
       select: '*',
       key: `in.(wassenger_api_key,wassenger_enabled,hr_email_notify_documents,hr_email_notify_disabilities,hr_email_notify_compensatory)`,
       order: 'key.asc',
-    },
-  }));
+    });
+    return {
+      url,
+      method: 'GET',
+    };
+  });
 
   constructor() {
     // Cargar valores cuando se obtengan las configuraciones
@@ -366,16 +370,11 @@ export class SettingsComponent {
       opts?.isEncrypted ?? (key.includes('api_key') || key.includes('password'));
 
     // Primero intentar actualizar
+    const url = this.apiUrl.build('rest/v1/settings', {
+      key: `eq.${key}`,
+    });
     this.http
-      .patch(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
-        { value },
-        {
-          params: {
-            key: `eq.${key}`,
-          },
-        }
-      )
+      .patch(url, { value })
       .subscribe({
         next: () => {
           this.messageService.add({
@@ -397,7 +396,7 @@ export class SettingsComponent {
           
           // Si no existe, crear
           this.http
-            .post(`${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`, {
+            .post(this.apiUrl.build('rest/v1/settings'), {
               key,
               value,
               category,

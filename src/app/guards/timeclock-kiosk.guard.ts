@@ -2,6 +2,7 @@ import { inject } from '@angular/core';
 import { CanActivateFn, Router, UrlTree } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { catchError, from, Observable, of, switchMap, timeout } from 'rxjs';
+import { ApiUrlService } from '../services/api-url.service';
 import { IpMonitorService } from '../services/ip-monitor.service';
 import { OrganizationService } from '../services/organization.service';
 import { Branch, NazBranch } from '../models';
@@ -15,6 +16,7 @@ import { Branch, NazBranch } from '../models';
 export const timeclockKioskGuard: CanActivateFn = (route, state): Observable<boolean | UrlTree> => {
   const router = inject(Router);
   const http = inject(HttpClient);
+  const apiUrl = inject(ApiUrlService);
   const ipMonitor = inject(IpMonitorService);
   const organizationService = inject(OrganizationService);
 
@@ -35,12 +37,11 @@ export const timeclockKioskGuard: CanActivateFn = (route, state): Observable<boo
   // Para Black Dog, validar IP como antes
   // Obtener IPs de sucursales activas desde la base de datos
   // El interceptor HTTP ya agrega los headers de Supabase automáticamente
-  return http.get<Branch[]>(`${process.env['ENV_SUPABASE_URL']}/rest/v1/branches`, {
-    params: {
-      select: 'ip',
-      is_active: 'eq.true'
-    }
-  }).pipe(
+  const url = apiUrl.build('rest/v1/branches', {
+    select: 'ip',
+    is_active: 'eq.true'
+  });
+  return http.get<Branch[]>(url).pipe(
     timeout(10000),
     switchMap((branches) => {
       // Extraer IPs de las sucursales, filtrando valores nulos o vacíos

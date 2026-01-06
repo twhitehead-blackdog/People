@@ -23,6 +23,7 @@ import { BaseChartDirective } from 'ng2-charts';
 import { CardModule } from 'primeng/card';
 import { DialogModule } from 'primeng/dialog';
 import { TooltipModule } from 'primeng/tooltip';
+import { ApiUrlService } from '../services/api-url.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
 import { OrganizationService } from '../services/organization.service';
@@ -4324,6 +4325,7 @@ export class HomeComponent {
   }
   public state = inject(DashboardStore);
   public employees = inject(EmployeesStore);
+  private apiUrl = inject(ApiUrlService);
   private organizationService = inject(OrganizationService);
 
   // Inicializar sidebar como abierto en desktop, cerrado en móvil
@@ -4346,7 +4348,7 @@ export class HomeComponent {
 
   // API resource para obtener todas las terminaciones (necesario para cálculo histórico)
   public terminationsApi = httpResource<any[]>(() => {
-    const baseUrl = process.env['ENV_SUPABASE_URL']!;
+    const baseUrl = this.apiUrl.baseUrl;
     // Obtener todas las terminaciones, no solo del mes actual
     const url = `${baseUrl}/rest/v1/terminations?select=date,reason,employee_id&order=date.asc`;
     return {
@@ -4446,7 +4448,7 @@ export class HomeComponent {
 
   // Calculate tardiness from timelogs + schedules (real-time, no need for attendance_sheets)
   public latesFromTimelogs = httpResource<any[]>(() => {
-    const baseUrl = process.env['ENV_SUPABASE_URL']!;
+    const baseUrl = this.apiUrl.baseUrl;
     // Rango en Panamá (no depende del timezone del dispositivo) y convertido a UTC ISO para PostgREST
     const { year, month, day } = this.getPanamaNowParts();
     const fromPanama = `${year}-${this.pad2(month)}-01T00:00:00-05:00`;
@@ -4484,7 +4486,7 @@ export class HomeComponent {
   });
 
   public employeeSchedules = httpResource<any[]>(() => {
-    const baseUrl = process.env['ENV_SUPABASE_URL']!;
+    const baseUrl = this.apiUrl.baseUrl;
     // Mes actual en Panamá (date-only), para que el mes no cambie por timezone del dispositivo
     const { year, month } = this.getPanamaNowParts();
     const daysInMonth = this.getDaysInMonth(year, month);
@@ -4561,7 +4563,7 @@ export class HomeComponent {
                 console.warn('  - Company ID:', companyId);
                 // No mostrar URL completa en producción para evitar exponer información de la base de datos
               if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                console.warn('  - URL completa:', `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules?select=*,schedule:schedules(*)&start_date=lte.${format(endOfMonth(new Date()), 'yyyy-MM-dd')}&end_date=gte.${format(startOfMonth(new Date()), 'yyyy-MM-dd')}&company_id=eq.${companyId}`);
+                console.warn('  - URL completa:', `${this.apiUrl.baseUrl}/rest/v1/employee_schedules?select=*,schedule:schedules(*)&start_date=lte.${format(endOfMonth(new Date()), 'yyyy-MM-dd')}&end_date=gte.${format(startOfMonth(new Date()), 'yyyy-MM-dd')}&company_id=eq.${companyId}`);
               }
                 console.warn('  - Posibles causas:');
                 console.warn('    1. No hay employee_schedules con este company_id');

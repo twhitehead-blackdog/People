@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { NgClass } from '@angular/common';
+import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
 import { DashboardStore } from '../stores/dashboard.store';
 
@@ -298,6 +299,7 @@ import { DashboardStore } from '../stores/dashboard.store';
 })
 export class AdminComponent implements OnInit, OnDestroy {
   private http = inject(HttpClient);
+  private apiUrl = inject(ApiUrlService);
   private refreshInterval?: number;
   private dropdownTimeout?: number;
   public organizationService = inject(OrganizationService);
@@ -316,15 +318,17 @@ export class AdminComponent implements OnInit, OnDestroy {
   public openDropdownId = signal<string | null>(null);
 
   // API para obtener mensajes sin leer para HR
-  public unreadMessagesApi = httpResource<any[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages`,
-    method: 'GET',
-    params: {
+  public unreadMessagesApi = httpResource<any[]>(() => {
+    const url = this.apiUrl.build('rest/v1/complaint_messages', {
       select: 'complaint_id',
       sender_type: 'eq.employee',
       is_read: 'eq.false',
-    },
-  }));
+    });
+    return {
+      url,
+      method: 'GET',
+    };
+  });
 
   // Contador de mensajes sin leer (únicos por complaint_id)
   public unreadCount = computed(() => {

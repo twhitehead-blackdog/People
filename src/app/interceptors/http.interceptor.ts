@@ -2,6 +2,8 @@ import { HttpInterceptorFn } from '@angular/common/http';
 import { inject, isDevMode } from '@angular/core';
 import { AuthService } from '@auth0/auth0-angular';
 import { catchError, finalize, switchMap, tap, throwError } from 'rxjs';
+import { ApiUrlService } from '../services/api-url.service';
+import { getEnv } from '../utils/env.utils';
 import { DiagnosticService } from '../services/diagnostic.service';
 
 // Detectar si estamos en desarrollo
@@ -12,13 +14,14 @@ const isDevelopment =
       window.location.hostname === '127.0.0.1'));
 
 export const httpInterceptor: HttpInterceptorFn = (req, next) => {
+  const apiUrl = inject(ApiUrlService);
   const diagnosticService = inject(DiagnosticService);
 
   if (req.url.includes('supabase')) {
     // Logging de métricas (solo en desarrollo)
     const startTime = isDevelopment ? performance.now() : null;
     const method = req.method;
-    const url = req.url.replace(process.env['ENV_SUPABASE_URL'] || '', '');
+    const url = req.url.replace(apiUrl.baseUrl || '', '');
     // Para peticiones a settings, job_applications, timeoffs, hr_messages, notifications y employee_disabilities,
     // usar service_role key para bypassar RLS
     // Para otras peticiones, usar anon key
@@ -41,13 +44,13 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
     // Para Service Role Key, intentar todas las variantes posibles
     // ENV_SUPABASE_TOKEN y ENV_SUPABASE_SERVICE_ROLE_KEY deberían ser la misma clave
     const supabaseKey = needsServiceRoleKey
-      ? process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'] ??
-        process.env['ENV_SUPABASE_TOKEN'] ??
-        process.env['ENV_SUPABASE_ANON_KEY'] ??
-        process.env['ENV_SUPABASE_API_KEY'] ??
+      ? getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') ||
+        getEnv('ENV_SUPABASE_TOKEN') ||
+        getEnv('ENV_SUPABASE_ANON_KEY') ||
+        getEnv('ENV_SUPABASE_API_KEY') ||
         ''
-      : process.env['ENV_SUPABASE_ANON_KEY'] ??
-        process.env['ENV_SUPABASE_API_KEY'] ??
+      : getEnv('ENV_SUPABASE_ANON_KEY') ||
+        getEnv('ENV_SUPABASE_API_KEY') ||
         '';
 
     // Si es una petición que necesita service role key y no hay disponible, mostrar error más claro

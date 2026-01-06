@@ -1,6 +1,7 @@
 import { HttpClient, HttpResponse } from '@angular/common/http';
 import { Injectable, inject, isDevMode, signal } from '@angular/core';
 import { catchError, finalize, of, switchMap, tap } from 'rxjs';
+import { ApiUrlService } from './api-url.service';
 
 /**
  * Sincroniza la hora del cliente con la hora del servidor usando el header HTTP `Date`.
@@ -13,6 +14,7 @@ import { catchError, finalize, of, switchMap, tap } from 'rxjs';
 })
 export class TimeSyncService {
   private http = inject(HttpClient);
+  private apiUrl = inject(ApiUrlService);
 
   private _offsetMs = signal<number>(0);
   private _initialized = signal<boolean>(false);
@@ -25,7 +27,7 @@ export class TimeSyncService {
   init(): void {
     if (this._initialized() || this.initializing) return;
 
-    const baseUrl = process.env['ENV_SUPABASE_URL'];
+    const baseUrl = this.apiUrl.baseUrl;
     // Nota: en navegador, el header `Date` de Supabase puede no ser legible por CORS.
     // Por eso intentamos primero Supabase directo (si funciona, genial) y si no,
     // usamos un endpoint same-origin (/api/server-time) que lee `Date` server-side.

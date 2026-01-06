@@ -3,11 +3,13 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { AuthService } from '@auth0/auth0-angular';
+import { ApiUrlService } from './services/api-url.service';
 import { IpMonitorService } from './services/ip-monitor.service';
 import { HttpClient } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { switchMap, catchError, of } from 'rxjs';
 import { Branch } from './models';
+import { getEnv } from './utils/env.utils';
 
 @Component({
   selector: 'pt-no-access',
@@ -91,10 +93,11 @@ import { Branch } from './models';
 })
 export class NoAccessComponent implements OnInit, OnDestroy {
   private auth = inject(AuthService);
+  private apiUrl = inject(ApiUrlService);
+  private http = inject(HttpClient);
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private ipMonitor = inject(IpMonitorService);
-  private http = inject(HttpClient);
   private destroyRef = inject(DestroyRef);
   
   title = signal<string>('Acceso restringido');
@@ -177,20 +180,18 @@ export class NoAccessComponent implements OnInit, OnDestroy {
     this.monitoringIP = true;
 
     // Obtener IPs permitidas desde la base de datos
-    this.http.get<Branch[]>(
-      `${process.env['ENV_SUPABASE_URL']}/rest/v1/branches`,
-      {
-        params: {
-          select: 'ip',
-          is_active: 'eq.true',
-          ip: 'not.is.null'
-        },
-        headers: {
-          'apikey': process.env['ENV_SUPABASE_ANON_KEY'] || process.env['ENV_SUPABASE_API_KEY'] || '',
-          'Authorization': `Bearer ${process.env['ENV_SUPABASE_ANON_KEY'] || process.env['ENV_SUPABASE_API_KEY'] || ''}`
-        }
+    const url = this.apiUrl.build('rest/v1/branches', {
+      select: 'ip',
+      is_active: 'eq.true',
+      ip: 'not.is.null'
+    });
+    const apiKey = getEnv('ENV_SUPABASE_ANON_KEY') || getEnv('ENV_SUPABASE_API_KEY') || '';
+    this.http.get<Branch[]>(url, {
+      headers: {
+        'apikey': apiKey,
+        'Authorization': `Bearer ${apiKey}`
       }
-    ).pipe(
+    }).pipe(
       takeUntilDestroyed(this.destroyRef),
       switchMap((branches) => {
         const allowedIPs = branches

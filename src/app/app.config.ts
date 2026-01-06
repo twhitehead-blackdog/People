@@ -5,6 +5,7 @@ import {
   importProvidersFrom,
   LOCALE_ID,
 } from '@angular/core';
+import { getEnv } from './utils/env.utils';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import {
   provideRouter,
@@ -62,13 +63,13 @@ export const appConfig: ApplicationConfig = {
       withInterceptors([apiUrlInterceptor, httpInterceptor, errorInterceptor])
     ),
     provideAuth0({
-      domain: process.env['ENV_AUTH0_DOMAIN'] ?? '',
-      clientId: process.env['ENV_AUTH0_CLIENT_ID'] ?? '',
+      domain: getEnv('ENV_AUTH0_DOMAIN') ?? '',
+      clientId: getEnv('ENV_AUTH0_CLIENT_ID') ?? '',
       authorizationParams: {
         // En desarrollo, siempre usar localhost para Auth0 (requisito de seguridad)
         // El servidor escucha en 0.0.0.0 para permitir acceso desde dispositivos móviles
-        redirect_uri: process.env['ENV_APP_URL'] || 'http://localhost:4200',
-        audience: process.env['ENV_AUTH0_AUDIENCE'] ?? '',
+        redirect_uri: getEnv('ENV_APP_URL') ?? 'http://localhost:4200',
+        audience: getEnv('ENV_AUTH0_AUDIENCE') ?? '',
       },
       useRefreshTokens: true,
       cacheLocation: 'localstorage',

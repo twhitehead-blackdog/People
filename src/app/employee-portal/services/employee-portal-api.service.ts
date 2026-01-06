@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { Employee, TimeOff } from '../../models';
+import { ApiUrlService } from '../../services/api-url.service';
 import { LoggerService } from '../../services/logger.service';
 import { OrganizationService } from '../../services/organization.service';
 
@@ -13,11 +14,12 @@ type TimeoffRequestPayload = Omit<TimeOff, 'date_from' | 'date_to'> & {
 @Injectable({ providedIn: 'root' })
 export class EmployeePortalApiService {
   private http = inject(HttpClient);
+  private apiUrl = inject(ApiUrlService);
   private logger = inject(LoggerService);
   private organizationService = inject(OrganizationService);
 
   private get baseUrl(): string {
-    const url = process.env['ENV_SUPABASE_URL'];
+    const url = this.apiUrl.baseUrl;
     if (!url) {
       const message = 'ENV_SUPABASE_URL no está configurada';
       this.logger.error('[EmployeePortalApiService]', message);
