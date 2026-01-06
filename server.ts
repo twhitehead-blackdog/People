@@ -1,8 +1,8 @@
 import dotenv from 'dotenv';
 import express from 'express';
 import nodemailer from 'nodemailer';
-import { Resend } from 'resend';
 import path from 'path';
+import { Resend } from 'resend';
 
 // Cargar variables de entorno desde .env
 dotenv.config();
@@ -175,14 +175,10 @@ export function app(): express.Express {
       if (resendApiKey) {
         try {
           const resend = new Resend(resendApiKey);
+          // Usar dominio de prueba de Resend por defecto (sin DKIM necesario)
           const noreplyEmail =
-            process.env['ENV_SMTP_NOREPLY_EMAIL'] ||
-            process.env['ENV_RESEND_FROM_EMAIL'] ||
-            'noreply@blackdogpanama.com';
-          const noreplyName =
-            process.env['ENV_SMTP_NOREPLY_NAME'] ||
-            process.env['ENV_RESEND_FROM_NAME'] ||
-            'Black Dog';
+            process.env['ENV_RESEND_FROM_EMAIL'] || 'onboarding@resend.dev';
+          const noreplyName = process.env['ENV_RESEND_FROM_NAME'] || 'People';
           const senderEmail = fromEmail || noreplyEmail;
           const senderName = fromName || noreplyName;
 
@@ -206,7 +202,10 @@ export function app(): express.Express {
 
           return res.json({ success: true, data: { messageId: data?.id } });
         } catch (resendError: any) {
-          safeLogger.error('❌ Error con Resend, intentando SMTP como fallback', resendError);
+          safeLogger.error(
+            '❌ Error con Resend, intentando SMTP como fallback',
+            resendError
+          );
           // Continuar con SMTP como fallback
         }
       }
@@ -465,32 +464,43 @@ export function app(): express.Express {
 
   // Servir archivos estáticos del frontend Angular
   const distFolder = path.join(__dirname, '../../dist/people/browser');
-  
+
   // Servir archivos estáticos con el prefijo /people-test
-  server.use('/people-test', express.static(distFolder, {
-    setHeaders: (res, filePath) => {
-      // Asegurar que los archivos JS se sirvan con el MIME type correcto
-      if (filePath.endsWith('.js')) {
-        res.setHeader('Content-Type', 'application/javascript; charset=UTF-8');
-      } else if (filePath.endsWith('.css')) {
-        res.setHeader('Content-Type', 'text/css; charset=UTF-8');
-      }
-    },
-    fallthrough: true, // Permitir que el catch-all maneje si no encuentra el archivo
-  }));
+  server.use(
+    '/people-test',
+    express.static(distFolder, {
+      setHeaders: (res, filePath) => {
+        // Asegurar que los archivos JS se sirvan con el MIME type correcto
+        if (filePath.endsWith('.js')) {
+          res.setHeader(
+            'Content-Type',
+            'application/javascript; charset=UTF-8'
+          );
+        } else if (filePath.endsWith('.css')) {
+          res.setHeader('Content-Type', 'text/css; charset=UTF-8');
+        }
+      },
+      fallthrough: true, // Permitir que el catch-all maneje si no encuentra el archivo
+    })
+  );
 
   // También servir desde la raíz (por si Traefik quita el prefijo)
   // Usar fallthrough: true para que si no encuentra el archivo, continúe al catch-all
-  server.use(express.static(distFolder, {
-    setHeaders: (res, filePath) => {
-      if (filePath.endsWith('.js')) {
-        res.setHeader('Content-Type', 'application/javascript; charset=UTF-8');
-      } else if (filePath.endsWith('.css')) {
-        res.setHeader('Content-Type', 'text/css; charset=UTF-8');
-      }
-    },
-    fallthrough: true, // Permitir que el catch-all maneje si no encuentra el archivo
-  }));
+  server.use(
+    express.static(distFolder, {
+      setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.js')) {
+          res.setHeader(
+            'Content-Type',
+            'application/javascript; charset=UTF-8'
+          );
+        } else if (filePath.endsWith('.css')) {
+          res.setHeader('Content-Type', 'text/css; charset=UTF-8');
+        }
+      },
+      fallthrough: true, // Permitir que el catch-all maneje si no encuentra el archivo
+    })
+  );
 
   // Catch-all route: enviar el index.html para cualquier ruta no API
   // Esto permite que Angular Router maneje las rutas del frontend
@@ -501,7 +511,7 @@ export function app(): express.Express {
       res.status(404).json({ error: 'API endpoint not found' });
       return;
     }
-    
+
     // Servir index.html para todas las demás rutas (SPA routing)
     res.sendFile(path.join(distFolder, 'index.html'), (err) => {
       if (err) {

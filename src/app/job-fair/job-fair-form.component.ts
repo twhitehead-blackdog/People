@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { httpResource } from '@angular/common/http';
+import { HttpClient, httpResource } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -32,9 +32,8 @@ import { ToastModule } from 'primeng/toast';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { firstValueFrom } from 'rxjs';
 import { EmailService } from '../services/email.service';
-import { PositionsStore } from '../stores/positions.store';
 import { OrganizationService } from '../services/organization.service';
-import { HttpClient } from '@angular/common/http';
+import { PositionsStore } from '../stores/positions.store';
 
 @Component({
   selector: 'pt-job-fair-form',
@@ -117,16 +116,14 @@ import { HttpClient } from '@angular/common/http';
               <div class="info-badge">
                 <i class="pi pi-calendar text-amber-400 mr-2"></i>
                 <span>
-                  @if (jobFairStartDate() && jobFairEndDate()) {
-                    Duración de la feria: del
-                    {{ formatInterviewDate(jobFairStartDate()!) }} al
-                    {{ formatInterviewDate(jobFairEndDate()!) }}
-                  } @else if (jobFairStartDate()) {
-                    La feria inicia el
-                    {{ formatInterviewDate(jobFairStartDate()!) }}
-                  } @else if (jobFairEndDate()) {
-                    La feria termina el
-                    {{ formatInterviewDate(jobFairEndDate()!) }}
+                  @if (jobFairStartDate() && jobFairEndDate()) { Duración de la
+                  feria: del
+                  {{ formatInterviewDate(jobFairStartDate()!) }} al
+                  {{ formatInterviewDate(jobFairEndDate()!) }}
+                  } @else if (jobFairStartDate()) { La feria inicia el
+                  {{ formatInterviewDate(jobFairStartDate()!) }}
+                  } @else if (jobFairEndDate()) { La feria termina el
+                  {{ formatInterviewDate(jobFairEndDate()!) }}
                   }
                 </span>
               </div>
@@ -335,7 +332,10 @@ import { HttpClient } from '@angular/common/http';
                   Aspiración Salarial (Opcional)
                 </label>
                 <div class="relative">
-                  <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-300 font-medium z-10 pointer-events-none">B/.</span>
+                  <span
+                    class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-300 font-medium z-10 pointer-events-none"
+                    >B/.</span
+                  >
                   <input
                     type="text"
                     id="salary_expectation"
@@ -1002,10 +1002,6 @@ export class JobFairFormComponent implements OnInit {
     try {
       const blackdogCompanyId = this.orgService.getBlackdogCompanyId();
       if (!blackdogCompanyId) {
-        // Solo log en desarrollo
-        if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-          console.warn('[JobFair] No se encontró company_id de Black Dog, cargando todas las posiciones...');
-        }
         this.positionsStore.reloadItems();
         return;
       }
@@ -1016,7 +1012,8 @@ export class JobFairFormComponent implements OnInit {
           `${process.env['ENV_SUPABASE_URL']}/rest/v1/positions`,
           {
             params: {
-              select: 'id,name,department_id,available_for_job_fair,admin,schedule_admin,schedule_approver,dashboard_access,default_view,department:departments(id, name)',
+              select:
+                'id,name,department_id,available_for_job_fair,admin,schedule_admin,schedule_approver,dashboard_access,default_view,department:departments(id, name)',
               company_id: `eq.${blackdogCompanyId}`,
               order: 'name',
             },
@@ -1030,10 +1027,6 @@ export class JobFairFormComponent implements OnInit {
       // Guardar las posiciones en un signal local para usar en availablePositions
       this.jobFairPositions.set(positions);
     } catch (error) {
-      // Solo log en desarrollo
-      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-        console.error('[JobFair] Error cargando posiciones de Black Dog:', error);
-      }
       // Fallback: cargar desde el store normal
       this.positionsStore.reloadItems();
     }
@@ -1217,7 +1210,6 @@ export class JobFairFormComponent implements OnInit {
 
       return { isDuplicate: false, message: '' };
     } catch (error: any) {
-      console.error('Error verificando duplicados:', error);
       // Si hay error en la verificación, permitir continuar pero mostrar advertencia
       return { isDuplicate: false, message: '' };
     }
@@ -1276,7 +1268,6 @@ export class JobFairFormComponent implements OnInit {
         resumeUrl = resumeResult.url;
         resumeFilename = resumeResult.path.split('/').pop() || null;
       } catch (uploadError: any) {
-        console.error('Error uploading resume:', uploadError);
         this.messageService.add({
           severity: 'error',
           summary: 'Error al subir CV',
@@ -1328,23 +1319,9 @@ export class JobFairFormComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (response) => {
-          // Solo log en desarrollo
-          if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-            console.log('[JobFair] Aplicación creada exitosamente:', response);
-          }
-
           // 4. Enviar notificaciones (opcional, puede fallar sin afectar el éxito)
-          this.sendNotifications(applicationData).catch((err) => {
+          this.sendNotifications(applicationData).catch(() => {
             // El formulario ya se guardó exitosamente, solo falló el envío de correo
-            const isTimeout = err?.error?.code === 'ETIMEDOUT' || err?.error?.message?.includes('timeout');
-            // Solo log en desarrollo
-            if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-              if (isTimeout) {
-                console.warn('[JobFair] No se pudo enviar el email de confirmación (timeout SMTP). La aplicación se guardó correctamente.');
-              } else {
-                console.warn('[JobFair] No se pudo enviar el email de confirmación. La aplicación se guardó correctamente.');
-              }
-            }
           });
 
           this.isSuccess.set(true);
@@ -1356,15 +1333,6 @@ export class JobFairFormComponent implements OnInit {
           this.isSubmitting.set(false);
         },
         error: (error: any) => {
-          // Solo log en desarrollo
-          if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-            console.error('[JobFair] Error submitting application:', error);
-            console.error('[JobFair] Error status:', error?.status);
-            console.error('[JobFair] Error message:', error?.message);
-            console.error('[JobFair] Error error:', error?.error);
-            console.error('[JobFair] Error completo:', JSON.stringify(error, null, 2));
-          }
-
           this.isSuccess.set(false);
 
           let errorMessage =
@@ -1423,7 +1391,10 @@ export class JobFairFormComponent implements OnInit {
       // Priorizar Service Role Key para bypass RLS, sino usar API Key pública
       // El Service Role Key bypassa todas las políticas RLS
       const serviceRoleKey = process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'];
-      const apiKey = process.env['ENV_SUPABASE_ANON_KEY'] || process.env['ENV_SUPABASE_API_KEY'] || '';
+      const apiKey =
+        process.env['ENV_SUPABASE_ANON_KEY'] ||
+        process.env['ENV_SUPABASE_API_KEY'] ||
+        '';
       const storageKey = serviceRoleKey || apiKey;
 
       if (!storageKey) {
@@ -1457,7 +1428,6 @@ export class JobFairFormComponent implements OnInit {
       };
     } catch (uploadError: any) {
       // Usar el mismo manejo de errores que el módulo de incapacidades
-      console.error('Error uploading file to storage:', uploadError);
       const errorDetail =
         uploadError?.error?.message ||
         uploadError?.error?.error ||
@@ -1552,26 +1522,9 @@ Black Dog`;
           fromName: 'Black Dog - Feria de Empleo', // Nombre personalizado para la feria
         })
       );
-      // Solo log en desarrollo
-      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-        console.log('[JobFair] Email de confirmación enviado al candidato:', candidateEmail);
-      }
-    } catch (error: any) {
+    } catch {
       // No fallar el proceso completo si el email falla
       // El formulario ya se guardó en la BD, solo falló la notificación
-      const errorMessage = error?.error?.message || error?.message || 'Error desconocido';
-      const isTimeout = error?.error?.code === 'ETIMEDOUT' || errorMessage.includes('timeout');
-      
-      // Solo log en desarrollo
-      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-        if (isTimeout) {
-          console.warn('[JobFair] No se pudo enviar el email de confirmación (timeout de conexión SMTP). La aplicación se guardó correctamente.');
-          console.warn('[JobFair] Esto puede deberse a problemas de red o configuración SMTP en el servidor.');
-        } else {
-          console.warn('[JobFair] No se pudo enviar el email de confirmación. La aplicación se guardó correctamente.');
-        }
-      }
-      // No lanzar el error - el formulario ya se guardó exitosamente
     }
 
     // 2. (Opcional) Enviar notificación interna a RRHH
@@ -1591,6 +1544,7 @@ Fecha: ${new Date().toLocaleString('es-PA')}
 
 Revisa la aplicación en el sistema de gestión.`;
 
+    // Por ahora se guarda el mensaje para futuros envíos internos
     // TODO: Opcional - Enviar email interno a RRHH también
   }
 
@@ -1605,27 +1559,30 @@ Revisa la aplicación en el sistema de gestión.`;
   onSalaryInput(event: Event) {
     const input = event.target as HTMLInputElement;
     let value = input.value;
-    
+
     // Permitir solo números, punto decimal y espacios (que se eliminarán)
     value = value.replace(/[^\d.]/g, '');
-    
+
     // Permitir solo un punto decimal
     const parts = value.split('.');
     if (parts.length > 2) {
       value = parts[0] + '.' + parts.slice(1).join('');
     }
-    
+
     // Limitar a 2 decimales
     if (parts.length === 2 && parts[1].length > 2) {
       value = parts[0] + '.' + parts[1].substring(0, 2);
     }
-    
+
     // Actualizar el valor del input
     input.value = value;
-    
+
     // Actualizar el FormControl
     const numValue = value === '' ? null : parseFloat(value);
-    this.applicationForm.patchValue({ salary_expectation: numValue }, { emitEvent: false });
+    this.applicationForm.patchValue(
+      { salary_expectation: numValue },
+      { emitEvent: false }
+    );
   }
 
   onSalaryBlur() {
@@ -1644,11 +1601,11 @@ Revisa la aplicación en el sistema de gestión.`;
   private parseLocalDateString(dateString: string): Date | null {
     const parts = dateString.split('-');
     if (parts.length !== 3) return null;
-    
+
     const year = parseInt(parts[0], 10);
     const month = parseInt(parts[1], 10) - 1; // Los meses en JS son 0-indexed
     const day = parseInt(parts[2], 10);
-    
+
     // Crear fecha en hora local (no UTC)
     return new Date(year, month, day);
   }

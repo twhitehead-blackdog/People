@@ -156,6 +156,7 @@ import { TooltipModule } from 'primeng/tooltip';
                 class="w-full"
                 timeOnly
                 hourFormat="12"
+                stepMinute="60"
                 placeholder="Hora inicio"
                 [showIcon]="true"
               />
@@ -171,6 +172,7 @@ import { TooltipModule } from 'primeng/tooltip';
                 class="w-full"
                 timeOnly
                 hourFormat="12"
+                stepMinute="60"
                 placeholder="Hora fin"
                 [showIcon]="true"
               />

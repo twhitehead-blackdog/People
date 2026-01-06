@@ -106,6 +106,15 @@ const initialState: EmployeePortalState = {
   },
 };
 
+const roundToHour = (date: Date | null): Date | null => {
+  if (!date) {
+    return null;
+  }
+  const rounded = new Date(date);
+  rounded.setMinutes(0, 0, 0);
+  return rounded;
+};
+
 export const EmployeePortalStore = signalStore({ providedIn: 'root' },
   withState(initialState),
   withComputed((state) => ({
@@ -358,7 +367,7 @@ export const EmployeePortalStore = signalStore({ providedIn: 'root' },
       patchState(state, {
         compensatoryForm: {
           ...state.compensatoryForm(),
-          compensatoryTimeStart: value,
+          compensatoryTimeStart: roundToHour(value),
         },
       });
     },
@@ -366,7 +375,7 @@ export const EmployeePortalStore = signalStore({ providedIn: 'root' },
       patchState(state, {
         compensatoryForm: {
           ...state.compensatoryForm(),
-          compensatoryTimeEnd: value,
+          compensatoryTimeEnd: roundToHour(value),
         },
       });
     },

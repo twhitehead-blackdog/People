@@ -338,7 +338,13 @@ export async function submitCompensatoryRequest(
       `;
 
       try {
-        await firstValueFrom(
+        console.log('[DEBUG Compensatory] Enviando email de notificación', {
+          to: ['Verley@blackdogpanama.com', 'soporte2@blackdogpanama.com'],
+          subject,
+          html,
+        });
+
+        const emailResponse = await firstValueFrom(
           http.post('/api/email/send', {
             to: ['Verley@blackdogpanama.com', 'soporte2@blackdogpanama.com'],
             subject,
@@ -346,10 +352,23 @@ export async function submitCompensatoryRequest(
             fromName: 'People - RRHH',
           })
         );
+
+        console.log(
+          '[DEBUG Compensatory] Email enviado correctamente',
+          emailResponse
+        );
       } catch (emailError) {
-        console.warn(
+        console.error(
           '[CompensatoryRequest] No se pudo enviar email a RRHH',
           emailError
+        );
+        console.error(
+          '[CompensatoryRequest] Detalles del payload enviado',
+          {
+            to: ['Verley@blackdogpanama.com', 'soporte2@blackdogpanama.com'],
+            subject,
+            html,
+          }
         );
       }
     }
