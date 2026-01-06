@@ -30,8 +30,10 @@ registerLocaleData(esLocale);
 
 import { Branch, Employee, VetBranchAssignment } from '../models';
 import { ApiUrlService } from '../services/api-url.service';
+import { OrganizationService } from '../services/organization.service';
 import { VetBranchAuditService } from '../services/vet-branch-audit.service';
 import { DashboardStore } from '../stores/dashboard.store';
+import { VetBranchCellComponent } from './vet-branch-cell.component';
 
 type VetWithAssignments = {
   employee: Employee;
@@ -46,9 +48,9 @@ type VetWithAssignments = {
     Button,
     NgClass,
     FormsModule,
-    DropdownModule,
     Tag,
     DatePipe,
+    VetBranchCellComponent,
   ],
   providers: [DynamicDialogRef, DialogService],
   templateUrl: './vet-schedule.component.html',
@@ -96,6 +98,7 @@ type VetWithAssignments = {
 export class VetScheduleComponent {
   private store = inject(DashboardStore);
   private http = inject(HttpClient);
+  private organizationService = inject(OrganizationService);
   private message = inject(MessageService);
   private dialogService = inject(DialogService);
   private apiUrl = inject(ApiUrlService);
@@ -107,6 +110,8 @@ export class VetScheduleComponent {
   assignments = signal<VetBranchAssignment[]>([]);
 
   // Computed signals
+  branches = computed(() => this.store.branches.entities());
+
   daysOfWeek = computed(() => {
     const start = this.currentWeekStart();
     const end = endOfWeek(start, { weekStartsOn: 1 });
@@ -175,7 +180,7 @@ export class VetScheduleComponent {
     const startDate = this.currentWeekStart();
     const endDate = endOfWeek(startDate, { weekStartsOn: 1 });
 
-    const companyId = this.store.currentEmployee()?.company_id;
+    const companyId = this.organizationService.getCurrentCompanyId();
     if (!companyId) {
       this.message.add({
         severity: 'error',
@@ -196,7 +201,8 @@ export class VetScheduleComponent {
           'date.gte': format(startDate, 'yyyy-MM-dd'),
           'date.lte': format(endDate, 'yyyy-MM-dd'),
           company_id: `eq.${companyId}`,
-          select: '*,branch:branches(id,name,short_name),employee:employees(id,first_name,father_name,position:positions(name))',
+          select:
+            '*,branch:branches(id,name,short_name),employee:employees(id,first_name,father_name,position:positions(name))',
         }),
         {}
       )
@@ -241,7 +247,7 @@ export class VetScheduleComponent {
       return;
     }
 
-    const companyId = this.store.currentEmployee()?.company_id;
+    const companyId = this.organizationService.getCurrentCompanyId();
     if (!companyId) {
       this.message.add({
         severity: 'error',
@@ -263,7 +269,9 @@ export class VetScheduleComponent {
 
     // Verificar si ya existe una asignación para este empleado en esta fecha
     const existingAssignment = this.assignments().find(
-      a => a.employee_id === employee.id && format(a.date, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
+      (a) =>
+        a.employee_id === employee.id &&
+        format(a.date, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
     );
 
     const assignmentData = {
@@ -277,7 +285,9 @@ export class VetScheduleComponent {
       // Actualizar asignación existente
       this.http
         .patch(
-          this.apiUrl.build('rest/v1/vet_branch_assignments', { id: `eq.${existingAssignment.id}` }),
+          this.apiUrl.build('rest/v1/vet_branch_assignments', {
+            id: `eq.${existingAssignment.id}`,
+          }),
           {
             branch_id: branch.id,
             updated_at: new Date().toISOString(),
@@ -287,7 +297,7 @@ export class VetScheduleComponent {
         .subscribe({
           next: () => {
             // Actualizar el estado local
-            const updatedAssignments = this.assignments().map(a =>
+            const updatedAssignments = this.assignments().map((a) =>
               a.id === existingAssignment.id
                 ? { ...a, branch_id: branch.id, branch, updated_at: new Date() }
                 : a
@@ -309,7 +319,9 @@ export class VetScheduleComponent {
               newBranchId: branch.id,
               oldValue: { branch_id: existingAssignment.branch_id },
               newValue: { branch_id: branch.id },
-              comment: `Cambio de sucursal: ${existingAssignment.branch?.short_name || 'N/A'} → ${branch.short_name}`,
+              comment: `Cambio de sucursal: ${
+                existingAssignment.branch?.short_name || 'N/A'
+              } → ${branch.short_name}`,
             });
           },
           error: (error) => {
@@ -390,7 +402,9 @@ export class VetScheduleComponent {
 
     // Buscar la asignación existente
     const existingAssignment = this.assignments().find(
-      a => a.employee_id === employee.id && format(a.date, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
+      (a) =>
+        a.employee_id === employee.id &&
+        format(a.date, 'yyyy-MM-dd') === format(date, 'yyyy-MM-dd')
     );
 
     if (!existingAssignment) {
@@ -405,13 +419,17 @@ export class VetScheduleComponent {
     // Eliminar la asignación
     this.http
       .delete(
-        this.apiUrl.build('rest/v1/vet_branch_assignments', { id: `eq.${existingAssignment.id}` }),
+        this.apiUrl.build('rest/v1/vet_branch_assignments', {
+          id: `eq.${existingAssignment.id}`,
+        }),
         {}
       )
       .subscribe({
         next: () => {
           // Remover del estado local
-          const updatedAssignments = this.assignments().filter(a => a.id !== existingAssignment.id);
+          const updatedAssignments = this.assignments().filter(
+            (a) => a.id !== existingAssignment.id
+          );
           this.assignments.set(updatedAssignments);
 
           this.message.add({
@@ -426,8 +444,13 @@ export class VetScheduleComponent {
             changedBy: currentEmployeeId,
             action: 'unassigned',
             oldBranchId: existingAssignment.branch_id,
-            oldValue: { branch_id: existingAssignment.branch_id, date: existingAssignment.date },
-            comment: `Remoción de asignación de sucursal: ${existingAssignment.branch?.short_name || 'N/A'}`,
+            oldValue: {
+              branch_id: existingAssignment.branch_id,
+              date: existingAssignment.date,
+            },
+            comment: `Remoción de asignación de sucursal: ${
+              existingAssignment.branch?.short_name || 'N/A'
+            }`,
           });
         },
         error: (error) => {
@@ -453,6 +476,40 @@ export class VetScheduleComponent {
     const startStr = format(start, 'dd MMM', { locale: es });
     const endStr = format(end, 'dd MMM yyyy', { locale: es });
     return `${startStr} - ${endStr}`;
+  }
+
+  // Manejadores de eventos del componente de celda
+  onEditAssignment(event: { assignment: VetBranchAssignment; date: Date }): void {
+    // Abrir diálogo para cambiar sucursal
+    this.message.add({
+      severity: 'info',
+      summary: 'Funcionalidad pendiente',
+      detail: 'Cambiar sucursal próximamente',
+    });
+  }
+
+  onDeleteAssignment(event: { assignment: VetBranchAssignment; date: Date }): void {
+    this.removeAssignment(event.assignment.employee!, event.date);
+  }
+
+  onAddAssignment(event: { employeeId: string; date: Date }): void {
+    const employee = this.store.employees.entities().find(e => e.id === event.employeeId);
+    if (employee) {
+      // Abrir diálogo para seleccionar sucursal
+      this.message.add({
+        severity: 'info',
+        summary: 'Funcionalidad pendiente',
+        detail: 'Seleccionar sucursal próximamente',
+      });
+    }
+  }
+
+  onViewAudit(event: { employeeId: string; date: Date }): void {
+    this.message.add({
+      severity: 'info',
+      summary: 'Funcionalidad pendiente',
+      detail: 'Vista de auditoría próximamente',
+    });
   }
 
   // Getter para acceder a funcionalidades del store desde el template

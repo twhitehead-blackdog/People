@@ -72,42 +72,17 @@
           <p-tag [value]="vetData.employee.position?.name" severity="info" />
         </td>
         @for(day of daysOfWeek(); track day){
-          <td class="branch-cell">
-            @let assignment = getAssignmentForDate(vetData.employee, day);
-            @if (assignment && assignment.branch) {
-              <div class="relative group">
-                <p-tag
-                  [value]="assignment.branch.short_name"
-                  severity="success"
-                  class="branch-tag cursor-pointer"
-                  title="{{ assignment.branch.name }} - {{ assignment.employee?.first_name }}"
-                />
-                @if (isAdmin) {
-                  <button
-                    class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                    (click)="removeAssignment(vetData.employee, day)"
-                    title="Remover asignación"
-                  >
-                    ×
-                  </button>
-                }
-              </div>
-            } @else {
-              @if (isAdmin) {
-                <div class="relative">
-                  <p-dropdown
-                    [options]="store.branches.entities()"
-                    optionLabel="short_name"
-                    placeholder="+"
-                    class="w-12 h-6 text-xs"
-                    (onChange)="assignBranch(vetData.employee, day, $event.value)"
-                    appendTo="body"
-                  />
-                </div>
-              } @else {
-                <span class="text-gray-400 text-sm">-</span>
-              }
-            }
+          <td class="text-center">
+            <pt-vet-branch-cell
+              [assignment]="getAssignmentForDate(vetData.employee, day)"
+              [date]="day"
+              [employeeId]="vetData.employee.id"
+              [canManage]="isAdmin"
+              (edit)="onEditAssignment($event)"
+              (delete)="onDeleteAssignment($event)"
+              (add)="onAddAssignment($event)"
+              (viewAudit)="onViewAudit($event)"
+            />
           </td>
         }
       </tr>

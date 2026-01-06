@@ -138,15 +138,15 @@ export class VetBranchAuditService {
     }
 
     if (params.actions && params.actions.length > 0) {
-      queryParams.action = `in.(${params.actions.join(',')})`;
+      queryParams['action'] = `in.(${params.actions.join(',')})`;
     }
 
     if (params.limit) {
-      queryParams.limit = params.limit.toString();
+      queryParams['limit'] = params.limit.toString();
     }
 
     if (params.offset) {
-      queryParams.offset = params.offset.toString();
+      queryParams['offset'] = params.offset.toString();
     }
 
     return this.http.get<VetBranchAuditLog[]>(
