@@ -280,6 +280,18 @@ export type EmployeeSchedule = {
   company_id?: string;
 };
 
+export type VetBranchAssignment = {
+  id: string;
+  employee_id: string;
+  branch_id: string;
+  date: Date;
+  created_at?: Date;
+  updated_at?: Date;
+  company_id?: string;
+  branch?: Branch;
+  employee?: Employee;
+};
+
 export type PayrollDebt = {
   id: string;
   payroll_id: string;

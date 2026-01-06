@@ -4,102 +4,121 @@
       <div>
         <h2 class="vet-schedule-title">Horario Veterinarios</h2>
         <p class="vet-schedule-subtitle">
-          Gestión de horarios de médicos veterinarios por sucursal
+          Asignación de sucursales por día para médicos veterinarios
         </p>
       </div>
-      <div class="flex gap-2">
-        <p-dropdown
-          [options]="branches()"
-          optionLabel="name"
-          optionValue="id"
-          placeholder="Seleccionar sucursal"
-          [(ngModel)]="selectedBranchId"
-          (onChange)="onBranchChange()"
-          class="w-48"
+      <div class="week-navigation">
+        <p-button
+          icon="pi pi-chevron-left"
+          severity="secondary"
+          rounded
+          text
+          (onClick)="goToPreviousWeek()"
+          pTooltip="Semana anterior"
+        />
+        <p-button
+          [label]="getCurrentWeekLabel()"
+          severity="secondary"
+          rounded
+          text
+          (onClick)="goToCurrentWeek()"
+          pTooltip="Ir a semana actual"
+        />
+        <p-button
+          icon="pi pi-chevron-right"
+          severity="secondary"
+          rounded
+          text
+          (onClick)="goToNextWeek()"
+          pTooltip="Semana siguiente"
         />
       </div>
     </div>
   </ng-template>
 
-  @if (selectedBranchId()) {
-    <p-table
-      [value]="vetEmployees()"
-      [rows]="10"
-      [rowsPerPageOptions]="[10, 20, 50]"
-      sortField="first_name"
-      paginator
-      paginatorDropdownAppendTo="body"
-    >
-      <ng-template #header>
-        <tr>
-          <th pSortableColumn="employee_number">
-            N° Empleado<p-sortIcon field="employee_number" />
+  <p-table
+    [value]="vetEmployeesWithAssignments()"
+    [scrollable]="true"
+    scrollHeight="600px"
+    [tableStyle]="{ 'min-width': '50rem' }"
+  >
+    <ng-template #header>
+      <tr>
+        <th pFrozenColumn style="min-width: 200px;">Nombre</th>
+        <th pFrozenColumn style="min-width: 150px;">Cargo</th>
+        @for(day of daysOfWeek(); track day){
+          <th class="branch-cell">
+            <div class="flex flex-col items-center gap-0 leading-[1.1]">
+              <span class="text-xs font-bold uppercase">{{
+                day | date : 'EEE' : undefined : 'es'
+              }}</span>
+              <span class="text-[10px]">{{
+                day | date : 'd MMM' : undefined : 'es'
+              }}</span>
+            </div>
           </th>
-          <th pSortableColumn="full_name">
-            Nombre<p-sortIcon field="full_name" />
-          </th>
-          <th pSortableColumn="position.name">
-            Cargo<p-sortIcon field="position.name" />
-          </th>
-          <th>Horario Actual</th>
-          <th></th>
-        </tr>
-      </ng-template>
-      <ng-template #body let-employee>
-        <tr>
-          <td>{{ employee.employee_number }}</td>
-          <td>{{ employee.first_name }} {{ employee.father_name }}</td>
-          <td>
-            <p-tag [value]="employee.position?.name" severity="info" />
-          </td>
-          <td>
-            @if (getCurrentSchedule(employee)) {
-              <p-tag
-                [value]="getCurrentSchedule(employee)?.name"
-                severity="success"
-              />
-            }             @else {
-              <p-tag value="Sin horario" severity="warn" />
+        }
+      </tr>
+    </ng-template>
+
+    <ng-template #body let-vetData>
+      <tr>
+        <td pFrozenColumn>
+          <div class="font-medium">
+            {{ getEmployeeFullName(vetData.employee) }}
+          </div>
+        </td>
+        <td pFrozenColumn>
+          <p-tag [value]="vetData.employee.position?.name" severity="info" />
+        </td>
+        @for(day of daysOfWeek(); track day){
+          <td class="branch-cell">
+            @let assignment = getAssignmentForDate(vetData.employee, day);
+            @if (assignment && assignment.branch) {
+              <div class="relative group">
+                <p-tag
+                  [value]="assignment.branch.short_name"
+                  severity="success"
+                  class="branch-tag cursor-pointer"
+                  title="{{ assignment.branch.name }} - {{ assignment.employee?.first_name }}"
+                />
+                @if (isAdmin) {
+                  <button
+                    class="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                    (click)="removeAssignment(vetData.employee, day)"
+                    title="Remover asignación"
+                  >
+                    ×
+                  </button>
+                }
+              </div>
+            } @else {
+              @if (isAdmin) {
+                <div class="relative">
+                  <p-dropdown
+                    [options]="store.branches.entities()"
+                    optionLabel="short_name"
+                    placeholder="+"
+                    class="w-12 h-6 text-xs"
+                    (onChange)="assignBranch(vetData.employee, day, $event.value)"
+                    appendTo="body"
+                  />
+                </div>
+              } @else {
+                <span class="text-gray-400 text-sm">-</span>
+              }
             }
           </td>
-          <td>
-            <div class="flex gap-2 items-center">
-              <p-button
-                severity="success"
-                icon="pi pi-calendar-plus"
-                text
-                rounded
-                (onClick)="assignSchedule(employee)"
-                pTooltip="Asignar horario"
-              />
-              <p-button
-                severity="info"
-                icon="pi pi-eye"
-                text
-                rounded
-                (onClick)="viewSchedule(employee)"
-                pTooltip="Ver horario actual"
-              />
-            </div>
-          </td>
-        </tr>
-      </ng-template>
-      <ng-template #emptymessage>
-        <tr>
-          <td colspan="5" class="text-center py-8">
-            <p class="text-gray-400">
-              No hay empleados veterinarios en esta sucursal
-            </p>
-          </td>
-        </tr>
-      </ng-template>
-    </p-table>
-  } @else {
-    <div class="empty-state">
-      <i class="pi pi-building empty-state-icon"></i>
-      <p class="empty-state-text">
-        Selecciona una sucursal para ver los horarios veterinarios
-      </p>
-    </div>
-  }
+        }
+      </tr>
+    </ng-template>
+
+    <ng-template #emptymessage>
+      <tr>
+        <td [colSpan]="daysOfWeek().length + 2" class="text-center py-8">
+          <p class="text-gray-400">No hay empleados veterinarios registrados</p>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
 </p-card>
