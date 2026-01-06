@@ -1,22 +1,24 @@
 import { Component, inject, input, output } from '@angular/core';
+import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { DropdownModule } from 'primeng/dropdown';
 
-import { Branch, Employee } from '../models';
+import { Employee } from '../models';
 import { DashboardStore } from '../stores/dashboard.store';
 
 @Component({
   selector: 'pt-vet-branch-selection-dialog',
   standalone: true,
-  imports: [DialogModule, DropdownModule, Button, FormsModule],
+  imports: [DialogModule, DropdownModule, Button, FormsModule, DatePipe],
   template: `
     <p-dialog
       header="Seleccionar Sucursal"
       [modal]="true"
       [closable]="true"
-      [(visible)]="visible"
+      [visible]="visible()"
+      (visibleChange)="visibleChange.emit($event)"
       [style]="{ width: '400px' }"
     >
       <div class="p-4">
@@ -42,6 +44,10 @@ import { DashboardStore } from '../stores/dashboard.store';
             placeholder="Seleccione una sucursal"
             class="w-full"
             [showClear]="true"
+            appendTo="body"
+            [panelStyle]="{'max-height': '200px'}"
+            [virtualScroll]="true"
+            [virtualScrollItemSize]="35"
           />
         </div>
 
@@ -71,6 +77,7 @@ export class VetBranchSelectionDialogComponent {
   date = input<Date | undefined>();
 
   // Outputs
+  visibleChange = output<boolean>();
   confirm = output<string>();
   cancel = output<void>();
 
@@ -83,11 +90,18 @@ export class VetBranchSelectionDialogComponent {
   confirmSelection(): void {
     if (this.selectedBranchId) {
       this.confirm.emit(this.selectedBranchId);
+      this.closeDialog();
     }
   }
 
   cancelSelection(): void {
     this.selectedBranchId = null;
     this.cancel.emit();
+    this.closeDialog();
+  }
+
+  private closeDialog(): void {
+    this.selectedBranchId = null;
+    this.visibleChange.emit(false);
   }
 }

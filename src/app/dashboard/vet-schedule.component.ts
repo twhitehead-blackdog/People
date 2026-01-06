@@ -107,7 +107,7 @@ export class VetScheduleComponent {
   private ref = inject(DynamicDialogRef);
 
   // Estado del componente
-  currentWeekStart = signal<Date>(startOfWeek(new Date(), { weekStartsOn: 1 })); // Lunes
+  currentWeekStart = signal<Date>(startOfWeek(new Date(), { weekStartsOn: 0 })); // Domingo
   assignments = signal<VetBranchAssignment[]>([]);
 
   // Estado del diálogo
@@ -121,7 +121,7 @@ export class VetScheduleComponent {
 
   daysOfWeek = computed(() => {
     const start = this.currentWeekStart();
-    const end = endOfWeek(start, { weekStartsOn: 1 });
+    const end = endOfWeek(start, { weekStartsOn: 0 });
     return eachDayOfInterval({ start, end });
   });
 
@@ -178,14 +178,14 @@ export class VetScheduleComponent {
   }
 
   goToCurrentWeek(): void {
-    this.currentWeekStart.set(startOfWeek(new Date(), { weekStartsOn: 1 }));
+    this.currentWeekStart.set(startOfWeek(new Date(), { weekStartsOn: 0 }));
     this.loadAssignments();
   }
 
   // Cargar asignaciones desde la API
   private loadAssignments(): void {
     const startDate = this.currentWeekStart();
-    const endDate = endOfWeek(startDate, { weekStartsOn: 1 });
+    const endDate = endOfWeek(startDate, { weekStartsOn: 0 });
 
     const companyId = this.organizationService.getCurrentCompanyId();
     if (!companyId) {
@@ -479,7 +479,7 @@ export class VetScheduleComponent {
   // Obtener semana actual formateada
   getCurrentWeekLabel(): string {
     const start = this.currentWeekStart();
-    const end = endOfWeek(start, { weekStartsOn: 1 });
+    const end = endOfWeek(start, { weekStartsOn: 0 });
     const startStr = format(start, 'dd MMM', { locale: es });
     const endStr = format(end, 'dd MMM yyyy', { locale: es });
     return `${startStr} - ${endStr}`;
@@ -532,7 +532,9 @@ export class VetScheduleComponent {
     const assignment = this.selectedAssignment();
 
     if (employee && date) {
-      const selectedBranch = this.store.branches.entities().find(b => b.id === selectedBranchId);
+      const selectedBranch = this.store.branches
+        .entities()
+        .find((b) => b.id === selectedBranchId);
       if (selectedBranch) {
         this.assignBranch(employee, date, selectedBranch);
       }

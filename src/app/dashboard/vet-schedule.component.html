@@ -102,6 +102,7 @@
     [visible]="dialogVisible()"
     [employee]="selectedEmployee()"
     [date]="selectedDate()"
+    (visibleChange)="dialogVisible.set($event)"
     (confirm)="onDialogConfirm($event)"
     (cancel)="onDialogCancel()"
   />
