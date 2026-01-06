@@ -78,6 +78,8 @@
               [date]="day"
               [employeeId]="vetData.employee.id"
               [canManage]="isAdmin"
+              [isNonWorking]="isNonWorking(vetData.employee.id, day)"
+              [nonWorkingLabel]="getNonWorkingLabel(vetData.employee.id, day)"
               (edit)="onEditAssignment($event)"
               (delete)="onDeleteAssignment($event)"
               (add)="onAddAssignment($event)"

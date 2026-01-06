@@ -109,6 +109,7 @@ export class VetScheduleComponent {
   // Estado del componente
   currentWeekStart = signal<Date>(startOfWeek(new Date(), { weekStartsOn: 0 })); // Domingo
   assignments = signal<VetBranchAssignment[]>([]);
+  nonWorkingMap = signal<Record<string, string>>({});
 
   // Estado del diálogo
   dialogVisible = signal<boolean>(false);
@@ -170,16 +171,25 @@ export class VetScheduleComponent {
   goToPreviousWeek(): void {
     this.currentWeekStart.set(addDays(this.currentWeekStart(), -7));
     this.loadAssignments();
+    this.loadNonWorkingDays();
   }
 
   goToNextWeek(): void {
     this.currentWeekStart.set(addDays(this.currentWeekStart(), 7));
     this.loadAssignments();
+    this.loadNonWorkingDays();
   }
 
   goToCurrentWeek(): void {
     this.currentWeekStart.set(startOfWeek(new Date(), { weekStartsOn: 0 }));
     this.loadAssignments();
+    this.loadNonWorkingDays();
+  }
+
+  constructor() {
+    // Carga inicial
+    this.loadAssignments();
+    this.loadNonWorkingDays();
   }
 
   // Cargar asignaciones desde la API
@@ -228,6 +238,88 @@ export class VetScheduleComponent {
       });
   }
 
+  /**
+   * Cargar días no laborables desde Turnos:
+   * employee_schedules donde schedule.day_off = true y el rango intersecta la semana actual.
+   * Bloquea asignación de sucursal en esos días.
+   */
+  private loadNonWorkingDays(): void {
+    const startDate = this.currentWeekStart();
+    const endDate = endOfWeek(startDate, { weekStartsOn: 0 });
+
+    const companyId = this.organizationService.getCurrentCompanyId();
+    if (!companyId) {
+      this.nonWorkingMap.set({});
+      return;
+    }
+
+    const vetIds = this.store.employees
+      .entities()
+      .filter((e) => e.is_active && this.isVetPosition(e))
+      .map((e) => e.id);
+
+    if (vetIds.length === 0) {
+      this.nonWorkingMap.set({});
+      return;
+    }
+
+    // Overlap de rangos: start_date <= endDate AND end_date >= startDate
+    const and = `(start_date.lte.${format(endDate, 'yyyy-MM-dd')},end_date.gte.${format(startDate, 'yyyy-MM-dd')})`;
+
+    this.http
+      .get<any[]>(
+        this.apiUrl.build('rest/v1/employee_schedules', {
+          company_id: `eq.${companyId}`,
+          employee_id: `in.(${vetIds.join(',')})`,
+          and,
+          select: 'employee_id,start_date,end_date,schedule:schedules(day_off,name)',
+        }),
+        {}
+      )
+      .subscribe({
+        next: (rows) => {
+          const map: Record<string, string> = {};
+          const days = eachDayOfInterval({ start: startDate, end: endDate });
+
+          for (const row of rows || []) {
+            const schedule = row.schedule;
+            if (!schedule?.day_off) continue;
+
+            const rowStart = new Date(row.start_date);
+            const rowEnd = new Date(row.end_date);
+
+            for (const d of days) {
+              const dStr = format(d, 'yyyy-MM-dd');
+              // Comparación inclusive
+              if (d >= rowStart && d <= rowEnd) {
+                const key = `${row.employee_id}|${dStr}`;
+                // Si hay varias, deja la primera
+                if (!map[key]) {
+                  map[key] = schedule.name || 'NO LABORA';
+                }
+              }
+            }
+          }
+
+          this.nonWorkingMap.set(map);
+        },
+        error: (error) => {
+          console.error('[VetSchedule] Error loading non-working days:', error);
+          this.nonWorkingMap.set({});
+        },
+      });
+  }
+
+  isNonWorking(employeeId: string, date: Date): boolean {
+    const key = `${employeeId}|${format(date, 'yyyy-MM-dd')}`;
+    return !!this.nonWorkingMap()[key];
+  }
+
+  getNonWorkingLabel(employeeId: string, date: Date): string | null {
+    const key = `${employeeId}|${format(date, 'yyyy-MM-dd')}`;
+    return this.nonWorkingMap()[key] ?? null;
+  }
+
   // Obtener asignación para empleado y fecha específica
   getAssignmentForDate(
     employee: Employee,
@@ -264,7 +356,7 @@ export class VetScheduleComponent {
     }
     const currentEmployeeId = this.store.currentEmployee()?.id;
 
-    if (!companyId || !currentEmployeeId) {
+    if (!currentEmployeeId) {
       this.message.add({
         severity: 'error',
         summary: 'Error',
@@ -273,7 +365,7 @@ export class VetScheduleComponent {
       return;
     }
 
-    // Verificar si ya existe una asignación para este empleado en esta fecha
+    // Buscar asignación actual (para auditoría/UX)
     const existingAssignment = this.assignments().find(
       (a) =>
         a.employee_id === employee.id &&
@@ -287,102 +379,74 @@ export class VetScheduleComponent {
       company_id: companyId,
     };
 
-    if (existingAssignment) {
-      // Actualizar asignación existente
-      this.http
-        .patch(
-          this.apiUrl.build('rest/v1/vet_branch_assignments', {
-            id: `eq.${existingAssignment.id}`,
-          }),
-          {
-            branch_id: branch.id,
-            updated_at: new Date().toISOString(),
+    // UPSERT para evitar 409 (unique: company_id, employee_id, date)
+    // PostgREST: on_conflict y Prefer: resolution=merge-duplicates
+    this.http
+      .post(
+        this.apiUrl.build('rest/v1/vet_branch_assignments', {
+          on_conflict: 'company_id,employee_id,date',
+          select:
+            '*,branch:branches(id,name,short_name),employee:employees(id,first_name,father_name,position:positions(name))',
+        }),
+        assignmentData,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Prefer: 'resolution=merge-duplicates,return=representation',
           },
-          {}
-        )
-        .subscribe({
-          next: () => {
-            // Actualizar el estado local
-            const updatedAssignments = this.assignments().map((a) =>
-              a.id === existingAssignment.id
-                ? { ...a, branch_id: branch.id, branch, updated_at: new Date() }
-                : a
-            );
-            this.assignments.set(updatedAssignments);
-
-            this.message.add({
-              severity: 'success',
-              summary: 'Actualizado',
-              detail: `Sucursal actualizada para ${employee.first_name} ${employee.father_name}`,
-            });
-
-            // Registrar en auditoría
-            this.auditService.logChange({
-              vetBranchAssignmentId: existingAssignment.id,
-              changedBy: currentEmployeeId,
-              action: 'updated',
-              oldBranchId: existingAssignment.branch_id,
-              newBranchId: branch.id,
-              oldValue: { branch_id: existingAssignment.branch_id },
-              newValue: { branch_id: branch.id },
-              comment: `Cambio de sucursal: ${
-                existingAssignment.branch?.short_name || 'N/A'
-              } → ${branch.short_name}`,
-            });
-          },
-          error: (error) => {
-            console.error('[VetSchedule] Error updating assignment:', error);
-            this.message.add({
-              severity: 'error',
-              summary: 'Error',
-              detail: 'Error al actualizar la asignación',
-            });
-          },
-        });
-    } else {
-      // Crear nueva asignación
-      this.http
-        .post(
-          this.apiUrl.build('rest/v1/vet_branch_assignments'),
-          assignmentData,
-          {
-            headers: {
-              'Content-Type': 'application/json',
-              Prefer: 'return=representation',
-            },
+        }
+      )
+      .subscribe({
+        next: (resp: any) => {
+          const saved = Array.isArray(resp) ? resp[0] : resp;
+          if (!saved?.id) {
+            // Fallback: recargar
+            this.loadAssignments();
+            return;
           }
-        )
-        .subscribe({
-          next: (created: any) => {
-            // Agregar al estado local
-            this.assignments.set([...this.assignments(), created[0]]);
 
-            this.message.add({
-              severity: 'success',
-              summary: 'Asignado',
-              detail: `Sucursal asignada para ${employee.first_name} ${employee.father_name}`,
-            });
+          // Actualizar estado local: reemplazar si existe, si no agregar
+          const withoutOld = this.assignments().filter((a) => a.id !== saved.id);
+          this.assignments.set([...withoutOld, saved]);
 
-            // Registrar en auditoría
-            this.auditService.logChange({
-              vetBranchAssignmentId: created[0].id,
-              changedBy: currentEmployeeId,
-              action: 'assigned',
-              newBranchId: branch.id,
-              newValue: assignmentData,
-              comment: `Asignación inicial de sucursal: ${branch.short_name}`,
-            });
-          },
-          error: (error) => {
-            console.error('[VetSchedule] Error creating assignment:', error);
-            this.message.add({
-              severity: 'error',
-              summary: 'Error',
-              detail: 'Error al crear la asignación',
-            });
-          },
-        });
-    }
+          const wasUpdate =
+            !!existingAssignment && existingAssignment.branch_id !== branch.id;
+
+          this.message.add({
+            severity: 'success',
+            summary: wasUpdate ? 'Actualizado' : 'Asignado',
+            detail: wasUpdate
+              ? `Sucursal actualizada para ${employee.first_name} ${employee.father_name}`
+              : `Sucursal asignada para ${employee.first_name} ${employee.father_name}`,
+          });
+
+          // Auditoría
+          this.auditService.logChange({
+            vetBranchAssignmentId: saved.id,
+            changedBy: currentEmployeeId,
+            action: wasUpdate ? 'updated' : 'assigned',
+            oldBranchId: existingAssignment?.branch_id,
+            newBranchId: branch.id,
+            oldValue: existingAssignment
+              ? { branch_id: existingAssignment.branch_id }
+              : null,
+            newValue: { ...assignmentData },
+            comment: wasUpdate
+              ? `Cambio de sucursal: ${
+                  existingAssignment?.branch?.short_name || 'N/A'
+                } → ${branch.short_name}`
+              : `Asignación inicial de sucursal: ${branch.short_name}`,
+          });
+        },
+        error: (error) => {
+          console.error('[VetSchedule] Error upserting assignment:', error);
+          this.message.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Error al guardar la asignación',
+          });
+        },
+      });
   }
 
   // Remover asignación

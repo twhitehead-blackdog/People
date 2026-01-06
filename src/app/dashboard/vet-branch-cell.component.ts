@@ -10,7 +10,26 @@ import { Tooltip } from 'primeng/tooltip';
   standalone: true,
   imports: [NgClass, DatePipe, Button, Popover, Tooltip],
   template: `
-    @if (assignment(); as assignmentValue) {
+    @if (isNonWorking()) {
+      <div
+        class="inline-flex gap-1 py-0.5 px-1.5 rounded-sm font-medium items-center justify-center text-[11px] border border-black/20 shadow-sm bg-neutral-700 text-gray-200 opacity-90"
+        [pTooltip]="nonWorkingTooltip"
+        tooltipPosition="top"
+      >
+        <span class="truncate max-w-[65px] font-semibold leading-tight">
+          {{ nonWorkingLabel() || 'NO LABORA' }}
+        </span>
+      </div>
+      <ng-template #nonWorkingTooltip>
+        <div class="flex flex-col gap-1">
+          <div class="font-bold">{{ nonWorkingLabel() || 'No laborable' }}</div>
+          <div>
+            Fecha: <span class="font-bold">{{ date() | date : 'dd/MM/yyyy' }}</span>
+          </div>
+          <div class="italic">No se puede asignar sucursal este día.</div>
+        </div>
+      </ng-template>
+    } @else if (assignment(); as assignmentValue) {
       <div
         class="inline-flex gap-1 py-0.5 px-1.5 rounded-sm font-medium items-center justify-center text-[11px] cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-md border border-black/20 shadow-sm bg-green-600 text-green-100 opacity-80 hover:opacity-100"
         [pTooltip]="tooltipContent"
@@ -87,6 +106,8 @@ export class VetBranchCellComponent {
   public date = input.required<Date>();
   public employeeId = input.required<string>();
   public canManage = input.required<boolean>();
+  public isNonWorking = input<boolean>(false);
+  public nonWorkingLabel = input<string | null>(null);
 
   // Outputs
   public edit = output<{ assignment: VetBranchAssignment; date: Date }>();
