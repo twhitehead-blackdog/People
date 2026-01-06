@@ -25,11 +25,12 @@ export class DiagnosticService {
   private maxErrors = 100; // Mantener solo los últimos 100 errores
 
   // Guardar referencias originales de console para evitar loops infinitos
-  private originalConsoleError: typeof console.error;
-  private originalConsoleWarn: typeof console.warn;
+  private originalConsoleError: typeof console.error = console.error.bind(console);
+  private originalConsoleWarn: typeof console.warn = console.warn.bind(console);
 
   constructor() {
     // Guardar referencias ANTES de interceptar para evitar loops infinitos
+    // (Ya inicializadas en la declaración, pero las reasignamos por si acaso)
     if (typeof window !== 'undefined') {
       this.originalConsoleError = console.error.bind(console);
       this.originalConsoleWarn = console.warn.bind(console);
