@@ -96,4 +96,13 @@
       </tr>
     </ng-template>
   </p-table>
+
+  <!-- Diálogo de selección de sucursal -->
+  <pt-vet-branch-selection-dialog
+    [visible]="dialogVisible()"
+    [employee]="selectedEmployee()"
+    [date]="selectedDate()"
+    (confirm)="onDialogConfirm($event)"
+    (cancel)="onDialogCancel()"
+  />
 </p-card>

@@ -20,7 +20,6 @@ import { es } from 'date-fns/locale';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
-import { DropdownModule } from 'primeng/dropdown';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
@@ -34,6 +33,7 @@ import { OrganizationService } from '../services/organization.service';
 import { VetBranchAuditService } from '../services/vet-branch-audit.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { VetBranchCellComponent } from './vet-branch-cell.component';
+import { VetBranchSelectionDialogComponent } from './vet-branch-selection-dialog.component';
 
 type VetWithAssignments = {
   employee: Employee;
@@ -51,6 +51,7 @@ type VetWithAssignments = {
     Tag,
     DatePipe,
     VetBranchCellComponent,
+    VetBranchSelectionDialogComponent,
   ],
   providers: [DynamicDialogRef, DialogService],
   templateUrl: './vet-schedule.component.html',
@@ -108,6 +109,12 @@ export class VetScheduleComponent {
   // Estado del componente
   currentWeekStart = signal<Date>(startOfWeek(new Date(), { weekStartsOn: 1 })); // Lunes
   assignments = signal<VetBranchAssignment[]>([]);
+
+  // Estado del diálogo
+  dialogVisible = signal<boolean>(false);
+  selectedEmployee = signal<Employee | undefined>(undefined);
+  selectedDate = signal<Date | undefined>(undefined);
+  selectedAssignment = signal<VetBranchAssignment | undefined>(undefined);
 
   // Computed signals
   branches = computed(() => this.store.branches.entities());
@@ -479,28 +486,34 @@ export class VetScheduleComponent {
   }
 
   // Manejadores de eventos del componente de celda
-  onEditAssignment(event: { assignment: VetBranchAssignment; date: Date }): void {
+  onEditAssignment(event: {
+    assignment: VetBranchAssignment;
+    date: Date;
+  }): void {
     // Abrir diálogo para cambiar sucursal
-    this.message.add({
-      severity: 'info',
-      summary: 'Funcionalidad pendiente',
-      detail: 'Cambiar sucursal próximamente',
-    });
+    this.selectedEmployee.set(event.assignment.employee);
+    this.selectedDate.set(event.date);
+    this.selectedAssignment.set(event.assignment);
+    this.dialogVisible.set(true);
   }
 
-  onDeleteAssignment(event: { assignment: VetBranchAssignment; date: Date }): void {
+  onDeleteAssignment(event: {
+    assignment: VetBranchAssignment;
+    date: Date;
+  }): void {
     this.removeAssignment(event.assignment.employee!, event.date);
   }
 
   onAddAssignment(event: { employeeId: string; date: Date }): void {
-    const employee = this.store.employees.entities().find(e => e.id === event.employeeId);
+    const employee = this.store.employees
+      .entities()
+      .find((e) => e.id === event.employeeId);
     if (employee) {
       // Abrir diálogo para seleccionar sucursal
-      this.message.add({
-        severity: 'info',
-        summary: 'Funcionalidad pendiente',
-        detail: 'Seleccionar sucursal próximamente',
-      });
+      this.selectedEmployee.set(employee);
+      this.selectedDate.set(event.date);
+      this.selectedAssignment.set(undefined);
+      this.dialogVisible.set(true);
     }
   }
 
@@ -510,6 +523,33 @@ export class VetScheduleComponent {
       summary: 'Funcionalidad pendiente',
       detail: 'Vista de auditoría próximamente',
     });
+  }
+
+  // Manejadores del diálogo
+  onDialogConfirm(selectedBranchId: string): void {
+    const employee = this.selectedEmployee();
+    const date = this.selectedDate();
+    const assignment = this.selectedAssignment();
+
+    if (employee && date) {
+      const selectedBranch = this.store.branches.entities().find(b => b.id === selectedBranchId);
+      if (selectedBranch) {
+        this.assignBranch(employee, date, selectedBranch);
+      }
+    }
+
+    this.closeDialog();
+  }
+
+  onDialogCancel(): void {
+    this.closeDialog();
+  }
+
+  private closeDialog(): void {
+    this.dialogVisible.set(false);
+    this.selectedEmployee.set(undefined);
+    this.selectedDate.set(undefined);
+    this.selectedAssignment.set(undefined);
   }
 
   // Getter para acceder a funcionalidades del store desde el template
