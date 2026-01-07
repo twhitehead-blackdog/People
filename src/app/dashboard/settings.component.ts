@@ -1,3 +1,4 @@
+import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { httpResource } from '@angular/common/http';
@@ -24,6 +25,7 @@ interface Setting {
 @Component({
   selector: 'pt-settings',
   imports: [
+    CommonModule,
     Card,
     Button,
     InputText,
@@ -175,54 +177,93 @@ interface Setting {
               </div>
 
               <!-- Solicitudes de documentos -->
-              <div class="flex items-center justify-between p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
-                <div class="flex flex-col gap-2">
-                  <label class="text-sm font-semibold text-white">
-                    Solicitudes de Documentos
-                  </label>
-                  <p class="text-xs text-gray-400">
-                    Enviar correo cuando se cree una solicitud de documento (carta de trabajo, certificados, etc.)
-                  </p>
+              <div class="flex flex-col gap-4 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
+                <div class="flex items-center justify-between">
+                  <div class="flex flex-col gap-2">
+                    <label class="text-sm font-semibold text-white">
+                      Solicitudes de Documentos
+                    </label>
+                    <p class="text-xs text-gray-400">
+                      Enviar correo cuando se cree una solicitud de documento (carta de trabajo, certificados, etc.)
+                    </p>
+                  </div>
+                  <p-toggleSwitch
+                    [(ngModel)]="hrEmailNotifyDocuments"
+                    (ngModelChange)="onHrEmailNotifyDocumentsChange()"
+                    [disabled]="saving()"
+                  />
                 </div>
-                <p-toggleSwitch
-                  [(ngModel)]="hrEmailNotifyDocuments"
-                  (ngModelChange)="onHrEmailNotifyDocumentsChange()"
-                  [disabled]="saving()"
-                />
+                <div class="flex flex-col gap-2" *ngIf="hrEmailNotifyDocuments()">
+                  <label class="text-xs font-medium text-gray-300">Destinatarios (separados por coma)</label>
+                  <input
+                    pInputText
+                    [(ngModel)]="hrEmailRecipientsDocuments"
+                    (ngModelChange)="onHrEmailRecipientsDocumentsChange()"
+                    [disabled]="saving()"
+                    placeholder="email1@ejemplo.com,email2@ejemplo.com"
+                    class="bg-neutral-700 border-neutral-600 text-white"
+                  />
+                </div>
               </div>
 
               <!-- Incapacidades -->
-              <div class="flex items-center justify-between p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
-                <div class="flex flex-col gap-2">
-                  <label class="text-sm font-semibold text-white">
-                    Incapacidades (documento adjunto)
-                  </label>
-                  <p class="text-xs text-gray-400">
-                    Enviar correo cuando se suba una incapacidad médica en Gestiones.
-                  </p>
+              <div class="flex flex-col gap-4 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
+                <div class="flex items-center justify-between">
+                  <div class="flex flex-col gap-2">
+                    <label class="text-sm font-semibold text-white">
+                      Incapacidades (documento adjunto)
+                    </label>
+                    <p class="text-xs text-gray-400">
+                      Enviar correo cuando se suba una incapacidad médica en Gestiones.
+                    </p>
+                  </div>
+                  <p-toggleSwitch
+                    [(ngModel)]="hrEmailNotifyDisabilities"
+                    (ngModelChange)="onHrEmailNotifyDisabilitiesChange()"
+                    [disabled]="saving()"
+                  />
                 </div>
-                <p-toggleSwitch
-                  [(ngModel)]="hrEmailNotifyDisabilities"
-                  (ngModelChange)="onHrEmailNotifyDisabilitiesChange()"
-                  [disabled]="saving()"
-                />
+                <div class="flex flex-col gap-2" *ngIf="hrEmailNotifyDisabilities()">
+                  <label class="text-xs font-medium text-gray-300">Destinatarios (separados por coma)</label>
+                  <input
+                    pInputText
+                    [(ngModel)]="hrEmailRecipientsDisabilities"
+                    (ngModelChange)="onHrEmailRecipientsDisabilitiesChange()"
+                    [disabled]="saving()"
+                    placeholder="email1@ejemplo.com,email2@ejemplo.com"
+                    class="bg-neutral-700 border-neutral-600 text-white"
+                  />
+                </div>
               </div>
 
               <!-- Tiempo compensatorio -->
-              <div class="flex items-center justify-between p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
-                <div class="flex flex-col gap-2">
-                  <label class="text-sm font-semibold text-white">
-                    Tiempo Compensatorio
-                  </label>
-                  <p class="text-xs text-gray-400">
-                    Enviar correo cuando se cree una solicitud de tiempo compensatorio desde Gestiones.
-                  </p>
+              <div class="flex flex-col gap-4 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
+                <div class="flex items-center justify-between">
+                  <div class="flex flex-col gap-2">
+                    <label class="text-sm font-semibold text-white">
+                      Tiempo Compensatorio
+                    </label>
+                    <p class="text-xs text-gray-400">
+                      Enviar correo cuando se cree una solicitud de tiempo compensatorio desde Gestiones.
+                    </p>
+                  </div>
+                  <p-toggleSwitch
+                    [(ngModel)]="hrEmailNotifyCompensatory"
+                    (ngModelChange)="onHrEmailNotifyCompensatoryChange()"
+                    [disabled]="saving()"
+                  />
                 </div>
-                <p-toggleSwitch
-                  [(ngModel)]="hrEmailNotifyCompensatory"
-                  (ngModelChange)="onHrEmailNotifyCompensatoryChange()"
-                  [disabled]="saving()"
-                />
+                <div class="flex flex-col gap-2" *ngIf="hrEmailNotifyCompensatory()">
+                  <label class="text-xs font-medium text-gray-300">Destinatarios (separados por coma)</label>
+                  <input
+                    pInputText
+                    [(ngModel)]="hrEmailRecipientsCompensatory"
+                    (ngModelChange)="onHrEmailRecipientsCompensatoryChange()"
+                    [disabled]="saving()"
+                    placeholder="email1@ejemplo.com,email2@ejemplo.com"
+                    class="bg-neutral-700 border-neutral-600 text-white"
+                  />
+                </div>
               </div>
             </div>
           </p-card>
@@ -257,11 +298,16 @@ export class SettingsComponent {
   public hrEmailNotifyDisabilities = signal(true);
   public hrEmailNotifyCompensatory = signal(true);
 
+  // Destinatarios de correos
+  public hrEmailRecipientsCompensatory = signal('');
+  public hrEmailRecipientsDocuments = signal('');
+  public hrEmailRecipientsDisabilities = signal('');
+
   // Cargar configuraciones
   public settingsApi = httpResource<Setting[]>(() => {
     const url = this.apiUrl.build('rest/v1/settings', {
       select: '*',
-      key: `in.(wassenger_api_key,wassenger_enabled,hr_email_notify_documents,hr_email_notify_disabilities,hr_email_notify_compensatory)`,
+      key: `in.(wassenger_api_key,wassenger_enabled,hr_email_notify_documents,hr_email_notify_disabilities,hr_email_notify_compensatory,hr_email_recipients_compensatory,hr_email_recipients_documents,hr_email_recipients_disabilities)`,
       order: 'key.asc',
     });
     return {
@@ -286,6 +332,15 @@ export class SettingsComponent {
         const hrEmailNotifyCompensatory = settings.find(
           (s) => s.key === 'hr_email_notify_compensatory'
         );
+        const hrEmailRecipientsCompensatory = settings.find(
+          (s) => s.key === 'hr_email_recipients_compensatory'
+        );
+        const hrEmailRecipientsDocuments = settings.find(
+          (s) => s.key === 'hr_email_recipients_documents'
+        );
+        const hrEmailRecipientsDisabilities = settings.find(
+          (s) => s.key === 'hr_email_recipients_disabilities'
+        );
 
         if (wassengerKey) {
           this.wassengerApiKeyValue.set(wassengerKey.value ? '***' : null);
@@ -306,6 +361,17 @@ export class SettingsComponent {
           hrEmailNotifyCompensatory
             ? hrEmailNotifyCompensatory.value === 'true'
             : true
+        );
+
+        // Cargar destinatarios con valores por defecto
+        this.hrEmailRecipientsCompensatory.set(
+          hrEmailRecipientsCompensatory?.value || 'Verley@blackdogpanama.com,soporte2@blackdogpanama.com'
+        );
+        this.hrEmailRecipientsDocuments.set(
+          hrEmailRecipientsDocuments?.value || 'Verley@blackdogpanama.com'
+        );
+        this.hrEmailRecipientsDisabilities.set(
+          hrEmailRecipientsDisabilities?.value || 'Verley@blackdogpanama.com'
         );
       }
     });
@@ -355,6 +421,30 @@ export class SettingsComponent {
     this.saveSetting(
       'hr_email_notify_compensatory',
       this.hrEmailNotifyCompensatory() ? 'true' : 'false',
+      { category: 'notifications' }
+    );
+  }
+
+  public onHrEmailRecipientsCompensatoryChange(): void {
+    this.saveSetting(
+      'hr_email_recipients_compensatory',
+      this.hrEmailRecipientsCompensatory(),
+      { category: 'notifications' }
+    );
+  }
+
+  public onHrEmailRecipientsDocumentsChange(): void {
+    this.saveSetting(
+      'hr_email_recipients_documents',
+      this.hrEmailRecipientsDocuments(),
+      { category: 'notifications' }
+    );
+  }
+
+  public onHrEmailRecipientsDisabilitiesChange(): void {
+    this.saveSetting(
+      'hr_email_recipients_disabilities',
+      this.hrEmailRecipientsDisabilities(),
       { category: 'notifications' }
     );
   }

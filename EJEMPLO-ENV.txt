@@ -34,6 +34,11 @@ ENV_SMTP_PORT=587
 ENV_SMTP_USER=tu-email@gmail.com
 ENV_SMTP_PASSWORD=tu-contraseña-o-app-password
 
+# Alternativa: Resend (recomendado para mayor confiabilidad)
+# ENV_RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+# ENV_RESEND_FROM_EMAIL=noreply@tu-dominio.com
+# ENV_RESEND_FROM_NAME=People - RRHH
+
 # ============================================
 # INSTRUCCIONES:
 # ============================================
@@ -42,6 +47,17 @@ ENV_SMTP_PASSWORD=tu-contraseña-o-app-password
 # 3. Asegúrate de que NO haya espacios alrededor del =
 # 4. Guarda el archivo
 # 5. Reinicia la aplicación (detén con Ctrl+C y ejecuta npm start de nuevo)
+
+# ============================================
+# NUEVO: CONFIGURACIÓN DE DESTINATARIOS DE CORREO
+# ============================================
+# Ahora puedes configurar destinatarios específicos para cada módulo:
+# - hr_email_recipients_compensatory: Para solicitudes de tiempo compensatorio
+# - hr_email_recipients_documents: Para solicitudes de documentos
+# - hr_email_recipients_disabilities: Para incapacidades médicas
+#
+# Los destinatarios se configuran desde Configuración > RRHH en la interfaz
+# Si no se configuran, se usan valores por defecto
 
 
 

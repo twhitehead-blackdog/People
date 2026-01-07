@@ -4410,16 +4410,27 @@ export class EmployeePortalComponent {
                 </div>
               `;
 
+              // Obtener destinatarios configurables para incapacidades
+              const disabilityRecipients = await this.getDashboardDisabilityRecipients();
+
+              console.log('[DEBUG Dashboard Disability] Enviando email de notificación', {
+                to: disabilityRecipients,
+                subject,
+                html,
+              });
+
               this.http
                 .post('/api/email/send', {
-                  to: 'Verley@blackdogpanama.com',
+                  to: disabilityRecipients,
                   subject,
                   html,
                   fromName: 'People - RRHH',
                 })
                 .pipe(takeUntilDestroyed(this.destroyRef))
                 .subscribe({
-                  next: () => undefined,
+                  next: () => {
+                    console.log('[DEBUG Dashboard Disability] Email enviado correctamente');
+                  },
                   error: (e) =>
                     console.warn(
                       '[DisabilityUpload] No se pudo enviar email a RRHH',
@@ -4566,16 +4577,27 @@ export class EmployeePortalComponent {
               </div>
             `;
 
+            // Obtener destinatarios configurables para documentos
+            const documentRecipients = await this.getDashboardDocumentRecipients();
+
+            console.log('[DEBUG Dashboard Document] Enviando email de notificación', {
+              to: documentRecipients,
+              subject,
+              html,
+            });
+
             this.http
               .post('/api/email/send', {
-                to: 'Verley@blackdogpanama.com',
+                to: documentRecipients,
                 subject,
                 html,
                 fromName: 'People - RRHH',
               })
               .pipe(takeUntilDestroyed(this.destroyRef))
               .subscribe({
-                next: () => undefined,
+                next: () => {
+                  console.log('[DEBUG Dashboard Document] Email enviado correctamente');
+                },
                 error: (e) =>
                   console.warn(
                     '[DocumentRequest] No se pudo enviar email a RRHH',
@@ -5250,6 +5272,50 @@ export class EmployeePortalComponent {
     this.timeoffEndDate.set(null);
     this.timeoffNotes.set('');
     this.selectedTimeoffType.set(null);
+  }
+
+  // Función helper para obtener destinatarios configurables de incapacidades (dashboard)
+  private async getDashboardDisabilityRecipients(): Promise<string[]> {
+    try {
+      const response = await this.http.get<any>(
+        this.apiUrl.build('rest/v1/settings', {
+          select: 'value',
+          key: 'eq.hr_email_recipients_disabilities',
+          limit: 1
+        })
+      ).toPromise();
+
+      const recipientsString = response?.[0]?.value || 'Verley@blackdogpanama.com';
+      return recipientsString
+        .split(',')
+        .map((email: string) => email.trim())
+        .filter((email: string) => email.length > 0);
+    } catch (error) {
+      console.error('Error obteniendo destinatarios de incapacidades (dashboard):', error);
+      return ['Verley@blackdogpanama.com'];
+    }
+  }
+
+  // Función helper para obtener destinatarios configurables de documentos (dashboard)
+  private async getDashboardDocumentRecipients(): Promise<string[]> {
+    try {
+      const response = await this.http.get<any>(
+        this.apiUrl.build('rest/v1/settings', {
+          select: 'value',
+          key: 'eq.hr_email_recipients_documents',
+          limit: 1
+        })
+      ).toPromise();
+
+      const recipientsString = response?.[0]?.value || 'Verley@blackdogpanama.com';
+      return recipientsString
+        .split(',')
+        .map((email: string) => email.trim())
+        .filter((email: string) => email.length > 0);
+    } catch (error) {
+      console.error('Error obteniendo destinatarios de documentos (dashboard):', error);
+      return ['Verley@blackdogpanama.com'];
+    }
   }
 
   public loadTimeoffRequests(): void {

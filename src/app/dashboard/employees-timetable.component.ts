@@ -783,6 +783,10 @@ export class EmployeesTimetableComponent implements OnInit {
 
   ngOnInit(): void {
     this.editionLocked.set(true);
+
+    // Cargar las posiciones para el filtro
+    this.store.positions.fetchItems();
+
     effect(
       () => {
         this.disableBranch.set(

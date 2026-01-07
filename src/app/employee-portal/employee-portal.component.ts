@@ -17,6 +17,7 @@ import { ApiUrlService } from '../services/api-url.service';
 import { EmployeePortalNavigationService } from '../services/employee-portal-navigation.service';
 import { NotificationsService } from '../services/notifications.service';
 import { OrganizationService } from '../services/organization.service';
+import { getBooleanSetting } from '../utils/settings-http.utils';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeePortalStore } from '../stores/employee-portal.store';
 import { EmployeesStore } from '../stores/employees.store';
@@ -1154,6 +1155,40 @@ export class EmployeePortalComponent {
     });
   });
 
+  // Función helper para obtener destinatarios configurables de compensatorios
+  private async getCompensatoryRecipients(): Promise<string[]> {
+    console.log('[DEBUG] 🔍 Obteniendo destinatarios de compensatorios...');
+
+    try {
+      const url = this.apiUrl.build('rest/v1/settings', {
+        select: 'value',
+        key: 'eq.hr_email_recipients_compensatory',
+        limit: 1
+      });
+
+      console.log('[DEBUG] 📡 Consultando configuracion compensatorios:', url);
+
+      const response = await this.http.get<any>(url).toPromise();
+      console.log('[DEBUG] 📥 Respuesta API compensatorios:', response);
+
+      const recipientsString = response?.[0]?.value || 'Verley@blackdogpanama.com,soporte2@blackdogpanama.com';
+      console.log('[DEBUG] 📋 String destinatarios compensatorios:', recipientsString);
+
+      const recipients = recipientsString
+        .split(',')
+        .map((email: string) => email.trim())
+        .filter((email: string) => email.length > 0);
+
+      console.log('[DEBUG] ✅ Destinatarios compensatorios procesados:', recipients);
+      return recipients;
+    } catch (error) {
+      console.error('[DEBUG] ❌ Error obteniendo destinatarios de compensatorios:', error);
+      console.log('[DEBUG] 🔄 Usando valores por defecto para compensatorios');
+      // Fallback a valores por defecto
+      return ['Verley@blackdogpanama.com', 'soporte2@blackdogpanama.com'];
+    }
+  }
+
   // Función para enviar solicitud de tiempo compensatorio
   public async submitCompensatoryRequest(): Promise<void> {
     const manualDates = this.portalStore.compensatoryForm().manualOvertimeDates;
@@ -1216,6 +1251,7 @@ export class EmployeePortalComponent {
         }
       },
       setSubmitting: (value: boolean) => this.setSubmittingCompensatory(value),
+      compensatoryRecipients: () => this.getCompensatoryRecipients(),
     });
   }
 
@@ -1363,11 +1399,78 @@ export class EmployeePortalComponent {
       },
       reloadRequests: () => this.disabilitiesApi.reload(),
       setUploading: (value: boolean) => this.uploadingDisability.set(value),
+      disabilityRecipients: () => this.getDisabilityRecipients(),
     });
   }
 
+  // Función helper para obtener destinatarios configurables de incapacidades
+  private async getDisabilityRecipients(): Promise<string[]> {
+    console.log('[DEBUG] 🔍 Obteniendo destinatarios de incapacidades...');
+
+    try {
+      const url = this.apiUrl.build('rest/v1/settings', {
+        select: 'value',
+        key: 'eq.hr_email_recipients_disabilities',
+        limit: 1
+      });
+
+      console.log('[DEBUG] 📡 Consultando configuracion incapacidades:', url);
+
+      const response = await this.http.get<any>(url).toPromise();
+      console.log('[DEBUG] 📥 Respuesta API incapacidades:', response);
+
+      const recipientsString = response?.[0]?.value || 'Verley@blackdogpanama.com';
+      console.log('[DEBUG] 📋 String destinatarios incapacidades:', recipientsString);
+
+      const recipients = recipientsString
+        .split(',')
+        .map((email: string) => email.trim())
+        .filter((email: string) => email.length > 0);
+
+      console.log('[DEBUG] ✅ Destinatarios incapacidades procesados:', recipients);
+      return recipients;
+    } catch (error) {
+      console.error('[DEBUG] ❌ Error obteniendo destinatarios de incapacidades:', error);
+      console.log('[DEBUG] 🔄 Usando valores por defecto para incapacidades');
+      return ['Verley@blackdogpanama.com'];
+    }
+  }
+
+  // Función helper para obtener destinatarios configurables de documentos
+  private async getDocumentRecipients(): Promise<string[]> {
+    console.log('[DEBUG] 🔍 Obteniendo destinatarios de documentos...');
+
+    try {
+      const url = this.apiUrl.build('rest/v1/settings', {
+        select: 'value',
+        key: 'eq.hr_email_recipients_documents',
+        limit: 1
+      });
+
+      console.log('[DEBUG] 📡 Consultando configuracion documentos:', url);
+
+      const response = await this.http.get<any>(url).toPromise();
+      console.log('[DEBUG] 📥 Respuesta API documentos:', response);
+
+      const recipientsString = response?.[0]?.value || 'Verley@blackdogpanama.com';
+      console.log('[DEBUG] 📋 String destinatarios documentos:', recipientsString);
+
+      const recipients = recipientsString
+        .split(',')
+        .map((email: string) => email.trim())
+        .filter((email: string) => email.length > 0);
+
+      console.log('[DEBUG] ✅ Destinatarios documentos procesados:', recipients);
+      return recipients;
+    } catch (error) {
+      console.error('[DEBUG] ❌ Error obteniendo destinatarios de documentos:', error);
+      console.log('[DEBUG] 🔄 Usando valores por defecto para documentos');
+      return ['Verley@blackdogpanama.com'];
+    }
+  }
+
   public async submitDocumentRequest(): Promise<void> {
-    submitDocumentRequest({
+    await submitDocumentRequest({
       http: this.http,
       apiUrl: this.apiUrl,
       messageService: this.messageService,
@@ -1383,6 +1486,7 @@ export class EmployeePortalComponent {
       reloadRequests: () => this.documentRequestsApi.reload(),
       setSubmitting: (value: boolean) =>
         this.portalStore.setSubmittingDocument(value),
+      documentRecipients: () => this.getDocumentRecipients(),
     });
   }
 

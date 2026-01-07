@@ -37,6 +37,7 @@ type CompensatoryActionsDependencies = {
   resetForm: () => void;
   reloadRequests: () => void;
   setSubmitting: (value: boolean) => void;
+  compensatoryRecipients: () => Promise<string[]>;
 };
 
 /**
@@ -57,6 +58,7 @@ export async function submitCompensatoryRequest(
     resetForm,
     reloadRequests,
     setSubmitting,
+    compensatoryRecipients,
   } = deps;
 
   if (!canSubmit()) {
@@ -294,7 +296,13 @@ export async function submitCompensatoryRequest(
       'hr_email_notify_compensatory',
       true
     );
+
+    console.log('[DEBUG Compensatory] 📧 Verificando notificación por email:');
+    console.log('[DEBUG Compensatory] 📧 hr_email_notify_compensatory:', shouldNotifyCompensatory);
+    console.log('[DEBUG Compensatory] 📧 timeoffId:', timeoffId);
+
     if (shouldNotifyCompensatory && timeoffId) {
+      console.log('[DEBUG Compensatory] ✅ Enviando notificación por email de compensatorio');
       const employeeName =
         [currentEmployee()?.first_name, currentEmployee()?.father_name]
           .filter(Boolean)
@@ -313,6 +321,11 @@ export async function submitCompensatoryRequest(
                 .join('')}
             </ul>`
           : '';
+
+      // Obtener destinatarios configurables
+      console.log('[DEBUG Compensatory] 🔍 Llamando compensatoryRecipients()...');
+      const recipients = await compensatoryRecipients();
+      console.log('[DEBUG Compensatory] 📧 Destinatarios obtenidos:', recipients);
 
       const subject = `Nueva solicitud de tiempo compensatorio - ${employeeName}`;
       const html = `
@@ -337,39 +350,49 @@ export async function submitCompensatoryRequest(
         </div>
       `;
 
+      console.log('[DEBUG Compensatory] 📝 Preparando email:');
+      console.log('[DEBUG Compensatory] 📧 Para:', recipients);
+      console.log('[DEBUG Compensatory] 📧 Asunto:', subject);
+      console.log('[DEBUG Compensatory] 📧 Contenido HTML length:', html.length);
+
       try {
-        console.log('[DEBUG Compensatory] Enviando email de notificación', {
-          to: ['Verley@blackdogpanama.com', 'soporte2@blackdogpanama.com'],
+        console.log('[DEBUG Compensatory] 🚀 Enviando petición POST a /api/email/send...');
+
+        const emailPayload = {
+          to: recipients,
           subject,
           html,
-        });
+          fromName: 'People - RRHH',
+        };
+        console.log('[DEBUG Compensatory] 📦 Payload:', emailPayload);
 
         const emailResponse = await firstValueFrom(
-          http.post('/api/email/send', {
-            to: ['Verley@blackdogpanama.com', 'soporte2@blackdogpanama.com'],
-            subject,
-            html,
-            fromName: 'People - RRHH',
-          })
+          http.post('/api/email/send', emailPayload)
         );
 
-        console.log(
-          '[DEBUG Compensatory] Email enviado correctamente',
-          emailResponse
-        );
-      } catch (emailError) {
-        console.error(
-          '[CompensatoryRequest] No se pudo enviar email a RRHH',
-          emailError
-        );
-        console.error(
-          '[CompensatoryRequest] Detalles del payload enviado',
-          {
-            to: ['Verley@blackdogpanama.com', 'soporte2@blackdogpanama.com'],
-            subject,
-            html,
-          }
-        );
+        console.log('[DEBUG Compensatory] ✅ Email enviado correctamente');
+        console.log('[DEBUG Compensatory] 📥 Respuesta del servidor:', emailResponse);
+
+      } catch (emailError: any) {
+        console.error('[DEBUG Compensatory] ❌ ERROR: No se pudo enviar email a RRHH');
+        console.error('[DEBUG Compensatory] 🔍 Detalles del error:', emailError);
+        console.error('[DEBUG Compensatory] 📦 Payload que se intentó enviar:', {
+          to: recipients,
+          subject,
+          html: html.substring(0, 200) + '...', // Solo primeros 200 chars para no saturar logs
+          fromName: 'People - RRHH',
+        });
+
+        // Mostrar más detalles del error si está disponible
+        if (emailError?.error) {
+          console.error('[DEBUG Compensatory] 🚨 Error del servidor:', emailError.error);
+        }
+        if (emailError?.message) {
+          console.error('[DEBUG Compensatory] 💬 Mensaje de error:', emailError.message);
+        }
+        if (emailError?.status) {
+          console.error('[DEBUG Compensatory] 📊 Status code:', emailError.status);
+        }
       }
     }
 

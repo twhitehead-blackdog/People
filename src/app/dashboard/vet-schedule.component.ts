@@ -5,6 +5,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
@@ -17,13 +18,13 @@ import {
   startOfWeek,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { utils, writeFile } from 'xlsx';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
+import { utils, writeFile } from 'xlsx';
 
 // Registrar locale español para Angular
 registerLocaleData(esLocale);
@@ -33,6 +34,8 @@ import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
 import { VetBranchAuditService } from '../services/vet-branch-audit.service';
 import { DashboardStore } from '../stores/dashboard.store';
+import { VetScheduleDataService } from './services/vet-schedule-data.service';
+import { VetScheduleUtilsService } from './services/vet-schedule-utils.service';
 import { VetBranchCellComponent } from './vet-branch-cell.component';
 import { VetBranchSelectionDialogComponent } from './vet-branch-selection-dialog.component';
 
@@ -105,6 +108,8 @@ export class VetScheduleComponent {
   private dialogService = inject(DialogService);
   private apiUrl = inject(ApiUrlService);
   private auditService = inject(VetBranchAuditService);
+  private dataService = inject(VetScheduleDataService);
+  private utils = inject(VetScheduleUtilsService);
   private ref = inject(DynamicDialogRef);
 
   // Estado del componente
@@ -130,7 +135,9 @@ export class VetScheduleComponent {
   vetEmployeesWithAssignments = computed((): VetWithAssignments[] => {
     const vets = this.store.employees
       .entities()
-      .filter((employee) => employee.is_active && this.isVetPosition(employee))
+      .filter(
+        (employee) => employee.is_active && this.utils.isVetPosition(employee)
+      )
       .sort((a, b) => a.first_name.localeCompare(b.first_name));
 
     const assignmentsMap = new Map<string, VetBranchAssignment[]>();
@@ -158,85 +165,45 @@ export class VetScheduleComponent {
     });
   });
 
-  // Métodos utilitarios
-  private isVetPosition(employee: Employee): boolean {
-    const positionName = employee.position?.name?.toLowerCase() || '';
-    return (
-      positionName.includes('veterinario') ||
-      positionName.includes('vet') ||
-      positionName.includes('médico veterinario')
-    );
-  }
-
   // Navegación de semanas
   goToPreviousWeek(): void {
     this.currentWeekStart.set(addDays(this.currentWeekStart(), -7));
-    this.loadAssignments();
-    this.loadNonWorkingDays();
   }
 
   goToNextWeek(): void {
     this.currentWeekStart.set(addDays(this.currentWeekStart(), 7));
-    this.loadAssignments();
-    this.loadNonWorkingDays();
   }
 
   goToCurrentWeek(): void {
     this.currentWeekStart.set(startOfWeek(new Date(), { weekStartsOn: 0 }));
-    this.loadAssignments();
-    this.loadNonWorkingDays();
   }
 
   constructor() {
-    // Carga inicial
-    this.loadAssignments();
-    this.loadNonWorkingDays();
+    // Effect para recargar datos cuando cambia la semana
+    effect(() => {
+      // Este effect se ejecuta cada vez que currentWeekStart cambia
+      this.currentWeekStart(); // Leer el signal para activar el effect
+      this.loadAssignments();
+      this.loadNonWorkingDays();
+    });
   }
 
   // Cargar asignaciones desde la API
   private loadAssignments(): void {
-    const startDate = this.currentWeekStart();
-    const endDate = endOfWeek(startDate, { weekStartsOn: 0 });
-
-    const companyId = this.organizationService.getCurrentCompanyId();
-    if (!companyId) {
-      this.message.add({
-        severity: 'error',
-        summary: 'Error',
-        detail: 'No se pudo identificar la compañía.',
-      });
-      return;
-    }
-
-    this.http
-      .get<VetBranchAssignment[]>(
-        this.apiUrl.build('rest/v1/vet_branch_assignments', {
-          // PostgREST: no podemos repetir la key "date" porque ApiUrlService usa searchParams.set,
-          // así que usamos el operador and=(...) para rango.
-          and: `(date.gte.${format(startDate, 'yyyy-MM-dd')},date.lte.${format(
-            endDate,
-            'yyyy-MM-dd'
-          )})`,
-          company_id: `eq.${companyId}`,
-          select:
-            '*,branch:branches(id,name,short_name),employee:employees(id,first_name,father_name,position:positions(name))',
-        }),
-        {}
-      )
-      .subscribe({
-        next: (assignments) => {
-          this.assignments.set(assignments);
-        },
-        error: (error) => {
-          console.error('[VetSchedule] Error loading assignments:', error);
-          this.message.add({
-            severity: 'error',
-            summary: 'Error',
-            detail: 'Error al cargar las asignaciones veterinarias',
-          });
-          this.assignments.set([]);
-        },
-      });
+    this.dataService.loadAssignments(this.currentWeekStart()).subscribe({
+      next: (assignments: VetBranchAssignment[]) => {
+        this.assignments.set(assignments);
+      },
+      error: (error: any) => {
+        console.error('[VetSchedule] Error loading assignments:', error);
+        this.message.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Error al cargar las asignaciones veterinarias',
+        });
+        this.assignments.set([]);
+      },
+    });
   }
 
   /**
@@ -256,7 +223,7 @@ export class VetScheduleComponent {
 
     const vetIds = this.store.employees
       .entities()
-      .filter((e) => e.is_active && this.isVetPosition(e))
+      .filter((e) => e.is_active && this.utils.isVetPosition(e))
       .map((e) => e.id);
 
     if (vetIds.length === 0) {
@@ -264,43 +231,68 @@ export class VetScheduleComponent {
       return;
     }
 
-    // Overlap de rangos: start_date <= endDate AND end_date >= startDate
-    const and = `(start_date.lte.${format(
-      endDate,
-      'yyyy-MM-dd'
-    )},end_date.gte.${format(startDate, 'yyyy-MM-dd')})`;
-
     this.http
       .get<any[]>(
         this.apiUrl.build('rest/v1/employee_schedules', {
-          company_id: `eq.${companyId}`,
+          start_date: `lte.${format(endDate, 'yyyy-MM-dd')}`,
+          end_date: `gte.${format(startDate, 'yyyy-MM-dd')}`,
           employee_id: `in.(${vetIds.join(',')})`,
-          and,
+          ...(companyId ? { 'employee.company_id': `eq.${companyId}` } : {}),
           select:
-            'employee_id,start_date,end_date,schedule:schedules(day_off,name)',
+            'employee_id,start_date,end_date,schedule:schedules(day_off,name),employee:employees(id,company_id)',
         }),
         {}
       )
       .subscribe({
-        next: (rows) => {
+        next: (
+          rows: {
+            employee_id: string;
+            start_date: string;
+            end_date: string;
+            schedule: any;
+          }[]
+        ) => {
           const map: Record<string, string> = {};
           const days = eachDayOfInterval({ start: startDate, end: endDate });
 
           for (const row of rows || []) {
             const schedule = row.schedule;
-            if (!schedule?.day_off) continue;
 
-            const rowStart = new Date(row.start_date);
-            const rowEnd = new Date(row.end_date);
+            // Verificar si es un schedule no laborable
+            const isNonWorking = this.utils.isNonWorkingSchedule(schedule);
+            if (!isNonWorking) {
+              continue;
+            }
+
+            const rowStart = this.utils.parseDateWithoutTimezone(
+              row.start_date
+            );
+            const rowEnd = this.utils.parseDateWithoutTimezone(row.end_date);
 
             for (const d of days) {
-              const dStr = format(d, 'yyyy-MM-dd');
-              // Comparación inclusive
-              if (d >= rowStart && d <= rowEnd) {
-                const key = `${row.employee_id}|${dStr}`;
+              // Crear fechas solo con año/mes/día para comparación
+              const dDate = new Date(
+                d.getFullYear(),
+                d.getMonth(),
+                d.getDate()
+              );
+              const startDateOnly = new Date(
+                rowStart.getFullYear(),
+                rowStart.getMonth(),
+                rowStart.getDate()
+              );
+              const endDateOnly = new Date(
+                rowEnd.getFullYear(),
+                rowEnd.getMonth(),
+                rowEnd.getDate()
+              );
+
+              // Comparación inclusive usando solo fecha (sin hora)
+              if (dDate >= startDateOnly && dDate <= endDateOnly) {
+                const key = `${row.employee_id}|${format(d, 'yyyy-MM-dd')}`;
                 // Si hay varias, deja la primera
                 if (!map[key]) {
-                  map[key] = schedule.name || 'NO LABORA';
+                  map[key] = this.utils.getScheduleLabel(schedule);
                 }
               }
             }
@@ -308,7 +300,7 @@ export class VetScheduleComponent {
 
           this.nonWorkingMap.set(map);
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('[VetSchedule] Error loading non-working days:', error);
           this.nonWorkingMap.set({});
         },
@@ -388,25 +380,10 @@ export class VetScheduleComponent {
       company_id: companyId,
     };
 
-    // UPSERT para evitar 409 (unique: company_id, employee_id, date)
-    // PostgREST: on_conflict y Prefer: resolution=merge-duplicates
-    this.http
-      .post(
-        this.apiUrl.build('rest/v1/vet_branch_assignments', {
-          on_conflict: 'company_id,employee_id,date',
-          select:
-            '*,branch:branches(id,name,short_name),employee:employees(id,first_name,father_name,position:positions(name))',
-        }),
-        assignmentData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Prefer: 'resolution=merge-duplicates,return=representation',
-          },
-        }
-      )
+    this.dataService
+      .assignBranch(employee.id, branch.id, date, currentEmployeeId)
       .subscribe({
-        next: (resp: any) => {
+        next: (resp: VetBranchAssignment[]) => {
           const saved = Array.isArray(resp) ? resp[0] : resp;
           if (!saved?.id) {
             // Fallback: recargar
@@ -449,7 +426,7 @@ export class VetScheduleComponent {
               : `Asignación inicial de sucursal: ${branch.short_name}`,
           });
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('[VetSchedule] Error upserting assignment:', error);
           this.message.add({
             severity: 'error',
@@ -497,52 +474,44 @@ export class VetScheduleComponent {
       return;
     }
 
-    // Eliminar la asignación
-    this.http
-      .delete(
-        this.apiUrl.build('rest/v1/vet_branch_assignments', {
-          id: `eq.${existingAssignment.id}`,
-        }),
-        {}
-      )
-      .subscribe({
-        next: () => {
-          // Remover del estado local
-          const updatedAssignments = this.assignments().filter(
-            (a) => a.id !== existingAssignment.id
-          );
-          this.assignments.set(updatedAssignments);
+    this.dataService.deleteAssignment(existingAssignment.id).subscribe({
+      next: (): void => {
+        // Remover del estado local
+        const updatedAssignments = this.assignments().filter(
+          (a) => a.id !== existingAssignment.id
+        );
+        this.assignments.set(updatedAssignments);
 
-          this.message.add({
-            severity: 'success',
-            summary: 'Removido',
-            detail: `Asignación removida para ${employee.first_name} ${employee.father_name}`,
-          });
+        this.message.add({
+          severity: 'success',
+          summary: 'Removido',
+          detail: `Asignación removida para ${employee.first_name} ${employee.father_name}`,
+        });
 
-          // Registrar en auditoría
-          this.auditService.logChange({
-            vetBranchAssignmentId: existingAssignment.id,
-            changedBy: currentEmployeeId,
-            action: 'unassigned',
-            oldBranchId: existingAssignment.branch_id,
-            oldValue: {
-              branch_id: existingAssignment.branch_id,
-              date: existingAssignment.date,
-            },
-            comment: `Remoción de asignación de sucursal: ${
-              existingAssignment.branch?.short_name || 'N/A'
-            }`,
-          });
-        },
-        error: (error) => {
-          console.error('[VetSchedule] Error deleting assignment:', error);
-          this.message.add({
-            severity: 'error',
-            summary: 'Error',
-            detail: 'Error al remover la asignación',
-          });
-        },
-      });
+        // Registrar en auditoría
+        this.auditService.logChange({
+          vetBranchAssignmentId: existingAssignment.id,
+          changedBy: currentEmployeeId,
+          action: 'unassigned',
+          oldBranchId: existingAssignment.branch_id,
+          oldValue: {
+            branch_id: existingAssignment.branch_id,
+            date: existingAssignment.date,
+          },
+          comment: `Remoción de asignación de sucursal: ${
+            existingAssignment.branch?.short_name || 'N/A'
+          }`,
+        });
+      },
+      error: (error: any) => {
+        console.error('[VetSchedule] Error deleting assignment:', error);
+        this.message.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Error al remover la asignación',
+        });
+      },
+    });
   }
 
   // Formatear nombre completo del empleado
@@ -637,17 +606,19 @@ export class VetScheduleComponent {
       const weekDays = eachDayOfInterval({ start: startDate, end: endDate });
 
       // Obtener todos los veterinarios únicos
-      const vetEmployees = this.vetEmployeesWithAssignments().map(v => v.employee);
+      const vetEmployees = this.vetEmployeesWithAssignments().map(
+        (v) => v.employee
+      );
 
       // Crear la estructura de datos para Excel
-      const excelData = vetEmployees.map(vet => {
+      const excelData = vetEmployees.map((vet) => {
         const row: any = {
           'Médico Veterinario': `${vet.first_name} ${vet.father_name}`,
-          'Cargo': vet.position?.name || 'Médico Veterinario'
+          Cargo: vet.position?.name || 'Médico Veterinario',
         };
 
         // Agregar una columna por día de la semana
-        weekDays.forEach(day => {
+        weekDays.forEach((day) => {
           const assignment = this.getAssignmentForDate(vet, day);
           const dayName = format(day, 'EEEE', { locale: es }); // Nombre del día en español
           const dateStr = format(day, 'dd/MM');
@@ -659,7 +630,8 @@ export class VetScheduleComponent {
           if (isNonWorking) {
             row[`${dayName} ${dateStr}`] = nonWorkingLabel;
           } else if (assignment) {
-            row[`${dayName} ${dateStr}`] = assignment.branch?.short_name || 'N/A';
+            row[`${dayName} ${dateStr}`] =
+              assignment.branch?.short_name || 'N/A';
           } else {
             row[`${dayName} ${dateStr}`] = 'SIN ASIGNAR';
           }
@@ -675,7 +647,7 @@ export class VetScheduleComponent {
       const colWidths = [
         { wch: 25 }, // Médico Veterinario
         { wch: 20 }, // Cargo
-        ...weekDays.map(() => ({ wch: 15 })) // Una columna por día
+        ...weekDays.map(() => ({ wch: 15 })), // Una columna por día
       ];
       ws['!cols'] = colWidths;
 
@@ -689,7 +661,7 @@ export class VetScheduleComponent {
         ['Semana del:', format(startDate, 'dd/MM/yyyy')],
         ['Al:', format(endDate, 'dd/MM/yyyy')],
         ['Total de médicos:', vetEmployees.length],
-        ['']
+        [''],
       ];
 
       const infoWs = utils.aoa_to_sheet(reportInfo);
@@ -700,7 +672,10 @@ export class VetScheduleComponent {
       utils.book_append_sheet(wb, ws, 'Horario Veterinario');
 
       // Generar nombre del archivo
-      const fileName = `HORARIO_VETERINARIO_${format(startDate, 'yyyyMMdd')}_${format(endDate, 'yyyyMMdd')}.xlsx`;
+      const fileName = `HORARIO_VETERINARIO_${format(
+        startDate,
+        'yyyyMMdd'
+      )}_${format(endDate, 'yyyyMMdd')}.xlsx`;
 
       // Descargar el archivo
       writeFile(wb, fileName);
@@ -708,17 +683,103 @@ export class VetScheduleComponent {
       this.message.add({
         severity: 'success',
         summary: 'Exportación exitosa',
-        detail: `El archivo ${fileName} se ha descargado correctamente`
+        detail: `El archivo ${fileName} se ha descargado correctamente`,
       });
-
     } catch (error) {
       console.error('Error exportando a Excel:', error);
       this.message.add({
         severity: 'error',
         summary: 'Error en exportación',
-        detail: 'Ocurrió un error al generar el archivo Excel'
+        detail: 'Ocurrió un error al generar el archivo Excel',
       });
     }
+  }
+
+  // Helper para determinar si un schedule es considerado no laborable
+  private isNonWorkingSchedule(schedule: any): boolean {
+    if (!schedule) return false;
+
+    // Schedule específico de feriados por ID
+    if (schedule.id === '3d07f626-d58f-4203-bac5-f6e35557e0ad') return true;
+
+    // Schedules con nombres que indican días no laborables
+    const nonWorkingNames = [
+      'feriado',
+      'incapacidad',
+      'vacaciones',
+      'ausencia justificada',
+      'a. justificada',
+      'dia libre',
+      'día libre',
+      'd.l.',
+      'dl',
+      'permiso',
+      'licencia',
+      'reposo',
+      'enfermedad',
+      'ausencia',
+      'baja',
+      'suspensión',
+      // Variaciones con años
+      'vacaciones 202',
+      'ausencia 202',
+      // Abreviaturas comunes
+      'vac',
+      'incap',
+      'dl',
+      'd.l',
+    ];
+
+    const scheduleName = schedule.name?.toLowerCase() || '';
+    return nonWorkingNames.some((name) => scheduleName.includes(name));
+  }
+
+  // Helper para parsear fechas sin problemas de zona horaria
+  private parseDateWithoutTimezone(dateStr: string): Date {
+    // Crear fecha a las 12:00:00 del día para evitar problemas de zona horaria
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day, 12, 0, 0, 0);
+  }
+
+  // Helper para obtener la etiqueta apropiada para un schedule no laborable
+  private getScheduleLabel(schedule: any): string {
+    if (!schedule) return 'NO LABORA';
+
+    // Etiquetas específicas para ciertos tipos
+    const scheduleName = schedule.name?.toLowerCase() || '';
+
+    if (
+      scheduleName.includes('feriado') ||
+      schedule.id === '3d07f626-d58f-4203-bac5-f6e35557e0ad'
+    ) {
+      return 'Feriado';
+    }
+    if (scheduleName.includes('incapacidad')) {
+      return 'Incapacidad';
+    }
+    if (scheduleName.includes('vacaciones')) {
+      return 'Vacaciones';
+    }
+    if (
+      scheduleName.includes('ausencia justificada') ||
+      scheduleName.includes('a. justificada')
+    ) {
+      return 'Ausencia Justificada';
+    }
+    if (
+      scheduleName.includes('dia libre') ||
+      scheduleName.includes('día libre')
+    ) {
+      return 'Día Libre';
+    }
+
+    // Para otros casos, usar el nombre del schedule o "NO LABORA"
+    return schedule.name || 'NO LABORA';
+  }
+
+  // Función de track para optimizar el rendimiento de la tabla
+  trackByEmployeeId(index: number, item: VetWithAssignments): string {
+    return item.employee.id;
   }
 
   // Getter para acceder a funcionalidades del store desde el template

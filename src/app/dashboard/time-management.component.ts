@@ -13,7 +13,10 @@ import { DashboardStore } from '../stores/dashboard.store';
   selector: 'pt-time-management',
   imports: [RouterOutlet, RouterLink, RouterLinkActive, NgClass],
   template: `<div [ngClass]="{ 'naz-theme': isNaz() }">
-    <header class="bg-gradient-to-r from-neutral-800 via-neutral-700 to-neutral-800 border-b border-neutral-600/50 shadow-md" [ngClass]="{ 'naz-header': isNaz() }">
+    <header
+      class="bg-gradient-to-r from-neutral-800 via-neutral-700 to-neutral-800 border-b border-neutral-600/50 shadow-md"
+      [ngClass]="{ 'naz-header': isNaz() }"
+    >
       <div
         class="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8 sticky top-0 z-10"
       >
@@ -32,8 +35,7 @@ import { DashboardStore } from '../stores/dashboard.store';
               ]"
               ><i class="pi pi-clock text-base"></i> <span>Marcaciones</span></a
             >
-            }
-            @if(store.isAdmin()) {
+            } @if(store.isAdmin()) {
             <a
               routerLink="vet-schedule"
               class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
@@ -57,7 +59,8 @@ import { DashboardStore } from '../stores/dashboard.store';
                 'text-amber-300',
                 'shadow-md'
               ]"
-              ><i class="pi pi-calendar-clock text-base"></i> <span>Turnos</span></a
+              ><i class="pi pi-calendar-clock text-base"></i>
+              <span>Turnos</span></a
             >
             @if(store.isAdmin()) {
             <a
@@ -77,7 +80,10 @@ import { DashboardStore } from '../stores/dashboard.store';
         </div>
       </div>
     </header>
-    <main class="bg-neutral-900 min-h-screen" [ngClass]="{ 'naz-main': isNaz() }">
+    <main
+      class="bg-neutral-900 min-h-screen"
+      [ngClass]="{ 'naz-main': isNaz() }"
+    >
       <div class="mx-auto px-4 py-6 sm:px-6 lg:px-8">
         <router-outlet />
       </div>

@@ -158,10 +158,27 @@ export function app(): express.Express {
 
   // Endpoint para enviar emails
   server.post('/api/email/send', async (req, res) => {
+    console.log('[DEBUG Server] 📧 === NUEVA PETICIÓN DE EMAIL ===');
+    console.log('[DEBUG Server] 📧 Headers importantes:', {
+      'content-type': req.headers['content-type'],
+      'user-agent': req.headers['user-agent'],
+      origin: req.headers.origin,
+    });
+    console.log('[DEBUG Server] 📧 Body completo:', JSON.stringify(req.body, null, 2));
+
     try {
       const { to, subject, html, text, fromEmail, fromName } = req.body;
 
+      console.log('[DEBUG Server] 📧 Validando campos requeridos...');
+      console.log('[DEBUG Server] 📧 to:', to);
+      console.log('[DEBUG Server] 📧 subject:', subject);
+      console.log('[DEBUG Server] 📧 html length:', html?.length || 0);
+      console.log('[DEBUG Server] 📧 fromEmail:', fromEmail);
+      console.log('[DEBUG Server] 📧 fromName:', fromName);
+
       if (!to || !subject || !html) {
+        console.error('[DEBUG Server] ❌ ERROR: Faltan campos requeridos');
+        console.error('[DEBUG Server] ❌ to:', !!to, 'subject:', !!subject, 'html:', !!html);
         return res.status(400).json({
           error: 'Missing required fields: to, subject, html',
         });
@@ -169,10 +186,15 @@ export function app(): express.Express {
 
       // Preparar destinatarios (puede ser string o array)
       const recipients = Array.isArray(to) ? to : [to];
+      console.log('[DEBUG Server] 📧 Destinatarios procesados:', recipients);
 
       // Intentar usar Resend primero (más confiable y fácil de configurar)
       const resendApiKey = process.env['ENV_RESEND_API_KEY'];
+      console.log('[DEBUG Server] 🔍 Verificando configuración Resend...');
+      console.log('[DEBUG Server] 🔍 ENV_RESEND_API_KEY presente:', !!resendApiKey);
+
       if (resendApiKey) {
+        console.log('[DEBUG Server] ✅ Usando Resend para envío de email');
         try {
           // Usar SMTP de Resend (más confiable que la API REST en algunos entornos)
           const noreplyEmail =
@@ -267,16 +289,26 @@ export function app(): express.Express {
       }
 
       // Fallback a SMTP genérico (Gmail, etc.) si no hay Resend configurado
+      console.log('[DEBUG Server] 🔄 Resend no configurado, intentando SMTP...');
+
       const smtpHost = process.env['ENV_SMTP_HOST'] || 'smtp.gmail.com';
       const smtpPort = parseInt(process.env['ENV_SMTP_PORT'] || '587');
       const smtpUser = process.env['ENV_SMTP_USER'];
       const smtpPassword = process.env['ENV_SMTP_PASSWORD'];
+
+      console.log('[DEBUG Server] ⚙️ Configuración SMTP:');
+      console.log('[DEBUG Server] ⚙️ Host:', smtpHost);
+      console.log('[DEBUG Server] ⚙️ Port:', smtpPort);
+      console.log('[DEBUG Server] ⚙️ User presente:', !!smtpUser);
+      console.log('[DEBUG Server] ⚙️ Password presente:', !!smtpPassword);
 
       // Correo noreply para feria de empleo (opcional)
       const noreplyEmail = process.env['ENV_SMTP_NOREPLY_EMAIL'] || smtpUser;
       const noreplyName = process.env['ENV_SMTP_NOREPLY_NAME'] || 'Black Dog';
 
       if (!smtpUser || !smtpPassword) {
+        console.error('[DEBUG Server] ❌ ERROR: Configuración SMTP faltante');
+        console.error('[DEBUG Server] ❌ smtpUser:', !!smtpUser, 'smtpPassword:', !!smtpPassword);
         safeLogger.error('❌ Configuración SMTP faltante');
         return res.status(500).json({
           error: 'Email service not configured',
@@ -284,6 +316,9 @@ export function app(): express.Express {
             'ENV_RESEND_API_KEY o (ENV_SMTP_USER y ENV_SMTP_PASSWORD) no están configuradas. Por favor configura alguna de estas opciones en tu archivo .env',
         });
       }
+
+      console.log('[DEBUG Server] ✅ Usando SMTP para envío de email');
+      console.log('[DEBUG Server] 📧 From:', `${noreplyName} <${noreplyEmail}>`);
 
       // Determinar el correo remitente
       // Si se especifica fromEmail en el request, usarlo; sino usar noreplyEmail o smtpUser
@@ -318,6 +353,12 @@ export function app(): express.Express {
       });
       return res.json({ success: true, data: { messageId: info.messageId } });
     } catch (error: any) {
+      console.error('[DEBUG Server] ❌ ERROR GENERAL en envío de email');
+      console.error('[DEBUG Server] 🔍 Detalles del error:', error);
+      console.error('[DEBUG Server] 📊 Error code:', error.code);
+      console.error('[DEBUG Server] 💬 Error message:', error.message);
+      console.error('[DEBUG Server] 🏷️ Error name:', error.name);
+
       safeLogger.error('❌ Error sending email', error);
 
       // Mensaje de error más descriptivo

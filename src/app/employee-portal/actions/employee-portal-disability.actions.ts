@@ -23,6 +23,7 @@ type DisabilityActionsDependencies = {
   resetForm: () => void;
   reloadRequests: () => void;
   setUploading: (value: boolean) => void;
+  disabilityRecipients: () => Promise<string[]>;
 };
 
 /**
@@ -40,6 +41,7 @@ export async function uploadDisability(
     resetForm,
     reloadRequests,
     setUploading,
+    disabilityRecipients,
   } = deps;
 
   if (
@@ -135,12 +137,22 @@ export async function uploadDisability(
 
           // Notificación por correo a RRHH (configurable en settings)
           void (async () => {
+            console.log('[DEBUG Disability] 📧 Verificando notificación por email...');
+
             const shouldNotify = await getBooleanSetting(
               http,
               'hr_email_notify_disabilities',
               true
             );
-            if (!shouldNotify) return;
+
+            console.log('[DEBUG Disability] 📧 hr_email_notify_disabilities:', shouldNotify);
+
+            if (!shouldNotify) {
+              console.log('[DEBUG Disability] 🚫 Notificación por email desactivada');
+              return;
+            }
+
+            console.log('[DEBUG Disability] ✅ Enviando notificación por email de incapacidad');
 
             const employee = currentEmployee();
             const employeeName =
@@ -178,20 +190,43 @@ export async function uploadDisability(
               </div>
             `;
 
+            // Obtener destinatarios configurables
+            console.log('[DEBUG Disability] 🔍 Llamando disabilityRecipients()...');
+            const recipients = await disabilityRecipients();
+            console.log('[DEBUG Disability] 📧 Destinatarios obtenidos:', recipients);
+
+            console.log('[DEBUG Disability] 📝 Preparando email:');
+            console.log('[DEBUG Disability] 📧 Para:', recipients);
+            console.log('[DEBUG Disability] 📧 Asunto:', subject);
+            console.log('[DEBUG Disability] 📧 Contenido HTML length:', html.length);
+
+            const emailPayload = {
+              to: recipients,
+              subject,
+              html,
+              fromName: 'People - RRHH',
+            };
+
+            console.log('[DEBUG Disability] 🚀 Enviando petición POST a /api/email/send...');
+            console.log('[DEBUG Disability] 📦 Payload:', emailPayload);
+
             http
-              .post('/api/email/send', {
-                to: 'Verley@blackdogpanama.com',
-                subject,
-                html,
-                fromName: 'People - RRHH',
-              })
+              .post('/api/email/send', emailPayload)
               .subscribe({
-                next: () => undefined,
-                error: (e) =>
-                  console.warn(
-                    '[DisabilityUpload] No se pudo enviar email a RRHH',
-                    e
-                  ),
+                next: (response) => {
+                  console.log('[DEBUG Disability] ✅ Email enviado correctamente');
+                  console.log('[DEBUG Disability] 📥 Respuesta del servidor:', response);
+                },
+                error: (e) => {
+                  console.error('[DEBUG Disability] ❌ ERROR: No se pudo enviar email a RRHH');
+                  console.error('[DEBUG Disability] 🔍 Detalles del error:', e);
+                  console.error('[DEBUG Disability] 📦 Payload que se intentó enviar:', {
+                    to: recipients,
+                    subject,
+                    html: html.substring(0, 200) + '...', // Solo primeros 200 chars
+                    fromName: 'People - RRHH',
+                  });
+                },
               });
           })();
 

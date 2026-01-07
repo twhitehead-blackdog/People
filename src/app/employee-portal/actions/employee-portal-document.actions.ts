@@ -23,14 +23,15 @@ type DocumentActionsDependencies = {
   resetForm: () => void;
   reloadRequests: () => void;
   setSubmitting: (value: boolean) => void;
+  documentRecipients: () => Promise<string[]>;
 };
 
 /**
  * Envía una solicitud de documento
  */
-export function submitDocumentRequest(
+export async function submitDocumentRequest(
   deps: DocumentActionsDependencies
-): void {
+): Promise<void> {
   const {
     http,
     apiUrl,
@@ -41,6 +42,7 @@ export function submitDocumentRequest(
     resetForm,
     reloadRequests,
     setSubmitting,
+    documentRecipients,
   } = deps;
 
   const reason = formState.reason;
@@ -84,12 +86,22 @@ export function submitDocumentRequest(
 
         // Notificación por correo a RRHH (configurable en settings)
         void (async () => {
+          console.log('[DEBUG Document] 📧 Verificando notificación por email...');
+
           const shouldNotify = await getBooleanSetting(
             http,
             'hr_email_notify_documents',
             true
           );
-          if (!shouldNotify) return;
+
+          console.log('[DEBUG Document] 📧 hr_email_notify_documents:', shouldNotify);
+
+          if (!shouldNotify) {
+            console.log('[DEBUG Document] 🚫 Notificación por email desactivada');
+            return;
+          }
+
+          console.log('[DEBUG Document] ✅ Enviando notificación por email de documento');
 
           const employee = currentEmployee();
           const employeeName =
@@ -128,14 +140,41 @@ export function submitDocumentRequest(
             </div>
           `;
 
-          http.post('/api/email/send', {
-            to: 'Verley@blackdogpanama.com',
+          // Obtener destinatarios configurables
+          console.log('[DEBUG Document] 🔍 Llamando documentRecipients()...');
+          const recipients = await documentRecipients();
+          console.log('[DEBUG Document] 📧 Destinatarios obtenidos:', recipients);
+
+          console.log('[DEBUG Document] 📝 Preparando email:');
+          console.log('[DEBUG Document] 📧 Para:', recipients);
+          console.log('[DEBUG Document] 📧 Asunto:', subject);
+          console.log('[DEBUG Document] 📧 Contenido HTML length:', html.length);
+
+          const emailPayload = {
+            to: recipients,
             subject,
             html,
             fromName: 'People - RRHH',
-          }).subscribe({
-            next: () => undefined,
-            error: (e) => console.warn('[DocumentRequest] No se pudo enviar email a RRHH', e),
+          };
+
+          console.log('[DEBUG Document] 🚀 Enviando petición POST a /api/email/send...');
+          console.log('[DEBUG Document] 📦 Payload:', emailPayload);
+
+          http.post('/api/email/send', emailPayload).subscribe({
+            next: (response) => {
+              console.log('[DEBUG Document] ✅ Email enviado correctamente');
+              console.log('[DEBUG Document] 📥 Respuesta del servidor:', response);
+            },
+            error: (e) => {
+              console.error('[DEBUG Document] ❌ ERROR: No se pudo enviar email a RRHH');
+              console.error('[DEBUG Document] 🔍 Detalles del error:', e);
+              console.error('[DEBUG Document] 📦 Payload que se intentó enviar:', {
+                to: recipients,
+                subject,
+                html: html.substring(0, 200) + '...', // Solo primeros 200 chars
+                fromName: 'People - RRHH',
+              });
+            },
           });
         })();
 

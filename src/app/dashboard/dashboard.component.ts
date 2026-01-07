@@ -1060,16 +1060,19 @@ export class DashboardComponent {
         }
       },
       error: (err) => {
-        // Si falla, intentar obtener IP vía WebRTC como fallback
-        this.getIPViaWebRTC()
-          .then((ip) => {
-            this.currentIP.set(ip);
-          })
-          .catch(() => {
-            // Si todo falla, usar localhost como fallback
-            this.currentIP.set('127.0.0.1');
-          });
-      },
+      // Silenciar errores de consola para este endpoint no crítico
+      console.debug('[Dashboard] Error obteniendo IP del cliente, usando fallback:', err?.message);
+
+      // Intentar obtener IP vía WebRTC como fallback
+      this.getIPViaWebRTC()
+        .then((ip) => {
+          this.currentIP.set(ip);
+        })
+        .catch(() => {
+          // Si todo falla, usar localhost como fallback
+          this.currentIP.set('127.0.0.1');
+        });
+    },
     });
   }
 
