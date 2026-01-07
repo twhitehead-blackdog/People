@@ -59,14 +59,7 @@ import { Tooltip } from 'primeng/tooltip';
       </ng-template>
       <p-popover #options>
         <div class="relative">
-          <!-- Icono de auditoría en esquina superior derecha -->
-          <i
-            class="pi pi-history absolute top-0 right-0 text-xs text-gray-400 hover:text-cyan-400 cursor-pointer transition-colors z-10"
-            pTooltip="Ver historial de auditoría de este día"
-            tooltipPosition="left"
-            (click)="onViewAudit(); options.hide()"
-          ></i>
-          <span class="font-medium block mb-2 pr-6">Opciones</span>
+          <span class="font-medium block mb-2">Opciones</span>
           <ul class="list-non flex flex-col">
             @if (canManage()) {
               <li
@@ -140,7 +133,6 @@ export class VetBranchCellComponent {
   public edit = output<{ assignment: VetBranchAssignment; date: Date }>();
   public delete = output<{ assignment: VetBranchAssignment; date: Date }>();
   public add = output<{ employeeId: string; date: Date }>();
-  public viewAudit = output<{ employeeId: string; date: Date }>();
 
   public onEdit(): void {
     const assignmentValue = this.assignment();
@@ -160,7 +152,4 @@ export class VetBranchCellComponent {
     this.add.emit({ employeeId: this.employeeId(), date: this.date() });
   }
 
-  public onViewAudit(): void {
-    this.viewAudit.emit({ employeeId: this.employeeId(), date: this.date() });
-  }
 }

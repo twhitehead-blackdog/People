@@ -32,7 +32,6 @@ registerLocaleData(esLocale);
 import { Branch, Employee, VetBranchAssignment } from '../models';
 import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
-import { VetBranchAuditService } from '../services/vet-branch-audit.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { VetScheduleDataService } from './services/vet-schedule-data.service';
 import { VetBranchCellComponent } from './vet-branch-cell.component';
@@ -106,7 +105,6 @@ export class VetScheduleComponent {
   private message = inject(MessageService);
   private dialogService = inject(DialogService);
   private apiUrl = inject(ApiUrlService);
-  private auditService = inject(VetBranchAuditService);
   private dataService = inject(VetScheduleDataService);
   private ref = inject(DynamicDialogRef);
 
@@ -372,7 +370,7 @@ export class VetScheduleComponent {
       return;
     }
 
-    // Buscar asignación actual (para auditoría/UX)
+    // Buscar asignación actual (para UX)
     const existingAssignment = this.assignments().find(
       (a) =>
         a.employee_id === employee.id &&
@@ -412,24 +410,6 @@ export class VetScheduleComponent {
             detail: wasUpdate
               ? `Sucursal actualizada para ${employee.first_name} ${employee.father_name}`
               : `Sucursal asignada para ${employee.first_name} ${employee.father_name}`,
-          });
-
-          // Auditoría
-          this.auditService.logChange({
-            vetBranchAssignmentId: saved.id,
-            changedBy: currentEmployeeId,
-            action: wasUpdate ? 'updated' : 'assigned',
-            oldBranchId: existingAssignment?.branch_id,
-            newBranchId: branch.id,
-            oldValue: existingAssignment
-              ? { branch_id: existingAssignment.branch_id }
-              : null,
-            newValue: { ...assignmentData },
-            comment: wasUpdate
-              ? `Cambio de sucursal: ${
-                  existingAssignment?.branch?.short_name || 'N/A'
-                } → ${branch.short_name}`
-              : `Asignación inicial de sucursal: ${branch.short_name}`,
           });
         },
         error: (error: any) => {
@@ -493,21 +473,6 @@ export class VetScheduleComponent {
           summary: 'Removido',
           detail: `Asignación removida para ${employee.first_name} ${employee.father_name}`,
         });
-
-        // Registrar en auditoría
-        this.auditService.logChange({
-          vetBranchAssignmentId: existingAssignment.id,
-          changedBy: currentEmployeeId,
-          action: 'unassigned',
-          oldBranchId: existingAssignment.branch_id,
-          oldValue: {
-            branch_id: existingAssignment.branch_id,
-            date: existingAssignment.date,
-          },
-          comment: `Remoción de asignación de sucursal: ${
-            existingAssignment.branch?.short_name || 'N/A'
-          }`,
-        });
       },
       error: (error: any) => {
         console.error('[VetSchedule] Error deleting assignment:', error);
@@ -564,14 +529,6 @@ export class VetScheduleComponent {
       this.selectedAssignment.set(undefined);
       this.dialogVisible.set(true);
     }
-  }
-
-  onViewAudit(event: { employeeId: string; date: Date }): void {
-    this.message.add({
-      severity: 'info',
-      summary: 'Funcionalidad pendiente',
-      detail: 'Vista de auditoría próximamente',
-    });
   }
 
   // Manejadores del diálogo
