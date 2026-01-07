@@ -33,7 +33,6 @@ import { Branch, Employee, VetBranchAssignment } from '../models';
 import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
 import { DashboardStore } from '../stores/dashboard.store';
-import { VetScheduleDataService } from './services/vet-schedule-data.service';
 import { VetBranchCellComponent } from './vet-branch-cell.component';
 import { VetBranchSelectionDialogComponent } from './vet-branch-selection-dialog.component';
 
@@ -105,7 +104,6 @@ export class VetScheduleComponent {
   private message = inject(MessageService);
   private dialogService = inject(DialogService);
   private apiUrl = inject(ApiUrlService);
-  private dataService = inject(VetScheduleDataService);
   private ref = inject(DynamicDialogRef);
 
   // Estado del componente
@@ -196,20 +194,46 @@ export class VetScheduleComponent {
 
   // Cargar asignaciones desde la API
   private loadAssignments(): void {
-    this.dataService.loadAssignments(this.currentWeekStart()).subscribe({
-      next: (assignments: VetBranchAssignment[]) => {
-        this.assignments.set(assignments);
-      },
-      error: (error: any) => {
-        console.error('[VetSchedule] Error loading assignments:', error);
-        this.message.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'Error al cargar las asignaciones veterinarias',
-        });
-        this.assignments.set([]);
-      },
-    });
+    const startDate = this.currentWeekStart();
+    const endDate = endOfWeek(startDate, { weekStartsOn: 0 });
+
+    const companyId = this.organizationService.getCurrentCompanyId();
+    if (!companyId) {
+      this.message.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo identificar la compañía.',
+      });
+      return;
+    }
+
+    this.http
+      .get<VetBranchAssignment[]>(
+        this.apiUrl.build('rest/v1/vet_branch_assignments', {
+          and: `(date.gte.${format(startDate, 'yyyy-MM-dd')},date.lte.${format(
+            endDate,
+            'yyyy-MM-dd'
+          )})`,
+          company_id: `eq.${companyId}`,
+          select:
+            '*,branch:branches(id,name,short_name),employee:employees(id,first_name,father_name,position:positions(name))',
+        }),
+        {}
+      )
+      .subscribe({
+        next: (assignments: VetBranchAssignment[]) => {
+          this.assignments.set(assignments);
+        },
+        error: (error: any) => {
+          console.error('[VetSchedule] Error loading assignments:', error);
+          this.message.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Error al cargar las asignaciones veterinarias',
+          });
+          this.assignments.set([]);
+        },
+      });
   }
 
   /**
@@ -384,10 +408,25 @@ export class VetScheduleComponent {
       company_id: companyId,
     };
 
-    this.dataService
-      .assignBranch(employee.id, branch.id, date, currentEmployeeId)
+    // UPSERT para evitar 409 (unique: company_id, employee_id, date)
+    // PostgREST: on_conflict y Prefer: resolution=merge-duplicates
+    this.http
+      .post(
+        this.apiUrl.build('rest/v1/vet_branch_assignments', {
+          on_conflict: 'company_id,employee_id,date',
+          select:
+            '*,branch:branches(id,name,short_name),employee:employees(id,first_name,father_name,position:positions(name))',
+        }),
+        assignmentData,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Prefer: 'resolution=merge-duplicates,return=representation',
+          },
+        }
+      )
       .subscribe({
-        next: (resp: VetBranchAssignment[]) => {
+        next: (resp: any) => {
           const saved = Array.isArray(resp) ? resp[0] : resp;
           if (!saved?.id) {
             // Fallback: recargar
@@ -460,29 +499,37 @@ export class VetScheduleComponent {
       return;
     }
 
-    this.dataService.deleteAssignment(existingAssignment.id).subscribe({
-      next: (): void => {
-        // Remover del estado local
-        const updatedAssignments = this.assignments().filter(
-          (a) => a.id !== existingAssignment.id
-        );
-        this.assignments.set(updatedAssignments);
+    // Eliminar la asignación
+    this.http
+      .delete(
+        this.apiUrl.build('rest/v1/vet_branch_assignments', {
+          id: `eq.${existingAssignment.id}`,
+        }),
+        {}
+      )
+      .subscribe({
+        next: () => {
+          // Remover del estado local
+          const updatedAssignments = this.assignments().filter(
+            (a) => a.id !== existingAssignment.id
+          );
+          this.assignments.set(updatedAssignments);
 
-        this.message.add({
-          severity: 'success',
-          summary: 'Removido',
-          detail: `Asignación removida para ${employee.first_name} ${employee.father_name}`,
-        });
-      },
-      error: (error: any) => {
-        console.error('[VetSchedule] Error deleting assignment:', error);
-        this.message.add({
-          severity: 'error',
-          summary: 'Error',
-          detail: 'Error al remover la asignación',
-        });
-      },
-    });
+          this.message.add({
+            severity: 'success',
+            summary: 'Removido',
+            detail: `Asignación removida para ${employee.first_name} ${employee.father_name}`,
+          });
+        },
+        error: (error: any) => {
+          console.error('[VetSchedule] Error deleting assignment:', error);
+          this.message.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Error al remover la asignación',
+          });
+        },
+      });
   }
 
   // Formatear nombre completo del empleado
