@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { HttpClient, httpResource } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   computed,
   effect,
@@ -425,7 +426,7 @@ import {
 
     <!-- Dialog para Detalles de Solicitud -->
     <pt-employee-portal-request-details-dialog
-      [visible]="showRequestDetailsDialog()"
+      [(visible)]="showRequestDetailsDialog"
       [request]="selectedRequestDetails()"
       [getStatusLabel]="getUnifiedStatusLabel.bind(this)"
       [getRequestTypeLabel]="getRequestTypeLabel.bind(this)"
@@ -434,8 +435,7 @@ import {
       [formatHoursMinutes]="formatHoursMinutes.bind(this)"
       [formatDateWithTimeRange]="formatDateWithTimeRange.bind(this)"
       [hasTimeInfo]="hasTimeInfo.bind(this)"
-      (closed)="closeRequestDetailsDialog()"
-      (viewResponse)="closeRequestDetailsDialog(); viewResponse($event)"
+      (viewResponse)="viewResponse($event)"
       (downloadDocument)="downloadDocument($event)"
     />
 
@@ -636,6 +636,7 @@ export class EmployeePortalComponent {
   private organizationService = inject(OrganizationService);
   private employeePortalApi = inject(EmployeePortalApiService);
   private navigationService = inject(EmployeePortalNavigationService);
+  private cdr = inject(ChangeDetectorRef);
   public notificationsService = inject(NotificationsService);
   public timelogsService = inject(EmployeePortalTimelogsService);
   public requestsService = inject(EmployeePortalRequestsService);
@@ -843,6 +844,13 @@ export class EmployeePortalComponent {
             element.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }
         }, 100);
+      }
+    });
+
+    // Limpiar detalles de solicitud cuando se cierra el diálogo
+    effect(() => {
+      if (!this.showRequestDetailsDialog()) {
+        this.selectedRequestDetails.set(null);
       }
     });
   }
@@ -1543,6 +1551,8 @@ export class EmployeePortalComponent {
   public closeRequestDetailsDialog(): void {
     this.showRequestDetailsDialog.set(false);
     this.selectedRequestDetails.set(null);
+    // Forzar detección de cambios para OnPush
+    this.cdr.markForCheck();
   }
 
   public viewResponse(complaint: any): void {

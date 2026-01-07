@@ -1,5 +1,5 @@
 import { DatePipe, NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input, model, output } from '@angular/core';
 import { Button } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { getCompensatoryQuantity, getCompensatoryReasonFromNotes } from '../utils/employee-portal-compensatory.utils';
@@ -21,14 +21,15 @@ type UnifiedRequest = {
   imports: [DialogModule, Button, DatePipe, NgClass],
   template: `
     <p-dialog
-      [visible]="visible()"
-      (onHide)="onClose()"
+      [(visible)]="visible"
       [modal]="true"
       [style]="{ width: '90vw', maxWidth: '900px' }"
       [draggable]="false"
       [resizable]="false"
       [closable]="true"
+      [dismissableMask]="true"
       [header]="request()?.title || 'Detalles de la Solicitud'"
+      (onHide)="onClose()"
     >
       @if (request()) {
         @let req = request()!;
@@ -435,8 +436,8 @@ type UnifiedRequest = {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EmployeePortalRequestDetailsDialogComponent {
-  // Inputs
-  public visible = input.required<boolean>();
+  // Model
+  public visible = model.required<boolean>();
   public request = input<UnifiedRequest | null | undefined>();
   public getStatusLabel = input.required<(status: string) => string>();
   public getRequestTypeLabel = input.required<(type: string) => string>();
