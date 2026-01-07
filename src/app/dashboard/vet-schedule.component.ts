@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import esLocale from '@angular/common/locales/es';
 import {
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
   computed,
   effect,
@@ -110,6 +111,7 @@ export class VetScheduleComponent {
   private auditService = inject(VetBranchAuditService);
   private dataService = inject(VetScheduleDataService);
   private utils = inject(VetScheduleUtilsService);
+  private cdr = inject(ChangeDetectorRef);
   private ref = inject(DynamicDialogRef);
 
   // Estado del componente
@@ -193,6 +195,7 @@ export class VetScheduleComponent {
     this.dataService.loadAssignments(this.currentWeekStart()).subscribe({
       next: (assignments: VetBranchAssignment[]) => {
         this.assignments.set(assignments);
+        this.cdr.markForCheck();
       },
       error: (error: any) => {
         console.error('[VetSchedule] Error loading assignments:', error);
@@ -202,6 +205,7 @@ export class VetScheduleComponent {
           detail: 'Error al cargar las asignaciones veterinarias',
         });
         this.assignments.set([]);
+        this.cdr.markForCheck();
       },
     });
   }
@@ -299,10 +303,12 @@ export class VetScheduleComponent {
           }
 
           this.nonWorkingMap.set(map);
+          this.cdr.markForCheck();
         },
         error: (error: any) => {
           console.error('[VetSchedule] Error loading non-working days:', error);
           this.nonWorkingMap.set({});
+          this.cdr.markForCheck();
         },
       });
   }
@@ -396,6 +402,7 @@ export class VetScheduleComponent {
             (a) => a.id !== saved.id
           );
           this.assignments.set([...withoutOld, saved]);
+          this.cdr.markForCheck(); // Forzar detección de cambios
 
           const wasUpdate =
             !!existingAssignment && existingAssignment.branch_id !== branch.id;
@@ -481,6 +488,7 @@ export class VetScheduleComponent {
           (a) => a.id !== existingAssignment.id
         );
         this.assignments.set(updatedAssignments);
+        this.cdr.markForCheck(); // Forzar detección de cambios
 
         this.message.add({
           severity: 'success',
