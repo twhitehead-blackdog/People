@@ -129,6 +129,13 @@ export const DASHBOARD_ROUTES: Routes = [
                   ),
               },
               {
+                path: 'compensatory',
+                loadComponent: () =>
+                  import('./timeoff/compensatory/compensatory-dashboard.component').then(
+                    (x) => x.CompensatoryDashboardComponent
+                  ),
+              },
+              {
                 path: 'disabilities',
                 loadComponent: () =>
                   import('./hr-disabilities.component').then(
