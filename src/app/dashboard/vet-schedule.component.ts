@@ -3,7 +3,6 @@ import { HttpClient } from '@angular/common/http';
 import esLocale from '@angular/common/locales/es';
 import {
   ChangeDetectionStrategy,
-  ChangeDetectorRef,
   Component,
   computed,
   effect,
@@ -36,7 +35,6 @@ import { OrganizationService } from '../services/organization.service';
 import { VetBranchAuditService } from '../services/vet-branch-audit.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { VetScheduleDataService } from './services/vet-schedule-data.service';
-import { VetScheduleUtilsService } from './services/vet-schedule-utils.service';
 import { VetBranchCellComponent } from './vet-branch-cell.component';
 import { VetBranchSelectionDialogComponent } from './vet-branch-selection-dialog.component';
 
@@ -110,14 +108,24 @@ export class VetScheduleComponent {
   private apiUrl = inject(ApiUrlService);
   private auditService = inject(VetBranchAuditService);
   private dataService = inject(VetScheduleDataService);
-  private utils = inject(VetScheduleUtilsService);
-  private cdr = inject(ChangeDetectorRef);
   private ref = inject(DynamicDialogRef);
 
   // Estado del componente
   currentWeekStart = signal<Date>(startOfWeek(new Date(), { weekStartsOn: 0 })); // Domingo
   assignments = signal<VetBranchAssignment[]>([]);
   nonWorkingMap = signal<Record<string, string>>({});
+
+  // Método utilitario temporal
+  private isVetPosition(employee: Employee): boolean {
+    const positionName = employee.position?.name?.toLowerCase() || '';
+    return (
+      positionName.includes('veterinar') || // Más amplio: cubre "veterinario", "veterinaria", etc.
+      positionName.includes('vet') ||
+      (positionName.includes('médic') && positionName.includes('veterinar')) || // "médica veterinaria"
+      (positionName.includes('asistente') && positionName.includes('vet')) || // "asistente vet"
+      positionName.includes('auxiliar veterinario') // posiciones auxiliares
+    );
+  }
 
   // Estado del diálogo
   dialogVisible = signal<boolean>(false);
@@ -137,9 +145,7 @@ export class VetScheduleComponent {
   vetEmployeesWithAssignments = computed((): VetWithAssignments[] => {
     const vets = this.store.employees
       .entities()
-      .filter(
-        (employee) => employee.is_active && this.utils.isVetPosition(employee)
-      )
+      .filter((employee) => employee.is_active && this.isVetPosition(employee))
       .sort((a, b) => a.first_name.localeCompare(b.first_name));
 
     const assignmentsMap = new Map<string, VetBranchAssignment[]>();
@@ -195,7 +201,6 @@ export class VetScheduleComponent {
     this.dataService.loadAssignments(this.currentWeekStart()).subscribe({
       next: (assignments: VetBranchAssignment[]) => {
         this.assignments.set(assignments);
-        this.cdr.markForCheck();
       },
       error: (error: any) => {
         console.error('[VetSchedule] Error loading assignments:', error);
@@ -205,7 +210,6 @@ export class VetScheduleComponent {
           detail: 'Error al cargar las asignaciones veterinarias',
         });
         this.assignments.set([]);
-        this.cdr.markForCheck();
       },
     });
   }
@@ -227,7 +231,7 @@ export class VetScheduleComponent {
 
     const vetIds = this.store.employees
       .entities()
-      .filter((e) => e.is_active && this.utils.isVetPosition(e))
+      .filter((e) => e.is_active && this.isVetPosition(e))
       .map((e) => e.id);
 
     if (vetIds.length === 0) {
@@ -263,15 +267,13 @@ export class VetScheduleComponent {
             const schedule = row.schedule;
 
             // Verificar si es un schedule no laborable
-            const isNonWorking = this.utils.isNonWorkingSchedule(schedule);
+            const isNonWorking = this.isNonWorkingSchedule(schedule);
             if (!isNonWorking) {
               continue;
             }
 
-            const rowStart = this.utils.parseDateWithoutTimezone(
-              row.start_date
-            );
-            const rowEnd = this.utils.parseDateWithoutTimezone(row.end_date);
+            const rowStart = this.parseDateWithoutTimezone(row.start_date);
+            const rowEnd = this.parseDateWithoutTimezone(row.end_date);
 
             for (const d of days) {
               // Crear fechas solo con año/mes/día para comparación
@@ -296,19 +298,17 @@ export class VetScheduleComponent {
                 const key = `${row.employee_id}|${format(d, 'yyyy-MM-dd')}`;
                 // Si hay varias, deja la primera
                 if (!map[key]) {
-                  map[key] = this.utils.getScheduleLabel(schedule);
+                  map[key] = this.getScheduleLabel(schedule);
                 }
               }
             }
           }
 
           this.nonWorkingMap.set(map);
-          this.cdr.markForCheck();
         },
         error: (error: any) => {
           console.error('[VetSchedule] Error loading non-working days:', error);
           this.nonWorkingMap.set({});
-          this.cdr.markForCheck();
         },
       });
   }
@@ -402,7 +402,6 @@ export class VetScheduleComponent {
             (a) => a.id !== saved.id
           );
           this.assignments.set([...withoutOld, saved]);
-          this.cdr.markForCheck(); // Forzar detección de cambios
 
           const wasUpdate =
             !!existingAssignment && existingAssignment.branch_id !== branch.id;
@@ -488,7 +487,6 @@ export class VetScheduleComponent {
           (a) => a.id !== existingAssignment.id
         );
         this.assignments.set(updatedAssignments);
-        this.cdr.markForCheck(); // Forzar detección de cambios
 
         this.message.add({
           severity: 'success',
