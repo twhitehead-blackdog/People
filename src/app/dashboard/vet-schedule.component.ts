@@ -17,6 +17,7 @@ import {
   startOfWeek,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { utils, writeFile } from 'xlsx';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
@@ -625,6 +626,99 @@ export class VetScheduleComponent {
     this.selectedEmployee.set(undefined);
     this.selectedDate.set(undefined);
     this.selectedAssignment.set(undefined);
+  }
+
+  exportToExcel() {
+    try {
+      const startDate = this.currentWeekStart();
+      const endDate = endOfWeek(startDate, { weekStartsOn: 0 }); // Domingo a sábado
+
+      // Obtener todos los días de la semana
+      const weekDays = eachDayOfInterval({ start: startDate, end: endDate });
+
+      // Obtener todos los veterinarios únicos
+      const vetEmployees = this.vetEmployeesWithAssignments().map(v => v.employee);
+
+      // Crear la estructura de datos para Excel
+      const excelData = vetEmployees.map(vet => {
+        const row: any = {
+          'Médico Veterinario': `${vet.first_name} ${vet.father_name}`,
+          'Cargo': vet.position?.name || 'Médico Veterinario'
+        };
+
+        // Agregar una columna por día de la semana
+        weekDays.forEach(day => {
+          const assignment = this.getAssignmentForDate(vet, day);
+          const dayName = format(day, 'EEEE', { locale: es }); // Nombre del día en español
+          const dateStr = format(day, 'dd/MM');
+
+          // Verificar si es día no laborable
+          const isNonWorking = this.isNonWorking(vet.id, day);
+          const nonWorkingLabel = this.getNonWorkingLabel(vet.id, day);
+
+          if (isNonWorking) {
+            row[`${dayName} ${dateStr}`] = nonWorkingLabel;
+          } else if (assignment) {
+            row[`${dayName} ${dateStr}`] = assignment.branch?.short_name || 'N/A';
+          } else {
+            row[`${dayName} ${dateStr}`] = 'SIN ASIGNAR';
+          }
+        });
+
+        return row;
+      });
+
+      // Crear la hoja de cálculo
+      const ws = utils.json_to_sheet(excelData);
+
+      // Configurar ancho de columnas
+      const colWidths = [
+        { wch: 25 }, // Médico Veterinario
+        { wch: 20 }, // Cargo
+        ...weekDays.map(() => ({ wch: 15 })) // Una columna por día
+      ];
+      ws['!cols'] = colWidths;
+
+      // Crear el libro de trabajo
+      const wb = utils.book_new();
+
+      // Agregar información del reporte
+      const reportInfo = [
+        ['HORARIO EQUIPO MÉDICO VETERINARIO'],
+        ['Fecha de generación:', format(new Date(), 'dd/MM/yyyy HH:mm')],
+        ['Semana del:', format(startDate, 'dd/MM/yyyy')],
+        ['Al:', format(endDate, 'dd/MM/yyyy')],
+        ['Total de médicos:', vetEmployees.length],
+        ['']
+      ];
+
+      const infoWs = utils.aoa_to_sheet(reportInfo);
+      infoWs['!cols'] = [{ wch: 30 }, { wch: 30 }];
+
+      // Agregar hojas al libro
+      utils.book_append_sheet(wb, infoWs, 'Información');
+      utils.book_append_sheet(wb, ws, 'Horario Veterinario');
+
+      // Generar nombre del archivo
+      const fileName = `HORARIO_VETERINARIO_${format(startDate, 'yyyyMMdd')}_${format(endDate, 'yyyyMMdd')}.xlsx`;
+
+      // Descargar el archivo
+      writeFile(wb, fileName);
+
+      this.message.add({
+        severity: 'success',
+        summary: 'Exportación exitosa',
+        detail: `El archivo ${fileName} se ha descargado correctamente`
+      });
+
+    } catch (error) {
+      console.error('Error exportando a Excel:', error);
+      this.message.add({
+        severity: 'error',
+        summary: 'Error en exportación',
+        detail: 'Ocurrió un error al generar el archivo Excel'
+      });
+    }
   }
 
   // Getter para acceder a funcionalidades del store desde el template

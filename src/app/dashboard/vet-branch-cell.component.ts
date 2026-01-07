@@ -31,7 +31,8 @@ import { Tooltip } from 'primeng/tooltip';
       </ng-template>
     } @else if (assignment(); as assignmentValue) {
       <div
-        class="inline-flex gap-1 py-0.5 px-1.5 rounded-sm font-medium items-center justify-center text-[11px] cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-md border border-black/20 shadow-sm bg-green-600 text-green-100 opacity-80 hover:opacity-100"
+        class="inline-flex gap-1 py-0.5 px-1.5 rounded-sm font-medium items-center justify-center text-[11px] cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-md border border-black/20 shadow-sm text-white opacity-80 hover:opacity-100"
+        [style.background-color]="getBranchColor(assignmentValue?.branch?.short_name || '')"
         [pTooltip]="tooltipContent"
         tooltipPosition="top"
         (click)="options.toggle($event)"
@@ -101,6 +102,32 @@ import { Tooltip } from 'primeng/tooltip';
   `,
 })
 export class VetBranchCellComponent {
+  // Mapa de colores por sucursal
+  private readonly branchColors: Record<string, string> = {
+    ' AF': '#6AA84F',    // Albrook
+    ' BV': '#D5A6BD',    // Bella Vista
+    ' CV': '#F1C232',    // Costa Verde
+    ' PE': '#8E7CC3',    // Plaza Emporio
+    ' SM': '#FCE5CD',    // Santa Maria
+    'VZ': '#CFE2F3',     // Villa Zaita
+    ' OM': '#F28E86',    // Ocean Mall
+    ' C50': '#B6D7A8',   // Calle 50
+    ' BM': '#CBAB7F',    // Brisas Mall
+    // Colores para sucursales adicionales
+    'BN': '#10B981',     // Brisas Norte
+    ' CDR': '#3B82F6',   // Condado del Rey
+    'CM': '#8B5CF6',     // Coco Del Mar
+    'DVD': '#EF4444',    // David Chiriqui
+    'OF': '#F59E0B',     // Oficina Central
+    'BO-DC': '#EC4899',  // Bodega Dos Caminos
+    'VS ': '#06B6D4',    // Versalles
+    'NZ': '#84CC16'      // Naz
+  };
+
+  // Método para obtener el color de una sucursal
+  getBranchColor(shortName: string): string {
+    return this.branchColors[shortName] || '#6B7280'; // Color gris por defecto
+  }
   // Inputs
   public assignment = input<VetBranchAssignment | null | undefined>();
   public date = input.required<Date>();

@@ -1,5 +1,5 @@
-import { Component, inject, input, output } from '@angular/core';
 import { DatePipe } from '@angular/common';
+import { Component, inject, input, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
@@ -45,7 +45,7 @@ import { DashboardStore } from '../stores/dashboard.store';
             class="w-full"
             [showClear]="true"
             appendTo="body"
-            [panelStyle]="{'max-height': '200px'}"
+            [panelStyle]="{ 'max-height': '200px' }"
             [virtualScroll]="true"
             [virtualScrollItemSize]="35"
           />
@@ -85,7 +85,13 @@ export class VetBranchSelectionDialogComponent {
   selectedBranchId: string | null = null;
 
   // Computed
-  branches = () => this.store.branches.entities();
+  branches = () =>
+    this.store.branches.entities().filter(
+      (branch) =>
+        branch.is_active &&
+        branch.name !== 'Bodega Dos Caminos' &&
+        branch.id !== '7862b9be-890d-4432-8a2f-9329a15a2853' // Oficina Central
+    );
 
   confirmSelection(): void {
     if (this.selectedBranchId) {

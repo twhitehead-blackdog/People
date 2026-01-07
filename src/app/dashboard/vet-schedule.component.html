@@ -32,6 +32,13 @@
           (onClick)="goToNextWeek()"
           pTooltip="Semana siguiente"
         />
+        <p-button
+          label="Exportar Excel"
+          icon="pi pi-file-excel"
+          severity="success"
+          (onClick)="exportToExcel()"
+          pTooltip="Exportar horario a Excel"
+        />
       </div>
     </div>
   </ng-template>
