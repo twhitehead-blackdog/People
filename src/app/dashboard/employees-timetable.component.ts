@@ -1347,6 +1347,8 @@ export class EmployeesTimetableComponent implements OnInit {
         severity: 'success',
       },
       accept: async () => {
+        console.log('🔵 [APROBAR] Iniciando aprobación para ID:', id);
+        
         const companyId = this.organizationService.getCurrentCompanyId();
         const params: any = { id: `eq.${id}` };
 
@@ -1355,8 +1357,13 @@ export class EmployeesTimetableComponent implements OnInit {
           params.company_id = `eq.${companyId}`;
         }
 
+        console.log('🔵 [APROBAR] Params para PATCH:', params);
+        console.log('🔵 [APROBAR] Company ID actual:', companyId);
+
         // Obtener información del horario ANTES de aprobarlo para auditoría
         const scheduleToApprove = this.shifts()?.find((s) => s.id === id);
+        console.log('🔵 [APROBAR] Turno encontrado:', scheduleToApprove);
+        
         const currentEmployeeId = this.store.currentEmployee()?.id;
 
         if (currentEmployeeId && scheduleToApprove) {
@@ -1445,6 +1452,7 @@ export class EmployeesTimetableComponent implements OnInit {
         }
 
         // Ahora aprobar el horario
+        console.log('🔵 [APROBAR] Enviando PATCH...');
         this.http
           .patch(
             this.apiUrl.build('rest/v1/employee_schedules'),
@@ -1453,7 +1461,9 @@ export class EmployeesTimetableComponent implements OnInit {
           )
           .pipe(
             catchError((error) => {
-              console.error(error);
+              console.error('🔴 [APROBAR] Error en PATCH:', error);
+              console.error('🔴 [APROBAR] Error status:', error.status);
+              console.error('🔴 [APROBAR] Error message:', error.message);
               this.message.add({
                 severity: 'error',
                 summary: 'Error',
@@ -1463,13 +1473,18 @@ export class EmployeesTimetableComponent implements OnInit {
             })
           )
           .subscribe({
-            next: () => {
+            next: (response) => {
+              console.log('✅ [APROBAR] PATCH exitoso, respuesta:', response);
+              console.log('✅ [APROBAR] Recargando schedulesResource...');
+              
               this.message.add({
                 severity: 'success',
                 summary: 'Éxito',
                 detail: 'Horario aprobado correctamente',
               });
+              
               this.schedulesResource.reload();
+              console.log('✅ [APROBAR] Reload completado');
             },
           });
       },

@@ -69,14 +69,14 @@ import { Tooltip } from 'primeng/tooltip';
             @if (canManageSchedules()) {
               <li
                 class="flex items-center gap-2 p-2 hover:bg-emphasis cursor-pointer rounded-md"
-                (click)="onEdit()"
+                (click)="onEdit(); options.hide()"
               >
                 <i class="pi pi-pencil text-primary-600"></i>
                 Editar
               </li>
               <li
                 class="flex items-center gap-2 p-2 hover:bg-emphasis cursor-pointer rounded-md"
-                (click)="onDelete()"
+                (click)="onDelete(); options.hide()"
               >
                 <i class="pi pi-trash text-red-700"></i>
                 Eliminar
@@ -85,7 +85,7 @@ import { Tooltip } from 'primeng/tooltip';
             @if (canApprove()) {
               <li
                 class="flex items-center gap-2 p-2 hover:bg-emphasis cursor-pointer rounded-md"
-                (click)="onApprove()"
+                (click)="onApprove(); options.hide()"
               >
                 <i class="pi pi-check-circle text-green-700"></i>
                 Aprobar

@@ -10,6 +10,7 @@ import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { DatePicker } from 'primeng/datepicker';
+import { FileUpload } from 'primeng/fileupload';
 import { TableModule } from 'primeng/table';
 import { TooltipModule } from 'primeng/tooltip';
 import { Textarea } from 'primeng/textarea';
@@ -17,7 +18,7 @@ import { Textarea } from 'primeng/textarea';
 @Component({
   selector: 'pt-employee-portal-vacations',
   standalone: true,
-  imports: [CommonModule, FormsModule, Card, DatePicker, Textarea, Button, TableModule, TooltipModule],
+  imports: [CommonModule, FormsModule, Card, DatePicker, Textarea, FileUpload, Button, TableModule, TooltipModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <p-card>
@@ -112,6 +113,47 @@ import { Textarea } from 'primeng/textarea';
               <p class="text-xs text-gray-500 mt-1">
                 {{ vacationReason.length }}/500 caracteres
               </p>
+            </div>
+
+            <div class="p-4 rounded-lg bg-neutral-700/30 border border-neutral-600/50">
+              <div class="flex items-center gap-3 mb-3">
+                <div class="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
+                  <i class="pi pi-file text-purple-400"></i>
+                </div>
+                <div>
+                  <h4 class="text-sm font-semibold text-white m-0">Documento de Respaldo (Opcional)</h4>
+                  <p class="text-xs text-gray-400 m-0">Adjunta un PDF si tienes una solicitud física firmada</p>
+                </div>
+              </div>
+              <p-fileUpload
+                mode="basic"
+                accept=".pdf,image/*"
+                maxFileSize="5000000"
+                [auto]="false"
+                chooseLabel="Seleccionar Archivo"
+                (onSelect)="handleFileSelect($event)"
+                class="w-full"
+              />
+              <p class="text-xs text-gray-500 mt-2">
+                Formatos permitidos: PDF, JPG, PNG (máx. 5MB)
+              </p>
+              @if (vacationFile) {
+              <div class="mt-3 p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <i class="pi pi-file text-purple-400"></i>
+                  <span class="text-sm text-gray-300">{{ vacationFile.name }}</span>
+                </div>
+                <p-button
+                  icon="pi pi-times"
+                  severity="danger"
+                  text
+                  rounded
+                  size="small"
+                  (onClick)="vacationFileChange.emit(null)"
+                  pTooltip="Eliminar archivo"
+                />
+              </div>
+              }
             </div>
 
             <div class="flex justify-end gap-3 pt-2">
@@ -272,6 +314,8 @@ export class EmployeePortalVacationsComponent {
   @Output() vacationEndDateChange = new EventEmitter<Date | null>();
   @Input() vacationReason = '';
   @Output() vacationReasonChange = new EventEmitter<string>();
+  @Input() vacationFile: File | null = null;
+  @Output() vacationFileChange = new EventEmitter<File | null>();
   @Input() submitting = false;
   @Input() canSubmit = false;
   @Output() submitRequest = new EventEmitter<void>();
@@ -283,4 +327,9 @@ export class EmployeePortalVacationsComponent {
   @Input() isDateFuture: (date: Date | string) => boolean = () => false;
   @Output() reloadList = new EventEmitter<void>();
   @Output() closeSection = new EventEmitter<void>();
+
+  public handleFileSelect(event: any): void {
+    const file = event?.files?.[0] ?? null;
+    this.vacationFileChange.emit(file);
+  }
 }

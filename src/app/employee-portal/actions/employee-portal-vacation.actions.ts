@@ -1,7 +1,11 @@
+import { HttpClient } from '@angular/common/http';
 import { format, startOfDay } from 'date-fns';
 import { MessageService } from 'primeng/api';
+import { firstValueFrom } from 'rxjs';
 import { v4 } from 'uuid';
 import { Employee, TimeOff } from '../../models';
+import { ApiUrlService } from '../../services/api-url.service';
+import { getEnv } from '../../utils/env.utils';
 import { EmployeePortalApiService } from '../services/employee-portal-api.service';
 import { EmployeePortalStore } from '../../stores/employee-portal.store';
 
@@ -9,9 +13,12 @@ type VacationFormState = {
   startDate: Date | null;
   endDate: Date | null;
   reason: string;
+  selectedFile: File | null;
 };
 
 type VacationActionsDependencies = {
+  http: HttpClient;
+  apiUrl: ApiUrlService;
   store: InstanceType<typeof EmployeePortalStore>;
   api: EmployeePortalApiService;
   messageService: MessageService;
@@ -23,12 +30,12 @@ type VacationActionsDependencies = {
 };
 
 /**
- * Envía una solicitud de vacaciones
+ * Envía una solicitud de vacaciones con documento opcional
  */
 export async function submitVacationRequest(
   deps: VacationActionsDependencies
 ): Promise<void> {
-  const { store, api, messageService, currentEmployee, formState, resetForm, reloadRequests, setSubmitting } = deps;
+  const { http, apiUrl, store, api, messageService, currentEmployee, formState, resetForm, reloadRequests, setSubmitting } = deps;
 
   // Validaciones
   const startDate = formState.startDate;
@@ -80,49 +87,83 @@ export async function submitVacationRequest(
   setSubmitting(true);
 
   try {
-    const vacationTypeId = '00000000-0000-0000-0000-000000000001';
-    const dateFrom = format(start, 'yyyy-MM-dd');
-    const dateTo = format(end, 'yyyy-MM-dd');
-    const notes: string[] = [];
-    if (formState.reason.trim()) {
-      notes.push(formState.reason.trim());
+    let documentUrl = '';
+
+    // Subir archivo si existe
+    if (formState.selectedFile) {
+      const file = formState.selectedFile;
+      const fileExt = file.name.split('.').pop();
+      const timestamp = Date.now();
+      const fileName = `${employee.id}_${timestamp}.${fileExt}`;
+      const filePath = `vacations/${fileName}`;
+
+      // Subir a Supabase Storage
+      const uploadUrl = `${apiUrl.baseUrl}/storage/v1/object/employee-documents/${filePath}`;
+      const apiKey = getEnv('ENV_SUPABASE_ANON_KEY') || '';
+      
+      if (!apiKey) {
+        throw new Error('No se pudo obtener la clave de API de Supabase');
+      }
+
+      const uploadResponse = await firstValueFrom(
+        http.post(uploadUrl, file, {
+          headers: {
+            'Content-Type': file.type,
+            'apikey': apiKey,
+            'Authorization': `Bearer ${apiKey}`,
+          },
+        })
+      );
+
+      // Construir URL del documento
+      documentUrl = `${apiUrl.baseUrl}/storage/v1/object/public/employee-documents/${filePath}`;
     }
 
-    const timeoffData: TimeOff = {
-      id: v4(),
+    // Crear solicitud en la tabla employee_vacations
+    const dateFrom = format(start, 'yyyy-MM-dd');
+    const dateTo = format(end, 'yyyy-MM-dd');
+
+    const vacationData = {
       employee_id: employee.id,
-      type_id: vacationTypeId,
-      date_from: startDate,
-      date_to: endDate,
-      notes,
-      is_approved: false,
+      start_date: dateFrom,
+      end_date: dateTo,
+      reason: formState.reason.trim() || null,
+      document_url: documentUrl || null,
+      status: 'pending',
+      created_by: employee.id, // El empleado crea su propia solicitud
+      // company_id se sincroniza automáticamente vía trigger desde employees
     };
 
-    const response = await api.createTimeoffRequest({
-      ...timeoffData,
-      date_from: dateFrom,
-      date_to: dateTo,
-    });
+    const createUrl = apiUrl.build('rest/v1/employee_vacations');
+    const apiKey = getEnv('ENV_SUPABASE_ANON_KEY') || '';
+    
+    if (!apiKey) {
+      throw new Error('No se pudo obtener la clave de API de Supabase');
+    }
 
-    const timeoffId = Array.isArray(response)
-      ? response[0]?.id
-      : response?.id;
-    if (!timeoffId) {
+    const response = await firstValueFrom(
+      http.post<Array<{ id: string }>>(createUrl, vacationData, {
+        headers: {
+          'apikey': apiKey,
+          'Authorization': `Bearer ${apiKey}`,
+          'Prefer': 'return=representation',
+        },
+      })
+    );
+
+    const vacationId = Array.isArray(response) && response.length > 0 ? response[0].id : null;
+    if (!vacationId) {
       throw new Error('No se recibió el ID de la solicitud creada');
     }
 
-    await api.notifyHrReviewer(
-      timeoffId,
-      employee ?? null
-    );
-
+    // Crear notificación para el empleado
     const currentEmp = currentEmployee();
-    if (currentEmp && timeoffId) {
+    if (currentEmp && vacationId) {
       await api.createHrMessages([
         {
           employee_id: currentEmp.id,
-          related_type: 'timeoff',
-          related_id: timeoffId,
+          related_type: 'vacation',
+          related_id: vacationId,
           message_type: 'vacation_request',
           title: 'Solicitud de vacaciones enviada',
           message: `Tu solicitud de vacaciones del ${format(

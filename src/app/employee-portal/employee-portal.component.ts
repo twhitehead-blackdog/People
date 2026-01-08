@@ -286,6 +286,8 @@ import {
           (vacationEndDateChange)="setVacationEndDate($event)"
           [vacationReason]="portalStore.vacationForm().reason"
           (vacationReasonChange)="setVacationReason($event)"
+          [vacationFile]="portalStore.vacationForm().selectedFile"
+          (vacationFileChange)="setVacationFile($event)"
           [submitting]="portalStore.vacationForm().submitting"
           [canSubmit]="canSubmitVacation()"
           (submitRequest)="submitVacationRequest()"
@@ -719,6 +721,10 @@ export class EmployeePortalComponent {
 
   public setVacationReason(value: string): void {
     this.portalStore.setVacationReason(value);
+  }
+
+  public setVacationFile(value: File | null): void {
+    this.portalStore.setVacationFile(value);
   }
 
   public setSubmittingVacation(value: boolean): void {
@@ -1394,6 +1400,8 @@ export class EmployeePortalComponent {
    */
   public async submitVacationRequest(): Promise<void> {
     await submitVacationRequest({
+      http: this.http,
+      apiUrl: this.apiUrl,
       store: this.portalStore,
       api: this.employeePortalApi,
       messageService: this.messageService,
@@ -1402,6 +1410,7 @@ export class EmployeePortalComponent {
         startDate: this.portalStore.vacationForm().startDate,
         endDate: this.portalStore.vacationForm().endDate,
         reason: this.portalStore.vacationForm().reason,
+        selectedFile: this.portalStore.vacationForm().selectedFile,
       },
       resetForm: () => this.resetVacationForm(),
       reloadRequests: () => this.reloadVacationRequests(),

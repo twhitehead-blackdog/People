@@ -555,6 +555,58 @@ type ManagementCard = {
               ></textarea>
             </div>
 
+            <!-- Paso 3: Documento de Respaldo -->
+            <div
+              class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md"
+            >
+              <div class="flex items-center gap-3 mb-4">
+                <div
+                  class="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center"
+                >
+                  <i class="pi pi-file text-purple-400"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-white m-0">
+                  Paso 3: Documento de Respaldo (Opcional)
+                </h3>
+              </div>
+              <p class="text-sm text-gray-400 mb-4">
+                Si tienes una solicitud física firmada, puedes adjuntarla como PDF para respaldar la solicitud.
+              </p>
+              <p-fileUpload
+                mode="basic"
+                accept=".pdf,.jpg,.jpeg,.png"
+                maxFileSize="5000000"
+                [auto]="false"
+                chooseLabel="Seleccionar Archivo"
+                (onSelect)="onVacationFileSelect($event)"
+                class="w-full"
+              />
+              <p class="text-xs text-gray-500 mt-2">
+                Formatos permitidos: PDF, JPG, PNG (máx. 5MB)
+              </p>
+              @if (vacationFile()) {
+              <div
+                class="mt-3 p-3 bg-purple-500/10 border border-purple-400/30 rounded-lg flex items-center justify-between"
+              >
+                <div class="flex items-center gap-2">
+                  <i class="pi pi-file text-purple-400"></i>
+                  <span class="text-sm text-gray-300">{{
+                    vacationFile()!.name
+                  }}</span>
+                </div>
+                <p-button
+                  icon="pi pi-times"
+                  severity="danger"
+                  text
+                  rounded
+                  size="small"
+                  (onClick)="vacationFile.set(null)"
+                  pTooltip="Eliminar archivo"
+                />
+              </div>
+              }
+            </div>
+
             <!-- Botones de Acción -->
             <div class="flex justify-between pt-4">
               <p-button
@@ -730,6 +782,7 @@ export class BranchManagerGestionesComponent {
   public vacationStartDate = signal<Date | null>(null);
   public vacationEndDate = signal<Date | null>(null);
   public vacationReason = signal<string>('');
+  public vacationFile = signal<File | null>(null);
   public submittingVacation = signal<boolean>(false);
 
   // Signals para Documentos
@@ -775,8 +828,7 @@ export class BranchManagerGestionesComponent {
   public canSubmitVacation = computed(() => {
     return !!(
       this.vacationStartDate() &&
-      this.vacationEndDate() &&
-      this.vacationReason()
+      this.vacationEndDate()
     );
   });
 
@@ -1016,6 +1068,13 @@ export class BranchManagerGestionesComponent {
     }
   }
 
+  public onVacationFileSelect(event: any): void {
+    const files = event.currentFiles || event.files;
+    if (files && files.length > 0) {
+      this.vacationFile.set(files[0]);
+    }
+  }
+
   public async submitDisabilityRequest(): Promise<void> {
     if (!this.canSubmitDisability() || !this.selectedEmployee()) return;
 
@@ -1107,12 +1166,45 @@ export class BranchManagerGestionesComponent {
       const start = this.vacationStartDate()!;
       const end = this.vacationEndDate()!;
       const reason = this.vacationReason();
+      const file = this.vacationFile();
+
+      let documentUrl = '';
+
+      // Subir archivo si existe
+      if (file) {
+        const fileExt = file.name.split('.').pop();
+        const timestamp = Date.now();
+        const fileName = `${employee.id}_${timestamp}.${fileExt}`;
+        const filePath = `vacations/${fileName}`;
+
+        // Subir a Supabase Storage
+        const uploadUrl = `${this.apiUrl.baseUrl}/storage/v1/object/employee-documents/${filePath}`;
+        const apiKey = getEnv('ENV_SUPABASE_ANON_KEY') || '';
+
+        if (!apiKey) {
+          throw new Error('No se pudo obtener la clave de API de Supabase');
+        }
+
+        await firstValueFrom(
+          this.http.post(uploadUrl, file, {
+            headers: {
+              'Content-Type': file.type,
+              'apikey': apiKey,
+              'Authorization': `Bearer ${apiKey}`,
+            },
+          })
+        );
+
+        // Construir URL del documento
+        documentUrl = `${this.apiUrl.baseUrl}/storage/v1/object/public/employee-documents/${filePath}`;
+      }
 
       const vacationData = {
         employee_id: employee.id,
         start_date: start.toISOString().split('T')[0],
         end_date: end.toISOString().split('T')[0],
         reason: reason || null,
+        document_url: documentUrl || null,
         status: 'pending',
         created_by: this.currentEmployee?.id || null, // Gerente que crea la solicitud
       };
@@ -1215,6 +1307,7 @@ export class BranchManagerGestionesComponent {
     this.vacationStartDate.set(null);
     this.vacationEndDate.set(null);
     this.vacationReason.set('');
+    this.vacationFile.set(null);
   }
 
   private resetDocumentForm(): void {

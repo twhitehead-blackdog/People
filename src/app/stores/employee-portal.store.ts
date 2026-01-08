@@ -27,6 +27,7 @@ type TimeRange = {
 };
 
 type VacationFormState = TimeRange & {
+  selectedFile: File | null;
   submitting: boolean;
 };
 
@@ -90,6 +91,7 @@ const initialState: EmployeePortalState = {
     startDate: null,
     endDate: null,
     reason: '',
+    selectedFile: null,
     submitting: false,
   },
   compensatoryForm: {
@@ -293,6 +295,14 @@ export const EmployeePortalStore = signalStore({ providedIn: 'root' },
         },
       });
     },
+    setVacationFile(value: File | null) {
+      patchState(state, {
+        vacationForm: {
+          ...state.vacationForm(),
+          selectedFile: value,
+        },
+      });
+    },
     setSubmittingVacation(value: boolean) {
       patchState(state, {
         vacationForm: {
@@ -307,6 +317,7 @@ export const EmployeePortalStore = signalStore({ providedIn: 'root' },
           startDate: null,
           endDate: null,
           reason: '',
+          selectedFile: null,
           submitting: false,
         },
       });
