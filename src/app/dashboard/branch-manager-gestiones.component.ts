@@ -990,28 +990,22 @@ export class BranchManagerGestionesComponent {
 
   public setCompensatoryTimeStart(time: Date | null): void {
     if (time) {
-      // Crear nueva instancia para evitar modificar el objeto original
-      const normalizedTime = new Date(time);
-      normalizedTime.setMinutes(0);
-      normalizedTime.setSeconds(0);
-      normalizedTime.setMilliseconds(0);
-      this.compensatoryTimeStart.set(normalizedTime);
-    } else {
-      this.compensatoryTimeStart.set(null);
+      // Forzar minutos a 00
+      time.setMinutes(0);
+      time.setSeconds(0);
+      time.setMilliseconds(0);
     }
+    this.compensatoryTimeStart.set(time);
   }
 
   public setCompensatoryTimeEnd(time: Date | null): void {
     if (time) {
-      // Crear nueva instancia para evitar modificar el objeto original
-      const normalizedTime = new Date(time);
-      normalizedTime.setMinutes(0);
-      normalizedTime.setSeconds(0);
-      normalizedTime.setMilliseconds(0);
-      this.compensatoryTimeEnd.set(normalizedTime);
-    } else {
-      this.compensatoryTimeEnd.set(null);
+      // Forzar minutos a 00
+      time.setMinutes(0);
+      time.setSeconds(0);
+      time.setMilliseconds(0);
     }
+    this.compensatoryTimeEnd.set(time);
   }
 
   public removeManualOvertimeDate(index: number): void {

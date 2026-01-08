@@ -50,14 +50,6 @@ interface Disability {
   id: string;
   employee_id: string;
   created_by?: string | null;
-  created_by_employee?: {
-    id: string;
-    first_name: string;
-    father_name: string;
-    work_email: string;
-    position?: { name: string };
-    branch?: { name: string };
-  };
   employee?: {
     id: string;
     first_name: string;
@@ -106,6 +98,53 @@ export interface CompensatoryRequest {
   is_approved: boolean;
   created_at: string;
   notes?: string[] | string;
+}
+
+interface VacationRequest {
+  id: string;
+  employee_id: string;
+  created_by?: string | null;
+  employee?: {
+    id: string;
+    first_name: string;
+    father_name: string;
+    work_email: string;
+    position?: { name: string };
+    branch?: { name: string };
+  };
+  start_date: string;
+  end_date: string;
+  reason: string | null;
+  document_url: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewed_by?: string;
+  reviewed_at?: string;
+  review_notes?: string;
+  rejection_comment?: string | null;
+  created_at: string;
+}
+
+interface DocumentRequest {
+  id: string;
+  employee_id: string;
+  created_by?: string | null;
+  employee?: {
+    id: string;
+    first_name: string;
+    father_name: string;
+    work_email: string;
+    position?: { name: string };
+    branch?: { name: string };
+  };
+  document_type: string;
+  reason: string | null;
+  document_url?: string | null;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewed_by?: string;
+  reviewed_at?: string;
+  review_notes?: string;
+  rejection_comment?: string | null;
+  created_at: string;
 }
 
 @Component({
@@ -622,14 +661,6 @@ export interface CompensatoryRequest {
                       </div>
                     </th>
                     <th
-                      style="width: 140px; padding: 0.5rem; text-align: center;"
-                    >
-                      <div class="flex items-center justify-center gap-1">
-                        <i class="pi pi-user-plus text-cyan-400 text-xs"></i>
-                        <span class="text-xs">Creado por</span>
-                      </div>
-                    </th>
-                    <th
                       style="width: 120px; padding: 0.5rem; text-align: center;"
                     >
                       <div class="flex items-center justify-center gap-1">
@@ -721,28 +752,6 @@ export interface CompensatoryRequest {
                           </span>
                         </div>
                       </div>
-                    </td>
-                    <td style="padding: 0.5rem; text-align: center;">
-                      @if (disability.created_by && disability.created_by !== disability.employee_id && disability.created_by_employee) {
-                      <div class="flex flex-col items-center gap-0.5">
-                        <div class="flex items-center gap-1">
-                          <i class="pi pi-user text-amber-400 text-[10px]"></i>
-                          <span class="text-[10px] font-medium text-amber-300">
-                            {{ disability.created_by_employee.first_name }}
-                            {{ disability.created_by_employee.father_name }}
-                          </span>
-                        </div>
-                        @if (disability.created_by_employee.branch?.name) {
-                        <span class="text-[9px] text-gray-500">
-                          {{ disability.created_by_employee.branch.name }}
-                        </span>
-                        }
-                      </div>
-                      } @else {
-                      <span class="text-[10px] text-gray-500 italic">
-                        Auto-solicitud
-                      </span>
-                      }
                     </td>
                     <td style="padding: 0.5rem; text-align: center;">
                       <span class="text-xs text-gray-300">
@@ -1152,7 +1161,7 @@ export interface CompensatoryRequest {
               >
                 <ng-template #emptymessage>
                   <tr>
-                    <td colspan="10" class="text-center py-4">
+                    <td colspan="9" class="text-center py-4">
                       No se encontraron solicitudes de tiempo compensatorio
                     </td>
                   </tr>
@@ -1165,14 +1174,6 @@ export interface CompensatoryRequest {
                       <div class="flex items-center gap-1">
                         <i class="pi pi-user text-cyan-400 text-xs"></i>
                         <span class="text-xs">Empleado</span>
-                      </div>
-                    </th>
-                    <th
-                      style="width: 120px; padding: 0.4rem; text-align: center;"
-                    >
-                      <div class="flex items-center justify-center gap-1">
-                        <i class="pi pi-user-plus text-cyan-400 text-xs"></i>
-                        <span class="text-xs">Creado por</span>
                       </div>
                     </th>
                     <th
@@ -1256,22 +1257,6 @@ export interface CompensatoryRequest {
                           </span>
                         </div>
                       </div>
-                    </td>
-                    <td style="padding: 0.4rem; text-align: center;">
-                      @if (request.created_by && request.created_by !== request.employee_id) {
-                      <div class="flex flex-col items-center gap-0.5">
-                        <div class="flex items-center gap-1">
-                          <i class="pi pi-user text-amber-400 text-[9px]"></i>
-                          <span class="text-[9px] font-medium text-amber-300">
-                            Creado por gerente
-                          </span>
-                        </div>
-                      </div>
-                      } @else {
-                      <span class="text-[9px] text-gray-500 italic">
-                        Auto-solicitud
-                      </span>
-                      }
                     </td>
                     <td style="padding: 0.4rem; text-align: center;">
                       <span class="text-xs text-gray-300">
@@ -1417,16 +1402,527 @@ export interface CompensatoryRequest {
             </div>
           </div>
         </div>
+        } @if (activeTab() === 'documents') {
+        <!-- Dashboard de Solicitudes de Documentos -->
+        <div class="space-y-3">
+          <!-- Estadísticas de Documentos -->
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+            <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-xs text-gray-400">Total</p>
+                  <p class="text-xl font-bold text-white">{{ documentsTotalCount() }}</p>
+                </div>
+                <div class="p-2 bg-neutral-700/50 rounded-lg">
+                  <i class="pi pi-file-edit text-cyan-400 text-lg"></i>
+                </div>
+              </div>
+            </div>
+            <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-xs text-gray-400">Pendientes</p>
+                  <p class="text-xl font-bold text-amber-400">{{ documentsPendingCount() }}</p>
+                </div>
+                <div class="p-2 bg-amber-500/10 rounded-lg">
+                  <i class="pi pi-clock text-amber-400 text-lg"></i>
+                </div>
+              </div>
+            </div>
+            <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-xs text-gray-400">Aprobadas</p>
+                  <p class="text-xl font-bold text-green-400">{{ documentsApprovedCount() }}</p>
+                </div>
+                <div class="p-2 bg-green-500/10 rounded-lg">
+                  <i class="pi pi-check text-green-400 text-lg"></i>
+                </div>
+              </div>
+            </div>
+            <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-xs text-gray-400">Rechazadas</p>
+                  <p class="text-xl font-bold text-red-400">{{ documentsRejectedCount() }}</p>
+                </div>
+                <div class="p-2 bg-red-500/10 rounded-lg">
+                  <i class="pi pi-times text-red-400 text-lg"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Filtros -->
+          <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-4">
+            <div class="flex flex-wrap gap-3 items-center">
+              <div class="flex-1 min-w-[200px]">
+                <input
+                  pInputText
+                  [(ngModel)]="documentsSearchText"
+                  placeholder="Buscar por empleado o tipo..."
+                  class="w-full bg-neutral-700/50 border border-neutral-600 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
+                />
+              </div>
+              <p-dropdown
+                [(ngModel)]="documentsSelectedStatus"
+                [options]="documentsStatusOptions"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Estado"
+                showClear="true"
+                class="w-32"
+                styleClass="bg-neutral-700/50 border border-neutral-600 text-white"
+              />
+              <p-calendar
+                [(ngModel)]="documentsDateRange"
+                selectionMode="range"
+                placeholder="Rango de fechas"
+                dateFormat="dd/mm/yy"
+                [showIcon]="true"
+                [readonlyInput]="true"
+                class="w-48"
+                styleClass="bg-neutral-700/50 border border-neutral-600 text-white"
+              />
+              <p-button
+                label="Limpiar"
+                icon="pi pi-filter-slash"
+                severity="secondary"
+                size="small"
+                (onClick)="clearDocumentsFilters()"
+                [disabled]="!hasActiveDocumentsFilters()"
+                class="ml-auto"
+              />
+            </div>
+          </div>
+
+          <!-- Tabla de Documentos -->
+          @if (documentRequestsApi.isLoading()) {
+          <div class="flex justify-center py-8">
+            <p-progressSpinner />
+          </div>
+          } @else if (filteredDocuments().length === 0) {
+          <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-8">
+            <div class="text-center">
+              <i class="pi pi-file-edit text-gray-400 text-4xl mb-3"></i>
+              <p class="text-gray-400">No se encontraron solicitudes de documentos</p>
+            </div>
+          </div>
+          } @else {
+          <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 overflow-hidden">
+            <p-table
+              [value]="filteredDocuments()"
+              [scrollable]="true"
+              scrollHeight="600px"
+              [responsive]="true"
+              styleClass="p-datatable-sm"
+            >
+              <ng-template pTemplate="header">
+                <tr>
+                  <th style="width: 180px; padding: 0.5rem;">
+                    <div class="flex items-center gap-1">
+                      <i class="pi pi-user text-cyan-400 text-xs"></i>
+                      <span class="text-xs">Empleado</span>
+                    </div>
+                  </th>
+                  <th style="width: 150px; padding: 0.5rem;">
+                    <div class="flex items-center gap-1">
+                      <i class="pi pi-file-edit text-cyan-400 text-xs"></i>
+                      <span class="text-xs">Tipo Documento</span>
+                    </div>
+                  </th>
+                  <th style="width: 120px; padding: 0.5rem;">
+                    <div class="flex items-center gap-1">
+                      <i class="pi pi-tag text-cyan-400 text-xs"></i>
+                      <span class="text-xs">Estado</span>
+                    </div>
+                  </th>
+                  <th style="width: 140px; padding: 0.5rem;">
+                    <div class="flex items-center gap-1">
+                      <i class="pi pi-user-plus text-cyan-400 text-xs"></i>
+                      <span class="text-xs">Creado por</span>
+                    </div>
+                  </th>
+                  <th style="width: 120px; padding: 0.5rem;">
+                    <div class="flex items-center gap-1">
+                      <i class="pi pi-calendar-plus text-cyan-400 text-xs"></i>
+                      <span class="text-xs">Solicitado</span>
+                    </div>
+                  </th>
+                  <th style="width: 180px; padding: 0.5rem;">
+                    <div class="flex items-center gap-1">
+                      <i class="pi pi-cog text-cyan-400 text-xs"></i>
+                      <span class="text-xs">Acciones</span>
+                    </div>
+                  </th>
+                </tr>
+              </ng-template>
+              <ng-template pTemplate="body" let-document>
+                <tr class="hover:bg-neutral-700/30">
+                  <td style="padding: 0.5rem;">
+                    <div class="flex flex-col gap-0.5">
+                      <span class="text-sm font-medium text-white">
+                        {{ document.employee?.first_name }} {{ document.employee?.father_name }}
+                      </span>
+                      @if (document.employee?.position?.name) {
+                      <span class="text-xs text-gray-400">
+                        {{ document.employee.position.name }}
+                      </span>
+                      }
+                      @if (document.employee?.branch?.name) {
+                      <span class="text-xs text-cyan-400">
+                        {{ document.employee.branch.name }}
+                      </span>
+                      }
+                    </div>
+                  </td>
+                  <td style="padding: 0.5rem;">
+                    <span class="text-sm text-gray-300">
+                      {{ getDocumentTypeLabel(document.document_type) }}
+                    </span>
+                    @if (document.reason) {
+                    <br />
+                    <span class="text-xs text-gray-400">
+                      {{ document.reason }}
+                    </span>
+                    }
+                  </td>
+                  <td style="padding: 0.5rem;">
+                    <p-tag
+                      [value]="getDocumentStatusLabel(document.status)"
+                      [severity]="getDocumentStatusSeverity(document.status)"
+                      class="text-xs"
+                    />
+                  </td>
+                  <td style="padding: 0.5rem; text-align: center;">
+                    @if (document.created_by && document.created_by !== document.employee_id) {
+                    <div class="flex flex-col items-center gap-0.5">
+                      <div class="flex items-center gap-1">
+                        <i class="pi pi-user text-amber-400 text-[10px]"></i>
+                        <span class="text-[10px] font-medium text-amber-300">
+                          Creado por gerente
+                        </span>
+                      </div>
+                    </div>
+                    } @else {
+                    <span class="text-[10px] text-gray-500 italic">
+                      Auto-solicitud
+                    </span>
+                    }
+                  </td>
+                  <td style="padding: 0.5rem;">
+                    <span class="text-xs text-gray-400">
+                      {{ document.created_at | date:'dd/MM/yyyy' }}
+                    </span>
+                    <br />
+                    <span class="text-xs text-gray-500">
+                      {{ document.created_at | date:'HH:mm' }}
+                    </span>
+                  </td>
+                  <td style="padding: 0.5rem;">
+                    @if (document.status === 'pending') {
+                    <div class="flex gap-1">
+                      <p-button
+                        icon="pi pi-check"
+                        severity="success"
+                        size="small"
+                        pTooltip="Aprobar"
+                        tooltipPosition="left"
+                        (onClick)="approveDocument(document)"
+                      />
+                      <p-button
+                        icon="pi pi-times"
+                        severity="danger"
+                        size="small"
+                        pTooltip="Rechazar"
+                        tooltipPosition="left"
+                        (onClick)="rejectDocument(document)"
+                      />
+                    </div>
+                    }
+                    <p-button
+                      icon="pi pi-eye"
+                      severity="info"
+                      size="small"
+                      pTooltip="Ver detalles"
+                      tooltipPosition="left"
+                      (onClick)="viewDocumentDetails(document)"
+                    />
+                  </td>
+                </tr>
+              </ng-template>
+            </p-table>
+          </div>
+          }
+        </div>
         } @if (activeTab() === 'vacations') {
         <!-- Dashboard de Vacaciones -->
         <div class="space-y-3">
-          <div
-            class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-6"
-          >
-            <p class="text-gray-400 text-center">
-              Vista de vacaciones - En desarrollo
-            </p>
+          <!-- Estadísticas de Vacaciones -->
+          <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+            <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-xs text-gray-400">Total</p>
+                  <p class="text-xl font-bold text-white">{{ vacationsTotalCount() }}</p>
+                </div>
+                <div class="p-2 bg-neutral-700/50 rounded-lg">
+                  <i class="pi pi-calendar text-cyan-400 text-lg"></i>
+                </div>
+              </div>
+            </div>
+            <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-xs text-gray-400">Pendientes</p>
+                  <p class="text-xl font-bold text-amber-400">{{ vacationsPendingCount() }}</p>
+                </div>
+                <div class="p-2 bg-amber-500/10 rounded-lg">
+                  <i class="pi pi-clock text-amber-400 text-lg"></i>
+                </div>
+              </div>
+            </div>
+            <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-xs text-gray-400">Aprobadas</p>
+                  <p class="text-xl font-bold text-green-400">{{ vacationsApprovedCount() }}</p>
+                </div>
+                <div class="p-2 bg-green-500/10 rounded-lg">
+                  <i class="pi pi-check text-green-400 text-lg"></i>
+                </div>
+              </div>
+            </div>
+            <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3">
+              <div class="flex items-center justify-between">
+                <div>
+                  <p class="text-xs text-gray-400">Rechazadas</p>
+                  <p class="text-xl font-bold text-red-400">{{ vacationsRejectedCount() }}</p>
+                </div>
+                <div class="p-2 bg-red-500/10 rounded-lg">
+                  <i class="pi pi-times text-red-400 text-lg"></i>
+                </div>
+              </div>
+            </div>
           </div>
+
+          <!-- Filtros -->
+          <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-4">
+            <div class="flex flex-wrap gap-3 items-center">
+              <div class="flex-1 min-w-[200px]">
+                <input
+                  pInputText
+                  [(ngModel)]="vacationsSearchText"
+                  placeholder="Buscar por empleado..."
+                  class="w-full bg-neutral-700/50 border border-neutral-600 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
+                />
+              </div>
+              <p-dropdown
+                [(ngModel)]="vacationsSelectedStatus"
+                [options]="vacationsStatusOptions"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Estado"
+                showClear="true"
+                class="w-32"
+                styleClass="bg-neutral-700/50 border border-neutral-600 text-white"
+              />
+              <p-calendar
+                [(ngModel)]="vacationsDateRange"
+                selectionMode="range"
+                placeholder="Rango de fechas"
+                dateFormat="dd/mm/yy"
+                [showIcon]="true"
+                [readonlyInput]="true"
+                class="w-48"
+                styleClass="bg-neutral-700/50 border border-neutral-600 text-white"
+              />
+              <p-button
+                label="Limpiar"
+                icon="pi pi-filter-slash"
+                severity="secondary"
+                size="small"
+                (onClick)="clearVacationsFilters()"
+                [disabled]="!hasActiveVacationsFilters()"
+                class="ml-auto"
+              />
+            </div>
+          </div>
+
+          <!-- Tabla de Vacaciones -->
+          @if (vacationsApi.isLoading()) {
+          <div class="flex justify-center py-8">
+            <p-progressSpinner />
+          </div>
+          } @else if (filteredVacations().length === 0) {
+          <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-8">
+            <div class="text-center">
+              <i class="pi pi-calendar text-gray-400 text-4xl mb-3"></i>
+              <p class="text-gray-400">No se encontraron solicitudes de vacaciones</p>
+            </div>
+          </div>
+          } @else {
+          <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 overflow-hidden">
+            <p-table
+              [value]="filteredVacations()"
+              [scrollable]="true"
+              scrollHeight="600px"
+              [responsive]="true"
+              styleClass="p-datatable-sm"
+            >
+              <ng-template pTemplate="header">
+                <tr>
+                  <th style="width: 180px; padding: 0.5rem;">
+                    <div class="flex items-center gap-1">
+                      <i class="pi pi-user text-cyan-400 text-xs"></i>
+                      <span class="text-xs">Empleado</span>
+                    </div>
+                  </th>
+                  <th style="width: 120px; padding: 0.5rem;">
+                    <div class="flex items-center gap-1">
+                      <i class="pi pi-calendar text-cyan-400 text-xs"></i>
+                      <span class="text-xs">Fecha Inicio</span>
+                    </div>
+                  </th>
+                  <th style="width: 120px; padding: 0.5rem;">
+                    <div class="flex items-center gap-1">
+                      <i class="pi pi-calendar text-cyan-400 text-xs"></i>
+                      <span class="text-xs">Fecha Fin</span>
+                    </div>
+                  </th>
+                  <th style="width: 100px; padding: 0.5rem;">
+                    <div class="flex items-center gap-1">
+                      <i class="pi pi-clock text-cyan-400 text-xs"></i>
+                      <span class="text-xs">Días</span>
+                    </div>
+                  </th>
+                  <th style="width: 150px; padding: 0.5rem;">
+                    <div class="flex items-center gap-1">
+                      <i class="pi pi-tag text-cyan-400 text-xs"></i>
+                      <span class="text-xs">Estado</span>
+                    </div>
+                  </th>
+                  <th style="width: 140px; padding: 0.5rem;">
+                    <div class="flex items-center gap-1">
+                      <i class="pi pi-user-plus text-cyan-400 text-xs"></i>
+                      <span class="text-xs">Creado por</span>
+                    </div>
+                  </th>
+                  <th style="width: 120px; padding: 0.5rem;">
+                    <div class="flex items-center gap-1">
+                      <i class="pi pi-calendar-plus text-cyan-400 text-xs"></i>
+                      <span class="text-xs">Solicitado</span>
+                    </div>
+                  </th>
+                  <th style="width: 180px; padding: 0.5rem;">
+                    <div class="flex items-center gap-1">
+                      <i class="pi pi-cog text-cyan-400 text-xs"></i>
+                      <span class="text-xs">Acciones</span>
+                    </div>
+                  </th>
+                </tr>
+              </ng-template>
+              <ng-template pTemplate="body" let-vacation>
+                <tr class="hover:bg-neutral-700/30">
+                  <td style="padding: 0.5rem;">
+                    <div class="flex flex-col gap-0.5">
+                      <span class="text-sm font-medium text-white">
+                        {{ vacation.employee?.first_name }} {{ vacation.employee?.father_name }}
+                      </span>
+                      @if (vacation.employee?.position?.name) {
+                      <span class="text-xs text-gray-400">
+                        {{ vacation.employee.position.name }}
+                      </span>
+                      }
+                      @if (vacation.employee?.branch?.name) {
+                      <span class="text-xs text-cyan-400">
+                        {{ vacation.employee.branch.name }}
+                      </span>
+                      }
+                    </div>
+                  </td>
+                  <td style="padding: 0.5rem;">
+                    <span class="text-sm text-gray-300">
+                      {{ vacation.start_date | date:'dd/MM/yyyy' }}
+                    </span>
+                  </td>
+                  <td style="padding: 0.5rem;">
+                    <span class="text-sm text-gray-300">
+                      {{ vacation.end_date | date:'dd/MM/yyyy' }}
+                    </span>
+                  </td>
+                  <td style="padding: 0.5rem;">
+                    <span class="text-sm font-medium text-cyan-400">
+                      {{ calculateVacationDays(vacation.start_date, vacation.end_date) }}
+                    </span>
+                  </td>
+                  <td style="padding: 0.5rem;">
+                    <p-tag
+                      [value]="getVacationStatusLabel(vacation.status)"
+                      [severity]="getVacationStatusSeverity(vacation.status)"
+                      class="text-xs"
+                    />
+                  </td>
+                  <td style="padding: 0.5rem; text-align: center;">
+                    @if (vacation.created_by && vacation.created_by !== vacation.employee_id) {
+                    <div class="flex flex-col items-center gap-0.5">
+                      <div class="flex items-center gap-1">
+                        <i class="pi pi-user text-amber-400 text-[10px]"></i>
+                        <span class="text-[10px] font-medium text-amber-300">
+                          Creado por gerente
+                        </span>
+                      </div>
+                    </div>
+                    } @else {
+                    <span class="text-[10px] text-gray-500 italic">
+                      Auto-solicitud
+                    </span>
+                    }
+                  </td>
+                  <td style="padding: 0.5rem;">
+                    <span class="text-xs text-gray-400">
+                      {{ vacation.created_at | date:'dd/MM/yyyy' }}
+                    </span>
+                    <br />
+                    <span class="text-xs text-gray-500">
+                      {{ vacation.created_at | date:'HH:mm' }}
+                    </span>
+                  </td>
+                  <td style="padding: 0.5rem;">
+                    @if (vacation.status === 'pending') {
+                    <div class="flex gap-1">
+                      <p-button
+                        icon="pi pi-check"
+                        severity="success"
+                        size="small"
+                        pTooltip="Aprobar"
+                        tooltipPosition="left"
+                        (onClick)="approveVacation(vacation)"
+                      />
+                      <p-button
+                        icon="pi pi-times"
+                        severity="danger"
+                        size="small"
+                        pTooltip="Rechazar"
+                        tooltipPosition="left"
+                        (onClick)="rejectVacation(vacation)"
+                      />
+                    </div>
+                    }
+                    <p-button
+                      icon="pi pi-eye"
+                      severity="info"
+                      size="small"
+                      pTooltip="Ver detalles"
+                      tooltipPosition="left"
+                      (onClick)="viewVacationDetails(vacation)"
+                    />
+                  </td>
+                </tr>
+              </ng-template>
+            </p-table>
+          </div>
+          }
         </div>
         }
       </div>
@@ -2846,7 +3342,7 @@ export class HRDisabilitiesComponent {
 
     const params: any = {
       // Ahora podemos filtrar directamente por company_id ya que se agregó el campo a la tabla
-      select: `id,employee_id,created_by,start_date,end_date,description,document_url,status,reviewed_by,reviewed_at,review_notes,rejection_comment,created_at,updated_at,company_id,employee:employees!employee_disabilities_employee_id_fkey(id,first_name,father_name,mother_name,work_email,company_id,position:positions(name),branch:branches(name)),created_by_employee:employees!employee_disabilities_created_by_fkey(id,first_name,father_name,work_email,position:positions(name),branch:branches(name))`,
+      select: `id,employee_id,created_by,start_date,end_date,description,document_url,status,reviewed_by,reviewed_at,review_notes,rejection_comment,created_at,updated_at,company_id,employee:employees!employee_disabilities_employee_id_fkey(id,first_name,father_name,mother_name,work_email,company_id,position:positions(name),branch:branches(name))`,
       // Filtrar directamente por company_id (campo agregado a la tabla)
       company_id: `eq.${companyId}`,
       order: 'created_at.desc',
@@ -3748,16 +4244,59 @@ export class HRDisabilitiesComponent {
       return undefined; // No hacer request si no hay company_id
     }
 
+    // Ahora podemos filtrar directamente por company_id ya que se agregó el campo a la tabla
     const params: any = {
-      select: `id,employee_id,created_by,type_id,date_from,date_to,notes,is_approved,compensatory_type,compensatory_amount,review_status,reviewed_by,reviewed_at,registered_by,registered_at,rejection_comment,created_at,document_url,type:timeoff_types(id,name),employee:employees!time_offs_employee_id_fkey(id,first_name,father_name,work_email,company_id,position:positions(name),branch:branches(name))`,
+      select: `id,employee_id,type_id,date_from,date_to,notes,is_approved,compensatory_type,compensatory_amount,review_status,reviewed_by,reviewed_at,registered_by,registered_at,rejection_comment,created_at,company_id,document_url,type:timeoff_types(id,name),employee:employees!time_offs_employee_id_fkey(id,first_name,father_name,work_email,company_id,position:positions(name),branch:branches(name))`,
       type_id: `eq.${compensatoryTypeId}`,
-      // Filtrar por company_id a través de la relación con employees
-      'employee.company_id': `eq.${companyId}`,
+      // Filtrar directamente por company_id (campo agregado a la tabla)
+      company_id: `eq.${companyId}`,
       order: 'created_at.desc',
     };
 
     return {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`,
+      method: 'GET',
+      params,
+    };
+  });
+
+  // API para obtener solicitudes de vacaciones
+  public vacationsApi = httpResource<VacationRequest[]>(() => {
+    const companyId = this.organizationService.getCurrentCompanyId();
+
+    if (!companyId) {
+      return undefined;
+    }
+
+    const params: any = {
+      select: `id,employee_id,created_by,start_date,end_date,reason,document_url,status,reviewed_by,reviewed_at,review_notes,rejection_comment,created_at,updated_at,company_id,employee:employees!employee_vacations_employee_id_fkey(id,first_name,father_name,work_email,company_id,position:positions(name),branch:branches(name))`,
+      company_id: `eq.${companyId}`,
+      order: 'created_at.desc',
+    };
+
+    return {
+      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_vacations`,
+      method: 'GET',
+      params,
+    };
+  });
+
+  // API para obtener solicitudes de documentos
+  public documentRequestsApi = httpResource<DocumentRequest[]>(() => {
+    const companyId = this.organizationService.getCurrentCompanyId();
+
+    if (!companyId) {
+      return undefined;
+    }
+
+    const params: any = {
+      select: `id,employee_id,created_by,document_type,reason,document_url,status,reviewed_by,reviewed_at,review_notes,rejection_comment,created_at,updated_at,company_id,employee:employees!document_requests_employee_id_fkey(id,first_name,father_name,work_email,company_id,position:positions(name),branch:branches(name))`,
+      company_id: `eq.${companyId}`,
+      order: 'created_at.desc',
+    };
+
+    return {
+      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/document_requests`,
       method: 'GET',
       params,
     };
@@ -4266,7 +4805,7 @@ export class HRDisabilitiesComponent {
     );
 
     let notesArray: string[] = [];
-
+    
     if (Array.isArray(request.notes)) {
       notesArray = request.notes;
       console.log('[DEBUG HR] Notes es un array:', notesArray);
@@ -5469,5 +6008,503 @@ export class HRDisabilitiesComponent {
           });
         },
       });
+  }
+
+  // ========== Vacaciones ==========
+
+  // Filtros para vacaciones
+  public vacationsSearchText = signal('');
+  public vacationsSelectedStatus = signal<string | null>(null);
+  public vacationsDateRange = signal<Date[] | null>(null);
+
+  // Opciones de estado para vacaciones
+  public vacationsStatusOptions = [
+    { label: 'Pendiente', value: 'pending' },
+    { label: 'Aprobada', value: 'approved' },
+    { label: 'Rechazada', value: 'rejected' },
+  ];
+
+  // Estadísticas de vacaciones
+  public vacationsTotalCount = computed(
+    () => this.vacationsApi.value()?.length || 0
+  );
+  public vacationsPendingCount = computed(
+    () =>
+      this.vacationsApi
+        .value()
+        ?.filter((v) => v.status === 'pending').length || 0
+  );
+  public vacationsApprovedCount = computed(
+    () =>
+      this.vacationsApi
+        .value()
+        ?.filter((v) => v.status === 'approved').length || 0
+  );
+  public vacationsRejectedCount = computed(
+    () =>
+      this.vacationsApi
+        .value()
+        ?.filter((v) => v.status === 'rejected').length || 0
+  );
+
+  // Vacaciones filtradas
+  public filteredVacations = computed(() => {
+    let vacations = this.vacationsApi.value() || [];
+
+    // Filtro por texto de búsqueda
+    if (this.vacationsSearchText().trim()) {
+      const searchText = this.vacationsSearchText().toLowerCase().trim();
+      vacations = vacations.filter((v) =>
+        `${v.employee?.first_name} ${v.employee?.father_name} ${v.employee?.work_email}`
+          .toLowerCase()
+          .includes(searchText)
+      );
+    }
+
+    // Filtro por estado
+    if (this.vacationsSelectedStatus()) {
+      vacations = vacations.filter((v) => v.status === this.vacationsSelectedStatus());
+    }
+
+    // Filtro por rango de fechas
+    if (this.vacationsDateRange() && this.vacationsDateRange()!.length === 2) {
+      const [start, end] = this.vacationsDateRange()!;
+      vacations = vacations.filter((v) => {
+        const vacationStart = new Date(v.start_date);
+        const vacationEnd = new Date(v.end_date);
+        return (
+          (vacationStart >= start && vacationStart <= end) ||
+          (vacationEnd >= start && vacationEnd <= end) ||
+          (vacationStart <= start && vacationEnd >= end)
+        );
+      });
+    }
+
+    return vacations;
+  });
+
+  public hasActiveVacationsFilters(): boolean {
+    return !!(
+      this.vacationsSearchText() ||
+      this.vacationsSelectedStatus() ||
+      this.vacationsDateRange()
+    );
+  }
+
+  public getActiveVacationsFiltersCount(): number {
+    let count = 0;
+    if (this.vacationsSearchText()) count++;
+    if (this.vacationsSelectedStatus()) count++;
+    if (this.vacationsDateRange()) count++;
+    return count;
+  }
+
+  public clearVacationsFilters(): void {
+    this.vacationsSearchText.set('');
+    this.vacationsSelectedStatus.set(null);
+    this.vacationsDateRange.set(null);
+  }
+
+  public calculateVacationDays(startDate: string, endDate: string): number {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    return diffDays;
+  }
+
+  public getVacationStatusLabel(status: string): string {
+    switch (status) {
+      case 'pending':
+        return 'Pendiente';
+      case 'approved':
+        return 'Aprobada';
+      case 'rejected':
+        return 'Rechazada';
+      default:
+        return 'Desconocido';
+    }
+  }
+
+  public getVacationStatusSeverity(status: string): "success" | "info" | "warn" | "danger" | "secondary" | "contrast" {
+    switch (status) {
+      case 'pending':
+        return 'warn';
+      case 'approved':
+        return 'success';
+      case 'rejected':
+        return 'danger';
+      default:
+        return 'info';
+    }
+  }
+
+  public approveVacation(vacation: VacationRequest): void {
+    const employeeName = `${vacation.employee?.first_name} ${vacation.employee?.father_name}`;
+    this.confirmationService.confirm({
+      message: `¿Estás seguro de aprobar las vacaciones de ${employeeName}?`,
+      header: 'Confirmar Aprobación',
+      icon: 'pi pi-exclamation-triangle',
+      acceptButtonStyleClass: 'p-button-success',
+      accept: () => {
+        this.updateVacationStatus(vacation.id, 'approved');
+      },
+    });
+  }
+
+  public rejectVacation(vacation: VacationRequest): void {
+    this.confirmationService.confirm({
+      message: `¿Estás seguro de rechazar las vacaciones de ${vacation.employee?.first_name} ${vacation.employee?.father_name}?`,
+      header: 'Confirmar Rechazo',
+      icon: 'pi pi-exclamation-triangle',
+      acceptButtonStyleClass: 'p-button-danger',
+      accept: () => {
+        this.updateVacationStatus(vacation.id, 'rejected');
+      },
+    });
+  }
+
+  public updateVacationStatus(
+    id: string,
+    status: 'pending' | 'approved' | 'rejected',
+    rejectionComment?: string
+  ): void {
+    const currentEmployee = this.dashboardStore.currentEmployee();
+    if (!currentEmployee) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo identificar al empleado actual',
+      });
+      return;
+    }
+
+    const updateData: any = {
+      status,
+      reviewed_by: currentEmployee.id,
+      reviewed_at: new Date().toISOString(),
+    };
+
+    if (status === 'rejected' && rejectionComment) {
+      updateData.rejection_comment = rejectionComment;
+    }
+
+    this.http
+      .patch(
+        `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_vacations?id=eq.${id}`,
+        updateData
+      )
+      .subscribe({
+        next: async () => {
+          // Notificar al empleado solo si se aprueba o rechaza
+          if (status === 'approved' || status === 'rejected') {
+            const vacation = this.vacationsApi.value()?.find((v) => v.id === id);
+            if (vacation) {
+              await this.notifyEmployeeAboutVacation(vacation, status, rejectionComment);
+            }
+          }
+
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Éxito',
+            detail: `Solicitud de vacaciones ${
+              status === 'approved' ? 'aprobada' : status === 'rejected' ? 'rechazada' : 'actualizada'
+            } correctamente`,
+          });
+          this.vacationsApi.reload();
+        },
+        error: () => {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'No se pudo actualizar el estado de la solicitud de vacaciones',
+          });
+        },
+      });
+  }
+
+  private async notifyEmployeeAboutVacation(
+    vacation: VacationRequest,
+    status: 'approved' | 'rejected',
+    rejectionComment?: string
+  ): Promise<void> {
+    try {
+      const notificationData = {
+        employee_id: vacation.employee_id,
+        type: status === 'approved' ? 'vacation_approved' : 'vacation_rejected',
+        title: status === 'approved' ? 'Vacaciones Aprobadas' : 'Vacaciones Rechazadas',
+        message: status === 'approved'
+          ? `Tus vacaciones del ${format(new Date(vacation.start_date), 'dd/MM/yyyy')} al ${format(new Date(vacation.end_date), 'dd/MM/yyyy')} han sido aprobadas.`
+          : `Tus vacaciones del ${format(new Date(vacation.start_date), 'dd/MM/yyyy')} al ${format(new Date(vacation.end_date), 'dd/MM/yyyy')} han sido rechazadas.${rejectionComment ? ` Motivo: ${rejectionComment}` : ''}`,
+        is_read: false,
+        created_at: new Date().toISOString(),
+      };
+
+      await firstValueFrom(
+        this.http.post(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/hr_messages`,
+          notificationData
+        )
+      );
+    } catch (error) {
+      console.error('Error notificando al empleado sobre vacaciones:', error);
+    }
+  }
+
+  public viewVacationDetails(vacation: VacationRequest): void {
+    // TODO: Implementar vista de detalles de vacaciones
+    this.messageService.add({
+      severity: 'info',
+      summary: 'Información',
+      detail: 'Vista de detalles próximamente disponible',
+    });
+  }
+
+  // ========== Solicitudes de Documentos ==========
+
+  // Filtros para solicitudes de documentos
+  public documentsSearchText = signal('');
+  public documentsSelectedStatus = signal<string | null>(null);
+  public documentsDateRange = signal<Date[] | null>(null);
+
+  // Opciones de estado para documentos
+  public documentsStatusOptions = [
+    { label: 'Pendiente', value: 'pending' },
+    { label: 'Aprobada', value: 'approved' },
+    { label: 'Rechazada', value: 'rejected' },
+  ];
+
+  // Estadísticas de documentos
+  public documentsTotalCount = computed(
+    () => this.documentRequestsApi.value()?.length || 0
+  );
+  public documentsPendingCount = computed(
+    () =>
+      this.documentRequestsApi
+        .value()
+        ?.filter((d) => d.status === 'pending').length || 0
+  );
+  public documentsApprovedCount = computed(
+    () =>
+      this.documentRequestsApi
+        .value()
+        ?.filter((d) => d.status === 'approved').length || 0
+  );
+  public documentsRejectedCount = computed(
+    () =>
+      this.documentRequestsApi
+        .value()
+        ?.filter((d) => d.status === 'rejected').length || 0
+  );
+
+  // Documentos filtrados
+  public filteredDocuments = computed(() => {
+    let documents = this.documentRequestsApi.value() || [];
+
+    // Filtro por texto de búsqueda
+    if (this.documentsSearchText().trim()) {
+      const searchText = this.documentsSearchText().toLowerCase().trim();
+      documents = documents.filter((d) =>
+        `${d.employee?.first_name} ${d.employee?.father_name} ${d.employee?.work_email} ${d.document_type}`
+          .toLowerCase()
+          .includes(searchText)
+      );
+    }
+
+    // Filtro por estado
+    if (this.documentsSelectedStatus()) {
+      documents = documents.filter((d) => d.status === this.documentsSelectedStatus());
+    }
+
+    // Filtro por rango de fechas
+    if (this.documentsDateRange() && this.documentsDateRange()!.length === 2) {
+      const [start, end] = this.documentsDateRange()!;
+      documents = documents.filter((d) => {
+        const createdDate = new Date(d.created_at);
+        return createdDate >= start && createdDate <= end;
+      });
+    }
+
+    return documents;
+  });
+
+  public hasActiveDocumentsFilters(): boolean {
+    return !!(
+      this.documentsSearchText() ||
+      this.documentsSelectedStatus() ||
+      this.documentsDateRange()
+    );
+  }
+
+  public getActiveDocumentsFiltersCount(): number {
+    let count = 0;
+    if (this.documentsSearchText()) count++;
+    if (this.documentsSelectedStatus()) count++;
+    if (this.documentsDateRange()) count++;
+    return count;
+  }
+
+  public clearDocumentsFilters(): void {
+    this.documentsSearchText.set('');
+    this.documentsSelectedStatus.set(null);
+    this.documentsDateRange.set(null);
+  }
+
+  public getDocumentTypeLabel(type: string): string {
+    const types: Record<string, string> = {
+      'constancia_salarial': 'Constancia Salarial',
+      'certificado_laboral': 'Certificado Laboral',
+      'carta_recomendacion': 'Carta de Recomendación',
+      'comprobante_pago': 'Comprobante de Pago',
+      'otros': 'Otros',
+    };
+    return types[type] || type;
+  }
+
+  public getDocumentStatusLabel(status: string): string {
+    switch (status) {
+      case 'pending':
+        return 'Pendiente';
+      case 'approved':
+        return 'Aprobada';
+      case 'rejected':
+        return 'Rechazada';
+      default:
+        return 'Desconocido';
+    }
+  }
+
+  public getDocumentStatusSeverity(status: string): "success" | "info" | "warn" | "danger" | "secondary" | "contrast" {
+    switch (status) {
+      case 'pending':
+        return 'warn';
+      case 'approved':
+        return 'success';
+      case 'rejected':
+        return 'danger';
+      default:
+        return 'info';
+    }
+  }
+
+  public approveDocument(document: DocumentRequest): void {
+    const employeeName = `${document.employee?.first_name} ${document.employee?.father_name}`;
+    this.confirmationService.confirm({
+      message: `¿Estás seguro de aprobar la solicitud de ${this.getDocumentTypeLabel(document.document_type)} de ${employeeName}?`,
+      header: 'Confirmar Aprobación',
+      icon: 'pi pi-exclamation-triangle',
+      acceptButtonStyleClass: 'p-button-success',
+      accept: () => {
+        this.updateDocumentStatus(document.id, 'approved');
+      },
+    });
+  }
+
+  public rejectDocument(document: DocumentRequest): void {
+    this.confirmationService.confirm({
+      message: `¿Estás seguro de rechazar la solicitud de ${this.getDocumentTypeLabel(document.document_type)} de ${document.employee?.first_name} ${document.employee?.father_name}?`,
+      header: 'Confirmar Rechazo',
+      icon: 'pi pi-exclamation-triangle',
+      acceptButtonStyleClass: 'p-button-danger',
+      accept: () => {
+        this.updateDocumentStatus(document.id, 'rejected');
+      },
+    });
+  }
+
+  public updateDocumentStatus(
+    id: string,
+    status: 'pending' | 'approved' | 'rejected',
+    rejectionComment?: string
+  ): void {
+    const currentEmployee = this.dashboardStore.currentEmployee();
+    if (!currentEmployee) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo identificar al empleado actual',
+      });
+      return;
+    }
+
+    const updateData: any = {
+      status,
+      reviewed_by: currentEmployee.id,
+      reviewed_at: new Date().toISOString(),
+    };
+
+    if (status === 'rejected' && rejectionComment) {
+      updateData.rejection_comment = rejectionComment;
+    }
+
+    this.http
+      .patch(
+        `${process.env['ENV_SUPABASE_URL']}/rest/v1/document_requests?id=eq.${id}`,
+        updateData
+      )
+      .subscribe({
+        next: async () => {
+          // Notificar al empleado solo si se aprueba o rechaza
+          if (status === 'approved' || status === 'rejected') {
+            const document = this.documentRequestsApi.value()?.find((d) => d.id === id);
+            if (document) {
+              await this.notifyEmployeeAboutDocument(document, status, rejectionComment);
+            }
+          }
+
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Éxito',
+            detail: `Solicitud de documento ${
+              status === 'approved' ? 'aprobada' : status === 'rejected' ? 'rechazada' : 'actualizada'
+            } correctamente`,
+          });
+          this.documentRequestsApi.reload();
+        },
+        error: () => {
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'No se pudo actualizar el estado de la solicitud de documento',
+          });
+        },
+      });
+  }
+
+  private async notifyEmployeeAboutDocument(
+    document: DocumentRequest,
+    status: 'approved' | 'rejected',
+    rejectionComment?: string
+  ): Promise<void> {
+    try {
+      const notificationData = {
+        employee_id: document.employee_id,
+        type: status === 'approved' ? 'document_approved' : 'document_rejected',
+        title: status === 'approved' ? 'Documento Aprobado' : 'Documento Rechazado',
+        message: status === 'approved'
+          ? `Tu solicitud de ${this.getDocumentTypeLabel(document.document_type)} ha sido aprobada y estará disponible próximamente.`
+          : `Tu solicitud de ${this.getDocumentTypeLabel(document.document_type)} ha sido rechazada.${rejectionComment ? ` Motivo: ${rejectionComment}` : ''}`,
+        is_read: false,
+        created_at: new Date().toISOString(),
+      };
+
+      await firstValueFrom(
+        this.http.post(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/hr_messages`,
+          notificationData
+        )
+      );
+    } catch (error) {
+      console.error('Error notificando al empleado sobre documento:', error);
+    }
+  }
+
+  public viewDocumentDetails(document: DocumentRequest): void {
+    // TODO: Implementar vista de detalles de documento
+    this.messageService.add({
+      severity: 'info',
+      summary: 'Información',
+      detail: 'Vista de detalles próximamente disponible',
+    });
   }
 }
