@@ -301,9 +301,9 @@ type ManagementCard = {
             [compensatoryDate]="compensatoryDate()"
             (compensatoryDateChange)="compensatoryDate.set($event)"
             [compensatoryTimeStart]="compensatoryTimeStart()"
-            (compensatoryTimeStartChange)="compensatoryTimeStart.set($event)"
+            (compensatoryTimeStartChange)="setCompensatoryTimeStart($event)"
             [compensatoryTimeEnd]="compensatoryTimeEnd()"
-            (compensatoryTimeEndChange)="compensatoryTimeEnd.set($event)"
+            (compensatoryTimeEndChange)="setCompensatoryTimeEnd($event)"
             [compensatoryStartDate]="compensatoryStartDate()"
             (compensatoryStartDateChange)="compensatoryStartDate.set($event)"
             [compensatoryEndDate]="compensatoryEndDate()"
@@ -986,6 +986,26 @@ export class BranchManagerGestionesComponent {
       );
       this.newOvertimeDate.set(null);
     }
+  }
+
+  public setCompensatoryTimeStart(time: Date | null): void {
+    if (time) {
+      // Forzar minutos a 00
+      time.setMinutes(0);
+      time.setSeconds(0);
+      time.setMilliseconds(0);
+    }
+    this.compensatoryTimeStart.set(time);
+  }
+
+  public setCompensatoryTimeEnd(time: Date | null): void {
+    if (time) {
+      // Forzar minutos a 00
+      time.setMinutes(0);
+      time.setSeconds(0);
+      time.setMilliseconds(0);
+    }
+    this.compensatoryTimeEnd.set(time);
   }
 
   public removeManualOvertimeDate(index: number): void {

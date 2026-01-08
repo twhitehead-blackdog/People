@@ -177,6 +177,8 @@ import { Employee } from '../../models';
                 timeOnly
                 hourFormat="12"
                 stepMinute="60"
+                stepSecond="0"
+                hideSeconds="true"
                 placeholder="Hora inicio"
                 [showIcon]="true"
               />
@@ -193,6 +195,8 @@ import { Employee } from '../../models';
                 timeOnly
                 hourFormat="12"
                 stepMinute="60"
+                stepSecond="0"
+                hideSeconds="true"
                 placeholder="Hora fin"
                 [showIcon]="true"
               />
