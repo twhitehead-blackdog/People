@@ -172,6 +172,7 @@ import { Employee } from '../../models';
               <p-datepicker
                 [ngModel]="compensatoryTimeStart"
                 (ngModelChange)="compensatoryTimeStartChange.emit($event)"
+                (onSelect)="onTimeStartSelect($event)"
                 appendTo="body"
                 class="w-full"
                 timeOnly
@@ -190,6 +191,7 @@ import { Employee } from '../../models';
               <p-datepicker
                 [ngModel]="compensatoryTimeEnd"
                 (ngModelChange)="compensatoryTimeEndChange.emit($event)"
+                (onSelect)="onTimeEndSelect($event)"
                 appendTo="body"
                 class="w-full"
                 timeOnly
@@ -470,6 +472,24 @@ export class EmployeePortalCompensatoryComponent {
       setTimeout(() => {
         this.newOvertimeDateChange.emit(null);
       }, 100);
+    }
+  }
+
+  public onTimeStartSelect(time: Date): void {
+    if (time) {
+      // Forzar minutos a 00 inmediatamente al seleccionar
+      time.setMinutes(0);
+      time.setSeconds(0);
+      time.setMilliseconds(0);
+    }
+  }
+
+  public onTimeEndSelect(time: Date): void {
+    if (time) {
+      // Forzar minutos a 00 inmediatamente al seleccionar
+      time.setMinutes(0);
+      time.setSeconds(0);
+      time.setMilliseconds(0);
     }
   }
 }
