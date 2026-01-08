@@ -80,14 +80,6 @@ export interface CompensatoryRequest {
   id: string;
   employee_id: string;
   created_by?: string | null;
-  created_by_employee?: {
-    id: string;
-    first_name: string;
-    father_name: string;
-    work_email: string;
-    position?: { name: string };
-    branch?: { name: string };
-  };
   company_id?: string;
   employee?: {
     id: string;
@@ -1266,20 +1258,14 @@ export interface CompensatoryRequest {
                       </div>
                     </td>
                     <td style="padding: 0.4rem; text-align: center;">
-                      @if (request.created_by && request.created_by !== request.employee_id && request.created_by_employee) {
+                      @if (request.created_by && request.created_by !== request.employee_id) {
                       <div class="flex flex-col items-center gap-0.5">
                         <div class="flex items-center gap-1">
                           <i class="pi pi-user text-amber-400 text-[9px]"></i>
                           <span class="text-[9px] font-medium text-amber-300">
-                            {{ request.created_by_employee.first_name }}
-                            {{ request.created_by_employee.father_name }}
+                            Creado por gerente
                           </span>
                         </div>
-                        @if (request.created_by_employee.branch?.name) {
-                        <span class="text-[8px] text-gray-500">
-                          {{ request.created_by_employee.branch.name }}
-                        </span>
-                        }
                       </div>
                       } @else {
                       <span class="text-[9px] text-gray-500 italic">
@@ -3764,7 +3750,7 @@ export class HRDisabilitiesComponent {
 
     // Ahora podemos filtrar directamente por company_id ya que se agregó el campo a la tabla
     const params: any = {
-      select: `id,employee_id,created_by,type_id,date_from,date_to,notes,is_approved,compensatory_type,compensatory_amount,review_status,reviewed_by,reviewed_at,registered_by,registered_at,rejection_comment,created_at,company_id,document_url,type:timeoff_types(id,name),employee:employees!time_offs_employee_id_fkey(id,first_name,father_name,work_email,company_id,position:positions(name),branch:branches(name)),created_by_employee:employees!time_offs_created_by_fkey(id,first_name,father_name,work_email,position:positions(name),branch:branches(name))`,
+      select: `id,employee_id,created_by,type_id,date_from,date_to,notes,is_approved,compensatory_type,compensatory_amount,review_status,reviewed_by,reviewed_at,registered_by,registered_at,rejection_comment,created_at,company_id,document_url,type:timeoff_types(id,name),employee:employees!time_offs_employee_id_fkey(id,first_name,father_name,work_email,company_id,position:positions(name),branch:branches(name))`,
       type_id: `eq.${compensatoryTypeId}`,
       // Filtrar directamente por company_id (campo agregado a la tabla)
       company_id: `eq.${companyId}`,
