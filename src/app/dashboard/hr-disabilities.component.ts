@@ -1298,12 +1298,14 @@ interface DocumentRequest {
                         @if (requestedAmount !== null) {
                         {{ requestedAmount }}
                         @let type = getCompensatoryTypeFromNotes(request); @if
-                        (type === 'days') { día(s) } @else { hora(s) } } @else if
-                        (quantity && quantity.value > 0) { @if
-                        (quantity.isDays) {
-                        {{ quantity.value }} día(s) } @else {
+                        (type === 'days') { día(s) } @else { hora(s) }
+                        } @else if (quantity && quantity.value > 0) {
+                        @if (quantity.isDays) {
+                        {{ quantity.value }} día(s)
+                        } @else {
                         {{ formatHoursMinutes(quantity.value) }}
-                        } } @else {
+                        }
+                        } @else {
                         <span class="text-gray-500">-</span>
                         }
                       </span>
@@ -1407,44 +1409,60 @@ interface DocumentRequest {
         <div class="space-y-3">
           <!-- Estadísticas de Documentos -->
           <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
-            <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3">
+            <div
+              class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3"
+            >
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-xs text-gray-400">Total</p>
-                  <p class="text-xl font-bold text-white">{{ documentsTotalCount() }}</p>
+                  <p class="text-xl font-bold text-white">
+                    {{ documentsTotalCount() }}
+                  </p>
                 </div>
                 <div class="p-2 bg-neutral-700/50 rounded-lg">
                   <i class="pi pi-file-edit text-cyan-400 text-lg"></i>
                 </div>
               </div>
             </div>
-            <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3">
+            <div
+              class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3"
+            >
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-xs text-gray-400">Pendientes</p>
-                  <p class="text-xl font-bold text-amber-400">{{ documentsPendingCount() }}</p>
+                  <p class="text-xl font-bold text-amber-400">
+                    {{ documentsPendingCount() }}
+                  </p>
                 </div>
                 <div class="p-2 bg-amber-500/10 rounded-lg">
                   <i class="pi pi-clock text-amber-400 text-lg"></i>
                 </div>
               </div>
             </div>
-            <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3">
+            <div
+              class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3"
+            >
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-xs text-gray-400">Aprobadas</p>
-                  <p class="text-xl font-bold text-green-400">{{ documentsApprovedCount() }}</p>
+                  <p class="text-xl font-bold text-green-400">
+                    {{ documentsApprovedCount() }}
+                  </p>
                 </div>
                 <div class="p-2 bg-green-500/10 rounded-lg">
                   <i class="pi pi-check text-green-400 text-lg"></i>
                 </div>
               </div>
             </div>
-            <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3">
+            <div
+              class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3"
+            >
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-xs text-gray-400">Rechazadas</p>
-                  <p class="text-xl font-bold text-red-400">{{ documentsRejectedCount() }}</p>
+                  <p class="text-xl font-bold text-red-400">
+                    {{ documentsRejectedCount() }}
+                  </p>
                 </div>
                 <div class="p-2 bg-red-500/10 rounded-lg">
                   <i class="pi pi-times text-red-400 text-lg"></i>
@@ -1454,7 +1472,9 @@ interface DocumentRequest {
           </div>
 
           <!-- Filtros -->
-          <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-4">
+          <div
+            class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-4"
+          >
             <div class="flex flex-wrap gap-3 items-center">
               <div class="flex-1 min-w-[200px]">
                 <input
@@ -1502,14 +1522,20 @@ interface DocumentRequest {
             <p-progressSpinner />
           </div>
           } @else if (filteredDocuments().length === 0) {
-          <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-8">
+          <div
+            class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-8"
+          >
             <div class="text-center">
               <i class="pi pi-file-edit text-gray-400 text-4xl mb-3"></i>
-              <p class="text-gray-400">No se encontraron solicitudes de documentos</p>
+              <p class="text-gray-400">
+                No se encontraron solicitudes de documentos
+              </p>
             </div>
           </div>
           } @else {
-          <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 overflow-hidden">
+          <div
+            class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 overflow-hidden"
+          >
             <p-table
               [value]="filteredDocuments()"
               [scrollable]="true"
@@ -1562,14 +1588,14 @@ interface DocumentRequest {
                   <td style="padding: 0.5rem;">
                     <div class="flex flex-col gap-0.5">
                       <span class="text-sm font-medium text-white">
-                        {{ document.employee?.first_name }} {{ document.employee?.father_name }}
+                        {{ document.employee?.first_name }}
+                        {{ document.employee?.father_name }}
                       </span>
                       @if (document.employee?.position?.name) {
                       <span class="text-xs text-gray-400">
                         {{ document.employee.position.name }}
                       </span>
-                      }
-                      @if (document.employee?.branch?.name) {
+                      } @if (document.employee?.branch?.name) {
                       <span class="text-xs text-cyan-400">
                         {{ document.employee.branch.name }}
                       </span>
@@ -1595,7 +1621,8 @@ interface DocumentRequest {
                     />
                   </td>
                   <td style="padding: 0.5rem; text-align: center;">
-                    @if (document.created_by && document.created_by !== document.employee_id) {
+                    @if (document.created_by && document.created_by !==
+                    document.employee_id) {
                     <div class="flex flex-col items-center gap-0.5">
                       <div class="flex items-center gap-1">
                         <i class="pi pi-user text-amber-400 text-[10px]"></i>
@@ -1612,11 +1639,11 @@ interface DocumentRequest {
                   </td>
                   <td style="padding: 0.5rem;">
                     <span class="text-xs text-gray-400">
-                      {{ document.created_at | date:'dd/MM/yyyy' }}
+                      {{ document.created_at | date : 'dd/MM/yyyy' }}
                     </span>
                     <br />
                     <span class="text-xs text-gray-500">
-                      {{ document.created_at | date:'HH:mm' }}
+                      {{ document.created_at | date : 'HH:mm' }}
                     </span>
                   </td>
                   <td style="padding: 0.5rem;">
@@ -1660,44 +1687,60 @@ interface DocumentRequest {
         <div class="space-y-3">
           <!-- Estadísticas de Vacaciones -->
           <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
-            <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3">
+            <div
+              class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3"
+            >
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-xs text-gray-400">Total</p>
-                  <p class="text-xl font-bold text-white">{{ vacationsTotalCount() }}</p>
+                  <p class="text-xl font-bold text-white">
+                    {{ vacationsTotalCount() }}
+                  </p>
                 </div>
                 <div class="p-2 bg-neutral-700/50 rounded-lg">
                   <i class="pi pi-calendar text-cyan-400 text-lg"></i>
                 </div>
               </div>
             </div>
-            <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3">
+            <div
+              class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3"
+            >
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-xs text-gray-400">Pendientes</p>
-                  <p class="text-xl font-bold text-amber-400">{{ vacationsPendingCount() }}</p>
+                  <p class="text-xl font-bold text-amber-400">
+                    {{ vacationsPendingCount() }}
+                  </p>
                 </div>
                 <div class="p-2 bg-amber-500/10 rounded-lg">
                   <i class="pi pi-clock text-amber-400 text-lg"></i>
                 </div>
               </div>
             </div>
-            <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3">
+            <div
+              class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3"
+            >
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-xs text-gray-400">Aprobadas</p>
-                  <p class="text-xl font-bold text-green-400">{{ vacationsApprovedCount() }}</p>
+                  <p class="text-xl font-bold text-green-400">
+                    {{ vacationsApprovedCount() }}
+                  </p>
                 </div>
                 <div class="p-2 bg-green-500/10 rounded-lg">
                   <i class="pi pi-check text-green-400 text-lg"></i>
                 </div>
               </div>
             </div>
-            <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3">
+            <div
+              class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3"
+            >
               <div class="flex items-center justify-between">
                 <div>
                   <p class="text-xs text-gray-400">Rechazadas</p>
-                  <p class="text-xl font-bold text-red-400">{{ vacationsRejectedCount() }}</p>
+                  <p class="text-xl font-bold text-red-400">
+                    {{ vacationsRejectedCount() }}
+                  </p>
                 </div>
                 <div class="p-2 bg-red-500/10 rounded-lg">
                   <i class="pi pi-times text-red-400 text-lg"></i>
@@ -1707,7 +1750,9 @@ interface DocumentRequest {
           </div>
 
           <!-- Filtros -->
-          <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-4">
+          <div
+            class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-4"
+          >
             <div class="flex flex-wrap gap-3 items-center">
               <div class="flex-1 min-w-[200px]">
                 <input
@@ -1755,14 +1800,20 @@ interface DocumentRequest {
             <p-progressSpinner />
           </div>
           } @else if (filteredVacations().length === 0) {
-          <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-8">
+          <div
+            class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-8"
+          >
             <div class="text-center">
               <i class="pi pi-calendar text-gray-400 text-4xl mb-3"></i>
-              <p class="text-gray-400">No se encontraron solicitudes de vacaciones</p>
+              <p class="text-gray-400">
+                No se encontraron solicitudes de vacaciones
+              </p>
             </div>
           </div>
           } @else {
-          <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 overflow-hidden">
+          <div
+            class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 overflow-hidden"
+          >
             <p-table
               [value]="filteredVacations()"
               [scrollable]="true"
@@ -1827,14 +1878,14 @@ interface DocumentRequest {
                   <td style="padding: 0.5rem;">
                     <div class="flex flex-col gap-0.5">
                       <span class="text-sm font-medium text-white">
-                        {{ vacation.employee?.first_name }} {{ vacation.employee?.father_name }}
+                        {{ vacation.employee?.first_name }}
+                        {{ vacation.employee?.father_name }}
                       </span>
                       @if (vacation.employee?.position?.name) {
                       <span class="text-xs text-gray-400">
                         {{ vacation.employee.position.name }}
                       </span>
-                      }
-                      @if (vacation.employee?.branch?.name) {
+                      } @if (vacation.employee?.branch?.name) {
                       <span class="text-xs text-cyan-400">
                         {{ vacation.employee.branch.name }}
                       </span>
@@ -1843,17 +1894,22 @@ interface DocumentRequest {
                   </td>
                   <td style="padding: 0.5rem;">
                     <span class="text-sm text-gray-300">
-                      {{ vacation.start_date | date:'dd/MM/yyyy' }}
+                      {{ vacation.start_date | date : 'dd/MM/yyyy' }}
                     </span>
                   </td>
                   <td style="padding: 0.5rem;">
                     <span class="text-sm text-gray-300">
-                      {{ vacation.end_date | date:'dd/MM/yyyy' }}
+                      {{ vacation.end_date | date : 'dd/MM/yyyy' }}
                     </span>
                   </td>
                   <td style="padding: 0.5rem;">
                     <span class="text-sm font-medium text-cyan-400">
-                      {{ calculateVacationDays(vacation.start_date, vacation.end_date) }}
+                      {{
+                        calculateVacationDays(
+                          vacation.start_date,
+                          vacation.end_date
+                        )
+                      }}
                     </span>
                   </td>
                   <td style="padding: 0.5rem;">
@@ -1864,7 +1920,8 @@ interface DocumentRequest {
                     />
                   </td>
                   <td style="padding: 0.5rem; text-align: center;">
-                    @if (vacation.created_by && vacation.created_by !== vacation.employee_id) {
+                    @if (vacation.created_by && vacation.created_by !==
+                    vacation.employee_id) {
                     <div class="flex flex-col items-center gap-0.5">
                       <div class="flex items-center gap-1">
                         <i class="pi pi-user text-amber-400 text-[10px]"></i>
@@ -1881,11 +1938,11 @@ interface DocumentRequest {
                   </td>
                   <td style="padding: 0.5rem;">
                     <span class="text-xs text-gray-400">
-                      {{ vacation.created_at | date:'dd/MM/yyyy' }}
+                      {{ vacation.created_at | date : 'dd/MM/yyyy' }}
                     </span>
                     <br />
                     <span class="text-xs text-gray-500">
-                      {{ vacation.created_at | date:'HH:mm' }}
+                      {{ vacation.created_at | date : 'HH:mm' }}
                     </span>
                   </td>
                   <td style="padding: 0.5rem;">
@@ -4290,8 +4347,8 @@ export class HRDisabilitiesComponent {
     }
 
     const params: any = {
-      select: `id,employee_id,created_by,document_type,reason,document_url,status,reviewed_by,reviewed_at,review_notes,rejection_comment,created_at,updated_at,company_id,employee:employees!document_requests_employee_id_fkey(id,first_name,father_name,work_email,company_id,position:positions(name),branch:branches(name))`,
-      company_id: `eq.${companyId}`,
+      select: `id,employee_id,created_by,document_type,reason,document_url,status,reviewed_by,reviewed_at,review_notes,rejection_comment,created_at,updated_at,employee:employees!document_requests_employee_id_fkey(id,first_name,father_name,work_email,company_id,position:positions(name),branch:branches(name))`,
+      'employee.company_id': `eq.${companyId}`,
       order: 'created_at.desc',
     };
 
@@ -4805,7 +4862,7 @@ export class HRDisabilitiesComponent {
     );
 
     let notesArray: string[] = [];
-    
+
     if (Array.isArray(request.notes)) {
       notesArray = request.notes;
       console.log('[DEBUG HR] Notes es un array:', notesArray);
@@ -4894,7 +4951,9 @@ export class HRDisabilitiesComponent {
     // Formatear como "01h 30m"
     const wholeHours = Math.floor(remaining);
     const minutes = Math.round((remaining - wholeHours) * 60);
-    return `${wholeHours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m`;
+    return `${wholeHours.toString().padStart(2, '0')}h ${minutes
+      .toString()
+      .padStart(2, '0')}m`;
   }
 
   // Método helper para calcular horas extras de un empleado específico
@@ -6030,21 +6089,18 @@ export class HRDisabilitiesComponent {
   );
   public vacationsPendingCount = computed(
     () =>
-      this.vacationsApi
-        .value()
-        ?.filter((v) => v.status === 'pending').length || 0
+      this.vacationsApi.value()?.filter((v) => v.status === 'pending').length ||
+      0
   );
   public vacationsApprovedCount = computed(
     () =>
-      this.vacationsApi
-        .value()
-        ?.filter((v) => v.status === 'approved').length || 0
+      this.vacationsApi.value()?.filter((v) => v.status === 'approved')
+        .length || 0
   );
   public vacationsRejectedCount = computed(
     () =>
-      this.vacationsApi
-        .value()
-        ?.filter((v) => v.status === 'rejected').length || 0
+      this.vacationsApi.value()?.filter((v) => v.status === 'rejected')
+        .length || 0
   );
 
   // Vacaciones filtradas
@@ -6063,7 +6119,9 @@ export class HRDisabilitiesComponent {
 
     // Filtro por estado
     if (this.vacationsSelectedStatus()) {
-      vacations = vacations.filter((v) => v.status === this.vacationsSelectedStatus());
+      vacations = vacations.filter(
+        (v) => v.status === this.vacationsSelectedStatus()
+      );
     }
 
     // Filtro por rango de fechas
@@ -6126,7 +6184,9 @@ export class HRDisabilitiesComponent {
     }
   }
 
-  public getVacationStatusSeverity(status: string): "success" | "info" | "warn" | "danger" | "secondary" | "contrast" {
+  public getVacationStatusSeverity(
+    status: string
+  ): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
     switch (status) {
       case 'pending':
         return 'warn';
@@ -6198,9 +6258,15 @@ export class HRDisabilitiesComponent {
         next: async () => {
           // Notificar al empleado solo si se aprueba o rechaza
           if (status === 'approved' || status === 'rejected') {
-            const vacation = this.vacationsApi.value()?.find((v) => v.id === id);
+            const vacation = this.vacationsApi
+              .value()
+              ?.find((v) => v.id === id);
             if (vacation) {
-              await this.notifyEmployeeAboutVacation(vacation, status, rejectionComment);
+              await this.notifyEmployeeAboutVacation(
+                vacation,
+                status,
+                rejectionComment
+              );
             }
           }
 
@@ -6208,7 +6274,11 @@ export class HRDisabilitiesComponent {
             severity: 'success',
             summary: 'Éxito',
             detail: `Solicitud de vacaciones ${
-              status === 'approved' ? 'aprobada' : status === 'rejected' ? 'rechazada' : 'actualizada'
+              status === 'approved'
+                ? 'aprobada'
+                : status === 'rejected'
+                ? 'rechazada'
+                : 'actualizada'
             } correctamente`,
           });
           this.vacationsApi.reload();
@@ -6217,7 +6287,8 @@ export class HRDisabilitiesComponent {
           this.messageService.add({
             severity: 'error',
             summary: 'Error',
-            detail: 'No se pudo actualizar el estado de la solicitud de vacaciones',
+            detail:
+              'No se pudo actualizar el estado de la solicitud de vacaciones',
           });
         },
       });
@@ -6232,10 +6303,28 @@ export class HRDisabilitiesComponent {
       const notificationData = {
         employee_id: vacation.employee_id,
         type: status === 'approved' ? 'vacation_approved' : 'vacation_rejected',
-        title: status === 'approved' ? 'Vacaciones Aprobadas' : 'Vacaciones Rechazadas',
-        message: status === 'approved'
-          ? `Tus vacaciones del ${format(new Date(vacation.start_date), 'dd/MM/yyyy')} al ${format(new Date(vacation.end_date), 'dd/MM/yyyy')} han sido aprobadas.`
-          : `Tus vacaciones del ${format(new Date(vacation.start_date), 'dd/MM/yyyy')} al ${format(new Date(vacation.end_date), 'dd/MM/yyyy')} han sido rechazadas.${rejectionComment ? ` Motivo: ${rejectionComment}` : ''}`,
+        title:
+          status === 'approved'
+            ? 'Vacaciones Aprobadas'
+            : 'Vacaciones Rechazadas',
+        message:
+          status === 'approved'
+            ? `Tus vacaciones del ${format(
+                new Date(vacation.start_date),
+                'dd/MM/yyyy'
+              )} al ${format(
+                new Date(vacation.end_date),
+                'dd/MM/yyyy'
+              )} han sido aprobadas.`
+            : `Tus vacaciones del ${format(
+                new Date(vacation.start_date),
+                'dd/MM/yyyy'
+              )} al ${format(
+                new Date(vacation.end_date),
+                'dd/MM/yyyy'
+              )} han sido rechazadas.${
+                rejectionComment ? ` Motivo: ${rejectionComment}` : ''
+              }`,
         is_read: false,
         created_at: new Date().toISOString(),
       };
@@ -6280,21 +6369,18 @@ export class HRDisabilitiesComponent {
   );
   public documentsPendingCount = computed(
     () =>
-      this.documentRequestsApi
-        .value()
-        ?.filter((d) => d.status === 'pending').length || 0
+      this.documentRequestsApi.value()?.filter((d) => d.status === 'pending')
+        .length || 0
   );
   public documentsApprovedCount = computed(
     () =>
-      this.documentRequestsApi
-        .value()
-        ?.filter((d) => d.status === 'approved').length || 0
+      this.documentRequestsApi.value()?.filter((d) => d.status === 'approved')
+        .length || 0
   );
   public documentsRejectedCount = computed(
     () =>
-      this.documentRequestsApi
-        .value()
-        ?.filter((d) => d.status === 'rejected').length || 0
+      this.documentRequestsApi.value()?.filter((d) => d.status === 'rejected')
+        .length || 0
   );
 
   // Documentos filtrados
@@ -6313,7 +6399,9 @@ export class HRDisabilitiesComponent {
 
     // Filtro por estado
     if (this.documentsSelectedStatus()) {
-      documents = documents.filter((d) => d.status === this.documentsSelectedStatus());
+      documents = documents.filter(
+        (d) => d.status === this.documentsSelectedStatus()
+      );
     }
 
     // Filtro por rango de fechas
@@ -6352,11 +6440,11 @@ export class HRDisabilitiesComponent {
 
   public getDocumentTypeLabel(type: string): string {
     const types: Record<string, string> = {
-      'constancia_salarial': 'Constancia Salarial',
-      'certificado_laboral': 'Certificado Laboral',
-      'carta_recomendacion': 'Carta de Recomendación',
-      'comprobante_pago': 'Comprobante de Pago',
-      'otros': 'Otros',
+      constancia_salarial: 'Constancia Salarial',
+      certificado_laboral: 'Certificado Laboral',
+      carta_recomendacion: 'Carta de Recomendación',
+      comprobante_pago: 'Comprobante de Pago',
+      otros: 'Otros',
     };
     return types[type] || type;
   }
@@ -6374,7 +6462,9 @@ export class HRDisabilitiesComponent {
     }
   }
 
-  public getDocumentStatusSeverity(status: string): "success" | "info" | "warn" | "danger" | "secondary" | "contrast" {
+  public getDocumentStatusSeverity(
+    status: string
+  ): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
     switch (status) {
       case 'pending':
         return 'warn';
@@ -6390,7 +6480,9 @@ export class HRDisabilitiesComponent {
   public approveDocument(document: DocumentRequest): void {
     const employeeName = `${document.employee?.first_name} ${document.employee?.father_name}`;
     this.confirmationService.confirm({
-      message: `¿Estás seguro de aprobar la solicitud de ${this.getDocumentTypeLabel(document.document_type)} de ${employeeName}?`,
+      message: `¿Estás seguro de aprobar la solicitud de ${this.getDocumentTypeLabel(
+        document.document_type
+      )} de ${employeeName}?`,
       header: 'Confirmar Aprobación',
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-success',
@@ -6402,7 +6494,11 @@ export class HRDisabilitiesComponent {
 
   public rejectDocument(document: DocumentRequest): void {
     this.confirmationService.confirm({
-      message: `¿Estás seguro de rechazar la solicitud de ${this.getDocumentTypeLabel(document.document_type)} de ${document.employee?.first_name} ${document.employee?.father_name}?`,
+      message: `¿Estás seguro de rechazar la solicitud de ${this.getDocumentTypeLabel(
+        document.document_type
+      )} de ${document.employee?.first_name} ${
+        document.employee?.father_name
+      }?`,
       header: 'Confirmar Rechazo',
       icon: 'pi pi-exclamation-triangle',
       acceptButtonStyleClass: 'p-button-danger',
@@ -6446,9 +6542,15 @@ export class HRDisabilitiesComponent {
         next: async () => {
           // Notificar al empleado solo si se aprueba o rechaza
           if (status === 'approved' || status === 'rejected') {
-            const document = this.documentRequestsApi.value()?.find((d) => d.id === id);
+            const document = this.documentRequestsApi
+              .value()
+              ?.find((d) => d.id === id);
             if (document) {
-              await this.notifyEmployeeAboutDocument(document, status, rejectionComment);
+              await this.notifyEmployeeAboutDocument(
+                document,
+                status,
+                rejectionComment
+              );
             }
           }
 
@@ -6456,7 +6558,11 @@ export class HRDisabilitiesComponent {
             severity: 'success',
             summary: 'Éxito',
             detail: `Solicitud de documento ${
-              status === 'approved' ? 'aprobada' : status === 'rejected' ? 'rechazada' : 'actualizada'
+              status === 'approved'
+                ? 'aprobada'
+                : status === 'rejected'
+                ? 'rechazada'
+                : 'actualizada'
             } correctamente`,
           });
           this.documentRequestsApi.reload();
@@ -6465,7 +6571,8 @@ export class HRDisabilitiesComponent {
           this.messageService.add({
             severity: 'error',
             summary: 'Error',
-            detail: 'No se pudo actualizar el estado de la solicitud de documento',
+            detail:
+              'No se pudo actualizar el estado de la solicitud de documento',
           });
         },
       });
@@ -6480,10 +6587,18 @@ export class HRDisabilitiesComponent {
       const notificationData = {
         employee_id: document.employee_id,
         type: status === 'approved' ? 'document_approved' : 'document_rejected',
-        title: status === 'approved' ? 'Documento Aprobado' : 'Documento Rechazado',
-        message: status === 'approved'
-          ? `Tu solicitud de ${this.getDocumentTypeLabel(document.document_type)} ha sido aprobada y estará disponible próximamente.`
-          : `Tu solicitud de ${this.getDocumentTypeLabel(document.document_type)} ha sido rechazada.${rejectionComment ? ` Motivo: ${rejectionComment}` : ''}`,
+        title:
+          status === 'approved' ? 'Documento Aprobado' : 'Documento Rechazado',
+        message:
+          status === 'approved'
+            ? `Tu solicitud de ${this.getDocumentTypeLabel(
+                document.document_type
+              )} ha sido aprobada y estará disponible próximamente.`
+            : `Tu solicitud de ${this.getDocumentTypeLabel(
+                document.document_type
+              )} ha sido rechazada.${
+                rejectionComment ? ` Motivo: ${rejectionComment}` : ''
+              }`,
         is_read: false,
         created_at: new Date().toISOString(),
       };
