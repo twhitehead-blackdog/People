@@ -3748,12 +3748,11 @@ export class HRDisabilitiesComponent {
       return undefined; // No hacer request si no hay company_id
     }
 
-    // Ahora podemos filtrar directamente por company_id ya que se agregó el campo a la tabla
     const params: any = {
-      select: `id,employee_id,created_by,type_id,date_from,date_to,notes,is_approved,compensatory_type,compensatory_amount,review_status,reviewed_by,reviewed_at,registered_by,registered_at,rejection_comment,created_at,company_id,document_url,type:timeoff_types(id,name),employee:employees!time_offs_employee_id_fkey(id,first_name,father_name,work_email,company_id,position:positions(name),branch:branches(name))`,
+      select: `id,employee_id,created_by,type_id,date_from,date_to,notes,is_approved,compensatory_type,compensatory_amount,review_status,reviewed_by,reviewed_at,registered_by,registered_at,rejection_comment,created_at,document_url,type:timeoff_types(id,name),employee:employees!time_offs_employee_id_fkey(id,first_name,father_name,work_email,company_id,position:positions(name),branch:branches(name))`,
       type_id: `eq.${compensatoryTypeId}`,
-      // Filtrar directamente por company_id (campo agregado a la tabla)
-      company_id: `eq.${companyId}`,
+      // Filtrar por company_id a través de la relación con employees
+      'employee.company_id': `eq.${companyId}`,
       order: 'created_at.desc',
     };
 
