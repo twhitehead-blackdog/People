@@ -24,6 +24,7 @@ import { EmployeePortalCompensatoryComponent } from '../employee-portal/componen
 import { Branch, Employee } from '../models';
 import { ApiUrlService } from '../services/api-url.service';
 import { getEnv } from '../utils/env.utils';
+import { calculateCompensatoryAmount } from '../employee-portal/utils/employee-portal-compensatory.utils';
 
 type ManagementCard = {
   id: string;
@@ -316,6 +317,7 @@ type ManagementCard = {
             (removeManualDate)="removeManualOvertimeDate($event)"
             [compensatoryFile]="compensatoryFile()"
             (compensatoryFileChange)="compensatoryFile.set($event)"
+            [compensatoryAmount]="compensatoryAmount()"
             [canSubmit]="canSubmitCompensatory()"
             [submitting]="submittingCompensatory()"
             (submitRequest)="submitCompensatoryRequest()"
@@ -791,6 +793,18 @@ export class BranchManagerGestionesComponent {
   public documentReason = signal<string>('');
   public documentRequiredDate = signal<Date | null>(null);
   public submittingDocument = signal<boolean>(false);
+
+  // Computed: Calcular el total de horas/días automáticamente
+  public compensatoryAmount = computed(() => {
+    return calculateCompensatoryAmount({
+      type: this.compensatoryType(),
+      date: this.compensatoryDate(),
+      timeStart: this.compensatoryTimeStart(),
+      timeEnd: this.compensatoryTimeEnd(),
+      startDate: this.compensatoryStartDate(),
+      endDate: this.compensatoryEndDate(),
+    });
+  });
 
   // Computed para validaciones
   public canSubmitCompensatory = computed(() => {
