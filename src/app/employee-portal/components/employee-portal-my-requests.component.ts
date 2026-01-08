@@ -354,7 +354,7 @@ type UnifiedRequest = {
               </div>
 
               <!-- Información específica según tipo -->
-              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
                 <!-- Tiempo Compensatorio -->
                 @if (request.request_type === 'compensatory') {
                   <!-- Fechas -->
@@ -435,6 +435,32 @@ type UnifiedRequest = {
                         Horas
                       }
                     </p>
+                  </div>
+
+                  <!-- Documento PDF -->
+                  <div class="bg-neutral-900/50 rounded-lg p-3 border border-neutral-700/50">
+                    <div class="flex items-center gap-2 mb-2">
+                      <i class="pi pi-file text-cyan-400"></i>
+                      <span class="text-xs text-gray-400 font-medium">Documento</span>
+                    </div>
+                    @if (data.document_url) {
+                      <div class="flex flex-col items-center gap-2">
+                        <iframe
+                          [src]="data.document_url + '#toolbar=1&navpanes=1&scrollbar=1'"
+                          type="application/pdf"
+                          width="100%"
+                          height="150px"
+                          style="border: none; border-radius: 4px;"
+                        ></iframe>
+                        <p class="text-xs text-cyan-400 text-center">
+                          Solicitud física adjunta
+                        </p>
+                      </div>
+                    } @else {
+                      <p class="text-gray-400 text-sm text-center">
+                        Sin documento adjunto
+                      </p>
+                    }
                   </div>
                 }
 

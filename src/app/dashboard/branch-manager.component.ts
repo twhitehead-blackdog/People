@@ -10,7 +10,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { format, startOfDay, endOfDay, isToday, parseISO, addDays, addWeeks, subWeeks, getDate, isMonday, isWeekend, nextMonday, previousMonday, nextSunday, isWithinInterval } from 'date-fns';
+import { format, startOfDay, endOfDay, isToday, parseISO, addDays, addWeeks, subWeeks, getDate, isMonday, isWeekend, nextMonday, previousMonday, nextSunday, isWithinInterval, differenceInMinutes } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { toDate } from 'date-fns-tz';
 import { MessageService } from 'primeng/api';
@@ -30,12 +30,15 @@ import { TooltipModule } from 'primeng/tooltip';
 import { Menu } from 'primeng/menu';
 import { Popover } from 'primeng/popover';
 import { ConfirmationService, MenuItem } from 'primeng/api';
+import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
 import { BranchesStore } from '../stores/branches.store';
 import { Employee, Branch, colorVariants } from '../models';
+import { CompensatoryRequest } from './hr-disabilities.component';
 import { EmployeeSchedulesFormComponent } from './employee-schedules-form.component';
+import { BranchManagerGestionesComponent } from './branch-manager-gestiones.component';
 
 type Notification = {
   id: string;
@@ -83,6 +86,7 @@ type Reminder = {
     Menu,
     Popover,
     InputText,
+    BranchManagerGestionesComponent,
   ],
   providers: [DynamicDialogRef, DialogService, ConfirmationService],
   template: `
@@ -181,16 +185,13 @@ type Reminder = {
               <i class="pi pi-clock mr-2"></i>
               Marcaciones
             </p-tab>
-            <p-tab value="notifications">
-              <i class="pi pi-bell mr-2"></i>
-              Notificaciones
-              @if (unreadNotificationsCount() > 0) {
-              <span
-                class="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-0.5 font-semibold"
-              >
-                {{ unreadNotificationsCount() }}
-              </span>
-              }
+            <p-tab value="gestiones">
+              <i class="pi pi-file-edit mr-2"></i>
+              Gestiones
+            </p-tab>
+            <p-tab value="employee-requests">
+              <i class="pi pi-list mr-2"></i>
+              Mis Solicitudes de Empleados
             </p-tab>
             <p-tab value="reminders">
               <i class="pi pi-bookmark mr-2"></i>
@@ -205,16 +206,38 @@ type Reminder = {
             </p-tab>
           </p-tablist>
 
-          <p-tabpanel value="notifications">
+          <p-tabpanel value="employee-requests">
             <div class="space-y-4">
-              <div class="flex gap-2 items-center flex-wrap justify-between">
+              <!-- Filtros -->
+              <div class="flex gap-2 items-center flex-wrap justify-between bg-neutral-800/50 p-4 rounded-lg">
                 <div class="flex gap-2 items-center flex-wrap">
                   <p-select
-                    [options]="notificationTypeOptions"
+                    [options]="[
+                      { label: 'Todos', value: null },
+                      { label: 'Compensatorio', value: 'compensatorio' },
+                      { label: 'Incapacidades', value: 'incapacidad' },
+                      { label: 'Vacaciones', value: 'vacaciones' },
+                      { label: 'Documentos', value: 'documentos' }
+                    ]"
                     optionLabel="label"
                     optionValue="value"
-                    [(ngModel)]="notificationTypeFilter"
+                    [(ngModel)]="requestTypeFilter"
                     placeholder="Filtrar por tipo"
+                    showClear
+                    appendTo="body"
+                    styleClass="w-48"
+                  />
+                  <p-select
+                    [options]="[
+                      { label: 'Todos', value: null },
+                      { label: 'Pendiente', value: 'pending' },
+                      { label: 'Aprobado', value: 'approved' },
+                      { label: 'Rechazado', value: 'rejected' }
+                    ]"
+                    optionLabel="label"
+                    optionValue="value"
+                    [(ngModel)]="requestStatusFilter"
+                    placeholder="Filtrar por estado"
                     showClear
                     appendTo="body"
                     styleClass="w-48"
@@ -223,84 +246,140 @@ type Reminder = {
                     icon="pi pi-refresh"
                     label="Actualizar"
                     severity="secondary"
-                    (onClick)="refreshNotifications()"
-                    [loading]="notificationsResource.isLoading()"
+                    (onClick)="refreshEmployeeRequests()"
+                    [loading]="compensatoryTimeoffsApi.isLoading() || disabilitiesApi.isLoading() || vacationsApi.isLoading() || documentRequestsApi.isLoading()"
                   />
                 </div>
-                @if (unreadNotificationsCount() > 0) {
-                <p-button
-                  icon="pi pi-check-circle"
-                  label="Marcar todas como leídas"
-                  severity="success"
-                  (onClick)="markAllNotificationsAsRead()"
-                />
-                }
+                <div class="flex items-center gap-2 text-sm text-gray-400">
+                  <i class="pi pi-info-circle"></i>
+                  <span>{{ filteredBranchEmployeeRequests().length }} solicitud(es)</span>
+                </div>
               </div>
 
-              @if (notificationsResource.isLoading()) {
+              <!-- Loading State -->
+              @if (compensatoryTimeoffsApi.isLoading() || disabilitiesApi.isLoading() || vacationsApi.isLoading() || documentRequestsApi.isLoading()) {
               <div class="flex justify-center py-12">
                 <i class="pi pi-spin pi-spinner text-4xl text-gray-400"></i>
               </div>
-              } @else if (filteredNotifications().length === 0) {
+              }
+              
+              <!-- Empty State -->
+              @else if (filteredBranchEmployeeRequests().length === 0) {
               <div class="text-center py-12">
                 <i class="pi pi-inbox text-6xl text-gray-400 mb-4"></i>
-                <p class="text-gray-400 text-lg">No hay notificaciones</p>
+                <p class="text-gray-400 text-lg">No hay solicitudes de empleados</p>
+                <p class="text-gray-500 text-sm mt-2">Las solicitudes creadas en "Gestiones" aparecerán aquí</p>
               </div>
-              } @else {
+              }
+              
+              <!-- Requests List -->
+              @else {
               <div class="grid grid-cols-1 gap-3">
-                @for (notification of filteredNotifications(); track notification.id) {
+                @for (request of filteredBranchEmployeeRequests(); track request.id) {
                 <div
-                  class="border rounded-lg p-4 transition-all hover:shadow-md"
+                  class="border rounded-lg p-4 transition-all hover:shadow-md cursor-pointer"
                   [ngClass]="{
-                    'border-blue-500 bg-blue-50/5': !notification.is_read,
-                    'border-gray-700 bg-neutral-800/50': notification.is_read
+                    'border-cyan-500 bg-cyan-500/5': request.requestType === 'compensatorio',
+                    'border-blue-500 bg-blue-500/5': request.requestType === 'incapacidad',
+                    'border-purple-500 bg-purple-500/5': request.requestType === 'vacaciones',
+                    'border-green-500 bg-green-500/5': request.requestType === 'documentos'
                   }"
+                  (click)="viewRequestDetails(request)"
                 >
                   <div class="flex items-start justify-between gap-4">
                     <div class="flex items-start gap-3 flex-1">
-                      @if (!notification.is_read) {
-                      <div class="mt-1">
-                        <i class="pi pi-circle-fill text-blue-500 text-xs"></i>
+                      <!-- Icono según tipo -->
+                      <div class="mt-1 w-10 h-10 rounded-full flex items-center justify-center"
+                        [ngClass]="{
+                          'bg-cyan-500/20': request.requestType === 'compensatorio',
+                          'bg-blue-500/20': request.requestType === 'incapacidad',
+                          'bg-purple-500/20': request.requestType === 'vacaciones',
+                          'bg-green-500/20': request.requestType === 'documentos'
+                        }">
+                        <i class="pi"
+                          [ngClass]="{
+                            'pi-clock text-cyan-400': request.requestType === 'compensatorio',
+                            'pi-file-plus text-blue-400': request.requestType === 'incapacidad',
+                            'pi-calendar-plus text-purple-400': request.requestType === 'vacaciones',
+                            'pi-file-edit text-green-400': request.requestType === 'documentos'
+                          }"></i>
                       </div>
-                      }
+
                       <div class="flex-1">
+                        <!-- Header con tipo y fecha -->
                         <div class="flex items-center gap-2 mb-2">
                           <p-tag
-                            [value]="getNotificationTypeLabel(notification.type)"
-                            [severity]="getNotificationSeverity(notification.type)"
-                            [icon]="getNotificationIcon(notification.type)"
+                            [value]="getRequestTypeLabel(request.requestType)"
+                            [severity]="getRequestTypeSeverity(request.requestType)"
+                            styleClass="text-xs"
+                          />
+                          <p-tag
+                            [value]="getRequestStatusLabel(request)"
+                            [severity]="getRequestStatusSeverity(request)"
                             styleClass="text-xs"
                           />
                           <span class="text-xs text-gray-400">
-                            {{ notification.created_at | date : 'short' }}
+                            {{ request.created_at | date : 'dd/MM/yyyy HH:mm' }}
                           </span>
                         </div>
-                        <h4 class="font-semibold mb-1">{{ notification.title }}</h4>
-                        <p class="text-gray-300 text-sm">{{ notification.message }}</p>
-                        @if (notification.recipient) {
-                        <div class="flex items-center gap-2 mt-2">
+
+                        <!-- Información del empleado -->
+                        <div class="flex items-center gap-2 mb-2">
                           <p-avatar
-                            [label]="getEmployeeInitials(notification.recipient)"
+                            [label]="getEmployeeInitials(request.employee)"
                             shape="circle"
                             styleClass="text-xs"
                           />
-                          <span class="text-xs text-gray-400">
-                            {{ notification.recipient.first_name }} {{ notification.recipient.father_name }}
+                          <span class="text-sm font-semibold text-white">
+                            {{ request.employee?.first_name }} {{ request.employee?.father_name }}
                           </span>
+                        </div>
+
+                        <!-- Detalles según tipo -->
+                        <div class="text-sm text-gray-300">
+                          @if (request.requestType === 'compensatorio') {
+                            <p><span class="text-gray-400">Período:</span> {{ request.date_from | date : 'dd/MM/yyyy' }} - {{ request.date_to | date : 'dd/MM/yyyy' }}</p>
+                            <p><span class="text-gray-400">Tipo:</span> {{ request.compensatory_type === 'hours' ? 'Horas' : 'Días' }}</p>
+                            <p><span class="text-gray-400">Cantidad:</span> {{ request.compensatory_amount }} {{ request.compensatory_type === 'hours' ? 'hora(s)' : 'día(s)' }}</p>
+                          }
+                          @else if (request.requestType === 'incapacidad') {
+                            <p><span class="text-gray-400">Período:</span> {{ request.start_date | date : 'dd/MM/yyyy' }} - {{ request.end_date | date : 'dd/MM/yyyy' }}</p>
+                            <p><span class="text-gray-400">Descripción:</span> {{ request.description }}</p>
+                          }
+                          @else if (request.requestType === 'vacaciones') {
+                            <p><span class="text-gray-400">Período:</span> {{ request.start_date | date : 'dd/MM/yyyy' }} - {{ request.end_date | date : 'dd/MM/yyyy' }}</p>
+                            @if (request.reason) {
+                              <p><span class="text-gray-400">Razón:</span> {{ request.reason }}</p>
+                            }
+                          }
+                          @else if (request.requestType === 'documentos') {
+                            <p><span class="text-gray-400">Tipo de documento:</span> {{ request.document_type }}</p>
+                            <p><span class="text-gray-400">Fecha requerida:</span> {{ request.required_date | date : 'dd/MM/yyyy' }}</p>
+                            @if (request.reason) {
+                              <p><span class="text-gray-400">Razón:</span> {{ request.reason }}</p>
+                            }
+                          }
+                        </div>
+
+                        <!-- Indicador de documento adjunto -->
+                        @if (request.document_url) {
+                        <div class="mt-2 flex items-center gap-1 text-xs text-gray-400">
+                          <i class="pi pi-paperclip"></i>
+                          <span>Documento adjunto</span>
                         </div>
                         }
                       </div>
                     </div>
-                    @if (!notification.is_read) {
+
+                    <!-- Botón para ver detalles -->
                     <p-button
-                      icon="pi pi-check"
-                      severity="success"
+                      icon="pi pi-eye"
+                      severity="secondary"
                       text
                       rounded
-                      (onClick)="markNotificationAsRead(notification.id)"
-                      pTooltip="Marcar como leída"
+                      pTooltip="Ver detalles"
+                      (onClick)="viewRequestDetails(request); $event.stopPropagation()"
                     />
-                    }
                   </div>
                 </div>
                 }
@@ -539,6 +618,14 @@ type Reminder = {
                 </ng-template>
               </p-table>
             </div>
+          </p-tabpanel>
+
+          <p-tabpanel value="gestiones">
+            <pt-branch-manager-gestiones
+              [branchEmployees]="branchEmployees()"
+              [currentBranch]="currentBranch()"
+              [currentEmployee]="currentEmployee()"
+            />
           </p-tabpanel>
 
           <p-tabpanel value="schedules">
@@ -916,6 +1003,7 @@ type Reminder = {
 export class BranchManagerComponent {
   private http = inject(HttpClient);
   private message = inject(MessageService);
+  private apiUrl = inject(ApiUrlService);
   private dialog = inject(DialogService);
   public store = inject(DashboardStore);
   private employeesStore = inject(EmployeesStore);
@@ -979,15 +1067,212 @@ export class BranchManagerComponent {
   // Branch employees
   public branchEmployees = computed(() => {
     const branchId = this.currentBranch()?.id;
+    const currentEmpId = this.currentEmployee()?.id;
     let employees = this.employeesStore.employeesList().filter((emp) => emp.is_active);
     // Si hay sucursal seleccionada (o es gerente), filtrar por sucursal
     if (branchId) {
       employees = employees.filter((emp) => emp.branch_id === branchId);
     }
+    // Excluir al gerente mismo de la lista
+    if (currentEmpId) {
+      employees = employees.filter((emp) => emp.id !== currentEmpId);
+    }
+    // Retornar los empleados completos con short_name agregado
     return employees.map((emp) => ({
-      id: emp.id,
+      ...emp,
       short_name: `${emp.first_name} ${emp.father_name}`,
     }));
+  });
+
+  // Current employee (branch manager)
+  public currentEmployee = computed(() => this.store.currentEmployee());
+
+  // Compensatory timeoffs API
+  public compensatoryTimeoffsApi = httpResource<CompensatoryRequest[]>(() => {
+    const companyId = this.organizationService.getCurrentCompanyId();
+    const compensatoryTypeId = 'f2d92995-96a0-414f-b64a-9823db776745';
+
+    if (!companyId) {
+      return undefined; // No hacer request si no hay company_id
+    }
+
+    // La tabla timeoffs tiene múltiples relaciones con employees (employee_id, reviewed_by, registered_by)
+    // No necesitamos incluir la relación employee porque:
+    // 1. Ya filtramos por employee_id directamente, que garantiza que pertenece al empleado correcto
+    // 2. Los datos del empleado ya están disponibles en employeesStore
+    const params: any = {
+      select: `id,employee_id,type_id,date_from,date_to,notes,is_approved,compensatory_type,compensatory_amount,review_status,reviewed_by,reviewed_at,registered_by,registered_at,rejection_comment,created_at,company_id,document_url,type:timeoff_types(id,name),employee:employees!time_offs_employee_id_fkey(id,first_name,father_name,work_email,company_id,branch_id,position:positions(name),branch:branches(name))`,
+      // Filtrar por company_id (campo agregado a la tabla)
+      company_id: `eq.${companyId}`,
+      type_id: `eq.${compensatoryTypeId}`,
+      order: 'created_at.desc',
+    };
+
+    return {
+      url: this.apiUrl.build('rest/v1/timeoffs'),
+      params: params,
+      method: 'GET',
+    };
+  });
+
+  // Employee Disabilities API
+  public disabilitiesApi = httpResource<any[]>(() => {
+    const companyId = this.organizationService.getCurrentCompanyId();
+
+    if (!companyId) {
+      return undefined;
+    }
+
+    const params: any = {
+      select: `*`,
+      company_id: `eq.${companyId}`,
+      order: 'created_at.desc',
+    };
+
+    return {
+      url: this.apiUrl.build('rest/v1/employee_disabilities'),
+      params: params,
+      method: 'GET',
+    };
+  });
+
+  // Employee Vacations API
+  public vacationsApi = httpResource<any[]>(() => {
+    const companyId = this.organizationService.getCurrentCompanyId();
+
+    if (!companyId) {
+      return undefined;
+    }
+
+    const params: any = {
+      select: `*`,
+      company_id: `eq.${companyId}`,
+      order: 'created_at.desc',
+    };
+
+    return {
+      url: this.apiUrl.build('rest/v1/employee_vacations'),
+      params: params,
+      method: 'GET',
+    };
+  });
+
+  // Document Requests API
+  public documentRequestsApi = httpResource<any[]>(() => {
+    const companyId = this.organizationService.getCurrentCompanyId();
+
+    if (!companyId) {
+      return undefined;
+    }
+
+    // Nota: document_requests NO tiene company_id en el schema actual
+    // Simplificado: sin joins por ahora, filtraremos en el cliente
+    const params: any = {
+      select: `*`,
+      order: 'created_at.desc',
+    };
+
+    return {
+      url: this.apiUrl.build('rest/v1/document_requests'),
+      params: params,
+      method: 'GET',
+    };
+  });
+
+  // Combinar todas las solicitudes de empleados de la sucursal
+  public branchEmployeeRequests = computed(() => {
+    const branchId = this.currentBranch()?.id;
+    const companyId = this.organizationService.getCurrentCompanyId();
+    if (!branchId || !companyId) return [];
+
+    // Obtener empleados de la sucursal actual
+    const branchEmployeeIds = new Set(
+      this.branchEmployees().map(e => e.id)
+    );
+
+    // Compensatory: viene con employee join desde compensatoryTimeoffsApi
+    const compensatory = (this.compensatoryTimeoffsApi.value() || [])
+      .filter(r => r.employee?.branch_id === branchId)
+      .map(r => ({ ...r, requestType: 'compensatorio' as const }));
+
+    // Disabilities: enriquecer con datos del empleado
+    const disabilities = (this.disabilitiesApi.value() || [])
+      .filter(r => branchEmployeeIds.has(r.employee_id))
+      .map(r => {
+        const employee = this.employeesStore.entityMap()[r.employee_id];
+        return {
+          ...r,
+          employee: employee ? {
+            id: employee.id,
+            first_name: employee.first_name,
+            father_name: employee.father_name,
+            branch_id: employee.branch_id,
+          } : undefined,
+          requestType: 'incapacidad' as const
+        };
+      });
+
+    // Vacations: enriquecer con datos del empleado
+    const vacations = (this.vacationsApi.value() || [])
+      .filter(r => branchEmployeeIds.has(r.employee_id))
+      .map(r => {
+        const employee = this.employeesStore.entityMap()[r.employee_id];
+        return {
+          ...r,
+          employee: employee ? {
+            id: employee.id,
+            first_name: employee.first_name,
+            father_name: employee.father_name,
+            branch_id: employee.branch_id,
+          } : undefined,
+          requestType: 'vacaciones' as const
+        };
+      });
+
+    // Documents: enriquecer con datos del empleado
+    const documents = (this.documentRequestsApi.value() || [])
+      .filter(r => branchEmployeeIds.has(r.employee_id))
+      .map(r => {
+        const employee = this.employeesStore.entityMap()[r.employee_id];
+        return {
+          ...r,
+          employee: employee ? {
+            id: employee.id,
+            first_name: employee.first_name,
+            father_name: employee.father_name,
+            branch_id: employee.branch_id,
+          } : undefined,
+          requestType: 'documentos' as const
+        };
+      });
+
+    // Combinar y ordenar por fecha de creación
+    return [...compensatory, ...disabilities, ...vacations, ...documents]
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  });
+
+  // Filters for employee requests
+  public requestTypeFilter = signal<string | null>(null);
+  public requestStatusFilter = signal<string | null>(null);
+
+  // Filtered branch employee requests
+  public filteredBranchEmployeeRequests = computed(() => {
+    let requests = this.branchEmployeeRequests();
+    
+    const typeFilter = this.requestTypeFilter();
+    if (typeFilter) {
+      requests = requests.filter(r => r.requestType === typeFilter);
+    }
+    
+    const statusFilter = this.requestStatusFilter();
+    if (statusFilter) {
+      requests = requests.filter(r => {
+        const status = r.status || r.review_status;
+        return status === statusFilter;
+      });
+    }
+    
+    return requests;
   });
 
   // Notifications resource - obtener sin join y enriquecer en el cliente
@@ -1285,10 +1570,14 @@ export class BranchManagerComponent {
 
   public filteredTimelogs = computed(() => {
     const logs = this.timelogsResource.value() || [];
+    const schedules = this.schedulesResource.value() || [];
     const employeeId = this.selectedEmployeeId();
-    
-    // Agrupar logs por empleado y tipo
+    const selectedDate = this.selectedDate();
+
+    // Agrupar logs por empleado y detectar el último ciclo de turno activo
     const grouped = logs.reduce((acc: any, log: any) => {
+      const logTime = new Date(log.created_at);
+      
       if (!acc[log.employee_id]) {
         acc[log.employee_id] = {
           employee_id: log.employee_id,
@@ -1301,29 +1590,95 @@ export class BranchManagerComponent {
           is_missing: false,
           lunch_exceeded: false,
           is_early_exit: false,
+          last_entry_time: null, // Para rastrear cuando inicia un nuevo ciclo
         };
       }
+      
       const entry = acc[log.employee_id];
-      const logTime = new Date(log.created_at);
+      
+      // Detectar inicio de un nuevo ciclo de turno
       if (log.type === 'entry') {
-        entry.entry_time = logTime;
-      } else if (log.type === 'lunch_start') {
-        entry.lunch_start_time = logTime;
-      } else if (log.type === 'lunch_end') {
-        entry.lunch_end_time = logTime;
-      } else if (log.type === 'exit') {
-        entry.exit_time = logTime;
+        // Si hay una nueva entrada, reiniciar el ciclo
+        if (entry.exit_time || !entry.entry_time) {
+          entry.entry_time = logTime;
+          entry.lunch_start_time = null;
+          entry.lunch_end_time = null;
+          entry.exit_time = null;
+          entry.last_entry_time = logTime;
+        } else {
+          // Mantener la primera entrada si no ha habido salida
+          entry.entry_time = entry.entry_time || logTime;
+        }
+      } 
+      // Solo procesar otros logs si pertenecen al ciclo actual
+      else if (entry.entry_time || entry.last_entry_time) {
+        const cycleStartTime = entry.last_entry_time || entry.entry_time;
+        
+        // Solo considerar logs posteriores a la última entrada (mismo ciclo)
+        if (cycleStartTime && logTime >= cycleStartTime) {
+          if (log.type === 'lunch_start' && !entry.lunch_start_time) {
+            entry.lunch_start_time = logTime;
+          } else if (log.type === 'lunch_end' && !entry.lunch_end_time) {
+            entry.lunch_end_time = logTime;
+          } else if (log.type === 'exit' && !entry.exit_time) {
+            entry.exit_time = logTime;
+          }
+        }
       }
+      
       return acc;
     }, {});
-    
+
+    // Calcular violaciones para cada empleado
+    Object.values(grouped).forEach((employeeLog: any) => {
+      // Limpiar la propiedad auxiliar
+      delete employeeLog.last_entry_time;
+      
+      if (!selectedDate) return;
+
+      // Encontrar horario programado del empleado para la fecha
+      const employeeSchedule = this.findEmployeeScheduleForDate(
+        employeeLog.employee_id,
+        selectedDate,
+        schedules
+      );
+
+      if (!employeeSchedule?.schedule) return;
+
+      const schedule = employeeSchedule.schedule;
+
+      // Calcular retraso en entrada
+      if (employeeLog.entry_time) {
+        const delayMinutes = this.calculateDelayMinutes(employeeLog.entry_time, schedule);
+        employeeLog.is_delayed = delayMinutes > (schedule.minutes_tolerance || 0);
+      }
+
+      // Calcular salida temprana
+      if (employeeLog.exit_time) {
+        const earlyExitMinutes = this.calculateEarlyExitMinutes(employeeLog.exit_time, schedule);
+        employeeLog.is_early_exit = earlyExitMinutes > 0; // Cualquier salida antes de lo programado
+      }
+
+      // Calcular almuerzo excedido
+      if (employeeLog.lunch_start_time && employeeLog.lunch_end_time) {
+        employeeLog.lunch_exceeded = this.calculateLunchExceeded(
+          employeeLog.lunch_start_time,
+          employeeLog.lunch_end_time,
+          schedule
+        );
+      }
+
+      // Determinar si faltó (no tiene entrada)
+      employeeLog.is_missing = !employeeLog.entry_time;
+    });
+
     let result = Object.values(grouped);
-    
+
     // Filtrar por empleado si está seleccionado
     if (employeeId) {
       result = result.filter((log: any) => log.employee_id === employeeId);
     }
-    
+
     return result;
   });
 
@@ -1359,6 +1714,64 @@ export class BranchManagerComponent {
     this.refreshTimelogs();
     this.refreshSchedules();
     this.refreshReminders();
+  }
+
+  // Helper methods para calcular violaciones de marcaciones
+  private calculateDelayMinutes(entryTime: Date, schedule: any): number {
+    if (!schedule?.entry_time || schedule.day_off) return 0;
+
+    const entryTimeStr = format(entryTime, 'HH:mm:ss');
+    const scheduleTimeStr = typeof schedule.entry_time === 'string'
+      ? schedule.entry_time
+      : format(new Date(schedule.entry_time), 'HH:mm:ss');
+
+    const entryParts = entryTimeStr.split(':');
+    const scheduleParts = scheduleTimeStr.split(':');
+
+    const entryDate = new Date();
+    entryDate.setHours(+entryParts[0], +entryParts[1], +entryParts[2] || 0, 0);
+
+    const scheduleDate = new Date();
+    scheduleDate.setHours(+scheduleParts[0], +scheduleParts[1], +scheduleParts[2] || 0, 0);
+
+    return differenceInMinutes(entryDate, scheduleDate);
+  }
+
+  private calculateEarlyExitMinutes(exitTime: Date, schedule: any): number {
+    if (!schedule?.exit_time || schedule.day_off) return 0;
+
+    const exitTimeStr = format(exitTime, 'HH:mm:ss');
+    const scheduleTimeStr = typeof schedule.exit_time === 'string'
+      ? schedule.exit_time
+      : format(new Date(schedule.exit_time), 'HH:mm:ss');
+
+    const exitParts = exitTimeStr.split(':');
+    const scheduleParts = scheduleTimeStr.split(':');
+
+    const exitDate = new Date();
+    exitDate.setHours(+exitParts[0], +exitParts[1], +exitParts[2] || 0, 0);
+
+    const scheduleDate = new Date();
+    scheduleDate.setHours(+scheduleParts[0], +scheduleParts[1], +scheduleParts[2] || 0, 0);
+
+    return differenceInMinutes(scheduleDate, exitDate);
+  }
+
+  private calculateLunchExceeded(lunchStart: Date, lunchEnd: Date, schedule: any): boolean {
+    if (!schedule?.lunch_duration_minutes || schedule.day_off) return false;
+
+    const lunchDuration = differenceInMinutes(lunchEnd, lunchStart);
+    const allowedDuration = schedule.lunch_duration_minutes;
+
+    return lunchDuration > allowedDuration;
+  }
+
+  private findEmployeeScheduleForDate(employeeId: string, date: Date, schedules: any[]): any {
+    return schedules.find(s =>
+      s.employee_id === employeeId &&
+      date >= new Date(s.start_date) &&
+      date <= new Date(s.end_date)
+    );
   }
 
   // Helper methods
@@ -1421,6 +1834,63 @@ export class BranchManagerComponent {
 
   public refreshReminders() {
     this.remindersResource.reload();
+  }
+
+  public refreshEmployeeRequests() {
+    this.compensatoryTimeoffsApi.reload();
+    this.disabilitiesApi.reload();
+    this.vacationsApi.reload();
+    this.documentRequestsApi.reload();
+  }
+
+  public viewRequestDetails(request: any) {
+    // TODO: Implementar diálogo con detalles completos de la solicitud
+    console.log('Ver detalles de solicitud:', request);
+    this.message.add({
+      severity: 'info',
+      summary: 'Funcionalidad en desarrollo',
+      detail: 'Los detalles completos de la solicitud se mostrarán próximamente',
+    });
+  }
+
+  public getRequestTypeLabel(type: string): string {
+    const labels: Record<string, string> = {
+      compensatorio: 'Compensatorio',
+      incapacidad: 'Incapacidad',
+      vacaciones: 'Vacaciones',
+      documentos: 'Documentos',
+    };
+    return labels[type] || type;
+  }
+
+  public getRequestTypeSeverity(type: string): 'secondary' | 'info' | 'success' | 'warn' | 'danger' | 'contrast' | undefined {
+    const severities: Record<string, 'secondary' | 'info' | 'success' | 'warn' | 'danger' | 'contrast'> = {
+      compensatorio: 'info',
+      incapacidad: 'warn',
+      vacaciones: 'success',
+      documentos: 'secondary',
+    };
+    return severities[type];
+  }
+
+  public getRequestStatusLabel(request: any): string {
+    const status = request.status || request.review_status;
+    const labels: Record<string, string> = {
+      pending: 'Pendiente',
+      approved: 'Aprobado',
+      rejected: 'Rechazado',
+    };
+    return labels[status] || status;
+  }
+
+  public getRequestStatusSeverity(request: any): 'secondary' | 'info' | 'success' | 'warn' | 'danger' | 'contrast' | undefined {
+    const status = request.status || request.review_status;
+    const severities: Record<string, 'secondary' | 'info' | 'success' | 'warn' | 'danger' | 'contrast'> = {
+      pending: 'warn',
+      approved: 'success',
+      rejected: 'danger',
+    };
+    return severities[status];
   }
 
   public markNotificationAsRead(id: string) {
@@ -1734,6 +2204,42 @@ export class BranchManagerComponent {
           });
         },
       });
+  }
+
+  public async onSubmitCompensatoryFromBranchManager(data: any): Promise<void> {
+    try {
+      // Importar la función de upload compensatorio
+      const { uploadCompensatory } = await import('../employee-portal/actions/employee-portal-compensatory.actions');
+
+      // Preparar las dependencias para el branch manager
+      const deps = {
+        http: this.http,
+        apiUrl: this.apiUrl,
+        messageService: this.message,
+        currentEmployee: () => this.currentEmployee(), // El branch manager que está haciendo la solicitud
+        formState: data, // Los datos del formulario con el empleado seleccionado
+        resetForm: () => {}, // No necesitamos reset ya que es modal
+        reloadRequests: () => this.compensatoryTimeoffsApi.reload(),
+        setSubmitting: (value: boolean) => {}, // No necesitamos esto ya que es modal
+      };
+
+      await uploadCompensatory(deps);
+
+      // Mostrar mensaje de éxito específico para branch manager
+      this.message.add({
+        severity: 'success',
+        summary: 'Solicitud Enviada',
+        detail: `La solicitud de compensatorio para ${data.employee?.first_name} ${data.employee?.father_name} ha sido enviada correctamente`,
+      });
+
+    } catch (error) {
+      console.error('Error submitting compensatory from branch manager:', error);
+      this.message.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo enviar la solicitud. Por favor intenta de nuevo.',
+      });
+    }
   }
 }
 

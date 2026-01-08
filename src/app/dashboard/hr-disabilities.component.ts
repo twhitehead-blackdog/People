@@ -44,6 +44,7 @@ import {
   TimeoffAuditService,
 } from '../services/timeoff-audit.service';
 import { DashboardStore } from '../stores/dashboard.store';
+import { getEnv } from '../utils/env.utils';
 
 interface Disability {
   id: string;
@@ -66,7 +67,7 @@ interface Disability {
   created_at: string;
 }
 
-interface CompensatoryRequest {
+export interface CompensatoryRequest {
   id: string;
   employee_id: string;
   company_id?: string;
@@ -75,12 +76,14 @@ interface CompensatoryRequest {
     first_name: string;
     father_name: string;
     work_email: string;
+    branch_id?: string;
     position?: { name: string };
     branch?: { name: string };
   };
   date_from: string;
   date_to: string;
   hours?: number;
+  document_url?: string;
   reason?: string;
   compensatory_type?: 'hours' | 'days';
   compensatory_amount?: number;
@@ -1222,20 +1225,32 @@ interface CompensatoryRequest {
                       </span>
                     </td>
                     <td style="padding: 0.4rem; text-align: center;">
-                      @let dateFrom = request.date_from | date : 'dd/MM/yyyy';
-                      @let dateTo = request.date_to | date : 'dd/MM/yyyy'; @if
-                      (dateFrom === dateTo) {
+                      @let compensatoryDate =
+                      getCompensatoryDateFromNotes(request); @if
+                      (compensatoryDate) {
+                      <span class="text-xs text-cyan-400 font-medium">{{
+                        compensatoryDate | date : 'dd/MM/yyyy'
+                      }}</span>
+                      } @else { @let dateFrom = request.date_from | date :
+                      'dd/MM/yyyy'; @let dateTo = request.date_to | date :
+                      'dd/MM/yyyy'; @if (dateFrom === dateTo) {
                       <span class="text-xs text-gray-300">{{ dateFrom }}</span>
                       } @else {
                       <span class="text-xs text-gray-300"
                         >{{ dateFrom }} → {{ dateTo }}</span
                       >
-                      }
+                      } }
                     </td>
                     <td style="padding: 0.4rem; text-align: center;">
-                      @let quantity = getCompensatoryQuantity(request);
+                      @let requestedAmount =
+                      getCompensatoryRequestedAmountFromNotes(request); @let
+                      quantity = getCompensatoryQuantity(request);
                       <span class="text-xs font-medium text-white">
-                        @if (quantity && quantity.value > 0) { @if
+                        @if (requestedAmount !== null) {
+                        {{ requestedAmount }}
+                        @let type = getCompensatoryTypeFromNotes(request); @if
+                        (type === 'days') { día(s) } @else { hora(s) } } @else if
+                        (quantity && quantity.value > 0) { @if
                         (quantity.isDays) {
                         {{ quantity.value }} día(s) } @else {
                         {{ formatHoursMinutes(quantity.value) }}
@@ -1735,6 +1750,28 @@ interface CompensatoryRequest {
           >
           <div class="flex items-center gap-2">
             <p-button
+              [icon]="
+                selectedCompensatoryRequest()!.document_url
+                  ? 'pi pi-file'
+                  : 'pi pi-paperclip'
+              "
+              [rounded]="true"
+              [text]="true"
+              severity="secondary"
+              (onClick)="
+                selectedCompensatoryRequest()!.document_url
+                  ? openCompensatoryDocument()
+                  : attachDocumentToCompensatoryRequest()
+              "
+              [pTooltip]="
+                selectedCompensatoryRequest()!.document_url
+                  ? 'Ver documento adjunto'
+                  : 'Adjuntar documento'
+              "
+              tooltipPosition="left"
+              size="small"
+            />
+            <p-button
               icon="pi pi-history"
               [rounded]="true"
               [text]="true"
@@ -1930,12 +1967,24 @@ interface CompensatoryRequest {
                 }
               </p>
             </div>
-            @let dateFrom = selectedCompensatoryRequest()!.date_from | date :
-            'dd/MM/yyyy'; @let dateTo = selectedCompensatoryRequest()!.date_to |
-            date : 'dd/MM/yyyy'; @if (dateFrom === dateTo) {
+            @let compensatoryDate =
+            getCompensatoryDateFromNotes(selectedCompensatoryRequest()!); @if
+            (compensatoryDate) {
             <div>
               <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Fecha de Inicio y Fin</label
+                >Fecha del Compensatorio</label
+              >
+              <p class="text-white font-medium text-cyan-400">
+                {{ compensatoryDate | date : 'dd/MM/yyyy' }}
+              </p>
+            </div>
+            } @else { @let dateFrom = selectedCompensatoryRequest()!.date_from |
+            date : 'dd/MM/yyyy'; @let dateTo =
+            selectedCompensatoryRequest()!.date_to | date : 'dd/MM/yyyy'; @if
+            (dateFrom === dateTo) {
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Fecha Registrada</label
               >
               <p class="text-white">
                 {{ dateFrom }}
@@ -1944,37 +1993,26 @@ interface CompensatoryRequest {
             } @else {
             <div>
               <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Fecha de Inicio</label
+                >Período Registrado</label
               >
-              <p class="text-white">
-                {{ dateFrom }}
+              <p class="text-white">{{ dateFrom }} → {{ dateTo }}</p>
+            </div>
+            } } @let timeInfo =
+            getCompensatoryTimeFromNotes(selectedCompensatoryRequest()!); @if
+            (timeInfo.start || timeInfo.end) {
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Horario del Compensatorio</label
+              >
+              <p class="text-white font-mono">
+                @if (timeInfo.start && timeInfo.end) {
+                {{ timeInfo.start }} - {{ timeInfo.end }} } @else if
+                (timeInfo.start) { Desde: {{ timeInfo.start }} } @else if
+                (timeInfo.end) { Hasta: {{ timeInfo.end }}
+                }
               </p>
             </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Fecha de Fin</label
-              >
-              <p class="text-white">
-                {{ dateTo }}
-              </p>
-            </div>
-            } @if (selectedCompensatoryRequest()!.compensatory_type === 'hours')
-            { @let timeRange =
-            getCompensatoryTimeRange(selectedCompensatoryRequest()!); @if
-            (timeRange) {
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Hora de Inicio</label
-              >
-              <p class="text-white font-mono">{{ timeRange.startTime }}</p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Hora de Fin</label
-              >
-              <p class="text-white font-mono">{{ timeRange.endTime }}</p>
-            </div>
-            } }
+            }
             <div>
               <label class="block text-sm font-medium text-gray-400 mb-1"
                 >Fecha de Solicitud</label
@@ -1999,23 +2037,21 @@ interface CompensatoryRequest {
                 "
               />
             </div>
-            @let manualDatesForRequest =
-            getManualOvertimeDates(selectedCompensatoryRequest()!); 
-            <!-- DEBUG: manualDatesForRequest.length = {{ manualDatesForRequest.length }} -->
-            @if
-            (manualDatesForRequest.length > 0) {
+            @let overtimeDates =
+            getCompensatoryOvertimeDatesFromNotes(selectedCompensatoryRequest()!);
+            @if (overtimeDates.length > 0) {
             <div class="col-span-2">
               <label class="block text-sm font-medium text-gray-400 mb-2"
-                >Días donde trabajó horas extra (reportados por el empleado)</label
+                >Días donde trabajó horas extra (reportados por el
+                empleado)</label
               >
               <div class="flex flex-wrap gap-2">
-                @for (date of manualDatesForRequest; track date) {
+                @for (date of overtimeDates; track date) {
                 <span
-                  class="px-3 py-1.5 rounded-lg h-fit bg-cyan-500/10 border border-cyan-400/30 flex flex-col gap-0.5"
-                  tooltipPosition="top"
+                  class="px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-400/30 flex flex-col gap-0.5"
                 >
                   <span class="font-semibold text-white text-sm">
-                    {{ date }}
+                    {{ date | date : 'dd/MM/yyyy' }}
                   </span>
                   <span class="text-gray-300 text-xs">
                     {{ getManualDateSaldoLabel(date) }}
@@ -2023,9 +2059,14 @@ interface CompensatoryRequest {
                 </span>
                 }
               </div>
+              <p class="text-xs text-gray-400 mt-2">
+                Total de días reportados: {{ overtimeDates.length }}
+              </p>
             </div>
             }
-          </div> @let reason =
+          </div>
+
+          @let reason =
           getCompensatoryReasonFromNotes(selectedCompensatoryRequest()!); @if
           (reason) {
           <div class="mt-4">
@@ -2349,11 +2390,95 @@ interface CompensatoryRequest {
         </div>
       </div>
 
+      <!-- Panel lateral de preview de documento -->
+      @if (showDocumentPreview()) {
+      <div
+        class="fixed bg-neutral-900 border-l border-neutral-700 shadow-2xl z-[1200] transition-all duration-500 ease-out"
+        [style.width]="'400px'"
+        [style.max-width]="'40vw'"
+        [style.top]="'50%'"
+        [style.left]="showDocumentPreview() ? 'calc(50% + 400px)' : '50%'"
+        [style.transform]="
+          showDocumentPreview()
+            ? 'translateY(-50%) translateX(0) scale(1)'
+            : 'translateY(-50%) translateX(0) scale(0.8)'
+        "
+        [style.opacity]="showDocumentPreview() ? '1' : '0'"
+        [style.max-height]="'90vh'"
+        [style.height]="'664px'"
+        [style.pointer-events]="showDocumentPreview() ? 'auto' : 'none'"
+      >
+        <div class="flex flex-col h-full">
+          <!-- Header del panel lateral -->
+          <div
+            class="p-4 border-b border-neutral-700 bg-neutral-800 flex items-center justify-between"
+          >
+            <h3
+              class="text-lg font-semibold text-white flex items-center gap-2"
+            >
+              <i class="pi pi-file text-cyan-400"></i>
+              Documento Adjunto
+            </h3>
+            <div class="flex items-center gap-2">
+              @if (selectedCompensatoryRequest()!.document_url) {
+              <p-button
+                label="Adjuntar nuevo archivo"
+                icon="pi pi-upload"
+                size="small"
+                severity="secondary"
+                [outlined]="true"
+                (onClick)="attachDocumentToCompensatoryRequest()"
+              />
+              }
+              <p-button
+                icon="pi pi-times"
+                [rounded]="true"
+                [text]="true"
+                severity="secondary"
+                (onClick)="showDocumentPreview.set(false)"
+                size="small"
+              />
+            </div>
+          </div>
+
+          <!-- Contenido del preview -->
+          <div class="flex-1 overflow-hidden">
+            @if (selectedCompensatoryRequest()!.document_url) {
+            <iframe
+              [src]="getCompensatoryDocumentUrl()"
+              class="w-full h-full border-0"
+              title="Preview del documento"
+            ></iframe>
+            } @else {
+            <div
+              class="flex flex-col items-center justify-center h-full p-8 text-center"
+            >
+              <i class="pi pi-file text-6xl text-gray-400 mb-4"></i>
+              <h4 class="text-xl font-semibold text-white mb-2">
+                No hay documento adjunto
+              </h4>
+              <p class="text-gray-400 mb-6">
+                Puedes adjuntar un documento PDF a esta solicitud de tiempo
+                compensatorio.
+              </p>
+              <p-button
+                label="Adjuntar archivo"
+                icon="pi pi-upload"
+                severity="info"
+                (onClick)="attachDocumentToCompensatoryRequest()"
+              />
+            </div>
+            }
+          </div>
+        </div>
+      </div>
+      }
+
       <!-- Overlay para cerrar el panel al hacer clic fuera -->
-      @if (showAuditSidebar()) {
+      @if (showAuditSidebar() || showDocumentPreview()) {
       <div
         class="fixed inset-0 bg-black/50 z-[1199]"
-        (click)="showAuditSidebar.set(false)"
+        (click)="showAuditSidebar.set(false); showDocumentPreview.set(false)"
       ></div>
       }
     </p-dialog>
@@ -2712,6 +2837,17 @@ export class HRDisabilitiesComponent {
     }
     return this.sanitizer.bypassSecurityTrustUrl(disability.document_url);
   });
+
+  // URL sanitizada para el documento del compensatorio
+  public getCompensatoryDocumentUrl() {
+    const request = this.selectedCompensatoryRequest();
+    if (!request?.document_url) {
+      return '';
+    }
+    return this.sanitizer.bypassSecurityTrustResourceUrl(
+      `${request.document_url}#toolbar=1&navpanes=1&scrollbar=1`
+    );
+  }
   public isLoadingOvertimeHours = signal<boolean>(false);
   // Historial: por defecto cargamos 1 año hacia atrás y permitimos ampliar
   public overtimeHistoryWindowDays = signal<number>(365);
@@ -2739,6 +2875,7 @@ export class HRDisabilitiesComponent {
   public isLoadingAllAuditHistory = signal(false);
   public expandedAuditItems = signal<Set<string>>(new Set());
   public showAuditSidebar = signal(false);
+  public showDocumentPreview = signal(false);
 
   // Señales para edición de comentarios
   public disabilityRejectionComment = signal('');
@@ -3035,10 +3172,9 @@ export class HRDisabilitiesComponent {
       );
 
       if (tipoNote) {
-        if (tipoNote.includes('Días')) {
-          return 'days';
-        } else if (tipoNote.includes('Horas')) {
-          return 'hours';
+        const match = tipoNote.match(/Tipo:\s*(hours|days)/);
+        if (match && match[1]) {
+          return match[1] as 'hours' | 'days';
         }
       }
     }
@@ -3070,7 +3206,7 @@ export class HRDisabilitiesComponent {
       return data.reason;
     }
 
-    // Intentar desde las notas
+    // Intentar desde las notas - la primera nota que no esté vacía y no sea técnica
     if (data.notes) {
       const notesArray = Array.isArray(data.notes)
         ? data.notes
@@ -3078,20 +3214,132 @@ export class HRDisabilitiesComponent {
         ? [data.notes]
         : [];
 
-      // Buscar nota que contenga "Motivo:"
-      const motivoNote = notesArray.find(
-        (note: any) => typeof note === 'string' && note.includes('Motivo:')
-      );
-
-      if (motivoNote) {
-        // Extraer el motivo después de "Motivo:"
-        const match = motivoNote.match(/Motivo:\s*(.+)/);
-        if (match && match[1]) {
-          return match[1].trim();
+      // Buscar la primera nota que no sea información técnica (Tipo, Cantidad, etc.)
+      for (const note of notesArray) {
+        if (typeof note === 'string' && note.trim().length > 0) {
+          // Si no contiene ":" o contiene "Motivo:", es el reason
+          if (!note.includes(':') || note.includes('Motivo:')) {
+            if (note.includes('Motivo:')) {
+              const match = note.match(/Motivo:\s*(.+)/);
+              return match && match[1]
+                ? match[1].trim()
+                : note.replace('Motivo:', '').trim();
+            }
+            return note.trim();
+          }
         }
       }
     }
 
+    return null;
+  }
+
+  // Nuevas funciones para obtener información adicional de compensatory
+  public getCompensatoryDateFromNotes(
+    data: CompensatoryRequest
+  ): string | null {
+    if (data.notes) {
+      const notesArray = Array.isArray(data.notes)
+        ? data.notes
+        : typeof data.notes === 'string'
+        ? [data.notes]
+        : [];
+
+      const dateNote = notesArray.find(
+        (note: any) =>
+          typeof note === 'string' && note.includes('Fecha compensatorio:')
+      );
+
+      if (dateNote) {
+        const match = dateNote.match(/Fecha compensatorio:\s*(.+)/);
+        return match && match[1] ? match[1].trim() : null;
+      }
+    }
+    return null;
+  }
+
+  public getCompensatoryTimeFromNotes(data: CompensatoryRequest): {
+    start: string | null;
+    end: string | null;
+  } {
+    const result = { start: null as string | null, end: null as string | null };
+
+    if (data.notes) {
+      const notesArray = Array.isArray(data.notes)
+        ? data.notes
+        : typeof data.notes === 'string'
+        ? [data.notes]
+        : [];
+
+      const startNote = notesArray.find(
+        (note: any) => typeof note === 'string' && note.includes('Hora inicio:')
+      );
+      const endNote = notesArray.find(
+        (note: any) => typeof note === 'string' && note.includes('Hora fin:')
+      );
+
+      if (startNote) {
+        const match = startNote.match(/Hora inicio:\s*(.+)/);
+        result.start = match && match[1] ? match[1].trim() : null;
+      }
+
+      if (endNote) {
+        const match = endNote.match(/Hora fin:\s*(.+)/);
+        result.end = match && match[1] ? match[1].trim() : null;
+      }
+    }
+
+    return result;
+  }
+
+  public getCompensatoryOvertimeDatesFromNotes(
+    data: CompensatoryRequest
+  ): string[] {
+    if (data.notes) {
+      const notesArray = Array.isArray(data.notes)
+        ? data.notes
+        : typeof data.notes === 'string'
+        ? [data.notes]
+        : [];
+
+      const datesNote = notesArray.find(
+        (note: any) =>
+          typeof note === 'string' && note.includes('Fechas horas extra:')
+      );
+
+      if (datesNote) {
+        const match = datesNote.match(/Fechas horas extra:\s*(.+)/);
+        if (match && match[1]) {
+          return match[1]
+            .split(',')
+            .map((date) => date.trim())
+            .filter((date) => date.length > 0);
+        }
+      }
+    }
+    return [];
+  }
+
+  public getCompensatoryRequestedAmountFromNotes(
+    data: CompensatoryRequest
+  ): number | null {
+    if (data.notes) {
+      const notesArray = Array.isArray(data.notes)
+        ? data.notes
+        : typeof data.notes === 'string'
+        ? [data.notes]
+        : [];
+
+      const amountNote = notesArray.find(
+        (note: any) =>
+          typeof note === 'string' && note.includes('Cantidad solicitada:')
+      );
+
+      if (amountNote) {
+        const match = amountNote.match(/Cantidad solicitada:\s*(\d+)/);
+        return match && match[1] ? parseInt(match[1], 10) : null;
+      }
+    }
     return null;
   }
 
@@ -3438,7 +3686,7 @@ export class HRDisabilitiesComponent {
 
     // Ahora podemos filtrar directamente por company_id ya que se agregó el campo a la tabla
     const params: any = {
-      select: `id,employee_id,type_id,date_from,date_to,notes,is_approved,compensatory_type,compensatory_amount,review_status,reviewed_by,reviewed_at,registered_by,registered_at,rejection_comment,created_at,company_id,type:timeoff_types(id,name),employee:employees!time_offs_employee_id_fkey(id,first_name,father_name,work_email,company_id,position:positions(name),branch:branches(name))`,
+      select: `id,employee_id,type_id,date_from,date_to,notes,is_approved,compensatory_type,compensatory_amount,review_status,reviewed_by,reviewed_at,registered_by,registered_at,rejection_comment,created_at,company_id,document_url,type:timeoff_types(id,name),employee:employees!time_offs_employee_id_fkey(id,first_name,father_name,work_email,company_id,position:positions(name),branch:branches(name))`,
       type_id: `eq.${compensatoryTypeId}`,
       // Filtrar directamente por company_id (campo agregado a la tabla)
       company_id: `eq.${companyId}`,
@@ -3948,10 +4196,14 @@ export class HRDisabilitiesComponent {
     }
 
     console.log('[DEBUG HR] request.notes recibido:', request.notes);
-    console.log('[DEBUG HR] Tipo de request.notes:', typeof request.notes, Array.isArray(request.notes));
+    console.log(
+      '[DEBUG HR] Tipo de request.notes:',
+      typeof request.notes,
+      Array.isArray(request.notes)
+    );
 
     let notesArray: string[] = [];
-    
+
     if (Array.isArray(request.notes)) {
       notesArray = request.notes;
       console.log('[DEBUG HR] Notes es un array:', notesArray);
@@ -3964,15 +4216,24 @@ export class HRDisabilitiesComponent {
           console.log('[DEBUG HR] Notes parseado como JSON array:', notesArray);
         } else {
           notesArray = [request.notes];
-          console.log('[DEBUG HR] Notes es string simple, convertido a array:', notesArray);
+          console.log(
+            '[DEBUG HR] Notes es string simple, convertido a array:',
+            notesArray
+          );
         }
       } catch (e) {
         // No es JSON válido, tratarlo como string simple
         notesArray = [request.notes];
-        console.log('[DEBUG HR] Notes no es JSON válido, tratado como string simple:', notesArray);
+        console.log(
+          '[DEBUG HR] Notes no es JSON válido, tratado como string simple:',
+          notesArray
+        );
       }
     } else {
-      console.log('[DEBUG HR] Notes tiene tipo inesperado:', typeof request.notes);
+      console.log(
+        '[DEBUG HR] Notes tiene tipo inesperado:',
+        typeof request.notes
+      );
       return [];
     }
 
@@ -4018,17 +4279,20 @@ export class HRDisabilitiesComponent {
 
   public getManualDateSaldoLabel(dateStr: string): string {
     const isoDay = this.parseDDMMYYYYToISO(dateStr);
-    if (!isoDay) return 'Fecha inválida';
+    if (!isoDay) return 'Horas Extras 0';
 
     const match = this.employeeOvertimeDaysAll().find((d) => d.day === isoDay);
-    if (!match) return 'Sin saldo en rango cargado';
+    if (!match) return 'Horas Extras 0';
 
     const remaining = Number(match.overtimeHours ?? 0);
     if (!Number.isFinite(remaining) || remaining <= 0) {
-      return 'Sin saldo en rango cargado';
+      return 'Horas Extras 0';
     }
 
-    return this.formatHoursMinutes(remaining);
+    // Formatear como "01h 30m"
+    const wholeHours = Math.floor(remaining);
+    const minutes = Math.round((remaining - wholeHours) * 60);
+    return `${wholeHours.toString().padStart(2, '0')}h ${minutes.toString().padStart(2, '0')}m`;
   }
 
   // Método helper para calcular horas extras de un empleado específico
@@ -4835,6 +5099,129 @@ export class HRDisabilitiesComponent {
 
   public downloadDocument(url: string): void {
     window.open(url, '_blank');
+  }
+
+  public openCompensatoryDocument(): void {
+    this.showDocumentPreview.set(true);
+  }
+
+  public attachDocumentToCompensatoryRequest(): void {
+    // Crear input file oculto
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.pdf';
+    input.style.display = 'none';
+
+    input.onchange = async (event: any) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      if (file.size > 5000000) {
+        // 5MB
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Archivo demasiado grande',
+          detail: 'El archivo no puede superar los 5MB.',
+        });
+        return;
+      }
+
+      if (file.type !== 'application/pdf') {
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Tipo de archivo inválido',
+          detail: 'Solo se permiten archivos PDF.',
+        });
+        return;
+      }
+
+      try {
+        const request = this.selectedCompensatoryRequest();
+        if (!request) return;
+
+        // Mostrar loading
+        this.messageService.add({
+          severity: 'info',
+          summary: 'Subiendo archivo',
+          detail: 'Por favor espera...',
+        });
+
+        // Subir archivo
+        const employeeId = request.employee_id;
+        const fileName = `${employeeId}/${Date.now()}.pdf`;
+
+        const storageKey =
+          getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') ||
+          getEnv('ENV_SUPABASE_API_KEY') ||
+          '';
+        const uploadUrl = `${getEnv(
+          'ENV_SUPABASE_URL'
+        )}/storage/v1/object/compensatory/${fileName}`;
+
+        const response = await fetch(uploadUrl, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${storageKey}`,
+            apikey: storageKey,
+            'Content-Type': file.type,
+            'x-upsert': 'true',
+          },
+          body: file,
+        });
+
+        if (!response.ok) {
+          throw new Error('Error al subir archivo');
+        }
+
+        // Obtener URL pública
+        const documentUrl = `${getEnv(
+          'ENV_SUPABASE_URL'
+        )}/storage/v1/object/public/compensatory/${fileName}`;
+
+        // Actualizar solicitud en la base de datos
+        const updateUrl = `${getEnv(
+          'ENV_SUPABASE_URL'
+        )}/rest/v1/timeoffs?id=eq.${request.id}`;
+        const updateResponse = await fetch(updateUrl, {
+          method: 'PATCH',
+          headers: {
+            Authorization: `Bearer ${storageKey}`,
+            apikey: storageKey,
+            'Content-Type': 'application/json',
+            Prefer: 'return=representation',
+          },
+          body: JSON.stringify({ document_url: documentUrl }),
+        });
+
+        if (!updateResponse.ok) {
+          throw new Error('Error al actualizar solicitud');
+        }
+
+        // Actualizar la solicitud local
+        request.document_url = documentUrl;
+
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Archivo adjuntado',
+          detail: 'El documento se adjuntó correctamente a la solicitud.',
+        });
+
+        // Recargar datos para refrescar la vista
+        this.compensatoryTimeoffsApi.reload();
+      } catch (error) {
+        console.error('Error attaching document:', error);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error al adjuntar archivo',
+          detail: 'No se pudo adjuntar el archivo. Inténtalo nuevamente.',
+        });
+      }
+    };
+
+    // Hacer click en el input
+    document.body.appendChild(input);
+    input.click();
+    document.body.removeChild(input);
   }
 
   public zoomIn() {

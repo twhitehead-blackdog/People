@@ -10,22 +10,24 @@ import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { DatePicker } from 'primeng/datepicker';
+import { FileUpload } from 'primeng/fileupload';
 import { InputTextarea } from 'primeng/inputtextarea';
 import { TooltipModule } from 'primeng/tooltip';
+import { Employee } from '../../models';
 
 @Component({
   selector: 'pt-employee-portal-compensatory',
   standalone: true,
-  imports: [CommonModule, FormsModule, Card, Button, DatePicker, InputTextarea, TooltipModule],
+  imports: [CommonModule, FormsModule, Card, Button, DatePicker, FileUpload, InputTextarea, TooltipModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <p-card>
-      <ng-template #title>
-        <div class="flex items-center justify-between w-full">
-          <div class="flex items-center gap-2">
-            <i class="pi pi-clock text-cyan-400"></i>
-            <span>Solicitar Tiempo Compensatorio</span>
-          </div>
+        <ng-template #title>
+          <div class="flex items-center justify-between w-full">
+            <div class="flex items-center gap-2">
+              <i class="pi pi-clock text-cyan-400"></i>
+              <span>{{ isBranchManagerView ? 'Solicitar Compensatorio para Empleado' : 'Solicitar Tiempo Compensatorio' }}</span>
+            </div>
           <div class="flex items-center gap-2">
             <p-button
               icon="pi pi-question-circle"
@@ -55,6 +57,24 @@ import { TooltipModule } from 'primeng/tooltip';
       </ng-template>
 
       <div class="space-y-6 mt-4">
+        <!-- Información del empleado seleccionado (solo en vista branch manager) -->
+        @if (isBranchManagerView && selectedEmployee) {
+        <div class="p-4 bg-gradient-to-r from-cyan-500/10 to-cyan-600/10 border border-cyan-400/30 rounded-lg">
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center">
+              <span class="text-cyan-400 font-semibold text-lg">
+                {{ selectedEmployee.first_name?.charAt(0) }}{{ selectedEmployee.father_name?.charAt(0) }}
+              </span>
+            </div>
+            <div>
+              <h4 class="text-white font-semibold text-lg">{{ selectedEmployee.first_name }} {{ selectedEmployee.father_name }}</h4>
+              <p class="text-cyan-300 text-sm">{{ selectedEmployee.position?.name }} • {{ selectedEmployee.branch?.name }}</p>
+              <p class="text-gray-400 text-xs">#{{ selectedEmployee.employee_number }}</p>
+            </div>
+          </div>
+        </div>
+        }
+
         <div class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
           <div class="flex items-center gap-3 mb-4">
             <div class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
@@ -243,29 +263,20 @@ import { TooltipModule } from 'primeng/tooltip';
             con tus marcaciones para verificar que el tiempo solicitado es correcto.
           </p>
 
-          <div class="flex flex-col sm:flex-row gap-3 mb-4">
-            <div class="flex-1">
-              <label class="block text-sm text-gray-400 mb-2">Agregar fecha</label>
-              <p-datepicker
-                [ngModel]="newOvertimeDate"
-                (ngModelChange)="newOvertimeDateChange.emit($event)"
-                appendTo="body"
-                dateFormat="dd/mm/yy"
-                placeholder="Selecciona una fecha"
-                [maxDate]="today"
-                class="w-full"
-              />
-            </div>
-            <div class="flex items-end">
-              <p-button
-                label="Agregar Fecha"
-                icon="pi pi-plus"
-                severity="success"
-                [disabled]="!newOvertimeDate"
-                (onClick)="addManualDate.emit()"
-                class="w-full sm:w-auto"
-              />
-            </div>
+          <div class="mb-4">
+            <label class="block text-sm text-gray-400 mb-2">Agregar fecha</label>
+            <p-datepicker
+              [ngModel]="newOvertimeDate"
+              (ngModelChange)="onDateSelected($event)"
+              appendTo="body"
+              dateFormat="dd/mm/yy"
+              placeholder="Selecciona una fecha (se agrega automáticamente)"
+              [maxDate]="today"
+              class="w-full"
+            />
+            <p class="text-xs text-gray-500 mt-1">
+              Selecciona una fecha y se agregará automáticamente a la lista
+            </p>
           </div>
 
           @if (!manualOvertimeDates.length) {
@@ -320,6 +331,47 @@ import { TooltipModule } from 'primeng/tooltip';
               </div>
             </div>
           </div>
+        </div>
+
+        <div class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
+              <i class="pi pi-file text-cyan-400"></i>
+            </div>
+            <h3 class="text-lg font-semibold text-white m-0">Paso 5: Documento Físico (Opcional)</h3>
+          </div>
+          <p class="text-sm text-gray-400 mb-4">
+            Si tienes una solicitud física firmada, puedes adjuntarla como PDF para respaldar tu solicitud.
+          </p>
+          <p-fileUpload
+            mode="basic"
+            accept=".pdf"
+            maxFileSize="5000000"
+            [auto]="false"
+            chooseLabel="Seleccionar PDF"
+            (onSelect)="handleFileSelect($event)"
+            class="w-full"
+          />
+          <p class="text-xs text-gray-500 mt-2">
+            Formato permitido: PDF (máx. 5MB)
+          </p>
+          @if (compensatoryFile) {
+          <div class="mt-3 p-3 bg-cyan-500/10 border border-cyan-500/30 rounded-lg flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <i class="pi pi-file text-cyan-400"></i>
+              <span class="text-sm text-gray-300">{{ compensatoryFile.name }}</span>
+            </div>
+            <p-button
+              icon="pi pi-times"
+              severity="danger"
+              text
+              rounded
+              size="small"
+              (onClick)="compensatoryFileChange.emit(null)"
+              pTooltip="Eliminar archivo"
+            />
+          </div>
+          }
         </div>
 
         <div class="flex flex-col md:flex-row items-center justify-between gap-4 p-5 rounded-lg bg-gradient-to-r from-cyan-500/10 to-cyan-600/5 border border-cyan-400/30 shadow-lg">
@@ -384,12 +436,36 @@ export class EmployeePortalCompensatoryComponent {
   @Output() addManualDate = new EventEmitter<void>();
   @Output() removeManualDate = new EventEmitter<number>();
   @Input() compensatoryAmount = 0;
+  @Input() isBranchManagerView = false;
+  @Input() selectedEmployee: Employee | null = null;
+  @Input() availableEmployees: { id: string; short_name: string; }[] = [];
+  @Input() selectedEmployeeId: string | null = null;
+  @Output() selectedEmployeeIdChange = new EventEmitter<string | null>();
   @Input() canSubmit = false;
   @Input() submitting = false;
   @Input() minPastDate: Date = new Date();
   @Input() today: Date = new Date();
+  @Input() compensatoryFile: File | null = null;
+  @Output() compensatoryFileChange = new EventEmitter<File | null>();
   @Output() submitRequest = new EventEmitter<void>();
   @Output() openTutorial = new EventEmitter<void>();
   @Output() closeSection = new EventEmitter<void>();
   @Output() viewRequests = new EventEmitter<void>();
+
+  public handleFileSelect(event: any): void {
+    const file = event?.files?.[0] ?? null;
+    this.compensatoryFileChange.emit(file);
+  }
+
+  public onDateSelected(date: Date | null): void {
+    this.newOvertimeDateChange.emit(date);
+    if (date) {
+      // Agregar la fecha automáticamente
+      this.addManualDate.emit();
+      // Limpiar el campo para poder agregar más fechas
+      setTimeout(() => {
+        this.newOvertimeDateChange.emit(null);
+      }, 100);
+    }
+  }
 }

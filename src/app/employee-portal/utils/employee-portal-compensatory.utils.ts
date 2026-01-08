@@ -222,21 +222,33 @@ export function canSubmitCompensatory(params: {
 }): boolean {
   const { type, amount, date, timeStart, timeEnd, startDate, endDate } = params;
 
+  console.log('[DEBUG Validation] Tipo:', type);
+  console.log('[DEBUG Validation] Cantidad:', amount);
+  console.log('[DEBUG Validation] Fecha:', date);
+  console.log('[DEBUG Validation] Hora inicio:', timeStart);
+  console.log('[DEBUG Validation] Hora fin:', timeEnd);
+  console.log('[DEBUG Validation] Fecha inicio período:', startDate);
+  console.log('[DEBUG Validation] Fecha fin período:', endDate);
+
   if (amount <= 0) {
+    console.log('[DEBUG Validation] ❌ Falla: Cantidad <= 0');
     return false;
   }
 
   if (type === 'hours') {
     // Si es horas, debe tener fecha y ambas horas
     if (!date || !timeStart || !timeEnd) {
+      console.log('[DEBUG Validation] ❌ Falla tipo horas: faltan fecha u horas');
       return false;
     }
   } else {
     // Si es días, debe tener fecha inicio y fin
     if (!startDate || !endDate || endDate < startDate) {
+      console.log('[DEBUG Validation] ❌ Falla tipo días: faltan fechas período');
       return false;
     }
   }
 
+  console.log('[DEBUG Validation] ✅ Validación exitosa');
   return true;
 }

@@ -40,6 +40,8 @@ type CompensatoryFormState = TimeRange & {
   selectedOvertimeDays: string[];
   manualOvertimeDates: Date[];
   newOvertimeDate: Date | null;
+  compensatoryFile: File | null;
+  selectedEmployeeId: string | null;
 };
 
 type EmployeePortalState = {
@@ -103,6 +105,8 @@ const initialState: EmployeePortalState = {
     selectedOvertimeDays: [],
     manualOvertimeDates: [],
     newOvertimeDate: null,
+    compensatoryFile: null,
+    selectedEmployeeId: null,
   },
 };
 
@@ -406,6 +410,23 @@ export const EmployeePortalStore = signalStore({ providedIn: 'root' },
         compensatoryForm: {
           ...state.compensatoryForm(),
           newOvertimeDate: value,
+        },
+      });
+    },
+    setCompensatoryFile(value: File | null) {
+      patchState(state, {
+        compensatoryForm: {
+          ...state.compensatoryForm(),
+          compensatoryFile: value,
+        },
+      });
+    },
+
+    setSelectedEmployeeId(value: string | null) {
+      patchState(state, {
+        compensatoryForm: {
+          ...state.compensatoryForm(),
+          selectedEmployeeId: value,
         },
       });
     },

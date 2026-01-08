@@ -12,6 +12,7 @@ import {
 import { ActivatedRoute, Router } from '@angular/router';
 import { addDays, differenceInDays, format, startOfDay } from 'date-fns';
 import { MessageService } from 'primeng/api';
+import { Employee } from '../models';
 import { Card } from 'primeng/card';
 import { ToastModule } from 'primeng/toast';
 import { ApiUrlService } from '../services/api-url.service';
@@ -22,7 +23,7 @@ import { getBooleanSetting } from '../utils/settings-http.utils';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeePortalStore } from '../stores/employee-portal.store';
 import { EmployeesStore } from '../stores/employees.store';
-import { submitCompensatoryRequest } from './actions/employee-portal-compensatory.actions';
+import { uploadCompensatory } from './actions/employee-portal-compensatory.actions';
 import { submitComplaint } from './actions/employee-portal-complaint.actions';
 import { uploadDisability } from './actions/employee-portal-disability.actions';
 import { submitDocumentRequest } from './actions/employee-portal-document.actions';
@@ -334,6 +335,12 @@ import {
           [submitting]="portalStore.compensatoryForm().submitting"
           [minPastDate]="minPastDate"
           [today]="today"
+          [compensatoryFile]="portalStore.compensatoryForm().compensatoryFile"
+          (compensatoryFileChange)="setCompensatoryFile($event)"
+          [isBranchManagerView]="isBranchManager()"
+          [availableEmployees]="branchEmployees()"
+          [selectedEmployeeId]="portalStore.compensatoryForm().selectedEmployeeId"
+          (selectedEmployeeIdChange)="setSelectedEmployeeId($event)"
           (submitRequest)="submitCompensatoryRequest()"
           (openTutorial)="setShowTutorialDialog(true)"
           (closeSection)="setActiveSection('management')"
@@ -658,6 +665,34 @@ export class EmployeePortalComponent {
     return workEmail.endsWith(this.companyEmailDomain);
   });
 
+  // Verificar si el usuario es Branch Manager (Gerente de Tienda)
+  public isBranchManager = computed(() => {
+    const currentEmp = this.currentEmployee();
+    const positionName = currentEmp?.position?.name || '';
+    return positionName.toLowerCase().includes('gerente de tienda');
+  });
+
+  // Empleados de la sucursal del Branch Manager (para solicitudes en su nombre)
+  public branchEmployees = computed(() => {
+    const currentEmp = this.currentEmployee();
+    if (!currentEmp || !this.isBranchManager()) {
+      return [];
+    }
+
+    return this.employees.activeEmployees()
+      .filter((emp: Employee) =>
+        emp.branch_id === currentEmp.branch_id &&
+        emp.id !== currentEmp.id &&
+        emp.is_active
+      )
+      .map((emp: Employee) => ({
+        id: emp.id,
+        short_name: `${emp.first_name} ${emp.father_name}`.trim(),
+        name: `${emp.first_name} ${emp.father_name}`.trim()
+      }))
+      .sort((a: any, b: any) => a.name.localeCompare(b.name));
+  });
+
   // Verificar si el usuario es HR o Admin
   public isHRorAdmin = computed(() => {
     const isAdmin = this.store.isAdmin();
@@ -719,15 +754,26 @@ export class EmployeePortalComponent {
   }
 
   public setCompensatoryDate(value: Date | null): void {
+    console.log('[DEBUG] setCompensatoryDate:', value);
     this.portalStore.setCompensatoryDate(value);
   }
 
   public setCompensatoryTimeStart(value: Date | null): void {
+    console.log('[DEBUG] setCompensatoryTimeStart:', value);
     this.portalStore.setCompensatoryTimeStart(value);
   }
 
   public setCompensatoryTimeEnd(value: Date | null): void {
+    console.log('[DEBUG] setCompensatoryTimeEnd:', value);
     this.portalStore.setCompensatoryTimeEnd(value);
+  }
+
+  public setCompensatoryFile(value: File | null): void {
+    this.portalStore.setCompensatoryFile(value);
+  }
+
+  public setSelectedEmployeeId(value: string | null): void {
+    this.portalStore.setSelectedEmployeeId(value);
   }
 
   public toggleOvertimeDay(day: string): void {
@@ -1199,45 +1245,53 @@ export class EmployeePortalComponent {
 
   // Función para enviar solicitud de tiempo compensatorio
   public async submitCompensatoryRequest(): Promise<void> {
-    const manualDates = this.portalStore.compensatoryForm().manualOvertimeDates;
-    console.log(
-      '[DEBUG Component] Fechas manuales antes de enviar:',
-      manualDates
-    );
-    console.log(
-      '[DEBUG Component] Tipo:',
-      typeof manualDates,
-      Array.isArray(manualDates)
-    );
-    console.log('[DEBUG Component] Longitud:', manualDates?.length);
-    console.log(
-      '[DEBUG Component] Form completo:',
-      this.portalStore.compensatoryForm()
-    );
+    const form = this.portalStore.compensatoryForm();
+    const manualDates = form.manualOvertimeDates;
 
-    await submitCompensatoryRequest({
-      store: this.portalStore,
-      api: this.employeePortalApi,
-      messageService: this.messageService,
+    console.log('[DEBUG Component] ===== FORMULARIO COMPENSATORIO =====');
+    console.log('[DEBUG Component] Tipo:', form.type);
+    console.log('[DEBUG Component] Fecha compensatorio:', form.compensatoryDate);
+    console.log('[DEBUG Component] Hora inicio:', form.compensatoryTimeStart);
+    console.log('[DEBUG Component] Hora fin:', form.compensatoryTimeEnd);
+    console.log('[DEBUG Component] Fecha inicio período:', form.startDate);
+    console.log('[DEBUG Component] Fecha fin período:', form.endDate);
+    console.log('[DEBUG Component] Cantidad total:', this.compensatoryAmount());
+    console.log('[DEBUG Component] Puede enviar:', this.canSubmitCompensatory());
+    console.log('[DEBUG Component] Fechas manuales:', manualDates);
+    console.log('[DEBUG Component] Archivo:', form.compensatoryFile);
+    console.log('[DEBUG Component] ==============================');
+
+    if (!this.canSubmitCompensatory()) {
+      console.log('[DEBUG Component] ❌ NO PUEDE ENVIAR - Validación fallida');
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Campos Incompletos',
+        detail: 'Por favor completa todos los campos requeridos antes de enviar.',
+      });
+      return;
+    }
+
+    await uploadCompensatory({
       http: this.http,
+      apiUrl: this.apiUrl,
+      messageService: this.messageService,
       currentEmployee: () => this.currentEmployee(),
       formState: {
-        type: this.portalStore.compensatoryForm().type,
-        startDate: this.portalStore.compensatoryForm().startDate,
-        endDate: this.portalStore.compensatoryForm().endDate,
-        date: this.portalStore.compensatoryForm().compensatoryDate,
-        timeStart: this.portalStore.compensatoryForm().compensatoryTimeStart,
-        timeEnd: this.portalStore.compensatoryForm().compensatoryTimeEnd,
+        startDate: this.portalStore.compensatoryForm().type === 'hours'
+          ? this.portalStore.compensatoryForm().compensatoryDate
+          : this.portalStore.compensatoryForm().startDate,
+        endDate: this.portalStore.compensatoryForm().type === 'hours'
+          ? this.portalStore.compensatoryForm().compensatoryDate
+          : this.portalStore.compensatoryForm().endDate,
         reason: this.portalStore.compensatoryForm().reason,
+        type: this.portalStore.compensatoryForm().type,
+        compensatoryDate: this.portalStore.compensatoryForm().compensatoryDate,
+        compensatoryTimeStart: this.portalStore.compensatoryForm().compensatoryTimeStart,
+        compensatoryTimeEnd: this.portalStore.compensatoryForm().compensatoryTimeEnd,
+        selectedOvertimeDays: this.portalStore.compensatoryForm().selectedOvertimeDays,
         manualOvertimeDates: manualDates,
-        amount: this.compensatoryAmount(),
+        compensatoryFile: this.portalStore.compensatoryForm().compensatoryFile,
       },
-      constants: {
-        MAX_FUTURE_DAYS: this.MAX_FUTURE_DAYS,
-        MAX_PAST_DAYS: this.MAX_PAST_DAYS,
-        MAX_CONSECUTIVE_DAYS: this.MAX_CONSECUTIVE_DAYS,
-      },
-      canSubmit: () => this.canSubmitCompensatory(),
       resetForm: () => {
         this.setCompensatoryStartDate(null);
         this.setCompensatoryEndDate(null);
@@ -1248,6 +1302,8 @@ export class EmployeePortalComponent {
         this.setCompensatoryReason('');
         this.setManualOvertimeDates([]);
         this.setNewOvertimeDate(null);
+        this.setCompensatoryFile(null);
+        this.setSubmittingCompensatory(false);
       },
       reloadRequests: () => {
         if (
@@ -1258,8 +1314,7 @@ export class EmployeePortalComponent {
           this.compensatoryTimeoffsApi.reload();
         }
       },
-      setSubmitting: (value: boolean) => this.setSubmittingCompensatory(value),
-      compensatoryRecipients: () => this.getCompensatoryRecipients(),
+      setSubmitting: (value: boolean) => this.setSubmittingCompensatory(false),
     });
   }
 
