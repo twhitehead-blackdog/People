@@ -32,6 +32,7 @@ import { LoggerService } from '../services/logger.service';
 import { OrganizationService } from '../services/organization.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
+import { OvertimeConfirmationDialogComponent } from './timelogs/components/overtime-confirmation-dialog.component';
 import { TimelogsFiltersComponent } from './timelogs/components/timelogs-filters.component';
 import { TimelogsTableComponent } from './timelogs/components/timelogs-table.component';
 import { TimelogsApiService } from './timelogs/timelogs-api.service';
@@ -55,6 +56,7 @@ import { calcTimeDiff } from './timelogs/utils/time.utils';
     ToastModule,
     TimelogsFiltersComponent,
     TimelogsTableComponent,
+    OvertimeConfirmationDialogComponent,
   ],
   template: `<div [ngClass]="{ 'naz-theme': isNaz() }">
     <p-card>
@@ -176,8 +178,20 @@ import { calcTimeDiff } from './timelogs/utils/time.utils';
         [maxLunchTagWidth]="maxLunchTagWidth()"
         [maxExitTagWidth]="maxExitTagWidth()"
         [maxHoursTagWidth]="maxHoursTagWidth()"
+        [isAdmin]="store.isAdmin()"
+        (overtimeAction)="onOvertimeAction($event)"
       ></pt-timelogs-table>
     </p-card>
+
+    <!-- Overtime Confirmation Dialog -->
+    <pt-overtime-confirmation-dialog
+      [visible]="overtimeDialogVisible()"
+      [log]="selectedOvertimeLog()"
+      [existingRecord]="selectedOvertimeRecord()"
+      [isLoading]="overtimeLoading()"
+      (visibleChange)="overtimeDialogVisible.set($event)"
+      (result)="onOvertimeDialogResult($event)"
+    />
   </div>`,
   styles: `
     ::ng-deep .p-tag .p-tag-icon {
@@ -262,7 +276,6 @@ export class TimelogsComponent {
 
   // Computed para verificar si es Naz
   public isNaz = computed(() => this.organizationService.isNaz());
-
 
   // Helper para agregar filtro de company_id a los parámetros
   private addCompanyFilter(
@@ -1970,5 +1983,164 @@ export class TimelogsComponent {
     } finally {
       this.loading.set(false);
     }
+  }
+
+  // ============================================
+  // OVERTIME CONFIRMATION FLOW
+  // ============================================
+
+  private overtimeService = inject(OvertimeRecordsService);
+
+  // State for overtime dialog
+  public overtimeDialogVisible = signal(false);
+  public selectedOvertimeLog = signal<DayLog | null>(null);
+  public selectedOvertimeRecord = signal<EmployeeOvertimeRecord | null>(null);
+  public overtimeLoading = signal(false);
+
+  /**
+   * Handles overtime action button click from table
+   */
+  public async onOvertimeAction(log: DayLog): Promise<void> {
+    this.selectedOvertimeLog.set(log);
+
+    // Check if there's already an overtime record for this employee/date
+    if (log.overtimeRecord) {
+      this.selectedOvertimeRecord.set(log.overtimeRecord);
+    } else {
+      // No existing record - will create on confirm
+      this.selectedOvertimeRecord.set(null);
+    }
+
+    this.overtimeDialogVisible.set(true);
+  }
+
+  /**
+   * Handles dialog result (confirm, reject, cancel)
+   */
+  public async onOvertimeDialogResult(
+    result: OvertimeDialogResult
+  ): Promise<void> {
+    if (result.action === 'cancel') {
+      this.closeOvertimeDialog();
+      return;
+    }
+
+    const log = this.selectedOvertimeLog();
+    if (!log?.employee?.id || !log.day) {
+      this.logger.error(
+        '[TimelogsComponent] Invalid log data for overtime action'
+      );
+      return;
+    }
+
+    const currentEmployeeId = this.store.auth.currentEmployeeId();
+    if (!currentEmployeeId) {
+      this.message.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo identificar el usuario actual',
+      });
+      return;
+    }
+
+    this.overtimeLoading.set(true);
+
+    try {
+      const existingRecord = this.selectedOvertimeRecord();
+
+      if (result.action === 'confirm') {
+        if (existingRecord?.id) {
+          // Update existing record
+          await this.overtimeService.confirm({
+            recordId: existingRecord.id,
+            confirmedBy: currentEmployeeId,
+            hours: result.hours,
+            reason: result.reason,
+          });
+        } else {
+          // Create and confirm new record
+          const newRecord = await this.overtimeService.save({
+            employee_id: log.employee.id,
+            timelog_date: log.day,
+            hours: result.hours ?? log.overtimeHours ?? 0,
+            status: 'confirmed',
+            reason: result.reason,
+          });
+
+          // Then confirm it
+          await this.overtimeService.confirm({
+            recordId: newRecord.id,
+            confirmedBy: currentEmployeeId,
+            hours: result.hours,
+            reason: result.reason,
+          });
+        }
+
+        this.message.add({
+          severity: 'success',
+          summary: 'Horas extras confirmadas',
+          detail: `Se confirmaron ${
+            result.hours ?? log.overtimeHours
+          } horas extras para ${log.employee.first_name} ${
+            log.employee.father_name
+          }`,
+        });
+      } else if (result.action === 'reject') {
+        if (existingRecord?.id) {
+          await this.overtimeService.reject({
+            recordId: existingRecord.id,
+            confirmedBy: currentEmployeeId,
+            reason: result.reason ?? 'Rechazado sin motivo',
+          });
+        } else {
+          // Create as rejected
+          await this.overtimeService.save({
+            employee_id: log.employee.id,
+            timelog_date: log.day,
+            hours: result.hours ?? log.overtimeHours ?? 0,
+            status: 'rejected',
+            reason: result.reason,
+          });
+        }
+
+        this.message.add({
+          severity: 'info',
+          summary: 'Horas extras rechazadas',
+          detail: `Se rechazaron las horas extras para ${log.employee.first_name} ${log.employee.father_name}`,
+        });
+      }
+
+      this.closeOvertimeDialog();
+
+      // Refresh data to show updated status
+      // The httpResource will auto-refresh on signal changes
+      // Force a small date range change to trigger refresh
+      this.refreshOvertimeRecords();
+    } catch (error) {
+      this.logger.error(
+        '[TimelogsComponent] Error processing overtime action:',
+        error
+      );
+      this.message.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo procesar la acción. Por favor, intente nuevamente.',
+      });
+    } finally {
+      this.overtimeLoading.set(false);
+    }
+  }
+
+  private closeOvertimeDialog(): void {
+    this.overtimeDialogVisible.set(false);
+    this.selectedOvertimeLog.set(null);
+    this.selectedOvertimeRecord.set(null);
+  }
+
+  private refreshOvertimeRecords(): void {
+    // Trigger a refresh by briefly modifying the date range signal
+    // This will cause httpResource to refetch
+    const current = this.dateRange();
+    this.dateRange.set([...current]);
   }
 }

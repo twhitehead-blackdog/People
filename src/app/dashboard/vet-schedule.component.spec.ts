@@ -11,10 +11,7 @@ describe('VetScheduleComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [VetScheduleComponent],
-      providers: [
-        provideNoopAnimations(),
-        MessageService,
-      ],
+      providers: [provideNoopAnimations(), MessageService],
     }).compileComponents();
 
     fixture = TestBed.createComponent(VetScheduleComponent);
@@ -28,6 +25,6 @@ describe('VetScheduleComponent', () => {
 
   it('should filter vet employees by branch', () => {
     // Test implementation
-    expect(component.vetEmployees()).toBeDefined();
+    expect(component.vetEmployeesWithAssignments()).toBeDefined();
   });
 });

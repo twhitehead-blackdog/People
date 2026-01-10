@@ -1,15 +1,23 @@
-import { ChangeDetectionStrategy, Component, Input, Signal, WritableSignal } from '@angular/core';
 import { CommonModule, NgClass, NgStyle } from '@angular/common';
-import { TableModule } from 'primeng/table';
-import { Tag } from 'primeng/tag';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  Input,
+  output,
+  Signal,
+  WritableSignal,
+} from '@angular/core';
 import { Avatar } from 'primeng/avatar';
 import { Button } from 'primeng/button';
+import { TableModule } from 'primeng/table';
+import { Tag } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import {
+  colorVariants,
   DayLog,
   EmployeeScheduleData,
-  colorVariants,
   getScheduleColorInlineStyle as getColorStyle,
+  OvertimeStatus,
 } from '../../../models';
 import { PanamaDatePipe } from '../../../pipes/panama-date.pipe';
 import {
@@ -84,7 +92,7 @@ import {
                     icon="pi pi-exclamation-triangle"
                     [pTooltip]="
                       log.alert +
-                        ': El empleado trabajó pero está marcado como feriado/día libre. No hay horario válido para estas marcaciones. El gerente debe corregir la configuración.'
+                      ': El empleado trabajó pero está marcado como feriado/día libre. No hay horario válido para estas marcaciones. El gerente debe corregir la configuración.'
                     "
                     tooltipPosition="top"
                     [style]="{
@@ -111,7 +119,7 @@ import {
                 </div>
               </div>
             </td>
-            <td>{{ log.day | panamaDate: 'mediumDate' }}</td>
+            <td>{{ log.day | panamaDate : 'mediumDate' }}</td>
             <td>
               <span
                 class="rounded text-sm px-2 py-1 font-semibold inline-flex items-center justify-center gap-1"
@@ -162,7 +170,7 @@ import {
                   [ngClass]="{
                     'text-red-500 font-semibold': log.delay
                   }"
-                  >{{ log.entry?.date | panamaDate: 'hh:mm a' }}</span
+                  >{{ log.entry?.date | panamaDate : 'hh:mm a' }}</span
                 >
                 <p-tag
                   *ngIf="log.delay"
@@ -171,10 +179,10 @@ import {
                   icon="pi pi-clock"
                   [pTooltip]="
                     'El empleado llegó ' +
-                      log.delay +
-                      ' minutos después de la tolerancia permitida (' +
-                      delayToleranceMinutes() +
-                      ' min)'
+                    log.delay +
+                    ' minutos después de la tolerancia permitida (' +
+                    delayToleranceMinutes() +
+                    ' min)'
                   "
                   tooltipPosition="top"
                   [style]="{
@@ -196,7 +204,7 @@ import {
                   [pTooltip]="log.lunch_start?.branch.name"
                   tooltipPosition="top"
                 ></p-avatar>
-                {{ log.lunch_start?.date | panamaDate: 'hh:mm a' }}
+                {{ log.lunch_start?.date | panamaDate : 'hh:mm a' }}
               </div>
             </td>
             <td>
@@ -213,7 +221,7 @@ import {
                   [ngClass]="{
                     'text-red-500 font-semibold': log.lunchExceeded
                   }"
-                  >{{ log.lunch_end?.date | panamaDate: 'hh:mm a' }}</span
+                  >{{ log.lunch_end?.date | panamaDate : 'hh:mm a' }}</span
                 >
                 <p-tag
                   *ngIf="log.lunchExceeded && log.lunchMinutes"
@@ -222,8 +230,8 @@ import {
                   icon="pi pi-exclamation-triangle"
                   [pTooltip]="
                     'El tiempo de almuerzo excede los 60 minutos permitidos por ' +
-                      (log.lunchMinutes - 60) +
-                      ' minutos'
+                    (log.lunchMinutes - 60) +
+                    ' minutos'
                   "
                   tooltipPosition="top"
                   [style]="{
@@ -248,7 +256,7 @@ import {
                   [ngClass]="{
                     'text-red-500 font-semibold': log.earlyExit
                   }"
-                  >{{ log.exit?.date | panamaDate: 'hh:mm a' }}</span
+                  >{{ log.exit?.date | panamaDate : 'hh:mm a' }}</span
                 >
                 <p-tag
                   *ngIf="log.earlyExit"
@@ -299,25 +307,36 @@ import {
             </td>
             <td>
               <div class="flex gap-2 items-center">
-                <span
-                  [ngClass]="{
-                    'text-green-500 font-semibold':
-                      log.overtimeHours && log.overtimeHours > 0,
-                    'text-gray-400': !log.overtimeHours || log.overtimeHours === 0
-                  }"
-                >
+                <span [ngClass]="getOvertimeValueClass(log)">
                   {{ log.overtimeHours ? formatHours(log.overtimeHours) : '-' }}
                 </span>
+                <!-- Overtime Action Button (Admin only, when overtime > 0) -->
+                @if (canShowOvertimeButton(log)) {
+                <p-button
+                  [icon]="getOvertimeStatusIcon(log)"
+                  [severity]="getOvertimeStatusSeverity(log)"
+                  (onClick)="onOvertimeAction(log)"
+                  [rounded]="true"
+                  [text]="true"
+                  size="small"
+                  [pTooltip]="getOvertimeTooltip(log)"
+                  tooltipPosition="top"
+                />
+                }
               </div>
             </td>
           </tr>
         </ng-template>
         <ng-template #emptymessage>
           <tr>
-            <td colspan="8">
+            <td colspan="9">
               <div class="flex flex-col items-center justify-center gap-4">
                 <p>No se encontraron registros</p>
-                <p-button label="Limpiar" icon="pi pi-refresh" (click)="employeeId.set('')" />
+                <p-button
+                  label="Limpiar"
+                  icon="pi pi-refresh"
+                  (click)="employeeId.set('')"
+                />
               </div>
             </td>
           </tr>
@@ -338,6 +357,10 @@ export class TimelogsTableComponent {
   @Input() public maxLunchTagWidth!: string;
   @Input() public maxExitTagWidth!: string;
   @Input() public maxHoursTagWidth!: string;
+  @Input() public isAdmin = false;
+
+  // Output for overtime action button click
+  public overtimeAction = output<DayLog>();
 
   public colorVariants = colorVariants;
   public alertSeverity = getAlertSeverity;
@@ -345,7 +368,9 @@ export class TimelogsTableComponent {
   public alertTooltip = getAlertTooltip;
   public formatHours = formatHours;
 
-  public scheduleTooltip(schedule: EmployeeScheduleData | undefined): string | undefined {
+  public scheduleTooltip(
+    schedule: EmployeeScheduleData | undefined
+  ): string | undefined {
     if (schedule && schedule.approved === false) {
       return 'Horario pendiente de aprobación';
     }
@@ -354,5 +379,74 @@ export class TimelogsTableComponent {
 
   public getScheduleColorInlineStyle(color: string | undefined | null) {
     return getColorStyle(color);
+  }
+
+  // Overtime button visibility - only for admins when overtime > 0
+  public canShowOvertimeButton(log: DayLog): boolean {
+    return this.isAdmin && !!log.overtimeHours && log.overtimeHours > 0;
+  }
+
+  // Get overtime status from record or default to pending
+  private getOvertimeStatus(log: DayLog): OvertimeStatus {
+    return log.overtimeRecord?.status ?? 'pending';
+  }
+
+  // Icon based on overtime status
+  public getOvertimeStatusIcon(log: DayLog): string {
+    const status = this.getOvertimeStatus(log);
+    switch (status) {
+      case 'confirmed':
+        return 'pi pi-check-circle';
+      case 'rejected':
+        return 'pi pi-times-circle';
+      default:
+        return 'pi pi-clock';
+    }
+  }
+
+  // Severity based on overtime status
+  public getOvertimeStatusSeverity(
+    log: DayLog
+  ): 'success' | 'danger' | 'warn' | 'secondary' {
+    const status = this.getOvertimeStatus(log);
+    switch (status) {
+      case 'confirmed':
+        return 'success';
+      case 'rejected':
+        return 'danger';
+      default:
+        return 'warn';
+    }
+  }
+
+  // Tooltip based on overtime status
+  public getOvertimeTooltip(log: DayLog): string {
+    const status = this.getOvertimeStatus(log);
+    switch (status) {
+      case 'confirmed':
+        return 'Horas extras confirmadas - Click para ver detalles';
+      case 'rejected':
+        return 'Horas extras rechazadas - Click para ver detalles';
+      default:
+        return 'Horas extras pendientes de revisión - Click para confirmar';
+    }
+  }
+
+  // Value styling based on overtime status
+  public getOvertimeValueClass(log: DayLog): Record<string, boolean> {
+    const status = this.getOvertimeStatus(log);
+    const hasOvertime = log.overtimeHours && log.overtimeHours > 0;
+
+    return {
+      'text-green-500 font-semibold': hasOvertime && status === 'confirmed',
+      'text-amber-400 font-semibold': hasOvertime && status === 'pending',
+      'text-red-400 line-through': hasOvertime && status === 'rejected',
+      'text-gray-400': !hasOvertime,
+    };
+  }
+
+  // Emit overtime action for parent to handle
+  public onOvertimeAction(log: DayLog): void {
+    this.overtimeAction.emit(log);
   }
 }

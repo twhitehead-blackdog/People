@@ -724,8 +724,33 @@ export interface DayLog {
   insufficientHours?: boolean;
   totalHours?: number;
   overtimeHours?: number;
+  overtimeRecord?: EmployeeOvertimeRecord; // Link to overtime confirmation record
   entry?: TimelogBranch;
   lunch_start?: TimelogBranch;
   lunch_end?: TimelogBranch;
   exit?: TimelogBranch;
+}
+
+// ============================================
+// OVERTIME CONFIRMATION SYSTEM
+// ============================================
+
+export type OvertimeStatus = 'pending' | 'confirmed' | 'rejected';
+
+export interface EmployeeOvertimeRecord {
+  id: string;
+  employee_id: string;
+  timelog_date: string; // ISO date format (yyyy-MM-dd)
+  hours: number;
+  status: OvertimeStatus;
+  reason?: string;
+  confirmed_by?: string;
+  confirmed_at?: Date | string;
+  company_id?: string;
+  created_at?: Date | string;
+  updated_at?: Date | string;
+
+  // Joined data (from queries with select)
+  employee?: Partial<Employee>;
+  confirmedByEmployee?: Partial<Employee>;
 }
