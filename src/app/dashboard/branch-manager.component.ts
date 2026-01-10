@@ -1,25 +1,39 @@
-import { DatePipe, NgClass, NgStyle } from '@angular/common';
+import { DatePipe, NgClass } from '@angular/common';
 import { HttpClient, httpResource } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  effect,
   inject,
   model,
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { format, startOfDay, endOfDay, isToday, parseISO, addDays, addWeeks, subWeeks, getDate, isMonday, isWeekend, nextMonday, previousMonday, nextSunday, isWithinInterval, differenceInMinutes } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { DomSanitizer } from '@angular/platform-browser';
+import {
+  addDays,
+  addWeeks,
+  differenceInMinutes,
+  endOfDay,
+  format,
+  getDate,
+  isWithinInterval,
+  nextSunday,
+  startOfDay,
+  startOfWeek,
+  subWeeks,
+} from 'date-fns';
 import { toDate } from 'date-fns-tz';
-import { MessageService } from 'primeng/api';
+import { ConfirmationService, MenuItem, MessageService } from 'primeng/api';
 import { Avatar } from 'primeng/avatar';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { DatePicker } from 'primeng/datepicker';
+import { Dialog } from 'primeng/dialog';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { InputText } from 'primeng/inputtext';
+import { Menu } from 'primeng/menu';
+import { Popover } from 'primeng/popover';
 import { Select } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { TabsModule } from 'primeng/tabs';
@@ -27,22 +41,30 @@ import { Tag } from 'primeng/tag';
 import { Textarea } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
-import { Menu } from 'primeng/menu';
-import { Popover } from 'primeng/popover';
-import { ConfirmationService, MenuItem } from 'primeng/api';
+import { colorVariants, Employee } from '../models';
 import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
+import { BranchesStore } from '../stores/branches.store';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
-import { BranchesStore } from '../stores/branches.store';
-import { Employee, Branch, colorVariants } from '../models';
-import { CompensatoryRequest } from './hr-disabilities.component';
-import { EmployeeSchedulesFormComponent } from './employee-schedules-form.component';
 import { BranchManagerGestionesComponent } from './branch-manager-gestiones.component';
+import { EmployeeSchedulesFormComponent } from './employee-schedules-form.component';
+import { CompensatoryRequest } from './hr-disabilities.component';
 
 type Notification = {
   id: string;
-  type: 'delay' | 'on_time' | 'missing' | 'early_exit' | 'lunch_exceeded' | 'timelog_entry' | 'timelog_exit' | 'timelog_lunch_start' | 'timelog_lunch_end' | 'complaint' | 'other';
+  type:
+    | 'delay'
+    | 'on_time'
+    | 'missing'
+    | 'early_exit'
+    | 'lunch_exceeded'
+    | 'timelog_entry'
+    | 'timelog_exit'
+    | 'timelog_lunch_start'
+    | 'timelog_lunch_end'
+    | 'complaint'
+    | 'other';
   recipient_id: string;
   branch_id: string;
   title: string;
@@ -86,6 +108,7 @@ type Reminder = {
     Menu,
     Popover,
     InputText,
+    Dialog,
     BranchManagerGestionesComponent,
   ],
   providers: [DynamicDialogRef, DialogService, ConfirmationService],
@@ -97,16 +120,18 @@ type Reminder = {
           <h1 class="text-3xl font-bold mb-1">Gestión de Tienda</h1>
           <p class="text-gray-400">
             @if (isAdmin()) {
-              <span>Administración de sucursales</span>
+            <span>Administración de sucursales</span>
             } @else {
-              <span>{{ currentBranch()?.name || 'Sucursal' }}</span>
+            <span>{{ currentBranch()?.name || 'Sucursal' }}</span>
             }
           </p>
         </div>
         <div class="flex items-center gap-3">
           @if (isAdmin()) {
           <div class="flex items-center gap-2">
-            <label class="text-sm text-gray-400 whitespace-nowrap">Sucursal:</label>
+            <label class="text-sm text-gray-400 whitespace-nowrap"
+              >Sucursal:</label
+            >
             <p-select
               [options]="availableBranches()"
               optionLabel="name"
@@ -119,8 +144,7 @@ type Reminder = {
               (ngModelChange)="onBranchChange()"
             />
           </div>
-          }
-          @if (unreadNotificationsCount() > 0) {
+          } @if (unreadNotificationsCount() > 0) {
           <p-button
             icon="pi pi-bell"
             severity="warn"
@@ -134,27 +158,39 @@ type Reminder = {
       </div>
 
       <!-- Dashboard de Métricas -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-6 pt-0 pb-6">
+      <div
+        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-6 pt-0 pb-6"
+      >
         <!-- Notificaciones no leídas -->
-        <div class="bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg p-4 text-white shadow-lg">
+        <div
+          class="bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg p-4 text-white shadow-lg"
+        >
           <div class="flex items-center justify-between mb-1">
             <i class="pi pi-bell text-xl opacity-80"></i>
-            <span class="text-2xl font-bold">{{ unreadNotificationsCount() }}</span>
+            <span class="text-2xl font-bold">{{
+              unreadNotificationsCount()
+            }}</span>
           </div>
           <p class="text-blue-100 text-xs">Notificaciones pendientes</p>
         </div>
 
         <!-- Empleados del día -->
-        <div class="bg-gradient-to-br from-green-600 to-green-700 rounded-lg p-4 text-white shadow-lg">
+        <div
+          class="bg-gradient-to-br from-green-600 to-green-700 rounded-lg p-4 text-white shadow-lg"
+        >
           <div class="flex items-center justify-between mb-1">
             <i class="pi pi-users text-xl opacity-80"></i>
-            <span class="text-2xl font-bold">{{ todayStats().totalEmployees }}</span>
+            <span class="text-2xl font-bold">{{
+              todayStats().totalEmployees
+            }}</span>
           </div>
           <p class="text-green-100 text-xs">Empleados hoy</p>
         </div>
 
         <!-- Retrasos -->
-        <div class="bg-gradient-to-br from-red-600 to-red-700 rounded-lg p-4 text-white shadow-lg">
+        <div
+          class="bg-gradient-to-br from-red-600 to-red-700 rounded-lg p-4 text-white shadow-lg"
+        >
           <div class="flex items-center justify-between mb-1">
             <i class="pi pi-clock text-xl opacity-80"></i>
             <span class="text-2xl font-bold">{{ todayStats().delayed }}</span>
@@ -163,10 +199,14 @@ type Reminder = {
         </div>
 
         <!-- Recordatorios pendientes -->
-        <div class="bg-gradient-to-br from-amber-600 to-amber-700 rounded-lg p-4 text-white shadow-lg">
+        <div
+          class="bg-gradient-to-br from-amber-600 to-amber-700 rounded-lg p-4 text-white shadow-lg"
+        >
           <div class="flex items-center justify-between mb-1">
             <i class="pi pi-bookmark text-xl opacity-80"></i>
-            <span class="text-2xl font-bold">{{ pendingRemindersCount() }}</span>
+            <span class="text-2xl font-bold">{{
+              pendingRemindersCount()
+            }}</span>
           </div>
           <p class="text-amber-100 text-xs">Recordatorios pendientes</p>
         </div>
@@ -174,7 +214,6 @@ type Reminder = {
 
       <!-- Card Principal -->
       <p-card>
-
         <p-tabs value="schedules">
           <p-tablist>
             <p-tab value="schedules">
@@ -195,8 +234,7 @@ type Reminder = {
             </p-tab>
             <p-tab value="reminders">
               <i class="pi pi-bookmark mr-2"></i>
-              Recordatorios
-              @if (pendingRemindersCount() > 0) {
+              Recordatorios @if (pendingRemindersCount() > 0) {
               <span
                 class="ml-2 bg-amber-500 text-white text-xs rounded-full px-2 py-0.5 font-semibold"
               >
@@ -209,7 +247,9 @@ type Reminder = {
           <p-tabpanel value="employee-requests">
             <div class="space-y-4">
               <!-- Filtros -->
-              <div class="flex gap-2 items-center flex-wrap justify-between bg-neutral-800/50 p-4 rounded-lg">
+              <div
+                class="flex gap-2 items-center flex-wrap justify-between bg-neutral-800/50 p-4 rounded-lg"
+              >
                 <div class="flex gap-2 items-center flex-wrap">
                   <p-select
                     [options]="[
@@ -247,62 +287,95 @@ type Reminder = {
                     label="Actualizar"
                     severity="secondary"
                     (onClick)="refreshEmployeeRequests()"
-                    [loading]="compensatoryTimeoffsApi.isLoading() || disabilitiesApi.isLoading() || vacationsApi.isLoading() || documentRequestsApi.isLoading()"
+                    [loading]="
+                      compensatoryTimeoffsApi.isLoading() ||
+                      disabilitiesApi.isLoading() ||
+                      vacationsApi.isLoading() ||
+                      documentRequestsApi.isLoading()
+                    "
                   />
                 </div>
                 <div class="flex items-center gap-2 text-sm text-gray-400">
                   <i class="pi pi-info-circle"></i>
-                  <span>{{ filteredBranchEmployeeRequests().length }} solicitud(es)</span>
+                  <span
+                    >{{
+                      filteredBranchEmployeeRequests().length
+                    }}
+                    solicitud(es)</span
+                  >
                 </div>
               </div>
 
               <!-- Loading State -->
-              @if (compensatoryTimeoffsApi.isLoading() || disabilitiesApi.isLoading() || vacationsApi.isLoading() || documentRequestsApi.isLoading()) {
+              @if (compensatoryTimeoffsApi.isLoading() ||
+              disabilitiesApi.isLoading() || vacationsApi.isLoading() ||
+              documentRequestsApi.isLoading()) {
               <div class="flex justify-center py-12">
                 <i class="pi pi-spin pi-spinner text-4xl text-gray-400"></i>
               </div>
               }
-              
+
               <!-- Empty State -->
               @else if (filteredBranchEmployeeRequests().length === 0) {
               <div class="text-center py-12">
                 <i class="pi pi-inbox text-6xl text-gray-400 mb-4"></i>
-                <p class="text-gray-400 text-lg">No hay solicitudes de empleados</p>
-                <p class="text-gray-500 text-sm mt-2">Las solicitudes creadas en "Gestiones" aparecerán aquí</p>
+                <p class="text-gray-400 text-lg">
+                  No hay solicitudes de empleados
+                </p>
+                <p class="text-gray-500 text-sm mt-2">
+                  Las solicitudes creadas en "Gestiones" aparecerán aquí
+                </p>
               </div>
               }
-              
+
               <!-- Requests List -->
               @else {
               <div class="grid grid-cols-1 gap-3">
-                @for (request of filteredBranchEmployeeRequests(); track request.id) {
+                @for (request of filteredBranchEmployeeRequests(); track
+                request.id) {
                 <div
                   class="border rounded-lg p-4 transition-all hover:shadow-md cursor-pointer"
                   [ngClass]="{
-                    'border-cyan-500 bg-cyan-500/5': request.requestType === 'compensatorio',
-                    'border-blue-500 bg-blue-500/5': request.requestType === 'incapacidad',
-                    'border-purple-500 bg-purple-500/5': request.requestType === 'vacaciones',
-                    'border-green-500 bg-green-500/5': request.requestType === 'documentos'
+                    'border-cyan-500 bg-cyan-500/5':
+                      request.requestType === 'compensatorio',
+                    'border-blue-500 bg-blue-500/5':
+                      request.requestType === 'incapacidad',
+                    'border-purple-500 bg-purple-500/5':
+                      request.requestType === 'vacaciones',
+                    'border-green-500 bg-green-500/5':
+                      request.requestType === 'documentos'
                   }"
                   (click)="viewRequestDetails(request)"
                 >
                   <div class="flex items-start justify-between gap-4">
                     <div class="flex items-start gap-3 flex-1">
                       <!-- Icono según tipo -->
-                      <div class="mt-1 w-10 h-10 rounded-full flex items-center justify-center"
+                      <div
+                        class="mt-1 w-10 h-10 rounded-full flex items-center justify-center"
                         [ngClass]="{
-                          'bg-cyan-500/20': request.requestType === 'compensatorio',
-                          'bg-blue-500/20': request.requestType === 'incapacidad',
-                          'bg-purple-500/20': request.requestType === 'vacaciones',
-                          'bg-green-500/20': request.requestType === 'documentos'
-                        }">
-                        <i class="pi"
+                          'bg-cyan-500/20':
+                            request.requestType === 'compensatorio',
+                          'bg-blue-500/20':
+                            request.requestType === 'incapacidad',
+                          'bg-purple-500/20':
+                            request.requestType === 'vacaciones',
+                          'bg-green-500/20':
+                            request.requestType === 'documentos'
+                        }"
+                      >
+                        <i
+                          class="pi"
                           [ngClass]="{
-                            'pi-clock text-cyan-400': request.requestType === 'compensatorio',
-                            'pi-file-plus text-blue-400': request.requestType === 'incapacidad',
-                            'pi-calendar-plus text-purple-400': request.requestType === 'vacaciones',
-                            'pi-file-edit text-green-400': request.requestType === 'documentos'
-                          }"></i>
+                            'pi-clock text-cyan-400':
+                              request.requestType === 'compensatorio',
+                            'pi-file-plus text-blue-400':
+                              request.requestType === 'incapacidad',
+                            'pi-calendar-plus text-purple-400':
+                              request.requestType === 'vacaciones',
+                            'pi-file-edit text-green-400':
+                              request.requestType === 'documentos'
+                          }"
+                        ></i>
                       </div>
 
                       <div class="flex-1">
@@ -310,7 +383,9 @@ type Reminder = {
                         <div class="flex items-center gap-2 mb-2">
                           <p-tag
                             [value]="getRequestTypeLabel(request.requestType)"
-                            [severity]="getRequestTypeSeverity(request.requestType)"
+                            [severity]="
+                              getRequestTypeSeverity(request.requestType)
+                            "
                             styleClass="text-xs"
                           />
                           <p-tag
@@ -331,39 +406,81 @@ type Reminder = {
                             styleClass="text-xs"
                           />
                           <span class="text-sm font-semibold text-white">
-                            {{ request.employee?.first_name }} {{ request.employee?.father_name }}
+                            {{ request.employee?.first_name }}
+                            {{ request.employee?.father_name }}
                           </span>
                         </div>
 
                         <!-- Detalles según tipo -->
                         <div class="text-sm text-gray-300">
                           @if (request.requestType === 'compensatorio') {
-                            <p><span class="text-gray-400">Período:</span> {{ request.date_from | date : 'dd/MM/yyyy' }} - {{ request.date_to | date : 'dd/MM/yyyy' }}</p>
-                            <p><span class="text-gray-400">Tipo:</span> {{ request.compensatory_type === 'hours' ? 'Horas' : 'Días' }}</p>
-                            <p><span class="text-gray-400">Cantidad:</span> {{ request.compensatory_amount }} {{ request.compensatory_type === 'hours' ? 'hora(s)' : 'día(s)' }}</p>
-                          }
-                          @else if (request.requestType === 'incapacidad') {
-                            <p><span class="text-gray-400">Período:</span> {{ request.start_date | date : 'dd/MM/yyyy' }} - {{ request.end_date | date : 'dd/MM/yyyy' }}</p>
-                            <p><span class="text-gray-400">Descripción:</span> {{ request.description }}</p>
-                          }
-                          @else if (request.requestType === 'vacaciones') {
-                            <p><span class="text-gray-400">Período:</span> {{ request.start_date | date : 'dd/MM/yyyy' }} - {{ request.end_date | date : 'dd/MM/yyyy' }}</p>
-                            @if (request.reason) {
-                              <p><span class="text-gray-400">Razón:</span> {{ request.reason }}</p>
-                            }
-                          }
-                          @else if (request.requestType === 'documentos') {
-                            <p><span class="text-gray-400">Tipo de documento:</span> {{ request.document_type }}</p>
-                            <p><span class="text-gray-400">Fecha requerida:</span> {{ request.required_date | date : 'dd/MM/yyyy' }}</p>
-                            @if (request.reason) {
-                              <p><span class="text-gray-400">Razón:</span> {{ request.reason }}</p>
-                            }
-                          }
+                          <p>
+                            <span class="text-gray-400">Período:</span>
+                            {{ request.date_from | date : 'dd/MM/yyyy' }} -
+                            {{ request.date_to | date : 'dd/MM/yyyy' }}
+                          </p>
+                          <p>
+                            <span class="text-gray-400">Tipo:</span>
+                            {{
+                              request.compensatory_type === 'hours'
+                                ? 'Horas'
+                                : 'Días'
+                            }}
+                          </p>
+                          <p>
+                            <span class="text-gray-400">Cantidad:</span>
+                            {{ request.compensatory_amount }}
+                            {{
+                              request.compensatory_type === 'hours'
+                                ? 'hora(s)'
+                                : 'día(s)'
+                            }}
+                          </p>
+                          } @else if (request.requestType === 'incapacidad') {
+                          <p>
+                            <span class="text-gray-400">Período:</span>
+                            {{ request.start_date | date : 'dd/MM/yyyy' }} -
+                            {{ request.end_date | date : 'dd/MM/yyyy' }}
+                          </p>
+                          <p>
+                            <span class="text-gray-400">Descripción:</span>
+                            {{ request.description }}
+                          </p>
+                          } @else if (request.requestType === 'vacaciones') {
+                          <p>
+                            <span class="text-gray-400">Período:</span>
+                            {{ request.start_date | date : 'dd/MM/yyyy' }} -
+                            {{ request.end_date | date : 'dd/MM/yyyy' }}
+                          </p>
+                          @if (request.reason) {
+                          <p>
+                            <span class="text-gray-400">Razón:</span>
+                            {{ request.reason }}
+                          </p>
+                          } } @else if (request.requestType === 'documentos') {
+                          <p>
+                            <span class="text-gray-400"
+                              >Tipo de documento:</span
+                            >
+                            {{ request.document_type }}
+                          </p>
+                          <p>
+                            <span class="text-gray-400">Fecha requerida:</span>
+                            {{ request.required_date | date : 'dd/MM/yyyy' }}
+                          </p>
+                          @if (request.reason) {
+                          <p>
+                            <span class="text-gray-400">Razón:</span>
+                            {{ request.reason }}
+                          </p>
+                          } }
                         </div>
 
                         <!-- Indicador de documento adjunto -->
                         @if (request.document_url) {
-                        <div class="mt-2 flex items-center gap-1 text-xs text-gray-400">
+                        <div
+                          class="mt-2 flex items-center gap-1 text-xs text-gray-400"
+                        >
                           <i class="pi pi-paperclip"></i>
                           <span>Documento adjunto</span>
                         </div>
@@ -378,7 +495,9 @@ type Reminder = {
                       text
                       rounded
                       pTooltip="Ver detalles"
-                      (onClick)="viewRequestDetails(request); $event.stopPropagation()"
+                      (onClick)="
+                        viewRequestDetails(request); $event.stopPropagation()
+                      "
                     />
                   </div>
                 </div>
@@ -391,7 +510,9 @@ type Reminder = {
           <p-tabpanel value="timelogs">
             <div class="space-y-4">
               <!-- Filtros y acciones -->
-              <div class="flex gap-2 items-center flex-wrap justify-between bg-neutral-800/50 p-4 rounded-lg">
+              <div
+                class="flex gap-2 items-center flex-wrap justify-between bg-neutral-800/50 p-4 rounded-lg"
+              >
                 <div class="flex gap-2 items-center flex-wrap">
                   <p-select
                     [options]="branchEmployees()"
@@ -425,24 +546,46 @@ type Reminder = {
               <!-- Estadísticas rápidas del día -->
               @if (todayStats().totalEmployees > 0) {
               <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-                <div class="bg-green-600/20 border border-green-600/30 rounded-lg p-3 text-center">
-                  <div class="text-2xl font-bold text-green-400">{{ todayStats().onTime }}</div>
+                <div
+                  class="bg-green-600/20 border border-green-600/30 rounded-lg p-3 text-center"
+                >
+                  <div class="text-2xl font-bold text-green-400">
+                    {{ todayStats().onTime }}
+                  </div>
                   <div class="text-xs text-gray-400 mt-1">A tiempo</div>
                 </div>
-                <div class="bg-red-600/20 border border-red-600/30 rounded-lg p-3 text-center">
-                  <div class="text-2xl font-bold text-red-400">{{ todayStats().delayed }}</div>
+                <div
+                  class="bg-red-600/20 border border-red-600/30 rounded-lg p-3 text-center"
+                >
+                  <div class="text-2xl font-bold text-red-400">
+                    {{ todayStats().delayed }}
+                  </div>
                   <div class="text-xs text-gray-400 mt-1">Retrasos</div>
                 </div>
-                <div class="bg-amber-600/20 border border-amber-600/30 rounded-lg p-3 text-center">
-                  <div class="text-2xl font-bold text-amber-400">{{ todayStats().missing }}</div>
+                <div
+                  class="bg-amber-600/20 border border-amber-600/30 rounded-lg p-3 text-center"
+                >
+                  <div class="text-2xl font-bold text-amber-400">
+                    {{ todayStats().missing }}
+                  </div>
                   <div class="text-xs text-gray-400 mt-1">Sin marcar</div>
                 </div>
-                <div class="bg-orange-600/20 border border-orange-600/30 rounded-lg p-3 text-center">
-                  <div class="text-2xl font-bold text-orange-400">{{ todayStats().lunchExceeded }}</div>
-                  <div class="text-xs text-gray-400 mt-1">Almuerzo excedido</div>
+                <div
+                  class="bg-orange-600/20 border border-orange-600/30 rounded-lg p-3 text-center"
+                >
+                  <div class="text-2xl font-bold text-orange-400">
+                    {{ todayStats().lunchExceeded }}
+                  </div>
+                  <div class="text-xs text-gray-400 mt-1">
+                    Almuerzo excedido
+                  </div>
                 </div>
-                <div class="bg-purple-600/20 border border-purple-600/30 rounded-lg p-3 text-center">
-                  <div class="text-2xl font-bold text-purple-400">{{ todayStats().earlyExit }}</div>
+                <div
+                  class="bg-purple-600/20 border border-purple-600/30 rounded-lg p-3 text-center"
+                >
+                  <div class="text-2xl font-bold text-purple-400">
+                    {{ todayStats().earlyExit }}
+                  </div>
                   <div class="text-xs text-gray-400 mt-1">Salida temprana</div>
                 </div>
               </div>
@@ -471,8 +614,17 @@ type Reminder = {
                 <ng-template #body let-log>
                   <tr
                     [ngClass]="{
-                      'bg-red-50/5': log.is_delayed || log.is_missing || log.lunch_exceeded || log.is_early_exit,
-                      'bg-green-50/5': !log.is_delayed && !log.is_missing && !log.lunch_exceeded && !log.is_early_exit && log.entry_time
+                      'bg-red-50/5':
+                        log.is_delayed ||
+                        log.is_missing ||
+                        log.lunch_exceeded ||
+                        log.is_early_exit,
+                      'bg-green-50/5':
+                        !log.is_delayed &&
+                        !log.is_missing &&
+                        !log.lunch_exceeded &&
+                        !log.is_early_exit &&
+                        log.entry_time
                     }"
                   >
                     <td>
@@ -484,7 +636,8 @@ type Reminder = {
                         />
                         <div>
                           <div class="font-semibold">
-                            {{ log.employee?.first_name }} {{ log.employee?.father_name }}
+                            {{ log.employee?.first_name }}
+                            {{ log.employee?.father_name }}
                           </div>
                           @if (log.employee?.employee_number) {
                           <div class="text-xs text-gray-400">
@@ -569,32 +722,30 @@ type Reminder = {
                           icon="pi pi-clock"
                           styleClass="text-xs"
                         />
-                        }
-                        @if (log.is_missing) {
+                        } @if (log.is_missing) {
                         <p-tag
                           value="Sin marcar"
                           severity="warn"
                           icon="pi pi-exclamation-triangle"
                           styleClass="text-xs"
                         />
-                        }
-                        @if (log.lunch_exceeded) {
+                        } @if (log.lunch_exceeded) {
                         <p-tag
                           value="Almuerzo excedido"
                           severity="danger"
                           icon="pi pi-clock"
                           styleClass="text-xs"
                         />
-                        }
-                        @if (log.is_early_exit) {
+                        } @if (log.is_early_exit) {
                         <p-tag
                           value="Salida temprana"
                           severity="danger"
                           icon="pi pi-arrow-down"
                           styleClass="text-xs"
                         />
-                        }
-                        @if (!log.is_delayed && !log.is_missing && !log.lunch_exceeded && !log.is_early_exit && log.entry_time) {
+                        } @if (!log.is_delayed && !log.is_missing &&
+                        !log.lunch_exceeded && !log.is_early_exit &&
+                        log.entry_time) {
                         <p-tag
                           value="A tiempo"
                           severity="success"
@@ -611,7 +762,9 @@ type Reminder = {
                     <td [attr.colspan]="6" class="text-center py-12">
                       <div class="flex flex-col items-center gap-3">
                         <i class="pi pi-inbox text-6xl text-gray-500"></i>
-                        <p class="text-gray-400 text-lg">No hay marcaciones para esta fecha</p>
+                        <p class="text-gray-400 text-lg">
+                          No hay marcaciones para esta fecha
+                        </p>
                       </div>
                     </td>
                   </tr>
@@ -687,7 +840,9 @@ type Reminder = {
                     <th>Cargo</th>
                     @for(day of weekDays(); track day.date){
                     <th class="text-center min-w-[100px] max-w-[100px]">
-                      <div class="flex flex-col items-center gap-0 leading-[1.1]">
+                      <div
+                        class="flex flex-col items-center gap-0 leading-[1.1]"
+                      >
                         <span class="text-xs font-bold uppercase">{{
                           day.date | date : 'EEE'
                         }}</span>
@@ -701,7 +856,9 @@ type Reminder = {
                 </ng-template>
                 <ng-template #body let-item>
                   <tr>
-                    <td pFrozenColumn>{{ item.first_name }} {{ item.father_name }}</td>
+                    <td pFrozenColumn>
+                      {{ item.first_name }} {{ item.father_name }}
+                    </td>
                     <td>{{ item.position?.name || '-' }}</td>
                     @for(day of item.days; track day.date){
                     <td class="text-center">
@@ -711,13 +868,16 @@ type Reminder = {
                         [class]="colorVariants[day.shift.schedule?.color]"
                         [ngClass]="{
                           'opacity-60 hover:opacity-100': !day.shift.approved,
-                          'ring-1 ring-amber-400/70 shadow-md': day.shift.approved
+                          'ring-1 ring-amber-400/70 shadow-md':
+                            day.shift.approved
                         }"
                         [pTooltip]="getScheduleTooltip(day.shift)"
                         tooltipPosition="top"
                         (click)="scheduleOptions.toggle($event)"
                       >
-                        <span class="truncate max-w-[65px] font-semibold leading-tight">
+                        <span
+                          class="truncate max-w-[65px] font-semibold leading-tight"
+                        >
                           {{ day.shift.schedule?.name }}
                         </span>
                         @if(day.shift.approved) {
@@ -736,7 +896,9 @@ type Reminder = {
                           <ul class="list-none flex flex-col">
                             <li
                               class="flex items-center gap-2 p-2 hover:bg-neutral-700 cursor-pointer rounded-md"
-                              (click)="editSchedule({ employee_schedule: day.shift })"
+                              (click)="
+                                editSchedule({ employee_schedule: day.shift })
+                              "
                             >
                               <i class="pi pi-pencil text-blue-600"></i>
                               Editar
@@ -781,7 +943,9 @@ type Reminder = {
                     <td [attr.colspan]="9" class="text-center py-12">
                       <div class="flex flex-col items-center gap-3">
                         <i class="pi pi-inbox text-6xl text-gray-500"></i>
-                        <p class="text-gray-400 text-lg">No hay horarios asignados</p>
+                        <p class="text-gray-400 text-lg">
+                          No hay horarios asignados
+                        </p>
                       </div>
                     </td>
                   </tr>
@@ -850,7 +1014,8 @@ type Reminder = {
                           shape="circle"
                         />
                         <span>
-                          {{ reminder.employee?.first_name }} {{ reminder.employee?.father_name }}
+                          {{ reminder.employee?.first_name }}
+                          {{ reminder.employee?.father_name }}
                         </span>
                       </div>
                       } @else {
@@ -991,6 +1156,403 @@ type Reminder = {
         </div>
       </div>
       }
+
+      <!-- Diálogo de Detalles de Solicitud -->
+      <p-dialog
+        [(visible)]="showRequestDetailsDialog"
+        [modal]="true"
+        [style]="{ width: '90vw', maxWidth: '700px' }"
+        [draggable]="false"
+        [resizable]="false"
+        [dismissableMask]="true"
+      >
+        <ng-template pTemplate="header">
+          <div class="flex items-center justify-between w-full">
+            <span class="text-lg font-semibold text-white">
+              Detalles de Solicitud -
+              {{ getRequestTypeLabel(selectedRequest()?.requestType) }}
+            </span>
+            @if (selectedRequest()?.document_url) {
+            <p-button
+              icon="pi pi-file"
+              [rounded]="true"
+              [text]="true"
+              severity="secondary"
+              (onClick)="openDocumentPreview()"
+              pTooltip="Ver documento adjunto"
+              tooltipPosition="left"
+              size="small"
+            />
+            }
+          </div>
+        </ng-template>
+
+        @if (selectedRequest()) {
+        <div class="space-y-4 pt-4">
+          <!-- Información del Empleado -->
+          <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
+            <h3
+              class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+            >
+              <i class="pi pi-user text-blue-400"></i>
+              Información del Empleado
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Nombre</label
+                >
+                <p class="text-white">
+                  {{ selectedRequest().employee?.first_name }}
+                  {{ selectedRequest().employee?.father_name }}
+                </p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Email</label
+                >
+                <p class="text-white">
+                  {{ selectedRequest().employee?.work_email }}
+                </p>
+              </div>
+              @if (selectedRequest().employee?.position?.name) {
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Cargo</label
+                >
+                <p class="text-white">
+                  {{ selectedRequest().employee?.position?.name }}
+                </p>
+              </div>
+              } @if (selectedRequest().employee?.branch?.name) {
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Sucursal</label
+                >
+                <p class="text-white">
+                  {{ selectedRequest().employee?.branch?.name }}
+                </p>
+              </div>
+              }
+            </div>
+          </div>
+
+          <!-- Detalles de la Solicitud -->
+          <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
+            <h3
+              class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+            >
+              <i class="pi pi-file-edit text-green-400"></i>
+              Detalles de la Solicitud
+            </h3>
+            <div class="space-y-3">
+              <!-- Estado -->
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Estado</label
+                >
+                <p-tag
+                  [value]="getRequestStatusLabel(selectedRequest())"
+                  [severity]="getRequestStatusSeverity(selectedRequest())"
+                />
+              </div>
+
+              <!-- Fecha de creación -->
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Fecha de Solicitud</label
+                >
+                <p class="text-white">
+                  {{ selectedRequest().created_at | date : 'dd/MM/yyyy HH:mm' }}
+                </p>
+              </div>
+
+              <!-- Detalles específicos por tipo -->
+              @if (selectedRequest().requestType === 'compensatorio') {
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-400 mb-1"
+                    >Período</label
+                  >
+                  <p class="text-white">
+                    {{ selectedRequest().date_from | date : 'dd/MM/yyyy' }} -
+                    {{ selectedRequest().date_to | date : 'dd/MM/yyyy' }}
+                  </p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-400 mb-1"
+                    >Tipo</label
+                  >
+                  <p class="text-white">
+                    {{
+                      selectedRequest().compensatory_type === 'hours'
+                        ? 'Horas'
+                        : 'Días'
+                    }}
+                  </p>
+                </div>
+                <div class="md:col-span-2">
+                  <label class="block text-sm font-medium text-gray-400 mb-1"
+                    >Cantidad Solicitada</label
+                  >
+                  <p class="text-white font-semibold">
+                    {{ selectedRequest().compensatory_amount }}
+                    {{
+                      selectedRequest().compensatory_type === 'hours'
+                        ? 'hora(s)'
+                        : 'día(s)'
+                    }}
+                  </p>
+                </div>
+              </div>
+              @if (selectedRequest().notes) {
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Notas</label
+                >
+                <p class="text-white">
+                  {{ selectedRequest().notes }}
+                </p>
+              </div>
+              } } @else if (selectedRequest().requestType === 'incapacidad') {
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-400 mb-1"
+                    >Período</label
+                  >
+                  <p class="text-white">
+                    {{ selectedRequest().start_date | date : 'dd/MM/yyyy' }} -
+                    {{ selectedRequest().end_date | date : 'dd/MM/yyyy' }}
+                  </p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-400 mb-1"
+                    >Tipo</label
+                  >
+                  <p class="text-white">Incapacidad</p>
+                </div>
+              </div>
+              @if (selectedRequest().description) {
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Descripción</label
+                >
+                <p class="text-white">
+                  {{ selectedRequest().description }}
+                </p>
+              </div>
+              } } @else if (selectedRequest().requestType === 'vacaciones') {
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-400 mb-1"
+                    >Período Solicitado</label
+                  >
+                  <p class="text-white">
+                    {{ selectedRequest().start_date | date : 'dd/MM/yyyy' }} -
+                    {{ selectedRequest().end_date | date : 'dd/MM/yyyy' }}
+                  </p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-400 mb-1"
+                    >Tipo</label
+                  >
+                  <p class="text-white">Vacaciones</p>
+                </div>
+              </div>
+              @if (selectedRequest().reason) {
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Razón</label
+                >
+                <p class="text-white">
+                  {{ selectedRequest().reason }}
+                </p>
+              </div>
+              } } @else if (selectedRequest().requestType === 'documentos') {
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label class="block text-sm font-medium text-gray-400 mb-1"
+                    >Tipo de Documento</label
+                  >
+                  <p class="text-white">
+                    {{ selectedRequest().document_type }}
+                  </p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-400 mb-1"
+                    >Fecha Requerida</label
+                  >
+                  <p class="text-white">
+                    {{ selectedRequest().required_date | date : 'dd/MM/yyyy' }}
+                  </p>
+                </div>
+              </div>
+              @if (selectedRequest().reason) {
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Razón</label
+                >
+                <p class="text-white">
+                  {{ selectedRequest().reason }}
+                </p>
+              </div>
+              } }
+            </div>
+          </div>
+
+          <!-- Información de Revisión (si aplica) -->
+          @if (selectedRequest().reviewed_by || selectedRequest().reviewed_at) {
+          <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
+            <h3
+              class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+            >
+              <i class="pi pi-check-circle text-purple-400"></i>
+              Información de Revisión
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              @if (selectedRequest().reviewed_by) {
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Revisado por</label
+                >
+                <p class="text-white">{{ selectedRequest().reviewed_by }}</p>
+              </div>
+              } @if (selectedRequest().reviewed_at) {
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Fecha de Revisión</label
+                >
+                <p class="text-white">
+                  {{
+                    selectedRequest().reviewed_at | date : 'dd/MM/yyyy HH:mm'
+                  }}
+                </p>
+              </div>
+              }
+            </div>
+            @if (selectedRequest().rejection_comment) {
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Comentario</label
+              >
+              <p class="text-white">
+                {{ selectedRequest().rejection_comment }}
+              </p>
+            </div>
+            }
+          </div>
+          }
+
+          <!-- Información de Creación -->
+          @if (selectedRequest().created_by) {
+          <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
+            <h3
+              class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+            >
+              <i class="pi pi-info-circle text-orange-400"></i>
+              Información de Creación
+            </h3>
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Creado por</label
+              >
+              <p class="text-white">
+                @if (selectedRequest().created_by !==
+                selectedRequest().employee_id) { Gerente de Tienda } @else {
+                Auto-solicitud del empleado }
+              </p>
+            </div>
+          </div>
+          }
+        </div>
+        }
+
+        <ng-template pTemplate="footer">
+          <div class="flex justify-end gap-2">
+            <p-button
+              label="Cerrar"
+              icon="pi pi-times"
+              severity="secondary"
+              (onClick)="showRequestDetailsDialog.set(false)"
+            />
+          </div>
+        </ng-template>
+
+        <!-- Panel lateral de preview de documento -->
+        @if (showDocumentPreview()) {
+        <div
+          class="fixed bg-neutral-900 border border-neutral-700 shadow-2xl z-[1200] transition-all duration-500 ease-out"
+          [style.width]="'400px'"
+          [style.max-width]="'40vw'"
+          [style.top]="'50%'"
+          [style.left]="'50%'"
+          [style.transform]="
+            showDocumentPreview()
+              ? 'translate(-50%, -50%) scale(1)'
+              : 'translate(-50%, -50%) scale(0.8)'
+          "
+          [style.opacity]="showDocumentPreview() ? '1' : '0'"
+          [style.max-height]="'90vh'"
+          [style.height]="'664px'"
+          [style.pointer-events]="showDocumentPreview() ? 'auto' : 'none'"
+        >
+          <div class="flex flex-col h-full">
+            <!-- Header del panel lateral -->
+            <div
+              class="p-4 border-b border-neutral-700 bg-neutral-800 flex items-center justify-between"
+            >
+              <h3
+                class="text-lg font-semibold text-white flex items-center gap-2"
+              >
+                <i class="pi pi-file text-cyan-400"></i>
+                Documento Adjunto
+              </h3>
+              <div class="flex items-center gap-2">
+                <p-button
+                  icon="pi pi-times"
+                  [rounded]="true"
+                  [text]="true"
+                  severity="secondary"
+                  (onClick)="showDocumentPreview.set(false)"
+                  size="small"
+                />
+              </div>
+            </div>
+
+            <!-- Contenido del preview -->
+            <div class="flex-1 overflow-hidden">
+              @if (selectedRequest()!.document_url) {
+              <iframe
+                [src]="getDocumentUrl()"
+                class="w-full h-full border-0"
+                title="Preview del documento"
+              ></iframe>
+              } @else {
+              <div
+                class="flex flex-col items-center justify-center h-full p-8 text-center"
+              >
+                <i class="pi pi-file text-6xl text-gray-400 mb-4"></i>
+                <h4 class="text-xl font-semibold text-white mb-2">
+                  No hay documento adjunto
+                </h4>
+                <p class="text-gray-400 mb-6">
+                  Esta solicitud no tiene un documento adjunto.
+                </p>
+              </div>
+              }
+            </div>
+          </div>
+        </div>
+        }
+
+        <!-- Overlay para cerrar el panel al hacer clic fuera -->
+        @if (showDocumentPreview()) {
+        <div
+          class="fixed inset-0 bg-black/50 z-[1199]"
+          (click)="showDocumentPreview.set(false)"
+        ></div>
+        }
+      </p-dialog>
     </div>
   `,
   styles: `
@@ -1009,28 +1571,31 @@ export class BranchManagerComponent {
   private employeesStore = inject(EmployeesStore);
   private branchesStore = inject(BranchesStore);
   private organizationService = inject(OrganizationService);
+  private sanitizer = inject(DomSanitizer);
 
   public isNaz = computed(() => this.organizationService.isNaz());
   public isAdmin = computed(() => this.store.isAdmin());
   public currentBranchFromStore = computed(() => this.store.currentBranch());
   public selectedBranchId = signal<string | null>(null);
-  
+
   // Si es admin, puede seleccionar cualquier sucursal, si no, usa su sucursal
   public currentBranch = computed(() => {
     if (this.isAdmin()) {
       const branchId = this.selectedBranchId();
       if (branchId) {
-        return this.branchesStore.entities().find(b => b.id === branchId) || null;
+        return (
+          this.branchesStore.entities().find((b) => b.id === branchId) || null
+        );
       }
       return this.currentBranchFromStore();
     }
     return this.currentBranchFromStore();
   });
-  
+
   // Lista de sucursales para el selector (solo para admins)
   public availableBranches = computed(() => {
     if (!this.isAdmin()) return [];
-    return this.branchesStore.entities().filter(b => b.is_active);
+    return this.branchesStore.entities().filter((b) => b.is_active);
   });
 
   // Signals
@@ -1043,12 +1608,16 @@ export class BranchManagerComponent {
   public newReminderEmployeeId = signal<string | null>(null);
   public newReminderMessage = signal('');
   public newReminderDueDate = signal<Date | null>(null);
-  
+  public showRequestDetailsDialog = signal(false);
+  public selectedRequest = signal<any>(null);
+  public requestRejectionComment = signal('');
+  public showDocumentPreview = signal(false);
+
   // Vista semanal de horarios
   public currentDateForSchedule = signal<Date>(new Date());
   public employeeSearchForSchedule = model<string>('');
   public currentPositionForSchedule = signal<string | null>(null);
-  
+
   private confirm = inject(ConfirmationService);
 
   // Notification type options
@@ -1068,7 +1637,9 @@ export class BranchManagerComponent {
   public branchEmployees = computed(() => {
     const branchId = this.currentBranch()?.id;
     const currentEmpId = this.currentEmployee()?.id;
-    let employees = this.employeesStore.employeesList().filter((emp) => emp.is_active);
+    let employees = this.employeesStore
+      .employeesList()
+      .filter((emp) => emp.is_active);
     // Si hay sucursal seleccionada (o es gerente), filtrar por sucursal
     if (branchId) {
       employees = employees.filter((emp) => emp.branch_id === branchId);
@@ -1186,69 +1757,75 @@ export class BranchManagerComponent {
     if (!branchId || !companyId) return [];
 
     // Obtener empleados de la sucursal actual
-    const branchEmployeeIds = new Set(
-      this.branchEmployees().map(e => e.id)
-    );
+    const branchEmployeeIds = new Set(this.branchEmployees().map((e) => e.id));
 
     // Compensatory: viene con employee join desde compensatoryTimeoffsApi
     const compensatory = (this.compensatoryTimeoffsApi.value() || [])
-      .filter(r => r.employee?.branch_id === branchId)
-      .map(r => ({ ...r, requestType: 'compensatorio' as const }));
+      .filter((r) => r.employee?.branch_id === branchId)
+      .map((r) => ({ ...r, requestType: 'compensatorio' as const }));
 
     // Disabilities: enriquecer con datos del empleado
     const disabilities = (this.disabilitiesApi.value() || [])
-      .filter(r => branchEmployeeIds.has(r.employee_id))
-      .map(r => {
+      .filter((r) => branchEmployeeIds.has(r.employee_id))
+      .map((r) => {
         const employee = this.employeesStore.entityMap()[r.employee_id];
         return {
           ...r,
-          employee: employee ? {
-            id: employee.id,
-            first_name: employee.first_name,
-            father_name: employee.father_name,
-            branch_id: employee.branch_id,
-          } : undefined,
-          requestType: 'incapacidad' as const
+          employee: employee
+            ? {
+                id: employee.id,
+                first_name: employee.first_name,
+                father_name: employee.father_name,
+                branch_id: employee.branch_id,
+              }
+            : undefined,
+          requestType: 'incapacidad' as const,
         };
       });
 
     // Vacations: enriquecer con datos del empleado
     const vacations = (this.vacationsApi.value() || [])
-      .filter(r => branchEmployeeIds.has(r.employee_id))
-      .map(r => {
+      .filter((r) => branchEmployeeIds.has(r.employee_id))
+      .map((r) => {
         const employee = this.employeesStore.entityMap()[r.employee_id];
         return {
           ...r,
-          employee: employee ? {
-            id: employee.id,
-            first_name: employee.first_name,
-            father_name: employee.father_name,
-            branch_id: employee.branch_id,
-          } : undefined,
-          requestType: 'vacaciones' as const
+          employee: employee
+            ? {
+                id: employee.id,
+                first_name: employee.first_name,
+                father_name: employee.father_name,
+                branch_id: employee.branch_id,
+              }
+            : undefined,
+          requestType: 'vacaciones' as const,
         };
       });
 
     // Documents: enriquecer con datos del empleado
     const documents = (this.documentRequestsApi.value() || [])
-      .filter(r => branchEmployeeIds.has(r.employee_id))
-      .map(r => {
+      .filter((r) => branchEmployeeIds.has(r.employee_id))
+      .map((r) => {
         const employee = this.employeesStore.entityMap()[r.employee_id];
         return {
           ...r,
-          employee: employee ? {
-            id: employee.id,
-            first_name: employee.first_name,
-            father_name: employee.father_name,
-            branch_id: employee.branch_id,
-          } : undefined,
-          requestType: 'documentos' as const
+          employee: employee
+            ? {
+                id: employee.id,
+                first_name: employee.first_name,
+                father_name: employee.father_name,
+                branch_id: employee.branch_id,
+              }
+            : undefined,
+          requestType: 'documentos' as const,
         };
       });
 
     // Combinar y ordenar por fecha de creación
-    return [...compensatory, ...disabilities, ...vacations, ...documents]
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    return [...compensatory, ...disabilities, ...vacations, ...documents].sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
   });
 
   // Filters for employee requests
@@ -1258,20 +1835,20 @@ export class BranchManagerComponent {
   // Filtered branch employee requests
   public filteredBranchEmployeeRequests = computed(() => {
     let requests = this.branchEmployeeRequests();
-    
+
     const typeFilter = this.requestTypeFilter();
     if (typeFilter) {
-      requests = requests.filter(r => r.requestType === typeFilter);
+      requests = requests.filter((r) => r.requestType === typeFilter);
     }
-    
+
     const statusFilter = this.requestStatusFilter();
     if (statusFilter) {
-      requests = requests.filter(r => {
+      requests = requests.filter((r) => {
         const status = r.status || r.review_status;
         return status === statusFilter;
       });
     }
-    
+
     return requests;
   });
 
@@ -1299,16 +1876,20 @@ export class BranchManagerComponent {
   public enrichedNotifications = computed(() => {
     const notifications = this.notificationsResource.value() || [];
     const employees = this.employeesStore.entities();
-    
-    return notifications.map(notification => {
-      const recipient = employees.find(emp => emp.id === notification.recipient_id);
+
+    return notifications.map((notification) => {
+      const recipient = employees.find(
+        (emp) => emp.id === notification.recipient_id
+      );
       return {
         ...notification,
-        recipient: recipient ? {
-          id: recipient.id,
-          first_name: recipient.first_name,
-          father_name: recipient.father_name,
-        } : undefined,
+        recipient: recipient
+          ? {
+              id: recipient.id,
+              first_name: recipient.first_name,
+              father_name: recipient.father_name,
+            }
+          : undefined,
       };
     });
   });
@@ -1322,28 +1903,28 @@ export class BranchManagerComponent {
     const dateStr = format(date, 'yyyy-MM-dd');
     const startOfDayStr = `${dateStr}T00:00:00`;
     const endOfDayStr = `${dateStr}T23:59:59`;
-    
+
     // Construir URL manualmente para aplicar correctamente filtros gte y lte
     const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`;
     const select = `*,employee:employees!inner(id,first_name,father_name,is_active)`;
-    
+
     let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
     url += `&created_at=gte.${startOfDayStr}`;
     url += `&created_at=lte.${endOfDayStr}`;
-    
+
     // Filtrar solo empleados activos
     url += `&employee.is_active=eq.true`;
-    
+
     if (branchId) {
       url += `&branch_id=eq.${branchId}`;
     }
-    
+
     if (companyId) {
       url += `&company_id=eq.${companyId}`;
     }
-    
+
     url += `&order=created_at.asc`;
-    
+
     return {
       url,
       method: 'GET',
@@ -1355,49 +1936,49 @@ export class BranchManagerComponent {
     const companyId = this.organizationService.getCurrentCompanyId();
     const start = this.weekStart();
     const end = this.weekEnd();
-    
+
     // Construir URL manualmente para asegurar que los filtros se apliquen correctamente
     const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`;
     const startDate = format(start, 'yyyy-MM-dd');
     const endDate = format(end, 'yyyy-MM-dd');
     const select = `*,schedule:schedules(*), branch:branches(id, name, short_name)`;
-    
-    let url = `${baseUrl}?select=${encodeURIComponent(select)},employee:employees!inner(id,company_id,is_active)`;
+
+    let url = `${baseUrl}?select=${encodeURIComponent(
+      select
+    )},employee:employees!inner(id,company_id,is_active)`;
     url += `&start_date=lte.${endDate}`;
     url += `&end_date=gte.${startDate}`;
-    
+
     // Filtrar solo empleados activos
     url += `&employee.is_active=eq.true`;
-    
+
     // Filtrar a través de employees.company_id (funciona incluso si employee_schedules no tiene company_id)
     if (companyId) {
       url += `&employee.company_id=eq.${companyId}`;
     }
-    
+
     return {
       url,
       method: 'GET',
     };
   });
-  
+
   // Computed para semana
   public weekStart = computed(() => {
-    const date = this.currentDateForSchedule();
-    if (isMonday(date)) {
-      return startOfDay(date);
-    }
-    if (isWeekend(date)) {
-      return startOfDay(nextMonday(date));
-    }
-    return startOfDay(previousMonday(date));
+    // Usar startOfWeek con weekStartsOn: 0 para que comience en domingo
+    return startOfWeek(this.currentDateForSchedule(), { weekStartsOn: 0 });
   });
-  
+
   public weekEnd = computed(() => endOfDay(nextSunday(this.weekStart())));
-  
+
   public currentWeekLabel = computed(() => {
-    return format(this.weekStart(), 'dd/MM/yyyy') + ' - ' + format(this.weekEnd(), 'dd/MM/yyyy');
+    return (
+      format(this.weekStart(), 'dd/MM/yyyy') +
+      ' - ' +
+      format(this.weekEnd(), 'dd/MM/yyyy')
+    );
   });
-  
+
   public weekDays = computed(() => {
     let current = this.weekStart();
     const dayList: { date: Date; day: number }[] = [];
@@ -1410,43 +1991,51 @@ export class BranchManagerComponent {
     }
     return dayList;
   });
-  
+
   // Empleados filtrados para vista semanal
   public currentEmployeesForSchedule = computed(() => {
     const branchId = this.currentBranch()?.id;
-    let employees = this.employeesStore.employeesList().filter((employee) => employee.is_active);
-    
+    let employees = this.employeesStore
+      .employeesList()
+      .filter((employee) => employee.is_active);
+
     // Filtrar por sucursal
     if (branchId) {
       employees = employees.filter((emp) => emp.branch_id === branchId);
     }
-    
+
     // Filtro por búsqueda
-    const searchTerm = this.employeeSearchForSchedule()?.toLowerCase().trim() || '';
+    const searchTerm =
+      this.employeeSearchForSchedule()?.toLowerCase().trim() || '';
     if (searchTerm) {
-      employees = employees.filter(emp => 
-        `${emp.first_name} ${emp.father_name}`.toLowerCase().includes(searchTerm) ||
-        emp.first_name.toLowerCase().includes(searchTerm) ||
-        emp.father_name.toLowerCase().includes(searchTerm)
+      employees = employees.filter(
+        (emp) =>
+          `${emp.first_name} ${emp.father_name}`
+            .toLowerCase()
+            .includes(searchTerm) ||
+          emp.first_name.toLowerCase().includes(searchTerm) ||
+          emp.father_name.toLowerCase().includes(searchTerm)
       );
     }
-    
+
     // Filtro por puesto
     const positionId = this.currentPositionForSchedule();
     if (positionId) {
-      employees = employees.filter(emp => emp.position_id === positionId);
+      employees = employees.filter((emp) => emp.position_id === positionId);
     }
-    
-    return employees.map(({ id, first_name, father_name, position, position_id }) => ({
-      id,
-      first_name,
-      father_name,
-      position,
-      position_id,
-      days: this.weekDays(),
-    }));
+
+    return employees.map(
+      ({ id, first_name, father_name, position, position_id }) => ({
+        id,
+        first_name,
+        father_name,
+        position,
+        position_id,
+        days: this.weekDays(),
+      })
+    );
   });
-  
+
   // Shifts de la semana
   public shifts = computed(() => {
     const schedules = this.schedulesResource.value() || [];
@@ -1468,7 +2057,7 @@ export class BranchManagerComponent {
         approved: shift.approved,
       }));
   });
-  
+
   // Lista de empleados con sus horarios por día
   public employeeSchedulesList = computed(() =>
     this.currentEmployeesForSchedule().map((employee) => ({
@@ -1479,14 +2068,18 @@ export class BranchManagerComponent {
           (shift) =>
             shift.employee_id === employee.id &&
             isWithinInterval(day.date, {
-              start: startOfDay(toDate(shift.start_date, { timeZone: 'America/Panama' })),
-              end: endOfDay(toDate(shift.end_date, { timeZone: 'America/Panama' })),
+              start: startOfDay(
+                toDate(shift.start_date, { timeZone: 'America/Panama' })
+              ),
+              end: endOfDay(
+                toDate(shift.end_date, { timeZone: 'America/Panama' })
+              ),
             })
         ),
       })),
     }))
   );
-  
+
   // Menu items para navegación de semanas
   public scheduleMenuItems: MenuItem[] = [
     {
@@ -1531,19 +2124,23 @@ export class BranchManagerComponent {
 
   // Computed values - Estadísticas
   public unreadNotificationsCount = computed(() => {
-    return (
-      this.enrichedNotifications()
-        .filter((n) => !n.is_read).length || 0
-    );
+    return this.enrichedNotifications().filter((n) => !n.is_read).length || 0;
   });
 
   // Estadísticas del día seleccionado
   public todayStats = computed(() => {
     const logs = this.filteredTimelogs();
-    
+
     return {
       totalEmployees: logs.length,
-      onTime: logs.filter((log: any) => !log.is_delayed && !log.is_missing && !log.lunch_exceeded && !log.is_early_exit && log.entry_time).length,
+      onTime: logs.filter(
+        (log: any) =>
+          !log.is_delayed &&
+          !log.is_missing &&
+          !log.lunch_exceeded &&
+          !log.is_early_exit &&
+          log.entry_time
+      ).length,
       delayed: logs.filter((log: any) => log.is_delayed).length,
       missing: logs.filter((log: any) => !log.entry_time).length,
       lunchExceeded: logs.filter((log: any) => log.lunch_exceeded).length,
@@ -1558,7 +2155,9 @@ export class BranchManagerComponent {
 
   // Recordatorios vencidos
   public overdueRemindersCount = computed(() => {
-    return this.filteredReminders().filter((r) => !r.is_completed && this.isOverdue(r)).length;
+    return this.filteredReminders().filter(
+      (r) => !r.is_completed && this.isOverdue(r)
+    ).length;
   });
 
   public filteredNotifications = computed(() => {
@@ -1577,7 +2176,7 @@ export class BranchManagerComponent {
     // Agrupar logs por empleado y detectar el último ciclo de turno activo
     const grouped = logs.reduce((acc: any, log: any) => {
       const logTime = new Date(log.created_at);
-      
+
       if (!acc[log.employee_id]) {
         acc[log.employee_id] = {
           employee_id: log.employee_id,
@@ -1593,9 +2192,9 @@ export class BranchManagerComponent {
           last_entry_time: null, // Para rastrear cuando inicia un nuevo ciclo
         };
       }
-      
+
       const entry = acc[log.employee_id];
-      
+
       // Detectar inicio de un nuevo ciclo de turno
       if (log.type === 'entry') {
         // Si hay una nueva entrada, reiniciar el ciclo
@@ -1609,11 +2208,11 @@ export class BranchManagerComponent {
           // Mantener la primera entrada si no ha habido salida
           entry.entry_time = entry.entry_time || logTime;
         }
-      } 
+      }
       // Solo procesar otros logs si pertenecen al ciclo actual
       else if (entry.entry_time || entry.last_entry_time) {
         const cycleStartTime = entry.last_entry_time || entry.entry_time;
-        
+
         // Solo considerar logs posteriores a la última entrada (mismo ciclo)
         if (cycleStartTime && logTime >= cycleStartTime) {
           if (log.type === 'lunch_start' && !entry.lunch_start_time) {
@@ -1625,7 +2224,7 @@ export class BranchManagerComponent {
           }
         }
       }
-      
+
       return acc;
     }, {});
 
@@ -1633,7 +2232,7 @@ export class BranchManagerComponent {
     Object.values(grouped).forEach((employeeLog: any) => {
       // Limpiar la propiedad auxiliar
       delete employeeLog.last_entry_time;
-      
+
       if (!selectedDate) return;
 
       // Encontrar horario programado del empleado para la fecha
@@ -1649,13 +2248,20 @@ export class BranchManagerComponent {
 
       // Calcular retraso en entrada
       if (employeeLog.entry_time) {
-        const delayMinutes = this.calculateDelayMinutes(employeeLog.entry_time, schedule);
-        employeeLog.is_delayed = delayMinutes > (schedule.minutes_tolerance || 0);
+        const delayMinutes = this.calculateDelayMinutes(
+          employeeLog.entry_time,
+          schedule
+        );
+        employeeLog.is_delayed =
+          delayMinutes > (schedule.minutes_tolerance || 0);
       }
 
       // Calcular salida temprana
       if (employeeLog.exit_time) {
-        const earlyExitMinutes = this.calculateEarlyExitMinutes(employeeLog.exit_time, schedule);
+        const earlyExitMinutes = this.calculateEarlyExitMinutes(
+          employeeLog.exit_time,
+          schedule
+        );
         employeeLog.is_early_exit = earlyExitMinutes > 0; // Cualquier salida antes de lo programado
       }
 
@@ -1701,7 +2307,7 @@ export class BranchManagerComponent {
     if (this.isAdmin() && this.currentBranchFromStore()) {
       this.selectedBranchId.set(this.currentBranchFromStore()?.id || null);
     }
-    
+
     // Auto-refresh notifications every 30 seconds
     setInterval(() => {
       this.refreshNotifications();
@@ -1721,9 +2327,10 @@ export class BranchManagerComponent {
     if (!schedule?.entry_time || schedule.day_off) return 0;
 
     const entryTimeStr = format(entryTime, 'HH:mm:ss');
-    const scheduleTimeStr = typeof schedule.entry_time === 'string'
-      ? schedule.entry_time
-      : format(new Date(schedule.entry_time), 'HH:mm:ss');
+    const scheduleTimeStr =
+      typeof schedule.entry_time === 'string'
+        ? schedule.entry_time
+        : format(new Date(schedule.entry_time), 'HH:mm:ss');
 
     const entryParts = entryTimeStr.split(':');
     const scheduleParts = scheduleTimeStr.split(':');
@@ -1732,7 +2339,12 @@ export class BranchManagerComponent {
     entryDate.setHours(+entryParts[0], +entryParts[1], +entryParts[2] || 0, 0);
 
     const scheduleDate = new Date();
-    scheduleDate.setHours(+scheduleParts[0], +scheduleParts[1], +scheduleParts[2] || 0, 0);
+    scheduleDate.setHours(
+      +scheduleParts[0],
+      +scheduleParts[1],
+      +scheduleParts[2] || 0,
+      0
+    );
 
     return differenceInMinutes(entryDate, scheduleDate);
   }
@@ -1741,9 +2353,10 @@ export class BranchManagerComponent {
     if (!schedule?.exit_time || schedule.day_off) return 0;
 
     const exitTimeStr = format(exitTime, 'HH:mm:ss');
-    const scheduleTimeStr = typeof schedule.exit_time === 'string'
-      ? schedule.exit_time
-      : format(new Date(schedule.exit_time), 'HH:mm:ss');
+    const scheduleTimeStr =
+      typeof schedule.exit_time === 'string'
+        ? schedule.exit_time
+        : format(new Date(schedule.exit_time), 'HH:mm:ss');
 
     const exitParts = exitTimeStr.split(':');
     const scheduleParts = scheduleTimeStr.split(':');
@@ -1752,12 +2365,21 @@ export class BranchManagerComponent {
     exitDate.setHours(+exitParts[0], +exitParts[1], +exitParts[2] || 0, 0);
 
     const scheduleDate = new Date();
-    scheduleDate.setHours(+scheduleParts[0], +scheduleParts[1], +scheduleParts[2] || 0, 0);
+    scheduleDate.setHours(
+      +scheduleParts[0],
+      +scheduleParts[1],
+      +scheduleParts[2] || 0,
+      0
+    );
 
     return differenceInMinutes(scheduleDate, exitDate);
   }
 
-  private calculateLunchExceeded(lunchStart: Date, lunchEnd: Date, schedule: any): boolean {
+  private calculateLunchExceeded(
+    lunchStart: Date,
+    lunchEnd: Date,
+    schedule: any
+  ): boolean {
     if (!schedule?.lunch_duration_minutes || schedule.day_off) return false;
 
     const lunchDuration = differenceInMinutes(lunchEnd, lunchStart);
@@ -1766,16 +2388,23 @@ export class BranchManagerComponent {
     return lunchDuration > allowedDuration;
   }
 
-  private findEmployeeScheduleForDate(employeeId: string, date: Date, schedules: any[]): any {
-    return schedules.find(s =>
-      s.employee_id === employeeId &&
-      date >= new Date(s.start_date) &&
-      date <= new Date(s.end_date)
+  private findEmployeeScheduleForDate(
+    employeeId: string,
+    date: Date,
+    schedules: any[]
+  ): any {
+    return schedules.find(
+      (s) =>
+        s.employee_id === employeeId &&
+        date >= new Date(s.start_date) &&
+        date <= new Date(s.end_date)
     );
   }
 
   // Helper methods
-  public getEmployeeInitials(employee?: Employee | { first_name?: string; father_name?: string }): string {
+  public getEmployeeInitials(
+    employee?: Employee | { first_name?: string; father_name?: string }
+  ): string {
     if (!employee) return '?';
     const first = employee.first_name?.charAt(0) || '';
     const last = employee.father_name?.charAt(0) || '';
@@ -1793,8 +2422,20 @@ export class BranchManagerComponent {
     return labels[type] || type;
   }
 
-  public getNotificationSeverity(type: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' | undefined {
-    const severities: Record<string, 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'> = {
+  public getNotificationSeverity(
+    type: string
+  ):
+    | 'success'
+    | 'info'
+    | 'warn'
+    | 'danger'
+    | 'secondary'
+    | 'contrast'
+    | undefined {
+    const severities: Record<
+      string,
+      'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'
+    > = {
       delay: 'danger',
       on_time: 'success',
       missing: 'warn',
@@ -1844,13 +2485,23 @@ export class BranchManagerComponent {
   }
 
   public viewRequestDetails(request: any) {
-    // TODO: Implementar diálogo con detalles completos de la solicitud
-    console.log('Ver detalles de solicitud:', request);
-    this.message.add({
-      severity: 'info',
-      summary: 'Funcionalidad en desarrollo',
-      detail: 'Los detalles completos de la solicitud se mostrarán próximamente',
-    });
+    this.selectedRequest.set(request);
+    this.requestRejectionComment.set(request.rejection_comment || '');
+    this.showRequestDetailsDialog.set(true);
+  }
+
+  public openDocumentPreview(): void {
+    this.showDocumentPreview.set(true);
+  }
+
+  public getDocumentUrl(): any {
+    const request = this.selectedRequest();
+    if (!request?.document_url) {
+      return '';
+    }
+    return this.sanitizer.bypassSecurityTrustResourceUrl(
+      `${request.document_url}#toolbar=1&navpanes=1&scrollbar=1`
+    );
   }
 
   public getRequestTypeLabel(type: string): string {
@@ -1863,8 +2514,20 @@ export class BranchManagerComponent {
     return labels[type] || type;
   }
 
-  public getRequestTypeSeverity(type: string): 'secondary' | 'info' | 'success' | 'warn' | 'danger' | 'contrast' | undefined {
-    const severities: Record<string, 'secondary' | 'info' | 'success' | 'warn' | 'danger' | 'contrast'> = {
+  public getRequestTypeSeverity(
+    type: string
+  ):
+    | 'secondary'
+    | 'info'
+    | 'success'
+    | 'warn'
+    | 'danger'
+    | 'contrast'
+    | undefined {
+    const severities: Record<
+      string,
+      'secondary' | 'info' | 'success' | 'warn' | 'danger' | 'contrast'
+    > = {
       compensatorio: 'info',
       incapacidad: 'warn',
       vacaciones: 'success',
@@ -1883,9 +2546,21 @@ export class BranchManagerComponent {
     return labels[status] || status;
   }
 
-  public getRequestStatusSeverity(request: any): 'secondary' | 'info' | 'success' | 'warn' | 'danger' | 'contrast' | undefined {
+  public getRequestStatusSeverity(
+    request: any
+  ):
+    | 'secondary'
+    | 'info'
+    | 'success'
+    | 'warn'
+    | 'danger'
+    | 'contrast'
+    | undefined {
     const status = request.status || request.review_status;
-    const severities: Record<string, 'secondary' | 'info' | 'success' | 'warn' | 'danger' | 'contrast'> = {
+    const severities: Record<
+      string,
+      'secondary' | 'info' | 'success' | 'warn' | 'danger' | 'contrast'
+    > = {
       pending: 'warn',
       approved: 'success',
       rejected: 'danger',
@@ -1973,7 +2648,7 @@ export class BranchManagerComponent {
         this.refreshSchedules();
       });
   }
-  
+
   public deleteSchedule(id: string) {
     this.confirm.confirm({
       header: 'Eliminar horario',
@@ -1991,11 +2666,11 @@ export class BranchManagerComponent {
       accept: () => {
         const companyId = this.organizationService.getCurrentCompanyId();
         const params: any = { id: `eq.${id}` };
-        
+
         if (companyId) {
           params.company_id = `eq.${companyId}`;
         }
-        
+
         this.http
           .delete(
             `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
@@ -2021,7 +2696,7 @@ export class BranchManagerComponent {
       },
     });
   }
-  
+
   public approveSchedule(id: string) {
     this.confirm.confirm({
       header: 'Aprobar horario',
@@ -2039,11 +2714,11 @@ export class BranchManagerComponent {
       accept: () => {
         const companyId = this.organizationService.getCurrentCompanyId();
         const params: any = { id: `eq.${id}` };
-        
+
         if (companyId) {
           params.company_id = `eq.${companyId}`;
         }
-        
+
         this.http
           .patch(
             `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
@@ -2070,20 +2745,20 @@ export class BranchManagerComponent {
       },
     });
   }
-  
+
   // Navegación de semanas
   public nextWeekSchedule() {
     this.currentDateForSchedule.update((value) => addWeeks(value, 1));
   }
-  
+
   public previousWeekSchedule() {
     this.currentDateForSchedule.update((value) => subWeeks(value, 1));
   }
-  
+
   public goTodaySchedule() {
     this.currentDateForSchedule.set(new Date());
   }
-  
+
   // Tooltip para horarios
   public getScheduleTooltip(shift: any): string {
     if (!shift) return '';
@@ -2113,11 +2788,13 @@ export class BranchManagerComponent {
       });
       return;
     }
-    
+
     // Si es admin y no hay sucursal seleccionada, usar la sucursal del empleado o la primera disponible
     let finalBranchId: string | undefined = branchId;
     if (!finalBranchId && employeeId) {
-      const employee = this.employeesStore.entities().find(e => e.id === employeeId);
+      const employee = this.employeesStore
+        .entities()
+        .find((e) => e.id === employeeId);
       finalBranchId = employee?.branch_id || undefined;
     }
     if (!finalBranchId) {
@@ -2209,7 +2886,9 @@ export class BranchManagerComponent {
   public async onSubmitCompensatoryFromBranchManager(data: any): Promise<void> {
     try {
       // Importar la función de upload compensatorio
-      const { uploadCompensatory } = await import('../employee-portal/actions/employee-portal-compensatory.actions');
+      const { uploadCompensatory } = await import(
+        '../employee-portal/actions/employee-portal-compensatory.actions'
+      );
 
       // Preparar las dependencias para el branch manager
       const deps = {
@@ -2231,9 +2910,11 @@ export class BranchManagerComponent {
         summary: 'Solicitud Enviada',
         detail: `La solicitud de compensatorio para ${data.employee?.first_name} ${data.employee?.father_name} ha sido enviada correctamente`,
       });
-
     } catch (error) {
-      console.error('Error submitting compensatory from branch manager:', error);
+      console.error(
+        'Error submitting compensatory from branch manager:',
+        error
+      );
       this.message.add({
         severity: 'error',
         summary: 'Error',
@@ -2242,4 +2923,3 @@ export class BranchManagerComponent {
     }
   }
 }
-
