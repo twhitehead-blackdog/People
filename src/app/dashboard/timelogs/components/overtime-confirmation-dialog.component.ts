@@ -3,8 +3,10 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   input,
   output,
+  signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
@@ -75,31 +77,57 @@ export interface OvertimeDialogResult {
           />
         </div>
 
-        <!-- Overtime Hours -->
+        <!-- Overtime Hours - Separate Hours and Minutes -->
         <div class="flex flex-col gap-2">
-          <label class="text-sm font-medium text-gray-300">
-            Horas Extras Detectadas
-          </label>
+          <div class="flex items-center justify-between">
+            <label class="text-sm font-medium text-gray-300">
+              Horas Extras Detectadas
+            </label>
+            <!-- Always show original time -->
+            <span class="text-xs text-gray-400">
+              Original: {{ formatHours(originalHours()) }}
+            </span>
+          </div>
           <div class="flex items-center gap-3">
-            <p-inputNumber
-              [(ngModel)]="editableHours"
-              [showButtons]="true"
-              [min]="0"
-              [max]="24"
-              [step]="0.5"
-              mode="decimal"
-              [minFractionDigits]="1"
-              [maxFractionDigits]="2"
-              suffix=" horas"
-              inputStyleClass="w-full"
-              [disabled]="isConfirmed()"
-            />
-            @if (originalHours() !== editableHours) {
-            <span class="text-xs text-amber-400">
-              (Original: {{ formatHours(originalHours()) }})
+            <!-- Hours Input -->
+            <div class="flex flex-col gap-1">
+              <label class="text-xs text-gray-500">Horas</label>
+              <p-inputNumber
+                [ngModel]="editableHoursInt()"
+                (ngModelChange)="editableHoursInt.set($event)"
+                [showButtons]="true"
+                [min]="0"
+                [max]="24"
+                [step]="1"
+                inputStyleClass="w-20"
+                [disabled]="isInputDisabled()"
+              />
+            </div>
+            <!-- Minutes Input -->
+            <div class="flex flex-col gap-1">
+              <label class="text-xs text-gray-500">Minutos</label>
+              <p-inputNumber
+                [ngModel]="editableMinutes()"
+                (ngModelChange)="editableMinutes.set($event)"
+                [showButtons]="true"
+                [min]="0"
+                [max]="55"
+                [step]="15"
+                inputStyleClass="w-20"
+                [disabled]="isInputDisabled()"
+              />
+            </div>
+            @if (hasChanged()) {
+            <span class="text-xs text-amber-400 self-end pb-2">
+              (Modificado)
             </span>
             }
           </div>
+          @if (!hasOvertime()) {
+          <span class="text-xs text-gray-500 italic">
+            No hay horas extras registradas para este día.
+          </span>
+          }
         </div>
 
         <!-- Reason/Comment -->
@@ -110,10 +138,11 @@ export interface OvertimeDialogResult {
           </label>
           <textarea
             pInputTextarea
-            [(ngModel)]="reason"
+            [ngModel]="reason()"
+            (ngModelChange)="reason.set($event)"
             rows="3"
             placeholder="Agregar comentario..."
-            [disabled]="isConfirmed()"
+            [disabled]="isInputDisabled()"
             class="w-full"
           ></textarea>
         </div>
@@ -159,9 +188,9 @@ export interface OvertimeDialogResult {
 
       <!-- Footer Actions -->
       <ng-template pTemplate="footer">
-        <div class="flex justify-between w-full gap-2">
+        <div class="flex justify-between w-full gap-2 mt-4">
           <div>
-            @if (!isConfirmed()) {
+            @if (!isConfirmed() && hasOvertime()) {
             <p-button
               label="Rechazar"
               severity="danger"
@@ -173,14 +202,7 @@ export interface OvertimeDialogResult {
             }
           </div>
           <div class="flex gap-2">
-            <p-button
-              label="Cancelar"
-              severity="secondary"
-              [text]="true"
-              (onClick)="onCancel()"
-              [disabled]="isLoading()"
-            />
-            @if (!isConfirmed()) {
+            @if (!isConfirmed() && hasOvertime()) {
             <p-button
               label="Confirmar"
               severity="success"
@@ -207,9 +229,10 @@ export class OvertimeConfirmationDialogComponent {
   visibleChange = output<boolean>();
   result = output<OvertimeDialogResult>();
 
-  // Editable state
-  editableHours = 0;
-  reason = '';
+  // Editable state - using signals for proper reactivity
+  editableHoursInt = signal(0);
+  editableMinutes = signal(0);
+  reason = signal('');
 
   // Computed properties
   employeeName = computed(() => {
@@ -218,8 +241,22 @@ export class OvertimeConfirmationDialogComponent {
     return `${employee.first_name ?? ''} ${employee.father_name ?? ''}`.trim();
   });
 
+  // Original hours from the timelog (source of truth)
   originalHours = computed(() => {
     return this.existingRecord()?.hours ?? this.log()?.overtimeHours ?? 0;
+  });
+
+  // Separated original hours and minutes for display
+  originalHoursInt = computed(() => Math.floor(this.originalHours()));
+  originalMinutesInt = computed(() => {
+    const hours = this.originalHours();
+    const minutes = Math.round((hours - Math.floor(hours)) * 60);
+    // Round to nearest 15
+    return Math.round(minutes / 15) * 15;
+  });
+
+  hasOvertime = computed(() => {
+    return this.originalHours() > 0;
   });
 
   status = computed((): OvertimeStatus => {
@@ -228,6 +265,19 @@ export class OvertimeConfirmationDialogComponent {
 
   isConfirmed = computed(() => {
     return this.status() === 'confirmed';
+  });
+
+  // Disable inputs if no overtime OR already confirmed
+  isInputDisabled = computed(() => {
+    return !this.hasOvertime() || this.isConfirmed();
+  });
+
+  // Check if user has modified the value
+  hasChanged = computed(() => {
+    const originalTotalMinutes = Math.round(this.originalHours() * 60);
+    const currentTotalMinutes =
+      this.editableHoursInt() * 60 + this.editableMinutes();
+    return originalTotalMinutes !== currentTotalMinutes;
   });
 
   statusLabel = computed(() => {
@@ -271,50 +321,76 @@ export class OvertimeConfirmationDialogComponent {
     }`.trim();
   });
 
-  // Initialize editable values when dialog opens
-  ngOnChanges(): void {
-    if (this.visible()) {
-      this.editableHours = this.originalHours();
-      this.reason = this.existingRecord()?.reason ?? '';
+  constructor() {
+    // Effect to reset editable values when dialog opens
+    // This ensures values are always reset to original when opening
+    effect(() => {
+      if (this.visible()) {
+        this.resetToOriginal();
+      }
+    });
+  }
+
+  /**
+   * Reset editable values to the original detected time
+   */
+  private resetToOriginal(): void {
+    const hours = this.originalHours();
+    const hoursInt = Math.floor(hours);
+    let minutes = Math.round((hours - hoursInt) * 60);
+    // Round minutes to nearest step (15)
+    minutes = Math.round(minutes / 15) * 15;
+
+    // Handle overflow
+    if (minutes >= 60) {
+      this.editableHoursInt.set(hoursInt + 1);
+      this.editableMinutes.set(0);
+    } else {
+      this.editableHoursInt.set(hoursInt);
+      this.editableMinutes.set(minutes);
     }
+
+    this.reason.set(this.existingRecord()?.reason ?? '');
+  }
+
+  // Combine hours and minutes into decimal hours
+  private getTotalHours(): number {
+    return this.editableHoursInt() + this.editableMinutes() / 60;
   }
 
   formatHours(hours: number): string {
-    if (!hours) return '0h';
+    if (!hours) return '0h 0m';
     const h = Math.floor(hours);
     const m = Math.round((hours - h) * 60);
-    if (m === 0) return `${h}h`;
     return `${h}h ${m}m`;
   }
 
   onVisibleChange(visible: boolean): void {
     this.visibleChange.emit(visible);
     if (!visible) {
-      this.onCancel();
+      // When closing, emit cancel - values will be reset on next open
+      this.result.emit({ action: 'cancel' });
     }
   }
 
   onConfirm(): void {
     this.result.emit({
       action: 'confirm',
-      hours: this.editableHours,
-      reason: this.reason || undefined,
+      hours: this.getTotalHours(),
+      reason: this.reason() || undefined,
     });
   }
 
   onReject(): void {
     // Require reason for rejection
-    if (!this.reason.trim()) {
-      this.reason = 'Rechazado sin comentario';
+    const currentReason = this.reason();
+    if (!currentReason.trim()) {
+      this.reason.set('Rechazado sin comentario');
     }
     this.result.emit({
       action: 'reject',
-      hours: this.editableHours,
-      reason: this.reason,
+      hours: this.getTotalHours(),
+      reason: this.reason(),
     });
-  }
-
-  onCancel(): void {
-    this.result.emit({ action: 'cancel' });
   }
 }

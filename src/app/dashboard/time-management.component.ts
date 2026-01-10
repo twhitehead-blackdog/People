@@ -59,7 +59,7 @@ import { DashboardStore } from '../stores/dashboard.store';
                 'text-amber-300',
                 'shadow-md'
               ]"
-              ><i class="pi pi-scissors text-base"></i>
+              ><i class="pi pi-shop text-base"></i>
               <span>Horario Peluquería</span></a
             >
             }
