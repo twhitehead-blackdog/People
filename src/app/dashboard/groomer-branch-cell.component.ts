@@ -1,4 +1,4 @@
-import { DatePipe, NgClass } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { Component, input, output } from '@angular/core';
 import { Button } from 'primeng/button';
 import { Popover } from 'primeng/popover';
@@ -8,7 +8,7 @@ import { GroomerBranchAssignment } from '../models';
 @Component({
   selector: 'pt-groomer-branch-cell',
   standalone: true,
-  imports: [NgClass, DatePipe, Button, Popover, Tooltip],
+  imports: [DatePipe, Button, Popover, Tooltip],
   template: `
     @if (isNonWorking()) {
     <div

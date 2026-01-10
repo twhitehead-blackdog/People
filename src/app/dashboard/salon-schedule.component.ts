@@ -1,4 +1,4 @@
-import { DatePipe, NgClass, registerLocaleData } from '@angular/common';
+import { DatePipe, registerLocaleData } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import esLocale from '@angular/common/locales/es';
 import {
@@ -47,7 +47,6 @@ type GroomerWithAssignments = {
     Card,
     TableModule,
     Button,
-    NgClass,
     FormsModule,
     Tag,
     DatePipe,

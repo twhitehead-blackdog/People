@@ -23,6 +23,7 @@ import {
   colorVariants,
   DayLog,
   Employee,
+  EmployeeOvertimeRecord,
   EmployeeScheduleData,
   getScheduleColorInlineStyle as getColorStyle,
   TimeoffData,
@@ -32,9 +33,13 @@ import { LoggerService } from '../services/logger.service';
 import { OrganizationService } from '../services/organization.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
-import { OvertimeConfirmationDialogComponent } from './timelogs/components/overtime-confirmation-dialog.component';
+import {
+  OvertimeConfirmationDialogComponent,
+  OvertimeDialogResult,
+} from './timelogs/components/overtime-confirmation-dialog.component';
 import { TimelogsFiltersComponent } from './timelogs/components/timelogs-filters.component';
 import { TimelogsTableComponent } from './timelogs/components/timelogs-table.component';
+import { OvertimeRecordsService } from './timelogs/services/overtime-records.service';
 import { TimelogsApiService } from './timelogs/timelogs-api.service';
 import {
   formatHours,

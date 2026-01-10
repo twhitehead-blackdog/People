@@ -435,7 +435,7 @@ export class TimelogsTableComponent {
   // Value styling based on overtime status
   public getOvertimeValueClass(log: DayLog): Record<string, boolean> {
     const status = this.getOvertimeStatus(log);
-    const hasOvertime = log.overtimeHours && log.overtimeHours > 0;
+    const hasOvertime: boolean = !!(log.overtimeHours && log.overtimeHours > 0);
 
     return {
       'text-green-500 font-semibold': hasOvertime && status === 'confirmed',
