@@ -48,6 +48,20 @@ import { DashboardStore } from '../stores/dashboard.store';
               ]"
               ><i class="pi pi-heart text-base"></i> <span>Horario Vet</span></a
             >
+            } @if(store.isAdmin()) {
+            <a
+              routerLink="salon-schedule"
+              class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
+              [routerLinkActive]="[
+                'bg-gradient-to-r',
+                'from-amber-500/20',
+                'to-amber-600/20',
+                'text-amber-300',
+                'shadow-md'
+              ]"
+              ><i class="pi pi-scissors text-base"></i>
+              <span>Horario Peluquería</span></a
+            >
             }
             <a
               routerLink="timetables"

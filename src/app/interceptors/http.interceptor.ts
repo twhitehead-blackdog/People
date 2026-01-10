@@ -1,10 +1,10 @@
 import { HttpInterceptorFn } from '@angular/common/http';
 import { inject, isDevMode } from '@angular/core';
 import { AuthService } from '@auth0/auth0-angular';
-import { catchError, finalize, switchMap, tap, throwError } from 'rxjs';
+import { catchError, switchMap, tap, throwError } from 'rxjs';
 import { ApiUrlService } from '../services/api-url.service';
-import { getEnv } from '../utils/env.utils';
 import { DiagnosticService } from '../services/diagnostic.service';
+import { getEnv } from '../utils/env.utils';
 
 // Detectar si estamos en desarrollo
 const isDevelopment =
@@ -32,11 +32,21 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
     const isTimeoffsRequest = req.url.includes('/rest/v1/timeoffs');
     const isNotificationsRequest = req.url.includes('/rest/v1/notifications');
     const isHrMessagesRequest = req.url.includes('/rest/v1/hr_messages');
-    const isEmployeeDisabilitiesRequest = req.url.includes('/rest/v1/employee_disabilities');
+    const isEmployeeDisabilitiesRequest = req.url.includes(
+      '/rest/v1/employee_disabilities'
+    );
     // Horario Vet: por simplicidad el frontend ya controla permisos (solo admin),
     // así que usamos service_role para evitar problemas de RLS con anon key.
-    const isVetBranchAssignmentsRequest = req.url.includes('/rest/v1/vet_branch_assignments');
-    const isVetBranchAuditRequest = req.url.includes('/rest/v1/vet_branch_audit_log');
+    const isVetBranchAssignmentsRequest = req.url.includes(
+      '/rest/v1/vet_branch_assignments'
+    );
+    const isVetBranchAuditRequest = req.url.includes(
+      '/rest/v1/vet_branch_audit_log'
+    );
+    // Horario Peluquería: mismo enfoque que Vet
+    const isGroomerBranchAssignmentsRequest = req.url.includes(
+      '/rest/v1/groomer_branch_assignments'
+    );
     const needsServiceRoleKey =
       isSettingsRequest ||
       isJobApplicationsRequest ||
@@ -45,7 +55,8 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
       isHrMessagesRequest ||
       isEmployeeDisabilitiesRequest ||
       isVetBranchAssignmentsRequest ||
-      isVetBranchAuditRequest;
+      isVetBranchAuditRequest ||
+      isGroomerBranchAssignmentsRequest;
 
     // Para Service Role Key, intentar todas las variantes posibles
     // ENV_SUPABASE_TOKEN y ENV_SUPABASE_SERVICE_ROLE_KEY deberían ser la misma clave
@@ -55,14 +66,16 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
         getEnv('ENV_SUPABASE_ANON_KEY') ||
         getEnv('ENV_SUPABASE_API_KEY') ||
         ''
-      : getEnv('ENV_SUPABASE_ANON_KEY') ||
-        getEnv('ENV_SUPABASE_API_KEY') ||
-        '';
+      : getEnv('ENV_SUPABASE_ANON_KEY') || getEnv('ENV_SUPABASE_API_KEY') || '';
 
     // Si es una petición que necesita service role key y no hay disponible, mostrar error más claro
     // Solo en desarrollo para evitar exponer información sensible
     if (needsServiceRoleKey && !supabaseKey) {
-      if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+      if (
+        typeof window !== 'undefined' &&
+        (window.location.hostname === 'localhost' ||
+          window.location.hostname === '127.0.0.1')
+      ) {
         console.error(
           '[ERROR] No se encontró ENV_SUPABASE_SERVICE_ROLE_KEY para peticiones a ' +
             (isSettingsRequest ? 'settings' : 'job_applications') +
@@ -88,7 +101,9 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
             : `${existingPrefer},return=representation`
           : 'return=representation';
 
-      headers = headers.set('Prefer', preferValue).set('Content-Type', 'application/json');
+      headers = headers
+        .set('Prefer', preferValue)
+        .set('Content-Type', 'application/json');
     }
 
     // Agregar header Range para peticiones a timelogs que necesitan más de 1000 registros
@@ -108,7 +123,10 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
           if (isDevelopment && startTime !== null) {
             const duration = Math.round(performance.now() - startTime);
             // Solo loguear en localhost, nunca en producción
-            if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+            if (
+              window.location.hostname === 'localhost' ||
+              window.location.hostname === '127.0.0.1'
+            ) {
               console.log(`[${method}] ${url} - ${duration}ms`);
             }
           }
@@ -118,7 +136,11 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
         // Logging de errores (solo en desarrollo)
         if (isDevelopment && startTime !== null) {
           const duration = Math.round(performance.now() - startTime);
-          console.error(`[${method}] ${url} - ERROR ${error.status || 'NETWORK'} - ${duration}ms`);
+          console.error(
+            `[${method}] ${url} - ERROR ${
+              error.status || 'NETWORK'
+            } - ${duration}ms`
+          );
         }
 
         // Capturar errores de Supabase
