@@ -1415,7 +1415,12 @@ type Reminder = {
                 <label class="block text-sm font-medium text-gray-400 mb-1"
                   >Revisado por</label
                 >
-                <p class="text-white">{{ selectedRequest().reviewed_by }}</p>
+                <p class="text-white">
+                  {{
+                    selectedRequest().reviewedByEmployee ||
+                      selectedRequest().reviewed_by
+                  }}
+                </p>
               </div>
               } @if (selectedRequest().reviewed_at) {
               <div>
@@ -1667,12 +1672,12 @@ export class BranchManagerComponent {
       return undefined; // No hacer request si no hay company_id
     }
 
-    // La tabla timeoffs tiene múltiples relaciones con employees (employee_id, reviewed_by, registered_by)
+    // La tabla timeoffs tiene múltiples relaciones con employees (employee_id, reviewed_by)
     // No necesitamos incluir la relación employee porque:
     // 1. Ya filtramos por employee_id directamente, que garantiza que pertenece al empleado correcto
     // 2. Los datos del empleado ya están disponibles en employeesStore
     const params: any = {
-      select: `id,employee_id,type_id,date_from,date_to,notes,is_approved,compensatory_type,compensatory_amount,review_status,reviewed_by,reviewed_at,registered_by,registered_at,rejection_comment,created_at,company_id,document_url,type:timeoff_types(id,name),employee:employees!time_offs_employee_id_fkey(id,first_name,father_name,work_email,company_id,branch_id,position:positions(name),branch:branches(name))`,
+      select: `id,employee_id,type_id,date_from,date_to,notes,is_approved,compensatory_type,compensatory_amount,review_status,reviewed_by,reviewed_at,rejection_comment,created_at,company_id,document_url,type:timeoff_types(id,name),employee:employees!time_offs_employee_id_fkey(id,first_name,father_name,work_email,company_id,branch_id,position:positions(name),branch:branches(name))`,
       // Filtrar por company_id (campo agregado a la tabla)
       company_id: `eq.${companyId}`,
       type_id: `eq.${compensatoryTypeId}`,
@@ -1762,13 +1767,31 @@ export class BranchManagerComponent {
     // Compensatory: viene con employee join desde compensatoryTimeoffsApi
     const compensatory = (this.compensatoryTimeoffsApi.value() || [])
       .filter((r) => r.employee?.branch_id === branchId)
-      .map((r) => ({ ...r, requestType: 'compensatorio' as const }));
+      .map((r) => {
+        const reviewerId = r.reviewed_by;
+        const reviewer = reviewerId
+          ? this.employeesStore.entityMap()[reviewerId]
+          : null;
+
+        return {
+          ...r,
+          reviewedByEmployee: reviewer
+            ? `${reviewer.first_name} ${reviewer.father_name}`
+            : r.reviewed_by,
+          requestType: 'compensatorio' as const,
+        };
+      });
 
     // Disabilities: enriquecer con datos del empleado
     const disabilities = (this.disabilitiesApi.value() || [])
       .filter((r) => branchEmployeeIds.has(r.employee_id))
       .map((r) => {
         const employee = this.employeesStore.entityMap()[r.employee_id];
+        const reviewerId = r.reviewed_by;
+        const reviewer = reviewerId
+          ? this.employeesStore.entityMap()[reviewerId]
+          : null;
+
         return {
           ...r,
           employee: employee
@@ -1779,6 +1802,9 @@ export class BranchManagerComponent {
                 branch_id: employee.branch_id,
               }
             : undefined,
+          reviewedByEmployee: reviewer
+            ? `${reviewer.first_name} ${reviewer.father_name}`
+            : r.reviewed_by,
           requestType: 'incapacidad' as const,
         };
       });
@@ -1788,6 +1814,11 @@ export class BranchManagerComponent {
       .filter((r) => branchEmployeeIds.has(r.employee_id))
       .map((r) => {
         const employee = this.employeesStore.entityMap()[r.employee_id];
+        const reviewerId = r.reviewed_by;
+        const reviewer = reviewerId
+          ? this.employeesStore.entityMap()[reviewerId]
+          : null;
+
         return {
           ...r,
           employee: employee
@@ -1798,6 +1829,9 @@ export class BranchManagerComponent {
                 branch_id: employee.branch_id,
               }
             : undefined,
+          reviewedByEmployee: reviewer
+            ? `${reviewer.first_name} ${reviewer.father_name}`
+            : r.reviewed_by,
           requestType: 'vacaciones' as const,
         };
       });
@@ -1807,6 +1841,11 @@ export class BranchManagerComponent {
       .filter((r) => branchEmployeeIds.has(r.employee_id))
       .map((r) => {
         const employee = this.employeesStore.entityMap()[r.employee_id];
+        const reviewerId = r.reviewed_by;
+        const reviewer = reviewerId
+          ? this.employeesStore.entityMap()[reviewerId]
+          : null;
+
         return {
           ...r,
           employee: employee
@@ -1817,6 +1856,9 @@ export class BranchManagerComponent {
                 branch_id: employee.branch_id,
               }
             : undefined,
+          reviewedByEmployee: reviewer
+            ? `${reviewer.first_name} ${reviewer.father_name}`
+            : r.reviewed_by,
           requestType: 'documentos' as const,
         };
       });

@@ -12,14 +12,13 @@ import {
 import { ActivatedRoute, Router } from '@angular/router';
 import { addDays, differenceInDays, format, startOfDay } from 'date-fns';
 import { MessageService } from 'primeng/api';
-import { Employee } from '../models';
 import { Card } from 'primeng/card';
 import { ToastModule } from 'primeng/toast';
+import { Employee } from '../models';
 import { ApiUrlService } from '../services/api-url.service';
 import { EmployeePortalNavigationService } from '../services/employee-portal-navigation.service';
 import { NotificationsService } from '../services/notifications.service';
 import { OrganizationService } from '../services/organization.service';
-import { getBooleanSetting } from '../utils/settings-http.utils';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeePortalStore } from '../stores/employee-portal.store';
 import { EmployeesStore } from '../stores/employees.store';
@@ -341,7 +340,9 @@ import {
           (compensatoryFileChange)="setCompensatoryFile($event)"
           [isBranchManagerView]="isBranchManager()"
           [availableEmployees]="branchEmployees()"
-          [selectedEmployeeId]="portalStore.compensatoryForm().selectedEmployeeId"
+          [selectedEmployeeId]="
+            portalStore.compensatoryForm().selectedEmployeeId
+          "
           (selectedEmployeeIdChange)="setSelectedEmployeeId($event)"
           (submitRequest)="submitCompensatoryRequest()"
           (openTutorial)="setShowTutorialDialog(true)"
@@ -681,16 +682,18 @@ export class EmployeePortalComponent {
       return [];
     }
 
-    return this.employees.activeEmployees()
-      .filter((emp: Employee) =>
-        emp.branch_id === currentEmp.branch_id &&
-        emp.id !== currentEmp.id &&
-        emp.is_active
+    return this.employees
+      .activeEmployees()
+      .filter(
+        (emp: Employee) =>
+          emp.branch_id === currentEmp.branch_id &&
+          emp.id !== currentEmp.id &&
+          emp.is_active
       )
       .map((emp: Employee) => ({
         id: emp.id,
         short_name: `${emp.first_name} ${emp.father_name}`.trim(),
-        name: `${emp.first_name} ${emp.father_name}`.trim()
+        name: `${emp.first_name} ${emp.father_name}`.trim(),
       }))
       .sort((a: any, b: any) => a.name.localeCompare(b.name));
   });
@@ -1041,7 +1044,7 @@ export class EmployeePortalComponent {
       const compensatoryTypeId = 'f2d92995-96a0-414f-b64a-9823db776745';
 
       const baseUrl = this.apiUrl.build('rest/v1/timeoffs');
-      // La tabla timeoffs tiene múltiples relaciones con employees (employee_id, reviewed_by, registered_by)
+      // La tabla timeoffs tiene múltiples relaciones con employees (employee_id, reviewed_by)
       // No necesitamos incluir la relación employee porque:
       // 1. approvedCompensatoryHours solo usa date_from y date_to (campos directos de timeoffs)
       // 2. Ya filtramos por employee_id directamente, que garantiza que pertenece al empleado correcto
@@ -1223,7 +1226,7 @@ export class EmployeePortalComponent {
       const url = this.apiUrl.build('rest/v1/settings', {
         select: 'value',
         key: 'eq.hr_email_recipients_compensatory',
-        limit: 1
+        limit: 1,
       });
 
       console.log('[DEBUG] 📡 Consultando configuracion compensatorios:', url);
@@ -1231,18 +1234,29 @@ export class EmployeePortalComponent {
       const response = await this.http.get<any>(url).toPromise();
       console.log('[DEBUG] 📥 Respuesta API compensatorios:', response);
 
-      const recipientsString = response?.[0]?.value || 'Verley@blackdogpanama.com,soporte2@blackdogpanama.com';
-      console.log('[DEBUG] 📋 String destinatarios compensatorios:', recipientsString);
+      const recipientsString =
+        response?.[0]?.value ||
+        'Verley@blackdogpanama.com,soporte2@blackdogpanama.com';
+      console.log(
+        '[DEBUG] 📋 String destinatarios compensatorios:',
+        recipientsString
+      );
 
       const recipients = recipientsString
         .split(',')
         .map((email: string) => email.trim())
         .filter((email: string) => email.length > 0);
 
-      console.log('[DEBUG] ✅ Destinatarios compensatorios procesados:', recipients);
+      console.log(
+        '[DEBUG] ✅ Destinatarios compensatorios procesados:',
+        recipients
+      );
       return recipients;
     } catch (error) {
-      console.error('[DEBUG] ❌ Error obteniendo destinatarios de compensatorios:', error);
+      console.error(
+        '[DEBUG] ❌ Error obteniendo destinatarios de compensatorios:',
+        error
+      );
       console.log('[DEBUG] 🔄 Usando valores por defecto para compensatorios');
       // Fallback a valores por defecto
       return ['Verley@blackdogpanama.com', 'soporte2@blackdogpanama.com'];
@@ -1256,13 +1270,19 @@ export class EmployeePortalComponent {
 
     console.log('[DEBUG Component] ===== FORMULARIO COMPENSATORIO =====');
     console.log('[DEBUG Component] Tipo:', form.type);
-    console.log('[DEBUG Component] Fecha compensatorio:', form.compensatoryDate);
+    console.log(
+      '[DEBUG Component] Fecha compensatorio:',
+      form.compensatoryDate
+    );
     console.log('[DEBUG Component] Hora inicio:', form.compensatoryTimeStart);
     console.log('[DEBUG Component] Hora fin:', form.compensatoryTimeEnd);
     console.log('[DEBUG Component] Fecha inicio período:', form.startDate);
     console.log('[DEBUG Component] Fecha fin período:', form.endDate);
     console.log('[DEBUG Component] Cantidad total:', this.compensatoryAmount());
-    console.log('[DEBUG Component] Puede enviar:', this.canSubmitCompensatory());
+    console.log(
+      '[DEBUG Component] Puede enviar:',
+      this.canSubmitCompensatory()
+    );
     console.log('[DEBUG Component] Fechas manuales:', manualDates);
     console.log('[DEBUG Component] Archivo:', form.compensatoryFile);
     console.log('[DEBUG Component] ==============================');
@@ -1272,7 +1292,8 @@ export class EmployeePortalComponent {
       this.messageService.add({
         severity: 'error',
         summary: 'Campos Incompletos',
-        detail: 'Por favor completa todos los campos requeridos antes de enviar.',
+        detail:
+          'Por favor completa todos los campos requeridos antes de enviar.',
       });
       return;
     }
@@ -1283,18 +1304,23 @@ export class EmployeePortalComponent {
       messageService: this.messageService,
       currentEmployee: () => this.currentEmployee(),
       formState: {
-        startDate: this.portalStore.compensatoryForm().type === 'hours'
-          ? this.portalStore.compensatoryForm().compensatoryDate
-          : this.portalStore.compensatoryForm().startDate,
-        endDate: this.portalStore.compensatoryForm().type === 'hours'
-          ? this.portalStore.compensatoryForm().compensatoryDate
-          : this.portalStore.compensatoryForm().endDate,
+        startDate:
+          this.portalStore.compensatoryForm().type === 'hours'
+            ? this.portalStore.compensatoryForm().compensatoryDate
+            : this.portalStore.compensatoryForm().startDate,
+        endDate:
+          this.portalStore.compensatoryForm().type === 'hours'
+            ? this.portalStore.compensatoryForm().compensatoryDate
+            : this.portalStore.compensatoryForm().endDate,
         reason: this.portalStore.compensatoryForm().reason,
         type: this.portalStore.compensatoryForm().type,
         compensatoryDate: this.portalStore.compensatoryForm().compensatoryDate,
-        compensatoryTimeStart: this.portalStore.compensatoryForm().compensatoryTimeStart,
-        compensatoryTimeEnd: this.portalStore.compensatoryForm().compensatoryTimeEnd,
-        selectedOvertimeDays: this.portalStore.compensatoryForm().selectedOvertimeDays,
+        compensatoryTimeStart:
+          this.portalStore.compensatoryForm().compensatoryTimeStart,
+        compensatoryTimeEnd:
+          this.portalStore.compensatoryForm().compensatoryTimeEnd,
+        selectedOvertimeDays:
+          this.portalStore.compensatoryForm().selectedOvertimeDays,
         manualOvertimeDates: manualDates,
         compensatoryFile: this.portalStore.compensatoryForm().compensatoryFile,
       },
@@ -1483,7 +1509,7 @@ export class EmployeePortalComponent {
       const url = this.apiUrl.build('rest/v1/settings', {
         select: 'value',
         key: 'eq.hr_email_recipients_disabilities',
-        limit: 1
+        limit: 1,
       });
 
       console.log('[DEBUG] 📡 Consultando configuracion incapacidades:', url);
@@ -1491,18 +1517,28 @@ export class EmployeePortalComponent {
       const response = await this.http.get<any>(url).toPromise();
       console.log('[DEBUG] 📥 Respuesta API incapacidades:', response);
 
-      const recipientsString = response?.[0]?.value || 'Verley@blackdogpanama.com';
-      console.log('[DEBUG] 📋 String destinatarios incapacidades:', recipientsString);
+      const recipientsString =
+        response?.[0]?.value || 'Verley@blackdogpanama.com';
+      console.log(
+        '[DEBUG] 📋 String destinatarios incapacidades:',
+        recipientsString
+      );
 
       const recipients = recipientsString
         .split(',')
         .map((email: string) => email.trim())
         .filter((email: string) => email.length > 0);
 
-      console.log('[DEBUG] ✅ Destinatarios incapacidades procesados:', recipients);
+      console.log(
+        '[DEBUG] ✅ Destinatarios incapacidades procesados:',
+        recipients
+      );
       return recipients;
     } catch (error) {
-      console.error('[DEBUG] ❌ Error obteniendo destinatarios de incapacidades:', error);
+      console.error(
+        '[DEBUG] ❌ Error obteniendo destinatarios de incapacidades:',
+        error
+      );
       console.log('[DEBUG] 🔄 Usando valores por defecto para incapacidades');
       return ['Verley@blackdogpanama.com'];
     }
@@ -1516,7 +1552,7 @@ export class EmployeePortalComponent {
       const url = this.apiUrl.build('rest/v1/settings', {
         select: 'value',
         key: 'eq.hr_email_recipients_documents',
-        limit: 1
+        limit: 1,
       });
 
       console.log('[DEBUG] 📡 Consultando configuracion documentos:', url);
@@ -1524,18 +1560,28 @@ export class EmployeePortalComponent {
       const response = await this.http.get<any>(url).toPromise();
       console.log('[DEBUG] 📥 Respuesta API documentos:', response);
 
-      const recipientsString = response?.[0]?.value || 'Verley@blackdogpanama.com';
-      console.log('[DEBUG] 📋 String destinatarios documentos:', recipientsString);
+      const recipientsString =
+        response?.[0]?.value || 'Verley@blackdogpanama.com';
+      console.log(
+        '[DEBUG] 📋 String destinatarios documentos:',
+        recipientsString
+      );
 
       const recipients = recipientsString
         .split(',')
         .map((email: string) => email.trim())
         .filter((email: string) => email.length > 0);
 
-      console.log('[DEBUG] ✅ Destinatarios documentos procesados:', recipients);
+      console.log(
+        '[DEBUG] ✅ Destinatarios documentos procesados:',
+        recipients
+      );
       return recipients;
     } catch (error) {
-      console.error('[DEBUG] ❌ Error obteniendo destinatarios de documentos:', error);
+      console.error(
+        '[DEBUG] ❌ Error obteniendo destinatarios de documentos:',
+        error
+      );
       console.log('[DEBUG] 🔄 Usando valores por defecto para documentos');
       return ['Verley@blackdogpanama.com'];
     }

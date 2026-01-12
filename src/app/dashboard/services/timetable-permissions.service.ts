@@ -22,15 +22,16 @@ export class TimetablePermissionsService {
 
   /**
    * Determina si el usuario puede agregar empleados a sucursales
-   * Pueden: admins, HR, o gerentes de tienda con sucursal asignada
+   * Pueden: admins, HR, gerentes de tienda con sucursal asignada, o schedule admins
    */
   public canAddEmployees(): boolean {
     const isAdmin = this.store.isAdmin();
     const isHR = this.isHRDepartment();
     const isManager = this.isStoreManager();
     const hasBranch = !!this.store.currentBranch()?.id;
+    const isScheduleAdmin = this.store.isScheduleAdmin();
 
-    return isAdmin || isHR || (isManager && hasBranch);
+    return isAdmin || isHR || isScheduleAdmin || (isManager && hasBranch);
   }
 
   /**

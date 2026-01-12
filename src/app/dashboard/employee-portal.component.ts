@@ -45,20 +45,20 @@ import { CalendarComponent, CalendarMarkerData } from '../calendar.component';
 import { TimeLogEnum } from '../models';
 import { PanamaDatePipe } from '../pipes/panama-date.pipe';
 import { ApiUrlService } from '../services/api-url.service';
-import { getEnv } from '../utils/env.utils';
 import { NotificationsService } from '../services/notifications.service';
 import { OrganizationService } from '../services/organization.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
+import { getEnv } from '../utils/env.utils';
 import { getBooleanSetting } from '../utils/settings-http.utils';
 // Import employee portal components
+import { EmployeePortalComplaintsComponent } from '../employee-portal/components/employee-portal-complaints.component';
 import { EmployeePortalDisabilitiesComponent } from '../employee-portal/components/employee-portal-disabilities.component';
 import { EmployeePortalDocumentsComponent } from '../employee-portal/components/employee-portal-documents.component';
-import { EmployeePortalComplaintsComponent } from '../employee-portal/components/employee-portal-complaints.component';
-import { EmployeePortalVacationsComponent } from '../employee-portal/components/employee-portal-vacations.component';
 import { EmployeePortalLicenseComponent } from '../employee-portal/components/employee-portal-license.component';
-import { EmployeePortalPersonalComponent } from '../employee-portal/components/employee-portal-personal.component';
 import { EmployeePortalMaternityComponent } from '../employee-portal/components/employee-portal-maternity.component';
+import { EmployeePortalPersonalComponent } from '../employee-portal/components/employee-portal-personal.component';
+import { EmployeePortalVacationsComponent } from '../employee-portal/components/employee-portal-vacations.component';
 
 @Component({
   selector: 'pt-employee-portal',
@@ -651,7 +651,9 @@ import { EmployeePortalMaternityComponent } from '../employee-portal/components/
               [canSubmit]="canSubmitTimeoff()"
               [maternityRequests]="timeoffRequests()"
               [requestsLoading]="loadingTimeoffRequests()"
-              [calculateMaternityStartDate]="calculateMaternityStartDate.bind(this)"
+              [calculateMaternityStartDate]="
+                calculateMaternityStartDate.bind(this)
+              "
               [calculateMaternityEndDate]="calculateMaternityEndDate.bind(this)"
               [calculateDaysBetween]="calculateDaysBetween.bind(this)"
               [isDateFuture]="isDateFuture.bind(this)"
@@ -3974,7 +3976,7 @@ export class EmployeePortalComponent {
       // ID del tipo de timeoff "Compensatorio"
       const compensatoryTypeId = 'f2d92995-96a0-414f-b64a-9823db776745';
 
-      // La tabla timeoffs tiene múltiples relaciones con employees (employee_id, reviewed_by, registered_by)
+      // La tabla timeoffs tiene múltiples relaciones con employees (employee_id, reviewed_by)
       // No necesitamos incluir la relación employee porque:
       // 1. approvedCompensatoryHours solo usa date_from y date_to (campos directos de timeoffs)
       // 2. Ya filtramos por employee_id directamente, que garantiza que pertenece al empleado correcto
@@ -4120,17 +4122,13 @@ export class EmployeePortalComponent {
       }
 
       await firstValueFrom(
-        this.http.patch(
-          this.apiUrl.build('rest/v1/employees'),
-          updateData,
-          {
-            params,
-            headers: {
-              'Content-Type': 'application/json',
-              Prefer: 'return=representation',
-            },
-          }
-        )
+        this.http.patch(this.apiUrl.build('rest/v1/employees'), updateData, {
+          params,
+          headers: {
+            'Content-Type': 'application/json',
+            Prefer: 'return=representation',
+          },
+        })
       );
 
       this.messageService.add({
@@ -4411,13 +4409,17 @@ export class EmployeePortalComponent {
               `;
 
               // Obtener destinatarios configurables para incapacidades
-              const disabilityRecipients = await this.getDashboardDisabilityRecipients();
+              const disabilityRecipients =
+                await this.getDashboardDisabilityRecipients();
 
-              console.log('[DEBUG Dashboard Disability] Enviando email de notificación', {
-                to: disabilityRecipients,
-                subject,
-                html,
-              });
+              console.log(
+                '[DEBUG Dashboard Disability] Enviando email de notificación',
+                {
+                  to: disabilityRecipients,
+                  subject,
+                  html,
+                }
+              );
 
               this.http
                 .post('/api/email/send', {
@@ -4429,7 +4431,9 @@ export class EmployeePortalComponent {
                 .pipe(takeUntilDestroyed(this.destroyRef))
                 .subscribe({
                   next: () => {
-                    console.log('[DEBUG Dashboard Disability] Email enviado correctamente');
+                    console.log(
+                      '[DEBUG Dashboard Disability] Email enviado correctamente'
+                    );
                   },
                   error: (e) =>
                     console.warn(
@@ -4512,10 +4516,7 @@ export class EmployeePortalComponent {
     };
 
     this.http
-      .post(
-        this.apiUrl.build('rest/v1/document_requests'),
-        requestData
-      )
+      .post(this.apiUrl.build('rest/v1/document_requests'), requestData)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (created: any) => {
@@ -4578,13 +4579,17 @@ export class EmployeePortalComponent {
             `;
 
             // Obtener destinatarios configurables para documentos
-            const documentRecipients = await this.getDashboardDocumentRecipients();
+            const documentRecipients =
+              await this.getDashboardDocumentRecipients();
 
-            console.log('[DEBUG Dashboard Document] Enviando email de notificación', {
-              to: documentRecipients,
-              subject,
-              html,
-            });
+            console.log(
+              '[DEBUG Dashboard Document] Enviando email de notificación',
+              {
+                to: documentRecipients,
+                subject,
+                html,
+              }
+            );
 
             this.http
               .post('/api/email/send', {
@@ -4596,7 +4601,9 @@ export class EmployeePortalComponent {
               .pipe(takeUntilDestroyed(this.destroyRef))
               .subscribe({
                 next: () => {
-                  console.log('[DEBUG Dashboard Document] Email enviado correctamente');
+                  console.log(
+                    '[DEBUG Dashboard Document] Email enviado correctamente'
+                  );
                 },
                 error: (e) =>
                   console.warn(
@@ -4656,16 +4663,12 @@ export class EmployeePortalComponent {
     };
 
     this.http
-      .post(
-        this.apiUrl.build('rest/v1/complaints'),
-        complaintData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Prefer: 'return=representation',
-          },
-        }
-      )
+      .post(this.apiUrl.build('rest/v1/complaints'), complaintData, {
+        headers: {
+          'Content-Type': 'application/json',
+          Prefer: 'return=representation',
+        },
+      })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: async (response: any) => {
@@ -4823,7 +4826,9 @@ export class EmployeePortalComponent {
       try {
         await firstValueFrom(
           this.http.patch(
-            this.apiUrl.build('rest/v1/complaint_messages', { id: `eq.${message.id}` }),
+            this.apiUrl.build('rest/v1/complaint_messages', {
+              id: `eq.${message.id}`,
+            }),
             { is_read: true, read_at: new Date().toISOString() },
             {
               headers: {
@@ -5048,16 +5053,12 @@ export class EmployeePortalComponent {
     };
 
     this.http
-      .post(
-        this.apiUrl.build('rest/v1/timeoffs'),
-        timeoffData,
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Prefer: 'return=representation',
-          },
-        }
-      )
+      .post(this.apiUrl.build('rest/v1/timeoffs'), timeoffData, {
+        headers: {
+          'Content-Type': 'application/json',
+          Prefer: 'return=representation',
+        },
+      })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
@@ -5159,7 +5160,10 @@ export class EmployeePortalComponent {
   }
 
   // Utility methods for date calculations
-  public calculateDaysBetween(start: Date | string, end: Date | string): number {
+  public calculateDaysBetween(
+    start: Date | string,
+    end: Date | string
+  ): number {
     const startDate = typeof start === 'string' ? new Date(start) : start;
     const endDate = typeof end === 'string' ? new Date(end) : end;
     const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
@@ -5182,7 +5186,7 @@ export class EmployeePortalComponent {
     // Maternity leave typically starts 6-8 weeks before expected delivery
     // For simplicity, we'll use 6 weeks before
     const startDate = new Date(expectedDate);
-    startDate.setDate(startDate.getDate() - (6 * 7)); // 6 weeks before
+    startDate.setDate(startDate.getDate() - 6 * 7); // 6 weeks before
     return startDate;
   }
 
@@ -5190,7 +5194,7 @@ export class EmployeePortalComponent {
     const startDate = this.calculateMaternityStartDate();
     // 12 weeks total maternity leave
     const endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + (12 * 7)); // 12 weeks after start
+    endDate.setDate(endDate.getDate() + 12 * 7); // 12 weeks after start
     return endDate;
   }
 
@@ -5223,12 +5227,7 @@ export class EmployeePortalComponent {
   public canSubmitTimeoff(): boolean {
     const start = this.timeoffStartDate();
     const end = this.timeoffEndDate();
-    return !!(
-      this.selectedTimeoffType() &&
-      start &&
-      end &&
-      start <= end
-    );
+    return !!(this.selectedTimeoffType() && start && end && start <= end);
   }
 
   // Timeoff data signals
@@ -5277,21 +5276,27 @@ export class EmployeePortalComponent {
   // Función helper para obtener destinatarios configurables de incapacidades (dashboard)
   private async getDashboardDisabilityRecipients(): Promise<string[]> {
     try {
-      const response = await this.http.get<any>(
-        this.apiUrl.build('rest/v1/settings', {
-          select: 'value',
-          key: 'eq.hr_email_recipients_disabilities',
-          limit: 1
-        })
-      ).toPromise();
+      const response = await this.http
+        .get<any>(
+          this.apiUrl.build('rest/v1/settings', {
+            select: 'value',
+            key: 'eq.hr_email_recipients_disabilities',
+            limit: 1,
+          })
+        )
+        .toPromise();
 
-      const recipientsString = response?.[0]?.value || 'Verley@blackdogpanama.com';
+      const recipientsString =
+        response?.[0]?.value || 'Verley@blackdogpanama.com';
       return recipientsString
         .split(',')
         .map((email: string) => email.trim())
         .filter((email: string) => email.length > 0);
     } catch (error) {
-      console.error('Error obteniendo destinatarios de incapacidades (dashboard):', error);
+      console.error(
+        'Error obteniendo destinatarios de incapacidades (dashboard):',
+        error
+      );
       return ['Verley@blackdogpanama.com'];
     }
   }
@@ -5299,21 +5304,27 @@ export class EmployeePortalComponent {
   // Función helper para obtener destinatarios configurables de documentos (dashboard)
   private async getDashboardDocumentRecipients(): Promise<string[]> {
     try {
-      const response = await this.http.get<any>(
-        this.apiUrl.build('rest/v1/settings', {
-          select: 'value',
-          key: 'eq.hr_email_recipients_documents',
-          limit: 1
-        })
-      ).toPromise();
+      const response = await this.http
+        .get<any>(
+          this.apiUrl.build('rest/v1/settings', {
+            select: 'value',
+            key: 'eq.hr_email_recipients_documents',
+            limit: 1,
+          })
+        )
+        .toPromise();
 
-      const recipientsString = response?.[0]?.value || 'Verley@blackdogpanama.com';
+      const recipientsString =
+        response?.[0]?.value || 'Verley@blackdogpanama.com';
       return recipientsString
         .split(',')
         .map((email: string) => email.trim())
         .filter((email: string) => email.length > 0);
     } catch (error) {
-      console.error('Error obteniendo destinatarios de documentos (dashboard):', error);
+      console.error(
+        'Error obteniendo destinatarios de documentos (dashboard):',
+        error
+      );
       return ['Verley@blackdogpanama.com'];
     }
   }

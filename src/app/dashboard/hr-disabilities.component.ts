@@ -92,8 +92,6 @@ export interface CompensatoryRequest {
   review_status?: 'pending' | 'approved' | 'rejected';
   reviewed_by?: string;
   reviewed_at?: string;
-  registered_by?: string;
-  registered_at?: string;
   rejection_comment?: string;
   is_approved: boolean;
   created_at: string;
@@ -1298,14 +1296,12 @@ interface DocumentRequest {
                         @if (requestedAmount !== null) {
                         {{ requestedAmount }}
                         @let type = getCompensatoryTypeFromNotes(request); @if
-                        (type === 'days') { día(s) } @else { hora(s) }
-                        } @else if (quantity && quantity.value > 0) {
-                        @if (quantity.isDays) {
-                        {{ quantity.value }} día(s)
-                        } @else {
+                        (type === 'days') { día(s) } @else { hora(s) } } @else
+                        if (quantity && quantity.value > 0) { @if
+                        (quantity.isDays) {
+                        {{ quantity.value }} día(s) } @else {
                         {{ formatHoursMinutes(quantity.value) }}
-                        }
-                        } @else {
+                        } } @else {
                         <span class="text-gray-500">-</span>
                         }
                       </span>
@@ -4123,9 +4119,6 @@ export class HRDisabilitiesComponent {
           const reviewedByName = req.reviewed_by
             ? await this.getEmployeeNameById(req.reviewed_by)
             : 'N/A';
-          const registeredByName = req.registered_by
-            ? await this.getEmployeeNameById(req.registered_by)
-            : 'N/A';
 
           return {
             'ID Solicitud': req.id,
@@ -4149,10 +4142,6 @@ export class HRDisabilitiesComponent {
             'Revisado Por': reviewedByName,
             'Fecha Revisión': req.reviewed_at
               ? format(new Date(req.reviewed_at), 'dd/MM/yyyy HH:mm')
-              : '',
-            'Registrado Por': registeredByName,
-            'Fecha Registro': req.registered_at
-              ? format(new Date(req.registered_at), 'dd/MM/yyyy HH:mm')
               : '',
             'Comentario Rechazo': req.rejection_comment || '',
             Motivo: req.reason || '',
@@ -4184,8 +4173,6 @@ export class HRDisabilitiesComponent {
         { wch: 15 }, // Estado
         { wch: 20 }, // Revisado Por
         { wch: 18 }, // Fecha Revisión
-        { wch: 20 }, // Registrado Por
-        { wch: 18 }, // Fecha Registro
         { wch: 30 }, // Comentario Rechazo
         { wch: 30 }, // Motivo
         { wch: 50 }, // Notas
@@ -4303,7 +4290,7 @@ export class HRDisabilitiesComponent {
 
     // Ahora podemos filtrar directamente por company_id ya que se agregó el campo a la tabla
     const params: any = {
-      select: `id,employee_id,type_id,date_from,date_to,notes,is_approved,compensatory_type,compensatory_amount,review_status,reviewed_by,reviewed_at,registered_by,registered_at,rejection_comment,created_at,company_id,document_url,type:timeoff_types(id,name),employee:employees!time_offs_employee_id_fkey(id,first_name,father_name,work_email,company_id,position:positions(name),branch:branches(name))`,
+      select: `id,employee_id,type_id,date_from,date_to,notes,is_approved,compensatory_type,compensatory_amount,review_status,reviewed_by,reviewed_at,rejection_comment,created_at,company_id,document_url,type:timeoff_types(id,name),employee:employees!time_offs_employee_id_fkey(id,first_name,father_name,work_email,company_id,position:positions(name),branch:branches(name))`,
       type_id: `eq.${compensatoryTypeId}`,
       // Filtrar directamente por company_id (campo agregado a la tabla)
       company_id: `eq.${companyId}`,
@@ -5262,19 +5249,6 @@ export class HRDisabilitiesComponent {
     });
   }
 
-  public registerCompensatoryRequest(request: CompensatoryRequest): void {
-    const employeeName = this.getEmployeeName(request);
-    this.confirmationService.confirm({
-      message: `¿Estás seguro de registrar la solicitud de tiempo compensatorio de ${employeeName}?`,
-      header: 'Confirmar Registro',
-      icon: 'pi pi-exclamation-triangle',
-      acceptButtonStyleClass: 'p-button-info',
-      accept: () => {
-        this.registerCompensatoryTimeoff(request.id);
-      },
-    });
-  }
-
   public loadMoreOvertimeHistory(): void {
     const req = this.selectedCompensatoryRequest();
     if (!req?.employee_id) return;
@@ -5546,76 +5520,6 @@ export class HRDisabilitiesComponent {
         .join(', ')}`,
       newValue: { overtime_consumptions: rows },
     });
-  }
-
-  private registerCompensatoryTimeoff(id: string): void {
-    const currentEmployee = this.dashboardStore.currentEmployee();
-    if (!currentEmployee) {
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Error',
-        detail: 'No se pudo identificar al empleado actual',
-      });
-      return;
-    }
-
-    // Obtener estado anterior
-    const request = this.compensatoryTimeoffsApi
-      .value()
-      ?.find((r) => r.id === id);
-    const oldStatus = request?.review_status || 'pending';
-
-    const updateData = {
-      registered_by: currentEmployee.id,
-      registered_at: new Date().toISOString(),
-      is_approved: true,
-    };
-
-    this.http
-      .patch(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs?id=eq.${id}`,
-        updateData
-      )
-      .subscribe({
-        next: async () => {
-          // Registrar en auditoría
-          await this.auditService.logChange({
-            timeoffId: id,
-            changedBy: currentEmployee.id,
-            action: 'registered',
-            oldStatus,
-            newStatus: 'registered',
-            comment: 'Solicitud registrada en el sistema',
-          });
-
-          // Obtener la solicitud para notificar al empleado
-          if (request) {
-            // Enviar notificación al empleado sobre la aprobación final
-            await this.notifyEmployee(id, request, 'approved');
-          }
-
-          this.messageService.add({
-            severity: 'success',
-            summary: 'Éxito',
-            detail: 'Solicitud registrada correctamente',
-          });
-          this.compensatoryTimeoffsApi.reload();
-          // Recargar historial si el diálogo está abierto
-          if (
-            this.showCompensatoryDetailsDialog() &&
-            this.selectedCompensatoryRequest()?.id === id
-          ) {
-            this.loadAuditHistory(id);
-          }
-        },
-        error: () => {
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Error',
-            detail: 'No se pudo registrar la solicitud',
-          });
-        },
-      });
   }
 
   // Funciones helper para notificaciones
