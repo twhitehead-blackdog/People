@@ -1515,1377 +1515,1014 @@ interface DocumentRequest {
             </div>
           </div>
 
-          <!-- Filtros -->
-          <!-- Filtros de Documentos -->
+          <!-- Filtros Avanzados Colapsables para Documentos -->
           <div
-            class="bg-gradient-to-br from-neutral-800/80 to-neutral-800/60 rounded-lg border border-neutral-700/50 backdrop-blur-sm p-3"
+            class="bg-gradient-to-br from-neutral-800/80 to-neutral-800/60 rounded-lg border border-neutral-700/50 backdrop-blur-sm"
           >
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
-              <div class="md:col-span-1">
-                <label
-                  class="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1"
+            <div
+              class="p-2 border-b border-neutral-700/50 flex items-center justify-between cursor-pointer"
+              (click)="showDocumentsFilters.set(!showDocumentsFilters())"
+            >
+              <div class="flex items-center gap-2">
+                <i class="pi pi-filter text-green-400 text-sm"></i>
+                <h3 class="text-sm font-semibold text-white m-0">
+                  Filtros Avanzados
+                </h3>
+                @if (hasActiveDocumentsFilters()) {
+                <span
+                  class="px-1.5 py-0.5 bg-green-500/20 text-green-300 rounded-full text-[10px] font-bold"
                 >
-                  <i class="pi pi-search mr-1 text-cyan-400 text-[10px]"></i
-                  >Búsqueda
-                </label>
-                <input
-                  pInputText
-                  [(ngModel)]="documentsSearchText"
-                  placeholder="Empleado o tipo..."
-                  class="w-full text-sm py-1.5 bg-neutral-900/50 border-neutral-600 focus:border-cyan-400/50"
-                />
+                  {{ getActiveDocumentsFiltersCount() }} activos
+                </span>
+                }
               </div>
-              <div>
-                <label
-                  class="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1"
-                >
-                  <i class="pi pi-tag mr-1 text-cyan-400 text-[10px]"></i>Estado
-                </label>
-                <p-dropdown
-                  [(ngModel)]="documentsSelectedStatus"
-                  [options]="documentsStatusOptions"
-                  optionLabel="label"
-                  optionValue="value"
-                  placeholder="Todos"
-                  [showClear]="true"
-                  class="w-full text-sm"
-                  [style]="{ height: '32px' }"
-                />
-              </div>
-              <div class="flex items-end gap-2">
-                <div class="flex-1">
+              <i
+                class="pi text-sm"
+                [class.pi-chevron-down]="!showDocumentsFilters()"
+                [class.pi-chevron-up]="showDocumentsFilters()"
+                [class.text-gray-400]="!showDocumentsFilters()"
+                [class.text-green-400]="showDocumentsFilters()"
+              ></i>
+            </div>
+
+            @if (showDocumentsFilters()) {
+            <div class="p-3 space-y-2 animate-fade-in">
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <div class="md:col-span-1">
                   <label
                     class="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1"
                   >
-                    <i class="pi pi-calendar mr-1 text-cyan-400 text-[10px]"></i
-                    >Rango
+                    <i class="pi pi-search mr-1 text-cyan-400 text-[10px]"></i
+                    >Búsqueda
                   </label>
-                  <p-calendar
-                    [(ngModel)]="documentsDateRange"
-                    selectionMode="range"
-                    placeholder="Seleccionar"
-                    dateFormat="dd/mm/yy"
-                    [showIcon]="true"
-                    class="w-full text-sm"
-                    [inputStyle]="{ height: '32px', padding: '0.375rem' }"
-                    [showClear]="true"
+                  <input
+                    pInputText
+                    [(ngModel)]="documentsSearchText"
+                    placeholder="Empleado o tipo..."
+                    class="w-full text-sm py-1.5 bg-neutral-900/50 border-neutral-600 focus:border-cyan-400/50"
                   />
                 </div>
-                <p-button
-                  icon="pi pi-filter-slash"
-                  [outlined]="true"
-                  severity="secondary"
-                  (onClick)="clearDocumentsFilters()"
-                  [disabled]="!hasActiveDocumentsFilters()"
-                  [style]="{ height: '32px', width: '32px' }"
-                  pTooltip="Limpiar Filtros"
-                  tooltipPosition="top"
-                />
+                <div>
+                  <label
+                    class="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1"
+                  >
+                    <i class="pi pi-tag mr-1 text-cyan-400 text-[10px]"></i
+                    >Estado
+                  </label>
+                  <p-dropdown
+                    [(ngModel)]="documentsSelectedStatus"
+                    [options]="documentsStatusOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Todos"
+                    [showClear]="true"
+                    class="w-full text-sm"
+                    [style]="{ height: '32px' }"
+                  />
+                </div>
+                <div class="flex items-end gap-2">
+                  <div class="flex-1">
+                    <label
+                      class="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1"
+                    >
+                      <i
+                        class="pi pi-calendar mr-1 text-cyan-400 text-[10px]"
+                      ></i
+                      >Rango
+                    </label>
+                    <p-calendar
+                      [(ngModel)]="documentsDateRange"
+                      selectionMode="range"
+                      placeholder="Seleccionar"
+                      dateFormat="dd/mm/yy"
+                      [showIcon]="true"
+                      class="w-full text-sm"
+                      [inputStyle]="{ height: '32px', padding: '0.375rem' }"
+                      [showClear]="true"
+                    />
+                  </div>
+                  <p-button
+                    icon="pi pi-filter-slash"
+                    [outlined]="true"
+                    severity="secondary"
+                    (onClick)="clearDocumentsFilters()"
+                    [disabled]="!hasActiveDocumentsFilters()"
+                    [style]="{ height: '32px', width: '32px' }"
+                    pTooltip="Limpiar Filtros"
+                    tooltipPosition="top"
+                  />
+                </div>
               </div>
             </div>
-          </div>
-
-          <!-- Tabla de Documentos -->
-          @if (documentRequestsApi.isLoading()) {
-          <div class="flex justify-center py-8">
-            <p-progressSpinner />
-          </div>
-          } @else if (filteredDocuments().length === 0) {
-          <div
-            class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-8"
-          >
-            <div class="text-center">
-              <i class="pi pi-file-edit text-gray-400 text-4xl mb-3"></i>
-              <p class="text-gray-400">
-                No se encontraron solicitudes de documentos
-              </p>
+            }
             </div>
-          </div>
-          } @else {
-          <div
-            class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 overflow-hidden"
-          >
-            <p-table
-              [value]="filteredDocuments()"
-              [scrollable]="true"
-              scrollHeight="600px"
-              [responsive]="true"
-              styleClass="p-datatable-sm"
+
+            <!-- Tabla de Documentos -->
+            @if (documentRequestsApi.isLoading()) {
+            <div class="flex justify-center py-8">
+              <p-progressSpinner />
+            </div>
+            } @else if (filteredDocuments().length === 0) {
+            <div
+              class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-8"
             >
-              <ng-template pTemplate="header">
-                <tr>
-                  <th style="width: 180px; padding: 0.5rem;">
-                    <div class="flex items-center gap-1">
-                      <i class="pi pi-user text-cyan-400 text-xs"></i>
-                      <span class="text-xs">Empleado</span>
-                    </div>
-                  </th>
-                  <th style="width: 150px; padding: 0.5rem;">
-                    <div class="flex items-center gap-1">
-                      <i class="pi pi-file-edit text-cyan-400 text-xs"></i>
-                      <span class="text-xs">Tipo Documento</span>
-                    </div>
-                  </th>
-                  <th style="width: 120px; padding: 0.5rem;">
-                    <div class="flex items-center gap-1">
-                      <i class="pi pi-tag text-cyan-400 text-xs"></i>
-                      <span class="text-xs">Estado</span>
-                    </div>
-                  </th>
-                  <th style="width: 140px; padding: 0.5rem;">
-                    <div class="flex items-center gap-1">
-                      <i class="pi pi-user-plus text-cyan-400 text-xs"></i>
-                      <span class="text-xs">Creado por</span>
-                    </div>
-                  </th>
-                  <th style="width: 120px; padding: 0.5rem;">
-                    <div class="flex items-center gap-1">
-                      <i class="pi pi-calendar-plus text-cyan-400 text-xs"></i>
-                      <span class="text-xs">Solicitado</span>
-                    </div>
-                  </th>
-                  <th style="width: 180px; padding: 0.5rem;">
-                    <div class="flex items-center gap-1">
-                      <i class="pi pi-cog text-cyan-400 text-xs"></i>
-                      <span class="text-xs">Acciones</span>
-                    </div>
-                  </th>
-                </tr>
-              </ng-template>
-              <ng-template pTemplate="body" let-document>
-                <tr class="hover:bg-neutral-700/30">
-                  <td style="padding: 0.5rem;">
-                    <div class="flex flex-col gap-0.5">
-                      <span class="text-sm font-medium text-white">
-                        {{ document.employee?.first_name }}
-                        {{ document.employee?.father_name }}
+              <div class="text-center">
+                <i class="pi pi-file-edit text-gray-400 text-4xl mb-3"></i>
+                <p class="text-gray-400">
+                  No se encontraron solicitudes de documentos
+                </p>
+              </div>
+            </div>
+            } @else {
+            <div
+              class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 overflow-hidden"
+            >
+              <p-table
+                [value]="filteredDocuments()"
+                [scrollable]="true"
+                scrollHeight="600px"
+                [responsive]="true"
+                styleClass="p-datatable-sm"
+              >
+                <ng-template pTemplate="header">
+                  <tr>
+                    <th style="width: 180px; padding: 0.5rem;">
+                      <div class="flex items-center gap-1">
+                        <i class="pi pi-user text-cyan-400 text-xs"></i>
+                        <span class="text-xs">Empleado</span>
+                      </div>
+                    </th>
+                    <th style="width: 150px; padding: 0.5rem;">
+                      <div class="flex items-center gap-1">
+                        <i class="pi pi-file-edit text-cyan-400 text-xs"></i>
+                        <span class="text-xs">Tipo Documento</span>
+                      </div>
+                    </th>
+                    <th style="width: 120px; padding: 0.5rem;">
+                      <div class="flex items-center gap-1">
+                        <i class="pi pi-tag text-cyan-400 text-xs"></i>
+                        <span class="text-xs">Estado</span>
+                      </div>
+                    </th>
+                    <th style="width: 140px; padding: 0.5rem;">
+                      <div class="flex items-center gap-1">
+                        <i class="pi pi-user-plus text-cyan-400 text-xs"></i>
+                        <span class="text-xs">Creado por</span>
+                      </div>
+                    </th>
+                    <th style="width: 120px; padding: 0.5rem;">
+                      <div class="flex items-center gap-1">
+                        <i
+                          class="pi pi-calendar-plus text-cyan-400 text-xs"
+                        ></i>
+                        <span class="text-xs">Solicitado</span>
+                      </div>
+                    </th>
+                    <th style="width: 180px; padding: 0.5rem;">
+                      <div class="flex items-center gap-1">
+                        <i class="pi pi-cog text-cyan-400 text-xs"></i>
+                        <span class="text-xs">Acciones</span>
+                      </div>
+                    </th>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-document>
+                  <tr class="hover:bg-neutral-700/30">
+                    <td style="padding: 0.5rem;">
+                      <div class="flex flex-col gap-0.5">
+                        <span class="text-sm font-medium text-white">
+                          {{ document.employee?.first_name }}
+                          {{ document.employee?.father_name }}
+                        </span>
+                        @if (document.employee?.position?.name) {
+                        <span class="text-xs text-gray-400">
+                          {{ document.employee.position.name }}
+                        </span>
+                        } @if (document.employee?.branch?.name) {
+                        <span class="text-xs text-cyan-400">
+                          {{ document.employee.branch.name }}
+                        </span>
+                        }
+                      </div>
+                    </td>
+                    <td style="padding: 0.5rem;">
+                      <span class="text-sm text-gray-300">
+                        {{ getDocumentTypeLabel(document.document_type) }}
                       </span>
-                      @if (document.employee?.position?.name) {
+                      @if (document.reason) {
+                      <br />
                       <span class="text-xs text-gray-400">
-                        {{ document.employee.position.name }}
-                      </span>
-                      } @if (document.employee?.branch?.name) {
-                      <span class="text-xs text-cyan-400">
-                        {{ document.employee.branch.name }}
+                        {{ document.reason }}
                       </span>
                       }
-                    </div>
-                  </td>
-                  <td style="padding: 0.5rem;">
-                    <span class="text-sm text-gray-300">
-                      {{ getDocumentTypeLabel(document.document_type) }}
-                    </span>
-                    @if (document.reason) {
-                    <br />
-                    <span class="text-xs text-gray-400">
-                      {{ document.reason }}
-                    </span>
-                    }
-                  </td>
-                  <td style="padding: 0.5rem;">
-                    <p-tag
-                      [value]="getDocumentStatusLabel(document.status)"
-                      [severity]="getDocumentStatusSeverity(document.status)"
-                      class="text-xs"
-                    />
-                  </td>
-                  <td style="padding: 0.5rem; text-align: center;">
-                    @if (document.created_by && document.created_by !==
-                    document.employee_id) {
-                    <div class="flex flex-col items-center gap-0.5">
-                      <div class="flex items-center gap-1">
-                        <i class="pi pi-user text-amber-400 text-[10px]"></i>
-                        <span class="text-[10px] font-medium text-amber-300">
-                          Creado por gerente
-                        </span>
+                    </td>
+                    <td style="padding: 0.5rem;">
+                      <p-tag
+                        [value]="getDocumentStatusLabel(document.status)"
+                        [severity]="getDocumentStatusSeverity(document.status)"
+                        class="text-xs"
+                      />
+                    </td>
+                    <td style="padding: 0.5rem; text-align: center;">
+                      @if (document.created_by && document.created_by !==
+                      document.employee_id) {
+                      <div class="flex flex-col items-center gap-0.5">
+                        <div class="flex items-center gap-1">
+                          <i class="pi pi-user text-amber-400 text-[10px]"></i>
+                          <span class="text-[10px] font-medium text-amber-300">
+                            Creado por gerente
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                    } @else {
-                    <span class="text-[10px] text-gray-500 italic">
-                      Auto-solicitud
-                    </span>
-                    }
-                  </td>
-                  <td style="padding: 0.5rem;">
-                    <span class="text-xs text-gray-400">
-                      {{ document.created_at | date : 'dd/MM/yyyy' }}
-                    </span>
-                    <br />
-                    <span class="text-xs text-gray-500">
-                      {{ document.created_at | date : 'HH:mm' }}
-                    </span>
-                  </td>
-                  <td style="padding: 0.5rem;">
-                    @if (document.status === 'pending') {
-                    <div class="flex gap-1">
+                      } @else {
+                      <span class="text-[10px] text-gray-500 italic">
+                        Auto-solicitud
+                      </span>
+                      }
+                    </td>
+                    <td style="padding: 0.5rem;">
+                      <span class="text-xs text-gray-400">
+                        {{ document.created_at | date : 'dd/MM/yyyy' }}
+                      </span>
+                      <br />
+                      <span class="text-xs text-gray-500">
+                        {{ document.created_at | date : 'HH:mm' }}
+                      </span>
+                    </td>
+                    <td style="padding: 0.5rem;">
+                      @if (document.status === 'pending') {
+                      <div class="flex gap-1">
+                        <p-button
+                          icon="pi pi-check"
+                          severity="success"
+                          size="small"
+                          pTooltip="Aprobar"
+                          tooltipPosition="left"
+                          (onClick)="approveDocument(document)"
+                        />
+                        <p-button
+                          icon="pi pi-times"
+                          severity="danger"
+                          size="small"
+                          pTooltip="Rechazar"
+                          tooltipPosition="left"
+                          (onClick)="rejectDocument(document)"
+                        />
+                      </div>
+                      }
                       <p-button
-                        icon="pi pi-check"
-                        severity="success"
+                        icon="pi pi-eye"
+                        severity="info"
                         size="small"
-                        pTooltip="Aprobar"
+                        pTooltip="Ver detalles"
                         tooltipPosition="left"
-                        (onClick)="approveDocument(document)"
+                        (onClick)="viewDocumentDetails(document)"
                       />
-                      <p-button
-                        icon="pi pi-times"
-                        severity="danger"
-                        size="small"
-                        pTooltip="Rechazar"
-                        tooltipPosition="left"
-                        (onClick)="rejectDocument(document)"
-                      />
-                    </div>
-                    }
-                    <p-button
-                      icon="pi pi-eye"
-                      severity="info"
-                      size="small"
-                      pTooltip="Ver detalles"
-                      tooltipPosition="left"
-                      (onClick)="viewDocumentDetails(document)"
+                    </td>
+                  </tr>
+                </ng-template>
+              </p-table>
+            </div>
+            }
+          </div>
+          } @if (activeTab() === 'vacations') {
+          <!-- Dashboard de Vacaciones -->
+          <div class="space-y-3">
+            <!-- Estadísticas de Vacaciones -->
+            <!-- Estadísticas Compactas de Vacaciones -->
+            <div class="grid grid-cols-4 gap-2">
+              <!-- Total -->
+              <div
+                class="group relative bg-gradient-to-br from-neutral-800 to-neutral-800/80 rounded-lg p-3 border border-neutral-700/50 hover:border-cyan-400/50 transition-all duration-200 hover:shadow-lg hover:shadow-cyan-500/10 cursor-pointer"
+              >
+                <div class="flex items-center justify-between">
+                  <div
+                    class="w-8 h-8 rounded-md bg-gradient-to-br from-gray-500/20 to-gray-600/20 flex items-center justify-center group-hover:scale-105 transition-transform"
+                  >
+                    <i class="pi pi-calendar text-lg text-gray-400"></i>
+                  </div>
+                  <div class="text-right flex-1">
+                    <p
+                      class="text-[10px] font-medium text-gray-400 uppercase tracking-wider m-0"
+                    >
+                      Total
+                    </p>
+                    <p class="text-xl font-bold text-white m-0">
+                      {{ vacationsTotalCount() }}
+                    </p>
+                  </div>
+                </div>
+                <div
+                  class="h-0.5 bg-neutral-700 rounded-full overflow-hidden mt-2"
+                >
+                  <div
+                    class="h-full bg-gradient-to-r from-gray-500 to-gray-400 rounded-full"
+                    [style.width.%]="100"
+                  ></div>
+                </div>
+              </div>
+
+              <!-- Pendientes -->
+              <div
+                class="group relative bg-gradient-to-br from-yellow-500/10 via-yellow-500/5 to-neutral-800 rounded-lg p-3 border border-yellow-500/30 hover:border-yellow-400/50 transition-all duration-200 hover:shadow-lg hover:shadow-yellow-500/20 cursor-pointer"
+              >
+                <div class="flex items-center justify-between">
+                  <div
+                    class="w-8 h-8 rounded-md bg-gradient-to-br from-yellow-500/30 to-yellow-600/20 flex items-center justify-center group-hover:scale-105 transition-transform"
+                  >
+                    <i class="pi pi-clock text-lg text-yellow-400"></i>
+                  </div>
+                  <div class="text-right flex-1">
+                    <p
+                      class="text-[10px] font-medium text-yellow-400/80 uppercase tracking-wider m-0"
+                    >
+                      Pendientes
+                    </p>
+                    <p class="text-xl font-bold text-yellow-300 m-0">
+                      {{ vacationsPendingCount() }}
+                    </p>
+                  </div>
+                </div>
+                <div
+                  class="h-0.5 bg-neutral-700 rounded-full overflow-hidden mt-2"
+                >
+                  <div
+                    class="h-full bg-gradient-to-r from-yellow-500 to-yellow-400 rounded-full"
+                    [style.width.%]="
+                      vacationsTotalCount() > 0
+                        ? (vacationsPendingCount() / vacationsTotalCount()) *
+                          100
+                        : 0
+                    "
+                  ></div>
+                </div>
+              </div>
+
+              <!-- Aprobadas -->
+              <div
+                class="group relative bg-gradient-to-br from-green-500/10 via-green-500/5 to-neutral-800 rounded-lg p-3 border border-green-500/30 hover:border-green-400/50 transition-all duration-200 hover:shadow-lg hover:shadow-green-500/20 cursor-pointer"
+              >
+                <div class="flex items-center justify-between">
+                  <div
+                    class="w-8 h-8 rounded-md bg-gradient-to-br from-green-500/30 to-green-600/20 flex items-center justify-center group-hover:scale-105 transition-transform"
+                  >
+                    <i class="pi pi-check-circle text-lg text-green-400"></i>
+                  </div>
+                  <div class="text-right flex-1">
+                    <p
+                      class="text-[10px] font-medium text-green-400/80 uppercase tracking-wider m-0"
+                    >
+                      Aprobadas
+                    </p>
+                    <p class="text-xl font-bold text-green-300 m-0">
+                      {{ vacationsApprovedCount() }}
+                    </p>
+                  </div>
+                </div>
+                <div
+                  class="h-0.5 bg-neutral-700 rounded-full overflow-hidden mt-2"
+                >
+                  <div
+                    class="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full"
+                    [style.width.%]="
+                      vacationsTotalCount() > 0
+                        ? (vacationsApprovedCount() / vacationsTotalCount()) *
+                          100
+                        : 0
+                    "
+                  ></div>
+                </div>
+              </div>
+
+              <!-- Rechazadas -->
+              <div
+                class="group relative bg-gradient-to-br from-red-500/10 via-red-500/5 to-neutral-800 rounded-lg p-3 border border-red-500/30 hover:border-red-400/50 transition-all duration-200 hover:shadow-lg hover:shadow-red-500/20 cursor-pointer"
+              >
+                <div class="flex items-center justify-between">
+                  <div
+                    class="w-8 h-8 rounded-md bg-gradient-to-br from-red-500/30 to-red-600/20 flex items-center justify-center group-hover:scale-105 transition-transform"
+                  >
+                    <i class="pi pi-times-circle text-lg text-red-400"></i>
+                  </div>
+                  <div class="text-right flex-1">
+                    <p
+                      class="text-[10px] font-medium text-red-400/80 uppercase tracking-wider m-0"
+                    >
+                      Rechazadas
+                    </p>
+                    <p class="text-xl font-bold text-red-300 m-0">
+                      {{ vacationsRejectedCount() }}
+                    </p>
+                  </div>
+                </div>
+                <div
+                  class="h-0.5 bg-neutral-700 rounded-full overflow-hidden mt-2"
+                >
+                  <div
+                    class="h-full bg-gradient-to-r from-red-500 to-red-400 rounded-full"
+                    [style.width.%]="
+                      vacationsTotalCount() > 0
+                        ? (vacationsRejectedCount() / vacationsTotalCount()) *
+                          100
+                        : 0
+                    "
+                  ></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Filtros -->
+            <!-- Filtros de Vacaciones -->
+            <div
+              class="bg-gradient-to-br from-neutral-800/80 to-neutral-800/60 rounded-lg border border-neutral-700/50 backdrop-blur-sm p-3"
+            >
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <div class="md:col-span-1">
+                  <label
+                    class="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1"
+                  >
+                    <i class="pi pi-search mr-1 text-cyan-400 text-[10px]"></i
+                    >Búsqueda
+                  </label>
+                  <input
+                    pInputText
+                    [(ngModel)]="vacationsSearchText"
+                    placeholder="Empleado..."
+                    class="w-full text-sm py-1.5 bg-neutral-900/50 border-neutral-600 focus:border-cyan-400/50"
+                  />
+                </div>
+                <div>
+                  <label
+                    class="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1"
+                  >
+                    <i class="pi pi-tag mr-1 text-cyan-400 text-[10px]"></i
+                    >Estado
+                  </label>
+                  <p-dropdown
+                    [(ngModel)]="vacationsSelectedStatus"
+                    [options]="vacationsStatusOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Todos"
+                    [showClear]="true"
+                    class="w-full text-sm"
+                    [style]="{ height: '32px' }"
+                  />
+                </div>
+                <div class="flex items-end gap-2">
+                  <div class="flex-1">
+                    <label
+                      class="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1"
+                    >
+                      <i
+                        class="pi pi-calendar mr-1 text-cyan-400 text-[10px]"
+                      ></i
+                      >Rango
+                    </label>
+                    <p-calendar
+                      [(ngModel)]="vacationsDateRange"
+                      selectionMode="range"
+                      placeholder="Seleccionar"
+                      dateFormat="dd/mm/yy"
+                      [showIcon]="true"
+                      class="w-full text-sm"
+                      [inputStyle]="{ height: '32px', padding: '0.375rem' }"
+                      [showClear]="true"
                     />
-                  </td>
-                </tr>
-              </ng-template>
-            </p-table>
+                  </div>
+                  <p-button
+                    icon="pi pi-filter-slash"
+                    [outlined]="true"
+                    severity="secondary"
+                    (onClick)="clearVacationsFilters()"
+                    [disabled]="!hasActiveVacationsFilters()"
+                    [style]="{ height: '32px', width: '32px' }"
+                    pTooltip="Limpiar Filtros"
+                    tooltipPosition="top"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Tabla de Vacaciones -->
+            @if (vacationsApi.isLoading()) {
+            <div class="flex justify-center py-8">
+              <p-progressSpinner />
+            </div>
+            } @else if (filteredVacations().length === 0) {
+            <div
+              class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-8"
+            >
+              <div class="text-center">
+                <i class="pi pi-calendar text-gray-400 text-4xl mb-3"></i>
+                <p class="text-gray-400">
+                  No se encontraron solicitudes de vacaciones
+                </p>
+              </div>
+            </div>
+            } @else {
+            <div
+              class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 overflow-hidden"
+            >
+              <p-table
+                [value]="filteredVacations()"
+                [scrollable]="true"
+                scrollHeight="600px"
+                [responsive]="true"
+                styleClass="p-datatable-sm"
+              >
+                <ng-template pTemplate="header">
+                  <tr>
+                    <th style="width: 180px; padding: 0.5rem;">
+                      <div class="flex items-center gap-1">
+                        <i class="pi pi-user text-cyan-400 text-xs"></i>
+                        <span class="text-xs">Empleado</span>
+                      </div>
+                    </th>
+                    <th style="width: 120px; padding: 0.5rem;">
+                      <div class="flex items-center gap-1">
+                        <i class="pi pi-calendar text-cyan-400 text-xs"></i>
+                        <span class="text-xs">Fecha Inicio</span>
+                      </div>
+                    </th>
+                    <th style="width: 120px; padding: 0.5rem;">
+                      <div class="flex items-center gap-1">
+                        <i class="pi pi-calendar text-cyan-400 text-xs"></i>
+                        <span class="text-xs">Fecha Fin</span>
+                      </div>
+                    </th>
+                    <th style="width: 100px; padding: 0.5rem;">
+                      <div class="flex items-center gap-1">
+                        <i class="pi pi-clock text-cyan-400 text-xs"></i>
+                        <span class="text-xs">Días</span>
+                      </div>
+                    </th>
+                    <th style="width: 150px; padding: 0.5rem;">
+                      <div class="flex items-center gap-1">
+                        <i class="pi pi-tag text-cyan-400 text-xs"></i>
+                        <span class="text-xs">Estado</span>
+                      </div>
+                    </th>
+                    <th style="width: 140px; padding: 0.5rem;">
+                      <div class="flex items-center gap-1">
+                        <i class="pi pi-user-plus text-cyan-400 text-xs"></i>
+                        <span class="text-xs">Creado por</span>
+                      </div>
+                    </th>
+                    <th style="width: 120px; padding: 0.5rem;">
+                      <div class="flex items-center gap-1">
+                        <i
+                          class="pi pi-calendar-plus text-cyan-400 text-xs"
+                        ></i>
+                        <span class="text-xs">Solicitado</span>
+                      </div>
+                    </th>
+                    <th style="width: 180px; padding: 0.5rem;">
+                      <div class="flex items-center gap-1">
+                        <i class="pi pi-cog text-cyan-400 text-xs"></i>
+                        <span class="text-xs">Acciones</span>
+                      </div>
+                    </th>
+                  </tr>
+                </ng-template>
+                <ng-template pTemplate="body" let-vacation>
+                  <tr class="hover:bg-neutral-700/30">
+                    <td style="padding: 0.5rem;">
+                      <div class="flex flex-col gap-0.5">
+                        <span class="text-sm font-medium text-white">
+                          {{ vacation.employee?.first_name }}
+                          {{ vacation.employee?.father_name }}
+                        </span>
+                        @if (vacation.employee?.position?.name) {
+                        <span class="text-xs text-gray-400">
+                          {{ vacation.employee.position.name }}
+                        </span>
+                        } @if (vacation.employee?.branch?.name) {
+                        <span class="text-xs text-cyan-400">
+                          {{ vacation.employee.branch.name }}
+                        </span>
+                        }
+                      </div>
+                    </td>
+                    <td style="padding: 0.5rem;">
+                      <span class="text-sm text-gray-300">
+                        {{ vacation.start_date | date : 'dd/MM/yyyy' }}
+                      </span>
+                    </td>
+                    <td style="padding: 0.5rem;">
+                      <span class="text-sm text-gray-300">
+                        {{ vacation.end_date | date : 'dd/MM/yyyy' }}
+                      </span>
+                    </td>
+                    <td style="padding: 0.5rem;">
+                      <span class="text-sm font-medium text-cyan-400">
+                        {{
+                          calculateVacationDays(
+                            vacation.start_date,
+                            vacation.end_date
+                          )
+                        }}
+                      </span>
+                    </td>
+                    <td style="padding: 0.5rem;">
+                      <p-tag
+                        [value]="getVacationStatusLabel(vacation.status)"
+                        [severity]="getVacationStatusSeverity(vacation.status)"
+                        class="text-xs"
+                      />
+                    </td>
+                    <td style="padding: 0.5rem; text-align: center;">
+                      @if (vacation.created_by && vacation.created_by !==
+                      vacation.employee_id) {
+                      <div class="flex flex-col items-center gap-0.5">
+                        <div class="flex items-center gap-1">
+                          <i class="pi pi-user text-amber-400 text-[10px]"></i>
+                          <span class="text-[10px] font-medium text-amber-300">
+                            Creado por gerente
+                          </span>
+                        </div>
+                      </div>
+                      } @else {
+                      <span class="text-[10px] text-gray-500 italic">
+                        Auto-solicitud
+                      </span>
+                      }
+                    </td>
+                    <td style="padding: 0.5rem;">
+                      <span class="text-xs text-gray-400">
+                        {{ vacation.created_at | date : 'dd/MM/yyyy' }}
+                      </span>
+                      <br />
+                      <span class="text-xs text-gray-500">
+                        {{ vacation.created_at | date : 'HH:mm' }}
+                      </span>
+                    </td>
+                    <td style="padding: 0.5rem;">
+                      @if (vacation.status === 'pending') {
+                      <div class="flex gap-1">
+                        <p-button
+                          icon="pi pi-check"
+                          severity="success"
+                          size="small"
+                          pTooltip="Aprobar"
+                          tooltipPosition="left"
+                          (onClick)="approveVacation(vacation)"
+                        />
+                        <p-button
+                          icon="pi pi-times"
+                          severity="danger"
+                          size="small"
+                          pTooltip="Rechazar"
+                          tooltipPosition="left"
+                          (onClick)="rejectVacation(vacation)"
+                        />
+                      </div>
+                      }
+                      <p-button
+                        icon="pi pi-eye"
+                        severity="info"
+                        size="small"
+                        pTooltip="Ver detalles"
+                        tooltipPosition="left"
+                        (onClick)="viewVacationDetails(vacation)"
+                      />
+                    </td>
+                  </tr>
+                </ng-template>
+              </p-table>
+            </div>
+            }
           </div>
           }
         </div>
-        } @if (activeTab() === 'vacations') {
-        <!-- Dashboard de Vacaciones -->
-        <div class="space-y-3">
-          <!-- Estadísticas de Vacaciones -->
-          <!-- Estadísticas Compactas de Vacaciones -->
-          <div class="grid grid-cols-4 gap-2">
-            <!-- Total -->
-            <div
-              class="group relative bg-gradient-to-br from-neutral-800 to-neutral-800/80 rounded-lg p-3 border border-neutral-700/50 hover:border-cyan-400/50 transition-all duration-200 hover:shadow-lg hover:shadow-cyan-500/10 cursor-pointer"
-            >
-              <div class="flex items-center justify-between">
-                <div
-                  class="w-8 h-8 rounded-md bg-gradient-to-br from-gray-500/20 to-gray-600/20 flex items-center justify-center group-hover:scale-105 transition-transform"
-                >
-                  <i class="pi pi-calendar text-lg text-gray-400"></i>
-                </div>
-                <div class="text-right flex-1">
-                  <p
-                    class="text-[10px] font-medium text-gray-400 uppercase tracking-wider m-0"
-                  >
-                    Total
-                  </p>
-                  <p class="text-xl font-bold text-white m-0">
-                    {{ vacationsTotalCount() }}
-                  </p>
-                </div>
-              </div>
-              <div
-                class="h-0.5 bg-neutral-700 rounded-full overflow-hidden mt-2"
-              >
-                <div
-                  class="h-full bg-gradient-to-r from-gray-500 to-gray-400 rounded-full"
-                  [style.width.%]="100"
-                ></div>
-              </div>
-            </div>
+      </div>
 
-            <!-- Pendientes -->
-            <div
-              class="group relative bg-gradient-to-br from-yellow-500/10 via-yellow-500/5 to-neutral-800 rounded-lg p-3 border border-yellow-500/30 hover:border-yellow-400/50 transition-all duration-200 hover:shadow-lg hover:shadow-yellow-500/20 cursor-pointer"
+      <!-- Dialog de Detalles -->
+      <p-dialog
+        [(visible)]="showDetailsDialog"
+        [modal]="true"
+        [style]="{ width: '90vw', maxWidth: '900px' }"
+        [draggable]="false"
+        [resizable]="false"
+        [dismissableMask]="true"
+      >
+        <ng-template pTemplate="header">
+          <div class="flex items-center justify-between w-full">
+            <span class="text-lg font-semibold text-white"
+              >Detalles de Incapacidad</span
             >
-              <div class="flex items-center justify-between">
-                <div
-                  class="w-8 h-8 rounded-md bg-gradient-to-br from-yellow-500/30 to-yellow-600/20 flex items-center justify-center group-hover:scale-105 transition-transform"
-                >
-                  <i class="pi pi-clock text-lg text-yellow-400"></i>
-                </div>
-                <div class="text-right flex-1">
-                  <p
-                    class="text-[10px] font-medium text-yellow-400/80 uppercase tracking-wider m-0"
-                  >
-                    Pendientes
-                  </p>
-                  <p class="text-xl font-bold text-yellow-300 m-0">
-                    {{ vacationsPendingCount() }}
-                  </p>
-                </div>
-              </div>
-              <div
-                class="h-0.5 bg-neutral-700 rounded-full overflow-hidden mt-2"
-              >
-                <div
-                  class="h-full bg-gradient-to-r from-yellow-500 to-yellow-400 rounded-full"
-                  [style.width.%]="
-                    vacationsTotalCount() > 0
-                      ? (vacationsPendingCount() / vacationsTotalCount()) * 100
-                      : 0
-                  "
-                ></div>
-              </div>
-            </div>
-
-            <!-- Aprobadas -->
-            <div
-              class="group relative bg-gradient-to-br from-green-500/10 via-green-500/5 to-neutral-800 rounded-lg p-3 border border-green-500/30 hover:border-green-400/50 transition-all duration-200 hover:shadow-lg hover:shadow-green-500/20 cursor-pointer"
-            >
-              <div class="flex items-center justify-between">
-                <div
-                  class="w-8 h-8 rounded-md bg-gradient-to-br from-green-500/30 to-green-600/20 flex items-center justify-center group-hover:scale-105 transition-transform"
-                >
-                  <i class="pi pi-check-circle text-lg text-green-400"></i>
-                </div>
-                <div class="text-right flex-1">
-                  <p
-                    class="text-[10px] font-medium text-green-400/80 uppercase tracking-wider m-0"
-                  >
-                    Aprobadas
-                  </p>
-                  <p class="text-xl font-bold text-green-300 m-0">
-                    {{ vacationsApprovedCount() }}
-                  </p>
-                </div>
-              </div>
-              <div
-                class="h-0.5 bg-neutral-700 rounded-full overflow-hidden mt-2"
-              >
-                <div
-                  class="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full"
-                  [style.width.%]="
-                    vacationsTotalCount() > 0
-                      ? (vacationsApprovedCount() / vacationsTotalCount()) * 100
-                      : 0
-                  "
-                ></div>
-              </div>
-            </div>
-
-            <!-- Rechazadas -->
-            <div
-              class="group relative bg-gradient-to-br from-red-500/10 via-red-500/5 to-neutral-800 rounded-lg p-3 border border-red-500/30 hover:border-red-400/50 transition-all duration-200 hover:shadow-lg hover:shadow-red-500/20 cursor-pointer"
-            >
-              <div class="flex items-center justify-between">
-                <div
-                  class="w-8 h-8 rounded-md bg-gradient-to-br from-red-500/30 to-red-600/20 flex items-center justify-center group-hover:scale-105 transition-transform"
-                >
-                  <i class="pi pi-times-circle text-lg text-red-400"></i>
-                </div>
-                <div class="text-right flex-1">
-                  <p
-                    class="text-[10px] font-medium text-red-400/80 uppercase tracking-wider m-0"
-                  >
-                    Rechazadas
-                  </p>
-                  <p class="text-xl font-bold text-red-300 m-0">
-                    {{ vacationsRejectedCount() }}
-                  </p>
-                </div>
-              </div>
-              <div
-                class="h-0.5 bg-neutral-700 rounded-full overflow-hidden mt-2"
-              >
-                <div
-                  class="h-full bg-gradient-to-r from-red-500 to-red-400 rounded-full"
-                  [style.width.%]="
-                    vacationsTotalCount() > 0
-                      ? (vacationsRejectedCount() / vacationsTotalCount()) * 100
-                      : 0
-                  "
-                ></div>
-              </div>
+            <div class="flex items-center gap-2">
+              <p-button
+                icon="pi pi-history"
+                [rounded]="true"
+                [text]="true"
+                severity="secondary"
+                (onClick)="showAuditSidebar.set(!showAuditSidebar())"
+                [styleClass]="
+                  showAuditSidebar() ? 'bg-blue-500/20 text-blue-400' : ''
+                "
+                pTooltip="Ver historial de cambios"
+                tooltipPosition="left"
+                size="small"
+              />
             </div>
           </div>
-
-          <!-- Filtros -->
-          <!-- Filtros de Vacaciones -->
-          <div
-            class="bg-gradient-to-br from-neutral-800/80 to-neutral-800/60 rounded-lg border border-neutral-700/50 backdrop-blur-sm p-3"
-          >
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
-              <div class="md:col-span-1">
-                <label
-                  class="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1"
-                >
-                  <i class="pi pi-search mr-1 text-cyan-400 text-[10px]"></i
-                  >Búsqueda
-                </label>
-                <input
-                  pInputText
-                  [(ngModel)]="vacationsSearchText"
-                  placeholder="Empleado..."
-                  class="w-full text-sm py-1.5 bg-neutral-900/50 border-neutral-600 focus:border-cyan-400/50"
-                />
-              </div>
-              <div>
-                <label
-                  class="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1"
-                >
-                  <i class="pi pi-tag mr-1 text-cyan-400 text-[10px]"></i>Estado
-                </label>
-                <p-dropdown
-                  [(ngModel)]="vacationsSelectedStatus"
-                  [options]="vacationsStatusOptions"
-                  optionLabel="label"
-                  optionValue="value"
-                  placeholder="Todos"
-                  [showClear]="true"
-                  class="w-full text-sm"
-                  [style]="{ height: '32px' }"
-                />
-              </div>
-              <div class="flex items-end gap-2">
-                <div class="flex-1">
-                  <label
-                    class="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1"
-                  >
-                    <i class="pi pi-calendar mr-1 text-cyan-400 text-[10px]"></i
-                    >Rango
-                  </label>
-                  <p-calendar
-                    [(ngModel)]="vacationsDateRange"
-                    selectionMode="range"
-                    placeholder="Seleccionar"
-                    dateFormat="dd/mm/yy"
-                    [showIcon]="true"
-                    class="w-full text-sm"
-                    [inputStyle]="{ height: '32px', padding: '0.375rem' }"
-                    [showClear]="true"
-                  />
-                </div>
-                <p-button
-                  icon="pi pi-filter-slash"
-                  [outlined]="true"
-                  severity="secondary"
-                  (onClick)="clearVacationsFilters()"
-                  [disabled]="!hasActiveVacationsFilters()"
-                  [style]="{ height: '32px', width: '32px' }"
-                  pTooltip="Limpiar Filtros"
-                  tooltipPosition="top"
-                />
-              </div>
-            </div>
-          </div>
-
-          <!-- Tabla de Vacaciones -->
-          @if (vacationsApi.isLoading()) {
-          <div class="flex justify-center py-8">
-            <p-progressSpinner />
-          </div>
-          } @else if (filteredVacations().length === 0) {
-          <div
-            class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-8"
-          >
-            <div class="text-center">
-              <i class="pi pi-calendar text-gray-400 text-4xl mb-3"></i>
-              <p class="text-gray-400">
-                No se encontraron solicitudes de vacaciones
-              </p>
-            </div>
-          </div>
-          } @else {
-          <div
-            class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 overflow-hidden"
-          >
-            <p-table
-              [value]="filteredVacations()"
-              [scrollable]="true"
-              scrollHeight="600px"
-              [responsive]="true"
-              styleClass="p-datatable-sm"
+        </ng-template>
+        @if (selectedDisability()) {
+        <div class="space-y-4 pt-4">
+          <!-- Información del Empleado y Resumen de Incapacidad (lado a lado) -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Información del Empleado -->
+            <div
+              class="p-4 bg-neutral-800 rounded-lg border border-neutral-700"
             >
-              <ng-template pTemplate="header">
-                <tr>
-                  <th style="width: 180px; padding: 0.5rem;">
-                    <div class="flex items-center gap-1">
-                      <i class="pi pi-user text-cyan-400 text-xs"></i>
-                      <span class="text-xs">Empleado</span>
-                    </div>
-                  </th>
-                  <th style="width: 120px; padding: 0.5rem;">
-                    <div class="flex items-center gap-1">
-                      <i class="pi pi-calendar text-cyan-400 text-xs"></i>
-                      <span class="text-xs">Fecha Inicio</span>
-                    </div>
-                  </th>
-                  <th style="width: 120px; padding: 0.5rem;">
-                    <div class="flex items-center gap-1">
-                      <i class="pi pi-calendar text-cyan-400 text-xs"></i>
-                      <span class="text-xs">Fecha Fin</span>
-                    </div>
-                  </th>
-                  <th style="width: 100px; padding: 0.5rem;">
-                    <div class="flex items-center gap-1">
-                      <i class="pi pi-clock text-cyan-400 text-xs"></i>
-                      <span class="text-xs">Días</span>
-                    </div>
-                  </th>
-                  <th style="width: 150px; padding: 0.5rem;">
-                    <div class="flex items-center gap-1">
-                      <i class="pi pi-tag text-cyan-400 text-xs"></i>
-                      <span class="text-xs">Estado</span>
-                    </div>
-                  </th>
-                  <th style="width: 140px; padding: 0.5rem;">
-                    <div class="flex items-center gap-1">
-                      <i class="pi pi-user-plus text-cyan-400 text-xs"></i>
-                      <span class="text-xs">Creado por</span>
-                    </div>
-                  </th>
-                  <th style="width: 120px; padding: 0.5rem;">
-                    <div class="flex items-center gap-1">
-                      <i class="pi pi-calendar-plus text-cyan-400 text-xs"></i>
-                      <span class="text-xs">Solicitado</span>
-                    </div>
-                  </th>
-                  <th style="width: 180px; padding: 0.5rem;">
-                    <div class="flex items-center gap-1">
-                      <i class="pi pi-cog text-cyan-400 text-xs"></i>
-                      <span class="text-xs">Acciones</span>
-                    </div>
-                  </th>
-                </tr>
-              </ng-template>
-              <ng-template pTemplate="body" let-vacation>
-                <tr class="hover:bg-neutral-700/30">
-                  <td style="padding: 0.5rem;">
-                    <div class="flex flex-col gap-0.5">
-                      <span class="text-sm font-medium text-white">
-                        {{ vacation.employee?.first_name }}
-                        {{ vacation.employee?.father_name }}
-                      </span>
-                      @if (vacation.employee?.position?.name) {
-                      <span class="text-xs text-gray-400">
-                        {{ vacation.employee.position.name }}
-                      </span>
-                      } @if (vacation.employee?.branch?.name) {
-                      <span class="text-xs text-cyan-400">
-                        {{ vacation.employee.branch.name }}
-                      </span>
-                      }
-                    </div>
-                  </td>
-                  <td style="padding: 0.5rem;">
-                    <span class="text-sm text-gray-300">
-                      {{ vacation.start_date | date : 'dd/MM/yyyy' }}
+              <h3
+                class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+              >
+                <i class="pi pi-user text-blue-400"></i>
+                Información del Empleado
+              </h3>
+              <div class="space-y-2">
+                <div>
+                  <label class="block text-sm font-medium text-gray-400 mb-1"
+                    >Nombre</label
+                  >
+                  <p class="text-white">
+                    {{ selectedDisability()!.employee?.first_name }}
+                    {{ selectedDisability()!.employee?.father_name }}
+                    {{ selectedDisability()!.employee?.mother_name }}
+                  </p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-400 mb-1"
+                    >Email</label
+                  >
+                  <p class="text-white">
+                    {{ selectedDisability()!.employee?.work_email }}
+                  </p>
+                </div>
+                @if (selectedDisability()!.employee?.position?.name) {
+                <div>
+                  <label class="block text-sm font-medium text-gray-400 mb-1"
+                    >Cargo</label
+                  >
+                  <p class="text-white">
+                    {{ selectedDisability()!.employee?.position?.name }}
+                  </p>
+                </div>
+                } @if (selectedDisability()!.employee?.branch?.name) {
+                <div>
+                  <label class="block text-sm font-medium text-gray-400 mb-1"
+                    >Sucursal</label
+                  >
+                  <p class="text-white">
+                    {{ selectedDisability()!.employee?.branch?.name }}
+                  </p>
+                </div>
+                }
+              </div>
+            </div>
+
+            <!-- Resumen de Incapacidad -->
+            <div
+              class="p-4 bg-gradient-to-r from-blue-500/20 to-blue-600/10 border border-blue-400/30 rounded-lg"
+            >
+              <h3
+                class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+              >
+                <i class="pi pi-calendar-check text-blue-400"></i>
+                Resumen de Incapacidad
+              </h3>
+              <div class="flex items-center justify-between mb-3">
+                <div>
+                  <p class="text-sm text-gray-400 mb-1">Duración total</p>
+                  <p class="text-3xl font-bold text-blue-300">
+                    {{
+                      calculateDays(
+                        selectedDisability()!.start_date,
+                        selectedDisability()!.end_date
+                      )
+                    }}
+                    días
+                  </p>
+                </div>
+                <div
+                  class="w-20 h-20 rounded-full bg-blue-500/20 flex items-center justify-center"
+                >
+                  <i class="pi pi-calendar-check text-blue-400 text-3xl"></i>
+                </div>
+              </div>
+              <div class="mt-3 space-y-2">
+                <div
+                  class="bg-blue-500/10 border border-blue-400/30 rounded-lg p-2"
+                >
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-blue-300">
+                      Fecha Inicio
                     </span>
-                  </td>
-                  <td style="padding: 0.5rem;">
-                    <span class="text-sm text-gray-300">
-                      {{ vacation.end_date | date : 'dd/MM/yyyy' }}
-                    </span>
-                  </td>
-                  <td style="padding: 0.5rem;">
-                    <span class="text-sm font-medium text-cyan-400">
+                    <span class="text-xs font-bold text-blue-400">
                       {{
-                        calculateVacationDays(
-                          vacation.start_date,
-                          vacation.end_date
-                        )
+                        selectedDisability()!.start_date | date : 'dd/MM/yyyy'
                       }}
                     </span>
-                  </td>
-                  <td style="padding: 0.5rem;">
-                    <p-tag
-                      [value]="getVacationStatusLabel(vacation.status)"
-                      [severity]="getVacationStatusSeverity(vacation.status)"
-                      class="text-xs"
-                    />
-                  </td>
-                  <td style="padding: 0.5rem; text-align: center;">
-                    @if (vacation.created_by && vacation.created_by !==
-                    vacation.employee_id) {
-                    <div class="flex flex-col items-center gap-0.5">
-                      <div class="flex items-center gap-1">
-                        <i class="pi pi-user text-amber-400 text-[10px]"></i>
-                        <span class="text-[10px] font-medium text-amber-300">
-                          Creado por gerente
-                        </span>
-                      </div>
-                    </div>
-                    } @else {
-                    <span class="text-[10px] text-gray-500 italic">
-                      Auto-solicitud
+                  </div>
+                </div>
+                <div
+                  class="bg-blue-500/10 border border-blue-400/30 rounded-lg p-2"
+                >
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-semibold text-blue-300">
+                      Fecha Fin
                     </span>
-                    }
-                  </td>
-                  <td style="padding: 0.5rem;">
-                    <span class="text-xs text-gray-400">
-                      {{ vacation.created_at | date : 'dd/MM/yyyy' }}
+                    <span class="text-xs font-bold text-blue-400">
+                      {{ selectedDisability()!.end_date | date : 'dd/MM/yyyy' }}
                     </span>
-                    <br />
-                    <span class="text-xs text-gray-500">
-                      {{ vacation.created_at | date : 'HH:mm' }}
-                    </span>
-                  </td>
-                  <td style="padding: 0.5rem;">
-                    @if (vacation.status === 'pending') {
-                    <div class="flex gap-1">
-                      <p-button
-                        icon="pi pi-check"
-                        severity="success"
-                        size="small"
-                        pTooltip="Aprobar"
-                        tooltipPosition="left"
-                        (onClick)="approveVacation(vacation)"
-                      />
-                      <p-button
-                        icon="pi pi-times"
-                        severity="danger"
-                        size="small"
-                        pTooltip="Rechazar"
-                        tooltipPosition="left"
-                        (onClick)="rejectVacation(vacation)"
-                      />
-                    </div>
-                    }
-                    <p-button
-                      icon="pi pi-eye"
-                      severity="info"
-                      size="small"
-                      pTooltip="Ver detalles"
-                      tooltipPosition="left"
-                      (onClick)="viewVacationDetails(vacation)"
-                    />
-                  </td>
-                </tr>
-              </ng-template>
-            </p-table>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          }
-        </div>
-        }
-      </div>
-    </div>
 
-    <!-- Dialog de Detalles -->
-    <p-dialog
-      [(visible)]="showDetailsDialog"
-      [modal]="true"
-      [style]="{ width: '90vw', maxWidth: '900px' }"
-      [draggable]="false"
-      [resizable]="false"
-      [dismissableMask]="true"
-    >
-      <ng-template pTemplate="header">
-        <div class="flex items-center justify-between w-full">
-          <span class="text-lg font-semibold text-white"
-            >Detalles de Incapacidad</span
-          >
-          <div class="flex items-center gap-2">
-            <p-button
-              icon="pi pi-history"
-              [rounded]="true"
-              [text]="true"
-              severity="secondary"
-              (onClick)="showAuditSidebar.set(!showAuditSidebar())"
-              [styleClass]="
-                showAuditSidebar() ? 'bg-blue-500/20 text-blue-400' : ''
-              "
-              pTooltip="Ver historial de cambios"
-              tooltipPosition="left"
-              size="small"
-            />
-          </div>
-        </div>
-      </ng-template>
-      @if (selectedDisability()) {
-      <div class="space-y-4 pt-4">
-        <!-- Información del Empleado y Resumen de Incapacidad (lado a lado) -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- Información del Empleado -->
+          <!-- Información de la Incapacidad -->
           <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
             <h3
               class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
             >
-              <i class="pi pi-user text-blue-400"></i>
-              Información del Empleado
+              <i class="pi pi-info-circle text-blue-400"></i>
+              Información de la Incapacidad
             </h3>
-            <div class="space-y-2">
+            <div class="grid grid-cols-2 gap-4">
               <div>
                 <label class="block text-sm font-medium text-gray-400 mb-1"
-                  >Nombre</label
+                  >Fecha de Inicio</label
                 >
                 <p class="text-white">
-                  {{ selectedDisability()!.employee?.first_name }}
-                  {{ selectedDisability()!.employee?.father_name }}
-                  {{ selectedDisability()!.employee?.mother_name }}
+                  {{ selectedDisability()!.start_date | date : 'dd/MM/yyyy' }}
                 </p>
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-400 mb-1"
-                  >Email</label
+                  >Fecha de Fin</label
                 >
                 <p class="text-white">
-                  {{ selectedDisability()!.employee?.work_email }}
+                  {{ selectedDisability()!.end_date | date : 'dd/MM/yyyy' }}
                 </p>
               </div>
-              @if (selectedDisability()!.employee?.position?.name) {
               <div>
                 <label class="block text-sm font-medium text-gray-400 mb-1"
-                  >Cargo</label
+                  >Duración</label
                 >
                 <p class="text-white">
-                  {{ selectedDisability()!.employee?.position?.name }}
-                </p>
-              </div>
-              } @if (selectedDisability()!.employee?.branch?.name) {
-              <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1"
-                  >Sucursal</label
-                >
-                <p class="text-white">
-                  {{ selectedDisability()!.employee?.branch?.name }}
-                </p>
-              </div>
-              }
-            </div>
-          </div>
-
-          <!-- Resumen de Incapacidad -->
-          <div
-            class="p-4 bg-gradient-to-r from-blue-500/20 to-blue-600/10 border border-blue-400/30 rounded-lg"
-          >
-            <h3
-              class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
-            >
-              <i class="pi pi-calendar-check text-blue-400"></i>
-              Resumen de Incapacidad
-            </h3>
-            <div class="flex items-center justify-between mb-3">
-              <div>
-                <p class="text-sm text-gray-400 mb-1">Duración total</p>
-                <p class="text-3xl font-bold text-blue-300">
                   {{
                     calculateDays(
                       selectedDisability()!.start_date,
                       selectedDisability()!.end_date
                     )
                   }}
-                  días
+                  día(s)
                 </p>
               </div>
-              <div
-                class="w-20 h-20 rounded-full bg-blue-500/20 flex items-center justify-center"
-              >
-                <i class="pi pi-calendar-check text-blue-400 text-3xl"></i>
-              </div>
-            </div>
-            <div class="mt-3 space-y-2">
-              <div
-                class="bg-blue-500/10 border border-blue-400/30 rounded-lg p-2"
-              >
-                <div class="flex items-center justify-between">
-                  <span class="text-xs font-semibold text-blue-300">
-                    Fecha Inicio
-                  </span>
-                  <span class="text-xs font-bold text-blue-400">
-                    {{ selectedDisability()!.start_date | date : 'dd/MM/yyyy' }}
-                  </span>
-                </div>
-              </div>
-              <div
-                class="bg-blue-500/10 border border-blue-400/30 rounded-lg p-2"
-              >
-                <div class="flex items-center justify-between">
-                  <span class="text-xs font-semibold text-blue-300">
-                    Fecha Fin
-                  </span>
-                  <span class="text-xs font-bold text-blue-400">
-                    {{ selectedDisability()!.end_date | date : 'dd/MM/yyyy' }}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Información de la Incapacidad -->
-        <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
-          <h3
-            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
-          >
-            <i class="pi pi-info-circle text-blue-400"></i>
-            Información de la Incapacidad
-          </h3>
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Fecha de Inicio</label
-              >
-              <p class="text-white">
-                {{ selectedDisability()!.start_date | date : 'dd/MM/yyyy' }}
-              </p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Fecha de Fin</label
-              >
-              <p class="text-white">
-                {{ selectedDisability()!.end_date | date : 'dd/MM/yyyy' }}
-              </p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Duración</label
-              >
-              <p class="text-white">
-                {{
-                  calculateDays(
-                    selectedDisability()!.start_date,
-                    selectedDisability()!.end_date
-                  )
-                }}
-                día(s)
-              </p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Estado</label
-              >
-              <p-tag
-                [value]="getStatusLabel(selectedDisability()!.status)"
-                [severity]="getStatusSeverity(selectedDisability()!.status)"
-              />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Fecha de Solicitud</label
-              >
-              <p class="text-white">
-                {{
-                  selectedDisability()!.created_at | date : 'dd/MM/yyyy HH:mm'
-                }}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        @if (selectedDisability()!.description) {
-        <!-- Descripción -->
-        <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
-          <h3
-            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
-          >
-            <i class="pi pi-comment text-blue-400"></i>
-            Descripción
-          </h3>
-          <p class="text-white whitespace-pre-wrap">
-            {{ selectedDisability()!.description }}
-          </p>
-        </div>
-        } @if (selectedDisability()!.document_url) {
-        <!-- Documento de Incapacidad -->
-        <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
-          <div class="flex items-center justify-between mb-3">
-            <h3
-              class="text-lg font-semibold text-white flex items-center gap-2"
-            >
-              <i class="pi pi-file text-blue-400"></i>
-              Documento de Incapacidad
-            </h3>
-            <p-button
-              icon="pi pi-download"
-              label="Descargar"
-              (onClick)="downloadDocument(selectedDisability()!.document_url!)"
-              severity="info"
-              [text]="true"
-              size="small"
-            />
-          </div>
-          <div class="flex items-center justify-between mb-3">
-            <p class="text-gray-300 mb-0 text-sm">
-              <i class="pi pi-file mr-2"></i>
-              Documento adjunto
-            </p>
-            <div class="flex items-center gap-2">
-              <p-button
-                icon="pi pi-search-minus"
-                (onClick)="zoomOut()"
-                [text]="true"
-                [rounded]="true"
-                severity="secondary"
-                size="small"
-                [disabled]="zoomLevel() <= 0.5"
-                pTooltip="Alejar"
-              />
-              <span class="text-sm text-gray-400 min-w-[60px] text-center">
-                {{ (zoomLevel() * 100).toFixed(0) }}%
-              </span>
-              <p-button
-                icon="pi pi-search-plus"
-                (onClick)="zoomIn()"
-                [text]="true"
-                [rounded]="true"
-                severity="secondary"
-                size="small"
-                [disabled]="zoomLevel() >= 2"
-                pTooltip="Acercar"
-              />
-              <p-button
-                label="Reset"
-                (onClick)="resetZoom()"
-                [text]="true"
-                severity="secondary"
-                size="small"
-                pTooltip="Restablecer zoom"
-              />
-            </div>
-          </div>
-          <div
-            class="border border-gray-700 rounded-lg overflow-hidden bg-gray-900"
-          >
-            <div
-              class="overflow-auto max-h-[600px] bg-gray-800"
-              style="padding: 20px;"
-            >
-              <div
-                class="pdf-container"
-                [style.transform]="'scale(' + zoomLevel() + ')'"
-                [style.transform-origin]="'top left'"
-                style="width: 100%; min-height: 800px;"
-              >
-                <object
-                  [data]="pdfUrl()"
-                  type="application/pdf"
-                  class="w-full"
-                  style="min-height: 800px; border: none;"
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Estado</label
                 >
-                  <p class="text-gray-400 p-4">
-                    No se puede mostrar el PDF.
-                    <a
-                      [href]="pdfUrlForLink()"
-                      target="_blank"
-                      class="text-blue-400 underline"
-                    >
-                      Abrir en nueva pestaña
-                    </a>
-                  </p>
-                </object>
+                <p-tag
+                  [value]="getStatusLabel(selectedDisability()!.status)"
+                  [severity]="getStatusSeverity(selectedDisability()!.status)"
+                />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Fecha de Solicitud</label
+                >
+                <p class="text-white">
+                  {{
+                    selectedDisability()!.created_at | date : 'dd/MM/yyyy HH:mm'
+                  }}
+                </p>
               </div>
             </div>
           </div>
-        </div>
-        } @if (selectedDisability()!.status === 'rejected') {
-        <!-- Motivo de Rechazo -->
-        <div class="p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
-          <h3
-            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
-          >
-            <i class="pi pi-exclamation-triangle text-red-400"></i>
-            Motivo de Rechazo
-          </h3>
-          <textarea
-            pInputTextarea
-            [(ngModel)]="disabilityRejectionComment"
-            placeholder="Agregar o editar el motivo del rechazo..."
-            rows="3"
-            class="w-full"
-          ></textarea>
-          <div class="flex justify-end mt-2">
-            <p-button
-              label="Guardar Comentario"
-              icon="pi pi-save"
-              size="small"
-              [loading]="savingDisabilityComment()"
-              (onClick)="saveDisabilityRejectionComment()"
-            />
-          </div>
-        </div>
-        }
 
-        <!-- Gestión de Estado -->
-        <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
-          <h3
-            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
-          >
-            <i class="pi pi-cog text-blue-400"></i>
-            Gestión de Estado
-          </h3>
-          <div class="flex gap-2">
-            @for (status of statusOptions; track status.value) {
-            <p-button
-              [label]="status.label"
-              [severity]="
-                status.value === 'approved'
-                  ? 'success'
-                  : status.value === 'rejected'
-                  ? 'danger'
-                  : 'warn'
-              "
-              [outlined]="selectedDisability()!.status !== status.value"
-              (onClick)="updateDisabilityStatusFromDialog(status.value)"
-              [disabled]="selectedDisability()!.status === status.value"
-            />
-            }
-          </div>
-        </div>
-      </div>
-      }
-    </p-dialog>
-
-    <!-- Dialog de Detalles de Tiempo Compensatorio -->
-    <p-dialog
-      [(visible)]="showCompensatoryDetailsDialog"
-      [modal]="true"
-      [style]="{ width: '90vw', maxWidth: '800px' }"
-      [draggable]="false"
-      [resizable]="false"
-      [dismissableMask]="true"
-    >
-      <ng-template pTemplate="header">
-        <div class="flex items-center justify-between w-full">
-          <span class="text-lg font-semibold text-white"
-            >Detalles de Solicitud de Tiempo Compensatorio</span
-          >
-          <div class="flex items-center gap-2">
-            <p-button
-              [icon]="
-                selectedCompensatoryRequest()!.document_url
-                  ? 'pi pi-file'
-                  : 'pi pi-paperclip'
-              "
-              [rounded]="true"
-              [text]="true"
-              severity="secondary"
-              (onClick)="
-                selectedCompensatoryRequest()!.document_url
-                  ? openCompensatoryDocument()
-                  : attachDocumentToCompensatoryRequest()
-              "
-              [pTooltip]="
-                selectedCompensatoryRequest()!.document_url
-                  ? 'Ver documento adjunto'
-                  : 'Adjuntar documento'
-              "
-              tooltipPosition="left"
-              size="small"
-            />
-            <p-button
-              icon="pi pi-history"
-              [rounded]="true"
-              [text]="true"
-              severity="secondary"
-              (onClick)="showAuditSidebar.set(!showAuditSidebar())"
-              [styleClass]="
-                showAuditSidebar() ? 'bg-cyan-500/20 text-cyan-400' : ''
-              "
-              pTooltip="Ver historial de cambios"
-              tooltipPosition="left"
-              size="small"
-            />
-          </div>
-        </div>
-      </ng-template>
-      @if (selectedCompensatoryRequest()) {
-      <div class="space-y-4 pt-4">
-        <!-- Información del Empleado y Horas Extras Disponibles (lado a lado) -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <!-- Información del Empleado -->
+          @if (selectedDisability()!.description) {
+          <!-- Descripción -->
           <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
             <h3
               class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
             >
-              <i class="pi pi-user text-cyan-400"></i>
-              Información del Empleado
+              <i class="pi pi-comment text-blue-400"></i>
+              Descripción
             </h3>
-            <div class="space-y-2">
-              <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1"
-                  >Nombre</label
-                >
-                <p class="text-white">
-                  {{ getEmployeeName(selectedCompensatoryRequest()!) }}
-                </p>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1"
-                  >Email</label
-                >
-                <p class="text-white">
-                  {{ getEmployeeEmail(selectedCompensatoryRequest()!) }}
-                </p>
-              </div>
-              @if (getEmployeePosition(selectedCompensatoryRequest()!)) {
-              <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1"
-                  >Cargo</label
-                >
-                <p class="text-white">
-                  {{ getEmployeePosition(selectedCompensatoryRequest()!) }}
-                </p>
-              </div>
-              } @if (selectedCompensatoryRequest()!.employee?.branch?.name) {
-              <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1"
-                  >Sucursal</label
-                >
-                <p class="text-white">
-                  {{ selectedCompensatoryRequest()!.employee?.branch?.name }}
-                </p>
-              </div>
-              }
-            </div>
+            <p class="text-white whitespace-pre-wrap">
+              {{ selectedDisability()!.description }}
+            </p>
           </div>
-
-          <!-- Horas Extra Pendientes (histórico) -->
-          <div
-            class="p-4 bg-gradient-to-r from-cyan-500/20 to-cyan-600/10 border border-cyan-400/30 rounded-lg"
-          >
-            <h3
-              class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
-            >
-              <i class="pi pi-clock text-cyan-400"></i>
-              Horas Extra Pendientes (histórico)
-            </h3>
-            @if (isLoadingOvertimeHours()) {
-            <div class="flex items-center gap-2 text-gray-400">
-              <i class="pi pi-spin pi-spinner"></i>
-              <span>Cargando horas extras...</span>
-            </div>
-            } @else {
+          } @if (selectedDisability()!.document_url) {
+          <!-- Documento de Incapacidad -->
+          <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
             <div class="flex items-center justify-between mb-3">
-              <div>
-                <p class="text-sm text-gray-400 mb-1">
-                  Total pendiente (no usado)
-                </p>
-                <p class="text-3xl font-bold text-cyan-300">
-                  {{ formatHoursMinutes(employeeOvertimeHours()) }}
-                </p>
-              </div>
-              <div
-                class="w-20 h-20 rounded-full bg-cyan-500/20 flex items-center justify-center"
+              <h3
+                class="text-lg font-semibold text-white flex items-center gap-2"
               >
-                <i class="pi pi-clock text-cyan-400 text-3xl"></i>
-              </div>
+                <i class="pi pi-file text-blue-400"></i>
+                Documento de Incapacidad
+              </h3>
+              <p-button
+                icon="pi pi-download"
+                label="Descargar"
+                (onClick)="
+                  downloadDocument(selectedDisability()!.document_url!)
+                "
+                severity="info"
+                [text]="true"
+                size="small"
+              />
             </div>
-            @if (employeeOvertimeDays().length > 0) {
-            <!-- Mostrar días con horas extras -->
-            <div class="mt-3">
-              <p class="text-xs font-medium text-gray-300 mb-2">
-                Días con saldo pendiente (mostrando últimos
-                {{ employeeOvertimeDays().length }}):
+            <div class="flex items-center justify-between mb-3">
+              <p class="text-gray-300 mb-0 text-sm">
+                <i class="pi pi-file mr-2"></i>
+                Documento adjunto
               </p>
-              <div class="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
-                @for (day of employeeOvertimeDays(); track day.day) {
-                <div
-                  class="bg-cyan-500/10 border border-cyan-400/30 rounded-lg p-2 hover:bg-cyan-500/20 transition-colors"
-                >
-                  <div class="flex items-center justify-between mb-1">
-                    <span class="text-xs font-semibold text-cyan-300">
-                      {{ formatDate(day.day) }}
-                    </span>
-                    <span class="text-xs font-bold text-cyan-400">
-                      {{ formatHoursMinutes(day.overtimeHours) }}
-                    </span>
-                  </div>
-                  @if (day.entryTime && day.exitTime) {
-                  <div class="text-xs text-gray-400">
-                    {{ day.entryTime }} - {{ day.exitTime }}
-                  </div>
-                  }
-                </div>
-                }
-              </div>
-              <div class="mt-3 flex items-center justify-between gap-2">
-                <p class="text-[11px] text-gray-400 m-0">
-                  Cargando histórico: últimos
-                  {{ overtimeHistoryWindowDays() }} días
-                </p>
+              <div class="flex items-center gap-2">
                 <p-button
-                  label="Cargar más"
-                  icon="pi pi-plus"
-                  size="small"
+                  icon="pi pi-search-minus"
+                  (onClick)="zoomOut()"
+                  [text]="true"
+                  [rounded]="true"
                   severity="secondary"
-                  [outlined]="true"
-                  (onClick)="loadMoreOvertimeHistory()"
+                  size="small"
+                  [disabled]="zoomLevel() <= 0.5"
+                  pTooltip="Alejar"
+                />
+                <span class="text-sm text-gray-400 min-w-[60px] text-center">
+                  {{ (zoomLevel() * 100).toFixed(0) }}%
+                </span>
+                <p-button
+                  icon="pi pi-search-plus"
+                  (onClick)="zoomIn()"
+                  [text]="true"
+                  [rounded]="true"
+                  severity="secondary"
+                  size="small"
+                  [disabled]="zoomLevel() >= 2"
+                  pTooltip="Acercar"
+                />
+                <p-button
+                  label="Reset"
+                  (onClick)="resetZoom()"
+                  [text]="true"
+                  severity="secondary"
+                  size="small"
+                  pTooltip="Restablecer zoom"
                 />
               </div>
             </div>
-            } @else {
-            <p class="text-xs text-gray-400 mt-3">
-              No hay días con horas extra pendientes dentro del rango cargado.
-            </p>
-            } }
-          </div>
-        </div>
-
-        <!-- Información de la Solicitud -->
-        <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
-          <h3
-            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
-          >
-            <i class="pi pi-info-circle text-cyan-400"></i>
-            Información de la Solicitud
-          </h3>
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Tipo de Solicitud</label
+            <div
+              class="border border-gray-700 rounded-lg overflow-hidden bg-gray-900"
+            >
+              <div
+                class="overflow-auto max-h-[600px] bg-gray-800"
+                style="padding: 20px;"
               >
-              <p class="text-white">
-                @let compensatoryType =
-                getCompensatoryTypeFromNotes(selectedCompensatoryRequest()!);
-                @if (compensatoryType === 'days') {
-                <span class="flex items-center gap-2">
-                  <i class="pi pi-calendar text-cyan-400"></i>
-                  Días
-                </span>
-                } @else if (compensatoryType === 'hours') {
-                <span class="flex items-center gap-2">
-                  <i class="pi pi-clock text-cyan-400"></i>
-                  Horas
-                </span>
-                } @else {
-                <span class="text-gray-400">No especificado</span>
-                }
-              </p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Cantidad Solicitada</label
-              >
-              <p class="text-white">
-                @let quantity =
-                getCompensatoryQuantity(selectedCompensatoryRequest()!); @if
-                (quantity && quantity.value > 0) { @if (quantity.isDays) {
-                {{ quantity.value }} día(s) ({{ quantity.value * 8 }} horas) }
-                @else {
-                {{ formatHoursMinutes(quantity.value) }}
-                } } @else {
-                <span class="text-gray-400">No especificada</span>
-                }
-              </p>
-            </div>
-            @let compensatoryDate =
-            getCompensatoryDateFromNotes(selectedCompensatoryRequest()!); @if
-            (compensatoryDate) {
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Fecha del Compensatorio</label
-              >
-              <p class="text-white font-medium text-cyan-400">
-                {{ compensatoryDate | date : 'dd/MM/yyyy' }}
-              </p>
-            </div>
-            } @else { @let dateFrom = selectedCompensatoryRequest()!.date_from |
-            date : 'dd/MM/yyyy'; @let dateTo =
-            selectedCompensatoryRequest()!.date_to | date : 'dd/MM/yyyy'; @if
-            (dateFrom === dateTo) {
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Fecha Registrada</label
-              >
-              <p class="text-white">
-                {{ dateFrom }}
-              </p>
-            </div>
-            } @else {
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Período Registrado</label
-              >
-              <p class="text-white">{{ dateFrom }} → {{ dateTo }}</p>
-            </div>
-            } } @let timeInfo =
-            getCompensatoryTimeFromNotes(selectedCompensatoryRequest()!); @if
-            (timeInfo.start || timeInfo.end) {
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Horario del Compensatorio</label
-              >
-              <p class="text-white font-mono">
-                @if (timeInfo.start && timeInfo.end) {
-                {{ timeInfo.start }} - {{ timeInfo.end }} } @else if
-                (timeInfo.start) { Desde: {{ timeInfo.start }} } @else if
-                (timeInfo.end) { Hasta: {{ timeInfo.end }}
-                }
-              </p>
-            </div>
-            }
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Fecha de Solicitud</label
-              >
-              <p class="text-white">
-                {{
-                  selectedCompensatoryRequest()!.created_at
-                    | date : 'dd/MM/yyyy HH:mm'
-                }}
-              </p>
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Estado</label
-              >
-              <p-tag
-                [value]="
-                  getCompensatoryStatusLabel(selectedCompensatoryRequest()!)
-                "
-                [severity]="
-                  getCompensatoryStatusSeverity(selectedCompensatoryRequest()!)
-                "
-              />
-            </div>
-            @let overtimeDates =
-            getCompensatoryOvertimeDatesFromNotes(selectedCompensatoryRequest()!);
-            @if (overtimeDates.length > 0) {
-            <div class="col-span-2">
-              <label class="block text-sm font-medium text-gray-400 mb-2"
-                >Días donde trabajó horas extra (reportados por el
-                empleado)</label
-              >
-              <div class="flex flex-wrap gap-2">
-                @for (date of overtimeDates; track date) {
-                <span
-                  class="px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-400/30 flex flex-col gap-0.5"
+                <div
+                  class="pdf-container"
+                  [style.transform]="'scale(' + zoomLevel() + ')'"
+                  [style.transform-origin]="'top left'"
+                  style="width: 100%; min-height: 800px;"
                 >
-                  <span class="font-semibold text-white text-sm">
-                    {{ date | date : 'dd/MM/yyyy' }}
-                  </span>
-                  <span class="text-gray-300 text-xs">
-                    {{ getManualDateSaldoLabel(date) }}
-                  </span>
-                </span>
-                }
+                  <object
+                    [data]="pdfUrl()"
+                    type="application/pdf"
+                    class="w-full"
+                    style="min-height: 800px; border: none;"
+                  >
+                    <p class="text-gray-400 p-4">
+                      No se puede mostrar el PDF.
+                      <a
+                        [href]="pdfUrlForLink()"
+                        target="_blank"
+                        class="text-blue-400 underline"
+                      >
+                        Abrir en nueva pestaña
+                      </a>
+                    </p>
+                  </object>
+                </div>
               </div>
-              <p class="text-xs text-gray-400 mt-2">
-                Total de días reportados: {{ overtimeDates.length }}
-              </p>
             </div>
-            }
           </div>
-
-          @let reason =
-          getCompensatoryReasonFromNotes(selectedCompensatoryRequest()!); @if
-          (reason) {
-          <div class="mt-4">
-            <label class="block text-sm font-medium text-gray-400 mb-1"
-              >Motivo</label
+          } @if (selectedDisability()!.status === 'rejected') {
+          <!-- Motivo de Rechazo -->
+          <div class="p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+            <h3
+              class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
             >
-            <p
-              class="text-white whitespace-pre-wrap bg-neutral-900/50 p-3 rounded"
-            >
-              {{ reason }}
-            </p>
-          </div>
-          } @if (selectedCompensatoryRequest()!.rejection_comment) {
-          <div class="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded">
-            <label class="block text-sm font-medium text-red-400 mb-1"
-              >Comentario de Rechazo</label
-            >
-            <p class="text-red-300 whitespace-pre-wrap">
-              {{ selectedCompensatoryRequest()!.rejection_comment }}
-            </p>
-          </div>
-          } @if (selectedCompensatoryRequest()!.rejection_comment ||
-          selectedCompensatoryRequest()!.review_status === 'rejected') {
-          <div
-            class="mt-4 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700"
-          >
-            <label class="block text-sm font-medium text-gray-400 mb-2">
-              Motivo de Rechazo (editable)
-            </label>
+              <i class="pi pi-exclamation-triangle text-red-400"></i>
+              Motivo de Rechazo
+            </h3>
             <textarea
               pInputTextarea
-              [(ngModel)]="compensatoryRejectionComment"
+              [(ngModel)]="disabilityRejectionComment"
               placeholder="Agregar o editar el motivo del rechazo..."
               rows="3"
               class="w-full"
@@ -2895,483 +2532,907 @@ interface DocumentRequest {
                 label="Guardar Comentario"
                 icon="pi pi-save"
                 size="small"
-                [loading]="savingCompensatoryComment()"
-                (onClick)="saveCompensatoryRejectionComment()"
+                [loading]="savingDisabilityComment()"
+                (onClick)="saveDisabilityRejectionComment()"
               />
             </div>
           </div>
           }
-        </div>
 
-        <!-- Fechas donde trabajó horas extra -->
-        @if (getOvertimeDaysFromNotes(selectedCompensatoryRequest()!)) {
-        <div
-          class="p-5 bg-neutral-800 rounded-lg border border-neutral-700 shadow-lg"
-        >
-          <h3
-            class="text-lg font-semibold text-white mb-4 flex items-center gap-2"
-          >
-            <i class="pi pi-calendar-check text-cyan-400"></i>
-            Fechas donde trabajó horas extra
-          </h3>
-          <div class="overflow-x-auto -mx-2">
-            <p-table
-              [value]="
-                getOvertimeDaysFromNotes(selectedCompensatoryRequest()!) || []
-              "
-              styleClass="p-datatable-sm overtime-details-table"
-              [paginator]="false"
-              [scrollable]="true"
-              scrollHeight="300px"
-              showGridlines
+          <!-- Gestión de Estado -->
+          <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
+            <h3
+              class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
             >
-              <ng-template #header>
-                <tr>
-                  <th class="text-left font-semibold">Fecha</th>
-                  <th class="text-left font-semibold">Hora de Entrada</th>
-                  <th class="text-left font-semibold">Hora de Salida</th>
-                  <th class="text-right font-semibold">Horas Totales</th>
-                  <th class="text-right font-semibold">Tiempo de Almuerzo</th>
-                  <th class="text-right font-semibold">Retraso</th>
-                  <th class="text-right font-semibold">Horas Extra</th>
-                </tr>
-              </ng-template>
-              <ng-template #body let-dayDetail>
-                <tr class="hover:bg-neutral-700/50 transition-colors">
-                  <td class="font-semibold text-white py-3">
-                    <div class="flex items-center gap-2">
-                      <i class="pi pi-calendar text-cyan-400 text-sm"></i>
-                      <span>{{ dayDetail.date }}</span>
-                    </div>
-                  </td>
-                  <td class="py-3">
-                    <div
-                      class="flex items-center gap-2 bg-green-500/10 px-2 py-1 rounded"
-                    >
-                      <i class="pi pi-sign-in text-green-400 text-sm"></i>
-                      <span
-                        class="font-mono text-sm font-semibold text-green-300"
-                        >{{ dayDetail.entryTime }}</span
-                      >
-                    </div>
-                  </td>
-                  <td class="py-3">
-                    <div
-                      class="flex items-center gap-2 bg-red-500/10 px-2 py-1 rounded"
-                    >
-                      <i class="pi pi-sign-out text-red-400 text-sm"></i>
-                      <span
-                        class="font-mono text-sm font-semibold text-red-300"
-                        >{{ dayDetail.exitTime }}</span
-                      >
-                    </div>
-                  </td>
-                  <td class="text-right py-3">
-                    <div class="flex flex-col items-end">
-                      <span class="font-semibold text-white text-sm">{{
-                        formatHoursMinutes(dayDetail.totalHours)
-                      }}</span>
-                      <span class="text-xs text-gray-400 mt-0.5">(neto)</span>
-                    </div>
-                  </td>
-                  <td class="text-right py-3">
-                    <span class="text-gray-300 font-medium text-sm">{{
-                      formatHoursMinutes(dayDetail.lunchDuration)
-                    }}</span>
-                  </td>
-                  <td class="text-right py-3">
-                    @if (hasDelay(dayDetail.delayHours)) {
-                    <span
-                      class="px-2 py-1 bg-red-500/20 text-red-300 rounded text-sm font-semibold"
-                    >
-                      {{ formatHoursMinutes(dayDetail.delayHours) }}
-                    </span>
-                    } @else {
-                    <span class="text-gray-500 text-sm">-</span>
-                    }
-                  </td>
-                  <td class="text-right py-3">
-                    <span
-                      class="px-3 py-1.5 bg-gradient-to-r from-cyan-500/30 to-cyan-600/30 text-cyan-300 rounded-lg font-bold text-sm border border-cyan-400/30"
-                    >
-                      {{ formatHoursMinutes(dayDetail.overtimeHours) }}
-                    </span>
-                  </td>
-                </tr>
-              </ng-template>
-            </p-table>
+              <i class="pi pi-cog text-blue-400"></i>
+              Gestión de Estado
+            </h3>
+            <div class="flex gap-2">
+              @for (status of statusOptions; track status.value) {
+              <p-button
+                [label]="status.label"
+                [severity]="
+                  status.value === 'approved'
+                    ? 'success'
+                    : status.value === 'rejected'
+                    ? 'danger'
+                    : 'warn'
+                "
+                [outlined]="selectedDisability()!.status !== status.value"
+                (onClick)="updateDisabilityStatusFromDialog(status.value)"
+                [disabled]="selectedDisability()!.status === status.value"
+              />
+              }
+            </div>
           </div>
         </div>
         }
-      </div>
-      }
+      </p-dialog>
 
-      <!-- Panel lateral de historial (deslizable desde la derecha) -->
-      <div
-        class="fixed bg-neutral-900 border-l border-neutral-700 shadow-2xl z-[1200] transition-all duration-500 ease-out"
-        [style.width]="'320px'"
-        [style.max-width]="'30vw'"
-        [style.top]="'50%'"
-        [style.left]="showAuditSidebar() ? 'calc(50% + 400px)' : '50%'"
-        [style.transform]="
-          showAuditSidebar()
-            ? 'translateY(-50%) translateX(0) scale(1)'
-            : 'translateY(-50%) translateX(0) scale(0.8)'
-        "
-        [style.opacity]="showAuditSidebar() ? '1' : '0'"
-        [style.max-height]="'90vh'"
-        [style.height]="'664px'"
-        [style.pointer-events]="showAuditSidebar() ? 'auto' : 'none'"
+      <!-- Dialog de Detalles de Tiempo Compensatorio -->
+      <p-dialog
+        [(visible)]="showCompensatoryDetailsDialog"
+        [modal]="true"
+        [style]="{ width: '90vw', maxWidth: '800px' }"
+        [draggable]="false"
+        [resizable]="false"
+        [dismissableMask]="true"
       >
-        <div class="flex flex-col h-full">
-          <!-- Header del panel lateral -->
-          <div
-            class="p-4 border-b border-neutral-700 bg-neutral-800 flex items-center justify-between"
-          >
-            <h3
-              class="text-lg font-semibold text-white flex items-center gap-2"
+        <ng-template pTemplate="header">
+          <div class="flex items-center justify-between w-full">
+            <span class="text-lg font-semibold text-white"
+              >Detalles de Solicitud de Tiempo Compensatorio</span
             >
-              <i class="pi pi-history text-cyan-400"></i>
-              Historial de Cambios
-            </h3>
-            <p-button
-              icon="pi pi-times"
-              [rounded]="true"
-              [text]="true"
-              severity="secondary"
-              (onClick)="showAuditSidebar.set(false)"
-              size="small"
-            />
+            <div class="flex items-center gap-2">
+              <p-button
+                [icon]="
+                  selectedCompensatoryRequest()!.document_url
+                    ? 'pi pi-file'
+                    : 'pi pi-paperclip'
+                "
+                [rounded]="true"
+                [text]="true"
+                severity="secondary"
+                (onClick)="
+                  selectedCompensatoryRequest()!.document_url
+                    ? openCompensatoryDocument()
+                    : attachDocumentToCompensatoryRequest()
+                "
+                [pTooltip]="
+                  selectedCompensatoryRequest()!.document_url
+                    ? 'Ver documento adjunto'
+                    : 'Adjuntar documento'
+                "
+                tooltipPosition="left"
+                size="small"
+              />
+              <p-button
+                icon="pi pi-history"
+                [rounded]="true"
+                [text]="true"
+                severity="secondary"
+                (onClick)="showAuditSidebar.set(!showAuditSidebar())"
+                [styleClass]="
+                  showAuditSidebar() ? 'bg-cyan-500/20 text-cyan-400' : ''
+                "
+                pTooltip="Ver historial de cambios"
+                tooltipPosition="left"
+                size="small"
+              />
+            </div>
           </div>
-
-          <!-- Contenido del historial -->
-          <div class="flex-1 overflow-y-auto p-4">
-            @if (isLoadingAuditHistory()) {
+        </ng-template>
+        @if (selectedCompensatoryRequest()) {
+        <div class="space-y-4 pt-4">
+          <!-- Información del Empleado y Horas Extras Disponibles (lado a lado) -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Información del Empleado -->
             <div
-              class="flex items-center justify-center gap-2 text-gray-400 py-8"
+              class="p-4 bg-neutral-800 rounded-lg border border-neutral-700"
             >
-              <i class="pi pi-spin pi-spinner"></i>
-              <span class="text-sm">Cargando historial...</span>
-            </div>
-            } @else if (auditHistory().length === 0) {
-            <div class="text-center py-8 text-gray-400">
-              <i class="pi pi-info-circle text-4xl mb-4"></i>
-              <p class="text-sm">No hay historial de cambios disponible</p>
-            </div>
-            } @else {
-            <div class="space-y-3">
-              @for (log of auditHistory(); track log.id) { @let isExpanded =
-              expandedAuditItems().has(log.id);
-              <div
-                class="rounded-lg bg-gradient-to-br from-neutral-800/80 to-neutral-800/50 border border-neutral-700/70 overflow-hidden transition-all hover:border-cyan-500/30 shadow-lg"
+              <h3
+                class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
               >
-                <!-- Contenido siempre visible (mejorado) -->
-                <div class="p-4 space-y-3">
-                  <!-- Header con usuario y acción -->
-                  <div class="flex items-start justify-between gap-3">
-                    <div class="flex items-start gap-3 flex-1 min-w-0">
-                      <div
-                        [class]="
-                          'w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ' +
-                          getActionColor(log.action)
-                            .replace('text-', 'bg-')
-                            .replace('-400', '-500/20')
-                        "
-                      >
-                        <i
-                          [class]="
-                            'pi ' +
-                            getActionIcon(log.action) +
-                            ' ' +
-                            getActionColor(log.action) +
-                            ' text-lg'
-                          "
-                        ></i>
-                      </div>
-                      <div class="flex-1 min-w-0">
-                        <div class="text-white font-semibold text-sm mb-1">
-                          {{
-                            log.changed_by_employee
-                              ? log.changed_by_employee.first_name +
-                                ' ' +
-                                log.changed_by_employee.father_name
-                              : 'Usuario desconocido'
-                          }}
-                        </div>
-                        <div class="text-gray-400 text-xs mb-2">
-                          {{ getActionLabel(log.action) }}
-                        </div>
-                        <div
-                          class="text-gray-500 text-xs flex items-center gap-1"
-                        >
-                          <i class="pi pi-calendar text-[10px]"></i>
-                          {{ log.changed_at | date : 'dd/MM/yyyy HH:mm' }}
-                        </div>
-                      </div>
-                    </div>
-                    <!-- Botón para colapsar/expandir -->
-                    <button
-                      type="button"
-                      (click)="toggleAuditItem(log.id)"
-                      class="flex-shrink-0 p-1.5 rounded hover:bg-neutral-700 transition-colors"
-                      [class.bg-neutral-700]="isExpanded"
-                    >
-                      <i
-                        [class]="
-                          'pi transition-transform duration-200 text-gray-400 text-xs ' +
-                          (isExpanded ? 'pi-chevron-up' : 'pi-chevron-down')
-                        "
-                      ></i>
-                    </button>
-                  </div>
-
-                  <!-- Contenido expandible con más detalles -->
-                  @if (isExpanded) {
-                  <div
-                    class="pt-3 mt-3 border-t border-neutral-700/50 space-y-3 animate-fade-in"
+                <i class="pi pi-user text-cyan-400"></i>
+                Información del Empleado
+              </h3>
+              <div class="space-y-2">
+                <div>
+                  <label class="block text-sm font-medium text-gray-400 mb-1"
+                    >Nombre</label
                   >
-                    @if (log.old_status && log.new_status) {
-                    <div
-                      class="p-3 bg-neutral-900/50 rounded-lg border border-neutral-700/50"
-                    >
-                      <div class="text-xs text-gray-400 mb-2 font-medium">
-                        Cambio de Estado
-                      </div>
-                      <div class="flex items-center gap-2">
-                        <span
-                          class="px-3 py-1.5 rounded-lg bg-yellow-500/20 text-yellow-400 text-xs font-semibold border border-yellow-500/30"
-                        >
-                          {{ getStatusLabel(log.old_status) }}
-                        </span>
-                        <i class="pi pi-arrow-right text-gray-500 text-sm"></i>
-                        <span
-                          class="px-3 py-1.5 rounded-lg bg-green-500/20 text-green-400 text-xs font-semibold border border-green-500/30"
-                        >
-                          {{ getStatusLabel(log.new_status) }}
-                        </span>
-                      </div>
+                  <p class="text-white">
+                    {{ getEmployeeName(selectedCompensatoryRequest()!) }}
+                  </p>
+                </div>
+                <div>
+                  <label class="block text-sm font-medium text-gray-400 mb-1"
+                    >Email</label
+                  >
+                  <p class="text-white">
+                    {{ getEmployeeEmail(selectedCompensatoryRequest()!) }}
+                  </p>
+                </div>
+                @if (getEmployeePosition(selectedCompensatoryRequest()!)) {
+                <div>
+                  <label class="block text-sm font-medium text-gray-400 mb-1"
+                    >Cargo</label
+                  >
+                  <p class="text-white">
+                    {{ getEmployeePosition(selectedCompensatoryRequest()!) }}
+                  </p>
+                </div>
+                } @if (selectedCompensatoryRequest()!.employee?.branch?.name) {
+                <div>
+                  <label class="block text-sm font-medium text-gray-400 mb-1"
+                    >Sucursal</label
+                  >
+                  <p class="text-white">
+                    {{ selectedCompensatoryRequest()!.employee?.branch?.name }}
+                  </p>
+                </div>
+                }
+              </div>
+            </div>
+
+            <!-- Horas Extra Pendientes (histórico) -->
+            <div
+              class="p-4 bg-gradient-to-r from-cyan-500/20 to-cyan-600/10 border border-cyan-400/30 rounded-lg"
+            >
+              <h3
+                class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+              >
+                <i class="pi pi-clock text-cyan-400"></i>
+                Horas Extra Pendientes (histórico)
+              </h3>
+              @if (isLoadingOvertimeHours()) {
+              <div class="flex items-center gap-2 text-gray-400">
+                <i class="pi pi-spin pi-spinner"></i>
+                <span>Cargando horas extras...</span>
+              </div>
+              } @else {
+              <div class="flex items-center justify-between mb-3">
+                <div>
+                  <p class="text-sm text-gray-400 mb-1">
+                    Total pendiente (no usado)
+                  </p>
+                  <p class="text-3xl font-bold text-cyan-300">
+                    {{ formatHoursMinutes(employeeOvertimeHours()) }}
+                  </p>
+                </div>
+                <div
+                  class="w-20 h-20 rounded-full bg-cyan-500/20 flex items-center justify-center"
+                >
+                  <i class="pi pi-clock text-cyan-400 text-3xl"></i>
+                </div>
+              </div>
+              @if (employeeOvertimeDays().length > 0) {
+              <!-- Mostrar días con horas extras -->
+              <div class="mt-3">
+                <p class="text-xs font-medium text-gray-300 mb-2">
+                  Días con saldo pendiente (mostrando últimos
+                  {{ employeeOvertimeDays().length }}):
+                </p>
+                <div class="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                  @for (day of employeeOvertimeDays(); track day.day) {
+                  <div
+                    class="bg-cyan-500/10 border border-cyan-400/30 rounded-lg p-2 hover:bg-cyan-500/20 transition-colors"
+                  >
+                    <div class="flex items-center justify-between mb-1">
+                      <span class="text-xs font-semibold text-cyan-300">
+                        {{ formatDate(day.day) }}
+                      </span>
+                      <span class="text-xs font-bold text-cyan-400">
+                        {{ formatHoursMinutes(day.overtimeHours) }}
+                      </span>
                     </div>
-                    } @if (log.comment) {
-                    <div
-                      class="p-3 bg-cyan-500/10 rounded-lg border-l-4 border-cyan-400"
-                    >
-                      <div
-                        class="text-xs text-cyan-300 mb-1.5 font-medium flex items-center gap-1"
-                      >
-                        <i class="pi pi-comment text-[10px]"></i>
-                        Comentario
-                      </div>
-                      <p class="text-gray-200 text-xs leading-relaxed italic">
-                        {{ log.comment }}
-                      </p>
+                    @if (day.entryTime && day.exitTime) {
+                    <div class="text-xs text-gray-400">
+                      {{ day.entryTime }} - {{ day.exitTime }}
                     </div>
                     }
                   </div>
                   }
                 </div>
+                <div class="mt-3 flex items-center justify-between gap-2">
+                  <p class="text-[11px] text-gray-400 m-0">
+                    Cargando histórico: últimos
+                    {{ overtimeHistoryWindowDays() }} días
+                  </p>
+                  <p-button
+                    label="Cargar más"
+                    icon="pi pi-plus"
+                    size="small"
+                    severity="secondary"
+                    [outlined]="true"
+                    (onClick)="loadMoreOvertimeHistory()"
+                  />
+                </div>
+              </div>
+              } @else {
+              <p class="text-xs text-gray-400 mt-3">
+                No hay días con horas extra pendientes dentro del rango cargado.
+              </p>
+              } }
+            </div>
+          </div>
+
+          <!-- Información de la Solicitud -->
+          <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
+            <h3
+              class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+            >
+              <i class="pi pi-info-circle text-cyan-400"></i>
+              Información de la Solicitud
+            </h3>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Tipo de Solicitud</label
+                >
+                <p class="text-white">
+                  @let compensatoryType =
+                  getCompensatoryTypeFromNotes(selectedCompensatoryRequest()!);
+                  @if (compensatoryType === 'days') {
+                  <span class="flex items-center gap-2">
+                    <i class="pi pi-calendar text-cyan-400"></i>
+                    Días
+                  </span>
+                  } @else if (compensatoryType === 'hours') {
+                  <span class="flex items-center gap-2">
+                    <i class="pi pi-clock text-cyan-400"></i>
+                    Horas
+                  </span>
+                  } @else {
+                  <span class="text-gray-400">No especificado</span>
+                  }
+                </p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Cantidad Solicitada</label
+                >
+                <p class="text-white">
+                  @let quantity =
+                  getCompensatoryQuantity(selectedCompensatoryRequest()!); @if
+                  (quantity && quantity.value > 0) { @if (quantity.isDays) {
+                  {{ quantity.value }} día(s) ({{ quantity.value * 8 }} horas) }
+                  @else {
+                  {{ formatHoursMinutes(quantity.value) }}
+                  } } @else {
+                  <span class="text-gray-400">No especificada</span>
+                  }
+                </p>
+              </div>
+              @let compensatoryDate =
+              getCompensatoryDateFromNotes(selectedCompensatoryRequest()!); @if
+              (compensatoryDate) {
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Fecha del Compensatorio</label
+                >
+                <p class="text-white font-medium text-cyan-400">
+                  {{ compensatoryDate | date : 'dd/MM/yyyy' }}
+                </p>
+              </div>
+              } @else { @let dateFrom = selectedCompensatoryRequest()!.date_from
+              | date : 'dd/MM/yyyy'; @let dateTo =
+              selectedCompensatoryRequest()!.date_to | date : 'dd/MM/yyyy'; @if
+              (dateFrom === dateTo) {
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Fecha Registrada</label
+                >
+                <p class="text-white">
+                  {{ dateFrom }}
+                </p>
+              </div>
+              } @else {
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Período Registrado</label
+                >
+                <p class="text-white">{{ dateFrom }} → {{ dateTo }}</p>
+              </div>
+              } } @let timeInfo =
+              getCompensatoryTimeFromNotes(selectedCompensatoryRequest()!); @if
+              (timeInfo.start || timeInfo.end) {
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Horario del Compensatorio</label
+                >
+                <p class="text-white font-mono">
+                  @if (timeInfo.start && timeInfo.end) {
+                  {{ timeInfo.start }} - {{ timeInfo.end }} } @else if
+                  (timeInfo.start) { Desde: {{ timeInfo.start }} } @else if
+                  (timeInfo.end) { Hasta: {{ timeInfo.end }}
+                  }
+                </p>
+              </div>
+              }
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Fecha de Solicitud</label
+                >
+                <p class="text-white">
+                  {{
+                    selectedCompensatoryRequest()!.created_at
+                      | date : 'dd/MM/yyyy HH:mm'
+                  }}
+                </p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Estado</label
+                >
+                <p-tag
+                  [value]="
+                    getCompensatoryStatusLabel(selectedCompensatoryRequest()!)
+                  "
+                  [severity]="
+                    getCompensatoryStatusSeverity(
+                      selectedCompensatoryRequest()!
+                    )
+                  "
+                />
+              </div>
+              @let overtimeDates =
+              getCompensatoryOvertimeDatesFromNotes(selectedCompensatoryRequest()!);
+              @if (overtimeDates.length > 0) {
+              <div class="col-span-2">
+                <label class="block text-sm font-medium text-gray-400 mb-2"
+                  >Días donde trabajó horas extra (reportados por el
+                  empleado)</label
+                >
+                <div class="flex flex-wrap gap-2">
+                  @for (date of overtimeDates; track date) {
+                  <span
+                    class="px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-400/30 flex flex-col gap-0.5"
+                  >
+                    <span class="font-semibold text-white text-sm">
+                      {{ date | date : 'dd/MM/yyyy' }}
+                    </span>
+                    <span class="text-gray-300 text-xs">
+                      {{ getManualDateSaldoLabel(date) }}
+                    </span>
+                  </span>
+                  }
+                </div>
+                <p class="text-xs text-gray-400 mt-2">
+                  Total de días reportados: {{ overtimeDates.length }}
+                </p>
               </div>
               }
             </div>
+
+            @let reason =
+            getCompensatoryReasonFromNotes(selectedCompensatoryRequest()!); @if
+            (reason) {
+            <div class="mt-4">
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Motivo</label
+              >
+              <p
+                class="text-white whitespace-pre-wrap bg-neutral-900/50 p-3 rounded"
+              >
+                {{ reason }}
+              </p>
+            </div>
+            } @if (selectedCompensatoryRequest()!.rejection_comment) {
+            <div
+              class="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded"
+            >
+              <label class="block text-sm font-medium text-red-400 mb-1"
+                >Comentario de Rechazo</label
+              >
+              <p class="text-red-300 whitespace-pre-wrap">
+                {{ selectedCompensatoryRequest()!.rejection_comment }}
+              </p>
+            </div>
+            } @if (selectedCompensatoryRequest()!.rejection_comment ||
+            selectedCompensatoryRequest()!.review_status === 'rejected') {
+            <div
+              class="mt-4 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700"
+            >
+              <label class="block text-sm font-medium text-gray-400 mb-2">
+                Motivo de Rechazo (editable)
+              </label>
+              <textarea
+                pInputTextarea
+                [(ngModel)]="compensatoryRejectionComment"
+                placeholder="Agregar o editar el motivo del rechazo..."
+                rows="3"
+                class="w-full"
+              ></textarea>
+              <div class="flex justify-end mt-2">
+                <p-button
+                  label="Guardar Comentario"
+                  icon="pi pi-save"
+                  size="small"
+                  [loading]="savingCompensatoryComment()"
+                  (onClick)="saveCompensatoryRejectionComment()"
+                />
+              </div>
+            </div>
             }
           </div>
-        </div>
-      </div>
 
-      <!-- Panel lateral de preview de documento -->
-      @if (showDocumentPreview()) {
-      <div
-        class="fixed bg-neutral-900 border-l border-neutral-700 shadow-2xl z-[1200] transition-all duration-500 ease-out"
-        [style.width]="'400px'"
-        [style.max-width]="'40vw'"
-        [style.top]="'50%'"
-        [style.left]="showDocumentPreview() ? 'calc(50% + 400px)' : '50%'"
-        [style.transform]="
-          showDocumentPreview()
-            ? 'translateY(-50%) translateX(0) scale(1)'
-            : 'translateY(-50%) translateX(0) scale(0.8)'
-        "
-        [style.opacity]="showDocumentPreview() ? '1' : '0'"
-        [style.max-height]="'90vh'"
-        [style.height]="'664px'"
-        [style.pointer-events]="showDocumentPreview() ? 'auto' : 'none'"
-      >
-        <div class="flex flex-col h-full">
-          <!-- Header del panel lateral -->
+          <!-- Fechas donde trabajó horas extra -->
+          @if (getOvertimeDaysFromNotes(selectedCompensatoryRequest()!)) {
           <div
-            class="p-4 border-b border-neutral-700 bg-neutral-800 flex items-center justify-between"
+            class="p-5 bg-neutral-800 rounded-lg border border-neutral-700 shadow-lg"
           >
             <h3
-              class="text-lg font-semibold text-white flex items-center gap-2"
+              class="text-lg font-semibold text-white mb-4 flex items-center gap-2"
             >
-              <i class="pi pi-file text-cyan-400"></i>
-              Documento Adjunto
+              <i class="pi pi-calendar-check text-cyan-400"></i>
+              Fechas donde trabajó horas extra
             </h3>
-            <div class="flex items-center gap-2">
-              @if (selectedCompensatoryRequest()!.document_url) {
-              <p-button
-                label="Adjuntar nuevo archivo"
-                icon="pi pi-upload"
-                size="small"
-                severity="secondary"
-                [outlined]="true"
-                (onClick)="attachDocumentToCompensatoryRequest()"
-              />
-              }
-              <p-button
-                icon="pi pi-times"
-                [rounded]="true"
-                [text]="true"
-                severity="secondary"
-                (onClick)="showDocumentPreview.set(false)"
-                size="small"
-              />
-            </div>
-          </div>
-
-          <!-- Contenido del preview -->
-          <div class="flex-1 overflow-hidden">
-            @if (selectedCompensatoryRequest()!.document_url) {
-            <iframe
-              [src]="getCompensatoryDocumentUrl()"
-              class="w-full h-full border-0"
-              title="Preview del documento"
-            ></iframe>
-            } @else {
-            <div
-              class="flex flex-col items-center justify-center h-full p-8 text-center"
-            >
-              <i class="pi pi-file text-6xl text-gray-400 mb-4"></i>
-              <h4 class="text-xl font-semibold text-white mb-2">
-                No hay documento adjunto
-              </h4>
-              <p class="text-gray-400 mb-6">
-                Puedes adjuntar un documento PDF a esta solicitud de tiempo
-                compensatorio.
-              </p>
-              <p-button
-                label="Adjuntar archivo"
-                icon="pi pi-upload"
-                severity="info"
-                (onClick)="attachDocumentToCompensatoryRequest()"
-              />
-            </div>
-            }
-          </div>
-        </div>
-      </div>
-      }
-
-      <!-- Overlay para cerrar el panel al hacer clic fuera -->
-      @if (showAuditSidebar() || showDocumentPreview()) {
-      <div
-        class="fixed inset-0 bg-black/50 z-[1199]"
-        (click)="showAuditSidebar.set(false); showDocumentPreview.set(false)"
-      ></div>
-      }
-    </p-dialog>
-
-    <!-- Dialog de Historial de Auditoría Completo -->
-    <p-dialog
-      [(visible)]="showAuditHistoryDialog"
-      [modal]="true"
-      [style]="{ width: '90vw', maxWidth: '1000px' }"
-      [header]="'Historial de Auditoría - Tiempo Compensatorio'"
-      [draggable]="false"
-      [resizable]="false"
-      [dismissableMask]="true"
-    >
-      <div class="space-y-4 pt-4">
-        @if (isLoadingAllAuditHistory()) {
-        <div class="flex items-center justify-center gap-2 text-gray-400 py-8">
-          <i class="pi pi-spin pi-spinner"></i>
-          <span>Cargando historial de auditoría...</span>
-        </div>
-        } @else if (allAuditHistory().length === 0) {
-        <div class="text-center py-8 text-gray-400">
-          <i class="pi pi-info-circle text-4xl mb-4"></i>
-          <p>No hay registros de auditoría disponibles</p>
-        </div>
-        } @else {
-        <div class="space-y-3 max-h-[60vh] overflow-y-auto">
-          @for (log of allAuditHistory(); track log.id) {
-          <div
-            class="p-4 rounded-lg bg-neutral-800/50 border border-neutral-700 hover:bg-neutral-800 transition-colors"
-          >
-            <div class="flex items-start gap-3">
-              <div
-                [class]="
-                  'w-10 h-10 rounded-full flex items-center justify-center ' +
-                  getActionColor(log.action) +
-                  ' bg-opacity-20'
+            <div class="overflow-x-auto -mx-2">
+              <p-table
+                [value]="
+                  getOvertimeDaysFromNotes(selectedCompensatoryRequest()!) || []
                 "
+                styleClass="p-datatable-sm overtime-details-table"
+                [paginator]="false"
+                [scrollable]="true"
+                scrollHeight="300px"
+                showGridlines
               >
-                <i [class]="'pi ' + getActionIcon(log.action) + ' text-lg'"></i>
-              </div>
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center justify-between mb-2">
-                  <div>
-                    <div class="text-white font-semibold">
-                      {{
-                        log.changed_by_employee
-                          ? log.changed_by_employee.first_name +
-                            ' ' +
-                            log.changed_by_employee.father_name
-                          : 'Usuario desconocido'
-                      }}
-                    </div>
-                    <div class="text-sm text-gray-400">
-                      {{ getActionLabel(log.action) }}
-                    </div>
-                  </div>
-                  <div class="text-xs text-gray-500">
-                    {{ log.changed_at | date : 'dd/MM/yyyy HH:mm' }}
-                  </div>
-                </div>
-                @if (log.comment) {
-                <div
-                  class="text-sm text-gray-300 mt-2 p-2 bg-neutral-900/50 rounded border-l-2 border-cyan-400"
-                >
-                  {{ log.comment }}
-                </div>
-                } @if (log.old_status && log.new_status) {
-                <div class="flex items-center gap-2 mt-2 text-xs">
-                  <span class="text-gray-400">Estado:</span>
-                  <span
-                    class="px-2 py-1 rounded bg-yellow-500/20 text-yellow-400"
-                    >{{ log.old_status }}</span
-                  >
-                  <i class="pi pi-arrow-right text-gray-500"></i>
-                  <span
-                    class="px-2 py-1 rounded bg-green-500/20 text-green-400"
-                    >{{ log.new_status }}</span
-                  >
-                </div>
-                }
-                <div class="text-xs text-gray-500 mt-2">
-                  Solicitud ID:
-                  <span class="font-mono text-gray-400"
-                    >{{ log.timeoff_id.substring(0, 8) }}...</span
-                  >
-                </div>
-              </div>
+                <ng-template #header>
+                  <tr>
+                    <th class="text-left font-semibold">Fecha</th>
+                    <th class="text-left font-semibold">Hora de Entrada</th>
+                    <th class="text-left font-semibold">Hora de Salida</th>
+                    <th class="text-right font-semibold">Horas Totales</th>
+                    <th class="text-right font-semibold">Tiempo de Almuerzo</th>
+                    <th class="text-right font-semibold">Retraso</th>
+                    <th class="text-right font-semibold">Horas Extra</th>
+                  </tr>
+                </ng-template>
+                <ng-template #body let-dayDetail>
+                  <tr class="hover:bg-neutral-700/50 transition-colors">
+                    <td class="font-semibold text-white py-3">
+                      <div class="flex items-center gap-2">
+                        <i class="pi pi-calendar text-cyan-400 text-sm"></i>
+                        <span>{{ dayDetail.date }}</span>
+                      </div>
+                    </td>
+                    <td class="py-3">
+                      <div
+                        class="flex items-center gap-2 bg-green-500/10 px-2 py-1 rounded"
+                      >
+                        <i class="pi pi-sign-in text-green-400 text-sm"></i>
+                        <span
+                          class="font-mono text-sm font-semibold text-green-300"
+                          >{{ dayDetail.entryTime }}</span
+                        >
+                      </div>
+                    </td>
+                    <td class="py-3">
+                      <div
+                        class="flex items-center gap-2 bg-red-500/10 px-2 py-1 rounded"
+                      >
+                        <i class="pi pi-sign-out text-red-400 text-sm"></i>
+                        <span
+                          class="font-mono text-sm font-semibold text-red-300"
+                          >{{ dayDetail.exitTime }}</span
+                        >
+                      </div>
+                    </td>
+                    <td class="text-right py-3">
+                      <div class="flex flex-col items-end">
+                        <span class="font-semibold text-white text-sm">{{
+                          formatHoursMinutes(dayDetail.totalHours)
+                        }}</span>
+                        <span class="text-xs text-gray-400 mt-0.5">(neto)</span>
+                      </div>
+                    </td>
+                    <td class="text-right py-3">
+                      <span class="text-gray-300 font-medium text-sm">{{
+                        formatHoursMinutes(dayDetail.lunchDuration)
+                      }}</span>
+                    </td>
+                    <td class="text-right py-3">
+                      @if (hasDelay(dayDetail.delayHours)) {
+                      <span
+                        class="px-2 py-1 bg-red-500/20 text-red-300 rounded text-sm font-semibold"
+                      >
+                        {{ formatHoursMinutes(dayDetail.delayHours) }}
+                      </span>
+                      } @else {
+                      <span class="text-gray-500 text-sm">-</span>
+                      }
+                    </td>
+                    <td class="text-right py-3">
+                      <span
+                        class="px-3 py-1.5 bg-gradient-to-r from-cyan-500/30 to-cyan-600/30 text-cyan-300 rounded-lg font-bold text-sm border border-cyan-400/30"
+                      >
+                        {{ formatHoursMinutes(dayDetail.overtimeHours) }}
+                      </span>
+                    </td>
+                  </tr>
+                </ng-template>
+              </p-table>
             </div>
           </div>
           }
         </div>
         }
-      </div>
-      <ng-template #footer>
-        <div class="flex justify-end gap-2">
-          <p-button
-            label="Cerrar"
-            icon="pi pi-times"
-            severity="secondary"
-            (onClick)="showAuditHistoryDialog.set(false)"
-            [rounded]="true"
-          />
+
+        <!-- Panel lateral de historial (deslizable desde la derecha) -->
+        <div
+          class="fixed bg-neutral-900 border-l border-neutral-700 shadow-2xl z-[1200] transition-all duration-500 ease-out"
+          [style.width]="'320px'"
+          [style.max-width]="'30vw'"
+          [style.top]="'50%'"
+          [style.left]="showAuditSidebar() ? 'calc(50% + 400px)' : '50%'"
+          [style.transform]="
+            showAuditSidebar()
+              ? 'translateY(-50%) translateX(0) scale(1)'
+              : 'translateY(-50%) translateX(0) scale(0.8)'
+          "
+          [style.opacity]="showAuditSidebar() ? '1' : '0'"
+          [style.max-height]="'90vh'"
+          [style.height]="'664px'"
+          [style.pointer-events]="showAuditSidebar() ? 'auto' : 'none'"
+        >
+          <div class="flex flex-col h-full">
+            <!-- Header del panel lateral -->
+            <div
+              class="p-4 border-b border-neutral-700 bg-neutral-800 flex items-center justify-between"
+            >
+              <h3
+                class="text-lg font-semibold text-white flex items-center gap-2"
+              >
+                <i class="pi pi-history text-cyan-400"></i>
+                Historial de Cambios
+              </h3>
+              <p-button
+                icon="pi pi-times"
+                [rounded]="true"
+                [text]="true"
+                severity="secondary"
+                (onClick)="showAuditSidebar.set(false)"
+                size="small"
+              />
+            </div>
+
+            <!-- Contenido del historial -->
+            <div class="flex-1 overflow-y-auto p-4">
+              @if (isLoadingAuditHistory()) {
+              <div
+                class="flex items-center justify-center gap-2 text-gray-400 py-8"
+              >
+                <i class="pi pi-spin pi-spinner"></i>
+                <span class="text-sm">Cargando historial...</span>
+              </div>
+              } @else if (auditHistory().length === 0) {
+              <div class="text-center py-8 text-gray-400">
+                <i class="pi pi-info-circle text-4xl mb-4"></i>
+                <p class="text-sm">No hay historial de cambios disponible</p>
+              </div>
+              } @else {
+              <div class="space-y-3">
+                @for (log of auditHistory(); track log.id) { @let isExpanded =
+                expandedAuditItems().has(log.id);
+                <div
+                  class="rounded-lg bg-gradient-to-br from-neutral-800/80 to-neutral-800/50 border border-neutral-700/70 overflow-hidden transition-all hover:border-cyan-500/30 shadow-lg"
+                >
+                  <!-- Contenido siempre visible (mejorado) -->
+                  <div class="p-4 space-y-3">
+                    <!-- Header con usuario y acción -->
+                    <div class="flex items-start justify-between gap-3">
+                      <div class="flex items-start gap-3 flex-1 min-w-0">
+                        <div
+                          [class]="
+                            'w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ' +
+                            getActionColor(log.action)
+                              .replace('text-', 'bg-')
+                              .replace('-400', '-500/20')
+                          "
+                        >
+                          <i
+                            [class]="
+                              'pi ' +
+                              getActionIcon(log.action) +
+                              ' ' +
+                              getActionColor(log.action) +
+                              ' text-lg'
+                            "
+                          ></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                          <div class="text-white font-semibold text-sm mb-1">
+                            {{
+                              log.changed_by_employee
+                                ? log.changed_by_employee.first_name +
+                                  ' ' +
+                                  log.changed_by_employee.father_name
+                                : 'Usuario desconocido'
+                            }}
+                          </div>
+                          <div class="text-gray-400 text-xs mb-2">
+                            {{ getActionLabel(log.action) }}
+                          </div>
+                          <div
+                            class="text-gray-500 text-xs flex items-center gap-1"
+                          >
+                            <i class="pi pi-calendar text-[10px]"></i>
+                            {{ log.changed_at | date : 'dd/MM/yyyy HH:mm' }}
+                          </div>
+                        </div>
+                      </div>
+                      <!-- Botón para colapsar/expandir -->
+                      <button
+                        type="button"
+                        (click)="toggleAuditItem(log.id)"
+                        class="flex-shrink-0 p-1.5 rounded hover:bg-neutral-700 transition-colors"
+                        [class.bg-neutral-700]="isExpanded"
+                      >
+                        <i
+                          [class]="
+                            'pi transition-transform duration-200 text-gray-400 text-xs ' +
+                            (isExpanded ? 'pi-chevron-up' : 'pi-chevron-down')
+                          "
+                        ></i>
+                      </button>
+                    </div>
+
+                    <!-- Contenido expandible con más detalles -->
+                    @if (isExpanded) {
+                    <div
+                      class="pt-3 mt-3 border-t border-neutral-700/50 space-y-3 animate-fade-in"
+                    >
+                      @if (log.old_status && log.new_status) {
+                      <div
+                        class="p-3 bg-neutral-900/50 rounded-lg border border-neutral-700/50"
+                      >
+                        <div class="text-xs text-gray-400 mb-2 font-medium">
+                          Cambio de Estado
+                        </div>
+                        <div class="flex items-center gap-2">
+                          <span
+                            class="px-3 py-1.5 rounded-lg bg-yellow-500/20 text-yellow-400 text-xs font-semibold border border-yellow-500/30"
+                          >
+                            {{ getStatusLabel(log.old_status) }}
+                          </span>
+                          <i
+                            class="pi pi-arrow-right text-gray-500 text-sm"
+                          ></i>
+                          <span
+                            class="px-3 py-1.5 rounded-lg bg-green-500/20 text-green-400 text-xs font-semibold border border-green-500/30"
+                          >
+                            {{ getStatusLabel(log.new_status) }}
+                          </span>
+                        </div>
+                      </div>
+                      } @if (log.comment) {
+                      <div
+                        class="p-3 bg-cyan-500/10 rounded-lg border-l-4 border-cyan-400"
+                      >
+                        <div
+                          class="text-xs text-cyan-300 mb-1.5 font-medium flex items-center gap-1"
+                        >
+                          <i class="pi pi-comment text-[10px]"></i>
+                          Comentario
+                        </div>
+                        <p class="text-gray-200 text-xs leading-relaxed italic">
+                          {{ log.comment }}
+                        </p>
+                      </div>
+                      }
+                    </div>
+                    }
+                  </div>
+                </div>
+                }
+              </div>
+              }
+            </div>
+          </div>
         </div>
-      </ng-template>
-    </p-dialog>
+
+        <!-- Panel lateral de preview de documento -->
+        @if (showDocumentPreview()) {
+        <div
+          class="fixed bg-neutral-900 border-l border-neutral-700 shadow-2xl z-[1200] transition-all duration-500 ease-out"
+          [style.width]="'400px'"
+          [style.max-width]="'40vw'"
+          [style.top]="'50%'"
+          [style.left]="showDocumentPreview() ? 'calc(50% + 400px)' : '50%'"
+          [style.transform]="
+            showDocumentPreview()
+              ? 'translateY(-50%) translateX(0) scale(1)'
+              : 'translateY(-50%) translateX(0) scale(0.8)'
+          "
+          [style.opacity]="showDocumentPreview() ? '1' : '0'"
+          [style.max-height]="'90vh'"
+          [style.height]="'664px'"
+          [style.pointer-events]="showDocumentPreview() ? 'auto' : 'none'"
+        >
+          <div class="flex flex-col h-full">
+            <!-- Header del panel lateral -->
+            <div
+              class="p-4 border-b border-neutral-700 bg-neutral-800 flex items-center justify-between"
+            >
+              <h3
+                class="text-lg font-semibold text-white flex items-center gap-2"
+              >
+                <i class="pi pi-file text-cyan-400"></i>
+                Documento Adjunto
+              </h3>
+              <div class="flex items-center gap-2">
+                @if (selectedCompensatoryRequest()!.document_url) {
+                <p-button
+                  label="Adjuntar nuevo archivo"
+                  icon="pi pi-upload"
+                  size="small"
+                  severity="secondary"
+                  [outlined]="true"
+                  (onClick)="attachDocumentToCompensatoryRequest()"
+                />
+                }
+                <p-button
+                  icon="pi pi-times"
+                  [rounded]="true"
+                  [text]="true"
+                  severity="secondary"
+                  (onClick)="showDocumentPreview.set(false)"
+                  size="small"
+                />
+              </div>
+            </div>
+
+            <!-- Contenido del preview -->
+            <div class="flex-1 overflow-hidden">
+              @if (selectedCompensatoryRequest()!.document_url) {
+              <iframe
+                [src]="getCompensatoryDocumentUrl()"
+                class="w-full h-full border-0"
+                title="Preview del documento"
+              ></iframe>
+              } @else {
+              <div
+                class="flex flex-col items-center justify-center h-full p-8 text-center"
+              >
+                <i class="pi pi-file text-6xl text-gray-400 mb-4"></i>
+                <h4 class="text-xl font-semibold text-white mb-2">
+                  No hay documento adjunto
+                </h4>
+                <p class="text-gray-400 mb-6">
+                  Puedes adjuntar un documento PDF a esta solicitud de tiempo
+                  compensatorio.
+                </p>
+                <p-button
+                  label="Adjuntar archivo"
+                  icon="pi pi-upload"
+                  severity="info"
+                  (onClick)="attachDocumentToCompensatoryRequest()"
+                />
+              </div>
+              }
+            </div>
+          </div>
+        </div>
+        }
+
+        <!-- Overlay para cerrar el panel al hacer clic fuera -->
+        @if (showAuditSidebar() || showDocumentPreview()) {
+        <div
+          class="fixed inset-0 bg-black/50 z-[1199]"
+          (click)="showAuditSidebar.set(false); showDocumentPreview.set(false)"
+        ></div>
+        }
+      </p-dialog>
+
+      <!-- Dialog de Historial de Auditoría Completo -->
+      <p-dialog
+        [(visible)]="showAuditHistoryDialog"
+        [modal]="true"
+        [style]="{ width: '90vw', maxWidth: '1000px' }"
+        [header]="'Historial de Auditoría - Tiempo Compensatorio'"
+        [draggable]="false"
+        [resizable]="false"
+        [dismissableMask]="true"
+      >
+        <div class="space-y-4 pt-4">
+          @if (isLoadingAllAuditHistory()) {
+          <div
+            class="flex items-center justify-center gap-2 text-gray-400 py-8"
+          >
+            <i class="pi pi-spin pi-spinner"></i>
+            <span>Cargando historial de auditoría...</span>
+          </div>
+          } @else if (allAuditHistory().length === 0) {
+          <div class="text-center py-8 text-gray-400">
+            <i class="pi pi-info-circle text-4xl mb-4"></i>
+            <p>No hay registros de auditoría disponibles</p>
+          </div>
+          } @else {
+          <div class="space-y-3 max-h-[60vh] overflow-y-auto">
+            @for (log of allAuditHistory(); track log.id) {
+            <div
+              class="p-4 rounded-lg bg-neutral-800/50 border border-neutral-700 hover:bg-neutral-800 transition-colors"
+            >
+              <div class="flex items-start gap-3">
+                <div
+                  [class]="
+                    'w-10 h-10 rounded-full flex items-center justify-center ' +
+                    getActionColor(log.action) +
+                    ' bg-opacity-20'
+                  "
+                >
+                  <i
+                    [class]="'pi ' + getActionIcon(log.action) + ' text-lg'"
+                  ></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center justify-between mb-2">
+                    <div>
+                      <div class="text-white font-semibold">
+                        {{
+                          log.changed_by_employee
+                            ? log.changed_by_employee.first_name +
+                              ' ' +
+                              log.changed_by_employee.father_name
+                            : 'Usuario desconocido'
+                        }}
+                      </div>
+                      <div class="text-sm text-gray-400">
+                        {{ getActionLabel(log.action) }}
+                      </div>
+                    </div>
+                    <div class="text-xs text-gray-500">
+                      {{ log.changed_at | date : 'dd/MM/yyyy HH:mm' }}
+                    </div>
+                  </div>
+                  @if (log.comment) {
+                  <div
+                    class="text-sm text-gray-300 mt-2 p-2 bg-neutral-900/50 rounded border-l-2 border-cyan-400"
+                  >
+                    {{ log.comment }}
+                  </div>
+                  } @if (log.old_status && log.new_status) {
+                  <div class="flex items-center gap-2 mt-2 text-xs">
+                    <span class="text-gray-400">Estado:</span>
+                    <span
+                      class="px-2 py-1 rounded bg-yellow-500/20 text-yellow-400"
+                      >{{ log.old_status }}</span
+                    >
+                    <i class="pi pi-arrow-right text-gray-500"></i>
+                    <span
+                      class="px-2 py-1 rounded bg-green-500/20 text-green-400"
+                      >{{ log.new_status }}</span
+                    >
+                  </div>
+                  }
+                  <div class="text-xs text-gray-500 mt-2">
+                    Solicitud ID:
+                    <span class="font-mono text-gray-400"
+                      >{{ log.timeoff_id.substring(0, 8) }}...</span
+                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+            }
+          </div>
+          }
+        </div>
+        <ng-template #footer>
+          <div class="flex justify-end gap-2">
+            <p-button
+              label="Cerrar"
+              icon="pi pi-times"
+              severity="secondary"
+              (onClick)="showAuditHistoryDialog.set(false)"
+              [rounded]="true"
+            />
+          </div>
+        </ng-template>
+      </p-dialog>
+    </div>
   `,
   styles: `
     @keyframes fade-in {
@@ -3585,6 +3646,7 @@ export class HRDisabilitiesComponent {
   >('disabilities');
   public showFilters = signal(false);
   public showCompensatoryFilters = signal(false);
+  public showDocumentsFilters = signal(false);
   public globalSearchText = signal('');
   public selectedDisabilities = signal<string[]>([]);
 
