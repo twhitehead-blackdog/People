@@ -57,6 +57,8 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
     const isComplaintMessagesRequest = req.url.includes(
       '/rest/v1/complaint_messages'
     );
+    const isCompaniesRequest = req.url.includes('/rest/v1/companies');
+    const isBranchesRequest = req.url.includes('/rest/v1/branches');
     const needsServiceRoleKey =
       isSettingsRequest ||
       isJobApplicationsRequest ||
@@ -70,7 +72,9 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
       isDocumentRequestsRequest ||
       isEmployeeVacationsRequest ||
       isComplaintsRequest ||
-      isComplaintMessagesRequest;
+      isComplaintMessagesRequest ||
+      isCompaniesRequest ||
+      isBranchesRequest;
 
     // Para Service Role Key, intentar todas las variantes posibles
     // ENV_SUPABASE_TOKEN y ENV_SUPABASE_SERVICE_ROLE_KEY deberían ser la misma clave
