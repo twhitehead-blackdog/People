@@ -25,83 +25,43 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
     // Para peticiones a settings, job_applications, timeoffs, hr_messages, notifications y employee_disabilities,
     // usar service_role key para bypassar RLS
     // Para otras peticiones, usar anon key
-    const isSettingsRequest = req.url.includes('/rest/v1/settings');
-    const isJobApplicationsRequest = req.url.includes(
-      '/rest/v1/job_applications'
-    );
-    const isTimeoffsRequest = req.url.includes('/rest/v1/timeoffs');
-    const isNotificationsRequest = req.url.includes('/rest/v1/notifications');
-    const isHrMessagesRequest = req.url.includes('/rest/v1/hr_messages');
-    const isEmployeeDisabilitiesRequest = req.url.includes(
-      '/rest/v1/employee_disabilities'
-    );
-    // Horario Vet: por simplicidad el frontend ya controla permisos (solo admin),
-    // así que usamos service_role para evitar problemas de RLS con anon key.
-    const isVetBranchAssignmentsRequest = req.url.includes(
-      '/rest/v1/vet_branch_assignments'
-    );
-    const isVetBranchAuditRequest = req.url.includes(
-      '/rest/v1/vet_branch_audit_log'
-    );
-    // Horario Peluquería: mismo enfoque que Vet
-    const isGroomerBranchAssignmentsRequest = req.url.includes(
-      '/rest/v1/groomer_branch_assignments'
-    );
-    const isDocumentRequestsRequest = req.url.includes(
-      '/rest/v1/document_requests'
-    );
-    const isEmployeeVacationsRequest = req.url.includes(
-      '/rest/v1/employee_vacations'
-    );
-    const isComplaintsRequest = req.url.includes('/rest/v1/complaints');
-    const isComplaintMessagesRequest = req.url.includes(
-      '/rest/v1/complaint_messages'
-    );
-    const isCompaniesRequest = req.url.includes('/rest/v1/companies');
-    const isBranchesRequest = req.url.includes('/rest/v1/branches');
-    const isEmployeesRequest = req.url.includes('/rest/v1/employees');
-    const isPositionsRequest = req.url.includes('/rest/v1/positions');
-    const isDepartmentsRequest = req.url.includes('/rest/v1/departments');
-    const isSchedulesRequest = req.url.includes('/rest/v1/schedules');
-    const isTerminationsRequest = req.url.includes('/rest/v1/terminations');
-    const isTimelogsRequest = req.url.includes('/rest/v1/timelogs');
-    const isEmployeeSchedulesRequest = req.url.includes(
-      '/rest/v1/employee_schedules'
-    );
-    const isAttendanceSheetsRequest = req.url.includes(
-      '/rest/v1/attendance_sheets'
-    );
-    const isPayrollsRequest = req.url.includes('/rest/v1/payrolls');
-    const isBanksRequest = req.url.includes('/rest/v1/banks');
-    const isCreditorsRequest = req.url.includes('/rest/v1/creditors');
+    const whitelist = [
+      '/rest/v1/settings',
+      '/rest/v1/job_applications',
+      '/rest/v1/timeoffs',
+      '/rest/v1/notifications',
+      '/rest/v1/hr_messages',
+      '/rest/v1/employee_disabilities',
+      '/rest/v1/vet_branch_assignments',
+      '/rest/v1/vet_branch_audit_log',
+      '/rest/v1/groomer_branch_assignments',
+      '/rest/v1/document_requests',
+      '/rest/v1/employee_vacations',
+      '/rest/v1/complaints',
+      '/rest/v1/complaint_messages',
+      '/rest/v1/companies',
+      '/rest/v1/branches',
+      '/rest/v1/employees',
+      '/rest/v1/positions',
+      '/rest/v1/departments',
+      '/rest/v1/schedules',
+      '/rest/v1/terminations',
+      '/rest/v1/timelogs',
+      '/rest/v1/employee_schedules',
+      '/rest/v1/attendance_sheets',
+      '/rest/v1/payrolls',
+      '/rest/v1/banks',
+      '/rest/v1/creditors',
+      '/rest/v1/reminders',
+      '/rest/v1/timeoff_types',
+      '/rest/v1/timeoff_audit_log',
+      '/rest/v1/schedule_audit_log',
+      '/rest/v1/rpc/',
+    ];
 
-    const needsServiceRoleKey =
-      isSettingsRequest ||
-      isJobApplicationsRequest ||
-      isTimeoffsRequest ||
-      isNotificationsRequest ||
-      isHrMessagesRequest ||
-      isEmployeeDisabilitiesRequest ||
-      isVetBranchAssignmentsRequest ||
-      isVetBranchAuditRequest ||
-      isGroomerBranchAssignmentsRequest ||
-      isDocumentRequestsRequest ||
-      isEmployeeVacationsRequest ||
-      isComplaintsRequest ||
-      isComplaintMessagesRequest ||
-      isCompaniesRequest ||
-      isBranchesRequest ||
-      isEmployeesRequest ||
-      isPositionsRequest ||
-      isDepartmentsRequest ||
-      isSchedulesRequest ||
-      isTerminationsRequest ||
-      isTimelogsRequest ||
-      isEmployeeSchedulesRequest ||
-      isAttendanceSheetsRequest ||
-      isPayrollsRequest ||
-      isBanksRequest ||
-      isCreditorsRequest;
+    const needsServiceRoleKey = whitelist.some((path) =>
+      req.url.includes(path)
+    );
 
     // Para Service Role Key, intentar todas las variantes posibles
     // ENV_SUPABASE_TOKEN y ENV_SUPABASE_SERVICE_ROLE_KEY deberían ser la misma clave
