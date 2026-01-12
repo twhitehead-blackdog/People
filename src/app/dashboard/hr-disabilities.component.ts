@@ -5471,6 +5471,13 @@ export class HRDisabilitiesComponent {
           'ENV_SUPABASE_URL'
         )}/storage/v1/object/compensatory/${fileName}`;
 
+        // Debug logging restored
+        console.log('Key check:', {
+          hasServiceKey: !!getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY'),
+          hasAnonKey: !!getEnv('ENV_SUPABASE_API_KEY'),
+          usedKeyLength: storageKey.length,
+        });
+
         const response = await fetch(uploadUrl, {
           method: 'POST',
           headers: {
@@ -5484,12 +5491,16 @@ export class HRDisabilitiesComponent {
 
         if (!response.ok) {
           const errorData = await response.text();
-          console.error(
-            'Supabase Upload Error:',
-            response.status,
-            response.statusText,
-            errorData
-          );
+          console.error('Upload Failed Body:', errorData);
+
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error Supabase',
+            detail: `Status: ${response.status}. Msg: ${errorData.substring(
+              0,
+              100
+            )}`,
+          });
           throw new Error(
             `Error al subir archivo: ${response.status} ${response.statusText} - ${errorData}`
           );
