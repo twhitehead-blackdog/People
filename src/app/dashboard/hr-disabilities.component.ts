@@ -1353,7 +1353,8 @@ interface VacationRequest {
         </div>
         } @if (activeTab() === 'documents') {
         <!-- Dashboard de Solicitudes de Documentos -->
-        <pt-document-requests /> @if (activeTab() === 'vacations') {
+        <pt-document-requests />
+        } @if (activeTab() === 'vacations') {
         <!-- Dashboard de Vacaciones -->
         <div class="space-y-3">
           <!-- Estadísticas de Vacaciones -->
@@ -4089,27 +4090,6 @@ export class HRDisabilitiesComponent {
 
     return {
       url: `${getEnv('ENV_SUPABASE_URL')}/rest/v1/employee_vacations`,
-      method: 'GET',
-      params,
-    };
-  });
-
-  // API para obtener solicitudes de documentos
-  public documentRequestsApi = httpResource<DocumentRequest[]>(() => {
-    const companyId = this.organizationService.getCurrentCompanyId();
-
-    if (!companyId) {
-      return undefined;
-    }
-
-    const params: any = {
-      select: `id,employee_id,created_by,document_type,reason,document_url,status,reviewed_by,reviewed_at,review_notes,rejection_comment,created_at,updated_at,company_id,employee:employees!document_requests_employee_id_fkey(id,first_name,father_name,work_email,company_id,position:positions(name),branch:branches(name))`,
-      company_id: `eq.${companyId}`,
-      order: 'created_at.desc',
-    };
-
-    return {
-      url: `${getEnv('ENV_SUPABASE_URL')}/rest/v1/document_requests`,
       method: 'GET',
       params,
     };

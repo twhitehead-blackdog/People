@@ -82,7 +82,7 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
       ) {
         console.error(
           '[ERROR] No se encontró ENV_SUPABASE_SERVICE_ROLE_KEY para peticiones a ' +
-            (isSettingsRequest ? 'settings' : 'job_applications') +
+            (req.url.includes('settings') ? 'settings' : 'job_applications') +
             '. ' +
             'Por favor, agrega esta variable a tu archivo .env y reinicia la aplicación.'
         );

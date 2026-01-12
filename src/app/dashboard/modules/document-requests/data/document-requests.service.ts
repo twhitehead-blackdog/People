@@ -14,7 +14,7 @@ export class DocumentRequestsService {
   // Expose the resource directly or wrapped in a signal
   public documentRequestsResource = httpResource<DocumentRequest[]>(() => {
     const companyId = this.dashboardStore.selectedCompanyId();
-    if (!companyId) return null;
+    if (!companyId) return undefined;
 
     let httpParams = new HttpParams()
       .set(
