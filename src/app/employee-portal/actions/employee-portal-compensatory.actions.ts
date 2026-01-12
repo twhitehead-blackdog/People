@@ -31,6 +31,7 @@ type CompensatoryActionsDependencies = {
   resetForm: () => void;
   reloadRequests: () => void;
   setSubmitting: (value: boolean) => void;
+  company_id?: string | null;
 };
 
 /**
@@ -48,6 +49,7 @@ export async function uploadCompensatory(
     resetForm,
     reloadRequests,
     setSubmitting,
+    company_id,
   } = deps;
 
   if (
@@ -71,9 +73,7 @@ export async function uploadCompensatory(
     if (formState.compensatoryFile) {
       const file = formState.compensatoryFile;
       const fileExt = file.name.split('.').pop();
-      const fileName = `${
-        currentEmployee()!.id
-      }/${Date.now()}.${fileExt}`;
+      const fileName = `${currentEmployee()!.id}/${Date.now()}.${fileExt}`;
 
       // Upload to Supabase Storage using REST API
       try {
@@ -85,7 +85,8 @@ export async function uploadCompensatory(
 
         const uploadUrl = `${apiUrl.baseUrl}/storage/v1/object/compensatory/${fileName}`;
         await firstValueFrom(
-          http.post(uploadUrl,
+          http.post(
+            uploadUrl,
             file, // Enviar el archivo directamente como binario
             {
               headers: {
@@ -119,13 +120,24 @@ export async function uploadCompensatory(
 
     // Calcular la cantidad correcta según el tipo
     let requestedAmount = 0;
-    if (formState.type === 'hours' && formState.compensatoryTimeStart && formState.compensatoryTimeEnd) {
+    if (
+      formState.type === 'hours' &&
+      formState.compensatoryTimeStart &&
+      formState.compensatoryTimeEnd
+    ) {
       // Para horas: calcular la diferencia en horas
-      const diffMs = formState.compensatoryTimeEnd.getTime() - formState.compensatoryTimeStart.getTime();
-      requestedAmount = Math.round(diffMs / (1000 * 60 * 60) * 10) / 10; // Redondear a 1 decimal
-    } else if (formState.type === 'days' && formState.startDate && formState.endDate) {
+      const diffMs =
+        formState.compensatoryTimeEnd.getTime() -
+        formState.compensatoryTimeStart.getTime();
+      requestedAmount = Math.round((diffMs / (1000 * 60 * 60)) * 10) / 10; // Redondear a 1 decimal
+    } else if (
+      formState.type === 'days' &&
+      formState.startDate &&
+      formState.endDate
+    ) {
       // Para días: calcular la diferencia en días
-      const diffMs = formState.endDate.getTime() - formState.startDate.getTime();
+      const diffMs =
+        formState.endDate.getTime() - formState.startDate.getTime();
       requestedAmount = Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1; // +1 porque incluye el día final
     } else {
       // Fallback: usar la cantidad de fechas de horas extra
@@ -145,14 +157,26 @@ export async function uploadCompensatory(
         // Guardar información adicional en las notes
         `Tipo: ${formState.type}`,
         `Cantidad solicitada: ${requestedAmount}`,
-        formState.compensatoryDate ? `Fecha compensatorio: ${format(formState.compensatoryDate, 'yyyy-MM-dd')}` : '',
-        formState.compensatoryTimeStart ? `Hora inicio: ${format(formState.compensatoryTimeStart, 'HH:mm')}` : '',
-        formState.compensatoryTimeEnd ? `Hora fin: ${format(formState.compensatoryTimeEnd, 'HH:mm')}` : '',
-        `Fechas horas extra: ${formState.manualOvertimeDates.map(date => format(date, 'yyyy-MM-dd')).join(', ')}`
-      ].filter(note => note.length > 0), // Filtrar notas vacías
+        formState.compensatoryDate
+          ? `Fecha compensatorio: ${format(
+              formState.compensatoryDate,
+              'yyyy-MM-dd'
+            )}`
+          : '',
+        formState.compensatoryTimeStart
+          ? `Hora inicio: ${format(formState.compensatoryTimeStart, 'HH:mm')}`
+          : '',
+        formState.compensatoryTimeEnd
+          ? `Hora fin: ${format(formState.compensatoryTimeEnd, 'HH:mm')}`
+          : '',
+        `Fechas horas extra: ${formState.manualOvertimeDates
+          .map((date) => format(date, 'yyyy-MM-dd'))
+          .join(', ')}`,
+      ].filter((note) => note.length > 0), // Filtrar notas vacías
       compensatory_type: formState.type,
       compensatory_amount: requestedAmount,
       document_url: documentUrl || null,
+      company_id: company_id,
     };
 
     http
@@ -165,7 +189,8 @@ export async function uploadCompensatory(
           messageService.add({
             severity: 'success',
             summary: 'Solicitud Enviada',
-            detail: 'Tu solicitud de tiempo compensatorio ha sido enviada exitosamente.',
+            detail:
+              'Tu solicitud de tiempo compensatorio ha sido enviada exitosamente.',
           });
           resetForm();
           reloadRequests();

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+﻿import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
@@ -21,11 +21,10 @@ import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
 import { uploadCompensatory } from '../employee-portal/actions/employee-portal-compensatory.actions';
 import { EmployeePortalCompensatoryComponent } from '../employee-portal/components/employee-portal-compensatory.component';
-import { calculateCompensatoryAmount } from '../employee-portal/utils/employee-portal-compensatory.utils';
 import { Branch, Employee } from '../models';
 import { ApiUrlService } from '../services/api-url.service';
-import { OrganizationService } from '../services/organization.service';
 import { getEnv } from '../utils/env.utils';
+import { calculateCompensatoryAmount } from '../employee-portal/utils/employee-portal-compensatory.utils';
 
 type ManagementCard = {
   id: string;
@@ -139,7 +138,7 @@ type ManagementCard = {
               </h3>
             </div>
             <p class="text-sm text-gray-400 mb-4">
-              Selecciona al empleado para quien deseas realizar esta gestión.
+              Selecciona al empleado para quien deseas realizar esta gesti├│n.
             </p>
             <p-select
               [options]="branchEmployees"
@@ -233,7 +232,7 @@ type ManagementCard = {
         </div>
         }
 
-        <!-- Paso 2: Formulario de Gestión -->
+        <!-- Paso 2: Formulario de Gesti├│n -->
         @if (selectedEmployee()) {
         <div class="space-y-4 mt-4">
           <div class="flex items-center justify-between mb-4">
@@ -280,7 +279,7 @@ type ManagementCard = {
                   {{ employee.first_name }} {{ employee.father_name }}
                 </h4>
                 <p class="text-cyan-300 text-sm">
-                  {{ employee.position?.name }} • {{ employee.branch?.name }}
+                  {{ employee.position?.name }} ÔÇó {{ employee.branch?.name }}
                 </p>
                 @if (employee.employee_number) {
                 <p class="text-gray-400 text-xs">
@@ -292,7 +291,7 @@ type ManagementCard = {
             </div>
           </div>
 
-          <!-- Formularios específicos según el tipo de gestión -->
+          <!-- Formularios espec├¡ficos seg├║n el tipo de gesti├│n -->
           @if (selectedGestionType() === 'compensatory') {
           <pt-employee-portal-compensatory
             [isBranchManagerView]="true"
@@ -328,7 +327,7 @@ type ManagementCard = {
           />
           } @if (selectedGestionType() === 'disabilities') {
           <div class="space-y-5">
-            <!-- Paso 1: Período de Incapacidad -->
+            <!-- Paso 1: Per├¡odo de Incapacidad -->
             <div
               class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md"
             >
@@ -339,7 +338,7 @@ type ManagementCard = {
                   <i class="pi pi-calendar text-blue-400"></i>
                 </div>
                 <h3 class="text-lg font-semibold text-white m-0">
-                  Paso 1: Período de Incapacidad
+                  Paso 1: Per├¡odo de Incapacidad
                 </h3>
               </div>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -378,13 +377,13 @@ type ManagementCard = {
               >
                 <p class="text-sm text-blue-300">
                   <i class="pi pi-info-circle mr-2"></i>
-                  Total: <strong>{{ disabilityDaysCount() }} día(s)</strong>
+                  Total: <strong>{{ disabilityDaysCount() }} d├¡a(s)</strong>
                 </p>
               </div>
               }
             </div>
 
-            <!-- Paso 2: Descripción -->
+            <!-- Paso 2: Descripci├│n -->
             <div
               class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md"
             >
@@ -395,13 +394,13 @@ type ManagementCard = {
                   <i class="pi pi-file-edit text-blue-400"></i>
                 </div>
                 <h3 class="text-lg font-semibold text-white m-0">
-                  Paso 2: Descripción
+                  Paso 2: Descripci├│n
                 </h3>
               </div>
               <textarea
                 pInputTextarea
                 [(ngModel)]="disabilityDescription"
-                placeholder="Describe el motivo de la incapacidad (diagnóstico, síntomas, etc.)"
+                placeholder="Describe el motivo de la incapacidad (diagn├│stico, s├¡ntomas, etc.)"
                 rows="4"
                 class="w-full"
               ></textarea>
@@ -418,11 +417,11 @@ type ManagementCard = {
                   <i class="pi pi-file text-blue-400"></i>
                 </div>
                 <h3 class="text-lg font-semibold text-white m-0">
-                  Paso 3: Documento Médico
+                  Paso 3: Documento M├®dico
                 </h3>
               </div>
               <p class="text-sm text-gray-400 mb-4">
-                Adjunta el certificado médico o documento de incapacidad en
+                Adjunta el certificado m├®dico o documento de incapacidad en
                 formato PDF o imagen.
               </p>
               <p-fileUpload
@@ -457,7 +456,7 @@ type ManagementCard = {
               }
             </div>
 
-            <!-- Botones de Acción -->
+            <!-- Botones de Acci├│n -->
             <div class="flex justify-between pt-4">
               <p-button
                 label="Volver"
@@ -477,7 +476,7 @@ type ManagementCard = {
           </div>
           } @if (selectedGestionType() === 'vacations') {
           <div class="space-y-5">
-            <!-- Paso 1: Período de Vacaciones -->
+            <!-- Paso 1: Per├¡odo de Vacaciones -->
             <div
               class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md"
             >
@@ -488,7 +487,7 @@ type ManagementCard = {
                   <i class="pi pi-calendar text-purple-400"></i>
                 </div>
                 <h3 class="text-lg font-semibold text-white m-0">
-                  Paso 1: Período de Vacaciones
+                  Paso 1: Per├¡odo de Vacaciones
                 </h3>
               </div>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -528,7 +527,7 @@ type ManagementCard = {
                   <i class="pi pi-info-circle mr-2"></i>
                   Total:
                   <strong
-                    >{{ vacationDaysCount() }} día(s) de vacaciones</strong
+                    >{{ vacationDaysCount() }} d├¡a(s) de vacaciones</strong
                   >
                 </p>
               </div>
@@ -573,8 +572,7 @@ type ManagementCard = {
                 </h3>
               </div>
               <p class="text-sm text-gray-400 mb-4">
-                Si tienes una solicitud física firmada, puedes adjuntarla como
-                PDF para respaldar la solicitud.
+                Si tienes una solicitud f├¡sica firmada, puedes adjuntarla como PDF para respaldar la solicitud.
               </p>
               <p-fileUpload
                 mode="basic"
@@ -586,7 +584,7 @@ type ManagementCard = {
                 class="w-full"
               />
               <p class="text-xs text-gray-500 mt-2">
-                Formatos permitidos: PDF, JPG, PNG (máx. 5MB)
+                Formatos permitidos: PDF, JPG, PNG (m├íx. 5MB)
               </p>
               @if (vacationFile()) {
               <div
@@ -611,7 +609,7 @@ type ManagementCard = {
               }
             </div>
 
-            <!-- Botones de Acción -->
+            <!-- Botones de Acci├│n -->
             <div class="flex justify-between pt-4">
               <p-button
                 label="Volver"
@@ -694,7 +692,7 @@ type ManagementCard = {
                   <textarea
                     pInputTextarea
                     [(ngModel)]="documentReason"
-                    placeholder="Explica para qué necesitas este documento"
+                    placeholder="Explica para qu├® necesitas este documento"
                     rows="3"
                     class="w-full"
                   ></textarea>
@@ -707,7 +705,7 @@ type ManagementCard = {
                     [(ngModel)]="documentRequiredDate"
                     [showIcon]="true"
                     dateFormat="dd/mm/yy"
-                    placeholder="¿Cuándo necesitas el documento?"
+                    placeholder="┬┐Cu├índo necesitas el documento?"
                     [minDate]="today"
                     styleClass="w-full"
                     appendTo="body"
@@ -716,7 +714,7 @@ type ManagementCard = {
               </div>
             </div>
 
-            <!-- Botones de Acción -->
+            <!-- Botones de Acci├│n -->
             <div class="flex justify-between pt-4">
               <p-button
                 label="Volver"
@@ -749,7 +747,6 @@ export class BranchManagerGestionesComponent {
   private http = inject(HttpClient);
   private apiUrl = inject(ApiUrlService);
   private messageService = inject(MessageService);
-  private organizationService = inject(OrganizationService);
 
   // Fechas para formularios
   public today = startOfDay(new Date());
@@ -797,7 +794,7 @@ export class BranchManagerGestionesComponent {
   public documentRequiredDate = signal<Date | null>(null);
   public submittingDocument = signal<boolean>(false);
 
-  // Computed: Calcular el total de horas/días automáticamente
+  // Computed: Calcular el total de horas/d├¡as autom├íticamente
   public compensatoryAmount = computed(() => {
     return calculateCompensatoryAmount({
       type: this.compensatoryType(),
@@ -843,7 +840,10 @@ export class BranchManagerGestionesComponent {
   });
 
   public canSubmitVacation = computed(() => {
-    return !!(this.vacationStartDate() && this.vacationEndDate());
+    return !!(
+      this.vacationStartDate() &&
+      this.vacationEndDate()
+    );
   });
 
   public canSubmitDocument = computed(() => {
@@ -889,7 +889,7 @@ export class BranchManagerGestionesComponent {
     {
       id: 'disabilities',
       label: 'Incapacidades',
-      description: 'Subir documentos médicos de incapacidad',
+      description: 'Subir documentos m├®dicos de incapacidad',
       icon: 'pi-file-plus',
       colorClass: 'bg-blue-500/20 text-blue-400',
       section: 'disabilities',
@@ -897,7 +897,7 @@ export class BranchManagerGestionesComponent {
     {
       id: 'vacations',
       label: 'Vacaciones',
-      description: 'Solicitar días de vacaciones',
+      description: 'Solicitar d├¡as de vacaciones',
       icon: 'pi-calendar-plus',
       colorClass: 'bg-purple-500/20 text-purple-400',
       section: 'vacations',
@@ -918,7 +918,7 @@ export class BranchManagerGestionesComponent {
     return this.managementCards.find((card) => card.section === type);
   });
 
-  // Seleccionar tipo de gestión
+  // Seleccionar tipo de gesti├│n
   public selectGestion(
     type: 'disabilities' | 'documents' | 'vacations' | 'compensatory'
   ): void {
@@ -958,7 +958,7 @@ export class BranchManagerGestionesComponent {
     return (first + last).toUpperCase() || '?';
   }
 
-  // Navegación
+  // Navegaci├│n
   public backToGestiones(): void {
     this.selectedGestionType.set(null);
     this.selectedEmployeeId.set(null);
@@ -976,7 +976,7 @@ export class BranchManagerGestionesComponent {
     this.resetAllForms();
   }
 
-  // Métodos para Compensatorio
+  // M├®todos para Compensatorio
   public addManualOvertimeDate(): void {
     const date = this.newOvertimeDate();
     if (date) {
@@ -1050,7 +1050,6 @@ export class BranchManagerGestionesComponent {
         reloadRequests: () => {},
         setSubmitting: (value: boolean) =>
           this.submittingCompensatory.set(value),
-        company_id: this.organizationService.getCurrentCompanyId(),
       };
 
       await uploadCompensatory(deps);
@@ -1067,14 +1066,14 @@ export class BranchManagerGestionesComponent {
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
-        detail: 'No se pudo enviar la solicitud. Inténtalo de nuevo.',
+        detail: 'No se pudo enviar la solicitud. Int├®ntalo de nuevo.',
       });
     } finally {
       this.submittingCompensatory.set(false);
     }
   }
 
-  // Métodos de reset
+  // M├®todos de reset
   private resetCompensatoryForm(): void {
     this.compensatoryType.set('hours');
     this.compensatoryDate.set(null);
@@ -1095,7 +1094,7 @@ export class BranchManagerGestionesComponent {
     this.resetDocumentForm();
   }
 
-  // Métodos para Incapacidades
+  // M├®todos para Incapacidades
   public onDisabilityFileSelect(event: any): void {
     const files = event.currentFiles || event.files;
     if (files && files.length > 0) {
@@ -1158,7 +1157,6 @@ export class BranchManagerGestionesComponent {
         document_url: documentUrl || null,
         status: 'pending',
         created_by: this.currentEmployee?.id || null, // Gerente que crea la solicitud
-        company_id: this.organizationService.getCurrentCompanyId(),
       };
 
       await firstValueFrom(
@@ -1191,7 +1189,7 @@ export class BranchManagerGestionesComponent {
     }
   }
 
-  // Métodos para Vacaciones
+  // M├®todos para Vacaciones
   public async submitVacationRequest(): Promise<void> {
     if (!this.canSubmitVacation() || !this.selectedEmployee()) return;
 
@@ -1215,10 +1213,7 @@ export class BranchManagerGestionesComponent {
 
         // Subir a Supabase Storage
         const uploadUrl = `${this.apiUrl.baseUrl}/storage/v1/object/employee-documents/${filePath}`;
-        const apiKey =
-          getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') ||
-          getEnv('ENV_SUPABASE_API_KEY') ||
-          '';
+        const apiKey = getEnv('ENV_SUPABASE_ANON_KEY') || '';
 
         if (!apiKey) {
           throw new Error('No se pudo obtener la clave de API de Supabase');
@@ -1228,8 +1223,8 @@ export class BranchManagerGestionesComponent {
           this.http.post(uploadUrl, file, {
             headers: {
               'Content-Type': file.type,
-              apikey: apiKey,
-              Authorization: `Bearer ${apiKey}`,
+              'apikey': apiKey,
+              'Authorization': `Bearer ${apiKey}`,
             },
           })
         );
@@ -1246,7 +1241,6 @@ export class BranchManagerGestionesComponent {
         document_url: documentUrl || null,
         status: 'pending',
         created_by: this.currentEmployee?.id || null, // Gerente que crea la solicitud
-        company_id: this.organizationService.getCurrentCompanyId(),
       };
 
       await firstValueFrom(
@@ -1279,7 +1273,7 @@ export class BranchManagerGestionesComponent {
     }
   }
 
-  // Métodos para Documentos
+  // M├®todos para Documentos
   public async submitDocumentRequest(): Promise<void> {
     if (!this.canSubmitDocument() || !this.selectedEmployee()) return;
 
@@ -1303,7 +1297,6 @@ export class BranchManagerGestionesComponent {
         required_date: requiredDate.toISOString().split('T')[0],
         status: 'pending',
         created_by: this.currentEmployee?.id || null, // Gerente que crea la solicitud
-        company_id: this.organizationService.getCurrentCompanyId(),
       };
 
       await firstValueFrom(
@@ -1362,7 +1355,7 @@ export class BranchManagerGestionesComponent {
   public documentTypeOptions = [
     { label: 'Carta de Trabajo', value: 'work_letter' },
     { label: 'Constancia de Salario', value: 'salary_certificate' },
-    { label: 'Certificación Laboral', value: 'employment_certificate' },
+    { label: 'Certificaci├│n Laboral', value: 'employment_certificate' },
     { label: 'Otro', value: 'other' },
   ];
 
