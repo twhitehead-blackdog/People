@@ -28,6 +28,7 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
     const whitelist = [
       '/rest/v1/settings',
       '/rest/v1/job_applications',
+      '/rest/v1/job_application_statuses',
       '/rest/v1/timeoffs',
       '/rest/v1/notifications',
       '/rest/v1/hr_messages',
@@ -50,12 +51,21 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
       '/rest/v1/employee_schedules',
       '/rest/v1/attendance_sheets',
       '/rest/v1/payrolls',
+      '/rest/v1/employee_payrolls',
+      '/rest/v1/payroll_debts',
+      '/rest/v1/payroll_deductions',
+      '/rest/v1/payroll_payments',
+      '/rest/v1/payroll_payment_employees',
+      '/rest/v1/payroll_payment_employee_items',
       '/rest/v1/banks',
       '/rest/v1/creditors',
       '/rest/v1/reminders',
       '/rest/v1/timeoff_types',
       '/rest/v1/timeoff_audit_log',
       '/rest/v1/schedule_audit_log',
+      '/rest/v1/overtime_consumptions',
+      '/rest/v1/v_lates_daily',
+      '/rest/v1/v_lates_daily_detail',
       '/rest/v1/rpc/',
       '/storage/v1/object/',
     ];
@@ -70,6 +80,7 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
       ? getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') ||
         getEnv('ENV_SUPABASE_TOKEN') ||
         getEnv('ENV_SUPABASE_API_KEY') ||
+        getEnv('ENV_SUPABASE_ANON_KEY') ||
         ''
       : getEnv('ENV_SUPABASE_API_KEY') || '';
 
