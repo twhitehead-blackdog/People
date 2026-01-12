@@ -29,19 +29,13 @@ export function getEnv(key: string): string | undefined {
   if (!value) return undefined;
 
   // Limpieza robusta: eliminar espacios y comillas accidentales
-  value = value.trim();
+  let cleanValue = value.trim();
   if (
-    (value.startsWith('"') && value.endsWith('"')) ||
-    (value.startsWith("'") && value.endsWith("'"))
+    (cleanValue.startsWith('"') && cleanValue.endsWith('"')) ||
+    (cleanValue.startsWith("'") && cleanValue.endsWith("'"))
   ) {
-    try {
-      // Intentar parsear JSON para manejar strings escapados correctamente
-      value = JSON.parse(value);
-    } catch {
-      // Si falla, simplemente quitar la primera y última comilla
-      value = value.substring(1, value.length - 1);
-    }
+    cleanValue = cleanValue.substring(1, cleanValue.length - 1);
   }
 
-  return value;
+  return cleanValue;
 }
