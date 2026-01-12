@@ -57,6 +57,7 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
       '/rest/v1/timeoff_audit_log',
       '/rest/v1/schedule_audit_log',
       '/rest/v1/rpc/',
+      '/storage/v1/object/',
     ];
 
     const needsServiceRoleKey = whitelist.some((path) =>
