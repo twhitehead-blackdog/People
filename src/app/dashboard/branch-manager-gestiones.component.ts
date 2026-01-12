@@ -21,10 +21,10 @@ import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
 import { uploadCompensatory } from '../employee-portal/actions/employee-portal-compensatory.actions';
 import { EmployeePortalCompensatoryComponent } from '../employee-portal/components/employee-portal-compensatory.component';
+import { calculateCompensatoryAmount } from '../employee-portal/utils/employee-portal-compensatory.utils';
 import { Branch, Employee } from '../models';
 import { ApiUrlService } from '../services/api-url.service';
 import { getEnv } from '../utils/env.utils';
-import { calculateCompensatoryAmount } from '../employee-portal/utils/employee-portal-compensatory.utils';
 
 type ManagementCard = {
   id: string;
@@ -572,7 +572,8 @@ type ManagementCard = {
                 </h3>
               </div>
               <p class="text-sm text-gray-400 mb-4">
-                Si tienes una solicitud física firmada, puedes adjuntarla como PDF para respaldar la solicitud.
+                Si tienes una solicitud física firmada, puedes adjuntarla como
+                PDF para respaldar la solicitud.
               </p>
               <p-fileUpload
                 mode="basic"
@@ -840,10 +841,7 @@ export class BranchManagerGestionesComponent {
   });
 
   public canSubmitVacation = computed(() => {
-    return !!(
-      this.vacationStartDate() &&
-      this.vacationEndDate()
-    );
+    return !!(this.vacationStartDate() && this.vacationEndDate());
   });
 
   public canSubmitDocument = computed(() => {
@@ -1213,7 +1211,10 @@ export class BranchManagerGestionesComponent {
 
         // Subir a Supabase Storage
         const uploadUrl = `${this.apiUrl.baseUrl}/storage/v1/object/employee-documents/${filePath}`;
-        const apiKey = getEnv('ENV_SUPABASE_ANON_KEY') || '';
+        const apiKey =
+          getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') ||
+          getEnv('ENV_SUPABASE_API_KEY') ||
+          '';
 
         if (!apiKey) {
           throw new Error('No se pudo obtener la clave de API de Supabase');
@@ -1223,8 +1224,8 @@ export class BranchManagerGestionesComponent {
           this.http.post(uploadUrl, file, {
             headers: {
               'Content-Type': file.type,
-              'apikey': apiKey,
-              'Authorization': `Bearer ${apiKey}`,
+              apikey: apiKey,
+              Authorization: `Bearer ${apiKey}`,
             },
           })
         );

@@ -326,18 +326,6 @@ interface DocumentRequest {
               <i class="pi pi-calendar mr-1.5 text-xs"></i>
               Vacaciones
             </button>
-            <button
-              (click)="navigateToTab('suggestions')"
-              [class]="
-                'px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 ' +
-                (activeTab() === 'suggestions'
-                  ? 'bg-gradient-to-r from-cyan-500/20 to-cyan-600/20 text-cyan-300 shadow-md border border-cyan-400/30'
-                  : 'text-gray-400 hover:text-white hover:bg-neutral-700/50')
-              "
-            >
-              <i class="pi pi-comments mr-1.5 text-xs"></i>
-              Buzón de Sugerencias
-            </button>
           </div>
         </div>
 
@@ -1291,17 +1279,16 @@ interface DocumentRequest {
                     <td style="padding: 0.4rem; text-align: center;">
                       @let requestedAmount =
                       getCompensatoryRequestedAmountFromNotes(request); @let
-                      quantity = getCompensatoryQuantity(request);
+                      quantity = getCompensatoryQuantity(request); @let compType
+                      = getCompensatoryTypeFromNotes(request);
                       <span class="text-xs font-medium text-white">
-                        @if (requestedAmount !== null) {
-                        {{ requestedAmount }}
-                        @let type = getCompensatoryTypeFromNotes(request); @if
-                        (type === 'days') { día(s) } @else { hora(s) } } @else
-                        if (quantity && quantity.value > 0) { @if
-                        (quantity.isDays) {
-                        {{ quantity.value }} día(s) } @else {
-                        {{ formatHoursMinutes(quantity.value) }}
-                        } } @else {
+                        @if (requestedAmount !== null && compType === 'days') {
+                        {{ requestedAmount }} día(s) } @else if (requestedAmount
+                        !== null) { {{ requestedAmount }} } @else if
+                        ((quantity?.value ?? 0) > 0 && quantity?.isDays) {
+                        {{ quantity?.value }} día(s) } @else if
+                        ((quantity?.value ?? 0) > 0) {
+                        {{ formatHoursMinutes(quantity?.value || 0) }} } @else {
                         <span class="text-gray-500">-</span>
                         }
                       </span>
@@ -1362,21 +1349,6 @@ interface DocumentRequest {
                           tooltipPosition="top"
                           [rounded]="true"
                         />
-                        } @else if (request.review_status === 'approved' &&
-                        !request.is_approved) {
-                        <p-button
-                          icon="pi pi-check-circle"
-                          [text]="true"
-                          severity="info"
-                          size="small"
-                          (onClick)="
-                            registerCompensatoryRequest(request);
-                            $event.stopPropagation()
-                          "
-                          pTooltip="Registrar (Lia)"
-                          tooltipPosition="top"
-                          [rounded]="true"
-                        />
                         }
                         <p-button
                           icon="pi pi-eye"
@@ -1404,111 +1376,212 @@ interface DocumentRequest {
         <!-- Dashboard de Solicitudes de Documentos -->
         <div class="space-y-3">
           <!-- Estadísticas de Documentos -->
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+          <!-- Estadísticas Compactas de Documentos -->
+          <div class="grid grid-cols-4 gap-2">
+            <!-- Total -->
             <div
-              class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3"
+              class="group relative bg-gradient-to-br from-neutral-800 to-neutral-800/80 rounded-lg p-3 border border-neutral-700/50 hover:border-cyan-400/50 transition-all duration-200 hover:shadow-lg hover:shadow-cyan-500/10 cursor-pointer"
             >
               <div class="flex items-center justify-between">
-                <div>
-                  <p class="text-xs text-gray-400">Total</p>
-                  <p class="text-xl font-bold text-white">
+                <div
+                  class="w-8 h-8 rounded-md bg-gradient-to-br from-gray-500/20 to-gray-600/20 flex items-center justify-center group-hover:scale-105 transition-transform"
+                >
+                  <i class="pi pi-file text-lg text-gray-400"></i>
+                </div>
+                <div class="text-right flex-1">
+                  <p
+                    class="text-[10px] font-medium text-gray-400 uppercase tracking-wider m-0"
+                  >
+                    Total
+                  </p>
+                  <p class="text-xl font-bold text-white m-0">
                     {{ documentsTotalCount() }}
                   </p>
                 </div>
-                <div class="p-2 bg-neutral-700/50 rounded-lg">
-                  <i class="pi pi-file-edit text-cyan-400 text-lg"></i>
-                </div>
+              </div>
+              <div
+                class="h-0.5 bg-neutral-700 rounded-full overflow-hidden mt-2"
+              >
+                <div
+                  class="h-full bg-gradient-to-r from-gray-500 to-gray-400 rounded-full"
+                  [style.width.%]="100"
+                ></div>
               </div>
             </div>
+
+            <!-- Pendientes -->
             <div
-              class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3"
+              class="group relative bg-gradient-to-br from-yellow-500/10 via-yellow-500/5 to-neutral-800 rounded-lg p-3 border border-yellow-500/30 hover:border-yellow-400/50 transition-all duration-200 hover:shadow-lg hover:shadow-yellow-500/20 cursor-pointer"
             >
               <div class="flex items-center justify-between">
-                <div>
-                  <p class="text-xs text-gray-400">Pendientes</p>
-                  <p class="text-xl font-bold text-amber-400">
+                <div
+                  class="w-8 h-8 rounded-md bg-gradient-to-br from-yellow-500/30 to-yellow-600/20 flex items-center justify-center group-hover:scale-105 transition-transform"
+                >
+                  <i class="pi pi-clock text-lg text-yellow-400"></i>
+                </div>
+                <div class="text-right flex-1">
+                  <p
+                    class="text-[10px] font-medium text-yellow-400/80 uppercase tracking-wider m-0"
+                  >
+                    Pendientes
+                  </p>
+                  <p class="text-xl font-bold text-yellow-300 m-0">
                     {{ documentsPendingCount() }}
                   </p>
                 </div>
-                <div class="p-2 bg-amber-500/10 rounded-lg">
-                  <i class="pi pi-clock text-amber-400 text-lg"></i>
-                </div>
+              </div>
+              <div
+                class="h-0.5 bg-neutral-700 rounded-full overflow-hidden mt-2"
+              >
+                <div
+                  class="h-full bg-gradient-to-r from-yellow-500 to-yellow-400 rounded-full"
+                  [style.width.%]="
+                    documentsTotalCount() > 0
+                      ? (documentsPendingCount() / documentsTotalCount()) * 100
+                      : 0
+                  "
+                ></div>
               </div>
             </div>
+
+            <!-- Aprobadas -->
             <div
-              class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3"
+              class="group relative bg-gradient-to-br from-green-500/10 via-green-500/5 to-neutral-800 rounded-lg p-3 border border-green-500/30 hover:border-green-400/50 transition-all duration-200 hover:shadow-lg hover:shadow-green-500/20 cursor-pointer"
             >
               <div class="flex items-center justify-between">
-                <div>
-                  <p class="text-xs text-gray-400">Aprobadas</p>
-                  <p class="text-xl font-bold text-green-400">
+                <div
+                  class="w-8 h-8 rounded-md bg-gradient-to-br from-green-500/30 to-green-600/20 flex items-center justify-center group-hover:scale-105 transition-transform"
+                >
+                  <i class="pi pi-check-circle text-lg text-green-400"></i>
+                </div>
+                <div class="text-right flex-1">
+                  <p
+                    class="text-[10px] font-medium text-green-400/80 uppercase tracking-wider m-0"
+                  >
+                    Aprobadas
+                  </p>
+                  <p class="text-xl font-bold text-green-300 m-0">
                     {{ documentsApprovedCount() }}
                   </p>
                 </div>
-                <div class="p-2 bg-green-500/10 rounded-lg">
-                  <i class="pi pi-check text-green-400 text-lg"></i>
-                </div>
+              </div>
+              <div
+                class="h-0.5 bg-neutral-700 rounded-full overflow-hidden mt-2"
+              >
+                <div
+                  class="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full"
+                  [style.width.%]="
+                    documentsTotalCount() > 0
+                      ? (documentsApprovedCount() / documentsTotalCount()) * 100
+                      : 0
+                  "
+                ></div>
               </div>
             </div>
+
+            <!-- Rechazadas -->
             <div
-              class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3"
+              class="group relative bg-gradient-to-br from-red-500/10 via-red-500/5 to-neutral-800 rounded-lg p-3 border border-red-500/30 hover:border-red-400/50 transition-all duration-200 hover:shadow-lg hover:shadow-red-500/20 cursor-pointer"
             >
               <div class="flex items-center justify-between">
-                <div>
-                  <p class="text-xs text-gray-400">Rechazadas</p>
-                  <p class="text-xl font-bold text-red-400">
+                <div
+                  class="w-8 h-8 rounded-md bg-gradient-to-br from-red-500/30 to-red-600/20 flex items-center justify-center group-hover:scale-105 transition-transform"
+                >
+                  <i class="pi pi-times-circle text-lg text-red-400"></i>
+                </div>
+                <div class="text-right flex-1">
+                  <p
+                    class="text-[10px] font-medium text-red-400/80 uppercase tracking-wider m-0"
+                  >
+                    Rechazadas
+                  </p>
+                  <p class="text-xl font-bold text-red-300 m-0">
                     {{ documentsRejectedCount() }}
                   </p>
                 </div>
-                <div class="p-2 bg-red-500/10 rounded-lg">
-                  <i class="pi pi-times text-red-400 text-lg"></i>
-                </div>
+              </div>
+              <div
+                class="h-0.5 bg-neutral-700 rounded-full overflow-hidden mt-2"
+              >
+                <div
+                  class="h-full bg-gradient-to-r from-red-500 to-red-400 rounded-full"
+                  [style.width.%]="
+                    documentsTotalCount() > 0
+                      ? (documentsRejectedCount() / documentsTotalCount()) * 100
+                      : 0
+                  "
+                ></div>
               </div>
             </div>
           </div>
 
           <!-- Filtros -->
+          <!-- Filtros de Documentos -->
           <div
-            class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-4"
+            class="bg-gradient-to-br from-neutral-800/80 to-neutral-800/60 rounded-lg border border-neutral-700/50 backdrop-blur-sm p-3"
           >
-            <div class="flex flex-wrap gap-3 items-center">
-              <div class="flex-1 min-w-[200px]">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+              <div class="md:col-span-1">
+                <label
+                  class="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1"
+                >
+                  <i class="pi pi-search mr-1 text-cyan-400 text-[10px]"></i
+                  >Búsqueda
+                </label>
                 <input
                   pInputText
                   [(ngModel)]="documentsSearchText"
-                  placeholder="Buscar por empleado o tipo..."
-                  class="w-full bg-neutral-700/50 border border-neutral-600 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
+                  placeholder="Empleado o tipo..."
+                  class="w-full text-sm py-1.5 bg-neutral-900/50 border-neutral-600 focus:border-cyan-400/50"
                 />
               </div>
-              <p-dropdown
-                [(ngModel)]="documentsSelectedStatus"
-                [options]="documentsStatusOptions"
-                optionLabel="label"
-                optionValue="value"
-                placeholder="Estado"
-                showClear="true"
-                class="w-32"
-                styleClass="bg-neutral-700/50 border border-neutral-600 text-white"
-              />
-              <p-calendar
-                [(ngModel)]="documentsDateRange"
-                selectionMode="range"
-                placeholder="Rango de fechas"
-                dateFormat="dd/mm/yy"
-                [showIcon]="true"
-                [readonlyInput]="true"
-                class="w-48"
-                styleClass="bg-neutral-700/50 border border-neutral-600 text-white"
-              />
-              <p-button
-                label="Limpiar"
-                icon="pi pi-filter-slash"
-                severity="secondary"
-                size="small"
-                (onClick)="clearDocumentsFilters()"
-                [disabled]="!hasActiveDocumentsFilters()"
-                class="ml-auto"
-              />
+              <div>
+                <label
+                  class="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1"
+                >
+                  <i class="pi pi-tag mr-1 text-cyan-400 text-[10px]"></i>Estado
+                </label>
+                <p-dropdown
+                  [(ngModel)]="documentsSelectedStatus"
+                  [options]="documentsStatusOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  placeholder="Todos"
+                  [showClear]="true"
+                  class="w-full text-sm"
+                  [style]="{ height: '32px' }"
+                />
+              </div>
+              <div class="flex items-end gap-2">
+                <div class="flex-1">
+                  <label
+                    class="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1"
+                  >
+                    <i class="pi pi-calendar mr-1 text-cyan-400 text-[10px]"></i
+                    >Rango
+                  </label>
+                  <p-calendar
+                    [(ngModel)]="documentsDateRange"
+                    selectionMode="range"
+                    placeholder="Seleccionar"
+                    dateFormat="dd/mm/yy"
+                    [showIcon]="true"
+                    class="w-full text-sm"
+                    [inputStyle]="{ height: '32px', padding: '0.375rem' }"
+                    [showClear]="true"
+                  />
+                </div>
+                <p-button
+                  icon="pi pi-filter-slash"
+                  [outlined]="true"
+                  severity="secondary"
+                  (onClick)="clearDocumentsFilters()"
+                  [disabled]="!hasActiveDocumentsFilters()"
+                  [style]="{ height: '32px', width: '32px' }"
+                  pTooltip="Limpiar Filtros"
+                  tooltipPosition="top"
+                />
+              </div>
             </div>
           </div>
 
@@ -1682,111 +1755,212 @@ interface DocumentRequest {
         <!-- Dashboard de Vacaciones -->
         <div class="space-y-3">
           <!-- Estadísticas de Vacaciones -->
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-4">
+          <!-- Estadísticas Compactas de Vacaciones -->
+          <div class="grid grid-cols-4 gap-2">
+            <!-- Total -->
             <div
-              class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3"
+              class="group relative bg-gradient-to-br from-neutral-800 to-neutral-800/80 rounded-lg p-3 border border-neutral-700/50 hover:border-cyan-400/50 transition-all duration-200 hover:shadow-lg hover:shadow-cyan-500/10 cursor-pointer"
             >
               <div class="flex items-center justify-between">
-                <div>
-                  <p class="text-xs text-gray-400">Total</p>
-                  <p class="text-xl font-bold text-white">
+                <div
+                  class="w-8 h-8 rounded-md bg-gradient-to-br from-gray-500/20 to-gray-600/20 flex items-center justify-center group-hover:scale-105 transition-transform"
+                >
+                  <i class="pi pi-calendar text-lg text-gray-400"></i>
+                </div>
+                <div class="text-right flex-1">
+                  <p
+                    class="text-[10px] font-medium text-gray-400 uppercase tracking-wider m-0"
+                  >
+                    Total
+                  </p>
+                  <p class="text-xl font-bold text-white m-0">
                     {{ vacationsTotalCount() }}
                   </p>
                 </div>
-                <div class="p-2 bg-neutral-700/50 rounded-lg">
-                  <i class="pi pi-calendar text-cyan-400 text-lg"></i>
-                </div>
+              </div>
+              <div
+                class="h-0.5 bg-neutral-700 rounded-full overflow-hidden mt-2"
+              >
+                <div
+                  class="h-full bg-gradient-to-r from-gray-500 to-gray-400 rounded-full"
+                  [style.width.%]="100"
+                ></div>
               </div>
             </div>
+
+            <!-- Pendientes -->
             <div
-              class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3"
+              class="group relative bg-gradient-to-br from-yellow-500/10 via-yellow-500/5 to-neutral-800 rounded-lg p-3 border border-yellow-500/30 hover:border-yellow-400/50 transition-all duration-200 hover:shadow-lg hover:shadow-yellow-500/20 cursor-pointer"
             >
               <div class="flex items-center justify-between">
-                <div>
-                  <p class="text-xs text-gray-400">Pendientes</p>
-                  <p class="text-xl font-bold text-amber-400">
+                <div
+                  class="w-8 h-8 rounded-md bg-gradient-to-br from-yellow-500/30 to-yellow-600/20 flex items-center justify-center group-hover:scale-105 transition-transform"
+                >
+                  <i class="pi pi-clock text-lg text-yellow-400"></i>
+                </div>
+                <div class="text-right flex-1">
+                  <p
+                    class="text-[10px] font-medium text-yellow-400/80 uppercase tracking-wider m-0"
+                  >
+                    Pendientes
+                  </p>
+                  <p class="text-xl font-bold text-yellow-300 m-0">
                     {{ vacationsPendingCount() }}
                   </p>
                 </div>
-                <div class="p-2 bg-amber-500/10 rounded-lg">
-                  <i class="pi pi-clock text-amber-400 text-lg"></i>
-                </div>
+              </div>
+              <div
+                class="h-0.5 bg-neutral-700 rounded-full overflow-hidden mt-2"
+              >
+                <div
+                  class="h-full bg-gradient-to-r from-yellow-500 to-yellow-400 rounded-full"
+                  [style.width.%]="
+                    vacationsTotalCount() > 0
+                      ? (vacationsPendingCount() / vacationsTotalCount()) * 100
+                      : 0
+                  "
+                ></div>
               </div>
             </div>
+
+            <!-- Aprobadas -->
             <div
-              class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3"
+              class="group relative bg-gradient-to-br from-green-500/10 via-green-500/5 to-neutral-800 rounded-lg p-3 border border-green-500/30 hover:border-green-400/50 transition-all duration-200 hover:shadow-lg hover:shadow-green-500/20 cursor-pointer"
             >
               <div class="flex items-center justify-between">
-                <div>
-                  <p class="text-xs text-gray-400">Aprobadas</p>
-                  <p class="text-xl font-bold text-green-400">
+                <div
+                  class="w-8 h-8 rounded-md bg-gradient-to-br from-green-500/30 to-green-600/20 flex items-center justify-center group-hover:scale-105 transition-transform"
+                >
+                  <i class="pi pi-check-circle text-lg text-green-400"></i>
+                </div>
+                <div class="text-right flex-1">
+                  <p
+                    class="text-[10px] font-medium text-green-400/80 uppercase tracking-wider m-0"
+                  >
+                    Aprobadas
+                  </p>
+                  <p class="text-xl font-bold text-green-300 m-0">
                     {{ vacationsApprovedCount() }}
                   </p>
                 </div>
-                <div class="p-2 bg-green-500/10 rounded-lg">
-                  <i class="pi pi-check text-green-400 text-lg"></i>
-                </div>
+              </div>
+              <div
+                class="h-0.5 bg-neutral-700 rounded-full overflow-hidden mt-2"
+              >
+                <div
+                  class="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full"
+                  [style.width.%]="
+                    vacationsTotalCount() > 0
+                      ? (vacationsApprovedCount() / vacationsTotalCount()) * 100
+                      : 0
+                  "
+                ></div>
               </div>
             </div>
+
+            <!-- Rechazadas -->
             <div
-              class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3"
+              class="group relative bg-gradient-to-br from-red-500/10 via-red-500/5 to-neutral-800 rounded-lg p-3 border border-red-500/30 hover:border-red-400/50 transition-all duration-200 hover:shadow-lg hover:shadow-red-500/20 cursor-pointer"
             >
               <div class="flex items-center justify-between">
-                <div>
-                  <p class="text-xs text-gray-400">Rechazadas</p>
-                  <p class="text-xl font-bold text-red-400">
+                <div
+                  class="w-8 h-8 rounded-md bg-gradient-to-br from-red-500/30 to-red-600/20 flex items-center justify-center group-hover:scale-105 transition-transform"
+                >
+                  <i class="pi pi-times-circle text-lg text-red-400"></i>
+                </div>
+                <div class="text-right flex-1">
+                  <p
+                    class="text-[10px] font-medium text-red-400/80 uppercase tracking-wider m-0"
+                  >
+                    Rechazadas
+                  </p>
+                  <p class="text-xl font-bold text-red-300 m-0">
                     {{ vacationsRejectedCount() }}
                   </p>
                 </div>
-                <div class="p-2 bg-red-500/10 rounded-lg">
-                  <i class="pi pi-times text-red-400 text-lg"></i>
-                </div>
+              </div>
+              <div
+                class="h-0.5 bg-neutral-700 rounded-full overflow-hidden mt-2"
+              >
+                <div
+                  class="h-full bg-gradient-to-r from-red-500 to-red-400 rounded-full"
+                  [style.width.%]="
+                    vacationsTotalCount() > 0
+                      ? (vacationsRejectedCount() / vacationsTotalCount()) * 100
+                      : 0
+                  "
+                ></div>
               </div>
             </div>
           </div>
 
           <!-- Filtros -->
+          <!-- Filtros de Vacaciones -->
           <div
-            class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-4"
+            class="bg-gradient-to-br from-neutral-800/80 to-neutral-800/60 rounded-lg border border-neutral-700/50 backdrop-blur-sm p-3"
           >
-            <div class="flex flex-wrap gap-3 items-center">
-              <div class="flex-1 min-w-[200px]">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+              <div class="md:col-span-1">
+                <label
+                  class="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1"
+                >
+                  <i class="pi pi-search mr-1 text-cyan-400 text-[10px]"></i
+                  >Búsqueda
+                </label>
                 <input
                   pInputText
                   [(ngModel)]="vacationsSearchText"
-                  placeholder="Buscar por empleado..."
-                  class="w-full bg-neutral-700/50 border border-neutral-600 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400"
+                  placeholder="Empleado..."
+                  class="w-full text-sm py-1.5 bg-neutral-900/50 border-neutral-600 focus:border-cyan-400/50"
                 />
               </div>
-              <p-dropdown
-                [(ngModel)]="vacationsSelectedStatus"
-                [options]="vacationsStatusOptions"
-                optionLabel="label"
-                optionValue="value"
-                placeholder="Estado"
-                showClear="true"
-                class="w-32"
-                styleClass="bg-neutral-700/50 border border-neutral-600 text-white"
-              />
-              <p-calendar
-                [(ngModel)]="vacationsDateRange"
-                selectionMode="range"
-                placeholder="Rango de fechas"
-                dateFormat="dd/mm/yy"
-                [showIcon]="true"
-                [readonlyInput]="true"
-                class="w-48"
-                styleClass="bg-neutral-700/50 border border-neutral-600 text-white"
-              />
-              <p-button
-                label="Limpiar"
-                icon="pi pi-filter-slash"
-                severity="secondary"
-                size="small"
-                (onClick)="clearVacationsFilters()"
-                [disabled]="!hasActiveVacationsFilters()"
-                class="ml-auto"
-              />
+              <div>
+                <label
+                  class="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1"
+                >
+                  <i class="pi pi-tag mr-1 text-cyan-400 text-[10px]"></i>Estado
+                </label>
+                <p-dropdown
+                  [(ngModel)]="vacationsSelectedStatus"
+                  [options]="vacationsStatusOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  placeholder="Todos"
+                  [showClear]="true"
+                  class="w-full text-sm"
+                  [style]="{ height: '32px' }"
+                />
+              </div>
+              <div class="flex items-end gap-2">
+                <div class="flex-1">
+                  <label
+                    class="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1"
+                  >
+                    <i class="pi pi-calendar mr-1 text-cyan-400 text-[10px]"></i
+                    >Rango
+                  </label>
+                  <p-calendar
+                    [(ngModel)]="vacationsDateRange"
+                    selectionMode="range"
+                    placeholder="Seleccionar"
+                    dateFormat="dd/mm/yy"
+                    [showIcon]="true"
+                    class="w-full text-sm"
+                    [inputStyle]="{ height: '32px', padding: '0.375rem' }"
+                    [showClear]="true"
+                  />
+                </div>
+                <p-button
+                  icon="pi pi-filter-slash"
+                  [outlined]="true"
+                  severity="secondary"
+                  (onClick)="clearVacationsFilters()"
+                  [disabled]="!hasActiveVacationsFilters()"
+                  [style]="{ height: '32px', width: '32px' }"
+                  pTooltip="Limpiar Filtros"
+                  tooltipPosition="top"
+                />
+              </div>
             </div>
           </div>
 
@@ -3361,12 +3535,7 @@ export class HRDisabilitiesComponent {
 
   // Método para navegar a diferentes pestañas
   public navigateToTab(
-    tab:
-      | 'disabilities'
-      | 'compensatory'
-      | 'documents'
-      | 'vacations'
-      | 'suggestions'
+    tab: 'disabilities' | 'compensatory' | 'documents' | 'vacations'
   ): void {
     if (tab === 'documents') {
       // Navegar a la ruta de solicitudes de documentos (si existe) o mostrar contenido embebido
@@ -3376,9 +3545,6 @@ export class HRDisabilitiesComponent {
       // Cambiar a la pestaña de vacaciones
       this.activeTab.set('vacations');
       // TODO: Implementar vista de vacaciones
-    } else if (tab === 'suggestions') {
-      // Navegar al buzón de sugerencias
-      this.router.navigate(['admin', 'suggestions-inbox']);
     } else {
       // Para disabilities y compensatory, solo cambiar la pestaña activa
       this.activeTab.set(tab);
@@ -5281,6 +5447,7 @@ export class HRDisabilitiesComponent {
 
     const updateData: any = {
       review_status: status,
+      is_approved: status === 'approved', // Eliminar paso "Registrado" - aprobar es final
       reviewed_by: currentEmployee.id,
       reviewed_at: new Date().toISOString(),
     };
@@ -5309,10 +5476,8 @@ export class HRDisabilitiesComponent {
 
           // Obtener la solicitud para notificar al empleado
           if (status === 'approved' && request) {
-            // Enviar notificación al empleado sobre la aprobación
+            // Enviar notificación al empleado sobre la aprobación final
             await this.notifyEmployee(id, request, 'approved');
-            // Enviar notificación a Lia para que registre
-            await this.notifyLiaForRegistration(id, request);
 
             // Consumir horas extra (auditable) al aprobar. Best-effort: no bloquea aprobación.
             try {

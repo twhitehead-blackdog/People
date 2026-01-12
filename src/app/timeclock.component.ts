@@ -1,5 +1,5 @@
 import { NgClass } from '@angular/common';
-import { HttpClient, HttpResponse, httpResource } from '@angular/common/http';
+import { HttpClient, httpResource, HttpResponse } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -47,11 +47,11 @@ import {
 } from './models';
 import { TrimPipe } from './pipes/trim.pipe';
 import { ApiUrlService } from './services/api-url.service';
-import { getEnv } from './utils/env.utils';
 import { DiagnosticService } from './services/diagnostic.service';
 import { IpMonitorService } from './services/ip-monitor.service';
 import { OrganizationService } from './services/organization.service';
 import { TimeSyncService } from './services/time-sync.service';
+import { getEnv } from './utils/env.utils';
 
 @Component({
   selector: 'pt-timeclock',
@@ -1655,20 +1655,18 @@ export class TimeclockComponent implements OnDestroy {
     }
 
     const url = this.apiUrl.build('rest/v1/timelogs', params);
-    return this.http
-      .get<TimeLog[]>(url)
-      .pipe(
-        map((timelogs) => {
-          if (!timelogs || timelogs.length === 0) {
-            return null;
-          }
-          const lastLog = timelogs[0];
-          // Verify it's from today
-          const logDate = format(new Date(lastLog.created_at), 'yyyy-MM-dd');
-          return logDate === today ? lastLog : null;
-        }),
-        catchError(() => of(null))
-      );
+    return this.http.get<TimeLog[]>(url).pipe(
+      map((timelogs) => {
+        if (!timelogs || timelogs.length === 0) {
+          return null;
+        }
+        const lastLog = timelogs[0];
+        // Verify it's from today
+        const logDate = format(new Date(lastLog.created_at), 'yyyy-MM-dd');
+        return logDate === today ? lastLog : null;
+      }),
+      catchError(() => of(null))
+    );
   }
 
   // Determine next timelog type based on last entry
@@ -1800,22 +1798,20 @@ export class TimeclockComponent implements OnDestroy {
     }
 
     const url = this.apiUrl.build('rest/v1/timelogs', params);
-    return this.http
-      .get<TimeLog[]>(url)
-      .pipe(
-        map((timelogs) => {
-          if (!timelogs || timelogs.length === 0) {
-            return null;
-          }
-          const lunchStartLog = timelogs[0];
-          const logDate = format(
-            new Date(lunchStartLog.created_at),
-            'yyyy-MM-dd'
-          );
-          return logDate === today ? lunchStartLog : null;
-        }),
-        catchError(() => of(null))
-      );
+    return this.http.get<TimeLog[]>(url).pipe(
+      map((timelogs) => {
+        if (!timelogs || timelogs.length === 0) {
+          return null;
+        }
+        const lunchStartLog = timelogs[0];
+        const logDate = format(
+          new Date(lunchStartLog.created_at),
+          'yyyy-MM-dd'
+        );
+        return logDate === today ? lunchStartLog : null;
+      }),
+      catchError(() => of(null))
+    );
   }
 
   // Calculate if lunch end exceeds 60 minutes based on actual lunch duration only
@@ -2077,7 +2073,10 @@ export class TimeclockComponent implements OnDestroy {
       !companies.some((c) => c.id === finalCompanyId)
     ) {
       // Solo log en desarrollo
-      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      if (
+        typeof window !== 'undefined' &&
+        window.location.hostname === 'localhost'
+      ) {
         console.warn('[Timeclock] Company ID no encontrado en lista:', {
           finalCompanyId,
           companiesList: companies.map((c) => ({ id: c.id, name: c.name })),
@@ -2248,26 +2247,28 @@ export class TimeclockComponent implements OnDestroy {
         })
       )
       .subscribe({
-        next: (response: HttpResponse<{
-          success: boolean;
-          timelog_id?: string;
-          delay?: number | null;
-          exitDiff?: { minutes: number; isEarly: boolean } | null;
-          lunchEndDiff?: number | null;
-          lunchExceededMinutes?: number | null;
-          schedule?: {
-            id: string;
-            name: string;
-            entry_time: string;
-            exit_time: string;
-            day_off: boolean;
-            minutes_tolerance: number;
-          } | null;
-          hasSchedule?: boolean;
-          isDayOff?: boolean;
-          error?: string;
-          error_code?: string;
-        }>) => {
+        next: (
+          response: HttpResponse<{
+            success: boolean;
+            timelog_id?: string;
+            delay?: number | null;
+            exitDiff?: { minutes: number; isEarly: boolean } | null;
+            lunchEndDiff?: number | null;
+            lunchExceededMinutes?: number | null;
+            schedule?: {
+              id: string;
+              name: string;
+              entry_time: string;
+              exit_time: string;
+              day_off: boolean;
+              minutes_tolerance: number;
+            } | null;
+            hasSchedule?: boolean;
+            isDayOff?: boolean;
+            error?: string;
+            error_code?: string;
+          }>
+        ) => {
           const result = response.body;
           if (!result) {
             this.isProcessing.set(false);
@@ -2294,7 +2295,9 @@ export class TimeclockComponent implements OnDestroy {
 
           // Hora oficial: header Date del servidor. Fallback: reloj sincronizado por offset.
           const dateHeader = response.headers.get('Date');
-          const serverHeaderMs = dateHeader ? new Date(dateHeader).getTime() : NaN;
+          const serverHeaderMs = dateHeader
+            ? new Date(dateHeader).getTime()
+            : NaN;
           const officialTime = Number.isNaN(serverHeaderMs)
             ? this.timeSync.now()
             : new Date(serverHeaderMs);
@@ -2376,12 +2379,21 @@ export class TimeclockComponent implements OnDestroy {
           // Nota: El tiempo excedido ya se acumuló en la RPC, no necesitamos llamar a increment_lunch_exceeded_minutes
 
           // Calcular racha si marcó a tiempo (solo para entry)
-          if (type === 'entry' && !isLate && result.hasSchedule && !result.isDayOff) {
+          if (
+            type === 'entry' &&
+            !isLate &&
+            result.hasSchedule &&
+            !result.isDayOff
+          ) {
             this.calculateAndShowStreak(employeeId).then((streakInfo) => {
               let finalMessage = message;
               if (streakInfo > 0) {
-                const fireEmojis = '🔥'.repeat(Math.min(Math.floor(streakInfo / 5) + 1, 5));
-                finalMessage += `<br><div style="color: #f59e0b; font-weight: bold; text-align: center; font-size: 1.1em; margin-top: 0.5rem;">${fireEmojis} Racha de ${streakInfo} día${streakInfo > 1 ? 's' : ''} consecutivo${streakInfo > 1 ? 's' : ''} ${fireEmojis}</div>`;
+                const fireEmojis = '🔥'.repeat(
+                  Math.min(Math.floor(streakInfo / 5) + 1, 5)
+                );
+                finalMessage += `<br><div style="color: #f59e0b; font-weight: bold; text-align: center; font-size: 1.1em; margin-top: 0.5rem;">${fireEmojis} Racha de ${streakInfo} día${
+                  streakInfo > 1 ? 's' : ''
+                } consecutivo${streakInfo > 1 ? 's' : ''} ${fireEmojis}</div>`;
               }
               this.showConfirmationDialog(finalMessage);
             });
@@ -2420,7 +2432,8 @@ export class TimeclockComponent implements OnDestroy {
   // Reproducir sonido de éxito
   private playSuccessSound(): void {
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const audioContext = new (window.AudioContext ||
+        (window as any).webkitAudioContext)();
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
 
@@ -2429,11 +2442,20 @@ export class TimeclockComponent implements OnDestroy {
 
       // Frecuencia ascendente (éxito) - tono agradable
       oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
-      oscillator.frequency.setValueAtTime(659.25, audioContext.currentTime + 0.1); // E5
-      oscillator.frequency.setValueAtTime(783.99, audioContext.currentTime + 0.2); // G5
+      oscillator.frequency.setValueAtTime(
+        659.25,
+        audioContext.currentTime + 0.1
+      ); // E5
+      oscillator.frequency.setValueAtTime(
+        783.99,
+        audioContext.currentTime + 0.2
+      ); // G5
 
       gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      gainNode.gain.exponentialRampToValueAtTime(
+        0.01,
+        audioContext.currentTime + 0.3
+      );
 
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.3);
@@ -2445,7 +2467,8 @@ export class TimeclockComponent implements OnDestroy {
   // Reproducir sonido de fracaso
   private playFailureSound(): void {
     try {
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const audioContext = new (window.AudioContext ||
+        (window as any).webkitAudioContext)();
       const oscillator = audioContext.createOscillator();
       const gainNode = audioContext.createGain();
 
@@ -2453,12 +2476,21 @@ export class TimeclockComponent implements OnDestroy {
       gainNode.connect(audioContext.destination);
 
       // Frecuencia descendente (fracaso) - tono bajo
-      oscillator.frequency.setValueAtTime(392.00, audioContext.currentTime); // G4
-      oscillator.frequency.setValueAtTime(311.13, audioContext.currentTime + 0.1); // D#4
-      oscillator.frequency.setValueAtTime(261.63, audioContext.currentTime + 0.2); // C4
+      oscillator.frequency.setValueAtTime(392.0, audioContext.currentTime); // G4
+      oscillator.frequency.setValueAtTime(
+        311.13,
+        audioContext.currentTime + 0.1
+      ); // D#4
+      oscillator.frequency.setValueAtTime(
+        261.63,
+        audioContext.currentTime + 0.2
+      ); // C4
 
       gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+      gainNode.gain.exponentialRampToValueAtTime(
+        0.01,
+        audioContext.currentTime + 0.3
+      );
 
       oscillator.start(audioContext.currentTime);
       oscillator.stop(audioContext.currentTime + 0.3);
@@ -2471,7 +2503,7 @@ export class TimeclockComponent implements OnDestroy {
   private async calculateAndShowStreak(employeeId: string): Promise<number> {
     try {
       const { year, month, day } = this.getPanamaNowParts();
-      
+
       // Obtener timelogs de entrada del empleado (últimos 100 días)
       const timelogsUrl = this.apiUrl.build('rest/v1/timelogs', {
         employee_id: `eq.${employeeId}`,
@@ -2479,7 +2511,7 @@ export class TimeclockComponent implements OnDestroy {
         order: 'created_at.desc',
         limit: '100',
       });
-      const anonKey = getEnv('ENV_SUPABASE_ANON_KEY');
+      const anonKey = getEnv('ENV_SUPABASE_API_KEY');
       const timelogs = await this.http
         .get<TimeLog[]>(timelogsUrl, {
           headers: {
@@ -2535,7 +2567,7 @@ export class TimeclockComponent implements OnDestroy {
       for (const log of sortedLogs) {
         const logDate = new Date(log.created_at);
         const logDateStr = format(logDate, 'yyyy-MM-dd');
-        
+
         // Evitar contar el mismo día dos veces
         if (checkedDates.has(logDateStr)) {
           continue;
@@ -2543,15 +2575,21 @@ export class TimeclockComponent implements OnDestroy {
         checkedDates.add(logDateStr);
 
         // Verificar si este día fue a tiempo
-        const schedule = schedules.find(
-          (s) => {
-            const startDate = s.start_date instanceof Date ? s.start_date : new Date(s.start_date);
-            const endDate = s.end_date instanceof Date ? s.end_date : new Date(s.end_date);
-            const startDateStr = format(startDate, 'yyyy-MM-dd');
-            const endDateStr = format(endDate, 'yyyy-MM-dd');
-            return startDateStr <= logDateStr && endDateStr >= logDateStr && !s.schedule?.day_off;
-          }
-        );
+        const schedule = schedules.find((s) => {
+          const startDate =
+            s.start_date instanceof Date
+              ? s.start_date
+              : new Date(s.start_date);
+          const endDate =
+            s.end_date instanceof Date ? s.end_date : new Date(s.end_date);
+          const startDateStr = format(startDate, 'yyyy-MM-dd');
+          const endDateStr = format(endDate, 'yyyy-MM-dd');
+          return (
+            startDateStr <= logDateStr &&
+            endDateStr >= logDateStr &&
+            !s.schedule?.day_off
+          );
+        });
 
         if (!schedule || !schedule.schedule?.entry_time) {
           // Sin horario = no cuenta para la racha, pero no la rompe
@@ -2568,7 +2606,7 @@ export class TimeclockComponent implements OnDestroy {
 
         const entryParts = entryTimeStr.split(':');
         const scheduledParts = scheduledTimeStr.split(':');
-        
+
         const entryMinutes = +entryParts[0] * 60 + +entryParts[1];
         const scheduledMinutes = +scheduledParts[0] * 60 + +scheduledParts[1];
         const tolerance = schedule.schedule.minutes_tolerance ?? 0;

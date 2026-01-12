@@ -2,12 +2,11 @@ import { HttpClient } from '@angular/common/http';
 import { format, startOfDay } from 'date-fns';
 import { MessageService } from 'primeng/api';
 import { firstValueFrom } from 'rxjs';
-import { v4 } from 'uuid';
-import { Employee, TimeOff } from '../../models';
+import { Employee } from '../../models';
 import { ApiUrlService } from '../../services/api-url.service';
+import { EmployeePortalStore } from '../../stores/employee-portal.store';
 import { getEnv } from '../../utils/env.utils';
 import { EmployeePortalApiService } from '../services/employee-portal-api.service';
-import { EmployeePortalStore } from '../../stores/employee-portal.store';
 
 type VacationFormState = {
   startDate: Date | null;
@@ -35,7 +34,18 @@ type VacationActionsDependencies = {
 export async function submitVacationRequest(
   deps: VacationActionsDependencies
 ): Promise<void> {
-  const { http, apiUrl, store, api, messageService, currentEmployee, formState, resetForm, reloadRequests, setSubmitting } = deps;
+  const {
+    http,
+    apiUrl,
+    store,
+    api,
+    messageService,
+    currentEmployee,
+    formState,
+    resetForm,
+    reloadRequests,
+    setSubmitting,
+  } = deps;
 
   // Validaciones
   const startDate = formState.startDate;
@@ -99,8 +109,11 @@ export async function submitVacationRequest(
 
       // Subir a Supabase Storage
       const uploadUrl = `${apiUrl.baseUrl}/storage/v1/object/employee-documents/${filePath}`;
-      const apiKey = getEnv('ENV_SUPABASE_ANON_KEY') || '';
-      
+      const apiKey =
+        getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') ||
+        getEnv('ENV_SUPABASE_API_KEY') ||
+        '';
+
       if (!apiKey) {
         throw new Error('No se pudo obtener la clave de API de Supabase');
       }
@@ -109,8 +122,8 @@ export async function submitVacationRequest(
         http.post(uploadUrl, file, {
           headers: {
             'Content-Type': file.type,
-            'apikey': apiKey,
-            'Authorization': `Bearer ${apiKey}`,
+            apikey: apiKey,
+            Authorization: `Bearer ${apiKey}`,
           },
         })
       );
@@ -135,8 +148,11 @@ export async function submitVacationRequest(
     };
 
     const createUrl = apiUrl.build('rest/v1/employee_vacations');
-    const apiKey = getEnv('ENV_SUPABASE_ANON_KEY') || '';
-    
+    const apiKey =
+      getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') ||
+      getEnv('ENV_SUPABASE_API_KEY') ||
+      '';
+
     if (!apiKey) {
       throw new Error('No se pudo obtener la clave de API de Supabase');
     }
@@ -144,14 +160,15 @@ export async function submitVacationRequest(
     const response = await firstValueFrom(
       http.post<Array<{ id: string }>>(createUrl, vacationData, {
         headers: {
-          'apikey': apiKey,
-          'Authorization': `Bearer ${apiKey}`,
-          'Prefer': 'return=representation',
+          apikey: apiKey,
+          Authorization: `Bearer ${apiKey}`,
+          Prefer: 'return=representation',
         },
       })
     );
 
-    const vacationId = Array.isArray(response) && response.length > 0 ? response[0].id : null;
+    const vacationId =
+      Array.isArray(response) && response.length > 0 ? response[0].id : null;
     if (!vacationId) {
       throw new Error('No se recibió el ID de la solicitud creada');
     }

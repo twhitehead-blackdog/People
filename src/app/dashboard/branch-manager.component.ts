@@ -331,66 +331,38 @@ type Reminder = {
               <!-- Requests List -->
               @else {
               <div class="grid grid-cols-1 gap-3">
-                @for (request of filteredBranchEmployeeRequests(); track
-                request.id) {
+                @for (request of unifiedRequests(); track request.id) {
                 <div
                   class="border rounded-lg p-4 transition-all hover:shadow-md cursor-pointer"
-                  [ngClass]="{
-                    'border-cyan-500 bg-cyan-500/5':
-                      request.requestType === 'compensatorio',
-                    'border-blue-500 bg-blue-500/5':
-                      request.requestType === 'incapacidad',
-                    'border-purple-500 bg-purple-500/5':
-                      request.requestType === 'vacaciones',
-                    'border-green-500 bg-green-500/5':
-                      request.requestType === 'documentos'
-                  }"
+                  [ngClass]="request.unified.colorClassBg"
                   (click)="viewRequestDetails(request)"
                 >
                   <div class="flex items-start justify-between gap-4">
                     <div class="flex items-start gap-3 flex-1">
-                      <!-- Icono según tipo -->
+                      <!-- Icono unificado -->
                       <div
-                        class="mt-1 w-10 h-10 rounded-full flex items-center justify-center"
-                        [ngClass]="{
-                          'bg-cyan-500/20':
-                            request.requestType === 'compensatorio',
-                          'bg-blue-500/20':
-                            request.requestType === 'incapacidad',
-                          'bg-purple-500/20':
-                            request.requestType === 'vacaciones',
-                          'bg-green-500/20':
-                            request.requestType === 'documentos'
-                        }"
+                        class="mt-1 w-10 h-10 rounded-full flex items-center justify-center bg-white/5"
                       >
                         <i
                           class="pi"
-                          [ngClass]="{
-                            'pi-clock text-cyan-400':
-                              request.requestType === 'compensatorio',
-                            'pi-file-plus text-blue-400':
-                              request.requestType === 'incapacidad',
-                            'pi-calendar-plus text-purple-400':
-                              request.requestType === 'vacaciones',
-                            'pi-file-edit text-green-400':
-                              request.requestType === 'documentos'
-                          }"
+                          [ngClass]="[
+                            request.unified.icon,
+                            request.unified.colorClassActive
+                          ]"
                         ></i>
                       </div>
 
                       <div class="flex-1">
-                        <!-- Header con tipo y fecha -->
+                        <!-- Header con tipo, estado y fecha -->
                         <div class="flex items-center gap-2 mb-2">
                           <p-tag
-                            [value]="getRequestTypeLabel(request.requestType)"
-                            [severity]="
-                              getRequestTypeSeverity(request.requestType)
-                            "
+                            [value]="request.unified.typeLabel"
+                            [severity]="request.unified.typeSeverity"
                             styleClass="text-xs"
                           />
                           <p-tag
-                            [value]="getRequestStatusLabel(request)"
-                            [severity]="getRequestStatusSeverity(request)"
+                            [value]="request.unified.statusLabel"
+                            [severity]="request.unified.statusSeverity"
                             styleClass="text-xs"
                           />
                           <span class="text-xs text-gray-400">
@@ -411,69 +383,22 @@ type Reminder = {
                           </span>
                         </div>
 
-                        <!-- Detalles según tipo -->
+                        <!-- Detalles unificados -->
                         <div class="text-sm text-gray-300">
-                          @if (request.requestType === 'compensatorio') {
-                          <p>
-                            <span class="text-gray-400">Período:</span>
-                            {{ request.date_from | date : 'dd/MM/yyyy' }} -
-                            {{ request.date_to | date : 'dd/MM/yyyy' }}
+                          <p class="font-medium text-white mb-1">
+                            {{ request.unified.summary }}
                           </p>
                           <p>
-                            <span class="text-gray-400">Tipo:</span>
-                            {{
-                              request.compensatory_type === 'hours'
-                                ? 'Horas'
-                                : 'Días'
-                            }}
+                            <span class="text-gray-400">Fecha/Período:</span>
+                            {{ request.unified.displayDate }}
                           </p>
-                          <p>
-                            <span class="text-gray-400">Cantidad:</span>
-                            {{ request.compensatory_amount }}
-                            {{
-                              request.compensatory_type === 'hours'
-                                ? 'hora(s)'
-                                : 'día(s)'
-                            }}
+                          @let reason = request.reason || request.description ||
+                          request.notes; @if (reason) {
+                          <p class="truncate max-w-md">
+                            <span class="text-gray-400">Motivo:</span>
+                            {{ reason }}
                           </p>
-                          } @else if (request.requestType === 'incapacidad') {
-                          <p>
-                            <span class="text-gray-400">Período:</span>
-                            {{ request.start_date | date : 'dd/MM/yyyy' }} -
-                            {{ request.end_date | date : 'dd/MM/yyyy' }}
-                          </p>
-                          <p>
-                            <span class="text-gray-400">Descripción:</span>
-                            {{ request.description }}
-                          </p>
-                          } @else if (request.requestType === 'vacaciones') {
-                          <p>
-                            <span class="text-gray-400">Período:</span>
-                            {{ request.start_date | date : 'dd/MM/yyyy' }} -
-                            {{ request.end_date | date : 'dd/MM/yyyy' }}
-                          </p>
-                          @if (request.reason) {
-                          <p>
-                            <span class="text-gray-400">Razón:</span>
-                            {{ request.reason }}
-                          </p>
-                          } } @else if (request.requestType === 'documentos') {
-                          <p>
-                            <span class="text-gray-400"
-                              >Tipo de documento:</span
-                            >
-                            {{ request.document_type }}
-                          </p>
-                          <p>
-                            <span class="text-gray-400">Fecha requerida:</span>
-                            {{ request.required_date | date : 'dd/MM/yyyy' }}
-                          </p>
-                          @if (request.reason) {
-                          <p>
-                            <span class="text-gray-400">Razón:</span>
-                            {{ request.reason }}
-                          </p>
-                          } }
+                          }
                         </div>
 
                         <!-- Indicador de documento adjunto -->
@@ -1170,7 +1095,10 @@ type Reminder = {
           <div class="flex items-center justify-between w-full">
             <span class="text-lg font-semibold text-white">
               Detalles de Solicitud -
-              {{ getRequestTypeLabel(selectedRequest()?.requestType) }}
+              {{
+                selectedRequest()?.unified?.typeLabel ||
+                  getRequestTypeLabel(selectedRequest()?.requestType)
+              }}
             </span>
             @if (selectedRequest()?.document_url) {
             <p-button
@@ -1190,232 +1118,192 @@ type Reminder = {
         @if (selectedRequest()) {
         <div class="space-y-4 pt-4">
           <!-- Información del Empleado -->
-          <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
+          <div
+            class="p-4 rounded-lg border transition-all duration-300"
+            [ngClass]="
+              selectedRequest().unified?.colorClassBg ||
+              'bg-neutral-800 border-neutral-700'
+            "
+          >
             <h3
-              class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+              class="text-lg font-semibold text-white mb-4 flex items-center gap-2"
             >
-              <i class="pi pi-user text-blue-400"></i>
+              <i
+                class="pi pi-user"
+                [style.color]="
+                  getSeverityColor(selectedRequest().unified?.typeSeverity)
+                "
+              ></i>
               Información del Empleado
             </h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1"
-                  >Nombre</label
-                >
-                <p class="text-white">
-                  {{ selectedRequest().employee?.first_name }}
-                  {{ selectedRequest().employee?.father_name }}
-                </p>
+            <div class="flex flex-col md:flex-row gap-6">
+              <!-- Lado izquierdo: Avatar y Datos Principales -->
+              <div class="flex items-center gap-4 min-w-[200px]">
+                <p-avatar
+                  [label]="getEmployeeInitials(selectedRequest().employee)"
+                  shape="circle"
+                  size="xlarge"
+                  [style]="{
+                    'background-color':
+                      getSeverityColor(
+                        selectedRequest().unified?.typeSeverity
+                      ) + '20',
+                    color: getSeverityColor(
+                      selectedRequest().unified?.typeSeverity
+                    )
+                  }"
+                />
+                <div>
+                  <p class="text-xl font-bold text-white leading-tight">
+                    {{ selectedRequest().employee?.first_name }}
+                    {{ selectedRequest().employee?.father_name }}
+                  </p>
+                  <p class="text-sm text-gray-400">
+                    {{ selectedRequest().employee?.work_email }}
+                  </p>
+                </div>
               </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1"
-                  >Email</label
-                >
-                <p class="text-white">
-                  {{ selectedRequest().employee?.work_email }}
-                </p>
+
+              <!-- Lado derecho: Detalles Secundarios -->
+              <div
+                class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 md:pt-0 md:pl-6 md:border-l border-neutral-700/50"
+              >
+                @if (selectedRequest().employee?.position?.name) {
+                <div>
+                  <label
+                    class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1"
+                    >Cargo</label
+                  >
+                  <p class="text-white font-medium">
+                    {{ selectedRequest().employee?.position?.name }}
+                  </p>
+                </div>
+                } @if (selectedRequest().employee?.branch?.name) {
+                <div>
+                  <label
+                    class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1"
+                    >Sucursal</label
+                  >
+                  <p class="text-white font-medium">
+                    {{ selectedRequest().employee?.branch?.name }}
+                  </p>
+                </div>
+                }
               </div>
-              @if (selectedRequest().employee?.position?.name) {
-              <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1"
-                  >Cargo</label
-                >
-                <p class="text-white">
-                  {{ selectedRequest().employee?.position?.name }}
-                </p>
-              </div>
-              } @if (selectedRequest().employee?.branch?.name) {
-              <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1"
-                  >Sucursal</label
-                >
-                <p class="text-white">
-                  {{ selectedRequest().employee?.branch?.name }}
-                </p>
-              </div>
-              }
             </div>
           </div>
 
           <!-- Detalles de la Solicitud -->
-          <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
+          <div
+            class="p-4 rounded-lg border transition-all duration-300"
+            [ngClass]="
+              selectedRequest().unified?.colorClassBg ||
+              'bg-neutral-800 border-neutral-700'
+            "
+          >
             <h3
-              class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+              class="text-lg font-semibold text-white mb-4 flex items-center gap-2"
             >
-              <i class="pi pi-file-edit text-green-400"></i>
-              Detalles de la Solicitud
+              <i
+                class="pi"
+                [ngClass]="selectedRequest().unified?.icon || 'pi-file-edit'"
+                [style.color]="
+                  getSeverityColor(selectedRequest().unified?.typeSeverity)
+                "
+              ></i>
+              Detalle de la Solicitud
             </h3>
-            <div class="space-y-3">
-              <!-- Estado -->
-              <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1"
-                  >Estado</label
-                >
-                <p-tag
-                  [value]="getRequestStatusLabel(selectedRequest())"
-                  [severity]="getRequestStatusSeverity(selectedRequest())"
-                />
-              </div>
-
-              <!-- Fecha de creación -->
-              <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1"
-                  >Fecha de Solicitud</label
-                >
-                <p class="text-white">
-                  {{ selectedRequest().created_at | date : 'dd/MM/yyyy HH:mm' }}
-                </p>
-              </div>
-
-              <!-- Detalles específicos por tipo -->
-              @if (selectedRequest().requestType === 'compensatorio') {
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-4">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Estado -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-400 mb-1"
-                    >Período</label
+                  <label
+                    class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1"
+                    >Estado</label
                   >
-                  <p class="text-white">
-                    {{ selectedRequest().date_from | date : 'dd/MM/yyyy' }} -
-                    {{ selectedRequest().date_to | date : 'dd/MM/yyyy' }}
-                  </p>
+                  <p-tag
+                    [value]="
+                      selectedRequest().unified?.statusLabel ||
+                      getRequestStatusLabel(selectedRequest())
+                    "
+                    [severity]="
+                      selectedRequest().unified?.statusSeverity ||
+                      getRequestStatusSeverity(selectedRequest())
+                    "
+                  />
                 </div>
+
+                <!-- Fecha de creación -->
                 <div>
-                  <label class="block text-sm font-medium text-gray-400 mb-1"
-                    >Tipo</label
+                  <label
+                    class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1"
+                    >Fecha de Solicitud</label
                   >
-                  <p class="text-white">
+                  <p class="text-white font-medium">
                     {{
-                      selectedRequest().compensatory_type === 'hours'
-                        ? 'Horas'
-                        : 'Días'
-                    }}
-                  </p>
-                </div>
-                <div class="md:col-span-2">
-                  <label class="block text-sm font-medium text-gray-400 mb-1"
-                    >Cantidad Solicitada</label
-                  >
-                  <p class="text-white font-semibold">
-                    {{ selectedRequest().compensatory_amount }}
-                    {{
-                      selectedRequest().compensatory_type === 'hours'
-                        ? 'hora(s)'
-                        : 'día(s)'
+                      selectedRequest().created_at | date : 'dd/MM/yyyy HH:mm'
                     }}
                   </p>
                 </div>
               </div>
-              @if (selectedRequest().notes) {
-              <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1"
-                  >Notas</label
-                >
-                <p class="text-white">
-                  {{ selectedRequest().notes }}
-                </p>
-              </div>
-              } } @else if (selectedRequest().requestType === 'incapacidad') {
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-400 mb-1"
-                    >Período</label
-                  >
-                  <p class="text-white">
-                    {{ selectedRequest().start_date | date : 'dd/MM/yyyy' }} -
-                    {{ selectedRequest().end_date | date : 'dd/MM/yyyy' }}
+
+              <!-- Resumen y Detalles unificados -->
+              <div class="pt-4 border-t border-neutral-700/50">
+                <div class="mb-4">
+                  <p class="text-lg font-bold text-white">
+                    {{ selectedRequest().unified?.summary }}
                   </p>
                 </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-400 mb-1"
-                    >Tipo</label
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  @for (detail of selectedRequest().unified?.details; track
+                  detail.label) {
+                  <div
+                    [class.md:col-span-2]="
+                      detail.label === 'Notas' ||
+                      detail.label === 'Descripción' ||
+                      detail.label === 'Razón'
+                    "
                   >
-                  <p class="text-white">Incapacidad</p>
+                    <label
+                      class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1"
+                      >{{ detail.label }}</label
+                    >
+                    <p class="text-white text-base">{{ detail.value }}</p>
+                  </div>
+                  }
                 </div>
               </div>
-              @if (selectedRequest().description) {
-              <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1"
-                  >Descripción</label
-                >
-                <p class="text-white">
-                  {{ selectedRequest().description }}
-                </p>
-              </div>
-              } } @else if (selectedRequest().requestType === 'vacaciones') {
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-400 mb-1"
-                    >Período Solicitado</label
-                  >
-                  <p class="text-white">
-                    {{ selectedRequest().start_date | date : 'dd/MM/yyyy' }} -
-                    {{ selectedRequest().end_date | date : 'dd/MM/yyyy' }}
-                  </p>
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-400 mb-1"
-                    >Tipo</label
-                  >
-                  <p class="text-white">Vacaciones</p>
-                </div>
-              </div>
-              @if (selectedRequest().reason) {
-              <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1"
-                  >Razón</label
-                >
-                <p class="text-white">
-                  {{ selectedRequest().reason }}
-                </p>
-              </div>
-              } } @else if (selectedRequest().requestType === 'documentos') {
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-400 mb-1"
-                    >Tipo de Documento</label
-                  >
-                  <p class="text-white">
-                    {{ selectedRequest().document_type }}
-                  </p>
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-400 mb-1"
-                    >Fecha Requerida</label
-                  >
-                  <p class="text-white">
-                    {{ selectedRequest().required_date | date : 'dd/MM/yyyy' }}
-                  </p>
-                </div>
-              </div>
-              @if (selectedRequest().reason) {
-              <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1"
-                  >Razón</label
-                >
-                <p class="text-white">
-                  {{ selectedRequest().reason }}
-                </p>
-              </div>
-              } }
             </div>
           </div>
 
           <!-- Información de Revisión (si aplica) -->
           @if (selectedRequest().reviewed_by || selectedRequest().reviewed_at) {
-          <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
+          <div
+            class="p-4 rounded-lg border transition-all duration-300"
+            [ngClass]="
+              selectedRequest().unified?.colorClassBg ||
+              'bg-neutral-800 border-neutral-700'
+            "
+          >
             <h3
-              class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+              class="text-lg font-semibold text-white mb-4 flex items-center gap-2"
             >
-              <i class="pi pi-check-circle text-purple-400"></i>
+              <i
+                class="pi pi-check-circle"
+                [style.color]="
+                  getSeverityColor(selectedRequest().unified?.typeSeverity)
+                "
+              ></i>
               Información de Revisión
             </h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
               @if (selectedRequest().reviewed_by) {
               <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1"
+                <label
+                  class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1"
                   >Revisado por</label
                 >
-                <p class="text-white">
+                <p class="text-white font-medium">
                   {{
                     selectedRequest().reviewedByEmployee ||
                       selectedRequest().reviewed_by
@@ -1424,10 +1312,11 @@ type Reminder = {
               </div>
               } @if (selectedRequest().reviewed_at) {
               <div>
-                <label class="block text-sm font-medium text-gray-400 mb-1"
+                <label
+                  class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1"
                   >Fecha de Revisión</label
                 >
-                <p class="text-white">
+                <p class="text-white font-medium">
                   {{
                     selectedRequest().reviewed_at | date : 'dd/MM/yyyy HH:mm'
                   }}
@@ -1436,11 +1325,12 @@ type Reminder = {
               }
             </div>
             @if (selectedRequest().rejection_comment) {
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Comentario</label
+            <div class="mt-4 pt-4 border-t border-neutral-700/50">
+              <label
+                class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1"
+                >Comentario de Rechazo</label
               >
-              <p class="text-white">
+              <p class="text-white text-base">
                 {{ selectedRequest().rejection_comment }}
               </p>
             </div>
@@ -1450,21 +1340,33 @@ type Reminder = {
 
           <!-- Información de Creación -->
           @if (selectedRequest().created_by) {
-          <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
+          <div
+            class="p-4 rounded-lg border transition-all duration-300"
+            [ngClass]="
+              selectedRequest().unified?.colorClassBg ||
+              'bg-neutral-800 border-neutral-700'
+            "
+          >
             <h3
-              class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+              class="text-lg font-semibold text-white mb-4 flex items-center gap-2"
             >
-              <i class="pi pi-info-circle text-orange-400"></i>
+              <i
+                class="pi pi-info-circle"
+                [style.color]="
+                  getSeverityColor(selectedRequest().unified?.typeSeverity)
+                "
+              ></i>
               Información de Creación
             </h3>
             <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Creado por</label
+              <label
+                class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1"
+                >Origen de la Solicitud</label
               >
-              <p class="text-white">
+              <p class="text-white font-medium">
                 @if (selectedRequest().created_by !==
-                selectedRequest().employee_id) { Gerente de Tienda } @else {
-                Auto-solicitud del empleado }
+                selectedRequest().employee_id) { Gerente de Tienda /
+                Administrador } @else { Auto-solicitud del empleado }
               </p>
             </div>
           </div>
@@ -1892,6 +1794,82 @@ export class BranchManagerComponent {
     }
 
     return requests;
+  });
+
+  // Unified requests mapping for display
+  public unifiedRequests = computed(() => {
+    return this.filteredBranchEmployeeRequests().map((r) => {
+      let displayDate = '';
+      let summary = '';
+      let details: { label: string; value: string }[] = [];
+
+      if (r.requestType === 'compensatorio') {
+        const from = r.date_from
+          ? format(new Date(r.date_from), 'dd/MM/yyyy')
+          : '-';
+        const to = r.date_to ? format(new Date(r.date_to), 'dd/MM/yyyy') : '-';
+        displayDate = `${from} - ${to}`;
+        summary =
+          r.compensatory_type === 'hours' ? 'Horas Extras' : 'Días de Descanso';
+        details = [
+          {
+            label: 'Tipo',
+            value: r.compensatory_type === 'hours' ? 'Horas' : 'Días',
+          },
+          {
+            label: 'Cantidad',
+            value: `${r.compensatory_amount} ${
+              r.compensatory_type === 'hours' ? 'hora(s)' : 'día(s)'
+            }`,
+          },
+        ];
+        if (r.notes) details.push({ label: 'Notas', value: r.notes });
+      } else if (r.requestType === 'incapacidad') {
+        const start = r.start_date
+          ? format(new Date(r.start_date), 'dd/MM/yyyy')
+          : '-';
+        const end = r.end_date
+          ? format(new Date(r.end_date), 'dd/MM/yyyy')
+          : '-';
+        displayDate = `${start} - ${end}`;
+        summary = 'Incapacidad Médica';
+        if (r.description)
+          details.push({ label: 'Descripción', value: r.description });
+      } else if (r.requestType === 'vacaciones') {
+        const start = r.start_date
+          ? format(new Date(r.start_date), 'dd/MM/yyyy')
+          : '-';
+        const end = r.end_date
+          ? format(new Date(r.end_date), 'dd/MM/yyyy')
+          : '-';
+        displayDate = `${start} - ${end}`;
+        summary = 'Vacaciones';
+        if (r.reason) details.push({ label: 'Razón', value: r.reason });
+      } else if (r.requestType === 'documentos') {
+        displayDate = r.required_date
+          ? format(new Date(r.required_date), 'dd/MM/yyyy')
+          : '-';
+        summary = r.document_type || 'Solicitud de Documento';
+        details = [{ label: 'Fecha requerida', value: displayDate }];
+        if (r.reason) details.push({ label: 'Razón', value: r.reason });
+      }
+
+      return {
+        ...r,
+        unified: {
+          displayDate,
+          summary,
+          details,
+          statusLabel: this.getRequestStatusLabel(r),
+          statusSeverity: this.getRequestStatusSeverity(r),
+          typeLabel: this.getRequestTypeLabel(r.requestType),
+          typeSeverity: this.getRequestTypeSeverity(r.requestType),
+          icon: this.getRequestIcon(r.requestType),
+          colorClassActive: this.getRequestColorClass(r.requestType, true),
+          colorClassBg: this.getRequestColorClass(r.requestType, false),
+        },
+      };
+    });
   });
 
   // Notifications resource - obtener sin join y enriquecer en el cliente
@@ -2578,6 +2556,36 @@ export class BranchManagerComponent {
     return severities[type];
   }
 
+  public getRequestIcon(type: string): string {
+    const icons: Record<string, string> = {
+      compensatorio: 'pi-clock',
+      incapacidad: 'pi-file-plus',
+      vacaciones: 'pi-calendar-plus',
+      documentos: 'pi-file-edit',
+    };
+    return icons[type] || 'pi-file';
+  }
+
+  public getRequestColorClass(type: string, active: boolean): string {
+    if (active) {
+      const classes: Record<string, string> = {
+        compensatorio: 'text-cyan-400',
+        incapacidad: 'text-blue-400',
+        vacaciones: 'text-purple-400',
+        documentos: 'text-green-400',
+      };
+      return classes[type] || 'text-gray-400';
+    } else {
+      const classes: Record<string, string> = {
+        compensatorio: 'border-cyan-500 bg-cyan-500/5',
+        incapacidad: 'border-blue-500 bg-blue-500/5',
+        vacaciones: 'border-purple-500 bg-purple-500/5',
+        documentos: 'border-green-500 bg-green-500/5',
+      };
+      return classes[type] || 'border-gray-500 bg-gray-500/5';
+    }
+  }
+
   public getRequestStatusLabel(request: any): string {
     const status = request.status || request.review_status;
     const labels: Record<string, string> = {
@@ -2608,6 +2616,17 @@ export class BranchManagerComponent {
       rejected: 'danger',
     };
     return severities[status];
+  }
+
+  public getSeverityColor(severity: string | undefined): string {
+    const colors: Record<string, string> = {
+      success: '#4ade80', // green-400
+      info: '#22d3ee', // cyan-400
+      warn: '#fbbf24', // amber-400
+      danger: '#f87171', // red-400
+      secondary: '#94a3b8', // slate-400
+    };
+    return colors[severity || ''] || '#94a3b8';
   }
 
   public markNotificationAsRead(id: string) {

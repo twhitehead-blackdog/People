@@ -47,6 +47,16 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
     const isGroomerBranchAssignmentsRequest = req.url.includes(
       '/rest/v1/groomer_branch_assignments'
     );
+    const isDocumentRequestsRequest = req.url.includes(
+      '/rest/v1/document_requests'
+    );
+    const isEmployeeVacationsRequest = req.url.includes(
+      '/rest/v1/employee_vacations'
+    );
+    const isComplaintsRequest = req.url.includes('/rest/v1/complaints');
+    const isComplaintMessagesRequest = req.url.includes(
+      '/rest/v1/complaint_messages'
+    );
     const needsServiceRoleKey =
       isSettingsRequest ||
       isJobApplicationsRequest ||
@@ -56,17 +66,20 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
       isEmployeeDisabilitiesRequest ||
       isVetBranchAssignmentsRequest ||
       isVetBranchAuditRequest ||
-      isGroomerBranchAssignmentsRequest;
+      isGroomerBranchAssignmentsRequest ||
+      isDocumentRequestsRequest ||
+      isEmployeeVacationsRequest ||
+      isComplaintsRequest ||
+      isComplaintMessagesRequest;
 
     // Para Service Role Key, intentar todas las variantes posibles
     // ENV_SUPABASE_TOKEN y ENV_SUPABASE_SERVICE_ROLE_KEY deberían ser la misma clave
     const supabaseKey = needsServiceRoleKey
       ? getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') ||
         getEnv('ENV_SUPABASE_TOKEN') ||
-        getEnv('ENV_SUPABASE_ANON_KEY') ||
         getEnv('ENV_SUPABASE_API_KEY') ||
         ''
-      : getEnv('ENV_SUPABASE_ANON_KEY') || getEnv('ENV_SUPABASE_API_KEY') || '';
+      : getEnv('ENV_SUPABASE_API_KEY') || '';
 
     // Si es una petición que necesita service role key y no hay disponible, mostrar error más claro
     // Solo en desarrollo para evitar exponer información sensible

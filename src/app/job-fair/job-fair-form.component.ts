@@ -1391,10 +1391,7 @@ export class JobFairFormComponent implements OnInit {
       // Priorizar Service Role Key para bypass RLS, sino usar API Key pública
       // El Service Role Key bypassa todas las políticas RLS
       const serviceRoleKey = process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'];
-      const apiKey =
-        process.env['ENV_SUPABASE_ANON_KEY'] ||
-        process.env['ENV_SUPABASE_API_KEY'] ||
-        '';
+      const apiKey = process.env['ENV_SUPABASE_API_KEY'] || '';
       const storageKey = serviceRoleKey || apiKey;
 
       if (!storageKey) {

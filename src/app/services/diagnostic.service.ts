@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
-import { ApiUrlService } from './api-url.service';
 import { getEnv } from '../utils/env.utils';
+import { ApiUrlService } from './api-url.service';
 
 export interface DiagnosticError {
   id: string;
@@ -353,7 +353,7 @@ export class DiagnosticService {
         const response = await fetch(`${supabaseUrl}/rest/v1/`, {
           method: 'HEAD',
           headers: {
-            apikey: getEnv('ENV_SUPABASE_ANON_KEY') || '',
+            apikey: getEnv('ENV_SUPABASE_API_KEY') || '',
           },
         });
         results.supabase = response.ok;
@@ -493,7 +493,7 @@ export class DiagnosticService {
     // Verificar variables de entorno críticas (solo en desarrollo)
     // En producción, estas variables están inyectadas en build time y no se pueden verificar así
     const supabaseUrl = this.apiUrl.baseUrl;
-    const supabaseKey = getEnv('ENV_SUPABASE_ANON_KEY');
+    const supabaseKey = getEnv('ENV_SUPABASE_API_KEY');
     const apiUrl = getEnv('ENV_API_URL');
     const appUrl = getEnv('ENV_APP_URL');
 
@@ -503,8 +503,7 @@ export class DiagnosticService {
       (e) => e.type === 'supabase' && e.message.includes('ENV_SUPABASE_URL')
     );
     const hasSupabaseKeyError = existingErrors.some(
-      (e) =>
-        e.type === 'supabase' && e.message.includes('ENV_SUPABASE_ANON_KEY')
+      (e) => e.type === 'supabase' && e.message.includes('ENV_SUPABASE_API_KEY')
     );
     const hasApiUrlError = existingErrors.some(
       (e) => e.type === 'network' && e.message.includes('ENV_API_URL')
@@ -523,7 +522,7 @@ export class DiagnosticService {
     if (!supabaseKey && !hasSupabaseKeyError) {
       this.addError({
         type: 'supabase',
-        message: 'ENV_SUPABASE_ANON_KEY no está configurado',
+        message: 'ENV_SUPABASE_API_KEY no está configurado',
       });
     }
 

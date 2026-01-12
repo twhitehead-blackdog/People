@@ -61,7 +61,9 @@ export const DASHBOARD_ROUTES: Routes = [
           {
             path: 'organigrama',
             loadComponent: () =>
-              import('./organigrama.component').then((x) => x.OrganigramaComponent),
+              import('./organigrama.component').then(
+                (x) => x.OrganigramaComponent
+              ),
           },
           {
             path: 'companies',
@@ -102,13 +104,6 @@ export const DASHBOARD_ROUTES: Routes = [
             loadComponent: () =>
               import('./complaints-inbox.component').then(
                 (x) => x.ComplaintsInboxComponent
-              ),
-          },
-          {
-            path: 'suggestions-inbox',
-            loadComponent: () =>
-              import('./suggestions-inbox.component').then(
-                (x) => x.SuggestionsInboxComponent
               ),
           },
           {
@@ -170,12 +165,16 @@ export const DASHBOARD_ROUTES: Routes = [
           {
             path: 'vet-schedule',
             loadComponent: () =>
-              import('./vet-schedule.component').then((x) => x.VetScheduleComponent),
+              import('./vet-schedule.component').then(
+                (x) => x.VetScheduleComponent
+              ),
           },
           {
             path: 'salon-schedule',
             loadComponent: () =>
-              import('./salon-schedule.component').then((x) => x.SalonScheduleComponent),
+              import('./salon-schedule.component').then(
+                (x) => x.SalonScheduleComponent
+              ),
           },
           {
             path: 'shifts',
@@ -234,17 +233,24 @@ export const DASHBOARD_ROUTES: Routes = [
         path: 'timeclock',
         loadComponent: () =>
           import('../timeclock.component').then((x) => x.TimeclockComponent),
-        canActivate: [() => import('../guards/timeclock.guard').then(m => m.timeclockGuard)],
+        canActivate: [
+          () =>
+            import('../guards/timeclock.guard').then((m) => m.timeclockGuard),
+        ],
       },
       {
         path: 'my-portal',
         loadComponent: () =>
-          import('./employee-portal.component').then((x) => x.EmployeePortalComponent),
+          import('./employee-portal.component').then(
+            (x) => x.EmployeePortalComponent
+          ),
       },
       {
         path: 'branch-manager',
         loadComponent: () =>
-          import('./branch-manager.component').then((x) => x.BranchManagerComponent),
+          import('./branch-manager.component').then(
+            (x) => x.BranchManagerComponent
+          ),
         canActivate: [employeePortalGuard],
       },
     ],

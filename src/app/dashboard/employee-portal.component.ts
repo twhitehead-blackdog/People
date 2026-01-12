@@ -4288,7 +4288,6 @@ export class EmployeePortalComponent {
           // Usar Service Role Key si está disponible, sino usar API Key pública
           const storageKey =
             getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') ||
-            getEnv('ENV_SUPABASE_ANON_KEY') ||
             getEnv('ENV_SUPABASE_API_KEY') ||
             '';
 
