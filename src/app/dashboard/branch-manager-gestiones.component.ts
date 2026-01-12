@@ -1127,10 +1127,7 @@ export class BranchManagerGestionesComponent {
       const fileName = `${employee.id}/${Date.now()}.${fileExt}`;
 
       // Upload to Supabase Storage using REST API
-      const storageKey =
-        getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') ||
-        getEnv('ENV_SUPABASE_API_KEY') ||
-        '';
+      const storageKey = getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') || '';
       const uploadUrl = `${this.apiUrl.baseUrl}/storage/v1/object/disabilities/${fileName}`;
 
       await firstValueFrom(
@@ -1138,7 +1135,6 @@ export class BranchManagerGestionesComponent {
           headers: {
             apikey: storageKey,
             Authorization: `Bearer ${storageKey}`,
-            'Content-Type': file.type || 'application/octet-stream',
             'x-upsert': 'true',
           },
         })
