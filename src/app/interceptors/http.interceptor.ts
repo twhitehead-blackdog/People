@@ -62,6 +62,19 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
     const isEmployeesRequest = req.url.includes('/rest/v1/employees');
     const isPositionsRequest = req.url.includes('/rest/v1/positions');
     const isDepartmentsRequest = req.url.includes('/rest/v1/departments');
+    const isSchedulesRequest = req.url.includes('/rest/v1/schedules');
+    const isTerminationsRequest = req.url.includes('/rest/v1/terminations');
+    const isTimelogsRequest = req.url.includes('/rest/v1/timelogs');
+    const isEmployeeSchedulesRequest = req.url.includes(
+      '/rest/v1/employee_schedules'
+    );
+    const isAttendanceSheetsRequest = req.url.includes(
+      '/rest/v1/attendance_sheets'
+    );
+    const isPayrollsRequest = req.url.includes('/rest/v1/payrolls');
+    const isBanksRequest = req.url.includes('/rest/v1/banks');
+    const isCreditorsRequest = req.url.includes('/rest/v1/creditors');
+
     const needsServiceRoleKey =
       isSettingsRequest ||
       isJobApplicationsRequest ||
@@ -80,7 +93,15 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
       isBranchesRequest ||
       isEmployeesRequest ||
       isPositionsRequest ||
-      isDepartmentsRequest;
+      isDepartmentsRequest ||
+      isSchedulesRequest ||
+      isTerminationsRequest ||
+      isTimelogsRequest ||
+      isEmployeeSchedulesRequest ||
+      isAttendanceSheetsRequest ||
+      isPayrollsRequest ||
+      isBanksRequest ||
+      isCreditorsRequest;
 
     // Para Service Role Key, intentar todas las variantes posibles
     // ENV_SUPABASE_TOKEN y ENV_SUPABASE_SERVICE_ROLE_KEY deberían ser la misma clave
