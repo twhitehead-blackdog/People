@@ -5466,6 +5466,7 @@ export class HRDisabilitiesComponent {
           getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') ||
           getEnv('ENV_SUPABASE_API_KEY') ||
           '';
+
         const uploadUrl = `${getEnv(
           'ENV_SUPABASE_URL'
         )}/storage/v1/object/compensatory/${fileName}`;
@@ -5482,7 +5483,16 @@ export class HRDisabilitiesComponent {
         });
 
         if (!response.ok) {
-          throw new Error('Error al subir archivo');
+          const errorData = await response.text();
+          console.error(
+            'Supabase Upload Error:',
+            response.status,
+            response.statusText,
+            errorData
+          );
+          throw new Error(
+            `Error al subir archivo: ${response.status} ${response.statusText} - ${errorData}`
+          );
         }
 
         // Obtener URL pública
