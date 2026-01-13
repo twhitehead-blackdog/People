@@ -1054,14 +1054,6 @@ export class BranchManagerGestionesComponent {
       };
 
       await uploadCompensatory(deps);
-
-      this.messageService.add({
-        severity: 'success',
-        summary: 'Solicitud Enviada',
-        detail: `Solicitud de compensatorio para ${employee.first_name} ${employee.father_name} enviada correctamente`,
-      });
-
-      this.reset();
     } catch (error) {
       console.error('Error submitting compensatory:', error);
       this.messageService.add({
