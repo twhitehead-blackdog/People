@@ -3,7 +3,7 @@
  * Provides consistent status labels and severities across all HR modules.
  */
 
-export type RequestStatus = 'pending' | 'approved' | 'rejected';
+export type RequestStatus = 'pending' | 'approved' | 'rejected' | 'completed';
 
 export type TagSeverity =
   | 'success'
@@ -21,6 +21,7 @@ export function getStatusLabel(status: RequestStatus | string): string {
     pending: 'Pendiente',
     approved: 'Aprobada',
     rejected: 'Rechazada',
+    completed: 'Completada',
   };
   return labels[status] || status;
 }
@@ -33,6 +34,7 @@ export function getStatusSeverity(status: RequestStatus | string): TagSeverity {
     case 'pending':
       return 'warn';
     case 'approved':
+    case 'completed':
       return 'success';
     case 'rejected':
       return 'danger';

@@ -303,8 +303,8 @@ export class DocumentRequestsComponent {
         `${getEnv('ENV_SUPABASE_URL')}/rest/v1/document_requests?id=eq.${id}`,
         {
           status,
-          reviewed_by: currentEmployee.id,
-          reviewed_at: new Date().toISOString(),
+          processed_by: currentEmployee.id,
+          processed_at: new Date().toISOString(),
         }
       )
       .subscribe({

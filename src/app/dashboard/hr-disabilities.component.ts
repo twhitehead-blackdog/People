@@ -3616,7 +3616,7 @@ export class HRDisabilitiesComponent {
     try {
       const employee = await firstValueFrom(
         this.http.get<any[]>(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
+          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/employees`,
           {
             params: {
               id: `eq.${employeeId}`,
@@ -3673,7 +3673,7 @@ export class HRDisabilitiesComponent {
     };
 
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`,
+      url: `${getEnv('ENV_SUPABASE_URL')}/rest/v1/timeoffs`,
       method: 'GET',
       params,
     };
@@ -3751,7 +3751,9 @@ export class HRDisabilitiesComponent {
       requests = requests.filter((r) => {
         const employeeName = this.getEmployeeName(r).toLowerCase();
         const email = this.getEmployeeEmail(r).toLowerCase();
-        const reason = r.reason?.toLowerCase() || '';
+        const reason = (
+          this.getCompensatoryReasonFromNotes(r) || ''
+        ).toLowerCase();
         return (
           employeeName.includes(globalSearch) ||
           email.includes(globalSearch) ||
@@ -3766,7 +3768,9 @@ export class HRDisabilitiesComponent {
       requests = requests.filter((r) => {
         const employeeName = this.getEmployeeName(r).toLowerCase();
         const email = this.getEmployeeEmail(r).toLowerCase();
-        const reason = r.reason?.toLowerCase() || '';
+        const reason = (
+          this.getCompensatoryReasonFromNotes(r) || ''
+        ).toLowerCase();
         return (
           employeeName.includes(search) ||
           email.includes(search) ||
@@ -4646,7 +4650,7 @@ export class HRDisabilitiesComponent {
 
     this.http
       .patch(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs?id=eq.${id}`,
+        `${getEnv('ENV_SUPABASE_URL')}/rest/v1/timeoffs?id=eq.${id}`,
         updateData
       )
       .subscribe({
@@ -4769,23 +4773,20 @@ export class HRDisabilitiesComponent {
     if (manualIsoDays.length > 0) {
       // Traer timelogs y consumos solo para esas fechas (histórico)
       const timelogs = await firstValueFrom(
-        this.http.get<any[]>(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`,
-          {
-            params: {
-              select: 'day,type,created_at,employee_id,company_id',
-              employee_id: `eq.${request.employee_id}`,
-              company_id: `eq.${companyId}`,
-              day: `in.(${manualIsoDays.join(',')})`,
-              order: 'day.asc,created_at.asc',
-            },
-          }
-        )
+        this.http.get<any[]>(`${getEnv('ENV_SUPABASE_URL')}/rest/v1/timelogs`, {
+          params: {
+            select: 'day,type,created_at,employee_id,company_id',
+            employee_id: `eq.${request.employee_id}`,
+            company_id: `eq.${companyId}`,
+            day: `in.(${manualIsoDays.join(',')})`,
+            order: 'day.asc,created_at.asc',
+          },
+        })
       );
 
       const consumptions = await firstValueFrom(
         this.http.get<any[]>(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/overtime_consumptions`,
+          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/overtime_consumptions`,
           {
             params: {
               select: 'overtime_day,hours_used',
@@ -4850,7 +4851,7 @@ export class HRDisabilitiesComponent {
 
     await firstValueFrom(
       this.http.post(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/overtime_consumptions`,
+        `${getEnv('ENV_SUPABASE_URL')}/rest/v1/overtime_consumptions`,
         rows,
         {
           headers: {
@@ -4886,7 +4887,7 @@ export class HRDisabilitiesComponent {
       // Buscar posición exacta de Lia: "Especialista de Nómina y Gestión Administrativa"
       const liaPositions = await firstValueFrom(
         this.http.get<any[]>(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/positions`,
+          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/positions`,
           {
             params: {
               select: 'id',
@@ -4909,7 +4910,7 @@ export class HRDisabilitiesComponent {
       // Buscar Lia (empleado HR que registra)
       const liaEmployees = await firstValueFrom(
         this.http.get<any[]>(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
+          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/employees`,
           {
             params: {
               select: 'id,first_name,father_name',
@@ -4940,7 +4941,7 @@ export class HRDisabilitiesComponent {
 
       await firstValueFrom(
         this.http.post(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/hr_messages`,
+          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/hr_messages`,
           notifications,
           {
             headers: {
@@ -4981,7 +4982,7 @@ export class HRDisabilitiesComponent {
 
       await firstValueFrom(
         this.http.post(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/hr_messages`,
+          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/hr_messages`,
           {
             employee_id: employeeId,
             related_type: 'timeoff',
@@ -5189,7 +5190,9 @@ export class HRDisabilitiesComponent {
 
     this.http
       .patch(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_disabilities?id=eq.${disability.id}`,
+        `${getEnv('ENV_SUPABASE_URL')}/rest/v1/employee_disabilities?id=eq.${
+          disability.id
+        }`,
         { rejection_comment: comment }
       )
       .subscribe({
@@ -5226,7 +5229,7 @@ export class HRDisabilitiesComponent {
 
     this.http
       .patch(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs?id=eq.${request.id}`,
+        `${getEnv('ENV_SUPABASE_URL')}/rest/v1/timeoffs?id=eq.${request.id}`,
         { rejection_comment: comment }
       )
       .subscribe({
@@ -5308,7 +5311,9 @@ export class HRDisabilitiesComponent {
 
     this.http
       .patch(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_disabilities?id=eq.${id}`,
+        `${getEnv(
+          'ENV_SUPABASE_URL'
+        )}/rest/v1/employee_disabilities?id=eq.${id}`,
         updateData
       )
       .subscribe({

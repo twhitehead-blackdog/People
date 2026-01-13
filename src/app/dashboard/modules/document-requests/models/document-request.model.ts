@@ -7,17 +7,20 @@ export interface DocumentRequest {
     first_name: string;
     father_name: string;
     work_email: string;
+    company_id: string;
     position?: { name: string };
     branch?: { name: string };
   };
   document_type: string;
+  custom_document_type?: string;
   reason: string | null;
   document_url?: string | null;
-  status: 'pending' | 'approved' | 'rejected';
-  reviewed_by?: string;
-  reviewed_at?: string;
-  review_notes?: string;
+  status: 'pending' | 'approved' | 'rejected' | 'completed';
+  processed_by?: string;
+  processed_at?: string;
+  notes?: string;
   rejection_comment?: string | null;
-  company_id?: string;
+  company_id: string;
   created_at: string;
+  updated_at: string;
 }

@@ -369,7 +369,7 @@ export class VacationsComponent {
 
     this.http
       .patch(
-        `${getEnv('ENV_SUPABASE_URL')}/rest/v1/vacation_requests?id=eq.${id}`,
+        `${getEnv('ENV_SUPABASE_URL')}/rest/v1/employee_vacations?id=eq.${id}`,
         {
           status,
           reviewed_by: currentEmployee.id,

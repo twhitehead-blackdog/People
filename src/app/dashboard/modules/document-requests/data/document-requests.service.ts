@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams, httpResource } from '@angular/common/http';
 import { Injectable, computed, inject } from '@angular/core';
-import { DashboardStore } from '../../../../stores/dashboard.store';
+import { OrganizationService } from '../../../../services/organization.service';
 import { getEnv } from '../../../../utils/env.utils';
 import { DocumentRequest } from '../models/document-request.model';
 
@@ -9,17 +9,17 @@ import { DocumentRequest } from '../models/document-request.model';
 })
 export class DocumentRequestsService {
   private http = inject(HttpClient);
-  private dashboardStore = inject(DashboardStore);
+  private organizationService = inject(OrganizationService);
 
   // Expose the resource directly or wrapped in a signal
   public documentRequestsResource = httpResource<DocumentRequest[]>(() => {
-    const companyId = this.dashboardStore.selectedCompanyId();
+    const companyId = this.organizationService.getCurrentCompanyId();
     if (!companyId) return undefined;
 
     let httpParams = new HttpParams()
       .set(
         'select',
-        'id,employee_id,created_by,document_type,reason,document_url,status,reviewed_by,reviewed_at,review_notes,rejection_comment,created_at,updated_at,company_id,employee:employees(id,first_name,father_name,work_email,company_id,position:positions(name),branch:branches(name))'
+        'id,employee_id,created_by,document_type,reason,document_url,status,processed_by,processed_at,notes,rejection_comment,created_at,updated_at,company_id,employee:employees!document_requests_employee_id_fkey(id,first_name,father_name,work_email,company_id,position:positions(name),branch:branches(name))'
       )
       .set('company_id', `eq.${companyId}`)
       .set('order', 'created_at.desc');
