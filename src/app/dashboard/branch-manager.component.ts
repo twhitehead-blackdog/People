@@ -1276,67 +1276,6 @@ type Reminder = {
             </div>
           </div>
 
-          <!-- Información de Revisión (si aplica) -->
-          @if (selectedRequest().reviewed_by || selectedRequest().reviewed_at) {
-          <div
-            class="p-4 rounded-lg border transition-all duration-300"
-            [ngClass]="
-              selectedRequest().unified?.colorClassBg ||
-              'bg-neutral-800 border-neutral-700'
-            "
-          >
-            <h3
-              class="text-lg font-semibold text-white mb-4 flex items-center gap-2"
-            >
-              <i
-                class="pi pi-check-circle"
-                [style.color]="
-                  getSeverityColor(selectedRequest().unified?.typeSeverity)
-                "
-              ></i>
-              Información de Revisión
-            </h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-              @if (selectedRequest().reviewed_by) {
-              <div>
-                <label
-                  class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1"
-                  >Revisado por</label
-                >
-                <p class="text-white font-medium">
-                  {{
-                    selectedRequest().reviewedByEmployee ||
-                      selectedRequest().reviewed_by
-                  }}
-                </p>
-              </div>
-              } @if (selectedRequest().reviewed_at) {
-              <div>
-                <label
-                  class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1"
-                  >Fecha de Revisión</label
-                >
-                <p class="text-white font-medium">
-                  {{
-                    selectedRequest().reviewed_at | date : 'dd/MM/yyyy HH:mm'
-                  }}
-                </p>
-              </div>
-              }
-            </div>
-            @if (selectedRequest().rejection_comment) {
-            <div class="mt-4 pt-4 border-t border-neutral-700/50">
-              <label
-                class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1"
-                >Comentario de Rechazo</label
-              >
-              <p class="text-white text-base">
-                {{ selectedRequest().rejection_comment }}
-              </p>
-            </div>
-            }
-          </div>
-          }
 
           <!-- Información de Creación -->
           @if (selectedRequest().created_by) {
@@ -1823,7 +1762,25 @@ export class BranchManagerComponent {
             }`,
           },
         ];
-        if (r.notes) details.push({ label: 'Notas', value: r.notes });
+        // Filtrar solo la nota de razón (primera nota que no contiene metadata)
+        if (r.notes && Array.isArray(r.notes)) {
+          const reasonNote = r.notes.find((note: any) =>
+            typeof note === 'string' &&
+            note.trim() !== '' &&
+            !note.includes('Tipo:') &&
+            !note.includes('Cantidad solicitada:') &&
+            !note.includes('Fecha compensatorio:') &&
+            !note.includes('Hora inicio:') &&
+            !note.includes('Hora fin:') &&
+            !note.includes('Fechas horas extra:')
+          );
+          if (reasonNote) {
+            details.push({ label: 'Notas', value: reasonNote });
+          }
+        } else if (r.notes && typeof r.notes === 'string' && r.notes.trim() !== '') {
+          // Fallback para caso donde notes es string
+          details.push({ label: 'Notas', value: r.notes });
+        }
       } else if (r.requestType === 'incapacidad') {
         const start = r.start_date
           ? format(new Date(r.start_date), 'dd/MM/yyyy')

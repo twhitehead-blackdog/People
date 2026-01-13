@@ -1,3 +1,4 @@
+import { NgClass } from '@angular/common';
 import { HttpClient, httpResource } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
@@ -9,7 +10,6 @@ import {
   signal,
 } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { NgClass } from '@angular/common';
 import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
 import { DashboardStore } from '../stores/dashboard.store';
@@ -178,6 +178,17 @@ import { DashboardStore } from '../stores/dashboard.store';
                 <i class="pi pi-sitemap text-sm"></i>
                 <span>Areas</span>
               </a>
+
+              <!-- Permisos -->
+              <a
+                routerLink="permissions"
+                class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
+                [class.bg-neutral-700]="isActiveRoute('permissions')"
+                [class.text-amber-300]="isActiveRoute('permissions')"
+              >
+                <i class="pi pi-lock text-sm"></i>
+                <span>Permisos</span>
+              </a>
             </div>
           </div>
 
@@ -198,12 +209,14 @@ import { DashboardStore } from '../stores/dashboard.store';
               <i class="pi pi-cog text-base"></i>
               <span>Configuración</span>
             </a>
-
           </div>
         </div>
       </div>
     </header>
-    <main class="min-h-screen dark:bg-neutral-900 light:bg-gray-50" [ngClass]="{ 'naz-main': isNaz() }">
+    <main
+      class="min-h-screen dark:bg-neutral-900 light:bg-gray-50"
+      [ngClass]="{ 'naz-main': isNaz() }"
+    >
       <div class="mx-auto px-4 py-6 sm:px-6 lg:px-8">
         <router-outlet />
       </div>
@@ -304,14 +317,17 @@ export class AdminComponent implements OnInit, OnDestroy {
   private dropdownTimeout?: number;
   public organizationService = inject(OrganizationService);
   private dashboardStore = inject(DashboardStore);
-  
+
   // Computed para verificar si es Naz
   public isNaz = computed(() => this.organizationService.isNaz());
 
   // Computed para verificar si el usuario actual es soporte2@blackdogpanama.com
   public canViewTimeDashboard = computed(() => {
     const currentEmployee = this.dashboardStore.currentEmployee();
-    return currentEmployee?.work_email?.toLowerCase() === 'soporte2@blackdogpanama.com';
+    return (
+      currentEmployee?.work_email?.toLowerCase() ===
+      'soporte2@blackdogpanama.com'
+    );
   });
 
   // Estado de los dropdowns
@@ -370,7 +386,8 @@ export class AdminComponent implements OnInit, OnDestroy {
       path.includes('companies') ||
       path.includes('positions') ||
       path.includes('branches') ||
-      path.includes('departments')
+      path.includes('departments') ||
+      path.includes('permissions')
     );
   }
 

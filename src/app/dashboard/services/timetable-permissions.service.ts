@@ -3,6 +3,10 @@ import { DashboardStore } from '../../stores/dashboard.store';
 
 // NOTA: No usar providedIn:'root' porque depende de DashboardStore, que se provee en el scope del dashboard/layout.
 // Se provee explícitamente en EmployeesTimetableComponent para compartir el mismo injector.
+//
+// @deprecated / Legacy
+// Consider using the new centralized PermissionsService (src/app/services/permissions.service.ts)
+// for generic permission checks. This service is kept for backward compatibility with the Timetable module.
 @Injectable()
 export class TimetablePermissionsService {
   private store = inject(DashboardStore);

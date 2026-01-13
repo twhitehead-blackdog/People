@@ -100,6 +100,13 @@ export const DASHBOARD_ROUTES: Routes = [
               ),
           },
           {
+            path: 'permissions',
+            loadComponent: () =>
+              import('./pt-permissions/permissions-management.component').then(
+                (x) => x.PermissionsManagementComponent
+              ),
+          },
+          {
             path: 'complaints-inbox',
             loadComponent: () =>
               import('./complaints-inbox.component').then(
