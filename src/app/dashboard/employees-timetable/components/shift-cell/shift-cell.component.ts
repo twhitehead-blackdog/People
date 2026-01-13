@@ -142,7 +142,7 @@ export class ShiftCellComponent {
   public approve = output<string>();
   public add = output<{ employeeId: string; date: Date }>();
   public viewAudit = output<{ employeeId: string; date: Date }>();
-  public toggleSelection = output<string>();
+  public toggleSelection = output<{ shiftId: string; date: Date }>();
 
   // Exponer colorVariants para uso en template
   public colorVariants = colorVariants;
@@ -162,7 +162,10 @@ export class ShiftCellComponent {
     if (this.selectionMode()) {
       // Only allow selecting pending (not approved) shifts
       if (shiftValue && !shiftValue.approved && shiftValue.id) {
-        this.toggleSelection.emit(shiftValue.id);
+        this.toggleSelection.emit({
+          shiftId: shiftValue.id,
+          date: this.date(),
+        });
       }
       // Don't open popover in selection mode
       return;

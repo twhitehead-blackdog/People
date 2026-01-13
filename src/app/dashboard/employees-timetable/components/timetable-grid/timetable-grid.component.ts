@@ -1,8 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, input, output, signal, TemplateRef } from '@angular/core';
-import { Button } from 'primeng/button';
+import { Component, input, output, TemplateRef } from '@angular/core';
 import { TableModule } from 'primeng/table';
-import { Tooltip } from 'primeng/tooltip';
 import { ShiftCellComponent } from '../shift-cell/shift-cell.component';
 
 type EmployeeWithDays = {
@@ -20,62 +18,8 @@ type EmployeeWithDays = {
 @Component({
   selector: 'pt-timetable-grid',
   standalone: true,
-  imports: [CommonModule, TableModule, ShiftCellComponent, Button, Tooltip],
+  imports: [CommonModule, TableModule, ShiftCellComponent],
   template: `
-    <!-- Selection Mode Toolbar -->
-    @if (canApproveSchedules()) {
-    <div
-      class="flex items-center justify-between gap-4 p-3 mb-3 bg-neutral-800/50 rounded-lg border border-neutral-700"
-    >
-      @if (!selectionMode()) {
-      <div class="flex items-center gap-2">
-        <p-button
-          label="Seleccionar turnos"
-          icon="pi pi-check-square"
-          severity="info"
-          [outlined]="true"
-          size="small"
-          (onClick)="toggleSelectionMode()"
-          pTooltip="Activar modo de selección para aprobar múltiples turnos"
-          tooltipPosition="top"
-        />
-        <span class="text-sm text-gray-400">
-          {{ getPendingCount() }} turnos pendientes
-        </span>
-      </div>
-      } @else {
-      <div class="flex items-center gap-3">
-        <span class="text-sm font-medium text-cyan-400">
-          <i class="pi pi-check-square mr-1"></i>
-          Modo selección activo
-        </span>
-        <span class="text-sm text-gray-300">
-          {{ selectedShiftIds().size }} seleccionados
-        </span>
-      </div>
-      <div class="flex items-center gap-2">
-        @if (selectedShiftIds().size > 0) {
-        <p-button
-          [label]="'Aprobar (' + selectedShiftIds().size + ')'"
-          icon="pi pi-check"
-          severity="success"
-          size="small"
-          (onClick)="onBatchApprove()"
-        />
-        }
-        <p-button
-          label="Cancelar"
-          icon="pi pi-times"
-          severity="secondary"
-          [outlined]="true"
-          size="small"
-          (onClick)="cancelSelection()"
-        />
-      </div>
-      }
-    </div>
-    }
-
     <p-table
       [value]="employees()"
       paginator
@@ -118,13 +62,13 @@ type EmployeeWithDays = {
               [canManageSchedules]="canManageSchedules()"
               [canApprove]="canApproveSchedules()"
               [selectionMode]="selectionMode()"
-              [isSelected]="isShiftSelected(day.shift?.id)"
+              [isSelected]="isShiftSelected(day.shift?.id, day.date)"
               (edit)="onEditShift($event)"
               (delete)="onDeleteShift($event)"
               (approve)="onApproveShift($event)"
               (add)="onAddShift($event)"
               (viewAudit)="onViewAudit($event)"
-              (toggleSelection)="toggleShiftSelection($event)"
+              (toggleSelection)="onToggleSelection($event)"
             />
           </td>
           }
@@ -142,9 +86,9 @@ export class TimetableGridComponent {
   public canApproveSchedules = input.required<boolean>();
   public captionTemplate = input<TemplateRef<any>>();
 
-  // Selection state
-  public selectionMode = signal<boolean>(false);
-  public selectedShiftIds = signal<Set<string>>(new Set());
+  // Selection inputs from parent
+  public selectionMode = input<boolean>(false);
+  public selectedKeys = input<Set<string>>(new Set());
 
   // Outputs
   public editShift = output<{
@@ -158,60 +102,13 @@ export class TimetableGridComponent {
   public addShift = output<{ employee_id: string; date: Date }>();
   public viewAudit = output<{ employeeId: string; date: Date }>();
   public batchApprove = output<string[]>();
+  public toggleSelection = output<{ shiftId: string; date: Date }>();
 
-  // Computed: count of pending shifts
-  public getPendingCount(): number {
-    let count = 0;
-    for (const emp of this.employees()) {
-      for (const day of emp.days) {
-        if (day.shift && !day.shift.approved) {
-          count++;
-        }
-      }
-    }
-    return count;
-  }
-
-  // Toggle selection mode
-  public toggleSelectionMode(): void {
-    this.selectionMode.set(true);
-  }
-
-  // Cancel selection and exit mode
-  public cancelSelection(): void {
-    this.selectionMode.set(false);
-    this.selectedShiftIds.set(new Set());
-  }
-
-  // Toggle a single shift's selection
-  public toggleShiftSelection(shiftId: string): void {
-    if (!shiftId) return;
-
-    const current = this.selectedShiftIds();
-    const newSet = new Set(current);
-
-    if (newSet.has(shiftId)) {
-      newSet.delete(shiftId);
-    } else {
-      newSet.add(shiftId);
-    }
-
-    this.selectedShiftIds.set(newSet);
-  }
-
-  // Check if a shift is selected
-  public isShiftSelected(shiftId: string | undefined): boolean {
+  // Check if a shift is selected using composite key
+  public isShiftSelected(shiftId: string | undefined, date: Date): boolean {
     if (!shiftId) return false;
-    return this.selectedShiftIds().has(shiftId);
-  }
-
-  // Batch approve all selected shifts
-  public onBatchApprove(): void {
-    const ids = Array.from(this.selectedShiftIds());
-    if (ids.length > 0) {
-      this.batchApprove.emit(ids);
-      this.cancelSelection();
-    }
+    const key = `${shiftId}|${date.toISOString()}`;
+    return this.selectedKeys().has(key);
   }
 
   constructor() {
@@ -240,6 +137,10 @@ export class TimetableGridComponent {
 
   public onViewAudit(event: { employeeId: string; date: Date }): void {
     this.viewAudit.emit(event);
+  }
+
+  public onToggleSelection(event: { shiftId: string; date: Date }): void {
+    this.toggleSelection.emit(event);
   }
 
   public hasPendingShifts(employee: EmployeeWithDays): boolean {

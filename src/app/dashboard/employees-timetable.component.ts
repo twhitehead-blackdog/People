@@ -125,29 +125,68 @@ import {
               [currentWeekLabel]="currentWeek()"
               [menuItems]="menuItems"
             />
-            @if(permissionsService.canAddEmployees()) {
-            <p-button
-              label="¿No aparece un empleado?"
-              icon="pi pi-user-plus"
-              severity="help"
-              outlined
-              rounded
-              size="small"
-              class="w-full lg:w-auto"
-              (onClick)="openAddEmployeeDialog()"
-            />
-            }
-            <p-button
-              icon="pi pi-history"
-              severity="info"
-              outlined
-              rounded
-              size="small"
-              pTooltip="Historial de auditoría de turnos"
-              tooltipPosition="top"
-              class="ml-2"
-              (onClick)="openAuditHistoryDialog()"
-            />
+            <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+              @if(permissionsService.canApproveSchedules()) { @if
+              (!bulkSelectionMode()) {
+              <p-button
+                [label]="'Seleccionar (' + totalPendingCount() + ')'"
+                icon="pi pi-check-square"
+                severity="info"
+                [outlined]="true"
+                size="small"
+                pTooltip="Seleccionar múltiples turnos para aprobar"
+                tooltipPosition="top"
+                (onClick)="toggleBulkSelectionMode()"
+                [disabled]="totalPendingCount() === 0"
+              />
+              } @else {
+              <div
+                class="flex items-center gap-2 bg-neutral-700/50 rounded-lg px-2 py-1"
+              >
+                <span class="text-xs text-cyan-400 font-medium">
+                  <i class="pi pi-check-square mr-1"></i
+                  >{{ selectedShiftsCount() }} seleccionados
+                </span>
+                @if (selectedShiftsCount() > 0) {
+                <p-button
+                  [label]="'Aprobar (' + selectedShiftsCount() + ')'"
+                  icon="pi pi-check"
+                  severity="success"
+                  size="small"
+                  (onClick)="onBulkApprove()"
+                />
+                }
+                <p-button
+                  label="Cancelar"
+                  icon="pi pi-times"
+                  severity="secondary"
+                  [outlined]="true"
+                  size="small"
+                  (onClick)="cancelBulkSelection()"
+                />
+              </div>
+              } } @if(permissionsService.canAddEmployees()) {
+              <p-button
+                label="¿No aparece un empleado?"
+                icon="pi pi-user-plus"
+                severity="help"
+                outlined
+                rounded
+                size="small"
+                (onClick)="openAddEmployeeDialog()"
+              />
+              }
+              <p-button
+                icon="pi pi-history"
+                severity="info"
+                outlined
+                rounded
+                size="small"
+                pTooltip="Historial de auditoría de turnos"
+                tooltipPosition="top"
+                (onClick)="openAuditHistoryDialog()"
+              />
+            </div>
           </div>
         </pt-timetable-filters>
       </div>
@@ -169,6 +208,8 @@ import {
         [days]="days()"
         [canManageSchedules]="store.canManageSchedules()"
         [canApproveSchedules]="permissionsService.canApproveSchedules()"
+        [selectionMode]="bulkSelectionMode()"
+        [selectedKeys]="selectedSelectionKeys()"
         (editShift)="editSchedule($event)"
         (deleteShift)="deleteSchedule($event.shift, $event.date)"
         (approveShift)="approveSchedule($event)"
@@ -176,6 +217,7 @@ import {
         (addShift)="editSchedule($event)"
         (viewAudit)="onViewSpecificAudit($event)"
         (batchApprove)="batchApproveSchedules($event)"
+        (toggleSelection)="toggleShiftSelection($event)"
       />
     </p-card>
     <p-dialog
@@ -560,6 +602,26 @@ export class EmployeesTimetableComponent implements OnInit {
   public selectedActionFilter = signal<string | null>(null);
   public auditSearchText = signal<string>('');
 
+  // Bulk selection mode - managed from parent, passed to grid
+  public bulkSelectionMode = signal<boolean>(false);
+  public selectedSelectionKeys = signal<Set<string>>(new Set());
+  public selectedShiftsCount = computed(
+    () => this.selectedSelectionKeys().size
+  );
+  public totalPendingCount = computed(() => {
+    let count = 0;
+    const employees = this.employeeSchedulesList();
+    for (const emp of employees) {
+      for (const day of emp.days) {
+        // day.shift exists and is not approved
+        if (day.shift && !day.shift.approved) {
+          count++;
+        }
+      }
+    }
+    return count;
+  });
+
   // Dialog de auditoría específica
   public showSpecificAuditDialog = signal(false);
   public selectedAuditEmployeeId = signal<string | null>(null);
@@ -935,93 +997,6 @@ export class EmployeesTimetableComponent implements OnInit {
   }
 
   public isPast = (date: Date) => isBefore(date, new Date());
-
-  /**
-   * Batch approve multiple employee schedules at once
-   */
-  public batchApproveSchedules(shiftIds: string[]): void {
-    if (!this.permissionsService.canApproveSchedules()) {
-      this.message.add({
-        severity: 'warn',
-        summary: 'Sin permisos',
-        detail: 'No tienes permisos para aprobar horarios.',
-      });
-      return;
-    }
-
-    if (shiftIds.length === 0) {
-      return;
-    }
-
-    this.confirm.confirm({
-      header: 'Aprobar horarios',
-      message: `¿Estás seguro de aprobar ${shiftIds.length} horario${
-        shiftIds.length > 1 ? 's' : ''
-      } seleccionado${shiftIds.length > 1 ? 's' : ''}?`,
-      icon: 'pi pi-check-circle',
-      rejectButtonProps: {
-        label: 'Cancelar',
-        severity: 'secondary',
-        outlined: true,
-      },
-      acceptButtonProps: {
-        label: 'Aprobar',
-        severity: 'success',
-      },
-      accept: async () => {
-        const currentEmployeeId = this.store.currentEmployee()?.id;
-
-        // Create PATCH requests for each shift
-        const patchRequests = shiftIds.map((id) =>
-          this.http.patch(
-            this.apiUrl.build('rest/v1/employee_schedules', { id: `eq.${id}` }),
-            { approved: true },
-            { headers: { Prefer: 'return=minimal' } }
-          )
-        );
-
-        // Execute all patches in parallel
-        forkJoin(patchRequests)
-          .pipe(
-            catchError((error) => {
-              console.error('Error approving schedules:', error);
-              this.message.add({
-                severity: 'error',
-                summary: 'Error',
-                detail: 'Ha ocurrido un error al aprobar los horarios',
-              });
-              return EMPTY;
-            })
-          )
-          .subscribe({
-            next: () => {
-              // Log audit for batch approval
-              if (currentEmployeeId) {
-                this.auditService.logChange({
-                  employeeScheduleId: shiftIds[0], // Use first ID as reference
-                  changedBy: currentEmployeeId,
-                  action: 'approved',
-                  oldStatus: false,
-                  newStatus: true,
-                  comment: `Aprobación masiva de ${shiftIds.length} horario${
-                    shiftIds.length > 1 ? 's' : ''
-                  }`,
-                });
-              }
-
-              this.message.add({
-                severity: 'success',
-                summary: 'Horarios aprobados',
-                detail: `Se han aprobado ${shiftIds.length} horario${
-                  shiftIds.length > 1 ? 's' : ''
-                } correctamente`,
-              });
-              this.schedulesResource.reload();
-            },
-          });
-      },
-    });
-  }
 
   deleteSchedule(employee_schedule: EmployeeSchedule, date?: Date) {
     // Verificar permisos antes de eliminar
@@ -1586,6 +1561,162 @@ export class EmployeesTimetableComponent implements OnInit {
 
               this.schedulesResource.reload();
               console.log('✅ [APROBAR] Reload completado');
+            },
+          });
+      },
+    });
+  }
+
+  // ========== Bulk Selection Methods ==========
+  public toggleBulkSelectionMode(): void {
+    this.bulkSelectionMode.set(true);
+    this.selectedSelectionKeys.set(new Set());
+  }
+
+  public cancelBulkSelection(): void {
+    this.bulkSelectionMode.set(false);
+    this.selectedSelectionKeys.set(new Set());
+  }
+
+  public toggleShiftSelection(event: { shiftId: string; date: Date }): void {
+    if (!event.shiftId) return;
+    const key = `${event.shiftId}|${event.date.toISOString()}`;
+    const current = this.selectedSelectionKeys();
+    const newSet = new Set(current);
+    if (newSet.has(key)) {
+      newSet.delete(key);
+    } else {
+      newSet.add(key);
+    }
+    this.selectedSelectionKeys.set(newSet);
+  }
+
+  public isShiftSelected(shiftId: string | undefined): boolean {
+    // Note: This method is less useful now with composite keys from parent perspective
+    // preventing logic errors, we just return false or rely on the grid to check keys
+    return false;
+  }
+
+  public onBulkApprove(): void {
+    const keys = Array.from(this.selectedSelectionKeys());
+    if (keys.length === 0) return;
+
+    // Extract unique shift IDs from composite keys
+    const shiftIds = new Set<string>();
+    keys.forEach((key) => {
+      const parts = key.split('|');
+      if (parts.length > 0) {
+        shiftIds.add(parts[0]);
+      }
+    });
+
+    const uniqueIds = Array.from(shiftIds);
+    if (uniqueIds.length > 0) {
+      this.batchApproveSchedules(uniqueIds);
+    }
+  }
+
+  public batchApproveSchedules(ids: string[]): void {
+    if (ids.length === 0) return;
+
+    this.confirm.confirm({
+      header: 'Aprobar múltiples horarios?',
+      message: `¿Estás seguro de aprobar ${ids.length} horario(s)?`,
+      icon: 'pi pi-info-circle',
+      rejectButtonProps: {
+        label: 'Cancelar',
+        severity: 'secondary',
+        outlined: true,
+      },
+      acceptButtonProps: {
+        label: 'Aprobar todos',
+        severity: 'success',
+      },
+      accept: async () => {
+        console.log(
+          '🔵 [BATCH APROBAR] Iniciando aprobación de',
+          ids.length,
+          'horarios'
+        );
+
+        const companyId = this.organizationService.getCurrentCompanyId();
+        const currentEmployeeId = this.store.currentEmployee()?.id;
+
+        // Registrar auditoría para cada cambio
+        const shifts = this.shifts() ?? [];
+        for (const id of ids) {
+          const scheduleToApprove = shifts.find((s) => s.id === id);
+
+          if (currentEmployeeId && scheduleToApprove) {
+            const schedule = this.store.schedules
+              .entities()
+              .find((s) => s.id === scheduleToApprove.schedule_id);
+            const employee = this.store.employees
+              .entities()
+              .find((e) => e.id === scheduleToApprove.employee_id);
+            const branch = this.store.branches
+              .entities()
+              .find((b) => b.id === scheduleToApprove.branch_id);
+
+            const startDateFormatted = format(
+              toDate(scheduleToApprove.start_date, {
+                timeZone: 'America/Panama',
+              }),
+              'dd/MM/yyyy'
+            );
+
+            await this.auditService.logChange({
+              employeeScheduleId: id,
+              changedBy: currentEmployeeId,
+              action: 'approved',
+              oldStatus: scheduleToApprove.approved || false,
+              newStatus: true,
+              oldValue: { approved: false },
+              newValue: { approved: true },
+              comment: `Aprobación masiva: "${
+                schedule?.name || 'Desconocido'
+              }" para ${
+                employee
+                  ? `${employee.first_name} ${employee.father_name}`
+                  : 'empleado'
+              } (${startDateFormatted})`,
+            });
+          }
+        }
+
+        // Aprobar todos en batch
+        const params: any = { id: `in.(${ids.join(',')})` };
+        if (companyId) {
+          params.company_id = `eq.${companyId}`;
+        }
+
+        this.http
+          .patch(
+            this.apiUrl.build('rest/v1/employee_schedules'),
+            { approved: true },
+            { params }
+          )
+          .pipe(
+            catchError((error) => {
+              console.error('🔴 [BATCH APROBAR] Error:', error);
+              this.message.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'Ha ocurrido un error al aprobar los horarios',
+              });
+              return EMPTY;
+            })
+          )
+          .subscribe({
+            next: () => {
+              console.log('✅ [BATCH APROBAR] PATCH exitoso');
+              this.message.add({
+                severity: 'success',
+                summary: 'Éxito',
+                detail: `${ids.length} horario(s) aprobado(s) correctamente`,
+              });
+              this.cancelBulkSelection();
+              this.schedulesResource.reload();
             },
           });
       },
