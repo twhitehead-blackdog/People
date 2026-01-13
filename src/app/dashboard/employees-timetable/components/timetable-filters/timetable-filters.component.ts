@@ -1,8 +1,8 @@
-import { Component, input, Signal, WritableSignal } from '@angular/core';
+import { Component, input, WritableSignal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Branch, Position } from '../../../../models';
 import { InputText } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
+import { Branch, Position } from '../../../../models';
 
 @Component({
   selector: 'pt-timetable-filters',

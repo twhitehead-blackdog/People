@@ -14,10 +14,10 @@ import { Button } from 'primeng/button';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { SelectModule } from 'primeng/select';
 import { catchError, EMPTY } from 'rxjs';
-import { Employee } from '../models';
-import { EmployeesStore } from '../stores/employees.store';
+import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
 import { DashboardStore } from '../stores/dashboard.store';
+import { EmployeesStore } from '../stores/employees.store';
 
 @Component({
   selector: 'pt-add-employee-to-branch-dialog',
@@ -40,18 +40,18 @@ import { DashboardStore } from '../stores/dashboard.store';
           <ng-template pTemplate="selectedItem" let-selected>
             {{ selected?.father_name }}, {{ selected?.first_name }}
             @if(selected?.branch) {
-              <span class="text-xs text-gray-400 ml-2">
-                ({{ selected.branch.name }})
-              </span>
+            <span class="text-xs text-gray-400 ml-2">
+              ({{ selected.branch.name }})
+            </span>
             }
           </ng-template>
           <ng-template let-item pTemplate="item">
             <div class="flex items-center justify-between">
               <span>{{ item.father_name }}, {{ item.first_name }}</span>
               @if(item.branch) {
-                <span class="text-xs text-gray-400 ml-2">
-                  {{ item.branch.name }}
-                </span>
+              <span class="text-xs text-gray-400 ml-2">
+                {{ item.branch.name }}
+              </span>
               }
             </div>
           </ng-template>
@@ -59,42 +59,40 @@ import { DashboardStore } from '../stores/dashboard.store';
       </div>
 
       @if(selectedEmployeeData()) {
-        <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
-          <p class="text-sm text-gray-300 mb-2">
-            <strong>Empleado seleccionado:</strong> 
-            {{ selectedEmployeeData()?.father_name }}, 
-            {{ selectedEmployeeData()?.first_name }}
-          </p>
-          <p class="text-sm text-gray-300 mb-2">
-            <strong>Sucursal actual:</strong> 
-            {{ selectedEmployeeData()?.branch?.name || 'Sin asignar' }}
-          </p>
-          <p class="text-sm text-amber-400 font-semibold">
-            <strong>Pasará a sucursal:</strong> {{ targetBranchName() }}
-          </p>
-        </div>
-      }
-
-      @if(canSelectBranch) {
-        <div class="input-container">
-          <label for="branch">Seleccionar sucursal</label>
-          <p-select
-            inputId="branch"
-            [(ngModel)]="selectedBranch"
-            [options]="store.branches.entities()"
-            optionValue="id"
-            optionLabel="name"
-            placeholder="Selecciona una sucursal"
-            appendTo="body"
-            filter
-            [showClear]="true"
-          />
-          @if(initialBranchId && !selectedBranch()) {
-            <p class="text-xs text-gray-400 mt-1">
-              Por defecto: {{ initialBranchName }}
-            </p>
-          }
-        </div>
+      <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
+        <p class="text-sm text-gray-300 mb-2">
+          <strong>Empleado seleccionado:</strong>
+          {{ selectedEmployeeData()?.father_name }},
+          {{ selectedEmployeeData()?.first_name }}
+        </p>
+        <p class="text-sm text-gray-300 mb-2">
+          <strong>Sucursal actual:</strong>
+          {{ selectedEmployeeData()?.branch?.name || 'Sin asignar' }}
+        </p>
+        <p class="text-sm text-amber-400 font-semibold">
+          <strong>Pasará a sucursal:</strong> {{ targetBranchName() }}
+        </p>
+      </div>
+      } @if(canSelectBranch) {
+      <div class="input-container">
+        <label for="branch">Seleccionar sucursal</label>
+        <p-select
+          inputId="branch"
+          [(ngModel)]="selectedBranch"
+          [options]="store.branches.entities()"
+          optionValue="id"
+          optionLabel="name"
+          placeholder="Selecciona una sucursal"
+          appendTo="body"
+          filter
+          [showClear]="true"
+        />
+        @if(initialBranchId && !selectedBranch()) {
+        <p class="text-xs text-gray-400 mt-1">
+          Por defecto: {{ initialBranchName }}
+        </p>
+        }
+      </div>
       }
 
       <div class="flex justify-end gap-2 mt-4">
@@ -129,6 +127,7 @@ export class AddEmployeeToBranchDialogComponent {
   public employeesStore = inject(EmployeesStore);
   public store = inject(DashboardStore);
   private destroyRef = inject(DestroyRef);
+  private apiUrl = inject(ApiUrlService);
 
   public canSelectBranch = this.dialog.data?.canSelectBranch || false;
   public initialBranchId = this.dialog.data?.branchId || null;
@@ -138,7 +137,11 @@ export class AddEmployeeToBranchDialogComponent {
   public isHRDepartment = computed(() => {
     const currentEmp = this.store.currentEmployee();
     const deptName = currentEmp?.department?.name?.toLowerCase() || '';
-    return deptName.includes('recursos humanos') || deptName.includes('rrhh') || deptName.includes('hr');
+    return (
+      deptName.includes('recursos humanos') ||
+      deptName.includes('rrhh') ||
+      deptName.includes('hr')
+    );
   });
 
   public targetBranchId = computed(() => {
@@ -154,7 +157,9 @@ export class AddEmployeeToBranchDialogComponent {
     }
     const branchId = this.selectedBranch();
     if (branchId) {
-      const branch = this.store.branches.entities().find(b => b.id === branchId);
+      const branch = this.store.branches
+        .entities()
+        .find((b) => b.id === branchId);
       return branch?.name || this.initialBranchName;
     }
     return this.initialBranchName;
@@ -164,7 +169,10 @@ export class AddEmployeeToBranchDialogComponent {
     const targetBranch = this.targetBranchId();
     return this.employeesStore
       .employeesList()
-      .filter((emp) => emp.is_active && (!targetBranch || emp.branch_id !== targetBranch));
+      .filter(
+        (emp) =>
+          emp.is_active && (!targetBranch || emp.branch_id !== targetBranch)
+      );
   });
 
   public selectedEmployeeData = computed(() => {
@@ -183,15 +191,17 @@ export class AddEmployeeToBranchDialogComponent {
     this.loading.set(true);
 
     const companyId = this.organizationService.getCurrentCompanyId();
-    const params: any = { id: `eq.${employeeId}` };
-    
+    const params: { id: string; company_id?: string } = {
+      id: `eq.${employeeId}`,
+    };
+
     if (companyId) {
       params.company_id = `eq.${companyId}`;
     }
 
     this.http
       .patch(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
+        this.apiUrl.build('rest/v1/employees'),
         { branch_id: branchId },
         { params }
       )
@@ -221,4 +231,3 @@ export class AddEmployeeToBranchDialogComponent {
       });
   }
 }
-

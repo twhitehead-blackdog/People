@@ -160,6 +160,7 @@ import {
         (editShift)="editSchedule($event)"
         (deleteShift)="deleteSchedule($event.shift, $event.date)"
         (approveShift)="approveSchedule($event)"
+        (confirmWeek)="confirmEmployeeWeek($event)"
         (addShift)="editSchedule($event)"
         (viewAudit)="onViewSpecificAudit($event)"
       />
@@ -1348,7 +1349,7 @@ export class EmployeesTimetableComponent implements OnInit {
       },
       accept: async () => {
         console.log('🔵 [APROBAR] Iniciando aprobación para ID:', id);
-        
+
         const companyId = this.organizationService.getCurrentCompanyId();
         const params: any = { id: `eq.${id}` };
 
@@ -1363,7 +1364,7 @@ export class EmployeesTimetableComponent implements OnInit {
         // Obtener información del horario ANTES de aprobarlo para auditoría
         const scheduleToApprove = this.shifts()?.find((s) => s.id === id);
         console.log('🔵 [APROBAR] Turno encontrado:', scheduleToApprove);
-        
+
         const currentEmployeeId = this.store.currentEmployee()?.id;
 
         if (currentEmployeeId && scheduleToApprove) {
@@ -1476,15 +1477,114 @@ export class EmployeesTimetableComponent implements OnInit {
             next: (response) => {
               console.log('✅ [APROBAR] PATCH exitoso, respuesta:', response);
               console.log('✅ [APROBAR] Recargando schedulesResource...');
-              
+
               this.message.add({
                 severity: 'success',
                 summary: 'Éxito',
                 detail: 'Horario aprobado correctamente',
               });
-              
+
               this.schedulesResource.reload();
               console.log('✅ [APROBAR] Reload completado');
+            },
+          });
+      },
+    });
+  }
+
+  public async confirmEmployeeWeek(employee: any) {
+    const pendingShifts = employee.days
+      .filter((d: any) => d.shift && !d.shift.approved)
+      .map((d: any) => d.shift);
+
+    if (pendingShifts.length === 0) return;
+
+    this.confirm.confirm({
+      header: 'Confirmar semana?',
+      message: `¿Estás seguro de aprobar todos los horarios (${pendingShifts.length}) de ${employee.first_name} para esta semana?`,
+      icon: 'pi pi-info-circle',
+      rejectButtonProps: {
+        label: 'Cancelar',
+        severity: 'secondary',
+        outlined: true,
+      },
+      acceptButtonProps: {
+        label: 'Aprobar todo',
+        severity: 'success',
+      },
+      accept: async () => {
+        const companyId = this.organizationService.getCurrentCompanyId();
+        const currentEmployeeId = this.store.currentEmployee()?.id;
+        const shiftIds = pendingShifts.map((s: any) => s.id);
+
+        if (currentEmployeeId) {
+          // Auditoría para cada turno
+          for (const shiftToApprove of pendingShifts) {
+            const schedule = this.store.schedules
+              .entities()
+              .find((s) => s.id === shiftToApprove.schedule_id);
+            const employeeData = this.store.employees
+              .entities()
+              .find((e) => e.id === shiftToApprove.employee_id);
+            const branch = this.store.branches
+              .entities()
+              .find((b) => b.id === shiftToApprove.branch_id);
+
+            const startDateFormatted = format(
+              toDate(shiftToApprove.start_date, { timeZone: 'America/Panama' }),
+              'dd/MM/yyyy'
+            );
+            const endDateFormatted = format(
+              toDate(shiftToApprove.end_date, { timeZone: 'America/Panama' }),
+              'dd/MM/yyyy'
+            );
+
+            await this.auditService.logChange({
+              employeeScheduleId: shiftToApprove.id,
+              changedBy: currentEmployeeId,
+              action: 'approved',
+              oldStatus: false,
+              newStatus: true,
+              comment: `Aprobación masiva semanal: Horario "${
+                schedule?.name || 'Desconocido'
+              }" aprobado para ${
+                employeeData
+                  ? `${employeeData.first_name} ${employeeData.father_name}`
+                  : 'empleado'
+              } (${startDateFormatted} - ${endDateFormatted})`,
+            });
+          }
+        }
+
+        // Actualización masiva en Supabase
+        const params: any = { id: `in.(${shiftIds.join(',')})` };
+        if (companyId) params.company_id = `eq.${companyId}`;
+
+        this.http
+          .patch(
+            this.apiUrl.build('rest/v1/employee_schedules'),
+            { approved: true },
+            { params }
+          )
+          .pipe(
+            catchError((error) => {
+              console.error('🔴 [APROBAR SEMANA] Error:', error);
+              this.message.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'Ha ocurrido un error al aprobar los horarios',
+              });
+              return EMPTY;
+            })
+          )
+          .subscribe({
+            next: () => {
+              this.message.add({
+                severity: 'success',
+                summary: 'Éxito',
+                detail: `Se han aprobado ${pendingShifts.length} horarios correctamente`,
+              });
+              this.schedulesResource.reload();
             },
           });
       },
