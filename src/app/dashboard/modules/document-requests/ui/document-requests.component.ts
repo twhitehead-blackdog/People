@@ -1,12 +1,6 @@
 import { CommonModule, DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import {
-  Component,
-  computed,
-  inject,
-  SecurityContext,
-  signal,
-} from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer } from '@angular/platform-browser';
 import { ConfirmationService, MessageService } from 'primeng/api';
@@ -750,11 +744,8 @@ export class DocumentRequestsComponent {
     this.documentZoomLevel.set(1);
   }
 
-  public getDocumentUrl() {
-    const url = this.selectedDocument()?.document_url;
-    return url
-      ? this.domSanitizer.sanitize(SecurityContext.RESOURCE_URL, url) || ''
-      : '';
+  public getDocumentUrl(): string {
+    return this.selectedDocument()?.document_url || '';
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

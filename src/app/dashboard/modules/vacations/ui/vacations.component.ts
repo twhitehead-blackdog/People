@@ -1,12 +1,6 @@
 import { CommonModule, DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import {
-  Component,
-  SecurityContext,
-  computed,
-  inject,
-  signal,
-} from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer } from '@angular/platform-browser';
 import { ConfirmationService, MessageService } from 'primeng/api';
@@ -869,11 +863,8 @@ export class VacationsComponent {
     this.documentZoomLevel.set(1);
   }
 
-  public getVacationDocumentUrl() {
-    const url = this.selectedVacation()?.document_url;
-    return url
-      ? this.domSanitizer.sanitize(SecurityContext.RESOURCE_URL, url) || ''
-      : '';
+  public getVacationDocumentUrl(): string {
+    return this.selectedVacation()?.document_url || '';
   }
 
   private updateVacationStatus(id: string, status: 'approved' | 'rejected') {
