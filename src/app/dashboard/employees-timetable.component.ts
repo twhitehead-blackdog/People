@@ -175,6 +175,7 @@ import {
         (confirmWeek)="confirmEmployeeWeek($event)"
         (addShift)="editSchedule($event)"
         (viewAudit)="onViewSpecificAudit($event)"
+        (batchApprove)="batchApproveSchedules($event)"
       />
     </p-card>
     <p-dialog
@@ -934,6 +935,93 @@ export class EmployeesTimetableComponent implements OnInit {
   }
 
   public isPast = (date: Date) => isBefore(date, new Date());
+
+  /**
+   * Batch approve multiple employee schedules at once
+   */
+  public batchApproveSchedules(shiftIds: string[]): void {
+    if (!this.permissionsService.canApproveSchedules()) {
+      this.message.add({
+        severity: 'warn',
+        summary: 'Sin permisos',
+        detail: 'No tienes permisos para aprobar horarios.',
+      });
+      return;
+    }
+
+    if (shiftIds.length === 0) {
+      return;
+    }
+
+    this.confirm.confirm({
+      header: 'Aprobar horarios',
+      message: `¿Estás seguro de aprobar ${shiftIds.length} horario${
+        shiftIds.length > 1 ? 's' : ''
+      } seleccionado${shiftIds.length > 1 ? 's' : ''}?`,
+      icon: 'pi pi-check-circle',
+      rejectButtonProps: {
+        label: 'Cancelar',
+        severity: 'secondary',
+        outlined: true,
+      },
+      acceptButtonProps: {
+        label: 'Aprobar',
+        severity: 'success',
+      },
+      accept: async () => {
+        const currentEmployeeId = this.store.currentEmployee()?.id;
+
+        // Create PATCH requests for each shift
+        const patchRequests = shiftIds.map((id) =>
+          this.http.patch(
+            this.apiUrl.build('rest/v1/employee_schedules', { id: `eq.${id}` }),
+            { approved: true },
+            { headers: { Prefer: 'return=minimal' } }
+          )
+        );
+
+        // Execute all patches in parallel
+        forkJoin(patchRequests)
+          .pipe(
+            catchError((error) => {
+              console.error('Error approving schedules:', error);
+              this.message.add({
+                severity: 'error',
+                summary: 'Error',
+                detail: 'Ha ocurrido un error al aprobar los horarios',
+              });
+              return EMPTY;
+            })
+          )
+          .subscribe({
+            next: () => {
+              // Log audit for batch approval
+              if (currentEmployeeId) {
+                this.auditService.logChange({
+                  employeeScheduleId: shiftIds[0], // Use first ID as reference
+                  changedBy: currentEmployeeId,
+                  action: 'approved',
+                  oldStatus: false,
+                  newStatus: true,
+                  comment: `Aprobación masiva de ${shiftIds.length} horario${
+                    shiftIds.length > 1 ? 's' : ''
+                  }`,
+                });
+              }
+
+              this.message.add({
+                severity: 'success',
+                summary: 'Horarios aprobados',
+                detail: `Se han aprobado ${shiftIds.length} horario${
+                  shiftIds.length > 1 ? 's' : ''
+                } correctamente`,
+              });
+              this.schedulesResource.reload();
+            },
+          });
+      },
+    });
+  }
 
   deleteSchedule(employee_schedule: EmployeeSchedule, date?: Date) {
     // Verificar permisos antes de eliminar
