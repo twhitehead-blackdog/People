@@ -94,14 +94,27 @@ import { VacationRequest } from '../models/vacation-request.model';
       </div>
       } @else {
       <div
-        class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 overflow-hidden"
+        class="bg-gradient-to-br from-neutral-800/80 to-neutral-800/60 rounded-lg border border-neutral-700/50 backdrop-blur-sm overflow-hidden"
       >
+        <!-- Header -->
+        <div class="p-2 border-b border-neutral-700/50">
+          <h3
+            class="text-sm font-semibold text-white m-0 flex items-center gap-1.5"
+          >
+            <i class="pi pi-calendar text-cyan-400 text-sm"></i>
+            Solicitudes de Vacaciones
+          </h3>
+        </div>
         <p-table
           [value]="filteredVacations()"
+          [paginator]="true"
+          [rows]="8"
+          [rowsPerPageOptions]="[5, 8, 10, 15, 25]"
+          paginatorPosition="bottom"
           [scrollable]="true"
           scrollHeight="600px"
           [responsive]="true"
-          styleClass="p-datatable-sm"
+          styleClass="p-datatable-sm p-datatable-striped"
         >
           <ng-template pTemplate="header">
             <tr>
