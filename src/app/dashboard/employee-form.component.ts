@@ -34,6 +34,7 @@ import { debounceTime, firstValueFrom } from 'rxjs';
 import { markGroupDirty } from 'src/app/services/util.service';
 import { v4 } from 'uuid';
 import { Bank, Employee, UniformSize } from '../models';
+import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
 import { WassengerService } from '../services/wassenger.service';
 import { DashboardStore } from '../stores/dashboard.store';
@@ -505,7 +506,9 @@ import {
                     formControlName="company_id"
                     placeholder="Seleccione una empresa"
                     appendTo="body"
-                    [disabled]="!store.isAdmin() && availableCompanies().length === 1"
+                    [disabled]="
+                      !store.isAdmin() && availableCompanies().length === 1
+                    "
                   />
                 </div>
                 <div class="input-container">
@@ -832,7 +835,7 @@ export class EmployeeFormComponent implements OnInit {
     };
 
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/banks`,
+      url: this.apiUrl.build('rest/v1/banks'),
       method: 'GET',
       params,
     };
@@ -843,24 +846,25 @@ export class EmployeeFormComponent implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private http = inject(HttpClient);
+  private apiUrl = inject(ApiUrlService);
 
   // Computed para filtrar empresas: solo mostrar la empresa actual, excepto para admins
   public availableCompanies = computed(() => {
     const allCompanies = this.store.companies.entities();
     const isAdmin = this.store.isAdmin();
-    
+
     // Si es admin, mostrar todas las empresas
     if (isAdmin) {
       return allCompanies;
     }
-    
+
     // Si no es admin, filtrar por company_id actual
     const currentCompanyId = this.organizationService.getCurrentCompanyId();
     if (!currentCompanyId) {
       return [];
     }
-    
-    return allCompanies.filter(company => company.id === currentCompanyId);
+
+    return allCompanies.filter((company) => company.id === currentCompanyId);
   });
 
   public form = new FormGroup({
@@ -1104,12 +1108,12 @@ export class EmployeeFormComponent implements OnInit {
         const currentCompanyId = this.organizationService.getCurrentCompanyId();
         const companyControl = this.form.get('company_id');
         const currentCompanyIdValue = companyControl?.value;
-        
+
         // Si no es admin y no hay company_id establecido, establecer el actual
         if (!isAdmin && currentCompanyId && !currentCompanyIdValue) {
           companyControl?.setValue(currentCompanyId, { emitEvent: false });
         }
-        
+
         // Si no es admin y hay una empresa disponible, asegurar que esté seleccionada
         const available = this.availableCompanies();
         if (!isAdmin && available.length === 1 && !currentCompanyIdValue) {
@@ -1559,7 +1563,7 @@ export class EmployeeFormComponent implements OnInit {
 
       const employees = await firstValueFrom(
         this.http.get<Array<{ employee_number: string | null }>>(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/${tableName}`,
+          this.apiUrl.build(`rest/v1/${tableName}`),
           { params }
         )
       );

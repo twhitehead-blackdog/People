@@ -1633,7 +1633,7 @@ export class EmployeesTimetableComponent implements OnInit {
       .onClose.subscribe((added) => {
         if (added) {
           // Recargar lista de empleados y recursos relacionados inmediatamente
-          this.store.employees.fetchItems();
+          this.store.employees.reloadItems();
           this.schedulesResource.reload();
         }
       });

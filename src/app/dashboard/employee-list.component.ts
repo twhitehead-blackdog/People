@@ -9,10 +9,7 @@ import {
   OnInit,
   signal,
 } from '@angular/core';
-import { ApiUrlService } from '../services/api-url.service';
-import { getEnv } from '../utils/env.utils';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { firstValueFrom } from 'rxjs';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
@@ -30,12 +27,15 @@ import { Tag } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { TooltipModule } from 'primeng/tooltip';
+import { firstValueFrom } from 'rxjs';
 import { utils, writeFile } from 'xlsx';
 import { Employee, ExportColumn } from '../models';
 import { AgePipe } from '../pipes/age.pipe';
+import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
 import { WassengerService } from '../services/wassenger.service';
 import { DashboardStore } from '../stores/dashboard.store';
+import { getEnv } from '../utils/env.utils';
 import { EmployeeFormComponent } from './employee-form.component';
 
 @Component({
@@ -914,12 +914,16 @@ export class EmployeeListComponent implements OnInit {
 
           const url = this.apiUrl.build('rest/v1/employees', params);
           const updateResponse = await firstValueFrom(
-            this.http.patch(url, { has_portal_access: true }, {
-              headers: {
-                'Content-Type': 'application/json',
-                Prefer: 'return=representation',
-              },
-            })
+            this.http.patch(
+              url,
+              { has_portal_access: true },
+              {
+                headers: {
+                  'Content-Type': 'application/json',
+                  Prefer: 'return=representation',
+                },
+              }
+            )
           );
 
           // Enviar invitación por Wassenger
@@ -938,8 +942,7 @@ export class EmployeeListComponent implements OnInit {
               summary: 'Invitación enviada',
               detail: `${employeeName} ahora tiene acceso al portal y se le ha enviado un mensaje por Wassenger`,
             });
-            // Recargar la lista de empleados
-            this.store.employees.fetchItems();
+            this.store.employees.reloadItems();
           } else {
             // Aunque falló el envío, el acceso al portal ya fue otorgado
             this.messageService.add({
@@ -947,7 +950,7 @@ export class EmployeeListComponent implements OnInit {
               summary: 'Acceso otorgado',
               detail: `${employeeName} ahora tiene acceso al portal, pero no se pudo enviar el mensaje por Wassenger`,
             });
-            this.store.employees.fetchItems();
+            this.store.employees.reloadItems();
           }
         } catch (error: any) {
           console.error('Error inviting to portal:', error);

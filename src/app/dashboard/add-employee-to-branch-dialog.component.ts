@@ -225,7 +225,7 @@ export class AddEmployeeToBranchDialogComponent {
             summary: 'Éxito',
             detail: 'Empleado añadido a la sucursal correctamente',
           });
-          this.employeesStore.fetchItems();
+          this.employeesStore.reloadItems();
           this.dialogRef.close(true);
         },
       });
