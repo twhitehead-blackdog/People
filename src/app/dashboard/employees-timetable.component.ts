@@ -152,6 +152,18 @@ import {
         </pt-timetable-filters>
       </div>
 
+      <!-- Debug: Datos enviados al timetable-grid -->
+      @if (false) {
+      <div
+        class="debug-info p-4 bg-yellow-100 border border-yellow-300 rounded mb-4"
+      >
+        <h3 class="font-bold">Debug TimetableGrid Inputs:</h3>
+        <p>Employees: {{ employeeSchedulesList().length }}</p>
+        <p>Days: {{ days().length }}</p>
+        <p>Can Manage: {{ store.canManageSchedules() }}</p>
+        <p>Can Approve: {{ permissionsService.canApproveSchedules() }}</p>
+      </div>
+      }
       <pt-timetable-grid
         [employees]="employeeSchedulesList()"
         [days]="days()"

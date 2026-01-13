@@ -37,7 +37,13 @@ type EmployeeWithDays = {
       }
       <ng-template #header>
         <tr>
-          <th pFrozenColumn class="w-[50px] text-center"></th>
+          @if (canApproveSchedules()) {
+          <th
+            pFrozenColumn
+            class="w-[50px] text-center p-datatable-frozen-column p-datatable-frozen-column-left"
+            style="left: 0px; z-index: 10; position: sticky;"
+          ></th>
+          }
           <th pFrozenColumn>Nombre</th>
           <th>Cargo</th>
           @for(day of days(); track day.date){
@@ -54,8 +60,13 @@ type EmployeeWithDays = {
       </ng-template>
       <ng-template #body let-item>
         <tr>
-          <td pFrozenColumn class="text-center">
-            @if (canApproveSchedules() && hasPendingShifts(item)) {
+          @if (canApproveSchedules()) {
+          <td
+            pFrozenColumn
+            class="text-center p-datatable-frozen-column p-datatable-frozen-column-left"
+            style="left: 0px; z-index: 10; position: sticky;"
+          >
+            @if (hasPendingShifts(item)) {
             <p-button
               icon="pi pi-check-circle"
               [rounded]="true"
@@ -66,13 +77,14 @@ type EmployeeWithDays = {
               tooltipPosition="right"
               (onClick)="onConfirmWeek(item)"
             />
-            } @else if (canApproveSchedules() && hasAnyShift(item)) {
+            } @else if (hasAnyShift(item)) {
             <i
               class="pi pi-check-circle text-green-500 opacity-50"
               pTooltip="Semana confirmada"
             ></i>
             }
           </td>
+          }
           <td pFrozenColumn>{{ item.first_name }} {{ item.father_name }}</td>
           <td>{{ item.position.name }}</td>
           @for(day of item.days; track day.date){
@@ -116,6 +128,11 @@ export class TimetableGridComponent {
   public confirmWeek = output<EmployeeWithDays>();
   public addShift = output<{ employee_id: string; date: Date }>();
   public viewAudit = output<{ employeeId: string; date: Date }>();
+
+  constructor() {
+    // Note: Do NOT access required inputs in constructor - they are not yet available
+    // Use effect() to react to input changes instead if needed
+  }
 
   public onEditShift(event: { shift: any; date: Date }): void {
     this.editShift.emit({ employee_schedule: event.shift, date: event.date });

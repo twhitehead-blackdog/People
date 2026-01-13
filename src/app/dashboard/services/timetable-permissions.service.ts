@@ -40,9 +40,10 @@ export class TimetablePermissionsService {
 
   /**
    * Determina si el usuario puede aprobar horarios
+   * Pueden: admins, schedule approvers
    */
   public canApproveSchedules(): boolean {
-    return this.store.isScheduleApprover();
+    return this.store.isAdmin() || this.store.isScheduleApprover();
   }
 
   /**
