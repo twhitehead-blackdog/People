@@ -40,6 +40,7 @@ export interface FilterStatusOption {
   template: `
     <div
       class="bg-gradient-to-br from-neutral-800/80 to-neutral-800/60 rounded-lg border border-neutral-700/50 backdrop-blur-sm"
+      style="margin-top: 0.75rem;"
     >
       <div
         class="p-2 border-b border-neutral-700/50 flex items-center justify-between cursor-pointer"

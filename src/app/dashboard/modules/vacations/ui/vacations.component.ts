@@ -13,20 +13,29 @@ import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
 import { DashboardStore } from '../../../../stores/dashboard.store';
 import { getEnv } from '../../../../utils/env.utils';
+import { HrFiltersPanelComponent } from '../../shared/components/hr-filters-panel.component';
+import { HrStatsGridComponent } from '../../shared/components/hr-stats-grid.component';
 import {
-  HrFiltersPanelComponent,
-  HrStatsGridComponent,
   STATUS_OPTIONS,
   calculateDaysBetween,
   getStatusLabel,
   getStatusSeverity,
-} from '../../shared';
+} from '../../shared/utils/hr-status.utils';
 import { VacationsService } from '../data/vacations.service';
 import { VacationRequest } from '../models/vacation-request.model';
 
 @Component({
   selector: 'pt-vacations',
   standalone: true,
+  styles: [
+    `
+      :host {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+    `,
+  ],
   imports: [
     CommonModule,
     TableModule,

@@ -13,12 +13,28 @@ import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
 import { DashboardStore } from '../../../../stores/dashboard.store';
 import { getEnv } from '../../../../utils/env.utils';
+import { HrFiltersPanelComponent } from '../../shared/components/hr-filters-panel.component';
+import { HrStatsGridComponent } from '../../shared/components/hr-stats-grid.component';
+import {
+  STATUS_OPTIONS,
+  getStatusLabel,
+  getStatusSeverity,
+} from '../../shared/utils/hr-status.utils';
 import { DocumentRequestsService } from '../data/document-requests.service';
 import { DocumentRequest } from '../models/document-request.model';
 
 @Component({
   selector: 'pt-document-requests',
   standalone: true,
+  styles: [
+    `
+      :host {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+    `,
+  ],
   imports: [
     CommonModule,
     TableModule,
@@ -37,7 +53,7 @@ import { DocumentRequest } from '../models/document-request.model';
   template: `
     <p-toast />
     <p-confirmDialog />
-    <div class="space-y-3 p-4">
+    <div class="space-y-3">
       <!-- Estadísticas Compactas -->
       <pt-hr-stats-grid
         [totalCount]="totalCount()"

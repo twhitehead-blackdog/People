@@ -1,4 +1,7 @@
-import { HrRequestBase, HrRequestWithDateRange } from '../../shared';
+import {
+  HrRequestBase,
+  HrRequestWithDateRange,
+} from '../../shared/models/hr-request-base.model';
 
 /**
  * Vacation request model extending base HR request interface.
