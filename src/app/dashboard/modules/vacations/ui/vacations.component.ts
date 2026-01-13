@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { DialogModule } from 'primeng/dialog';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
@@ -44,6 +45,7 @@ import { VacationRequest } from '../models/vacation-request.model';
     TooltipModule,
     ToastModule,
     ConfirmDialogModule,
+    DialogModule,
     ProgressSpinnerModule,
     FormsModule,
     DatePipe,
@@ -169,7 +171,10 @@ import { VacationRequest } from '../models/vacation-request.model';
             </tr>
           </ng-template>
           <ng-template pTemplate="body" let-vacation>
-            <tr class="hover:bg-neutral-700/30">
+            <tr
+              class="hover:bg-neutral-700/30 transition-colors cursor-pointer"
+              (click)="viewDetails(vacation)"
+            >
               <td style="padding: 0.5rem;">
                 <div class="flex flex-col gap-0.5">
                   <span class="text-sm font-medium text-white">
@@ -235,7 +240,7 @@ import { VacationRequest } from '../models/vacation-request.model';
                   {{ vacation.created_at | date : 'HH:mm' }}
                 </span>
               </td>
-              <td style="padding: 0.5rem;">
+              <td style="padding: 0.5rem;" (click)="$event.stopPropagation()">
                 @if (vacation.status === 'pending') {
                 <div class="flex gap-1">
                   <p-button
@@ -271,6 +276,193 @@ import { VacationRequest } from '../models/vacation-request.model';
       </div>
       }
     </div>
+
+    <!-- Diálogo de Detalles de Vacaciones -->
+    <p-dialog
+      [(visible)]="showDetailsDialog"
+      [modal]="true"
+      [style]="{ width: '90vw', maxWidth: '700px' }"
+      [draggable]="false"
+      [resizable]="false"
+      [dismissableMask]="true"
+    >
+      <ng-template pTemplate="header">
+        <div class="flex items-center gap-2">
+          <i class="pi pi-calendar text-cyan-400"></i>
+          <span class="text-lg font-semibold text-white">
+            Detalles de Solicitud de Vacaciones
+          </span>
+        </div>
+      </ng-template>
+
+      @if (selectedVacation()) {
+      <div class="space-y-4">
+        <!-- Información del Empleado -->
+        <div
+          class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700/50"
+        >
+          <h4
+            class="text-sm font-semibold text-cyan-400 mb-3 flex items-center gap-2"
+          >
+            <i class="pi pi-user"></i> Información del Empleado
+          </h4>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <span class="text-xs text-gray-400">Nombre</span>
+              <p class="text-sm text-white font-medium m-0">
+                {{ selectedVacation()?.employee?.first_name }}
+                {{ selectedVacation()?.employee?.father_name }}
+              </p>
+            </div>
+            <div>
+              <span class="text-xs text-gray-400">Email</span>
+              <p class="text-sm text-white m-0">
+                {{ selectedVacation()?.employee?.work_email || '-' }}
+              </p>
+            </div>
+            @if (selectedVacation()?.employee?.position?.name) {
+            <div>
+              <span class="text-xs text-gray-400">Posición</span>
+              <p class="text-sm text-white m-0">
+                {{ selectedVacation()?.employee?.position?.name }}
+              </p>
+            </div>
+            } @if (selectedVacation()?.employee?.branch?.name) {
+            <div>
+              <span class="text-xs text-gray-400">Sucursal</span>
+              <p class="text-sm text-cyan-400 m-0">
+                {{ selectedVacation()?.employee?.branch?.name }}
+              </p>
+            </div>
+            }
+          </div>
+        </div>
+
+        <!-- Detalles de la Solicitud -->
+        <div
+          class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700/50"
+        >
+          <h4
+            class="text-sm font-semibold text-cyan-400 mb-3 flex items-center gap-2"
+          >
+            <i class="pi pi-calendar"></i> Detalles de Vacaciones
+          </h4>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <span class="text-xs text-gray-400">Fecha de Inicio</span>
+              <p class="text-sm text-white font-medium m-0">
+                {{ selectedVacation()?.start_date | date : 'dd/MM/yyyy' }}
+              </p>
+            </div>
+            <div>
+              <span class="text-xs text-gray-400">Fecha de Fin</span>
+              <p class="text-sm text-white font-medium m-0">
+                {{ selectedVacation()?.end_date | date : 'dd/MM/yyyy' }}
+              </p>
+            </div>
+            <div>
+              <span class="text-xs text-gray-400">Total de Días</span>
+              <p class="text-sm text-cyan-400 font-bold m-0">
+                {{
+                  calculateDays(
+                    selectedVacation()!.start_date,
+                    selectedVacation()!.end_date
+                  )
+                }}
+                días
+              </p>
+            </div>
+            <div>
+              <span class="text-xs text-gray-400">Estado</span>
+              <p-tag
+                [value]="getStatusLabel(selectedVacation()!.status)"
+                [severity]="getStatusSeverity(selectedVacation()!.status)"
+              />
+            </div>
+          </div>
+          @if (selectedVacation()?.reason) {
+          <div class="mt-3">
+            <span class="text-xs text-gray-400">Motivo</span>
+            <p class="text-sm text-gray-300 m-0">
+              {{ selectedVacation()?.reason }}
+            </p>
+          </div>
+          }
+        </div>
+
+        <!-- Información de Auditoría -->
+        <div
+          class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700/50"
+        >
+          <h4
+            class="text-sm font-semibold text-cyan-400 mb-3 flex items-center gap-2"
+          >
+            <i class="pi pi-history"></i> Información de Auditoría
+          </h4>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <span class="text-xs text-gray-400">Fecha de Solicitud</span>
+              <p class="text-sm text-white m-0">
+                {{ selectedVacation()?.created_at | date : 'dd/MM/yyyy HH:mm' }}
+              </p>
+            </div>
+            <div>
+              <span class="text-xs text-gray-400">Creado por</span>
+              <p class="text-sm m-0">
+                @if (selectedVacation()?.created_by &&
+                selectedVacation()?.created_by !==
+                selectedVacation()?.employee_id) {
+                <span class="text-amber-300">Gerente</span>
+                } @else {
+                <span class="text-gray-400">Auto-solicitud</span>
+                }
+              </p>
+            </div>
+            @if (selectedVacation()?.reviewed_at) {
+            <div>
+              <span class="text-xs text-gray-400">Fecha de Revisión</span>
+              <p class="text-sm text-white m-0">
+                {{
+                  selectedVacation()?.reviewed_at | date : 'dd/MM/yyyy HH:mm'
+                }}
+              </p>
+            </div>
+            } @if (selectedVacation()?.rejection_comment) {
+            <div class="col-span-2">
+              <span class="text-xs text-gray-400">Comentario de Rechazo</span>
+              <p class="text-sm text-red-400 m-0">
+                {{ selectedVacation()?.rejection_comment }}
+              </p>
+            </div>
+            }
+          </div>
+        </div>
+
+        <!-- Acciones -->
+        @if (selectedVacation()?.status === 'pending') {
+        <div class="flex justify-end gap-2 pt-2 border-t border-neutral-700/50">
+          <p-button
+            label="Rechazar"
+            icon="pi pi-times"
+            severity="danger"
+            [outlined]="true"
+            (onClick)="
+              rejectVacation(selectedVacation()!); showDetailsDialog.set(false)
+            "
+          />
+          <p-button
+            label="Aprobar"
+            icon="pi pi-check"
+            severity="success"
+            (onClick)="
+              approveVacation(selectedVacation()!); showDetailsDialog.set(false)
+            "
+          />
+        </div>
+        }
+      </div>
+      }
+    </p-dialog>
   `,
 })
 export class VacationsComponent {
@@ -283,6 +475,10 @@ export class VacationsComponent {
   public searchText = signal('');
   public selectedStatus = signal<string | null>(null);
   public dateRange = signal<Date[] | null>(null);
+
+  // Signals for details dialog
+  public showDetailsDialog = signal(false);
+  public selectedVacation = signal<VacationRequest | null>(null);
 
   public statusOptions = STATUS_OPTIONS;
 
@@ -371,9 +567,9 @@ export class VacationsComponent {
     });
   }
 
-  viewDetails(vacation: VacationRequest) {
-    // TODO: Implement details dialog
-    console.log('View details:', vacation);
+  viewDetails(vacation: VacationRequest): void {
+    this.selectedVacation.set(vacation);
+    this.showDetailsDialog.set(true);
   }
 
   private updateVacationStatus(id: string, status: 'approved' | 'rejected') {

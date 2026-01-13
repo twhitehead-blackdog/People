@@ -15,11 +15,10 @@ export interface DocumentRequest {
   custom_document_type?: string;
   reason: string | null;
   document_url?: string | null;
-  status: 'pending' | 'approved' | 'rejected' | 'completed';
+  status: 'pending' | 'completed';
   processed_by?: string;
   processed_at?: string;
   notes?: string;
-  rejection_comment?: string | null;
   company_id: string;
   created_at: string;
   updated_at: string;

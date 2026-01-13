@@ -2,7 +2,7 @@ import { Component, Input } from '@angular/core';
 
 /**
  * Shared component for HR module statistics grid.
- * Displays 4 stat cards: Total, Pending, Approved, Rejected.
+ * Displays 4 stat cards: Total, Pending, Approved/Completed, Rejected (optional).
  *
  * @example
  * ```html
@@ -12,7 +12,8 @@ import { Component, Input } from '@angular/core';
  *   [approvedCount]="approvedCount()"
  *   [rejectedCount]="rejectedCount()"
  *   icon="pi-calendar"
- *   accentColor="purple"
+ *   [hideRejected]="true"
+ *   approvedLabel="Completados"
  * />
  * ```
  */
@@ -20,7 +21,11 @@ import { Component, Input } from '@angular/core';
   selector: 'pt-hr-stats-grid',
   standalone: true,
   template: `
-    <div class="grid grid-cols-4 gap-2">
+    <div
+      [class]="
+        hideRejected ? 'grid grid-cols-3 gap-2' : 'grid grid-cols-4 gap-2'
+      "
+    >
       <!-- Total -->
       <div
         class="group relative bg-gradient-to-br from-neutral-800 to-neutral-800/80 rounded-lg p-3 border border-neutral-700/50 hover:border-cyan-400/50 transition-all duration-200 hover:shadow-lg hover:shadow-cyan-500/10 cursor-pointer"
@@ -79,7 +84,7 @@ import { Component, Input } from '@angular/core';
         </div>
       </div>
 
-      <!-- Aprobadas -->
+      <!-- Aprobadas / Completados -->
       <div
         class="group relative bg-gradient-to-br from-green-500/10 via-green-500/5 to-neutral-800 rounded-lg p-3 border border-green-500/30 hover:border-green-400/50 transition-all duration-200 hover:shadow-lg hover:shadow-green-500/20 cursor-pointer"
       >
@@ -93,7 +98,7 @@ import { Component, Input } from '@angular/core';
             <p
               class="text-[10px] font-medium text-green-400/80 uppercase tracking-wider m-0"
             >
-              Aprobadas
+              {{ approvedLabel }}
             </p>
             <p class="text-xl font-bold text-green-300 m-0">
               {{ approvedCount }}
@@ -110,7 +115,8 @@ import { Component, Input } from '@angular/core';
         </div>
       </div>
 
-      <!-- Rechazadas -->
+      <!-- Rechazadas (opcional) -->
+      @if (!hideRejected) {
       <div
         class="group relative bg-gradient-to-br from-red-500/10 via-red-500/5 to-neutral-800 rounded-lg p-3 border border-red-500/30 hover:border-red-400/50 transition-all duration-200 hover:shadow-lg hover:shadow-red-500/20 cursor-pointer"
       >
@@ -140,6 +146,7 @@ import { Component, Input } from '@angular/core';
           ></div>
         </div>
       </div>
+      }
     </div>
   `,
 })
@@ -149,4 +156,6 @@ export class HrStatsGridComponent {
   @Input() approvedCount = 0;
   @Input() rejectedCount = 0;
   @Input() icon = 'pi-file';
+  @Input() hideRejected = false;
+  @Input() approvedLabel = 'Aprobadas';
 }
