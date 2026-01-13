@@ -4,10 +4,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
-import { CalendarModule } from 'primeng/calendar';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
-import { DropdownModule } from 'primeng/dropdown';
-import { InputTextModule } from 'primeng/inputtext';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
@@ -28,14 +25,13 @@ import { DocumentRequest } from '../models/document-request.model';
     ButtonModule,
     TagModule,
     TooltipModule,
-    InputTextModule,
-    DropdownModule,
-    CalendarModule,
     ToastModule,
     ConfirmDialogModule,
     ProgressSpinnerModule,
     FormsModule,
     DatePipe,
+    HrStatsGridComponent,
+    HrFiltersPanelComponent,
   ],
   providers: [MessageService, ConfirmationService],
   template: `
@@ -43,149 +39,25 @@ import { DocumentRequest } from '../models/document-request.model';
     <p-confirmDialog />
     <div class="space-y-3 p-4">
       <!-- Estadísticas Compactas -->
-      <div class="grid grid-cols-4 gap-2">
-        <!-- Total -->
-        <div
-          class="group relative bg-gradient-to-br from-neutral-800 to-neutral-800/80 rounded-lg p-3 border border-neutral-700/50 hover:border-cyan-400/50 transition-all duration-200 hover:shadow-lg hover:shadow-cyan-500/10 cursor-pointer"
-        >
-          <div class="flex items-center justify-between">
-            <div
-              class="w-8 h-8 rounded-md bg-gradient-to-br from-gray-500/20 to-gray-600/20 flex items-center justify-center group-hover:scale-105 transition-transform"
-            >
-              <i class="pi pi-file text-lg text-gray-400"></i>
-            </div>
-            <div class="text-right flex-1">
-              <p
-                class="text-[10px] font-medium text-gray-400 uppercase tracking-wider m-0"
-              >
-                Total
-              </p>
-              <p class="text-xl font-bold text-white m-0">{{ totalCount() }}</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Pendientes -->
-        <div
-          class="group relative bg-gradient-to-br from-yellow-500/10 via-yellow-500/5 to-neutral-800 rounded-lg p-3 border border-yellow-500/30 hover:border-yellow-400/50 transition-all duration-200 hover:shadow-lg hover:shadow-yellow-500/20 cursor-pointer"
-        >
-          <div class="flex items-center justify-between">
-            <div
-              class="w-8 h-8 rounded-md bg-gradient-to-br from-yellow-500/30 to-yellow-600/20 flex items-center justify-center group-hover:scale-105 transition-transform"
-            >
-              <i class="pi pi-clock text-lg text-yellow-400"></i>
-            </div>
-            <div class="text-right flex-1">
-              <p
-                class="text-[10px] font-medium text-yellow-400/80 uppercase tracking-wider m-0"
-              >
-                Pendientes
-              </p>
-              <p class="text-xl font-bold text-yellow-300 m-0">
-                {{ pendingCount() }}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Aprobadas -->
-        <div
-          class="group relative bg-gradient-to-br from-green-500/10 via-green-500/5 to-neutral-800 rounded-lg p-3 border border-green-500/30 hover:border-green-400/50 transition-all duration-200 hover:shadow-lg hover:shadow-green-500/20 cursor-pointer"
-        >
-          <div class="flex items-center justify-between">
-            <div
-              class="w-8 h-8 rounded-md bg-gradient-to-br from-green-500/30 to-green-600/20 flex items-center justify-center group-hover:scale-105 transition-transform"
-            >
-              <i class="pi pi-check-circle text-lg text-green-400"></i>
-            </div>
-            <div class="text-right flex-1">
-              <p
-                class="text-[10px] font-medium text-green-400/80 uppercase tracking-wider m-0"
-              >
-                Aprobadas
-              </p>
-              <p class="text-xl font-bold text-green-300 m-0">
-                {{ approvedCount() }}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Rechazadas -->
-        <div
-          class="group relative bg-gradient-to-br from-red-500/10 via-red-500/5 to-neutral-800 rounded-lg p-3 border border-red-500/30 hover:border-red-400/50 transition-all duration-200 hover:shadow-lg hover:shadow-red-500/20 cursor-pointer"
-        >
-          <div class="flex items-center justify-between">
-            <div
-              class="w-8 h-8 rounded-md bg-gradient-to-br from-red-500/30 to-red-600/20 flex items-center justify-center group-hover:scale-105 transition-transform"
-            >
-              <i class="pi pi-times-circle text-lg text-red-400"></i>
-            </div>
-            <div class="text-right flex-1">
-              <p
-                class="text-[10px] font-medium text-red-400/80 uppercase tracking-wider m-0"
-              >
-                Rechazadas
-              </p>
-              <p class="text-xl font-bold text-red-300 m-0">
-                {{ rejectedCount() }}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <pt-hr-stats-grid
+        [totalCount]="totalCount()"
+        [pendingCount]="pendingCount()"
+        [approvedCount]="approvedCount()"
+        [rejectedCount]="rejectedCount()"
+        icon="pi-file-edit"
+      />
 
       <!-- Filtros -->
-      <div
-        class="bg-gradient-to-br from-neutral-800/80 to-neutral-800/60 rounded-lg border border-neutral-700/50 backdrop-blur-sm p-3"
-      >
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
-          <div>
-            <label
-              class="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1"
-              >Búsqueda</label
-            >
-            <input
-              pInputText
-              [(ngModel)]="searchText"
-              placeholder="Empleado o tipo..."
-              class="w-full text-sm py-1.5 bg-neutral-900/50 border-neutral-600"
-            />
-          </div>
-          <div>
-            <label
-              class="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1"
-              >Estado</label
-            >
-            <p-dropdown
-              [(ngModel)]="selectedStatus"
-              [options]="statusOptions"
-              optionLabel="label"
-              optionValue="value"
-              placeholder="Todos"
-              [showClear]="true"
-              class="w-full text-sm"
-              [style]="{ height: '32px' }"
-            />
-          </div>
-          <div>
-            <label
-              class="block text-[10px] font-medium text-gray-400 uppercase tracking-wider mb-1"
-              >Rango</label
-            >
-            <p-calendar
-              [(ngModel)]="dateRange"
-              selectionMode="range"
-              placeholder="Seleccionar"
-              dateFormat="dd/mm/yy"
-              [showIcon]="true"
-              class="w-full text-sm"
-              [inputStyle]="{ height: '32px', padding: '0.375rem' }"
-              [showClear]="true"
-            />
-          </div>
-        </div>
-      </div>
+      <pt-hr-filters-panel
+        [statusOptions]="statusOptions"
+        [totalCount]="totalCount()"
+        [filteredCount]="filteredDocuments().length"
+        searchPlaceholder="Empleado o tipo..."
+        (searchChange)="onSearchChange($event)"
+        (statusChange)="onStatusChange($event)"
+        (dateRangeChange)="onDateRangeChange($event)"
+        (clearFilters)="onClearFilters()"
+      />
 
       <!-- Tabla -->
       <div
@@ -309,11 +181,7 @@ export class DocumentRequestsComponent {
   public selectedStatus = signal<string | null>(null);
   public dateRange = signal<Date[] | null>(null);
 
-  public statusOptions = [
-    { label: 'Pendiente', value: 'pending' },
-    { label: 'Aprobada', value: 'approved' },
-    { label: 'Rechazada', value: 'rejected' },
-  ];
+  public statusOptions = STATUS_OPTIONS;
 
   public totalCount = computed(() => this.service.value().length);
   public pendingCount = computed(
@@ -356,6 +224,25 @@ export class DocumentRequestsComponent {
     return docs;
   });
 
+  // Filter event handlers
+  onSearchChange(value: string): void {
+    this.searchText.set(value);
+  }
+
+  onStatusChange(value: string | null): void {
+    this.selectedStatus.set(value);
+  }
+
+  onDateRangeChange(value: Date[] | null): void {
+    this.dateRange.set(value);
+  }
+
+  onClearFilters(): void {
+    this.searchText.set('');
+    this.selectedStatus.set(null);
+    this.dateRange.set(null);
+  }
+
   getDocumentTypeLabel(type: string): string {
     const types: Record<string, string> = {
       work_certificate: 'Constancia Laboral',
@@ -366,36 +253,8 @@ export class DocumentRequestsComponent {
     return types[type] || type;
   }
 
-  getDocumentStatusLabel(status: string): string {
-    const labels: Record<string, string> = {
-      pending: 'Pendiente',
-      approved: 'Aprobada',
-      rejected: 'Rechazada',
-    };
-    return labels[status] || status;
-  }
-
-  getDocumentStatusSeverity(
-    status: string
-  ):
-    | 'success'
-    | 'info'
-    | 'warn'
-    | 'danger'
-    | 'secondary'
-    | 'contrast'
-    | undefined {
-    switch (status) {
-      case 'pending':
-        return 'warn';
-      case 'approved':
-        return 'success';
-      case 'rejected':
-        return 'danger';
-      default:
-        return 'info';
-    }
-  }
+  getDocumentStatusLabel = getStatusLabel;
+  getDocumentStatusSeverity = getStatusSeverity;
 
   approveDocument(document: DocumentRequest) {
     this.confirmationService.confirm({
