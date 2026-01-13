@@ -1,7 +1,14 @@
 import { CommonModule, DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Component, computed, inject, signal } from '@angular/core';
+import {
+  Component,
+  SecurityContext,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { DomSanitizer } from '@angular/platform-browser';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
@@ -16,6 +23,7 @@ import { DashboardStore } from '../../../../stores/dashboard.store';
 import { getEnv } from '../../../../utils/env.utils';
 import { HrFiltersPanelComponent } from '../../shared/components/hr-filters-panel.component';
 import { HrStatsGridComponent } from '../../shared/components/hr-stats-grid.component';
+import { SafeUrlPipe } from '../../shared/pipes/safe-url.pipe';
 import {
   STATUS_OPTIONS,
   calculateDaysBetween,
@@ -51,6 +59,7 @@ import { VacationRequest } from '../models/vacation-request.model';
     DatePipe,
     HrStatsGridComponent,
     HrFiltersPanelComponent,
+    SafeUrlPipe,
   ],
   providers: [MessageService, ConfirmationService],
   template: `
@@ -287,11 +296,37 @@ import { VacationRequest } from '../models/vacation-request.model';
       [dismissableMask]="true"
     >
       <ng-template pTemplate="header">
-        <div class="flex items-center gap-2">
-          <i class="pi pi-calendar text-cyan-400"></i>
-          <span class="text-lg font-semibold text-white">
-            Detalles de Solicitud de Vacaciones
-          </span>
+        <div class="flex items-center justify-between w-full">
+          <div class="flex items-center gap-2">
+            <i class="pi pi-calendar text-cyan-400"></i>
+            <span class="text-lg font-semibold text-white">
+              Detalles de Solicitud de Vacaciones
+            </span>
+          </div>
+          <div class="flex items-center gap-2">
+            <p-button
+              [icon]="
+                selectedVacation()?.document_url
+                  ? 'pi pi-file'
+                  : 'pi pi-paperclip'
+              "
+              [rounded]="true"
+              [text]="true"
+              severity="secondary"
+              (onClick)="
+                selectedVacation()?.document_url
+                  ? openDocument()
+                  : attachDocument()
+              "
+              [pTooltip]="
+                selectedVacation()?.document_url
+                  ? 'Ver documento adjunto'
+                  : 'Adjuntar documento'
+              "
+              tooltipPosition="left"
+              size="small"
+            />
+          </div>
         </div>
       </ng-template>
 
@@ -463,6 +498,145 @@ import { VacationRequest } from '../models/vacation-request.model';
       </div>
       }
     </p-dialog>
+
+    @if (showDocumentPreview()) {
+    <div
+      class="fixed bg-neutral-900 border-l border-neutral-700 shadow-2xl z-[1200] transition-all duration-500 ease-out"
+      [style.width]="'400px'"
+      [style.max-width]="'40vw'"
+      [style.top]="'50%'"
+      [style.left]="showDocumentPreview() ? 'calc(50% + 400px)' : '50%'"
+      [style.transform]="
+        showDocumentPreview()
+          ? 'translateY(-50%) translateX(0) scale(1)'
+          : 'translateY(-50%) translateX(0) scale(0.8)'
+      "
+      [style.opacity]="showDocumentPreview() ? '1' : '0'"
+      [style.max-height]="'90vh'"
+      [style.height]="'664px'"
+      [style.pointer-events]="showDocumentPreview() ? 'auto' : 'none'"
+    >
+      <div class="flex flex-col h-full">
+        <!-- Header del panel lateral -->
+        <div
+          class="p-4 border-b border-neutral-700 bg-neutral-800 flex items-center justify-between"
+        >
+          <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+            <i class="pi pi-file text-cyan-400"></i>
+            Documento Adjunto
+          </h3>
+          <div class="flex items-center gap-2">
+            @if (selectedVacation()?.document_url) {
+            <p-button
+              label="Adjuntar nuevo archivo"
+              icon="pi pi-upload"
+              size="small"
+              severity="secondary"
+              [outlined]="true"
+              (onClick)="attachDocument()"
+            />
+            }
+            <p-button
+              icon="pi pi-times"
+              [rounded]="true"
+              [text]="true"
+              severity="secondary"
+              (onClick)="showDocumentPreview.set(false)"
+              size="small"
+            />
+          </div>
+        </div>
+
+        <!-- Controlles de Zoom -->
+        @if (selectedVacation()?.document_url) {
+        <div
+          class="p-2 border-b border-neutral-700 bg-neutral-800/50 flex items-center justify-end gap-2"
+        >
+          <p-button
+            icon="pi pi-search-minus"
+            (onClick)="zoomOut()"
+            [text]="true"
+            [rounded]="true"
+            severity="secondary"
+            size="small"
+            [disabled]="documentZoomLevel() <= 0.5"
+            pTooltip="Alejar"
+          />
+          <span class="text-sm text-gray-400 min-w-[60px] text-center">
+            {{ (documentZoomLevel() * 100).toFixed(0) }}%
+          </span>
+          <p-button
+            icon="pi pi-search-plus"
+            (onClick)="zoomIn()"
+            [text]="true"
+            [rounded]="true"
+            severity="secondary"
+            size="small"
+            [disabled]="documentZoomLevel() >= 2"
+            pTooltip="Acercar"
+          />
+          <p-button
+            label="Reset"
+            (onClick)="resetZoom()"
+            [text]="true"
+            severity="secondary"
+            size="small"
+            pTooltip="Restablecer zoom"
+          />
+        </div>
+        }
+
+        <!-- Contenido del preview -->
+        <div class="flex-1 overflow-hidden bg-neutral-900 relative">
+          @if (selectedVacation()?.document_url) {
+          <div
+            class="w-full h-full overflow-auto flex justify-center p-4"
+            [style.align-items]="'flex-start'"
+          >
+            <div
+              [style.transform]="'scale(' + documentZoomLevel() + ')'"
+              [style.transform-origin]="'top center'"
+              class="transition-transform duration-200"
+              style="width: 100%; min-height: 100%;"
+            >
+              <iframe
+                [src]="getVacationDocumentUrl() | safeUrl"
+                class="w-full h-[800px] border-0 bg-white rounded-sm"
+                title="Preview del documento"
+              ></iframe>
+            </div>
+          </div>
+          } @else {
+          <div
+            class="flex flex-col items-center justify-center h-full p-8 text-center"
+          >
+            <i class="pi pi-file text-6xl text-gray-400 mb-4"></i>
+            <h4 class="text-xl font-semibold text-white mb-2">
+              No hay documento adjunto
+            </h4>
+            <p class="text-gray-400 mb-6">
+              Puedes adjuntar un documento PDF a esta solicitud.
+            </p>
+            <p-button
+              label="Adjuntar archivo"
+              icon="pi pi-upload"
+              severity="info"
+              (onClick)="attachDocument()"
+            />
+          </div>
+          }
+        </div>
+      </div>
+    </div>
+    }
+
+    <!-- Overlay para cerrar el panel al hacer clic fuera -->
+    @if (showDocumentPreview()) {
+    <div
+      class="fixed inset-0 bg-black/50 z-[1199]"
+      (click)="showDocumentPreview.set(false)"
+    ></div>
+    }
   `,
 })
 export class VacationsComponent {
@@ -471,6 +645,7 @@ export class VacationsComponent {
   private confirmationService = inject(ConfirmationService);
   private dashboardStore = inject(DashboardStore);
   private http = inject(HttpClient);
+  private domSanitizer = inject(DomSanitizer);
 
   public searchText = signal('');
   public selectedStatus = signal<string | null>(null);
@@ -479,6 +654,10 @@ export class VacationsComponent {
   // Signals for details dialog
   public showDetailsDialog = signal(false);
   public selectedVacation = signal<VacationRequest | null>(null);
+
+  // Signals for document preview
+  public showDocumentPreview = signal(false);
+  public documentZoomLevel = signal(1);
 
   public statusOptions = STATUS_OPTIONS;
 
@@ -570,6 +749,131 @@ export class VacationsComponent {
   viewDetails(vacation: VacationRequest): void {
     this.selectedVacation.set(vacation);
     this.showDetailsDialog.set(true);
+  }
+
+  // Document management methods
+  public openDocument(): void {
+    if (this.selectedVacation()?.document_url) {
+      this.showDocumentPreview.set(true);
+    }
+  }
+
+  public closeDocumentPreview(): void {
+    this.showDocumentPreview.set(false);
+  }
+
+  public attachDocument(): void {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/pdf';
+    input.style.display = 'none';
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    input.onchange = (event: any) => {
+      const file = event.target.files?.[0];
+      if (file) {
+        this.uploadDocument(file);
+      }
+    };
+    document.body.appendChild(input);
+    input.click();
+    document.body.removeChild(input);
+  }
+
+  private async uploadDocument(file: File) {
+    if (file.size > 5000000) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Archivo muy grande (>5MB)',
+      });
+      return;
+    }
+    if (file.type !== 'application/pdf') {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Solo PDF',
+      });
+      return;
+    }
+
+    const vacation = this.selectedVacation();
+    if (!vacation) return;
+
+    this.messageService.add({
+      severity: 'info',
+      summary: 'Subiendo...',
+      detail: 'Espere por favor',
+    });
+
+    try {
+      const fileName = `${Date.now()}_${file.name.replace(
+        /[^a-zA-Z0-9.-]/g,
+        '_'
+      )}`;
+      const bucketName = 'employee-documents';
+      const filePath = `vacations/${vacation.id}/${fileName}`;
+      const url = `${getEnv(
+        'ENV_SUPABASE_URL'
+      )}/storage/v1/object/${bucketName}/${filePath}`;
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      await firstValueFrom(this.http.post(url, formData));
+
+      const documentUrl = `${getEnv(
+        'ENV_SUPABASE_URL'
+      )}/storage/v1/object/public/${bucketName}/${filePath}`;
+
+      await firstValueFrom(
+        this.http.patch(
+          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/employee_vacations?id=eq.${
+            vacation.id
+          }`,
+          { document_url: documentUrl }
+        )
+      );
+
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Éxito',
+        detail: 'Documento adjunto',
+      });
+      this.service.reload();
+
+      // Update the local signal directly to reflect changes immediately
+      this.selectedVacation.update((current) =>
+        current ? { ...current, document_url: documentUrl } : null
+      );
+    } catch (error) {
+      console.error('Upload error', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'Fallo al subir documento',
+      });
+    }
+  }
+
+  public zoomIn(): void {
+    this.documentZoomLevel.update((v) => Math.min(v + 0.25, 2));
+  }
+
+  public zoomOut(): void {
+    this.documentZoomLevel.update((v) => Math.max(v - 0.25, 0.5));
+  }
+
+  public resetZoom(): void {
+    this.documentZoomLevel.set(1);
+  }
+
+  public getVacationDocumentUrl() {
+    const url = this.selectedVacation()?.document_url;
+    return url
+      ? this.domSanitizer.sanitize(SecurityContext.RESOURCE_URL, url) || ''
+      : '';
   }
 
   private updateVacationStatus(id: string, status: 'approved' | 'rejected') {

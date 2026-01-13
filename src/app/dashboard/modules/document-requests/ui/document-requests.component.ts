@@ -1,7 +1,14 @@
 import { CommonModule, DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Component, computed, inject, signal } from '@angular/core';
+import {
+  Component,
+  computed,
+  inject,
+  SecurityContext,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { DomSanitizer } from '@angular/platform-browser';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
@@ -332,11 +339,41 @@ import { DocumentRequest } from '../models/document-request.model';
       [dismissableMask]="true"
     >
       <ng-template pTemplate="header">
-        <div class="flex items-center gap-2">
-          <i class="pi pi-file-edit text-purple-400"></i>
-          <span class="text-lg font-semibold text-white">
-            Detalles de Solicitud de Documento
-          </span>
+        <div class="flex items-center justify-between w-full">
+          <div class="flex items-center gap-2">
+            <i class="pi pi-file-edit text-purple-400"></i>
+            <span class="text-lg font-semibold text-white">
+              Detalles de Solicitud de Documento
+            </span>
+          </div>
+          <div class="flex items-center gap-2">
+            <p-button
+              [icon]="
+                selectedDocument()?.document_url
+                  ? 'pi pi-file'
+                  : 'pi pi-paperclip'
+              "
+              [rounded]="true"
+              [text]="true"
+              severity="secondary"
+              (onClick)="
+                selectedDocument()?.document_url
+                  ? openDocument()
+                  : openCompleteDialog(selectedDocument()!)
+              "
+              [pTooltip]="
+                selectedDocument()?.document_url
+                  ? 'Ver documento adjunto'
+                  : 'Adjuntar documento'
+              "
+              tooltipPosition="left"
+              size="small"
+              [disabled]="
+                selectedDocument()?.status === 'completed' &&
+                !selectedDocument()?.document_url
+              "
+            />
+          </div>
         </div>
       </ng-template>
 
@@ -405,34 +442,7 @@ import { DocumentRequest } from '../models/document-request.model';
         </div>
 
         <!-- Visor de PDF -->
-        @if (selectedDocument()?.document_url) {
-        <div
-          class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700/50"
-        >
-          <h4
-            class="text-sm font-semibold text-purple-400 mb-3 flex items-center gap-2"
-          >
-            <i class="pi pi-eye"></i> Vista Previa
-          </h4>
-          <object
-            [data]="selectedDocument()?.document_url | safeUrl"
-            type="application/pdf"
-            class="pdf-viewer"
-          >
-            <div
-              class="flex flex-col items-center justify-center h-full text-gray-400"
-            >
-              <p>No se puede visualizar el PDF directamente.</p>
-              <a
-                [href]="selectedDocument()?.document_url"
-                target="_blank"
-                class="text-cyan-400 hover:underline"
-                >Descargar PDF</a
-              >
-            </div>
-          </object>
-        </div>
-        }
+        <!-- Visor de PDF eliminado en favor del visor lateral -->
 
         <!-- Información de Auditoría -->
         <div
@@ -460,6 +470,145 @@ import { DocumentRequest } from '../models/document-request.model';
       </div>
       }
     </p-dialog>
+
+    @if (showDocumentPreview()) {
+    <div
+      class="fixed bg-neutral-900 border-l border-neutral-700 shadow-2xl z-[1200] transition-all duration-500 ease-out"
+      [style.width]="'400px'"
+      [style.max-width]="'40vw'"
+      [style.top]="'50%'"
+      [style.left]="showDocumentPreview() ? 'calc(50% + 400px)' : '50%'"
+      [style.transform]="
+        showDocumentPreview()
+          ? 'translateY(-50%) translateX(0) scale(1)'
+          : 'translateY(-50%) translateX(0) scale(0.8)'
+      "
+      [style.opacity]="showDocumentPreview() ? '1' : '0'"
+      [style.max-height]="'90vh'"
+      [style.height]="'664px'"
+      [style.pointer-events]="showDocumentPreview() ? 'auto' : 'none'"
+    >
+      <div class="flex flex-col h-full">
+        <!-- Header del panel lateral -->
+        <div
+          class="p-4 border-b border-neutral-700 bg-neutral-800 flex items-center justify-between"
+        >
+          <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+            <i class="pi pi-file text-cyan-400"></i>
+            Documento Adjunto
+          </h3>
+          <div class="flex items-center gap-2">
+            @if (selectedDocument()?.document_url) {
+            <p-button
+              label="Adjuntar nuevo archivo"
+              icon="pi pi-upload"
+              size="small"
+              severity="secondary"
+              [outlined]="true"
+              (onClick)="openCompleteDialog(selectedDocument()!)"
+            />
+            }
+            <p-button
+              icon="pi pi-times"
+              [rounded]="true"
+              [text]="true"
+              severity="secondary"
+              (onClick)="showDocumentPreview.set(false)"
+              size="small"
+            />
+          </div>
+        </div>
+
+        <!-- Controlles de Zoom -->
+        @if (selectedDocument()?.document_url) {
+        <div
+          class="p-2 border-b border-neutral-700 bg-neutral-800/50 flex items-center justify-end gap-2"
+        >
+          <p-button
+            icon="pi pi-search-minus"
+            (onClick)="zoomOut()"
+            [text]="true"
+            [rounded]="true"
+            severity="secondary"
+            size="small"
+            [disabled]="documentZoomLevel() <= 0.5"
+            pTooltip="Alejar"
+          />
+          <span class="text-sm text-gray-400 min-w-[60px] text-center">
+            {{ (documentZoomLevel() * 100).toFixed(0) }}%
+          </span>
+          <p-button
+            icon="pi pi-search-plus"
+            (onClick)="zoomIn()"
+            [text]="true"
+            [rounded]="true"
+            severity="secondary"
+            size="small"
+            [disabled]="documentZoomLevel() >= 2"
+            pTooltip="Acercar"
+          />
+          <p-button
+            label="Reset"
+            (onClick)="resetZoom()"
+            [text]="true"
+            severity="secondary"
+            size="small"
+            pTooltip="Restablecer zoom"
+          />
+        </div>
+        }
+
+        <!-- Contenido del preview -->
+        <div class="flex-1 overflow-hidden bg-neutral-900 relative">
+          @if (selectedDocument()?.document_url) {
+          <div
+            class="w-full h-full overflow-auto flex justify-center p-4"
+            [style.align-items]="'flex-start'"
+          >
+            <div
+              [style.transform]="'scale(' + documentZoomLevel() + ')'"
+              [style.transform-origin]="'top center'"
+              class="transition-transform duration-200"
+              style="width: 100%; min-height: 100%;"
+            >
+              <iframe
+                [src]="getDocumentUrl() | safeUrl"
+                class="w-full h-[800px] border-0 bg-white rounded-sm"
+                title="Preview del documento"
+              ></iframe>
+            </div>
+          </div>
+          } @else {
+          <div
+            class="flex flex-col items-center justify-center h-full p-8 text-center"
+          >
+            <i class="pi pi-file text-6xl text-gray-400 mb-4"></i>
+            <h4 class="text-xl font-semibold text-white mb-2">
+              No hay documento adjunto
+            </h4>
+            <p class="text-gray-400 mb-6">
+              Puedes adjuntar un documento PDF a esta solicitud
+            </p>
+            <p-button
+              label="Adjuntar archivo"
+              icon="pi pi-upload"
+              severity="info"
+              (onClick)="openCompleteDialog(selectedDocument()!)"
+            />
+          </div>
+          }
+        </div>
+      </div>
+    </div>
+    }
+
+    <!-- Overlay para cerrar el panel al hacer clic fuera -->
+    @if (showDocumentPreview()) {
+    <div
+      class="fixed inset-0 bg-black/50 z-[1199]"
+      (click)="showDocumentPreview.set(false)"
+    ></div>
+    }
   `,
 })
 export class DocumentRequestsComponent {
@@ -468,6 +617,7 @@ export class DocumentRequestsComponent {
   private confirmationService = inject(ConfirmationService);
   private dashboardStore = inject(DashboardStore);
   private http = inject(HttpClient);
+  private domSanitizer = inject(DomSanitizer);
 
   public searchText = signal('');
   public selectedStatus = signal<string | null>(null);
@@ -477,6 +627,10 @@ export class DocumentRequestsComponent {
   public showDetailsDialog = signal(false);
   public showCompleteDialog = signal(false);
   public selectedDocument = signal<DocumentRequest | null>(null);
+
+  // Signals for document preview
+  public showDocumentPreview = signal(false);
+  public documentZoomLevel = signal(1);
 
   // Upload signals
   public selectedFile = signal<File | null>(null);
@@ -573,6 +727,37 @@ export class DocumentRequestsComponent {
     this.showCompleteDialog.set(true);
   }
 
+  // Document management methods
+  public openDocument(): void {
+    if (this.selectedDocument()?.document_url) {
+      this.showDocumentPreview.set(true);
+    }
+  }
+
+  public closeDocumentPreview(): void {
+    this.showDocumentPreview.set(false);
+  }
+
+  public zoomIn(): void {
+    this.documentZoomLevel.update((v) => Math.min(v + 0.25, 2));
+  }
+
+  public zoomOut(): void {
+    this.documentZoomLevel.update((v) => Math.max(v - 0.25, 0.5));
+  }
+
+  public resetZoom(): void {
+    this.documentZoomLevel.set(1);
+  }
+
+  public getDocumentUrl() {
+    const url = this.selectedDocument()?.document_url;
+    return url
+      ? this.domSanitizer.sanitize(SecurityContext.RESOURCE_URL, url) || ''
+      : '';
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   onFileSelect(event: any) {
     if (event.files && event.files.length > 0) {
       this.selectedFile.set(event.files[0]);
