@@ -19,7 +19,7 @@ export class DocumentRequestsService {
     let httpParams = new HttpParams()
       .set(
         'select',
-        'id,employee_id,created_by,document_type,reason,document_url,status,processed_by,processed_at,notes,created_at,updated_at,company_id,employee:employees!document_requests_employee_id_fkey(id,first_name,father_name,work_email,company_id,position:positions(name),branch:branches(name))'
+        'id,employee_id,created_by,document_type,reason,document_url,status,processed_by,processed_at,notes,created_at,updated_at,company_id,employee:employees!document_requests_employee_id_fkey(id,first_name,father_name,work_email,company_id,position:positions(name),branch:branches(name)),created_by_employee:employees!document_requests_created_by_fkey(id,first_name,father_name)'
       )
       .set('company_id', `eq.${companyId}`)
       .set('order', 'created_at.desc');

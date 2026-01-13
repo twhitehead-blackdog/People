@@ -2,6 +2,11 @@ export interface DocumentRequest {
   id: string;
   employee_id: string;
   created_by?: string | null;
+  created_by_employee?: {
+    id: string;
+    first_name: string;
+    father_name: string;
+  };
   employee?: {
     id: string;
     first_name: string;

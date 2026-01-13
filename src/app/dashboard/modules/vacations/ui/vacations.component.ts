@@ -123,49 +123,49 @@ import { VacationRequest } from '../models/vacation-request.model';
         >
           <ng-template pTemplate="header">
             <tr>
-              <th style="width: 180px; padding: 0.5rem;">
+              <th style="width: 180px; padding: 0.4rem; text-align: left;">
                 <div class="flex items-center gap-1">
                   <i class="pi pi-user text-cyan-400 text-xs"></i>
                   <span class="text-xs">Empleado</span>
                 </div>
               </th>
-              <th style="width: 120px; padding: 0.5rem;">
+              <th style="width: 120px; padding: 0.4rem; text-align: center;">
                 <div class="flex items-center gap-1">
                   <i class="pi pi-calendar text-cyan-400 text-xs"></i>
                   <span class="text-xs">Fecha Inicio</span>
                 </div>
               </th>
-              <th style="width: 120px; padding: 0.5rem;">
+              <th style="width: 120px; padding: 0.4rem; text-align: center;">
                 <div class="flex items-center gap-1">
                   <i class="pi pi-calendar text-cyan-400 text-xs"></i>
                   <span class="text-xs">Fecha Fin</span>
                 </div>
               </th>
-              <th style="width: 100px; padding: 0.5rem;">
+              <th style="width: 100px; padding: 0.4rem; text-align: center;">
                 <div class="flex items-center gap-1">
                   <i class="pi pi-clock text-cyan-400 text-xs"></i>
                   <span class="text-xs">Días</span>
                 </div>
               </th>
-              <th style="width: 150px; padding: 0.5rem;">
+              <th style="width: 150px; padding: 0.4rem; text-align: center;">
                 <div class="flex items-center gap-1">
                   <i class="pi pi-tag text-cyan-400 text-xs"></i>
                   <span class="text-xs">Estado</span>
                 </div>
               </th>
-              <th style="width: 140px; padding: 0.5rem;">
+              <th style="width: 140px; padding: 0.4rem; text-align: center;">
                 <div class="flex items-center gap-1">
                   <i class="pi pi-user-plus text-cyan-400 text-xs"></i>
                   <span class="text-xs">Creado por</span>
                 </div>
               </th>
-              <th style="width: 120px; padding: 0.5rem;">
+              <th style="width: 120px; padding: 0.4rem; text-align: center;">
                 <div class="flex items-center gap-1">
                   <i class="pi pi-calendar-plus text-cyan-400 text-xs"></i>
                   <span class="text-xs">Solicitado</span>
                 </div>
               </th>
-              <th style="width: 180px; padding: 0.5rem;">
+              <th style="width: 180px; padding: 0.4rem; text-align: left;">
                 <div class="flex items-center gap-1">
                   <i class="pi pi-cog text-cyan-400 text-xs"></i>
                   <span class="text-xs">Acciones</span>
@@ -178,21 +178,22 @@ import { VacationRequest } from '../models/vacation-request.model';
               class="hover:bg-neutral-700/30 transition-colors cursor-pointer"
               (click)="viewDetails(vacation)"
             >
-              <td style="padding: 0.5rem;">
-                <div class="flex flex-col gap-0.5">
-                  <span class="text-sm font-medium text-white">
-                    {{ vacation.employee?.first_name }}
-                    {{ vacation.employee?.father_name }}
-                  </span>
-                  @if (vacation.employee?.position?.name) {
-                  <span class="text-xs text-gray-400">
-                    {{ vacation.employee.position.name }}
-                  </span>
-                  } @if (vacation.employee?.branch?.name) {
-                  <span class="text-xs text-cyan-400">
-                    {{ vacation.employee.branch.name }}
-                  </span>
-                  }
+              <td style="padding: 0.4rem;">
+                <div class="flex items-center gap-1">
+                  <div
+                    class="w-5 h-5 rounded-full bg-gradient-to-br from-cyan-500/20 to-cyan-600/20 flex items-center justify-center flex-shrink-0"
+                  >
+                    <i class="pi pi-user text-cyan-400 text-[9px]"></i>
+                  </div>
+                  <div class="flex flex-col min-w-0">
+                    <span class="font-medium text-white text-xs truncate">
+                      {{ vacation.employee?.first_name }}
+                      {{ vacation.employee?.father_name }}
+                    </span>
+                    <span class="text-[9px] text-gray-400 truncate">
+                      {{ vacation.employee?.work_email || '-' }}
+                    </span>
+                  </div>
                 </div>
               </td>
               <td style="padding: 0.5rem;">
@@ -217,14 +218,14 @@ import { VacationRequest } from '../models/vacation-request.model';
                   class="text-xs"
                 />
               </td>
-              <td style="padding: 0.5rem; text-align: center;">
-                @if (vacation.created_by && vacation.created_by !==
-                vacation.employee_id) {
+              <td style="padding: 0.4rem; text-align: center;">
+                @if (vacation.created_by_employee) {
                 <div class="flex flex-col items-center gap-0.5">
                   <div class="flex items-center gap-1">
-                    <i class="pi pi-user text-amber-400 text-[10px]"></i>
+                    <i class="pi pi-user text-amber-400 text-[9px]"></i>
                     <span class="text-[10px] font-medium text-amber-300">
-                      Creado por gerente
+                      Creado por {{ vacation.created_by_employee.first_name }}
+                      {{ vacation.created_by_employee.father_name }}
                     </span>
                   </div>
                 </div>
@@ -243,35 +244,48 @@ import { VacationRequest } from '../models/vacation-request.model';
                   {{ vacation.created_at | date : 'HH:mm' }}
                 </span>
               </td>
-              <td style="padding: 0.5rem;" (click)="$event.stopPropagation()">
-                @if (vacation.status === 'pending') {
-                <div class="flex gap-1">
+              <td
+                style="padding: 0.4rem; text-align: center;"
+                (click)="$event.stopPropagation()"
+              >
+                <div class="flex gap-0.5 justify-center">
+                  @if (vacation.status === 'pending') {
                   <p-button
                     icon="pi pi-check"
+                    [text]="true"
                     severity="success"
                     size="small"
                     pTooltip="Aprobar"
-                    tooltipPosition="left"
-                    (onClick)="approveVacation(vacation)"
+                    tooltipPosition="top"
+                    [rounded]="true"
+                    (onClick)="
+                      approveVacation(vacation); $event.stopPropagation()
+                    "
                   />
                   <p-button
                     icon="pi pi-times"
+                    [text]="true"
                     severity="danger"
                     size="small"
                     pTooltip="Rechazar"
-                    tooltipPosition="left"
-                    (onClick)="rejectVacation(vacation)"
+                    tooltipPosition="top"
+                    [rounded]="true"
+                    (onClick)="
+                      rejectVacation(vacation); $event.stopPropagation()
+                    "
+                  />
+                  }
+                  <p-button
+                    icon="pi pi-eye"
+                    [text]="true"
+                    severity="info"
+                    size="small"
+                    pTooltip="Ver detalles"
+                    tooltipPosition="top"
+                    [rounded]="true"
+                    (onClick)="viewDetails(vacation); $event.stopPropagation()"
                   />
                 </div>
-                }
-                <p-button
-                  icon="pi pi-eye"
-                  severity="info"
-                  size="small"
-                  pTooltip="Ver detalles"
-                  tooltipPosition="left"
-                  (onClick)="viewDetails(vacation)"
-                />
               </td>
             </tr>
           </ng-template>

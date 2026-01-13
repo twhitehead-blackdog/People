@@ -18,7 +18,7 @@ export class VacationsService {
     let httpParams = new HttpParams()
       .set(
         'select',
-        'id,employee_id,created_by,start_date,end_date,reason,document_url,status,reviewed_by,reviewed_at,review_notes,rejection_comment,created_at,updated_at,company_id,employee:employees!employee_vacations_employee_id_fkey(id,first_name,father_name,work_email,company_id,position:positions(name),branch:branches(name))'
+        'id,employee_id,created_by,start_date,end_date,reason,document_url,status,reviewed_by,reviewed_at,review_notes,rejection_comment,created_at,updated_at,company_id,employee:employees!employee_vacations_employee_id_fkey(id,first_name,father_name,work_email,company_id,position:positions(name),branch:branches(name)),created_by_employee:employees!employee_vacations_created_by_fkey(id,first_name,father_name)'
       )
       .set('company_id', `eq.${companyId}`)
       .set('order', 'created_at.desc');

@@ -44,7 +44,9 @@ import {
 } from '../services/timeoff-audit.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { getEnv } from '../utils/env.utils';
+import { DocumentRequestsService } from './modules/document-requests/data/document-requests.service';
 import { DocumentRequestsComponent } from './modules/document-requests/ui/document-requests.component';
+import { VacationsService } from './modules/vacations/data/vacations.service';
 import { VacationsComponent } from './modules/vacations/ui/vacations.component';
 
 interface Disability {
@@ -121,6 +123,19 @@ interface VacationRequest {
   review_notes?: string;
   rejection_comment?: string | null;
   created_at: string;
+}
+
+export interface DocumentRequest {
+  id: string;
+  employee_id: string;
+  created_by?: string | null;
+  document_type: string;
+  reason: string | null;
+  document_url: string | null;
+  status: 'pending' | 'completed';
+  created_at: string;
+  updated_at: string;
+  company_id: string;
 }
 
 @Component({
@@ -293,7 +308,13 @@ interface VacationRequest {
               "
             >
               <i class="pi pi-file-edit mr-1.5 text-xs"></i>
-              Solicitudes de Documentos
+              Solicitudes de Documentos @if (documentsPendingCount() > 0) {
+              <span
+                class="ml-1.5 px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full text-xs font-bold"
+              >
+                {{ documentsPendingCount() }}
+              </span>
+              }
             </button>
             <button
               (click)="navigateToTab('vacations')"
@@ -305,7 +326,13 @@ interface VacationRequest {
               "
             >
               <i class="pi pi-calendar mr-1.5 text-xs"></i>
-              Vacaciones
+              Vacaciones @if (vacationsPendingCount() > 0) {
+              <span
+                class="ml-1.5 px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full text-xs font-bold"
+              >
+                {{ vacationsPendingCount() }}
+              </span>
+              }
             </button>
           </div>
         </div>
@@ -2740,6 +2767,8 @@ export class HRDisabilitiesComponent {
   private router = inject(Router);
   private auditService = inject(TimeoffAuditService);
   private sanitizer = inject(DomSanitizer);
+  private vacationsService = inject(VacationsService);
+  private documentRequestsService = inject(DocumentRequestsService);
 
   // Método para navegar a diferentes pestañas
   public navigateToTab(
@@ -3679,32 +3708,35 @@ export class HRDisabilitiesComponent {
     };
   });
 
-  // API para obtener solicitudes de vacaciones
-  public vacationsApi = httpResource<VacationRequest[]>(() => {
-    const companyId = this.organizationService.getCurrentCompanyId();
+  public vacationsPendingCount = computed(
+    () =>
+      this.vacationsService.value().filter((v) => v.status === 'pending')
+        .length || 0
+  );
 
-    if (!companyId) {
-      return undefined;
-    }
-
-    const params: any = {
-      select: `id,employee_id,created_by,start_date,end_date,reason,document_url,status,reviewed_by,reviewed_at,review_notes,rejection_comment,created_at,updated_at,company_id,employee:employees!employee_vacations_employee_id_fkey(id,first_name,father_name,work_email,company_id,position:positions(name),branch:branches(name))`,
-      company_id: `eq.${companyId}`,
-      order: 'created_at.desc',
-    };
-
-    return {
-      url: `${getEnv('ENV_SUPABASE_URL')}/rest/v1/employee_vacations`,
-      method: 'GET',
-      params,
-    };
-  });
+  public documentsPendingCount = computed(
+    () =>
+      this.documentRequestsService.value().filter((d) => d.status === 'pending')
+        .length || 0
+  );
 
   // Filtros para tiempo compensatorio
   public compensatorySearchText = signal('');
   public compensatorySelectedStatus = signal<string | null>(null);
   public compensatoryDateRange = signal<Date[] | null>(null);
-  public isRefreshing = signal(false);
+  public isRefreshing = computed(
+    () =>
+      this.compensatoryTimeoffsApi.isLoading() ||
+      this.vacationsService.isLoading() ||
+      this.documentRequestsService.isLoading()
+  );
+
+  public refreshAll(): void {
+    this.disabilitiesApi.reload();
+    this.compensatoryTimeoffsApi.reload();
+    this.vacationsService.reload();
+    this.documentRequestsService.reload();
+  }
 
   // Opciones de estado para tiempo compensatorio
   public compensatoryStatusOptions = [
@@ -3819,13 +3851,6 @@ export class HRDisabilitiesComponent {
     this.compensatorySearchText.set('');
     this.compensatorySelectedStatus.set(null);
     this.compensatoryDateRange.set(null);
-  }
-
-  public refreshAll(): void {
-    this.isRefreshing.set(true);
-    this.disabilitiesApi.reload();
-    this.compensatoryTimeoffsApi.reload();
-    setTimeout(() => this.isRefreshing.set(false), 1000);
   }
 
   public getCompensatoryStatusLabel(request: CompensatoryRequest): string {
@@ -5364,263 +5389,6 @@ export class HRDisabilitiesComponent {
     { label: 'Aprobada', value: 'approved' },
     { label: 'Rechazada', value: 'rejected' },
   ];
-
-  // Estadísticas de vacaciones
-  public vacationsTotalCount = computed(
-    () => this.vacationsApi.value()?.length || 0
-  );
-  public vacationsPendingCount = computed(
-    () =>
-      this.vacationsApi.value()?.filter((v) => v.status === 'pending').length ||
-      0
-  );
-  public vacationsApprovedCount = computed(
-    () =>
-      this.vacationsApi.value()?.filter((v) => v.status === 'approved')
-        .length || 0
-  );
-  public vacationsRejectedCount = computed(
-    () =>
-      this.vacationsApi.value()?.filter((v) => v.status === 'rejected')
-        .length || 0
-  );
-
-  // Vacaciones filtradas
-  public filteredVacations = computed(() => {
-    let vacations = this.vacationsApi.value() || [];
-
-    // Filtro por texto de búsqueda
-    if (this.vacationsSearchText().trim()) {
-      const searchText = this.vacationsSearchText().toLowerCase().trim();
-      vacations = vacations.filter((v) =>
-        `${v.employee?.first_name} ${v.employee?.father_name} ${v.employee?.work_email}`
-          .toLowerCase()
-          .includes(searchText)
-      );
-    }
-
-    // Filtro por estado
-    if (this.vacationsSelectedStatus()) {
-      vacations = vacations.filter(
-        (v) => v.status === this.vacationsSelectedStatus()
-      );
-    }
-
-    // Filtro por rango de fechas
-    if (this.vacationsDateRange() && this.vacationsDateRange()!.length === 2) {
-      const [start, end] = this.vacationsDateRange()!;
-      vacations = vacations.filter((v) => {
-        const vacationStart = new Date(v.start_date);
-        const vacationEnd = new Date(v.end_date);
-        return (
-          (vacationStart >= start && vacationStart <= end) ||
-          (vacationEnd >= start && vacationEnd <= end) ||
-          (vacationStart <= start && vacationEnd >= end)
-        );
-      });
-    }
-
-    return vacations;
-  });
-
-  public hasActiveVacationsFilters(): boolean {
-    return !!(
-      this.vacationsSearchText() ||
-      this.vacationsSelectedStatus() ||
-      this.vacationsDateRange()
-    );
-  }
-
-  public getActiveVacationsFiltersCount(): number {
-    let count = 0;
-    if (this.vacationsSearchText()) count++;
-    if (this.vacationsSelectedStatus()) count++;
-    if (this.vacationsDateRange()) count++;
-    return count;
-  }
-
-  public clearVacationsFilters(): void {
-    this.vacationsSearchText.set('');
-    this.vacationsSelectedStatus.set(null);
-    this.vacationsDateRange.set(null);
-  }
-
-  public calculateVacationDays(startDate: string, endDate: string): number {
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const diffTime = Math.abs(end.getTime() - start.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-    return diffDays;
-  }
-
-  public getVacationStatusLabel(status: string): string {
-    switch (status) {
-      case 'pending':
-        return 'Pendiente';
-      case 'approved':
-        return 'Aprobada';
-      case 'rejected':
-        return 'Rechazada';
-      default:
-        return 'Desconocido';
-    }
-  }
-
-  public getVacationStatusSeverity(
-    status: string
-  ): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
-    switch (status) {
-      case 'pending':
-        return 'warn';
-      case 'approved':
-        return 'success';
-      case 'rejected':
-        return 'danger';
-      default:
-        return 'info';
-    }
-  }
-
-  public approveVacation(vacation: VacationRequest): void {
-    const employeeName = `${vacation.employee?.first_name} ${vacation.employee?.father_name}`;
-    this.confirmationService.confirm({
-      message: `¿Estás seguro de aprobar las vacaciones de ${employeeName}?`,
-      header: 'Confirmar Aprobación',
-      icon: 'pi pi-exclamation-triangle',
-      acceptButtonStyleClass: 'p-button-success',
-      accept: () => {
-        this.updateVacationStatus(vacation.id, 'approved');
-      },
-    });
-  }
-
-  public rejectVacation(vacation: VacationRequest): void {
-    this.confirmationService.confirm({
-      message: `¿Estás seguro de rechazar las vacaciones de ${vacation.employee?.first_name} ${vacation.employee?.father_name}?`,
-      header: 'Confirmar Rechazo',
-      icon: 'pi pi-exclamation-triangle',
-      acceptButtonStyleClass: 'p-button-danger',
-      accept: () => {
-        this.updateVacationStatus(vacation.id, 'rejected');
-      },
-    });
-  }
-
-  public updateVacationStatus(
-    id: string,
-    status: 'pending' | 'approved' | 'rejected',
-    rejectionComment?: string
-  ): void {
-    const currentEmployee = this.dashboardStore.currentEmployee();
-    if (!currentEmployee) {
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Error',
-        detail: 'No se pudo identificar al empleado actual',
-      });
-      return;
-    }
-
-    const updateData: any = {
-      status,
-      reviewed_by: currentEmployee.id,
-      reviewed_at: new Date().toISOString(),
-    };
-
-    if (status === 'rejected' && rejectionComment) {
-      updateData.rejection_comment = rejectionComment;
-    }
-
-    this.http
-      .patch(
-        `${getEnv('ENV_SUPABASE_URL')}/rest/v1/employee_vacations?id=eq.${id}`,
-        updateData
-      )
-      .subscribe({
-        next: async () => {
-          // Notificar al empleado solo si se aprueba o rechaza
-          if (status === 'approved' || status === 'rejected') {
-            const vacation = this.vacationsApi
-              .value()
-              ?.find((v) => v.id === id);
-            if (vacation) {
-              await this.notifyEmployeeAboutVacation(
-                vacation,
-                status,
-                rejectionComment
-              );
-            }
-          }
-
-          this.messageService.add({
-            severity: 'success',
-            summary: 'Éxito',
-            detail: `Solicitud de vacaciones ${
-              status === 'approved'
-                ? 'aprobada'
-                : status === 'rejected'
-                ? 'rechazada'
-                : 'actualizada'
-            } correctamente`,
-          });
-          this.vacationsApi.reload();
-        },
-        error: () => {
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Error',
-            detail:
-              'No se pudo actualizar el estado de la solicitud de vacaciones',
-          });
-        },
-      });
-  }
-
-  private async notifyEmployeeAboutVacation(
-    vacation: VacationRequest,
-    status: 'approved' | 'rejected',
-    rejectionComment?: string
-  ): Promise<void> {
-    try {
-      const notificationData = {
-        employee_id: vacation.employee_id,
-        type: status === 'approved' ? 'vacation_approved' : 'vacation_rejected',
-        title:
-          status === 'approved'
-            ? 'Vacaciones Aprobadas'
-            : 'Vacaciones Rechazadas',
-        message:
-          status === 'approved'
-            ? `Tus vacaciones del ${format(
-                new Date(vacation.start_date),
-                'dd/MM/yyyy'
-              )} al ${format(
-                new Date(vacation.end_date),
-                'dd/MM/yyyy'
-              )} han sido aprobadas.`
-            : `Tus vacaciones del ${format(
-                new Date(vacation.start_date),
-                'dd/MM/yyyy'
-              )} al ${format(
-                new Date(vacation.end_date),
-                'dd/MM/yyyy'
-              )} han sido rechazadas.${
-                rejectionComment ? ` Motivo: ${rejectionComment}` : ''
-              }`,
-        is_read: false,
-        created_at: new Date().toISOString(),
-      };
-
-      await firstValueFrom(
-        this.http.post(
-          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/hr_messages`,
-          notificationData
-        )
-      );
-    } catch (error) {
-      console.error('Error notificando al empleado sobre vacaciones:', error);
-    }
-  }
 
   public viewVacationDetails(vacation: VacationRequest): void {
     // TODO: Implementar vista de detalles de vacaciones

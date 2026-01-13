@@ -124,37 +124,37 @@ import { DocumentRequest } from '../models/document-request.model';
         >
           <ng-template pTemplate="header">
             <tr>
-              <th style="width: 180px; padding: 0.5rem;">
+              <th style="width: 180px; padding: 0.4rem; text-align: left;">
                 <div class="flex items-center gap-1">
                   <i class="pi pi-user text-purple-400 text-xs"></i>
                   <span class="text-xs">Empleado</span>
                 </div>
               </th>
-              <th style="width: 150px; padding: 0.5rem;">
+              <th style="width: 150px; padding: 0.4rem; text-align: center;">
                 <div class="flex items-center gap-1">
                   <i class="pi pi-file text-purple-400 text-xs"></i>
                   <span class="text-xs">Tipo Documento</span>
                 </div>
               </th>
-              <th style="width: 120px; padding: 0.5rem;">
+              <th style="width: 120px; padding: 0.4rem; text-align: center;">
                 <div class="flex items-center gap-1">
                   <i class="pi pi-tag text-purple-400 text-xs"></i>
                   <span class="text-xs">Estado</span>
                 </div>
               </th>
-              <th style="width: 140px; padding: 0.5rem;">
+              <th style="width: 140px; padding: 0.4rem; text-align: center;">
                 <div class="flex items-center gap-1">
                   <i class="pi pi-user-plus text-purple-400 text-xs"></i>
                   <span class="text-xs">Creado por</span>
                 </div>
               </th>
-              <th style="width: 120px; padding: 0.5rem;">
+              <th style="width: 120px; padding: 0.4rem; text-align: center;">
                 <div class="flex items-center gap-1">
                   <i class="pi pi-calendar text-purple-400 text-xs"></i>
                   <span class="text-xs">Solicitado</span>
                 </div>
               </th>
-              <th style="width: 180px; padding: 0.5rem;">
+              <th style="width: 180px; padding: 0.4rem; text-align: left;">
                 <div class="flex items-center gap-1">
                   <i class="pi pi-cog text-purple-400 text-xs"></i>
                   <span class="text-xs">Acciones</span>
@@ -167,24 +167,25 @@ import { DocumentRequest } from '../models/document-request.model';
               class="hover:bg-neutral-700/30 transition-colors cursor-pointer"
               (click)="viewDetails(document)"
             >
-              <td style="padding: 0.5rem;">
-                <div class="flex flex-col gap-0.5">
-                  <span class="text-sm font-medium text-white"
-                    >{{ document.employee?.first_name }}
-                    {{ document.employee?.father_name }}</span
+              <td style="padding: 0.4rem;">
+                <div class="flex items-center gap-1">
+                  <div
+                    class="w-5 h-5 rounded-full bg-gradient-to-br from-purple-500/20 to-purple-600/20 flex items-center justify-center flex-shrink-0"
                   >
-                  @if (document.employee?.position?.name) {
-                  <span class="text-xs text-gray-400">{{
-                    document.employee.position.name
-                  }}</span>
-                  } @if (document.employee?.branch?.name) {
-                  <span class="text-xs text-cyan-400">{{
-                    document.employee.branch.name
-                  }}</span>
-                  }
+                    <i class="pi pi-user text-purple-400 text-[9px]"></i>
+                  </div>
+                  <div class="flex flex-col min-w-0">
+                    <span class="font-medium text-white text-xs truncate">
+                      {{ document.employee?.first_name }}
+                      {{ document.employee?.father_name }}
+                    </span>
+                    <span class="text-[9px] text-gray-400 truncate">
+                      {{ document.employee?.work_email || '-' }}
+                    </span>
+                  </div>
                 </div>
               </td>
-              <td style="padding: 0.5rem;">
+              <td style="padding: 0.4rem; text-align: center;">
                 <span class="text-sm text-gray-300">{{
                   getDocumentTypeLabel(document.document_type)
                 }}</span>
@@ -194,59 +195,74 @@ import { DocumentRequest } from '../models/document-request.model';
                 >
                 }
               </td>
-              <td style="padding: 0.5rem;">
+              <td style="padding: 0.4rem; text-align: center;">
                 <p-tag
                   [value]="getDocumentStatusLabel(document.status)"
                   [severity]="getDocumentStatusSeverity(document.status)"
                   class="text-xs"
                 />
               </td>
-              <td style="padding: 0.5rem;">
-                @if (document.created_by && document.created_by !==
-                document.employee_id) {
-                <span class="text-[10px] font-medium text-amber-300"
-                  >Creado por gerente</span
-                >
+              <td style="padding: 0.4rem; text-align: center;">
+                @if (document.created_by_employee) {
+                <div class="flex flex-col items-center gap-0.5">
+                  <div class="flex items-center gap-1">
+                    <i class="pi pi-user text-amber-400 text-[9px]"></i>
+                    <span class="text-[10px] font-medium text-amber-300">
+                      Creado por {{ document.created_by_employee.first_name }}
+                      {{ document.created_by_employee.father_name }}
+                    </span>
+                  </div>
+                </div>
                 } @else {
-                <span class="text-[10px] text-gray-500 italic"
-                  >Auto-solicitud</span
-                >
+                <span class="text-[10px] text-gray-500 italic">
+                  Auto-solicitud
+                </span>
                 }
               </td>
-              <td style="padding: 0.5rem;">
+              <td style="padding: 0.4rem; text-align: center;">
                 <span class="text-xs text-gray-400">{{
                   document.created_at | date : 'dd/MM/yyyy'
                 }}</span>
               </td>
-              <td style="padding: 0.5rem;" (click)="$event.stopPropagation()">
-                <div class="flex gap-1">
+              <td
+                style="padding: 0.4rem; text-align: center;"
+                (click)="$event.stopPropagation()"
+              >
+                <div class="flex gap-0.5 justify-center">
                   @if (document.status === 'pending') {
                   <p-button
-                    label="Completar"
                     icon="pi pi-check-circle"
+                    [text]="true"
                     severity="success"
                     size="small"
-                    (onClick)="openCompleteDialog(document)"
+                    (onClick)="
+                      openCompleteDialog(document); $event.stopPropagation()
+                    "
+                    [rounded]="true"
                     pTooltip="Adjuntar y Completar"
-                    tooltipPosition="left"
+                    tooltipPosition="top"
                   />
                   } @if (document.document_url) {
                   <p-button
                     icon="pi pi-file-pdf"
+                    [text]="true"
                     severity="secondary"
                     size="small"
-                    (onClick)="viewDetails(document)"
+                    (onClick)="viewDetails(document); $event.stopPropagation()"
+                    [rounded]="true"
                     pTooltip="Ver Documento"
-                    tooltipPosition="left"
+                    tooltipPosition="top"
                   />
                   }
                   <p-button
                     icon="pi pi-eye"
+                    [text]="true"
                     severity="info"
                     size="small"
                     pTooltip="Ver detalles"
-                    tooltipPosition="left"
-                    (onClick)="viewDetails(document)"
+                    tooltipPosition="top"
+                    [rounded]="true"
+                    (onClick)="viewDetails(document); $event.stopPropagation()"
                   />
                 </div>
               </td>
