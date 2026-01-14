@@ -1,12 +1,15 @@
 import { CommonModule } from '@angular/common';
 import {
+  ChangeDetectionStrategy,
   Component,
   computed,
   effect,
   inject,
+  NgZone,
   OnDestroy,
   OnInit,
   signal,
+  untracked,
 } from '@angular/core';
 import {
   FormControl,
@@ -37,6 +40,7 @@ interface DogConfig {
   selector: 'pt-screen-lock',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, InputOtpModule, ButtonModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (screenLockService.isLocked()) {
     <div
@@ -176,6 +180,7 @@ interface DogConfig {
 })
 export class ScreenLockComponent implements OnInit, OnDestroy {
   public screenLockService = inject(ScreenLockService);
+  private ngZone = inject(NgZone);
 
   showPinInput = signal(false);
   error = signal<string | null>(null);
@@ -294,17 +299,21 @@ export class ScreenLockComponent implements OnInit, OnDestroy {
 
   constructor() {
     effect(() => {
-      if (this.screenLockService.isLocked()) {
-        setTimeout(() => {
-          const input = document.querySelector(
-            'input.p-inputotp-input'
-          ) as HTMLElement;
-          input?.focus();
-        }, 100);
-        this.startDogLifecycle();
-      } else {
-        this.stopDogLifecycle();
-      }
+      const isLocked = this.screenLockService.isLocked();
+
+      untracked(() => {
+        if (isLocked) {
+          setTimeout(() => {
+            const input = document.querySelector(
+              'input.p-inputotp-input'
+            ) as HTMLElement;
+            input?.focus();
+          }, 100);
+          this.startDogLifecycle();
+        } else {
+          this.stopDogLifecycle();
+        }
+      });
     });
 
     // Inject global keyframes if not exists
@@ -514,26 +523,31 @@ export class ScreenLockComponent implements OnInit, OnDestroy {
   private startMovementLoop() {
     if (this.moveIntervalId) clearInterval(this.moveIntervalId);
 
-    // Movement physics loop
-    this.moveIntervalId = setInterval(() => {
-      const action = this.currentAction();
-      if (action.name === 'walk' || action.name === 'run') {
-        const speed = action.name === 'run' ? 0.36 : 0.12;
-        let newPos = this.dogPosition();
+    // Run movement physics OUTSIDE Angular Zone to avoid triggering
+    // global change detection every 30ms (which crashes browsers in production)
+    this.ngZone.runOutsideAngular(() => {
+      this.moveIntervalId = setInterval(() => {
+        const action = this.currentAction();
+        if (action.name === 'walk' || action.name === 'run') {
+          const speed = action.name === 'run' ? 0.36 : 0.12;
+          let newPos = this.dogPosition();
 
-        if (this.isMovingLeft()) {
-          newPos -= speed;
-          if (newPos < 10) {
-            this.isMovingLeft.set(false); // Hit left wall, turn right
+          if (this.isMovingLeft()) {
+            newPos -= speed;
+            if (newPos < 10) {
+              this.isMovingLeft.set(false);
+            }
+          } else {
+            newPos += speed;
+            if (newPos > 90) {
+              this.isMovingLeft.set(true);
+            }
           }
-        } else {
-          newPos += speed;
-          if (newPos > 90) {
-            this.isMovingLeft.set(true); // Hit right wall, turn left
-          }
+
+          // Update position signal (Signals work fine outside zone in standard Angular)
+          this.dogPosition.set(newPos);
         }
-        this.dogPosition.set(newPos);
-      }
-    }, 30);
+      }, 30);
+    });
   }
 }

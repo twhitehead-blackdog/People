@@ -34,7 +34,7 @@ Company
         └── Payroll
 ```
 
-**Tablas clave**: `employees`, `timelogs`, `timeoffs`, `schedules`, `overtime_consumptions`
+**Tablas clave**: `employees`, `timelogs`, `timeoffs`, `employee_schedules`, `overtime_consumptions`, `payrolls`, `attendance_sheets`
 
 ## 🔄 Flujos Críticos
 
@@ -49,10 +49,11 @@ Empleado → Formulario (horas/días, fechas, motivo)
 
 ### 2️⃣ Cálculo de Horas Extra
 
-- Timelogs: `entry`, `lunch_start`, `lunch_end`, `exit`
-- Tiempo total = exit - entry
+- Timelogs usan `type: TimeLogEnum` ('entry' | 'lunch_start' | 'lunch_end' | 'exit')
+- Campo `created_at` contiene el timestamp de la marcación
+- Tiempo total = exit.created_at - entry.created_at
 - Tiempo trabajo = total - lunch
-- Lunch permitido: máx **60 min**
+- Lunch permitido: máx **60 min** (configurable en Schedule)
 - Exceso de lunch **RESTA** overtime
 - Overtime = trabajo neto - 8h (solo si > 8h)
 
@@ -83,8 +84,10 @@ Empleado marca → process_timelog() RPC (Supabase)
 ### Empleados
 
 - Multiempresa (`company_id`)
+- Campo `start_date` (fecha de ingreso), NO `hire_date`
 - Portal controlado por: `has_portal_access`, `account_approved`
-- Numeración: `BD0001`, `NZ0001`
+- Numeración en `employee_number`: `BD0001`, `NZ0001`
+- Nombres: `first_name`, `middle_name`, `father_name`, `mother_name`
 
 ## 🎨 Convenciones de Nombres
 
@@ -104,7 +107,8 @@ Empleado marca → process_timelog() RPC (Supabase)
 
 - Usar `httpResource` (queries reactivas)
 - Siempre filtrar por `company_id`
-- Timelogs históricos → `created_at` (NO existe `day`)
+- Timelogs usan `created_at` para fecha/hora (NO existe campo `day`)
+- Schedules tienen: `entry_time`, `lunch_start_time`, `lunch_end_time`, `exit_time`
 
 ### Fechas
 
