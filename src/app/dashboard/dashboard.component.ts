@@ -21,16 +21,18 @@ import { RippleModule } from 'primeng/ripple';
 import { ToastModule } from 'primeng/toast';
 import { filter } from 'rxjs/operators';
 
-import { AsyncPipe, NgClass } from '@angular/common';
+import { AsyncPipe, CommonModule, NgClass } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { AuthService } from '@auth0/auth0-angular';
 import { Avatar } from 'primeng/avatar';
 import { Button } from 'primeng/button';
 import { MenuModule } from 'primeng/menu';
+import { ScreenLockComponent } from '../components/screen-lock.component';
 import {
   Organization,
   OrganizationService,
 } from '../services/organization.service';
+import { ScreenLockService } from '../services/screen-lock.service';
 import { TestModeService } from '../services/test-mode.service';
 import { AuthStore } from '../stores/auth.store';
 import { BanksStore } from '../stores/banks.store';
@@ -43,8 +45,6 @@ import { PayrollsStore } from '../stores/payrolls.store';
 import { PositionsStore } from '../stores/positions.store';
 import { SchedulesStore } from '../stores/schedules.store';
 import { EmployeePortalComponent } from './employee-portal.component';
-import { ScreenLockService } from '../services/screen-lock.service';
-import { ScreenLockComponent } from '../components/screen-lock.component';
 
 @Component({
   selector: 'pt-dashboard',
@@ -76,6 +76,7 @@ import { ScreenLockComponent } from '../components/screen-lock.component';
     MenuModule,
     EmployeePortalComponent,
     NgClass,
+    CommonModule,
     ScreenLockComponent,
   ],
   template: `
@@ -348,7 +349,7 @@ import { ScreenLockComponent } from '../components/screen-lock.component';
         <router-outlet />
         }
       </div>
-      <pt-screen-lock />
+      <pt-screen-lock></pt-screen-lock>
     </div>
   `,
   styles: `
@@ -717,7 +718,9 @@ export class DashboardComponent {
   public canChangeOrganization = computed(() => {
     // Verificar si el easter egg está activado
     if (typeof window !== 'undefined' && window.localStorage) {
-      const easterEggActivated = window.localStorage.getItem('easter_egg_activated');
+      const easterEggActivated = window.localStorage.getItem(
+        'easter_egg_activated'
+      );
       if (easterEggActivated === 'true') {
         return true;
       }
@@ -836,6 +839,14 @@ export class DashboardComponent {
     }
 
     this.currentRoute.set(route);
+
+    // Sincronizar empleado con ScreenLockService para persistencia tras reload
+    effect(() => {
+      const employee = this.store.currentEmployee();
+      if (employee && this.screenLockService.isEnabled()) {
+        this.screenLockService.setCurrentEmployee(employee);
+      }
+    });
   }
 
   navigateTo(route: string) {
@@ -918,7 +929,10 @@ export class DashboardComponent {
 
     // Agregar Gestión de Tienda para gerentes, administradores y Gerente de Tienda
     // Si tiene hasTimeManagementAccess, mostrar independientemente de hasDashboardAccess
-    if ((hasDashboardAccess && (isAdmin || isScheduleAdmin)) || hasTimeManagementAccess) {
+    if (
+      (hasDashboardAccess && (isAdmin || isScheduleAdmin)) ||
+      hasTimeManagementAccess
+    ) {
       items.push({
         label: 'Gestión de Tienda',
         icon: 'pi pi-shop',
@@ -930,23 +944,37 @@ export class DashboardComponent {
 
     // Agregar opción de bloqueo de pantalla para Gerente de Tienda y Admins
     // También permitir en modo gerente (modo de prueba)
-    const canUseScreenLock = currentEmployee && (
-      this.screenLockService.canUseScreenLock(currentEmployee) || 
-      this.isGerenteMode()
-    );
+    const canUseScreenLock =
+      currentEmployee &&
+      (this.screenLockService.canUseScreenLock(currentEmployee) ||
+        this.isGerenteMode());
     if (canUseScreenLock) {
-      const isScreenLockEnabled = this.screenLockService.isEnabled();
-      items.push({
-        label: isScreenLockEnabled ? 'Desactivar Bloqueo de Pantalla' : 'Activar Bloqueo de Pantalla',
-        icon: isScreenLockEnabled ? 'pi pi-lock-open' : 'pi pi-lock',
-        command: () => {
-          if (isScreenLockEnabled) {
+      if (this.screenLockService.isEnabled()) {
+        // Si está habilitado, mostrar opción de bloquear ahora y de desactivar
+        items.push({
+          label: 'Bloquear ahora',
+          icon: 'pi pi-lock',
+          command: () => {
+            this.screenLockService.lockScreen();
+          },
+        });
+        items.push({
+          label: 'Desactivar Bloqueo Automático',
+          icon: 'pi pi-lock-open',
+          command: () => {
             this.screenLockService.disable();
-          } else {
-            this.screenLockService.enable(currentEmployee, 15); // 15 minutos
-          }
-        },
-      });
+          },
+        });
+      } else {
+        // Si está deshabilitado, mostrar solo opción de activar
+        items.push({
+          label: 'Activar Bloqueo de Pantalla',
+          icon: 'pi pi-lock',
+          command: () => {
+            this.screenLockService.enableAndLock(currentEmployee, 15);
+          },
+        });
+      }
     }
 
     // Agregar selector de modo de prueba solo para soporte2@blackdogpanama.com
@@ -1060,19 +1088,22 @@ export class DashboardComponent {
         }
       },
       error: (err) => {
-      // Silenciar errores de consola para este endpoint no crítico
-      console.debug('[Dashboard] Error obteniendo IP del cliente, usando fallback:', err?.message);
+        // Silenciar errores de consola para este endpoint no crítico
+        console.debug(
+          '[Dashboard] Error obteniendo IP del cliente, usando fallback:',
+          err?.message
+        );
 
-      // Intentar obtener IP vía WebRTC como fallback
-      this.getIPViaWebRTC()
-        .then((ip) => {
-          this.currentIP.set(ip);
-        })
-        .catch(() => {
-          // Si todo falla, usar localhost como fallback
-          this.currentIP.set('127.0.0.1');
-        });
-    },
+        // Intentar obtener IP vía WebRTC como fallback
+        this.getIPViaWebRTC()
+          .then((ip) => {
+            this.currentIP.set(ip);
+          })
+          .catch(() => {
+            // Si todo falla, usar localhost como fallback
+            this.currentIP.set('127.0.0.1');
+          });
+      },
     });
   }
 

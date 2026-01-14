@@ -216,7 +216,6 @@ import {
         (confirmWeek)="confirmEmployeeWeek($event)"
         (addShift)="editSchedule($event)"
         (viewAudit)="onViewSpecificAudit($event)"
-        (batchApprove)="batchApproveSchedules($event)"
         (toggleSelection)="toggleShiftSelection($event)"
       />
     </p-card>
@@ -1612,16 +1611,23 @@ export class EmployeesTimetableComponent implements OnInit {
 
     const uniqueIds = Array.from(shiftIds);
     if (uniqueIds.length > 0) {
-      this.batchApproveSchedules(uniqueIds);
+      this.batchApproveSchedules(uniqueIds, keys.length);
     }
   }
 
-  public batchApproveSchedules(ids: string[]): void {
+  public batchApproveSchedules(
+    ids: string[],
+    visualCount: number = ids.length
+  ): void {
     if (ids.length === 0) return;
 
     this.confirm.confirm({
       header: 'Aprobar múltiples horarios?',
-      message: `¿Estás seguro de aprobar ${ids.length} horario(s)?`,
+      message: `¿Estás seguro de aprobar ${visualCount} turno${
+        visualCount > 1 ? 's' : ''
+      } (correspondientes a ${ids.length} registro${
+        ids.length > 1 ? 's' : ''
+      } de horario)?`,
       icon: 'pi pi-info-circle',
       rejectButtonProps: {
         label: 'Cancelar',
@@ -1684,18 +1690,19 @@ export class EmployeesTimetableComponent implements OnInit {
           }
         }
 
-        // Aprobar todos en batch
-        const params: any = { id: `in.(${ids.join(',')})` };
+        // Aprobar todos en batch evitando encoding de Angular en 'in.()'
+        let url = this.apiUrl.build('rest/v1/employee_schedules');
+        // Construir query string manualmente para asegurar formato PostgREST
+        const queryParams = [];
+        queryParams.push(`id=in.(${ids.join(',')})`);
         if (companyId) {
-          params.company_id = `eq.${companyId}`;
+          queryParams.push(`company_id=eq.${companyId}`);
         }
 
+        const fullUrl = `${url}?${queryParams.join('&')}`;
+
         this.http
-          .patch(
-            this.apiUrl.build('rest/v1/employee_schedules'),
-            { approved: true },
-            { params }
-          )
+          .patch(fullUrl, { approved: true })
           .pipe(
             catchError((error) => {
               console.error('🔴 [BATCH APROBAR] Error:', error);
@@ -1713,7 +1720,7 @@ export class EmployeesTimetableComponent implements OnInit {
               this.message.add({
                 severity: 'success',
                 summary: 'Éxito',
-                detail: `${ids.length} horario(s) aprobado(s) correctamente`,
+                detail: `${ids.length} registro(s) aprobado(s) correctamente`,
               });
               this.cancelBulkSelection();
               this.schedulesResource.reload();
