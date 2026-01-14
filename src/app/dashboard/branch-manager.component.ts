@@ -1,4 +1,4 @@
-import { DatePipe, NgClass } from '@angular/common';
+import { DatePipe, NgClass, NgStyle } from '@angular/common';
 import { HttpClient, httpResource } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
@@ -23,7 +23,7 @@ import {
   startOfWeek,
   subWeeks,
 } from 'date-fns';
-import { toDate } from 'date-fns-tz';
+import { formatInTimeZone, toDate } from 'date-fns-tz';
 import { ConfirmationService, MenuItem, MessageService } from 'primeng/api';
 import { Avatar } from 'primeng/avatar';
 import { Button } from 'primeng/button';
@@ -41,7 +41,11 @@ import { Tag } from 'primeng/tag';
 import { Textarea } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
-import { colorVariants, Employee } from '../models';
+import {
+  colorVariants,
+  Employee,
+  getScheduleColorInlineStyle,
+} from '../models';
 import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
 import { BranchesStore } from '../stores/branches.store';
@@ -105,6 +109,7 @@ type Reminder = {
     Textarea,
     DatePipe,
     NgClass,
+    NgStyle,
     Menu,
     Popover,
     InputText,
@@ -529,6 +534,7 @@ type Reminder = {
                 <ng-template #header>
                   <tr>
                     <th style="min-width: 200px">Empleado</th>
+                    <th style="min-width: 140px">Horario</th>
                     <th style="min-width: 120px">Entrada</th>
                     <th style="min-width: 120px">Inicio Almuerzo</th>
                     <th style="min-width: 120px">Fin Almuerzo</th>
@@ -559,18 +565,38 @@ type Reminder = {
                           shape="circle"
                           styleClass="bg-blue-600"
                         />
-                        <div>
-                          <div class="font-semibold">
-                            {{ log.employee?.first_name }}
-                            {{ log.employee?.father_name }}
-                          </div>
-                          @if (log.employee?.employee_number) {
-                          <div class="text-xs text-gray-400">
-                            #{{ log.employee.employee_number }}
-                          </div>
-                          }
-                        </div>
+                        <span class="font-semibold">
+                          {{ log.employee?.first_name }}
+                          {{ log.employee?.father_name }}
+                        </span>
                       </div>
+                    </td>
+                    <td>
+                      @if (log.schedule?.name) {
+                      <span
+                        class="rounded text-xs px-2 py-0.5 font-semibold inline-flex items-center justify-center gap-1"
+                        [ngClass]="
+                          log.schedule?.color &&
+                          colorVariants[log.schedule.color]
+                            ? colorVariants[log.schedule.color]
+                            : 'bg-neutral-700 text-gray-300'
+                        "
+                        [ngStyle]="
+                          log.schedule?.color &&
+                          !colorVariants[log.schedule.color]
+                            ? getScheduleStyle(log.schedule.color)
+                            : null
+                        "
+                      >
+                        {{ log.schedule.name }}
+                      </span>
+                      } @else {
+                      <span
+                        class="rounded text-xs px-2 py-0.5 bg-neutral-600 text-gray-400"
+                      >
+                        Sin horario
+                      </span>
+                      }
                     </td>
                     <td>
                       @if (log.entry_time) {
@@ -582,7 +608,7 @@ type Reminder = {
                             'text-green-400': !log.is_delayed
                           }"
                         >
-                          {{ log.entry_time | date : 'HH:mm' }}
+                          {{ log.entry_time | date : 'hh:mm a' }}
                         </span>
                       </div>
                       } @else {
@@ -596,7 +622,9 @@ type Reminder = {
                       @if (log.lunch_start_time) {
                       <div class="flex items-center gap-2">
                         <i class="pi pi-clock text-blue-400"></i>
-                        <span>{{ log.lunch_start_time | date : 'HH:mm' }}</span>
+                        <span>{{
+                          log.lunch_start_time | date : 'hh:mm a'
+                        }}</span>
                       </div>
                       } @else {
                       <span class="text-gray-500">-</span>
@@ -611,7 +639,7 @@ type Reminder = {
                             'text-red-400 font-semibold': log.lunch_exceeded
                           }"
                         >
-                          {{ log.lunch_end_time | date : 'HH:mm' }}
+                          {{ log.lunch_end_time | date : 'hh:mm a' }}
                         </span>
                       </div>
                       } @else {
@@ -628,7 +656,7 @@ type Reminder = {
                             'text-purple-400': !log.is_early_exit
                           }"
                         >
-                          {{ log.exit_time | date : 'HH:mm' }}
+                          {{ log.exit_time | date : 'hh:mm a' }}
                         </span>
                       </div>
                       } @else {
@@ -647,30 +675,28 @@ type Reminder = {
                           icon="pi pi-clock"
                           styleClass="text-xs"
                         />
-                        } @if (log.is_missing) {
+                        } @else if (log.is_missing && !log.is_day_off) {
                         <p-tag
                           value="Sin marcar"
                           severity="warn"
                           icon="pi pi-exclamation-triangle"
                           styleClass="text-xs"
                         />
-                        } @if (log.lunch_exceeded) {
+                        } @else if (log.lunch_exceeded) {
                         <p-tag
                           value="Almuerzo excedido"
                           severity="danger"
                           icon="pi pi-clock"
                           styleClass="text-xs"
                         />
-                        } @if (log.is_early_exit) {
+                        } @else if (log.is_early_exit) {
                         <p-tag
                           value="Salida temprana"
                           severity="danger"
                           icon="pi pi-arrow-down"
                           styleClass="text-xs"
                         />
-                        } @if (!log.is_delayed && !log.is_missing &&
-                        !log.lunch_exceeded && !log.is_early_exit &&
-                        log.entry_time) {
+                        } @else if (log.entry_time) {
                         <p-tag
                           value="A tiempo"
                           severity="success"
@@ -1276,7 +1302,6 @@ type Reminder = {
             </div>
           </div>
 
-
           <!-- Información de Creación -->
           @if (selectedRequest().created_by) {
           <div
@@ -1478,6 +1503,10 @@ export class BranchManagerComponent {
 
   // Color variants (imported from models)
   public colorVariants = colorVariants;
+
+  public getScheduleStyle(color: string | undefined | null) {
+    return getScheduleColorInlineStyle(color);
+  }
 
   // Branch employees
   public branchEmployees = computed(() => {
@@ -1764,20 +1793,25 @@ export class BranchManagerComponent {
         ];
         // Filtrar solo la nota de razón (primera nota que no contiene metadata)
         if (r.notes && Array.isArray(r.notes)) {
-          const reasonNote = r.notes.find((note: any) =>
-            typeof note === 'string' &&
-            note.trim() !== '' &&
-            !note.includes('Tipo:') &&
-            !note.includes('Cantidad solicitada:') &&
-            !note.includes('Fecha compensatorio:') &&
-            !note.includes('Hora inicio:') &&
-            !note.includes('Hora fin:') &&
-            !note.includes('Fechas horas extra:')
+          const reasonNote = r.notes.find(
+            (note: any) =>
+              typeof note === 'string' &&
+              note.trim() !== '' &&
+              !note.includes('Tipo:') &&
+              !note.includes('Cantidad solicitada:') &&
+              !note.includes('Fecha compensatorio:') &&
+              !note.includes('Hora inicio:') &&
+              !note.includes('Hora fin:') &&
+              !note.includes('Fechas horas extra:')
           );
           if (reasonNote) {
             details.push({ label: 'Notas', value: reasonNote });
           }
-        } else if (r.notes && typeof r.notes === 'string' && r.notes.trim() !== '') {
+        } else if (
+          r.notes &&
+          typeof r.notes === 'string' &&
+          r.notes.trim() !== ''
+        ) {
           // Fallback para caso donde notes es string
           details.push({ label: 'Notas', value: r.notes });
         }
@@ -1871,23 +1905,30 @@ export class BranchManagerComponent {
     });
   });
 
-  // Timelogs resource - obtener logs del día y procesarlos
+  // Timelogs resource - obtener logs del día usando timezone Panamá
+  private readonly TIMEZONE = 'America/Panama';
+
   public timelogsResource = httpResource<any[]>(() => {
     const branchId = this.currentBranch()?.id;
     const date = this.selectedDate();
     if (!date) return undefined;
     const companyId = this.organizationService.getCurrentCompanyId();
-    const dateStr = format(date, 'yyyy-MM-dd');
-    const startOfDayStr = `${dateStr}T00:00:00`;
-    const endOfDayStr = `${dateStr}T23:59:59`;
 
-    // Construir URL manualmente para aplicar correctamente filtros gte y lte
+    // Usar timezone Panamá para asegurar que las fechas sean correctas
+    const dateStr = formatInTimeZone(date, this.TIMEZONE, 'yyyy-MM-dd');
+    const startOfDayISO =
+      new Date(`${dateStr}T00:00:00-05:00`).toISOString().split('.')[0] + 'Z';
+    const endOfDayISO =
+      new Date(`${dateStr}T23:59:59-05:00`).toISOString().split('.')[0] + 'Z';
+
+    // Construir URL con filtros correctos usando 'and' para rango de fechas
     const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`;
-    const select = `*,employee:employees!inner(id,first_name,father_name,is_active)`;
+    const select = `*,employee:employees!inner(id,first_name,father_name,is_active),branch:branches(id, name, short_name)`;
 
     let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
-    url += `&created_at=gte.${startOfDayStr}`;
-    url += `&created_at=lte.${endOfDayStr}`;
+
+    // Usar 'and' para combinar condiciones de fecha como en timelogs-api.service
+    url += `&and=(created_at.gte.${startOfDayISO},created_at.lte.${endOfDayISO})`;
 
     // Filtrar solo empleados activos
     url += `&employee.is_active=eq.true`;
@@ -2149,32 +2190,77 @@ export class BranchManagerComponent {
     const schedules = this.schedulesResource.value() || [];
     const employeeId = this.selectedEmployeeId();
     const selectedDate = this.selectedDate();
+    const branchId = this.currentBranch()?.id;
 
-    // Agrupar logs por empleado y detectar el último ciclo de turno activo
-    const grouped = logs.reduce((acc: any, log: any) => {
-      const logTime = new Date(log.created_at);
+    // IDs de schedules que son día libre/feriado
+    const dayOffScheduleIds = [
+      'c01dff8f-ce0d-498f-a473-46418576e589', // Dia Libre
+      '3d07f626-d58f-4203-bac5-f6e35557e0ad', // Feriado
+      'e7e63bb4-ca86-4091-85fa-c4da16545b49', // Vacaciones
+      'f2d92995-96a0-414f-b64a-9823db776745', // Compensatorio
+    ];
 
-      if (!acc[log.employee_id]) {
-        acc[log.employee_id] = {
+    // Paso 1: Crear registros desde los logs que tienen branch_id de la sucursal
+    // Esto muestra empleados que MARCARON en esa sucursal ese día, no su sucursal actual
+    const grouped: Record<string, any> = {};
+
+    // Filtrar logs por branch_id de la sucursal seleccionada
+    const branchLogs = branchId
+      ? logs.filter((log: any) => log.branch_id === branchId)
+      : logs;
+
+    // Crear registros para cada empleado único que tiene logs en esa sucursal
+    branchLogs.forEach((log: any) => {
+      if (!log.employee_id) return;
+
+      // Si no existe el registro, crearlo
+      if (!grouped[log.employee_id]) {
+        // Encontrar horario programado del empleado para la fecha
+        const employeeSchedule = selectedDate
+          ? this.findEmployeeScheduleForDate(
+              log.employee_id,
+              selectedDate,
+              schedules
+            )
+          : null;
+
+        const schedule = employeeSchedule?.schedule;
+        const isDayOff =
+          schedule?.day_off ||
+          (schedule?.id && dayOffScheduleIds.includes(schedule.id)) ||
+          schedule?.name?.toLowerCase().includes('libre') ||
+          schedule?.name?.toLowerCase().includes('feriado') ||
+          schedule?.name?.toLowerCase().includes('vacaciones') ||
+          schedule?.name?.toLowerCase().includes('compensatorio');
+
+        grouped[log.employee_id] = {
           employee_id: log.employee_id,
-          employee: log.employee,
+          employee: log.employee || { id: log.employee_id },
           entry_time: null,
           lunch_start_time: null,
           lunch_end_time: null,
           exit_time: null,
           is_delayed: false,
-          is_missing: false,
+          is_missing: false, // Si tiene logs, no está missing
+          is_day_off: isDayOff,
           lunch_exceeded: false,
           is_early_exit: false,
-          last_entry_time: null, // Para rastrear cuando inicia un nuevo ciclo
+          schedule: schedule,
+          schedule_name: schedule?.name || 'Sin horario',
+          last_entry_time: null,
         };
       }
 
-      const entry = acc[log.employee_id];
+      const logTime = new Date(log.created_at);
+      const entry = grouped[log.employee_id];
 
-      // Detectar inicio de un nuevo ciclo de turno
+      // Actualizar datos del empleado con info más reciente del log si viene join
+      if (log.employee) {
+        entry.employee = { ...entry.employee, ...log.employee };
+      }
+
+      // Procesar según tipo de marcación
       if (log.type === 'entry') {
-        // Si hay una nueva entrada, reiniciar el ciclo
         if (entry.exit_time || !entry.entry_time) {
           entry.entry_time = logTime;
           entry.lunch_start_time = null;
@@ -2182,46 +2268,31 @@ export class BranchManagerComponent {
           entry.exit_time = null;
           entry.last_entry_time = logTime;
         } else {
-          // Mantener la primera entrada si no ha habido salida
           entry.entry_time = entry.entry_time || logTime;
         }
-      }
-      // Solo procesar otros logs si pertenecen al ciclo actual
-      else if (entry.entry_time || entry.last_entry_time) {
-        const cycleStartTime = entry.last_entry_time || entry.entry_time;
-
-        // Solo considerar logs posteriores a la última entrada (mismo ciclo)
-        if (cycleStartTime && logTime >= cycleStartTime) {
-          if (log.type === 'lunch_start' && !entry.lunch_start_time) {
-            entry.lunch_start_time = logTime;
-          } else if (log.type === 'lunch_end' && !entry.lunch_end_time) {
-            entry.lunch_end_time = logTime;
-          } else if (log.type === 'exit' && !entry.exit_time) {
-            entry.exit_time = logTime;
-          }
+      } else if (log.type === 'lunch_start') {
+        if (!entry.lunch_start_time) {
+          entry.lunch_start_time = logTime;
+        }
+      } else if (log.type === 'lunch_end') {
+        if (!entry.lunch_end_time) {
+          entry.lunch_end_time = logTime;
+        }
+      } else if (log.type === 'exit') {
+        if (!entry.exit_time) {
+          entry.exit_time = logTime;
         }
       }
+    });
 
-      return acc;
-    }, {});
-
-    // Calcular violaciones para cada empleado
+    // Paso 2: Calcular violaciones para cada empleado
     Object.values(grouped).forEach((employeeLog: any) => {
-      // Limpiar la propiedad auxiliar
       delete employeeLog.last_entry_time;
 
       if (!selectedDate) return;
 
-      // Encontrar horario programado del empleado para la fecha
-      const employeeSchedule = this.findEmployeeScheduleForDate(
-        employeeLog.employee_id,
-        selectedDate,
-        schedules
-      );
-
-      if (!employeeSchedule?.schedule) return;
-
-      const schedule = employeeSchedule.schedule;
+      const schedule = employeeLog.schedule;
+      if (!schedule || employeeLog.is_day_off) return;
 
       // Calcular retraso en entrada
       if (employeeLog.entry_time) {
@@ -2231,6 +2302,9 @@ export class BranchManagerComponent {
         );
         employeeLog.is_delayed =
           delayMinutes > (schedule.minutes_tolerance || 0);
+        if (employeeLog.is_delayed) {
+          employeeLog.delay_minutes = delayMinutes;
+        }
       }
 
       // Calcular salida temprana
@@ -2239,7 +2313,7 @@ export class BranchManagerComponent {
           employeeLog.exit_time,
           schedule
         );
-        employeeLog.is_early_exit = earlyExitMinutes > 0; // Cualquier salida antes de lo programado
+        employeeLog.is_early_exit = earlyExitMinutes > 0;
       }
 
       // Calcular almuerzo excedido
@@ -2250,9 +2324,6 @@ export class BranchManagerComponent {
           schedule
         );
       }
-
-      // Determinar si faltó (no tiene entrada)
-      employeeLog.is_missing = !employeeLog.entry_time;
     });
 
     let result = Object.values(grouped);

@@ -10,7 +10,6 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ApiUrlService } from '../services/api-url.service';
 import {
   FormControl,
   FormGroup,
@@ -40,6 +39,7 @@ import {
   getScheduleColorInlineStyle as getColorStyle,
 } from '../models';
 import { TrimPipe } from '../pipes/trim.pipe';
+import { ApiUrlService } from '../services/api-url.service';
 import { LoggerService } from '../services/logger.service';
 import { OrganizationService } from '../services/organization.service';
 import { ScheduleAuditService } from '../services/schedule-audit.service';
@@ -233,11 +233,33 @@ export class EmployeeSchedulesFormComponent implements OnInit {
   private readonly COMPENSATORY_SCHEDULE_ID =
     'f2d92995-96a0-414f-b64a-9823db776745';
 
-  // Filtrar turnos disponibles según permisos (ocultar Compensatorio para no-admins)
+  // Turnos permitidos para gerentes de tienda (schedule_admin pero no admin)
+  private readonly ALLOWED_STORE_MANAGER_SHIFTS = [
+    '7AM-4PM ',
+    '8AM-5PM',
+    '9AM - 6PM',
+  ];
+
+  // Filtrar turnos disponibles según permisos
   public availableSchedules = computed(() => {
     const allSchedules = this.store.schedules.entities() ?? [];
+
+    // Administradores ven todos los turnos
     if (this.store.isAdmin()) return allSchedules;
 
+    // Gerentes de tienda (schedule_admin pero no admin) solo ven turnos específicos
+    const isStoreManager =
+      this.store.isScheduleAdmin() && !this.store.isAdmin();
+    if (isStoreManager) {
+      return allSchedules.filter((schedule: any) => {
+        const scheduleName = String(schedule?.name ?? '').toUpperCase();
+        return this.ALLOWED_STORE_MANAGER_SHIFTS.some(
+          (allowed) => scheduleName === allowed.toUpperCase()
+        );
+      });
+    }
+
+    // Otros usuarios: ocultar Compensatorio
     return allSchedules.filter((schedule: any) => {
       const scheduleName = String(schedule?.name ?? '').toLowerCase();
       return (
