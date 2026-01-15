@@ -85,7 +85,7 @@ export class TutorialGuideService {
   });
 
   /**
-   * Register an element for a tutorial step
+   * Register an element for a tutorial step.
    */
   public registerElement(stepId: string, elementRef: ElementRef): void {
     this._registeredElements.update((map) => {

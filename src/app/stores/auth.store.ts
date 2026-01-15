@@ -19,7 +19,8 @@ type State = {
   currentEmployeeId: string | null;
 };
 
-export const AuthStore = signalStore({ providedIn: 'root' },
+export const AuthStore = signalStore(
+  { providedIn: 'root' },
   withState<State>({
     currentEmployeeId: null,
   }),
@@ -44,15 +45,34 @@ export const AuthStore = signalStore({ providedIn: 'root' },
           // Usar positions siempre (tabla compartida)
           const positionSelect = `position:positions(id, name, admin, schedule_admin, schedule_approver, dashboard_access, default_view)`;
 
+          // Mapeo de emails alternativos para desarrollo/testing
+          // Esto permite que ciertos usuarios puedan autenticarse con su email personal
+          const emailAliases: Record<
+            string,
+            { employeeId: string; workEmail: string }
+          > = {
+            'dieguzzz31@gmail.com': {
+              employeeId: 'd6619dd7-265e-4d05-942d-f36fb09b631b',
+              workEmail: 'soporte2@blackdogpanama.com',
+            },
+          };
+
+          // Verificar si el email tiene un alias
+          const alias = user.email
+            ? emailAliases[user.email.toLowerCase()]
+            : null;
+          const searchEmail = alias ? alias.workEmail : user.email;
+
           // Verificar si es super admin antes de agregar filtro de company_id
           const superAdminEmails = [
             'mercadeo@blackdogpanama.com',
             'soporte2@blackdogpanama.com',
           ];
-          const isSuperAdmin = user.email && superAdminEmails.includes(user.email.toLowerCase());
+          const isSuperAdmin =
+            searchEmail && superAdminEmails.includes(searchEmail.toLowerCase());
 
           const params: any = {
-            work_email: `eq.${user.email}`,
+            work_email: `eq.${searchEmail}`,
             select: `id,company_id,first_name,father_name,work_email,${positionSelect}`,
           };
 
@@ -91,7 +111,7 @@ export const AuthStore = signalStore({ providedIn: 'root' },
                     '⚠️ Empleado no encontrado con company_id actual, buscando sin filtro...'
                   );
                   const paramsWithoutCompany = {
-                    work_email: `eq.${user.email}`,
+                    work_email: `eq.${searchEmail}`,
                     select: `id,company_id,first_name,father_name,work_email,${positionSelect}`,
                   };
                   return _http.get<typeof resp>(
@@ -151,7 +171,10 @@ export const AuthStore = signalStore({ providedIn: 'root' },
                       if (isInitialLogin || !canAccessAllOrgs) {
                         // Login inicial o usuario no admin: usar el company_id del empleado
                         // Validar que los company_ids estén cargados antes de comparar
-                        if (nazCompanyId && employee.company_id === nazCompanyId) {
+                        if (
+                          nazCompanyId &&
+                          employee.company_id === nazCompanyId
+                        ) {
                           _orgService.setOrganization('naz');
                           console.log(
                             '✅ Organización establecida desde empleado: Naz'

@@ -82,12 +82,24 @@ interface TooltipPosition {
         <!-- Tooltip content -->
         <div class="tooltip-content">
           <span class="tooltip-text">{{ currentStep()?.tooltip }}</span>
-          @if (!tutorialService.showCompletionMessage()) {
+          @if (!tutorialService.showCompletionMessage()) { @if
+          (currentStep()?.isPrompt) {
+          <span class="click-hint">
+            <i class="pi pi-hand-point-up"></i>
+            ¡Ahora escoge una!
+          </span>
+          } @else if (currentStep()?.requireClick === false) {
+          <!-- Step with manual navigation - show Next button -->
+          <button class="next-button" (click)="next($event)">
+            Siguiente
+            <i class="pi pi-arrow-right"></i>
+          </button>
+          } @else {
           <span class="click-hint">
             <i class="pi pi-hand-point-up"></i>
             Haz clic aquí
           </span>
-          }
+          } }
         </div>
 
         <!-- Exit button -->
@@ -287,6 +299,31 @@ interface TooltipPosition {
       color: #fff;
     }
 
+    .next-button {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      color: white;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 8px;
+    }
+
+    .next-button:hover {
+      background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+      transform: translateX(2px);
+    }
+
+    .next-button i {
+      font-size: 0.8rem;
+    }
+
     .completion-message {
       position: fixed;
       top: 50%;
@@ -483,5 +520,10 @@ export class TutorialSpotlightComponent {
   public exit(event: MouseEvent): void {
     event.stopPropagation();
     this.tutorialService.exit();
+  }
+
+  public next(event: MouseEvent): void {
+    event.stopPropagation();
+    this.tutorialService.next();
   }
 }
