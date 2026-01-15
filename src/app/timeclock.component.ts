@@ -2312,94 +2312,16 @@ export class TimeclockComponent implements OnDestroy {
           )}</b></div>
           </div>`;
 
-          // Add late warning for entry if applicable
+          // Variables para tracking interno (no mostrar al usuario)
           let isLate = false;
           if (result.delay !== null && result.delay !== undefined) {
             isLate = true;
-            const delayFormatted = this.formatTimeDifference(result.delay);
-            message += `<br><div style="color: #ef4444; font-weight: bold; text-align: center;">😱 Marcaste tarde: ${delayFormatted} de retraso</div>`;
-            // Reproducir sonido de fracaso
-            this.playFailureSound();
-          } else if (type === 'entry' && !result.hasSchedule) {
-            message += `<br><div style="color: #6b7280; font-style: italic; text-align: center;">ℹ️ No se encontró horario configurado para hoy</div>`;
-            // No reproducir sonido si no hay horario
-          } else if (type === 'entry' && result.isDayOff) {
-            message += `<br><div style="color: #6b7280; font-style: italic; text-align: center;">ℹ️ Día libre</div>`;
-            // No reproducir sonido en día libre
-          } else if (type === 'entry') {
-            // Reproducir sonido de éxito
-            this.playSuccessSound();
-            message += `<br><div style="color: #10b981; font-weight: bold; text-align: center;">✓ Marcaste a tiempo</div>`;
-          }
-
-          // Add early/late warning for exit if applicable
-          if (result.exitDiff !== null && result.exitDiff !== undefined) {
-            const diffFormatted = this.formatTimeDifference(
-              result.exitDiff.minutes
-            );
-            if (result.exitDiff.isEarly) {
-              message += `<br><div style="color: #f59e0b; font-weight: bold; text-align: center;">😱 Saliste antes: ${diffFormatted} antes de la hora programada</div>`;
-            } else {
-              message += `<br><div style="color: #10b981; font-weight: bold; text-align: center;">✓ Saliste después: ${diffFormatted} después de la hora programada</div>`;
-            }
-          } else if (type === 'exit' && !result.hasSchedule) {
-            message += `<br><div style="color: #6b7280; font-style: italic; text-align: center;">ℹ️ No se encontró horario configurado para hoy</div>`;
-          } else if (type === 'exit' && result.isDayOff) {
-            message += `<br><div style="color: #6b7280; font-style: italic; text-align: center;">ℹ️ Día libre</div>`;
-          } else if (type === 'exit') {
-            message += `<br><div style="color: #10b981; font-weight: bold; text-align: center;">✓ Saliste a tiempo</div>`;
-          }
-
-          // Check lunch time for lunch_end
-          if (type === 'lunch_end') {
-            const lunchEndDiff = result.lunchEndDiff ?? null;
-            const lunchExceededMinutes = result.lunchExceededMinutes ?? null;
-
-            if (
-              lunchEndDiff !== null &&
-              lunchEndDiff !== undefined &&
-              lunchEndDiff > 0
-            ) {
-              // Mostrar advertencia solo si excede más de 5 minutos
-              const diffFormatted = this.formatTimeDifference(lunchEndDiff);
-              message += `<br><div style="color: #f59e0b; font-weight: bold; text-align: center;">⚠️ Retraso de ${diffFormatted} en el almuerzo</div>`;
-            } else if (
-              lunchExceededMinutes !== null &&
-              lunchExceededMinutes !== undefined &&
-              lunchExceededMinutes > 0 &&
-              lunchExceededMinutes <= 5
-            ) {
-              // Si excedió pero menos de 5 minutos, solo confirmar sin advertencia
-              message += `<br><div style="color: #10b981; font-weight: bold; text-align: center;">✓ Regresaste del almuerzo</div>`;
-            } else {
-              message += `<br><div style="color: #10b981; font-weight: bold; text-align: center;">✓ Regresaste del almuerzo</div>`;
-            }
           }
 
           // Nota: El tiempo excedido ya se acumuló en la RPC, no necesitamos llamar a increment_lunch_exceeded_minutes
 
-          // Calcular racha si marcó a tiempo (solo para entry)
-          if (
-            type === 'entry' &&
-            !isLate &&
-            result.hasSchedule &&
-            !result.isDayOff
-          ) {
-            this.calculateAndShowStreak(employeeId).then((streakInfo) => {
-              let finalMessage = message;
-              if (streakInfo > 0) {
-                const fireEmojis = '🔥'.repeat(
-                  Math.min(Math.floor(streakInfo / 5) + 1, 5)
-                );
-                finalMessage += `<br><div style="color: #f59e0b; font-weight: bold; text-align: center; font-size: 1.1em; margin-top: 0.5rem;">${fireEmojis} Racha de ${streakInfo} día${
-                  streakInfo > 1 ? 's' : ''
-                } consecutivo${streakInfo > 1 ? 's' : ''} ${fireEmojis}</div>`;
-              }
-              this.showConfirmationDialog(finalMessage);
-            });
-          } else {
-            this.showConfirmationDialog(message);
-          }
+          // Mostrar solo el mensaje básico de confirmación
+          this.showConfirmationDialog(message);
         },
         error: () => {
           this.isProcessing.set(false);

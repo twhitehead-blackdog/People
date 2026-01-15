@@ -1674,49 +1674,7 @@ export class NazTimeclockComponent implements OnDestroy {
           )}</b></div>
           </div>`;
 
-          // Add late warning for entry if applicable
-          if (result.delay !== null && result.delay !== undefined) {
-            const delayFormatted = this.formatTimeDifference(result.delay);
-            message += `<br><div style="color: #ef4444; font-weight: bold; text-align: center;">😱 Marcaste tarde: ${delayFormatted} de retraso</div>`;
-          } else if (type === 'entry' && result.schedule === null) {
-            message += `<br><div style="color: #6b7280; font-style: italic; text-align: center;">ℹ️ No se encontró horario configurado para hoy</div>`;
-          } else if (type === 'entry' && result.schedule?.schedule?.day_off) {
-            message += `<br><div style="color: #6b7280; font-style: italic; text-align: center;">ℹ️ Día libre</div>`;
-          } else if (type === 'entry') {
-            message += `<br><div style="color: #10b981; font-weight: bold; text-align: center;">✓ Marcaste a tiempo</div>`;
-          }
-
-          // Add early/late warning for exit if applicable
-          if (result.exitDiff !== null && result.exitDiff !== undefined) {
-            const diffFormatted = this.formatTimeDifference(
-              result.exitDiff.minutes
-            );
-            if (result.exitDiff.isEarly) {
-              message += `<br><div style="color: #f59e0b; font-weight: bold; text-align: center;">😱 Saliste antes: ${diffFormatted} antes de la hora programada</div>`;
-            } else {
-              message += `<br><div style="color: #10b981; font-weight: bold; text-align: center;">✓ Saliste después: ${diffFormatted} después de la hora programada</div>`;
-            }
-          } else if (type === 'exit' && result.schedule === null) {
-            message += `<br><div style="color: #6b7280; font-style: italic; text-align: center;">ℹ️ No se encontró horario configurado para hoy</div>`;
-          } else if (type === 'exit' && result.schedule?.schedule?.day_off) {
-            message += `<br><div style="color: #6b7280; font-style: italic; text-align: center;">ℹ️ Día libre</div>`;
-          } else if (type === 'exit') {
-            message += `<br><div style="color: #10b981; font-weight: bold; text-align: center;">✓ Saliste a tiempo</div>`;
-          }
-
-          // Check lunch time for lunch_end
-          if (type === 'lunch_end' && result.schedule?.schedule) {
-            const lunchEndDiff =
-              result.lunchEndDiff !== null && result.lunchEndDiff !== undefined
-                ? result.lunchEndDiff
-                : null;
-            if (lunchEndDiff !== null && lunchEndDiff > 0) {
-              const diffFormatted = this.formatTimeDifference(lunchEndDiff);
-              message += `<br><div style="color: #f59e0b; font-weight: bold; text-align: center;">⚠️ Regresaste tarde del almuerzo: ${diffFormatted} después de la hora programada</div>`;
-            } else {
-              message += `<br><div style="color: #10b981; font-weight: bold; text-align: center;">✓ Regresaste a tiempo del almuerzo</div>`;
-            }
-          }
+          // Mensajes de tiempo deshabilitados - solo mostrar confirmación básica
 
           this.isProcessing.set(false);
           this.confirmation.confirm({
