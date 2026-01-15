@@ -85,7 +85,8 @@ interface TooltipPosition {
           @if (!tutorialService.showCompletionMessage()) {
           <span class="click-hint">
             <i class="pi pi-hand-point-up"></i>
-            Haz clic aquí
+            @if (currentStep()?.isPrompt) { ¡Ahora escoge una! } @else { Haz
+            clic aquí }
           </span>
           }
         </div>

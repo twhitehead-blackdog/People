@@ -8,6 +8,7 @@ import { TutorialConfig } from '../../services/tutorial-guide.service';
 /**
  * Intro tutorial - shows all 4 gestiones in order:
  * Compensatorio → Incapacidades → Vacaciones → Documentos
+ * Then prompts user to select one
  */
 export const GESTIONES_TUTORIAL_INTRO: TutorialConfig = {
   id: 'gestiones-intro',
@@ -15,24 +16,24 @@ export const GESTIONES_TUTORIAL_INTRO: TutorialConfig = {
   steps: [
     {
       id: 'gestiones-card-compensatory',
-      tooltip: '⏰ Tiempo Compensatorio - para horas extras trabajadas',
+      tooltip: '⏰ Para compensar horas extras trabajadas',
       tooltipPosition: 'bottom',
     },
     {
       id: 'gestiones-card-disabilities',
-      tooltip: '📋 Incapacidades - registrar ausencias médicas',
+      tooltip: '📋 Para registrar ausencias por enfermedad',
       tooltipPosition: 'bottom',
     },
     {
       id: 'gestiones-card-vacations',
-      tooltip: '🏖️ Vacaciones - solicitar días libres',
+      tooltip: '🏖️ Para solicitar días de vacaciones',
       tooltipPosition: 'bottom',
     },
     {
       id: 'gestiones-card-documents',
-      tooltip: '📄 Documentos - cartas y constancias',
+      tooltip: '📄 Para cartas de trabajo y constancias',
       tooltipPosition: 'bottom',
-      isPrompt: true, // Last step - user selects one
+      isPrompt: true, // Last step - shows "selecciona una"
     },
   ],
   chainToSelection: true,
@@ -47,37 +48,37 @@ export const DISABILITIES_TUTORIAL: TutorialConfig = {
   steps: [
     {
       id: 'gestiones-employee-select',
-      tooltip: '👤 Selecciona al empleado',
+      tooltip: '👤 Busca y selecciona al empleado',
       tooltipPosition: 'bottom',
     },
     {
       id: 'gestiones-employee-confirm',
-      tooltip: '✅ Confirma y continúa',
-      tooltipPosition: 'right',
+      tooltip: '✅ Confirma para continuar',
+      tooltipPosition: 'left',
     },
     {
       id: 'disabilities-start-date',
-      tooltip: '📅 Fecha de inicio de la incapacidad',
+      tooltip: '📅 ¿Cuándo inició la incapacidad?',
       tooltipPosition: 'right',
     },
     {
       id: 'disabilities-end-date',
-      tooltip: '📅 Fecha de fin',
+      tooltip: '📅 ¿Cuándo termina?',
       tooltipPosition: 'left',
     },
     {
       id: 'disabilities-description',
-      tooltip: '📝 Describe el motivo',
+      tooltip: '📝 Describe el diagnóstico',
       tooltipPosition: 'top',
     },
     {
       id: 'disabilities-file',
-      tooltip: '📎 Adjunta el certificado médico',
+      tooltip: '📎 Sube el certificado médico',
       tooltipPosition: 'top',
     },
     {
       id: 'disabilities-submit',
-      tooltip: '🚀 ¡Envía la solicitud!',
+      tooltip: '🚀 ¡Listo! Envía la solicitud',
       tooltipPosition: 'top',
     },
   ],
@@ -92,13 +93,13 @@ export const VACATIONS_TUTORIAL: TutorialConfig = {
   steps: [
     {
       id: 'gestiones-employee-select',
-      tooltip: '👤 Selecciona al empleado',
+      tooltip: '👤 Busca y selecciona al empleado',
       tooltipPosition: 'bottom',
     },
     {
       id: 'gestiones-employee-confirm',
-      tooltip: '✅ Confirma y continúa',
-      tooltipPosition: 'right',
+      tooltip: '✅ Confirma para continuar',
+      tooltipPosition: 'left',
     },
     {
       id: 'vacations-start-date',
@@ -112,12 +113,12 @@ export const VACATIONS_TUTORIAL: TutorialConfig = {
     },
     {
       id: 'vacations-reason',
-      tooltip: '📝 Motivo (opcional)',
+      tooltip: '📝 Agrega un motivo (opcional)',
       tooltipPosition: 'top',
     },
     {
       id: 'vacations-submit',
-      tooltip: '🚀 ¡Solicita las vacaciones!',
+      tooltip: '🚀 ¡Listo! Solicita las vacaciones',
       tooltipPosition: 'top',
     },
   ],
@@ -132,22 +133,22 @@ export const DOCUMENTS_TUTORIAL: TutorialConfig = {
   steps: [
     {
       id: 'gestiones-employee-select',
-      tooltip: '👤 Selecciona al empleado',
+      tooltip: '👤 Busca y selecciona al empleado',
       tooltipPosition: 'bottom',
     },
     {
       id: 'gestiones-employee-confirm',
-      tooltip: '✅ Confirma y continúa',
-      tooltipPosition: 'right',
+      tooltip: '✅ Confirma para continuar',
+      tooltipPosition: 'left',
     },
     {
       id: 'documents-type',
-      tooltip: '📄 Elige el tipo de documento',
+      tooltip: '📄 ¿Qué documento necesitas?',
       tooltipPosition: 'bottom',
     },
     {
       id: 'documents-reason',
-      tooltip: '📝 Explica para qué lo necesitas',
+      tooltip: '📝 ¿Para qué lo necesitas?',
       tooltipPosition: 'top',
     },
     {
@@ -157,7 +158,7 @@ export const DOCUMENTS_TUTORIAL: TutorialConfig = {
     },
     {
       id: 'documents-submit',
-      tooltip: '🚀 ¡Envía la solicitud!',
+      tooltip: '🚀 ¡Listo! Envía la solicitud',
       tooltipPosition: 'top',
     },
   ],
@@ -172,22 +173,22 @@ export const COMPENSATORY_TUTORIAL: TutorialConfig = {
   steps: [
     {
       id: 'gestiones-employee-select',
-      tooltip: '👤 Selecciona al empleado',
+      tooltip: '👤 Busca y selecciona al empleado',
       tooltipPosition: 'bottom',
     },
     {
       id: 'gestiones-employee-confirm',
-      tooltip: '✅ Confirma y continúa',
-      tooltipPosition: 'right',
+      tooltip: '✅ Confirma para continuar',
+      tooltipPosition: 'left',
     },
     {
       id: 'compensatory-type',
-      tooltip: '⏰ ¿Por horas o por días?',
+      tooltip: '⏰ ¿Compensar horas o días?',
       tooltipPosition: 'bottom',
     },
     {
       id: 'compensatory-dates',
-      tooltip: '📅 Selecciona las fechas',
+      tooltip: '📅 Elige cuándo tomarlo',
       tooltipPosition: 'bottom',
     },
     {
@@ -197,7 +198,7 @@ export const COMPENSATORY_TUTORIAL: TutorialConfig = {
     },
     {
       id: 'compensatory-submit',
-      tooltip: '🚀 ¡Envía la solicitud!',
+      tooltip: '🚀 ¡Listo! Envía la solicitud',
       tooltipPosition: 'top',
     },
   ],

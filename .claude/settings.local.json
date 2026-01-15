@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(find:*)",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(node:*)",
+      "Bash(npx nx build:*)"
     ]
   }
 }

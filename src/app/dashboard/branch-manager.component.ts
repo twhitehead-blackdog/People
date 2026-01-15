@@ -1519,10 +1519,7 @@ export class BranchManagerComponent {
     if (branchId) {
       employees = employees.filter((emp) => emp.branch_id === branchId);
     }
-    // Excluir al gerente mismo de la lista
-    if (currentEmpId) {
-      employees = employees.filter((emp) => emp.id !== currentEmpId);
-    }
+    // Ya no excluimos al gerente - puede seleccionarse a sí mismo si necesita hacer una gestión propia
     // Retornar los empleados completos con short_name agregado
     return employees.map((emp) => ({
       ...emp,
@@ -2268,7 +2265,9 @@ export class BranchManagerComponent {
     const branchEmployees = this.branchEmployees();
     console.log('🔍 [BRANCH-MANAGER] Procesando empleados:', {
       totalEmpleados: branchEmployees.length,
-      empleadosSample: branchEmployees.slice(0, 3).map(e => ({ id: e.id, name: `${e.first_name} ${e.father_name}` }))
+      empleadosSample: branchEmployees
+        .slice(0, 3)
+        .map((e) => ({ id: e.id, name: `${e.first_name} ${e.father_name}` })),
     });
 
     branchEmployees.forEach((emp) => {
@@ -2277,16 +2276,21 @@ export class BranchManagerComponent {
         ? this.findEmployeeScheduleForDate(emp.id, selectedDate, schedules)
         : null;
 
-      console.log(`🔍 [BRANCH-MANAGER] Empleado ${emp.first_name} ${emp.father_name}:`, {
-        employeeId: emp.id,
-        hasSchedule: !!employeeSchedule,
-        scheduleFound: employeeSchedule ? {
-          scheduleName: employeeSchedule.schedule?.name,
-          startDate: employeeSchedule.start_date,
-          endDate: employeeSchedule.end_date
-        } : null,
-        selectedDate: selectedDate?.toISOString()
-      });
+      console.log(
+        `🔍 [BRANCH-MANAGER] Empleado ${emp.first_name} ${emp.father_name}:`,
+        {
+          employeeId: emp.id,
+          hasSchedule: !!employeeSchedule,
+          scheduleFound: employeeSchedule
+            ? {
+                scheduleName: employeeSchedule.schedule?.name,
+                startDate: employeeSchedule.start_date,
+                endDate: employeeSchedule.end_date,
+              }
+            : null,
+          selectedDate: selectedDate?.toISOString(),
+        }
+      );
 
       const schedule = employeeSchedule?.schedule;
       const isDayOff =
@@ -2549,23 +2553,27 @@ export class BranchManagerComponent {
     date: Date,
     schedules: any[]
   ): any {
-    console.log(`🔍 [BRANCH-MANAGER] Buscando schedule para empleado ${employeeId}:`, {
-      date: date.toISOString(),
-      schedulesForEmployee: schedules
-        .filter(s => s.employee_id === employeeId)
-        .map(s => ({
-          employee_id: s.employee_id,
-          schedule_name: s.schedule?.name,
-          start_date: s.start_date,
-          end_date: s.end_date,
-          dateCheck: {
-            selectedDate: date.toISOString(),
-            startDate: new Date(s.start_date).toISOString(),
-            endDate: new Date(s.end_date).toISOString(),
-            isWithinRange: date >= new Date(s.start_date) && date <= new Date(s.end_date)
-          }
-        }))
-    });
+    console.log(
+      `🔍 [BRANCH-MANAGER] Buscando schedule para empleado ${employeeId}:`,
+      {
+        date: date.toISOString(),
+        schedulesForEmployee: schedules
+          .filter((s) => s.employee_id === employeeId)
+          .map((s) => ({
+            employee_id: s.employee_id,
+            schedule_name: s.schedule?.name,
+            start_date: s.start_date,
+            end_date: s.end_date,
+            dateCheck: {
+              selectedDate: date.toISOString(),
+              startDate: new Date(s.start_date).toISOString(),
+              endDate: new Date(s.end_date).toISOString(),
+              isWithinRange:
+                date >= new Date(s.start_date) && date <= new Date(s.end_date),
+            },
+          })),
+      }
+    );
 
     return schedules.find(
       (s) =>
