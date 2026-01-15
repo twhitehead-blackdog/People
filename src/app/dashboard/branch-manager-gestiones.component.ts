@@ -25,6 +25,13 @@ import { calculateCompensatoryAmount } from '../employee-portal/utils/employee-p
 import { Branch, Employee } from '../models';
 import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
+import { TutorialGuideService } from '../services/tutorial-guide.service';
+import { TutorialSpotlightComponent } from '../shared/components/tutorial-spotlight.component';
+import { TutorialStepDirective } from '../shared/directives/tutorial-step.directive';
+import {
+  GESTIONES_TUTORIAL_INTRO,
+  GESTIONES_TUTORIALS,
+} from '../shared/tutorial-configs/gestiones-tutorials';
 import { getEnv } from '../utils/env.utils';
 
 type ManagementCard = {
@@ -50,6 +57,8 @@ type ManagementCard = {
     FileUpload,
     InputTextarea,
     EmployeePortalCompensatoryComponent,
+    TutorialStepDirective,
+    TutorialSpotlightComponent,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -62,7 +71,21 @@ type ManagementCard = {
           </div>
         </ng-template>
         <ng-template #subtitle>
-          Realiza solicitudes en nombre de los empleados de tu sucursal
+          <div class="flex items-center justify-between">
+            <span
+              >Realiza solicitudes en nombre de los empleados de tu
+              sucursal</span
+            >
+            <p-button
+              icon="pi pi-question-circle"
+              label="Modo Guía"
+              severity="help"
+              [text]="true"
+              size="small"
+              (onClick)="startTutorial()"
+              pTooltip="Ver tutorial interactivo"
+            />
+          </div>
         </ng-template>
 
         <!-- Vista de Tarjetas de Gestiones -->
@@ -71,6 +94,7 @@ type ManagementCard = {
           @for (card of managementCards; track card.id) {
           <p-card
             class="cursor-pointer hover:shadow-lg hover:bg-neutral-700/30 transition-all hover:ring-2 hover:ring-amber-400/50 p-3"
+            [ptTutorialStep]="'gestiones-card-' + card.section"
             (click)="selectGestion(card.section)"
           >
             <div class="flex flex-col items-center text-center gap-2">
@@ -152,6 +176,7 @@ type ManagementCard = {
               showClear
               appendTo="body"
               styleClass="w-full"
+              ptTutorialStep="gestiones-employee-select"
             >
               <ng-template #selectedItem let-selected>
                 @if (selected) {
@@ -225,6 +250,7 @@ type ManagementCard = {
                   icon="pi pi-arrow-right"
                   severity="info"
                   (onClick)="confirmEmployee()"
+                  ptTutorialStep="gestiones-employee-confirm"
                 />
               </div>
             </div>
@@ -355,6 +381,7 @@ type ManagementCard = {
                     [maxDate]="today"
                     styleClass="w-full"
                     appendTo="body"
+                    ptTutorialStep="disabilities-start-date"
                   />
                 </div>
                 <div class="flex flex-col gap-2">
@@ -369,6 +396,7 @@ type ManagementCard = {
                     [minDate]="disabilityStartDate() || today"
                     styleClass="w-full"
                     appendTo="body"
+                    ptTutorialStep="disabilities-end-date"
                   />
                 </div>
               </div>
@@ -404,6 +432,7 @@ type ManagementCard = {
                 placeholder="Describe el motivo de la incapacidad (diagnóstico, síntomas, etc.)"
                 rows="4"
                 class="w-full"
+                ptTutorialStep="disabilities-description"
               ></textarea>
             </div>
 
@@ -433,6 +462,7 @@ type ManagementCard = {
                 chooseLabel="Seleccionar Archivo"
                 (onSelect)="onDisabilityFileSelect($event)"
                 class="w-full"
+                ptTutorialStep="disabilities-file"
               />
               @if (disabilityFile()) {
               <div
@@ -472,6 +502,7 @@ type ManagementCard = {
                 [loading]="uploadingDisability()"
                 (onClick)="submitDisabilityRequest()"
                 severity="success"
+                ptTutorialStep="disabilities-submit"
               />
             </div>
           </div>
@@ -503,6 +534,7 @@ type ManagementCard = {
                     placeholder="Selecciona fecha de inicio"
                     styleClass="w-full"
                     appendTo="body"
+                    ptTutorialStep="vacations-start-date"
                   />
                 </div>
                 <div class="flex flex-col gap-2">
@@ -517,6 +549,7 @@ type ManagementCard = {
                     [minDate]="vacationStartDate() || today"
                     styleClass="w-full"
                     appendTo="body"
+                    ptTutorialStep="vacations-end-date"
                   />
                 </div>
               </div>
@@ -555,6 +588,7 @@ type ManagementCard = {
                 placeholder="Motivo o comentarios adicionales sobre las vacaciones"
                 rows="3"
                 class="w-full"
+                ptTutorialStep="vacations-reason"
               ></textarea>
             </div>
 
@@ -626,6 +660,7 @@ type ManagementCard = {
                 [loading]="submittingVacation()"
                 (onClick)="submitVacationRequest()"
                 severity="success"
+                ptTutorialStep="vacations-submit"
               />
             </div>
           </div>
@@ -657,6 +692,7 @@ type ManagementCard = {
                   placeholder="Tipo de documento"
                   styleClass="w-full"
                   appendTo="body"
+                  ptTutorialStep="documents-type"
                 />
               </div>
               @if (documentType() === 'other') {
@@ -697,6 +733,7 @@ type ManagementCard = {
                     placeholder="Explica para qué necesitas este documento"
                     rows="3"
                     class="w-full"
+                    ptTutorialStep="documents-reason"
                   ></textarea>
                 </div>
                 <div class="flex flex-col gap-2">
@@ -711,6 +748,7 @@ type ManagementCard = {
                     [minDate]="today"
                     styleClass="w-full"
                     appendTo="body"
+                    ptTutorialStep="documents-date"
                   />
                 </div>
               </div>
@@ -731,6 +769,7 @@ type ManagementCard = {
                 [loading]="submittingDocument()"
                 (onClick)="submitDocumentRequest()"
                 severity="success"
+                ptTutorialStep="documents-submit"
               />
             </div>
           </div>
@@ -738,6 +777,9 @@ type ManagementCard = {
         </div>
         }
       </p-card>
+
+      <!-- Tutorial Spotlight Overlay -->
+      <pt-tutorial-spotlight />
     </div>
   `,
 })
@@ -750,6 +792,7 @@ export class BranchManagerGestionesComponent {
   private apiUrl = inject(ApiUrlService);
   private messageService = inject(MessageService);
   private organizationService = inject(OrganizationService);
+  private tutorialService = inject(TutorialGuideService);
 
   // Fechas para formularios
   public today = startOfDay(new Date());
@@ -922,7 +965,20 @@ export class BranchManagerGestionesComponent {
   public selectGestion(
     type: 'disabilities' | 'documents' | 'vacations' | 'compensatory'
   ): void {
+    // Check if we're in the intro tutorial before changing state
+    const wasInIntroTutorial =
+      this.tutorialService.isActive() &&
+      this.tutorialService.currentConfig()?.id === 'gestiones-intro';
+
     this.selectedGestionType.set(type);
+
+    // If intro tutorial was active, start the specific tutorial for this gestión
+    if (wasInIntroTutorial && GESTIONES_TUTORIALS[type]) {
+      // Give a small delay to allow the view to update
+      setTimeout(() => {
+        this.tutorialService.start(GESTIONES_TUTORIALS[type]);
+      }, 300);
+    }
   }
 
   // Confirmar empleado seleccionado
@@ -956,6 +1012,27 @@ export class BranchManagerGestionesComponent {
     const first = employee.first_name?.charAt(0) || '';
     const last = employee.father_name?.charAt(0) || '';
     return (first + last).toUpperCase() || '?';
+  }
+
+  // ============================================================
+  // Tutorial Methods
+  // ============================================================
+
+  /**
+   * Start the interactive tutorial for gestiones
+   */
+  public startTutorial(): void {
+    // If we're on the main cards view, show the intro tutorial
+    if (!this.selectedGestionType()) {
+      this.tutorialService.start(GESTIONES_TUTORIAL_INTRO);
+      return;
+    }
+
+    // If a gestión type is selected, show the specific tutorial
+    const gestionType = this.selectedGestionType();
+    if (gestionType && GESTIONES_TUTORIALS[gestionType]) {
+      this.tutorialService.start(GESTIONES_TUTORIALS[gestionType]);
+    }
   }
 
   // Navegación
