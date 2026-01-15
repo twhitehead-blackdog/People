@@ -2191,6 +2191,7 @@ export class BranchManagerComponent {
     const employeeId = this.selectedEmployeeId();
     const selectedDate = this.selectedDate();
     const branchId = this.currentBranch()?.id;
+    const grouped: Record<string, any> = {};
 
     // IDs de schedules que son día libre/feriado
     const dayOffScheduleIds = [
@@ -2200,22 +2201,52 @@ export class BranchManagerComponent {
       'f2d92995-96a0-414f-b64a-9823db776745', // Compensatorio
     ];
 
-    // Paso 1: Crear registros desde los logs que tienen branch_id de la sucursal
-    // Esto muestra empleados que MARCARON en esa sucursal ese día, no su sucursal actual
-    const grouped: Record<string, any> = {};
+    // Paso 1: Poblar con empleados que PERTENECEN a esta sucursal (para ver faltas)
+    const branchEmployees = this.branchEmployees();
+    branchEmployees.forEach((emp) => {
+      // Encontrar horario programado del empleado para la fecha
+      const employeeSchedule = selectedDate
+        ? this.findEmployeeScheduleForDate(emp.id, selectedDate, schedules)
+        : null;
 
-    // Filtrar logs por branch_id de la sucursal seleccionada
+      const schedule = employeeSchedule?.schedule;
+      const isDayOff =
+        schedule?.day_off ||
+        (schedule?.id && dayOffScheduleIds.includes(schedule.id)) ||
+        schedule?.name?.toLowerCase().includes('libre') ||
+        schedule?.name?.toLowerCase().includes('feriado') ||
+        schedule?.name?.toLowerCase().includes('vacaciones') ||
+        schedule?.name?.toLowerCase().includes('compensatorio');
+
+      grouped[emp.id] = {
+        employee_id: emp.id,
+        employee: emp,
+        entry_time: null,
+        lunch_start_time: null,
+        lunch_end_time: null,
+        exit_time: null,
+        is_delayed: false,
+        is_missing: !isDayOff, // Por defecto falta si tiene horario y no es libre
+        is_day_off: isDayOff,
+        lunch_exceeded: false,
+        is_early_exit: false,
+        schedule: schedule,
+        schedule_name: schedule?.name || 'Sin horario',
+        last_entry_time: null,
+      };
+    });
+
+    // Paso 2: Filtrar logs estrictamente por branch_id de la sucursal seleccionada
+    // Y añadir personas de otras sucursales que marcaron AQUÍ
     const branchLogs = branchId
       ? logs.filter((log: any) => log.branch_id === branchId)
       : logs;
 
-    // Crear registros para cada empleado único que tiene logs en esa sucursal
     branchLogs.forEach((log: any) => {
       if (!log.employee_id) return;
 
-      // Si no existe el registro, crearlo
+      // Si no existe (es de otra sucursal), crearlo
       if (!grouped[log.employee_id]) {
-        // Encontrar horario programado del empleado para la fecha
         const employeeSchedule = selectedDate
           ? this.findEmployeeScheduleForDate(
               log.employee_id,
@@ -2223,15 +2254,11 @@ export class BranchManagerComponent {
               schedules
             )
           : null;
-
         const schedule = employeeSchedule?.schedule;
         const isDayOff =
           schedule?.day_off ||
           (schedule?.id && dayOffScheduleIds.includes(schedule.id)) ||
-          schedule?.name?.toLowerCase().includes('libre') ||
-          schedule?.name?.toLowerCase().includes('feriado') ||
-          schedule?.name?.toLowerCase().includes('vacaciones') ||
-          schedule?.name?.toLowerCase().includes('compensatorio');
+          schedule?.name?.toLowerCase().includes('libre');
 
         grouped[log.employee_id] = {
           employee_id: log.employee_id,
@@ -2241,7 +2268,7 @@ export class BranchManagerComponent {
           lunch_end_time: null,
           exit_time: null,
           is_delayed: false,
-          is_missing: false, // Si tiene logs, no está missing
+          is_missing: false, // Si tiene logs aquí, no está missing
           is_day_off: isDayOff,
           lunch_exceeded: false,
           is_early_exit: false,
@@ -2254,7 +2281,9 @@ export class BranchManagerComponent {
       const logTime = new Date(log.created_at);
       const entry = grouped[log.employee_id];
 
-      // Actualizar datos del empleado con info más reciente del log si viene join
+      // Al tener al menos una marcación en esta sucursal, ya no está missing
+      entry.is_missing = false;
+
       if (log.employee) {
         entry.employee = { ...entry.employee, ...log.employee };
       }

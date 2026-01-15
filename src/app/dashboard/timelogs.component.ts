@@ -353,7 +353,7 @@ export class TimelogsComponent {
   public onlyEarlyExit = signal(false);
   public onlyLunchExceeded = signal(false);
   public lunchExceededRange = signal<string | null>(null);
-  public onlyWithMarcaciones = signal(true); // Activar por defecto para mostrar solo días con marcaciones
+  public onlyWithMarcaciones = signal(false); // Desactivar por defecto para mostrar todos los días
   public delayToleranceMinutes = signal(5); // Tolerancia por defecto de 5 minutos
   public delayRange = signal<string | null>(null);
   public filtersExpanded = signal(false);
@@ -954,7 +954,7 @@ export class TimelogsComponent {
     // Primero obtener todos los logs filtrados
     const filteredLogs = logsData
       .filter((x: any) =>
-        this.branchId() ? x.employee?.branch?.id === this.branchId() : true
+        this.branchId() ? x.branch_id === this.branchId() : true
       )
       .map((x: any) => {
         // Convertir created_at de UTC (viene de Supabase) a hora local de Panamá
@@ -1002,11 +1002,15 @@ export class TimelogsComponent {
     // Primero agregar empleados que tienen logs, pero usar datos completos de employeesList
     filteredLogs.forEach((log: any) => {
       if (log.employee?.id && !uniqueEmployees.has(log.employee.id)) {
-        // Buscar el empleado completo en employeesList para obtener total_lunch_exceeded_minutes
+        // Buscar el empleado completo en employeesList
         const fullEmployee = this.employees
           .employeesList()
           .find((emp) => emp.id === log.employee.id);
-        uniqueEmployees.set(log.employee.id, fullEmployee || log.employee);
+
+        // Ya sabemos que tienen logs en esta sucursal (porque vienen de filteredLogs)
+        if (fullEmployee || log.employee) {
+          uniqueEmployees.set(log.employee.id, fullEmployee || log.employee);
+        }
       }
     });
 
@@ -1020,11 +1024,25 @@ export class TimelogsComponent {
       }
     }
 
-    // Si no hay empleados únicos y no hay búsqueda, usar todos los empleados activos
-    if (uniqueEmployees.size === 0 && !searchTerm) {
+    // Si no hay búsqueda y onlyWithMarcaciones es false, mostrar empleados de la sucursal seleccionada
+    // para poder ver quiénes NO han marcado (Missing)
+    if (!searchTerm && !this.onlyWithMarcaciones()) {
       this.employees.employeesList().forEach((emp) => {
         if (emp.is_active) {
-          uniqueEmployees.set(emp.id, emp);
+          // Si hay filtro de sucursal, solo añadir los que pertenecen a ella
+          if (this.branchId()) {
+            if (emp.branch_id === this.branchId()) {
+              if (!uniqueEmployees.has(emp.id)) {
+                uniqueEmployees.set(emp.id, emp);
+              }
+            }
+          } else {
+            // Si no hay filtro de sucursal y uniqueEmployees está vacío (no hay marcaciones),
+            // mostrar a todos los activos (comportamiento original)
+            if (uniqueEmployees.size === 0 && !uniqueEmployees.has(emp.id)) {
+              uniqueEmployees.set(emp.id, emp);
+            }
+          }
         }
       });
     }
@@ -1547,12 +1565,9 @@ export class TimelogsComponent {
         }
       }
 
-      // Filtrar por branchId si está seleccionado
-      if (this.branchId()) {
-        if (x.employee?.branch_id !== this.branchId()) {
-          return false;
-        }
-      }
+      // El filtrado por branchId ya se manejó en dayLogs al poblar uniqueEmployees
+      // y filtrar filteredLogs. No es necesario filtrar aquí por la sucursal actual del empleado,
+      // ya que queremos permitir ver marcaciones de empleados de otras sucursales si marcaron aquí.
 
       // Filtrar por búsqueda de nombre (mejorado para buscar en todos los campos)
       if (searchTerm) {

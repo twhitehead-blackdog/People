@@ -68,6 +68,7 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
       '/rest/v1/v_lates_daily_detail',
       '/rest/v1/rpc/',
       '/storage/v1/object/',
+      
     ];
 
     const needsServiceRoleKey = whitelist.some((path) =>
