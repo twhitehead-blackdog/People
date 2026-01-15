@@ -10,6 +10,7 @@ import { DialogModule } from 'primeng/dialog';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
+import { Textarea } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
@@ -54,6 +55,7 @@ import { VacationRequest } from '../models/vacation-request.model';
     HrStatsGridComponent,
     HrFiltersPanelComponent,
     SafeUrlPipe,
+    Textarea,
   ],
   providers: [MessageService, ConfirmationService],
   template: `
@@ -298,19 +300,16 @@ import { VacationRequest } from '../models/vacation-request.model';
     <p-dialog
       [(visible)]="showDetailsDialog"
       [modal]="true"
-      [style]="{ width: '90vw', maxWidth: '700px' }"
+      [style]="{ width: '90vw', maxWidth: '900px' }"
       [draggable]="false"
       [resizable]="false"
       [dismissableMask]="true"
     >
       <ng-template pTemplate="header">
         <div class="flex items-center justify-between w-full">
-          <div class="flex items-center gap-2">
-            <i class="pi pi-calendar text-cyan-400"></i>
-            <span class="text-lg font-semibold text-white">
-              Detalles de Solicitud de Vacaciones
-            </span>
-          </div>
+          <span class="text-lg font-semibold text-white"
+            >Detalles de Vacaciones</span
+          >
           <div class="flex items-center gap-2">
             <p-button
               [icon]="
@@ -339,120 +338,180 @@ import { VacationRequest } from '../models/vacation-request.model';
       </ng-template>
 
       @if (selectedVacation()) {
-      <div class="space-y-4">
-        <!-- Información del Empleado -->
-        <div
-          class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700/50"
-        >
-          <h4
-            class="text-sm font-semibold text-cyan-400 mb-3 flex items-center gap-2"
+      <div class="space-y-4 pt-4">
+        <!-- Información del Empleado y Resumen de Vacaciones (lado a lado) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Información del Empleado -->
+          <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
+            <h3
+              class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+            >
+              <i class="pi pi-user text-cyan-400"></i>
+              Información del Empleado
+            </h3>
+            <div class="space-y-2">
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Nombre</label
+                >
+                <p class="text-white">
+                  {{ selectedVacation()!.employee?.first_name }}
+                  {{ selectedVacation()!.employee?.father_name }}
+                </p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Email</label
+                >
+                <p class="text-white">
+                  {{ selectedVacation()!.employee?.work_email || '-' }}
+                </p>
+              </div>
+              @if (selectedVacation()!.employee?.position?.name) {
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Cargo</label
+                >
+                <p class="text-white">
+                  {{ selectedVacation()!.employee?.position?.name }}
+                </p>
+              </div>
+              } @if (selectedVacation()!.employee?.branch?.name) {
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Sucursal</label
+                >
+                <p class="text-white">
+                  {{ selectedVacation()!.employee?.branch?.name }}
+                </p>
+              </div>
+              }
+            </div>
+          </div>
+
+          <!-- Resumen de Vacaciones -->
+          <div
+            class="p-4 bg-gradient-to-r from-cyan-500/20 to-cyan-600/10 border border-cyan-400/30 rounded-lg"
           >
-            <i class="pi pi-user"></i> Información del Empleado
-          </h4>
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <span class="text-xs text-gray-400">Nombre</span>
-              <p class="text-sm text-white font-medium m-0">
-                {{ selectedVacation()?.employee?.first_name }}
-                {{ selectedVacation()?.employee?.father_name }}
-              </p>
+            <h3
+              class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+            >
+              <i class="pi pi-calendar-check text-cyan-400"></i>
+              Resumen de Vacaciones
+            </h3>
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <p class="text-sm text-gray-400 mb-1">Duración total</p>
+                <p class="text-3xl font-bold text-cyan-300">
+                  {{
+                    calculateDays(
+                      selectedVacation()!.start_date,
+                      selectedVacation()!.end_date
+                    )
+                  }}
+                  días
+                </p>
+              </div>
+              <div
+                class="w-20 h-20 rounded-full bg-cyan-500/20 flex items-center justify-center"
+              >
+                <i class="pi pi-calendar text-cyan-400 text-3xl"></i>
+              </div>
             </div>
-            <div>
-              <span class="text-xs text-gray-400">Email</span>
-              <p class="text-sm text-white m-0">
-                {{ selectedVacation()?.employee?.work_email || '-' }}
-              </p>
+            <div class="mt-3 space-y-2">
+              <div
+                class="bg-cyan-500/10 border border-cyan-400/30 rounded-lg p-2"
+              >
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-semibold text-cyan-300">
+                    Fecha Inicio
+                  </span>
+                  <span class="text-xs font-bold text-cyan-400">
+                    {{ selectedVacation()!.start_date | date : 'dd/MM/yyyy' }}
+                  </span>
+                </div>
+              </div>
+              <div
+                class="bg-cyan-500/10 border border-cyan-400/30 rounded-lg p-2"
+              >
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-semibold text-cyan-300">
+                    Fecha Fin
+                  </span>
+                  <span class="text-xs font-bold text-cyan-400">
+                    {{ selectedVacation()!.end_date | date : 'dd/MM/yyyy' }}
+                  </span>
+                </div>
+              </div>
             </div>
-            @if (selectedVacation()?.employee?.position?.name) {
-            <div>
-              <span class="text-xs text-gray-400">Posición</span>
-              <p class="text-sm text-white m-0">
-                {{ selectedVacation()?.employee?.position?.name }}
-              </p>
-            </div>
-            } @if (selectedVacation()?.employee?.branch?.name) {
-            <div>
-              <span class="text-xs text-gray-400">Sucursal</span>
-              <p class="text-sm text-cyan-400 m-0">
-                {{ selectedVacation()?.employee?.branch?.name }}
-              </p>
-            </div>
-            }
           </div>
         </div>
 
-        <!-- Detalles de la Solicitud -->
-        <div
-          class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700/50"
-        >
-          <h4
-            class="text-sm font-semibold text-cyan-400 mb-3 flex items-center gap-2"
+        <!-- Información de la Solicitud -->
+        <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
+          <h3
+            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
           >
-            <i class="pi pi-calendar"></i> Detalles de Vacaciones
-          </h4>
+            <i class="pi pi-info-circle text-cyan-400"></i>
+            Información de la Solicitud
+          </h3>
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <span class="text-xs text-gray-400">Fecha de Inicio</span>
-              <p class="text-sm text-white font-medium m-0">
-                {{ selectedVacation()?.start_date | date : 'dd/MM/yyyy' }}
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Fecha de Inicio</label
+              >
+              <p class="text-white">
+                {{ selectedVacation()!.start_date | date : 'dd/MM/yyyy' }}
               </p>
             </div>
             <div>
-              <span class="text-xs text-gray-400">Fecha de Fin</span>
-              <p class="text-sm text-white font-medium m-0">
-                {{ selectedVacation()?.end_date | date : 'dd/MM/yyyy' }}
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Fecha de Fin</label
+              >
+              <p class="text-white">
+                {{ selectedVacation()!.end_date | date : 'dd/MM/yyyy' }}
               </p>
             </div>
             <div>
-              <span class="text-xs text-gray-400">Total de Días</span>
-              <p class="text-sm text-cyan-400 font-bold m-0">
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Duración</label
+              >
+              <p class="text-white">
                 {{
                   calculateDays(
                     selectedVacation()!.start_date,
                     selectedVacation()!.end_date
                   )
                 }}
-                días
+                día(s)
               </p>
             </div>
             <div>
-              <span class="text-xs text-gray-400">Estado</span>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Estado</label
+              >
               <p-tag
                 [value]="getStatusLabel(selectedVacation()!.status)"
                 [severity]="getStatusSeverity(selectedVacation()!.status)"
               />
             </div>
-          </div>
-          @if (selectedVacation()?.reason) {
-          <div class="mt-3">
-            <span class="text-xs text-gray-400">Motivo</span>
-            <p class="text-sm text-gray-300 m-0">
-              {{ selectedVacation()?.reason }}
-            </p>
-          </div>
-          }
-        </div>
-
-        <!-- Información de Auditoría -->
-        <div
-          class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700/50"
-        >
-          <h4
-            class="text-sm font-semibold text-cyan-400 mb-3 flex items-center gap-2"
-          >
-            <i class="pi pi-history"></i> Información de Auditoría
-          </h4>
-          <div class="grid grid-cols-2 gap-4">
             <div>
-              <span class="text-xs text-gray-400">Fecha de Solicitud</span>
-              <p class="text-sm text-white m-0">
-                {{ selectedVacation()?.created_at | date : 'dd/MM/yyyy HH:mm' }}
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Fecha de Solicitud</label
+              >
+              <p class="text-white">
+                {{ selectedVacation()!.created_at | date : 'dd/MM/yyyy HH:mm' }}
               </p>
             </div>
             <div>
-              <span class="text-xs text-gray-400">Creado por</span>
-              <p class="text-sm m-0">
-                @if (selectedVacation()?.created_by &&
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Creado por</label
+              >
+              <p class="text-white">
+                @if (selectedVacation()?.created_by_employee) {
+                {{ selectedVacation()!.created_by_employee!.first_name }}
+                {{ selectedVacation()!.created_by_employee!.father_name }}
+                } @else if (selectedVacation()?.created_by &&
                 selectedVacation()?.created_by !==
                 selectedVacation()?.employee_id) {
                 <span class="text-amber-300">Gerente</span>
@@ -461,48 +520,70 @@ import { VacationRequest } from '../models/vacation-request.model';
                 }
               </p>
             </div>
-            @if (selectedVacation()?.reviewed_at) {
-            <div>
-              <span class="text-xs text-gray-400">Fecha de Revisión</span>
-              <p class="text-sm text-white m-0">
-                {{
-                  selectedVacation()?.reviewed_at | date : 'dd/MM/yyyy HH:mm'
-                }}
-              </p>
-            </div>
-            } @if (selectedVacation()?.rejection_comment) {
-            <div class="col-span-2">
-              <span class="text-xs text-gray-400">Comentario de Rechazo</span>
-              <p class="text-sm text-red-400 m-0">
-                {{ selectedVacation()?.rejection_comment }}
-              </p>
-            </div>
-            }
           </div>
         </div>
 
-        <!-- Acciones -->
-        @if (selectedVacation()?.status === 'pending') {
-        <div class="flex justify-end gap-2 pt-2 border-t border-neutral-700/50">
-          <p-button
-            label="Rechazar"
-            icon="pi pi-times"
-            severity="danger"
-            [outlined]="true"
-            (onClick)="
-              rejectVacation(selectedVacation()!); showDetailsDialog.set(false)
-            "
-          />
-          <p-button
-            label="Aprobar"
-            icon="pi pi-check"
-            severity="success"
-            (onClick)="
-              approveVacation(selectedVacation()!); showDetailsDialog.set(false)
-            "
-          />
+        @if (selectedVacation()!.reason) {
+        <!-- Motivo -->
+        <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
+          <h3
+            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+          >
+            <i class="pi pi-comment text-cyan-400"></i>
+            Motivo
+          </h3>
+          <p class="text-white whitespace-pre-wrap">
+            {{ selectedVacation()!.reason }}
+          </p>
+        </div>
+        } @if (selectedVacation()!.status === 'rejected' &&
+        selectedVacation()!.rejection_comment) {
+        <!-- Motivo de Rechazo -->
+        <div class="p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+          <h3
+            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+          >
+            <i class="pi pi-exclamation-triangle text-red-400"></i>
+            Motivo de Rechazo
+          </h3>
+          <p class="text-red-300 whitespace-pre-wrap">
+            {{ selectedVacation()!.rejection_comment }}
+          </p>
         </div>
         }
+
+        <!-- Gestión de Estado -->
+        <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
+          <h3
+            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+          >
+            <i class="pi pi-cog text-cyan-400"></i>
+            Gestión de Estado
+          </h3>
+          <div class="flex gap-2">
+            <p-button
+              label="Pendiente"
+              severity="warn"
+              [outlined]="selectedVacation()!.status !== 'pending'"
+              (onClick)="updateVacationStatusFromDialog('pending')"
+              [disabled]="selectedVacation()!.status === 'pending'"
+            />
+            <p-button
+              label="Aprobada"
+              severity="success"
+              [outlined]="selectedVacation()!.status !== 'approved'"
+              (onClick)="updateVacationStatusFromDialog('approved')"
+              [disabled]="selectedVacation()!.status === 'approved'"
+            />
+            <p-button
+              label="Rechazada"
+              severity="danger"
+              [outlined]="selectedVacation()!.status !== 'rejected'"
+              (onClick)="openRejectionDialog()"
+              [disabled]="selectedVacation()!.status === 'rejected'"
+            />
+          </div>
+        </div>
       </div>
       }
     </p-dialog>
@@ -645,6 +726,67 @@ import { VacationRequest } from '../models/vacation-request.model';
       (click)="showDocumentPreview.set(false)"
     ></div>
     }
+
+    <!-- Diálogo de Confirmación de Rechazo -->
+    <p-dialog
+      [(visible)]="showRejectionDialog"
+      [modal]="true"
+      [style]="{ width: '90vw', maxWidth: '500px' }"
+      [draggable]="false"
+      [resizable]="false"
+      [dismissableMask]="true"
+      (onHide)="rejectionComment.set('')"
+    >
+      <ng-template pTemplate="header">
+        <div class="flex items-center gap-2">
+          <i class="pi pi-exclamation-triangle text-red-400"></i>
+          <span class="text-lg font-semibold text-white"
+            >Confirmar Rechazo</span
+          >
+        </div>
+      </ng-template>
+
+      <div class="space-y-4 pt-4">
+        <p class="text-gray-300">
+          Por favor, indica el motivo del rechazo de esta solicitud de
+          vacaciones.
+        </p>
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-2">
+            Motivo de Rechazo <span class="text-red-400">*</span>
+          </label>
+          <textarea
+            pTextarea
+            [(ngModel)]="rejectionComment"
+            rows="4"
+            placeholder="Escribe el motivo del rechazo..."
+            class="w-full"
+            maxlength="500"
+          ></textarea>
+          <p class="text-xs text-gray-500 mt-1">
+            {{ rejectionComment().length }}/500 caracteres
+          </p>
+        </div>
+      </div>
+
+      <ng-template pTemplate="footer">
+        <div class="flex justify-end gap-2">
+          <p-button
+            label="Cancelar"
+            severity="secondary"
+            [outlined]="true"
+            (onClick)="showRejectionDialog.set(false)"
+          />
+          <p-button
+            label="Confirmar Rechazo"
+            severity="danger"
+            icon="pi pi-times"
+            [disabled]="!rejectionComment().trim()"
+            (onClick)="confirmRejection()"
+          />
+        </div>
+      </ng-template>
+    </p-dialog>
   `,
 })
 export class VacationsComponent {
@@ -666,6 +808,10 @@ export class VacationsComponent {
   // Signals for document preview
   public showDocumentPreview = signal(false);
   public documentZoomLevel = signal(1);
+
+  // Signals for rejection dialog
+  public showRejectionDialog = signal(false);
+  public rejectionComment = signal('');
 
   public statusOptions = STATUS_OPTIONS;
 
@@ -882,28 +1028,75 @@ export class VacationsComponent {
   }
 
   private updateVacationStatus(id: string, status: 'approved' | 'rejected') {
+    this.updateVacationStatusFromDialog(status);
+  }
+
+  /**
+   * Updates vacation status directly from the dialog buttons
+   */
+  updateVacationStatusFromDialog(
+    status: 'pending' | 'approved' | 'rejected',
+    rejectionComment?: string
+  ) {
+    const vacation = this.selectedVacation();
+    if (!vacation) return;
+
     const currentEmployee = this.dashboardStore.currentEmployee();
     if (!currentEmployee) return;
 
+    const updateData: Record<string, unknown> = { status };
+
+    // Only set reviewed_by and reviewed_at for approve/reject
+    if (status !== 'pending') {
+      updateData['reviewed_by'] = currentEmployee.id;
+      updateData['reviewed_at'] = new Date().toISOString();
+    }
+
+    // Add rejection comment if rejecting
+    if (status === 'rejected' && rejectionComment) {
+      updateData['rejection_comment'] = rejectionComment;
+    }
+
     this.http
       .patch(
-        `${getEnv('ENV_SUPABASE_URL')}/rest/v1/employee_vacations?id=eq.${id}`,
-        {
-          status,
-          reviewed_by: currentEmployee.id,
-          reviewed_at: new Date().toISOString(),
-        }
+        `${getEnv('ENV_SUPABASE_URL')}/rest/v1/employee_vacations?id=eq.${
+          vacation.id
+        }`,
+        updateData
       )
       .subscribe({
         next: async () => {
-          const vacation = this.service.value().find((v) => v.id === id);
-          if (vacation) await this.notifyEmployee(vacation, status);
+          // Notify employee for approve/reject
+          if (status !== 'pending') {
+            await this.notifyEmployee(
+              vacation,
+              status as 'approved' | 'rejected',
+              rejectionComment
+            );
+          }
           this.messageService.add({
             severity: 'success',
             summary: 'Éxito',
-            detail: 'Solicitud actualizada',
+            detail: `Solicitud ${
+              status === 'pending'
+                ? 'marcada como pendiente'
+                : status === 'approved'
+                ? 'aprobada'
+                : 'rechazada'
+            }`,
           });
           this.service.reload();
+          // Update local signal
+          this.selectedVacation.update((v) =>
+            v
+              ? {
+                  ...v,
+                  status,
+                  rejection_comment:
+                    status === 'rejected' ? rejectionComment : null,
+                }
+              : null
+          );
         },
         error: () =>
           this.messageService.add({
@@ -914,10 +1107,43 @@ export class VacationsComponent {
       });
   }
 
+  /**
+   * Opens the rejection dialog
+   */
+  openRejectionDialog(): void {
+    this.rejectionComment.set('');
+    this.showRejectionDialog.set(true);
+  }
+
+  /**
+   * Confirms rejection with the comment
+   */
+  confirmRejection(): void {
+    const comment = this.rejectionComment().trim();
+    if (!comment) return;
+
+    this.showRejectionDialog.set(false);
+    this.updateVacationStatusFromDialog('rejected', comment);
+  }
+
   private async notifyEmployee(
     vacation: VacationRequest,
-    status: 'approved' | 'rejected'
+    status: 'approved' | 'rejected',
+    rejectionComment?: string
   ) {
+    let message = `Tu solicitud de vacaciones del ${new Date(
+      vacation.start_date
+    ).toLocaleDateString()} al ${new Date(
+      vacation.end_date
+    ).toLocaleDateString()} ha sido ${
+      status === 'approved' ? 'aprobada' : 'rechazada'
+    }.`;
+
+    // Add rejection reason if available
+    if (status === 'rejected' && rejectionComment) {
+      message += `\n\nMotivo: ${rejectionComment}`;
+    }
+
     const data = {
       employee_id: vacation.employee_id,
       type: status === 'approved' ? 'vacation_approved' : 'vacation_rejected',
@@ -925,13 +1151,7 @@ export class VacationsComponent {
         status === 'approved'
           ? 'Vacaciones Aprobadas'
           : 'Vacaciones Rechazadas',
-      message: `Tu solicitud de vacaciones del ${new Date(
-        vacation.start_date
-      ).toLocaleDateString()} al ${new Date(
-        vacation.end_date
-      ).toLocaleDateString()} ha sido ${
-        status === 'approved' ? 'aprobada' : 'rechazada'
-      }.`,
+      message,
       is_read: false,
       created_at: new Date().toISOString(),
     };

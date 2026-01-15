@@ -12,13 +12,23 @@ import { Card } from 'primeng/card';
 import { DatePicker } from 'primeng/datepicker';
 import { FileUpload } from 'primeng/fileupload';
 import { TableModule } from 'primeng/table';
-import { TooltipModule } from 'primeng/tooltip';
 import { Textarea } from 'primeng/textarea';
+import { TooltipModule } from 'primeng/tooltip';
 
 @Component({
   selector: 'pt-employee-portal-vacations',
   standalone: true,
-  imports: [CommonModule, FormsModule, Card, DatePicker, Textarea, FileUpload, Button, TableModule, TooltipModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    Card,
+    DatePicker,
+    Textarea,
+    FileUpload,
+    Button,
+    TableModule,
+    TooltipModule,
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <p-card>
@@ -42,12 +52,12 @@ import { Textarea } from 'primeng/textarea';
           </div>
         </div>
       </ng-template>
-      <ng-template #subtitle>
-        Solicita tus días de vacaciones
-      </ng-template>
+      <ng-template #subtitle> Solicita tus días de vacaciones </ng-template>
 
       <div class="flex flex-col gap-6 mt-4">
-        <div class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
+        <div
+          class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md"
+        >
           <h3 class="text-lg font-semibold text-white mb-4">
             Nueva Solicitud de Vacaciones
           </h3>
@@ -92,7 +102,9 @@ import { Textarea } from 'primeng/textarea';
               <i class="pi pi-info-circle text-purple-400"></i>
               <p class="text-sm text-gray-400 m-0">
                 Días solicitados:
-                <span class="font-semibold text-white">{{ calculateVacationDays() }}</span>
+                <span class="font-semibold text-white">{{
+                  calculateVacationDays()
+                }}</span>
               </p>
             </div>
             }
@@ -115,14 +127,22 @@ import { Textarea } from 'primeng/textarea';
               </p>
             </div>
 
-            <div class="p-4 rounded-lg bg-neutral-700/30 border border-neutral-600/50">
+            <div
+              class="p-4 rounded-lg bg-neutral-700/30 border border-neutral-600/50"
+            >
               <div class="flex items-center gap-3 mb-3">
-                <div class="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
+                <div
+                  class="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center"
+                >
                   <i class="pi pi-file text-purple-400"></i>
                 </div>
                 <div>
-                  <h4 class="text-sm font-semibold text-white m-0">Documento de Respaldo (Opcional)</h4>
-                  <p class="text-xs text-gray-400 m-0">Adjunta un PDF si tienes una solicitud física firmada</p>
+                  <h4 class="text-sm font-semibold text-white m-0">
+                    Documento de Respaldo (Opcional)
+                  </h4>
+                  <p class="text-xs text-gray-400 m-0">
+                    Adjunta un PDF si tienes una solicitud física firmada
+                  </p>
                 </div>
               </div>
               <p-fileUpload
@@ -138,10 +158,14 @@ import { Textarea } from 'primeng/textarea';
                 Formatos permitidos: PDF, JPG, PNG (máx. 5MB)
               </p>
               @if (vacationFile) {
-              <div class="mt-3 p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg flex items-center justify-between">
+              <div
+                class="mt-3 p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg flex items-center justify-between"
+              >
                 <div class="flex items-center gap-2">
                   <i class="pi pi-file text-purple-400"></i>
-                  <span class="text-sm text-gray-300">{{ vacationFile.name }}</span>
+                  <span class="text-sm text-gray-300">{{
+                    vacationFile.name
+                  }}</span>
                 </div>
                 <p-button
                   icon="pi pi-times"
@@ -178,9 +202,13 @@ import { Textarea } from 'primeng/textarea';
           </div>
         </div>
 
-        <div class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
+        <div
+          class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md"
+        >
           <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-white m-0">Mis Solicitudes de Vacaciones</h3>
+            <h3 class="text-lg font-semibold text-white m-0">
+              Mis Solicitudes de Vacaciones
+            </h3>
             <p-button
               icon="pi pi-refresh"
               [rounded]="true"
@@ -194,11 +222,17 @@ import { Textarea } from 'primeng/textarea';
 
           @if (vacationRequests.length === 0 && !requestsLoading) {
           <div class="text-center py-12">
-            <div class="w-20 h-20 rounded-full bg-purple-500/10 flex items-center justify-center mx-auto mb-4">
+            <div
+              class="w-20 h-20 rounded-full bg-purple-500/10 flex items-center justify-center mx-auto mb-4"
+            >
               <i class="pi pi-calendar-times text-4xl text-purple-400"></i>
             </div>
-            <h4 class="text-lg font-semibold text-white mb-2">No hay solicitudes</h4>
-            <p class="text-gray-400 mb-4">No has realizado ninguna solicitud de vacaciones todavía.</p>
+            <h4 class="text-lg font-semibold text-white mb-2">
+              No hay solicitudes
+            </h4>
+            <p class="text-gray-400 mb-4">
+              No has realizado ninguna solicitud de vacaciones todavía.
+            </p>
           </div>
           } @else if (requestsLoading) {
           <div class="flex justify-center items-center py-12">
@@ -233,32 +267,51 @@ import { Textarea } from 'primeng/textarea';
                 <tr>
                   <td>
                     <div class="flex flex-col">
-                      <span class="font-medium">{{ request.created_at | date : 'mediumDate' }}</span>
-                      <span class="text-xs text-gray-500">{{ request.created_at | date : 'shortTime' }}</span>
+                      <span class="font-medium">{{
+                        request.created_at | date : 'mediumDate'
+                      }}</span>
+                      <span class="text-xs text-gray-500">{{
+                        request.created_at | date : 'shortTime'
+                      }}</span>
                     </div>
                   </td>
                   <td>
                     <div class="flex flex-col">
-                      <span class="font-medium">{{ request.date_from | date : 'shortDate' }}</span>
+                      <span class="font-medium">{{
+                        request.date_from | date : 'shortDate'
+                      }}</span>
                       <span class="text-xs text-gray-500">hasta</span>
-                      <span class="font-medium">{{ request.date_to | date : 'shortDate' }}</span>
+                      <span class="font-medium">{{
+                        request.date_to | date : 'shortDate'
+                      }}</span>
                     </div>
                   </td>
                   <td>
                     <span class="font-semibold text-purple-400">
-                      {{ calculateDaysBetween(request.date_from, request.date_to) }} día(s)
+                      {{
+                        calculateDaysBetween(request.date_from, request.date_to)
+                      }}
+                      día(s)
                     </span>
                   </td>
                   <td>
                     <span
                       class="px-3 py-1 rounded-full text-xs font-semibold inline-flex items-center gap-1"
-                      [class.text-yellow-300]="!request.is_approved && isDateFuture(request.date_from)"
+                      [class.text-yellow-300]="
+                        !request.is_approved && isDateFuture(request.date_from)
+                      "
                       [class.text-green-300]="request.is_approved"
-                      [class.text-red-300]="!request.is_approved && !isDateFuture(request.date_from)"
+                      [class.text-red-300]="
+                        !request.is_approved && !isDateFuture(request.date_from)
+                      "
                       [ngClass]="{
-                        'bg-yellow-500/20': !request.is_approved && isDateFuture(request.date_from),
+                        'bg-yellow-500/20':
+                          !request.is_approved &&
+                          isDateFuture(request.date_from),
                         'bg-green-500/20': request.is_approved,
-                        'bg-red-500/20': !request.is_approved && !isDateFuture(request.date_from)
+                        'bg-red-500/20':
+                          !request.is_approved &&
+                          !isDateFuture(request.date_from)
                       }"
                     >
                       @if (request.is_approved) {
@@ -278,22 +331,37 @@ import { Textarea } from 'primeng/textarea';
                     </span>
                   </td>
                   <td>
-                    <span class="text-sm text-gray-300">
+                    @if (!request.is_approved &&
+                    !isDateFuture(request.date_from) &&
+                    request.rejection_comment) {
+                    <span class="text-sm text-red-400">
+                      <i class="pi pi-exclamation-triangle mr-1"></i>
                       {{
-                        request.notes && request.notes.length > 0
-                          ? request.notes[0]?.length > 50
-                            ? request.notes[0].substring(0, 50) + '...'
-                            : request.notes[0]
-                          : '-'
+                        request.rejection_comment.length > 50
+                          ? request.rejection_comment.substring(0, 50) + '...'
+                          : request.rejection_comment
                       }}
                     </span>
+                    } @else if (request.notes && request.notes.length > 0) {
+                    <span class="text-sm text-gray-300">
+                      {{
+                        request.notes[0]?.length > 50
+                          ? request.notes[0].substring(0, 50) + '...'
+                          : request.notes[0]
+                      }}
+                    </span>
+                    } @else {
+                    <span class="text-sm text-gray-500">-</span>
+                    }
                   </td>
                 </tr>
               </ng-template>
               <ng-template #emptymessage>
                 <tr>
                   <td colspan="5" class="text-center py-8">
-                    <p class="text-gray-400">No hay solicitudes de vacaciones</p>
+                    <p class="text-gray-400">
+                      No hay solicitudes de vacaciones
+                    </p>
                   </td>
                 </tr>
               </ng-template>
@@ -323,7 +391,10 @@ export class EmployeePortalVacationsComponent {
   @Input() vacationRequests: any[] = [];
   @Input() requestsLoading = false;
   @Input() calculateVacationDays: () => number = () => 0;
-  @Input() calculateDaysBetween: (start: Date | string, end: Date | string) => number = () => 0;
+  @Input() calculateDaysBetween: (
+    start: Date | string,
+    end: Date | string
+  ) => number = () => 0;
   @Input() isDateFuture: (date: Date | string) => boolean = () => false;
   @Output() reloadList = new EventEmitter<void>();
   @Output() closeSection = new EventEmitter<void>();

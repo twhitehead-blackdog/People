@@ -343,19 +343,16 @@ import { DocumentRequest } from '../models/document-request.model';
     <p-dialog
       [(visible)]="showDetailsDialog"
       [modal]="true"
-      [style]="{ width: '90vw', maxWidth: '800px' }"
+      [style]="{ width: '90vw', maxWidth: '900px' }"
       [draggable]="false"
       [resizable]="false"
       [dismissableMask]="true"
     >
       <ng-template pTemplate="header">
         <div class="flex items-center justify-between w-full">
-          <div class="flex items-center gap-2">
-            <i class="pi pi-file-edit text-purple-400"></i>
-            <span class="text-lg font-semibold text-white">
-              Detalles de Solicitud de Documento
-            </span>
-          </div>
+          <span class="text-lg font-semibold text-white"
+            >Detalles de Solicitud de Documento</span
+          >
           <div class="flex items-center gap-2">
             <p-button
               [icon]="
@@ -378,61 +375,139 @@ import { DocumentRequest } from '../models/document-request.model';
               "
               tooltipPosition="left"
               size="small"
-              [disabled]="
-                selectedDocument()?.status === 'completed' &&
-                !selectedDocument()?.document_url
-              "
             />
           </div>
         </div>
       </ng-template>
 
       @if (selectedDocument()) {
-      <div class="space-y-4">
-        <!-- Información del Empleado -->
-        <div
-          class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700/50"
-        >
-          <h4
-            class="text-sm font-semibold text-purple-400 mb-3 flex items-center gap-2"
-          >
-            <i class="pi pi-user"></i> Información del Empleado
-          </h4>
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <span class="text-xs text-gray-400">Nombre</span>
-              <p class="text-sm text-white font-medium m-0">
-                {{ selectedDocument()?.employee?.first_name }}
-                {{ selectedDocument()?.employee?.father_name }}
-              </p>
+      <div class="space-y-4 pt-4">
+        <!-- Información del Empleado y Resumen del Documento (lado a lado) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Información del Empleado -->
+          <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
+            <h3
+              class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+            >
+              <i class="pi pi-user text-purple-400"></i>
+              Información del Empleado
+            </h3>
+            <div class="space-y-2">
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Nombre</label
+                >
+                <p class="text-white">
+                  {{ selectedDocument()!.employee?.first_name }}
+                  {{ selectedDocument()!.employee?.father_name }}
+                </p>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Email</label
+                >
+                <p class="text-white">
+                  {{ selectedDocument()!.employee?.work_email || '-' }}
+                </p>
+              </div>
+              @if (selectedDocument()!.employee?.position?.name) {
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Cargo</label
+                >
+                <p class="text-white">
+                  {{ selectedDocument()!.employee?.position?.name }}
+                </p>
+              </div>
+              } @if (selectedDocument()!.employee?.branch?.name) {
+              <div>
+                <label class="block text-sm font-medium text-gray-400 mb-1"
+                  >Sucursal</label
+                >
+                <p class="text-white">
+                  {{ selectedDocument()!.employee?.branch?.name }}
+                </p>
+              </div>
+              }
             </div>
-            <div>
-              <span class="text-xs text-gray-400">Email</span>
-              <p class="text-sm text-white m-0">
-                {{ selectedDocument()?.employee?.work_email || '-' }}
-              </p>
+          </div>
+
+          <!-- Resumen del Documento -->
+          <div
+            class="p-4 bg-gradient-to-r from-purple-500/20 to-purple-600/10 border border-purple-400/30 rounded-lg"
+          >
+            <h3
+              class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+            >
+              <i class="pi pi-file-edit text-purple-400"></i>
+              Resumen de Solicitud
+            </h3>
+            <div class="flex items-center justify-between mb-3">
+              <div>
+                <p class="text-sm text-gray-400 mb-1">Tipo de documento</p>
+                <p class="text-2xl font-bold text-purple-300">
+                  {{ getDocumentTypeLabel(selectedDocument()!.document_type) }}
+                </p>
+              </div>
+              <div
+                class="w-20 h-20 rounded-full bg-purple-500/20 flex items-center justify-center"
+              >
+                <i class="pi pi-file-edit text-purple-400 text-3xl"></i>
+              </div>
+            </div>
+            <div class="mt-3 space-y-2">
+              <div
+                class="bg-purple-500/10 border border-purple-400/30 rounded-lg p-2"
+              >
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-semibold text-purple-300">
+                    Estado
+                  </span>
+                  <p-tag
+                    [value]="getDocumentStatusLabel(selectedDocument()!.status)"
+                    [severity]="
+                      getDocumentStatusSeverity(selectedDocument()!.status)
+                    "
+                  />
+                </div>
+              </div>
+              <div
+                class="bg-purple-500/10 border border-purple-400/30 rounded-lg p-2"
+              >
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-semibold text-purple-300">
+                    Fecha Solicitud
+                  </span>
+                  <span class="text-xs font-bold text-purple-400">
+                    {{ selectedDocument()!.created_at | date : 'dd/MM/yyyy' }}
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <!-- Detalles del Documento -->
-        <div
-          class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700/50"
-        >
-          <h4
-            class="text-sm font-semibold text-purple-400 mb-3 flex items-center gap-2"
+        <!-- Información de la Solicitud -->
+        <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
+          <h3
+            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
           >
-            <i class="pi pi-file"></i> Detalles del Documento
-          </h4>
+            <i class="pi pi-info-circle text-purple-400"></i>
+            Información de la Solicitud
+          </h3>
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <span class="text-xs text-gray-400">Tipo de Documento</span>
-              <p class="text-sm text-white font-medium m-0">
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Tipo de Documento</label
+              >
+              <p class="text-white">
                 {{ getDocumentTypeLabel(selectedDocument()!.document_type) }}
               </p>
             </div>
             <div>
-              <span class="text-xs text-gray-400">Estado</span>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Estado</label
+              >
               <p-tag
                 [value]="getDocumentStatusLabel(selectedDocument()!.status)"
                 [severity]="
@@ -440,41 +515,84 @@ import { DocumentRequest } from '../models/document-request.model';
                 "
               />
             </div>
-            @if (selectedDocument()?.reason) {
-            <div class="col-span-2">
-              <span class="text-xs text-gray-400">Motivo / Descripción</span>
-              <p class="text-sm text-gray-300 m-0">
-                {{ selectedDocument()?.reason }}
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Fecha de Solicitud</label
+              >
+              <p class="text-white">
+                {{ selectedDocument()!.created_at | date : 'dd/MM/yyyy HH:mm' }}
               </p>
             </div>
-            }
-          </div>
-        </div>
-
-        <!-- Visor de PDF -->
-        <!-- Visor de PDF eliminado en favor del visor lateral -->
-
-        <!-- Información de Auditoría -->
-        <div
-          class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700/50"
-        >
-          <div class="grid grid-cols-2 gap-4">
             <div>
-              <span class="text-xs text-gray-400">Solicitado</span>
-              <p class="text-sm text-white m-0">
-                {{ selectedDocument()?.created_at | date : 'dd/MM/yyyy HH:mm' }}
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Creado por</label
+              >
+              <p class="text-white">
+                @if (selectedDocument()?.created_by_employee) {
+                {{ selectedDocument()!.created_by_employee!.first_name }}
+                {{ selectedDocument()!.created_by_employee!.father_name }}
+                } @else if (selectedDocument()?.created_by &&
+                selectedDocument()?.created_by !==
+                selectedDocument()?.employee_id) {
+                <span class="text-amber-300">Gerente</span>
+                } @else {
+                <span class="text-gray-400">Auto-solicitud</span>
+                }
               </p>
             </div>
             @if (selectedDocument()?.processed_at) {
             <div>
-              <span class="text-xs text-gray-400">Completado el</span>
-              <p class="text-sm text-white m-0">
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Completado el</label
+              >
+              <p class="text-white">
                 {{
                   selectedDocument()?.processed_at | date : 'dd/MM/yyyy HH:mm'
                 }}
               </p>
             </div>
             }
+          </div>
+        </div>
+
+        @if (selectedDocument()!.reason) {
+        <!-- Motivo / Descripción -->
+        <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
+          <h3
+            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+          >
+            <i class="pi pi-comment text-purple-400"></i>
+            Motivo / Descripción
+          </h3>
+          <p class="text-white whitespace-pre-wrap">
+            {{ selectedDocument()!.reason }}
+          </p>
+        </div>
+        }
+
+        <!-- Gestión de Estado -->
+        <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
+          <h3
+            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+          >
+            <i class="pi pi-cog text-purple-400"></i>
+            Gestión de Estado
+          </h3>
+          <div class="flex gap-2">
+            <p-button
+              label="Pendiente"
+              severity="warn"
+              [outlined]="selectedDocument()!.status !== 'pending'"
+              (onClick)="updateDocumentStatusFromDialog('pending')"
+              [disabled]="selectedDocument()!.status === 'pending'"
+            />
+            <p-button
+              label="Completada"
+              severity="success"
+              [outlined]="selectedDocument()!.status !== 'completed'"
+              (onClick)="openCompleteDialog(selectedDocument()!)"
+              [disabled]="selectedDocument()!.status === 'completed'"
+            />
           </div>
         </div>
       </div>
@@ -865,5 +983,56 @@ export class DocumentRequestsComponent {
     } catch (e) {
       console.error('Error sending notification', e);
     }
+  }
+
+  /**
+   * Updates document request status directly from the dialog buttons
+   */
+  updateDocumentStatusFromDialog(status: 'pending' | 'completed') {
+    const document = this.selectedDocument();
+    if (!document) return;
+
+    const currentEmployee = this.dashboardStore.currentEmployee();
+    if (!currentEmployee) return;
+
+    const updateData: Record<string, unknown> = { status };
+
+    // Only set processed fields for completed status
+    if (status === 'completed') {
+      updateData['processed_by'] = currentEmployee.id;
+      updateData['processed_at'] = new Date().toISOString();
+    } else {
+      // Reset processed fields when reverting to pending
+      updateData['processed_by'] = null;
+      updateData['processed_at'] = null;
+    }
+
+    this.http
+      .patch(
+        `${getEnv('ENV_SUPABASE_URL')}/rest/v1/document_requests?id=eq.${
+          document.id
+        }`,
+        updateData
+      )
+      .subscribe({
+        next: async () => {
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Éxito',
+            detail: `Solicitud ${
+              status === 'pending' ? 'marcada como pendiente' : 'completada'
+            }`,
+          });
+          this.service.reload();
+          // Update local signal
+          this.selectedDocument.update((d) => (d ? { ...d, status } : null));
+        },
+        error: () =>
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Fallo al actualizar',
+          }),
+      });
   }
 }
