@@ -1981,6 +1981,49 @@ export class BranchManagerComponent {
     };
   });
 
+  // Timelog schedules resource - para marcaciones (carga horarios para fecha específica)
+  public timelogSchedulesResource = httpResource<any[]>(() => {
+    const companyId = this.organizationService.getCurrentCompanyId();
+    const selectedDate = this.selectedDate();
+
+    if (!selectedDate) return undefined;
+
+    // Crear rango de un solo día para la fecha seleccionada
+    const start = startOfDay(selectedDate);
+    const end = endOfDay(selectedDate);
+    const startDate = format(start, 'yyyy-MM-dd');
+    const endDate = format(end, 'yyyy-MM-dd');
+
+    // Construir URL manualmente para asegurar que los filtros se apliquen correctamente
+    const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`;
+    const select = `*,schedule:schedules(*), branch:branches(id, name, short_name)`;
+
+    let url = `${baseUrl}?select=${encodeURIComponent(
+      select
+    )},employee:employees!inner(id,company_id,is_active)`;
+    url += `&start_date=lte.${endDate}`;
+    url += `&end_date=gte.${startDate}`;
+
+    // Filtrar solo empleados activos
+    url += `&employee.is_active=eq.true`;
+
+    // AGREGAR: Filtrar por sucursal actual si existe
+    const branchId = this.currentBranch()?.id;
+    if (branchId) {
+      url += `&branch_id=eq.${branchId}`;
+    }
+
+    // Filtrar a través de employees.company_id
+    if (companyId) {
+      url += `&employee.company_id=eq.${companyId}`;
+    }
+
+    return {
+      url,
+      method: 'GET',
+    };
+  });
+
   // Computed para semana
   public weekStart = computed(() => {
     // Usar startOfWeek con weekStartsOn: 0 para que comience en domingo
@@ -2187,10 +2230,30 @@ export class BranchManagerComponent {
 
   public filteredTimelogs = computed(() => {
     const logs = this.timelogsResource.value() || [];
-    const schedules = this.schedulesResource.value() || [];
+    // CAMBIAR: usar timelogSchedulesResource en lugar de schedulesResource para marcaciones
+    const schedules = this.timelogSchedulesResource.value() || [];
     const employeeId = this.selectedEmployeeId();
     const selectedDate = this.selectedDate();
-    const branchId = this.currentBranch()?.id;
+
+    const currentBranchId = this.currentBranch()?.id;
+    const companyId = this.organizationService.getCurrentCompanyId();
+
+    console.log('🔍 [BRANCH-MANAGER] filteredTimelogs - Debug:', {
+      selectedDate: selectedDate?.toISOString(),
+      branchId: currentBranchId,
+      companyId: companyId,
+      logsCount: logs.length,
+      schedulesCount: schedules.length,
+      // Verificar si los schedules tienen branch_id correcto
+      schedulesBranches: schedules.map((s: any) => s.branch_id),
+      schedulesSample: schedules.slice(0, 3).map((s: any) => ({
+        employee_id: s.employee_id,
+        schedule_name: s.schedule?.name,
+        branch_id: s.branch_id,
+        start_date: s.start_date,
+        end_date: s.end_date,
+      })),
+    });
     const grouped: Record<string, any> = {};
 
     // IDs de schedules que son día libre/feriado
@@ -2203,11 +2266,27 @@ export class BranchManagerComponent {
 
     // Paso 1: Poblar con empleados que PERTENECEN a esta sucursal (para ver faltas)
     const branchEmployees = this.branchEmployees();
+    console.log('🔍 [BRANCH-MANAGER] Procesando empleados:', {
+      totalEmpleados: branchEmployees.length,
+      empleadosSample: branchEmployees.slice(0, 3).map(e => ({ id: e.id, name: `${e.first_name} ${e.father_name}` }))
+    });
+
     branchEmployees.forEach((emp) => {
       // Encontrar horario programado del empleado para la fecha
       const employeeSchedule = selectedDate
         ? this.findEmployeeScheduleForDate(emp.id, selectedDate, schedules)
         : null;
+
+      console.log(`🔍 [BRANCH-MANAGER] Empleado ${emp.first_name} ${emp.father_name}:`, {
+        employeeId: emp.id,
+        hasSchedule: !!employeeSchedule,
+        scheduleFound: employeeSchedule ? {
+          scheduleName: employeeSchedule.schedule?.name,
+          startDate: employeeSchedule.start_date,
+          endDate: employeeSchedule.end_date
+        } : null,
+        selectedDate: selectedDate?.toISOString()
+      });
 
       const schedule = employeeSchedule?.schedule;
       const isDayOff =
@@ -2238,8 +2317,8 @@ export class BranchManagerComponent {
 
     // Paso 2: Filtrar logs estrictamente por branch_id de la sucursal seleccionada
     // Y añadir personas de otras sucursales que marcaron AQUÍ
-    const branchLogs = branchId
-      ? logs.filter((log: any) => log.branch_id === branchId)
+    const branchLogs = currentBranchId
+      ? logs.filter((log: any) => log.branch_id === currentBranchId)
       : logs;
 
     branchLogs.forEach((log: any) => {
@@ -2470,6 +2549,24 @@ export class BranchManagerComponent {
     date: Date,
     schedules: any[]
   ): any {
+    console.log(`🔍 [BRANCH-MANAGER] Buscando schedule para empleado ${employeeId}:`, {
+      date: date.toISOString(),
+      schedulesForEmployee: schedules
+        .filter(s => s.employee_id === employeeId)
+        .map(s => ({
+          employee_id: s.employee_id,
+          schedule_name: s.schedule?.name,
+          start_date: s.start_date,
+          end_date: s.end_date,
+          dateCheck: {
+            selectedDate: date.toISOString(),
+            startDate: new Date(s.start_date).toISOString(),
+            endDate: new Date(s.end_date).toISOString(),
+            isWithinRange: date >= new Date(s.start_date) && date <= new Date(s.end_date)
+          }
+        }))
+    });
+
     return schedules.find(
       (s) =>
         s.employee_id === employeeId &&

@@ -2,7 +2,6 @@ import dotenv from 'dotenv';
 import express from 'express';
 import nodemailer from 'nodemailer';
 import path from 'path';
-import { Resend } from 'resend';
 
 // Cargar variables de entorno desde .env
 dotenv.config();
@@ -164,7 +163,10 @@ export function app(): express.Express {
       'user-agent': req.headers['user-agent'],
       origin: req.headers.origin,
     });
-    console.log('[DEBUG Server] 📧 Body completo:', JSON.stringify(req.body, null, 2));
+    console.log(
+      '[DEBUG Server] 📧 Body completo:',
+      JSON.stringify(req.body, null, 2)
+    );
 
     try {
       const { to, subject, html, text, fromEmail, fromName } = req.body;
@@ -178,7 +180,14 @@ export function app(): express.Express {
 
       if (!to || !subject || !html) {
         console.error('[DEBUG Server] ❌ ERROR: Faltan campos requeridos');
-        console.error('[DEBUG Server] ❌ to:', !!to, 'subject:', !!subject, 'html:', !!html);
+        console.error(
+          '[DEBUG Server] ❌ to:',
+          !!to,
+          'subject:',
+          !!subject,
+          'html:',
+          !!html
+        );
         return res.status(400).json({
           error: 'Missing required fields: to, subject, html',
         });
@@ -191,7 +200,10 @@ export function app(): express.Express {
       // Intentar usar Resend primero (más confiable y fácil de configurar)
       const resendApiKey = process.env['ENV_RESEND_API_KEY'];
       console.log('[DEBUG Server] 🔍 Verificando configuración Resend...');
-      console.log('[DEBUG Server] 🔍 ENV_RESEND_API_KEY presente:', !!resendApiKey);
+      console.log(
+        '[DEBUG Server] 🔍 ENV_RESEND_API_KEY presente:',
+        !!resendApiKey
+      );
 
       if (resendApiKey) {
         console.log('[DEBUG Server] ✅ Usando Resend para envío de email');
@@ -242,10 +254,7 @@ export function app(): express.Express {
               break;
             } catch (err: any) {
               lastError = err;
-              safeLogger.error(
-                `❌ Error con Resend SMTP (port ${port})`,
-                err
-              );
+              safeLogger.error(`❌ Error con Resend SMTP (port ${port})`, err);
             }
           }
 
@@ -258,7 +267,10 @@ export function app(): express.Express {
             messageId: info.messageId,
           });
 
-          return res.json({ success: true, data: { messageId: info.messageId } });
+          return res.json({
+            success: true,
+            data: { messageId: info.messageId },
+          });
         } catch (resendError: any) {
           safeLogger.error('❌ Error con Resend SMTP', resendError);
           // Si Resend está configurado pero falló, devolver el error directamente
@@ -289,7 +301,9 @@ export function app(): express.Express {
       }
 
       // Fallback a SMTP genérico (Gmail, etc.) si no hay Resend configurado
-      console.log('[DEBUG Server] 🔄 Resend no configurado, intentando SMTP...');
+      console.log(
+        '[DEBUG Server] 🔄 Resend no configurado, intentando SMTP...'
+      );
 
       const smtpHost = process.env['ENV_SMTP_HOST'] || 'smtp.gmail.com';
       const smtpPort = parseInt(process.env['ENV_SMTP_PORT'] || '587');
@@ -308,7 +322,12 @@ export function app(): express.Express {
 
       if (!smtpUser || !smtpPassword) {
         console.error('[DEBUG Server] ❌ ERROR: Configuración SMTP faltante');
-        console.error('[DEBUG Server] ❌ smtpUser:', !!smtpUser, 'smtpPassword:', !!smtpPassword);
+        console.error(
+          '[DEBUG Server] ❌ smtpUser:',
+          !!smtpUser,
+          'smtpPassword:',
+          !!smtpPassword
+        );
         safeLogger.error('❌ Configuración SMTP faltante');
         return res.status(500).json({
           error: 'Email service not configured',
@@ -318,7 +337,10 @@ export function app(): express.Express {
       }
 
       console.log('[DEBUG Server] ✅ Usando SMTP para envío de email');
-      console.log('[DEBUG Server] 📧 From:', `${noreplyName} <${noreplyEmail}>`);
+      console.log(
+        '[DEBUG Server] 📧 From:',
+        `${noreplyName} <${noreplyEmail}>`
+      );
 
       // Determinar el correo remitente
       // Si se especifica fromEmail en el request, usarlo; sino usar noreplyEmail o smtpUser
@@ -386,6 +408,114 @@ export function app(): express.Express {
                 responseMessage: error.responseMessage,
               }
             : undefined,
+      });
+    }
+  });
+
+  // Endpoint para obtener configuración de email (sin datos sensibles)
+  server.get('/api/email/config', (req, res) => {
+    const resendApiKey = process.env['ENV_RESEND_API_KEY'];
+    const smtpHost = process.env['ENV_SMTP_HOST'] || 'smtp.gmail.com';
+    const smtpPort = process.env['ENV_SMTP_PORT'] || '587';
+    const smtpUser = process.env['ENV_SMTP_USER'];
+    const noreplyEmail = process.env['ENV_SMTP_NOREPLY_EMAIL'] || smtpUser;
+    const noreplyName = process.env['ENV_SMTP_NOREPLY_NAME'] || 'People';
+
+    res.json({
+      provider: resendApiKey ? 'resend' : 'smtp',
+      host: resendApiKey ? 'smtp.resend.com' : smtpHost,
+      port: resendApiKey ? 465 : parseInt(smtpPort),
+      user: resendApiKey ? '(Resend API)' : smtpUser || 'No configurado',
+      senderEmail: noreplyEmail || 'No configurado',
+      senderName: noreplyName,
+      configured: !!(resendApiKey || smtpUser),
+    });
+  });
+
+  // Endpoint para probar envío de email
+  server.post('/api/email/test', async (req, res) => {
+    try {
+      const { to } = req.body;
+
+      if (!to) {
+        return res.status(400).json({
+          error: 'Se requiere un destinatario (to)',
+        });
+      }
+
+      const smtpHost = process.env['ENV_SMTP_HOST'] || 'smtp.gmail.com';
+      const smtpPort = parseInt(process.env['ENV_SMTP_PORT'] || '587');
+      const smtpUser = process.env['ENV_SMTP_USER'];
+      const smtpPassword = process.env['ENV_SMTP_PASSWORD'];
+      const noreplyEmail = process.env['ENV_SMTP_NOREPLY_EMAIL'] || smtpUser;
+      const noreplyName = process.env['ENV_SMTP_NOREPLY_NAME'] || 'People';
+
+      if (!smtpUser || !smtpPassword) {
+        return res.status(500).json({
+          error: 'SMTP no configurado',
+          message: 'ENV_SMTP_USER y ENV_SMTP_PASSWORD no están configuradas',
+        });
+      }
+
+      const transporter = nodemailer.createTransport({
+        host: smtpHost,
+        port: smtpPort,
+        secure: smtpPort === 465,
+        auth: {
+          user: smtpUser,
+          pass: smtpPassword,
+        },
+      });
+
+      const testHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #333;">✅ Prueba de Correo Exitosa</h2>
+          <p>Este es un correo de prueba enviado desde el sistema <strong>People</strong>.</p>
+          <p>Si recibiste este mensaje, la configuración SMTP está funcionando correctamente.</p>
+          <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+          <p style="color: #888; font-size: 12px;">
+            Enviado desde: ${noreplyEmail}<br>
+            Fecha: ${new Date().toLocaleString('es-PA', {
+              timeZone: 'America/Panama',
+            })}
+          </p>
+        </div>
+      `;
+
+      const info = await transporter.sendMail({
+        from: `${noreplyName} <${noreplyEmail}>`,
+        to: to,
+        subject: '✅ Prueba de Correo - People',
+        html: testHtml,
+      });
+
+      safeLogger.safeLog('✅ Email de prueba enviado', {
+        to,
+        messageId: info.messageId,
+      });
+
+      return res.json({
+        success: true,
+        message: 'Correo de prueba enviado correctamente',
+        data: { messageId: info.messageId, to },
+      });
+    } catch (error: any) {
+      safeLogger.error('❌ Error en email de prueba', error);
+
+      let errorMessage = 'Error desconocido';
+      if (error.code === 'EAUTH') {
+        errorMessage =
+          'Error de autenticación SMTP. Verifica usuario y contraseña.';
+      } else if (error.code === 'ECONNECTION') {
+        errorMessage = 'No se pudo conectar al servidor SMTP.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      return res.status(500).json({
+        error: 'Error al enviar correo de prueba',
+        message: errorMessage,
+        code: error.code,
       });
     }
   });

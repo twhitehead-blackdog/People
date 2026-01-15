@@ -1,15 +1,20 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import { HttpClient, httpResource } from '@angular/common/http';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  effect,
+  inject,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { httpResource } from '@angular/common/http';
-import { HttpClient } from '@angular/common/http';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { InputText } from 'primeng/inputtext';
-import { ToggleSwitch } from 'primeng/toggleswitch';
-import { ToastModule } from 'primeng/toast';
 import { TabsModule } from 'primeng/tabs';
+import { ToastModule } from 'primeng/toast';
+import { ToggleSwitch } from 'primeng/toggleswitch';
 import { ApiUrlService } from '../services/api-url.service';
 import { DashboardStore } from '../stores/dashboard.store';
 
@@ -20,6 +25,16 @@ interface Setting {
   description: string;
   category: string;
   is_encrypted: boolean;
+}
+
+interface EmailConfig {
+  provider: 'smtp' | 'resend';
+  host: string;
+  port: number;
+  user: string;
+  senderEmail: string;
+  senderName: string;
+  configured: boolean;
 }
 
 @Component({
@@ -47,26 +62,295 @@ interface Setting {
       <p-tabs value="0" scrollable>
         <p-tablist>
           <p-tab value="0">
+            <i class="pi pi-envelope mr-2"></i>
+            Correo
+          </p-tab>
+          <p-tab value="1">
+            <i class="pi pi-bell mr-2"></i>
+            Notificaciones
+          </p-tab>
+          <p-tab value="2">
             <i class="pi pi-comments mr-2"></i>
             Wassenger
           </p-tab>
-          <p-tab value="1">
-            <i class="pi pi-envelope mr-2"></i>
-            Notificaciones
-          </p-tab>
         </p-tablist>
 
-        <!-- Tab: Wassenger -->
+        <!-- Tab: Correo -->
         <p-tabpanel value="0">
           <p-card>
+            <ng-template #title>Configuración de Correo</ng-template>
+            <ng-template #subtitle>
+              Configuración del servidor SMTP para envío de correos
+            </ng-template>
+
+            <div class="flex flex-col gap-6">
+              <!-- Estado de la configuración -->
+              @if(emailConfigResource.isLoading()) {
+              <div class="flex items-center gap-2 text-gray-400">
+                <i class="pi pi-spin pi-spinner"></i>
+                Cargando configuración...
+              </div>
+              } @else if (emailConfigResource.value(); as config) {
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div
+                  class="p-4 bg-neutral-800/50 rounded-lg border border-neutral-700"
+                >
+                  <div class="text-sm text-gray-400 mb-1">Proveedor</div>
+                  <div class="text-lg font-semibold text-white">
+                    {{ config.provider === 'smtp' ? 'Gmail SMTP' : 'Resend' }}
+                  </div>
+                </div>
+                <div
+                  class="p-4 bg-neutral-800/50 rounded-lg border border-neutral-700"
+                >
+                  <div class="text-sm text-gray-400 mb-1">Estado</div>
+                  <div
+                    class="text-lg font-semibold"
+                    [class.text-green-400]="config.configured"
+                    [class.text-red-400]="!config.configured"
+                  >
+                    {{ config.configured ? 'Configurado' : 'No configurado' }}
+                  </div>
+                </div>
+                <div
+                  class="p-4 bg-neutral-800/50 rounded-lg border border-neutral-700"
+                >
+                  <div class="text-sm text-gray-400 mb-1">Servidor</div>
+                  <div class="text-lg font-semibold text-white">
+                    {{ config.host }}:{{ config.port }}
+                  </div>
+                </div>
+                <div
+                  class="p-4 bg-neutral-800/50 rounded-lg border border-neutral-700"
+                >
+                  <div class="text-sm text-gray-400 mb-1">Usuario</div>
+                  <div class="text-lg font-semibold text-white">
+                    {{ config.user }}
+                  </div>
+                </div>
+                <div
+                  class="p-4 bg-neutral-800/50 rounded-lg border border-neutral-700 md:col-span-2"
+                >
+                  <div class="text-sm text-gray-400 mb-1">Correo Remitente</div>
+                  <div class="text-lg font-semibold text-white">
+                    {{ config.senderName }} &lt;{{ config.senderEmail }}&gt;
+                  </div>
+                </div>
+              </div>
+
+              <!-- Probar envío -->
+              <div
+                class="flex flex-col gap-4 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700"
+              >
+                <div class="flex flex-col gap-2">
+                  <label class="text-sm font-semibold text-white">
+                    Probar Envío de Correo
+                  </label>
+                  <p class="text-xs text-gray-400">
+                    Envía un correo de prueba para verificar que la
+                    configuración funciona.
+                  </p>
+                </div>
+                <div class="flex gap-2">
+                  <input
+                    pInputText
+                    type="email"
+                    [(ngModel)]="testEmailRecipient"
+                    placeholder="correo@ejemplo.com"
+                    class="flex-1"
+                    [disabled]="sendingTestEmail()"
+                  />
+                  <p-button
+                    label="Enviar Prueba"
+                    icon="pi pi-send"
+                    [loading]="sendingTestEmail()"
+                    [disabled]="!testEmailRecipient().trim()"
+                    (click)="sendTestEmail()"
+                  />
+                </div>
+              </div>
+              }
+
+              <!-- Información -->
+              <div
+                class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4"
+              >
+                <div class="flex items-start gap-3">
+                  <i class="pi pi-info-circle text-blue-400 text-xl"></i>
+                  <div class="flex-1">
+                    <p class="text-blue-300 font-semibold mb-2">
+                      Configuración del Servidor
+                    </p>
+                    <p class="text-sm text-gray-300 m-0">
+                      Las credenciales SMTP se configuran en el archivo
+                      <code class="bg-neutral-700 px-1 rounded">.env</code> del
+                      servidor por razones de seguridad. Contacta al
+                      administrador del sistema para modificarlas.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </p-card>
+        </p-tabpanel>
+
+        <!-- Tab: Notificaciones -->
+        <p-tabpanel value="1">
+          <p-card>
+            <ng-template #title>Notificaciones por correo (RRHH)</ng-template>
+            <ng-template #subtitle>
+              Activa o desactiva qué gestiones generan un email de aviso a RRHH.
+            </ng-template>
+
+            <div class="flex flex-col gap-6">
+              <div
+                class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4"
+              >
+                <div class="flex items-start gap-3">
+                  <i class="pi pi-info-circle text-blue-400 text-xl"></i>
+                  <div class="flex-1">
+                    <p class="text-blue-300 font-semibold mb-2">
+                      ¿Qué hace esto?
+                    </p>
+                    <p class="text-sm text-gray-300 m-0">
+                      Cuando un empleado envía una solicitud desde "Gestiones",
+                      el sistema puede enviar un correo de notificación a RRHH.
+                      Estos switches controlan qué tipos disparan el email.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Solicitudes de documentos -->
+              <div
+                class="flex flex-col gap-4 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700"
+              >
+                <div class="flex items-center justify-between">
+                  <div class="flex flex-col gap-2">
+                    <label class="text-sm font-semibold text-white">
+                      Solicitudes de Documentos
+                    </label>
+                    <p class="text-xs text-gray-400">
+                      Enviar correo cuando se cree una solicitud de documento
+                      (carta de trabajo, certificados, etc.)
+                    </p>
+                  </div>
+                  <p-toggleSwitch
+                    [(ngModel)]="hrEmailNotifyDocuments"
+                    (ngModelChange)="onHrEmailNotifyDocumentsChange()"
+                    [disabled]="saving()"
+                  />
+                </div>
+                <div
+                  class="flex flex-col gap-2"
+                  *ngIf="hrEmailNotifyDocuments()"
+                >
+                  <label class="text-xs font-medium text-gray-300"
+                    >Destinatarios (separados por coma)</label
+                  >
+                  <input
+                    pInputText
+                    [(ngModel)]="hrEmailRecipientsDocuments"
+                    (ngModelChange)="onHrEmailRecipientsDocumentsChange()"
+                    [disabled]="saving()"
+                    placeholder="email1@ejemplo.com,email2@ejemplo.com"
+                    class="bg-neutral-700 border-neutral-600 text-white"
+                  />
+                </div>
+              </div>
+
+              <!-- Incapacidades -->
+              <div
+                class="flex flex-col gap-4 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700"
+              >
+                <div class="flex items-center justify-between">
+                  <div class="flex flex-col gap-2">
+                    <label class="text-sm font-semibold text-white">
+                      Incapacidades (documento adjunto)
+                    </label>
+                    <p class="text-xs text-gray-400">
+                      Enviar correo cuando se suba una incapacidad médica en
+                      Gestiones.
+                    </p>
+                  </div>
+                  <p-toggleSwitch
+                    [(ngModel)]="hrEmailNotifyDisabilities"
+                    (ngModelChange)="onHrEmailNotifyDisabilitiesChange()"
+                    [disabled]="saving()"
+                  />
+                </div>
+                <div
+                  class="flex flex-col gap-2"
+                  *ngIf="hrEmailNotifyDisabilities()"
+                >
+                  <label class="text-xs font-medium text-gray-300"
+                    >Destinatarios (separados por coma)</label
+                  >
+                  <input
+                    pInputText
+                    [(ngModel)]="hrEmailRecipientsDisabilities"
+                    (ngModelChange)="onHrEmailRecipientsDisabilitiesChange()"
+                    [disabled]="saving()"
+                    placeholder="email1@ejemplo.com,email2@ejemplo.com"
+                    class="bg-neutral-700 border-neutral-600 text-white"
+                  />
+                </div>
+              </div>
+
+              <!-- Tiempo compensatorio -->
+              <div
+                class="flex flex-col gap-4 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700"
+              >
+                <div class="flex items-center justify-between">
+                  <div class="flex flex-col gap-2">
+                    <label class="text-sm font-semibold text-white">
+                      Tiempo Compensatorio
+                    </label>
+                    <p class="text-xs text-gray-400">
+                      Enviar correo cuando se cree una solicitud de tiempo
+                      compensatorio desde Gestiones.
+                    </p>
+                  </div>
+                  <p-toggleSwitch
+                    [(ngModel)]="hrEmailNotifyCompensatory"
+                    (ngModelChange)="onHrEmailNotifyCompensatoryChange()"
+                    [disabled]="saving()"
+                  />
+                </div>
+                <div
+                  class="flex flex-col gap-2"
+                  *ngIf="hrEmailNotifyCompensatory()"
+                >
+                  <label class="text-xs font-medium text-gray-300"
+                    >Destinatarios (separados por coma)</label
+                  >
+                  <input
+                    pInputText
+                    [(ngModel)]="hrEmailRecipientsCompensatory"
+                    (ngModelChange)="onHrEmailRecipientsCompensatoryChange()"
+                    [disabled]="saving()"
+                    placeholder="email1@ejemplo.com,email2@ejemplo.com"
+                    class="bg-neutral-700 border-neutral-600 text-white"
+                  />
+                </div>
+              </div>
+            </div>
+          </p-card>
+        </p-tabpanel>
+
+        <!-- Tab: Wassenger -->
+        <p-tabpanel value="2">
+          <p-card>
             <ng-template #title>Configuración de Wassenger</ng-template>
-            <ng-template #subtitle
-              >Configura la integración con Wassenger para envío de mensajes</ng-template
-            >
-            
+            <ng-template #subtitle>
+              Configura la integración con Wassenger para envío de mensajes
+            </ng-template>
+
             <div class="flex flex-col gap-6">
               <!-- Estado de la integración -->
-              <div class="flex items-center justify-between p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
+              <div
+                class="flex items-center justify-between p-4 bg-neutral-800/50 rounded-lg border border-neutral-700"
+              >
                 <div class="flex flex-col gap-2">
                   <label class="text-sm font-semibold text-white">
                     Estado de la Integración
@@ -88,7 +372,8 @@ interface Setting {
                   API Key de Wassenger
                 </label>
                 <p class="text-xs text-gray-400 mb-2">
-                  Ingresa tu API Key de Wassenger. Esta clave se almacenará de forma segura.
+                  Ingresa tu API Key de Wassenger. Esta clave se almacenará de
+                  forma segura.
                 </p>
                 <div class="flex gap-2">
                   <input
@@ -116,18 +401,32 @@ interface Setting {
               </div>
 
               <!-- Información -->
-              <div class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+              <div
+                class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4"
+              >
                 <div class="flex items-start gap-3">
                   <i class="pi pi-info-circle text-blue-400 text-xl"></i>
                   <div class="flex-1">
                     <p class="text-blue-300 font-semibold mb-2">
                       Información sobre Wassenger
                     </p>
-                    <ul class="text-sm text-gray-300 space-y-1 list-disc list-inside">
-                      <li>La integración con Wassenger está disponible para uso futuro</li>
-                      <li>Puedes configurar el API Key ahora, pero la funcionalidad se activará en futuras actualizaciones</li>
-                      <li>El API Key se almacena de forma segura y encriptada</li>
-                      <li>Puedes desactivar la integración en cualquier momento</li>
+                    <ul
+                      class="text-sm text-gray-300 space-y-1 list-disc list-inside"
+                    >
+                      <li>
+                        La integración con Wassenger está disponible para uso
+                        futuro
+                      </li>
+                      <li>
+                        Puedes configurar el API Key ahora, pero la
+                        funcionalidad se activará en futuras actualizaciones
+                      </li>
+                      <li>
+                        El API Key se almacena de forma segura y encriptada
+                      </li>
+                      <li>
+                        Puedes desactivar la integración en cualquier momento
+                      </li>
                     </ul>
                   </div>
                 </div>
@@ -135,134 +434,31 @@ interface Setting {
 
               <!-- Estado actual -->
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
+                <div
+                  class="p-4 bg-neutral-800/50 rounded-lg border border-neutral-700"
+                >
                   <div class="text-sm text-gray-400 mb-1">Estado</div>
-                  <div class="text-lg font-semibold" [class.text-green-400]="wassengerEnabled()" [class.text-gray-400]="!wassengerEnabled()">
+                  <div
+                    class="text-lg font-semibold"
+                    [class.text-green-400]="wassengerEnabled()"
+                    [class.text-gray-400]="!wassengerEnabled()"
+                  >
                     {{ wassengerEnabled() ? 'Activa' : 'Inactiva' }}
                   </div>
                 </div>
-                <div class="p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
+                <div
+                  class="p-4 bg-neutral-800/50 rounded-lg border border-neutral-700"
+                >
                   <div class="text-sm text-gray-400 mb-1">API Key</div>
-                  <div class="text-lg font-semibold" [class.text-green-400]="wassengerApiKeyValue()" [class.text-gray-400]="!wassengerApiKeyValue()">
-                    {{ wassengerApiKeyValue() ? 'Configurada' : 'No configurada' }}
+                  <div
+                    class="text-lg font-semibold"
+                    [class.text-green-400]="wassengerApiKeyValue()"
+                    [class.text-gray-400]="!wassengerApiKeyValue()"
+                  >
+                    {{
+                      wassengerApiKeyValue() ? 'Configurada' : 'No configurada'
+                    }}
                   </div>
-                </div>
-              </div>
-            </div>
-          </p-card>
-        </p-tabpanel>
-
-        <!-- Tab: Notificaciones -->
-        <p-tabpanel value="1">
-          <p-card>
-            <ng-template #title>Notificaciones por correo (RRHH)</ng-template>
-            <ng-template #subtitle>
-              Activa o desactiva qué gestiones generan un email de aviso a RRHH.
-            </ng-template>
-
-            <div class="flex flex-col gap-6">
-              <div class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
-                <div class="flex items-start gap-3">
-                  <i class="pi pi-info-circle text-blue-400 text-xl"></i>
-                  <div class="flex-1">
-                    <p class="text-blue-300 font-semibold mb-2">
-                      ¿Qué hace esto?
-                    </p>
-                    <p class="text-sm text-gray-300 m-0">
-                      Cuando un empleado envía una solicitud desde “Gestiones”, el sistema puede enviar un correo de notificación
-                      a RRHH. Estos switches controlan qué tipos disparan el email.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Solicitudes de documentos -->
-              <div class="flex flex-col gap-4 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
-                <div class="flex items-center justify-between">
-                  <div class="flex flex-col gap-2">
-                    <label class="text-sm font-semibold text-white">
-                      Solicitudes de Documentos
-                    </label>
-                    <p class="text-xs text-gray-400">
-                      Enviar correo cuando se cree una solicitud de documento (carta de trabajo, certificados, etc.)
-                    </p>
-                  </div>
-                  <p-toggleSwitch
-                    [(ngModel)]="hrEmailNotifyDocuments"
-                    (ngModelChange)="onHrEmailNotifyDocumentsChange()"
-                    [disabled]="saving()"
-                  />
-                </div>
-                <div class="flex flex-col gap-2" *ngIf="hrEmailNotifyDocuments()">
-                  <label class="text-xs font-medium text-gray-300">Destinatarios (separados por coma)</label>
-                  <input
-                    pInputText
-                    [(ngModel)]="hrEmailRecipientsDocuments"
-                    (ngModelChange)="onHrEmailRecipientsDocumentsChange()"
-                    [disabled]="saving()"
-                    placeholder="email1@ejemplo.com,email2@ejemplo.com"
-                    class="bg-neutral-700 border-neutral-600 text-white"
-                  />
-                </div>
-              </div>
-
-              <!-- Incapacidades -->
-              <div class="flex flex-col gap-4 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
-                <div class="flex items-center justify-between">
-                  <div class="flex flex-col gap-2">
-                    <label class="text-sm font-semibold text-white">
-                      Incapacidades (documento adjunto)
-                    </label>
-                    <p class="text-xs text-gray-400">
-                      Enviar correo cuando se suba una incapacidad médica en Gestiones.
-                    </p>
-                  </div>
-                  <p-toggleSwitch
-                    [(ngModel)]="hrEmailNotifyDisabilities"
-                    (ngModelChange)="onHrEmailNotifyDisabilitiesChange()"
-                    [disabled]="saving()"
-                  />
-                </div>
-                <div class="flex flex-col gap-2" *ngIf="hrEmailNotifyDisabilities()">
-                  <label class="text-xs font-medium text-gray-300">Destinatarios (separados por coma)</label>
-                  <input
-                    pInputText
-                    [(ngModel)]="hrEmailRecipientsDisabilities"
-                    (ngModelChange)="onHrEmailRecipientsDisabilitiesChange()"
-                    [disabled]="saving()"
-                    placeholder="email1@ejemplo.com,email2@ejemplo.com"
-                    class="bg-neutral-700 border-neutral-600 text-white"
-                  />
-                </div>
-              </div>
-
-              <!-- Tiempo compensatorio -->
-              <div class="flex flex-col gap-4 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700">
-                <div class="flex items-center justify-between">
-                  <div class="flex flex-col gap-2">
-                    <label class="text-sm font-semibold text-white">
-                      Tiempo Compensatorio
-                    </label>
-                    <p class="text-xs text-gray-400">
-                      Enviar correo cuando se cree una solicitud de tiempo compensatorio desde Gestiones.
-                    </p>
-                  </div>
-                  <p-toggleSwitch
-                    [(ngModel)]="hrEmailNotifyCompensatory"
-                    (ngModelChange)="onHrEmailNotifyCompensatoryChange()"
-                    [disabled]="saving()"
-                  />
-                </div>
-                <div class="flex flex-col gap-2" *ngIf="hrEmailNotifyCompensatory()">
-                  <label class="text-xs font-medium text-gray-300">Destinatarios (separados por coma)</label>
-                  <input
-                    pInputText
-                    [(ngModel)]="hrEmailRecipientsCompensatory"
-                    (ngModelChange)="onHrEmailRecipientsCompensatoryChange()"
-                    [disabled]="saving()"
-                    placeholder="email1@ejemplo.com,email2@ejemplo.com"
-                    class="bg-neutral-700 border-neutral-600 text-white"
-                  />
                 </div>
               </div>
             </div>
@@ -303,6 +499,16 @@ export class SettingsComponent {
   public hrEmailRecipientsDocuments = signal('');
   public hrEmailRecipientsDisabilities = signal('');
 
+  // Email config
+  public testEmailRecipient = signal('');
+  public sendingTestEmail = signal(false);
+
+  // Email config resource
+  public emailConfigResource = httpResource<EmailConfig>(() => ({
+    url: '/api/email/config',
+    method: 'GET',
+  }));
+
   // Cargar configuraciones
   public settingsApi = httpResource<Setting[]>(() => {
     const url = this.apiUrl.build('rest/v1/settings', {
@@ -321,8 +527,12 @@ export class SettingsComponent {
     effect(() => {
       const settings = this.settingsApi.value();
       if (settings) {
-        const wassengerKey = settings.find((s) => s.key === 'wassenger_api_key');
-        const wassengerEnabled = settings.find((s) => s.key === 'wassenger_enabled');
+        const wassengerKey = settings.find(
+          (s) => s.key === 'wassenger_api_key'
+        );
+        const wassengerEnabled = settings.find(
+          (s) => s.key === 'wassenger_enabled'
+        );
         const hrEmailNotifyDocuments = settings.find(
           (s) => s.key === 'hr_email_notify_documents'
         );
@@ -352,10 +562,14 @@ export class SettingsComponent {
 
         // Defaults: true (si no existe el setting aún)
         this.hrEmailNotifyDocuments.set(
-          hrEmailNotifyDocuments ? hrEmailNotifyDocuments.value === 'true' : true
+          hrEmailNotifyDocuments
+            ? hrEmailNotifyDocuments.value === 'true'
+            : true
         );
         this.hrEmailNotifyDisabilities.set(
-          hrEmailNotifyDisabilities ? hrEmailNotifyDisabilities.value === 'true' : true
+          hrEmailNotifyDisabilities
+            ? hrEmailNotifyDisabilities.value === 'true'
+            : true
         );
         this.hrEmailNotifyCompensatory.set(
           hrEmailNotifyCompensatory
@@ -365,7 +579,8 @@ export class SettingsComponent {
 
         // Cargar destinatarios con valores por defecto
         this.hrEmailRecipientsCompensatory.set(
-          hrEmailRecipientsCompensatory?.value || 'Verley@blackdogpanama.com,soporte2@blackdogpanama.com'
+          hrEmailRecipientsCompensatory?.value ||
+            'Verley@blackdogpanama.com,soporte2@blackdogpanama.com'
         );
         this.hrEmailRecipientsDocuments.set(
           hrEmailRecipientsDocuments?.value || 'Verley@blackdogpanama.com'
@@ -457,69 +672,108 @@ export class SettingsComponent {
     this.saving.set(true);
     const category = opts?.category ?? 'general';
     const isEncrypted =
-      opts?.isEncrypted ?? (key.includes('api_key') || key.includes('password'));
+      opts?.isEncrypted ??
+      (key.includes('api_key') || key.includes('password'));
 
     // Primero intentar actualizar
     const url = this.apiUrl.build('rest/v1/settings', {
       key: `eq.${key}`,
     });
+    this.http.patch(url, { value }).subscribe({
+      next: () => {
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Éxito',
+          detail: 'Configuración guardada correctamente',
+        });
+
+        if (key === 'wassenger_api_key') {
+          this.wassengerApiKey.set('');
+          this.wassengerApiKeyValue.set('***');
+        }
+
+        this.settingsApi.reload();
+        this.saving.set(false);
+      },
+      error: (error) => {
+        console.error('Error saving setting:', error);
+
+        // Si no existe, crear
+        this.http
+          .post(this.apiUrl.build('rest/v1/settings'), {
+            key,
+            value,
+            category,
+            is_encrypted: isEncrypted,
+          })
+          .subscribe({
+            next: () => {
+              this.messageService.add({
+                severity: 'success',
+                summary: 'Éxito',
+                detail: 'Configuración guardada correctamente',
+              });
+
+              if (key === 'wassenger_api_key') {
+                this.wassengerApiKey.set('');
+                this.wassengerApiKeyValue.set('***');
+              }
+
+              this.settingsApi.reload();
+              this.saving.set(false);
+            },
+            error: (err) => {
+              console.error('Error creating setting:', err);
+              this.messageService.add({
+                severity: 'error',
+                summary: 'Error',
+                detail:
+                  err.error?.message || 'No se pudo guardar la configuración',
+              });
+              this.saving.set(false);
+            },
+          });
+      },
+    });
+  }
+
+  public sendTestEmail(): void {
+    const to = this.testEmailRecipient().trim();
+    if (!to) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Campo Requerido',
+        detail: 'Por favor ingresa un correo destinatario',
+      });
+      return;
+    }
+
+    this.sendingTestEmail.set(true);
+
     this.http
-      .patch(url, { value })
+      .post<{ success: boolean; message?: string; error?: string }>(
+        '/api/email/test',
+        { to }
+      )
       .subscribe({
-        next: () => {
+        next: (res) => {
           this.messageService.add({
             severity: 'success',
-            summary: 'Éxito',
-            detail: 'Configuración guardada correctamente',
+            summary: 'Correo Enviado',
+            detail: res.message || `Correo de prueba enviado a ${to}`,
           });
-
-          if (key === 'wassenger_api_key') {
-            this.wassengerApiKey.set('');
-            this.wassengerApiKeyValue.set('***');
-          }
-
-          this.settingsApi.reload();
-          this.saving.set(false);
+          this.sendingTestEmail.set(false);
         },
-        error: (error) => {
-          console.error('Error saving setting:', error);
-          
-          // Si no existe, crear
-          this.http
-            .post(this.apiUrl.build('rest/v1/settings'), {
-              key,
-              value,
-              category,
-              is_encrypted: isEncrypted,
-            })
-            .subscribe({
-              next: () => {
-                this.messageService.add({
-                  severity: 'success',
-                  summary: 'Éxito',
-                  detail: 'Configuración guardada correctamente',
-                });
-
-                if (key === 'wassenger_api_key') {
-                  this.wassengerApiKey.set('');
-                  this.wassengerApiKeyValue.set('***');
-                }
-
-                this.settingsApi.reload();
-                this.saving.set(false);
-              },
-              error: (err) => {
-                console.error('Error creating setting:', err);
-                this.messageService.add({
-                  severity: 'error',
-                  summary: 'Error',
-                  detail: err.error?.message || 'No se pudo guardar la configuración',
-                });
-                this.saving.set(false);
-              },
-            });
+        error: (err) => {
+          console.error('Error sending test email:', err);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail:
+              err.error?.message || 'No se pudo enviar el correo de prueba',
+          });
+          this.sendingTestEmail.set(false);
         },
       });
   }
 }
-
