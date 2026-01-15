@@ -1,4 +1,4 @@
-import { CommonModule, CurrencyPipe, TitleCasePipe } from '@angular/common';
+import { CommonModule, CurrencyPipe } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -8,55 +8,26 @@ import {
   signal,
 } from '@angular/core';
 import { endOfMonth, parseISO, startOfMonth } from 'date-fns';
-import { BaseChartDirective } from 'ng2-charts';
-import { CardModule } from 'primeng/card';
-import { DialogModule } from 'primeng/dialog';
-import { TooltipModule } from 'primeng/tooltip';
-import { ApiUrlService } from '../services/api-url.service';
-import { OrganizationService } from '../services/organization.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
+import { getMonthNameSpanish, getPanamaNowParts } from '../utils/panama-date.utils';
+import { Birthday } from './components/dialogs/birthdays-dialog.component';
+import { HireExitRecord } from './components/dialogs/hires-exits-dialog.component';
+import { LateDetail } from './components/dialogs/late-details-dialog.component';
+import { TopLateRecord } from './components/dialogs/top-lates-dialog.component';
+import { TopAbsenceRecord } from './components/dialogs/top-absences-dialog.component';
 import {
-  getMonthNameSpanish,
-  getPanamaNowParts,
-} from '../utils/panama-date.utils';
-import {
-  LateDetail,
-  LateDetailsDialogComponent,
-import { AbsencesKpiComponent } from './components/kpi/absences-kpi.component';
-import {
-  Birthday,
-  BirthdaysDialogComponent,
-} from './components/dialogs/birthdays-dialog.component';
-import {
-  HireExitRecord,
-  HiresExitsDialogComponent,
-} from './components/dialogs/hires-exits-dialog.component';
-import {
-  LateDetail,
-  LateDetailsDialogComponent,
-} from './components/dialogs/late-details-dialog.component';
-import {
-  TopLateRecord,
-  TopLatesDialogComponent,
-} from './components/dialogs/top-lates-dialog.component';
-import {
-  TopAbsenceRecord,
-  TopAbsencesDialogComponent,
-} from './components/dialogs/top-absences-dialog.component';
-import { BirthdaysKpiComponent } from './components/kpi/birthdays-kpi.component';
-import { GenderKpiComponent } from './components/kpi/gender-kpi.component';
-import { HeadcountKpiComponent } from './components/kpi/headcount-kpi.component';
-import { HiresExitsKpiComponent } from './components/kpi/hires-exits-kpi.component';
-import { LatesKpiComponent } from './components/kpi/lates-kpi.component';
-import { PayrollKpiComponent } from './components/kpi/payroll-kpi.component';
-import { SimpleKpiComponent } from './components/kpi/simple-kpi.component';
-import {
-  GENDER_CHART_OPTIONS,
   HEADCOUNT_CHART_OPTIONS,
-  HIRES_EXITS_CHART_OPTIONS,
   LATES_CHART_OPTIONS,
 } from './config/chart-options.config';
+import {
+  ChartsSectionComponent,
+  EventsSectionComponent,
+  ExecutiveSectionComponent,
+  FinancialSectionComponent,
+  ManagementSectionComponent,
+  StructureSectionComponent,
+} from './sections';
 import { HomeDataService } from './services/home-data.service';
 import { TardinessCalculationService } from './services/tardiness-calculation.service';
 
@@ -66,24 +37,12 @@ import { TardinessCalculationService } from './services/tardiness-calculation.se
   imports: [
     CommonModule,
     CurrencyPipe,
-    TitleCasePipe,
-    DialogModule,
-    TooltipModule,
-    CardModule,
-    BaseChartDirective,
-    HeadcountKpiComponent,
-    GenderKpiComponent,
-    HiresExitsKpiComponent,
-    BirthdaysKpiComponent,
-    LatesKpiComponent,
-    AbsencesKpiComponent,
-    SimpleKpiComponent,
-    PayrollKpiComponent,
-    LateDetailsDialogComponent,
-    BirthdaysDialogComponent,
-    HiresExitsDialogComponent,
-    TopLatesDialogComponent,
-    TopAbsencesDialogComponent,
+    ExecutiveSectionComponent,
+    FinancialSectionComponent,
+    ManagementSectionComponent,
+    StructureSectionComponent,
+    ChartsSectionComponent,
+    EventsSectionComponent,
   ],
   template: `
     <div class="dashboard-layout fade-in-up">
@@ -177,635 +136,32 @@ import { TardinessCalculationService } from './services/tardiness-calculation.se
       <main class="dashboard-container">
         <!-- Resumen Ejecutivo -->
         @if (activeSection() === 'executive') {
-        <div class="section-content executive-section">
-          <div class="kpi-grid executive-kpi-grid">
-            <app-headcount-kpi
-              [headcount]="state.headCount()"
-              [chartData]="headcountChartData()"
-              [chartOptions]="headcountChartOptions"
-              (chartClick)="handleHeadcountChartClick($event)"
-            ></app-headcount-kpi>
-
-            <app-gender-kpi
-              [maleCount]="getGenderCount('M')"
-              [femaleCount]="getGenderCount('F')"
-              [malePercentage]="getGenderPercentage('M')"
-              [femalePercentage]="getGenderPercentage('F')"
-              [chartData]="genderChartData()"
-              [chartOptions]="genderChartOptions"
-            ></app-gender-kpi>
-
-            <app-lates-kpi
-              [count]="getMonthlyLates()"
-              [topEmployeeName]="getTopLatesEmployeeName()"
-              [topEmployeeCount]="getTopLatesCount()"
-              [chartData]="latesDailyChartData()"
-              [chartOptions]="latesChartOptions"
-              (chartClick)="handleLatesChartClick($event)"
-            ></app-lates-kpi>
-
-            <app-simple-kpi
-              title="Top Tardanzas"
-              [value]="getTopLatesCount()"
-              [sublabel]="getTopLatesEmployeeName()"
-              icon="pi-exclamation-triangle"
-              tooltipText="Muestra el top de empleados con más tardanzas en el mes actual. Haz clic para ver la lista completa ordenada por número de tardanzas."
-              (click)="openTopLatesDialog()"
-              class="kpi-card-clickable"
-            ></app-simple-kpi>
-
-            <app-absences-kpi
-              [maxAbsencesCount]="getTopAbsencesCount()"
-              [topEmployeeName]="getTopAbsencesEmployeeName()"
-              (click)="openTopAbsencesDialog()"
-            ></app-absences-kpi>
-
-            <app-hires-exits-kpi
-              [hiresCount]="getHiresExitsCount('hires')"
-              [exitsCount]="getHiresExitsCount('exits')"
-              [chartData]="hiresExitsChartData()"
-              [chartOptions]="hiresExitsChartOptions"
-              (click)="openHiresExitsDialog()"
-            ></app-hires-exits-kpi>
-
-            <app-simple-kpi
-              title="Tasa de Retención"
-              [value]="state.retentionRate() + '%'"
-              sublabel="Retención anual"
-              icon="pi-heart"
-              tooltipText="Mide el porcentaje de empleados que permanecen en la empresa después de 12 meses..."
-            ></app-simple-kpi>
-
-            <app-birthdays-kpi
-              [count]="monthlyBirthdaysCount()"
-              (click)="openBirthdaysDialog()"
-            ></app-birthdays-kpi>
-
-            <app-payroll-kpi
-              [monthlyCost]="
-                (state.monthlyBudget() | currency : '$' : 'symbol' : '1.0-0') ??
-                '$0'
-              "
-              [annualCost]="
-                (state.monthlyBudget() * 12
-                  | currency : '$' : 'symbol' : '1.0-0') ?? '$0'
-              "
-            ></app-payroll-kpi>
-
-            <app-simple-kpi
-              title="Antigüedad Promedio"
-              [value]="state.averageTenure()"
-              sublabel="Años de experiencia"
-              icon="pi-calendar-clock"
-              tooltipText="Calcula el promedio de años de antigüedad de los empleados activos..."
-            ></app-simple-kpi>
-
-            <app-simple-kpi
-              title="Edad Promedio"
-              [value]="state.averageAge()"
-              sublabel="Años promedio"
-              icon="pi-calendar"
-              tooltipText="Calcula la edad promedio de todos los empleados activos..."
-            ></app-simple-kpi>
-
-            <app-simple-kpi
-              title="Salario Promedio"
-              [value]="
-                (state.averageSalary() | currency : '$' : 'symbol' : '1.0-0') ??
-                '$0'
-              "
-              sublabel="Salario promedio"
-              icon="pi-dollar"
-              tooltipText="Calcula el salario mensual promedio de todos los empleados activos..."
-              class="financial"
-            ></app-simple-kpi>
-
-            <app-simple-kpi
-              title="Índice de Clima Laboral"
-              [value]="getWorkClimateIndex() + '%'"
-              sublabel="Satisfacción general"
-              icon="pi-users"
-              tooltipText="Indicador compuesto que mide el clima laboral..."
-            ></app-simple-kpi>
-
-            <app-simple-kpi
-              title="Índice de Cumplimiento de Horario"
-              [value]="getScheduleComplianceIndex() + '%'"
-              sublabel="Cumplimiento mensual"
-              icon="pi-check-circle"
-              tooltipText="Mide el porcentaje de cumplimiento de horarios..."
-            ></app-simple-kpi>
-          </div>
-          </div>
-          <!-- Dialog for lates details -->
-          <app-late-details-dialog
-            [visible]="lateDialogVisible()"
-            (visibleChange)="lateDialogVisible.set($event)"
-            [title]="lateDialogTitle()"
-            [details]="lateDialogDetails()"
-          ></app-late-details-dialog>
-          <!-- Dialog for birthdays details -->
-          <app-birthdays-dialog
-            [visible]="birthdaysDialogVisible()"
-            (visibleChange)="birthdaysDialogVisible.set($event)"
-            [birthdays]="state.birthDates()"
-          ></app-birthdays-dialog>
-          <!-- Dialog for hires and exits details -->
-          <app-hires-exits-dialog
-            [visible]="hiresExitsDialogVisible()"
-            (visibleChange)="hiresExitsDialogVisible.set($event)"
-            title="Ingresos y Salidas del Personal"
-            [hires]="monthlyHiresListMapped()"
-            [exits]="monthlyExitsListMapped()"
-          ></app-hires-exits-dialog>
-          <!-- Dialog for top lates -->
-          <app-top-lates-dialog
-            [visible]="topLatesDialogVisible()"
-            (visibleChange)="topLatesDialogVisible.set($event)"
-            [lates]="topLatesListMapped()"
-          ></app-top-lates-dialog>
-          <!-- Dialog for top absences -->
-          <app-top-absences-dialog
-            [visible]="topAbsencesDialogVisible()"
-            (visibleChange)="topAbsencesDialogVisible.set($event)"
-            [absences]="topAbsencesList()"
-          ></app-top-absences-dialog>
-          <!-- Dialog for month-specific hires and exits details -->
-          <app-hires-exits-dialog
-            [visible]="monthHiresExitsDialogVisible()"
-            (visibleChange)="monthHiresExitsDialogVisible.set($event)"
-            [title]="'Ingresos y Salidas - ' + selectedMonthLabel()"
-            [hires]="selectedMonthHiresListMapped()"
-            [exits]="selectedMonthExitsListMapped()"
-          ></app-hires-exits-dialog>
-        </div>
+        <app-executive-section></app-executive-section>
         }
 
         <!-- Indicadores Financieros -->
         @if (activeSection() === 'financial') {
-        <div class="section-content">
-          <div class="kpi-grid">
-            <div class="kpi-card financial">
-              <div class="kpi-icon">
-                <i class="pi pi-money-bill"></i>
-              </div>
-              <div class="kpi-content">
-                <div class="kpi-label">Planilla Mensual</div>
-                <div class="kpi-value">
-                  {{
-                    state.monthlyBudget() | currency : '$' : 'symbol' : '1.0-0'
-                  }}
-                </div>
-                <div class="kpi-sublabel">Costo mensual</div>
-              </div>
-            </div>
-            <div class="kpi-card financial">
-              <div class="kpi-icon">
-                <i class="pi pi-calendar"></i>
-              </div>
-              <div class="kpi-content">
-                <div class="kpi-label">Planilla Anual</div>
-                <div class="kpi-value">
-                  {{
-                    state.monthlyBudget() * 12
-                      | currency : '$' : 'symbol' : '1.0-0'
-                  }}
-                </div>
-                <div class="kpi-sublabel">Proyección anual</div>
-              </div>
-            </div>
-            <div class="kpi-card financial">
-              <div class="kpi-icon">
-                <i class="pi pi-dollar"></i>
-              </div>
-              <div class="kpi-content">
-                <div class="kpi-label">Promedio Salarial</div>
-                <div class="kpi-value">
-                  {{
-                    state.averageSalary() | currency : '$' : 'symbol' : '1.0-0'
-                  }}
-                </div>
-                <div class="kpi-sublabel">Salario promedio</div>
-              </div>
-            </div>
-            <div class="kpi-card financial">
-              <div class="kpi-icon">
-                <i class="pi pi-chart-line"></i>
-              </div>
-              <div class="kpi-content">
-                <div class="kpi-label">People Efficiency Ratio</div>
-                <div class="kpi-value">
-                  {{
-                    state.peopleEfficiencyRatio()
-                      | currency : '$' : 'symbol' : '1.0-0'
-                  }}
-                </div>
-                <div class="kpi-sublabel">Ingresos por empleado</div>
-              </div>
-            </div>
-            <div class="kpi-card financial">
-              <div class="kpi-icon">
-                <i class="pi pi-arrow-up"></i>
-              </div>
-              <div class="kpi-content">
-                <div class="kpi-label">Ingresos Estimados</div>
-                <div class="kpi-value">
-                  {{
-                    state.peopleEfficiencyRatio() * state.headCount()
-                      | currency : '$' : 'symbol' : '1.0-0'
-                  }}
-                </div>
-                <div class="kpi-sublabel">Ingresos mensuales</div>
-              </div>
-            </div>
-            <div class="kpi-card financial">
-              <div class="kpi-icon">
-                <i class="pi pi-exclamation-triangle"></i>
-              </div>
-              <div class="kpi-content">
-                <div class="kpi-label">Empleados con Deudas</div>
-                <div class="kpi-value-split">
-                  <div>
-                    <span class="value-lg">{{
-                      state.employeesWithDebts()
-                    }}</span>
-                    <span class="value-label">Empleados</span>
-                  </div>
-                  <div>
-                    <span class="value-lg">{{
-                      state.totalDebtAmount()
-                        | currency : '$' : 'symbol' : '1.0-0'
-                    }}</span>
-                    <span class="value-label">Total</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <app-financial-section></app-financial-section>
         }
 
         <!-- Gestión de Personal -->
         @if (activeSection() === 'management') {
-        <div class="section-content">
-          <div class="kpi-grid">
-            <!-- Contrataciones y Crecimiento -->
-            <div class="kpi-card">
-              <div class="kpi-icon">
-                <i class="pi pi-user-plus"></i>
-              </div>
-              <div class="kpi-content">
-                <div class="kpi-label">Nuevos este Mes</div>
-                <div class="kpi-value">{{ state.newEmployeesThisMonth() }}</div>
-                <div class="kpi-sublabel">
-                  Tasa: {{ state.monthlyHiringRate() }}%
-                </div>
-              </div>
-            </div>
-            <div class="kpi-card">
-              <div class="kpi-icon">
-                <i class="pi pi-arrow-up"></i>
-              </div>
-              <div class="kpi-content">
-                <div class="kpi-label">Tasa de Crecimiento</div>
-                <div class="kpi-value">{{ state.growthRate() }}%</div>
-                <div class="kpi-sublabel">Crecimiento mensual</div>
-              </div>
-            </div>
-            <div class="kpi-card">
-              <div class="kpi-icon">
-                <i class="pi pi-clock"></i>
-              </div>
-              <div class="kpi-content">
-                <div class="kpi-label">En Período de Prueba</div>
-                <div class="kpi-value">{{ state.probatoryEmployees() }}</div>
-                <div class="kpi-sublabel">Menos de 3 meses</div>
-              </div>
-            </div>
-
-            <!-- Rotación y Retención -->
-            <div class="kpi-card">
-              <div class="kpi-icon">
-                <i class="pi pi-refresh"></i>
-              </div>
-              <div class="kpi-content">
-                <div class="kpi-label">Rotación Mensual</div>
-                <div class="kpi-value">{{ state.monthlyTurnover() }}%</div>
-                <div class="kpi-sublabel">Bajas este mes</div>
-              </div>
-            </div>
-            <div class="kpi-card">
-              <div class="kpi-icon">
-                <i class="pi pi-chart-line"></i>
-              </div>
-              <div class="kpi-content">
-                <div class="kpi-label">Rotación Anual</div>
-                <div class="kpi-value">{{ state.annualTurnover() }}%</div>
-                <div class="kpi-sublabel">Últimos 12 meses</div>
-              </div>
-            </div>
-            <div class="kpi-card">
-              <div class="kpi-icon">
-                <i class="pi pi-shield"></i>
-              </div>
-              <div class="kpi-content">
-                <div class="kpi-label">Tasa de Retención</div>
-                <div class="kpi-value">{{ state.retentionRate() }}%</div>
-                <div class="kpi-sublabel">Empleados retenidos</div>
-              </div>
-            </div>
-
-            <!-- Antigüedad y Estabilidad -->
-            <div class="kpi-card">
-              <div class="kpi-icon">
-                <i class="pi pi-calendar"></i>
-              </div>
-              <div class="kpi-content">
-                <div class="kpi-label">Antigüedad Promedio</div>
-                <div class="kpi-value">{{ state.averageTenure() }}</div>
-                <div class="kpi-sublabel">Años de experiencia</div>
-              </div>
-            </div>
-            <div class="kpi-card">
-              <div class="kpi-icon">
-                <i class="pi pi-star"></i>
-              </div>
-              <div class="kpi-content">
-                <div class="kpi-label">Aniversarios Próximos</div>
-                <div class="kpi-value">
-                  {{ state.upcomingAnniversaries().length }}
-                </div>
-                <div class="kpi-sublabel">Próximos 30 días</div>
-              </div>
-            </div>
-
-            <!-- Ausentismo y Licencias -->
-            <div class="kpi-card">
-              <div class="kpi-icon">
-                <i class="pi pi-exclamation-triangle"></i>
-              </div>
-              <div class="kpi-content">
-                <div class="kpi-label">Ausentismo Mensual</div>
-                <div class="kpi-value">{{ state.monthlyAbsenteeism() }}%</div>
-                <div class="kpi-sublabel">Tasa de ausencias</div>
-              </div>
-            </div>
-            <div class="kpi-card">
-              <div class="kpi-icon female">
-                <i class="pi pi-heart"></i>
-              </div>
-              <div class="kpi-content">
-                <div class="kpi-label">Mujeres en Licencia</div>
-                <div class="kpi-value">{{ state.womenOnLeave() }}</div>
-                <div class="kpi-sublabel">Licencias activas</div>
-              </div>
-            </div>
-
-            <!-- Costos y Eficiencia -->
-            <div class="kpi-card">
-              <div class="kpi-icon">
-                <i class="pi pi-dollar"></i>
-              </div>
-              <div class="kpi-content">
-                <div class="kpi-label">Costo por Empleado</div>
-                <div class="kpi-value">
-                  {{
-                    state.costPerEmployee()
-                      | currency : '$' : 'symbol' : '1.0-0'
-                  }}
-                </div>
-                <div class="kpi-sublabel">Costo promedio mensual</div>
-              </div>
-            </div>
-            <div class="kpi-card">
-              <div class="kpi-icon">
-                <i class="pi pi-chart-bar"></i>
-              </div>
-              <div class="kpi-content">
-                <div class="kpi-label">Ratio de Eficiencia</div>
-                <div class="kpi-value">
-                  {{ state.peopleEfficiencyRatio() }}%
-                </div>
-                <div class="kpi-sublabel">Eficiencia del personal</div>
-              </div>
-            </div>
-
-            <!-- Deudas y Finanzas -->
-            <div class="kpi-card">
-              <div class="kpi-icon">
-                <i class="pi pi-credit-card"></i>
-              </div>
-              <div class="kpi-content">
-                <div class="kpi-label">Empleados con Deudas</div>
-                <div class="kpi-value">{{ state.employeesWithDebts() }}</div>
-                <div class="kpi-sublabel">
-                  Total:
-                  {{
-                    state.totalDebtAmount()
-                      | currency : '$' : 'symbol' : '1.0-0'
-                  }}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <app-management-section></app-management-section>
         }
 
         <!-- Estructura Organizacional -->
         @if (activeSection() === 'structure') {
-        <div class="section-content">
-          <div class="kpi-grid">
-            <div class="kpi-card">
-              <div class="kpi-icon">
-                <i class="pi pi-building"></i>
-              </div>
-              <div class="kpi-content">
-                <div class="kpi-label">Sucursales Activas</div>
-                <div class="kpi-value">{{ state.branchesCount() }}</div>
-                <div class="kpi-sublabel">Ubicaciones</div>
-              </div>
-            </div>
-            <div class="kpi-card">
-              <div class="kpi-icon">
-                <i class="pi pi-file"></i>
-              </div>
-              <div class="kpi-content">
-                <div class="kpi-label">Empleados Fijos</div>
-                <div class="kpi-value">
-                  {{ state.contractDistribution().fixed }}
-                </div>
-                <div class="kpi-sublabel">
-                  {{ getContractPercentage('fixed') }}% del total
-                </div>
-              </div>
-            </div>
-            <div class="kpi-card">
-              <div class="kpi-icon">
-                <i class="pi pi-file"></i>
-              </div>
-              <div class="kpi-content">
-                <div class="kpi-label">Empleados Temporales</div>
-                <div class="kpi-value">
-                  {{ state.contractDistribution().temporary }}
-                </div>
-                <div class="kpi-sublabel">
-                  {{ getContractPercentage('temporary') }}% del total
-                </div>
-              </div>
-            </div>
-            <div class="kpi-card">
-              <div class="kpi-icon">
-                <i class="pi pi-users"></i>
-              </div>
-              <div class="kpi-content">
-                <div class="kpi-label">Ratio de Supervisión</div>
-                <div class="kpi-value">{{ state.supervisionRatio() }}</div>
-                <div class="kpi-sublabel">Empleados por supervisor</div>
-              </div>
-            </div>
-          </div>
-        </div>
+        <app-structure-section></app-structure-section>
         }
 
         <!-- Gráficos y Distribuciones -->
         @if (activeSection() === 'charts') {
-        <div class="section-content">
-          <div class="charts-grid">
-            <div class="chart-card">
-              <h3 class="chart-title">Empleados por Sucursal</h3>
-              <div class="chart-container">
-                @if (branchLabels().length > 0) {
-                <canvas
-                  baseChart
-                  [datasets]="branchData()"
-                  [labels]="branchLabels()"
-                  type="bar"
-                  [options]="barChartOptions"
-                ></canvas>
-                } @else {
-                <div class="empty-state">
-                  <i class="pi pi-chart-bar"></i>
-                  <p>No hay datos disponibles</p>
-                </div>
-                }
-              </div>
-            </div>
-            <div class="chart-card">
-              <h3 class="chart-title">Distribución por Edad</h3>
-              <div class="age-distribution">
-                @for (range of ageRanges; track range.key) {
-                <div class="age-bar">
-                  <div class="age-info">
-                    <span>{{ range.label }}</span>
-                    <span class="age-value">{{ getAgeCount(range.key) }}</span>
-                  </div>
-                  <div class="progress-bar">
-                    <div
-                      class="progress-fill"
-                      [style.width.%]="getAgePercentage(range.key)"
-                    ></div>
-                  </div>
-                </div>
-                }
-              </div>
-            </div>
-            <div class="chart-card">
-              <h3 class="chart-title">Empleados por Departamento</h3>
-              <div class="department-list">
-                @for (item of state.employeesByDepartment(); track
-                item.department?.id) {
-                <div class="department-item">
-                  <span>{{ item.department?.name || 'Sin departamento' }}</span>
-                  <span class="department-badge">{{ item.count }}</span>
-                </div>
-                } @empty {
-                <div class="empty-state-small">No hay datos</div>
-                }
-              </div>
-            </div>
-            <div class="chart-card">
-              <h3 class="chart-title">Principales Motivos de Ausencia</h3>
-              <div class="absence-list">
-                @for (reason of state.mainAbsenceReasons(); track reason.reason)
-                {
-                <div class="absence-item">
-                  <span class="absence-dot"></span>
-                  <span>{{ reason.reason }}</span>
-                  <span class="absence-count">{{ reason.count }}</span>
-                </div>
-                }
-              </div>
-            </div>
-          </div>
-        </div>
+        <app-charts-section></app-charts-section>
         }
 
         <!-- Eventos y Celebraciones -->
         @if (activeSection() === 'events') {
-        <div class="section-content">
-          <div class="events-grid">
-            <div class="event-card">
-              <h3 class="event-title">
-                <i class="pi pi-star"></i>
-                Cumpleañeros de {{ currentMonth() | titlecase }}
-              </h3>
-              <div class="birthday-list">
-                @if (state.birthDates().length > 0) { @for (item of
-                state.birthDates(); track item) {
-                <div class="birthday-item">
-                  <div class="birthday-date">
-                    <div class="birthday-day">
-                      {{ getBirthdayDay(item.birth_date) }}
-                    </div>
-                    <div class="birthday-month">
-                      {{ getBirthdayMonth(item.birth_date) }}
-                    </div>
-                  </div>
-                  <div class="birthday-info">
-                    <div class="birthday-name">
-                      {{ item.first_name }} {{ item.father_name }}
-                    </div>
-                    <div class="birthday-branch">
-                      {{ item.branch?.name || 'Sin sucursal' }}
-                    </div>
-                  </div>
-                </div>
-                } } @else {
-                <div class="empty-state-small">
-                  No hay cumpleañeros este mes
-                </div>
-                }
-              </div>
-            </div>
-            <div class="event-card">
-              <h3 class="event-title">
-                <i class="pi pi-star"></i>
-                Próximos Aniversarios
-              </h3>
-              <div class="anniversary-list">
-                @if (state.upcomingAnniversaries().length > 0) { @for (item of
-                state.upcomingAnniversaries(); track item.employee.id) {
-                <div class="anniversary-item">
-                  <div class="anniversary-info">
-                    <div class="anniversary-name">
-                      {{ item.employee.first_name }}
-                      {{ item.employee.father_name }}
-                    </div>
-                    <div class="anniversary-branch">
-                      {{ item.employee.branch?.name || 'Sin sucursal' }}
-                    </div>
-                  </div>
-                  <div class="anniversary-badge">{{ item.years }} años</div>
-                </div>
-                } } @else {
-                <div class="empty-state-small">
-                  No hay aniversarios próximos
-                </div>
-                }
-              </div>
-            </div>
-          </div>
-        </div>
+        <app-events-section></app-events-section>
         }
       </main>
     </div>
@@ -839,6 +195,17 @@ export class HomeComponent {
     return this.state.birthDates().length;
   });
 
+  // Mapped birthdays list for dialog
+  public birthdaysListMapped = computed<Birthday[]>(() => {
+    return this.state.birthDates().map((x) => ({
+      name: `${x.first_name || ''} ${x.father_name || ''}`.trim(),
+      birth_date: x.birth_date
+        ? new Date(x.birth_date).toISOString().split('T')[0]
+        : undefined,
+      branch_name: x.branch?.name,
+    }));
+  });
+
   // Calcular ingresos y salidas del mes
   // Only calculate when executive section is active
   public monthlyHiresAndExits = computed(() => {
@@ -859,90 +226,9 @@ export class HomeComponent {
         console.error('[HomeComponent] employeeSchedules - Error:', error);
       }
     });
-        duration: 1000,
-        easing: 'easeInOutQuart',
-      },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          enabled: true,
-          backgroundColor: '#18181b',
-          titleColor: '#fbbf24',
-          bodyColor: '#ffffff',
-          borderColor: 'rgba(251, 191, 36, 0.3)',
-          borderWidth: 1,
-          padding: 12,
-          displayColors: false,
-          callbacks: {
-            label: (ctx: any) => {
-              const y = ctx.parsed?.y ?? ctx.parsed ?? 0;
-              const label = ctx.dataset?.label || 'Empleados';
-              return `${label}: ${y}`;
-            },
-            title: (ctx: any) => {
-              // Show month/year from chart labels
-              const chart = ctx[0]?.chart;
-              if (chart && chart.data && chart.data.labels) {
-                const index = ctx[0]?.dataIndex;
-                if (index !== undefined && chart.data.labels[index]) {
-                  return chart.data.labels[index];
-                }
-              }
-              // Fallback: get from computed
-              const data: any = this.headcountChartData();
-              const labels = data?.labels || [];
-              const index = ctx[0]?.dataIndex;
-              if (index !== undefined && labels[index]) {
-                return labels[index];
-              }
-              return '';
-            },
-          },
-        },
-      },
-      scales: {
-        x: {
-          display: false,
-          grid: { display: false },
-        },
-        y: {
-          display: false,
-          beginAtZero: false,
-          grid: { display: false },
-        },
-      },
-      elements: {
-        line: {
-          tension: 0.4,
-          borderWidth: 3,
-          borderJoinStyle: 'round',
-          borderCapStyle: 'round',
-        },
-        point: {
-          radius: 0,
-          hoverRadius: 6,
-          hitRadius: 10,
-          hoverBorderWidth: 2,
-        },
-      },
-      onClick: (evt: any, active: any[]) => {
-        // Handle click on headcount chart to show hires/exits for that month
-        if (active && active.length > 0) {
-          const idx = active[0].index;
-          const data: any = this.homeData.headcountTrendData();
-          const labels = data?.labels || [];
-
-          if (idx !== undefined && labels[idx]) {
-            // Parse the month/year from label (e.g., "Ene 2024")
-            const label = labels[idx];
-            this.openMonthHiresExitsDialog(label, idx);
-          }
-        }
-      },
-    };
   }
 
-  // Chart options for Tardanzas del Mes - Same style as headcount chart
+  // Chart options are in config/chart-options.config.ts
 
 
   // Generate headcount trend by month/year (Moved to Service)
@@ -1249,6 +535,57 @@ export class HomeComponent {
       });
   });
 
+  // Mapped versions for dialog components
+  public monthlyHiresListMapped = computed<HireExitRecord[]>(() => {
+    return this.monthlyHiresList().map((x) => ({
+      name: `${x.first_name || ''} ${x.father_name || ''}`.trim(),
+      branch_name: x.branch?.name,
+      job_title: x.position?.name,
+      start_date: x.start_date
+        ? new Date(x.start_date).toISOString().split('T')[0]
+        : undefined,
+    }));
+  });
+
+  public monthlyExitsListMapped = computed<HireExitRecord[]>(() => {
+    return this.monthlyExitsList().map((x) => ({
+      name: x.employee
+        ? `${x.employee.first_name || ''} ${x.employee.father_name || ''}`.trim()
+        : 'Sin nombre',
+      branch_name: x.employee?.branch?.name,
+      job_title: x.employee?.position?.name,
+      date: x.date
+        ? new Date(x.date).toISOString().split('T')[0]
+        : undefined,
+      reason: x.reason,
+    }));
+  });
+
+  public selectedMonthHiresListMapped = computed<HireExitRecord[]>(() => {
+    return this.selectedMonthHiresList().map((x) => ({
+      name: `${x.first_name || ''} ${x.father_name || ''}`.trim(),
+      branch_name: x.branch?.name,
+      job_title: x.position?.name,
+      start_date: x.start_date
+        ? new Date(x.start_date).toISOString().split('T')[0]
+        : undefined,
+    }));
+  });
+
+  public selectedMonthExitsListMapped = computed<HireExitRecord[]>(() => {
+    return this.selectedMonthExitsList().map((x) => ({
+      name: x.employee
+        ? `${x.employee.first_name || ''} ${x.employee.father_name || ''}`.trim()
+        : 'Sin nombre',
+      branch_name: x.employee?.branch?.name,
+      job_title: x.employee?.position?.name,
+      date: x.date
+        ? new Date(x.date).toISOString().split('T')[0]
+        : undefined,
+      reason: x.reason,
+    }));
+  });
+
   // Only calculate when structure section is active
   public branchLabels = computed(() => {
     if (this.activeSection() !== 'structure') {
@@ -1359,6 +696,16 @@ export class HomeComponent {
       ],
     };
   });
+
+  /**
+   * Chart.js options for headcount trend chart
+   */
+  public headcountChartOptions = HEADCOUNT_CHART_OPTIONS;
+
+  /**
+   * Chart.js options for lates chart
+   */
+  public latesChartOptions = LATES_CHART_OPTIONS;
 
   /**
    * Chart.js options for semicircular donut chart
@@ -1615,25 +962,6 @@ export class HomeComponent {
   public getBirthdayDay(date: Date | undefined): string {
     if (!date) return '??';
     return new Date(date).getDate().toString();
-  }
-
-  public getBirthdayMonth(date: Date | undefined): string {
-    if (!date) return '???';
-    const months = [
-      'ENE',
-      'FEB',
-      'MAR',
-      'ABR',
-      'MAY',
-      'JUN',
-      'JUL',
-      'AGO',
-      'SEP',
-      'OCT',
-      'NOV',
-      'DIC',
-    ];
-    return months[new Date(date).getMonth()];
   }
 
   public hasBirthdayPassed(date: Date | undefined): boolean {

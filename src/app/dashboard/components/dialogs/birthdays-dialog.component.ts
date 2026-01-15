@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { DialogModule } from 'primeng/dialog';
-import { getPanamaNowParts } from '../../utils/panama-date.utils';
+import { getPanamaNowParts } from '../../../utils/panama-date.utils';
 
 export interface Birthday {
   birth_date?: string;
