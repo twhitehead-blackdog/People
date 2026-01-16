@@ -114,6 +114,7 @@
     [visible]="dialogVisible()"
     [employee]="selectedEmployee()"
     [date]="selectedDate()"
+    [currentBranchId]="selectedAssignment()?.branch_id"
     (visibleChange)="dialogVisible.set($event)"
     (confirm)="onDialogConfirm($event)"
     (cancel)="onDialogCancel()"

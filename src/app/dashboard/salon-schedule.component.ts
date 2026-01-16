@@ -585,17 +585,39 @@ export class SalonScheduleComponent {
   }
 
   // Manejadores del diálogo
-  onDialogConfirm(selectedBranchId: string): void {
+  onDialogConfirm(result: any): void {
     const employee = this.selectedEmployee();
-    const date = this.selectedDate();
-    const assignment = this.selectedAssignment();
+    // result puede ser string (versión anterior) o objeto { branchId, startDate, endDate }
 
-    if (employee && date) {
+    let branchId: string;
+    let startDate: Date;
+    let endDate: Date;
+
+    if (typeof result === 'string') {
+      branchId = result;
+      startDate = this.selectedDate()!;
+      endDate = this.selectedDate()!;
+    } else {
+      branchId = result.branchId;
+      startDate = result.startDate;
+      endDate = result.endDate;
+    }
+
+    if (employee && branchId) {
       const selectedBranch = this.store.branches
         .entities()
-        .find((b) => b.id === selectedBranchId);
+        .find((b) => b.id === branchId);
+
       if (selectedBranch) {
-        this.assignBranch(employee, date, selectedBranch);
+        // Generar rango de fechas
+        const datesToAssign = eachDayOfInterval({
+          start: startDate,
+          end: endDate,
+        });
+
+        datesToAssign.forEach((date) => {
+          this.assignBranch(employee, date, selectedBranch);
+        });
       }
     }
 

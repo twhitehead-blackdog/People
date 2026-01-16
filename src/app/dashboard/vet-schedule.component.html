@@ -52,19 +52,19 @@
   >
     <ng-template #header>
       <tr>
-        <th pFrozenColumn style="min-width: 200px;">Nombre</th>
-        <th pFrozenColumn style="min-width: 150px;">Cargo</th>
+        <th pFrozenColumn style="min-width: 200px">Nombre</th>
+        <th pFrozenColumn style="min-width: 150px">Cargo</th>
         @for(day of daysOfWeek(); track day){
-          <th class="branch-cell">
-            <div class="flex flex-col items-center gap-0 leading-[1.1]">
-              <span class="text-xs font-bold uppercase">{{
-                day | date : 'EEE' : undefined : 'es'
-              }}</span>
-              <span class="text-[10px]">{{
-                day | date : 'd MMM' : undefined : 'es'
-              }}</span>
-            </div>
-          </th>
+        <th class="branch-cell">
+          <div class="flex flex-col items-center gap-0 leading-[1.1]">
+            <span class="text-xs font-bold uppercase">{{
+              day | date : 'EEE' : undefined : 'es'
+            }}</span>
+            <span class="text-[10px]">{{
+              day | date : 'd MMM' : undefined : 'es'
+            }}</span>
+          </div>
+        </th>
         }
       </tr>
     </ng-template>
@@ -80,19 +80,19 @@
           <p-tag [value]="vetData.employee.position?.name" severity="info" />
         </td>
         @for(day of daysOfWeek(); track day){
-          <td class="text-center">
-            <pt-vet-branch-cell
-              [assignment]="getAssignmentForDate(vetData.employee, day)"
-              [date]="day"
-              [employeeId]="vetData.employee.id"
-              [canManage]="isAdmin"
-              [isNonWorking]="isNonWorking(vetData.employee.id, day)"
-              [nonWorkingLabel]="getNonWorkingLabel(vetData.employee.id, day)"
-              (edit)="onEditAssignment($event)"
-              (delete)="onDeleteAssignment($event)"
-              (add)="onAddAssignment($event)"
-            />
-          </td>
+        <td class="text-center">
+          <pt-vet-branch-cell
+            [assignment]="getAssignmentForDate(vetData.employee, day)"
+            [date]="day"
+            [employeeId]="vetData.employee.id"
+            [canManage]="isAdmin"
+            [isNonWorking]="isNonWorking(vetData.employee.id, day)"
+            [nonWorkingLabel]="getNonWorkingLabel(vetData.employee.id, day)"
+            (edit)="onEditAssignment($event)"
+            (delete)="onDeleteAssignment($event)"
+            (add)="onAddAssignment($event)"
+          />
+        </td>
         }
       </tr>
     </ng-template>
@@ -111,6 +111,7 @@
     [visible]="dialogVisible()"
     [employee]="selectedEmployee()"
     [date]="selectedDate()"
+    [currentBranchId]="selectedAssignment()?.branch_id"
     (visibleChange)="dialogVisible.set($event)"
     (confirm)="onDialogConfirm($event)"
     (cancel)="onDialogCancel()"
