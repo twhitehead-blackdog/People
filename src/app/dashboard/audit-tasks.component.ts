@@ -688,29 +688,14 @@ export class AuditTasksComponent {
   } = this.getEmptyForm();
 
   // Resources
+  // TODO: Deshabilitado temporalmente - tablas audit_tasks removidas
   tasksResource = httpResource<AuditTask[]>(() => {
-    const companyId = this.organizationService.getCurrentCompanyId();
-    if (!companyId) return undefined;
-
-    return {
-      url: this.apiUrl.build('rest/v1/audit_tasks', {
-        company_id: `eq.${companyId}`,
-        order: 'created_at.desc',
-      }),
-    };
+    return undefined; // Deshabilitado - tablas removidas
   });
 
+  // TODO: Deshabilitado temporalmente - tablas audit_task_instances removidas
   instancesResource = httpResource<AuditTaskInstance[]>(() => {
-    const taskId = this.selectedTaskForInstances()?.id;
-    if (!taskId) return undefined;
-
-    return {
-      url: this.apiUrl.build('rest/v1/audit_task_instances', {
-        select: `*,assigned_employee:employees!assigned_to(id,first_name,father_name),branch:branches(id,name)`,
-        audit_task_id: `eq.${taskId}`,
-        order: 'scheduled_date.desc',
-      }),
-    };
+    return undefined; // Deshabilitado - tablas removidas
   });
 
   // Computed

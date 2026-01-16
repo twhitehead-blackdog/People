@@ -2246,21 +2246,9 @@ export class BranchManagerComponent {
   });
 
   // Resource para tareas de auditoría asignadas al gerente actual
+  // TODO: Deshabilitado temporalmente - tablas audit_tasks removidas
   public auditTaskInstancesResource = httpResource<any[]>(() => {
-    const companyId = this.organizationService.getCurrentCompanyId();
-    const currentEmployeeId = this.store.auth.currentEmployeeId();
-
-    if (!companyId || !currentEmployeeId) return undefined;
-
-    return {
-      url: this.apiUrl.build('rest/v1/audit_task_instances', {
-        select: `*,audit_task:audit_tasks(id,title,description,category,priority)`,
-        company_id: `eq.${companyId}`,
-        assigned_to: `eq.${currentEmployeeId}`,
-        status: `in.(pending,in_progress)`,
-        order: 'due_date.asc',
-      }),
-    };
+    return undefined; // Deshabilitado - retorna undefined para no hacer la llamada API
   });
 
   // Computed: combinar recordatorios manuales + tareas de auditoría
