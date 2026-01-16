@@ -3,7 +3,10 @@
     "allow": [
       "Bash(find:*)",
       "Bash(done)",
-      "Bash(claude mcp add:*)"
+      "Bash(claude mcp add:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npx ng:*)",
+      "Bash(npm run build:*)"
     ]
   }
 }

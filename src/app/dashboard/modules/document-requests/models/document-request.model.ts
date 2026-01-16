@@ -1,3 +1,17 @@
+export type TimelogType = 'entry' | 'lunch_start' | 'lunch_end' | 'exit';
+
+export interface DocumentRequestMetadata {
+  // For timelog_correction
+  timelog_date?: string;
+  timelog_type?: TimelogType;
+  branch_id?: string;
+  attachment_url?: string;
+  // For uniform_request
+  item_type?: string;
+  size?: string;
+  quantity?: number;
+}
+
 export interface DocumentRequest {
   id: string;
   employee_id: string;
@@ -14,16 +28,18 @@ export interface DocumentRequest {
     work_email: string;
     company_id: string;
     position?: { name: string };
-    branch?: { name: string };
+    branch?: { name: string; id: string };
   };
   document_type: string;
   custom_document_type?: string;
   reason: string | null;
   document_url?: string | null;
-  status: 'pending' | 'completed';
+  status: 'pending' | 'completed' | 'rejected';
   processed_by?: string;
   processed_at?: string;
+  rejection_comment?: string;
   notes?: string;
+  metadata?: DocumentRequestMetadata;
   company_id: string;
   created_at: string;
   updated_at: string;

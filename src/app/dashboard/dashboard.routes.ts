@@ -140,6 +140,13 @@ export const DASHBOARD_ROUTES: Routes = [
               { path: '', redirectTo: 'time-dashboard', pathMatch: 'full' },
             ],
           },
+          {
+            path: 'audit-tasks',
+            loadComponent: () =>
+              import('./audit-tasks.component').then(
+                (x) => x.AuditTasksComponent
+              ),
+          },
           { path: '', redirectTo: 'employees', pathMatch: 'full' },
         ],
       },

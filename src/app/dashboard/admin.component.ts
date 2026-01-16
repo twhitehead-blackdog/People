@@ -87,6 +87,17 @@ import { DashboardStore } from '../stores/dashboard.store';
                 <span>Feria de empleo</span>
               </a>
               }
+
+              <!-- Auditoría de Tareas -->
+              <a
+                routerLink="audit-tasks"
+                class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
+                [class.bg-neutral-700]="isActiveRoute('audit-tasks')"
+                [class.text-amber-300]="isActiveRoute('audit-tasks')"
+              >
+                <i class="pi pi-check-square text-sm"></i>
+                <span>Auditoría de Tareas</span>
+              </a>
             </div>
           </div>
 

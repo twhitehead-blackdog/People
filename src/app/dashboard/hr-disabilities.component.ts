@@ -46,6 +46,8 @@ import { DashboardStore } from '../stores/dashboard.store';
 import { getEnv } from '../utils/env.utils';
 import { DocumentRequestsService } from './modules/document-requests/data/document-requests.service';
 import { DocumentRequestsComponent } from './modules/document-requests/ui/document-requests.component';
+import { TimelogCorrectionsComponent } from './modules/timelog-corrections/ui/timelog-corrections.component';
+import { UniformRequestsComponent } from './modules/uniform-requests/ui/uniform-requests.component';
 import { VacationsService } from './modules/vacations/data/vacations.service';
 import { VacationsComponent } from './modules/vacations/ui/vacations.component';
 
@@ -165,6 +167,8 @@ export interface DocumentRequest {
     SelectButtonModule,
     DocumentRequestsComponent,
     VacationsComponent,
+    TimelogCorrectionsComponent,
+    UniformRequestsComponent,
   ],
   providers: [MessageService, ConfirmationService],
   template: `
@@ -331,6 +335,42 @@ export interface DocumentRequest {
                 class="ml-1.5 px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full text-xs font-bold"
               >
                 {{ vacationsPendingCount() }}
+              </span>
+              }
+            </button>
+            <button
+              (click)="navigateToTab('timelog_correction')"
+              [class]="
+                'px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 ' +
+                (activeTab() === 'timelog_correction'
+                  ? 'bg-gradient-to-r from-orange-500/20 to-orange-600/20 text-orange-300 shadow-md border border-orange-400/30'
+                  : 'text-gray-400 hover:text-white hover:bg-neutral-700/50')
+              "
+            >
+              <i class="pi pi-exclamation-triangle mr-1.5 text-xs"></i>
+              Marcación Errónea @if (timelogCorrectionPendingCount() > 0) {
+              <span
+                class="ml-1.5 px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full text-xs font-bold"
+              >
+                {{ timelogCorrectionPendingCount() }}
+              </span>
+              }
+            </button>
+            <button
+              (click)="navigateToTab('uniform_request')"
+              [class]="
+                'px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 ' +
+                (activeTab() === 'uniform_request'
+                  ? 'bg-gradient-to-r from-teal-500/20 to-teal-600/20 text-teal-300 shadow-md border border-teal-400/30'
+                  : 'text-gray-400 hover:text-white hover:bg-neutral-700/50')
+              "
+            >
+              <i class="pi pi-tag mr-1.5 text-xs"></i>
+              Uniformes @if (uniformRequestPendingCount() > 0) {
+              <span
+                class="ml-1.5 px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full text-xs font-bold"
+              >
+                {{ uniformRequestPendingCount() }}
               </span>
               }
             </button>
@@ -1386,6 +1426,12 @@ export interface DocumentRequest {
         } @if (activeTab() === 'vacations') {
         <!-- Dashboard de Vacaciones -->
         <pt-vacations />
+        } @if (activeTab() === 'timelog_correction') {
+        <!-- Dashboard de Marcación Errónea -->
+        <pt-timelog-corrections />
+        } @if (activeTab() === 'uniform_request') {
+        <!-- Dashboard de Solicitudes de Uniformes -->
+        <pt-uniform-requests />
         }
       </div>
     </div>
@@ -2772,20 +2818,9 @@ export class HRDisabilitiesComponent {
 
   // Método para navegar a diferentes pestañas
   public navigateToTab(
-    tab: 'disabilities' | 'compensatory' | 'documents' | 'vacations'
+    tab: 'disabilities' | 'compensatory' | 'documents' | 'vacations' | 'timelog_correction' | 'uniform_request'
   ): void {
-    if (tab === 'documents') {
-      // Navegar a la ruta de solicitudes de documentos (si existe) o mostrar contenido embebido
-      this.activeTab.set('documents');
-      // TODO: Implementar vista de solicitudes de documentos
-    } else if (tab === 'vacations') {
-      // Cambiar a la pestaña de vacaciones
-      this.activeTab.set('vacations');
-      // TODO: Implementar vista de vacaciones
-    } else {
-      // Para disabilities y compensatory, solo cambiar la pestaña activa
-      this.activeTab.set(tab);
-    }
+    this.activeTab.set(tab);
   }
 
   // API para obtener incapacidades con información del empleado
@@ -2818,7 +2853,7 @@ export class HRDisabilitiesComponent {
 
   // Nuevas señales para el dashboard mejorado
   public activeTab = signal<
-    'disabilities' | 'compensatory' | 'documents' | 'vacations' | 'suggestions'
+    'disabilities' | 'compensatory' | 'documents' | 'vacations' | 'suggestions' | 'timelog_correction' | 'uniform_request'
   >('disabilities');
   public showFilters = signal(false);
   public showCompensatoryFilters = signal(false);
@@ -3716,8 +3751,25 @@ export class HRDisabilitiesComponent {
 
   public documentsPendingCount = computed(
     () =>
-      this.documentRequestsService.value().filter((d) => d.status === 'pending')
-        .length || 0
+      this.documentRequestsService.value().filter(
+        (d) => d.status === 'pending' &&
+        d.document_type !== 'timelog_correction' &&
+        d.document_type !== 'uniform_request'
+      ).length || 0
+  );
+
+  public timelogCorrectionPendingCount = computed(
+    () =>
+      this.documentRequestsService.value().filter(
+        (d) => d.status === 'pending' && d.document_type === 'timelog_correction'
+      ).length || 0
+  );
+
+  public uniformRequestPendingCount = computed(
+    () =>
+      this.documentRequestsService.value().filter(
+        (d) => d.status === 'pending' && d.document_type === 'uniform_request'
+      ).length || 0
   );
 
   // Filtros para tiempo compensatorio

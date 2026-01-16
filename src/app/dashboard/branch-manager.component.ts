@@ -89,6 +89,11 @@ type Reminder = {
   due_date: Date;
   is_completed: boolean;
   created_at: Date;
+  // Campos adicionales para auditoría
+  audit_task_instance_id?: string;
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
+  category?: string;
+  status?: 'pending' | 'in_progress' | 'completed' | 'not_applicable';
 };
 
 @Component({
@@ -936,7 +941,10 @@ type Reminder = {
 
               <p-table
                 [value]="filteredReminders()"
-                [loading]="remindersResource.isLoading()"
+                [loading]="
+                  remindersResource.isLoading() ||
+                  auditTaskInstancesResource.isLoading()
+                "
                 [paginator]="true"
                 [rows]="25"
                 [rowsPerPageOptions]="[10, 25, 50]"
@@ -944,8 +952,9 @@ type Reminder = {
               >
                 <ng-template #header>
                   <tr>
-                    <th>Empleado</th>
+                    <th style="width: 40px">Tipo</th>
                     <th>Mensaje</th>
+                    <th>Prioridad</th>
                     <th>Fecha Límite</th>
                     <th>Estado</th>
                     <th>Acciones</th>
@@ -954,83 +963,136 @@ type Reminder = {
                 <ng-template #body let-reminder>
                   <tr
                     [ngClass]="{
-                      'opacity-60': reminder.is_completed
+                      'opacity-60': reminder.is_completed,
+                      'bg-red-900/10':
+                        isOverdue(reminder) && !reminder.is_completed,
+                      'border-l-4 border-purple-500':
+                        reminder.audit_task_instance_id
                     }"
                   >
                     <td>
-                      @if (reminder.employee) {
-                      <div class="flex items-center gap-2">
-                        <p-avatar
-                          [label]="getEmployeeInitials(reminder.employee)"
-                          shape="circle"
-                        />
-                        <span>
-                          {{ reminder.employee?.first_name }}
-                          {{ reminder.employee?.father_name }}
-                        </span>
-                      </div>
+                      @if (reminder.audit_task_instance_id) {
+                      <i
+                        class="pi pi-check-square text-purple-400"
+                        pTooltip="Tarea de Auditoría"
+                      ></i>
                       } @else {
-                      <span class="text-gray-500">Todos</span>
+                      <i
+                        class="pi pi-bookmark text-blue-400"
+                        pTooltip="Recordatorio Manual"
+                      ></i>
                       }
                     </td>
-                    <td>{{ reminder.message }}</td>
+                    <td>
+                      <div>
+                        <p class="font-medium">{{ reminder.message }}</p>
+                        @if (reminder.category) {
+                        <span class="text-xs text-gray-400">{{
+                          getCategoryLabel(reminder.category)
+                        }}</span>
+                        }
+                      </div>
+                    </td>
+                    <td>
+                      @if (reminder.priority) {
+                      <p-tag
+                        [value]="getPriorityLabel(reminder.priority)"
+                        [severity]="getPrioritySeverity(reminder.priority)"
+                        styleClass="text-xs"
+                      />
+                      } @else {
+                      <span class="text-gray-500">-</span>
+                      }
+                    </td>
                     <td>
                       <span
                         [ngClass]="{
                           'text-red-500 font-semibold': isOverdue(reminder)
                         }"
                       >
-                        {{ reminder.due_date | date : 'short' }}
+                        {{ reminder.due_date | date : 'dd/MM/yyyy' }}
                       </span>
                     </td>
                     <td>
-                      @if (reminder.is_completed) {
+                      @if (reminder.is_completed || reminder.status ===
+                      'completed') {
                       <p-tag
                         value="Completado"
                         severity="success"
                         icon="pi pi-check"
+                        styleClass="text-xs"
+                      />
+                      } @else if (reminder.status === 'not_applicable') {
+                      <p-tag
+                        value="No Aplica"
+                        severity="secondary"
+                        icon="pi pi-ban"
+                        styleClass="text-xs"
                       />
                       } @else if (isOverdue(reminder)) {
                       <p-tag
                         value="Vencido"
                         severity="danger"
                         icon="pi pi-exclamation-triangle"
+                        styleClass="text-xs"
+                      />
+                      } @else if (reminder.status === 'in_progress') {
+                      <p-tag
+                        value="En Progreso"
+                        severity="info"
+                        icon="pi pi-spinner"
+                        styleClass="text-xs"
                       />
                       } @else {
                       <p-tag
                         value="Pendiente"
                         severity="warn"
                         icon="pi pi-clock"
+                        styleClass="text-xs"
                       />
                       }
                     </td>
                     <td>
                       <div class="flex gap-1">
-                        @if (!reminder.is_completed) {
+                        @if (!reminder.is_completed && reminder.status !==
+                        'completed' && reminder.status !== 'not_applicable') {
                         <p-button
                           icon="pi pi-check"
                           severity="success"
                           text
                           rounded
-                          (onClick)="completeReminder(reminder.id)"
+                          size="small"
+                          (onClick)="completeReminder(reminder)"
                           pTooltip="Marcar como completado"
                         />
-                        }
+                        @if (reminder.audit_task_instance_id) {
+                        <p-button
+                          icon="pi pi-ban"
+                          severity="secondary"
+                          text
+                          rounded
+                          size="small"
+                          (onClick)="markReminderNotApplicable(reminder)"
+                          pTooltip="Marcar como No Aplica"
+                        />
+                        } } @if (!reminder.audit_task_instance_id) {
                         <p-button
                           icon="pi pi-trash"
                           severity="danger"
                           text
                           rounded
+                          size="small"
                           (onClick)="deleteReminder(reminder.id)"
                           pTooltip="Eliminar"
                         />
+                        }
                       </div>
                     </td>
                   </tr>
                 </ng-template>
                 <ng-template #emptymessage>
                   <tr>
-                    <td [attr.colspan]="5" class="text-center py-8">
+                    <td [attr.colspan]="6" class="text-center py-8">
                       <div class="flex flex-col items-center gap-2">
                         <i class="pi pi-inbox text-4xl text-gray-500"></i>
                         <p class="text-gray-400">No hay recordatorios</p>
@@ -2183,6 +2245,50 @@ export class BranchManagerComponent {
     };
   });
 
+  // Resource para tareas de auditoría asignadas al gerente actual
+  public auditTaskInstancesResource = httpResource<any[]>(() => {
+    const companyId = this.organizationService.getCurrentCompanyId();
+    const currentEmployeeId = this.store.auth.currentEmployeeId();
+
+    if (!companyId || !currentEmployeeId) return undefined;
+
+    return {
+      url: this.apiUrl.build('rest/v1/audit_task_instances', {
+        select: `*,audit_task:audit_tasks(id,title,description,category,priority)`,
+        company_id: `eq.${companyId}`,
+        assigned_to: `eq.${currentEmployeeId}`,
+        status: `in.(pending,in_progress)`,
+        order: 'due_date.asc',
+      }),
+    };
+  });
+
+  // Computed: combinar recordatorios manuales + tareas de auditoría
+  public allReminders = computed(() => {
+    const manualReminders = this.remindersResource.value() || [];
+    const auditInstances = this.auditTaskInstancesResource.value() || [];
+
+    // Convertir instancias de auditoría a formato de recordatorio
+    const auditReminders: Reminder[] = auditInstances.map((instance: any) => ({
+      id: instance.id,
+      employee_id: instance.assigned_to,
+      message: instance.audit_task?.title || 'Tarea de auditoría',
+      due_date: new Date(instance.due_date),
+      is_completed:
+        instance.status === 'completed' || instance.status === 'not_applicable',
+      created_at: new Date(instance.created_at),
+      audit_task_instance_id: instance.id,
+      priority: instance.audit_task?.priority || 'medium',
+      category: instance.audit_task?.category,
+      status: instance.status,
+    }));
+
+    // Combinar y ordenar por fecha límite
+    return [...manualReminders, ...auditReminders].sort(
+      (a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+    );
+  });
+
   // Computed values - Estadísticas
   public unreadNotificationsCount = computed(() => {
     return this.enrichedNotifications().filter((n) => !n.is_read).length || 0;
@@ -2209,9 +2315,11 @@ export class BranchManagerComponent {
     };
   });
 
-  // Recordatorios pendientes
+  // Recordatorios pendientes (incluye tareas de auditoría)
   public pendingRemindersCount = computed(() => {
-    return this.filteredReminders().filter((r) => !r.is_completed).length;
+    return this.allReminders().filter(
+      (r) => !r.is_completed && r.status !== 'not_applicable'
+    ).length;
   });
 
   // Recordatorios vencidos
@@ -2268,7 +2376,9 @@ export class BranchManagerComponent {
     const branchEmployees = this.branchEmployees();
     console.log('🔍 [BRANCH-MANAGER] Procesando empleados:', {
       totalEmpleados: branchEmployees.length,
-      empleadosSample: branchEmployees.slice(0, 3).map(e => ({ id: e.id, name: `${e.first_name} ${e.father_name}` }))
+      empleadosSample: branchEmployees
+        .slice(0, 3)
+        .map((e) => ({ id: e.id, name: `${e.first_name} ${e.father_name}` })),
     });
 
     branchEmployees.forEach((emp) => {
@@ -2277,16 +2387,21 @@ export class BranchManagerComponent {
         ? this.findEmployeeScheduleForDate(emp.id, selectedDate, schedules)
         : null;
 
-      console.log(`🔍 [BRANCH-MANAGER] Empleado ${emp.first_name} ${emp.father_name}:`, {
-        employeeId: emp.id,
-        hasSchedule: !!employeeSchedule,
-        scheduleFound: employeeSchedule ? {
-          scheduleName: employeeSchedule.schedule?.name,
-          startDate: employeeSchedule.start_date,
-          endDate: employeeSchedule.end_date
-        } : null,
-        selectedDate: selectedDate?.toISOString()
-      });
+      console.log(
+        `🔍 [BRANCH-MANAGER] Empleado ${emp.first_name} ${emp.father_name}:`,
+        {
+          employeeId: emp.id,
+          hasSchedule: !!employeeSchedule,
+          scheduleFound: employeeSchedule
+            ? {
+                scheduleName: employeeSchedule.schedule?.name,
+                startDate: employeeSchedule.start_date,
+                endDate: employeeSchedule.end_date,
+              }
+            : null,
+          selectedDate: selectedDate?.toISOString(),
+        }
+      );
 
       const schedule = employeeSchedule?.schedule;
       const isDayOff =
@@ -2452,7 +2567,7 @@ export class BranchManagerComponent {
   });
 
   public filteredReminders = computed(() => {
-    const reminders = this.remindersResource.value() || [];
+    const reminders = this.allReminders();
     const employeeId = this.selectedEmployeeForReminder();
     if (!employeeId) return reminders;
     return reminders.filter((r) => r.employee_id === employeeId);
@@ -2549,23 +2664,27 @@ export class BranchManagerComponent {
     date: Date,
     schedules: any[]
   ): any {
-    console.log(`🔍 [BRANCH-MANAGER] Buscando schedule para empleado ${employeeId}:`, {
-      date: date.toISOString(),
-      schedulesForEmployee: schedules
-        .filter(s => s.employee_id === employeeId)
-        .map(s => ({
-          employee_id: s.employee_id,
-          schedule_name: s.schedule?.name,
-          start_date: s.start_date,
-          end_date: s.end_date,
-          dateCheck: {
-            selectedDate: date.toISOString(),
-            startDate: new Date(s.start_date).toISOString(),
-            endDate: new Date(s.end_date).toISOString(),
-            isWithinRange: date >= new Date(s.start_date) && date <= new Date(s.end_date)
-          }
-        }))
-    });
+    console.log(
+      `🔍 [BRANCH-MANAGER] Buscando schedule para empleado ${employeeId}:`,
+      {
+        date: date.toISOString(),
+        schedulesForEmployee: schedules
+          .filter((s) => s.employee_id === employeeId)
+          .map((s) => ({
+            employee_id: s.employee_id,
+            schedule_name: s.schedule?.name,
+            start_date: s.start_date,
+            end_date: s.end_date,
+            dateCheck: {
+              selectedDate: date.toISOString(),
+              startDate: new Date(s.start_date).toISOString(),
+              endDate: new Date(s.end_date).toISOString(),
+              isWithinRange:
+                date >= new Date(s.start_date) && date <= new Date(s.end_date),
+            },
+          })),
+      }
+    );
 
     return schedules.find(
       (s) =>
@@ -2634,6 +2753,46 @@ export class BranchManagerComponent {
     return new Date(reminder.due_date) < new Date() && !reminder.is_completed;
   }
 
+  // Helpers para prioridad de recordatorios
+  public getPriorityLabel(priority: string): string {
+    const labels: Record<string, string> = {
+      low: 'Baja',
+      medium: 'Media',
+      high: 'Alta',
+      urgent: 'Urgente',
+    };
+    return labels[priority] || priority;
+  }
+
+  public getPrioritySeverity(
+    priority: string
+  ): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
+    const severities: Record<
+      string,
+      'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'
+    > = {
+      low: 'secondary',
+      medium: 'info',
+      high: 'warn',
+      urgent: 'danger',
+    };
+    return severities[priority] || 'info';
+  }
+
+  public getCategoryLabel(category: string): string {
+    const labels: Record<string, string> = {
+      inventario: 'Inventario',
+      limpieza: 'Limpieza',
+      seguridad: 'Seguridad',
+      administrativo: 'Administrativo',
+      capacitacion: 'Capacitación',
+      mantenimiento: 'Mantenimiento',
+      calidad: 'Calidad',
+      otro: 'Otro',
+    };
+    return labels[category] || category;
+  }
+
   // Actions
   public refreshNotifications() {
     this.notificationsResource.reload();
@@ -2649,6 +2808,7 @@ export class BranchManagerComponent {
 
   public refreshReminders() {
     this.remindersResource.reload();
+    this.auditTaskInstancesResource.reload();
   }
 
   public refreshEmployeeRequests() {
@@ -3050,27 +3210,90 @@ export class BranchManagerComponent {
       });
   }
 
-  public completeReminder(id: string) {
+  public completeReminder(reminder: Reminder) {
+    if (reminder.audit_task_instance_id) {
+      // Es una tarea de auditoría
+      this.http
+        .patch(
+          this.apiUrl.build('rest/v1/audit_task_instances', {
+            id: `eq.${reminder.audit_task_instance_id}`,
+          }),
+          {
+            status: 'completed',
+            completed_at: new Date().toISOString(),
+            completed_by: this.store.auth.currentEmployeeId(),
+          }
+        )
+        .subscribe({
+          next: () => {
+            this.refreshReminders();
+            this.message.add({
+              severity: 'success',
+              summary: 'Tarea completada',
+              detail: 'La tarea de auditoría ha sido marcada como completada',
+            });
+          },
+          error: () => {
+            this.message.add({
+              severity: 'error',
+              summary: 'Error al completar tarea',
+            });
+          },
+        });
+    } else {
+      // Es un recordatorio manual
+      this.http
+        .patch(
+          `${process.env['ENV_SUPABASE_URL']}/rest/v1/reminders`,
+          { is_completed: true },
+          {
+            params: { id: `eq.${reminder.id}` },
+          }
+        )
+        .subscribe({
+          next: () => {
+            this.refreshReminders();
+            this.message.add({
+              severity: 'success',
+              summary: 'Recordatorio completado',
+            });
+          },
+          error: () => {
+            this.message.add({
+              severity: 'error',
+              summary: 'Error al completar recordatorio',
+            });
+          },
+        });
+    }
+  }
+
+  public markReminderNotApplicable(reminder: Reminder) {
+    if (!reminder.audit_task_instance_id) return;
+
     this.http
       .patch(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/reminders`,
-        { is_completed: true },
+        this.apiUrl.build('rest/v1/audit_task_instances', {
+          id: `eq.${reminder.audit_task_instance_id}`,
+        }),
         {
-          params: { id: `eq.${id}` },
+          status: 'not_applicable',
+          completed_at: new Date().toISOString(),
+          completed_by: this.store.auth.currentEmployeeId(),
         }
       )
       .subscribe({
         next: () => {
           this.refreshReminders();
           this.message.add({
-            severity: 'success',
-            summary: 'Recordatorio completado',
+            severity: 'info',
+            summary: 'Tarea marcada como No Aplica',
           });
         },
         error: () => {
           this.message.add({
             severity: 'error',
-            summary: 'Error al completar recordatorio',
+            summary: 'Error al actualizar tarea',
           });
         },
       });

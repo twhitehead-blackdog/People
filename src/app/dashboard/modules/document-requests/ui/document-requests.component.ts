@@ -571,6 +571,89 @@ import { DocumentRequest } from '../models/document-request.model';
         </div>
         }
 
+        <!-- Detalles de Marcación Errónea -->
+        @if (selectedDocument()!.document_type === 'timelog_correction' && selectedDocument()!.metadata) {
+        <div class="p-4 bg-gradient-to-r from-orange-500/10 to-orange-600/5 rounded-lg border border-orange-400/30">
+          <h3
+            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+          >
+            <i class="pi pi-exclamation-triangle text-orange-400"></i>
+            Detalles de Marcación Errónea
+          </h3>
+          <div class="grid grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Fecha de la Marcación</label
+              >
+              <p class="text-white">
+                {{ selectedDocument()!.metadata!.timelog_date | date : 'dd/MM/yyyy' }}
+              </p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Tipo de Marcación</label
+              >
+              <p class="text-orange-300 font-semibold">
+                {{ getTimelogTypeLabel(selectedDocument()!.metadata!.timelog_type || '') }}
+              </p>
+            </div>
+            @if (selectedDocument()!.metadata!.attachment_url) {
+            <div class="col-span-2">
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Evidencia Adjunta</label
+              >
+              <a
+                [href]="selectedDocument()!.metadata!.attachment_url"
+                target="_blank"
+                class="text-orange-400 hover:text-orange-300 flex items-center gap-2"
+              >
+                <i class="pi pi-external-link"></i>
+                Ver archivo adjunto
+              </a>
+            </div>
+            }
+          </div>
+        </div>
+        }
+
+        <!-- Detalles de Solicitud de Uniforme -->
+        @if (selectedDocument()!.document_type === 'uniform_request' && selectedDocument()!.metadata) {
+        <div class="p-4 bg-gradient-to-r from-teal-500/10 to-teal-600/5 rounded-lg border border-teal-400/30">
+          <h3
+            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+          >
+            <i class="pi pi-tag text-teal-400"></i>
+            Detalles de Solicitud de Uniforme
+          </h3>
+          <div class="grid grid-cols-3 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Tipo de Prenda</label
+              >
+              <p class="text-teal-300 font-semibold">
+                {{ selectedDocument()!.metadata!.item_type }}
+              </p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Talla</label
+              >
+              <p class="text-white">
+                {{ selectedDocument()!.metadata!.size }}
+              </p>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Cantidad</label
+              >
+              <p class="text-white">
+                {{ selectedDocument()!.metadata!.quantity }}
+              </p>
+            </div>
+          </div>
+        </div>
+        }
+
         <!-- Gestión de Estado -->
         <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
           <h3
@@ -830,9 +913,23 @@ export class DocumentRequestsComponent {
   getDocumentTypeLabel(type: string): string {
     const types: Record<string, string> = {
       work_certificate: 'Constancia Laboral',
+      work_letter: 'Carta de Trabajo',
       salary_certificate: 'Constancia Salarial',
+      employment_certificate: 'Certificación Laboral',
       social_security: 'Ficha Seguro Social',
+      timelog_correction: 'Marcación Errónea',
+      uniform_request: 'Solicitud de Uniforme',
       other: 'Otro',
+    };
+    return types[type] || type;
+  }
+
+  getTimelogTypeLabel(type: string): string {
+    const types: Record<string, string> = {
+      entry: 'Entrada',
+      lunch_start: 'Inicio Almuerzo',
+      lunch_end: 'Fin Almuerzo',
+      exit: 'Salida',
     };
     return types[type] || type;
   }

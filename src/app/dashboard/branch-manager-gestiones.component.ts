@@ -15,6 +15,7 @@ import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { DatePicker } from 'primeng/datepicker';
 import { FileUpload } from 'primeng/fileupload';
+import { InputText } from 'primeng/inputtext';
 import { InputTextarea } from 'primeng/inputtextarea';
 import { Select } from 'primeng/select';
 import { TooltipModule } from 'primeng/tooltip';
@@ -40,7 +41,7 @@ type ManagementCard = {
   description: string;
   icon: string;
   colorClass: string;
-  section: 'disabilities' | 'documents' | 'vacations' | 'compensatory';
+  section: 'disabilities' | 'documents' | 'vacations' | 'compensatory' | 'timelog_correction' | 'uniform_request';
 };
 
 @Component({
@@ -55,6 +56,7 @@ type ManagementCard = {
     TooltipModule,
     DatePicker,
     FileUpload,
+    InputText,
     InputTextarea,
     EmployeePortalCompensatoryComponent,
     TutorialStepDirective,
@@ -773,6 +775,282 @@ type ManagementCard = {
               />
             </div>
           </div>
+          } @if (selectedGestionType() === 'timelog_correction') {
+          <div class="space-y-5">
+            <!-- Paso 1: Fecha y Tipo de Marcación -->
+            <div
+              class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md"
+            >
+              <div class="flex items-center gap-3 mb-4">
+                <div
+                  class="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center"
+                >
+                  <i class="pi pi-calendar text-orange-400"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-white m-0">
+                  Paso 1: Fecha y Tipo de Marcación
+                </h3>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="flex flex-col gap-2">
+                  <label class="text-sm font-medium text-gray-300"
+                    >Fecha de la Marcación Errónea</label
+                  >
+                  <p-datepicker
+                    [(ngModel)]="timelogCorrectionDate"
+                    [showIcon]="true"
+                    dateFormat="dd/mm/yy"
+                    placeholder="Selecciona la fecha"
+                    [maxDate]="today"
+                    styleClass="w-full"
+                    appendTo="body"
+                  />
+                </div>
+                <div class="flex flex-col gap-2">
+                  <label class="text-sm font-medium text-gray-300"
+                    >Tipo de Marcación</label
+                  >
+                  <p-select
+                    [(ngModel)]="timelogCorrectionType"
+                    [options]="timelogTypeOptions"
+                    optionLabel="label"
+                    optionValue="value"
+                    placeholder="Selecciona el tipo"
+                    styleClass="w-full"
+                    appendTo="body"
+                  />
+                </div>
+              </div>
+              @if (timelogCorrectionDate() && timelogCorrectionType()) {
+              <div
+                class="mt-3 p-3 bg-orange-500/10 border border-orange-400/30 rounded-lg"
+              >
+                <p class="text-sm text-orange-300">
+                  <i class="pi pi-info-circle mr-2"></i>
+                  Solicitud de corrección para:
+                  <strong>{{ timelogTypeOptions | json }}</strong>
+                </p>
+              </div>
+              }
+            </div>
+
+            <!-- Paso 2: Motivo -->
+            <div
+              class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md"
+            >
+              <div class="flex items-center gap-3 mb-4">
+                <div
+                  class="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center"
+                >
+                  <i class="pi pi-file-edit text-orange-400"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-white m-0">
+                  Paso 2: Motivo de la Corrección
+                </h3>
+              </div>
+              <textarea
+                pInputTextarea
+                [(ngModel)]="timelogCorrectionReason"
+                placeholder="Explica por qué se necesita la corrección de esta marcación (ej: olvidé marcar entrada, el reloj no funcionaba, etc.)"
+                rows="4"
+                class="w-full"
+              ></textarea>
+            </div>
+
+            <!-- Paso 3: Evidencia (Opcional) -->
+            <div
+              class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md"
+            >
+              <div class="flex items-center gap-3 mb-4">
+                <div
+                  class="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center"
+                >
+                  <i class="pi pi-file text-orange-400"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-white m-0">
+                  Paso 3: Evidencia (Opcional)
+                </h3>
+              </div>
+              <p class="text-sm text-gray-400 mb-4">
+                Si tienes evidencia de la marcación correcta (captura de pantalla, foto del reloj, etc.), puedes adjuntarla.
+              </p>
+              <p-fileUpload
+                mode="basic"
+                accept=".pdf,.jpg,.jpeg,.png"
+                maxFileSize="5000000"
+                [auto]="false"
+                chooseLabel="Seleccionar Archivo"
+                (onSelect)="onTimelogCorrectionFileSelect($event)"
+                class="w-full"
+              />
+              <p class="text-xs text-gray-500 mt-2">
+                Formatos permitidos: PDF, JPG, PNG (máx. 5MB)
+              </p>
+              @if (timelogCorrectionFile()) {
+              <div
+                class="mt-3 p-3 bg-orange-500/10 border border-orange-400/30 rounded-lg flex items-center justify-between"
+              >
+                <div class="flex items-center gap-2">
+                  <i class="pi pi-file text-orange-400"></i>
+                  <span class="text-sm text-gray-300">{{
+                    timelogCorrectionFile()!.name
+                  }}</span>
+                </div>
+                <p-button
+                  icon="pi pi-times"
+                  severity="danger"
+                  text
+                  rounded
+                  size="small"
+                  (onClick)="timelogCorrectionFile.set(null)"
+                  pTooltip="Eliminar archivo"
+                />
+              </div>
+              }
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="flex justify-between pt-4">
+              <p-button
+                label="Volver"
+                icon="pi pi-arrow-left"
+                severity="secondary"
+                (onClick)="reset()"
+              />
+              <p-button
+                label="Enviar Solicitud"
+                icon="pi pi-check"
+                [disabled]="!canSubmitTimelogCorrection()"
+                [loading]="submittingTimelogCorrection()"
+                (onClick)="submitTimelogCorrectionRequest()"
+                severity="success"
+              />
+            </div>
+          </div>
+          } @if (selectedGestionType() === 'uniform_request') {
+          <div class="space-y-5">
+            <!-- Paso 1: Tipo de Prenda -->
+            <div
+              class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md"
+            >
+              <div class="flex items-center gap-3 mb-4">
+                <div
+                  class="w-10 h-10 rounded-full bg-teal-500/20 flex items-center justify-center"
+                >
+                  <i class="pi pi-tag text-teal-400"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-white m-0">
+                  Paso 1: Tipo de Prenda
+                </h3>
+              </div>
+              <div class="flex flex-col gap-2">
+                <label class="text-sm font-medium text-gray-300"
+                  >¿Qué prenda necesitas?</label
+                >
+                <input
+                  pInputText
+                  [(ngModel)]="uniformItemType"
+                  placeholder="Ej: Camisa manga corta, Pantalón, Gorra, Delantal..."
+                  class="w-full"
+                  maxlength="100"
+                />
+                <small class="text-gray-500 text-xs">
+                  Escribe el tipo de prenda o uniforme que necesitas
+                </small>
+              </div>
+            </div>
+
+            <!-- Paso 2: Talla y Cantidad -->
+            <div
+              class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md"
+            >
+              <div class="flex items-center gap-3 mb-4">
+                <div
+                  class="w-10 h-10 rounded-full bg-teal-500/20 flex items-center justify-center"
+                >
+                  <i class="pi pi-sliders-h text-teal-400"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-white m-0">
+                  Paso 2: Talla y Cantidad
+                </h3>
+              </div>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="flex flex-col gap-2">
+                  <label class="text-sm font-medium text-gray-300">Talla</label>
+                  <p-select
+                    [(ngModel)]="uniformSize"
+                    [options]="uniformSizeOptions"
+                    placeholder="Selecciona la talla"
+                    styleClass="w-full"
+                    appendTo="body"
+                  />
+                </div>
+                <div class="flex flex-col gap-2">
+                  <label class="text-sm font-medium text-gray-300">Cantidad</label>
+                  <input
+                    pInputText
+                    type="number"
+                    [(ngModel)]="uniformQuantity"
+                    min="1"
+                    max="5"
+                    class="w-full"
+                  />
+                  <small class="text-gray-500 text-xs">Máximo 5 unidades por solicitud</small>
+                </div>
+              </div>
+              @if (uniformItemType() && uniformSize() && uniformQuantity() >= 1) {
+              <div
+                class="mt-3 p-3 bg-teal-500/10 border border-teal-400/30 rounded-lg"
+              >
+                <p class="text-sm text-teal-300">
+                  <i class="pi pi-check-circle mr-2"></i>
+                  Solicitud: <strong>{{ uniformQuantity() }}x {{ uniformItemType() }}</strong> - Talla <strong>{{ uniformSize() }}</strong>
+                </p>
+              </div>
+              }
+            </div>
+
+            <!-- Paso 3: Notas Adicionales (Opcional) -->
+            <div
+              class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md"
+            >
+              <div class="flex items-center gap-3 mb-4">
+                <div
+                  class="w-10 h-10 rounded-full bg-teal-500/20 flex items-center justify-center"
+                >
+                  <i class="pi pi-file-edit text-teal-400"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-white m-0">
+                  Paso 3: Notas Adicionales (Opcional)
+                </h3>
+              </div>
+              <textarea
+                pInputTextarea
+                [(ngModel)]="uniformNotes"
+                placeholder="Comentarios adicionales sobre la solicitud (ej: motivo del cambio, preferencia de color, etc.)"
+                rows="3"
+                class="w-full"
+              ></textarea>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="flex justify-between pt-4">
+              <p-button
+                label="Volver"
+                icon="pi pi-arrow-left"
+                severity="secondary"
+                (onClick)="reset()"
+              />
+              <p-button
+                label="Solicitar Uniforme"
+                icon="pi pi-check"
+                [disabled]="!canSubmitUniform()"
+                [loading]="submittingUniform()"
+                (onClick)="submitUniformRequest()"
+                severity="success"
+              />
+            </div>
+          </div>
           }
         </div>
         }
@@ -801,7 +1079,7 @@ export class BranchManagerGestionesComponent {
 
   // Signals para el flujo principal
   public selectedGestionType = signal<
-    'disabilities' | 'documents' | 'vacations' | 'compensatory' | null
+    'disabilities' | 'documents' | 'vacations' | 'compensatory' | 'timelog_correction' | 'uniform_request' | null
   >(null);
   public selectedEmployeeId = signal<string | null>(null);
   public selectedEmployee = signal<Employee | null>(null);
@@ -839,6 +1117,31 @@ export class BranchManagerGestionesComponent {
   public documentReason = signal<string>('');
   public documentRequiredDate = signal<Date | null>(null);
   public submittingDocument = signal<boolean>(false);
+
+  // Signals para Marcación Errónea
+  public timelogCorrectionDate = signal<Date | null>(null);
+  public timelogCorrectionType = signal<'entry' | 'lunch_start' | 'lunch_end' | 'exit'>('entry');
+  public timelogCorrectionReason = signal<string>('');
+  public timelogCorrectionFile = signal<File | null>(null);
+  public submittingTimelogCorrection = signal<boolean>(false);
+
+  // Signals para Solicitud de Uniforme
+  public uniformItemType = signal<string>('');
+  public uniformSize = signal<string>('M');
+  public uniformQuantity = signal<number>(1);
+  public uniformNotes = signal<string>('');
+  public submittingUniform = signal<boolean>(false);
+
+  // Opciones para Marcación Errónea
+  public timelogTypeOptions = [
+    { label: 'Entrada', value: 'entry' },
+    { label: 'Inicio Almuerzo', value: 'lunch_start' },
+    { label: 'Fin Almuerzo', value: 'lunch_end' },
+    { label: 'Salida', value: 'exit' },
+  ];
+
+  // Opciones para tallas de uniforme (reutilizado del modelo de employees)
+  public uniformSizeOptions = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL'];
 
   // Computed: Calcular el total de horas/días automáticamente
   public compensatoryAmount = computed(() => {
@@ -901,6 +1204,22 @@ export class BranchManagerGestionesComponent {
     return !!(reason && requiredDate);
   });
 
+  public canSubmitTimelogCorrection = computed(() => {
+    const date = this.timelogCorrectionDate();
+    const type = this.timelogCorrectionType();
+    const reason = this.timelogCorrectionReason();
+    // Date, type, and reason are required; file is optional
+    return !!(date && type && reason.trim());
+  });
+
+  public canSubmitUniform = computed(() => {
+    const itemType = this.uniformItemType();
+    const size = this.uniformSize();
+    const quantity = this.uniformQuantity();
+    // Item type, size, and quantity >= 1 are required
+    return !!(itemType.trim() && size && quantity >= 1);
+  });
+
   public disabilityDaysCount = computed(() => {
     const start = this.disabilityStartDate();
     const end = this.disabilityEndDate();
@@ -953,6 +1272,22 @@ export class BranchManagerGestionesComponent {
       colorClass: 'bg-green-500/20 text-green-400',
       section: 'documents',
     },
+    {
+      id: 'timelog_correction',
+      label: 'Marcación Errónea',
+      description: 'Solicitar corrección de marcación de asistencia',
+      icon: 'pi-exclamation-triangle',
+      colorClass: 'bg-orange-500/20 text-orange-400',
+      section: 'timelog_correction',
+    },
+    {
+      id: 'uniform_request',
+      label: 'Solicitud de Uniforme',
+      description: 'Solicitar uniformes o prendas de trabajo',
+      icon: 'pi-tag',
+      colorClass: 'bg-teal-500/20 text-teal-400',
+      section: 'uniform_request',
+    },
   ];
 
   // Computed para obtener la tarjeta actual
@@ -963,7 +1298,7 @@ export class BranchManagerGestionesComponent {
 
   // Seleccionar tipo de gestión
   public selectGestion(
-    type: 'disabilities' | 'documents' | 'vacations' | 'compensatory'
+    type: 'disabilities' | 'documents' | 'vacations' | 'compensatory' | 'timelog_correction' | 'uniform_request'
   ): void {
     // Check if we're in the intro tutorial before changing state
     const wasInIntroTutorial =
@@ -1162,6 +1497,8 @@ export class BranchManagerGestionesComponent {
     this.resetDisabilityForm();
     this.resetVacationForm();
     this.resetDocumentForm();
+    this.resetTimelogCorrectionForm();
+    this.resetUniformForm();
   }
 
   // Métodos para Incapacidades
@@ -1421,6 +1758,173 @@ export class BranchManagerGestionesComponent {
     this.customDocumentType.set('');
     this.documentReason.set('');
     this.documentRequiredDate.set(null);
+  }
+
+  private resetTimelogCorrectionForm(): void {
+    this.timelogCorrectionDate.set(null);
+    this.timelogCorrectionType.set('entry');
+    this.timelogCorrectionReason.set('');
+    this.timelogCorrectionFile.set(null);
+  }
+
+  private resetUniformForm(): void {
+    this.uniformItemType.set('');
+    this.uniformSize.set('M');
+    this.uniformQuantity.set(1);
+    this.uniformNotes.set('');
+  }
+
+  // File upload handler for timelog correction
+  public onTimelogCorrectionFileSelect(event: any): void {
+    const files = event.currentFiles || event.files;
+    if (files && files.length > 0) {
+      this.timelogCorrectionFile.set(files[0]);
+    }
+  }
+
+  // Submit Marcación Errónea request
+  public async submitTimelogCorrectionRequest(): Promise<void> {
+    if (!this.canSubmitTimelogCorrection() || !this.selectedEmployee()) return;
+
+    this.submittingTimelogCorrection.set(true);
+
+    try {
+      const employee = this.selectedEmployee()!;
+      const date = this.timelogCorrectionDate()!;
+      const type = this.timelogCorrectionType();
+      const reason = this.timelogCorrectionReason();
+      const file = this.timelogCorrectionFile();
+
+      let attachmentUrl: string | null = null;
+
+      // Upload file if provided (optional)
+      if (file) {
+        const fileExt = file.name.split('.').pop();
+        const timestamp = Date.now();
+        const fileName = `timelog-corrections/${employee.id}_${timestamp}.${fileExt}`;
+
+        const uploadUrl = `${this.apiUrl.baseUrl}/storage/v1/object/employee-documents/${fileName}`;
+        const apiKey = getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') || getEnv('ENV_SUPABASE_API_KEY') || '';
+
+        await firstValueFrom(
+          this.http.post(uploadUrl, file, {
+            headers: {
+              'Content-Type': file.type,
+              apikey: apiKey,
+              Authorization: `Bearer ${apiKey}`,
+            },
+          })
+        );
+
+        attachmentUrl = `${this.apiUrl.baseUrl}/storage/v1/object/public/employee-documents/${fileName}`;
+      }
+
+      // Get timelog type label for display
+      const typeLabel = this.timelogTypeOptions.find((opt) => opt.value === type)?.label || type;
+
+      // Create document request with metadata
+      const documentData = {
+        employee_id: employee.id,
+        document_type: 'timelog_correction',
+        reason: reason,
+        status: 'pending',
+        created_by: this.currentEmployee?.id || null,
+        company_id: this.organizationService.getCurrentCompanyId(),
+        metadata: {
+          timelog_date: date.toISOString().split('T')[0],
+          timelog_type: type,
+          branch_id: employee.branch?.id || this.currentBranch?.id || null,
+          attachment_url: attachmentUrl,
+        },
+      };
+
+      await firstValueFrom(
+        this.http.post(
+          this.apiUrl.build('rest/v1/document_requests'),
+          documentData
+        )
+      );
+
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Solicitud Enviada',
+        detail: `Corrección de marcación (${typeLabel}) para ${employee.first_name} ${employee.father_name} enviada correctamente`,
+      });
+
+      this.reset();
+    } catch (error: any) {
+      console.error('Error submitting timelog correction:', error);
+      const errorDetail =
+        error?.error?.message ||
+        error?.message ||
+        'No se pudo enviar la solicitud.';
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: errorDetail,
+      });
+    } finally {
+      this.submittingTimelogCorrection.set(false);
+    }
+  }
+
+  // Submit Solicitud de Uniforme request
+  public async submitUniformRequest(): Promise<void> {
+    if (!this.canSubmitUniform() || !this.selectedEmployee()) return;
+
+    this.submittingUniform.set(true);
+
+    try {
+      const employee = this.selectedEmployee()!;
+      const itemType = this.uniformItemType();
+      const size = this.uniformSize();
+      const quantity = this.uniformQuantity();
+      const notes = this.uniformNotes();
+
+      // Create document request with metadata
+      const documentData = {
+        employee_id: employee.id,
+        document_type: 'uniform_request',
+        reason: notes || `Solicitud de ${itemType} - Talla ${size} - Cantidad: ${quantity}`,
+        status: 'pending',
+        created_by: this.currentEmployee?.id || null,
+        company_id: this.organizationService.getCurrentCompanyId(),
+        metadata: {
+          item_type: itemType,
+          size: size,
+          quantity: quantity,
+          branch_id: employee.branch?.id || this.currentBranch?.id || null,
+        },
+      };
+
+      await firstValueFrom(
+        this.http.post(
+          this.apiUrl.build('rest/v1/document_requests'),
+          documentData
+        )
+      );
+
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Solicitud Enviada',
+        detail: `Solicitud de uniforme (${itemType}, talla ${size}) para ${employee.first_name} ${employee.father_name} enviada correctamente`,
+      });
+
+      this.reset();
+    } catch (error: any) {
+      console.error('Error submitting uniform request:', error);
+      const errorDetail =
+        error?.error?.message ||
+        error?.message ||
+        'No se pudo enviar la solicitud.';
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: errorDetail,
+      });
+    } finally {
+      this.submittingUniform.set(false);
+    }
   }
 
   // Opciones para documentos
