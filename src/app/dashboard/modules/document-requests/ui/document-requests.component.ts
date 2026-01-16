@@ -277,6 +277,7 @@ import { DocumentRequest } from '../models/document-request.model';
     <p-dialog
       [(visible)]="showCompleteDialog"
       [modal]="true"
+      [dismissableMask]="true"
       [style]="{ width: '450px' }"
       header="Completar Solicitud"
       [draggable]="false"

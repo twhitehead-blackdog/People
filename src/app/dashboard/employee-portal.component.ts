@@ -526,6 +526,7 @@ import { EmployeePortalVacationsComponent } from '../employee-portal/components/
           <p-dialog
             [visible]="showGestionDialog()"
             [modal]="true"
+            [dismissableMask]="true"
             [style]="{ width: '90vw', maxWidth: '800px' }"
             [header]="getGestionFormTitle()"
             [draggable]="false"
@@ -671,6 +672,7 @@ import { EmployeePortalVacationsComponent } from '../employee-portal/components/
           <p-dialog
             [visible]="showNotificationsDialog()"
             [modal]="true"
+            [dismissableMask]="true"
             [style]="{ width: '90vw', maxWidth: '600px' }"
             [header]="'Notificaciones'"
             (onHide)="closeNotificationsDialog()"

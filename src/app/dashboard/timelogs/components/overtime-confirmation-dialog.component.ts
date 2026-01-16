@@ -47,6 +47,7 @@ export interface OvertimeDialogResult {
       header="Confirmación de Horas Extras"
       [modal]="true"
       [closable]="true"
+      [dismissableMask]="true"
       [visible]="visible()"
       (visibleChange)="onVisibleChange($event)"
       [style]="{ width: '450px' }"

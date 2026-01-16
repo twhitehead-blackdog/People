@@ -224,6 +224,7 @@ import {
       modal
       [(visible)]="unlockModal"
       [closable]="false"
+      [dismissableMask]="true"
     >
       <div class="input-container">
         <label>Introduzca codigo de desbloqueo</label>
@@ -989,6 +990,7 @@ export class EmployeesTimetableComponent implements OnInit {
           employeeHasSchedulesInWeek,
         },
         modal: true,
+        dismissableMask: true,
       })
       .onClose.subscribe(() => {
         this.schedulesResource.reload();

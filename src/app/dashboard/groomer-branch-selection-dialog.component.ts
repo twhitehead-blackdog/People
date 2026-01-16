@@ -17,6 +17,7 @@ import { DashboardStore } from '../stores/dashboard.store';
       header="Seleccionar Sucursal"
       [modal]="true"
       [closable]="true"
+      [dismissableMask]="true"
       [visible]="visible()"
       (visibleChange)="visibleChange.emit($event)"
       [style]="{ width: '400px' }"

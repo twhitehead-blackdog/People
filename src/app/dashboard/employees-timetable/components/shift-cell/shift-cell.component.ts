@@ -1,5 +1,5 @@
 import { NgClass } from '@angular/common';
-import { Component, input, output } from '@angular/core';
+import { Component, input, output, ViewChild } from '@angular/core';
 import { Button } from 'primeng/button';
 import { Popover } from 'primeng/popover';
 import { Tooltip } from 'primeng/tooltip';
@@ -147,8 +147,7 @@ export class ShiftCellComponent {
   // Exponer colorVariants para uso en template
   public colorVariants = colorVariants;
 
-  // Reference to popover (will be set by template reference)
-  private popoverRef: any = null;
+  @ViewChild('options') optionsPopover!: Popover;
 
   public getColorClass(color: string | undefined): string {
     if (!color) return 'bg-neutral-700 text-gray-300';
@@ -171,10 +170,11 @@ export class ShiftCellComponent {
       return;
     }
 
-    // Normal mode: trigger popover via template reference
-    // The popover is handled by the (click) on the container which will be intercepted
-    // We need to use ViewChild for proper popover control, but for simplicity
-    // we'll let the existing click handler work
+    // Normal mode: toggle popover
+    if (this.optionsPopover && shiftValue) {
+      event.stopPropagation();
+      this.optionsPopover.toggle(event);
+    }
   }
 
   public onEdit(): void {

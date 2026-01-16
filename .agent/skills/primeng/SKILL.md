@@ -59,6 +59,8 @@ import { TableModule } from 'primeng/table';
 
 ### Dialogs
 
+> [!IMPORTANT] > **Regla de UX**: Todos los diálogos deben incluir `[dismissableMask]="true"` para que se cierren al hacer clic fuera. Esto mejora la experiencia del usuario.
+
 ```typescript
 import { DialogModule } from 'primeng/dialog';
 
@@ -66,6 +68,8 @@ import { DialogModule } from 'primeng/dialog';
   header="Título"
   [(visible)]="dialogVisible"
   [modal]="true"
+  [dismissableMask]="true"
+  [closable]="true"
   [style]="{ width: '500px' }"
 >
   <ng-template pTemplate="content">

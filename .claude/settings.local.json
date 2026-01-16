@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(find:*)",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(claude mcp add:*)"
     ]
   }
 }
