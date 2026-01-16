@@ -25,6 +25,22 @@ import { DashboardStore } from '../stores/dashboard.store';
     >
       <div class="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
         <div class="flex items-center justify-center gap-6">
+          <!-- Auditoría -->
+          <a
+            routerLink="audit-tasks"
+            class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
+            [routerLinkActive]="[
+              'bg-gradient-to-r',
+              'from-amber-500/20',
+              'to-amber-600/20',
+              'text-amber-300',
+              'shadow-md'
+            ]"
+          >
+            <i class="pi pi-check-square text-base"></i>
+            <span>Auditoría</span>
+          </a>
+
           <!-- RRHH Dropdown -->
           <div
             class="relative group cursor-pointer select-none"
@@ -88,16 +104,6 @@ import { DashboardStore } from '../stores/dashboard.store';
               </a>
               }
 
-              <!-- Auditoría de Tareas -->
-              <a
-                routerLink="audit-tasks"
-                class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
-                [class.bg-neutral-700]="isActiveRoute('audit-tasks')"
-                [class.text-amber-300]="isActiveRoute('audit-tasks')"
-              >
-                <i class="pi pi-check-square text-sm"></i>
-                <span>Auditoría de Tareas</span>
-              </a>
             </div>
           </div>
 
