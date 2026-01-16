@@ -1693,7 +1693,7 @@ export class EmployeesTimetableComponent implements OnInit {
         }
 
         // Aprobar todos en batch evitando encoding de Angular en 'in.()'
-        let url = this.apiUrl.build('rest/v1/employee_schedules');
+        const url = this.apiUrl.build('rest/v1/employee_schedules');
         // Construir query string manualmente para asegurar formato PostgREST
         const queryParams = [];
         queryParams.push(`id=in.(${ids.join(',')})`);

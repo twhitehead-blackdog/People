@@ -16,7 +16,7 @@ export class DocumentRequestsService {
     const companyId = this.organizationService.getCurrentCompanyId();
     if (!companyId) return undefined;
 
-    let httpParams = new HttpParams()
+    const httpParams = new HttpParams()
       .set(
         'select',
         'id,employee_id,created_by,document_type,custom_document_type,reason,document_url,status,processed_by,processed_at,rejection_comment,notes,metadata,created_at,updated_at,company_id,employee:employees!document_requests_employee_id_fkey(id,first_name,father_name,work_email,company_id,position:positions(name),branch:branches(id,name)),created_by_employee:employees!document_requests_created_by_fkey(id,first_name,father_name)'

@@ -28,6 +28,7 @@ interface TooltipPosition {
     @if (tutorialService.isActive()) {
     <!-- Dark overlay with spotlight hole (no blur inside the spotlight) -->
     <div class="tutorial-overlay">
+      @if (!isWaitingForElement()) {
       <!-- Top section -->
       <div
         class="overlay-section"
@@ -111,6 +112,21 @@ interface TooltipPosition {
           <i class="pi pi-times"></i>
         </button>
       </div>
+      } @else {
+      <!-- Waiting for element to appear -->
+      <div class="overlay-section" style="inset: 0;"></div>
+      <div class="waiting-message">
+        <i class="pi pi-spin pi-spinner"></i>
+        <span>Completa la acción anterior...</span>
+        <button
+          class="tooltip-close waiting-close"
+          (click)="exit($event)"
+          aria-label="Cerrar tutorial"
+        >
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+      }
 
       <!-- Completion message overlay -->
       @if (tutorialService.showCompletionMessage()) {
@@ -361,6 +377,42 @@ interface TooltipPosition {
         transform: translate(-50%, -50%) scale(1);
       }
     }
+
+    .waiting-message {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(
+        135deg,
+        rgba(30, 30, 45, 0.98) 0%,
+        rgba(20, 20, 35, 0.98) 100%
+      );
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      border-radius: 16px;
+      padding: 20px 28px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: white;
+      font-size: 1rem;
+      font-weight: 500;
+      box-shadow:
+        0 20px 50px rgba(0, 0, 0, 0.4),
+        0 0 15px rgba(59, 130, 246, 0.3);
+      animation: tooltipIn 0.3s ease-out;
+      pointer-events: auto;
+      z-index: 9999;
+    }
+
+    .waiting-message i.pi-spinner {
+      font-size: 1.2rem;
+      color: var(--primary-color, #3b82f6);
+    }
+
+    .waiting-close {
+      margin-left: 12px;
+    }
   `,
 })
 export class TutorialSpotlightComponent {
@@ -373,6 +425,8 @@ export class TutorialSpotlightComponent {
     height: window.innerHeight,
   });
   private elementRect = signal<DOMRect | null>(null);
+  private pollingInterval: ReturnType<typeof setInterval> | null = null;
+  public isWaitingForElement = signal(false);
 
   // Update element rect when step changes
   constructor() {
@@ -380,12 +434,44 @@ export class TutorialSpotlightComponent {
       // React to step changes
       const step = this.tutorialService.currentStep();
       if (step) {
+        // Stop any existing polling
+        this.stopPolling();
         // Small delay to allow DOM updates
         setTimeout(() => {
           this.updateElementRect();
+          // If element not found, start polling
+          if (!this.elementRect()) {
+            this.startPollingForElement();
+          }
         }, 100);
       }
     });
+  }
+
+  private startPollingForElement(): void {
+    this.isWaitingForElement.set(true);
+    this.pollingInterval = setInterval(() => {
+      const rect = this.tutorialService.getCurrentElementRect();
+      if (rect) {
+        this.elementRect.set(rect);
+        this.isWaitingForElement.set(false);
+        this.stopPolling();
+        // Scroll into view
+        const el = this.tutorialService.currentElement();
+        el?.nativeElement?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        });
+      }
+    }, 200); // Check every 200ms
+  }
+
+  private stopPolling(): void {
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
+    }
+    this.isWaitingForElement.set(false);
   }
 
   @HostListener('window:resize')

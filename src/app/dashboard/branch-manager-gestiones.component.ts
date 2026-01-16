@@ -92,7 +92,7 @@ type ManagementCard = {
 
         <!-- Vista de Tarjetas de Gestiones -->
         @if (!selectedGestionType()) {
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 mt-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-2 mt-4">
           @for (card of managementCards; track card.id) {
           <p-card
             class="cursor-pointer hover:shadow-lg hover:bg-neutral-700/30 transition-all hover:ring-2 hover:ring-amber-400/50 p-3"
@@ -804,6 +804,7 @@ type ManagementCard = {
                     [maxDate]="today"
                     styleClass="w-full"
                     appendTo="body"
+                    ptTutorialStep="timelog-correction-date"
                   />
                 </div>
                 <div class="flex flex-col gap-2">
@@ -818,6 +819,7 @@ type ManagementCard = {
                     placeholder="Selecciona el tipo"
                     styleClass="w-full"
                     appendTo="body"
+                    ptTutorialStep="timelog-correction-type"
                   />
                 </div>
               </div>
@@ -854,6 +856,7 @@ type ManagementCard = {
                 placeholder="Explica por qué se necesita la corrección de esta marcación (ej: olvidé marcar entrada, el reloj no funcionaba, etc.)"
                 rows="4"
                 class="w-full"
+                ptTutorialStep="timelog-correction-reason"
               ></textarea>
             </div>
 
@@ -882,6 +885,7 @@ type ManagementCard = {
                 chooseLabel="Seleccionar Archivo"
                 (onSelect)="onTimelogCorrectionFileSelect($event)"
                 class="w-full"
+                ptTutorialStep="timelog-correction-file"
               />
               <p class="text-xs text-gray-500 mt-2">
                 Formatos permitidos: PDF, JPG, PNG (máx. 5MB)
@@ -924,6 +928,7 @@ type ManagementCard = {
                 [loading]="submittingTimelogCorrection()"
                 (onClick)="submitTimelogCorrectionRequest()"
                 severity="success"
+                ptTutorialStep="timelog-correction-submit"
               />
             </div>
           </div>
@@ -953,6 +958,7 @@ type ManagementCard = {
                   placeholder="Ej: Camisa manga corta, Pantalón, Gorra, Delantal..."
                   class="w-full"
                   maxlength="100"
+                  ptTutorialStep="uniform-item-type"
                 />
                 <small class="text-gray-500 text-xs">
                   Escribe el tipo de prenda o uniforme que necesitas
@@ -983,6 +989,7 @@ type ManagementCard = {
                     placeholder="Selecciona la talla"
                     styleClass="w-full"
                     appendTo="body"
+                    ptTutorialStep="uniform-size"
                   />
                 </div>
                 <div class="flex flex-col gap-2">
@@ -994,6 +1001,7 @@ type ManagementCard = {
                     min="1"
                     max="5"
                     class="w-full"
+                    ptTutorialStep="uniform-quantity"
                   />
                   <small class="text-gray-500 text-xs">Máximo 5 unidades por solicitud</small>
                 </div>
@@ -1030,6 +1038,7 @@ type ManagementCard = {
                 placeholder="Comentarios adicionales sobre la solicitud (ej: motivo del cambio, preferencia de color, etc.)"
                 rows="3"
                 class="w-full"
+                ptTutorialStep="uniform-notes"
               ></textarea>
             </div>
 
@@ -1048,6 +1057,7 @@ type ManagementCard = {
                 [loading]="submittingUniform()"
                 (onClick)="submitUniformRequest()"
                 severity="success"
+                ptTutorialStep="uniform-submit"
               />
             </div>
           </div>
@@ -1265,14 +1275,6 @@ export class BranchManagerGestionesComponent {
       section: 'vacations',
     },
     {
-      id: 'documents',
-      label: 'Documentos',
-      description: 'Solicitar cartas laborales y certificados',
-      icon: 'pi-file-edit',
-      colorClass: 'bg-green-500/20 text-green-400',
-      section: 'documents',
-    },
-    {
       id: 'timelog_correction',
       label: 'Marcación Errónea',
       description: 'Solicitar corrección de marcación de asistencia',
@@ -1287,6 +1289,14 @@ export class BranchManagerGestionesComponent {
       icon: 'pi-tag',
       colorClass: 'bg-teal-500/20 text-teal-400',
       section: 'uniform_request',
+    },
+    {
+      id: 'documents',
+      label: 'Documentos',
+      description: 'Solicitar cartas laborales y certificados',
+      icon: 'pi-file-edit',
+      colorClass: 'bg-green-500/20 text-green-400',
+      section: 'documents',
     },
   ];
 

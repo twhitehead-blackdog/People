@@ -16,6 +16,12 @@ export interface TutorialStep {
   isPrompt?: boolean;
   /** Message to show when this is the last step */
   completionMessage?: string;
+  /**
+   * Alternative element ID that can also advance this step when clicked.
+   * Useful when the highlighted element is informational but another element
+   * (like a confirm button) should actually advance the tutorial.
+   */
+  advanceOnClickOf?: string;
 }
 
 /**
@@ -133,7 +139,13 @@ export class TutorialGuideService {
     if (!this._isActive()) return;
 
     const currentStep = this.currentStep();
-    if (!currentStep || currentStep.id !== stepId) return;
+    if (!currentStep) return;
+
+    // Check if clicked element matches current step OR is the advanceOnClickOf target
+    const isCurrentStep = currentStep.id === stepId;
+    const isAdvanceTarget = currentStep.advanceOnClickOf === stepId;
+
+    if (!isCurrentStep && !isAdvanceTarget) return;
 
     // If this is a prompt step, the click will be handled by the component
     if (currentStep.isPrompt) {

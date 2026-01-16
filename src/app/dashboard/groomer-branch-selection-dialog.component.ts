@@ -1,5 +1,5 @@
 import { DatePipe } from '@angular/common';
-import { Component, computed, inject, input, output } from '@angular/core';
+import { Component, computed, inject, input, output, OnChanges } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
 import { DatePicker } from 'primeng/datepicker';
@@ -142,7 +142,7 @@ export interface GroomerBranchSelectionResult {
     </p-dialog>
   `,
 })
-export class GroomerBranchSelectionDialogComponent {
+export class GroomerBranchSelectionDialogComponent implements OnChanges {
   private store = inject(DashboardStore);
 
   // Inputs

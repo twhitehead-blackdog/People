@@ -2304,7 +2304,7 @@ export class TimeclockComponent implements OnDestroy {
 
           const typeLabel =
             this.types.find((t) => t.value === type)?.label || type;
-          let message = `<div style="text-align: center;">
+          const message = `<div style="text-align: center;">
             <div style="margin-bottom: 0.5rem;"><b>${typeLabel}</b> registrada exitosamente a las <b>${formatInTimeZone(
             officialTime,
             this.DISPLAY_TIMEZONE,
