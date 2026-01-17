@@ -572,8 +572,11 @@ import { DocumentRequest } from '../models/document-request.model';
         }
 
         <!-- Detalles de Marcación Errónea -->
-        @if (selectedDocument()!.document_type === 'timelog_correction' && selectedDocument()!.metadata) {
-        <div class="p-4 bg-gradient-to-r from-orange-500/10 to-orange-600/5 rounded-lg border border-orange-400/30">
+        @if (selectedDocument()!.document_type === 'timelog_correction' &&
+        selectedDocument()!.metadata) {
+        <div
+          class="p-4 bg-gradient-to-r from-orange-500/10 to-orange-600/5 rounded-lg border border-orange-400/30"
+        >
           <h3
             class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
           >
@@ -586,7 +589,10 @@ import { DocumentRequest } from '../models/document-request.model';
                 >Fecha de la Marcación</label
               >
               <p class="text-white">
-                {{ selectedDocument()!.metadata!.timelog_date | date : 'dd/MM/yyyy' }}
+                {{
+                  selectedDocument()!.metadata!.timelog_date
+                    | date : 'dd/MM/yyyy'
+                }}
               </p>
             </div>
             <div>
@@ -594,7 +600,11 @@ import { DocumentRequest } from '../models/document-request.model';
                 >Tipo de Marcación</label
               >
               <p class="text-orange-300 font-semibold">
-                {{ getTimelogTypeLabel(selectedDocument()!.metadata!.timelog_type || '') }}
+                {{
+                  getTimelogTypeLabel(
+                    selectedDocument()!.metadata!.timelog_type || ''
+                  )
+                }}
               </p>
             </div>
             @if (selectedDocument()!.metadata!.attachment_url) {
@@ -603,7 +613,9 @@ import { DocumentRequest } from '../models/document-request.model';
                 >Evidencia Adjunta</label
               >
               <!-- Mostrar preview del documento automáticamente -->
-              <div class="mt-3 border border-orange-400/30 rounded-lg overflow-hidden">
+              <div
+                class="mt-3 border border-orange-400/30 rounded-lg overflow-hidden"
+              >
                 <iframe
                   [src]="selectedDocument()!.metadata!.attachment_url | safeUrl"
                   class="w-full h-64 border-0 bg-white"
@@ -621,8 +633,11 @@ import { DocumentRequest } from '../models/document-request.model';
         }
 
         <!-- Detalles de Solicitud de Uniforme -->
-        @if (selectedDocument()!.document_type === 'uniform_request' && selectedDocument()!.metadata) {
-        <div class="p-4 bg-gradient-to-r from-teal-500/10 to-teal-600/5 rounded-lg border border-teal-400/30">
+        @if (selectedDocument()!.document_type === 'uniform_request' &&
+        selectedDocument()!.metadata) {
+        <div
+          class="p-4 bg-gradient-to-r from-teal-500/10 to-teal-600/5 rounded-lg border border-teal-400/30"
+        >
           <h3
             class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
           >
@@ -857,16 +872,26 @@ export class DocumentRequestsComponent {
     { label: 'Completada', value: 'completed' },
   ];
 
-  public totalCount = computed(() => this.service.value().length);
+  // Excluded types - they have their own dedicated sections
+  private readonly excludedTypes = ['timelog_correction', 'uniform_request'];
+
+  // Base filtered documents (excluding special types)
+  private baseDocuments = computed(() =>
+    this.service
+      .value()
+      .filter((d) => !this.excludedTypes.includes(d.document_type))
+  );
+
+  public totalCount = computed(() => this.baseDocuments().length);
   public pendingCount = computed(
-    () => this.service.value().filter((d) => d.status === 'pending').length
+    () => this.baseDocuments().filter((d) => d.status === 'pending').length
   );
   public completedCount = computed(
-    () => this.service.value().filter((d) => d.status === 'completed').length
+    () => this.baseDocuments().filter((d) => d.status === 'completed').length
   );
 
   public filteredDocuments = computed(() => {
-    let docs = this.service.value();
+    let docs = this.baseDocuments();
     const search = this.searchText().toLowerCase();
     const status = this.selectedStatus();
     const range = this.dateRange();

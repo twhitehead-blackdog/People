@@ -1,0 +1,104 @@
+/**
+ * Helper functions for request management (Gestiones)
+ * Shared between BranchManagerComponent and BranchManagerGestionesComponent
+ */
+
+export function getRequestIcon(requestType: string): string {
+  const icons: Record<string, string> = {
+    compensatorio: 'pi-clock',
+    incapacidad: 'pi-heart',
+    vacaciones: 'pi-sun',
+    documentos: 'pi-file',
+  };
+  return icons[requestType] || 'pi-question';
+}
+
+export function getRequestColorClass(
+  requestType: string,
+  isActive: boolean
+): string {
+  const colors: Record<string, { bg: string; active: string }> = {
+    compensatorio: {
+      bg: 'bg-amber-500/20 border-amber-500',
+      active: 'text-amber-400',
+    },
+    incapacidad: {
+      bg: 'bg-blue-500/20 border-blue-500',
+      active: 'text-blue-400',
+    },
+    vacaciones: {
+      bg: 'bg-purple-500/20 border-purple-500',
+      active: 'text-purple-400',
+    },
+    documentos: {
+      bg: 'bg-green-500/20 border-green-500',
+      active: 'text-green-400',
+    },
+  };
+  const color = colors[requestType] || {
+    bg: 'bg-gray-500/20 border-gray-500',
+    active: 'text-gray-400',
+  };
+  return isActive ? color.active : color.bg;
+}
+
+export function getRequestStatusLabel(request: any): string {
+  const status = request.status || request.review_status;
+  const labels: Record<string, string> = {
+    pending: 'Pendiente',
+    approved: 'Aprobado',
+    rejected: 'Rechazado',
+  };
+  return labels[status] || 'Sin estado';
+}
+
+export function getRequestStatusSeverity(
+  request: any
+): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
+  const status = request.status || request.review_status;
+  const severities: Record<
+    string,
+    'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'
+  > = {
+    pending: 'warn',
+    approved: 'success',
+    rejected: 'danger',
+  };
+  return severities[status] || 'secondary';
+}
+
+export function getRequestTypeLabel(requestType: string): string {
+  const labels: Record<string, string> = {
+    compensatorio: 'Compensatorio',
+    incapacidad: 'Incapacidad',
+    vacaciones: 'Vacaciones',
+    documentos: 'Documento',
+  };
+  return labels[requestType] || 'Solicitud';
+}
+
+export function getRequestTypeSeverity(
+  requestType: string
+): 'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast' {
+  const severities: Record<
+    string,
+    'success' | 'info' | 'warn' | 'danger' | 'secondary' | 'contrast'
+  > = {
+    compensatorio: 'warn',
+    incapacidad: 'info',
+    vacaciones: 'contrast',
+    documentos: 'success',
+  };
+  return severities[requestType] || 'secondary';
+}
+
+export function getSeverityColor(severity: string | undefined): string {
+  const colors: Record<string, string> = {
+    success: '#4ade80', // green-400
+    info: '#22d3ee', // cyan-400
+    warn: '#fbbf24', // amber-400
+    danger: '#f87171', // red-400
+    secondary: '#94a3b8', // slate-400
+  };
+  return colors[severity || ''] || '#94a3b8';
+}

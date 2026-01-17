@@ -34,6 +34,15 @@ import {
   GESTIONES_TUTORIALS,
 } from '../shared/tutorial-configs/gestiones-tutorials';
 import { getEnv } from '../utils/env.utils';
+import {
+  getRequestColorClass,
+  getRequestIcon,
+  getRequestStatusLabel,
+  getRequestStatusSeverity,
+  getRequestTypeLabel,
+  getRequestTypeSeverity,
+  getSeverityColor,
+} from './request.helpers';
 
 type ManagementCard = {
   id: string;
@@ -41,7 +50,13 @@ type ManagementCard = {
   description: string;
   icon: string;
   colorClass: string;
-  section: 'disabilities' | 'documents' | 'vacations' | 'compensatory' | 'timelog_correction' | 'uniform_request';
+  section:
+    | 'disabilities'
+    | 'documents'
+    | 'vacations'
+    | 'compensatory'
+    | 'timelog_correction'
+    | 'uniform_request';
 };
 
 @Component({
@@ -875,7 +890,8 @@ type ManagementCard = {
                 </h3>
               </div>
               <p class="text-sm text-gray-400 mb-4">
-                Si tienes evidencia de la marcación correcta (captura de pantalla, foto del reloj, etc.), puedes adjuntarla.
+                Si tienes evidencia de la marcación correcta (captura de
+                pantalla, foto del reloj, etc.), puedes adjuntarla.
               </p>
               <p-fileUpload
                 mode="basic"
@@ -952,17 +968,16 @@ type ManagementCard = {
                 <label class="text-sm font-medium text-gray-300"
                   >¿Qué prenda necesitas?</label
                 >
-                <input
-                  pInputText
+                <p-select
                   [(ngModel)]="uniformItemType"
-                  placeholder="Ej: Camisa manga corta, Pantalón, Gorra, Delantal..."
-                  class="w-full"
-                  maxlength="100"
+                  [options]="uniformItemTypeOptions"
+                  optionLabel="label"
+                  optionValue="value"
+                  placeholder="Selecciona el tipo de prenda"
+                  styleClass="w-full"
+                  appendTo="body"
                   ptTutorialStep="uniform-item-type"
                 />
-                <small class="text-gray-500 text-xs">
-                  Escribe el tipo de prenda o uniforme que necesitas
-                </small>
               </div>
             </div>
 
@@ -993,7 +1008,9 @@ type ManagementCard = {
                   />
                 </div>
                 <div class="flex flex-col gap-2">
-                  <label class="text-sm font-medium text-gray-300">Cantidad</label>
+                  <label class="text-sm font-medium text-gray-300"
+                    >Cantidad</label
+                  >
                   <input
                     pInputText
                     type="number"
@@ -1003,16 +1020,24 @@ type ManagementCard = {
                     class="w-full"
                     ptTutorialStep="uniform-quantity"
                   />
-                  <small class="text-gray-500 text-xs">Máximo 5 unidades por solicitud</small>
+                  <small class="text-gray-500 text-xs"
+                    >Máximo 5 unidades por solicitud</small
+                  >
                 </div>
               </div>
-              @if (uniformItemType() && uniformSize() && uniformQuantity() >= 1) {
+              @if (uniformItemType() && uniformSize() && uniformQuantity() >= 1)
+              {
               <div
                 class="mt-3 p-3 bg-teal-500/10 border border-teal-400/30 rounded-lg"
               >
                 <p class="text-sm text-teal-300">
                   <i class="pi pi-check-circle mr-2"></i>
-                  Solicitud: <strong>{{ uniformQuantity() }}x {{ uniformItemType() }}</strong> - Talla <strong>{{ uniformSize() }}</strong>
+                  Solicitud:
+                  <strong
+                    >{{ uniformQuantity() }}x
+                    {{ getUniformItemTypeLabel() }}</strong
+                  >
+                  - Talla <strong>{{ uniformSize() }}</strong>
                 </p>
               </div>
               }
@@ -1072,6 +1097,15 @@ type ManagementCard = {
   `,
 })
 export class BranchManagerGestionesComponent {
+  // Helper methods for requests display
+  public getRequestIcon = getRequestIcon;
+  public getRequestColorClass = getRequestColorClass;
+  public getRequestStatusLabel = getRequestStatusLabel;
+  public getRequestStatusSeverity = getRequestStatusSeverity;
+  public getRequestTypeLabel = getRequestTypeLabel;
+  public getRequestTypeSeverity = getRequestTypeSeverity;
+  public getSeverityColor = getSeverityColor;
+
   @Input() branchEmployees: (Employee & { short_name: string })[] = [];
   @Input() currentBranch: Branch | null | undefined = null;
   @Input() currentEmployee: Employee | null | undefined = null;
@@ -1089,7 +1123,13 @@ export class BranchManagerGestionesComponent {
 
   // Signals para el flujo principal
   public selectedGestionType = signal<
-    'disabilities' | 'documents' | 'vacations' | 'compensatory' | 'timelog_correction' | 'uniform_request' | null
+    | 'disabilities'
+    | 'documents'
+    | 'vacations'
+    | 'compensatory'
+    | 'timelog_correction'
+    | 'uniform_request'
+    | null
   >(null);
   public selectedEmployeeId = signal<string | null>(null);
   public selectedEmployee = signal<Employee | null>(null);
@@ -1130,7 +1170,9 @@ export class BranchManagerGestionesComponent {
 
   // Signals para Marcación Errónea
   public timelogCorrectionDate = signal<Date | null>(null);
-  public timelogCorrectionType = signal<'entry' | 'lunch_start' | 'lunch_end' | 'exit'>('entry');
+  public timelogCorrectionType = signal<
+    'entry' | 'lunch_start' | 'lunch_end' | 'exit'
+  >('entry');
   public timelogCorrectionReason = signal<string>('');
   public timelogCorrectionFile = signal<File | null>(null);
   public submittingTimelogCorrection = signal<boolean>(false);
@@ -1152,6 +1194,15 @@ export class BranchManagerGestionesComponent {
 
   // Opciones para tallas de uniforme (reutilizado del modelo de employees)
   public uniformSizeOptions = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL'];
+
+  // Opciones para tipos de prenda (preparado para añadir más en el futuro)
+  public uniformItemTypeOptions = [
+    { label: 'Camisa', value: 'camisa' },
+    // Añadir más opciones aquí cuando sea necesario:
+    // { label: 'Pantalón', value: 'pantalon' },
+    // { label: 'Gorra', value: 'gorra' },
+    // { label: 'Delantal', value: 'delantal' },
+  ];
 
   // Computed: Calcular el total de horas/días automáticamente
   public compensatoryAmount = computed(() => {
@@ -1308,7 +1359,13 @@ export class BranchManagerGestionesComponent {
 
   // Seleccionar tipo de gestión
   public selectGestion(
-    type: 'disabilities' | 'documents' | 'vacations' | 'compensatory' | 'timelog_correction' | 'uniform_request'
+    type:
+      | 'disabilities'
+      | 'documents'
+      | 'vacations'
+      | 'compensatory'
+      | 'timelog_correction'
+      | 'uniform_request'
   ): void {
     // Check if we're in the intro tutorial before changing state
     const wasInIntroTutorial =
@@ -1357,6 +1414,13 @@ export class BranchManagerGestionesComponent {
     const first = employee.first_name?.charAt(0) || '';
     const last = employee.father_name?.charAt(0) || '';
     return (first + last).toUpperCase() || '?';
+  }
+
+  // Obtener el label del tipo de prenda seleccionado
+  public getUniformItemTypeLabel(): string {
+    const value = this.uniformItemType();
+    const option = this.uniformItemTypeOptions.find((o) => o.value === value);
+    return option?.label || value || 'Prenda';
   }
 
   // ============================================================
@@ -1814,7 +1878,10 @@ export class BranchManagerGestionesComponent {
         const fileName = `timelog-corrections/${employee.id}_${timestamp}.${fileExt}`;
 
         const uploadUrl = `${this.apiUrl.baseUrl}/storage/v1/object/employee-documents/${fileName}`;
-        const apiKey = getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') || getEnv('ENV_SUPABASE_API_KEY') || '';
+        const apiKey =
+          getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') ||
+          getEnv('ENV_SUPABASE_API_KEY') ||
+          '';
 
         await firstValueFrom(
           this.http.post(uploadUrl, file, {
@@ -1830,7 +1897,9 @@ export class BranchManagerGestionesComponent {
       }
 
       // Get timelog type label for display
-      const typeLabel = this.timelogTypeOptions.find((opt) => opt.value === type)?.label || type;
+      const typeLabel =
+        this.timelogTypeOptions.find((opt) => opt.value === type)?.label ||
+        type;
 
       // Create document request with metadata
       const documentData = {
@@ -1895,7 +1964,9 @@ export class BranchManagerGestionesComponent {
       const documentData = {
         employee_id: employee.id,
         document_type: 'uniform_request',
-        reason: notes || `Solicitud de ${itemType} - Talla ${size} - Cantidad: ${quantity}`,
+        reason:
+          notes ||
+          `Solicitud de ${itemType} - Talla ${size} - Cantidad: ${quantity}`,
         status: 'pending',
         created_by: this.currentEmployee?.id || null,
         company_id: this.organizationService.getCurrentCompanyId(),

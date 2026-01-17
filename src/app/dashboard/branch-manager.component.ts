@@ -62,6 +62,15 @@ import { EmployeesStore } from '../stores/employees.store';
 import { BranchManagerGestionesComponent } from './branch-manager-gestiones.component';
 import { EmployeeSchedulesFormComponent } from './employee-schedules-form.component';
 import { CompensatoryRequest } from './hr-disabilities.component';
+import {
+  getRequestColorClass,
+  getRequestIcon,
+  getRequestStatusLabel,
+  getRequestStatusSeverity,
+  getRequestTypeLabel,
+  getRequestTypeSeverity,
+  getSeverityColor,
+} from './request.helpers';
 
 type Notification = {
   id: string;
@@ -3147,6 +3156,14 @@ export class BranchManagerComponent {
     this.documentRequestsApi.reload();
   }
 
+  // Helper methods for employee requests display
+  public getRequestIcon = getRequestIcon;
+  public getRequestColorClass = getRequestColorClass;
+  public getRequestStatusLabel = getRequestStatusLabel;
+  public getRequestStatusSeverity = getRequestStatusSeverity;
+  public getRequestTypeLabel = getRequestTypeLabel;
+  public getRequestTypeSeverity = getRequestTypeSeverity;
+
   public viewRequestDetails(request: any) {
     this.selectedRequest.set(request);
     this.requestRejectionComment.set(request.rejection_comment || '');
@@ -3167,110 +3184,7 @@ export class BranchManagerComponent {
     );
   }
 
-  public getRequestTypeLabel(type: string): string {
-    const labels: Record<string, string> = {
-      compensatorio: 'Compensatorio',
-      incapacidad: 'Incapacidad',
-      vacaciones: 'Vacaciones',
-      documentos: 'Documentos',
-    };
-    return labels[type] || type;
-  }
-
-  public getRequestTypeSeverity(
-    type: string
-  ):
-    | 'secondary'
-    | 'info'
-    | 'success'
-    | 'warn'
-    | 'danger'
-    | 'contrast'
-    | undefined {
-    const severities: Record<
-      string,
-      'secondary' | 'info' | 'success' | 'warn' | 'danger' | 'contrast'
-    > = {
-      compensatorio: 'info',
-      incapacidad: 'warn',
-      vacaciones: 'success',
-      documentos: 'secondary',
-    };
-    return severities[type];
-  }
-
-  public getRequestIcon(type: string): string {
-    const icons: Record<string, string> = {
-      compensatorio: 'pi-clock',
-      incapacidad: 'pi-file-plus',
-      vacaciones: 'pi-calendar-plus',
-      documentos: 'pi-file-edit',
-    };
-    return icons[type] || 'pi-file';
-  }
-
-  public getRequestColorClass(type: string, active: boolean): string {
-    if (active) {
-      const classes: Record<string, string> = {
-        compensatorio: 'text-cyan-400',
-        incapacidad: 'text-blue-400',
-        vacaciones: 'text-purple-400',
-        documentos: 'text-green-400',
-      };
-      return classes[type] || 'text-gray-400';
-    } else {
-      const classes: Record<string, string> = {
-        compensatorio: 'border-cyan-500 bg-cyan-500/5',
-        incapacidad: 'border-blue-500 bg-blue-500/5',
-        vacaciones: 'border-purple-500 bg-purple-500/5',
-        documentos: 'border-green-500 bg-green-500/5',
-      };
-      return classes[type] || 'border-gray-500 bg-gray-500/5';
-    }
-  }
-
-  public getRequestStatusLabel(request: any): string {
-    const status = request.status || request.review_status;
-    const labels: Record<string, string> = {
-      pending: 'Pendiente',
-      approved: 'Aprobado',
-      rejected: 'Rechazado',
-    };
-    return labels[status] || status;
-  }
-
-  public getRequestStatusSeverity(
-    request: any
-  ):
-    | 'secondary'
-    | 'info'
-    | 'success'
-    | 'warn'
-    | 'danger'
-    | 'contrast'
-    | undefined {
-    const status = request.status || request.review_status;
-    const severities: Record<
-      string,
-      'secondary' | 'info' | 'success' | 'warn' | 'danger' | 'contrast'
-    > = {
-      pending: 'warn',
-      approved: 'success',
-      rejected: 'danger',
-    };
-    return severities[status];
-  }
-
-  public getSeverityColor(severity: string | undefined): string {
-    const colors: Record<string, string> = {
-      success: '#4ade80', // green-400
-      info: '#22d3ee', // cyan-400
-      warn: '#fbbf24', // amber-400
-      danger: '#f87171', // red-400
-      secondary: '#94a3b8', // slate-400
-    };
-    return colors[severity || ''] || '#94a3b8';
-  }
+  public getSeverityColor = getSeverityColor;
 
   public markNotificationAsRead(id: string) {
     this.http
