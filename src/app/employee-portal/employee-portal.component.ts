@@ -14,6 +14,7 @@ import { addDays, differenceInDays, format, startOfDay } from 'date-fns';
 import { MessageService } from 'primeng/api';
 import { Card } from 'primeng/card';
 import { ToastModule } from 'primeng/toast';
+import { firstValueFrom } from 'rxjs';
 import { Employee } from '../models';
 import { ApiUrlService } from '../services/api-url.service';
 import { EmployeePortalNavigationService } from '../services/employee-portal-navigation.service';
@@ -40,7 +41,9 @@ import { EmployeePortalMyRequestsComponent } from './components/employee-portal-
 import { EmployeePortalNotificationsComponent } from './components/employee-portal-notifications.component';
 import { EmployeePortalProfileComponent } from './components/employee-portal-profile.component';
 import { EmployeePortalRequestDetailsDialogComponent } from './components/employee-portal-request-details-dialog.component';
+import { EmployeePortalTimelogCorrectionComponent } from './components/employee-portal-timelog-correction.component';
 import { EmployeePortalTimelogsComponent } from './components/employee-portal-timelogs.component';
+import { EmployeePortalUniformRequestComponent } from './components/employee-portal-uniform-request.component';
 import { EmployeePortalVacationsComponent } from './components/employee-portal-vacations.component';
 import { EmployeePortalApiService } from './services/employee-portal-api.service';
 import { EmployeePortalConversationService } from './services/employee-portal-conversation.service';
@@ -87,6 +90,8 @@ import {
     EmployeePortalConversationDialogComponent,
     EmployeePortalCompensatoryTutorialDialogComponent,
     EmployeePortalRequestDetailsDialogComponent,
+    EmployeePortalTimelogCorrectionComponent,
+    EmployeePortalUniformRequestComponent,
   ],
   // NOTA: Estos servicios dependen de DashboardStore (proveído por el layout del portal),
   // por eso se proveen aquí y NO con providedIn:'root' para evitar NG0201 (SignalStore).
@@ -348,6 +353,47 @@ import {
           (openTutorial)="setShowTutorialDialog(true)"
           (closeSection)="setActiveSection('management')"
           (viewRequests)="setActiveSection('my-requests')"
+        />
+      </div>
+      }
+
+      <!-- Marcación Errónea Section -->
+      @if (portalStore.activeSection() === 'timelog_correction') {
+      <div id="timelog_correction" class="section-content">
+        <pt-employee-portal-timelog-correction
+          [correctionDate]="timelogCorrectionDate()"
+          (correctionDateChange)="timelogCorrectionDate.set($event)"
+          [correctionType]="timelogCorrectionType()"
+          (correctionTypeChange)="timelogCorrectionType.set($event)"
+          [correctionReason]="timelogCorrectionReason()"
+          (correctionReasonChange)="timelogCorrectionReason.set($event)"
+          [correctionFile]="timelogCorrectionFile()"
+          (correctionFileChange)="timelogCorrectionFile.set($event)"
+          [canSubmit]="canSubmitTimelogCorrection()"
+          [submitting]="submittingTimelogCorrection()"
+          [today]="today"
+          (submitRequest)="submitTimelogCorrectionRequest()"
+          (closeSection)="setActiveSection('management')"
+        />
+      </div>
+      }
+
+      <!-- Solicitud de Uniforme Section -->
+      @if (portalStore.activeSection() === 'uniform_request') {
+      <div id="uniform_request" class="section-content">
+        <pt-employee-portal-uniform-request
+          [itemType]="uniformItemType()"
+          (itemTypeChange)="uniformItemType.set($event)"
+          [size]="uniformSize()"
+          (sizeChange)="uniformSize.set($event)"
+          [quantity]="uniformQuantity()"
+          (quantityChange)="uniformQuantity.set($event)"
+          [notes]="uniformNotes()"
+          (notesChange)="uniformNotes.set($event)"
+          [canSubmit]="canSubmitUniform()"
+          [submitting]="submittingUniform()"
+          (submitRequest)="submitUniformRequest()"
+          (closeSection)="setActiveSection('management')"
         />
       </div>
       }
@@ -945,6 +991,34 @@ export class EmployeePortalComponent {
   public disabilitiesApi = this.requestsService.disabilitiesApi;
   public myDisabilities = this.requestsService.allDisabilities;
 
+  // Timelog Correction Form
+  public timelogCorrectionDate = signal<Date | null>(null);
+  public timelogCorrectionType = signal('');
+  public timelogCorrectionReason = signal('');
+  public timelogCorrectionFile = signal<File | null>(null);
+  public submittingTimelogCorrection = signal(false);
+  public canSubmitTimelogCorrection = computed(() => {
+    return (
+      this.timelogCorrectionDate() !== null &&
+      this.timelogCorrectionType().trim() !== '' &&
+      this.timelogCorrectionReason().trim() !== ''
+    );
+  });
+
+  // Uniform Request Form
+  public uniformItemType = signal('');
+  public uniformSize = signal('');
+  public uniformQuantity = signal(1);
+  public uniformNotes = signal('');
+  public submittingUniform = signal(false);
+  public canSubmitUniform = computed(() => {
+    return (
+      this.uniformItemType().trim() !== '' &&
+      this.uniformSize().trim() !== '' &&
+      this.uniformQuantity() >= 1
+    );
+  });
+
   // Document Requests - usar portalStore directamente
 
   // Opciones para el tipo de documento
@@ -1541,6 +1615,124 @@ export class EmployeePortalComponent {
       );
       console.log('[DEBUG] 🔄 Usando valores por defecto para incapacidades');
       return ['Verley@blackdogpanama.com'];
+    }
+  }
+
+  /**
+   * Submit a timelog correction request
+   */
+  public async submitTimelogCorrectionRequest(): Promise<void> {
+    if (!this.canSubmitTimelogCorrection()) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Campos Requeridos',
+        detail: 'Por favor completa todos los campos requeridos',
+      });
+      return;
+    }
+
+    this.submittingTimelogCorrection.set(true);
+
+    try {
+      // Create the request record
+      const requestData = {
+        employee_id: this.currentEmployee()!.id,
+        request_type: 'timelog_correction',
+        request_date: format(this.timelogCorrectionDate()!, 'yyyy-MM-dd'),
+        correction_type: this.timelogCorrectionType(),
+        reason: this.timelogCorrectionReason(),
+        status: 'pending',
+        created_at: new Date().toISOString(),
+      };
+
+      const url = this.apiUrl.build('rest/v1/employee_requests');
+      await firstValueFrom(this.http.post(url, requestData));
+
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Solicitud Enviada',
+        detail:
+          'Tu solicitud de corrección de marcación ha sido enviada para revisión.',
+      });
+
+      // Reset form
+      this.timelogCorrectionDate.set(null);
+      this.timelogCorrectionType.set('');
+      this.timelogCorrectionReason.set('');
+      this.timelogCorrectionFile.set(null);
+
+      // Navigate back to management section
+      this.setActiveSection('management');
+    } catch (error: any) {
+      console.error('Error submitting timelog correction:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail:
+          error?.error?.message ||
+          'No se pudo enviar la solicitud. Por favor intenta de nuevo.',
+      });
+    } finally {
+      this.submittingTimelogCorrection.set(false);
+    }
+  }
+
+  /**
+   * Submit a uniform request
+   */
+  public async submitUniformRequest(): Promise<void> {
+    if (!this.canSubmitUniform()) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Campos Requeridos',
+        detail: 'Por favor completa tipo de prenda, talla y cantidad',
+      });
+      return;
+    }
+
+    this.submittingUniform.set(true);
+
+    try {
+      // Create the request record
+      const requestData = {
+        employee_id: this.currentEmployee()!.id,
+        request_type: 'uniform_request',
+        item_type: this.uniformItemType(),
+        size: this.uniformSize(),
+        quantity: this.uniformQuantity(),
+        notes: this.uniformNotes() || null,
+        status: 'pending',
+        created_at: new Date().toISOString(),
+      };
+
+      const url = this.apiUrl.build('rest/v1/employee_requests');
+      await firstValueFrom(this.http.post(url, requestData));
+
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Solicitud Enviada',
+        detail: 'Tu solicitud de uniforme ha sido enviada para revisión.',
+      });
+
+      // Reset form
+      this.uniformItemType.set('');
+      this.uniformSize.set('');
+      this.uniformQuantity.set(1);
+      this.uniformNotes.set('');
+
+      // Navigate back to management section
+      this.setActiveSection('management');
+    } catch (error: any) {
+      console.error('Error submitting uniform request:', error);
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail:
+          error?.error?.message ||
+          'No se pudo enviar la solicitud. Por favor intenta de nuevo.',
+      });
+    } finally {
+      this.submittingUniform.set(false);
     }
   }
 

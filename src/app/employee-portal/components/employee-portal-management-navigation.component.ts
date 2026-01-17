@@ -1,5 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+} from '@angular/core';
 import { Card } from 'primeng/card';
 
 type ManagementNavCard = {
@@ -86,6 +92,22 @@ export class EmployeePortalManagementNavigationComponent {
       icon: 'pi-clock',
       section: 'compensatory',
       colorClass: 'bg-cyan-500/20 text-cyan-400',
+    },
+    {
+      id: 'timelog_correction',
+      label: 'Marcación Errónea',
+      description: 'Solicita corrección de marcación de asistencia',
+      icon: 'pi-exclamation-triangle',
+      section: 'timelog_correction',
+      colorClass: 'bg-orange-500/20 text-orange-400',
+    },
+    {
+      id: 'uniform_request',
+      label: 'Solicitud de Uniforme',
+      description: 'Solicita uniformes o prendas de trabajo',
+      icon: 'pi-tag',
+      section: 'uniform_request',
+      colorClass: 'bg-teal-500/20 text-teal-400',
     },
     {
       id: 'my-requests',

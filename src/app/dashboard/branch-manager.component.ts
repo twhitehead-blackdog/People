@@ -1,3 +1,11 @@
+import {
+  animate,
+  query,
+  stagger,
+  style,
+  transition,
+  trigger,
+} from '@angular/animations';
 import { DatePipe, NgClass, NgStyle } from '@angular/common';
 import { HttpClient, httpResource } from '@angular/common/http';
 import {
@@ -122,26 +130,87 @@ type Reminder = {
     BranchManagerGestionesComponent,
   ],
   providers: [DynamicDialogRef, DialogService, ConfirmationService],
+  animations: [
+    trigger('fadeIn', [
+      transition(':enter', [
+        style({ opacity: 0, transform: 'translateY(10px)' }),
+        animate(
+          '0.4s ease-out',
+          style({ opacity: 1, transform: 'translateY(0)' })
+        ),
+      ]),
+    ]),
+    trigger('scaleIn', [
+      transition(':enter', [
+        style({ opacity: 0, transform: 'scale(0.95)' }),
+        animate('0.3s ease-out', style({ opacity: 1, transform: 'scale(1)' })),
+      ]),
+    ]),
+    trigger('staggerFade', [
+      transition('* => *', [
+        query(
+          ':enter',
+          [
+            style({ opacity: 0, transform: 'translateY(10px)' }),
+            stagger('50ms', [
+              animate(
+                '0.3s ease-out',
+                style({ opacity: 1, transform: 'translateY(0)' })
+              ),
+            ]),
+          ],
+          { optional: true }
+        ),
+      ]),
+    ]),
+  ],
   template: `
-    <div [ngClass]="{ 'naz-theme': isNaz() }" class="p-4 space-y-6">
-      <!-- Header -->
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-3xl font-bold mb-1">Gestión de Tienda</h1>
-          <p class="text-gray-400">
-            @if (isAdmin()) {
-            <span>Administración de sucursales</span>
-            } @else {
-            <span>{{ currentBranch()?.name || 'Sucursal' }}</span>
-            }
-          </p>
+    <div
+      [ngClass]="{ 'naz-theme': isNaz() }"
+      class="p-6 md:p-8 lg:p-10 space-y-8"
+    >
+      <!-- Header Moderno -->
+      <div
+        class="flex flex-col md:flex-row md:items-center justify-between gap-6"
+        @fadeIn
+      >
+        <div class="flex items-center gap-5">
+          <div
+            class="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30 transition-transform hover:scale-105 duration-300"
+          >
+            <i class="pi pi-shop text-white text-2xl"></i>
+          </div>
+          <div>
+            <h1
+              class="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent tracking-tight"
+            >
+              Gestión de Tienda
+            </h1>
+            <p class="text-gray-400 text-sm mt-1">
+              @if (isAdmin()) {
+              <span class="flex items-center gap-2">
+                <span
+                  class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.6)]"
+                ></span>
+                <span class="font-medium">Administración de sucursales</span>
+              </span>
+              } @else {
+              <span class="flex items-center gap-2">
+                <i class="pi pi-map-marker text-indigo-400"></i>
+                <span class="font-medium text-gray-300">{{
+                  currentBranch()?.name || 'Sucursal'
+                }}</span>
+              </span>
+              }
+            </p>
+          </div>
         </div>
         <div class="flex items-center gap-3">
           @if (isAdmin()) {
-          <div class="flex items-center gap-2">
-            <label class="text-sm text-gray-400 whitespace-nowrap"
-              >Sucursal:</label
-            >
+          <div
+            class="flex items-center gap-2 bg-white/5 backdrop-blur-sm rounded-xl px-4 py-2 border border-white/10"
+          >
+            <i class="pi pi-building text-indigo-400"></i>
             <p-select
               [options]="availableBranches()"
               optionLabel="name"
@@ -150,7 +219,7 @@ type Reminder = {
               placeholder="Todas las sucursales"
               showClear
               appendTo="body"
-              styleClass="w-64"
+              styleClass="w-56 border-0 bg-transparent"
               (ngModelChange)="onBranchChange()"
             />
           </div>
@@ -162,68 +231,109 @@ type Reminder = {
             rounded
             (onClick)="markAllNotificationsAsRead()"
             pTooltip="Marcar todas como leídas"
+            styleClass="shadow-lg shadow-amber-500/20"
           />
           }
         </div>
       </div>
 
-      <!-- Dashboard de Métricas -->
-      <div
-        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-6 pt-0 pb-6"
-      >
-        <!-- Notificaciones no leídas -->
+      <!-- Dashboard de Métricas - Diseño Moderno -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-6" @staggerFade>
+        <!-- Notificaciones -->
         <div
-          class="bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg p-4 text-white shadow-lg"
+          class="group relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 p-5 transition-all duration-300 hover:bg-white/15 hover:border-blue-500/30 hover:shadow-xl hover:shadow-blue-500/20"
+          @scaleIn
         >
-          <div class="flex items-center justify-between mb-1">
-            <i class="pi pi-bell text-xl opacity-80"></i>
-            <span class="text-2xl font-bold">{{
-              unreadNotificationsCount()
-            }}</span>
+          <div
+            class="absolute top-0 right-0 w-20 h-20 bg-blue-500/10 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-500"
+          ></div>
+          <div class="relative">
+            <div class="flex items-center gap-3 mb-3">
+              <div
+                class="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center"
+              >
+                <i class="pi pi-bell text-blue-400"></i>
+              </div>
+              <span class="text-3xl font-bold text-white">{{
+                unreadNotificationsCount()
+              }}</span>
+            </div>
+            <p class="text-gray-400 text-sm font-medium">Notificaciones</p>
           </div>
-          <p class="text-blue-100 text-xs">Notificaciones pendientes</p>
         </div>
 
-        <!-- Empleados del día -->
+        <!-- Empleados -->
         <div
-          class="bg-gradient-to-br from-green-600 to-green-700 rounded-lg p-4 text-white shadow-lg"
+          class="group relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 p-5 transition-all duration-300 hover:bg-white/15 hover:border-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/20"
+          @scaleIn
         >
-          <div class="flex items-center justify-between mb-1">
-            <i class="pi pi-users text-xl opacity-80"></i>
-            <span class="text-2xl font-bold">{{
-              todayStats().totalEmployees
-            }}</span>
+          <div
+            class="absolute top-0 right-0 w-20 h-20 bg-emerald-500/10 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-500"
+          ></div>
+          <div class="relative">
+            <div class="flex items-center gap-3 mb-3">
+              <div
+                class="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center"
+              >
+                <i class="pi pi-users text-emerald-400"></i>
+              </div>
+              <span class="text-3xl font-bold text-white">{{
+                todayStats().totalEmployees
+              }}</span>
+            </div>
+            <p class="text-gray-400 text-sm font-medium">Empleados hoy</p>
           </div>
-          <p class="text-green-100 text-xs">Empleados hoy</p>
         </div>
 
         <!-- Retrasos -->
         <div
-          class="bg-gradient-to-br from-red-600 to-red-700 rounded-lg p-4 text-white shadow-lg"
+          class="group relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 p-5 transition-all duration-300 hover:bg-white/15 hover:border-rose-500/30 hover:shadow-xl hover:shadow-rose-500/20"
+          @scaleIn
         >
-          <div class="flex items-center justify-between mb-1">
-            <i class="pi pi-clock text-xl opacity-80"></i>
-            <span class="text-2xl font-bold">{{ todayStats().delayed }}</span>
+          <div
+            class="absolute top-0 right-0 w-20 h-20 bg-rose-500/10 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-500"
+          ></div>
+          <div class="relative">
+            <div class="flex items-center gap-3 mb-3">
+              <div
+                class="w-10 h-10 rounded-xl bg-rose-500/20 flex items-center justify-center"
+              >
+                <i class="pi pi-clock text-rose-400"></i>
+              </div>
+              <span class="text-3xl font-bold text-white">{{
+                todayStats().delayed
+              }}</span>
+            </div>
+            <p class="text-gray-400 text-sm font-medium">Retrasos hoy</p>
           </div>
-          <p class="text-red-100 text-xs">Retrasos hoy</p>
         </div>
 
-        <!-- Recordatorios pendientes -->
+        <!-- Recordatorios -->
         <div
-          class="bg-gradient-to-br from-amber-600 to-amber-700 rounded-lg p-4 text-white shadow-lg"
+          class="group relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 p-5 transition-all duration-300 hover:bg-white/15 hover:border-amber-500/30 hover:shadow-xl hover:shadow-amber-500/20"
+          @scaleIn
         >
-          <div class="flex items-center justify-between mb-1">
-            <i class="pi pi-bookmark text-xl opacity-80"></i>
-            <span class="text-2xl font-bold">{{
-              pendingRemindersCount()
-            }}</span>
+          <div
+            class="absolute top-0 right-0 w-20 h-20 bg-amber-500/10 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-500"
+          ></div>
+          <div class="relative">
+            <div class="flex items-center gap-3 mb-3">
+              <div
+                class="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center"
+              >
+                <i class="pi pi-bookmark text-amber-400"></i>
+              </div>
+              <span class="text-3xl font-bold text-white">{{
+                pendingRemindersCount()
+              }}</span>
+            </div>
+            <p class="text-gray-400 text-sm font-medium">Recordatorios</p>
           </div>
-          <p class="text-amber-100 text-xs">Recordatorios pendientes</p>
         </div>
       </div>
 
       <!-- Card Principal -->
-      <p-card>
+      <p-card @fadeIn>
         <p-tabs value="schedules">
           <p-tablist>
             <p-tab value="schedules">
@@ -255,15 +365,15 @@ type Reminder = {
           </p-tablist>
 
           <p-tabpanel value="employee-requests">
-            <div class="space-y-4">
-              <!-- Filtros -->
+            <div class="space-y-5">
+              <!-- Filtros - Moderno -->
               <div
-                class="flex gap-2 items-center flex-wrap justify-between bg-neutral-800/50 p-4 rounded-lg"
+                class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between bg-white/5 backdrop-blur-sm border border-white/10 p-4 rounded-2xl"
               >
-                <div class="flex gap-2 items-center flex-wrap">
+                <div class="flex gap-3 items-center flex-wrap">
                   <p-select
                     [options]="[
-                      { label: 'Todos', value: null },
+                      { label: 'Todos los tipos', value: null },
                       { label: 'Compensatorio', value: 'compensatorio' },
                       { label: 'Incapacidades', value: 'incapacidad' },
                       { label: 'Vacaciones', value: 'vacaciones' },
@@ -272,14 +382,14 @@ type Reminder = {
                     optionLabel="label"
                     optionValue="value"
                     [(ngModel)]="requestTypeFilter"
-                    placeholder="Filtrar por tipo"
+                    placeholder="Tipo de solicitud"
                     showClear
                     appendTo="body"
                     styleClass="w-48"
                   />
                   <p-select
                     [options]="[
-                      { label: 'Todos', value: null },
+                      { label: 'Todos los estados', value: null },
                       { label: 'Pendiente', value: 'pending' },
                       { label: 'Aprobado', value: 'approved' },
                       { label: 'Rechazado', value: 'rejected' }
@@ -287,14 +397,15 @@ type Reminder = {
                     optionLabel="label"
                     optionValue="value"
                     [(ngModel)]="requestStatusFilter"
-                    placeholder="Filtrar por estado"
+                    placeholder="Estado"
                     showClear
                     appendTo="body"
-                    styleClass="w-48"
+                    styleClass="w-44"
                   />
                   <p-button
                     icon="pi pi-refresh"
                     label="Actualizar"
+                    [outlined]="true"
                     severity="secondary"
                     (onClick)="refreshEmployeeRequests()"
                     [loading]="
@@ -303,16 +414,17 @@ type Reminder = {
                       vacationsApi.isLoading() ||
                       documentRequestsApi.isLoading()
                     "
+                    styleClass="rounded-xl"
                   />
                 </div>
-                <div class="flex items-center gap-2 text-sm text-gray-400">
-                  <i class="pi pi-info-circle"></i>
-                  <span
-                    >{{
-                      filteredBranchEmployeeRequests().length
-                    }}
-                    solicitud(es)</span
-                  >
+                <div
+                  class="flex items-center gap-2 bg-white/5 rounded-full px-4 py-2"
+                >
+                  <i class="pi pi-list text-indigo-400"></i>
+                  <span class="text-sm font-medium text-gray-300">
+                    {{ filteredBranchEmployeeRequests().length }}
+                    <span class="text-gray-500">solicitud(es)</span>
+                  </span>
                 </div>
               </div>
 
@@ -320,19 +432,30 @@ type Reminder = {
               @if (compensatoryTimeoffsApi.isLoading() ||
               disabilitiesApi.isLoading() || vacationsApi.isLoading() ||
               documentRequestsApi.isLoading()) {
-              <div class="flex justify-center py-12">
-                <i class="pi pi-spin pi-spinner text-4xl text-gray-400"></i>
+              <div class="flex flex-col items-center justify-center py-16">
+                <div
+                  class="w-16 h-16 rounded-2xl bg-indigo-500/20 flex items-center justify-center mb-4"
+                >
+                  <i class="pi pi-spin pi-spinner text-2xl text-indigo-400"></i>
+                </div>
+                <p class="text-gray-400">Cargando solicitudes...</p>
               </div>
               }
 
               <!-- Empty State -->
               @else if (filteredBranchEmployeeRequests().length === 0) {
-              <div class="text-center py-12">
-                <i class="pi pi-inbox text-6xl text-gray-400 mb-4"></i>
-                <p class="text-gray-400 text-lg">
-                  No hay solicitudes de empleados
+              <div
+                class="flex flex-col items-center justify-center py-16 bg-white/5 rounded-2xl border border-white/10"
+              >
+                <div
+                  class="w-20 h-20 rounded-2xl bg-gray-500/10 flex items-center justify-center mb-4"
+                >
+                  <i class="pi pi-inbox text-3xl text-gray-500"></i>
+                </div>
+                <p class="text-gray-300 text-lg font-medium mb-1">
+                  No hay solicitudes
                 </p>
-                <p class="text-gray-500 text-sm mt-2">
+                <p class="text-gray-500 text-sm">
                   Las solicitudes creadas en "Gestiones" aparecerán aquí
                 </p>
               </div>
@@ -340,21 +463,26 @@ type Reminder = {
 
               <!-- Requests List -->
               @else {
-              <div class="grid grid-cols-1 gap-3">
+              <div class="grid grid-cols-1 gap-4" @staggerFade>
                 @for (request of unifiedRequests(); track request.id) {
                 <div
-                  class="border rounded-lg p-4 transition-all hover:shadow-md cursor-pointer"
-                  [ngClass]="request.unified.colorClassBg"
+                  class="group relative overflow-hidden border border-white/10 rounded-2xl p-5 transition-all duration-300 hover:border-white/20 hover:shadow-xl hover:scale-[1.005] cursor-pointer bg-white/5 backdrop-blur-sm"
+                  @scaleIn
                   (click)="viewRequestDetails(request)"
                 >
-                  <div class="flex items-start justify-between gap-4">
-                    <div class="flex items-start gap-3 flex-1">
+                  <div
+                    class="absolute inset-0 bg-gradient-to-r opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                    [ngClass]="request.unified.colorClassBg"
+                  ></div>
+                  <div class="relative flex items-start justify-between gap-4">
+                    <div class="flex items-start gap-4 flex-1">
                       <!-- Icono unificado -->
                       <div
-                        class="mt-1 w-10 h-10 rounded-full flex items-center justify-center bg-white/5"
+                        class="w-12 h-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110"
+                        [ngClass]="request.unified.colorClassBg"
                       >
                         <i
-                          class="pi"
+                          class="pi text-lg"
                           [ngClass]="[
                             request.unified.icon,
                             request.unified.colorClassActive
@@ -443,85 +571,132 @@ type Reminder = {
           </p-tabpanel>
 
           <p-tabpanel value="timelogs">
-            <div class="space-y-4">
-              <!-- Filtros y acciones -->
+            <div class="space-y-5">
+              <!-- Filtros y acciones - Moderno -->
               <div
-                class="flex gap-2 items-center flex-wrap justify-between bg-neutral-800/50 p-4 rounded-lg"
+                class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between bg-white/5 backdrop-blur-sm border border-white/10 p-4 rounded-2xl"
               >
-                <div class="flex gap-2 items-center flex-wrap">
-                  <p-select
-                    [options]="branchEmployees()"
-                    optionLabel="short_name"
-                    optionValue="id"
-                    [(ngModel)]="selectedEmployeeId"
-                    placeholder="Filtrar por empleado"
-                    showClear
-                    filter
-                    appendTo="body"
-                    styleClass="w-64"
-                  />
-                  <p-datepicker
-                    [(ngModel)]="selectedDate"
-                    [showIcon]="true"
-                    dateFormat="dd/mm/yy"
-                    placeholder="Fecha"
-                    appendTo="body"
-                    (onSelect)="refreshTimelogs()"
-                  />
+                <div class="flex gap-3 items-center flex-wrap">
+                  <div class="relative">
+                    <i
+                      class="pi pi-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10"
+                    ></i>
+                    <p-select
+                      [options]="branchEmployees()"
+                      optionLabel="short_name"
+                      optionValue="id"
+                      [(ngModel)]="selectedEmployeeId"
+                      placeholder="Filtrar por empleado"
+                      showClear
+                      filter
+                      appendTo="body"
+                      styleClass="w-64 pl-8"
+                    />
+                  </div>
+                  <div class="relative">
+                    <p-datepicker
+                      [(ngModel)]="selectedDate"
+                      [showIcon]="true"
+                      dateFormat="dd/mm/yy"
+                      placeholder="Fecha"
+                      appendTo="body"
+                      (onSelect)="refreshTimelogs()"
+                      styleClass="rounded-xl"
+                    />
+                  </div>
                 </div>
                 <p-button
                   icon="pi pi-refresh"
                   label="Actualizar"
+                  [outlined]="true"
                   severity="secondary"
                   (onClick)="refreshTimelogs()"
                   [loading]="timelogsResource.isLoading()"
+                  styleClass="rounded-xl"
                 />
               </div>
 
-              <!-- Estadísticas rápidas del día -->
+              <!-- Estadísticas del día - Diseño moderno con pills -->
               @if (todayStats().totalEmployees > 0) {
-              <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <div class="flex flex-wrap gap-3">
                 <div
-                  class="bg-green-600/20 border border-green-600/30 rounded-lg p-3 text-center"
+                  class="flex items-center gap-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-4 py-2 transition-all hover:bg-emerald-500/20"
                 >
-                  <div class="text-2xl font-bold text-green-400">
-                    {{ todayStats().onTime }}
+                  <div
+                    class="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center"
+                  >
+                    <i class="pi pi-check text-emerald-400 text-sm"></i>
                   </div>
-                  <div class="text-xs text-gray-400 mt-1">A tiempo</div>
-                </div>
-                <div
-                  class="bg-red-600/20 border border-red-600/30 rounded-lg p-3 text-center"
-                >
-                  <div class="text-2xl font-bold text-red-400">
-                    {{ todayStats().delayed }}
-                  </div>
-                  <div class="text-xs text-gray-400 mt-1">Retrasos</div>
-                </div>
-                <div
-                  class="bg-amber-600/20 border border-amber-600/30 rounded-lg p-3 text-center"
-                >
-                  <div class="text-2xl font-bold text-amber-400">
-                    {{ todayStats().missing }}
-                  </div>
-                  <div class="text-xs text-gray-400 mt-1">Sin marcar</div>
-                </div>
-                <div
-                  class="bg-orange-600/20 border border-orange-600/30 rounded-lg p-3 text-center"
-                >
-                  <div class="text-2xl font-bold text-orange-400">
-                    {{ todayStats().lunchExceeded }}
-                  </div>
-                  <div class="text-xs text-gray-400 mt-1">
-                    Almuerzo excedido
+                  <div>
+                    <span class="text-lg font-bold text-emerald-400">{{
+                      todayStats().onTime
+                    }}</span>
+                    <span class="text-xs text-gray-400 ml-1.5">A tiempo</span>
                   </div>
                 </div>
                 <div
-                  class="bg-purple-600/20 border border-purple-600/30 rounded-lg p-3 text-center"
+                  class="flex items-center gap-2.5 bg-rose-500/10 border border-rose-500/20 rounded-full px-4 py-2 transition-all hover:bg-rose-500/20"
                 >
-                  <div class="text-2xl font-bold text-purple-400">
-                    {{ todayStats().earlyExit }}
+                  <div
+                    class="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center"
+                  >
+                    <i class="pi pi-clock text-rose-400 text-sm"></i>
                   </div>
-                  <div class="text-xs text-gray-400 mt-1">Salida temprana</div>
+                  <div>
+                    <span class="text-lg font-bold text-rose-400">{{
+                      todayStats().delayed
+                    }}</span>
+                    <span class="text-xs text-gray-400 ml-1.5">Retrasos</span>
+                  </div>
+                </div>
+                <div
+                  class="flex items-center gap-2.5 bg-amber-500/10 border border-amber-500/20 rounded-full px-4 py-2 transition-all hover:bg-amber-500/20"
+                >
+                  <div
+                    class="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center"
+                  >
+                    <i
+                      class="pi pi-exclamation-triangle text-amber-400 text-sm"
+                    ></i>
+                  </div>
+                  <div>
+                    <span class="text-lg font-bold text-amber-400">{{
+                      todayStats().missing
+                    }}</span>
+                    <span class="text-xs text-gray-400 ml-1.5">Sin marcar</span>
+                  </div>
+                </div>
+                <div
+                  class="flex items-center gap-2.5 bg-orange-500/10 border border-orange-500/20 rounded-full px-4 py-2 transition-all hover:bg-orange-500/20"
+                >
+                  <div
+                    class="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center"
+                  >
+                    <i class="pi pi-stopwatch text-orange-400 text-sm"></i>
+                  </div>
+                  <div>
+                    <span class="text-lg font-bold text-orange-400">{{
+                      todayStats().lunchExceeded
+                    }}</span>
+                    <span class="text-xs text-gray-400 ml-1.5">Almuerzo</span>
+                  </div>
+                </div>
+                <div
+                  class="flex items-center gap-2.5 bg-violet-500/10 border border-violet-500/20 rounded-full px-4 py-2 transition-all hover:bg-violet-500/20"
+                >
+                  <div
+                    class="w-8 h-8 rounded-full bg-violet-500/20 flex items-center justify-center"
+                  >
+                    <i class="pi pi-sign-out text-violet-400 text-sm"></i>
+                  </div>
+                  <div>
+                    <span class="text-lg font-bold text-violet-400">{{
+                      todayStats().earlyExit
+                    }}</span>
+                    <span class="text-xs text-gray-400 ml-1.5"
+                      >Salida temp.</span
+                    >
+                  </div>
                 </div>
               </div>
               }
@@ -532,19 +707,54 @@ type Reminder = {
                 [paginator]="true"
                 [rows]="25"
                 [rowsPerPageOptions]="[10, 25, 50]"
-                styleClass="p-datatable-striped"
+                styleClass="p-datatable-sm"
                 [scrollable]="true"
                 scrollHeight="600px"
               >
                 <ng-template #header>
-                  <tr>
-                    <th style="min-width: 200px">Empleado</th>
-                    <th style="min-width: 140px">Horario</th>
-                    <th style="min-width: 120px">Entrada</th>
-                    <th style="min-width: 120px">Inicio Almuerzo</th>
-                    <th style="min-width: 120px">Fin Almuerzo</th>
-                    <th style="min-width: 120px">Salida</th>
-                    <th style="min-width: 200px">Estado</th>
+                  <tr class="bg-white/5">
+                    <th
+                      style="min-width: 200px"
+                      class="font-semibold text-gray-300"
+                    >
+                      Empleado
+                    </th>
+                    <th
+                      style="min-width: 140px"
+                      class="font-semibold text-gray-300"
+                    >
+                      Horario
+                    </th>
+                    <th
+                      style="min-width: 140px"
+                      class="font-semibold text-gray-300"
+                    >
+                      Entrada
+                    </th>
+                    <th
+                      style="min-width: 140px"
+                      class="font-semibold text-gray-300"
+                    >
+                      Inicio Almuerzo
+                    </th>
+                    <th
+                      style="min-width: 140px"
+                      class="font-semibold text-gray-300"
+                    >
+                      Fin Almuerzo
+                    </th>
+                    <th
+                      style="min-width: 140px"
+                      class="font-semibold text-gray-300"
+                    >
+                      Salida
+                    </th>
+                    <th
+                      style="min-width: 150px"
+                      class="font-semibold text-gray-300"
+                    >
+                      Estado
+                    </th>
                   </tr>
                 </ng-template>
                 <ng-template #body let-log>
@@ -562,6 +772,7 @@ type Reminder = {
                         !log.is_early_exit &&
                         log.entry_time
                     }"
+                    @fadeIn
                   >
                     <td>
                       <div class="flex items-center gap-3">
@@ -751,12 +962,21 @@ type Reminder = {
                 </ng-template>
                 <ng-template #emptymessage>
                   <tr>
-                    <td [attr.colspan]="6" class="text-center py-12">
-                      <div class="flex flex-col items-center gap-3">
-                        <i class="pi pi-inbox text-6xl text-gray-500"></i>
-                        <p class="text-gray-400 text-lg">
-                          No hay marcaciones para esta fecha
-                        </p>
+                    <td [attr.colspan]="7" class="text-center py-16">
+                      <div class="flex flex-col items-center gap-4">
+                        <div
+                          class="w-20 h-20 rounded-2xl bg-gray-500/10 flex items-center justify-center"
+                        >
+                          <i class="pi pi-clock text-3xl text-gray-500"></i>
+                        </div>
+                        <div>
+                          <p class="text-gray-300 text-lg font-medium mb-1">
+                            No hay marcaciones
+                          </p>
+                          <p class="text-gray-500 text-sm">
+                            No se encontraron registros para esta fecha
+                          </p>
+                        </div>
                       </div>
                     </td>
                   </tr>
@@ -847,7 +1067,7 @@ type Reminder = {
                   </tr>
                 </ng-template>
                 <ng-template #body let-item>
-                  <tr>
+                  <tr @fadeIn>
                     <td pFrozenColumn>
                       {{ item.first_name }} {{ item.father_name }}
                     </td>
@@ -1005,6 +1225,7 @@ type Reminder = {
                       'border-l-4 border-purple-500':
                         reminder.audit_task_instance_id
                     }"
+                    @fadeIn
                   >
                     <td>
                       @if (reminder.audit_task_instance_id) {
@@ -1149,8 +1370,9 @@ type Reminder = {
         (click)="showReminderDialog.set(false)"
       >
         <div
-          class="bg-neutral-800 rounded-lg p-6 max-w-md w-full"
+          class="bg-neutral-800 rounded-lg p-6 max-w-md w-full shadow-2xl"
           (click)="$event.stopPropagation()"
+          @scaleIn
         >
           <h3 class="text-xl font-bold mb-4">Nuevo Recordatorio</h3>
           <div class="space-y-4">
@@ -1525,8 +1747,78 @@ type Reminder = {
     </div>
   `,
   styles: `
+    /* Modern Tab Styling */
     ::ng-deep .p-tablist {
-      margin-bottom: 1rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      padding-bottom: 0;
+    }
+    ::ng-deep .p-tab {
+      border-radius: 0.75rem 0.75rem 0 0;
+      transition: all 0.2s ease;
+    }
+    ::ng-deep .p-tab:hover {
+      background: rgba(255,255,255,0.05);
+    }
+    ::ng-deep .p-tab-active {
+      background: rgba(99, 102, 241, 0.15) !important;
+      border-bottom: 2px solid rgb(99, 102, 241);
+    }
+
+    /* Modern Table Styling */
+    ::ng-deep .p-datatable .p-datatable-thead > tr > th {
+      background: rgba(255,255,255,0.03);
+      border-color: rgba(255,255,255,0.1);
+      padding: 1rem;
+    }
+    ::ng-deep .p-datatable .p-datatable-tbody > tr {
+      transition: all 0.2s ease;
+    }
+    ::ng-deep .p-datatable .p-datatable-tbody > tr:hover {
+      background: rgba(255,255,255,0.05) !important;
+    }
+    ::ng-deep .p-datatable .p-datatable-tbody > tr > td {
+      border-color: rgba(255,255,255,0.05);
+      padding: 0.875rem 1rem;
+    }
+
+    /* Modern Card Styling */
+    ::ng-deep .p-card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 1.5rem;
+      backdrop-filter: blur(10px);
+    }
+    ::ng-deep .p-card .p-card-body {
+      padding: 1.5rem;
+    }
+
+    /* Modern Select Styling */
+    ::ng-deep .p-select {
+      border-radius: 0.75rem;
+      border-color: rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.05);
+    }
+    ::ng-deep .p-select:hover {
+      border-color: rgba(99, 102, 241, 0.5);
+    }
+
+    /* Modern Button Styling */
+    ::ng-deep .p-button.p-button-outlined {
+      border-radius: 0.75rem;
+    }
+
+    /* Modern Avatar Styling */
+    ::ng-deep .p-avatar {
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    /* Paginator Styling */
+    ::ng-deep .p-paginator {
+      background: transparent;
+      border: none;
+      padding: 1rem 0;
     }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -2689,9 +2981,7 @@ export class BranchManagerComponent {
     schedules: any[]
   ): any {
     // Normalizar la fecha de búsqueda al inicio del día en zona Panama
-    const searchDate = startOfDay(
-      toDate(date, { timeZone: 'America/Panama' })
-    );
+    const searchDate = startOfDay(toDate(date, { timeZone: 'America/Panama' }));
 
     const employeeSchedules = schedules.filter(
       (s) => s.employee_id === employeeId
@@ -2727,9 +3017,7 @@ export class BranchManagerComponent {
       const start = startOfDay(
         toDate(s.start_date, { timeZone: 'America/Panama' })
       );
-      const end = endOfDay(
-        toDate(s.end_date, { timeZone: 'America/Panama' })
-      );
+      const end = endOfDay(toDate(s.end_date, { timeZone: 'America/Panama' }));
 
       return searchDate >= start && searchDate <= end;
     });
