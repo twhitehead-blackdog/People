@@ -90,7 +90,7 @@ interface EmailConfig {
                 <i class="pi pi-spin pi-spinner"></i>
                 Cargando configuración...
               </div>
-              } @else if (emailConfigResource.value(); as config) {
+              } @else { @if (emailConfigResource.value(); as config) {
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div
                   class="p-4 bg-neutral-800/50 rounded-lg border border-neutral-700"
@@ -168,7 +168,7 @@ interface EmailConfig {
                     (click)="sendTestEmail()"
                   />
                 </div>
-              </div>
+              }
               }
 
               <!-- Información -->
@@ -241,10 +241,7 @@ interface EmailConfig {
                     [disabled]="saving()"
                   />
                 </div>
-                <div
-                  class="flex flex-col gap-2"
-                  *ngIf="hrEmailNotifyDocuments()"
-                >
+                @if (hrEmailNotifyDocuments()) {
                   <label class="text-xs font-medium text-gray-300"
                     >Destinatarios (separados por coma)</label
                   >
@@ -256,7 +253,7 @@ interface EmailConfig {
                     placeholder="email1@ejemplo.com,email2@ejemplo.com"
                     class="bg-neutral-700 border-neutral-600 text-white"
                   />
-                </div>
+                }
               </div>
 
               <!-- Incapacidades -->
@@ -279,10 +276,7 @@ interface EmailConfig {
                     [disabled]="saving()"
                   />
                 </div>
-                <div
-                  class="flex flex-col gap-2"
-                  *ngIf="hrEmailNotifyDisabilities()"
-                >
+                @if (hrEmailNotifyDisabilities()) {
                   <label class="text-xs font-medium text-gray-300"
                     >Destinatarios (separados por coma)</label
                   >
@@ -294,7 +288,7 @@ interface EmailConfig {
                     placeholder="email1@ejemplo.com,email2@ejemplo.com"
                     class="bg-neutral-700 border-neutral-600 text-white"
                   />
-                </div>
+                }
               </div>
 
               <!-- Tiempo compensatorio -->
@@ -317,10 +311,7 @@ interface EmailConfig {
                     [disabled]="saving()"
                   />
                 </div>
-                <div
-                  class="flex flex-col gap-2"
-                  *ngIf="hrEmailNotifyCompensatory()"
-                >
+                @if (hrEmailNotifyCompensatory()) {
                   <label class="text-xs font-medium text-gray-300"
                     >Destinatarios (separados por coma)</label
                   >
@@ -332,7 +323,7 @@ interface EmailConfig {
                     placeholder="email1@ejemplo.com,email2@ejemplo.com"
                     class="bg-neutral-700 border-neutral-600 text-white"
                   />
-                </div>
+                }
               </div>
             </div>
           </p-card>

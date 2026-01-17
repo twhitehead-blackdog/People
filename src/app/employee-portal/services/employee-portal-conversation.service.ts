@@ -1,7 +1,8 @@
-import { Injectable, inject, computed, signal } from '@angular/core';
 import { HttpClient, httpResource } from '@angular/common/http';
-import { firstValueFrom } from 'rxjs';
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { MessageService } from 'primeng/api';
+import { firstValueFrom } from 'rxjs';
+import { ApiUrlService } from '../../services/api-url.service';
 import { DashboardStore } from '../../stores/dashboard.store';
 
 // NOTA: No usar providedIn:'root' porque depende de DashboardStore (scope del layout del portal).
@@ -11,6 +12,7 @@ export class EmployeePortalConversationService {
   private http = inject(HttpClient);
   private messageService = inject(MessageService);
   private store = inject(DashboardStore);
+  private apiUrl = inject(ApiUrlService);
 
   public currentEmployee = computed(() => this.store.currentEmployee());
 
@@ -22,7 +24,7 @@ export class EmployeePortalConversationService {
     const complaint = this.selectedComplaint();
     if (!complaint) return undefined;
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages`,
+      url: this.apiUrl.build('rest/v1/complaint_messages'),
       method: 'GET',
       params: {
         select: '*',
@@ -40,7 +42,7 @@ export class EmployeePortalConversationService {
   public unreadMessagesApi = httpResource<any[]>(() => {
     if (!this.currentEmployee()?.id) return undefined;
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages`,
+      url: this.apiUrl.build('rest/v1/complaint_messages'),
       method: 'GET',
       params: {
         select: 'complaint_id',
@@ -83,7 +85,10 @@ export class EmployeePortalConversationService {
     this.getMyComplaints = getter;
   }
 
-  public hasUnreadMessages(complaint: any, selectedComplaintId: string | null): boolean {
+  public hasUnreadMessages(
+    complaint: any,
+    selectedComplaintId: string | null
+  ): boolean {
     // Primero verificar si hay mensajes sin leer de la conversación actual
     if (complaint.id === selectedComplaintId) {
       const messages = this.conversationMessages();
@@ -115,7 +120,7 @@ export class EmployeePortalConversationService {
       try {
         await firstValueFrom(
           this.http.patch(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages?id=eq.${message.id}`,
+            this.apiUrl.build(`rest/v1/complaint_messages?id=eq.${message.id}`),
             { is_read: true, read_at: new Date().toISOString() },
             {
               headers: {
@@ -159,7 +164,7 @@ export class EmployeePortalConversationService {
     try {
       await firstValueFrom(
         this.http.post(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages`,
+          this.apiUrl.build('rest/v1/complaint_messages'),
           messageData,
           {
             headers: {

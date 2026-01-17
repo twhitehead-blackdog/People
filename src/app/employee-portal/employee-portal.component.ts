@@ -1803,6 +1803,7 @@ export class EmployeePortalComponent {
   public async submitComplaint(): Promise<void> {
     submitComplaint({
       http: this.http,
+      apiUrl: this.apiUrl,
       messageService: this.messageService,
       store: this.portalStore,
       currentEmployee: () => this.currentEmployee(),

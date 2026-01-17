@@ -1,8 +1,9 @@
 import { Injectable } from '@angular/core';
+import { getEnv } from '../utils/env.utils';
 
 @Injectable({ providedIn: 'root' })
 export class ApiUrlService {
-  private base = process.env['ENV_SUPABASE_URL'] ?? '';
+  private base = getEnv('ENV_SUPABASE_URL') ?? '';
 
   get baseUrl(): string {
     return this.base;

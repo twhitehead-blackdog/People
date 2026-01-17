@@ -30,7 +30,7 @@ import { GroomerBranchAssignment } from '../models';
         <div class="italic">No se puede asignar sucursal este día.</div>
       </div>
     </ng-template>
-    } @else if (assignment(); as assignmentValue) {
+    } @else { @if (assignment(); as assignmentValue) {
     <div
       class="inline-flex gap-1 py-0.5 px-1.5 rounded-sm font-medium items-center justify-center text-[11px] cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-md border border-black/20 shadow-sm text-white opacity-80 hover:opacity-100"
       [style.background-color]="
@@ -95,7 +95,7 @@ import { GroomerBranchAssignment } from '../models';
       (onClick)="onAdd()"
       class="hover:bg-neutral-700 hover:border-amber-400 hover:text-amber-400 transition-all"
     />
-    } }
+    } } }
   `,
 })
 export class GroomerBranchCellComponent {

@@ -44,11 +44,7 @@ export async function uploadDisability(
     disabilityRecipients,
   } = deps;
 
-  if (
-    !formState.startDate ||
-    !formState.endDate ||
-    !formState.selectedFile
-  ) {
+  if (!formState.startDate || !formState.endDate || !formState.selectedFile) {
     messageService.add({
       severity: 'warn',
       summary: 'Campos Requeridos',
@@ -65,9 +61,7 @@ export async function uploadDisability(
     if (formState.selectedFile) {
       const file = formState.selectedFile;
       const fileExt = file.name.split('.').pop();
-      const fileName = `${
-        currentEmployee()!.id
-      }/${Date.now()}.${fileExt}`;
+      const fileName = `${currentEmployee()!.id}/${Date.now()}.${fileExt}`;
 
       // Upload to Supabase Storage using REST API
       try {
@@ -79,7 +73,8 @@ export async function uploadDisability(
 
         const uploadUrl = `${apiUrl.baseUrl}/storage/v1/object/disabilities/${fileName}`;
         await firstValueFrom(
-          http.post(uploadUrl,
+          http.post(
+            uploadUrl,
             file, // Enviar el archivo directamente como binario
             {
               headers: {
@@ -93,7 +88,7 @@ export async function uploadDisability(
         );
 
         // Get public URL for the uploaded file
-        documentUrl = `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/public/disabilities/${fileName}`;
+        documentUrl = `${apiUrl.baseUrl}/storage/v1/object/public/disabilities/${fileName}`;
       } catch (uploadError: any) {
         console.error('Error uploading file to storage:', uploadError);
         const errorDetail =
@@ -122,10 +117,7 @@ export async function uploadDisability(
     };
 
     http
-      .post(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_disabilities`,
-        disabilityData
-      )
+      .post(`${apiUrl.baseUrl}/rest/v1/employee_disabilities`, disabilityData)
       .subscribe({
         next: (created: any) => {
           messageService.add({
@@ -137,7 +129,9 @@ export async function uploadDisability(
 
           // Notificación por correo a RRHH (configurable en settings)
           void (async () => {
-            console.log('[DEBUG Disability] 📧 Verificando notificación por email...');
+            console.log(
+              '[DEBUG Disability] 📧 Verificando notificación por email...'
+            );
 
             const shouldNotify = await getBooleanSetting(
               http,
@@ -145,14 +139,21 @@ export async function uploadDisability(
               true
             );
 
-            console.log('[DEBUG Disability] 📧 hr_email_notify_disabilities:', shouldNotify);
+            console.log(
+              '[DEBUG Disability] 📧 hr_email_notify_disabilities:',
+              shouldNotify
+            );
 
             if (!shouldNotify) {
-              console.log('[DEBUG Disability] 🚫 Notificación por email desactivada');
+              console.log(
+                '[DEBUG Disability] 🚫 Notificación por email desactivada'
+              );
               return;
             }
 
-            console.log('[DEBUG Disability] ✅ Enviando notificación por email de incapacidad');
+            console.log(
+              '[DEBUG Disability] ✅ Enviando notificación por email de incapacidad'
+            );
 
             const employee = currentEmployee();
             const employeeName =
@@ -174,7 +175,9 @@ export async function uploadDisability(
                   <li><strong>Empleado:</strong> ${employeeName}</li>
                   <li><strong>Inicio:</strong> ${disabilityData.start_date}</li>
                   <li><strong>Fin:</strong> ${disabilityData.end_date}</li>
-                  <li><strong>Descripción:</strong> ${String(disabilityData.description || 'N/A')
+                  <li><strong>Descripción:</strong> ${String(
+                    disabilityData.description || 'N/A'
+                  )
                     .split('\n')
                     .join('<br/>')}</li>
                   <li><strong>Documento:</strong> ${
@@ -182,7 +185,11 @@ export async function uploadDisability(
                       ? `<a href="${disabilityData.document_url}">Abrir documento</a>`
                       : 'N/A'
                   }</li>
-                  ${disabilityId ? `<li><strong>ID:</strong> ${disabilityId}</li>` : ''}
+                  ${
+                    disabilityId
+                      ? `<li><strong>ID:</strong> ${disabilityId}</li>`
+                      : ''
+                  }
                 </ul>
                 <p style="color:#666; font-size: 12px; margin-top: 16px;">
                   Este mensaje fue generado automáticamente por People.
@@ -191,14 +198,22 @@ export async function uploadDisability(
             `;
 
             // Obtener destinatarios configurables
-            console.log('[DEBUG Disability] 🔍 Llamando disabilityRecipients()...');
+            console.log(
+              '[DEBUG Disability] 🔍 Llamando disabilityRecipients()...'
+            );
             const recipients = await disabilityRecipients();
-            console.log('[DEBUG Disability] 📧 Destinatarios obtenidos:', recipients);
+            console.log(
+              '[DEBUG Disability] 📧 Destinatarios obtenidos:',
+              recipients
+            );
 
             console.log('[DEBUG Disability] 📝 Preparando email:');
             console.log('[DEBUG Disability] 📧 Para:', recipients);
             console.log('[DEBUG Disability] 📧 Asunto:', subject);
-            console.log('[DEBUG Disability] 📧 Contenido HTML length:', html.length);
+            console.log(
+              '[DEBUG Disability] 📧 Contenido HTML length:',
+              html.length
+            );
 
             const emailPayload = {
               to: recipients,
@@ -207,27 +222,37 @@ export async function uploadDisability(
               fromName: 'People - RRHH',
             };
 
-            console.log('[DEBUG Disability] 🚀 Enviando petición POST a /api/email/send...');
+            console.log(
+              '[DEBUG Disability] 🚀 Enviando petición POST a /api/email/send...'
+            );
             console.log('[DEBUG Disability] 📦 Payload:', emailPayload);
 
-            http
-              .post('/api/email/send', emailPayload)
-              .subscribe({
-                next: (response) => {
-                  console.log('[DEBUG Disability] ✅ Email enviado correctamente');
-                  console.log('[DEBUG Disability] 📥 Respuesta del servidor:', response);
-                },
-                error: (e) => {
-                  console.error('[DEBUG Disability] ❌ ERROR: No se pudo enviar email a RRHH');
-                  console.error('[DEBUG Disability] 🔍 Detalles del error:', e);
-                  console.error('[DEBUG Disability] 📦 Payload que se intentó enviar:', {
+            http.post('/api/email/send', emailPayload).subscribe({
+              next: (response) => {
+                console.log(
+                  '[DEBUG Disability] ✅ Email enviado correctamente'
+                );
+                console.log(
+                  '[DEBUG Disability] 📥 Respuesta del servidor:',
+                  response
+                );
+              },
+              error: (e) => {
+                console.error(
+                  '[DEBUG Disability] ❌ ERROR: No se pudo enviar email a RRHH'
+                );
+                console.error('[DEBUG Disability] 🔍 Detalles del error:', e);
+                console.error(
+                  '[DEBUG Disability] 📦 Payload que se intentó enviar:',
+                  {
                     to: recipients,
                     subject,
                     html: html.substring(0, 200) + '...', // Solo primeros 200 chars
                     fromName: 'People - RRHH',
-                  });
-                },
-              });
+                  }
+                );
+              },
+            });
           })();
 
           resetForm();

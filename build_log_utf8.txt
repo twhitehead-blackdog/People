@@ -1,0 +1,90 @@
+﻿
+> nx run people:build:production
+
+[ENV Plugin] Ô£à Variables cargadas desde .env (fallback): ninguna
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ÔÜÖ´©Å  load multiple .env files with { path: ['.env.local', '.env'] }
+node.exe : [baseline-
+browser-mapping] The 
+data in this module 
+is over two months 
+old.  To ensure 
+accurate Baseline 
+data, please update: 
+`npm i baseline-brows
+er-mapping@latest -D`
+En línea: 1 
+Carácter: 1
++ & "C:\Program Files
+\nodejs/node.exe" "C:
+\Users\Diegu\AppData\
+Roaming\ ...
++ ~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~
+    + CategoryInfo   
+           : NotSpe  
+  cified: ([baseli   
+ ne-brows...ping@    
+latest -D`:Strin    
+g) [], RemoteExc    
+eption
+    + FullyQualified 
+   ErrorId : Native  
+  CommandError
+ 
+(node:30172) 
+[DEP0180] 
+DeprecationWarning: 
+fs.Stats constructor 
+is deprecated.
+(Use `node 
+--trace-deprecation 
+...` to show where 
+the warning was 
+created)
+[33mÔØ»[39m Building...
+[ENV Plugin] ­ƒöº Variables inyectadas en build: [33m13[39m
+[ENV Plugin] ­ƒöº Variables: ENV_AUTH0_AUDIENCE, ENV_AUTH0_CLIENT_ID, ENV_AUTH0_DOMAIN, ENV_SMTP_HOST, ENV_SMTP_NOREPLY_EMAIL, ENV_SMTP_NOREPLY_NAME, ENV_SMTP_PASSWORD, ENV_SMTP_PORT, ENV_SMTP_USER, ENV_SUPABASE_API_KEY, ENV_SUPABASE_SERVICE_ROLE_KEY, ENV_SUPABASE_TOKEN, ENV_SUPABASE_URL
+[ENV Plugin] Ô£à ENV_SUPABASE_SERVICE_ROLE_KEY encontrada (longitud: 219)
+[32mÔ£ö[0m [33mConsole Ninja[0m extension is connected to [33mAngular[0m, see [36mhttps://tinyurl.com/2vt8jxzw[0m
+[32mÔ£ö[0m [33mConsole Ninja[0m extension is connected to [33mAngular[0m, see [36mhttps://tinyurl.com/2vt8jxzw[0m
+[baseline-browser-map
+ping] The data in 
+this module is over 
+two months old.  To 
+ensure accurate 
+Baseline data, 
+please update: `npm 
+i baseline-browser-ma
+pping@latest -D`
+[32mÔ£ö[0m [33mConsole Ninja[0m extension is connected to [33mAngular[0m, see [36mhttps://tinyurl.com/2vt8jxzw[0m
+[32mÔ£ö[0m [33mConsole Ninja[0m extension is connected to [33mAngular[0m, see [36mhttps://tinyurl.com/2vt8jxzw[0m
+[baseline-browser-map
+ping] The data in 
+this module is over 
+two months old.  To 
+ensure accurate 
+Baseline data, 
+please update: `npm 
+i baseline-browser-ma
+pping@latest -D`
+[32mÔ£ö[0m [33mConsole Ninja[0m extension is connected to [33mAngular[0m, see [36mhttps://tinyurl.com/2vt8jxzw[0m
+[baseline-browser-map
+ping] The data in 
+this module is over 
+two months old.  To 
+ensure accurate 
+Baseline data, 
+please update: `npm 
+i baseline-browser-ma
+pping@latest -D`
+[baseline-browser-map
+ping] The data in 
+this module is over 
+two months old.  To 
+ensure accurate 
+Baseline data, 
+please update: `npm 
+i baseline-browser-ma
+pping@latest -D`

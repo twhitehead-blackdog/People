@@ -6,11 +6,18 @@
       "Bash(claude mcp add:*)",
       "Bash(npx tsc:*)",
       "Bash(npx ng:*)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(while IFS= read -r file)",
+      "Bash(do wc -l \"$file\")",
+      "Bash(dir \"C:\\\\Users\\\\Diegu\\\\People\\\\src\\\\app\\\\dashboard\\\\employees-timetable\")",
+      "Bash(dir \"C:\\\\Users\\\\Diegu\\\\People\\\\src\\\\app\\\\dashboard\\\\employees-timetable\\\\components\")",
+      "Bash(awk:*)",
+      "Bash(dir \"C:\\\\Users\\\\Diegu\\\\People\\\\src\\\\app\\\\dashboard\\\\modules\")",
+      "Bash(dir:*)"
     ]
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "supabase"
-  ],
-  "enableAllProjectMcpServers": true
+  ]
 }

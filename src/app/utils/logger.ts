@@ -3,7 +3,9 @@
  * Oculta información sensible cuando NODE_ENV === 'production'
  */
 
-const isDevelopment = typeof process !== 'undefined' && process.env['NODE_ENV'] !== 'production';
+import { getEnv } from './env.utils';
+
+const isDevelopment = getEnv('NODE_ENV') !== 'production';
 const isProduction = !isDevelopment;
 
 /**

@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http';
 import { MessageService } from 'primeng/api';
 import { firstValueFrom } from 'rxjs';
 import { Employee } from '../../models';
+import { ApiUrlService } from '../../services/api-url.service';
 import { EmployeePortalStore } from '../../stores/employee-portal.store';
 
 type ComplaintFormState = {
@@ -13,6 +14,7 @@ type ComplaintFormState = {
 
 type ComplaintActionsDependencies = {
   http: HttpClient;
+  apiUrl: ApiUrlService;
   messageService: MessageService;
   store: InstanceType<typeof EmployeePortalStore>;
   currentEmployee: () => Employee | null | undefined;
@@ -29,6 +31,7 @@ type ComplaintActionsDependencies = {
 export function submitComplaint(deps: ComplaintActionsDependencies): void {
   const {
     http,
+    apiUrl,
     messageService,
     store,
     currentEmployee,
@@ -62,16 +65,12 @@ export function submitComplaint(deps: ComplaintActionsDependencies): void {
   };
 
   http
-    .post(
-      `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaints`,
-      complaintData,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          Prefer: 'return=representation',
-        },
-      }
-    )
+    .post(`${apiUrl.baseUrl}/rest/v1/complaints`, complaintData, {
+      headers: {
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation',
+      },
+    })
     .subscribe({
       next: async (response: any) => {
         const complaint = Array.isArray(response) ? response[0] : response;
@@ -89,7 +88,7 @@ export function submitComplaint(deps: ComplaintActionsDependencies): void {
           try {
             await firstValueFrom(
               http.post(
-                `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages`,
+                `${apiUrl.baseUrl}/rest/v1/complaint_messages`,
                 messageData,
                 {
                   headers: {

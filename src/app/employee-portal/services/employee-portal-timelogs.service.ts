@@ -10,6 +10,7 @@ import {
 import { formatInTimeZone } from 'date-fns-tz';
 import { CalendarMarkerData } from '../../calendar.component';
 import { TimeLogEnum } from '../../models';
+import { ApiUrlService } from '../../services/api-url.service';
 import { OrganizationService } from '../../services/organization.service';
 import { DashboardStore } from '../../stores/dashboard.store';
 import { EmployeePortalStore } from '../../stores/employee-portal.store';
@@ -23,6 +24,7 @@ export class EmployeePortalTimelogsService {
   private store = inject(DashboardStore);
   private portalStore = inject(EmployeePortalStore);
   private organizationService = inject(OrganizationService);
+  private apiUrl = inject(ApiUrlService);
   private readonly TIMEZONE = 'America/Panama';
 
   public currentEmployee = computed(() => this.store.currentEmployee());
@@ -59,7 +61,7 @@ export class EmployeePortalTimelogsService {
     }
 
     // Construir URL manualmente para aplicar correctamente filtros gte y lte
-    const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`;
+    const baseUrl = this.apiUrl.build('rest/v1/timelogs');
     // Construir rango en Panamá y convertirlo a UTC ISO para PostgREST
     const startDateStrPanama =
       formatInTimeZone(dateRange[0], this.TIMEZONE, 'yyyy-MM-dd') +
@@ -96,7 +98,11 @@ export class EmployeePortalTimelogsService {
     const processedLogs = logs
       .map((x) => ({
         ...x,
-        day: formatInTimeZone(new Date(x.created_at), this.TIMEZONE, 'yyyy-MM-dd'),
+        day: formatInTimeZone(
+          new Date(x.created_at),
+          this.TIMEZONE,
+          'yyyy-MM-dd'
+        ),
       }))
       .reduce<any[]>((acc, x) => {
         const existing = acc.find((item) => item.day === x.day);
@@ -175,7 +181,7 @@ export class EmployeePortalTimelogsService {
     const monthStart = startOfMonth(month);
     const monthEnd = endOfMonth(month);
 
-    const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`;
+    const baseUrl = this.apiUrl.build('rest/v1/timelogs');
     const startDateStrPanama =
       formatInTimeZone(monthStart, this.TIMEZONE, 'yyyy-MM-dd') +
       'T00:00:00-05:00';
@@ -227,7 +233,11 @@ export class EmployeePortalTimelogsService {
         const logBranch = x.branch || null;
 
         // Determinar el día en Panamá (no depende del timezone del dispositivo)
-        const actualDay = formatInTimeZone(logDate, this.TIMEZONE, 'yyyy-MM-dd');
+        const actualDay = formatInTimeZone(
+          logDate,
+          this.TIMEZONE,
+          'yyyy-MM-dd'
+        );
 
         // Buscar registro existente por el día de esta marcación
         let existing = acc.find((item) => item.day === actualDay);

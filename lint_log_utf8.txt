@@ -1,0 +1,1265 @@
+﻿
+> nx run people:lint
+
+Linting "people"...
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\components\diagnostic-panel.component.ts[24m[0m
+[0m    [2m4:10[22m  [33mwarning[39m  'Card' is defined but never used          [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m327:26[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\components\notifications-dropdown.component.ts[24m[0m
+[0m  [2m152:7[22m  [33mwarning[39m  Forbidden non-null assertion  [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\components\screen-lock.component.ts[24m[0m
+[0m  [2m197:23[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m198:27[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m199:28[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\admin.component.ts[24m[0m
+[0m  [2m354:43[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\audit-tasks.component.ts[24m[0m
+[0m   [2m880:25[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m1039:28[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1050:28[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\branch-manager-gestiones.component.ts[24m[0m
+[0m  [2m1508:24[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m1536:31[22m  [31merror[39m    Unexpected empty method 'reloadRequests'  [2m@typescript-eslint/no-empty-function[22m[0m
+[0m  [2m1579:40[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1586:38[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1599:24[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m1600:20[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m1601:21[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m1602:19[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m1654:21[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1677:24[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m1678:21[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m1679:19[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m1742:21[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1765:24[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m1769:28[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m1799:21[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1852:47[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1866:24[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m1867:20[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m1934:21[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1957:24[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m1995:21[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\branch-manager.component.ts[24m[0m
+[0m  [2m1882:35[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1948:19[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1964:41[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1971:19[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1985:38[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1992:19[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2006:45[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2015:19[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2196:20[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2270:19[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2280:15[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m2310:42[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2324:24[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m2352:43[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2358:24[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m2385:50[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2551:19[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2564:15[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m2571:52[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2581:70[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2613:15[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2620:34[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2621:34[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2622:40[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2623:36[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2665:44[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2666:54[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2674:35[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2749:27[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2752:30[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2837:50[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2881:36[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2922:60[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2948:63[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2977:15[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2990:16[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2991:6[22m   [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m3167:38[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m3177:28[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m3192:12[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m3222:12[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m3251:25[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m3286:23[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m3294:16[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m3334:23[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m3342:16[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m3381:36[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m3427:16[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m3490:14[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m3547:18[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m3567:60[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m3581:26[22m  [31merror[39m    Unexpected empty method 'resetForm'                                                                               [2m@typescript-eslint/no-empty-function[22m[0m
+[0m  [2m3583:25[22m  [33mwarning[39m  'value' is defined but never used                                                                                 [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m3583:44[22m  [31merror[39m    Unexpected empty method 'setSubmitting'                                                                           [2m@typescript-eslint/no-empty-function[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\complaints-inbox.component.ts[24m[0m
+[0m   [2m556:13[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m612:15[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m623:44[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m624:13[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m698:16[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m708:23[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m739:14[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m751:14[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m770:21[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m800:14[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m815:21[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m922:14[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m949:21[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m976:14[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1005:21[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1033:14[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1061:21[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1078:14[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1106:21[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\dashboard.component.ts[24m[0m
+[0m   [2m784:26[22m  [33mwarning[39m  Unexpected any. Specify a different type        [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m983:13[22m  [33mwarning[39m  'modeLabel' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m1116:20[22m  [33mwarning[39m  Unexpected any. Specify a different type        [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1117:20[22m  [33mwarning[39m  Unexpected any. Specify a different type        [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1118:20[22m  [33mwarning[39m  Unexpected any. Specify a different type        [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1133:35[22m  [33mwarning[39m  Unexpected any. Specify a different type        [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1161:23[22m  [33mwarning[39m  Unexpected any. Specify a different type        [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1162:22[22m  [33mwarning[39m  Unexpected any. Specify a different type        [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\departments-form.component.ts[24m[0m
+[0m  [2m155:23[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\employee-detail.component.ts[24m[0m
+[0m   [2m811:5[22m   [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m823:19[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m836:15[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m918:48[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m961:25[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m970:18[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m986:13[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m   [2m987:13[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m1010:25[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\employee-form.component.ts[24m[0m
+[0m   [2m832:19[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m965:5[22m   [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m   [2m982:19[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m996:15[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1250:13[22m  [33mwarning[39m  'code' is assigned a value but never used                                                                         [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m1352:25[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1398:25[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1431:39[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1555:21[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\employee-list.component.ts[24m[0m
+[0m  [2m715:32[22m  [33mwarning[39m  Unexpected any. Specify a different type             [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m716:36[22m  [33mwarning[39m  Unexpected any. Specify a different type             [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m717:34[22m  [33mwarning[39m  Unexpected any. Specify a different type             [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m908:25[22m  [33mwarning[39m  Unexpected any. Specify a different type             [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m916:17[22m  [33mwarning[39m  'updateResponse' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m955:25[22m  [33mwarning[39m  Unexpected any. Specify a different type             [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\employee-portal.component.ts[24m[0m
+[0m   [2m21:13[22m  [31merror[39m    The selector should start with one of these prefixes: "pt" (https://angular.dev/style-guide#style-02-07)  [2m@angular-eslint/component-selector[22m[0m
+[0m  [2m296:29[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\employee-portal\services\employee-portal-data.service.ts[24m[0m
+[0m   [2m26:37[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m29:75[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m32:37[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m40:24[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m   [2m88:15[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m142:42[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m146:24[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m192:15[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m283:41[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m287:26[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m300:45[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m309:28[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m320:39[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m328:36[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m339:46[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m358:43[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m378:57[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m380:28[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m390:41[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m402:41[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m409:28[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m438:14[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m462:14[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m483:29[22m  [33mwarning[39m  'complaint' is defined but never used     [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m483:40[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m525:33[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\employee-portal\tabs\employee-portal-gestiones-tab.component.ts[24m[0m
+[0m  [2m477:35[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m633:48[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m684:48[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m731:48[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m737:22[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m740:27[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m749:34[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m782:48[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m795:32[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m834:48[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m900:23[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\employee-portal\tabs\employee-portal-notifications-dialog.component.ts[24m[0m
+[0m  [2m184:13[22m  [31merror[39m    Output bindings, including aliases, should not be named as standard DOM events  [2m@angular-eslint/no-output-native[22m[0m
+[0m  [2m201:41[22m  [33mwarning[39m  Unexpected any. Specify a different type                                        [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m212:21[22m  [33mwarning[39m  'id' is defined but never used                                                  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\employee-portal\tabs\employee-portal-profile-tab.component.ts[24m[0m
+[0m  [2m254:25[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m262:21[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m262:39[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m286:21[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\employee-schedules-form.component.ts[24m[0m
+[0m   [2m221:29[22m  [33mwarning[39m  Unexpected any. Specify a different type              [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m254:45[22m  [33mwarning[39m  Unexpected any. Specify a different type              [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m263:43[22m  [33mwarning[39m  Unexpected any. Specify a different type              [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m589:24[22m  [33mwarning[39m  Unexpected any. Specify a different type              [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m609:13[22m  [33mwarning[39m  'id' is assigned a value but never used               [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m611:23[22m  [33mwarning[39m  Unexpected any. Specify a different type              [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m686:31[22m  [33mwarning[39m  Unexpected any. Specify a different type              [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m687:28[22m  [33mwarning[39m  Unexpected any. Specify a different type              [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m917:19[22m  [33mwarning[39m  Unexpected any. Specify a different type              [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m941:26[22m  [33mwarning[39m  Unexpected any. Specify a different type              [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m979:35[22m  [33mwarning[39m  Unexpected any. Specify a different type              [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m980:32[22m  [33mwarning[39m  Unexpected any. Specify a different type              [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1044:48[22m  [33mwarning[39m  Unexpected any. Specify a different type              [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1079:22[22m  [33mwarning[39m  Unexpected any. Specify a different type              [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1105:21[22m  [33mwarning[39m  Unexpected any. Specify a different type              [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1112:27[22m  [33mwarning[39m  Unexpected any. Specify a different type              [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1139:27[22m  [33mwarning[39m  Unexpected any. Specify a different type              [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1168:26[22m  [33mwarning[39m  Unexpected any. Specify a different type              [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1194:28[22m  [33mwarning[39m  Unexpected any. Specify a different type              [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1219:31[22m  [33mwarning[39m  Unexpected any. Specify a different type              [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1276:19[22m  [33mwarning[39m  'newEndFormatted' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\employee-schedules.component.ts[24m[0m
+[0m  [2m130:18[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m181:23[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m190:16[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\employees-timetable.component.ts[24m[0m
+[0m   [2m777:46[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m790:25[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m791:23[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m792:25[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m817:55[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m819:39[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1060:23[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1189:21[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1195:27[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1218:23[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1233:27[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1256:23[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1271:26[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1295:28[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1430:23[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1595:26[22m  [33mwarning[39m  'shiftId' is defined but never used          [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m1665:19[22m  [33mwarning[39m  'branch' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m1735:46[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1737:19[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1738:16[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1758:48[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1769:19[22m  [33mwarning[39m  'branch' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m1800:23[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1972:37[22m  [33mwarning[39m  Forbidden non-null assertion                 [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m1973:28[22m  [33mwarning[39m  Forbidden non-null assertion                 [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m2072:30[22m  [33mwarning[39m  Forbidden non-null assertion                 [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m2075:16[22m  [33mwarning[39m  Forbidden non-null assertion                 [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\employees-timetable\components\shift-cell\shift-cell.component.ts[24m[0m
+[0m  [2m14:5[22m  [31merror[39m  Parsing error: Opening tag "div" not terminated[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\employees-timetable\components\timetable-grid\timetable-grid.component.ts[24m[0m
+[0m   [2m14:13[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m84:60[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m87:46[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m95:25[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m99:40[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m118:38[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m122:40[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\employees-timetable\components\timetable-header\timetable-header.component.ts[24m[0m
+[0m  [2m1:28[22m  [33mwarning[39m  'output' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\groomer-branch-cell.component.ts[24m[0m
+[0m  [2m33:31[22m  [31merror[39m  Parsing error: "as" expression is only allowed on the primary @if block[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\groomer-branch-selection-dialog.component.ts[24m[0m
+[0m  [2m157:3[22m   [31merror[39m    Output bindings, including aliases, should not be named as standard DOM events  [2m@angular-eslint/no-output-native[22m[0m
+[0m  [2m215:33[22m  [33mwarning[39m  Forbidden non-null assertion                                                    [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m255:31[22m  [33mwarning[39m  Forbidden non-null assertion                                                    [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\home.component.ts[24m[0m
+[0m     [2m1:24[22m  [33mwarning[39m  'CurrencyPipe' is defined but never used                  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m     [2m1:38[22m  [33mwarning[39m  'TitleCasePipe' is defined but never used                 [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m    [2m22:10[22m  [33mwarning[39m  'BaseChartDirective' is defined but never used            [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m211:41[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m311:43[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m349:43[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m453:39[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m473:26[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m478:26[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m488:27[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m524:22[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m524:35[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m528:23[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m542:35[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m562:26[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m567:31[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m568:67[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m573:26[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m607:22[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m607:35[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m610:23[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m613:23[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m614:65[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m637:34[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m657:26[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m662:31[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m663:67[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m669:26[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m671:27[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m709:22[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m709:35[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m713:23[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m716:23[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m717:19[22m  [33mwarning[39m  'labels' is assigned a value but never used               [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m717:27[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m718:65[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m768:13[22m  [33mwarning[39m  'monthStartTimestamp' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m817:67[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m851:70[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m883:65[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m991:11[22m  [33mwarning[39m  'daysInMonth' is assigned a value but never used          [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m1061:52[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1101:13[22m  [33mwarning[39m  'uniqueDays' is assigned a value but never used           [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m1106:15[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1110:15[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1179:26[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1204:30[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1205:35[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1206:33[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1352:17[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1386:63[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1402:54[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1403:54[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1423:17[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1457:56[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1489:53[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1490:53[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1595:11[22m  [33mwarning[39m  'total' is assigned a value but never used                [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m1614:30[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1632:28[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1678:34[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1696:28[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1789:52[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1837:19[22m  [33mwarning[39m  '_' is assigned a value but never used                    [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m1840:15[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1943:50[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1987:17[22m  [33mwarning[39m  '_' is assigned a value but never used                    [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m1989:13[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2042:25[22m  [33mwarning[39m  Forbidden non-null assertion                              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m2084:11[22m  [33mwarning[39m  'daysInMonth' is assigned a value but never used          [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m2128:58[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2143:15[22m  [33mwarning[39m  'dayOfWeek' is assigned a value but never used            [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m2177:27[22m  [33mwarning[39m  Forbidden non-null assertion                              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m2445:33[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2459:17[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2465:15[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2466:11[22m  [33mwarning[39m  'labels' is assigned a value but never used               [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m2466:19[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2467:57[22m  [33mwarning[39m  Unexpected any. Specify a different type                  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\home\components\dialogs\birthdays-dialog.component.ts[24m[0m
+[0m  [2m282:31[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\home\components\dialogs\hires-exits-dialog.component.ts[24m[0m
+[0m  [2m277:26[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m278:26[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\home\components\dialogs\late-details-dialog.component.ts[24m[0m
+[0m  [2m197:28[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\home\components\dialogs\top-absences-dialog.component.ts[24m[0m
+[0m  [2m181:25[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\home\components\dialogs\top-lates-dialog.component.ts[24m[0m
+[0m  [2m181:25[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\home\components\kpi-card\kpi-card.component.ts[24m[0m
+[0m  [2m37:16[22m  [31merror[39m  Parsing error: Parser Error: Unexpected token 'projectedValue' at column 6 in [!has projectedValue] in C:\Users\Diegu\People\src\app\dashboard\home\components\kpi-card\kpi-card.component.ts\1_inline-template-kpi-card.component.ts-1.component.html@23:15[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\home\components\sections\charts-section.component.ts[24m[0m
+[0m  [2m278:31[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m280:36[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m281:30[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\home\components\sections\executive-section.component.ts[24m[0m
+[0m  [2m431:39[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m432:42[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m434:36[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m435:39[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m440:40[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m441:38[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m451:40[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m452:43[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\home\services\home-data.service.ts[24m[0m
+[0m  [2m70:11[22m  [33mwarning[39m  'monthEnd' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\home\utils\home-calculations.utils.ts[24m[0m
+[0m   [2m5:31[22m  [33mwarning[39m  'startOfMonth' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m5:45[22m  [33mwarning[39m  'endOfMonth' is defined but never used    [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m5:57[22m  [33mwarning[39m  'parseISO' is defined but never used      [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m64:45[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\home\utils\home-chart.utils.ts[24m[0m
+[0m   [2m13:33[22m   [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m14:38[22m   [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m15:36[22m   [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m22:19[22m   [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m102:34[22m   [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m120:26[22m   [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m139:38[22m   [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m157:26[22m   [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m176:108[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m198:26[22m   [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m202:28[22m   [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m241:20[22m   [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m241:35[22m   [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m241:49[22m   [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m254:64[22m   [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m254:79[22m   [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m274:26[22m   [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m280:24[22m   [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m284:30[22m   [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m286:23[22m   [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\hr-disabilities.component.ts[24m[0m
+[0m  [2m2834:19[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m3100:16[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m3223:16[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m3301:16[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m3327:16[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m3330:16[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m3358:16[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m3386:16[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m3644:17[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m3646:29[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m3682:23[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m3731:19[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m3995:12[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m4417:23[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m4444:23[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m4515:55[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m4529:48[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m4529:56[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m4537:15[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m4572:45[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m4606:37[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m4716:23[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m4853:23[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m4865:23[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m4949:18[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m4966:23[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m4989:23[22m  [33mw
+arning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m5110:36[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m5376:23[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m5445:30[22m  [33mwarning[39m  'vacation' is defined but never used      [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\hr-time-dashboard.component.ts[24m[0m
+[0m   [2m18:11[22m  [33mwarning[39m  'Request' is defined but never used                                                                               [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m479:37[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m487:15[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m505:27[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m520:29[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m521:24[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m569:35[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\job-application-detail.component.ts[24m[0m
+[0m   [2m11:24[22m  [33mwarning[39m  'SafeResourceUrl' is defined but never used                                                                       [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m11:41[22m  [33mwarning[39m  'SafeUrl' is defined but never used                                                                               [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m25:10[22m  [33mwarning[39m  'DashboardStore' is defined but never used                                                                        [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m344:25[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m355:14[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m355:80[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m371:21[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m438:21[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\job-application-statuses-dialog.component.ts[24m[0m
+[0m  [2m211:13[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m310:16[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m352:16[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m376:21[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m399:18[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m408:25[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\job-applications-list.component.ts[24m[0m
+[0m   [2m528:45[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m529:13[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m543:7[22m   [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m544:7[22m   [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m545:7[22m   [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m553:42[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m554:31[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m555:33[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m596:38[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m597:13[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m618:29[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m857:25[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m858:16[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m875:20[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m882:27[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m890:18[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m907:25[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m908:16[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m923:18[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m937:25[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m938:16[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m955:20[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m962:27[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m970:18[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m987:25[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m988:16[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1003:18[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1018:52[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m1020:22[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m1022:47[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m1040:21[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1081:21[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1082:12[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1094:21[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1095:12[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1110:14[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1123:14[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1140:23[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1141:14[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1158:18[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1165:25[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1173:16[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1208:21[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1256:21[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1265:14[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1281:21[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1303:21[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1343:14[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1352:24[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1358:21[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1432:21[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1512:21[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1531:39[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1544:28[22m  [33mwarning[39m  'result' is defined but never used                                                                                [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m1544:36[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1563:14[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1578:21[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\modules\document-requests\ui\document-requests.component.ts[24m[0m
+[0m  [2m1092:59[22m  [33mwarning[39m  'status' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\modules\shared\components\hr-filters-panel.component.ts[24m[0m
+[0m  [2m162:30[22m  [33mwarning[39m  Forbidden non-null assertion  [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m170:29[22m  [33mwarning[39m  Forbidden non-null assertion  [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\online-users-monitor.component.ts[24m[0m
+[0m  [2m239:38[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m243:19[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m253:15[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m260:37[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m262:19[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m273:15[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m284:28[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m307:32[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\organigrama.component.ts[24m[0m
+[0m    [2m6:3[22m   [33mwarning[39m  'input' is defined but never used         [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m21:10[22m  [33mwarning[39m  'of' is defined but never used            [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m722:53[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m774:12[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m790:15[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m866:12[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\payroll-debts.component.ts[24m[0m
+[0m  [2m167:11[22m  [33mwarning[39m  'companyId' is assigned a value but never used                                                                    [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m168:19[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m177:15[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m193:21[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m193:55[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m243:22[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\payroll-deductions.component.ts[24m[0m
+[0m   [2m87:13[22m  [31merror[39m  Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m133:16[22m  [31merror[39m  Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\payroll-employees-form.component.ts[24m[0m
+[0m  [2m115:5[22m   [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m123:5[22m   [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m177:14[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m191:14[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\payroll-employees.component.ts[24m[0m
+[0m  [2m169:11[22m  [33mwarning[39m  'companyId' is assigned a value but never used                                                                    [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m170:19[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m180:15[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m242:12[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m267:16[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\payroll-payments-details.component.ts[24m[0m
+[0m   [2m404:15[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m418:15[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m429:54[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m   [2m474:13[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m487:15[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m628:10[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m633:10[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m708:16[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m771:24[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m773:15[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m   [2m777:15[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m   [2m805:24[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m807:7[22m   [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m   [2m811:15[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m   [2m921:21[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m   [2m924:19[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m   [2m976:20[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m   [2m977:19[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m   [2m982:20[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m   [2m983:19[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m   [2m986:29[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m   [2m986:29[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m1002:22[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m1002:22[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m1103:31[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m1103:31[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\payroll-payments.component.ts[24m[0m
+[0m  [2m138:13[22m  [31merror[39m  Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\payroll-summary.component.ts[24m[0m
+[0m  [2m154:13[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m171:11[22m  [33mwarning[39m  'companyId' is assigned a value but never used                                                                    [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m172:19[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m181:15[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m190:29[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m220:29[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m360:10[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m401:35[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m402:31[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m444:28[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m446:31[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m484:35[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m485:31[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\payrolls-details.component.ts[24m[0m
+[0m  [2m125:19[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\positions-form.component.ts[24m[0m
+[0m  [2m154:23[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\request.helpers.ts[24m[0m
+[0m  [2m45:48[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m56:12[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\salon-schedule.component.ts[24m[0m
+[0m  [2m156:7[22m   [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m230:24[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m268:12[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m285:23[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m334:24[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m435:22[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m460:24[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m530:24[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m571:27[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m588:27[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m598:19[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m599:17[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m653:20[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m737:42[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m783:38[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\services\groomer-schedule-data.service.ts[24m[0m
+[0m   [2m58:17[22m  [33mwarning[39m  Unexpected any. Specify a different type       [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m68:26[22m  [33mwarning[39m  Unexpected any. Specify a different type       [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m84:31[22m  [33mwarning[39m  Unexpected any. Specify a different type       [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m138:5[22m   [33mwarning[39m  'currentEmployeeId' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m139:17[22m  [33mwarning[39m  Unexpected any. Specify a different type       [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\services\groomer-schedule-utils.service.ts[24m[0m
+[0m  [2m36:34[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m77:30[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\services\vet-schedule-data.service.ts[24m[0m
+[0m    [2m7:31[22m  [33mwarning[39m  'Employee' is defined but never used           [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m53:88[22m  [33mwarning[39m  Unexpected any. Specify a different type       [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m61:26[22m  [33mwarning[39m  Unexpected any. Specify a different type       [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m78:11[22m  [33mwarning[39m  Unexpected any. Specify a different type       [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m123:5[22m   [33mwarning[39m  'currentEmployeeId' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m124:17[22m  [33mwarning[39m  Unexpected any. Specify a different type       [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\services\vet-schedule-utils.service.ts[24m[0m
+[0m  [2m34:34[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m75:30[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\settings.component.ts[24m[0m
+[0m  [2m93:56[22m  [31merror[39m  Parsing error: "as" expression is only allowed on the primary @if block[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\time-offs.component.ts[24m[0m
+[0m  [2m124:25[22m  [33mwarning[39m  'timeoff' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\timelogs.component.ts[24m[0m
+[0m   [2m636:38[22m  [33mwarning[39m  Unexpected any. Specify a different type                   [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m659:37[22m  [33mwarning[39m  Unexpected any. Specify a different type                   [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m730:16[22m  [33mwarning[39m  Unexpected any. Specify a different type                   [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m736:16[22m  [33mwarning[39m  Unexpected any. Specify a different type                   [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m739:8[22m   [33mwarning[39m  Unexpected any. Specify a different type                   [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m742:34[22m  [33mwarning[39m  Unexpected any. Specify a different type                   [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m956:19[22m  [33mwarning[39m  Unexpected any. Specify a different type                   [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m959:16[22m  [33mwarning[39m  Unexpected any. Specify a different type                   [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m974:19[22m  [33mwarning[39m  Unexpected any. Specify a different type                   [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1003:32[22m  [33mwarning[39m  Unexpected any. Specify a different type                   [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1099:20[22m  [33mwarning[39m  'name' is defined but never used                           [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m1113:52[22m  [33mwarning[39m  'name' is defined but never used                           [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m1147:37[22m  [33mwarning[39m  Unexpected any. Specify a different type                   [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1148:44[22m  [33mwarning[39m  Unexpected any. Specify a different type                   [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1181:15[22m  [33mwarning[39m  'hasRestrictedTimeOff' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m1759:13[22m  [33mwarning[39m  'lunchExceeded' is assigned a value but never used         [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\timelogs\components\timelogs-filters.component.ts[24m[0m
+[0m  [2m292:42[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\user-management.component.ts[24m[0m
+[0m   [2m28:10[22m  [33mwarning[39m  'TabsModule' is defined but never used                                                                            [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m320:34[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m322:19[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m333:15[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m341:39[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m343:19[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m354:15[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m366:28[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m494:12[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m539:12[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\utils\timetable-date.utils.ts[24m[0m
+[0m  [2m17:44[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m19:52[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\vet-branch-cell.component.ts[24m[0m
+[0m  [2m33:31[22m  [31merror[39m  Parsing error: "as" expression is only allowed on the primary @if block[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\vet-branch-selection-dialog.component.ts[24m[0m
+[0m  [2m156:3[22m   [31merror[39m    Output bindings, including aliases, should not be named as standard DOM events  [2m@angular-eslint/no-output-native[22m[0m
+[0m  [2m215:33[22m  [33mwarning[39m  Forbidden non-null assertion                                                    [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m255:31[22m  [33mwarning[39m  Forbidden non-null assertion                                                    [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\dashboard\vet-schedule.component.ts[24m[0m
+[0m  [2m152:7[22m   [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m226:24[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m264:12[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m281:23[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m330:24[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m428:22[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m453:24[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m523:24[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m564:27[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m581:27[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m592:19[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m593:17[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m651:20[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m735:42[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m781:38[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\employee-portal\actions\employee-portal-compensatory.actions.ts[24m[0m
+[0m   [2m76:27[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m102:26[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m103:29[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m151:20[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m152:25[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m153:23[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m183:12[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m187:16[22m  [33mwarning[39m  'created' is defined but never used                                                                               [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m187:25[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m197:24[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m214:19[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\employee-portal\actions\employee-portal-complaint.actions.ts[24m[0m
+[0m   [2m33:5[22m   [33mwarning[39m  'store' is assigned a value but never used                                                                        [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m55:33[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m   [2m56:26[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m   [2m66:10[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m76:30[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m82:39[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m   [2m92:20[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m114:34[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m134:22[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\employee-portal\actions\employee-portal-disability.actions.ts[24m[0m
+[0m   [2m69:9[22m   [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m   [2m96:26[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m97:29[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m116:20[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m117:26[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m118:24[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m126:12[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m130:25[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\employee-portal\actions\employee-portal-document.actions.ts[24m[0m
+[0m  [2m39:5[22m   [33mwarning[39m  'store' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m64:18[22m  [33mwarning[39m  Forbidden non-null assertion                [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m79:23[22m  [33mwarning[39m  Unexpected any. Specify a different type    [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\employee-portal\actions\employee-portal-vacation.actions.ts[24m[0m
+[0m   [2m40:5[22m   [33mwarning[39m  'store' is assigned a value but never used           [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m121:13[22m  [33mwarning[39m  'uploadResponse' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m210:19[22m  [33mwarning[39m  Unexpected any. Specify a different type             [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\employee-portal\components\employee-portal-compensatory.component.ts[24m[0m
+[0m  [2m459:34[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\employee-portal\components\employee-portal-complaints.component.ts[24m[0m
+[0m  [2m242:24[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m244:43[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m248:49[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\employee-portal\components\employee-portal-conversation-dialog.component.ts[24m[0m
+[0m  [2m2:61[22m  [33mwarning[39m  'signal' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\employee-portal\components\employee-portal-disabilities.component.ts[24m[0m
+[0m  [2m209:34[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\employee-portal\components\employee-portal-documents.component.ts[24m[0m
+[0m  [2m338:30[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\employee-portal\components\employee-portal-license.component.ts[24m[0m
+[0m  [2m294:29[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\employee-portal\components\employee-portal-maternity.component.ts[24m[0m
+[0m  [2m327:31[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m337:16[22m  [33mwarning[39m  'event' is defined but never used         [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m337:23[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\employee-portal\components\employee-portal-my-requests.component.ts[24m[0m
+[0m   [2m18:17[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m618:32[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m627:36[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m634:51[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m666:31[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m676:36[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\employee-portal\components\employee-portal-personal.component.ts[24m[0m
+[0m  [2m294:30[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\employee-portal\components\employee-portal-request-details-dialog.component.ts[24m[0m
+[0m   [2m15:17[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m452:32[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m459:36[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\employee-portal\components\employee-portal-timelog-correction.component.ts[24m[0m
+[0m  [2m229:34[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\employee-portal\components\employee-portal-timelogs.component.ts[24m[0m
+[0m  [2m318:27[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\employee-portal\components\employee-portal-vacations.component.ts[24m[0m
+[0m  [2m391:30[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m402:34[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\employee-portal\employee-portal-layout.component.ts[24m[0m
+[0m  [2m510:28[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\employee-portal\employee-portal.component.ts[24m[0m
+[0m   [2m744:17[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m744:25[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1075:30[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1080:44[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1108:37[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1130:33[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m1152:42[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1261:45[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1263:46[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1308:44[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1423:23[22m  [33mwarning[39m  'value' is defined but never used         [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m1591:44[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1639:22[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m1641:30[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m1666:21[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1698:22[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m1725:21[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1752:44[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1848:38[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1860:34[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1895:39[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\employee-portal\employee-portal.routes.ts[24m[0m
+[0m  [2m2:10[22m  [33mwarning[39m  'employeePortalGuard' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\employee-portal\services\employee-portal-api.service.ts[24m[0m
+[0m   [2m54:78[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m56:22[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m80:46[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m81:23[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m102:48[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m103:23[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\employee-portal\services\employee-portal-conversation.service.ts[24m[0m
+[0m   [2m18:37[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m21:46[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m25:15[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m40:43[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m43:15[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m62:57[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m66:28[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m80:34[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m82:46[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m86:39[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m97:46[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m118:16[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m128:23[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m137:59[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m162:14[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m180:21[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\employee-portal\services\employee-portal-profile.service.ts[24m[0m
+[0m  [2m51:25[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explic
+it-any[22m[0m
+[0m  [2m59:9[22m   [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m73:21[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\employee-portal\services\employee-portal-requests.service.ts[24m[0m
+[0m   [2m14:17[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m27:49[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m39:26[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m43:33[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m   [2m57:45[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m69:26[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m   [2m73:33[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m   [2m87:45[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m97:26[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m101:33[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m115:39[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m118:15[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m122:36[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m128:41[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m131:15[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m135:28[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m182:38[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m266:44[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m346:32[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m362:29[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m376:32[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m390:29[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m404:30[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m578:42[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m613:42[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m621:43[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\employee-portal\services\employee-portal-timelogs.service.ts[24m[0m
+[0m   [2m31:37[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m50:24[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m   [2m62:24[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m101:15[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m150:42[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m160:24[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m178:24[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m223:15[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m382:41[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\employee-portal\utils\employee-portal-compensatory.utils.ts[24m[0m
+[0m    [2m1:49[22m  [33mwarning[39m  'startOfDay' is defined but never used    [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m    [2m8:54[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m16:12[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m27:47[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m48:14[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m125:20[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\guards\employee-portal.guard.ts[24m[0m
+[0m   [2m80:22[22m  [33mwarning[39m  Unexpected any. Specify a different type                 [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m203:13[22m  [33mwarning[39m  'isScheduleApprover' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m368:21[22m  [33mwarning[39m  Unexpected any. Specify a different type                 [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m448:22[22m  [33mwarning[39m  Forbidden non-null assertion                             [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m505:15[22m  [33mwarning[39m  'isScheduleApprover' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\guards\timeclock-kiosk.guard.ts[24m[0m
+[0m   [2m8:18[22m  [33mwarning[39m  'NazBranch' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m16:59[22m  [33mwarning[39m  'state' is defined but never used      [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\guards\timeclock.guard.ts[24m[0m
+[0m  [2m12:47[22m  [33mwarning[39m  'route' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m12:54[22m  [33mwarning[39m  'state' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\interceptors\error.interceptor.ts[24m[0m
+[0m  [2m74:55[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\job-fair\job-fair-form.component.ts[24m[0m
+[0m   [2m758:36[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m761:45[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m762:13[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1011:23[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1012:14[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1035:23[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1163:23[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1164:14[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1183:23[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1184:14[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1212:21[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1267:54[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m1270:29[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1316:12[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1321:16[22m  [33mwarning[39m  'response' is defined but never used                                                                              [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m1335:24[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1393:30[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1394:22[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1406:14[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1420:28[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1426:27[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1437:52[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1446:20[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1529:11[22m  [33mwarning[39m  'recipients' is assigned a value but never used                                                                   [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m1534:11[22m  [33mwarning[39m  'internalMessage' is assigned a value but never used                                                              [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\login\login.component.ts[24m[0m
+[0m  [2m1611:20[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1612:20[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1613:20[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1628:35[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1656:23[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1657:22[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\models.ts[24m[0m
+[0m  [2m457:11[22m  [33mwarning[39m  'rgb' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\naz-timeclock\naz-timeclock.component.ts[24m[0m
+[0m   [2m672:25[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m705:15[22m  [33mwarning[39m  'branches' is assigned a value but never used                                                                     [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m730:15[22m  [33mwarning[39m  'selectedCompanyId' is assigned a value but never used                                                            [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m860:20[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m861:20[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m862:20[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m877:35[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m906:23[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m907:22[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1073:13[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1082:13[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1104:19[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1116:15[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1128:19[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1142:26[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1187:19[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1201:12[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1276:18[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1487:21[22m  [33mwarning[39m  Unexpected any. Specify a different type                                                                          [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1546:5[22m   [33mwarning[39m  'employeeName' is defined but never used                                                                          [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m1551:16[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m1667:16[22m  [33mwarning[39m  'result' is defined but never used                                                                                [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\no-access.component.ts[24m[0m
+[0m  [2m138:26[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\pipes\calulate-hours.pipe.ts[24m[0m
+[0m  [2m7:13[22m  [33mwarning[39m  'value' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m7:32[22m  [33mwarning[39m  'args' is defined but never used   [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\qr-generator.component.ts[24m[0m
+[0m  [2m54:13[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m69:17[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m69:55[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m85:14[22m  [31merror[39m    Usar ApiUrlService.build() para URLs o getEnv() para variables de entorno. No acceder directamente a process.env  [2mno-restricted-syntax[22m[0m
+[0m  [2m92:25[22m  [33mwarning[39m  Forbidden non-null assertion                                                                                      [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\services\diagnostic.service.ts[24m[0m
+[0m   [2m11:13[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m37:32[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m147:15[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m161:46[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m173:59[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m185:43[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m196:61[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m215:31[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m238:30[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m434:23[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m488:32[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m491:14[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m547:44[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\services\email.service.ts[24m[0m
+[0m  [2m25:74[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m26:54[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\services\ip-monitor.service.ts[24m[0m
+[0m    [2m4:27[22m  [33mwarning[39m  'interval' is defined but never used      [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m26:31[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m27:30[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m188:19[22m  [33mwarning[39m  'serverError' is defined but never used   [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m202:23[22m  [33mwarning[39m  'webrtcError' is defined but never used   [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m212:27[22m  [33mwarning[39m  'httpError' is defined but never used     [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m347:21[22m  [33mwarning[39m  'serverError' is defined but never used   [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m360:25[22m  [33mwarning[39m  'webrtcError' is defined but never used   [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m372:29[22m  [33mwarning[39m  'httpError' is defined but never used     [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m397:44[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m398:44[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m399:44[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m459:22[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\services\logger.service.ts[24m[0m
+[0m  [2m21:35[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m27:34[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m33:34[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m39:34[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m39:48[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\services\notifications.service.ts[24m[0m
+[0m  [2m17:42[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m39:37[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m95:58[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\services\permissions.service.ts[24m[0m
+[0m  [2m136:76[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\services\schedule-audit.service.ts[24m[0m
+[0m   [2m21:15[22m  [33mwarning[39m  Unexpected any. Specify a different type       [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m22:15[22m  [33mwarning[39m  Unexpected any. Specify a different type       [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m58:16[22m  [33mwarning[39m  Unexpected any. Specify a different type       [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m59:16[22m  [33mwarning[39m  Unexpected any. Specify a different type       [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m76:22[22m  [33mwarning[39m  Unexpected any. Specify a different type       [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m90:13[22m  [33mwarning[39m  'response' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m107:21[22m  [33mwarning[39m  Unexpected any. Specify a different type       [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\services\screen-lock.service.ts[24m[0m
+[0m   [2m17:36[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m20:28[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m80:24[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m117:27[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m139:39[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m151:34[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m229:37[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\services\timeoff-audit.service.ts[24m[0m
+[0m  [2m14:15[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m15:15[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m41:16[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m42:16[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\services\tutorial-guide.service.ts[24m[0m
+[0m  [2m167:22[22m  [33mwarning[39m  Forbidden non-null assertion  [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m183:18[22m  [33mwarning[39m  Forbidden non-null assertion  [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\services\vet-branch-audit.service.ts[24m[0m
+[0m  [2m14:15[22m  [33mwarning[39m  Unexpected any. Specify a different type       [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m15:15[22m  [33mwarning[39m  Unexpected any. Specify a different type       [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m55:16[22m  [33mwarning[39m  Unexpected any. Specify a different type       [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m56:16[22m  [33mwarning[39m  Unexpected any. Specify a different type       [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m78:16[22m  [33mwarning[39m  Unexpected any. Specify a different type       [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m79:16[22m  [33mwarning[39m  Unexpected any. Specify a different type       [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m85:24[22m  [33mwarning[39m  Unexpected any. Specify a different type       [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m98:13[22m  [33mwarning[39m  'response' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\services\wassenger.service.ts[24m[0m
+[0m  [2m64:51[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m79:21[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\shared\components\tutorial-spotlight.component.ts[24m[0m
+[0m  [2m565:11[22m  [33mwarning[39m  'spaceLeft' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\shared\directives\tutorial-step.directive.ts[24m[0m
+[0m  [2m20:13[22m  [31merror[39m    The selector should start with one of these prefixes: "app" (https://angular.dev/style-guide#style-02-08)  [2m@angular-eslint/directive-selector[22m[0m
+[0m  [2m48:11[22m  [33mwarning[39m  'event' is defined but never used                                                                          [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\stores\auth.store.ts[24m[0m
+[0m  [2m74:25[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\stores\dashboard.store.ts[24m[0m
+[0m  [2m281:35[22m  [33mwarning[39m  Forbidden non-null assertion                         [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m284:24[22m  [33mwarning[39m  Forbidden non-null assertion                         [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m285:24[22m  [33mwarning[39m  Forbidden non-null assertion                         [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m386:22[22m  [33mwarning[39m  Forbidden non-null assertion                         [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m410:24[22m  [33mwarning[39m  Forbidden non-null assertion                         [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m669:38[22m  [33mwarning[39m  Forbidden non-null assertion                         [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m704:38[22m  [33mwarning[39m  Forbidden non-null assertion                         [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m744:34[22m  [33mwarning[39m  Forbidden non-null assertion                         [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m784:40[22m  [33mwarning[39m  Forbidden non-null assertion                         [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m824:15[22m  [33mwarning[39m  'lastMonthStart' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\stores\employees.store.ts[24m[0m
+[0m   [2m59:21[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m114:37[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m115:34[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m195:21[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\stores\entities.feature.ts[24m[0m
+[0m   [2m30:10[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m60:13[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m   [2m63:5[22m   [33mwarning[39m  'orgService' is defined but never used    [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m64:6[22m   [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m136:5[22m   [33mwarning[39m  'orgService' is defined but never used    [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m240:49[22m  [33mwarning[39m  Forbidden non-null assertion              [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m364:30[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m439:30[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\timeclock.component.ts[24m[0m
+[0m  [2m1022:25[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1239:13[22m  [33mwarning[39m  'isNaz' is assigned a value but never used   [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m1315:20[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1316:20[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1317:20[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1332:35[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1361:23[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1362:22[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1602:19[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1644:19[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1699:19[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1786:19[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m1822:5[22m   [33mwarning[39m  'schedule' is defined but never used         [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m1948:21[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2144:5[22m   [33mwarning[39m  'employeeName' is defined but never used     [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m2318:13[22m  [33mwarning[39m  'isLate' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m2358:20[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2393:20[22m  [33mwarning[39m  Unexpected any. Specify a different type     [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m2427:15[22m  [33mwarning[39m  'year' is assigned a value but never used    [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m2427:21[22m  [33mwarning[39m  'month' is assigned a value but never used   [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m2427:28[22m  [33mwarning[39m  'day' is assigned a value but never used     [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m2440:21[22m  [33mwarning[39m  Forbidden non-null assertion                 [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m  [2m2464:21[22m  [33mwarning[39m  Forbidden non-null assertion                 [2m@typescript-eslint/no-non-null-assertion[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\utils\logger.ts[24m[0m
+[0m  [2m16:18[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m25:36[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m37:36[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m53:20[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m62:52[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m75:31[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\app\utils\table-helper.ts[24m[0m
+[0m  [2m16:45[22m  [33mwarning[39m  'isNaz' is defined but never used       [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m25:56[22m  [33mwarning[39m  'orgService' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4mC:\Users\Diegu\People\src\test-setup.ts[24m[0m
+[0m  [2m41:16[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m  [2m42:16[22m  [33mwarning[39m  Unexpected any. Specify a different type  [2m@typescript-eslint/no-explicit-any[22m[0m
+[0m[0m
+[0m[31m[1mÔ£û 982 problems (139 errors, 843 warnings)[22m[39m[0m
+[0m[31m[1m[22m[39m[0m
+Ô£û 982 problems (139 errors, 843 warnings)
+
+
+
+ NX   Running target lint for project people failed
+
+Failed tasks:
+
+- people:lint
+
+Hint: run the command with --verbose for more details.
+

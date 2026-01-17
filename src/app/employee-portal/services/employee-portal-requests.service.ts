@@ -1,12 +1,18 @@
-import { computed, inject, Injectable, signal } from '@angular/core';
 import { httpResource } from '@angular/common/http';
+import { computed, inject, Injectable, signal } from '@angular/core';
 import { endOfDay, startOfDay } from 'date-fns';
-import { DashboardStore } from '../../stores/dashboard.store';
+import { ApiUrlService } from '../../services/api-url.service';
 import { OrganizationService } from '../../services/organization.service';
+import { DashboardStore } from '../../stores/dashboard.store';
 
 export type UnifiedRequest = {
   id: string;
-  request_type: 'compensatory' | 'disability' | 'document' | 'complaint' | 'vacation';
+  request_type:
+    | 'compensatory'
+    | 'disability'
+    | 'document'
+    | 'complaint'
+    | 'vacation';
   created_at: string | Date;
   status: string;
   title: string;
@@ -20,6 +26,7 @@ export type UnifiedRequest = {
 export class EmployeePortalRequestsService {
   private store = inject(DashboardStore);
   private organizationService = inject(OrganizationService);
+  private apiUrl = inject(ApiUrlService);
 
   public currentEmployee = computed(() => this.store.currentEmployee());
 
@@ -36,7 +43,7 @@ export class EmployeePortalRequestsService {
       // ID del tipo de timeoff "Compensatorio"
       const compensatoryTypeId = 'f2d92995-96a0-414f-b64a-9823db776745';
 
-      const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`;
+      const baseUrl = this.apiUrl.build('rest/v1/timeoffs');
       const select = `*,type:timeoff_types(id,name)`;
 
       let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
@@ -66,7 +73,7 @@ export class EmployeePortalRequestsService {
       // ID del tipo de timeoff "Vacaciones"
       const vacationTypeId = '00000000-0000-0000-0000-000000000001';
 
-      const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`;
+      const baseUrl = this.apiUrl.build('rest/v1/timeoffs');
       const select = `*,type:timeoff_types(id,name)`;
 
       let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
@@ -94,9 +101,9 @@ export class EmployeePortalRequestsService {
       }
 
       // Construir URL manualmente para filtrar a través de employee.company_id
-      const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/document_requests`;
+      const baseUrl = this.apiUrl.build('rest/v1/document_requests');
       const select = `*,employee:employees(id,company_id)`;
-      
+
       let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
       url += `&employee_id=eq.${this.currentEmployee()!.id}`;
       url += `&employee.company_id=eq.${companyId}`;
@@ -115,7 +122,7 @@ export class EmployeePortalRequestsService {
   public complaintsApi = httpResource<any[]>(() => {
     if (!this.currentEmployee()?.id) return undefined;
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaints`,
+      url: this.apiUrl.build('rest/v1/complaints'),
       method: 'GET',
       params: {
         select: '*',
@@ -128,7 +135,7 @@ export class EmployeePortalRequestsService {
   public disabilitiesApi = httpResource<any[]>(() => {
     if (!this.currentEmployee()?.id) return undefined;
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_disabilities`,
+      url: this.apiUrl.build('rest/v1/employee_disabilities'),
       method: 'GET',
       params: {
         select: '*',
@@ -668,10 +675,7 @@ export class EmployeePortalRequestsService {
     ) {
       this.documentRequestsApi.reload();
     }
-    if (
-      this.complaintsApi &&
-      typeof this.complaintsApi.reload === 'function'
-    ) {
+    if (this.complaintsApi && typeof this.complaintsApi.reload === 'function') {
       this.complaintsApi.reload();
     }
     if (
