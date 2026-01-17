@@ -238,30 +238,7 @@ type Reminder = {
       </div>
 
       <!-- Dashboard de Métricas - Diseño Moderno -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-6" @staggerFade>
-        <!-- Notificaciones -->
-        <div
-          class="group relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 p-5 transition-all duration-300 hover:bg-white/15 hover:border-blue-500/30 hover:shadow-xl hover:shadow-blue-500/20"
-          @scaleIn
-        >
-          <div
-            class="absolute top-0 right-0 w-20 h-20 bg-blue-500/10 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-500"
-          ></div>
-          <div class="relative">
-            <div class="flex items-center gap-3 mb-3">
-              <div
-                class="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center"
-              >
-                <i class="pi pi-bell text-blue-400"></i>
-              </div>
-              <span class="text-3xl font-bold text-white">{{
-                unreadNotificationsCount()
-              }}</span>
-            </div>
-            <p class="text-gray-400 text-sm font-medium">Notificaciones</p>
-          </div>
-        </div>
-
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 py-4" @staggerFade>
         <!-- Empleados -->
         <div
           class="group relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 p-5 transition-all duration-300 hover:bg-white/15 hover:border-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/20"
@@ -305,6 +282,29 @@ type Reminder = {
               }}</span>
             </div>
             <p class="text-gray-400 text-sm font-medium">Retrasos hoy</p>
+          </div>
+        </div>
+
+        <!-- Notificaciones -->
+        <div
+          class="group relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 p-5 transition-all duration-300 hover:bg-white/15 hover:border-blue-500/30 hover:shadow-xl hover:shadow-blue-500/20"
+          @scaleIn
+        >
+          <div
+            class="absolute top-0 right-0 w-20 h-20 bg-blue-500/10 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-500"
+          ></div>
+          <div class="relative">
+            <div class="flex items-center gap-3 mb-3">
+              <div
+                class="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center"
+              >
+                <i class="pi pi-bell text-blue-400"></i>
+              </div>
+              <span class="text-3xl font-bold text-white">{{
+                unreadNotificationsCount()
+              }}</span>
+            </div>
+            <p class="text-gray-400 text-sm font-medium">Notificaciones</p>
           </div>
         </div>
 
@@ -618,7 +618,7 @@ type Reminder = {
 
               <!-- Estadísticas del día - Diseño moderno con pills -->
               @if (todayStats().totalEmployees > 0) {
-              <div class="flex flex-wrap gap-3">
+              <div class="flex flex-wrap gap-3 pb-4">
                 <div
                   class="flex items-center gap-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-4 py-2 transition-all hover:bg-emerald-500/20"
                 >
