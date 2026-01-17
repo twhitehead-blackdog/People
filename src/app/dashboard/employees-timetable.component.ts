@@ -119,7 +119,7 @@ import {
           [currentPosition]="filterService.currentPosition"
         >
           <div
-            class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-2 w-full"
+            class="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-2 w-full xl:w-auto"
           >
             <pt-timetable-header
               [currentWeekLabel]="currentWeek()"
