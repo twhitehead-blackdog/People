@@ -606,7 +606,16 @@ type Reminder = {
                     <td>
                       @if (log.entry_time) {
                       <div class="flex items-center gap-2">
-                        <i class="pi pi-sign-in text-green-400"></i>
+                        @if (log.entry_branch) {
+                        <p-avatar
+                          shape="circle"
+                          [label]="log.entry_branch.short_name"
+                          [pTooltip]="log.entry_branch.name"
+                          tooltipPosition="top"
+                          styleClass="text-xs"
+                          size="normal"
+                        />
+                        }
                         <span
                           [ngClass]="{
                             'text-red-400 font-semibold': log.is_delayed,
@@ -626,7 +635,16 @@ type Reminder = {
                     <td>
                       @if (log.lunch_start_time) {
                       <div class="flex items-center gap-2">
-                        <i class="pi pi-clock text-blue-400"></i>
+                        @if (log.lunch_start_branch) {
+                        <p-avatar
+                          shape="circle"
+                          [label]="log.lunch_start_branch.short_name"
+                          [pTooltip]="log.lunch_start_branch.name"
+                          tooltipPosition="top"
+                          styleClass="text-xs"
+                          size="normal"
+                        />
+                        }
                         <span>{{
                           log.lunch_start_time | date : 'hh:mm a'
                         }}</span>
@@ -638,7 +656,16 @@ type Reminder = {
                     <td>
                       @if (log.lunch_end_time) {
                       <div class="flex items-center gap-2">
-                        <i class="pi pi-clock text-blue-400"></i>
+                        @if (log.lunch_end_branch) {
+                        <p-avatar
+                          shape="circle"
+                          [label]="log.lunch_end_branch.short_name"
+                          [pTooltip]="log.lunch_end_branch.name"
+                          tooltipPosition="top"
+                          styleClass="text-xs"
+                          size="normal"
+                        />
+                        }
                         <span
                           [ngClass]="{
                             'text-red-400 font-semibold': log.lunch_exceeded
@@ -654,7 +681,16 @@ type Reminder = {
                     <td>
                       @if (log.exit_time) {
                       <div class="flex items-center gap-2">
-                        <i class="pi pi-sign-out text-purple-400"></i>
+                        @if (log.exit_branch) {
+                        <p-avatar
+                          shape="circle"
+                          [label]="log.exit_branch.short_name"
+                          [pTooltip]="log.exit_branch.name"
+                          tooltipPosition="top"
+                          styleClass="text-xs"
+                          size="normal"
+                        />
+                        }
                         <span
                           [ngClass]="{
                             'text-red-400 font-semibold': log.is_early_exit,
@@ -2044,6 +2080,7 @@ export class BranchManagerComponent {
   });
 
   // Timelog schedules resource - para marcaciones (carga horarios para fecha específica)
+  // Alineado con employees-timetable.component.ts schedulesResource
   public timelogSchedulesResource = httpResource<any[]>(() => {
     const companyId = this.organizationService.getCurrentCompanyId();
     const selectedDate = this.selectedDate();
@@ -2051,34 +2088,17 @@ export class BranchManagerComponent {
     if (!selectedDate) return undefined;
 
     // Crear rango de un solo día para la fecha seleccionada
-    const start = startOfDay(selectedDate);
-    const end = endOfDay(selectedDate);
-    const startDate = format(start, 'yyyy-MM-dd');
-    const endDate = format(end, 'yyyy-MM-dd');
+    const startDate = format(startOfDay(selectedDate), 'yyyy-MM-dd');
+    const endDate = format(endOfDay(selectedDate), 'yyyy-MM-dd');
 
-    // Construir URL manualmente para asegurar que los filtros se apliquen correctamente
-    const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`;
-    const select = `*,schedule:schedules(*), branch:branches(id, name, short_name)`;
-
-    let url = `${baseUrl}?select=${encodeURIComponent(
-      select
-    )},employee:employees!inner(id,company_id,is_active)`;
-    url += `&start_date=lte.${endDate}`;
-    url += `&end_date=gte.${startDate}`;
-
-    // Filtrar solo empleados activos
-    url += `&employee.is_active=eq.true`;
-
-    // AGREGAR: Filtrar por sucursal actual si existe
-    const branchId = this.currentBranch()?.id;
-    if (branchId) {
-      url += `&branch_id=eq.${branchId}`;
-    }
-
-    // Filtrar a través de employees.company_id
-    if (companyId) {
-      url += `&employee.company_id=eq.${companyId}`;
-    }
+    // Usar ApiUrlService.build() como en timetables (no process.env directamente)
+    const url = this.apiUrl.build('rest/v1/employee_schedules', {
+      select:
+        '*,schedule:schedules(*),branch:branches(id, name, short_name),employee:employees(id,company_id)',
+      start_date: `lte.${endDate}`,
+      end_date: `gte.${startDate}`,
+      ...(companyId ? { 'employee.company_id': `eq.${companyId}` } : {}),
+    });
 
     return {
       url,
@@ -2404,9 +2424,13 @@ export class BranchManagerComponent {
         employee_id: emp.id,
         employee: emp,
         entry_time: null,
+        entry_branch: null, // Sucursal donde marcó entrada
         lunch_start_time: null,
+        lunch_start_branch: null,
         lunch_end_time: null,
+        lunch_end_branch: null,
         exit_time: null,
+        exit_branch: null, // Sucursal donde marcó salida
         is_delayed: false,
         is_missing: !isDayOff, // Por defecto falta si tiene horario y no es libre
         is_day_off: isDayOff,
@@ -2446,9 +2470,13 @@ export class BranchManagerComponent {
           employee_id: log.employee_id,
           employee: log.employee || { id: log.employee_id },
           entry_time: null,
+          entry_branch: null,
           lunch_start_time: null,
+          lunch_start_branch: null,
           lunch_end_time: null,
+          lunch_end_branch: null,
           exit_time: null,
+          exit_branch: null,
           is_delayed: false,
           is_missing: false, // Si tiene logs aquí, no está missing
           is_day_off: isDayOff,
@@ -2470,28 +2498,36 @@ export class BranchManagerComponent {
         entry.employee = { ...entry.employee, ...log.employee };
       }
 
-      // Procesar según tipo de marcación
+      // Procesar según tipo de marcación (guardar branch junto con cada tiempo)
       if (log.type === 'entry') {
         if (entry.exit_time || !entry.entry_time) {
           entry.entry_time = logTime;
+          entry.entry_branch = log.branch;
           entry.lunch_start_time = null;
+          entry.lunch_start_branch = null;
           entry.lunch_end_time = null;
+          entry.lunch_end_branch = null;
           entry.exit_time = null;
+          entry.exit_branch = null;
           entry.last_entry_time = logTime;
         } else {
           entry.entry_time = entry.entry_time || logTime;
+          if (!entry.entry_branch) entry.entry_branch = log.branch;
         }
       } else if (log.type === 'lunch_start') {
         if (!entry.lunch_start_time) {
           entry.lunch_start_time = logTime;
+          entry.lunch_start_branch = log.branch;
         }
       } else if (log.type === 'lunch_end') {
         if (!entry.lunch_end_time) {
           entry.lunch_end_time = logTime;
+          entry.lunch_end_branch = log.branch;
         }
       } else if (log.type === 'exit') {
         if (!entry.exit_time) {
           entry.exit_time = logTime;
+          entry.exit_branch = log.branch;
         }
       }
     });
@@ -2652,34 +2688,51 @@ export class BranchManagerComponent {
     date: Date,
     schedules: any[]
   ): any {
+    // Normalizar la fecha de búsqueda al inicio del día en zona Panama
+    const searchDate = startOfDay(
+      toDate(date, { timeZone: 'America/Panama' })
+    );
+
+    const employeeSchedules = schedules.filter(
+      (s) => s.employee_id === employeeId
+    );
+
     console.log(
       `🔍 [BRANCH-MANAGER] Buscando schedule para empleado ${employeeId}:`,
       {
-        date: date.toISOString(),
-        schedulesForEmployee: schedules
-          .filter((s) => s.employee_id === employeeId)
-          .map((s) => ({
-            employee_id: s.employee_id,
+        searchDate: searchDate.toISOString(),
+        schedulesCount: employeeSchedules.length,
+        schedulesForEmployee: employeeSchedules.map((s) => {
+          const start = startOfDay(
+            toDate(s.start_date, { timeZone: 'America/Panama' })
+          );
+          const end = endOfDay(
+            toDate(s.end_date, { timeZone: 'America/Panama' })
+          );
+          return {
             schedule_name: s.schedule?.name,
             start_date: s.start_date,
             end_date: s.end_date,
-            dateCheck: {
-              selectedDate: date.toISOString(),
-              startDate: new Date(s.start_date).toISOString(),
-              endDate: new Date(s.end_date).toISOString(),
-              isWithinRange:
-                date >= new Date(s.start_date) && date <= new Date(s.end_date),
-            },
-          })),
+            startParsed: start.toISOString(),
+            endParsed: end.toISOString(),
+            isWithinRange: searchDate >= start && searchDate <= end,
+          };
+        }),
       }
     );
 
-    return schedules.find(
-      (s) =>
-        s.employee_id === employeeId &&
-        date >= new Date(s.start_date) &&
-        date <= new Date(s.end_date)
-    );
+    return schedules.find((s) => {
+      if (s.employee_id !== employeeId) return false;
+
+      const start = startOfDay(
+        toDate(s.start_date, { timeZone: 'America/Panama' })
+      );
+      const end = endOfDay(
+        toDate(s.end_date, { timeZone: 'America/Panama' })
+      );
+
+      return searchDate >= start && searchDate <= end;
+    });
   }
 
   // Helper methods

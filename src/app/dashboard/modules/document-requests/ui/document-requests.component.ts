@@ -602,14 +602,18 @@ import { DocumentRequest } from '../models/document-request.model';
               <label class="block text-sm font-medium text-gray-400 mb-1"
                 >Evidencia Adjunta</label
               >
-              <a
-                [href]="selectedDocument()!.metadata!.attachment_url"
-                target="_blank"
-                class="text-orange-400 hover:text-orange-300 flex items-center gap-2"
-              >
-                <i class="pi pi-external-link"></i>
-                Ver archivo adjunto
-              </a>
+              <!-- Mostrar preview del documento automáticamente -->
+              <div class="mt-3 border border-orange-400/30 rounded-lg overflow-hidden">
+                <iframe
+                  [src]="selectedDocument()!.metadata!.attachment_url | safeUrl"
+                  class="w-full h-64 border-0 bg-white"
+                  title="Preview de evidencia de marcación errónea"
+                ></iframe>
+              </div>
+              <p class="text-xs text-gray-400 mt-2 flex items-center gap-1">
+                <i class="pi pi-info-circle"></i>
+                Evidencia visual adjunta a la solicitud
+              </p>
             </div>
             }
           </div>
