@@ -568,20 +568,59 @@ export function app(): express.Express {
   server.get('/api/email/config', (req, res) => {
     try {
       const resendApiKey = process.env['ENV_RESEND_API_KEY'];
+      const postmarkApiKey = process.env['ENV_POSTMARK_API_KEY'];
       const smtpHost = process.env['ENV_SMTP_HOST'] || 'smtp.gmail.com';
       const smtpPort = process.env['ENV_SMTP_PORT'] || '587';
       const smtpUser = process.env['ENV_SMTP_USER'];
-      const noreplyEmail = process.env['ENV_SMTP_NOREPLY_EMAIL'] || smtpUser;
-      const noreplyName = process.env['ENV_SMTP_NOREPLY_NAME'] || 'People';
+
+      // Determinar el proveedor prioritario
+      let provider = 'smtp';
+      let host = smtpHost;
+      let port = parseInt(smtpPort);
+      let user = smtpUser || 'No configurado';
+
+      if (resendApiKey) {
+        provider = 'resend';
+        host = 'smtp.resend.com';
+        port = 465;
+        user = '(Resend API)';
+      } else if (postmarkApiKey) {
+        provider = 'postmark';
+        host = 'smtp.postmarkapp.com';
+        port = 587;
+        user = '(Postmark Server API Token)';
+      }
+
+      // Email remitente según el proveedor
+      const resendFromEmail = process.env['ENV_RESEND_FROM_EMAIL'];
+      const postmarkFromEmail = process.env['ENV_POSTMARK_FROM_EMAIL'];
+      const smtpFromEmail = process.env['ENV_SMTP_NOREPLY_EMAIL'] || smtpUser;
+
+      const senderEmail = resendApiKey ? resendFromEmail :
+                         postmarkApiKey ? postmarkFromEmail :
+                         smtpFromEmail || 'No configurado';
+
+      const resendFromName = process.env['ENV_RESEND_FROM_NAME'];
+      const postmarkFromName = process.env['ENV_POSTMARK_FROM_NAME'];
+      const smtpFromName = process.env['ENV_SMTP_NOREPLY_NAME'] || 'People';
+
+      const senderName = resendApiKey ? resendFromName :
+                        postmarkApiKey ? postmarkFromName :
+                        smtpFromName;
 
       return res.json({
-        provider: resendApiKey ? 'resend' : 'smtp',
-        host: resendApiKey ? 'smtp.resend.com' : smtpHost,
-        port: resendApiKey ? 465 : parseInt(smtpPort),
-        user: resendApiKey ? '(Resend API)' : smtpUser || 'No configurado',
-        senderEmail: noreplyEmail || 'No configurado',
-        senderName: noreplyName,
-        configured: !!(resendApiKey || smtpUser),
+        provider,
+        host,
+        port,
+        user,
+        senderEmail: senderEmail || 'No configurado',
+        senderName,
+        configured: !!(resendApiKey || postmarkApiKey || smtpUser),
+        priorities: {
+          resend: !!resendApiKey,
+          postmark: !!postmarkApiKey,
+          smtp: !!(smtpUser && process.env['ENV_SMTP_PASSWORD']),
+        },
       });
     } catch (error: any) {
       console.error('[Email Config] Error:', error);
@@ -603,6 +642,162 @@ export function app(): express.Express {
         });
       }
 
+      // Intentar usar Resend primero (prioridad más alta)
+      const resendApiKey = process.env['ENV_RESEND_API_KEY'];
+      if (resendApiKey) {
+        console.log('[Email Test] ✅ Usando Resend para prueba de email');
+        try {
+          const noreplyEmail = process.env['ENV_RESEND_FROM_EMAIL'] || 'onboarding@resend.dev';
+          const noreplyName = process.env['ENV_RESEND_FROM_NAME'] || 'People';
+          const envPortRaw = process.env['ENV_RESEND_SMTP_PORT'];
+          const envPort = envPortRaw ? parseInt(envPortRaw) : undefined;
+          const portsToTry = envPort ? [envPort] : [465, 587];
+
+          let info: any;
+          let lastError: any;
+          for (const port of portsToTry) {
+            try {
+              const transporter = nodemailer.createTransport({
+                host: 'smtp.resend.com',
+                port,
+                secure: port === 465,
+                requireTLS: port === 587,
+                auth: {
+                  user: 'resend',
+                  pass: resendApiKey,
+                },
+              });
+
+              const testHtml = `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                  <h2 style="color: #333;">✅ Prueba de Correo Exitosa - Resend</h2>
+                  <p>Este es un correo de prueba enviado desde el sistema <strong>People</strong> usando <strong>Resend</strong>.</p>
+                  <p>Si recibiste este mensaje, la configuración de Resend está funcionando correctamente.</p>
+                  <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                  <p style="color: #888; font-size: 12px;">
+                    Proveedor: Resend<br>
+                    Enviado desde: ${noreplyEmail}<br>
+                    Fecha: ${new Date().toLocaleString('es-PA', {
+                      timeZone: 'America/Panama',
+                    })}
+                  </p>
+                </div>
+              `;
+
+              info = await transporter.sendMail({
+                from: `${noreplyName} <${noreplyEmail}>`,
+                to: to,
+                subject: '✅ Prueba de Correo - People (Resend)',
+                html: testHtml,
+              });
+
+              safeLogger.safeLog('✅ Email de prueba enviado via Resend', {
+                to,
+                port,
+                messageId: info.messageId,
+              });
+              break;
+            } catch (err: any) {
+              lastError = err;
+              safeLogger.error(`❌ Error con Resend SMTP (port ${port})`, err);
+            }
+          }
+
+          if (!info) {
+            throw lastError || new Error('No se pudo enviar por Resend SMTP');
+          }
+
+          return res.json({
+            success: true,
+            message: 'Correo de prueba enviado correctamente via Resend',
+            provider: 'resend',
+            data: { messageId: info.messageId, to },
+          });
+        } catch (resendError: any) {
+          safeLogger.error('❌ Error con Resend en prueba', resendError);
+          // Si Resend falla, continuar con Postmark
+        }
+      }
+
+      // Intentar usar Postmark si Resend no está configurado o falló
+      const postmarkApiKey = process.env['ENV_POSTMARK_API_KEY'];
+      if (postmarkApiKey) {
+        console.log('[Email Test] ✅ Usando Postmark para prueba de email');
+        try {
+          const noreplyEmail = process.env['ENV_POSTMARK_FROM_EMAIL'] || 'noreply@tu-dominio.com';
+          const noreplyName = process.env['ENV_POSTMARK_FROM_NAME'] || 'People';
+          const envPortRaw = process.env['ENV_POSTMARK_SMTP_PORT'];
+          const envPort = envPortRaw ? parseInt(envPortRaw) : undefined;
+          const portsToTry = envPort ? [envPort] : [587, 2525];
+
+          let info: any;
+          let lastError: any;
+          for (const port of portsToTry) {
+            try {
+              const transporter = nodemailer.createTransport({
+                host: 'smtp.postmarkapp.com',
+                port,
+                secure: false,
+                requireTLS: true,
+                auth: {
+                  user: postmarkApiKey,
+                  pass: postmarkApiKey,
+                },
+              });
+
+              const testHtml = `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                  <h2 style="color: #333;">✅ Prueba de Correo Exitosa - Postmark</h2>
+                  <p>Este es un correo de prueba enviado desde el sistema <strong>People</strong> usando <strong>Postmark</strong>.</p>
+                  <p>Si recibiste este mensaje, la configuración de Postmark está funcionando correctamente.</p>
+                  <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                  <p style="color: #888; font-size: 12px;">
+                    Proveedor: Postmark<br>
+                    Enviado desde: ${noreplyEmail}<br>
+                    Fecha: ${new Date().toLocaleString('es-PA', {
+                      timeZone: 'America/Panama',
+                    })}
+                  </p>
+                </div>
+              `;
+
+              info = await transporter.sendMail({
+                from: `${noreplyName} <${noreplyEmail}>`,
+                to: to,
+                subject: '✅ Prueba de Correo - People (Postmark)',
+                html: testHtml,
+              });
+
+              safeLogger.safeLog('✅ Email de prueba enviado via Postmark', {
+                to,
+                port,
+                messageId: info.messageId,
+              });
+              break;
+            } catch (err: any) {
+              lastError = err;
+              safeLogger.error(`❌ Error con Postmark SMTP (port ${port})`, err);
+            }
+          }
+
+          if (!info) {
+            throw lastError || new Error('No se pudo enviar por Postmark SMTP');
+          }
+
+          return res.json({
+            success: true,
+            message: 'Correo de prueba enviado correctamente via Postmark',
+            provider: 'postmark',
+            data: { messageId: info.messageId, to },
+          });
+        } catch (postmarkError: any) {
+          safeLogger.error('❌ Error con Postmark en prueba', postmarkError);
+          // Si Postmark falla, continuar con SMTP genérico
+        }
+      }
+
+      // Fallback a SMTP genérico
+      console.log('[Email Test] 🔄 Usando SMTP genérico para prueba de email');
       const smtpHost = process.env['ENV_SMTP_HOST'] || 'smtp.gmail.com';
       const smtpPort = parseInt(process.env['ENV_SMTP_PORT'] || '587');
       const smtpUser = process.env['ENV_SMTP_USER'];
@@ -612,8 +807,8 @@ export function app(): express.Express {
 
       if (!smtpUser || !smtpPassword) {
         return res.status(500).json({
-          error: 'SMTP no configurado',
-          message: 'ENV_SMTP_USER y ENV_SMTP_PASSWORD no están configuradas',
+          error: 'Ningún proveedor de email configurado',
+          message: 'ENV_RESEND_API_KEY, ENV_POSTMARK_API_KEY o (ENV_SMTP_USER y ENV_SMTP_PASSWORD) no están configuradas',
         });
       }
 
@@ -629,11 +824,12 @@ export function app(): express.Express {
 
       const testHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #333;">✅ Prueba de Correo Exitosa</h2>
-          <p>Este es un correo de prueba enviado desde el sistema <strong>People</strong>.</p>
+          <h2 style="color: #333;">✅ Prueba de Correo Exitosa - SMTP</h2>
+          <p>Este es un correo de prueba enviado desde el sistema <strong>People</strong> usando <strong>SMTP genérico</strong>.</p>
           <p>Si recibiste este mensaje, la configuración SMTP está funcionando correctamente.</p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
           <p style="color: #888; font-size: 12px;">
+            Proveedor: SMTP (${smtpHost}:${smtpPort})<br>
             Enviado desde: ${noreplyEmail}<br>
             Fecha: ${new Date().toLocaleString('es-PA', {
               timeZone: 'America/Panama',
@@ -645,18 +841,19 @@ export function app(): express.Express {
       const info = await transporter.sendMail({
         from: `${noreplyName} <${noreplyEmail}>`,
         to: to,
-        subject: '✅ Prueba de Correo - People',
+        subject: '✅ Prueba de Correo - People (SMTP)',
         html: testHtml,
       });
 
-      safeLogger.safeLog('✅ Email de prueba enviado', {
+      safeLogger.safeLog('✅ Email de prueba enviado via SMTP', {
         to,
         messageId: info.messageId,
       });
 
       return res.json({
         success: true,
-        message: 'Correo de prueba enviado correctamente',
+        message: 'Correo de prueba enviado correctamente via SMTP',
+        provider: 'smtp',
         data: { messageId: info.messageId, to },
       });
     } catch (error: any) {
@@ -665,9 +862,9 @@ export function app(): express.Express {
       let errorMessage = 'Error desconocido';
       if (error.code === 'EAUTH') {
         errorMessage =
-          'Error de autenticación SMTP. Verifica usuario y contraseña.';
+          'Error de autenticación. Verifica las credenciales del proveedor configurado.';
       } else if (error.code === 'ECONNECTION') {
-        errorMessage = 'No se pudo conectar al servidor SMTP.';
+        errorMessage = 'No se pudo conectar al servidor de email.';
       } else if (error.message) {
         errorMessage = error.message;
       }
