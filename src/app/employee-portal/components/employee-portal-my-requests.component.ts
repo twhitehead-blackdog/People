@@ -1,5 +1,12 @@
 import { DatePipe, NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+  output,
+  signal,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
@@ -10,7 +17,12 @@ import { getCompensatoryQuantity } from '../utils/employee-portal-compensatory.u
 
 type UnifiedRequest = {
   id: string;
-  request_type: 'compensatory' | 'disability' | 'document' | 'complaint' | 'vacation';
+  request_type:
+    | 'compensatory'
+    | 'disability'
+    | 'document'
+    | 'complaint'
+    | 'vacation';
   created_at: string | Date;
   status: string;
   title: string;
@@ -49,7 +61,9 @@ type UnifiedRequest = {
       <ng-template #subtitle>Visualiza todas tus solicitudes</ng-template>
 
       <!-- Filtros y Ordenamiento (Desplegable) -->
-      <div class="mb-6 bg-neutral-800/50 rounded-lg border border-neutral-700/50 overflow-hidden">
+      <div
+        class="mb-6 bg-neutral-800/50 rounded-lg border border-neutral-700/50 overflow-hidden"
+      >
         <!-- Header del panel de filtros -->
         <button
           type="button"
@@ -58,9 +72,13 @@ type UnifiedRequest = {
         >
           <div class="flex items-center gap-3">
             <i class="pi pi-filter text-cyan-400"></i>
-            <span class="text-lg font-semibold text-white">Filtros y Ordenamiento</span>
+            <span class="text-lg font-semibold text-white"
+              >Filtros y Ordenamiento</span
+            >
             @if (canClearFilters()) {
-            <span class="px-2 py-1 bg-cyan-500/20 text-cyan-300 text-xs font-semibold rounded-full">
+            <span
+              class="px-2 py-1 bg-cyan-500/20 text-cyan-300 text-xs font-semibold rounded-full"
+            >
               {{ getActiveFiltersCount() }} activo(s)
             </span>
             }
@@ -174,7 +192,9 @@ type UnifiedRequest = {
                 <i class="pi pi-info-circle"></i>
                 <span>
                   Mostrando
-                  <strong class="text-white">{{ filteredRequests().length }}</strong>
+                  <strong class="text-white">{{
+                    filteredRequests().length
+                  }}</strong>
                   de
                   <strong class="text-white">{{ allRequests().length }}</strong>
                   solicitudes
@@ -220,9 +240,7 @@ type UnifiedRequest = {
           size="small"
         />
       </div>
-      }
-
-      @if (isLoading()) {
+      } @if (isLoading()) {
       <div class="flex justify-center items-center py-12">
         <div class="flex flex-col items-center gap-3">
           <i class="pi pi-spin pi-spinner text-4xl text-cyan-400"></i>
@@ -236,9 +254,12 @@ type UnifiedRequest = {
         >
           <i class="pi pi-inbox text-5xl text-cyan-400/50"></i>
         </div>
-        <h3 class="text-xl font-semibold text-white mb-2">No tienes solicitudes aún</h3>
+        <h3 class="text-xl font-semibold text-white mb-2">
+          No tienes solicitudes aún
+        </h3>
         <p class="text-gray-400 text-center max-w-md mb-6">
-          Aún no has enviado ninguna solicitud. Ve a "Gestiones" para crear una nueva solicitud.
+          Aún no has enviado ninguna solicitud. Ve a "Gestiones" para crear una
+          nueva solicitud.
         </p>
         <p-button
           label="Ir a Gestiones"
@@ -255,10 +276,13 @@ type UnifiedRequest = {
         >
           <i class="pi pi-filter-slash text-5xl text-yellow-400/50"></i>
         </div>
-        <h3 class="text-xl font-semibold text-white mb-2">No se encontraron resultados</h3>
+        <h3 class="text-xl font-semibold text-white mb-2">
+          No se encontraron resultados
+        </h3>
         <p class="text-gray-400 text-center max-w-md mb-6">
-          No hay solicitudes que coincidan con los filtros seleccionados. Intenta ajustar los
-          filtros o limpiarlos para ver todas tus solicitudes.
+          No hay solicitudes que coincidan con los filtros seleccionados.
+          Intenta ajustar los filtros o limpiarlos para ver todas tus
+          solicitudes.
         </p>
         <p-button
           label="Limpiar Filtros"
@@ -270,8 +294,8 @@ type UnifiedRequest = {
       </div>
       } @else {
       <div class="space-y-4">
-        @for (request of filteredRequests(); track request.id) {
-          @let data = request.originalData;
+        @for (request of filteredRequests(); track request.id) { @let data =
+        request.originalData;
         <div
           class="bg-gradient-to-r from-neutral-800 to-neutral-800/80 border rounded-xl p-5 hover:shadow-lg transition-all duration-300 cursor-pointer hover:border-cyan-400/50"
           [ngClass]="{
@@ -295,15 +319,15 @@ type UnifiedRequest = {
                 }"
               >
                 @if (request.request_type === 'compensatory') {
-                  <i class="pi pi-clock text-cyan-400"></i>
+                <i class="pi pi-clock text-cyan-400"></i>
                 } @else if (request.request_type === 'disability') {
-                  <i class="pi pi-file-plus text-blue-400"></i>
+                <i class="pi pi-file-plus text-blue-400"></i>
                 } @else if (request.request_type === 'document') {
-                  <i class="pi pi-file-edit text-green-400"></i>
+                <i class="pi pi-file-edit text-green-400"></i>
                 } @else if (request.request_type === 'complaint') {
-                  <i class="pi pi-comments text-yellow-400"></i>
+                <i class="pi pi-comments text-yellow-400"></i>
                 } @else {
-                  <i class="pi pi-calendar-plus text-purple-400"></i>
+                <i class="pi pi-calendar-plus text-purple-400"></i>
                 }
               </div>
             </div>
@@ -320,7 +344,8 @@ type UnifiedRequest = {
                       {{ request.title }}
                     </h3>
                     <p class="text-sm text-gray-400">
-                      Solicitado el {{ request.created_at | date : 'dd/MM/yyyy' }} a las
+                      Solicitado el
+                      {{ request.created_at | date : 'dd/MM/yyyy' }} a las
                       {{ request.created_at | date : 'HH:mm' }}
                     </p>
                   </div>
@@ -340,13 +365,13 @@ type UnifiedRequest = {
                     }"
                   >
                     @if (request.status === 'approved') {
-                      <i class="pi pi-check-circle"></i>
+                    <i class="pi pi-check-circle"></i>
                     } @else if (request.status === 'rejected') {
-                      <i class="pi pi-times-circle"></i>
+                    <i class="pi pi-times-circle"></i>
                     } @else if (request.status === 'in_registry') {
-                      <i class="pi pi-clock"></i>
+                    <i class="pi pi-clock"></i>
                     } @else {
-                      <i class="pi pi-hourglass"></i>
+                    <i class="pi pi-hourglass"></i>
                     }
                     {{ getStatusLabel()(request.status) }}
                   </span>
@@ -354,184 +379,216 @@ type UnifiedRequest = {
               </div>
 
               <!-- Información específica según tipo -->
-              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
+              <div
+                class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4"
+              >
                 <!-- Tiempo Compensatorio -->
                 @if (request.request_type === 'compensatory') {
-                  <!-- Fechas -->
-                  @let quantityForPeriodList = getCompensatoryQuantity(data);
-                  <div class="bg-neutral-900/50 rounded-lg p-3 border border-neutral-700/50">
-                    <div class="flex items-center gap-2 mb-2">
-                      <i class="pi pi-calendar text-cyan-400"></i>
-                      <span class="text-xs text-gray-400 font-medium">
-                        @if (quantityForPeriodList.isDays) {
-                          Período
-                        } @else {
-                          Fecha y Horas
-                        }
-                      </span>
-                    </div>
-                    @if (quantityForPeriodList.isDays) {
-                      <p class="text-white font-semibold">
-                        {{ data.date_from | date : 'dd/MM/yyyy' }}
-                      </p>
-                      @if (data.date_from !== data.date_to) {
-                        <p class="text-gray-400 text-sm mt-1">
-                          hasta {{ data.date_to | date : 'dd/MM/yyyy' }}
-                        </p>
-                      }
+                <!-- Fechas -->
+                @let quantityForPeriodList = getCompensatoryQuantity(data);
+                <div
+                  class="bg-neutral-900/50 rounded-lg p-3 border border-neutral-700/50"
+                >
+                  <div class="flex items-center gap-2 mb-2">
+                    <i class="pi pi-calendar text-cyan-400"></i>
+                    <span class="text-xs text-gray-400 font-medium">
+                      @if (quantityForPeriodList.isDays) { Período } @else {
+                      Fecha y Horas }
+                    </span>
+                  </div>
+                  @if (quantityForPeriodList.isDays) {
+                  <p class="text-white font-semibold">
+                    {{ data.date_from | date : 'dd/MM/yyyy' }}
+                  </p>
+                  @if (data.date_from !== data.date_to) {
+                  <p class="text-gray-400 text-sm mt-1">
+                    hasta {{ data.date_to | date : 'dd/MM/yyyy' }}
+                  </p>
+                  } } @else { @if (data.date_from) {
+                  <p class="text-white font-semibold">
+                    {{ data.date_from | date : 'dd/MM/yyyy' }}
+                  </p>
+                  @if (data.date_from && hasTimeInfo()(data.date_from)) {
+                  <p class="text-gray-400 text-sm mt-1">
+                    {{
+                      formatDateWithTimeRange()(data.date_from, data.date_to)
+                    }}
+                  </p>
+                  } @else {
+                  <p class="text-gray-400 text-sm mt-1">
+                    {{ formatHoursMinutes()(quantityForPeriodList.value) }}
+                  </p>
+                  } } @else {
+                  <p class="text-gray-400 text-sm">Sin fecha específica</p>
+                  } }
+                </div>
+
+                <!-- Cantidad -->
+                <div
+                  class="bg-neutral-900/50 rounded-lg p-3 border border-neutral-700/50"
+                >
+                  <div class="flex items-center gap-2 mb-2">
+                    @if (data.compensatory_type === 'days') {
+                    <i class="pi pi-calendar text-cyan-400"></i>
                     } @else {
-                      @if (data.date_from) {
-                        <p class="text-white font-semibold">
-                          {{ data.date_from | date : 'dd/MM/yyyy' }}
-                        </p>
-                        @if (data.date_from && hasTimeInfo()(data.date_from)) {
-                          <p class="text-gray-400 text-sm mt-1">
-                            {{ formatDateWithTimeRange()(data.date_from, data.date_to) }}
-                          </p>
-                        } @else {
-                          <p class="text-gray-400 text-sm mt-1">
-                            {{ formatHoursMinutes()(quantityForPeriodList.value) }}
-                          </p>
-                        }
-                      } @else {
-                        <p class="text-gray-400 text-sm">Sin fecha específica</p>
-                      }
+                    <i class="pi pi-clock text-cyan-400"></i>
                     }
+                    <span class="text-xs text-gray-400 font-medium"
+                      >Cantidad</span
+                    >
                   </div>
+                  <p class="text-white font-semibold text-lg">
+                    @let quantity = getCompensatoryQuantity(data); @if
+                    (quantity.isDays) {
+                    {{ quantity.value }} día(s)
+                    <span class="text-gray-400 text-sm font-normal block mt-1">
+                      ({{ quantity.value * 8 }} horas)
+                    </span>
+                    } @else {
+                    {{ formatHoursMinutes()(quantity.value) }}
+                    }
+                  </p>
+                </div>
 
-                  <!-- Cantidad -->
-                  <div class="bg-neutral-900/50 rounded-lg p-3 border border-neutral-700/50">
-                    <div class="flex items-center gap-2 mb-2">
-                      @if (data.compensatory_type === 'days') {
-                        <i class="pi pi-calendar text-cyan-400"></i>
-                      } @else {
-                        <i class="pi pi-clock text-cyan-400"></i>
-                      }
-                      <span class="text-xs text-gray-400 font-medium">Cantidad</span>
-                    </div>
-                    <p class="text-white font-semibold text-lg">
-                      @let quantity = getCompensatoryQuantity(data);
-                      @if (quantity.isDays) {
-                        {{ quantity.value }} día(s)
-                        <span class="text-gray-400 text-sm font-normal block mt-1">
-                          ({{ quantity.value * 8 }} horas)
-                        </span>
-                      } @else {
-                        {{ formatHoursMinutes()(quantity.value) }}
-                      }
-                    </p>
+                <!-- Tipo -->
+                <div
+                  class="bg-neutral-900/50 rounded-lg p-3 border border-neutral-700/50"
+                >
+                  <div class="flex items-center gap-2 mb-2">
+                    <i class="pi pi-tag text-cyan-400"></i>
+                    <span class="text-xs text-gray-400 font-medium">Tipo</span>
                   </div>
+                  <p class="text-white font-semibold">
+                    @if (data.compensatory_type === 'days') { Días } @else {
+                    Horas }
+                  </p>
+                </div>
 
-                  <!-- Tipo -->
-                  <div class="bg-neutral-900/50 rounded-lg p-3 border border-neutral-700/50">
-                    <div class="flex items-center gap-2 mb-2">
-                      <i class="pi pi-tag text-cyan-400"></i>
-                      <span class="text-xs text-gray-400 font-medium">Tipo</span>
-                    </div>
-                    <p class="text-white font-semibold">
-                      @if (data.compensatory_type === 'days') {
-                        Días
-                      } @else {
-                        Horas
-                      }
-                    </p>
-                  </div>
-
-                  <!-- Documento PDF -->
-                  <div class="bg-neutral-900/50 rounded-lg p-3 border border-neutral-700/50">
-                    <div class="flex items-center gap-2 mb-2">
+                <!-- Documento PDF -->
+                @if (data.document_url) {
+                <div
+                  class="bg-neutral-900/50 rounded-lg p-3 border border-neutral-700/50 hover:bg-neutral-800 transition-colors cursor-pointer group"
+                  (click)="viewDocument($event, data.document_url)"
+                >
+                  <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-2">
                       <i class="pi pi-file text-cyan-400"></i>
-                      <span class="text-xs text-gray-400 font-medium">Documento</span>
+                      <span class="text-xs text-gray-400 font-medium"
+                        >Documento</span
+                      >
                     </div>
-                    @if (data.document_url) {
-                      <div class="flex flex-col items-center gap-2">
-                        <iframe
-                          [src]="data.document_url + '#toolbar=1&navpanes=1&scrollbar=1'"
-                          type="application/pdf"
-                          width="100%"
-                          height="150px"
-                          style="border: none; border-radius: 4px;"
-                        ></iframe>
-                        <p class="text-xs text-cyan-400 text-center">
-                          Solicitud física adjunta
-                        </p>
-                      </div>
-                    } @else {
-                      <p class="text-gray-400 text-sm text-center">
-                        Sin documento adjunto
-                      </p>
-                    }
+                    <i
+                      class="pi pi-external-link text-xs text-gray-500 group-hover:text-cyan-400"
+                    ></i>
                   </div>
-                }
+                  <p
+                    class="text-xs text-cyan-400 text-center font-medium bg-cyan-500/10 rounded py-1"
+                  >
+                    Ver documento adjunto
+                  </p>
+                </div>
+                } @else {
+                <div
+                  class="bg-neutral-900/50 rounded-lg p-3 border border-neutral-700/50"
+                >
+                  <div class="flex items-center gap-2 mb-2">
+                    <i class="pi pi-file text-gray-600"></i>
+                    <span class="text-xs text-gray-400 font-medium"
+                      >Documento</span
+                    >
+                  </div>
+                  <p class="text-gray-500 text-xs text-center">Sin documento</p>
+                </div>
+                } }
 
                 <!-- Incapacidad -->
                 @if (request.request_type === 'disability') {
-                  <div class="bg-neutral-900/50 rounded-lg p-3 border border-neutral-700/50">
-                    <div class="flex items-center gap-2 mb-2">
-                      <i class="pi pi-calendar text-blue-400"></i>
-                      <span class="text-xs text-gray-400 font-medium">Período</span>
-                    </div>
-                    <p class="text-white font-semibold">
-                      {{ data.start_date | date : 'dd/MM/yyyy' }}
-                      @if (data.end_date) {
-                        <span class="text-gray-400 text-sm block mt-1">
-                          hasta {{ data.end_date | date : 'dd/MM/yyyy' }}
-                        </span>
-                      }
-                    </p>
+                <div
+                  class="bg-neutral-900/50 rounded-lg p-3 border border-neutral-700/50"
+                >
+                  <div class="flex items-center gap-2 mb-2">
+                    <i class="pi pi-calendar text-blue-400"></i>
+                    <span class="text-xs text-gray-400 font-medium"
+                      >Período</span
+                    >
                   </div>
+                  <p class="text-white font-semibold">
+                    {{ data.start_date | date : 'dd/MM/yyyy' }}
+                    @if (data.end_date) {
+                    <span class="text-gray-400 text-sm block mt-1">
+                      hasta {{ data.end_date | date : 'dd/MM/yyyy' }}
+                    </span>
+                    }
+                  </p>
+                </div>
                 }
 
                 <!-- Documento -->
                 @if (request.request_type === 'document') {
-                  <div class="bg-neutral-900/50 rounded-lg p-3 border border-neutral-700/50">
-                    <div class="flex items-center gap-2 mb-2">
-                      <i class="pi pi-file text-green-400"></i>
-                      <span class="text-xs text-gray-400 font-medium">Tipo de Documento</span>
-                    </div>
-                    <p class="text-white font-semibold">
-                      {{ getDocumentTypeLabel()(data.document_type) }}
-                    </p>
+                <div
+                  class="bg-neutral-900/50 rounded-lg p-3 border border-neutral-700/50"
+                >
+                  <div class="flex items-center gap-2 mb-2">
+                    <i class="pi pi-file text-green-400"></i>
+                    <span class="text-xs text-gray-400 font-medium"
+                      >Tipo de Documento</span
+                    >
                   </div>
-                  @if (data.required_date) {
-                  <div class="bg-neutral-900/50 rounded-lg p-3 border border-neutral-700/50">
-                    <div class="flex items-center gap-2 mb-2">
-                      <i class="pi pi-calendar text-green-400"></i>
-                      <span class="text-xs text-gray-400 font-medium">Fecha Requerida</span>
-                    </div>
-                    <p class="text-white font-semibold">
-                      {{ data.required_date | date : 'dd/MM/yyyy' }}
-                    </p>
+                  <p class="text-white font-semibold">
+                    {{ getDocumentTypeLabel()(data.document_type) }}
+                  </p>
+                </div>
+                @if (data.required_date) {
+                <div
+                  class="bg-neutral-900/50 rounded-lg p-3 border border-neutral-700/50"
+                >
+                  <div class="flex items-center gap-2 mb-2">
+                    <i class="pi pi-calendar text-green-400"></i>
+                    <span class="text-xs text-gray-400 font-medium"
+                      >Fecha Requerida</span
+                    >
                   </div>
-                  }
-                }
+                  <p class="text-white font-semibold">
+                    {{ data.required_date | date : 'dd/MM/yyyy' }}
+                  </p>
+                </div>
+                } }
 
                 <!-- Queja -->
                 @if (request.request_type === 'complaint') {
-                  <div class="bg-neutral-900/50 rounded-lg p-3 border border-neutral-700/50">
-                    <div class="flex items-center gap-2 mb-2">
-                      <i class="pi pi-tag text-yellow-400"></i>
-                      <span class="text-xs text-gray-400 font-medium">Categoría</span>
-                    </div>
-                    <p class="text-white font-semibold">
-                      {{ getComplaintCategoryLabel()(data.category) }}
-                    </p>
+                <div
+                  class="bg-neutral-900/50 rounded-lg p-3 border border-neutral-700/50"
+                >
+                  <div class="flex items-center gap-2 mb-2">
+                    <i class="pi pi-tag text-yellow-400"></i>
+                    <span class="text-xs text-gray-400 font-medium"
+                      >Categoría</span
+                    >
                   </div>
-                  @if (data.priority) {
-                  <div class="bg-neutral-900/50 rounded-lg p-3 border border-neutral-700/50">
-                    <div class="flex items-center gap-2 mb-2">
-                      <i class="pi pi-exclamation-circle text-yellow-400"></i>
-                      <span class="text-xs text-gray-400 font-medium">Prioridad</span>
-                    </div>
-                    <p class="text-white font-semibold capitalize">
-                      {{ data.priority }}
-                    </p>
+                  <p class="text-white font-semibold">
+                    {{ getComplaintCategoryLabel()(data.category) }}
+                  </p>
+                </div>
+                @if (data.priority) {
+                <div
+                  class="bg-neutral-900/50 rounded-lg p-3 border border-neutral-700/50"
+                >
+                  <div class="flex items-center gap-2 mb-2">
+                    <i class="pi pi-exclamation-circle text-yellow-400"></i>
+                    <span class="text-xs text-gray-400 font-medium"
+                      >Prioridad</span
+                    >
                   </div>
-                  }
-                }
+                  <p class="text-white font-semibold capitalize">
+                    {{ data.priority }}
+                  </p>
+                </div>
+                } }
 
                 <!-- Tipo de Solicitud (común) -->
-                <div class="bg-neutral-900/50 rounded-lg p-3 border border-neutral-700/50">
+                <div
+                  class="bg-neutral-900/50 rounded-lg p-3 border border-neutral-700/50"
+                >
                   <div class="flex items-center gap-2 mb-2">
                     <i class="pi pi-list text-gray-400"></i>
                     <span class="text-xs text-gray-400 font-medium">Tipo</span>
@@ -544,15 +601,14 @@ type UnifiedRequest = {
 
               <!-- Descripción/Motivo -->
               @if (request.description) {
-              <div class="bg-neutral-900/30 rounded-lg p-3 border border-neutral-700/30 mb-4">
+              <div
+                class="bg-neutral-900/30 rounded-lg p-3 border border-neutral-700/30 mb-4"
+              >
                 <div class="flex items-center gap-2 mb-2">
                   <i class="pi pi-comment text-cyan-400"></i>
                   <span class="text-sm text-gray-400 font-medium">
-                    @if (request.request_type === 'complaint') {
-                      Detalles
-                    } @else {
-                      Motivo
-                    }
+                    @if (request.request_type === 'complaint') { Detalles }
+                    @else { Motivo }
                   </span>
                 </div>
                 <p class="text-gray-300 text-sm">{{ request.description }}</p>
@@ -560,12 +616,19 @@ type UnifiedRequest = {
               }
 
               <!-- Comentario de Rechazo -->
-              @if (data.rejection_comment || (data.notes && request.status === 'rejected')) {
-              <div class="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+              @if (data.rejection_comment || (data.notes && request.status ===
+              'rejected')) {
+              <div
+                class="bg-red-500/10 border border-red-500/30 rounded-lg p-4"
+              >
                 <div class="flex items-start gap-3">
-                  <i class="pi pi-exclamation-triangle text-red-400 text-xl mt-0.5"></i>
+                  <i
+                    class="pi pi-exclamation-triangle text-red-400 text-xl mt-0.5"
+                  ></i>
                   <div class="flex-1">
-                    <h4 class="text-red-300 font-semibold mb-1">Motivo del Rechazo</h4>
+                    <h4 class="text-red-300 font-semibold mb-1">
+                      Motivo del Rechazo
+                    </h4>
                     <p class="text-red-200 text-sm">
                       {{ data.rejection_comment || data.notes }}
                     </p>
@@ -602,16 +665,23 @@ export class EmployeePortalMyRequestsComponent {
   public allRequests = input.required<UnifiedRequest[]>();
   public filteredRequests = input.required<UnifiedRequest[]>();
   public isLoading = input.required<boolean>();
-  public statusOptions = input.required<Array<{ label: string; value: string | null }>>();
-  public typeOptions = input.required<Array<{ label: string; value: string | null }>>();
-  public sortOptions = input.required<Array<{ label: string; by: string; order: string }>>();
+  public statusOptions =
+    input.required<Array<{ label: string; value: string | null }>>();
+  public typeOptions =
+    input.required<Array<{ label: string; value: string | null }>>();
+  public sortOptions =
+    input.required<Array<{ label: string; by: string; order: string }>>();
   public getStatusLabel = input.required<(status: string) => string>();
   public getRequestTypeLabel = input.required<(type: string) => string>();
   public getDocumentTypeLabel = input.required<(type: string) => string>();
-  public getComplaintCategoryLabel = input.required<(category: string) => string>();
-  public formatHoursMinutes = input.required<(hours: number | string) => string>();
-  public formatDateWithTimeRange = input.required<(from: string | Date, to: string | Date) => string>();
-  public hasTimeInfo = input.required<(date: string | Date | null | undefined) => boolean>();
+  public getComplaintCategoryLabel =
+    input.required<(category: string) => string>();
+  public formatHoursMinutes =
+    input.required<(hours: number | string) => string>();
+  public formatDateWithTimeRange =
+    input.required<(from: string | Date, to: string | Date) => string>();
+  public hasTimeInfo =
+    input.required<(date: string | Date | null | undefined) => boolean>();
 
   // Outputs
   public viewRequestDetails = output<UnifiedRequest>();
@@ -679,6 +749,11 @@ export class EmployeePortalMyRequestsComponent {
 
   public onSetActiveSection(section: string): void {
     this.setActiveSection.emit(section);
+  }
+
+  public viewDocument(event: Event, url: string): void {
+    event.stopPropagation();
+    window.open(url, '_blank');
   }
 
   // Helper methods to use imported functions in template

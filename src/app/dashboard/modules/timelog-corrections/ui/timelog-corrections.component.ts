@@ -14,6 +14,8 @@ import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
 import { DashboardStore } from '../../../../stores/dashboard.store';
 import { getEnv } from '../../../../utils/env.utils';
+import { DocumentRequestsService } from '../../document-requests/data/document-requests.service';
+import { DocumentRequest } from '../../document-requests/models/document-request.model';
 import { HrFiltersPanelComponent } from '../../shared/components/hr-filters-panel.component';
 import { HrStatsGridComponent } from '../../shared/components/hr-stats-grid.component';
 import {
@@ -21,8 +23,6 @@ import {
   getStatusSeverity,
   TagSeverity,
 } from '../../shared/utils/hr-status.utils';
-import { DocumentRequestsService } from '../../document-requests/data/document-requests.service';
-import { DocumentRequest } from '../../document-requests/models/document-request.model';
 
 @Component({
   selector: 'pt-timelog-corrections',
@@ -134,6 +134,12 @@ import { DocumentRequest } from '../../document-requests/models/document-request
                   <span class="text-xs">Solicitado</span>
                 </div>
               </th>
+              <th style="width: 140px; padding: 0.4rem; text-align: center;">
+                <div class="flex items-center gap-1">
+                  <i class="pi pi-user-plus text-orange-400 text-xs"></i>
+                  <span class="text-xs">Creado por</span>
+                </div>
+              </th>
               <th style="width: 150px; padding: 0.4rem; text-align: left;">
                 <div class="flex items-center gap-1">
                   <i class="pi pi-cog text-orange-400 text-xs"></i>
@@ -172,7 +178,9 @@ import { DocumentRequest } from '../../document-requests/models/document-request
               </td>
               <td style="padding: 0.4rem; text-align: center;">
                 <span class="text-sm text-orange-300 font-semibold">
-                  {{ getTimelogTypeLabel(request.metadata?.timelog_type || '') }}
+                  {{
+                    getTimelogTypeLabel(request.metadata?.timelog_type || '')
+                  }}
                 </span>
               </td>
               <td style="padding: 0.4rem; text-align: center;">
@@ -186,6 +194,21 @@ import { DocumentRequest } from '../../document-requests/models/document-request
                 <span class="text-xs text-gray-400">{{
                   request.created_at | date : 'dd/MM/yyyy'
                 }}</span>
+              </td>
+              <td style="padding: 0.4rem; text-align: center;">
+                @if (request.created_by_employee) {
+                <div class="flex items-center justify-center gap-1">
+                  <i class="pi pi-user text-amber-400 text-[9px]"></i>
+                  <span class="text-[10px] font-medium text-amber-300">
+                    {{ request.created_by_employee.first_name }}
+                    {{ request.created_by_employee.father_name }}
+                  </span>
+                </div>
+                } @else {
+                <span class="text-[10px] text-gray-500 italic">
+                  Auto-solicitud
+                </span>
+                }
               </td>
               <td
                 style="padding: 0.4rem; text-align: center;"
@@ -213,8 +236,7 @@ import { DocumentRequest } from '../../document-requests/models/document-request
                     pTooltip="Rechazar"
                     tooltipPosition="top"
                   />
-                  }
-                  @if (request.metadata?.attachment_url) {
+                  } @if (request.metadata?.attachment_url) {
                   <p-button
                     icon="pi pi-file"
                     [text]="true"
@@ -257,7 +279,9 @@ import { DocumentRequest } from '../../document-requests/models/document-request
       <ng-template pTemplate="header">
         <div class="flex items-center gap-2">
           <i class="pi pi-exclamation-triangle text-orange-400"></i>
-          <span class="text-lg font-semibold text-white">Detalles de Corrección de Marcación</span>
+          <span class="text-lg font-semibold text-white"
+            >Detalles de Corrección de Marcación</span
+          >
         </div>
       </ng-template>
 
@@ -265,54 +289,83 @@ import { DocumentRequest } from '../../document-requests/models/document-request
       <div class="space-y-4 pt-4">
         <!-- Información del Empleado -->
         <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
-          <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+          <h3
+            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+          >
             <i class="pi pi-user text-orange-400"></i>
             Información del Empleado
           </h3>
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1">Nombre</label>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Nombre</label
+              >
               <p class="text-white">
                 {{ selectedRequest()!.employee?.first_name }}
                 {{ selectedRequest()!.employee?.father_name }}
               </p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1">Sucursal</label>
-              <p class="text-white">{{ selectedRequest()!.employee?.branch?.name || '-' }}</p>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Sucursal</label
+              >
+              <p class="text-white">
+                {{ selectedRequest()!.employee?.branch?.name || '-' }}
+              </p>
             </div>
           </div>
         </div>
 
         <!-- Detalles de la Marcación -->
-        <div class="p-4 bg-gradient-to-r from-orange-500/10 to-orange-600/5 rounded-lg border border-orange-400/30">
-          <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+        <div
+          class="p-4 bg-gradient-to-r from-orange-500/10 to-orange-600/5 rounded-lg border border-orange-400/30"
+        >
+          <h3
+            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+          >
             <i class="pi pi-clock text-orange-400"></i>
             Detalles de la Marcación
           </h3>
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1">Fecha</label>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Fecha</label
+              >
               <p class="text-white text-lg font-semibold">
-                {{ selectedRequest()!.metadata?.timelog_date | date : 'dd/MM/yyyy' }}
+                {{
+                  selectedRequest()!.metadata?.timelog_date
+                    | date : 'dd/MM/yyyy'
+                }}
               </p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1">Tipo de Marcación</label>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Tipo de Marcación</label
+              >
               <p class="text-orange-300 text-lg font-semibold">
-                {{ getTimelogTypeLabel(selectedRequest()!.metadata?.timelog_type || '') }}
+                {{
+                  getTimelogTypeLabel(
+                    selectedRequest()!.metadata?.timelog_type || ''
+                  )
+                }}
               </p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1">Estado</label>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Estado</label
+              >
               <p-tag
                 [value]="getStatusLabel(selectedRequest()!.status)"
                 [severity]="getStatusSeverity(selectedRequest()!.status)"
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1">Fecha Solicitud</label>
-              <p class="text-white">{{ selectedRequest()!.created_at | date : 'dd/MM/yyyy HH:mm' }}</p>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Fecha Solicitud</label
+              >
+              <p class="text-white">
+                {{ selectedRequest()!.created_at | date : 'dd/MM/yyyy HH:mm' }}
+              </p>
             </div>
           </div>
         </div>
@@ -320,18 +373,24 @@ import { DocumentRequest } from '../../document-requests/models/document-request
         <!-- Motivo -->
         @if (selectedRequest()!.reason) {
         <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
-          <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+          <h3
+            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+          >
             <i class="pi pi-comment text-orange-400"></i>
             Motivo de la Corrección
           </h3>
-          <p class="text-white whitespace-pre-wrap">{{ selectedRequest()!.reason }}</p>
+          <p class="text-white whitespace-pre-wrap">
+            {{ selectedRequest()!.reason }}
+          </p>
         </div>
         }
 
         <!-- Evidencia -->
         @if (selectedRequest()!.metadata?.attachment_url) {
         <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
-          <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+          <h3
+            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+          >
             <i class="pi pi-file text-orange-400"></i>
             Evidencia Adjunta
           </h3>
@@ -349,7 +408,9 @@ import { DocumentRequest } from '../../document-requests/models/document-request
         <!-- Acciones -->
         @if (selectedRequest()!.status === 'pending') {
         <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
-          <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+          <h3
+            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+          >
             <i class="pi pi-cog text-orange-400"></i>
             Acciones
           </h3>
@@ -358,13 +419,17 @@ import { DocumentRequest } from '../../document-requests/models/document-request
               label="Aprobar"
               icon="pi pi-check"
               severity="success"
-              (onClick)="approveRequest(selectedRequest()!); showDetailsDialog.set(false)"
+              (onClick)="
+                approveRequest(selectedRequest()!); showDetailsDialog.set(false)
+              "
             />
             <p-button
               label="Rechazar"
               icon="pi pi-times"
               severity="danger"
-              (onClick)="rejectRequest(selectedRequest()!); showDetailsDialog.set(false)"
+              (onClick)="
+                rejectRequest(selectedRequest()!); showDetailsDialog.set(false)
+              "
             />
           </div>
         </div>
@@ -408,10 +473,12 @@ export class TimelogCorrectionsComponent {
     () => this.timelogCorrections().filter((d) => d.status === 'pending').length
   );
   public completedCount = computed(
-    () => this.timelogCorrections().filter((d) => d.status === 'completed').length
+    () =>
+      this.timelogCorrections().filter((d) => d.status === 'completed').length
   );
   public rejectedCount = computed(
-    () => this.timelogCorrections().filter((d) => d.status === 'rejected').length
+    () =>
+      this.timelogCorrections().filter((d) => d.status === 'rejected').length
   );
 
   // Filtered requests
@@ -501,7 +568,9 @@ export class TimelogCorrectionsComponent {
     try {
       await firstValueFrom(
         this.http.patch(
-          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/document_requests?id=eq.${request.id}`,
+          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/document_requests?id=eq.${
+            request.id
+          }`,
           {
             status: 'completed',
             processed_by: currentEmployee.id,
@@ -541,7 +610,9 @@ export class TimelogCorrectionsComponent {
         try {
           await firstValueFrom(
             this.http.patch(
-              `${getEnv('ENV_SUPABASE_URL')}/rest/v1/document_requests?id=eq.${request.id}`,
+              `${getEnv('ENV_SUPABASE_URL')}/rest/v1/document_requests?id=eq.${
+                request.id
+              }`,
               {
                 status: 'rejected',
                 processed_by: currentEmployee.id,

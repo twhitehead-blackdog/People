@@ -71,6 +71,10 @@ interface Disability {
   status: 'pending' | 'approved' | 'rejected';
   rejection_comment?: string | null;
   created_at: string;
+  created_by_employee?: {
+    first_name: string;
+    father_name: string;
+  };
 }
 
 export interface CompensatoryRequest {
@@ -101,6 +105,10 @@ export interface CompensatoryRequest {
   is_approved: boolean;
   created_at: string;
   notes?: string[] | string;
+  created_by_employee?: {
+    first_name: string;
+    father_name: string;
+  };
 }
 
 interface VacationRequest {
@@ -745,6 +753,14 @@ export interface DocumentRequest {
                       </div>
                     </th>
                     <th
+                      style="width: 140px; padding: 0.5rem; text-align: center;"
+                    >
+                      <div class="flex items-center gap-1">
+                        <i class="pi pi-user-plus text-cyan-400 text-xs"></i>
+                        <span class="text-xs">Creado por</span>
+                      </div>
+                    </th>
+                    <th
                       style="width: 70px; padding: 0.5rem; text-align: center;"
                     >
                       <div class="flex items-center justify-center gap-1">
@@ -837,6 +853,21 @@ export interface DocumentRequest {
                           padding: '0.125rem 0.5rem'
                         }"
                       />
+                    </td>
+                    <td style="padding: 0.5rem; text-align: center;">
+                      @if (disability.created_by_employee) {
+                      <div class="flex items-center justify-center gap-1">
+                        <i class="pi pi-user text-amber-400 text-[9px]"></i>
+                        <span class="text-[10px] font-medium text-amber-300">
+                          {{ disability.created_by_employee.first_name }}
+                          {{ disability.created_by_employee.father_name }}
+                        </span>
+                      </div>
+                      } @else {
+                      <span class="text-[10px] text-gray-500 italic">
+                        Auto-solicitud
+                      </span>
+                      }
                     </td>
                     <td style="padding: 0.5rem; text-align: center;">
                       @if (disability.document_url) {
@@ -1261,6 +1292,14 @@ export interface DocumentRequest {
                       </div>
                     </th>
                     <th
+                      style="width: 140px; padding: 0.4rem; text-align: center;"
+                    >
+                      <div class="flex items-center justify-center gap-1">
+                        <i class="pi pi-user-plus text-cyan-400 text-xs"></i>
+                        <span class="text-xs">Creado por</span>
+                      </div>
+                    </th>
+                    <th
                       style="width: 110px; padding: 0.4rem; text-align: center;"
                     >
                       <div class="flex items-center justify-center gap-1">
@@ -1364,6 +1403,21 @@ export interface DocumentRequest {
                           padding: '0.1rem 0.4rem'
                         }"
                       />
+                    </td>
+                    <td style="padding: 0.5rem; text-align: center;">
+                      @if (request.created_by_employee) {
+                      <div class="flex items-center justify-center gap-1">
+                        <i class="pi pi-user text-amber-400 text-[9px]"></i>
+                        <span class="text-[10px] font-medium text-amber-300">
+                          {{ request.created_by_employee.first_name }}
+                          {{ request.created_by_employee.father_name }}
+                        </span>
+                      </div>
+                      } @else {
+                      <span class="text-[10px] text-gray-500 italic">
+                        Auto-solicitud
+                      </span>
+                      }
                     </td>
                     <td
                       style="padding: 0.4rem; text-align: center;"
@@ -2818,7 +2872,13 @@ export class HRDisabilitiesComponent {
 
   // Método para navegar a diferentes pestañas
   public navigateToTab(
-    tab: 'disabilities' | 'compensatory' | 'documents' | 'vacations' | 'timelog_correction' | 'uniform_request'
+    tab:
+      | 'disabilities'
+      | 'compensatory'
+      | 'documents'
+      | 'vacations'
+      | 'timelog_correction'
+      | 'uniform_request'
   ): void {
     this.activeTab.set(tab);
   }
@@ -2833,7 +2893,7 @@ export class HRDisabilitiesComponent {
 
     const params: any = {
       // Ahora podemos filtrar directamente por company_id ya que se agregó el campo a la tabla
-      select: `id,employee_id,created_by,start_date,end_date,description,document_url,status,reviewed_by,reviewed_at,review_notes,rejection_comment,created_at,updated_at,company_id,employee:employees!employee_disabilities_employee_id_fkey(id,first_name,father_name,mother_name,work_email,company_id,position:positions(name),branch:branches(name))`,
+      select: `id,employee_id,created_by,start_date,end_date,description,document_url,status,reviewed_by,reviewed_at,review_notes,rejection_comment,created_at,updated_at,company_id,employee:employees!employee_disabilities_employee_id_fkey(id,first_name,father_name,mother_name,work_email,company_id,position:positions(name),branch:branches(name)),created_by_employee:employees!employee_disabilities_created_by_fkey(first_name,father_name)`,
       // Filtrar directamente por company_id (campo agregado a la tabla)
       company_id: `eq.${companyId}`,
       order: 'created_at.desc',
@@ -2853,7 +2913,13 @@ export class HRDisabilitiesComponent {
 
   // Nuevas señales para el dashboard mejorado
   public activeTab = signal<
-    'disabilities' | 'compensatory' | 'documents' | 'vacations' | 'suggestions' | 'timelog_correction' | 'uniform_request'
+    | 'disabilities'
+    | 'compensatory'
+    | 'documents'
+    | 'vacations'
+    | 'suggestions'
+    | 'timelog_correction'
+    | 'uniform_request'
   >('disabilities');
   public showFilters = signal(false);
   public showCompensatoryFilters = signal(false);
@@ -3729,7 +3795,7 @@ export class HRDisabilitiesComponent {
 
     // Ahora podemos filtrar directamente por company_id ya que se agregó el campo a la tabla
     const params: any = {
-      select: `id,employee_id,type_id,date_from,date_to,notes,is_approved,compensatory_type,compensatory_amount,review_status,reviewed_by,reviewed_at,rejection_comment,created_at,company_id,document_url,type:timeoff_types(id,name),employee:employees!time_offs_employee_id_fkey(id,first_name,father_name,work_email,company_id,position:positions(name),branch:branches(name))`,
+      select: `id,employee_id,type_id,date_from,date_to,notes,is_approved,compensatory_type,compensatory_amount,review_status,reviewed_by,reviewed_at,rejection_comment,created_at,company_id,document_url,type:timeoff_types(id,name),employee:employees!time_offs_employee_id_fkey(id,first_name,father_name,work_email,company_id,position:positions(name),branch:branches(name)),created_by_employee:employees!timeoffs_created_by_fkey(first_name,father_name)`,
       type_id: `eq.${compensatoryTypeId}`,
       // Filtrar directamente por company_id (campo agregado a la tabla)
       company_id: `eq.${companyId}`,
@@ -3751,25 +3817,33 @@ export class HRDisabilitiesComponent {
 
   public documentsPendingCount = computed(
     () =>
-      this.documentRequestsService.value().filter(
-        (d) => d.status === 'pending' &&
-        d.document_type !== 'timelog_correction' &&
-        d.document_type !== 'uniform_request'
-      ).length || 0
+      this.documentRequestsService
+        .value()
+        .filter(
+          (d) =>
+            d.status === 'pending' &&
+            d.document_type !== 'timelog_correction' &&
+            d.document_type !== 'uniform_request'
+        ).length || 0
   );
 
   public timelogCorrectionPendingCount = computed(
     () =>
-      this.documentRequestsService.value().filter(
-        (d) => d.status === 'pending' && d.document_type === 'timelog_correction'
-      ).length || 0
+      this.documentRequestsService
+        .value()
+        .filter(
+          (d) =>
+            d.status === 'pending' && d.document_type === 'timelog_correction'
+        ).length || 0
   );
 
   public uniformRequestPendingCount = computed(
     () =>
-      this.documentRequestsService.value().filter(
-        (d) => d.status === 'pending' && d.document_type === 'uniform_request'
-      ).length || 0
+      this.documentRequestsService
+        .value()
+        .filter(
+          (d) => d.status === 'pending' && d.document_type === 'uniform_request'
+        ).length || 0
   );
 
   // Filtros para tiempo compensatorio

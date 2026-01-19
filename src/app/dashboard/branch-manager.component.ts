@@ -1,35 +1,35 @@
 import {
-    animate,
-    query,
-    stagger,
-    style,
-    transition,
-    trigger,
+  animate,
+  query,
+  stagger,
+  style,
+  transition,
+  trigger,
 } from '@angular/animations';
 import { DatePipe, NgClass, NgStyle } from '@angular/common';
 import { HttpClient, httpResource } from '@angular/common/http';
 import {
-    ChangeDetectionStrategy,
-    Component,
-    computed,
-    inject,
-    model,
-    signal,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  model,
+  signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer } from '@angular/platform-browser';
 import {
-    addDays,
-    addWeeks,
-    differenceInMinutes,
-    endOfDay,
-    format,
-    getDate,
-    isWithinInterval,
-    nextSunday,
-    startOfDay,
-    startOfWeek,
-    subWeeks,
+  addDays,
+  addWeeks,
+  differenceInMinutes,
+  endOfDay,
+  format,
+  getDate,
+  isWithinInterval,
+  nextSunday,
+  startOfDay,
+  startOfWeek,
+  subWeeks,
 } from 'date-fns';
 import { formatInTimeZone, toDate } from 'date-fns-tz';
 import { ConfirmationService, MenuItem, MessageService } from 'primeng/api';
@@ -50,12 +50,13 @@ import { Textarea } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import {
-    colorVariants,
-    Employee,
-    getScheduleColorInlineStyle,
+  colorVariants,
+  Employee,
+  getScheduleColorInlineStyle,
 } from '../models';
 import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
+import { DocumentViewerCardComponent } from '../shared/components/document-viewer-card.component';
 import { BranchesStore } from '../stores/branches.store';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
@@ -63,13 +64,13 @@ import { BranchManagerGestionesComponent } from './branch-manager-gestiones.comp
 import { EmployeeSchedulesFormComponent } from './employee-schedules-form.component';
 import { CompensatoryRequest } from './hr-disabilities.component';
 import {
-    getRequestColorClass,
-    getRequestIcon,
-    getRequestStatusLabel,
-    getRequestStatusSeverity,
-    getRequestTypeLabel,
-    getRequestTypeSeverity,
-    getSeverityColor,
+  getRequestColorClass,
+  getRequestIcon,
+  getRequestStatusLabel,
+  getRequestStatusSeverity,
+  getRequestTypeLabel,
+  getRequestTypeSeverity,
+  getSeverityColor,
 } from './request.helpers';
 
 type Notification = {
@@ -137,6 +138,7 @@ type Reminder = {
     InputText,
     Dialog,
     BranchManagerGestionesComponent,
+    DocumentViewerCardComponent,
   ],
   providers: [DynamicDialogRef, DialogService, ConfirmationService],
   animations: [
@@ -388,7 +390,10 @@ type Reminder = {
                       { label: 'Vacaciones', value: 'vacaciones' },
                       { label: 'Documentos', value: 'documentos' },
                       { label: 'Uniforme', value: 'uniform_request' },
-                      { label: 'Marcación Errónea', value: 'timelog_correction' }
+                      {
+                        label: 'Marcación Errónea',
+                        value: 'timelog_correction'
+                      }
                     ]"
                     optionLabel="label"
                     optionValue="value"
@@ -551,7 +556,8 @@ type Reminder = {
                         </div>
 
                         <!-- Indicador de documento adjunto -->
-                        @if (request.document_url || request.metadata?.attachment_url) {
+                        @if (request.document_url ||
+                        request.metadata?.attachment_url) {
                         <div
                           class="mt-2 flex items-center gap-1 text-xs text-gray-400"
                         >
@@ -1343,7 +1349,10 @@ type Reminder = {
                           (onClick)="markReminderNotApplicable(reminder)"
                           pTooltip="Marcar como No Aplica"
                         />
-                        } } @if (!reminder.audit_task_instance_id) {
+                        }
+                        }
+
+                        @if (!reminder.audit_task_instance_id) {
                         <p-button
                           icon="pi pi-trash"
                           severity="danger"
@@ -1457,213 +1466,227 @@ type Reminder = {
                   getRequestTypeLabel(selectedRequest()?.requestType)
               }}
             </span>
-            @if (selectedRequest()?.document_url || selectedRequest()?.metadata?.attachment_url) {
-            <p-button
-              icon="pi pi-file"
-              [rounded]="true"
-              [text]="true"
-              severity="secondary"
-              (onClick)="openDocumentPreview()"
-              pTooltip="Ver documento adjunto"
-              tooltipPosition="left"
-              size="small"
-            />
+            @if (selectedRequest()?.document_url ||
+            selectedRequest()?.metadata?.attachment_url) {
+            <!-- Document existing indicator handled in layout -->
             }
           </div>
         </ng-template>
 
         @if (selectedRequest()) {
-        <div class="space-y-4 pt-4">
-          <!-- Información del Empleado -->
-          <div
-            class="p-4 rounded-lg border transition-all duration-300"
-            [ngClass]="
-              selectedRequest().unified?.colorClassBg ||
-              'bg-neutral-800 border-neutral-700'
-            "
-          >
-            <h3
-              class="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+        <div
+          class="grid transition-all duration-500 pt-4"
+          [ngClass]="{
+            'grid-cols-1': !hasDocument(),
+            'grid-cols-1 md:grid-cols-2 gap-6': hasDocument()
+          }"
+        >
+          <!-- Columna Información -->
+          <div class="space-y-4">
+            <!-- Información del Empleado -->
+            <div
+              class="p-4 rounded-lg border transition-all duration-300"
+              [ngClass]="
+                selectedRequest().unified?.colorClassBg ||
+                'bg-neutral-800 border-neutral-700'
+              "
             >
-              <i
-                class="pi pi-user"
-                [style.color]="
-                  getSeverityColor(selectedRequest().unified?.typeSeverity)
-                "
-              ></i>
-              Información del Empleado
-            </h3>
-            <div class="flex flex-col md:flex-row gap-6">
-              <!-- Lado izquierdo: Avatar y Datos Principales -->
-              <div class="flex items-center gap-4 min-w-[200px]">
-                <p-avatar
-                  [label]="getEmployeeInitials(selectedRequest().employee)"
-                  shape="circle"
-                  size="xlarge"
-                  [style]="{
-                    'background-color':
-                      getSeverityColor(
-                        selectedRequest().unified?.typeSeverity
-                      ) + '20',
-                    color: getSeverityColor(
-                      selectedRequest().unified?.typeSeverity
-                    )
-                  }"
-                />
-                <div>
-                  <p class="text-xl font-bold text-white leading-tight">
-                    {{ selectedRequest().employee?.first_name }}
-                    {{ selectedRequest().employee?.father_name }}
-                  </p>
-                  <p class="text-sm text-gray-400">
-                    {{ selectedRequest().employee?.work_email }}
-                  </p>
-                </div>
-              </div>
-
-              <!-- Lado derecho: Detalles Secundarios -->
-              <div
-                class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 md:pt-0 md:pl-6 md:border-l border-neutral-700/50"
+              <h3
+                class="text-lg font-semibold text-white mb-4 flex items-center gap-2"
               >
-                @if (selectedRequest().employee?.position?.name) {
-                <div>
-                  <label
-                    class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1"
-                    >Cargo</label
-                  >
-                  <p class="text-white font-medium">
-                    {{ selectedRequest().employee?.position?.name }}
-                  </p>
-                </div>
-                } @if (selectedRequest().employee?.branch?.name) {
-                <div>
-                  <label
-                    class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1"
-                    >Sucursal</label
-                  >
-                  <p class="text-white font-medium">
-                    {{ selectedRequest().employee?.branch?.name }}
-                  </p>
-                </div>
-                }
-              </div>
-            </div>
-          </div>
-
-          <!-- Detalles de la Solicitud -->
-          <div
-            class="p-4 rounded-lg border transition-all duration-300"
-            [ngClass]="
-              selectedRequest().unified?.colorClassBg ||
-              'bg-neutral-800 border-neutral-700'
-            "
-          >
-            <h3
-              class="text-lg font-semibold text-white mb-4 flex items-center gap-2"
-            >
-              <i
-                class="pi"
-                [ngClass]="selectedRequest().unified?.icon || 'pi-file-edit'"
-                [style.color]="
-                  getSeverityColor(selectedRequest().unified?.typeSeverity)
-                "
-              ></i>
-              Detalle de la Solicitud
-            </h3>
-            <div class="space-y-4">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Estado -->
-                <div>
-                  <label
-                    class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1"
-                    >Estado</label
-                  >
-                  <p-tag
-                    [value]="
-                      selectedRequest().unified?.statusLabel ||
-                      getRequestStatusLabel(selectedRequest())
-                    "
-                    [severity]="
-                      selectedRequest().unified?.statusSeverity ||
-                      getRequestStatusSeverity(selectedRequest())
-                    "
+                <i
+                  class="pi pi-user"
+                  [style.color]="
+                    getSeverityColor(selectedRequest().unified?.typeSeverity)
+                  "
+                ></i>
+                Información del Empleado
+              </h3>
+              <div class="flex flex-col md:flex-row gap-6">
+                <!-- Lado izquierdo: Avatar y Datos Principales -->
+                <div class="flex items-center gap-4 min-w-[200px]">
+                  <p-avatar
+                    [label]="getEmployeeInitials(selectedRequest().employee)"
+                    shape="circle"
+                    size="xlarge"
+                    [style]="{
+                      'background-color':
+                        getSeverityColor(
+                          selectedRequest().unified?.typeSeverity
+                        ) + '20',
+                      color: getSeverityColor(
+                        selectedRequest().unified?.typeSeverity
+                      )
+                    }"
                   />
+                  <div>
+                    <p class="text-xl font-bold text-white leading-tight">
+                      {{ selectedRequest().employee?.first_name }}
+                      {{ selectedRequest().employee?.father_name }}
+                    </p>
+                    <p class="text-sm text-gray-400">
+                      {{ selectedRequest().employee?.work_email }}
+                    </p>
+                  </div>
                 </div>
 
-                <!-- Fecha de creación -->
-                <div>
-                  <label
-                    class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1"
-                    >Fecha de Solicitud</label
-                  >
-                  <p class="text-white font-medium">
-                    {{
-                      selectedRequest().created_at | date : 'dd/MM/yyyy HH:mm'
-                    }}
-                  </p>
-                </div>
-              </div>
-
-              <!-- Resumen y Detalles unificados -->
-              <div class="pt-4 border-t border-neutral-700/50">
-                <div class="mb-4">
-                  <p class="text-lg font-bold text-white">
-                    {{ selectedRequest().unified?.summary }}
-                  </p>
-                </div>
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                  @for (detail of selectedRequest().unified?.details; track
-                  detail.label) {
-                  <div
-                    [class.md:col-span-2]="
-                      detail.label === 'Notas' ||
-                      detail.label === 'Descripción' ||
-                      detail.label === 'Razón'
-                    "
-                  >
+                <!-- Lado derecho: Detalles Secundarios -->
+                <div
+                  class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 md:pt-0 md:pl-6 md:border-l border-neutral-700/50"
+                >
+                  @if (selectedRequest().employee?.position?.name) {
+                  <div>
                     <label
                       class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1"
-                      >{{ detail.label }}</label
+                      >Cargo</label
                     >
-                    <p class="text-white text-base">{{ detail.value }}</p>
+                    <p class="text-white font-medium">
+                      {{ selectedRequest().employee?.position?.name }}
+                    </p>
+                  </div>
+                  } @if (selectedRequest().employee?.branch?.name) {
+                  <div>
+                    <label
+                      class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1"
+                      >Sucursal</label
+                    >
+                    <p class="text-white font-medium">
+                      {{ selectedRequest().employee?.branch?.name }}
+                    </p>
                   </div>
                   }
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- Información de Creación -->
-          @if (selectedRequest().created_by) {
-          <div
-            class="p-4 rounded-lg border transition-all duration-300"
-            [ngClass]="
-              selectedRequest().unified?.colorClassBg ||
-              'bg-neutral-800 border-neutral-700'
-            "
-          >
-            <h3
-              class="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+            <!-- Detalles de la Solicitud -->
+            <div
+              class="p-4 rounded-lg border transition-all duration-300"
+              [ngClass]="
+                selectedRequest().unified?.colorClassBg ||
+                'bg-neutral-800 border-neutral-700'
+              "
             >
-              <i
-                class="pi pi-info-circle"
-                [style.color]="
-                  getSeverityColor(selectedRequest().unified?.typeSeverity)
-                "
-              ></i>
-              Información de Creación
-            </h3>
-            <div>
-              <label
-                class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1"
-                >Origen de la Solicitud</label
+              <h3
+                class="text-lg font-semibold text-white mb-4 flex items-center gap-2"
               >
-              <p class="text-white font-medium">
-                @if (selectedRequest().created_by !==
-                selectedRequest().employee_id) { Gerente de Tienda /
-                Administrador } @else { Auto-solicitud del empleado }
-              </p>
+                <i
+                  class="pi"
+                  [ngClass]="selectedRequest().unified?.icon || 'pi-file-edit'"
+                  [style.color]="
+                    getSeverityColor(selectedRequest().unified?.typeSeverity)
+                  "
+                ></i>
+                Detalle de la Solicitud
+              </h3>
+              <div class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <!-- Estado -->
+                  <div>
+                    <label
+                      class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1"
+                      >Estado</label
+                    >
+                    <p-tag
+                      [value]="
+                        selectedRequest().unified?.statusLabel ||
+                        getRequestStatusLabel(selectedRequest())
+                      "
+                      [severity]="
+                        selectedRequest().unified?.statusSeverity ||
+                        getRequestStatusSeverity(selectedRequest())
+                      "
+                    />
+                  </div>
+
+                  <!-- Fecha de creación -->
+                  <div>
+                    <label
+                      class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1"
+                      >Fecha de Solicitud</label
+                    >
+                    <p class="text-white font-medium">
+                      {{
+                        selectedRequest().created_at | date : 'dd/MM/yyyy HH:mm'
+                      }}
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Resumen y Detalles unificados -->
+                <div class="pt-4 border-t border-neutral-700/50">
+                  <div class="mb-4">
+                    <p class="text-lg font-bold text-white">
+                      {{ selectedRequest().unified?.summary }}
+                    </p>
+                  </div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    @for (detail of selectedRequest().unified?.details; track
+                    detail.label) {
+                    <div
+                      [class.md:col-span-2]="
+                        detail.label === 'Notas' ||
+                        detail.label === 'Descripción' ||
+                        detail.label === 'Razón'
+                      "
+                    >
+                      <label
+                        class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1"
+                        >{{ detail.label }}</label
+                      >
+                      <p class="text-white text-base">{{ detail.value }}</p>
+                    </div>
+                    }
+                  </div>
+                </div>
+              </div>
             </div>
+
+            <!-- Información de Creación -->
+            @if (selectedRequest().created_by) {
+            <div
+              class="p-4 rounded-lg border transition-all duration-300"
+              [ngClass]="
+                selectedRequest().unified?.colorClassBg ||
+                'bg-neutral-800 border-neutral-700'
+              "
+            >
+              <h3
+                class="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+              >
+                <i
+                  class="pi pi-info-circle"
+                  [style.color]="
+                    getSeverityColor(selectedRequest().unified?.typeSeverity)
+                  "
+                ></i>
+                Información de Creación
+              </h3>
+              <div>
+                <label
+                  class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1"
+                  >Origen de la Solicitud</label
+                >
+                <p class="text-white font-medium">
+                  @if (selectedRequest().created_by !==
+                  selectedRequest().employee_id) { Gerente de Tienda /
+                  Administrador } @else { Auto-solicitud del empleado }
+                </p>
+              </div>
+            </div>
+            }
+          </div>
+          <!-- Columna Documento -->
+          @if (hasDocument()) {
+          <div class="h-full">
+            <pt-document-viewer-card
+              [documentUrl]="
+                selectedRequest()!.document_url ||
+                selectedRequest()!.metadata?.attachment_url
+              "
+              [title]="'Documento Adjunto'"
+              (download)="downloadDocument($event)"
+            />
           </div>
           }
         </div>
@@ -1679,81 +1702,6 @@ type Reminder = {
             />
           </div>
         </ng-template>
-
-        <!-- Panel lateral de preview de documento -->
-        @if (showDocumentPreview()) {
-        <div
-          class="fixed bg-neutral-900 border border-neutral-700 shadow-2xl z-[1200] transition-all duration-500 ease-out"
-          [style.width]="'400px'"
-          [style.max-width]="'40vw'"
-          [style.top]="'50%'"
-          [style.left]="'50%'"
-          [style.transform]="
-            showDocumentPreview()
-              ? 'translate(-50%, -50%) scale(1)'
-              : 'translate(-50%, -50%) scale(0.8)'
-          "
-          [style.opacity]="showDocumentPreview() ? '1' : '0'"
-          [style.max-height]="'90vh'"
-          [style.height]="'664px'"
-          [style.pointer-events]="showDocumentPreview() ? 'auto' : 'none'"
-        >
-          <div class="flex flex-col h-full">
-            <!-- Header del panel lateral -->
-            <div
-              class="p-4 border-b border-neutral-700 bg-neutral-800 flex items-center justify-between"
-            >
-              <h3
-                class="text-lg font-semibold text-white flex items-center gap-2"
-              >
-                <i class="pi pi-file text-cyan-400"></i>
-                Documento Adjunto
-              </h3>
-              <div class="flex items-center gap-2">
-                <p-button
-                  icon="pi pi-times"
-                  [rounded]="true"
-                  [text]="true"
-                  severity="secondary"
-                  (onClick)="showDocumentPreview.set(false)"
-                  size="small"
-                />
-              </div>
-            </div>
-
-            <!-- Contenido del preview -->
-            <div class="flex-1 overflow-hidden">
-              @if (selectedRequest()!.document_url || selectedRequest()!.metadata?.attachment_url) {
-              <iframe
-                [src]="getDocumentUrl()"
-                class="w-full h-full border-0"
-                title="Preview del documento"
-              ></iframe>
-              } @else {
-              <div
-                class="flex flex-col items-center justify-center h-full p-8 text-center"
-              >
-                <i class="pi pi-file text-6xl text-gray-400 mb-4"></i>
-                <h4 class="text-xl font-semibold text-white mb-2">
-                  No hay documento adjunto
-                </h4>
-                <p class="text-gray-400 mb-6">
-                  Esta solicitud no tiene un documento adjunto.
-                </p>
-              </div>
-              }
-            </div>
-          </div>
-        </div>
-        }
-
-        <!-- Overlay para cerrar el panel al hacer clic fuera -->
-        @if (showDocumentPreview()) {
-        <div
-          class="fixed inset-0 bg-black/50 z-[1199]"
-          (click)="showDocumentPreview.set(false)"
-        ></div>
-        }
       </p-dialog>
     </div>
   `,
@@ -1848,6 +1796,12 @@ export class BranchManagerComponent {
   public isNaz = computed(() => this.organizationService.isNaz());
   public isAdmin = computed(() => this.store.isAdmin());
   public currentBranchFromStore = computed(() => this.store.currentBranch());
+
+  public hasDocument = computed(() => {
+    const req = this.selectedRequest();
+    return !!(req?.document_url || req?.metadata?.attachment_url);
+  });
+
   public selectedBranchId = signal<string | null>(null);
 
   // Si es admin, puede seleccionar cualquier sucursal, si no, usa su sucursal
@@ -2118,8 +2072,10 @@ export class BranchManagerComponent {
           : null;
 
         // Determine the correct request type based on document_type
-        let requestType: 'documentos' | 'uniform_request' | 'timelog_correction' =
-          'documentos';
+        let requestType:
+          | 'documentos'
+          | 'uniform_request'
+          | 'timelog_correction' = 'documentos';
         if (r.document_type === 'uniform_request') {
           requestType = 'uniform_request';
         } else if (r.document_type === 'timelog_correction') {
@@ -2286,7 +2242,9 @@ export class BranchManagerComponent {
           exit: 'Salida',
         };
         const timelogTypeLabel =
-          timelogTypeLabels[metadata.timelog_type] || metadata.timelog_type || '-';
+          timelogTypeLabels[metadata.timelog_type] ||
+          metadata.timelog_type ||
+          '-';
         summary = `Corrección de ${timelogTypeLabel}`;
         details = [
           { label: 'Fecha', value: timelogDate },
@@ -3237,6 +3195,10 @@ export class BranchManagerComponent {
     return this.sanitizer.bypassSecurityTrustResourceUrl(
       `${url}#toolbar=1&navpanes=1&scrollbar=1`
     );
+  }
+
+  public downloadDocument(url: string): void {
+    window.open(url, '_blank');
   }
 
   public getSeverityColor = getSeverityColor;

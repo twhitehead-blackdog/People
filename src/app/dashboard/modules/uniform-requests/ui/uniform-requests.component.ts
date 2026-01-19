@@ -14,6 +14,8 @@ import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
 import { DashboardStore } from '../../../../stores/dashboard.store';
 import { getEnv } from '../../../../utils/env.utils';
+import { DocumentRequestsService } from '../../document-requests/data/document-requests.service';
+import { DocumentRequest } from '../../document-requests/models/document-request.model';
 import { HrFiltersPanelComponent } from '../../shared/components/hr-filters-panel.component';
 import { HrStatsGridComponent } from '../../shared/components/hr-stats-grid.component';
 import {
@@ -21,8 +23,6 @@ import {
   getStatusSeverity,
   TagSeverity,
 } from '../../shared/utils/hr-status.utils';
-import { DocumentRequestsService } from '../../document-requests/data/document-requests.service';
-import { DocumentRequest } from '../../document-requests/models/document-request.model';
 
 @Component({
   selector: 'pt-uniform-requests',
@@ -140,6 +140,12 @@ import { DocumentRequest } from '../../document-requests/models/document-request
                   <span class="text-xs">Solicitado</span>
                 </div>
               </th>
+              <th style="width: 140px; padding: 0.4rem; text-align: center;">
+                <div class="flex items-center gap-1">
+                  <i class="pi pi-user-plus text-teal-400 text-xs"></i>
+                  <span class="text-xs">Creado por</span>
+                </div>
+              </th>
               <th style="width: 150px; padding: 0.4rem; text-align: left;">
                 <div class="flex items-center gap-1">
                   <i class="pi pi-cog text-teal-400 text-xs"></i>
@@ -197,6 +203,21 @@ import { DocumentRequest } from '../../document-requests/models/document-request
                 <span class="text-xs text-gray-400">{{
                   request.created_at | date : 'dd/MM/yyyy'
                 }}</span>
+              </td>
+              <td style="padding: 0.4rem; text-align: center;">
+                @if (request.created_by_employee) {
+                <div class="flex items-center justify-center gap-1">
+                  <i class="pi pi-user text-amber-400 text-[9px]"></i>
+                  <span class="text-[10px] font-medium text-amber-300">
+                    {{ request.created_by_employee.first_name }}
+                    {{ request.created_by_employee.father_name }}
+                  </span>
+                </div>
+                } @else {
+                <span class="text-[10px] text-gray-500 italic">
+                  Auto-solicitud
+                </span>
+                }
               </td>
               <td
                 style="padding: 0.4rem; text-align: center;"
@@ -256,7 +277,9 @@ import { DocumentRequest } from '../../document-requests/models/document-request
       <ng-template pTemplate="header">
         <div class="flex items-center gap-2">
           <i class="pi pi-shopping-bag text-teal-400"></i>
-          <span class="text-lg font-semibold text-white">Detalles de Solicitud de Uniforme</span>
+          <span class="text-lg font-semibold text-white"
+            >Detalles de Solicitud de Uniforme</span
+          >
         </div>
       </ng-template>
 
@@ -264,46 +287,64 @@ import { DocumentRequest } from '../../document-requests/models/document-request
       <div class="space-y-4 pt-4">
         <!-- Información del Empleado -->
         <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
-          <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+          <h3
+            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+          >
             <i class="pi pi-user text-teal-400"></i>
             Información del Empleado
           </h3>
           <div class="grid grid-cols-2 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1">Nombre</label>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Nombre</label
+              >
               <p class="text-white">
                 {{ selectedRequest()!.employee?.first_name }}
                 {{ selectedRequest()!.employee?.father_name }}
               </p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1">Sucursal</label>
-              <p class="text-white">{{ selectedRequest()!.employee?.branch?.name || '-' }}</p>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Sucursal</label
+              >
+              <p class="text-white">
+                {{ selectedRequest()!.employee?.branch?.name || '-' }}
+              </p>
             </div>
           </div>
         </div>
 
         <!-- Detalles del Uniforme -->
-        <div class="p-4 bg-gradient-to-r from-teal-500/10 to-teal-600/5 rounded-lg border border-teal-400/30">
-          <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+        <div
+          class="p-4 bg-gradient-to-r from-teal-500/10 to-teal-600/5 rounded-lg border border-teal-400/30"
+        >
+          <h3
+            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+          >
             <i class="pi pi-shopping-bag text-teal-400"></i>
             Detalles del Uniforme
           </h3>
           <div class="grid grid-cols-3 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1">Tipo de Prenda</label>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Tipo de Prenda</label
+              >
               <p class="text-white text-lg font-semibold">
                 {{ selectedRequest()!.metadata?.item_type || '-' }}
               </p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1">Talla</label>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Talla</label
+              >
               <p class="text-teal-300 text-lg font-semibold">
                 {{ selectedRequest()!.metadata?.size || '-' }}
               </p>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1">Cantidad</label>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Cantidad</label
+              >
               <p class="text-white text-lg font-semibold">
                 {{ selectedRequest()!.metadata?.quantity || 1 }}
               </p>
@@ -311,15 +352,21 @@ import { DocumentRequest } from '../../document-requests/models/document-request
           </div>
           <div class="grid grid-cols-2 gap-4 mt-4">
             <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1">Estado</label>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Estado</label
+              >
               <p-tag
                 [value]="getStatusLabel(selectedRequest()!.status)"
                 [severity]="getStatusSeverity(selectedRequest()!.status)"
               />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1">Fecha Solicitud</label>
-              <p class="text-white">{{ selectedRequest()!.created_at | date : 'dd/MM/yyyy HH:mm' }}</p>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Fecha Solicitud</label
+              >
+              <p class="text-white">
+                {{ selectedRequest()!.created_at | date : 'dd/MM/yyyy HH:mm' }}
+              </p>
             </div>
           </div>
         </div>
@@ -327,18 +374,24 @@ import { DocumentRequest } from '../../document-requests/models/document-request
         <!-- Notas -->
         @if (selectedRequest()!.reason) {
         <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
-          <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+          <h3
+            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+          >
             <i class="pi pi-comment text-teal-400"></i>
             Notas Adicionales
           </h3>
-          <p class="text-white whitespace-pre-wrap">{{ selectedRequest()!.reason }}</p>
+          <p class="text-white whitespace-pre-wrap">
+            {{ selectedRequest()!.reason }}
+          </p>
         </div>
         }
 
         <!-- Acciones -->
         @if (selectedRequest()!.status === 'pending') {
         <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
-          <h3 class="text-lg font-semibold text-white mb-3 flex items-center gap-2">
+          <h3
+            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+          >
             <i class="pi pi-cog text-teal-400"></i>
             Acciones
           </h3>
@@ -347,13 +400,17 @@ import { DocumentRequest } from '../../document-requests/models/document-request
               label="Aprobar"
               icon="pi pi-check"
               severity="success"
-              (onClick)="approveRequest(selectedRequest()!); showDetailsDialog.set(false)"
+              (onClick)="
+                approveRequest(selectedRequest()!); showDetailsDialog.set(false)
+              "
             />
             <p-button
               label="Rechazar"
               icon="pi pi-times"
               severity="danger"
-              (onClick)="rejectRequest(selectedRequest()!); showDetailsDialog.set(false)"
+              (onClick)="
+                rejectRequest(selectedRequest()!); showDetailsDialog.set(false)
+              "
             />
           </div>
         </div>
@@ -474,7 +531,9 @@ export class UniformRequestsComponent {
     try {
       await firstValueFrom(
         this.http.patch(
-          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/document_requests?id=eq.${request.id}`,
+          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/document_requests?id=eq.${
+            request.id
+          }`,
           {
             status: 'completed',
             processed_by: currentEmployee.id,
@@ -514,7 +573,9 @@ export class UniformRequestsComponent {
         try {
           await firstValueFrom(
             this.http.patch(
-              `${getEnv('ENV_SUPABASE_URL')}/rest/v1/document_requests?id=eq.${request.id}`,
+              `${getEnv('ENV_SUPABASE_URL')}/rest/v1/document_requests?id=eq.${
+                request.id
+              }`,
               {
                 status: 'rejected',
                 processed_by: currentEmployee.id,
