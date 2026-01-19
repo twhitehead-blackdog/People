@@ -38,6 +38,12 @@ ENV_SMTP_PASSWORD=tu-contraseña-o-app-password
 # ENV_RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 # ENV_RESEND_FROM_EMAIL=noreply@tu-dominio.com
 # ENV_RESEND_FROM_NAME=People - RRHH
+# ENV_RESEND_SMTP_PORT=587
+
+# Alternativa: Postmark (muy confiable y profesional)
+# ENV_POSTMARK_API_KEY=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+# ENV_POSTMARK_FROM_EMAIL=noreply@tu-dominio.com
+# ENV_POSTMARK_FROM_NAME=People - RRHH
 
 # ============================================
 # INSTRUCCIONES:

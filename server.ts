@@ -375,31 +375,50 @@ export function app(): express.Express {
 
           // Configurar SMTP de Postmark
           // Host: smtp.postmarkapp.com
-          // Puerto: 587 (TLS) o 2525 (alternativo)
+          // Puertos: 587 (TLS) o 2525 (alternativo)
           // User: Server API Token
           // Password: Server API Token (mismo que user)
-          const transporter = nodemailer.createTransport({
-            host: 'smtp.postmarkapp.com',
-            port: 587,
-            secure: false, // false para 587 (STARTTLS)
-            requireTLS: true,
-            auth: {
-              user: postmarkApiKey, // Server API Token como username
-              pass: postmarkApiKey, // Server API Token como password
-            },
-          });
+          const envPortRaw = process.env['ENV_POSTMARK_SMTP_PORT'];
+          const envPort = envPortRaw ? parseInt(envPortRaw) : undefined;
+          const portsToTry = envPort ? [envPort] : [587, 2525];
 
-          const info = await transporter.sendMail({
-            from: `${senderName} <${senderEmail}>`,
-            to: recipients.join(', '),
-            subject: subject,
-            html: html,
-            text: text || html.replace(/<[^>]*>/g, ''),
-          });
+          let info: any;
+          let lastError: any;
+          for (const port of portsToTry) {
+            try {
+              const transporter = nodemailer.createTransport({
+                host: 'smtp.postmarkapp.com',
+                port,
+                secure: false, // false para STARTTLS
+                requireTLS: true,
+                auth: {
+                  user: postmarkApiKey, // Server API Token como username
+                  pass: postmarkApiKey, // Server API Token como password
+                },
+              });
 
-          safeLogger.safeLog('✅ Email enviado via Postmark SMTP', {
-            to: recipients.join(', '),
-          });
+              info = await transporter.sendMail({
+                from: `${senderName} <${senderEmail}>`,
+                to: recipients.join(', '),
+                subject: subject,
+                html: html,
+                text: text || html.replace(/<[^>]*>/g, ''),
+              });
+
+              safeLogger.safeLog('✅ Email enviado via Postmark SMTP', {
+                to: recipients.join(', '),
+                port,
+              });
+              break;
+            } catch (err: any) {
+              lastError = err;
+              safeLogger.error(`❌ Error con Postmark SMTP (port ${port})`, err);
+            }
+          }
+
+          if (!info) {
+            throw lastError || new Error('No se pudo enviar por Postmark SMTP');
+          }
 
           return res.json({
             success: true,
