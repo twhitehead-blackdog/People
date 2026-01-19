@@ -202,7 +202,7 @@ import { TooltipModule } from 'primeng/tooltip';
 export class KpiCardComponent {
   icon = input<string>('');
   label = input.required<string>();
-  value = input<string | number>('');
+  value = input<string | number | null>('');
   sublabel = input<string>();
   tooltip = input<string>();
   clickable = input<boolean>(false);

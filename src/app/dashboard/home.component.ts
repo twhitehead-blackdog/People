@@ -99,7 +99,7 @@ import { TopAbsencesDialogComponent } from './home/components/dialogs/top-absenc
               [scheduleComplianceIndex]="getScheduleComplianceIndex()"
               (openTopLates)="openTopLatesDialog()"
               (openTopAbsences)="openTopAbsencesDialog()"
-              (openHiresExits)="openMonthHiresExitsDialog($event)"
+              (openHiresExits)="openCurrentMonthHiresExitsDialog()"
               (openBirthdays)="openBirthdaysDialog()"
             ></pt-executive-section>
           }
@@ -1334,6 +1334,10 @@ export class HomeComponent {
     this.selectedMonthIndex.set(monthIndex);
     this.monthHiresExitsDialogVisible.set(true);
     this.monthHiresExitsTab.set('hires');
+  }
+
+  public openCurrentMonthHiresExitsDialog(): void {
+    this.openMonthHiresExitsDialog(this.currentMonth(), new Date().getMonth());
   }
 
   // Get hires list for selected month from headcount chart

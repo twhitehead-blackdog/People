@@ -595,8 +595,8 @@ export class EmployeePortalGestionesTabComponent {
     );
   }
 
-  public downloadDocument(url: string) {
-    window.open(url, '_blank');
+  public downloadDocument(url?: string | null) {
+    if (url) window.open(url, '_blank');
   }
 
   public calculateTimeoffDays(): number {
@@ -607,24 +607,27 @@ export class EmployeePortalGestionesTabComponent {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // Include end date
   }
 
-  public calculateDaysBetween(start: Date, end: Date): number {
-    const diffTime = Math.abs(end.getTime() - start.getTime());
+  public calculateDaysBetween(start: Date | string, end: Date | string): number {
+    const s = typeof start === 'string' ? new Date(start) : start;
+    const e = typeof end === 'string' ? new Date(end) : end;
+    const diffTime = Math.abs(e.getTime() - s.getTime());
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   }
 
-  public calculateMaternityStartDate(): Date | null {
-    return this.timeoffStartDate();
+  public calculateMaternityStartDate(): Date {
+    return this.timeoffStartDate() ?? new Date();
   }
-  public calculateMaternityEndDate(): Date | null {
+  public calculateMaternityEndDate(): Date {
     const start = this.timeoffStartDate();
-    if (!start) return null;
+    if (!start) return new Date();
     const result = new Date(start);
     result.setDate(result.getDate() + 98);
     return result;
   }
 
-  public isDateFuture(date: Date): boolean {
-    return date > new Date();
+  public isDateFuture(date: Date | string): boolean {
+    const d = typeof date === 'string' ? new Date(date) : date;
+    return d > new Date();
   }
 
   public async submitDocumentRequest() {

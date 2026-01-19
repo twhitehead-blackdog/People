@@ -168,6 +168,7 @@ interface EmailConfig {
                     (click)="sendTestEmail()"
                   />
                 </div>
+              </div>
               }
               }
 

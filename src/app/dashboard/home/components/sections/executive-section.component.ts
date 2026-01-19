@@ -170,6 +170,7 @@ import { KpiCardComponent } from '../kpi-card/kpi-card.component';
         label="Tasa de Retención"
         [value]="state.retentionRate() + '%'"
         sublabel="Retención anual"
+        class="retention-card"
         tooltip="Mide el porcentaje de empleados que permanecen en la empresa después de 12 meses."
       ></pt-kpi-card>
 
@@ -216,6 +217,7 @@ import { KpiCardComponent } from '../kpi-card/kpi-card.component';
         label="Antigüedad Promedio"
         [value]="state.averageTenure()"
         sublabel="Años de experiencia"
+        class="tenure-card"
         tooltip="Calcula el promedio de años de antigüedad de los empleados activos."
       ></pt-kpi-card>
 
@@ -225,6 +227,7 @@ import { KpiCardComponent } from '../kpi-card/kpi-card.component';
         label="Edad Promedio"
         [value]="state.averageAge()"
         sublabel="Años promedio"
+        class="age-card"
         tooltip="Calcula la edad promedio de todos los empleados activos."
       ></pt-kpi-card>
 
@@ -235,6 +238,7 @@ import { KpiCardComponent } from '../kpi-card/kpi-card.component';
         label="Salario Promedio"
         [value]="state.averageSalary() | currency : '$' : 'symbol' : '1.0-0'"
         sublabel="Salario promedio"
+        class="salary-card"
         tooltip="Calcula el salario mensual promedio de todos los empleados activos."
       ></pt-kpi-card>
 
@@ -244,6 +248,7 @@ import { KpiCardComponent } from '../kpi-card/kpi-card.component';
         label="Índice de Clima Laboral"
         [value]="workClimateIndex() + '%'"
         sublabel="Satisfacción general"
+        class="climate-card"
         tooltip="Indicador compuesto que mide el clima laboral."
       ></pt-kpi-card>
 
@@ -253,175 +258,12 @@ import { KpiCardComponent } from '../kpi-card/kpi-card.component';
         label="Índice de Cumplimiento"
         [value]="scheduleComplianceIndex() + '%'"
         sublabel="Cumplimiento mensual"
+        class="compliance-card"
         tooltip="Mide el porcentaje de cumplimiento de horarios en el mes actual."
       ></pt-kpi-card>
     </div>
   `,
-  styles: [
-    `
-      .kpi-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-        gap: 1.5rem;
-      }
-
-      /* Executive Section Specifics */
-      .executive-kpi-grid {
-        /* First row - large cards */
-        .headcount-card,
-        .gender-vs-card {
-          grid-column: span 2;
-          @media (max-width: 1400px) {
-            grid-column: span 1;
-          }
-        }
-
-        .lates-card {
-          grid-column: span 2;
-          @media (max-width: 1400px) {
-            grid-column: span 1;
-          }
-        }
-      }
-
-      /* Sparkline & Charts helpers */
-      .sparkline-box {
-        height: 60px;
-        width: 100%;
-        margin-top: 0.5rem;
-      }
-
-      .kpi-sparkline {
-        height: 100%;
-        width: 100%;
-      }
-
-      /* Gender Chart */
-      .gender-chart-container {
-        display: flex;
-        align-items: center;
-        gap: 1.5rem;
-        width: 100%;
-      }
-
-      .gender-chart-wrapper {
-        position: relative;
-        height: 100px;
-        width: 200px;
-        flex-shrink: 0;
-      }
-
-      .gender-center-icons {
-        position: absolute;
-        top: 60%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        display: flex;
-        gap: 1rem;
-        pointer-events: none;
-
-        i {
-          font-size: 1.25rem;
-          opacity: 0.8;
-        }
-
-        .male-center-icon {
-          color: #60a5fa;
-        }
-        .female-center-icon {
-          color: #f472b6;
-        }
-      }
-
-      .gender-legend {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-      }
-
-      /* Hires Exits Chart */
-      .hires-exits-chart-container {
-        display: flex;
-        align-items: center;
-        gap: 1.5rem;
-        width: 100%;
-      }
-
-      .hires-exits-chart-wrapper {
-        position: relative;
-        height: 100px;
-        width: 200px;
-        flex-shrink: 0;
-      }
-
-      .hires-exits-center-icons {
-        position: absolute;
-        top: 60%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        display: flex;
-        gap: 1rem;
-        pointer-events: none;
-
-        i {
-          font-size: 1.25rem;
-          opacity: 0.8;
-        }
-
-        .hires-center-icon {
-          color: #34d399;
-        }
-        .exits-center-icon {
-          color: #f87171;
-        }
-      }
-
-      .hires-exits-legend {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-      }
-
-      .legend-item {
-        display: flex;
-        flex-direction: column;
-      }
-
-      .legend-label {
-        font-size: 0.75rem;
-        color: #a1a1aa;
-      }
-
-      .legend-value {
-        font-size: 1rem;
-        font-weight: 600;
-        color: #fff;
-        font-family: 'Segoe UI', sans-serif;
-      }
-
-      /* Stacked Value */
-      .kpi-value-stacked {
-        display: flex;
-        gap: 1.5rem;
-      }
-
-      .value-item {
-        display: flex;
-        flex-direction: column;
-      }
-
-      .value-lg {
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: #fff;
-      }
-
-      .value-label {
-        font-size: 0.75rem;
-        color: #71717a;
-      }
-    `,
-  ],
+  styleUrls: ['./executive-section.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ExecutiveSectionComponent {

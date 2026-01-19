@@ -216,13 +216,15 @@ export class EventsSectionComponent {
   state = inject(DashboardStore);
   currentMonth = input.required<string>();
 
-  getBirthdayDay(dateStr: string): string {
-    if (!dateStr) return '';
-    return format(parseISO(dateStr), 'd');
+  getBirthdayDay(date: Date | string | undefined): string {
+    if (!date) return '';
+    const d = typeof date === 'string' ? parseISO(date) : date;
+    return format(d, 'd');
   }
 
-  getBirthdayMonth(dateStr: string): string {
-    if (!dateStr) return '';
-    return format(parseISO(dateStr), 'MMM', { locale: es }).replace('.', '');
+  getBirthdayMonth(date: Date | string | undefined): string {
+    if (!date) return '';
+    const d = typeof date === 'string' ? parseISO(date) : date;
+    return format(d, 'MMM', { locale: es }).replace('.', '');
   }
 }

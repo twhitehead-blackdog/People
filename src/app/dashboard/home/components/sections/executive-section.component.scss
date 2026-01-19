@@ -1,0 +1,410 @@
+/* Executive Section SCSS - Viewport Fit Layout */
+
+:host {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.kpi-grid {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+}
+
+/* Executive Grid - 16 columnas, 4 filas que ocupan todo el viewport */
+.executive-kpi-grid {
+  grid-template-columns: repeat(16, minmax(0, 1fr));
+  grid-template-rows: 1.4fr 1fr 1fr 1fr; /* Fila 1 más grande para los gráficos */
+  height: 100%;
+  align-items: stretch;
+}
+
+/* ============================================
+   FILA 1: Headcount, Gender, Lates (5+5+6 = 16)
+   ============================================ */
+.executive-kpi-grid > .headcount-card {
+  grid-row: 1;
+  grid-column: span 5;
+}
+.executive-kpi-grid > .gender-vs-card {
+  grid-row: 1;
+  grid-column: span 5;
+}
+.executive-kpi-grid > .lates-card {
+  grid-row: 1;
+  grid-column: span 6;
+}
+
+/* ============================================
+   FILA 2: TopLates, TopAbsences, HiresExits, Retention (4+4+4+4 = 16)
+   ============================================ */
+.executive-kpi-grid > .top-lates-card {
+  grid-row: 2;
+  grid-column: span 4;
+}
+.executive-kpi-grid > .top-absences-card {
+  grid-row: 2;
+  grid-column: span 4;
+}
+.executive-kpi-grid > .hires-exits-vs-card {
+  grid-row: 2;
+  grid-column: span 4;
+}
+.executive-kpi-grid > .retention-card {
+  grid-row: 2;
+  grid-column: span 4;
+}
+
+/* ============================================
+   FILA 3: Birthdays, Payroll, Tenure, Age (4+4+4+4 = 16)
+   ============================================ */
+.executive-kpi-grid > .birthdays-card {
+  grid-row: 3;
+  grid-column: span 4;
+}
+.executive-kpi-grid > .payroll-cost-compact {
+  grid-row: 3;
+  grid-column: span 4;
+}
+.executive-kpi-grid > .tenure-card {
+  grid-row: 3;
+  grid-column: span 4;
+}
+.executive-kpi-grid > .age-card {
+  grid-row: 3;
+  grid-column: span 4;
+}
+
+/* ============================================
+   FILA 4: Salary, Climate, Compliance (5+6+5 = 16)
+   ============================================ */
+.executive-kpi-grid > .salary-card {
+  grid-row: 4;
+  grid-column: span 5;
+}
+.executive-kpi-grid > .climate-card {
+  grid-row: 4;
+  grid-column: span 6;
+}
+.executive-kpi-grid > .compliance-card {
+  grid-row: 4;
+  grid-column: span 5;
+}
+
+/* ============================================
+   ESTILOS INTERNOS DE TARJETAS - Compactos
+   ============================================ */
+
+/* Todas las tarjetas - estilo base compacto */
+::ng-deep .kpi-card {
+  padding: 0.625rem !important;
+  gap: 0.5rem !important;
+  border-radius: 0.75rem !important;
+}
+
+::ng-deep .kpi-icon {
+  width: 2.5rem !important;
+  height: 2.5rem !important;
+  border-radius: 0.5rem !important;
+  font-size: 1.1rem !important;
+}
+
+::ng-deep .kpi-label {
+  font-size: 0.7rem !important;
+  margin-bottom: 0.125rem !important;
+}
+
+::ng-deep .kpi-value {
+  font-size: 1.5rem !important;
+  margin-bottom: 0.125rem !important;
+}
+
+::ng-deep .kpi-sublabel {
+  font-size: 0.7rem !important;
+}
+
+/* Primera fila - tarjetas con gráficos */
+.headcount-card ::ng-deep .kpi-card,
+.lates-card ::ng-deep .kpi-card,
+.gender-vs-card ::ng-deep .kpi-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.headcount-card ::ng-deep .kpi-content,
+.lates-card ::ng-deep .kpi-content {
+  align-items: center;
+  text-align: center;
+  gap: 0.125rem;
+  width: 100%;
+  justify-content: flex-start;
+}
+
+.headcount-card ::ng-deep .kpi-value,
+.lates-card ::ng-deep .kpi-value {
+  font-size: 1.75rem !important;
+  line-height: 1;
+}
+
+/* Contenido centrado para tarjetas pequeñas */
+.top-lates-card ::ng-deep .kpi-content,
+.top-absences-card ::ng-deep .kpi-content,
+.hires-exits-vs-card ::ng-deep .kpi-content,
+.retention-card ::ng-deep .kpi-content,
+.birthdays-card ::ng-deep .kpi-content,
+.payroll-cost-compact ::ng-deep .kpi-content,
+.tenure-card ::ng-deep .kpi-content,
+.age-card ::ng-deep .kpi-content,
+.salary-card ::ng-deep .kpi-content,
+.climate-card ::ng-deep .kpi-content,
+.compliance-card ::ng-deep .kpi-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+/* ============================================
+   SPARKLINES Y GRÁFICOS - Tamaño reducido
+   ============================================ */
+.sparkline-box {
+  width: 100%;
+  margin-top: 0.25rem;
+  border-radius: 0.375rem;
+  background: rgba(252, 211, 77, 0.06);
+  border: 1px solid rgba(252, 211, 77, 0.12);
+  overflow: hidden;
+  padding: 0.125rem 0.25rem;
+  flex: 1;
+  min-height: 0;
+}
+
+.kpi-sparkline {
+  height: 100%;
+  width: 100%;
+  min-height: 60px;
+}
+
+/* ============================================
+   GENDER CHART - Compacto
+   ============================================ */
+.gender-chart-container {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  height: 100%;
+}
+
+.gender-chart-wrapper {
+  position: relative;
+  height: 70px;
+  width: 70px;
+  flex-shrink: 0;
+}
+
+.gender-center-icons {
+  position: absolute;
+  top: 55%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  gap: 0.5rem;
+  pointer-events: none;
+
+  i {
+    font-size: 0.875rem;
+    opacity: 0.8;
+  }
+
+  .male-center-icon {
+    color: #60a5fa;
+  }
+  .female-center-icon {
+    color: #f472b6;
+  }
+}
+
+.gender-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.gender-vs-card ::ng-deep .kpi-label {
+  width: 100%;
+  text-align: center;
+  margin-bottom: 0.25rem;
+}
+
+.gender-vs-card ::ng-deep .kpi-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================
+   HIRES/EXITS CHART - Compacto
+   ============================================ */
+.hires-exits-chart-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.hires-exits-chart-wrapper {
+  position: relative;
+  height: 50px;
+  width: 50px;
+  flex-shrink: 0;
+}
+
+.hires-exits-center-icons {
+  position: absolute;
+  top: 55%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  gap: 0.25rem;
+  pointer-events: none;
+
+  i {
+    font-size: 0.75rem;
+    opacity: 0.8;
+  }
+
+  .hires-center-icon {
+    color: #34d399;
+  }
+  .exits-center-icon {
+    color: #f87171;
+  }
+}
+
+.hires-exits-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.hires-exits-vs-card ::ng-deep .kpi-label {
+  width: 100%;
+  text-align: center;
+  margin-bottom: 0.25rem;
+}
+
+/* ============================================
+   LEGEND ITEMS - Compacto
+   ============================================ */
+.legend-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.legend-label {
+  font-size: 0.625rem;
+  color: #a1a1aa;
+}
+
+.legend-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #fff;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+/* ============================================
+   PAYROLL STACKED VALUE - Compacto
+   ============================================ */
+.kpi-value-stacked {
+  display: flex;
+  gap: 1rem;
+}
+
+.value-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.value-lg {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #fff;
+}
+
+.value-label {
+  font-size: 0.625rem;
+  color: #71717a;
+}
+
+.payroll-cost-compact ::ng-deep .kpi-label {
+  width: 100%;
+  text-align: center;
+  margin-bottom: 0.25rem;
+}
+
+/* ============================================
+   RESPONSIVE - TABLET Y MÓVIL
+   ============================================ */
+@media (max-width: 1400px) {
+  .executive-kpi-grid {
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(auto-fill, minmax(100px, 1fr));
+    overflow-y: auto;
+    height: 100%;
+  }
+
+  .executive-kpi-grid > * {
+    grid-column: span 1;
+    grid-row: auto;
+  }
+
+  .executive-kpi-grid > .headcount-card,
+  .executive-kpi-grid > .gender-vs-card,
+  .executive-kpi-grid > .lates-card {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 1024px) {
+  .executive-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .executive-kpi-grid > .headcount-card,
+  .executive-kpi-grid > .gender-vs-card,
+  .executive-kpi-grid > .lates-card {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 768px) {
+  .executive-kpi-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .executive-kpi-grid > * {
+    grid-column: 1;
+  }
+
+  .gender-chart-container,
+  .hires-exits-chart-container {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .gender-chart-wrapper,
+  .hires-exits-chart-wrapper {
+    width: 100%;
+    max-width: 100px;
+    margin: 0 auto;
+  }
+}

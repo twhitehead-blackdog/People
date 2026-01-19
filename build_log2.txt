@@ -2,7 +2,7 @@
 > nx run people:build:production
 
 [ENV Plugin] Ô£à Variables cargadas desde .env (fallback): ninguna
-[dotenv@17.2.3] injecting env (0) from .env -- tip: ­ƒæÑ sync secrets across teammates & machines: https://dotenvx.com/ops
+[dotenv@17.2.3] injecting env (0) from .env -- tip: ­ƒöä add secrets lifecycle management: https://dotenvx.com/ops
 node.exe : [baseline-
 browser-mapping] The 
 data in this module 
@@ -33,7 +33,7 @@ eption
    ErrorId : Native  
   CommandError
  
-(node:30364) 
+(node:17768) 
 [DEP0180] 
 DeprecationWarning: 
 fs.Stats constructor 
@@ -89,7 +89,7 @@ please update: `npm
 i baseline-browser-ma
 pping@latest -D`
 [32mÔ£ö[39m Building...
-[37mApplication bundle generation failed. [49.056 seconds] - 2026-01-17T23:23:00.635Z[39m
+[37mApplication bundle generation failed. [29.703 seconds] - 2026-01-18T01:47:24.617Z[39m
 [37m[39m
 [1m[33m[33mÔû▓ [4
 3;33m[[43;30mWARNING
@@ -249,9 +249,9 @@ m[22m
 [1m[33m    src/app/
 dashboard/vet-branch-
 selection-dialo[39m
-[22m[1m[33mg.compon
-ent.ts:27:4:[39m[22
-m
+[22m
+[1m[33mg.component.
+ts:27:4:[39m[22m
 [1m[33m[37m      
 27 Ôöé     [32mDateP
 ipe[37m,[39m[22m
@@ -401,9 +401,8 @@ m
 37m'primeicons/primei
 cons';[39m[22m
 [1m[33m   
-[39m[22m
-[1m[33m     ÔòÁ    
-     
+[39m[22m[1m[33m  
+   ÔòÁ         
 [32m^[0m[39m[22m
 [1m[33m[39m[22m
 [1m[33m[39m[22m
@@ -581,9 +580,9 @@ m[22m
 Date) => number' is 
 not assignable to 
 type '(start: string 
-|[39m[22m
-[1m[31m Date, end: 
-string | Date) => 
+|[39m[22m[1m[31m 
+Date, end: string | 
+Date) => 
 number'.[39m[22m
 [1m[31m  Types of 
 parameters 'start' 
@@ -1058,229 +1057,6 @@ te[37m) }}[39m[22m
                      
      [32m~~~~~~~~~~
 [0m[39m[22m
-[1m[31m[39m[22m
-[1m[31m[39m[22m
-[1m[31m[31mX [41;
-31m[[41;97mERROR[41
-;31m][0m 
-[1mTS2322: Type 
-'string | null' is 
-not assignable to 
-type 'string | 
-number'.[39m[22m
-[1m[31m  Type 
-'null' is not 
-assignable to type 
-'string | 
-number'.[0m 
-[1m[35m[plugin angu
-lar-compiler][0m[39
-m[22m
-[1m[31m[39m[22m
-[1m[31m    src/app/
-dashboard/home/compon
-ents/sections/executi
-ve-section.component.
-ts:236:9:[39m[22m
-[1m[31m[37m      
-236 Ôöé         [[32
-mvalue[37m]="state.a
-verageSalary() | 
-currency : '$' : 
-'symbol...[39m[22m
-[1m[31m          
-ÔòÁ          [32m~~~
-~~[0m[39m[22m
-[1m[31m[39m[22m
-[1m[31m[39m[22m
-[1m[31m[31mX [41;
-31m[[41;97mERROR[41
-;31m][0m 
-[1mTS2322: Type 
-'string | null' is 
-not assignable to 
-type 'string | 
-number'.[39m[22m
-[1m[31m  Type 
-'null' is not 
-assignable to type 
-'string | 
-number'.[0m 
-[1m[35m[plugin angu
-lar-compiler][0m[39
-m[22m
-[1m[31m[39m[22m
-[1m[31m    src/app/
-dashboard/home/compon
-ents/sections/financi
-al-section.component.
-ts:18:11:[39m[22m
-[1m[31m[37m      
-18 Ôöé           [[3
-2mvalue[37m]="state.
-monthlyBudget() | 
-currency : '$' : 
-'symbo...[39m[22m
-[1m[31m         
-ÔòÁ            [32m~
-~~~~[0m[39m[22m
-[1m[31m[39m[22m
-[1m[31m[39m[22m
-[1m[31m[31mX [41;
-31m[[41;97mERROR[41
-;31m][0m 
-[1mTS2322: Type 
-'string | null' is 
-not assignable to 
-type 'string | 
-number'.[39m[22m
-[1m[31m  Type 
-'null' is not 
-assignable to type 
-'string | 
-number'.[0m 
-[1m[35m[plugin angu
-lar-compiler][0m[39
-m[22m
-[1m[31m[39m[22m
-[1m[31m    src/app/
-dashboard/home/compon
-ents/sections/financi
-al-section.component.
-ts:27:11:[39m[22m
-[1m[31m[37m      
-27 Ôöé           [[3
-2mvalue[37m]="[39m
-[22m
-[1m[31m         
-ÔòÁ            [32m~
-~~~~[0m[39m[22m
-[1m[31m[39m[22m
-[1m[31m[39m[22m
-[1m[31m[31mX [41;
-31m[[41;97mERROR[41
-;31m][0m 
-[1mTS2322: Type 
-'string | null' is 
-not assignable to 
-type 'string | 
-number'.[39m[22m
-[1m[31m  Type 
-'null' is not 
-assignable to type 
-'string | 
-number'.[0m [1[39m
-[22m[1m[31mm[35m[
-plugin angular-compil
-er][0m[39m[22m
-[1m[31m[39m[22m
-[1m[31m    src/app/
-dashboard/home/compon
-ents/sections/financi
-al-section.component.
-ts:38:11:[39m[22m
-[1m[31m[37m      
-38 Ôöé           [[3
-2mvalue[37m]="state.
-averageSalary() | 
-currency : '$' : 
-'symbo...[39m[22m
-[1m[31m         
-ÔòÁ            [32m~
-~~~~[0m[39m[22m
-[1m[31m[39m[22m
-[1m[31m[39m[22m
-[1m[31m[31mX [41;
-31m[[41;97mERROR[41
-;31m][0m 
-[1mTS2322: Type 
-'string | null' is 
-not assignable to 
-type 'string | 
-number'.[39m[22m
-[1m[31m  Type 
-'null' is not 
-assignable to type 
-'string | 
-number'.[0m 
-[1m[35m[plugin angu
-lar-compiler][0m[39
-m[22m
-[1m[31m[39m[22m
-[1m[31m    src/app/
-dashboard/home/compon
-ents/sections/financi
-al-section.component.
-ts:47:11:[39m[22m
-[1m[31m[37m      
-47 Ôöé           [[3
-2mvalue[37m]="[39m
-[22m
-[1m[31m         
-ÔòÁ            [32m~
-~~~~[0m[39m[22m
-[1m[31m[39m[22m
-[1m[31m[39m[22m
-[1m[31m[31mX [41;
-31m[[41;97mERROR[41
-;31m][0m 
-[1mTS2322: Type 
-'string | null' is 
-not assignable to 
-type 'string | 
-number'.[39m[22m
-[1m[31m  Type 
-'null' is not 
-assignable to type 
-'string | 
-number'.[0m 
-[1m[35m[plugin angu
-lar-compiler][0m[39
-m[22m
-[1m[31m[39m[22m
-[1m[31m    src/app/
-dashboard/home/compon
-ents/sections/financi
-al-section.component.
-ts:58:11:[39m[22m
-[1m[31m[37m      
-58 Ôöé           [[3
-2mvalue[37m]="[39m
-[22m
-[1m[31m         
-ÔòÁ            [32m~
-~~~~[0m[39m[22m
-[1m[31m[39m[22m
-[1m[31m[39m[22m
-[1m[31m[31mX [41;
-31m[[41;97mERROR[41
-;31m][0m 
-[1mTS2322: Type 
-'string | null' is 
-not assignable to 
-type 'string | 
-number'.[39m[22m
-[1m[31m  Type 
-'null' is not 
-assignable to type 
-'string | 
-number'.[0m 
-[1m[35m[plugin angu
-lar-compiler][0m[39
-m[22m
-[1m[31m[39m[22m
-[1m[31m    src/app/
-dashboard/home/compon
-ents/sections/managem
-ent-section.component
-.ts:110:11:[39m[22m
-[1m[31m[37m      
-110 Ôöé           [[
-32mvalue[37m]="[39m
-[22m
-[1m[31m          
-ÔòÁ            [32m~
-~~~~[0m[39m[22m
 [1m[31m[39m[22m
 [1m[31m[39m[22m
 [1m[31m[31mX [41;
