@@ -23,7 +23,8 @@ import { Component, Input } from '@angular/core';
   template: `
     <div
       [class]="
-        hideRejected ? 'grid grid-cols-3 gap-2' : 'grid grid-cols-4 gap-2'
+        (hideRejected ? 'grid grid-cols-3 gap-2' : 'grid grid-cols-4 gap-2') +
+        ' py-2'
       "
     >
       <!-- Total -->

@@ -110,44 +110,44 @@ import {
                   <span class="text-xs">Empleado</span>
                 </div>
               </th>
-              <th style="width: 150px; padding: 0.4rem; text-align: left;">
-                <div class="flex items-center gap-1">
+              <th style="width: 150px; padding: 0.4rem; text-align: center;">
+                <div class="flex items-center justify-center gap-1">
                   <i class="pi pi-tag text-teal-400 text-xs"></i>
                   <span class="text-xs">Prenda</span>
                 </div>
               </th>
               <th style="width: 80px; padding: 0.4rem; text-align: center;">
-                <div class="flex items-center gap-1">
+                <div class="flex items-center justify-center gap-1">
                   <i class="pi pi-expand text-teal-400 text-xs"></i>
                   <span class="text-xs">Talla</span>
                 </div>
               </th>
               <th style="width: 60px; padding: 0.4rem; text-align: center;">
-                <div class="flex items-center gap-1">
+                <div class="flex items-center justify-center gap-1">
                   <i class="pi pi-hashtag text-teal-400 text-xs"></i>
                   <span class="text-xs">Cant.</span>
                 </div>
               </th>
               <th style="width: 120px; padding: 0.4rem; text-align: center;">
-                <div class="flex items-center gap-1">
+                <div class="flex items-center justify-center gap-1">
                   <i class="pi pi-tag text-teal-400 text-xs"></i>
                   <span class="text-xs">Estado</span>
                 </div>
               </th>
               <th style="width: 100px; padding: 0.4rem; text-align: center;">
-                <div class="flex items-center gap-1">
+                <div class="flex items-center justify-center gap-1">
                   <i class="pi pi-calendar text-teal-400 text-xs"></i>
                   <span class="text-xs">Solicitado</span>
                 </div>
               </th>
               <th style="width: 140px; padding: 0.4rem; text-align: center;">
-                <div class="flex items-center gap-1">
+                <div class="flex items-center justify-center gap-1">
                   <i class="pi pi-user-plus text-teal-400 text-xs"></i>
                   <span class="text-xs">Creado por</span>
                 </div>
               </th>
-              <th style="width: 150px; padding: 0.4rem; text-align: left;">
-                <div class="flex items-center gap-1">
+              <th style="width: 150px; padding: 0.4rem; text-align: center;">
+                <div class="flex items-center justify-center gap-1">
                   <i class="pi pi-cog text-teal-400 text-xs"></i>
                   <span class="text-xs">Acciones</span>
                 </div>
@@ -177,7 +177,7 @@ import {
                   </div>
                 </div>
               </td>
-              <td style="padding: 0.4rem;">
+              <td style="padding: 0.4rem; text-align: center;">
                 <span class="text-sm text-white font-medium">
                   {{ request.metadata?.item_type || '-' }}
                 </span>

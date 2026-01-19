@@ -63,7 +63,7 @@ import { KpiCardComponent } from '../kpi-card/kpi-card.component';
           <div class="gender-legend">
             <div class="legend-item">
               <span class="legend-label">Masculino</span>
-              <span class="legend-value"
+              <span class="legend-value male-value"
                 >{{ genderCounts().male }} ({{
                   genderPercentages().male
                 }}%)</span
@@ -71,7 +71,7 @@ import { KpiCardComponent } from '../kpi-card/kpi-card.component';
             </div>
             <div class="legend-item">
               <span class="legend-label">Femenino</span>
-              <span class="legend-value"
+              <span class="legend-value female-value"
                 >{{ genderCounts().female }} ({{
                   genderPercentages().female
                 }}%)</span

@@ -132,43 +132,43 @@ import { VacationRequest } from '../models/vacation-request.model';
                 </div>
               </th>
               <th style="width: 120px; padding: 0.4rem; text-align: center;">
-                <div class="flex items-center gap-1">
+                <div class="flex items-center justify-center gap-1">
                   <i class="pi pi-calendar text-cyan-400 text-xs"></i>
                   <span class="text-xs">Fecha Inicio</span>
                 </div>
               </th>
               <th style="width: 120px; padding: 0.4rem; text-align: center;">
-                <div class="flex items-center gap-1">
+                <div class="flex items-center justify-center gap-1">
                   <i class="pi pi-calendar text-cyan-400 text-xs"></i>
                   <span class="text-xs">Fecha Fin</span>
                 </div>
               </th>
               <th style="width: 100px; padding: 0.4rem; text-align: center;">
-                <div class="flex items-center gap-1">
+                <div class="flex items-center justify-center gap-1">
                   <i class="pi pi-clock text-cyan-400 text-xs"></i>
                   <span class="text-xs">Días</span>
                 </div>
               </th>
               <th style="width: 150px; padding: 0.4rem; text-align: center;">
-                <div class="flex items-center gap-1">
+                <div class="flex items-center justify-center gap-1">
                   <i class="pi pi-tag text-cyan-400 text-xs"></i>
                   <span class="text-xs">Estado</span>
                 </div>
               </th>
               <th style="width: 140px; padding: 0.4rem; text-align: center;">
-                <div class="flex items-center gap-1">
+                <div class="flex items-center justify-center gap-1">
                   <i class="pi pi-user-plus text-cyan-400 text-xs"></i>
                   <span class="text-xs">Creado por</span>
                 </div>
               </th>
               <th style="width: 120px; padding: 0.4rem; text-align: center;">
-                <div class="flex items-center gap-1">
+                <div class="flex items-center justify-center gap-1">
                   <i class="pi pi-calendar-plus text-cyan-400 text-xs"></i>
                   <span class="text-xs">Solicitado</span>
                 </div>
               </th>
-              <th style="width: 180px; padding: 0.4rem; text-align: left;">
-                <div class="flex items-center gap-1">
+              <th style="width: 180px; padding: 0.4rem; text-align: center;">
+                <div class="flex items-center justify-center gap-1">
                   <i class="pi pi-cog text-cyan-400 text-xs"></i>
                   <span class="text-xs">Acciones</span>
                 </div>
@@ -193,27 +193,27 @@ import { VacationRequest } from '../models/vacation-request.model';
                       {{ vacation.employee?.father_name }}
                     </span>
                     <span class="text-[9px] text-gray-400 truncate">
-                      {{ vacation.employee?.work_email || '-' }}
+                      {{ vacation.employee?.branch?.name || '-' }}
                     </span>
                   </div>
                 </div>
               </td>
-              <td style="padding: 0.5rem;">
+              <td style="padding: 0.5rem; text-align: center;">
                 <span class="text-sm text-gray-300">
                   {{ vacation.start_date | date : 'dd/MM/yyyy' }}
                 </span>
               </td>
-              <td style="padding: 0.5rem;">
+              <td style="padding: 0.5rem; text-align: center;">
                 <span class="text-sm text-gray-300">
                   {{ vacation.end_date | date : 'dd/MM/yyyy' }}
                 </span>
               </td>
-              <td style="padding: 0.5rem;">
+              <td style="padding: 0.5rem; text-align: center;">
                 <span class="text-sm font-medium text-cyan-400">
                   {{ calculateDays(vacation.start_date, vacation.end_date) }}
                 </span>
               </td>
-              <td style="padding: 0.5rem;">
+              <td style="padding: 0.5rem; text-align: center;">
                 <p-tag
                   [value]="getStatusLabel(vacation.status)"
                   [severity]="getStatusSeverity(vacation.status)"
@@ -237,7 +237,7 @@ import { VacationRequest } from '../models/vacation-request.model';
                 </span>
                 }
               </td>
-              <td style="padding: 0.5rem;">
+              <td style="padding: 0.5rem; text-align: center;">
                 <span class="text-xs text-gray-400">
                   {{ vacation.created_at | date : 'dd/MM/yyyy' }}
                 </span>

@@ -111,37 +111,37 @@ import {
                 </div>
               </th>
               <th style="width: 120px; padding: 0.4rem; text-align: center;">
-                <div class="flex items-center gap-1">
+                <div class="flex items-center justify-center gap-1">
                   <i class="pi pi-calendar text-orange-400 text-xs"></i>
                   <span class="text-xs">Fecha Marcación</span>
                 </div>
               </th>
               <th style="width: 120px; padding: 0.4rem; text-align: center;">
-                <div class="flex items-center gap-1">
+                <div class="flex items-center justify-center gap-1">
                   <i class="pi pi-clock text-orange-400 text-xs"></i>
                   <span class="text-xs">Tipo</span>
                 </div>
               </th>
               <th style="width: 120px; padding: 0.4rem; text-align: center;">
-                <div class="flex items-center gap-1">
+                <div class="flex items-center justify-center gap-1">
                   <i class="pi pi-tag text-orange-400 text-xs"></i>
                   <span class="text-xs">Estado</span>
                 </div>
               </th>
               <th style="width: 120px; padding: 0.4rem; text-align: center;">
-                <div class="flex items-center gap-1">
+                <div class="flex items-center justify-center gap-1">
                   <i class="pi pi-calendar text-orange-400 text-xs"></i>
                   <span class="text-xs">Solicitado</span>
                 </div>
               </th>
               <th style="width: 140px; padding: 0.4rem; text-align: center;">
-                <div class="flex items-center gap-1">
+                <div class="flex items-center justify-center gap-1">
                   <i class="pi pi-user-plus text-orange-400 text-xs"></i>
                   <span class="text-xs">Creado por</span>
                 </div>
               </th>
-              <th style="width: 150px; padding: 0.4rem; text-align: left;">
-                <div class="flex items-center gap-1">
+              <th style="width: 150px; padding: 0.4rem; text-align: center;">
+                <div class="flex items-center justify-center gap-1">
                   <i class="pi pi-cog text-orange-400 text-xs"></i>
                   <span class="text-xs">Acciones</span>
                 </div>
