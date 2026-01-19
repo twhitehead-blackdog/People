@@ -15,7 +15,8 @@
       "Bash(dir \"C:\\\\Users\\\\Diegu\\\\People\\\\src\\\\app\\\\dashboard\\\\modules\")",
       "Bash(dir:*)",
       "Bash(npm run:*)",
-      "Bash(npm start)"
+      "Bash(npm start)",
+      "Bash(git add:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

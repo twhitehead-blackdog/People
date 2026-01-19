@@ -25,6 +25,10 @@ export function getEnv(key: string): string | undefined {
     value = process.env['ENV_SUPABASE_API_KEY'];
   if (key === 'ENV_SUPABASE_TOKEN' && !value)
     value = process.env['ENV_SUPABASE_TOKEN'];
+  if (key === 'ENV_API_URL' && !value)
+    value = process.env['ENV_API_URL'];
+  if (key === 'ENV_APP_URL' && !value)
+    value = process.env['ENV_APP_URL'];
 
   if (!value) return undefined;
 
