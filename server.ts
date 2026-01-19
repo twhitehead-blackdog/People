@@ -356,7 +356,84 @@ export function app(): express.Express {
         }
       }
 
-      // Fallback a SMTP genérico (Gmail, etc.) si no hay Resend configurado
+      // Intentar usar Postmark si Resend no está configurado
+      const postmarkApiKey = process.env['ENV_POSTMARK_API_KEY'];
+      console.log('[DEBUG Server] 🔍 Verificando configuración Postmark...');
+      console.log(
+        '[DEBUG Server] 🔍 ENV_POSTMARK_API_KEY presente:',
+        !!postmarkApiKey
+      );
+
+      if (postmarkApiKey) {
+        console.log('[DEBUG Server] ✅ Usando Postmark para envío de email');
+        try {
+          const noreplyEmail =
+            process.env['ENV_POSTMARK_FROM_EMAIL'] || 'noreply@tu-dominio.com';
+          const noreplyName = process.env['ENV_POSTMARK_FROM_NAME'] || 'People';
+          const senderEmail = fromEmail || noreplyEmail;
+          const senderName = fromName || noreplyName;
+
+          // Configurar SMTP de Postmark
+          // Host: smtp.postmarkapp.com
+          // Puerto: 587 (TLS) o 2525 (alternativo)
+          // User: Server API Token
+          // Password: Server API Token (mismo que user)
+          const transporter = nodemailer.createTransport({
+            host: 'smtp.postmarkapp.com',
+            port: 587,
+            secure: false, // false para 587 (STARTTLS)
+            requireTLS: true,
+            auth: {
+              user: postmarkApiKey, // Server API Token como username
+              pass: postmarkApiKey, // Server API Token como password
+            },
+          });
+
+          const info = await transporter.sendMail({
+            from: `${senderName} <${senderEmail}>`,
+            to: recipients.join(', '),
+            subject: subject,
+            html: html,
+            text: text || html.replace(/<[^>]*>/g, ''),
+          });
+
+          safeLogger.safeLog('✅ Email enviado via Postmark SMTP', {
+            to: recipients.join(', '),
+          });
+
+          return res.json({
+            success: true,
+            data: { messageId: info.messageId },
+          });
+        } catch (postmarkError: any) {
+          safeLogger.error('❌ Error con Postmark SMTP', postmarkError);
+          let errorMessage = 'Error desconocido de Postmark SMTP';
+          if (postmarkError.code === 'EAUTH') {
+            errorMessage =
+              'Error de autenticación Postmark SMTP. Verifica ENV_POSTMARK_API_KEY';
+          } else if (postmarkError.code === 'ECONNECTION') {
+            errorMessage =
+              'No se pudo conectar al servidor SMTP de Postmark. Verifica la conexión';
+          } else if (postmarkError.message) {
+            errorMessage = postmarkError.message;
+          }
+
+          return res.status(500).json({
+            error: 'Error al enviar email via Postmark SMTP',
+            message: errorMessage,
+            details:
+              process.env['NODE_ENV'] === 'development'
+                ? {
+                    code: postmarkError.code,
+                    message: postmarkError.message,
+                    stack: postmarkError.stack,
+                  }
+                : undefined,
+          });
+        }
+      }
+
+      // Fallback a SMTP genérico (Gmail, etc.) si no hay Resend ni Postmark configurado
       console.log(
         '[DEBUG Server] 🔄 Resend no configurado, intentando SMTP...'
       );
@@ -388,7 +465,7 @@ export function app(): express.Express {
         return res.status(500).json({
           error: 'Email service not configured',
           message:
-            'ENV_RESEND_API_KEY o (ENV_SMTP_USER y ENV_SMTP_PASSWORD) no están configuradas. Por favor configura alguna de estas opciones en tu archivo .env',
+            'ENV_RESEND_API_KEY, ENV_POSTMARK_API_KEY o (ENV_SMTP_USER y ENV_SMTP_PASSWORD) no están configuradas. Por favor configura alguna de estas opciones en tu archivo .env',
         });
       }
 
