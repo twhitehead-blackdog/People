@@ -1,35 +1,35 @@
 import {
-  animate,
-  query,
-  stagger,
-  style,
-  transition,
-  trigger,
+    animate,
+    query,
+    stagger,
+    style,
+    transition,
+    trigger,
 } from '@angular/animations';
 import { DatePipe, NgClass, NgStyle } from '@angular/common';
 import { HttpClient, httpResource } from '@angular/common/http';
 import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  inject,
-  model,
-  signal,
+    ChangeDetectionStrategy,
+    Component,
+    computed,
+    inject,
+    model,
+    signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer } from '@angular/platform-browser';
 import {
-  addDays,
-  addWeeks,
-  differenceInMinutes,
-  endOfDay,
-  format,
-  getDate,
-  isWithinInterval,
-  nextSunday,
-  startOfDay,
-  startOfWeek,
-  subWeeks,
+    addDays,
+    addWeeks,
+    differenceInMinutes,
+    endOfDay,
+    format,
+    getDate,
+    isWithinInterval,
+    nextSunday,
+    startOfDay,
+    startOfWeek,
+    subWeeks,
 } from 'date-fns';
 import { formatInTimeZone, toDate } from 'date-fns-tz';
 import { ConfirmationService, MenuItem, MessageService } from 'primeng/api';
@@ -50,9 +50,9 @@ import { Textarea } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import {
-  colorVariants,
-  Employee,
-  getScheduleColorInlineStyle,
+    colorVariants,
+    Employee,
+    getScheduleColorInlineStyle,
 } from '../models';
 import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
@@ -63,13 +63,13 @@ import { BranchManagerGestionesComponent } from './branch-manager-gestiones.comp
 import { EmployeeSchedulesFormComponent } from './employee-schedules-form.component';
 import { CompensatoryRequest } from './hr-disabilities.component';
 import {
-  getRequestColorClass,
-  getRequestIcon,
-  getRequestStatusLabel,
-  getRequestStatusSeverity,
-  getRequestTypeLabel,
-  getRequestTypeSeverity,
-  getSeverityColor,
+    getRequestColorClass,
+    getRequestIcon,
+    getRequestStatusLabel,
+    getRequestStatusSeverity,
+    getRequestTypeLabel,
+    getRequestTypeSeverity,
+    getSeverityColor,
 } from './request.helpers';
 
 type Notification = {
@@ -551,7 +551,7 @@ type Reminder = {
                         </div>
 
                         <!-- Indicador de documento adjunto -->
-                        @if (request.document_url) {
+                        @if (request.document_url || request.metadata?.attachment_url) {
                         <div
                           class="mt-2 flex items-center gap-1 text-xs text-gray-400"
                         >
@@ -1457,7 +1457,7 @@ type Reminder = {
                   getRequestTypeLabel(selectedRequest()?.requestType)
               }}
             </span>
-            @if (selectedRequest()?.document_url) {
+            @if (selectedRequest()?.document_url || selectedRequest()?.metadata?.attachment_url) {
             <p-button
               icon="pi pi-file"
               [rounded]="true"
@@ -1723,7 +1723,7 @@ type Reminder = {
 
             <!-- Contenido del preview -->
             <div class="flex-1 overflow-hidden">
-              @if (selectedRequest()!.document_url) {
+              @if (selectedRequest()!.document_url || selectedRequest()!.metadata?.attachment_url) {
               <iframe
                 [src]="getDocumentUrl()"
                 class="w-full h-full border-0"
@@ -2187,8 +2187,7 @@ export class BranchManagerComponent {
           : '-';
         const to = r.date_to ? format(new Date(r.date_to), 'dd/MM/yyyy') : '-';
         displayDate = `${from} - ${to}`;
-        summary =
-          r.compensatory_type === 'hours' ? 'Horas Extras' : 'Días de Descanso';
+        summary = 'Compensatorio';
         details = [
           {
             label: 'Tipo',
@@ -2234,6 +2233,10 @@ export class BranchManagerComponent {
           : '-';
         displayDate = `${start} - ${end}`;
         summary = 'Incapacidad Médica';
+        details = [
+          { label: 'Fecha de Inicio', value: start },
+          { label: 'Fecha de Fin', value: end },
+        ];
         if (r.description)
           details.push({ label: 'Descripción', value: r.description });
       } else if (r.requestType === 'vacaciones') {
@@ -3226,11 +3229,13 @@ export class BranchManagerComponent {
 
   public getDocumentUrl(): any {
     const request = this.selectedRequest();
-    if (!request?.document_url) {
+    // Check both document_url (standard) and metadata.attachment_url (uniform/timelog)
+    const url = request?.document_url || request?.metadata?.attachment_url;
+    if (!url) {
       return '';
     }
     return this.sanitizer.bypassSecurityTrustResourceUrl(
-      `${request.document_url}#toolbar=1&navpanes=1&scrollbar=1`
+      `${url}#toolbar=1&navpanes=1&scrollbar=1`
     );
   }
 
