@@ -1,0 +1,1398 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Productos M-Pets - Puppis Argentina | Comparación de Precios</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --primary: #6366f1;
+        --primary-dark: #4f46e5;
+        --secondary: #22c55e;
+        --bg-dark: #0f172a;
+        --bg-card: #1e293b;
+        --text-light: #f8fafc;
+        --text-muted: #94a3b8;
+        --border: #334155;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Inter", sans-serif;
+        background: var(--bg-dark);
+        color: var(--text-light);
+        min-height: 100vh;
+        line-height: 1.6;
+      }
+
+      .header {
+        background: linear-gradient(135deg, var(--bg-card) 0%, #0f172a 100%);
+        padding: 1.5rem 2rem;
+        text-align: center;
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        backdrop-filter: blur(10px);
+      }
+
+      .header h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        margin-bottom: 0.25rem;
+      }
+
+      .header p {
+        color: var(--text-muted);
+        font-size: 0.875rem;
+      }
+
+      .exchange-rate {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: var(--bg-card);
+        padding: 0.5rem 1rem;
+        border-radius: 50px;
+        margin-top: 0.75rem;
+        border: 1px solid var(--border);
+        font-size: 0.875rem;
+      }
+
+      .exchange-rate span {
+        color: var(--secondary);
+        font-weight: 600;
+      }
+
+      .controls {
+        max-width: 1200px;
+        margin: 1rem auto;
+        padding: 0 1rem;
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .search-box {
+        flex: 1;
+        min-width: 200px;
+        position: relative;
+      }
+
+      .search-box input {
+        width: 100%;
+        padding: 0.75rem 0.75rem 0.75rem 2.5rem;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--bg-card);
+        color: var(--text-light);
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+      }
+
+      .search-box input:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+      }
+
+      .search-box::before {
+        content: "🔍";
+        position: absolute;
+        left: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 1rem;
+      }
+
+      .stats {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+
+      .stat-box {
+        background: var(--bg-card);
+        padding: 0.5rem 1rem;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .stat-box .number {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--primary);
+      }
+
+      .stat-box .label {
+        color: var(--text-muted);
+        font-size: 0.75rem;
+      }
+
+      .sort-select {
+        padding: 0.75rem 1rem;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--bg-card);
+        color: var(--text-light);
+        font-size: 0.875rem;
+        cursor: pointer;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 1rem;
+      }
+
+      .products-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      .product-row {
+        background: var(--bg-card);
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        display: grid;
+        grid-template-columns: 80px 1fr 120px 120px 200px;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.75rem 1rem;
+        transition: all 0.2s ease;
+      }
+
+      .product-row:hover {
+        border-color: var(--primary);
+        transform: translateX(5px);
+      }
+
+      .product-image {
+        width: 80px;
+        height: 80px;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .product-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+
+      .product-info {
+        min-width: 0;
+      }
+
+      .product-name {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text-light);
+        margin-bottom: 0.25rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .product-category {
+        display: inline-block;
+        font-size: 0.7rem;
+        color: var(--primary);
+        background: rgba(99, 102, 241, 0.1);
+        padding: 0.15rem 0.5rem;
+        border-radius: 20px;
+      }
+
+      .product-image-url {
+        font-size: 0.65rem;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
+        word-break: break-all;
+        max-height: 2.5em;
+        overflow: hidden;
+      }
+
+      .product-image-url a {
+        color: var(--text-muted);
+        text-decoration: none;
+      }
+
+      .product-image-url a:hover {
+        color: var(--primary);
+        text-decoration: underline;
+      }
+
+      .price-ars,
+      .price-usd {
+        text-align: center;
+        padding: 0.5rem;
+        border-radius: 8px;
+      }
+
+      .price-ars {
+        background: linear-gradient(
+          135deg,
+          rgba(99, 102, 241, 0.2) 0%,
+          rgba(99, 102, 241, 0.1) 100%
+        );
+      }
+
+      .price-usd {
+        background: linear-gradient(
+          135deg,
+          rgba(34, 197, 94, 0.2) 0%,
+          rgba(34, 197, 94, 0.1) 100%
+        );
+      }
+
+      .price-label {
+        font-size: 0.6rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .price-value {
+        font-size: 1rem;
+        font-weight: 700;
+      }
+
+      .price-ars .price-value {
+        color: #818cf8;
+      }
+
+      .price-usd .price-value {
+        color: var(--secondary);
+      }
+
+      .compare-input {
+        width: 100%;
+        padding: 0.5rem;
+        border-radius: 6px;
+        border: 1px solid var(--border);
+        background: rgba(0, 0, 0, 0.3);
+        color: var(--text-light);
+        font-size: 0.75rem;
+        text-align: center;
+      }
+
+      .compare-input::placeholder {
+        color: var(--text-muted);
+      }
+
+      .compare-input:focus {
+        outline: none;
+        border-color: var(--secondary);
+      }
+
+      .list-header {
+        display: grid;
+        grid-template-columns: 80px 1fr 120px 120px 200px;
+        gap: 1rem;
+        padding: 0.5rem 1rem;
+        margin-bottom: 0.5rem;
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+      }
+
+      .list-header span:nth-child(3),
+      .list-header span:nth-child(4),
+      .list-header span:nth-child(5) {
+        text-align: center;
+      }
+
+      .no-results {
+        text-align: center;
+        padding: 3rem 2rem;
+        color: var(--text-muted);
+      }
+
+      .footer {
+        text-align: center;
+        padding: 2rem 1rem;
+        color: var(--text-muted);
+        border-top: 1px solid var(--border);
+        margin-top: 2rem;
+        font-size: 0.875rem;
+      }
+
+      .footer a {
+        color: var(--primary);
+        text-decoration: none;
+      }
+
+      @media (max-width: 900px) {
+        .product-row {
+          grid-template-columns: 60px 1fr;
+          grid-template-rows: auto auto;
+        }
+
+        .product-image {
+          width: 60px;
+          height: 60px;
+          grid-row: span 2;
+        }
+
+        .price-ars,
+        .price-usd,
+        .compare-input {
+          grid-column: 2;
+        }
+
+        .list-header {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="header">
+      <h1>🐾 M-Pets Argentina - Lista de Productos</h1>
+      <p>Productos de Puppis Argentina con precios en ARS y USD</p>
+      <div class="exchange-rate">
+        💱 Tipo de cambio: <span>$1 USD = 1.505 ARS</span> (Dólar Blue - Enero
+        2026)
+      </div>
+    </header>
+
+    <div class="controls">
+      <div class="search-box">
+        <input
+          type="text"
+          id="searchInput"
+          placeholder="Buscar productos..."
+          oninput="filterProducts()"
+        />
+      </div>
+      <div class="stats">
+        <div class="stat-box">
+          <span class="number" id="totalProducts">0</span>
+          <span class="label">Productos</span>
+        </div>
+        <div class="stat-box">
+          <span class="number" id="visibleProducts">0</span>
+          <span class="label">Mostrando</span>
+        </div>
+      </div>
+      <select class="sort-select" id="sortSelect" onchange="sortProducts()">
+        <option value="name-asc">Nombre A-Z</option>
+        <option value="name-desc">Nombre Z-A</option>
+        <option value="price-asc">Precio: Menor a Mayor</option>
+        <option value="price-desc">Precio: Mayor a Menor</option>
+      </select>
+    </div>
+
+    <div class="container">
+      <div class="list-header">
+        <span>Imagen</span>
+        <span>Producto</span>
+        <span>Precio ARS</span>
+        <span>Precio USD</span>
+        <span>Tu Precio Local</span>
+      </div>
+      <div class="products-list" id="productsList">
+        <!-- Products will be inserted here -->
+      </div>
+      <div class="no-results" id="noResults" style="display: none">
+        <h2>😿 No se encontraron productos</h2>
+        <p>Intenta con otro término de búsqueda</p>
+      </div>
+    </div>
+
+    <footer class="footer">
+      <p>
+        Datos extraídos de
+        <a
+          href="https://www.puppis.com.ar/accesorios/m-pets/mpets"
+          target="_blank"
+          >Puppis Argentina</a
+        >
+        el 19 de Enero 2026
+      </p>
+      <p style="margin-top: 0.5rem; font-size: 0.75rem">
+        Los precios pueden variar. Consulta el sitio oficial para precios
+        actualizados.
+      </p>
+    </footer>
+
+    <script>
+      const EXCHANGE_RATE = 1505;
+
+      const products = [
+        {
+          name: "Comedero M-Pets Acero Inoxidable",
+          priceARS: 19000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197039-500-auto?v=638588196696830000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Peluche M-Pets Bobby Squeaker",
+          priceARS: 20500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/205094-500-auto?v=639004677365070000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Bandeja Mpets para Lamer Azul",
+          priceARS: 49000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/202155-500-auto?v=638911259097200000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Arnes Mpets Hiking Negro",
+          priceARS: 70500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/201842-500-auto?v=638906870037300000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Limpia Pata Mpets",
+          priceARS: 27500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/202162-500-auto?v=638911266920030000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Bolsa M-Pets Biodegradable Lavanda",
+          priceARS: 21000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197069-500-auto?v=638588196865700000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Correa Retractil Mpets Liberty Rosa",
+          priceARS: 35000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/201986-500-auto?v=638907894753530000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Correa Retractil M-Pets Azul",
+          priceARS: 41500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197003-500-auto?v=638585654786300000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Pelotas de Tenis M-Pets Hop Set de 3 Piezas",
+          priceARS: 8500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/205095-500-auto?v=639004682525200000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Comedero M-Pets Bowl Crock de Acero Inoxidable",
+          priceARS: 28000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/205059-500-auto?v=639004582964300000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Comedero Doble Mpets Ceramica Bambu",
+          priceARS: 76500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/202128-500-auto?v=638911253631700000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete M-Pets Hueso Ecológico",
+          priceARS: 41000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/183218-500-auto?v=637698190476630000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Collar M-Pets Gato Freestyle Jazz",
+          priceARS: 10500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197712-500-auto?v=638604633563800000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Collar Urban Gato M-Pets Jazz",
+          priceARS: 9500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197016-500-auto?v=638585654843900000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "M-Pets Juguete Refrigerante Sandia Para Perro",
+          priceARS: 15500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/198749-500-auto?v=638736750469770000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Collar Caruso M-Pets para Gato",
+          priceARS: 10500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197180-500-auto?v=638594301494030000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete M-Pets Indi Ecologico",
+          priceARS: 12600,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/205086-500-auto?v=639004668163100000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Contenedor Mpets Plástico Con Pala",
+          priceARS: 66150,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/194078-500-auto?v=638259721245730000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Contenedor M-Pets Con Tapa Blanco",
+          priceARS: 64750,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/188015-500-auto?v=637934995448300000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Fuente Mpets Drinking Fountain",
+          priceARS: 66703,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/194500-500-auto?v=638289168983270000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Pelota de Goma Naranja M-Pets Verde",
+          priceARS: 12500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197105-500-auto?v=638588197069800000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete M-Pets Frisbee Sprintpuff",
+          priceARS: 23000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/205207-500-auto?v=639009024265630000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Correa M-Pets Manos Libres Gentle Dog",
+          priceARS: 38000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/205135-500-auto?v=639005331059970000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Collar M-pets Wild Jungle",
+          priceARS: 21500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/205158-500-auto?v=639005366447830000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Bebedero Mpets Dispenser Azul",
+          priceARS: 23500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/202081-500-auto?v=638929426528600000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Arnés y Correa M-Pets Letsgo Para Gatos",
+          priceARS: 35000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/188026-500-auto?v=637934995487900000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Correa Mpets Gentle Rosa",
+          priceARS: 27000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/201927-500-auto?v=638907747936100000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Collar Mpets Eco Zany Celeste y Negro",
+          priceARS: 11500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/194073-500-auto?v=638259716606500000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Alfombra Para Gato M-Pets Negra",
+          priceARS: 26500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197113-500-auto?v=638588197110400000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "M-Pets Juguete Refrigerante Lima Para Perro",
+          priceARS: 14500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/198747-500-auto?v=638736750461170000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Collar M-Pets Silicona",
+          priceARS: 25500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197142-500-auto?v=638594110456400000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Arnés y Correa M-Pets Catogo Para Gatos",
+          priceARS: 28500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/188025-500-auto?v=637934995483830000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Arnes Mpets Gentle Azul",
+          priceARS: 25500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/201975-500-auto?v=638907879514730000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "M-Pets Juguete Refrigerante Hueso Para Perro",
+          priceARS: 25000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/198744-500-auto?v=638736750450000000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Pelota de Goma M-Pets Amarillo Gris",
+          priceARS: 26000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197102-500-auto?v=638588197053930000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete Rosie Mpets Plush",
+          priceARS: 24500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/202039-500-auto?v=638907961253770000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Correa M-Pets Urban Style Jazz",
+          priceARS: 20000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197711-500-auto?v=638850786287700000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete Erizo Mpets Peluche",
+          priceARS: 25500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/202030-500-auto?v=638907945810730000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "M-Pets Juguete Refrigerante Frisbee Para Perro",
+          priceARS: 27500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/198743-500-auto?v=638736750445930000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete M-Pets Savage Elefante",
+          priceARS: 26250,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/205061-500-auto?v=639004604311730000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete M-Pets Dispenser Jump Stick",
+          priceARS: 22680,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/195878-500-auto?v=638412839529200000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete M-Pets Dispenser Jump Criatura",
+          priceARS: 18060,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/195867-500-auto?v=638412836424100000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Comedero M-Pets de Bambu",
+          priceARS: 10500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197061-500-auto?v=638588196821000000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete M-Pets Dispenser Drogo Rojo",
+          priceARS: 14250,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197001-500-auto?v=638585654772900000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete M-Pets Dispenser Flyer Tortuga Azul",
+          priceARS: 16625,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/195884-500-auto?v=638412841109830000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete M-pets Dispenser Jump Coloso",
+          priceARS: 20685,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/195520-500-auto?v=638370325168000000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete M-Pets Dispenser Flyer Pesa Azul",
+          priceARS: 20160,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/195882-500-auto?v=638412840396070000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete M-Pets Dispenser Jump Dino",
+          priceARS: 19950,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/195872-500-auto?v=638412838025630000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Collar M-Pets Ecologico",
+          priceARS: 17000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/205189-500-auto?v=639005393890730000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Cama M-Pets Snugo Ecologica Gris",
+          priceARS: 91000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/205193-500-auto?v=639005400552700000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Correa M-pets Wild Jungle",
+          priceARS: 21500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/205152-500-auto?v=639005339327670000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Arnés M-Pets Origami Cherry Fold",
+          priceARS: 55500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/205112-500-auto?v=639004717771800000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Arnés M-Pets Origami Aqua Twist",
+          priceARS: 55500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/205121-500-auto?v=639004736774530000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Cochecito M-pets Paseo Conquest",
+          priceARS: 398500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/205102-500-auto?v=639004693240930000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete M-pets Anillo Gris",
+          priceARS: 12500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/205060-500-auto?v=639004587825870000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete M-Pets Ecologico Milo",
+          priceARS: 24000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/205080-500-auto?v=639004661026800000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete M-Pets Ecologico ZIA",
+          priceARS: 24000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/205083-500-auto?v=639004663853570000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Comedero M-Pets Plegable Para Perro",
+          priceARS: 23000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/205107-500-auto?v=639004703451930000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete M-Pets Dispenser Rex Azul",
+          priceARS: 15540,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/196917-500-auto?v=638570005786500000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "M-Pets Taza Elevada Urban B/N Para Perro",
+          priceARS: 40600,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/198757-500-auto?v=638736750504730000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Pelota Mpets con Manija",
+          priceARS: 21500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/205748-500-auto?v=639041905562370000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Bozal M-Pets Bark Negro y Amarillo",
+          priceARS: 29000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197013-500-auto?v=638960383750730000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Collar Mpets Gentle Rosa",
+          priceARS: 13500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/201874-500-auto?v=638907737491600000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Bebedero y Comedero Doble Elevado M-Pets",
+          priceARS: 89000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197062-500-auto?v=638588196825400000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Comedero y Bebedero M-Pets Doble",
+          priceARS: 70500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197060-500-auto?v=638588196815230000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Collar Mpets Gentle Azul",
+          priceARS: 13500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/201883-500-auto?v=638907742405530000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Bolso M-Pets de Viaje Para Perro",
+          priceARS: 91000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/198752-500-auto?v=638736750480730000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Bolso M-Pets Travel",
+          priceARS: 101500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/198753-500-auto?v=638736750485430000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Cubre Asiento Mpets",
+          priceARS: 80000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/202016-500-auto?v=638907897910970000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Comedero y Bebedero M-Pets Antideslizante",
+          priceARS: 86990,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/183212-500-auto?v=637698186619030000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Bebedero Mpets Dispenser Negro",
+          priceARS: 23500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/202642-500-auto?v=638929424500570000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Comedero Doble Mpets Bowl Negro",
+          priceARS: 12000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/202096-500-auto?v=638908621126130000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Comedero Elevado Doble Mpets Plastico Blanco",
+          priceARS: 59500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/201793-500-auto?v=638906198291830000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Comedero M-Pets Acero Inoxidable Pequeño",
+          priceARS: 14000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197041-500-auto?v=638588196707170000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete Pelota Mpets Chirrian Azul",
+          priceARS: 10000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/202026-500-auto?v=638907940230830000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Transportadora Corsa Mpets",
+          priceARS: 95000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/202019-500-auto?v=638907912966570000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Arnes M-Pets Urban Style Jazz",
+          priceARS: 30500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197207-500-auto?v=638596733442570000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Set De Arnés y Correa Mpets Catogo Rojo",
+          priceARS: 28500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/194076-500-auto?v=638259718166470000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Collar M-Pets Eco Dog",
+          priceARS: 16000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/198754-500-auto?v=638736750490930000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Transportadora Eco M-Pets",
+          priceARS: 89000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197081-500-auto?v=638588196933500000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Correa Antishock Mpets Rosa",
+          priceARS: 35000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/201803-500-auto?v=638906249094870000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Arnes y Collar M-Pets Gato Jazz",
+          priceARS: 28500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197210-500-auto?v=638596733459800000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Collar para Gato M-Pets con Glitter",
+          priceARS: 9500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197179-500-auto?v=638594301488730000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Correa M-pets Eco Blanco",
+          priceARS: 35000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197135-500-auto?v=638594110424870000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Arnes y Collar M-Pets Gato Wild",
+          priceARS: 48000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197017-500-auto?v=638585654848700000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Collar M-Pets Urban Style Jazz",
+          priceARS: 19000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197710-500-auto?v=638604633552630000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Filtro Fuente Mpets Alta",
+          priceARS: 10000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/202079-500-auto?v=638908607622030000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Transportadora Carrier Mpets",
+          priceARS: 273500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/202018-500-auto?v=638907901842500000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Cama Mpets Tipi Yull Gris",
+          priceARS: 109000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/201829-500-auto?v=638906314919730000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Correa Antishock Mpets Azul",
+          priceARS: 35000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/201811-500-auto?v=638907886623870000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Dispensador de Agua M-Pets",
+          priceARS: 48500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197107-500-auto?v=638588197080400000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete Pelota Mpets Coto Gris",
+          priceARS: 26500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/202067-500-auto?v=638908599931500000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Correa M-pets Cierre Seguro Rosa",
+          priceARS: 38500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197139-500-auto?v=638594110444400000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "M-Pets Juguete Refrigerante Frisko Para Perro",
+          priceARS: 23000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/198742-500-auto?v=638736750440770000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Arnes y Collar M-Pets Gato Freesty",
+          priceARS: 28500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197211-500-auto?v=638596733465600000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Comedero Plastico Doble M-Pets",
+          priceARS: 36000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197056-500-auto?v=638588196790600000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Collar con Lineas M-Pets para Gato",
+          priceARS: 9500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197182-500-auto?v=638594301503700000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "M-Pets Juguete Refrigerante Luna Para Perro",
+          priceARS: 24000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/198746-500-auto?v=638736750457430000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Correa M-Pets Silicona",
+          priceARS: 44000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197145-500-auto?v=638594110470500000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete de Goma M-Pets Naranja",
+          priceARS: 11500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197033-500-auto?v=638588196661270000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete Pesa Mpets Cuerda Gris",
+          priceARS: 17500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/202057-500-auto?v=638908596134770000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete Cosmo Mpets Peluche",
+          priceARS: 25500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/202029-500-auto?v=638907944338400000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "M-Pets Tazón Elevado Doble Para Gato",
+          priceARS: 78000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/198751-500-auto?v=638736750476370000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete Palo Mpets Chiron Azul",
+          priceARS: 23500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/202022-500-auto?v=638907914648170000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Correa Hiking M-Pets Naranja y Negro",
+          priceARS: 51550,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/189193-500-auto?v=637979986811570000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Correa Antishock M-Pets Negro y Rojo",
+          priceARS: 55500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197007-500-auto?v=638585654805970000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete M-Pets Dispenser Uranus Verde",
+          priceARS: 16500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/195886-500-auto?v=638412842173500000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Comedero Melaminado Doble M-Pets Blanco",
+          priceARS: 34500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197055-500-auto?v=638588196785570000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Catnip Pelota Mpets Beige",
+          priceARS: 13500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/202644-500-auto?v=638929535735930000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Hueso de Goma Natural M-Pets",
+          priceARS: 20000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197036-500-auto?v=638588196677500000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete Mpets Polaris Blanco",
+          priceARS: 99000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/194412-500-auto?v=638284093294270000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Pelota M-Pets Sabor Carne",
+          priceARS: 20000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197032-500-auto?v=638588196653900000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Dispensador de Alimento M-Pets",
+          priceARS: 48500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197178-500-auto?v=638594301483270000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Hueso de Goma M-Pets Sabor Bacon",
+          priceARS: 38500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197104-500-auto?v=638588197062900000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Cuchara Plegable Mpets Cuizi Naranja",
+          priceARS: 16500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/202091-500-auto?v=638908618038270000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Comedero M-Pets Plegable",
+          priceARS: 28500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/188035-500-auto?v=637934995522000000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete M-Pets Ecológico Vigo Verde",
+          priceARS: 53500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/185750-500-auto?v=637832328161130000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete Pelota Mpets Chirrian Verde",
+          priceARS: 10000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/202028-500-auto?v=638907942912800000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete Hueso Chewbo Leg L Mpets",
+          priceARS: 17800,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/196920-500-auto?v=638570011760930000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete M-Pets Dispenser Saturn Azul",
+          priceARS: 23050,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/195888-500-auto?v=638412844056330000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete M-Pets Dinah Wand",
+          priceARS: 19600,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/183231-500-auto?v=637698190527470000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete M-Pets Savage Toro",
+          priceARS: 37500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/205065-500-auto?v=639004614470700000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete M-Pets Dennis Ecologico",
+          priceARS: 18000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/205089-500-auto?v=639004672277300000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete M-Pets Sancho Ecologico",
+          priceARS: 18000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/205092-500-auto?v=639004674459200000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete M-Pets Ecológico Loki Verde",
+          priceARS: 53500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/187586-500-auto?v=637908259018230000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete Pelota Mpets Chirrian",
+          priceARS: 15500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/202024-500-auto?v=638907938415970000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete M-Pets Ecológico Thor Verde",
+          priceARS: 53500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/187584-500-auto?v=637908257963570000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Comedero Eco M-Pets Negro",
+          priceARS: 17000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197058-500-auto?v=638588196803070000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Comedero M-Pets Plastico",
+          priceARS: 9000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197111-500-auto?v=638588197100400000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Juguete Palo Mpets Chiron Verde",
+          priceARS: 23500,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/202023-500-auto?v=638907915592800000&width=500&height=auto&aspect=true",
+        },
+        {
+          name: "Soga Eco M-Pets Azul",
+          priceARS: 35000,
+          imageUrl:
+            "https://puppis.vtexassets.com/arquivos/ids/197134-500-auto?v=638594110421570000&width=500&height=auto&aspect=true",
+        },
+      ];
+
+      function calculateUSD(ars) {
+        return (ars / EXCHANGE_RATE).toFixed(2);
+      }
+
+      function formatARS(price) {
+        return price.toLocaleString("es-AR");
+      }
+
+      function getCategoryFromName(name) {
+        const nameLower = name.toLowerCase();
+        if (
+          nameLower.includes("comedero") ||
+          nameLower.includes("bowl") ||
+          nameLower.includes("bebedero") ||
+          nameLower.includes("fuente") ||
+          nameLower.includes("dispensador") ||
+          nameLower.includes("tazón") ||
+          nameLower.includes("taza")
+        )
+          return "Alimentación";
+        if (
+          nameLower.includes("juguete") ||
+          nameLower.includes("pelota") ||
+          nameLower.includes("hueso") ||
+          nameLower.includes("peluche") ||
+          nameLower.includes("soga") ||
+          nameLower.includes("cuerda") ||
+          nameLower.includes("mordedor") ||
+          nameLower.includes("frisbee") ||
+          nameLower.includes("catnip")
+        )
+          return "Juguetes";
+        if (
+          nameLower.includes("cama") ||
+          nameLower.includes("iglú") ||
+          nameLower.includes("rascador") ||
+          nameLower.includes("alfombra") ||
+          nameLower.includes("tipi")
+        )
+          return "Descanso";
+        if (
+          nameLower.includes("transportadora") ||
+          nameLower.includes("bolso") ||
+          nameLower.includes("mochila") ||
+          nameLower.includes("cochecito") ||
+          nameLower.includes("carrier")
+        )
+          return "Transporte";
+        if (
+          nameLower.includes("collar") ||
+          nameLower.includes("correa") ||
+          nameLower.includes("arnés") ||
+          nameLower.includes("arnes") ||
+          nameLower.includes("bozal")
+        )
+          return "Paseo";
+        if (
+          nameLower.includes("cepillo") ||
+          nameLower.includes("shampoo") ||
+          nameLower.includes("cortauñas") ||
+          nameLower.includes("peine") ||
+          nameLower.includes("toallas") ||
+          nameLower.includes("limpia") ||
+          nameLower.includes("bolsa")
+        )
+          return "Higiene";
+        if (
+          nameLower.includes("arenero") ||
+          nameLower.includes("pala") ||
+          nameLower.includes("filtro")
+        )
+          return "Higiene";
+        if (nameLower.includes("contenedor") || nameLower.includes("cubre"))
+          return "Accesorios";
+        return "Accesorios";
+      }
+
+      function renderProducts(productsToRender) {
+        const list = document.getElementById("productsList");
+        const noResults = document.getElementById("noResults");
+
+        if (productsToRender.length === 0) {
+          list.innerHTML = "";
+          noResults.style.display = "block";
+          document.getElementById("visibleProducts").textContent = "0";
+          return;
+        }
+
+        noResults.style.display = "none";
+        document.getElementById("visibleProducts").textContent =
+          productsToRender.length;
+
+        list.innerHTML = productsToRender
+          .map(
+            (product, index) => `
+                <div class="product-row">
+                    <div class="product-image">
+                        <img src="${product.imageUrl}" alt="${product.name}" loading="lazy" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐾</text></svg>'">
+                    </div>
+                    <div class="product-info">
+                        <div class="product-name" title="${product.name}">${product.name}</div>
+                        <span class="product-category">${getCategoryFromName(product.name)}</span>
+                        <div class="product-image-url">
+                            <a href="${product.imageUrl}" target="_blank" title="Abrir imagen">${product.imageUrl.substring(0, 60)}...</a>
+                        </div>
+                    </div>
+                    <div class="price-ars">
+                        <div class="price-label">ARS</div>
+                        <div class="price-value">$${formatARS(product.priceARS)}</div>
+                    </div>
+                    <div class="price-usd">
+                        <div class="price-label">USD</div>
+                        <div class="price-value">$${calculateUSD(product.priceARS)}</div>
+                    </div>
+                    <input type="text" class="compare-input" placeholder="Tu precio local..." />
+                </div>
+            `,
+          )
+          .join("");
+      }
+
+      function filterProducts() {
+        const searchTerm = document
+          .getElementById("searchInput")
+          .value.toLowerCase();
+        const filtered = products.filter((p) =>
+          p.name.toLowerCase().includes(searchTerm),
+        );
+        sortAndRender(filtered);
+      }
+
+      function sortProducts() {
+        filterProducts();
+      }
+
+      function sortAndRender(productsToSort) {
+        const sortValue = document.getElementById("sortSelect").value;
+        const sorted = [...productsToSort];
+
+        switch (sortValue) {
+          case "name-asc":
+            sorted.sort((a, b) => a.name.localeCompare(b.name));
+            break;
+          case "name-desc":
+            sorted.sort((a, b) => b.name.localeCompare(a.name));
+            break;
+          case "price-asc":
+            sorted.sort((a, b) => a.priceARS - b.priceARS);
+            break;
+          case "price-desc":
+            sorted.sort((a, b) => b.priceARS - a.priceARS);
+            break;
+        }
+
+        renderProducts(sorted);
+      }
+
+      document.addEventListener("DOMContentLoaded", () => {
+        document.getElementById("totalProducts").textContent = products.length;
+        sortAndRender(products);
+      });
+    </script>
+  </body>
+</html>

@@ -73,6 +73,10 @@ interface EmailConfig {
             <i class="pi pi-comments mr-2"></i>
             Wassenger
           </p-tab>
+          <p-tab value="3">
+            <i class="pi pi-shopping-cart mr-2"></i>
+            M-Pets Precios
+          </p-tab>
         </p-tablist>
 
         <!-- Tab: Correo -->
@@ -754,6 +758,61 @@ interface EmailConfig {
             </div>
           </p-card>
         </p-tabpanel>
+
+        <!-- Tab: M-Pets Precios -->
+        <p-tabpanel value="3">
+          <p-card styleClass="[&_.p-card-body]:py-2">
+            <ng-template #title>
+              <div class="flex items-center gap-2">
+                <i class="pi pi-shopping-cart text-purple-400"></i>
+                Comparación de Precios M-Pets
+              </div>
+            </ng-template>
+            <ng-template #subtitle>
+              Catálogo de productos M-Pets de Puppis Argentina con precios en ARS y USD
+            </ng-template>
+
+            <div class="flex flex-col gap-4">
+              <!-- Info box -->
+              <div
+                class="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4"
+              >
+                <div class="flex items-start gap-3">
+                  <i class="pi pi-info-circle text-purple-400 text-xl"></i>
+                  <div class="flex-1">
+                    <p class="text-purple-300 font-semibold mb-1">
+                      Herramienta de Comparación
+                    </p>
+                    <p class="text-sm text-gray-300 m-0">
+                      Esta página muestra los productos M-Pets de Puppis Argentina 
+                      para facilitar la comparación de precios. Incluye más de 130 productos
+                      con precios en Pesos Argentinos y Dólares (tasa: 1 USD = 1,505 ARS).
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Open in new window button -->
+              <div class="flex justify-end">
+                <p-button
+                  label="Abrir en Nueva Ventana"
+                  icon="pi pi-external-link"
+                  severity="secondary"
+                  (click)="openMPetsPage()"
+                />
+              </div>
+
+              <!-- Iframe container -->
+              <div class="rounded-lg overflow-hidden border border-neutral-700" style="height: 600px;">
+                <iframe
+                  src="/mpets-puppis-precios.html"
+                  class="w-full h-full border-0"
+                  title="M-Pets Precios Argentina"
+                ></iframe>
+              </div>
+            </div>
+          </p-card>
+        </p-tabpanel>
       </p-tabs>
     </div>
 
@@ -831,8 +890,7 @@ export class SettingsComponent {
       const settings = this.settingsApi.value();
       if (settings) {
         // Helper para obtener setting por key
-        const getSetting = (key: string) =>
-          settings.find((s) => s.key === key);
+        const getSetting = (key: string) => settings.find((s) => s.key === key);
 
         // Wassenger
         const wassengerKey = getSetting('wassenger_api_key');
@@ -1226,5 +1284,10 @@ export class SettingsComponent {
           this.sendingTestEmail.set(false);
         },
       });
+  }
+
+  // Abrir página de M-Pets en nueva ventana
+  openMPetsPage(): void {
+    window.open('/mpets-puppis-precios.html', '_blank');
   }
 }
