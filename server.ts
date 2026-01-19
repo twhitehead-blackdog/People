@@ -155,6 +155,48 @@ export function app(): express.Express {
     }
   });
 
+  // Helper para verificar si el envío de emails está habilitado
+  async function isEmailEnabled(): Promise<boolean> {
+    try {
+      const supabaseUrl = process.env['ENV_SUPABASE_URL'];
+      const supabaseKey = process.env['ENV_SUPABASE_SERVICE_KEY'] || process.env['ENV_SUPABASE_ANON_KEY'];
+
+      if (!supabaseUrl || !supabaseKey) {
+        console.warn('[Email] No se pudo verificar email_enabled: Supabase no configurado');
+        return true; // Por defecto habilitado si no se puede verificar
+      }
+
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/settings?key=eq.email_enabled&select=value`,
+        {
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        console.warn('[Email] Error al verificar email_enabled:', response.status);
+        return true; // Por defecto habilitado si hay error
+      }
+
+      const data = await response.json();
+      if (data && data.length > 0) {
+        const enabled = data[0].value === 'true';
+        if (!enabled) {
+          console.log('[Email] ⚠️ Envío de emails deshabilitado por configuración');
+        }
+        return enabled;
+      }
+
+      return true; // Por defecto habilitado si no existe la configuración
+    } catch (error) {
+      console.error('[Email] Error verificando email_enabled:', error);
+      return true; // Por defecto habilitado si hay error
+    }
+  }
+
   // Endpoint para enviar emails
   server.post('/api/email/send', async (req, res) => {
     console.log('[DEBUG Server] 📧 === NUEVA PETICIÓN DE EMAIL ===');
@@ -169,6 +211,20 @@ export function app(): express.Express {
     );
 
     try {
+      // Verificar si el envío de emails está habilitado (master switch)
+      const emailEnabled = await isEmailEnabled();
+      if (!emailEnabled) {
+        console.log('[DEBUG Server] ⚠️ Email bloqueado: envío deshabilitado por configuración');
+        return res.json({
+          success: true,
+          data: {
+            messageId: 'disabled',
+            skipped: true,
+            reason: 'El envío de correos está deshabilitado en la configuración del sistema'
+          },
+        });
+      }
+
       const { to, subject, html, text, fromEmail, fromName } = req.body;
 
       console.log('[DEBUG Server] 📧 Validando campos requeridos...');
@@ -414,22 +470,30 @@ export function app(): express.Express {
 
   // Endpoint para obtener configuración de email (sin datos sensibles)
   server.get('/api/email/config', (req, res) => {
-    const resendApiKey = process.env['ENV_RESEND_API_KEY'];
-    const smtpHost = process.env['ENV_SMTP_HOST'] || 'smtp.gmail.com';
-    const smtpPort = process.env['ENV_SMTP_PORT'] || '587';
-    const smtpUser = process.env['ENV_SMTP_USER'];
-    const noreplyEmail = process.env['ENV_SMTP_NOREPLY_EMAIL'] || smtpUser;
-    const noreplyName = process.env['ENV_SMTP_NOREPLY_NAME'] || 'People';
+    try {
+      const resendApiKey = process.env['ENV_RESEND_API_KEY'];
+      const smtpHost = process.env['ENV_SMTP_HOST'] || 'smtp.gmail.com';
+      const smtpPort = process.env['ENV_SMTP_PORT'] || '587';
+      const smtpUser = process.env['ENV_SMTP_USER'];
+      const noreplyEmail = process.env['ENV_SMTP_NOREPLY_EMAIL'] || smtpUser;
+      const noreplyName = process.env['ENV_SMTP_NOREPLY_NAME'] || 'People';
 
-    res.json({
-      provider: resendApiKey ? 'resend' : 'smtp',
-      host: resendApiKey ? 'smtp.resend.com' : smtpHost,
-      port: resendApiKey ? 465 : parseInt(smtpPort),
-      user: resendApiKey ? '(Resend API)' : smtpUser || 'No configurado',
-      senderEmail: noreplyEmail || 'No configurado',
-      senderName: noreplyName,
-      configured: !!(resendApiKey || smtpUser),
-    });
+      return res.json({
+        provider: resendApiKey ? 'resend' : 'smtp',
+        host: resendApiKey ? 'smtp.resend.com' : smtpHost,
+        port: resendApiKey ? 465 : parseInt(smtpPort),
+        user: resendApiKey ? '(Resend API)' : smtpUser || 'No configurado',
+        senderEmail: noreplyEmail || 'No configurado',
+        senderName: noreplyName,
+        configured: !!(resendApiKey || smtpUser),
+      });
+    } catch (error: any) {
+      console.error('[Email Config] Error:', error);
+      return res.status(500).json({
+        error: 'Error al obtener configuración de email',
+        message: error?.message || 'Error desconocido',
+      });
+    }
   });
 
   // Endpoint para probar envío de email

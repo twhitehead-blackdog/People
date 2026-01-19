@@ -159,7 +159,7 @@ import {
               class="hover:bg-neutral-700/30 transition-colors cursor-pointer"
               (click)="viewDetails(request)"
             >
-              <td style="padding: 0.4rem;">
+              <td style="padding: 0.4rem; text-align: center;">
                 <div class="flex items-center gap-1">
                   <div
                     class="w-5 h-5 rounded-full bg-gradient-to-br from-teal-500/20 to-teal-600/20 flex items-center justify-center flex-shrink-0"
