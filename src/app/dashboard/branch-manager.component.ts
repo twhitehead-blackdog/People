@@ -386,7 +386,9 @@ type Reminder = {
                       { label: 'Compensatorio', value: 'compensatorio' },
                       { label: 'Incapacidades', value: 'incapacidad' },
                       { label: 'Vacaciones', value: 'vacaciones' },
-                      { label: 'Documentos', value: 'documentos' }
+                      { label: 'Documentos', value: 'documentos' },
+                      { label: 'Uniforme', value: 'uniform_request' },
+                      { label: 'Marcación Errónea', value: 'timelog_correction' }
                     ]"
                     optionLabel="label"
                     optionValue="value"
@@ -2105,7 +2107,7 @@ export class BranchManagerComponent {
         };
       });
 
-    // Documents: enriquecer con datos del empleado
+    // Documents: enriquecer con datos del empleado y determinar el tipo correcto
     const documents = (this.documentRequestsApi.value() || [])
       .filter((r) => branchEmployeeIds.has(r.employee_id))
       .map((r) => {
@@ -2114,6 +2116,15 @@ export class BranchManagerComponent {
         const reviewer = reviewerId
           ? this.employeesStore.entityMap()[reviewerId]
           : null;
+
+        // Determine the correct request type based on document_type
+        let requestType: 'documentos' | 'uniform_request' | 'timelog_correction' =
+          'documentos';
+        if (r.document_type === 'uniform_request') {
+          requestType = 'uniform_request';
+        } else if (r.document_type === 'timelog_correction') {
+          requestType = 'timelog_correction';
+        }
 
         return {
           ...r,
@@ -2128,7 +2139,7 @@ export class BranchManagerComponent {
           reviewedByEmployee: reviewer
             ? `${reviewer.first_name} ${reviewer.father_name}`
             : r.reviewed_by,
-          requestType: 'documentos' as const,
+          requestType,
         };
       });
 
@@ -2242,6 +2253,45 @@ export class BranchManagerComponent {
         summary = r.document_type || 'Solicitud de Documento';
         details = [{ label: 'Fecha requerida', value: displayDate }];
         if (r.reason) details.push({ label: 'Razón', value: r.reason });
+      } else if (r.requestType === 'uniform_request') {
+        // Uniform Request: show item_type, size, quantity from metadata
+        const metadata = r.metadata || {};
+        displayDate = r.created_at
+          ? format(new Date(r.created_at), 'dd/MM/yyyy')
+          : '-';
+        const itemType = metadata.item_type || 'Prenda';
+        const size = metadata.size || '-';
+        const quantity = metadata.quantity || 1;
+        summary = `${quantity}x ${itemType} - Talla ${size}`;
+        details = [
+          { label: 'Prenda', value: itemType },
+          { label: 'Talla', value: size },
+          { label: 'Cantidad', value: String(quantity) },
+        ];
+        if (r.reason) details.push({ label: 'Notas', value: r.reason });
+      } else if (r.requestType === 'timelog_correction') {
+        // Timelog Correction: show timelog_date, timelog_type from metadata
+        const metadata = r.metadata || {};
+        const timelogDate = metadata.timelog_date
+          ? format(new Date(metadata.timelog_date), 'dd/MM/yyyy')
+          : '-';
+        displayDate = timelogDate;
+        const timelogTypeLabels: Record<string, string> = {
+          entry: 'Entrada',
+          lunch_start: 'Inicio Almuerzo',
+          lunch_end: 'Fin Almuerzo',
+          exit: 'Salida',
+        };
+        const timelogTypeLabel =
+          timelogTypeLabels[metadata.timelog_type] || metadata.timelog_type || '-';
+        summary = `Corrección de ${timelogTypeLabel}`;
+        details = [
+          { label: 'Fecha', value: timelogDate },
+          { label: 'Tipo de Marcación', value: timelogTypeLabel },
+        ];
+        if (r.reason) details.push({ label: 'Motivo', value: r.reason });
+        if (metadata.attachment_url)
+          details.push({ label: 'Adjunto', value: 'Sí' });
       }
 
       return {

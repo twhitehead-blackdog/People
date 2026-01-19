@@ -9,6 +9,8 @@ export function getRequestIcon(requestType: string): string {
     incapacidad: 'pi-heart',
     vacaciones: 'pi-sun',
     documentos: 'pi-file',
+    uniform_request: 'pi-tag',
+    timelog_correction: 'pi-exclamation-triangle',
   };
   return icons[requestType] || 'pi-question';
 }
@@ -33,6 +35,14 @@ export function getRequestColorClass(
     documentos: {
       bg: 'bg-green-500/20 border-green-500',
       active: 'text-green-400',
+    },
+    uniform_request: {
+      bg: 'bg-teal-500/20 border-teal-500',
+      active: 'text-teal-400',
+    },
+    timelog_correction: {
+      bg: 'bg-orange-500/20 border-orange-500',
+      active: 'text-orange-400',
     },
   };
   const color = colors[requestType] || {
@@ -73,6 +83,8 @@ export function getRequestTypeLabel(requestType: string): string {
     incapacidad: 'Incapacidad',
     vacaciones: 'Vacaciones',
     documentos: 'Documento',
+    uniform_request: 'Uniforme',
+    timelog_correction: 'Marcación Errónea',
   };
   return labels[requestType] || 'Solicitud';
 }
@@ -88,6 +100,8 @@ export function getRequestTypeSeverity(
     incapacidad: 'info',
     vacaciones: 'contrast',
     documentos: 'success',
+    uniform_request: 'info',
+    timelog_correction: 'warn',
   };
   return severities[requestType] || 'secondary';
 }
