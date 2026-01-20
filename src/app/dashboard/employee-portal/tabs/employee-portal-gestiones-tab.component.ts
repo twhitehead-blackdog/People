@@ -148,7 +148,7 @@ import { EmployeePortalDataService } from '../services/employee-portal-data.serv
             </div>
           </p-card>
 
-          <!-- Marcación Errónea -->
+          <!-- Omisión de Marcación -->
           <p-card
             class="gestion-card"
             (click)="openGestionForm('timelog_correction')"
@@ -162,7 +162,7 @@ import { EmployeePortalDataService } from '../services/employee-portal-data.serv
                 ></i>
               </div>
               <h3 class="text-lg font-semibold text-white m-0">
-                Marcación Errónea
+                Omisión de Marcación
               </h3>
               <p class="text-sm text-gray-400 m-0">
                 Corrige errores en tus marcaciones
@@ -539,7 +539,7 @@ export class EmployeePortalGestionesTabComponent {
       license: 'Solicitar Licencia',
       personal: 'Solicitar Permiso Personal',
       maternity: 'Solicitar Licencia de Maternidad',
-      timelog_correction: 'Marcación Errónea',
+      timelog_correction: 'Omisión de Marcación',
       uniform: 'Solicitud de Uniforme',
     };
     return titles[form || ''] || 'Formulario';

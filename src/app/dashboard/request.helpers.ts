@@ -84,7 +84,7 @@ export function getRequestTypeLabel(requestType: string): string {
     vacaciones: 'Vacaciones',
     documentos: 'Documento',
     uniform_request: 'Uniforme',
-    timelog_correction: 'Marcación Errónea',
+    timelog_correction: 'Omisión de Marcación',
   };
   return labels[requestType] || 'Solicitud';
 }

@@ -13,7 +13,7 @@ import { TutorialConfig } from '../../services/tutorial-guide.service';
 
 /**
  * Intro tutorial - shows all 6 gestiones in order:
- * Compensatorio → Incapacidades → Vacaciones → Documentos → Marcación Errónea → Uniforme
+ * Compensatorio → Incapacidades → Vacaciones → Documentos → Omisión de Marcación → Uniforme
  * Then prompts user to select one
  */
 export const GESTIONES_TUTORIAL_INTRO: TutorialConfig = {
@@ -221,11 +221,11 @@ export const COMPENSATORY_TUTORIAL: TutorialConfig = {
 };
 
 /**
- * Timelog Correction (Marcación Errónea) tutorial
+ * Timelog Correction (Omisión de Marcación) tutorial
  */
 export const TIMELOG_CORRECTION_TUTORIAL: TutorialConfig = {
   id: 'timelog-correction-tutorial',
-  name: 'Marcación Errónea',
+  name: 'Omisión de Marcación',
   steps: [
     {
       id: 'gestiones-employee-select',

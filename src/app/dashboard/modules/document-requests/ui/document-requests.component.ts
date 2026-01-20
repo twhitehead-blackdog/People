@@ -600,7 +600,7 @@ import { DocumentRequest } from '../models/document-request.model';
         </div>
         }
 
-        <!-- Detalles de Marcación Errónea -->
+        <!-- Detalles de Omisión de Marcación -->
         @if (selectedDocument()!.document_type === 'timelog_correction' &&
         selectedDocument()!.metadata) {
         <div
@@ -610,7 +610,7 @@ import { DocumentRequest } from '../models/document-request.model';
             class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
           >
             <i class="pi pi-exclamation-triangle text-orange-400"></i>
-            Detalles de Marcación Errónea
+            Detalles de Omisión de Marcación
           </h3>
           <div class="grid grid-cols-2 gap-4">
             <div>
@@ -1055,7 +1055,7 @@ export class DocumentRequestsComponent {
       salary_certificate: 'Constancia Salarial',
       employment_certificate: 'Certificación Laboral',
       social_security: 'Ficha Seguro Social',
-      timelog_correction: 'Marcación Errónea',
+      timelog_correction: 'Omisión de Marcación',
       uniform_request: 'Solicitud de Uniforme',
       other: 'Otro',
     };

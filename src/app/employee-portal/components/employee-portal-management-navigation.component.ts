@@ -95,7 +95,7 @@ export class EmployeePortalManagementNavigationComponent {
     },
     {
       id: 'timelog_correction',
-      label: 'Marcación Errónea',
+      label: 'Omisión de Marcación',
       description: 'Solicita corrección de marcación de asistencia',
       icon: 'pi-exclamation-triangle',
       section: 'timelog_correction',

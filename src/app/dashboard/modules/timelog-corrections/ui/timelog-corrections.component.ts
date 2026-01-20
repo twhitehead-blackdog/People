@@ -24,6 +24,7 @@ import {
   getStatusSeverity,
   TagSeverity,
 } from '../../shared/utils/hr-status.utils';
+import { DocumentViewerCardComponent } from '../../../../shared/components/document-viewer-card.component';
 
 @Component({
   selector: 'pt-timelog-corrections',
@@ -43,6 +44,7 @@ import {
     TextareaModule,
     HrStatsGridComponent,
     HrFiltersPanelComponent,
+    DocumentViewerCardComponent,
   ],
   providers: [MessageService, ConfirmationService],
   template: `
@@ -404,20 +406,91 @@ import {
         <!-- Evidencia -->
         @if (selectedRequest()!.metadata?.attachment_url) {
         <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
-          <h3
-            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
-          >
-            <i class="pi pi-file text-orange-400"></i>
-            Evidencia Adjunta
-          </h3>
-          <a
-            [href]="selectedRequest()!.metadata?.attachment_url"
-            target="_blank"
-            class="text-orange-400 hover:text-orange-300 flex items-center gap-2"
-          >
-            <i class="pi pi-external-link"></i>
-            Ver archivo adjunto
-          </a>
+          <div class="flex items-center justify-between mb-3">
+            <h3
+              class="text-lg font-semibold text-white flex items-center gap-2"
+            >
+              <i class="pi pi-file text-orange-400"></i>
+              Evidencia Adjunta
+            </h3>
+            <p-button
+              icon="pi pi-download"
+              label="Descargar"
+              (onClick)="downloadDocument(selectedRequest()!.metadata!.attachment_url!)"
+              severity="warn"
+              [text]="true"
+              size="small"
+            />
+          </div>
+          <div class="flex items-center justify-between mb-3">
+            <p class="text-gray-300 mb-0 text-sm">
+              <i class="pi pi-file mr-2"></i>
+              Documento adjunto
+            </p>
+            <div class="flex items-center gap-2">
+              <p-button
+                icon="pi pi-search-minus"
+                (onClick)="zoomOut()"
+                [text]="true"
+                [rounded]="true"
+                severity="secondary"
+                size="small"
+                [disabled]="documentZoomLevel() <= 0.5"
+                pTooltip="Alejar"
+              />
+              <span class="text-sm text-gray-400 min-w-[60px] text-center">
+                {{ (documentZoomLevel() * 100).toFixed(0) }}%
+              </span>
+              <p-button
+                icon="pi pi-search-plus"
+                (onClick)="zoomIn()"
+                [text]="true"
+                [rounded]="true"
+                severity="secondary"
+                size="small"
+                [disabled]="documentZoomLevel() >= 2"
+                pTooltip="Acercar"
+              />
+              <p-button
+                label="Reset"
+                (onClick)="resetZoom()"
+                [text]="true"
+                severity="secondary"
+                size="small"
+                pTooltip="Restablecer zoom"
+              />
+            </div>
+          </div>
+          <div class="border border-gray-700 rounded-lg overflow-hidden bg-gray-900">
+            <div
+              class="overflow-auto max-h-[600px] bg-gray-800"
+              style="padding: 20px;"
+            >
+              <div
+                class="pdf-container"
+                [style.transform]="'scale(' + documentZoomLevel() + ')'"
+                [style.transform-origin]="'top left'"
+                style="width: 100%; min-height: 800px;"
+              >
+                <object
+                  [data]="selectedRequest()!.metadata!.attachment_url"
+                  type="application/pdf"
+                  class="w-full"
+                  style="min-height: 800px; border: none;"
+                >
+                  <p class="text-gray-400 p-4">
+                    No se puede mostrar el PDF.
+                    <a
+                      [href]="selectedRequest()!.metadata!.attachment_url"
+                      target="_blank"
+                      class="text-blue-400 hover:text-blue-300 ml-2"
+                      >Abrir en nueva pestaña</a
+                    >
+                  </p>
+                </object>
+              </div>
+            </div>
+          </div>
         </div>
         }
 
@@ -538,6 +611,9 @@ export class TimelogCorrectionsComponent {
   public rejectionComment = signal('');
   public requestToReject = signal<DocumentRequest | null>(null);
 
+  // Document viewer
+  public documentZoomLevel = signal(1);
+
   // Status options
   public statusOptions = [
     { label: 'Pendiente', value: 'pending' },
@@ -613,6 +689,29 @@ export class TimelogCorrectionsComponent {
     this.searchText.set('');
     this.selectedStatus.set(null);
     this.dateRange.set(null);
+  }
+
+  // Document viewer methods
+  zoomIn(): void {
+    this.documentZoomLevel.update(level => Math.min(level + 0.25, 2));
+  }
+
+  zoomOut(): void {
+    this.documentZoomLevel.update(level => Math.max(level - 0.25, 0.5));
+  }
+
+  resetZoom(): void {
+    this.documentZoomLevel.set(1);
+  }
+
+  downloadDocument(url: string): void {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = '';
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   getTimelogTypeLabel(type: string): string {

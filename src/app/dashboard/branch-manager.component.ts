@@ -391,7 +391,7 @@ type Reminder = {
                       { label: 'Documentos', value: 'documentos' },
                       { label: 'Uniforme', value: 'uniform_request' },
                       {
-                        label: 'Marcación Errónea',
+                        label: 'Omisión de Marcación',
                         value: 'timelog_correction'
                       }
                     ]"
@@ -1482,7 +1482,7 @@ type Reminder = {
           <div class="space-y-4">
             <!-- Información del Empleado -->
             <div
-              class="p-4 rounded-lg border transition-all duration-300"
+              class="p-4 rounded-lg border transition-all duration-300 w-full"
               [ngClass]="
                 selectedRequest().unified?.colorClassBg ||
                 'bg-neutral-800 border-neutral-700'
@@ -1522,7 +1522,7 @@ type Reminder = {
                       {{ selectedRequest().employee?.father_name }}
                     </p>
                     <p class="text-sm text-gray-400">
-                      {{ selectedRequest().employee?.work_email }}
+                      {{ selectedRequest().employee?.work_email || 'Sin email registrado' }}
                     </p>
                   </div>
                 </div>
@@ -1531,27 +1531,24 @@ type Reminder = {
                 <div
                   class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 md:pt-0 md:pl-6 md:border-l border-neutral-700/50"
                 >
-                  @if (selectedRequest().employee?.position?.name) {
                   <div>
                     <label
                       class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1"
                       >Cargo</label
                     >
                     <p class="text-white font-medium">
-                      {{ selectedRequest().employee?.position?.name }}
+                      {{ selectedRequest().employee?.position?.name || 'No especificado' }}
                     </p>
                   </div>
-                  } @if (selectedRequest().employee?.branch?.name) {
                   <div>
                     <label
                       class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1"
                       >Sucursal</label
                     >
                     <p class="text-white font-medium">
-                      {{ selectedRequest().employee?.branch?.name }}
+                      {{ selectedRequest().employee?.branch?.name || 'No especificada' }}
                     </p>
                   </div>
-                  }
                 </div>
               </div>
             </div>
@@ -1697,21 +1694,21 @@ type Reminder = {
               </div>
             </div>
             }
-
-            <!-- Documento Adjunto (abajo de todo) -->
-            @if (hasDocument()) {
-            <div class="mt-6">
-              <pt-document-viewer-card
-                [documentUrl]="
-                  selectedRequest()!.document_url ||
-                  selectedRequest()!.metadata?.attachment_url
-                "
-                [title]="'Documento Adjunto'"
-                (download)="downloadDocument($event)"
-              />
-            </div>
-            }
           </div>
+
+          <!-- Documento Adjunto (Columna Derecha) -->
+          @if (hasDocument()) {
+          <div class="h-full">
+            <pt-document-viewer-card
+              [documentUrl]="
+                selectedRequest()?.document_url ||
+                selectedRequest()?.metadata?.attachment_url
+              "
+              [title]="'Documento Adjunto'"
+              (download)="downloadDocument($event)"
+            />
+          </div>
+          }
         </div>
         }
 

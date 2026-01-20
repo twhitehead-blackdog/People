@@ -479,7 +479,7 @@ export interface DocumentRequest {
               "
             >
               <i class="pi pi-exclamation-triangle mr-1.5 text-xs"></i>
-              Marcación Errónea @if (timelogCorrectionPendingCount() > 0) {
+              Omisión de Marcación @if (timelogCorrectionPendingCount() > 0) {
               <span
                 class="ml-1.5 px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full text-xs font-bold"
               >
@@ -1342,7 +1342,7 @@ export interface DocumentRequest {
         <!-- Dashboard de Vacaciones -->
         <pt-vacations />
         } @if (activeTab() === 'timelog_correction') {
-        <!-- Dashboard de Marcación Errónea -->
+        <!-- Dashboard de Omisión de Marcación -->
         <pt-timelog-corrections />
         } @if (activeTab() === 'uniform_request') {
         <!-- Dashboard de Solicitudes de Uniformes -->

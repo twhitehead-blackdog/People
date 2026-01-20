@@ -513,7 +513,7 @@ interface EmailConfig {
                   }
                 </div>
 
-                <!-- Marcación Errónea -->
+                <!-- Omisión de Marcación -->
                 <div
                   class="flex flex-col gap-4 p-4 bg-neutral-800/50 rounded-lg border border-neutral-700"
                 >
@@ -523,7 +523,7 @@ interface EmailConfig {
                         <i
                           class="pi pi-exclamation-triangle text-orange-400 mr-2"
                         ></i>
-                        Marcación Errónea
+                        Omisión de Marcación
                       </label>
                       <p class="text-xs text-gray-400 m-0">
                         Solicitudes de corrección de asistencia

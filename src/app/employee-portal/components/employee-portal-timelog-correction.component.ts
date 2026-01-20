@@ -41,7 +41,7 @@ type CorrectionTypeOption = {
         <div class="flex items-center justify-between w-full">
           <div class="flex items-center gap-2">
             <i class="pi pi-exclamation-triangle text-orange-400"></i>
-            <span>Marcación Errónea</span>
+            <span>Omisión de Marcación</span>
           </div>
           <div class="flex items-center gap-2">
             <p-button

@@ -357,7 +357,7 @@ import {
       </div>
       }
 
-      <!-- Marcación Errónea Section -->
+      <!-- Omisión de Marcación Section -->
       @if (portalStore.activeSection() === 'timelog_correction') {
       <div id="timelog_correction" class="section-content">
         <pt-employee-portal-timelog-correction

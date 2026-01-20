@@ -809,7 +809,7 @@ type ManagementCard = {
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="flex flex-col gap-2">
                   <label class="text-sm font-medium text-gray-300"
-                    >Fecha de la Marcación Errónea</label
+                    >Fecha de la Omisión de Marcación</label
                   >
                   <p-datepicker
                     [(ngModel)]="timelogCorrectionDate"
@@ -1168,7 +1168,7 @@ export class BranchManagerGestionesComponent {
   public documentRequiredDate = signal<Date | null>(null);
   public submittingDocument = signal<boolean>(false);
 
-  // Signals para Marcación Errónea
+  // Signals para Omisión de Marcación
   public timelogCorrectionDate = signal<Date | null>(null);
   public timelogCorrectionType = signal<
     'entry' | 'lunch_start' | 'lunch_end' | 'exit'
@@ -1184,7 +1184,7 @@ export class BranchManagerGestionesComponent {
   public uniformNotes = signal<string>('');
   public submittingUniform = signal<boolean>(false);
 
-  // Opciones para Marcación Errónea
+  // Opciones para Omisión de Marcación
   public timelogTypeOptions = [
     { label: 'Entrada', value: 'entry' },
     { label: 'Inicio Almuerzo', value: 'lunch_start' },
@@ -1328,7 +1328,7 @@ export class BranchManagerGestionesComponent {
     },
     {
       id: 'timelog_correction',
-      label: 'Marcación Errónea',
+      label: 'Omisión de Marcación',
       description: 'Solicitar corrección de marcación de asistencia',
       icon: 'pi-exclamation-triangle',
       colorClass: 'bg-orange-500/20 text-orange-400',
@@ -1861,7 +1861,7 @@ export class BranchManagerGestionesComponent {
     }
   }
 
-  // Submit Marcación Errónea request
+  // Submit Omisión de Marcación request
   public async submitTimelogCorrectionRequest(): Promise<void> {
     if (!this.canSubmitTimelogCorrection() || !this.selectedEmployee()) return;
 
