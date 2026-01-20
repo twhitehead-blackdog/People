@@ -13,6 +13,7 @@ import { TextareaModule } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
+import { DocumentViewerCardComponent } from '../../../../shared/components/document-viewer-card.component';
 import { DashboardStore } from '../../../../stores/dashboard.store';
 import { getEnv } from '../../../../utils/env.utils';
 import { DocumentRequestsService } from '../../document-requests/data/document-requests.service';
@@ -24,7 +25,8 @@ import {
   getStatusSeverity,
   TagSeverity,
 } from '../../shared/utils/hr-status.utils';
-import { DocumentViewerCardComponent } from '../../../../shared/components/document-viewer-card.component';
+
+import { SafeUrlPipe } from '../../shared/pipes/safe-url.pipe';
 
 @Component({
   selector: 'pt-timelog-corrections',
@@ -45,6 +47,7 @@ import { DocumentViewerCardComponent } from '../../../../shared/components/docum
     HrStatsGridComponent,
     HrFiltersPanelComponent,
     DocumentViewerCardComponent,
+    SafeUrlPipe,
   ],
   providers: [MessageService, ConfirmationService],
   template: `
@@ -416,7 +419,9 @@ import { DocumentViewerCardComponent } from '../../../../shared/components/docum
             <p-button
               icon="pi pi-download"
               label="Descargar"
-              (onClick)="downloadDocument(selectedRequest()!.metadata!.attachment_url!)"
+              (onClick)="
+                downloadDocument(selectedRequest()!.metadata!.attachment_url!)
+              "
               severity="warn"
               [text]="true"
               size="small"
@@ -461,7 +466,9 @@ import { DocumentViewerCardComponent } from '../../../../shared/components/docum
               />
             </div>
           </div>
-          <div class="border border-gray-700 rounded-lg overflow-hidden bg-gray-900">
+          <div
+            class="border border-gray-700 rounded-lg overflow-hidden bg-gray-900"
+          >
             <div
               class="overflow-auto max-h-[600px] bg-gray-800"
               style="padding: 20px;"
@@ -473,7 +480,7 @@ import { DocumentViewerCardComponent } from '../../../../shared/components/docum
                 style="width: 100%; min-height: 800px;"
               >
                 <object
-                  [data]="selectedRequest()!.metadata!.attachment_url"
+                  [data]="selectedRequest()!.metadata!.attachment_url | safeUrl"
                   type="application/pdf"
                   class="w-full"
                   style="min-height: 800px; border: none;"
@@ -693,11 +700,11 @@ export class TimelogCorrectionsComponent {
 
   // Document viewer methods
   zoomIn(): void {
-    this.documentZoomLevel.update(level => Math.min(level + 0.25, 2));
+    this.documentZoomLevel.update((level) => Math.min(level + 0.25, 2));
   }
 
   zoomOut(): void {
-    this.documentZoomLevel.update(level => Math.max(level - 0.25, 0.5));
+    this.documentZoomLevel.update((level) => Math.max(level - 0.25, 0.5));
   }
 
   resetZoom(): void {
