@@ -38,28 +38,12 @@ type CorrectionTypeOption = {
   template: `
     <p-card>
       <ng-template #title>
-        <div class="flex items-center justify-between w-full">
-          <div class="flex items-center gap-2">
-            <i class="pi pi-exclamation-triangle text-orange-400"></i>
-            <span>Omisión de Marcación</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <p-button
-              icon="pi pi-times"
-              [rounded]="true"
-              [text]="true"
-              severity="secondary"
-              [outlined]="true"
-              (onClick)="closeSection.emit()"
-              pTooltip="Volver a Gestiones"
-              [style]="{ width: '2.5rem', height: '2.5rem' }"
-            />
-          </div>
+        <div class="flex items-center gap-2">
+          <i class="pi pi-exclamation-triangle text-orange-400"></i>
+          <span>Omisión de Marcación</span>
         </div>
       </ng-template>
-      <ng-template #subtitle
-        >Solicita corrección de una marcación de asistencia</ng-template
-      >
+      <ng-template #subtitle>Solicita corrección de una marcación de asistencia</ng-template>
 
       <div
         class="mb-6 p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md"
@@ -75,29 +59,28 @@ type CorrectionTypeOption = {
           </h3>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm text-gray-400 mb-2 font-medium">
-              <i class="pi pi-calendar mr-2"></i>Fecha
-            </label>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium text-gray-300">Fecha de la omisión</label>
             <p-datepicker
               [ngModel]="correctionDate"
               (ngModelChange)="correctionDateChange.emit($event)"
-              appendTo="body"
+              [showIcon]="true"
+              dateFormat="dd/mm/yy"
               [maxDate]="today"
-              class="w-full"
+              styleClass="w-full"
+              appendTo="body"
               placeholder="Selecciona la fecha"
             />
           </div>
-          <div>
-            <label class="block text-sm text-gray-400 mb-2 font-medium">
-              <i class="pi pi-tag mr-2"></i>Tipo de Corrección
-            </label>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium text-gray-300">Tipo de marcación</label>
             <p-select
               [options]="correctionTypes"
               [ngModel]="correctionType"
               (ngModelChange)="correctionTypeChange.emit($event)"
-              placeholder="Selecciona tipo"
-              class="w-full"
+              placeholder="Selecciona el tipo"
+              styleClass="w-full"
+              appendTo="body"
             />
           </div>
         </div>
@@ -116,15 +99,18 @@ type CorrectionTypeOption = {
             Paso 2: Motivo de Corrección
           </h3>
         </div>
-        <textarea
-          id="correction-reason"
-          pInputTextarea
-          [ngModel]="correctionReason"
-          (ngModelChange)="correctionReasonChange.emit($event)"
-          rows="3"
-          placeholder="Explica brevemente por qué necesitas esta corrección..."
-          class="w-full"
-        ></textarea>
+
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium text-gray-300">Explicación de la corrección</label>
+          <textarea
+            pInputTextarea
+            [ngModel]="correctionReason"
+            (ngModelChange)="correctionReasonChange.emit($event)"
+            rows="4"
+            placeholder="Explica por qué se necesita la corrección de esta marcación"
+            class="w-full"
+          ></textarea>
+        </div>
       </div>
 
       <div

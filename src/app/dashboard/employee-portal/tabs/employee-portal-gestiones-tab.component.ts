@@ -7,7 +7,6 @@ import { CardModule } from 'primeng/card';
 import { DialogModule } from 'primeng/dialog';
 import { firstValueFrom } from 'rxjs';
 
-import { EmployeePortalComplaintsComponent } from '../../../employee-portal/components/employee-portal-complaints.component';
 import { EmployeePortalDisabilitiesComponent } from '../../../employee-portal/components/employee-portal-disabilities.component';
 import { EmployeePortalDocumentsComponent } from '../../../employee-portal/components/employee-portal-documents.component';
 import { EmployeePortalLicenseComponent } from '../../../employee-portal/components/employee-portal-license.component';
@@ -29,7 +28,6 @@ import { EmployeePortalDataService } from '../services/employee-portal-data.serv
     DialogModule,
     EmployeePortalDisabilitiesComponent,
     EmployeePortalDocumentsComponent,
-    EmployeePortalComplaintsComponent,
     EmployeePortalVacationsComponent,
     EmployeePortalLicenseComponent,
     EmployeePortalPersonalComponent,
@@ -283,21 +281,6 @@ import { EmployeePortalDataService } from '../services/employee-portal-data.serv
             (closeSection)="closeGestionForm()"
           />
 
-          <pt-employee-portal-complaints
-            *ngSwitchCase="'complaints'"
-            [complaintCategory]="complaintCategory()"
-            (complaintCategoryChange)="complaintCategory.set($event)"
-            [complaintText]="complaintText()"
-            (complaintTextChange)="complaintText.set($event)"
-            [allowContact]="allowContact()"
-            (allowContactChange)="allowContact.set($event)"
-            [contactMethod]="contactMethod()"
-            (contactMethodChange)="contactMethod.set($event)"
-            [submitting]="submittingComplaint()"
-            [canSubmit]="canSubmitComplaint()"
-            (submitComplaint)="submitComplaint()"
-            (closeSection)="closeGestionForm()"
-          />
 
           <pt-employee-portal-vacations
             *ngSwitchCase="'vacations'"

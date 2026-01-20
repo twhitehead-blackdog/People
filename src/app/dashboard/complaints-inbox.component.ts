@@ -1,11 +1,11 @@
 import { DatePipe, NgClass } from '@angular/common';
 import { HttpClient, httpResource } from '@angular/common/http';
 import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  inject,
-  signal,
+    ChangeDetectionStrategy,
+    Component,
+    computed,
+    inject,
+    signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { format } from 'date-fns';
@@ -16,8 +16,8 @@ import { Select } from 'primeng/select';
 import { Tag } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
-import { EmployeesStore } from '../stores/employees.store';
 import { firstValueFrom } from 'rxjs';
+import { EmployeesStore } from '../stores/employees.store';
 
 interface Complaint {
   id: string;
@@ -545,9 +545,10 @@ export class ComplaintsInboxComponent {
   public categoryOptions = [
     { label: 'Todas las categorías', value: null },
     { label: 'Ambiente Laboral', value: 'work_environment' },
-    { label: 'Salario y Beneficios', value: 'salary_benefits' },
-    { label: 'Gestión', value: 'management' },
-    { label: 'Recursos', value: 'resources' },
+    { label: 'Acoso o Discriminación', value: 'harassment' },
+    { label: 'Seguridad', value: 'safety' },
+    { label: 'Supervisión/Gerencia', value: 'management' },
+    { label: 'Beneficios', value: 'benefits' },
     { label: 'Otros', value: 'other' },
   ];
 
@@ -835,9 +836,10 @@ export class ComplaintsInboxComponent {
   public getCategoryLabel(category: string): string {
     const labels: Record<string, string> = {
       work_environment: 'Ambiente Laboral',
-      salary_benefits: 'Salario y Beneficios',
-      management: 'Gestión',
-      resources: 'Recursos',
+      harassment: 'Acoso o Discriminación',
+      safety: 'Seguridad',
+      management: 'Supervisión/Gerencia',
+      benefits: 'Beneficios',
       other: 'Otros',
     };
     return labels[category] || category;

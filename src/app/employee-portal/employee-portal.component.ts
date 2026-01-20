@@ -24,14 +24,11 @@ import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeePortalStore } from '../stores/employee-portal.store';
 import { EmployeesStore } from '../stores/employees.store';
 import { uploadCompensatory } from './actions/employee-portal-compensatory.actions';
-import { submitComplaint } from './actions/employee-portal-complaint.actions';
 import { uploadDisability } from './actions/employee-portal-disability.actions';
 import { submitDocumentRequest } from './actions/employee-portal-document.actions';
 import { submitVacationRequest } from './actions/employee-portal-vacation.actions';
 import { EmployeePortalCompensatoryTutorialDialogComponent } from './components/employee-portal-compensatory-tutorial-dialog.component';
 import { EmployeePortalCompensatoryComponent } from './components/employee-portal-compensatory.component';
-import { EmployeePortalComplaintsComponent } from './components/employee-portal-complaints.component';
-import { EmployeePortalConversationDialogComponent } from './components/employee-portal-conversation-dialog.component';
 import { EmployeePortalDashboardComponent } from './components/employee-portal-dashboard.component';
 import { EmployeePortalDisabilitiesComponent } from './components/employee-portal-disabilities.component';
 import { EmployeePortalDocumentsComponent } from './components/employee-portal-documents.component';
@@ -46,7 +43,6 @@ import { EmployeePortalTimelogsComponent } from './components/employee-portal-ti
 import { EmployeePortalUniformRequestComponent } from './components/employee-portal-uniform-request.component';
 import { EmployeePortalVacationsComponent } from './components/employee-portal-vacations.component';
 import { EmployeePortalApiService } from './services/employee-portal-api.service';
-import { EmployeePortalConversationService } from './services/employee-portal-conversation.service';
 import { EmployeePortalProfileService } from './services/employee-portal-profile.service';
 import { EmployeePortalRequestsService } from './services/employee-portal-requests.service';
 import { EmployeePortalTimelogsService } from './services/employee-portal-timelogs.service';
@@ -82,12 +78,10 @@ import {
     EmployeePortalDisabilitiesComponent,
     EmployeePortalDocumentsComponent,
     EmployeePortalVacationsComponent,
-    EmployeePortalComplaintsComponent,
     EmployeePortalCompensatoryComponent,
     EmployeePortalProfileComponent,
     EmployeePortalMyRequestsComponent,
     EmployeePortalNotificationsComponent,
-    EmployeePortalConversationDialogComponent,
     EmployeePortalCompensatoryTutorialDialogComponent,
     EmployeePortalRequestDetailsDialogComponent,
     EmployeePortalTimelogCorrectionComponent,
@@ -99,7 +93,6 @@ import {
     MessageService,
     EmployeePortalTimelogsService,
     EmployeePortalRequestsService,
-    EmployeePortalConversationService,
     EmployeePortalProfileService,
   ],
   template: `
@@ -250,33 +243,6 @@ import {
       </div>
       }
 
-      <!-- Buzón de Sugerencias Section -->
-      @if (portalStore.activeSection() === 'complaints') {
-      <div id="complaints" class="section-content">
-        <pt-employee-portal-complaints
-          [complaintCategory]="portalStore.complaintForm().category"
-          (complaintCategoryChange)="setComplaintCategory($event)"
-          [complaintText]="portalStore.complaintForm().text"
-          (complaintTextChange)="setComplaintText($event)"
-          [allowContact]="portalStore.complaintForm().allowContact"
-          (allowContactChange)="setAllowContact($event)"
-          [contactMethod]="portalStore.complaintForm().contactMethod"
-          (contactMethodChange)="setContactMethod($event)"
-          [submitting]="portalStore.complaintForm().submitting"
-          [canSubmit]="portalStore.canSubmitComplaint()"
-          (submitComplaint)="submitComplaint()"
-          [complaints]="myComplaints()"
-          [complaintsLoading]="complaintsApi.isLoading()"
-          [hasUnreadMessages]="hasUnreadMessages.bind(this)"
-          [getStatusLabel]="getUnifiedStatusLabel.bind(this)"
-          [getLabel]="getComplaintCategoryLabel.bind(this)"
-          [getRequestTypeLabel]="getRequestTypeLabel.bind(this)"
-          (openConversation)="viewResponse($event)"
-          (reloadComplaints)="complaintsApi.reload()"
-          (closeSection)="setActiveSection('management')"
-        />
-      </div>
-      }
 
       <!-- Solicitar Vacaciones Section -->
       @if (portalStore.activeSection() === 'vacations') {
@@ -407,8 +373,7 @@ import {
           [isLoading]="
             compensatoryTimeoffsApi.isLoading() ||
             disabilitiesApi.isLoading() ||
-            documentRequestsApi.isLoading() ||
-            complaintsApi.isLoading()
+            documentRequestsApi.isLoading()
           "
           [statusOptions]="allRequestsStatusOptions"
           [typeOptions]="allRequestsTypeOptions"
@@ -460,19 +425,6 @@ import {
       }
     </div>
 
-    <!-- Dialog para conversación bidireccional -->
-    <pt-employee-portal-conversation-dialog
-      [visible]="portalStore.conversationDialogVisible()"
-      [selectedComplaint]="selectedComplaint()"
-      [messages]="conversationMessages()"
-      [replyMessageValue]="portalStore.replyMessage()"
-      [sendingReply]="portalStore.sendingReply()"
-      [isLoading]="complaintMessagesApi.isLoading()"
-      [getComplaintCategoryLabel]="getComplaintCategoryLabel.bind(this)"
-      (closed)="closeConversation()"
-      (sendReply)="sendReply()"
-      (replyMessageChange)="portalStore.setReplyMessage($event)"
-    />
 
     <!-- Dialog de Tutorial de Tiempo Compensatorio -->
     <pt-employee-portal-compensatory-tutorial-dialog
@@ -696,7 +648,6 @@ export class EmployeePortalComponent {
   public notificationsService = inject(NotificationsService);
   public timelogsService = inject(EmployeePortalTimelogsService);
   public requestsService = inject(EmployeePortalRequestsService);
-  public conversationService = inject(EmployeePortalConversationService);
   public profileService = inject(EmployeePortalProfileService);
   private readonly companyEmailDomain = '@blackdogpanama.com';
 
@@ -863,21 +814,6 @@ export class EmployeePortalComponent {
     this.portalStore.setDocumentRequiredDate(value);
   }
 
-  public setComplaintCategory(value: string): void {
-    this.portalStore.setComplaintCategory(value);
-  }
-
-  public setComplaintText(value: string): void {
-    this.portalStore.setComplaintText(value);
-  }
-
-  public setAllowContact(value: boolean): void {
-    this.portalStore.setAllowContact(value);
-  }
-
-  public setContactMethod(value: string): void {
-    this.portalStore.setContactMethod(value);
-  }
 
   constructor() {
     // Fechas estables para template (evita que el DatePicker se “resetee” en cada change detection)
@@ -923,10 +859,6 @@ export class EmployeePortalComponent {
       }
     });
 
-    // Configurar getter de quejas en el servicio de conversación
-    effect(() => {
-      this.conversationService.setMyComplaintsGetter(() => this.myComplaints());
-    });
 
     // Suscribirse a cambios de navegación desde el layout
     effect(() => {
@@ -1038,17 +970,7 @@ export class EmployeePortalComponent {
   public documentRequestsApi = this.requestsService.documentRequestsApi;
   public myDocumentRequests = this.requestsService.allDocumentRequests;
 
-  // Delegar complaints al servicio
-  public complaintsApi = this.requestsService.complaintsApi;
-  public myComplaints = this.requestsService.allComplaints;
 
-  // Delegar lógica de conversación al servicio
-  public selectedComplaint = this.conversationService.selectedComplaint;
-  public complaintMessagesApi = this.conversationService.complaintMessagesApi;
-  public conversationMessages = this.conversationService.conversationMessages;
-  public unreadMessagesApi = this.conversationService.unreadMessagesApi;
-  public unreadMessagesMap = this.conversationService.unreadMessagesMap;
-  public unreadComplaintsCount = this.conversationService.unreadComplaintsCount;
 
   // Helper methods - delegados a utils y servicios
   public calculateWorkedHours = this.timelogsService.calculateWorkedHours;
@@ -1800,30 +1722,6 @@ export class EmployeePortalComponent {
     });
   }
 
-  public async submitComplaint(): Promise<void> {
-    submitComplaint({
-      http: this.http,
-      apiUrl: this.apiUrl,
-      messageService: this.messageService,
-      store: this.portalStore,
-      currentEmployee: () => this.currentEmployee(),
-      formState: {
-        category: this.portalStore.complaintForm().category,
-        text: this.portalStore.complaintForm().text,
-        allowContact: this.portalStore.complaintForm().allowContact,
-        contactMethod: this.portalStore.complaintForm().contactMethod,
-      },
-      canSubmit: () => this.portalStore.canSubmitComplaint(),
-      resetForm: () => {
-        this.portalStore.setComplaintText('');
-        this.portalStore.setComplaintCategory('work_environment');
-        this.portalStore.setAllowContact(false);
-      },
-      reloadRequests: () => this.complaintsApi.reload(),
-      setSubmitting: (value: boolean) =>
-        this.portalStore.setSubmittingComplaint(value),
-    });
-  }
 
   public downloadDocument(url: string | null | undefined): void {
     if (!url) {
@@ -1846,6 +1744,14 @@ export class EmployeePortalComponent {
     }
   }
 
+  public viewResponse(complaint: any): void {
+    // TODO: Implementar funcionalidad para ver conversación de queja
+    // Por ahora, solo mostrar información en consola
+    console.log('Ver conversación de queja:', complaint);
+    // Podría navegar a una sección de conversación o abrir un diálogo
+    // this.setActiveSection('complaint-conversation');
+  }
+
   public viewRequestDetails(request: any): void {
     this.selectedRequestDetails.set(request);
     this.showRequestDetailsDialog.set(true);
@@ -1858,47 +1764,12 @@ export class EmployeePortalComponent {
     this.cdr.markForCheck();
   }
 
-  public viewResponse(complaint: any): void {
-    this.conversationService.selectedComplaint.set(complaint);
-    this.portalStore.openConversation(complaint.id);
-    this.portalStore.setReplyMessage('');
-    // Configurar getter de quejas en el servicio
-    this.conversationService.setMyComplaintsGetter(() => this.myComplaints());
-    // Recargar mensajes cuando se abre la conversación
-    this.complaintMessagesApi.reload();
-    // Marcar mensajes de HR como leídos cuando el empleado abre la conversación
-    this.conversationService.markMessagesAsRead(complaint).then(() => {
-      this.complaintsApi.reload();
-    });
-  }
 
   public closeConversation(): void {
     this.portalStore.closeConversation();
-    this.conversationService.selectedComplaint.set(null);
-    // Recargar quejas para actualizar contadores
-    this.complaintsApi.reload();
   }
 
-  public async sendReply(): Promise<void> {
-    const complaint = this.selectedComplaint();
-    if (!complaint || !this.portalStore.replyMessage().trim()) return;
 
-    this.portalStore.setSendingReply(true);
-    await this.conversationService.sendReply(
-      this.portalStore.replyMessage(),
-      complaint
-    );
-    this.portalStore.setReplyMessage('');
-    this.complaintsApi.reload();
-    this.portalStore.setSendingReply(false);
-  }
-
-  public hasUnreadMessages(complaint: any): boolean {
-    return this.conversationService.hasUnreadMessages(
-      complaint,
-      this.selectedComplaint()?.id || null
-    );
-  }
 
   // Métodos para manejar notificaciones
   public markNotificationAsRead(notificationId: string): void {

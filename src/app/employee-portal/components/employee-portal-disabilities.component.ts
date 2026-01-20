@@ -31,23 +31,9 @@ import { FormsModule } from '@angular/forms';
   template: `
     <p-card>
       <ng-template #title>
-        <div class="flex items-center justify-between w-full">
-          <div class="flex items-center gap-2">
-            <i class="pi pi-file-medical text-cyan-400"></i>
-            <span>Subir Incapacidad</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <p-button
-              icon="pi pi-times"
-              [rounded]="true"
-              [text]="true"
-              severity="secondary"
-              [outlined]="true"
-              (onClick)="closeManagement.emit()"
-              pTooltip="Volver a Gestiones"
-              [style]="{ width: '2.5rem', height: '2.5rem' }"
-            />
-          </div>
+        <div class="flex items-center gap-2">
+          <i class="pi pi-file-medical text-blue-400"></i>
+          <span>Incapacidades</span>
         </div>
       </ng-template>
       <ng-template #subtitle>Carga documentos de incapacidad médica</ng-template>
@@ -55,37 +41,39 @@ import { FormsModule } from '@angular/forms';
       <div class="mb-6 p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
         <div class="flex items-center gap-3 mb-4">
           <div
-            class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center"
+            class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center"
           >
-            <i class="pi pi-calendar text-cyan-400"></i>
+            <i class="pi pi-calendar text-blue-400"></i>
           </div>
           <h3 class="text-lg font-semibold text-white m-0">
             Paso 1: Período de Incapacidad
           </h3>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm text-gray-400 mb-2 font-medium">
-              <i class="pi pi-calendar-plus mr-2"></i>Inicio de Incapacidad
-            </label>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium text-gray-300">Fecha de Inicio</label>
             <p-datepicker
               [ngModel]="startDate"
               (ngModelChange)="startDateChange.emit($event)"
+              [showIcon]="true"
+              dateFormat="dd/mm/yy"
+              placeholder="Selecciona fecha de inicio"
+              [maxDate]="endDate || undefined"
+              styleClass="w-full"
               appendTo="body"
-              class="w-full"
-              placeholder="Selecciona fecha inicio"
             />
           </div>
-          <div>
-            <label class="block text-sm text-gray-400 mb-2 font-medium">
-              <i class="pi pi-calendar-minus mr-2"></i>Fin de Incapacidad
-            </label>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium text-gray-300">Fecha de Fin</label>
             <p-datepicker
               [ngModel]="endDate"
               (ngModelChange)="endDateChange.emit($event)"
+              [showIcon]="true"
+              dateFormat="dd/mm/yy"
+              placeholder="Selecciona fecha de fin"
+              [minDate]="startDate || undefined"
+              styleClass="w-full"
               appendTo="body"
-              class="w-full"
-              placeholder="Selecciona fecha fin"
             />
           </div>
         </div>
@@ -94,31 +82,34 @@ import { FormsModule } from '@angular/forms';
       <div class="mb-6 p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
         <div class="flex items-center gap-3 mb-4">
           <div
-            class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center"
+            class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center"
           >
-            <i class="pi pi-comment text-cyan-400"></i>
+            <i class="pi pi-file-edit text-blue-400"></i>
           </div>
           <h3 class="text-lg font-semibold text-white m-0">
-            Paso 2: Descripción (Opcional)
+            Paso 2: Descripción
           </h3>
         </div>
-        <textarea
-          id="disability-description"
-          pInputTextarea
-          [ngModel]="description"
-          (ngModelChange)="descriptionChange.emit($event)"
-          rows="3"
-          placeholder="Describe el motivo de la incapacidad..."
-          class="w-full"
-        ></textarea>
+
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium text-gray-300">Motivo de la incapacidad</label>
+          <textarea
+            pInputTextarea
+            [ngModel]="description"
+            (ngModelChange)="descriptionChange.emit($event)"
+            rows="4"
+            placeholder="Describe el motivo de la incapacidad"
+            class="w-full"
+          ></textarea>
+        </div>
       </div>
 
       <div class="mb-6 p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md">
         <div class="flex items-center gap-3 mb-4">
           <div
-            class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center"
+            class="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center"
           >
-            <i class="pi pi-file text-cyan-400"></i>
+            <i class="pi pi-file text-blue-400"></i>
           </div>
           <h3 class="text-lg font-semibold text-white m-0">
             Paso 3: Documento de Incapacidad
@@ -163,30 +154,41 @@ import { FormsModule } from '@angular/forms';
         @if (startDate && endDate) {
         <div class="flex items-center gap-3">
           <div
-            class="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center"
+            class="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center"
           >
-            <i class="pi pi-check-circle text-cyan-400 text-xl"></i>
+            <i class="pi pi-check-circle text-blue-400 text-xl"></i>
           </div>
           <div>
             <p class="text-sm text-gray-400 m-0">Período de Incapacidad</p>
-            <p class="text-xl font-bold text-cyan-300 m-0">
+            <p class="text-xl font-bold text-blue-300 m-0">
               {{ calculateDays(startDate, endDate) }} día(s)
             </p>
           </div>
         </div>
         }
+      </div>
+
+      <!-- Botones de Acción -->
+      <div class="flex justify-between pt-4">
         <p-button
-          label="Subir Incapacidad"
-          icon="pi pi-upload"
+          label="Volver"
+          icon="pi pi-arrow-left"
+          severity="secondary"
+          (onClick)="closeManagement.emit()"
+        />
+        <p-button
+          label="Enviar Solicitud"
+          icon="pi pi-check"
           [loading]="uploading"
           [disabled]="
             !startDate ||
             !endDate ||
             !selectedFile ||
+            !description.trim() ||
             uploading
           "
           (onClick)="submitRequest.emit()"
-          class="ml-auto"
+          severity="success"
         />
       </div>
     </p-card>

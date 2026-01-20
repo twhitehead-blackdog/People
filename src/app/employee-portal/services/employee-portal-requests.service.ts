@@ -7,12 +7,7 @@ import { DashboardStore } from '../../stores/dashboard.store';
 
 export type UnifiedRequest = {
   id: string;
-  request_type:
-    | 'compensatory'
-    | 'disability'
-    | 'document'
-    | 'complaint'
-    | 'vacation';
+  request_type: 'compensatory' | 'disability' | 'document' | 'vacation';
   created_at: string | Date;
   status: string;
   title: string;
@@ -94,19 +89,13 @@ export class EmployeePortalRequestsService {
   public documentRequestsApi = httpResource<any[]>(
     () => {
       if (!this.currentEmployee()?.id) return undefined;
-      const companyId = this.organizationService.getCurrentCompanyId();
 
-      if (!companyId) {
-        return undefined;
-      }
-
-      // Construir URL manualmente para filtrar a través de employee.company_id
+      // Simplificar query - solo filtramos por employee_id directamente
       const baseUrl = this.apiUrl.build('rest/v1/document_requests');
-      const select = `*,employee:employees(id,company_id)`;
+      const select = `*`;
 
       let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
       url += `&employee_id=eq.${this.currentEmployee()!.id}`;
-      url += `&employee.company_id=eq.${companyId}`;
       url += `&order=created_at.desc`;
 
       return {
@@ -118,19 +107,6 @@ export class EmployeePortalRequestsService {
       defaultValue: [],
     }
   );
-
-  public complaintsApi = httpResource<any[]>(() => {
-    if (!this.currentEmployee()?.id) return undefined;
-    return {
-      url: this.apiUrl.build('rest/v1/complaints'),
-      method: 'GET',
-      params: {
-        select: '*',
-        creator_employee_id: `eq.${this.currentEmployee()!.id}`,
-        order: 'updated_at.desc',
-      },
-    };
-  });
 
   public disabilitiesApi = httpResource<any[]>(() => {
     if (!this.currentEmployee()?.id) return undefined;
@@ -167,14 +143,14 @@ export class EmployeePortalRequestsService {
   });
 
   // Computed: Todas las solicitudes de documentos
-  public allDocumentRequests = computed(
-    () => this.documentRequestsApi.value() ?? []
-  );
+  public allDocumentRequests = computed(() => {
+    if (this.documentRequestsApi.status() === 'error') {
+      return [];
+    }
+    return this.documentRequestsApi.value() ?? [];
+  });
 
   // Computed: Todas las quejas
-  public allComplaints = computed(() => {
-    return this.complaintsApi.value() ?? [];
-  });
 
   // Computed: Todas las incapacidades
   public allDisabilities = computed(() => this.disabilitiesApi.value() ?? []);
@@ -216,7 +192,6 @@ export class EmployeePortalRequestsService {
     { label: 'Tiempo Compensatorio', value: 'compensatory' },
     { label: 'Incapacidad', value: 'disability' },
     { label: 'Documento', value: 'document' },
-    { label: 'Sugerencia', value: 'complaint' },
     { label: 'Vacaciones', value: 'vacation' },
   ];
 
@@ -281,8 +256,6 @@ export class EmployeePortalRequestsService {
       return request.status || 'pending';
     } else if (type === 'document') {
       return request.status || 'pending';
-    } else if (type === 'complaint') {
-      return request.status || 'pending';
     } else if (type === 'vacation') {
       if (request.is_approved === true) return 'approved';
       if (request.review_status === 'approved') return 'in_registry';
@@ -314,7 +287,6 @@ export class EmployeePortalRequestsService {
       compensatory: 'Tiempo Compensatorio',
       disability: 'Incapacidad',
       document: 'Documento',
-      complaint: 'Sugerencia',
       vacation: 'Vacaciones',
     };
     return labels[type] || type;
@@ -339,7 +311,7 @@ export class EmployeePortalRequestsService {
       safety: 'Seguridad',
       management: 'Supervisión/Gerencia',
       benefits: 'Beneficios',
-      other: 'Otro',
+      other: 'Otros',
     };
     return labels[category] || category;
   }
@@ -407,18 +379,6 @@ export class EmployeePortalRequestsService {
     });
 
     // Quejas
-    const complaints = this.allComplaints();
-    complaints.forEach((req: any) => {
-      requests.push({
-        id: req.id,
-        request_type: 'complaint',
-        created_at: req.created_at,
-        status: this.getUnifiedRequestStatus(req, 'complaint'),
-        title: `Sugerencia - ${this.getComplaintCategoryLabel(req.category)}`,
-        description: req.complaint || '',
-        originalData: req,
-      });
-    });
 
     return requests;
   });
@@ -674,9 +634,6 @@ export class EmployeePortalRequestsService {
       typeof this.documentRequestsApi.reload === 'function'
     ) {
       this.documentRequestsApi.reload();
-    }
-    if (this.complaintsApi && typeof this.complaintsApi.reload === 'function') {
-      this.complaintsApi.reload();
     }
     if (
       this.disabilitiesApi &&

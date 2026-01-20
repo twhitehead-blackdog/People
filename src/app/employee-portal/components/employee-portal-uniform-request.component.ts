@@ -36,28 +36,12 @@ type SelectOption = {
   template: `
     <p-card>
       <ng-template #title>
-        <div class="flex items-center justify-between w-full">
-          <div class="flex items-center gap-2">
-            <i class="pi pi-tag text-teal-400"></i>
-            <span>Solicitud de Uniforme</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <p-button
-              icon="pi pi-times"
-              [rounded]="true"
-              [text]="true"
-              severity="secondary"
-              [outlined]="true"
-              (onClick)="closeSection.emit()"
-              pTooltip="Volver a Gestiones"
-              [style]="{ width: '2.5rem', height: '2.5rem' }"
-            />
-          </div>
+        <div class="flex items-center gap-2">
+          <i class="pi pi-tag text-teal-400"></i>
+          <span>Solicitud de Uniforme</span>
         </div>
       </ng-template>
-      <ng-template #subtitle
-        >Solicita uniformes o prendas de trabajo</ng-template
-      >
+      <ng-template #subtitle>Solicita uniformes o prendas de trabajo</ng-template>
 
       <div
         class="mb-6 p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md"
@@ -73,28 +57,26 @@ type SelectOption = {
           </h3>
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm text-gray-400 mb-2 font-medium">
-              <i class="pi pi-tag mr-2"></i>Prenda
-            </label>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium text-gray-300">Tipo de prenda</label>
             <p-select
               [options]="itemTypes"
               [ngModel]="itemType"
               (ngModelChange)="itemTypeChange.emit($event)"
-              placeholder="Selecciona prenda"
-              class="w-full"
+              placeholder="Selecciona el tipo de prenda"
+              styleClass="w-full"
+              appendTo="body"
             />
           </div>
-          <div>
-            <label class="block text-sm text-gray-400 mb-2 font-medium">
-              <i class="pi pi-arrows-alt mr-2"></i>Talla
-            </label>
+          <div class="flex flex-col gap-2">
+            <label class="text-sm font-medium text-gray-300">Talla</label>
             <p-select
               [options]="sizes"
               [ngModel]="size"
               (ngModelChange)="sizeChange.emit($event)"
-              placeholder="Selecciona talla"
-              class="w-full"
+              placeholder="Selecciona la talla"
+              styleClass="w-full"
+              appendTo="body"
             />
           </div>
         </div>
@@ -109,12 +91,10 @@ type SelectOption = {
           >
             <i class="pi pi-calculator text-teal-400"></i>
           </div>
-          <h3 class="text-lg font-semibold text-white m-0">Paso 2: Cantidad</h3>
+          <h3 class="text-lg font-semibold text-white m-0">Paso 2: Cantidad y Notas</h3>
         </div>
         <div class="w-full md:w-1/3">
-          <label class="block text-sm text-gray-400 mb-2 font-medium">
-            <i class="pi pi-sort-numeric-up mr-2"></i>Cantidad
-          </label>
+          <label class="text-sm font-medium text-gray-300">Cantidad</label>
           <p-inputNumber
             [ngModel]="quantity"
             (ngModelChange)="quantityChange.emit($event)"

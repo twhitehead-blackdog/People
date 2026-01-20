@@ -12,13 +12,6 @@ type DocumentFormState = {
   submitting: boolean;
 };
 
-type ComplaintFormState = {
-  category: string;
-  text: string;
-  allowContact: boolean;
-  contactMethod: string;
-  submitting: boolean;
-};
 
 type TimeRange = {
   startDate: Date | null;
@@ -51,12 +44,10 @@ type EmployeePortalState = {
   calendarMonth: Date;
   timelogViewMode: EmployeePortalViewMode;
   conversationDialogVisible: boolean;
-  selectedComplaintId: string | null;
   replyMessage: string;
   sendingReply: boolean;
   showSalary: boolean;
   documentForm: DocumentFormState;
-  complaintForm: ComplaintFormState;
   vacationForm: VacationFormState;
   compensatoryForm: CompensatoryFormState;
 };
@@ -69,7 +60,6 @@ const initialState: EmployeePortalState = {
   calendarMonth: startOfToday(),
   timelogViewMode: 'table',
   conversationDialogVisible: false,
-  selectedComplaintId: null,
   replyMessage: '',
   sendingReply: false,
   showSalary: false,
@@ -78,13 +68,6 @@ const initialState: EmployeePortalState = {
     customType: '',
     reason: '',
     requiredDate: null,
-    submitting: false,
-  },
-  complaintForm: {
-    category: 'work_environment',
-    text: '',
-    allowContact: false,
-    contactMethod: 'email',
     submitting: false,
   },
   vacationForm: {
@@ -126,9 +109,12 @@ export const EmployeePortalStore = signalStore({ providedIn: 'root' },
   withComputed((state) => ({
     // Solo mantener computed para valores derivados o transformados
     canSubmitDocument: computed(() => {
-      const { type, customType, reason } = state.documentForm();
+      const { type, customType, reason, requiredDate } = state.documentForm();
       const trimmedReason = reason.trim();
       if (!trimmedReason || trimmedReason.length < 10) {
+        return false;
+      }
+      if (!requiredDate) {
         return false;
       }
       if (type === 'other') {
@@ -136,7 +122,6 @@ export const EmployeePortalStore = signalStore({ providedIn: 'root' },
       }
       return true;
     }),
-    canSubmitComplaint: computed(() => state.complaintForm().text.trim().length >= 10),
     // Transforma array a Set para facilitar operaciones
     selectedOvertimeDays: computed(
       () => new Set(state.compensatoryForm().selectedOvertimeDays)
@@ -155,16 +140,9 @@ export const EmployeePortalStore = signalStore({ providedIn: 'root' },
     setTimelogViewMode(mode: EmployeePortalViewMode) {
       patchState(state, { timelogViewMode: mode });
     },
-    openConversation(complaintId: string) {
-      patchState(state, {
-        conversationDialogVisible: true,
-        selectedComplaintId: complaintId,
-      });
-    },
     closeConversation() {
       patchState(state, {
         conversationDialogVisible: false,
-        selectedComplaintId: null,
         replyMessage: '',
       });
     },
@@ -228,46 +206,6 @@ export const EmployeePortalStore = signalStore({ providedIn: 'root' },
           reason: '',
           requiredDate: null,
           submitting: false,
-        },
-      });
-    },
-    setComplaintCategory(value: string) {
-      patchState(state, {
-        complaintForm: {
-          ...state.complaintForm(),
-          category: value,
-        },
-      });
-    },
-    setComplaintText(value: string) {
-      patchState(state, {
-        complaintForm: {
-          ...state.complaintForm(),
-          text: value,
-        },
-      });
-    },
-    setAllowContact(value: boolean) {
-      patchState(state, {
-        complaintForm: {
-          ...state.complaintForm(),
-          allowContact: value,
-        },
-      });
-    },
-    setContactMethod(value: string) {
-      patchState(state, {
-        complaintForm: {
-          ...state.complaintForm(),
-          contactMethod: value,
-        },
-      });
-    },
-    setSubmittingComplaint(value: boolean) {
-      patchState(state, {
-        complaintForm: {
-          ...state.complaintForm(),
-          submitting: value,
         },
       });
     },

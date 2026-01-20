@@ -32,37 +32,9 @@ import { Employee } from '../../models';
   template: `
     <p-card>
       <ng-template #title>
-        <div class="flex items-center justify-between w-full">
-          <div class="flex items-center gap-2">
-            <i class="pi pi-clock text-cyan-400"></i>
-            <span>{{
-              isBranchManagerView
-                ? 'Solicitar Compensatorio para Empleado'
-                : 'Solicitar Tiempo Compensatorio'
-            }}</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <p-button
-              icon="pi pi-question-circle"
-              [rounded]="true"
-              [text]="true"
-              severity="secondary"
-              [outlined]="true"
-              (onClick)="openTutorial.emit()"
-              pTooltip="¿Cómo funciona el tiempo compensatorio?"
-              [style]="{ width: '2.5rem', height: '2.5rem' }"
-            />
-            <p-button
-              icon="pi pi-times"
-              [rounded]="true"
-              [text]="true"
-              severity="secondary"
-              [outlined]="true"
-              (onClick)="closeSection.emit()"
-              pTooltip="Volver a Gestiones"
-              [style]="{ width: '2.5rem', height: '2.5rem' }"
-            />
-          </div>
+        <div class="flex items-center gap-2">
+          <i class="pi pi-clock text-cyan-400"></i>
+          <span>Tiempo Compensatorio</span>
         </div>
       </ng-template>
       <ng-template #subtitle>
@@ -465,6 +437,12 @@ import { Employee } from '../../models';
         <div
           class="flex flex-col md:flex-row items-center justify-between gap-4 p-5 rounded-lg bg-gradient-to-r from-cyan-500/10 to-cyan-600/5 border border-cyan-400/30 shadow-lg"
         >
+          <p-button
+            label="Volver"
+            icon="pi pi-arrow-left"
+            severity="secondary"
+            (onClick)="closeSection.emit()"
+          />
           @if (compensatoryAmount > 0) {
           <div class="flex items-center gap-3">
             <div

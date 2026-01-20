@@ -592,10 +592,9 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
       const currentFragment = urlFragment || this.currentFragment();
       
       // Verificar si estamos en una subsección de gestiones
-      const isInManagementSubsection = 
-        currentFragment === 'disabilities' || 
-        currentFragment === 'documents' || 
-        currentFragment === 'complaints' || 
+      const isInManagementSubsection =
+        currentFragment === 'disabilities' ||
+        currentFragment === 'documents' ||
         currentFragment === 'vacations' ||
         currentFragment === 'compensatory' ||
         currentFragment === 'my-requests';
@@ -645,12 +644,11 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
     }
     
     // Gestiones está activo cuando estamos en cualquier sección de gestiones
-    // (disabilities, documents, complaints, o management)
+    // (disabilities, documents, o management)
     if (section === 'management') {
-      return fragment === 'management' || 
-             fragment === 'disabilities' || 
-             fragment === 'documents' || 
-             fragment === 'complaints';
+      return fragment === 'management' ||
+             fragment === 'disabilities' ||
+             fragment === 'documents';
     }
     
     // Para otras secciones, verificar coincidencia exacta

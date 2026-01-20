@@ -62,6 +62,7 @@ export async function submitDocumentRequest(
 
   const requestData = {
     employee_id: currentEmployee()!.id,
+    created_by: currentEmployee()!.id, // El empleado crea su propia solicitud
     document_type: documentType,
     custom_document_type:
       formState.type === 'other' ? formState.customType : null,

@@ -1,12 +1,12 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  inject,
-  Input,
-  signal,
+    ChangeDetectionStrategy,
+    Component,
+    computed,
+    inject,
+    Input,
+    signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { addDays, startOfDay } from 'date-fns';
@@ -30,18 +30,18 @@ import { TutorialGuideService } from '../services/tutorial-guide.service';
 import { TutorialSpotlightComponent } from '../shared/components/tutorial-spotlight.component';
 import { TutorialStepDirective } from '../shared/directives/tutorial-step.directive';
 import {
-  GESTIONES_TUTORIAL_INTRO,
-  GESTIONES_TUTORIALS,
+    GESTIONES_TUTORIAL_INTRO,
+    GESTIONES_TUTORIALS,
 } from '../shared/tutorial-configs/gestiones-tutorials';
 import { getEnv } from '../utils/env.utils';
 import {
-  getRequestColorClass,
-  getRequestIcon,
-  getRequestStatusLabel,
-  getRequestStatusSeverity,
-  getRequestTypeLabel,
-  getRequestTypeSeverity,
-  getSeverityColor,
+    getRequestColorClass,
+    getRequestIcon,
+    getRequestStatusLabel,
+    getRequestStatusSeverity,
+    getRequestTypeLabel,
+    getRequestTypeSeverity,
+    getSeverityColor,
 } from './request.helpers';
 
 type ManagementCard = {
@@ -742,12 +742,12 @@ type ManagementCard = {
               <div class="space-y-3">
                 <div class="flex flex-col gap-2">
                   <label class="text-sm font-medium text-gray-300"
-                    >Motivo de la solicitud</label
+                    >Dirigido a</label
                   >
                   <textarea
                     pInputTextarea
                     [(ngModel)]="documentReason"
-                    placeholder="Explica para qué necesitas este documento"
+                    placeholder="Explica para quién es dirigido este documento"
                     rows="3"
                     class="w-full"
                     ptTutorialStep="documents-reason"

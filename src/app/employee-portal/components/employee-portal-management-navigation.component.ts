@@ -70,14 +70,6 @@ export class EmployeePortalManagementNavigationComponent {
       colorClass: 'bg-green-500/20 text-green-400',
     },
     {
-      id: 'complaints',
-      label: 'Buzón de Sugerencias',
-      description: 'Expresa tus inquietudes de forma anónima',
-      icon: 'pi-comments',
-      section: 'complaints',
-      colorClass: 'bg-yellow-500/20 text-yellow-400',
-    },
-    {
       id: 'vacations',
       label: 'Solicitar Vacaciones',
       description: 'Solicita tus días de vacaciones',
