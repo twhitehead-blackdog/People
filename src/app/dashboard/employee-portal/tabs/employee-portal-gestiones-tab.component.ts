@@ -739,6 +739,7 @@ export class EmployeePortalGestionesTabComponent {
     try {
       const payload: any = {
         employee_id: employee.id,
+        created_by: employee.id, // El empleado crea su propia solicitud
         timeoff_type_id: typeId,
         date_from: format(this.timeoffStartDate()!, 'yyyy-MM-dd'),
         reason: this.timeoffNotes(),

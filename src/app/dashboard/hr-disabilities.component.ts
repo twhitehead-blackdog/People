@@ -753,7 +753,7 @@ export interface DocumentRequest {
                     >
                       <div class="flex items-center justify-center gap-1">
                         <i class="pi pi-user-plus text-cyan-400 text-xs"></i>
-                        <span class="text-xs">Creado por</span>
+                        <span class="text-xs">Creador</span>
                       </div>
                     </th>
                     <th
@@ -1157,7 +1157,7 @@ export interface DocumentRequest {
                     >
                       <div class="flex items-center justify-center gap-1">
                         <i class="pi pi-user-plus text-cyan-400 text-xs"></i>
-                        <span class="text-xs">Creado por</span>
+                        <span class="text-xs">Creador</span>
                       </div>
                     </th>
                     <th

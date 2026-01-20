@@ -145,7 +145,7 @@ import {
               <th style="width: 140px; padding: 0.4rem; text-align: center;">
                 <div class="flex items-center justify-center gap-1">
                   <i class="pi pi-user-plus text-teal-400 text-xs"></i>
-                  <span class="text-xs">Creado por</span>
+                  <span class="text-xs">Creador</span>
                 </div>
               </th>
               <th style="width: 150px; padding: 0.4rem; text-align: center;">

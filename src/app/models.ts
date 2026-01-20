@@ -98,6 +98,7 @@ export type TimeOff = {
   date_to: Date;
   notes: string[];
   is_approved: boolean;
+  created_by?: string;
 };
 
 export type Termination = {

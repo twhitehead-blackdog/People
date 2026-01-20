@@ -158,7 +158,7 @@ import { VacationRequest } from '../models/vacation-request.model';
               <th style="width: 140px; padding: 0.4rem; text-align: center;">
                 <div class="flex items-center justify-center gap-1">
                   <i class="pi pi-user-plus text-cyan-400 text-xs"></i>
-                  <span class="text-xs">Creado por</span>
+                  <span class="text-xs">Creador</span>
                 </div>
               </th>
               <th style="width: 120px; padding: 0.4rem; text-align: center;">
@@ -226,7 +226,7 @@ import { VacationRequest } from '../models/vacation-request.model';
                   <div class="flex items-center gap-1">
                     <i class="pi pi-user text-amber-400 text-[9px]"></i>
                     <span class="text-[10px] font-medium text-amber-300">
-                      Creado por {{ vacation.created_by_employee.first_name }}
+                      {{ vacation.created_by_employee.first_name }}
                       {{ vacation.created_by_employee.father_name }}
                     </span>
                   </div>
@@ -505,7 +505,7 @@ import { VacationRequest } from '../models/vacation-request.model';
             </div>
             <div>
               <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Creado por</label
+                >Creador</label
               >
               <p class="text-white">
                 @if (selectedVacation()?.created_by_employee) {

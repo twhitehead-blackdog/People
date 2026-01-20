@@ -27,6 +27,7 @@ type CompensatoryActionsDependencies = {
   apiUrl: ApiUrlService;
   messageService: MessageService;
   currentEmployee: () => Employee | null | undefined;
+  creatorEmployeeId?: string; // Quién crea la solicitud (opcional, por defecto currentEmployee)
   formState: CompensatoryFormState;
   resetForm: () => void;
   reloadRequests: () => void;
@@ -45,6 +46,7 @@ export async function uploadCompensatory(
     apiUrl,
     messageService,
     currentEmployee,
+    creatorEmployeeId,
     formState,
     resetForm,
     reloadRequests,
@@ -52,11 +54,18 @@ export async function uploadCompensatory(
     company_id,
   } = deps;
 
-  if (
-    !formState.startDate ||
-    !formState.endDate ||
-    !formState.compensatoryDate
-  ) {
+  // Validar campos requeridos según el tipo
+  if (!formState.startDate || !formState.endDate) {
+    messageService.add({
+      severity: 'warn',
+      summary: 'Campos Requeridos',
+      detail: 'Por favor completa todos los campos requeridos',
+    });
+    return;
+  }
+
+  // Para tipo 'hours' también se requiere la fecha específica del compensatorio
+  if (formState.type === 'hours' && !formState.compensatoryDate) {
     messageService.add({
       severity: 'warn',
       summary: 'Campos Requeridos',
@@ -147,10 +156,11 @@ export async function uploadCompensatory(
 
     // Create compensatory request
     // Los campos compensatory_date, compensatory_time_start, compensatory_time_end y manual_overtime_dates
-    // no existen en la base de datos. Solo se guardan: compensatory_type, compensatory_amount, document_url
+    // no existen en la base de datos. Solo se guardan: created_by, compensatory_type, compensatory_amount, document_url
     const compensatoryData = {
       type_id: 'f2d92995-96a0-414f-b64a-9823db776745', // ID del tipo compensatorio
       employee_id: currentEmployee()!.id,
+      created_by: creatorEmployeeId || currentEmployee()!.id, // Quién crea la solicitud
       date_from: format(formState.startDate!, 'yyyy-MM-dd'),
       date_to: format(formState.endDate!, 'yyyy-MM-dd'),
       notes: [

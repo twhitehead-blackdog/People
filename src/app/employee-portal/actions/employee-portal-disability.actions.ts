@@ -109,6 +109,7 @@ export async function uploadDisability(
     // Create disability record
     const disabilityData = {
       employee_id: currentEmployee()!.id,
+      created_by: currentEmployee()!.id, // El empleado crea su propia solicitud
       start_date: format(formState.startDate!, 'yyyy-MM-dd'),
       end_date: format(formState.endDate!, 'yyyy-MM-dd'),
       description: formState.description || null,

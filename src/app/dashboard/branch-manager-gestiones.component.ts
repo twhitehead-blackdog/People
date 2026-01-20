@@ -1535,6 +1535,7 @@ export class BranchManagerGestionesComponent {
         apiUrl: this.apiUrl,
         messageService: this.messageService,
         currentEmployee: () => employee,
+        creatorEmployeeId: this.currentEmployee?.id, // El gerente crea la solicitud
         formState,
         resetForm: () => this.resetCompensatoryForm(),
         reloadRequests: () => {},
