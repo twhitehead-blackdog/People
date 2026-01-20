@@ -9,6 +9,7 @@ import { DialogModule } from 'primeng/dialog';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
+import { TextareaModule } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
@@ -39,6 +40,7 @@ import {
     ProgressSpinnerModule,
     FormsModule,
     DatePipe,
+    TextareaModule,
     HrStatsGridComponent,
     HrFiltersPanelComponent,
   ],
@@ -231,7 +233,7 @@ import {
                     [text]="true"
                     severity="danger"
                     size="small"
-                    (onClick)="rejectRequest(request)"
+                    (onClick)="openRejectionDialog(request)"
                     [rounded]="true"
                     pTooltip="Rechazar"
                     tooltipPosition="top"
@@ -383,6 +385,20 @@ import {
             {{ selectedRequest()!.reason }}
           </p>
         </div>
+        } @if (selectedRequest()!.status === 'rejected' &&
+        selectedRequest()!.rejection_comment) {
+        <!-- Motivo de Rechazo -->
+        <div class="p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+          <h3
+            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+          >
+            <i class="pi pi-exclamation-triangle text-red-400"></i>
+            Motivo del Rechazo
+          </h3>
+          <p class="text-red-300 whitespace-pre-wrap">
+            {{ selectedRequest()!.rejection_comment }}
+          </p>
+        </div>
         }
 
         <!-- Evidencia -->
@@ -428,7 +444,8 @@ import {
               icon="pi pi-times"
               severity="danger"
               (onClick)="
-                rejectRequest(selectedRequest()!); showDetailsDialog.set(false)
+                showDetailsDialog.set(false);
+                openRejectionDialog(selectedRequest()!)
               "
             />
           </div>
@@ -436,6 +453,67 @@ import {
         }
       </div>
       }
+    </p-dialog>
+
+    <!-- Diálogo de Confirmación de Rechazo -->
+    <p-dialog
+      [(visible)]="showRejectionDialog"
+      [modal]="true"
+      [style]="{ width: '90vw', maxWidth: '500px' }"
+      [draggable]="false"
+      [resizable]="false"
+      [dismissableMask]="true"
+      (onHide)="rejectionComment.set('')"
+    >
+      <ng-template pTemplate="header">
+        <div class="flex items-center gap-2">
+          <i class="pi pi-exclamation-triangle text-red-400"></i>
+          <span class="text-lg font-semibold text-white"
+            >Confirmar Rechazo</span
+          >
+        </div>
+      </ng-template>
+
+      <div class="space-y-4 pt-4">
+        <p class="text-gray-300">
+          Por favor, indica el motivo del rechazo de esta solicitud de
+          corrección de marcación.
+        </p>
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-2">
+            Motivo de Rechazo <span class="text-red-400">*</span>
+          </label>
+          <textarea
+            pTextarea
+            [(ngModel)]="rejectionComment"
+            rows="4"
+            placeholder="Escribe el motivo del rechazo..."
+            class="w-full"
+            maxlength="500"
+          ></textarea>
+          <p class="text-xs text-gray-500 mt-1">
+            {{ rejectionComment().length }}/500 caracteres
+          </p>
+        </div>
+      </div>
+
+      <ng-template pTemplate="footer">
+        <div class="flex justify-end gap-2">
+          <p-button
+            label="Cancelar"
+            severity="secondary"
+            [outlined]="true"
+            (onClick)="showRejectionDialog.set(false)"
+          />
+          <p-button
+            label="Confirmar Rechazo"
+            severity="danger"
+            icon="pi pi-times"
+            [disabled]="!rejectionComment().trim()"
+            (onClick)="confirmRejection()"
+          />
+        </div>
+      </ng-template>
     </p-dialog>
   `,
 })
@@ -454,6 +532,11 @@ export class TimelogCorrectionsComponent {
   // Dialog
   public showDetailsDialog = signal(false);
   public selectedRequest = signal<DocumentRequest | null>(null);
+
+  // Rejection dialog signals
+  public showRejectionDialog = signal(false);
+  public rejectionComment = signal('');
+  public requestToReject = signal<DocumentRequest | null>(null);
 
   // Status options
   public statusOptions = [
@@ -595,47 +678,63 @@ export class TimelogCorrectionsComponent {
     }
   }
 
-  async rejectRequest(request: DocumentRequest): Promise<void> {
-    this.confirmationService.confirm({
-      message: '¿Estás seguro de rechazar esta solicitud?',
-      header: 'Confirmar Rechazo',
-      icon: 'pi pi-exclamation-triangle',
-      acceptLabel: 'Rechazar',
-      rejectLabel: 'Cancelar',
-      acceptButtonStyleClass: 'p-button-danger',
-      accept: async () => {
-        const currentEmployee = this.dashboardStore.currentEmployee();
-        if (!currentEmployee) return;
+  /**
+   * Opens the rejection dialog
+   */
+  openRejectionDialog(request: DocumentRequest): void {
+    this.requestToReject.set(request);
+    this.rejectionComment.set('');
+    this.showRejectionDialog.set(true);
+  }
 
-        try {
-          await firstValueFrom(
-            this.http.patch(
-              `${getEnv('ENV_SUPABASE_URL')}/rest/v1/document_requests?id=eq.${
-                request.id
-              }`,
-              {
-                status: 'rejected',
-                processed_by: currentEmployee.id,
-                processed_at: new Date().toISOString(),
-              }
-            )
-          );
+  /**
+   * Confirms rejection with the comment
+   */
+  async confirmRejection(): Promise<void> {
+    const comment = this.rejectionComment().trim();
+    const request = this.requestToReject();
+    if (!comment || !request) return;
 
-          this.messageService.add({
-            severity: 'warn',
-            summary: 'Rechazada',
-            detail: 'La solicitud ha sido rechazada',
-          });
+    const currentEmployee = this.dashboardStore.currentEmployee();
+    if (!currentEmployee) return;
 
-          this.service.reload();
-        } catch (error) {
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Error',
-            detail: 'No se pudo rechazar la solicitud',
-          });
-        }
-      },
-    });
+    this.showRejectionDialog.set(false);
+
+    try {
+      await firstValueFrom(
+        this.http.patch(
+          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/document_requests?id=eq.${
+            request.id
+          }`,
+          {
+            status: 'rejected',
+            processed_by: currentEmployee.id,
+            processed_at: new Date().toISOString(),
+            rejection_comment: comment,
+          }
+        )
+      );
+
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Rechazada',
+        detail: 'La solicitud ha sido rechazada',
+      });
+
+      this.service.reload();
+
+      // Update local signal if viewing details
+      if (this.selectedRequest()?.id === request.id) {
+        this.selectedRequest.update((r) =>
+          r ? { ...r, status: 'rejected', rejection_comment: comment } : null
+        );
+      }
+    } catch (error) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo rechazar la solicitud',
+      });
+    }
   }
 }

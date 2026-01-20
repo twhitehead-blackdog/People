@@ -11,6 +11,7 @@ import { FileUploadModule } from 'primeng/fileupload';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
+import { TextareaModule } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
@@ -61,6 +62,7 @@ import { DocumentRequest } from '../models/document-request.model';
     HrStatsGridComponent,
     HrFiltersPanelComponent,
     SafeUrlPipe,
+    TextareaModule,
   ],
   providers: [MessageService, ConfirmationService],
   template: `
@@ -72,7 +74,7 @@ import { DocumentRequest } from '../models/document-request.model';
         [totalCount]="totalCount()"
         [pendingCount]="pendingCount()"
         [approvedCount]="completedCount()"
-        [hideRejected]="true"
+        [rejectedCount]="rejectedCount()"
         approvedLabel="Completadas"
         icon="pi-file-edit"
       />
@@ -251,6 +253,19 @@ import { DocumentRequest } from '../models/document-request.model';
                     (onClick)="viewDetails(document); $event.stopPropagation()"
                     [rounded]="true"
                     pTooltip="Ver Documento"
+                    tooltipPosition="top"
+                  />
+                  } @if (document.status === 'pending') {
+                  <p-button
+                    icon="pi pi-times"
+                    [text]="true"
+                    severity="danger"
+                    size="small"
+                    (onClick)="
+                      openRejectionDialog(document); $event.stopPropagation()
+                    "
+                    [rounded]="true"
+                    pTooltip="Rechazar"
                     tooltipPosition="top"
                   />
                   }
@@ -569,6 +584,20 @@ import { DocumentRequest } from '../models/document-request.model';
             {{ selectedDocument()!.reason }}
           </p>
         </div>
+        } @if (selectedDocument()!.status === 'rejected' &&
+        selectedDocument()!.rejection_comment) {
+        <!-- Motivo de Rechazo -->
+        <div class="p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+          <h3
+            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+          >
+            <i class="pi pi-exclamation-triangle text-red-400"></i>
+            Motivo del Rechazo
+          </h3>
+          <p class="text-red-300 whitespace-pre-wrap">
+            {{ selectedDocument()!.rejection_comment }}
+          </p>
+        </div>
         }
 
         <!-- Detalles de Marcación Errónea -->
@@ -695,6 +724,16 @@ import { DocumentRequest } from '../models/document-request.model';
               [outlined]="selectedDocument()!.status !== 'completed'"
               (onClick)="openCompleteDialog(selectedDocument()!)"
               [disabled]="selectedDocument()!.status === 'completed'"
+            />
+            <p-button
+              label="Rechazada"
+              severity="danger"
+              [outlined]="selectedDocument()!.status !== 'rejected'"
+              (onClick)="
+                showDetailsDialog.set(false);
+                openRejectionDialog(selectedDocument()!)
+              "
+              [disabled]="selectedDocument()!.status === 'rejected'"
             />
           </div>
         </div>
@@ -840,6 +879,67 @@ import { DocumentRequest } from '../models/document-request.model';
       (click)="showDocumentPreview.set(false)"
     ></div>
     }
+
+    <!-- Diálogo de Confirmación de Rechazo -->
+    <p-dialog
+      [(visible)]="showRejectionDialog"
+      [modal]="true"
+      [style]="{ width: '90vw', maxWidth: '500px' }"
+      [draggable]="false"
+      [resizable]="false"
+      [dismissableMask]="true"
+      (onHide)="rejectionComment.set('')"
+    >
+      <ng-template pTemplate="header">
+        <div class="flex items-center gap-2">
+          <i class="pi pi-exclamation-triangle text-red-400"></i>
+          <span class="text-lg font-semibold text-white"
+            >Confirmar Rechazo</span
+          >
+        </div>
+      </ng-template>
+
+      <div class="space-y-4 pt-4">
+        <p class="text-gray-300">
+          Por favor, indica el motivo del rechazo de esta solicitud de
+          documento.
+        </p>
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-2">
+            Motivo de Rechazo <span class="text-red-400">*</span>
+          </label>
+          <textarea
+            pTextarea
+            [(ngModel)]="rejectionComment"
+            rows="4"
+            placeholder="Escribe el motivo del rechazo..."
+            class="w-full"
+            maxlength="500"
+          ></textarea>
+          <p class="text-xs text-gray-500 mt-1">
+            {{ rejectionComment().length }}/500 caracteres
+          </p>
+        </div>
+      </div>
+
+      <ng-template pTemplate="footer">
+        <div class="flex justify-end gap-2">
+          <p-button
+            label="Cancelar"
+            severity="secondary"
+            [outlined]="true"
+            (onClick)="showRejectionDialog.set(false)"
+          />
+          <p-button
+            label="Confirmar Rechazo"
+            severity="danger"
+            icon="pi pi-times"
+            [disabled]="!rejectionComment().trim()"
+            (onClick)="confirmRejection()"
+          />
+        </div>
+      </ng-template>
+    </p-dialog>
   `,
 })
 export class DocumentRequestsComponent {
@@ -867,9 +967,15 @@ export class DocumentRequestsComponent {
   public selectedFile = signal<File | null>(null);
   public isUploading = signal(false);
 
+  // Rejection dialog signals
+  public showRejectionDialog = signal(false);
+  public rejectionComment = signal('');
+  public documentToReject = signal<DocumentRequest | null>(null);
+
   public statusOptions = [
     { label: 'Pendiente', value: 'pending' },
     { label: 'Completada', value: 'completed' },
+    { label: 'Rechazada', value: 'rejected' },
   ];
 
   // Excluded types - they have their own dedicated sections
@@ -888,6 +994,9 @@ export class DocumentRequestsComponent {
   );
   public completedCount = computed(
     () => this.baseDocuments().filter((d) => d.status === 'completed').length
+  );
+  public rejectedCount = computed(
+    () => this.baseDocuments().filter((d) => d.status === 'rejected').length
   );
 
   public filteredDocuments = computed(() => {
@@ -1161,5 +1270,65 @@ export class DocumentRequestsComponent {
             detail: 'Fallo al actualizar',
           }),
       });
+  }
+
+  /**
+   * Opens the rejection dialog
+   */
+  openRejectionDialog(document: DocumentRequest): void {
+    this.documentToReject.set(document);
+    this.rejectionComment.set('');
+    this.showRejectionDialog.set(true);
+  }
+
+  /**
+   * Confirms rejection with the comment
+   */
+  async confirmRejection(): Promise<void> {
+    const comment = this.rejectionComment().trim();
+    const document = this.documentToReject();
+    if (!comment || !document) return;
+
+    const currentEmployee = this.dashboardStore.currentEmployee();
+    if (!currentEmployee) return;
+
+    this.showRejectionDialog.set(false);
+
+    try {
+      await firstValueFrom(
+        this.http.patch(
+          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/document_requests?id=eq.${
+            document.id
+          }`,
+          {
+            status: 'rejected',
+            processed_by: currentEmployee.id,
+            processed_at: new Date().toISOString(),
+            rejection_comment: comment,
+          }
+        )
+      );
+
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Rechazada',
+        detail: 'La solicitud ha sido rechazada',
+      });
+
+      this.service.reload();
+
+      // Update local signal if viewing details
+      if (this.selectedDocument()?.id === document.id) {
+        this.selectedDocument.update((d) =>
+          d ? { ...d, status: 'rejected', rejection_comment: comment } : null
+        );
+      }
+    } catch (error) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudo rechazar la solicitud',
+      });
+    }
   }
 }

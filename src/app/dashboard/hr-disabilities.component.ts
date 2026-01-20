@@ -185,6 +185,127 @@ export interface DocumentRequest {
     <p-toast />
     <p-confirmDialog />
 
+    <!-- Diálogo de Confirmación de Rechazo de Incapacidad -->
+    <p-dialog
+      [(visible)]="showDisabilityRejectionDialog"
+      [modal]="true"
+      [style]="{ width: '90vw', maxWidth: '500px' }"
+      [draggable]="false"
+      [resizable]="false"
+      [dismissableMask]="true"
+      (onHide)="disabilityRejectionComment.set('')"
+    >
+      <ng-template pTemplate="header">
+        <div class="flex items-center gap-2">
+          <i class="pi pi-exclamation-triangle text-red-400"></i>
+          <span class="text-lg font-semibold text-white"
+            >Confirmar Rechazo de Incapacidad</span
+          >
+        </div>
+      </ng-template>
+
+      <div class="space-y-4 pt-4">
+        <p class="text-gray-300">
+          Por favor, indica el motivo del rechazo de esta incapacidad.
+        </p>
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-2">
+            Motivo de Rechazo <span class="text-red-400">*</span>
+          </label>
+          <textarea
+            pTextarea
+            [(ngModel)]="disabilityRejectionComment"
+            rows="4"
+            placeholder="Escribe el motivo del rechazo..."
+            class="w-full"
+            maxlength="500"
+          ></textarea>
+          <p class="text-xs text-gray-500 mt-1">
+            {{ disabilityRejectionComment().length }}/500 caracteres
+          </p>
+        </div>
+      </div>
+
+      <ng-template pTemplate="footer">
+        <div class="flex justify-end gap-2">
+          <p-button
+            label="Cancelar"
+            severity="secondary"
+            [outlined]="true"
+            (onClick)="showDisabilityRejectionDialog.set(false)"
+          />
+          <p-button
+            label="Confirmar Rechazo"
+            severity="danger"
+            icon="pi pi-times"
+            [disabled]="!disabilityRejectionComment().trim()"
+            (onClick)="confirmDisabilityRejection()"
+          />
+        </div>
+      </ng-template>
+    </p-dialog>
+
+    <!-- Diálogo de Confirmación de Rechazo de Tiempo Compensatorio -->
+    <p-dialog
+      [(visible)]="showCompensatoryRejectionDialog"
+      [modal]="true"
+      [style]="{ width: '90vw', maxWidth: '500px' }"
+      [draggable]="false"
+      [resizable]="false"
+      [dismissableMask]="true"
+      (onHide)="compensatoryRejectionComment.set('')"
+    >
+      <ng-template pTemplate="header">
+        <div class="flex items-center gap-2">
+          <i class="pi pi-exclamation-triangle text-red-400"></i>
+          <span class="text-lg font-semibold text-white"
+            >Confirmar Rechazo de Tiempo Compensatorio</span
+          >
+        </div>
+      </ng-template>
+
+      <div class="space-y-4 pt-4">
+        <p class="text-gray-300">
+          Por favor, indica el motivo del rechazo de esta solicitud de tiempo
+          compensatorio.
+        </p>
+        <div>
+          <label class="block text-sm font-medium text-gray-400 mb-2">
+            Motivo de Rechazo <span class="text-red-400">*</span>
+          </label>
+          <textarea
+            pTextarea
+            [(ngModel)]="compensatoryRejectionComment"
+            rows="4"
+            placeholder="Escribe el motivo del rechazo..."
+            class="w-full"
+            maxlength="500"
+          ></textarea>
+          <p class="text-xs text-gray-500 mt-1">
+            {{ compensatoryRejectionComment().length }}/500 caracteres
+          </p>
+        </div>
+      </div>
+
+      <ng-template pTemplate="footer">
+        <div class="flex justify-end gap-2">
+          <p-button
+            label="Cancelar"
+            severity="secondary"
+            [outlined]="true"
+            (onClick)="showCompensatoryRejectionDialog.set(false)"
+          />
+          <p-button
+            label="Confirmar Rechazo"
+            severity="danger"
+            icon="pi pi-times"
+            [disabled]="!compensatoryRejectionComment().trim()"
+            (onClick)="confirmCompensatoryRejection()"
+          />
+        </div>
+      </ng-template>
+    </p-dialog>
+
     <div
       class="h-screen flex flex-col bg-gradient-to-br from-neutral-900 via-neutral-900 to-neutral-800 overflow-hidden"
     >
@@ -2677,6 +2798,14 @@ export class HRDisabilitiesComponent {
   public employeeOvertimeHours = signal<number>(0);
   public zoomLevel = signal(1);
 
+  // Rejection dialog signals for disabilities
+  public showDisabilityRejectionDialog = signal(false);
+  public disabilityToReject = signal<Disability | null>(null);
+
+  // Rejection dialog signals for compensatory
+  public showCompensatoryRejectionDialog = signal(false);
+  public compensatoryToReject = signal<CompensatoryRequest | null>(null);
+
   // Signal computado para la URL del PDF sanitizada
   public pdfUrl = computed(() => {
     const disability = this.selectedDisability();
@@ -4483,18 +4612,32 @@ export class HRDisabilitiesComponent {
     });
   }
 
+  /**
+   * Opens the rejection dialog for a compensatory request
+   */
+  public openCompensatoryRejectionDialog(request: CompensatoryRequest): void {
+    this.compensatoryToReject.set(request);
+    this.compensatoryRejectionComment.set('');
+    this.showCompensatoryRejectionDialog.set(true);
+  }
+
+  /**
+   * Confirms rejection with mandatory comment for compensatory
+   */
+  public confirmCompensatoryRejection(): void {
+    const comment = this.compensatoryRejectionComment().trim();
+    const request = this.compensatoryToReject();
+    if (!comment || !request) return;
+
+    this.showCompensatoryRejectionDialog.set(false);
+    this.updateCompensatoryReviewStatus(request.id, 'rejected', comment);
+  }
+
+  /**
+   * @deprecated Use openCompensatoryRejectionDialog instead
+   */
   public rejectCompensatoryRequest(request: CompensatoryRequest): void {
-    this.confirmationService.confirm({
-      message: `¿Estás seguro de rechazar la solicitud de tiempo compensatorio de ${this.getEmployeeName(
-        request
-      )}?`,
-      header: 'Confirmar Rechazo',
-      icon: 'pi pi-exclamation-triangle',
-      acceptButtonStyleClass: 'p-button-danger',
-      accept: () => {
-        this.updateCompensatoryReviewStatus(request.id, 'rejected');
-      },
-    });
+    this.openCompensatoryRejectionDialog(request);
   }
 
   public loadMoreOvertimeHistory(): void {
@@ -5160,24 +5303,47 @@ export class HRDisabilitiesComponent {
     });
   }
 
+  /**
+   * Opens the rejection dialog for a disability
+   */
+  public openDisabilityRejectionDialog(disability: Disability): void {
+    this.disabilityToReject.set(disability);
+    this.disabilityRejectionComment.set('');
+    this.showDisabilityRejectionDialog.set(true);
+  }
+
+  /**
+   * Confirms rejection with mandatory comment
+   */
+  public confirmDisabilityRejection(): void {
+    const comment = this.disabilityRejectionComment().trim();
+    const disability = this.disabilityToReject();
+    if (!comment || !disability) return;
+
+    this.showDisabilityRejectionDialog.set(false);
+    this.updateDisabilityStatus(disability.id, 'rejected', comment);
+  }
+
+  /**
+   * @deprecated Use openDisabilityRejectionDialog instead
+   */
   public rejectDisability(disability: Disability): void {
-    this.confirmationService.confirm({
-      message: `¿Estás seguro de rechazar la incapacidad de ${disability.employee?.first_name} ${disability.employee?.father_name}?`,
-      header: 'Confirmar Rechazo',
-      icon: 'pi pi-exclamation-triangle',
-      acceptButtonStyleClass: 'p-button-danger',
-      accept: () => {
-        this.updateDisabilityStatus(disability.id, 'rejected');
-      },
-    });
+    this.openDisabilityRejectionDialog(disability);
   }
 
   public updateDisabilityStatusFromDialog(statusValue: string): void {
     const disability = this.selectedDisability();
     if (!disability) return;
 
+    // For rejection, use the modal to require mandatory comment
+    if (statusValue === 'rejected') {
+      this.showDetailsDialog.set(false);
+      this.openDisabilityRejectionDialog(disability);
+      return;
+    }
+
     const validStatus = statusValue as 'pending' | 'approved' | 'rejected';
-    if (['pending', 'approved', 'rejected'].includes(statusValue)) {
+    if (['pending', 'approved'].includes(statusValue)) {
       this.updateDisabilityStatus(disability.id, validStatus);
     }
   }

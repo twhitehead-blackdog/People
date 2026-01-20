@@ -1349,10 +1349,7 @@ type Reminder = {
                           (onClick)="markReminderNotApplicable(reminder)"
                           pTooltip="Marcar como No Aplica"
                         />
-                        }
-                        }
-
-                        @if (!reminder.audit_task_instance_id) {
+                        } } @if (!reminder.audit_task_instance_id) {
                         <p-button
                           icon="pi pi-trash"
                           severity="danger"
@@ -1598,6 +1595,31 @@ type Reminder = {
                       "
                     />
                   </div>
+
+                  <!-- Motivo de Rechazo (si aplica) -->
+                  @if ((selectedRequest().status === 'rejected' ||
+                  selectedRequest().review_status === 'rejected') &&
+                  (selectedRequest().rejection_comment ||
+                  selectedRequest().notes)) {
+                  <div class="col-span-1 md:col-span-2">
+                    <div
+                      class="bg-red-500/10 border border-red-500/30 rounded-lg p-4"
+                    >
+                      <h4
+                        class="text-red-300 font-semibold mb-2 flex items-center gap-2"
+                      >
+                        <i class="pi pi-exclamation-circle text-red-400"></i>
+                        Motivo del Rechazo
+                      </h4>
+                      <p class="text-red-200 text-sm whitespace-pre-wrap">
+                        {{
+                          selectedRequest().rejection_comment ||
+                            selectedRequest().notes
+                        }}
+                      </p>
+                    </div>
+                  </div>
+                  }
 
                   <!-- Fecha de creación -->
                   <div>

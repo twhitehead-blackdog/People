@@ -357,7 +357,7 @@ type ManagementCard = {
             [manualOvertimeDates]="manualOvertimeDates()"
             [newOvertimeDate]="newOvertimeDate()"
             (newOvertimeDateChange)="newOvertimeDate.set($event)"
-            (addManualDate)="addManualOvertimeDate()"
+            (addManualDate)="addManualOvertimeDate($event)"
             (removeManualDate)="removeManualOvertimeDate($event)"
             [compensatoryFile]="compensatoryFile()"
             (compensatoryFileChange)="compensatoryFile.set($event)"
@@ -1060,7 +1060,7 @@ type ManagementCard = {
               <textarea
                 pInputTextarea
                 [(ngModel)]="uniformNotes"
-                placeholder="Comentarios adicionales sobre la solicitud (ej: motivo del cambio, preferencia de color, etc.)"
+                placeholder="Comentarios adicionales sobre la solicitud (ej: motivo del cambio, etc.)"
                 rows="3"
                 class="w-full"
                 ptTutorialStep="uniform-notes"
@@ -1198,6 +1198,7 @@ export class BranchManagerGestionesComponent {
   // Opciones para tipos de prenda (preparado para añadir más en el futuro)
   public uniformItemTypeOptions = [
     { label: 'Camisa', value: 'camisa' },
+    { label: 'Suéter', value: 'sueter' },
     // Añadir más opciones aquí cuando sea necesario:
     // { label: 'Pantalón', value: 'pantalon' },
     // { label: 'Gorra', value: 'gorra' },
@@ -1231,10 +1232,10 @@ export class BranchManagerGestionesComponent {
         manualDates.length > 0
       );
     } else {
+      // For days type: reason is optional per UI "Paso 3: Motivo (Opcional)"
       return !!(
         this.compensatoryStartDate() &&
         this.compensatoryEndDate() &&
-        reason &&
         manualDates.length > 0
       );
     }
@@ -1463,12 +1464,15 @@ export class BranchManagerGestionesComponent {
   }
 
   // Métodos para Compensatorio
-  public addManualOvertimeDate(): void {
-    const date = this.newOvertimeDate();
-    if (date) {
+  public addManualOvertimeDate(date?: Date): void {
+    // Si viene la fecha como parámetro (desde employee-portal-compensatory), usarla
+    // Si no, intentar leerla del signal (retrocompatibilidad)
+    const dateToAdd = date || this.newOvertimeDate();
+
+    if (dateToAdd) {
       const existing = this.manualOvertimeDates();
       this.manualOvertimeDates.set(
-        [...existing, date].sort((a, b) => a.getTime() - b.getTime())
+        [...existing, dateToAdd].sort((a, b) => a.getTime() - b.getTime())
       );
       this.newOvertimeDate.set(null);
     }
