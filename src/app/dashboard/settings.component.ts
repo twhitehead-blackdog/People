@@ -765,11 +765,11 @@ interface EmailConfig {
             <ng-template #title>
               <div class="flex items-center gap-2">
                 <i class="pi pi-shopping-cart text-purple-400"></i>
-                Comparación de Precios M-Pets
+                M-Pets: Puppis vs Black Dog
               </div>
             </ng-template>
             <ng-template #subtitle>
-              Catálogo de productos M-Pets de Puppis Argentina con precios en ARS y USD
+              Comparación de precios M-Pets entre Puppis Argentina y Black Dog Panamá
             </ng-template>
 
             <div class="flex flex-col gap-4">
@@ -784,9 +784,9 @@ interface EmailConfig {
                       Herramienta de Comparación
                     </p>
                     <p class="text-sm text-gray-300 m-0">
-                      Esta página muestra los productos M-Pets de Puppis Argentina 
-                      para facilitar la comparación de precios. Incluye más de 130 productos
-                      con precios en Pesos Argentinos y Dólares (tasa: 1 USD = 1,505 ARS).
+                      Compara productos M-Pets entre Puppis Argentina 🇦🇷 y Black Dog Panamá 🇵🇦.
+                      Los productos coincidentes muestran la diferencia de precio en USD.
+                      Tasa: 1 USD = 1,505 ARS (Dólar Blue).
                     </p>
                   </div>
                 </div>
@@ -805,7 +805,7 @@ interface EmailConfig {
               <!-- Iframe container -->
               <div class="rounded-lg overflow-hidden border border-neutral-700" style="height: 600px;">
                 <iframe
-                  src="/mpets-puppis-precios.html"
+                  src="/mpets-comparacion.html"
                   class="w-full h-full border-0"
                   title="M-Pets Precios Argentina"
                 ></iframe>
@@ -1286,8 +1286,8 @@ export class SettingsComponent {
       });
   }
 
-  // Abrir página de M-Pets en nueva ventana
+  // Abrir página de M-Pets Comparación en nueva ventana
   openMPetsPage(): void {
-    window.open('/mpets-puppis-precios.html', '_blank');
+    window.open('/mpets-comparacion.html', '_blank');
   }
 }

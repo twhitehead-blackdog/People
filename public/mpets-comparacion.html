@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      M-Pets: Puppis Argentina vs Black Dog Panamá - Comparación de Precios
+    </title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg-dark: #0f172a;
+        --bg-card: #1e293b;
+        --text-light: #f8fafc;
+        --text-muted: #94a3b8;
+        --border: #334155;
+        --puppis-color: #6366f1;
+        --blackdog-color: #22c55e;
+        --match-color: #f59e0b;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: 'Inter', sans-serif;
+        background: var(--bg-dark);
+        color: var(--text-light);
+        min-height: 100vh;
+      }
+      .header {
+        background: linear-gradient(135deg, var(--bg-card) 0%, #0f172a 100%);
+        padding: 1.5rem;
+        text-align: center;
+        border-bottom: 1px solid var(--border);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+      .header h1 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+      }
+      .header h1 span:first-child {
+        color: var(--puppis-color);
+      }
+      .header h1 span:last-child {
+        color: var(--blackdog-color);
+      }
+      .controls {
+        max-width: 1400px;
+        margin: 1rem auto;
+        padding: 0 1rem;
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .search-box {
+        flex: 1;
+        min-width: 200px;
+        position: relative;
+      }
+      .search-box input {
+        width: 100%;
+        padding: 0.75rem 0.75rem 0.75rem 2.5rem;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--bg-card);
+        color: var(--text-light);
+        font-size: 0.875rem;
+      }
+      .search-box::before {
+        content: '🔍';
+        position: absolute;
+        left: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+      .filter-btns {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+      .filter-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg-card);
+        color: var(--text-light);
+        cursor: pointer;
+        font-size: 0.8rem;
+        transition: all 0.2s;
+      }
+      .filter-btn.active {
+        background: var(--match-color);
+        border-color: var(--match-color);
+        color: #000;
+      }
+      .filter-btn:hover {
+        border-color: var(--match-color);
+      }
+      .stats {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+      }
+      .stat-box {
+        background: var(--bg-card);
+        padding: 0.5rem 1rem;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .stat-box .number {
+        font-size: 1.25rem;
+        font-weight: 700;
+      }
+      .stat-box.matches .number {
+        color: var(--match-color);
+      }
+      .stat-box.puppis .number {
+        color: var(--puppis-color);
+      }
+      .stat-box.blackdog .number {
+        color: var(--blackdog-color);
+      }
+      .stat-box .label {
+        color: var(--text-muted);
+        font-size: 0.7rem;
+      }
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 1rem;
+      }
+      .section-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: 1.5rem 0 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .section-title.matches {
+        border-color: var(--match-color);
+        color: var(--match-color);
+      }
+      .section-title.puppis {
+        border-color: var(--puppis-color);
+        color: var(--puppis-color);
+      }
+      .section-title.blackdog {
+        border-color: var(--blackdog-color);
+        color: var(--blackdog-color);
+      }
+      .products-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+        gap: 1rem;
+      }
+      .match-card {
+        background: var(--bg-card);
+        border-radius: 12px;
+        border: 2px solid var(--match-color);
+        overflow: hidden;
+      }
+      .match-header {
+        background: linear-gradient(
+          135deg,
+          rgba(245, 158, 11, 0.2) 0%,
+          transparent 100%
+        );
+        padding: 0.75rem 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .match-name {
+        font-weight: 600;
+        font-size: 0.9rem;
+      }
+      .savings-badge {
+        background: var(--match-color);
+        color: #000;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+      }
+      .match-body {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+      .store-side {
+        padding: 0.75rem;
+      }
+      .store-side.puppis {
+        background: rgba(99, 102, 241, 0.1);
+        border-right: 1px solid var(--border);
+      }
+      .store-side.blackdog {
+        background: rgba(34, 197, 94, 0.1);
+      }
+      .store-label {
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.5rem;
+      }
+      .store-side.puppis .store-label {
+        color: var(--puppis-color);
+      }
+      .store-side.blackdog .store-label {
+        color: var(--blackdog-color);
+      }
+      .store-img {
+        width: 60px;
+        height: 60px;
+        background: #fff;
+        border-radius: 8px;
+        margin-bottom: 0.5rem;
+        overflow: hidden;
+      }
+      .store-img img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+      .store-price {
+        font-size: 1.1rem;
+        font-weight: 700;
+      }
+      .store-side.puppis .store-price {
+        color: var(--puppis-color);
+      }
+      .store-side.blackdog .store-price {
+        color: var(--blackdog-color);
+      }
+      .store-price-sub {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+      }
+      .single-card {
+        background: var(--bg-card);
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        padding: 0.75rem;
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+      }
+      .single-img {
+        width: 60px;
+        height: 60px;
+        background: #fff;
+        border-radius: 8px;
+        overflow: hidden;
+        flex-shrink: 0;
+      }
+      .single-img img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+      .single-info {
+        flex: 1;
+        min-width: 0;
+      }
+      .single-name {
+        font-size: 0.85rem;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .single-price {
+        font-size: 1rem;
+        font-weight: 700;
+        margin-top: 0.25rem;
+      }
+      .no-results {
+        text-align: center;
+        padding: 3rem;
+        color: var(--text-muted);
+      }
+      @media (max-width: 600px) {
+        .products-grid {
+          grid-template-columns: 1fr;
+        }
+        .match-body {
+          grid-template-columns: 1fr;
+        }
+        .store-side.puppis {
+          border-right: none;
+          border-bottom: 1px solid var(--border);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="header">
+      <h1>🐾 <span>Puppis Argentina</span> vs <span>Black Dog Panamá</span></h1>
+      <p style="color: var(--text-muted); font-size: 0.875rem">
+        Comparación de precios M-Pets | Tasa: 1 USD = 1,505 ARS
+      </p>
+    </header>
+    <div class="controls">
+      <div class="search-box">
+        <input
+          type="text"
+          id="searchInput"
+          placeholder="Buscar productos..."
+          oninput="filterProducts()"
+        />
+      </div>
+      <div class="filter-btns">
+        <button
+          class="filter-btn active"
+          data-filter="all"
+          onclick="setFilter('all')"
+        >
+          Todos
+        </button>
+        <button
+          class="filter-btn"
+          data-filter="matches"
+          onclick="setFilter('matches')"
+        >
+          🔥 Matches
+        </button>
+        <button
+          class="filter-btn"
+          data-filter="puppis"
+          onclick="setFilter('puppis')"
+        >
+          Solo Puppis
+        </button>
+        <button
+          class="filter-btn"
+          data-filter="blackdog"
+          onclick="setFilter('blackdog')"
+        >
+          Solo Black Dog
+        </button>
+      </div>
+      <div class="stats">
+        <div class="stat-box matches">
+          <span class="number" id="matchCount">0</span
+          ><span class="label">Matches</span>
+        </div>
+        <div class="stat-box puppis">
+          <span class="number" id="puppisCount">0</span
+          ><span class="label">Puppis</span>
+        </div>
+        <div class="stat-box blackdog">
+          <span class="number" id="blackdogCount">0</span
+          ><span class="label">Black Dog</span>
+        </div>
+      </div>
+    </div>
+    <div class="container">
+      <div id="matchesSection"></div>
+      <div id="puppisSection"></div>
+      <div id="blackdogSection"></div>
+      <div class="no-results" id="noResults" style="display: none">
+        <h2>😿 No se encontraron productos</h2>
+      </div>
+    </div>
+    <script>
+      const EXCHANGE_RATE = 1505;
+      const puppisProducts = [
+        {
+          name: 'Comedero M-Pets Acero Inoxidable',
+          priceARS: 19000,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/197039-500-auto',
+        },
+        {
+          name: 'Bandeja Mpets para Lamer Azul',
+          priceARS: 49000,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/202155-500-auto',
+        },
+        {
+          name: 'Arnes Mpets Hiking Negro',
+          priceARS: 70500,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/201842-500-auto',
+        },
+        {
+          name: 'Correa Retractil M-Pets Azul',
+          priceARS: 41500,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/197003-500-auto',
+        },
+        {
+          name: 'Comedero M-Pets Bowl Crock Acero',
+          priceARS: 28000,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/205059-500-auto',
+        },
+        {
+          name: 'Comedero Doble Mpets Ceramica Bambu',
+          priceARS: 76500,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/202128-500-auto',
+        },
+        {
+          name: 'Juguete M-Pets Hueso Ecologico',
+          priceARS: 41000,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/183218-500-auto',
+        },
+        {
+          name: 'Collar Caruso M-Pets Gato',
+          priceARS: 10500,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/197180-500-auto',
+        },
+        {
+          name: 'Fuente Mpets Drinking Fountain',
+          priceARS: 66703,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/194500-500-auto',
+        },
+        {
+          name: 'Juguete M-Pets Frisbee Sprintpuff',
+          priceARS: 23000,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/205207-500-auto',
+        },
+        {
+          name: 'Bebedero Mpets Dispenser Azul',
+          priceARS: 23500,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/202081-500-auto',
+        },
+        {
+          name: 'Arnes y Correa M-Pets Catogo Gatos',
+          priceARS: 28500,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/188025-500-auto',
+        },
+        {
+          name: 'Comedero M-Pets de Bambu',
+          priceARS: 10500,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/197061-500-auto',
+        },
+        {
+          name: 'Dispensador de Agua M-Pets',
+          priceARS: 48500,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/197107-500-auto',
+        },
+        {
+          name: 'Dispensador de Alimento M-Pets',
+          priceARS: 48500,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/197178-500-auto',
+        },
+        {
+          name: 'Hueso de Goma M-Pets Sabor Bacon',
+          priceARS: 38500,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/197104-500-auto',
+        },
+        {
+          name: 'Comedero M-Pets Plegable',
+          priceARS: 28500,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/188035-500-auto',
+        },
+        {
+          name: 'Juguete M-Pets Ecologico Vigo Verde',
+          priceARS: 53500,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/185750-500-auto',
+        },
+        {
+          name: 'Juguete M-Pets Ecologico Loki Verde',
+          priceARS: 53500,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/187586-500-auto',
+        },
+        {
+          name: 'Juguete M-Pets Ecologico Thor Verde',
+          priceARS: 53500,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/187584-500-auto',
+        },
+        {
+          name: 'Transportadora Eco M-Pets',
+          priceARS: 89000,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/197081-500-auto',
+        },
+        {
+          name: 'Cama M-Pets Snugo Ecologica Gris',
+          priceARS: 91000,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/205193-500-auto',
+        },
+        {
+          name: 'Bolso M-Pets de Viaje',
+          priceARS: 91000,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/198752-500-auto',
+        },
+        {
+          name: 'Bolso M-Pets Travel',
+          priceARS: 101500,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/198753-500-auto',
+        },
+        {
+          name: 'Cubre Asiento Mpets',
+          priceARS: 80000,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/202016-500-auto',
+        },
+        {
+          name: 'Transportadora Corsa Mpets',
+          priceARS: 95000,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/202019-500-auto',
+        },
+        {
+          name: 'Transportadora Carrier Mpets',
+          priceARS: 273500,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/202018-500-auto',
+        },
+        {
+          name: 'Cama Mpets Tipi Yull Gris',
+          priceARS: 109000,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/201829-500-auto',
+        },
+        {
+          name: 'Bozal M-Pets Bark Negro',
+          priceARS: 29000,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/197013-500-auto',
+        },
+        {
+          name: 'M-Pets Taza Elevada Urban',
+          priceARS: 40600,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/198757-500-auto',
+        },
+        {
+          name: 'M-Pets Tazon Elevado Doble Gato',
+          priceARS: 78000,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/198751-500-auto',
+        },
+        {
+          name: 'Correa Hiking M-Pets Naranja',
+          priceARS: 51550,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/189193-500-auto',
+        },
+        {
+          name: 'Correa Antishock M-Pets Negro',
+          priceARS: 55500,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/197007-500-auto',
+        },
+        {
+          name: 'Juguete Mpets Polaris Blanco',
+          priceARS: 99000,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/194412-500-auto',
+        },
+        {
+          name: 'Lanzador Bazooka M-Pets',
+          priceARS: 34500,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/197055-500-auto',
+        },
+        {
+          name: 'Pelota M-Pets Sabor Carne',
+          priceARS: 20000,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/197032-500-auto',
+        },
+        {
+          name: 'Hueso de Goma Natural M-Pets',
+          priceARS: 20000,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/197036-500-auto',
+        },
+        {
+          name: 'Cochecito M-pets Paseo Conquest',
+          priceARS: 398500,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/205102-500-auto',
+        },
+        {
+          name: 'Arnes M-Pets Origami Cherry Fold',
+          priceARS: 55500,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/205112-500-auto',
+        },
+        {
+          name: 'Arnes M-Pets Origami Aqua Twist',
+          priceARS: 55500,
+          imageUrl:
+            'https://puppis.vtexassets.com/arquivos/ids/205121-500-auto',
+        },
+      ];
+      const blackdogProducts = [
+        {
+          name: 'MPets Altan Fuente de Agua 2000ml',
+          priceUSD: 34.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/M_PETS_20501299_ALTAN_Drinking_Fountain_CAT_2L_3D_Sim_SQ_CMYK_e50efd7f-b9ce-454a-a88c-d428a17b3784.webp?v=1759457583&width=400',
+        },
+        {
+          name: 'MPets Carnivore Dog Toy Meaty Bone Sabor Tocino S',
+          priceUSD: 8.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/Untitled_design_27_c60def42-ad8a-43f0-8d0a-e038a9f35232.webp?v=1759459714&width=400',
+        },
+        {
+          name: 'MPets Wave Ball',
+          priceUSD: 3.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/1a79c0114a5664b8c670e18c20deaafe13261c53_abed5a5b-222d-4d89-ba2d-948736338424.jpg?v=1763751818&width=400',
+        },
+        {
+          name: 'Anti-Allergie Shampoo 250ml',
+          priceUSD: 6.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/b3f7d0a0a325c6186641a7405ee66448.webp?v=1759458111&width=400',
+        },
+        {
+          name: 'MPets Mascarade Rascador Ram',
+          priceUSD: 15.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/M-PETS-Mascarade-Cat-Scratcher-Ram-2_1024x_bc3b3679-59e4-4a9f-8406-06737da2c99b.webp?v=1763752386&width=400',
+        },
+        {
+          name: 'MPets Charmy Matatabi Toy Amulet',
+          priceUSD: 4.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/m-pets-charmy-amulet-matatabi-catnip-cat-toy-6953182748311-125277.webp?v=1763754264&width=400',
+        },
+        {
+          name: 'MPets Charmy Catnip Toy Naranja',
+          priceUSD: 4.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/Untitled_design_14_0b1e5ea0-5e52-4cfd-aeaa-071c07aef070.webp?v=1763755069&width=400',
+        },
+        {
+          name: 'MPets Chain Leash Correa de Cadena 4mm',
+          priceUSD: 17.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/m-pets-chain-leash-for-dog-padded-handle-4-mm-120cm-silver_d6cd23fd-a282-48a6-8be5-6e9b9e822280.jpg?v=1763756086&width=400',
+        },
+        {
+          name: 'MPets CATtraction Catnip Powder 40g',
+          priceUSD: 5.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/MPetsCATtractionCatnipPowder_40g.png?v=1763756814&width=400',
+        },
+        {
+          name: 'MPets CATDOG Collar Luminoso Verde XL',
+          priceUSD: 16.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/MPETSCATDOGLuminousPrettyCollar_XL_1ce5d438-62da-4ee3-b6a8-1254b42c683c.png?v=1763565349&width=400',
+        },
+        {
+          name: 'MPets Catch The Mouse Juguete',
+          priceUSD: 39.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/MPetsCatchTheMouseJuguete_Unidad.png?v=1763757580&width=400',
+        },
+        {
+          name: 'MPets Catapult Ball Launcher',
+          priceUSD: 5.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/MPetsCatapultBallLauncher_Unidad.png?v=1763757916&width=400',
+        },
+        {
+          name: 'MPets Discus',
+          priceUSD: 12.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/MPetsJugueteDiscusparaGatos_Unidad.png?v=1763753146&width=400',
+        },
+        {
+          name: 'MPets Shampoo 250ml',
+          priceUSD: 4.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/Untitled_design_66_18402750-9f2e-4897-bafa-758af17975b2.webp?v=1763753196&width=400',
+        },
+        {
+          name: 'MPets Cascado',
+          priceUSD: 14.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/MPetsCascadoCatToy_Unidad.png?v=1763758727&width=400',
+        },
+        {
+          name: 'MPets Caruso Collar con Cascabel Beige',
+          priceUSD: 3.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/6953182719465-1000x1000.webp?v=1759459805&width=400',
+        },
+        {
+          name: 'MPets Carnivore Stick Bone Sabor Tocino',
+          priceUSD: 7.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/6953182725800.webp?v=1759459779&width=400',
+        },
+        {
+          name: 'MPets Carnivore Costillas Sabor Tocino',
+          priceUSD: 8.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/d502021395f4f64eee04c2d0ee9d3ed3.webp?v=1763817992&width=400',
+        },
+        {
+          name: 'MPets Carnivore Hueso Sabroso Sabor Tocino',
+          priceUSD: 8.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/Untitled_design_27_38cbd1f5-0ac4-4bde-9965-1ad0d8120911.webp?v=1759459753&width=400',
+        },
+        {
+          name: 'MPets Carnivore Ring Bone Sabor Tocino',
+          priceUSD: 6.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/6953182725787_fd07fe64-df62-4a87-9c42-45a3db065c0e.webp?v=1759459727&width=400',
+        },
+        {
+          name: 'MPets Carnivore Drumstick Sabor Tocino',
+          priceUSD: 9.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/Untitleddesign_23_9396ec13-3eb2-42e0-bc02-e4781aa0735a.webp?v=1763995368&width=400',
+        },
+        {
+          name: 'MPets Carnivore Boomerang Bone Sabor Tocino L',
+          priceUSD: 9.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/Untitled_design_11_9bfb1f43-2734-46ab-8737-06b1c12c92ed.webp?v=1763995409&width=400',
+        },
+        {
+          name: 'MPets Cappuccino Blanket Manta',
+          priceUSD: 79.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/Untitled_design_91_b3984c7e-79d0-4ef5-bcc4-15c4ee6e1958.webp?v=1763823008&width=400',
+        },
+        {
+          name: 'MPets Capella Interactive Cat Toy',
+          priceUSD: 14.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/M-PETS_20630799_CAPELLAInteractiveCatToy_3Dsim.psd_V2copie.webp?v=1763823163&width=400',
+        },
+        {
+          name: 'MPets Butterfly Cat Toy',
+          priceUSD: 3.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/Untitled_design_-_2025-01-20T104453.734.webp?v=1763824368&width=400',
+        },
+        {
+          name: 'MPets Build IT Pisa Cat Scratcher',
+          priceUSD: 29.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/M_PETS_20611599_BUILD_IT_Pisa_sim_brown_copie_d2777975-8411-4e39-8952-0980548dbe72.webp?v=1763824577&width=400',
+        },
+        {
+          name: 'BUILD IT CAPITOL Cat Scratcher',
+          priceUSD: 39.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/MP20612399.webp?v=1759459030&width=400',
+        },
+        {
+          name: 'MPets Buck ECO Dog Toy',
+          priceUSD: 12.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/Untitled_design_7_7a2af0d5-d3e9-4987-81eb-1066ddb23664.webp?v=1763823339&width=400',
+        },
+        {
+          name: 'MPets Bristle Brush Cepillo',
+          priceUSD: 9.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/Untitled_design_48_d4281168-c82f-4757-9ad6-9ff6829d48be.webp?v=1763824692&width=400',
+        },
+        {
+          name: 'MPets Brainy Games Galileo L3',
+          priceUSD: 19.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/Untitled_design_97_ff214ff9-a0ed-462b-b758-c518681cfa5c.webp?v=1763828739&width=400',
+        },
+        {
+          name: 'MPets Brainy Games Einstein L3',
+          priceUSD: 16.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/Untitled_design_95_2f341e30-d89a-4aed-b097-912510917427.webp?v=1763829100&width=400',
+        },
+        {
+          name: 'MPets Brainy Games Darwin L1',
+          priceUSD: 13.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/Untitled_design_93_67ef13a4-5eb4-4887-bfc6-3c2a042ffcac.webp?v=1763829484&width=400',
+        },
+        {
+          name: 'MPets Brainy Games Da Vinci L3',
+          priceUSD: 19.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/Untitled_design_89_1334c99b-ed1b-4fb3-bc99-adf60cc60346.webp?v=1763829542&width=400',
+        },
+        {
+          name: 'MPets Brainy Games Curie L4',
+          priceUSD: 16.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/Untitled_design_76_c870afef-d525-455c-8074-bd591c7050f6.webp?v=1763829997&width=400',
+        },
+        {
+          name: 'MPets Brainy Games Copernic L2',
+          priceUSD: 19.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/Untitled_design_75_d3d7f85d-141a-4ed6-ae69-e7e5ae69d6bb.webp?v=1763829926&width=400',
+        },
+        {
+          name: 'MPets Boogie Box',
+          priceUSD: 24.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/mpets-boogie-box.webp?v=1759458627&width=400',
+        },
+        {
+          name: 'MPets Bloom Ring',
+          priceUSD: 9.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/Untitled_design_78_3f7a000a-d8d5-4cc7-9eb5-aa387936bda5.webp?v=1763830455&width=400',
+        },
+        {
+          name: 'MPets Bloom Ball Mixed color',
+          priceUSD: 7.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/f501d5129e739d5f8764e77fde184afa.webp?v=1759458603&width=400',
+        },
+        {
+          name: 'Lanzador de Pelotas BAZOOKA',
+          priceUSD: 22.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/61wSrFTlRML.webp?v=1759458340&width=400',
+        },
+        {
+          name: 'BASTION Protective dog Collar XS',
+          priceUSD: 9.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/3573ca51cbfb0a627b0a484f5284b13e_f3b097e8-dbbc-4999-8725-0334d34be458.webp?v=1759458326&width=400',
+        },
+        {
+          name: 'BASTION Protective dog Collar XL',
+          priceUSD: 13.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/0bbe8466143e3c6310c14523fad77a9e.webp?v=1759458300&width=400',
+        },
+        {
+          name: 'BASTION Protective dog Collar S',
+          priceUSD: 10.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/0fe898d64b97cb0f80e4de5ce8b32e82.webp?v=1759458288&width=400',
+        },
+        {
+          name: 'BASTION Protective dog Collar M',
+          priceUSD: 11.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/3573ca51cbfb0a627b0a484f5284b13e_bcd9c814-4c98-4add-8db2-4080d09fda36.webp?v=1759458274&width=400',
+        },
+        {
+          name: 'BASTION Protective dog Collar L',
+          priceUSD: 12.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/3573ca51cbfb0a627b0a484f5284b13e.webp?v=1759458261&width=400',
+        },
+        {
+          name: 'MPets Bamboo Pet Bowl 300ml',
+          priceUSD: 5.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/Untitled_design_34_4b810d27-206b-4529-b70b-d37fb7cd809a.webp?v=1763824140&width=400',
+        },
+        {
+          name: 'AVENTURA Pet Stroller',
+          priceUSD: 159.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/59693713fb10a3aab6f1af50e011d142.webp?v=1759458035&width=400',
+        },
+        {
+          name: 'MPETS AUTOBRAKE Retractable Smart Leash L',
+          priceUSD: 34.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/MPETSAUTOBRAKERetractableSmartLeash_L1.png?v=1763497138&width=400',
+        },
+        {
+          name: 'MPETS AUTOBRAKE Retractable Smart Leash M',
+          priceUSD: 32.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/AUTOBRAKERetractableSmartLeash-M.png?v=1763497047&width=400',
+        },
+        {
+          name: 'MPETS AUTOBRAKE Retractable Smart Leash S',
+          priceUSD: 29.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/MPETSAUTOBRAKERetractableSmartLeash_L.png?v=1763496943&width=400',
+        },
+        {
+          name: 'ANOUCHKA Chicken toys',
+          priceUSD: 12.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/a643dd03-31ae-4cfa-af04-0798281de024_130f3f87-eaa0-4032-bb6e-dd45899d6e82.webp?v=1759457646&width=400',
+        },
+        {
+          name: 'ANASTASIA Chicken',
+          priceUSD: 7.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/0f95bdb0c39819642310a434006e00fc.webp?v=1759457633&width=400',
+        },
+        {
+          name: 'ALTITUDE URBAN STYLE Double Raised Pet Bowl',
+          priceUSD: 24.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/M-PETS_10554099_ALTITUDE-URBAN-STYLE-Double-Raised-Pet-Bowl_Multicolour_3D-SIM_3db3635a-77d9-4db0-a225-35f05d4c157a.webp?v=1759457608&width=400',
+        },
+        {
+          name: 'ALTITUDE Double Raised Pet Bowl',
+          priceUSD: 29.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/Untitled_design_40_27f590bd-5a44-4cfa-b86a-afeb37d974ec.webp?v=1759457595&width=400',
+        },
+        {
+          name: 'ALPHA Interactive Cat Toy Pink',
+          priceUSD: 34.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/ALPHAInteractiveCatToy-Pink_20632807_0001-750x750.webp?v=1759457558&width=400',
+        },
+        {
+          name: 'ALPHA Interactive Cat Toy White',
+          priceUSD: 34.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/Untitled_design_34_4e4e8d6e-2160-4816-912d-e21c9813722d.webp?v=1759457571&width=400',
+        },
+        {
+          name: 'AIR TOSS Dog Floating Toy Wheel Blue',
+          priceUSD: 11.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/331708036b3933274ae089c7c45d10a6.webp?v=1759457447&width=400',
+        },
+        {
+          name: 'AIR TOSS Dog Floating Toy Twist Blue',
+          priceUSD: 11.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/889488bf0fee0808c007e49c2ce5cc28.webp?v=1759457435&width=400',
+        },
+        {
+          name: 'AIR TOSS Dog Floating Toy Mobius Blue',
+          name: 'MPets 3-Headed Toothbrush Cepillo Dental',
+          priceUSD: 8.99,
+          imageUrl:
+            'https://www.blackdogpanama.com/cdn/shop/files/Untitled_design_-_2025-01-02T114301.004.webp?v=1763996567&width=400',
+        },
+      ];
+      let currentFilter = 'all';
+      function normalizeForMatch(name) {
+        return name
+          .toLowerCase()
+          .normalize('NFD')
+          .replace(/[\u0300-\u036f]/g, '')
+          .replace(/m-pets|mpets|m pets/gi, '')
+          .replace(/para perro|para gato|dog|cat/gi, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+      }
+      function findMatches() {
+        const matches = [];
+        const usedBlackdog = new Set();
+        puppisProducts.forEach((p) => {
+          const pNorm = normalizeForMatch(p.name);
+          let bestMatch = null,
+            bestScore = 0;
+          blackdogProducts.forEach((b, idx) => {
+            if (usedBlackdog.has(idx)) return;
+            const bNorm = normalizeForMatch(b.name);
+            const pWords = pNorm.split(' ').filter((w) => w.length > 2);
+            const bWords = bNorm.split(' ').filter((w) => w.length > 2);
+            let matchingWords = 0;
+            pWords.forEach((pw) => {
+              if (bWords.some((bw) => bw.includes(pw) || pw.includes(bw)))
+                matchingWords++;
+            });
+            const score = matchingWords / Math.max(pWords.length, 1);
+            if (score > 0.5 && score > bestScore) {
+              bestScore = score;
+              bestMatch = { blackdog: b, idx, score };
+            }
+          });
+          if (bestMatch) {
+            usedBlackdog.add(bestMatch.idx);
+            matches.push({
+              puppis: p,
+              blackdog: bestMatch.blackdog,
+              score: bestMatch.score,
+            });
+          }
+        });
+        return matches;
+      }
+      const matches = findMatches();
+      const matchedPuppisNames = new Set(matches.map((m) => m.puppis.name));
+      const matchedBlackdogNames = new Set(matches.map((m) => m.blackdog.name));
+      const puppisOnly = puppisProducts.filter(
+        (p) => !matchedPuppisNames.has(p.name)
+      );
+      const blackdogOnly = blackdogProducts.filter(
+        (b) => !matchedBlackdogNames.has(b.name)
+      );
+      function formatARS(n) {
+        return n.toLocaleString('es-AR');
+      }
+      function formatUSD(n) {
+        return n.toFixed(2);
+      }
+      function calculateUSD(ars) {
+        return (ars / EXCHANGE_RATE).toFixed(2);
+      }
+      function renderMatches(data) {
+        if (!data.length) return '';
+        let html =
+          '<h2 class="section-title matches">🔥 Productos Coincidentes (' +
+          data.length +
+          ')</h2><div class="products-grid">';
+        data.forEach((m) => {
+          const puppisUSD = parseFloat(calculateUSD(m.puppis.priceARS));
+          const diff = m.blackdog.priceUSD - puppisUSD;
+          const cheaper = diff > 0 ? 'Puppis' : 'Black Dog';
+          const savings = Math.abs(diff).toFixed(2);
+          html +=
+            '<div class="match-card"><div class="match-header"><div class="match-name">' +
+            m.puppis.name.substring(0, 50) +
+            '</div><div class="savings-badge">' +
+            (diff !== 0
+              ? cheaper + ' $' + savings + ' USD más barato'
+              : 'Mismo precio') +
+            '</div></div><div class="match-body"><div class="store-side puppis"><div class="store-label">Puppis Argentina</div><div class="store-img"><img src="' +
+            m.puppis.imageUrl +
+            '" loading="lazy"></div><div class="store-price">$' +
+            formatARS(m.puppis.priceARS) +
+            ' ARS</div><div class="store-price-sub">≈ $' +
+            puppisUSD +
+            ' USD</div></div><div class="store-side blackdog"><div class="store-label">Black Dog Panamá</div><div class="store-img"><img src="' +
+            m.blackdog.imageUrl +
+            '" loading="lazy"></div><div class="store-price">$' +
+            formatUSD(m.blackdog.priceUSD) +
+            ' USD</div></div></div></div>';
+        });
+        return html + '</div>';
+      }
+      function renderSingle(data, store) {
+        if (!data.length) return '';
+        const label =
+          store === 'puppis' ? 'Puppis Argentina' : 'Black Dog Panamá';
+        let html =
+          '<h2 class="section-title ' +
+          store +
+          '">' +
+          (store === 'puppis' ? '🇦🇷' : '🇵🇦') +
+          ' Solo en ' +
+          label +
+          ' (' +
+          data.length +
+          ')</h2><div class="products-grid" style="grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));">';
+        data.forEach((p) => {
+          const price =
+            store === 'puppis'
+              ? '$' + formatARS(p.priceARS) + ' ARS'
+              : '$' + formatUSD(p.priceUSD) + ' USD';
+          html +=
+            '<div class="single-card"><div class="single-img"><img src="' +
+            p.imageUrl +
+            '" loading="lazy"></div><div class="single-info"><div class="single-name" title="' +
+            p.name +
+            '">' +
+            p.name +
+            '</div><div class="single-price" style="color: var(--' +
+            store +
+            '-color);">' +
+            price +
+            '</div></div></div>';
+        });
+        return html + '</div>';
+      }
+      function filterProducts() {
+        const search = document
+          .getElementById('searchInput')
+          .value.toLowerCase();
+        const filteredMatches = matches.filter(
+          (m) =>
+            m.puppis.name.toLowerCase().includes(search) ||
+            m.blackdog.name.toLowerCase().includes(search)
+        );
+        const filteredPuppis = puppisOnly.filter((p) =>
+          p.name.toLowerCase().includes(search)
+        );
+        const filteredBlackdog = blackdogOnly.filter((b) =>
+          b.name.toLowerCase().includes(search)
+        );
+        document.getElementById('matchCount').textContent =
+          filteredMatches.length;
+        document.getElementById('puppisCount').textContent =
+          filteredPuppis.length;
+        document.getElementById('blackdogCount').textContent =
+          filteredBlackdog.length;
+        const showMatches =
+          currentFilter === 'all' || currentFilter === 'matches';
+        const showPuppis =
+          currentFilter === 'all' || currentFilter === 'puppis';
+        const showBlackdog =
+          currentFilter === 'all' || currentFilter === 'blackdog';
+        document.getElementById('matchesSection').innerHTML = showMatches
+          ? renderMatches(filteredMatches)
+          : '';
+        document.getElementById('puppisSection').innerHTML = showPuppis
+          ? renderSingle(filteredPuppis, 'puppis')
+          : '';
+        document.getElementById('blackdogSection').innerHTML = showBlackdog
+          ? renderSingle(filteredBlackdog, 'blackdog')
+          : '';
+        const hasResults =
+          (showMatches && filteredMatches.length) ||
+          (showPuppis && filteredPuppis.length) ||
+          (showBlackdog && filteredBlackdog.length);
+        document.getElementById('noResults').style.display = hasResults
+          ? 'none'
+          : 'block';
+      }
+      function setFilter(f) {
+        currentFilter = f;
+        document
+          .querySelectorAll('.filter-btn')
+          .forEach((b) => b.classList.toggle('active', b.dataset.filter === f));
+        filterProducts();
+      }
+      document.addEventListener('DOMContentLoaded', filterProducts);
+    </script>
+  </body>
+</html>
