@@ -1449,7 +1449,7 @@ type Reminder = {
       <p-dialog
         [(visible)]="showRequestDetailsDialog"
         [modal]="true"
-        [style]="{ width: '90vw', maxWidth: '700px' }"
+        [style]="{ width: '95vw', maxWidth: '1200px' }"
         [draggable]="false"
         [resizable]="false"
         [dismissableMask]="true"
@@ -1697,20 +1697,21 @@ type Reminder = {
               </div>
             </div>
             }
+
+            <!-- Documento Adjunto (abajo de todo) -->
+            @if (hasDocument()) {
+            <div class="mt-6">
+              <pt-document-viewer-card
+                [documentUrl]="
+                  selectedRequest()!.document_url ||
+                  selectedRequest()!.metadata?.attachment_url
+                "
+                [title]="'Documento Adjunto'"
+                (download)="downloadDocument($event)"
+              />
+            </div>
+            }
           </div>
-          <!-- Columna Documento -->
-          @if (hasDocument()) {
-          <div class="h-full">
-            <pt-document-viewer-card
-              [documentUrl]="
-                selectedRequest()!.document_url ||
-                selectedRequest()!.metadata?.attachment_url
-              "
-              [title]="'Documento Adjunto'"
-              (download)="downloadDocument($event)"
-            />
-          </div>
-          }
         </div>
         }
 
