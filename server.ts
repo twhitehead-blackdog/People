@@ -159,10 +159,14 @@ export function app(): express.Express {
   async function isEmailEnabled(): Promise<boolean> {
     try {
       const supabaseUrl = process.env['ENV_SUPABASE_URL'];
-      const supabaseKey = process.env['ENV_SUPABASE_SERVICE_KEY'] || process.env['ENV_SUPABASE_ANON_KEY'];
+      const supabaseKey =
+        process.env['ENV_SUPABASE_SERVICE_KEY'] ||
+        process.env['ENV_SUPABASE_ANON_KEY'];
 
       if (!supabaseUrl || !supabaseKey) {
-        console.warn('[Email] No se pudo verificar email_enabled: Supabase no configurado');
+        console.warn(
+          '[Email] No se pudo verificar email_enabled: Supabase no configurado'
+        );
         return true; // Por defecto habilitado si no se puede verificar
       }
 
@@ -170,14 +174,17 @@ export function app(): express.Express {
         `${supabaseUrl}/rest/v1/settings?key=eq.email_enabled&select=value`,
         {
           headers: {
-            'apikey': supabaseKey,
-            'Authorization': `Bearer ${supabaseKey}`,
+            apikey: supabaseKey,
+            Authorization: `Bearer ${supabaseKey}`,
           },
         }
       );
 
       if (!response.ok) {
-        console.warn('[Email] Error al verificar email_enabled:', response.status);
+        console.warn(
+          '[Email] Error al verificar email_enabled:',
+          response.status
+        );
         return true; // Por defecto habilitado si hay error
       }
 
@@ -185,7 +192,9 @@ export function app(): express.Express {
       if (data && data.length > 0) {
         const enabled = data[0].value === 'true';
         if (!enabled) {
-          console.log('[Email] ⚠️ Envío de emails deshabilitado por configuración');
+          console.log(
+            '[Email] ⚠️ Envío de emails deshabilitado por configuración'
+          );
         }
         return enabled;
       }
@@ -214,13 +223,16 @@ export function app(): express.Express {
       // Verificar si el envío de emails está habilitado (master switch)
       const emailEnabled = await isEmailEnabled();
       if (!emailEnabled) {
-        console.log('[DEBUG Server] ⚠️ Email bloqueado: envío deshabilitado por configuración');
+        console.log(
+          '[DEBUG Server] ⚠️ Email bloqueado: envío deshabilitado por configuración'
+        );
         return res.json({
           success: true,
           data: {
             messageId: 'disabled',
             skipped: true,
-            reason: 'El envío de correos está deshabilitado en la configuración del sistema'
+            reason:
+              'El envío de correos está deshabilitado en la configuración del sistema',
           },
         });
       }
@@ -412,7 +424,10 @@ export function app(): express.Express {
               break;
             } catch (err: any) {
               lastError = err;
-              safeLogger.error(`❌ Error con Postmark SMTP (port ${port})`, err);
+              safeLogger.error(
+                `❌ Error con Postmark SMTP (port ${port})`,
+                err
+              );
             }
           }
 
@@ -596,17 +611,21 @@ export function app(): express.Express {
       const postmarkFromEmail = process.env['ENV_POSTMARK_FROM_EMAIL'];
       const smtpFromEmail = process.env['ENV_SMTP_NOREPLY_EMAIL'] || smtpUser;
 
-      const senderEmail = resendApiKey ? resendFromEmail :
-                         postmarkApiKey ? postmarkFromEmail :
-                         smtpFromEmail || 'No configurado';
+      const senderEmail = resendApiKey
+        ? resendFromEmail
+        : postmarkApiKey
+        ? postmarkFromEmail
+        : smtpFromEmail || 'No configurado';
 
       const resendFromName = process.env['ENV_RESEND_FROM_NAME'];
       const postmarkFromName = process.env['ENV_POSTMARK_FROM_NAME'];
       const smtpFromName = process.env['ENV_SMTP_NOREPLY_NAME'] || 'People';
 
-      const senderName = resendApiKey ? resendFromName :
-                        postmarkApiKey ? postmarkFromName :
-                        smtpFromName;
+      const senderName = resendApiKey
+        ? resendFromName
+        : postmarkApiKey
+        ? postmarkFromName
+        : smtpFromName;
 
       return res.json({
         provider,
@@ -647,7 +666,8 @@ export function app(): express.Express {
       if (resendApiKey) {
         console.log('[Email Test] ✅ Usando Resend para prueba de email');
         try {
-          const noreplyEmail = process.env['ENV_RESEND_FROM_EMAIL'] || 'onboarding@resend.dev';
+          const noreplyEmail =
+            process.env['ENV_RESEND_FROM_EMAIL'] || 'onboarding@resend.dev';
           const noreplyName = process.env['ENV_RESEND_FROM_NAME'] || 'People';
           const envPortRaw = process.env['ENV_RESEND_SMTP_PORT'];
           const envPort = envPortRaw ? parseInt(envPortRaw) : undefined;
@@ -724,7 +744,8 @@ export function app(): express.Express {
       if (postmarkApiKey) {
         console.log('[Email Test] ✅ Usando Postmark para prueba de email');
         try {
-          const noreplyEmail = process.env['ENV_POSTMARK_FROM_EMAIL'] || 'noreply@tu-dominio.com';
+          const noreplyEmail =
+            process.env['ENV_POSTMARK_FROM_EMAIL'] || 'noreply@tu-dominio.com';
           const noreplyName = process.env['ENV_POSTMARK_FROM_NAME'] || 'People';
           const envPortRaw = process.env['ENV_POSTMARK_SMTP_PORT'];
           const envPort = envPortRaw ? parseInt(envPortRaw) : undefined;
@@ -776,7 +797,10 @@ export function app(): express.Express {
               break;
             } catch (err: any) {
               lastError = err;
-              safeLogger.error(`❌ Error con Postmark SMTP (port ${port})`, err);
+              safeLogger.error(
+                `❌ Error con Postmark SMTP (port ${port})`,
+                err
+              );
             }
           }
 
@@ -808,7 +832,8 @@ export function app(): express.Express {
       if (!smtpUser || !smtpPassword) {
         return res.status(500).json({
           error: 'Ningún proveedor de email configurado',
-          message: 'ENV_RESEND_API_KEY, ENV_POSTMARK_API_KEY o (ENV_SMTP_USER y ENV_SMTP_PASSWORD) no están configuradas',
+          message:
+            'ENV_RESEND_API_KEY, ENV_POSTMARK_API_KEY o (ENV_SMTP_USER y ENV_SMTP_PASSWORD) no están configuradas',
         });
       }
 
@@ -1047,7 +1072,7 @@ export function app(): express.Express {
   });
 
   // Servir archivos estáticos del frontend Angular
-  const distFolder = path.join(__dirname, '../../dist/people/browser');
+  const distFolder = path.join(process.cwd(), 'dist/people/browser');
 
   // Servir archivos estáticos con el prefijo /people-test
   server.use(
