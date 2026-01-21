@@ -1,17 +1,17 @@
 import { DatePipe, NgClass } from '@angular/common';
 import {
-  ChangeDetectionStrategy,
-  Component,
-  input,
-  model,
-  output,
+    ChangeDetectionStrategy,
+    Component,
+    input,
+    model,
+    output,
 } from '@angular/core';
 import { Button } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { DocumentViewerCardComponent } from '../../shared/components/document-viewer-card.component';
 import {
-  getCompensatoryQuantity,
-  getCompensatoryReasonFromNotes,
+    getCompensatoryQuantity,
+    getCompensatoryReasonFromNotes,
 } from '../utils/employee-portal-compensatory.utils';
 import { calculateDays } from '../utils/employee-portal-date.utils';
 

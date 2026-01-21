@@ -543,7 +543,11 @@ type Reminder = {
                             {{ request.unified.summary }}
                           </p>
                           <p>
-                            <span class="text-gray-400">Fecha/Período:</span>
+                            <span class="text-gray-400">{{
+                              request.requestType === 'compensatorio'
+                                ? 'Fecha del compensatorio'
+                                : request.unified.displayDateLabel
+                            }}:</span>
                             {{ request.unified.displayDate }}
                           </p>
                           @let reason = request.reason || request.description ||
@@ -1522,7 +1526,10 @@ type Reminder = {
                       {{ selectedRequest().employee?.father_name }}
                     </p>
                     <p class="text-sm text-gray-400">
-                      {{ selectedRequest().employee?.work_email || 'Sin email registrado' }}
+                      {{
+                        selectedRequest().employee?.work_email ||
+                          'Sin email registrado'
+                      }}
                     </p>
                   </div>
                 </div>
@@ -1537,7 +1544,10 @@ type Reminder = {
                       >Cargo</label
                     >
                     <p class="text-white font-medium">
-                      {{ selectedRequest().employee?.position?.name || 'No especificado' }}
+                      {{
+                        selectedRequest().employee?.position?.name ||
+                          'No especificado'
+                      }}
                     </p>
                   </div>
                   <div>
@@ -1546,7 +1556,10 @@ type Reminder = {
                       >Sucursal</label
                     >
                     <p class="text-white font-medium">
-                      {{ selectedRequest().employee?.branch?.name || 'No especificada' }}
+                      {{
+                        selectedRequest().employee?.branch?.name ||
+                          'No especificada'
+                      }}
                     </p>
                   </div>
                 </div>
@@ -1593,6 +1606,19 @@ type Reminder = {
                     />
                   </div>
 
+                  <!-- Fecha de Solicitud -->
+                  <div>
+                    <label
+                      class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1"
+                      >Fecha de Solicitud</label
+                    >
+                    <p class="text-white font-medium">
+                      {{
+                        selectedRequest().created_at | date : 'dd/MM/yyyy HH:mm'
+                      }}
+                    </p>
+                  </div>
+
                   <!-- Motivo de Rechazo (si aplica) -->
                   @if ((selectedRequest().status === 'rejected' ||
                   selectedRequest().review_status === 'rejected') &&
@@ -1618,18 +1644,6 @@ type Reminder = {
                   </div>
                   }
 
-                  <!-- Fecha de creación -->
-                  <div>
-                    <label
-                      class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1"
-                      >Fecha de Solicitud</label
-                    >
-                    <p class="text-white font-medium">
-                      {{
-                        selectedRequest().created_at | date : 'dd/MM/yyyy HH:mm'
-                      }}
-                    </p>
-                  </div>
                 </div>
 
                 <!-- Resumen y Detalles unificados -->
@@ -1639,10 +1653,15 @@ type Reminder = {
                       {{ selectedRequest().unified?.summary }}
                     </p>
                   </div>
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     @for (detail of selectedRequest().unified?.details; track
                     detail.label) {
                     <div
+                      [class.lg:col-span-1]="
+                        detail.label === 'Fecha del compensatorio' ||
+                        detail.label === 'Tipo' ||
+                        detail.label === 'Cantidad'
+                      "
                       [class.md:col-span-2]="
                         detail.label === 'Notas' ||
                         detail.label === 'Descripción' ||
@@ -2154,6 +2173,7 @@ export class BranchManagerComponent {
   public unifiedRequests = computed(() => {
     return this.filteredBranchEmployeeRequests().map((r) => {
       let displayDate = '';
+      let displayDateLabel = 'Fecha'; // Por defecto "Fecha", cambia a "Período" si hay rango
       let summary = '';
       let details: { label: string; value: string }[] = [];
 
@@ -2162,9 +2182,21 @@ export class BranchManagerComponent {
           ? format(new Date(r.date_from), 'dd/MM/yyyy')
           : '-';
         const to = r.date_to ? format(new Date(r.date_to), 'dd/MM/yyyy') : '-';
-        displayDate = `${from} - ${to}`;
+
+        // Si es por horas o las fechas son iguales, mostrar solo fecha única
+        if (r.compensatory_type === 'hours' || from === to) {
+          displayDate = from;
+          displayDateLabel = 'Fecha';
+        } else {
+          displayDate = `${from} – ${to}`;
+          displayDateLabel = 'Período';
+        }
         summary = 'Compensatorio';
         details = [
+          {
+            label: 'Fecha del compensatorio',
+            value: displayDate,
+          },
           {
             label: 'Tipo',
             value: r.compensatory_type === 'hours' ? 'Horas' : 'Días',
@@ -2207,7 +2239,15 @@ export class BranchManagerComponent {
         const end = r.end_date
           ? format(new Date(r.end_date), 'dd/MM/yyyy')
           : '-';
-        displayDate = `${start} - ${end}`;
+
+        // Si las fechas son iguales, mostrar solo fecha única
+        if (start === end) {
+          displayDate = start;
+          displayDateLabel = 'Fecha';
+        } else {
+          displayDate = `${start} – ${end}`;
+          displayDateLabel = 'Período';
+        }
         summary = 'Incapacidad Médica';
         details = [
           { label: 'Fecha de Inicio', value: start },
@@ -2222,7 +2262,15 @@ export class BranchManagerComponent {
         const end = r.end_date
           ? format(new Date(r.end_date), 'dd/MM/yyyy')
           : '-';
-        displayDate = `${start} - ${end}`;
+
+        // Si las fechas son iguales, mostrar solo fecha única
+        if (start === end) {
+          displayDate = start;
+          displayDateLabel = 'Fecha';
+        } else {
+          displayDate = `${start} – ${end}`;
+          displayDateLabel = 'Período';
+        }
         summary = 'Vacaciones';
         if (r.reason) details.push({ label: 'Razón', value: r.reason });
       } else if (r.requestType === 'documentos') {
@@ -2279,6 +2327,7 @@ export class BranchManagerComponent {
         ...r,
         unified: {
           displayDate,
+          displayDateLabel,
           summary,
           details,
           statusLabel: this.getRequestStatusLabel(r),
