@@ -2939,8 +2939,7 @@ export class BranchManagerComponent {
           employeeLog.entry_time,
           schedule
         );
-        employeeLog.is_delayed =
-          delayMinutes > (schedule.minutes_tolerance || 0);
+        employeeLog.is_delayed = delayMinutes > 5;
         if (employeeLog.is_delayed) {
           employeeLog.delay_minutes = delayMinutes;
         }
