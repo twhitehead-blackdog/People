@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, OnInit } from '@angular/core';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { PanamaDatePipe } from '../../../pipes/panama-date.pipe';
@@ -259,7 +259,7 @@ import { EmployeePortalDataService } from '../services/employee-portal-data.serv
     `,
   ],
 })
-export class EmployeePortalDashboardTabComponent {
+export class EmployeePortalDashboardTabComponent implements OnInit {
   private dataService = inject(EmployeePortalDataService);
 
   public currentEmployee = this.dataService.currentEmployee;
@@ -279,6 +279,12 @@ export class EmployeePortalDashboardTabComponent {
   });
 
   public approvedCompensatoryHours = this.dataService.approvedCompensatoryHours;
+
+  public ngOnInit(): void {
+    this.dataService.monthTimelogsApi.reload();
+    this.dataService.timelogsApi.reload();
+    this.dataService.compensatoryApi.reload();
+  }
 
   public getCurrentDate(): Date {
     return new Date();

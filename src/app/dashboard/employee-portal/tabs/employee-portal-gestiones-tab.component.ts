@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { format } from 'date-fns';
 import { MessageService } from 'primeng/api';
 import { CardModule } from 'primeng/card';
@@ -281,7 +281,6 @@ import { EmployeePortalDataService } from '../services/employee-portal-data.serv
             (closeSection)="closeGestionForm()"
           />
 
-
           <pt-employee-portal-vacations
             *ngSwitchCase="'vacations'"
             [minVacationDate]="minVacationDate"
@@ -412,7 +411,7 @@ import { EmployeePortalDataService } from '../services/employee-portal-data.serv
     </div>
   `,
 })
-export class EmployeePortalGestionesTabComponent {
+export class EmployeePortalGestionesTabComponent implements OnInit {
   public dataService = inject(EmployeePortalDataService);
   private messageService = inject(MessageService);
   private http = inject(HttpClient);
@@ -478,6 +477,12 @@ export class EmployeePortalGestionesTabComponent {
   public maxVacationDate = new Date(new Date().getFullYear() + 1, 11, 31);
 
   public timeoffTypes = this.dataService.timeoffTypes;
+
+  public ngOnInit(): void {
+    this.dataService.disabilitiesApi.reload();
+    this.dataService.documentRequestsApi.reload();
+    this.dataService.complaintsApi.reload();
+  }
 
   // Methods
   public openGestionForm(formType: string): void {
@@ -590,7 +595,10 @@ export class EmployeePortalGestionesTabComponent {
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // Include end date
   }
 
-  public calculateDaysBetween(start: Date | string, end: Date | string): number {
+  public calculateDaysBetween(
+    start: Date | string,
+    end: Date | string
+  ): number {
     const s = typeof start === 'string' ? new Date(start) : start;
     const e = typeof end === 'string' ? new Date(end) : end;
     const diffTime = Math.abs(e.getTime() - s.getTime());

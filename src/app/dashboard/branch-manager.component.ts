@@ -1013,6 +1013,7 @@ type Reminder = {
               [branchEmployees]="branchEmployees()"
               [currentBranch]="currentBranch()"
               [currentEmployee]="currentEmployee()"
+              (requestCreated)="refreshEmployeeRequests()"
             />
           </p-tabpanel>
 

@@ -1,12 +1,14 @@
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import {
-    ChangeDetectionStrategy,
-    Component,
-    computed,
-    inject,
-    Input,
-    signal,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  EventEmitter,
+  inject,
+  Input,
+  Output,
+  signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { addDays, startOfDay } from 'date-fns';
@@ -30,18 +32,18 @@ import { TutorialGuideService } from '../services/tutorial-guide.service';
 import { TutorialSpotlightComponent } from '../shared/components/tutorial-spotlight.component';
 import { TutorialStepDirective } from '../shared/directives/tutorial-step.directive';
 import {
-    GESTIONES_TUTORIAL_INTRO,
-    GESTIONES_TUTORIALS,
+  GESTIONES_TUTORIAL_INTRO,
+  GESTIONES_TUTORIALS,
 } from '../shared/tutorial-configs/gestiones-tutorials';
 import { getEnv } from '../utils/env.utils';
 import {
-    getRequestColorClass,
-    getRequestIcon,
-    getRequestStatusLabel,
-    getRequestStatusSeverity,
-    getRequestTypeLabel,
-    getRequestTypeSeverity,
-    getSeverityColor,
+  getRequestColorClass,
+  getRequestIcon,
+  getRequestStatusLabel,
+  getRequestStatusSeverity,
+  getRequestTypeLabel,
+  getRequestTypeSeverity,
+  getSeverityColor,
 } from './request.helpers';
 
 type ManagementCard = {
@@ -1110,11 +1112,15 @@ export class BranchManagerGestionesComponent {
   @Input() currentBranch: Branch | null | undefined = null;
   @Input() currentEmployee: Employee | null | undefined = null;
 
+  @Output() requestCreated = new EventEmitter<void>();
+
   private http = inject(HttpClient);
   private apiUrl = inject(ApiUrlService);
   private messageService = inject(MessageService);
   private organizationService = inject(OrganizationService);
+
   private tutorialService = inject(TutorialGuideService);
+  private getEnv = getEnv; // Make getEnv available if needed, or implement valid logic using injected services
 
   // Fechas para formularios
   public today = startOfDay(new Date());
@@ -1146,20 +1152,26 @@ export class BranchManagerGestionesComponent {
   public newOvertimeDate = signal<Date | null>(null);
   public compensatoryFile = signal<File | null>(null);
   public submittingCompensatory = signal<boolean>(false);
+  public compensatoryDocUrl = signal<string | null>(null);
+  public uploadingCompensatoryDoc = signal<boolean>(false);
 
   // Signals para Incapacidades
   public disabilityStartDate = signal<Date | null>(null);
   public disabilityEndDate = signal<Date | null>(null);
   public disabilityDescription = signal<string>('');
   public disabilityFile = signal<File | null>(null);
+  public disabilityDocUrl = signal<string | null>(null);
   public uploadingDisability = signal<boolean>(false);
+  public uploadingDisabilityDoc = signal<boolean>(false);
 
   // Signals para Vacaciones
   public vacationStartDate = signal<Date | null>(null);
   public vacationEndDate = signal<Date | null>(null);
   public vacationReason = signal<string>('');
   public vacationFile = signal<File | null>(null);
+  public vacationDocUrl = signal<string | null>(null);
   public submittingVacation = signal<boolean>(false);
+  public uploadingVacationDoc = signal<boolean>(false);
 
   // Signals para Documentos
   public documentType = signal<string>('work_letter');
@@ -1506,6 +1518,17 @@ export class BranchManagerGestionesComponent {
   public async submitCompensatoryRequest(): Promise<void> {
     if (!this.canSubmitCompensatory() || !this.selectedEmployee()) return;
 
+    // Si aún se está subiendo el archivo, esperar
+    if (this.uploadingCompensatoryDoc()) {
+      this.messageService.add({
+        severity: 'info',
+        summary: 'Subiendo archivo...',
+        detail:
+          'Por favor espera a que termine de subirse el documento adjunto.',
+      });
+      return;
+    }
+
     this.submittingCompensatory.set(true);
 
     try {
@@ -1528,6 +1551,7 @@ export class BranchManagerGestionesComponent {
         manualOvertimeDates: this.manualOvertimeDates(),
         compensatoryFile: this.compensatoryFile(),
         selectedEmployeeId: employee.id,
+        documentUrl: this.compensatoryDocUrl(), // Pasar la URL pre-subida
       };
 
       const deps = {
@@ -1538,7 +1562,7 @@ export class BranchManagerGestionesComponent {
         creatorEmployeeId: this.currentEmployee?.id, // El gerente crea la solicitud
         formState,
         resetForm: () => this.resetCompensatoryForm(),
-        reloadRequests: () => {},
+        reloadRequests: () => this.requestCreated.emit(), // Emitir evento para recargar
         setSubmitting: (value: boolean) =>
           this.submittingCompensatory.set(value),
         company_id: this.organizationService.getCurrentCompanyId(),
@@ -1557,6 +1581,56 @@ export class BranchManagerGestionesComponent {
     }
   }
 
+  // Helper para subir archivo a Storage
+  public async onCompensatoryFileSelect(event: any): Promise<void> {
+    const files = event.currentFiles || event.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    this.compensatoryFile.set(file);
+    this.uploadingCompensatoryDoc.set(true);
+
+    try {
+      const employee = this.selectedEmployee();
+      // Si no hay empleado seleccionado, no podemos subir (necesitamos ID para ruta)
+      // Aunque en el flujo actual primero se selecciona empleado.
+      const employeeId = employee?.id || 'temp';
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${employeeId}/${Date.now()}.${fileExt}`;
+
+      const storageKey =
+        getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') ||
+        getEnv('ENV_SUPABASE_API_KEY') ||
+        '';
+
+      const uploadUrl = `${this.apiUrl.baseUrl}/storage/v1/object/compensatory/${fileName}`;
+
+      await firstValueFrom(
+        this.http.post(uploadUrl, file, {
+          headers: {
+            apikey: storageKey,
+            Authorization: `Bearer ${storageKey}`,
+            'x-upsert': 'true',
+          },
+        })
+      );
+
+      const publicUrl = this.apiUrl.build(
+        `storage/v1/object/public/compensatory/${fileName}`
+      );
+
+      this.compensatoryDocUrl.set(publicUrl);
+    } catch (error) {
+      console.error('Background upload failed:', error);
+      // No mostramos error fatal aquí, dejaremos que el submit intente de nuevo o falle
+      // Pero limpiamos la URL porsiaca
+      this.compensatoryDocUrl.set(null);
+    } finally {
+      this.uploadingCompensatoryDoc.set(false);
+    }
+  }
+
   // Métodos de reset
   private resetCompensatoryForm(): void {
     this.compensatoryType.set('hours');
@@ -1569,6 +1643,8 @@ export class BranchManagerGestionesComponent {
     this.manualOvertimeDates.set([]);
     this.newOvertimeDate.set(null);
     this.compensatoryFile.set(null);
+    this.compensatoryDocUrl.set(null);
+    this.uploadingCompensatoryDoc.set(false);
   }
 
   private resetAllForms(): void {
@@ -1581,38 +1657,25 @@ export class BranchManagerGestionesComponent {
   }
 
   // Métodos para Incapacidades
-  public onDisabilityFileSelect(event: any): void {
+  public async onDisabilityFileSelect(event: any): Promise<void> {
     const files = event.currentFiles || event.files;
-    if (files && files.length > 0) {
-      this.disabilityFile.set(files[0]);
-    }
-  }
+    if (!files || files.length === 0) return;
 
-  public onVacationFileSelect(event: any): void {
-    const files = event.currentFiles || event.files;
-    if (files && files.length > 0) {
-      this.vacationFile.set(files[0]);
-    }
-  }
-
-  public async submitDisabilityRequest(): Promise<void> {
-    if (!this.canSubmitDisability() || !this.selectedEmployee()) return;
-
-    this.uploadingDisability.set(true);
+    const file = files[0];
+    this.disabilityFile.set(file);
+    this.uploadingDisabilityDoc.set(true);
 
     try {
-      const employee = this.selectedEmployee()!;
-      const file = this.disabilityFile()!;
-      const start = this.disabilityStartDate()!;
-      const end = this.disabilityEndDate()!;
-      const description = this.disabilityDescription();
-
-      // Subir archivo a storage
+      const employee = this.selectedEmployee();
+      const employeeId = employee?.id || 'temp';
       const fileExt = file.name.split('.').pop();
-      const fileName = `${employee.id}/${Date.now()}.${fileExt}`;
+      const fileName = `${employeeId}/${Date.now()}.${fileExt}`;
 
-      // Upload to Supabase Storage using REST API
-      const storageKey = getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') || '';
+      const storageKey =
+        getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') ||
+        getEnv('ENV_SUPABASE_API_KEY') ||
+        '';
+
       const uploadUrl = `${this.apiUrl.baseUrl}/storage/v1/object/disabilities/${fileName}`;
 
       await firstValueFrom(
@@ -1625,10 +1688,112 @@ export class BranchManagerGestionesComponent {
         })
       );
 
-      // Get public URL for the uploaded file
-      const documentUrl = `${getEnv(
-        'ENV_SUPABASE_URL'
-      )}/storage/v1/object/public/disabilities/${fileName}`;
+      const publicUrl = this.apiUrl.build(
+        `storage/v1/object/public/disabilities/${fileName}`
+      );
+
+      this.disabilityDocUrl.set(publicUrl);
+    } catch (error) {
+      console.error('Background upload failed:', error);
+      this.disabilityDocUrl.set(null);
+    } finally {
+      this.uploadingDisabilityDoc.set(false);
+    }
+  }
+
+  public async onVacationFileSelect(event: any): Promise<void> {
+    const files = event.currentFiles || event.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    this.vacationFile.set(file);
+    this.uploadingVacationDoc.set(true);
+
+    try {
+      const employee = this.selectedEmployee();
+      const employeeId = employee?.id || 'temp';
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${employeeId}_${Date.now()}.${fileExt}`;
+      const filePath = `vacations/${fileName}`; // bucket: employee-documents, path: vacations/...
+
+      const storageKey =
+        getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') ||
+        getEnv('ENV_SUPABASE_API_KEY') ||
+        '';
+
+      const uploadUrl = `${this.apiUrl.baseUrl}/storage/v1/object/employee-documents/${filePath}`;
+
+      await firstValueFrom(
+        this.http.post(uploadUrl, file, {
+          headers: {
+            apikey: storageKey,
+            Authorization: `Bearer ${storageKey}`,
+            'x-upsert': 'true',
+          },
+        })
+      );
+
+      const publicUrl = this.apiUrl.build(
+        `storage/v1/object/public/employee-documents/${filePath}`
+      );
+
+      this.vacationDocUrl.set(publicUrl);
+    } catch (error) {
+      console.error('Background upload failed:', error);
+      this.vacationDocUrl.set(null);
+    } finally {
+      this.uploadingVacationDoc.set(false);
+    }
+  }
+
+  public async submitDisabilityRequest(): Promise<void> {
+    if (!this.canSubmitDisability() || !this.selectedEmployee()) return;
+
+    if (this.uploadingDisabilityDoc()) {
+      this.messageService.add({
+        severity: 'info',
+        summary: 'Subiendo archivo...',
+        detail:
+          'Por favor espera a que termine de subirse el documento adjunto.',
+      });
+      return;
+    }
+
+    this.uploadingDisability.set(true);
+
+    try {
+      const employee = this.selectedEmployee()!;
+      const start = this.disabilityStartDate()!;
+      const end = this.disabilityEndDate()!;
+      const description = this.disabilityDescription();
+
+      // Use pre-uploaded URL if available
+      let documentUrl = this.disabilityDocUrl();
+      const file = this.disabilityFile();
+
+      // Fallback upload (si falló el background upload o no se usó)
+      // Pero si file existe y url no, intentamos subir de nuevo.
+      if (file && !documentUrl) {
+        // Logic for fallback upload could be here, but for now we rely on background upload working or user retrying.
+        // If we want to be robust:
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${employee.id}/${Date.now()}.${fileExt}`;
+        const storageKey = getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') || '';
+        const uploadUrl = `${this.apiUrl.baseUrl}/storage/v1/object/disabilities/${fileName}`;
+
+        await firstValueFrom(
+          this.http.post(uploadUrl, file, {
+            headers: {
+              apikey: storageKey,
+              Authorization: `Bearer ${storageKey}`,
+              'x-upsert': 'true',
+            },
+          })
+        );
+        documentUrl = `${getEnv(
+          'ENV_SUPABASE_URL'
+        )}/storage/v1/object/public/disabilities/${fileName}`;
+      }
 
       // Crear solicitud en employee_disabilities (no timeoffs)
       const disabilityData = {
@@ -1655,6 +1820,7 @@ export class BranchManagerGestionesComponent {
         detail: `Incapacidad para ${employee.first_name} ${employee.father_name} registrada correctamente`,
       });
 
+      this.requestCreated.emit();
       this.reset();
     } catch (error: any) {
       console.error('Error submitting disability:', error);
@@ -1676,6 +1842,16 @@ export class BranchManagerGestionesComponent {
   public async submitVacationRequest(): Promise<void> {
     if (!this.canSubmitVacation() || !this.selectedEmployee()) return;
 
+    if (this.uploadingVacationDoc()) {
+      this.messageService.add({
+        severity: 'info',
+        summary: 'Subiendo archivo...',
+        detail:
+          'Por favor espera a que termine de subirse el documento adjunto.',
+      });
+      return;
+    }
+
     this.submittingVacation.set(true);
 
     try {
@@ -1685,10 +1861,10 @@ export class BranchManagerGestionesComponent {
       const reason = this.vacationReason();
       const file = this.vacationFile();
 
-      let documentUrl = '';
+      let documentUrl = this.vacationDocUrl() || '';
 
-      // Subir archivo si existe
-      if (file) {
+      // Fallback: Subir archivo si existe y no tenemos URL (p.ej. background falló)
+      if (file && !documentUrl) {
         const fileExt = file.name.split('.').pop();
         const timestamp = Date.now();
         const fileName = `${employee.id}_${timestamp}.${fileExt}`;
@@ -1743,6 +1919,7 @@ export class BranchManagerGestionesComponent {
         detail: `Vacaciones para ${employee.first_name} ${employee.father_name} solicitadas correctamente`,
       });
 
+      this.requestCreated.emit();
       this.reset();
     } catch (error: any) {
       console.error('Error submitting vacation:', error);
@@ -1800,6 +1977,7 @@ export class BranchManagerGestionesComponent {
         detail: `Solicitud de ${documentTypeLabel} para ${employee.first_name} ${employee.father_name} enviada correctamente`,
       });
 
+      this.requestCreated.emit();
       this.reset();
     } catch (error: any) {
       console.error('Error submitting document request:', error);
@@ -1823,6 +2001,8 @@ export class BranchManagerGestionesComponent {
     this.disabilityEndDate.set(null);
     this.disabilityDescription.set('');
     this.disabilityFile.set(null);
+    this.disabilityDocUrl.set(null);
+    this.uploadingDisabilityDoc.set(false);
   }
 
   private resetVacationForm(): void {
@@ -1830,6 +2010,8 @@ export class BranchManagerGestionesComponent {
     this.vacationEndDate.set(null);
     this.vacationReason.set('');
     this.vacationFile.set(null);
+    this.vacationDocUrl.set(null);
+    this.uploadingVacationDoc.set(false);
   }
 
   private resetDocumentForm(): void {
@@ -1935,6 +2117,7 @@ export class BranchManagerGestionesComponent {
         detail: `Corrección de marcación (${typeLabel}) para ${employee.first_name} ${employee.father_name} enviada correctamente`,
       });
 
+      this.requestCreated.emit();
       this.reset();
     } catch (error: any) {
       console.error('Error submitting timelog correction:', error);
@@ -1996,6 +2179,7 @@ export class BranchManagerGestionesComponent {
         detail: `Solicitud de uniforme (${itemType}, talla ${size}) para ${employee.first_name} ${employee.father_name} enviada correctamente`,
       });
 
+      this.requestCreated.emit();
       this.reset();
     } catch (error: any) {
       console.error('Error submitting uniform request:', error);

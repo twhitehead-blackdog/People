@@ -17,6 +17,7 @@ type CompensatoryFormState = {
   selectedOvertimeDays: string[];
   manualOvertimeDates: Date[];
   compensatoryFile: File | null;
+  documentUrl?: string | null; // URL del documento si ya se subió
   // Nota: Los campos compensatoryDate, compensatoryTimeStart, compensatoryTimeEnd,
   // selectedOvertimeDays y manualOvertimeDates no se guardan en la base de datos,
   // solo se usan para validación y se incluyen en las notes
@@ -76,10 +77,10 @@ export async function uploadCompensatory(
 
   setSubmitting(true);
   try {
-    let documentUrl = '';
+    let documentUrl = formState.documentUrl || '';
 
-    // Upload file to Supabase Storage if file is selected
-    if (formState.compensatoryFile) {
+    // Upload file to Supabase Storage if file is selected AND no pre-uploaded URL
+    if (formState.compensatoryFile && !documentUrl) {
       const file = formState.compensatoryFile;
       const fileExt = file.name.split('.').pop();
       const fileName = `${currentEmployee()!.id}/${Date.now()}.${fileExt}`;
