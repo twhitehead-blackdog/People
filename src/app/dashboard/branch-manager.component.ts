@@ -1,35 +1,35 @@
 import {
-    animate,
-    query,
-    stagger,
-    style,
-    transition,
-    trigger,
+  animate,
+  query,
+  stagger,
+  style,
+  transition,
+  trigger,
 } from '@angular/animations';
 import { DatePipe, NgClass, NgStyle } from '@angular/common';
 import { HttpClient, httpResource } from '@angular/common/http';
 import {
-    ChangeDetectionStrategy,
-    Component,
-    computed,
-    inject,
-    model,
-    signal,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  model,
+  signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer } from '@angular/platform-browser';
 import {
-    addDays,
-    addWeeks,
-    differenceInMinutes,
-    endOfDay,
-    format,
-    getDate,
-    isWithinInterval,
-    nextSunday,
-    startOfDay,
-    startOfWeek,
-    subWeeks,
+  addDays,
+  addWeeks,
+  differenceInMinutes,
+  endOfDay,
+  format,
+  getDate,
+  isWithinInterval,
+  nextSunday,
+  startOfDay,
+  startOfWeek,
+  subWeeks,
 } from 'date-fns';
 import { formatInTimeZone, toDate } from 'date-fns-tz';
 import { ConfirmationService, MenuItem, MessageService } from 'primeng/api';
@@ -50,9 +50,9 @@ import { Textarea } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import {
-    colorVariants,
-    Employee,
-    getScheduleColorInlineStyle,
+  colorVariants,
+  Employee,
+  getScheduleColorInlineStyle,
 } from '../models';
 import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
@@ -64,13 +64,13 @@ import { BranchManagerGestionesComponent } from './branch-manager-gestiones.comp
 import { EmployeeSchedulesFormComponent } from './employee-schedules-form.component';
 import { CompensatoryRequest } from './hr-disabilities.component';
 import {
-    getRequestColorClass,
-    getRequestIcon,
-    getRequestStatusLabel,
-    getRequestStatusSeverity,
-    getRequestTypeLabel,
-    getRequestTypeSeverity,
-    getSeverityColor,
+  getRequestColorClass,
+  getRequestIcon,
+  getRequestStatusLabel,
+  getRequestStatusSeverity,
+  getRequestTypeLabel,
+  getRequestTypeSeverity,
+  getSeverityColor,
 } from './request.helpers';
 
 type Notification = {
@@ -2167,6 +2167,7 @@ export class BranchManagerComponent {
       let displayDateLabel = 'Fecha'; // Por defecto "Fecha", cambia a "Período" si hay rango
       let summary = '';
       let details: { label: string; value: string }[] = [];
+      let cleanReason = '';
 
       if (r.requestType === 'compensatorio') {
         const from = r.date_from
@@ -2200,28 +2201,42 @@ export class BranchManagerComponent {
           },
         ];
         // Filtrar solo la nota de razón (primera nota que no contiene metadata)
-        if (r.notes && Array.isArray(r.notes)) {
-          const reasonNote = r.notes.find(
-            (note: any) =>
-              typeof note === 'string' &&
-              note.trim() !== '' &&
-              !note.includes('Tipo:') &&
-              !note.includes('Cantidad solicitada:') &&
-              !note.includes('Fecha compensatorio:') &&
-              !note.includes('Hora inicio:') &&
-              !note.includes('Hora fin:') &&
-              !note.includes('Fechas horas extra:')
-          );
-          if (reasonNote) {
-            details.push({ label: 'Notas', value: reasonNote });
+        // Filtrar solo la nota de razón (primera nota que no contiene metadata)
+        if (r.notes) {
+          if (Array.isArray(r.notes)) {
+            const reasonNote = r.notes.find(
+              (note: any) =>
+                typeof note === 'string' &&
+                note.trim() !== '' &&
+                !note.includes('Tipo:') &&
+                !note.includes('Cantidad solicitada:') &&
+                !note.includes('Fecha compensatorio:') &&
+                !note.includes('Hora inicio:') &&
+                !note.includes('Hora fin:') &&
+                !note.includes('Fechas horas extra:')
+            );
+            if (reasonNote) cleanReason = reasonNote;
+          } else if (typeof r.notes === 'string') {
+            // Si es string, separar por comas y filtrar metadatos
+            const parts = r.notes.split(',');
+            const cleanParts = parts
+              .map((p: string) => p.trim())
+              .filter(
+                (p: string) =>
+                  p !== '' &&
+                  !p.startsWith('Tipo:') &&
+                  !p.startsWith('Cantidad solicitada:') &&
+                  !p.startsWith('Fecha compensatorio:') &&
+                  !p.startsWith('Hora inicio:') &&
+                  !p.startsWith('Hora fin:') &&
+                  !p.startsWith('Fechas horas extra:')
+              );
+            cleanReason = cleanParts.join(', ');
           }
-        } else if (
-          r.notes &&
-          typeof r.notes === 'string' &&
-          r.notes.trim() !== ''
-        ) {
-          // Fallback para caso donde notes es string
-          details.push({ label: 'Notas', value: r.notes });
+        }
+
+        if (cleanReason) {
+          details.push({ label: 'Notas', value: cleanReason });
         }
       } else if (r.requestType === 'incapacidad') {
         const start = r.start_date
@@ -2316,6 +2331,10 @@ export class BranchManagerComponent {
 
       return {
         ...r,
+        reason:
+          r.requestType === 'compensatorio' && cleanReason
+            ? cleanReason
+            : r.reason,
         unified: {
           displayDate,
           displayDateLabel,
