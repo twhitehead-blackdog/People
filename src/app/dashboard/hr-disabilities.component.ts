@@ -1232,6 +1232,7 @@ export interface DocumentRequest {
                       <span class="text-xs font-medium text-white">
                         @if (requestedAmount !== null && compType === 'days') {
                         {{ requestedAmount }} día(s) } @else if (requestedAmount
+                        !== null && compType === 'hours') { {{ requestedAmount }}h } @else if (requestedAmount
                         !== null) { {{ requestedAmount }} } @else if
                         ((quantity?.value ?? 0) > 0 && quantity?.isDays) {
                         {{ quantity?.value }} día(s) } @else if
