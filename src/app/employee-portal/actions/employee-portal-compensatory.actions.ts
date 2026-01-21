@@ -191,34 +191,19 @@ export async function uploadCompensatory(
       company_id: company_id,
     };
 
-    http.post(apiUrl.build('rest/v1/timeoffs'), compensatoryData).subscribe({
-      next: (created: any) => {
-        messageService.add({
-          severity: 'success',
-          summary: 'Solicitud Enviada',
-          detail:
-            'Tu solicitud de tiempo compensatorio ha sido enviada exitosamente.',
-        });
-        resetForm();
-        reloadRequests();
-      },
-      error: (error: any) => {
-        console.error('Error creating compensatory request:', error);
-        const errorDetail =
-          error?.error?.message ||
-          error?.message ||
-          'No se pudo crear la solicitud. Inténtalo nuevamente.';
-        messageService.add({
-          severity: 'error',
-          summary: 'Error al Crear Solicitud',
-          detail: errorDetail,
-        });
-        setSubmitting(false);
-      },
-      complete: () => {
-        setSubmitting(false);
-      },
+    await firstValueFrom(
+      http.post(apiUrl.build('rest/v1/timeoffs'), compensatoryData)
+    );
+
+    messageService.add({
+      severity: 'success',
+      summary: 'Solicitud Enviada',
+      detail:
+        'Tu solicitud de tiempo compensatorio ha sido enviada exitosamente.',
     });
+    resetForm();
+    reloadRequests();
+    setSubmitting(false);
   } catch (error: any) {
     console.error('Error uploading compensatory:', error);
     messageService.add({
