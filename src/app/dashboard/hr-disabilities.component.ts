@@ -3181,11 +3181,26 @@ export class HRDisabilitiesComponent {
         ? [data.notes]
         : [];
 
-      // Buscar la primera nota que no sea información técnica (Tipo, Cantidad, etc.)
+      // Patrones de notas técnicas que no son el motivo del usuario
+      const technicalPatterns = [
+        /^Tipo:\s*/,
+        /^Cantidad solicitada:\s*/,
+        /^Fecha compensatorio:\s*/,
+        /^Hora inicio:\s*/,
+        /^Hora fin:\s*/,
+        /^Fechas horas extra:\s*/,
+      ];
+
+      // Buscar la primera nota que no sea información técnica
       for (const note of notesArray) {
         if (typeof note === 'string' && note.trim().length > 0) {
-          // Si no contiene ":" o contiene "Motivo:", es el reason
-          if (!note.includes(':') || note.includes('Motivo:')) {
+          // Verificar si es una nota técnica
+          const isTechnical = technicalPatterns.some((pattern) =>
+            pattern.test(note)
+          );
+
+          if (!isTechnical) {
+            // Es el motivo del usuario
             if (note.includes('Motivo:')) {
               const match = note.match(/Motivo:\s*(.+)/);
               return match && match[1]
