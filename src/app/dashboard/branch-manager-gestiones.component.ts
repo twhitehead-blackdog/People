@@ -393,7 +393,8 @@ type ManagementCard = {
                     >Fecha de Inicio</label
                   >
                   <p-datepicker
-                    [(ngModel)]="disabilityStartDate"
+                    [ngModel]="disabilityStartDate()"
+                    (ngModelChange)="disabilityStartDate.set($event)"
                     [showIcon]="true"
                     dateFormat="dd/mm/yy"
                     placeholder="Selecciona fecha de inicio"
@@ -408,7 +409,8 @@ type ManagementCard = {
                     >Fecha de Fin</label
                   >
                   <p-datepicker
-                    [(ngModel)]="disabilityEndDate"
+                    [ngModel]="disabilityEndDate()"
+                    (ngModelChange)="disabilityEndDate.set($event)"
                     [showIcon]="true"
                     dateFormat="dd/mm/yy"
                     placeholder="Selecciona fecha de fin"
@@ -447,7 +449,8 @@ type ManagementCard = {
               </div>
               <textarea
                 pInputTextarea
-                [(ngModel)]="disabilityDescription"
+                [ngModel]="disabilityDescription()"
+                (ngModelChange)="disabilityDescription.set($event)"
                 placeholder="Describe el motivo de la incapacidad (diagnóstico, síntomas, etc.)"
                 rows="4"
                 class="w-full"
@@ -547,7 +550,8 @@ type ManagementCard = {
                     >Fecha de Inicio</label
                   >
                   <p-datepicker
-                    [(ngModel)]="vacationStartDate"
+                    [ngModel]="vacationStartDate()"
+                    (ngModelChange)="vacationStartDate.set($event)"
                     [showIcon]="true"
                     dateFormat="dd/mm/yy"
                     placeholder="Selecciona fecha de inicio"
@@ -561,7 +565,8 @@ type ManagementCard = {
                     >Fecha de Fin</label
                   >
                   <p-datepicker
-                    [(ngModel)]="vacationEndDate"
+                    [ngModel]="vacationEndDate()"
+                    (ngModelChange)="vacationEndDate.set($event)"
                     [showIcon]="true"
                     dateFormat="dd/mm/yy"
                     placeholder="Selecciona fecha de fin"
@@ -603,7 +608,8 @@ type ManagementCard = {
               </div>
               <textarea
                 pInputTextarea
-                [(ngModel)]="vacationReason"
+                [ngModel]="vacationReason()"
+                (ngModelChange)="vacationReason.set($event)"
                 placeholder="Motivo o comentarios adicionales sobre las vacaciones"
                 rows="3"
                 class="w-full"
@@ -704,7 +710,8 @@ type ManagementCard = {
                   >Selecciona el tipo de documento</label
                 >
                 <p-select
-                  [(ngModel)]="documentType"
+                  [ngModel]="documentType()"
+                  (ngModelChange)="documentType.set($event)"
                   [options]="documentTypeOptions"
                   optionLabel="label"
                   optionValue="value"
@@ -718,7 +725,8 @@ type ManagementCard = {
               <div class="mt-3">
                 <textarea
                   pInputTextarea
-                  [(ngModel)]="customDocumentType"
+                  [ngModel]="customDocumentType()"
+                  (ngModelChange)="customDocumentType.set($event)"
                   placeholder="Especifica el tipo de documento que necesitas"
                   rows="2"
                   class="w-full"
@@ -748,7 +756,8 @@ type ManagementCard = {
                   >
                   <textarea
                     pInputTextarea
-                    [(ngModel)]="documentReason"
+                    [ngModel]="documentReason()"
+                    (ngModelChange)="documentReason.set($event)"
                     placeholder="Explica para quién es dirigido este documento"
                     rows="3"
                     class="w-full"
@@ -760,7 +769,8 @@ type ManagementCard = {
                     >Fecha requerida</label
                   >
                   <p-datepicker
-                    [(ngModel)]="documentRequiredDate"
+                    [ngModel]="documentRequiredDate()"
+                    (ngModelChange)="documentRequiredDate.set($event)"
                     [showIcon]="true"
                     dateFormat="dd/mm/yy"
                     placeholder="¿Cuándo necesitas el documento?"
@@ -814,7 +824,8 @@ type ManagementCard = {
                     >Fecha de la Omisión de Marcación</label
                   >
                   <p-datepicker
-                    [(ngModel)]="timelogCorrectionDate"
+                    [ngModel]="timelogCorrectionDate()"
+                    (ngModelChange)="timelogCorrectionDate.set($event)"
                     [showIcon]="true"
                     dateFormat="dd/mm/yy"
                     placeholder="Selecciona la fecha"
@@ -829,7 +840,8 @@ type ManagementCard = {
                     >Tipo de Marcación</label
                   >
                   <p-select
-                    [(ngModel)]="timelogCorrectionType"
+                    [ngModel]="timelogCorrectionType()"
+                    (ngModelChange)="timelogCorrectionType.set($event)"
                     [options]="timelogTypeOptions"
                     optionLabel="label"
                     optionValue="value"
@@ -847,7 +859,7 @@ type ManagementCard = {
                 <p class="text-sm text-orange-300">
                   <i class="pi pi-info-circle mr-2"></i>
                   Solicitud de corrección para:
-                  <strong>{{ timelogTypeOptions | json }}</strong>
+                  <strong>{{ getTimelogCorrectionTypeLabel() }}</strong>
                 </p>
               </div>
               }
@@ -869,7 +881,8 @@ type ManagementCard = {
               </div>
               <textarea
                 pInputTextarea
-                [(ngModel)]="timelogCorrectionReason"
+                [ngModel]="timelogCorrectionReason()"
+                (ngModelChange)="timelogCorrectionReason.set($event)"
                 placeholder="Explica por qué se necesita la corrección de esta marcación (ej: olvidé marcar entrada, el reloj no funcionaba, etc.)"
                 rows="4"
                 class="w-full"
@@ -971,7 +984,8 @@ type ManagementCard = {
                   >¿Qué prenda necesitas?</label
                 >
                 <p-select
-                  [(ngModel)]="uniformItemType"
+                  [ngModel]="uniformItemType()"
+                  (ngModelChange)="uniformItemType.set($event)"
                   [options]="uniformItemTypeOptions"
                   optionLabel="label"
                   optionValue="value"
@@ -1001,7 +1015,8 @@ type ManagementCard = {
                 <div class="flex flex-col gap-2">
                   <label class="text-sm font-medium text-gray-300">Talla</label>
                   <p-select
-                    [(ngModel)]="uniformSize"
+                    [ngModel]="uniformSize()"
+                    (ngModelChange)="uniformSize.set($event)"
                     [options]="uniformSizeOptions"
                     placeholder="Selecciona la talla"
                     styleClass="w-full"
@@ -1016,7 +1031,8 @@ type ManagementCard = {
                   <input
                     pInputText
                     type="number"
-                    [(ngModel)]="uniformQuantity"
+                    [ngModel]="uniformQuantity()"
+                    (ngModelChange)="uniformQuantity.set($event)"
                     min="1"
                     max="5"
                     class="w-full"
@@ -1061,7 +1077,8 @@ type ManagementCard = {
               </div>
               <textarea
                 pInputTextarea
-                [(ngModel)]="uniformNotes"
+                [ngModel]="uniformNotes()"
+                (ngModelChange)="uniformNotes.set($event)"
                 placeholder="Comentarios adicionales sobre la solicitud (ej: motivo del cambio, etc.)"
                 rows="3"
                 class="w-full"
@@ -1434,6 +1451,13 @@ export class BranchManagerGestionesComponent {
     const value = this.uniformItemType();
     const option = this.uniformItemTypeOptions.find((o) => o.value === value);
     return option?.label || value || 'Prenda';
+  }
+
+  // Obtener el label del tipo de corrección de marcación
+  public getTimelogCorrectionTypeLabel(): string {
+    const value = this.timelogCorrectionType();
+    const option = this.timelogTypeOptions.find((o) => o.value === value);
+    return option?.label || value || 'Marcación';
   }
 
   // ============================================================
