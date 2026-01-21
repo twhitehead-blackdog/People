@@ -14,6 +14,7 @@ import { Textarea } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
+import { TimeoffAuditService } from '../../../../services/timeoff-audit.service';
 import { DashboardStore } from '../../../../stores/dashboard.store';
 import { getEnv } from '../../../../utils/env.utils';
 import { HrFiltersPanelComponent } from '../../shared/components/hr-filters-panel.component';
@@ -306,34 +307,10 @@ import { VacationRequest } from '../models/vacation-request.model';
       [dismissableMask]="true"
     >
       <ng-template pTemplate="header">
-        <div class="flex items-center justify-between w-full">
+        <div class="flex items-center w-full">
           <span class="text-lg font-semibold text-white"
             >Detalles de Vacaciones</span
           >
-          <div class="flex items-center gap-2">
-            <p-button
-              [icon]="
-                selectedVacation()?.document_url
-                  ? 'pi pi-file'
-                  : 'pi pi-paperclip'
-              "
-              [rounded]="true"
-              [text]="true"
-              severity="secondary"
-              (onClick)="
-                selectedVacation()?.document_url
-                  ? openDocument()
-                  : attachDocument()
-              "
-              [pTooltip]="
-                selectedVacation()?.document_url
-                  ? 'Ver documento adjunto'
-                  : 'Adjuntar documento'
-              "
-              tooltipPosition="left"
-              size="small"
-            />
-          </div>
         </div>
       </ng-template>
 
@@ -584,130 +561,95 @@ import { VacationRequest } from '../models/vacation-request.model';
             />
           </div>
         </div>
-      </div>
-      }
-    </p-dialog>
 
-    @if (showDocumentPreview()) {
-    <div
-      class="fixed bg-neutral-900 border-l border-neutral-700 shadow-2xl z-[1200] transition-all duration-500 ease-out"
-      [style.width]="'400px'"
-      [style.max-width]="'40vw'"
-      [style.top]="'50%'"
-      [style.left]="showDocumentPreview() ? 'calc(50% + 400px)' : '50%'"
-      [style.transform]="
-        showDocumentPreview()
-          ? 'translateY(-50%) translateX(0) scale(1)'
-          : 'translateY(-50%) translateX(0) scale(0.8)'
-      "
-      [style.opacity]="showDocumentPreview() ? '1' : '0'"
-      [style.max-height]="'90vh'"
-      [style.height]="'664px'"
-      [style.pointer-events]="showDocumentPreview() ? 'auto' : 'none'"
-    >
-      <div class="flex flex-col h-full">
-        <!-- Header del panel lateral -->
-        <div
-          class="p-4 border-b border-neutral-700 bg-neutral-800 flex items-center justify-between"
-        >
-          <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+        <!-- Documento Adjunto (inline) -->
+        <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
+          <h3
+            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+          >
             <i class="pi pi-file text-cyan-400"></i>
             Documento Adjunto
           </h3>
-          <div class="flex items-center gap-2">
-            @if (selectedVacation()?.document_url) {
-            <p-button
-              label="Adjuntar nuevo archivo"
-              icon="pi pi-upload"
-              size="small"
-              severity="secondary"
-              [outlined]="true"
-              (onClick)="attachDocument()"
-            />
-            }
-            <p-button
-              icon="pi pi-times"
-              [rounded]="true"
-              [text]="true"
-              severity="secondary"
-              (onClick)="showDocumentPreview.set(false)"
-              size="small"
-            />
-          </div>
-        </div>
-
-        <!-- Controlles de Zoom -->
-        @if (selectedVacation()?.document_url) {
-        <div
-          class="p-2 border-b border-neutral-700 bg-neutral-800/50 flex items-center justify-end gap-2"
-        >
-          <p-button
-            icon="pi pi-search-minus"
-            (onClick)="zoomOut()"
-            [text]="true"
-            [rounded]="true"
-            severity="secondary"
-            size="small"
-            [disabled]="documentZoomLevel() <= 0.5"
-            pTooltip="Alejar"
-          />
-          <span class="text-sm text-gray-400 min-w-[60px] text-center">
-            {{ (documentZoomLevel() * 100).toFixed(0) }}%
-          </span>
-          <p-button
-            icon="pi pi-search-plus"
-            (onClick)="zoomIn()"
-            [text]="true"
-            [rounded]="true"
-            severity="secondary"
-            size="small"
-            [disabled]="documentZoomLevel() >= 2"
-            pTooltip="Acercar"
-          />
-          <p-button
-            label="Reset"
-            (onClick)="resetZoom()"
-            [text]="true"
-            severity="secondary"
-            size="small"
-            pTooltip="Restablecer zoom"
-          />
-        </div>
-        }
-
-        <!-- Contenido del preview -->
-        <div class="flex-1 overflow-hidden bg-neutral-900 relative">
           @if (selectedVacation()?.document_url) {
           <div
-            class="w-full h-full overflow-auto flex justify-center p-4"
-            [style.align-items]="'flex-start'"
+            class="bg-neutral-900 rounded-lg overflow-hidden border border-neutral-700"
           >
             <div
-              [style.transform]="'scale(' + documentZoomLevel() + ')'"
-              [style.transform-origin]="'top center'"
-              class="transition-transform duration-200"
-              style="width: 100%; min-height: 100%;"
+              class="p-2 border-b border-neutral-700 flex items-center justify-between"
             >
-              <iframe
-                [src]="getVacationDocumentUrl() | safeUrl"
-                class="w-full h-[800px] border-0 bg-white rounded-sm"
-                title="Preview del documento"
-              ></iframe>
+              <span class="text-sm text-gray-400 flex items-center gap-2">
+                <i class="pi pi-check-circle text-green-400"></i>
+                Documento disponible
+              </span>
+              <div class="flex items-center gap-2">
+                <p-button
+                  icon="pi pi-search-minus"
+                  (onClick)="zoomOut()"
+                  [text]="true"
+                  [rounded]="true"
+                  severity="secondary"
+                  size="small"
+                  [disabled]="documentZoomLevel() <= 0.5"
+                  pTooltip="Alejar"
+                />
+                <span class="text-sm text-gray-400 min-w-[50px] text-center">
+                  {{ (documentZoomLevel() * 100).toFixed(0) }}%
+                </span>
+                <p-button
+                  icon="pi pi-search-plus"
+                  (onClick)="zoomIn()"
+                  [text]="true"
+                  [rounded]="true"
+                  severity="secondary"
+                  size="small"
+                  [disabled]="documentZoomLevel() >= 2"
+                  pTooltip="Acercar"
+                />
+                <p-button
+                  icon="pi pi-download"
+                  (onClick)="
+                    downloadDocument(selectedVacation()!.document_url!)
+                  "
+                  [text]="true"
+                  [rounded]="true"
+                  severity="secondary"
+                  size="small"
+                  pTooltip="Descargar"
+                />
+                <p-button
+                  icon="pi pi-upload"
+                  (onClick)="attachDocument()"
+                  [text]="true"
+                  [rounded]="true"
+                  severity="info"
+                  size="small"
+                  pTooltip="Adjuntar nuevo"
+                />
+              </div>
+            </div>
+            <div class="h-[400px] overflow-auto bg-neutral-900">
+              <div
+                [style.transform]="'scale(' + documentZoomLevel() + ')'"
+                [style.transform-origin]="'top center'"
+                class="transition-transform duration-200"
+                style="width: 100%; min-height: 100%;"
+              >
+                <iframe
+                  [src]="getVacationDocumentUrl() | safeUrl"
+                  class="w-full h-[600px] border-0 bg-white"
+                  title="Preview del documento"
+                ></iframe>
+              </div>
             </div>
           </div>
           } @else {
           <div
-            class="flex flex-col items-center justify-center h-full p-8 text-center"
+            class="flex flex-col items-center justify-center py-8 text-center bg-neutral-900/50 rounded-lg border border-dashed border-neutral-600"
           >
-            <i class="pi pi-file text-6xl text-gray-400 mb-4"></i>
-            <h4 class="text-xl font-semibold text-white mb-2">
-              No hay documento adjunto
-            </h4>
-            <p class="text-gray-400 mb-6">
-              Puedes adjuntar un documento PDF a esta solicitud.
-            </p>
+            <i class="pi pi-file text-4xl text-gray-500 mb-3"></i>
+            <p class="text-gray-400 mb-4">No hay documento adjunto</p>
             <p-button
-              label="Adjuntar archivo"
+              label="Adjuntar documento"
               icon="pi pi-upload"
               severity="info"
               (onClick)="attachDocument()"
@@ -716,16 +658,8 @@ import { VacationRequest } from '../models/vacation-request.model';
           }
         </div>
       </div>
-    </div>
-    }
-
-    <!-- Overlay para cerrar el panel al hacer clic fuera -->
-    @if (showDocumentPreview()) {
-    <div
-      class="fixed inset-0 bg-black/50 z-[1199]"
-      (click)="showDocumentPreview.set(false)"
-    ></div>
-    }
+      }
+    </p-dialog>
 
     <!-- Diálogo de Confirmación de Rechazo -->
     <p-dialog
@@ -796,6 +730,7 @@ export class VacationsComponent {
   private dashboardStore = inject(DashboardStore);
   private http = inject(HttpClient);
   private domSanitizer = inject(DomSanitizer);
+  private auditService = inject(TimeoffAuditService);
 
   public searchText = signal('');
   public selectedStatus = signal<string | null>(null);
@@ -995,6 +930,18 @@ export class VacationsComponent {
         summary: 'Éxito',
         detail: 'Documento adjunto',
       });
+
+      // Registrar auditoría
+      const currentUserId = this.dashboardStore.auth.currentEmployeeId?.();
+      if (currentUserId) {
+        await this.auditService.logChange({
+          timeoffId: vacation.id,
+          changedBy: currentUserId,
+          action: 'updated',
+          comment: `Documento adjunto: ${file.name}`,
+        });
+      }
+
       this.service.reload();
 
       // Update the local signal directly to reflect changes immediately
@@ -1025,6 +972,12 @@ export class VacationsComponent {
 
   public getVacationDocumentUrl(): string {
     return this.selectedVacation()?.document_url || '';
+  }
+
+  public downloadDocument(url: string): void {
+    if (url) {
+      window.open(url, '_blank');
+    }
   }
 
   private updateVacationStatus(id: string, status: 'approved' | 'rejected') {

@@ -2199,6 +2199,70 @@ export interface DocumentRequest {
           </div>
         </div>
         }
+
+        <!-- Documento Adjunto (inline) -->
+        <div class="p-4 bg-neutral-800 rounded-lg border border-neutral-700">
+          <h3
+            class="text-lg font-semibold text-white mb-3 flex items-center gap-2"
+          >
+            <i class="pi pi-file text-cyan-400"></i>
+            Documento Adjunto
+          </h3>
+          @if (selectedCompensatoryRequest()?.document_url) {
+          <div
+            class="bg-neutral-900 rounded-lg overflow-hidden border border-neutral-700"
+          >
+            <div
+              class="p-2 border-b border-neutral-700 flex items-center justify-between"
+            >
+              <span class="text-sm text-gray-400 flex items-center gap-2">
+                <i class="pi pi-check-circle text-green-400"></i>
+                Documento disponible
+              </span>
+              <div class="flex items-center gap-2">
+                <p-button
+                  icon="pi pi-download"
+                  (onClick)="downloadCompensatoryDocument()"
+                  [text]="true"
+                  [rounded]="true"
+                  severity="secondary"
+                  size="small"
+                  pTooltip="Descargar"
+                />
+                <p-button
+                  icon="pi pi-upload"
+                  (onClick)="attachDocumentToCompensatoryRequest()"
+                  [text]="true"
+                  [rounded]="true"
+                  severity="info"
+                  size="small"
+                  pTooltip="Adjuntar nuevo"
+                />
+              </div>
+            </div>
+            <div class="h-[400px] overflow-auto bg-neutral-900">
+              <iframe
+                [src]="getCompensatoryDocumentUrl()"
+                class="w-full h-[600px] border-0 bg-white"
+                title="Preview del documento"
+              ></iframe>
+            </div>
+          </div>
+          } @else {
+          <div
+            class="flex flex-col items-center justify-center py-8 text-center bg-neutral-900/50 rounded-lg border border-dashed border-neutral-600"
+          >
+            <i class="pi pi-file text-4xl text-gray-500 mb-3"></i>
+            <p class="text-gray-400 mb-4">No hay documento adjunto</p>
+            <p-button
+              label="Adjuntar documento"
+              icon="pi pi-upload"
+              severity="info"
+              (onClick)="attachDocumentToCompensatoryRequest()"
+            />
+          </div>
+          }
+        </div>
       </div>
       }
 
@@ -2373,95 +2437,11 @@ export interface DocumentRequest {
         </div>
       </div>
 
-      <!-- Panel lateral de preview de documento -->
-      @if (showDocumentPreview()) {
-      <div
-        class="fixed bg-neutral-900 border-l border-neutral-700 shadow-2xl z-[1200] transition-all duration-500 ease-out"
-        [style.width]="'400px'"
-        [style.max-width]="'40vw'"
-        [style.top]="'50%'"
-        [style.left]="showDocumentPreview() ? 'calc(50% + 400px)' : '50%'"
-        [style.transform]="
-          showDocumentPreview()
-            ? 'translateY(-50%) translateX(0) scale(1)'
-            : 'translateY(-50%) translateX(0) scale(0.8)'
-        "
-        [style.opacity]="showDocumentPreview() ? '1' : '0'"
-        [style.max-height]="'90vh'"
-        [style.height]="'664px'"
-        [style.pointer-events]="showDocumentPreview() ? 'auto' : 'none'"
-      >
-        <div class="flex flex-col h-full">
-          <!-- Header del panel lateral -->
-          <div
-            class="p-4 border-b border-neutral-700 bg-neutral-800 flex items-center justify-between"
-          >
-            <h3
-              class="text-lg font-semibold text-white flex items-center gap-2"
-            >
-              <i class="pi pi-file text-cyan-400"></i>
-              Documento Adjunto
-            </h3>
-            <div class="flex items-center gap-2">
-              @if (selectedCompensatoryRequest()!.document_url) {
-              <p-button
-                label="Adjuntar nuevo archivo"
-                icon="pi pi-upload"
-                size="small"
-                severity="secondary"
-                [outlined]="true"
-                (onClick)="attachDocumentToCompensatoryRequest()"
-              />
-              }
-              <p-button
-                icon="pi pi-times"
-                [rounded]="true"
-                [text]="true"
-                severity="secondary"
-                (onClick)="showDocumentPreview.set(false)"
-                size="small"
-              />
-            </div>
-          </div>
-
-          <!-- Contenido del preview -->
-          <div class="flex-1 overflow-hidden">
-            @if (selectedCompensatoryRequest()!.document_url) {
-            <iframe
-              [src]="getCompensatoryDocumentUrl()"
-              class="w-full h-full border-0"
-              title="Preview del documento"
-            ></iframe>
-            } @else {
-            <div
-              class="flex flex-col items-center justify-center h-full p-8 text-center"
-            >
-              <i class="pi pi-file text-6xl text-gray-400 mb-4"></i>
-              <h4 class="text-xl font-semibold text-white mb-2">
-                No hay documento adjunto
-              </h4>
-              <p class="text-gray-400 mb-6">
-                Puedes adjuntar un documento PDF a esta solicitud de tiempo
-                compensatorio.
-              </p>
-              <p-button
-                label="Adjuntar archivo"
-                icon="pi pi-upload"
-                severity="info"
-                (onClick)="attachDocumentToCompensatoryRequest()"
-              />
-            </div>
-            }
-          </div>
-        </div>
-      </div>
-      }
-
       <!-- Overlay para cerrar el panel al hacer clic fuera -->
-      @if (showAuditSidebar() || showDocumentPreview()) {
+      @if (showAuditSidebar()) {
       <div
         class="fixed inset-0 bg-black/50 z-[1199]"
-        (click)="showAuditSidebar.set(false); showDocumentPreview.set(false)"
+        (click)="showAuditSidebar.set(false)"
       ></div>
       }
     </p-dialog>
@@ -5429,5 +5409,12 @@ export class HRDisabilitiesComponent {
       summary: 'Información',
       detail: 'Vista de detalles próximamente disponible',
     });
+  }
+
+  public downloadCompensatoryDocument(): void {
+    const url = this.selectedCompensatoryRequest()?.document_url;
+    if (url) {
+      window.open(url, '_blank');
+    }
   }
 }

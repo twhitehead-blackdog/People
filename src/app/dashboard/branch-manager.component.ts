@@ -1,35 +1,35 @@
 import {
-  animate,
-  query,
-  stagger,
-  style,
-  transition,
-  trigger,
+    animate,
+    query,
+    stagger,
+    style,
+    transition,
+    trigger,
 } from '@angular/animations';
 import { DatePipe, NgClass, NgStyle } from '@angular/common';
 import { HttpClient, httpResource } from '@angular/common/http';
 import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  inject,
-  model,
-  signal,
+    ChangeDetectionStrategy,
+    Component,
+    computed,
+    inject,
+    model,
+    signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer } from '@angular/platform-browser';
 import {
-  addDays,
-  addWeeks,
-  differenceInMinutes,
-  endOfDay,
-  format,
-  getDate,
-  isWithinInterval,
-  nextSunday,
-  startOfDay,
-  startOfWeek,
-  subWeeks,
+    addDays,
+    addWeeks,
+    differenceInMinutes,
+    endOfDay,
+    format,
+    getDate,
+    isWithinInterval,
+    nextSunday,
+    startOfDay,
+    startOfWeek,
+    subWeeks,
 } from 'date-fns';
 import { formatInTimeZone, toDate } from 'date-fns-tz';
 import { ConfirmationService, MenuItem, MessageService } from 'primeng/api';
@@ -50,9 +50,9 @@ import { Textarea } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import {
-  colorVariants,
-  Employee,
-  getScheduleColorInlineStyle,
+    colorVariants,
+    Employee,
+    getScheduleColorInlineStyle,
 } from '../models';
 import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
@@ -64,13 +64,13 @@ import { BranchManagerGestionesComponent } from './branch-manager-gestiones.comp
 import { EmployeeSchedulesFormComponent } from './employee-schedules-form.component';
 import { CompensatoryRequest } from './hr-disabilities.component';
 import {
-  getRequestColorClass,
-  getRequestIcon,
-  getRequestStatusLabel,
-  getRequestStatusSeverity,
-  getRequestTypeLabel,
-  getRequestTypeSeverity,
-  getSeverityColor,
+    getRequestColorClass,
+    getRequestIcon,
+    getRequestStatusLabel,
+    getRequestStatusSeverity,
+    getRequestTypeLabel,
+    getRequestTypeSeverity,
+    getSeverityColor,
 } from './request.helpers';
 
 type Notification = {
@@ -543,11 +543,13 @@ type Reminder = {
                             {{ request.unified.summary }}
                           </p>
                           <p>
-                            <span class="text-gray-400">{{
-                              request.requestType === 'compensatorio'
-                                ? 'Fecha del compensatorio'
-                                : request.unified.displayDateLabel
-                            }}:</span>
+                            <span class="text-gray-400"
+                              >{{
+                                request.requestType === 'compensatorio'
+                                  ? 'Fecha del compensatorio'
+                                  : request.unified.displayDateLabel
+                              }}:</span
+                            >
                             {{ request.unified.displayDate }}
                           </p>
                           @let reason = request.reason || request.description ||
@@ -1543,7 +1545,9 @@ type Reminder = {
                       class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1"
                       >Cargo</label
                     >
-                    <p class="text-white font-medium">
+                    <p
+                      class="text-white font-medium break-words whitespace-normal"
+                    >
                       {{
                         selectedRequest().employee?.position?.name ||
                           'No especificado'
@@ -1555,7 +1559,9 @@ type Reminder = {
                       class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1"
                       >Sucursal</label
                     >
-                    <p class="text-white font-medium">
+                    <p
+                      class="text-white font-medium break-words whitespace-normal"
+                    >
                       {{
                         selectedRequest().employee?.branch?.name ||
                           'No especificada'
@@ -1643,7 +1649,6 @@ type Reminder = {
                     </div>
                   </div>
                   }
-
                 </div>
 
                 <!-- Resumen y Detalles unificados -->
@@ -1653,7 +1658,9 @@ type Reminder = {
                       {{ selectedRequest().unified?.summary }}
                     </p>
                   </div>
-                  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div
+                    class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+                  >
                     @for (detail of selectedRequest().unified?.details; track
                     detail.label) {
                     <div
@@ -1672,7 +1679,11 @@ type Reminder = {
                         class="block text-xs font-medium text-gray-500 uppercase tracking-wider mb-1"
                         >{{ detail.label }}</label
                       >
-                      <p class="text-white text-base">{{ detail.value }}</p>
+                      <p
+                        class="text-white text-base break-words whitespace-normal"
+                      >
+                        {{ detail.value }}
+                      </p>
                     </div>
                     }
                   </div>
@@ -2058,14 +2069,7 @@ export class BranchManagerComponent {
 
         return {
           ...r,
-          employee: employee
-            ? {
-                id: employee.id,
-                first_name: employee.first_name,
-                father_name: employee.father_name,
-                branch_id: employee.branch_id,
-              }
-            : undefined,
+          employee: employee || undefined,
           reviewedByEmployee: reviewer
             ? `${reviewer.first_name} ${reviewer.father_name}`
             : r.reviewed_by,
@@ -2085,14 +2089,7 @@ export class BranchManagerComponent {
 
         return {
           ...r,
-          employee: employee
-            ? {
-                id: employee.id,
-                first_name: employee.first_name,
-                father_name: employee.father_name,
-                branch_id: employee.branch_id,
-              }
-            : undefined,
+          employee: employee || undefined,
           reviewedByEmployee: reviewer
             ? `${reviewer.first_name} ${reviewer.father_name}`
             : r.reviewed_by,
@@ -2123,18 +2120,12 @@ export class BranchManagerComponent {
 
         return {
           ...r,
-          employee: employee
-            ? {
-                id: employee.id,
-                first_name: employee.first_name,
-                father_name: employee.father_name,
-                branch_id: employee.branch_id,
-              }
-            : undefined,
+          employee: employee || undefined,
           reviewedByEmployee: reviewer
             ? `${reviewer.first_name} ${reviewer.father_name}`
             : r.reviewed_by,
           requestType,
+          status: r.status || 'pending',
         };
       });
 
