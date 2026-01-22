@@ -1,21 +1,21 @@
 import { DatePipe } from '@angular/common';
 import { HttpClient, HttpParams, httpResource } from '@angular/common/http';
 import {
-  ChangeDetectionStrategy,
-  Component,
-  computed,
-  inject,
-  signal,
+    ChangeDetectionStrategy,
+    Component,
+    computed,
+    inject,
+    signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer } from '@angular/platform-browser';
 import { Router } from '@angular/router';
 import {
-  differenceInMinutes,
-  endOfDay,
-  format,
-  startOfDay,
-  subDays,
+    differenceInMinutes,
+    endOfDay,
+    format,
+    startOfDay,
+    subDays,
 } from 'date-fns';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
@@ -39,8 +39,8 @@ import { firstValueFrom } from 'rxjs';
 import { utils, writeFile } from 'xlsx';
 import { OrganizationService } from '../services/organization.service';
 import {
-  TimeoffAuditLog,
-  TimeoffAuditService,
+    TimeoffAuditLog,
+    TimeoffAuditService,
 } from '../services/timeoff-audit.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { getEnv } from '../utils/env.utils';

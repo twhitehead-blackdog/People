@@ -231,16 +231,6 @@ import { KpiCardComponent } from '../kpi-card/kpi-card.component';
         tooltip="Calcula la edad promedio de todos los empleados activos."
       ></pt-kpi-card>
 
-      <!-- Average Salary -->
-      <pt-kpi-card
-        variant="financial"
-        icon="pi pi-dollar"
-        label="Salario Promedio"
-        [value]="state.averageSalary() | currency : '$' : 'symbol' : '1.0-0'"
-        sublabel="Salario promedio"
-        class="salary-card"
-        tooltip="Calcula el salario mensual promedio de todos los empleados activos."
-      ></pt-kpi-card>
 
       <!-- Work Climate -->
       <pt-kpi-card
