@@ -146,7 +146,7 @@ import { TooltipModule } from 'primeng/tooltip';
                     >
                   </div>
                   <p class="text-white font-semibold">
-                    {{ request.required_date | date : 'dd/MM/yyyy' }}
+                    {{ request.required_date | date : 'dd/MM/yyyy' : 'UTC' }}
                   </p>
                 </div>
                 } @if (request.reason) {

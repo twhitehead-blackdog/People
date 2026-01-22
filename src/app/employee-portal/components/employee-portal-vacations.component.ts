@@ -142,10 +142,10 @@ import { TooltipModule } from 'primeng/tooltip';
                     >
                   </div>
                   <p class="text-white font-semibold">
-                    {{ request.start_date | date : 'dd/MM/yyyy' }}
+                    {{ request.start_date | date : 'dd/MM/yyyy' : 'UTC' }}
                     @if (request.end_date) {
                     <span class="text-gray-400 text-sm block mt-1">
-                      hasta {{ request.end_date | date : 'dd/MM/yyyy' }}
+                      hasta {{ request.end_date | date : 'dd/MM/yyyy' : 'UTC' }}
                     </span>
                     }
                   </p>

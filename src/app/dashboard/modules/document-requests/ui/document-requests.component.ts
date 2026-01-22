@@ -596,7 +596,7 @@ import { DocumentRequest } from '../models/document-request.model';
               <p class="text-white">
                 {{
                   selectedDocument()!.metadata!.timelog_date
-                    | date : 'dd/MM/yyyy'
+                    | date : 'dd/MM/yyyy' : 'UTC'
                 }}
               </p>
             </div>

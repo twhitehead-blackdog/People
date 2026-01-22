@@ -201,12 +201,12 @@ import { VacationRequest } from '../models/vacation-request.model';
               </td>
               <td style="padding: 0.5rem; text-align: center;">
                 <span class="text-sm text-gray-300">
-                  {{ vacation.start_date | date : 'dd/MM/yyyy' }}
+                  {{ vacation.start_date | date : 'dd/MM/yyyy' : 'UTC' }}
                 </span>
               </td>
               <td style="padding: 0.5rem; text-align: center;">
                 <span class="text-sm text-gray-300">
-                  {{ vacation.end_date | date : 'dd/MM/yyyy' }}
+                  {{ vacation.end_date | date : 'dd/MM/yyyy' : 'UTC' }}
                 </span>
               </td>
               <td style="padding: 0.5rem; text-align: center;">
@@ -404,7 +404,7 @@ import { VacationRequest } from '../models/vacation-request.model';
                     Fecha Inicio
                   </span>
                   <span class="text-xs font-bold text-cyan-400">
-                    {{ selectedVacation()!.start_date | date : 'dd/MM/yyyy' }}
+                    {{ selectedVacation()!.start_date | date : 'dd/MM/yyyy' : 'UTC' }}
                   </span>
                 </div>
               </div>
@@ -416,7 +416,7 @@ import { VacationRequest } from '../models/vacation-request.model';
                     Fecha Fin
                   </span>
                   <span class="text-xs font-bold text-cyan-400">
-                    {{ selectedVacation()!.end_date | date : 'dd/MM/yyyy' }}
+                    {{ selectedVacation()!.end_date | date : 'dd/MM/yyyy' : 'UTC' }}
                   </span>
                 </div>
               </div>
@@ -438,7 +438,7 @@ import { VacationRequest } from '../models/vacation-request.model';
                 >Fecha de Inicio</label
               >
               <p class="text-white">
-                {{ selectedVacation()!.start_date | date : 'dd/MM/yyyy' }}
+                {{ selectedVacation()!.start_date | date : 'dd/MM/yyyy' : 'UTC' }}
               </p>
             </div>
             <div>
@@ -446,7 +446,7 @@ import { VacationRequest } from '../models/vacation-request.model';
                 >Fecha de Fin</label
               >
               <p class="text-white">
-                {{ selectedVacation()!.end_date | date : 'dd/MM/yyyy' }}
+                {{ selectedVacation()!.end_date | date : 'dd/MM/yyyy' : 'UTC' }}
               </p>
             </div>
             <div>

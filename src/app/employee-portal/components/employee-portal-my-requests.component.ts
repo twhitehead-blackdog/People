@@ -398,15 +398,15 @@ type UnifiedRequest = {
                   </div>
                   @if (quantityForPeriodList.isDays) {
                   <p class="text-white font-semibold">
-                    {{ data.date_from | date : 'dd/MM/yyyy' }}
+                    {{ data.date_from | date : 'dd/MM/yyyy' : 'UTC' }}
                   </p>
                   @if (data.date_from !== data.date_to) {
                   <p class="text-gray-400 text-sm mt-1">
-                    hasta {{ data.date_to | date : 'dd/MM/yyyy' }}
+                    hasta {{ data.date_to | date : 'dd/MM/yyyy' : 'UTC' }}
                   </p>
                   } } @else { @if (data.date_from) {
                   <p class="text-white font-semibold">
-                    {{ data.date_from | date : 'dd/MM/yyyy' }}
+                    {{ data.date_from | date : 'dd/MM/yyyy' : 'UTC' }}
                   </p>
                   @if (data.date_from && hasTimeInfo()(data.date_from)) {
                   <p class="text-gray-400 text-sm mt-1">
@@ -513,10 +513,10 @@ type UnifiedRequest = {
                     >
                   </div>
                   <p class="text-white font-semibold">
-                    {{ data.start_date | date : 'dd/MM/yyyy' }}
+                    {{ data.start_date | date : 'dd/MM/yyyy' : 'UTC' }}
                     @if (data.end_date) {
                     <span class="text-gray-400 text-sm block mt-1">
-                      hasta {{ data.end_date | date : 'dd/MM/yyyy' }}
+                      hasta {{ data.end_date | date : 'dd/MM/yyyy' : 'UTC' }}
                     </span>
                     }
                   </p>
@@ -549,7 +549,7 @@ type UnifiedRequest = {
                     >
                   </div>
                   <p class="text-white font-semibold">
-                    {{ data.required_date | date : 'dd/MM/yyyy' }}
+                    {{ data.required_date | date : 'dd/MM/yyyy' : 'UTC' }}
                   </p>
                 </div>
                 } }

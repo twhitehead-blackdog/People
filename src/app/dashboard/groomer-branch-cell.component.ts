@@ -25,7 +25,7 @@ import { GroomerBranchAssignment } from '../models';
         <div class="font-bold">{{ nonWorkingLabel() || 'No laborable' }}</div>
         <div>
           Fecha:
-          <span class="font-bold">{{ date() | date : 'dd/MM/yyyy' }}</span>
+          <span class="font-bold">{{ date() | date : 'dd/MM/yyyy' : 'UTC' }}</span>
         </div>
         <div class="italic">No se puede asignar sucursal este día.</div>
       </div>
@@ -52,7 +52,7 @@ import { GroomerBranchAssignment } from '../models';
         </div>
         <div>
           Fecha:
-          <span class="font-bold">{{ date() | date : 'dd/MM/yyyy' }}</span>
+          <span class="font-bold">{{ date() | date : 'dd/MM/yyyy' : 'UTC' }}</span>
         </div>
         <div>
           Peluquero:

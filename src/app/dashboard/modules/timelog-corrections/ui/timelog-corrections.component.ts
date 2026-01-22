@@ -180,7 +180,7 @@ import { SafeUrlPipe } from '../../shared/pipes/safe-url.pipe';
               </td>
               <td style="padding: 0.4rem; text-align: center;">
                 <span class="text-sm text-white font-medium">
-                  {{ request.metadata?.timelog_date | date : 'dd/MM/yyyy' }}
+                  {{ request.metadata?.timelog_date | date : 'dd/MM/yyyy' : 'UTC' }}
                 </span>
               </td>
               <td style="padding: 0.4rem; text-align: center;">

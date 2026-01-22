@@ -806,12 +806,12 @@ export interface DocumentRequest {
                     </td>
                     <td style="padding: 0.5rem; text-align: center;">
                       <span class="text-xs text-gray-300">
-                        {{ disability.start_date | date : 'dd/MM/yyyy' }}
+                        {{ disability.start_date | date : 'dd/MM/yyyy' : 'UTC' }}
                       </span>
                     </td>
                     <td style="padding: 0.5rem; text-align: center;">
                       <span class="text-xs text-gray-300">
-                        {{ disability.end_date | date : 'dd/MM/yyyy' }}
+                        {{ disability.end_date | date : 'dd/MM/yyyy' : 'UTC' }}
                       </span>
                     </td>
                     <td style="padding: 0.5rem; text-align: center;">
@@ -1208,21 +1208,22 @@ export interface DocumentRequest {
                       </span>
                     </td>
                     <td style="padding: 0.4rem; text-align: center;">
-                      @let compensatoryDate =
-                      getCompensatoryDateFromNotes(request); @if
-                      (compensatoryDate) {
-                      <span class="text-xs text-cyan-400 font-medium">{{
-                        compensatoryDate | date : 'dd/MM/yyyy'
-                      }}</span>
-                      } @else { @let dateFrom = request.date_from | date :
-                      'dd/MM/yyyy'; @let dateTo = request.date_to | date :
-                      'dd/MM/yyyy'; @if (dateFrom === dateTo) {
-                      <span class="text-xs text-gray-300">{{ dateFrom }}</span>
+                      @let dateFrom = request.date_from | date : 'dd/MM/yyyy' : 'UTC';
+                      @let dateTo = request.date_to | date : 'dd/MM/yyyy' : 'UTC';
+                      @if (dateFrom) {
+                        @if (dateFrom === dateTo) {
+                        <span class="text-xs text-cyan-400 font-medium">{{ dateFrom }}</span>
+                        } @else {
+                        <span class="text-xs text-cyan-400 font-medium">{{ dateFrom }} → {{ dateTo }}</span>
+                        }
                       } @else {
-                      <span class="text-xs text-gray-300"
-                        >{{ dateFrom }} → {{ dateTo }}</span
-                      >
-                      } }
+                        @let compensatoryDate = getCompensatoryDateFromNotes(request);
+                        @if (compensatoryDate) {
+                        <span class="text-xs text-gray-300">{{ compensatoryDate | date : 'dd/MM/yyyy' : 'UTC' }}</span>
+                        } @else {
+                        <span class="text-xs text-gray-500">-</span>
+                        }
+                      }
                     </td>
                     <td style="padding: 0.4rem; text-align: center;">
                       @let requestedAmount =
@@ -1474,7 +1475,7 @@ export interface DocumentRequest {
                     Fecha Inicio
                   </span>
                   <span class="text-xs font-bold text-blue-400">
-                    {{ selectedDisability()!.start_date | date : 'dd/MM/yyyy' }}
+                    {{ selectedDisability()!.start_date | date : 'dd/MM/yyyy' : 'UTC' }}
                   </span>
                 </div>
               </div>
@@ -1486,7 +1487,7 @@ export interface DocumentRequest {
                     Fecha Fin
                   </span>
                   <span class="text-xs font-bold text-blue-400">
-                    {{ selectedDisability()!.end_date | date : 'dd/MM/yyyy' }}
+                    {{ selectedDisability()!.end_date | date : 'dd/MM/yyyy' : 'UTC' }}
                   </span>
                 </div>
               </div>
@@ -1508,7 +1509,7 @@ export interface DocumentRequest {
                 >Fecha de Inicio</label
               >
               <p class="text-white">
-                {{ selectedDisability()!.start_date | date : 'dd/MM/yyyy' }}
+                {{ selectedDisability()!.start_date | date : 'dd/MM/yyyy' : 'UTC' }}
               </p>
             </div>
             <div>
@@ -1516,7 +1517,7 @@ export interface DocumentRequest {
                 >Fecha de Fin</label
               >
               <p class="text-white">
-                {{ selectedDisability()!.end_date | date : 'dd/MM/yyyy' }}
+                {{ selectedDisability()!.end_date | date : 'dd/MM/yyyy' : 'UTC' }}
               </p>
             </div>
             <div>
@@ -1951,37 +1952,40 @@ export interface DocumentRequest {
                 }
               </p>
             </div>
-            @let compensatoryDate =
-            getCompensatoryDateFromNotes(selectedCompensatoryRequest()!); @if
-            (compensatoryDate) {
+            @let dateFrom = selectedCompensatoryRequest()!.date_from |
+            date : 'dd/MM/yyyy' : 'UTC'; @let dateTo =
+            selectedCompensatoryRequest()!.date_to | date : 'dd/MM/yyyy' : 'UTC';
+            @if (dateFrom) {
+              @if (dateFrom === dateTo) {
             <div>
               <label class="block text-sm font-medium text-gray-400 mb-1"
                 >Fecha del Compensatorio</label
               >
               <p class="text-white font-medium text-cyan-400">
-                {{ compensatoryDate | date : 'dd/MM/yyyy' }}
-              </p>
-            </div>
-            } @else { @let dateFrom = selectedCompensatoryRequest()!.date_from |
-            date : 'dd/MM/yyyy'; @let dateTo =
-            selectedCompensatoryRequest()!.date_to | date : 'dd/MM/yyyy'; @if
-            (dateFrom === dateTo) {
-            <div>
-              <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Fecha Registrada</label
-              >
-              <p class="text-white">
                 {{ dateFrom }}
               </p>
             </div>
-            } @else {
+              } @else {
             <div>
               <label class="block text-sm font-medium text-gray-400 mb-1"
-                >Período Registrado</label
+                >Período del Compensatorio</label
               >
-              <p class="text-white">{{ dateFrom }} → {{ dateTo }}</p>
+              <p class="text-white font-medium text-cyan-400">{{ dateFrom }} → {{ dateTo }}</p>
             </div>
-            } } @let timeInfo =
+              }
+            } @else {
+              @let compensatoryDate = getCompensatoryDateFromNotes(selectedCompensatoryRequest()!);
+              @if (compensatoryDate) {
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Fecha del Compensatorio</label
+              >
+              <p class="text-white">
+                {{ compensatoryDate | date : 'dd/MM/yyyy' : 'UTC' }}
+              </p>
+            </div>
+              }
+            } @let timeInfo =
             getCompensatoryTimeFromNotes(selectedCompensatoryRequest()!); @if
             (timeInfo.start || timeInfo.end) {
             <div>
@@ -2035,7 +2039,7 @@ export interface DocumentRequest {
                   class="px-3 py-1.5 rounded-lg bg-cyan-500/10 border border-cyan-400/30 flex flex-col gap-0.5"
                 >
                   <span class="font-semibold text-white text-sm">
-                    {{ date | date : 'dd/MM/yyyy' }}
+                    {{ date | date : 'dd/MM/yyyy' : 'UTC' }}
                   </span>
                   <span class="text-gray-300 text-xs">
                     {{ getManualDateSaldoLabel(date) }}

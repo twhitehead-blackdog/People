@@ -30,8 +30,17 @@ import {
   startOfDay,
   startOfWeek,
   subWeeks,
+  parseISO,
 } from 'date-fns';
 import { formatInTimeZone, toDate } from 'date-fns-tz';
+
+// Helper para parsear fechas de la DB como UTC (evita desfase de -1 día)
+const parseUTCDateString = (dateStr: string | null | undefined): Date | null => {
+  if (!dateStr) return null;
+  // Tomar solo la parte de fecha (YYYY-MM-DD) y forzar interpretación UTC
+  const cleanDate = dateStr.split('T')[0];
+  return new Date(cleanDate + 'T12:00:00Z'); // Usar mediodía UTC para evitar problemas de zona horaria
+};
 import { ConfirmationService, MenuItem, MessageService } from 'primeng/api';
 import { Avatar } from 'primeng/avatar';
 import { Button } from 'primeng/button';
@@ -345,12 +354,8 @@ type Reminder = {
 
       <!-- Card Principal -->
       <p-card @fadeIn>
-        <p-tabs value="schedules">
+        <p-tabs value="timelogs">
           <p-tablist>
-            <p-tab value="schedules">
-              <i class="pi pi-calendar mr-2"></i>
-              Horarios
-            </p-tab>
             <p-tab value="timelogs">
               <i class="pi pi-clock mr-2"></i>
               Marcaciones
@@ -1017,178 +1022,6 @@ type Reminder = {
             />
           </p-tabpanel>
 
-          <p-tabpanel value="schedules">
-            <div class="space-y-4">
-              <!-- Filtros y controles -->
-              <div class="flex lg:flex-row flex-col gap-2 mb-4">
-                <input
-                  pInputText
-                  type="text"
-                  [(ngModel)]="employeeSearchForSchedule"
-                  placeholder="Buscar empleado por nombre..."
-                  class="w-full lg:w-auto flex-1 text-sm"
-                />
-                <p-select
-                  fluid
-                  [(ngModel)]="currentPositionForSchedule"
-                  [options]="store.positions.entities()"
-                  appendTo="body"
-                  placeholder="TODOS LOS PUESTOS"
-                  filter
-                  showClear
-                  optionLabel="name"
-                  optionValue="id"
-                  class="w-full lg:w-auto flex-1 text-sm"
-                />
-                <div class="flex w-full lg:w-auto">
-                  <p-menu
-                    #scheduleMenu
-                    [model]="scheduleMenuItems"
-                    [popup]="true"
-                    appendTo="body"
-                  />
-                  <p-button
-                    (click)="scheduleMenu.toggle($event)"
-                    [label]="currentWeekLabel()"
-                    icon="pi pi-calendar"
-                    rounded
-                    severity="secondary"
-                    outlined
-                    size="small"
-                    class="w-full lg:w-auto whitespace-nowrap text-sm"
-                  />
-                </div>
-              </div>
-
-              <!-- Tabla semanal -->
-              <p-table
-                [value]="employeeSchedulesList()"
-                paginator
-                [rows]="10"
-                [tableStyle]="{ 'min-width': '50rem' }"
-                [rowsPerPageOptions]="[10, 20, 50]"
-                paginatorDropdownAppendTo="body"
-                [loading]="schedulesResource.isLoading()"
-              >
-                <ng-template #header>
-                  <tr>
-                    <th pFrozenColumn>Nombre</th>
-                    <th>Cargo</th>
-                    @for(day of weekDays(); track day.date){
-                    <th class="text-center min-w-[100px] max-w-[100px]">
-                      <div
-                        class="flex flex-col items-center gap-0 leading-[1.1]"
-                      >
-                        <span class="text-xs font-bold uppercase">{{
-                          day.date | date : 'EEE'
-                        }}</span>
-                        <span class="text-[10px]">{{
-                          day.date | date : 'd MMM'
-                        }}</span>
-                      </div>
-                    </th>
-                    }
-                  </tr>
-                </ng-template>
-                <ng-template #body let-item>
-                  <tr @fadeIn>
-                    <td pFrozenColumn>
-                      {{ item.first_name }} {{ item.father_name }}
-                    </td>
-                    <td>{{ item.position?.name || '-' }}</td>
-                    @for(day of item.days; track day.date){
-                    <td class="text-center">
-                      @if(day.shift) {
-                      <div
-                        class="inline-flex gap-1 py-0.5 px-1.5 rounded-sm font-medium items-center justify-center text-[11px] cursor-pointer transition-all duration-200 hover:scale-105 hover:shadow-md border border-black/20 shadow-sm"
-                        [class]="colorVariants[day.shift.schedule?.color]"
-                        [ngClass]="{
-                          'opacity-60 hover:opacity-100': !day.shift.approved,
-                          'ring-1 ring-amber-400/70 shadow-md':
-                            day.shift.approved
-                        }"
-                        [pTooltip]="getScheduleTooltip(day.shift)"
-                        tooltipPosition="top"
-                        (click)="scheduleOptions.toggle($event)"
-                      >
-                        <span
-                          class="truncate max-w-[65px] font-semibold leading-tight"
-                        >
-                          {{ day.shift.schedule?.name }}
-                        </span>
-                        @if(day.shift.approved) {
-                        <i
-                          class="pi pi-check-circle text-green-400 text-[9px] ml-0.5 flex-shrink-0"
-                        ></i>
-                        } @else {
-                        <i
-                          class="pi pi-exclamation-circle text-yellow-200 text-[9px] ml-0.5 animate-pulse flex-shrink-0 drop-shadow-[0_0_4px_rgba(251,191,36,0.8)]"
-                        ></i>
-                        }
-                      </div>
-                      <p-popover #scheduleOptions>
-                        <div>
-                          <span class="font-medium block mb-2">Opciones</span>
-                          <ul class="list-none flex flex-col">
-                            <li
-                              class="flex items-center gap-2 p-2 hover:bg-neutral-700 cursor-pointer rounded-md"
-                              (click)="
-                                editSchedule({ employee_schedule: day.shift })
-                              "
-                            >
-                              <i class="pi pi-pencil text-blue-600"></i>
-                              Editar
-                            </li>
-                            <li
-                              class="flex items-center gap-2 p-2 hover:bg-neutral-700 cursor-pointer rounded-md"
-                              (click)="deleteSchedule(day.shift.id)"
-                            >
-                              <i class="pi pi-trash text-red-700"></i>
-                              Eliminar
-                            </li>
-                            @if(store.isScheduleApprover()) {
-                            <li
-                              class="flex items-center gap-2 p-2 hover:bg-neutral-700 cursor-pointer rounded-md"
-                              (click)="approveSchedule(day.shift.id)"
-                            >
-                              <i class="pi pi-check-circle text-green-700"></i>
-                              Aprobar
-                            </li>
-                            }
-                          </ul>
-                        </div>
-                      </p-popover>
-                      } @else {
-                      <p-button
-                        icon="pi pi-plus"
-                        outlined
-                        size="small"
-                        severity="secondary"
-                        (onClick)="
-                          editSchedule({ employee_id: item.id, date: day.date })
-                        "
-                        class="hover:bg-neutral-700 hover:border-amber-400 hover:text-amber-400 transition-all"
-                      />
-                      }
-                    </td>
-                    }
-                  </tr>
-                </ng-template>
-                <ng-template #emptymessage>
-                  <tr>
-                    <td [attr.colspan]="9" class="text-center py-12">
-                      <div class="flex flex-col items-center gap-3">
-                        <i class="pi pi-inbox text-6xl text-gray-500"></i>
-                        <p class="text-gray-400 text-lg">
-                          No hay horarios asignados
-                        </p>
-                      </div>
-                    </td>
-                  </tr>
-                </ng-template>
-              </p-table>
-            </div>
-          </p-tabpanel>
 
           <p-tabpanel value="reminders">
             <div class="space-y-4">
@@ -1291,7 +1124,7 @@ type Reminder = {
                           'text-red-500 font-semibold': isOverdue(reminder)
                         }"
                       >
-                        {{ reminder.due_date | date : 'dd/MM/yyyy' }}
+                        {{ reminder.due_date | date : 'dd/MM/yyyy' : 'UTC' }}
                       </span>
                     </td>
                     <td>
@@ -2171,18 +2004,20 @@ export class BranchManagerComponent {
       let cleanReason = '';
 
       if (r.requestType === 'compensatorio') {
-        const from = r.date_from
-          ? format(new Date(r.date_from), 'dd/MM/yyyy')
-          : '-';
-        const to = r.date_to ? format(new Date(r.date_to), 'dd/MM/yyyy') : '-';
+        // Priorizar date_from/date_to sobre las notas, ya que contienen la fecha correcta
+        // Usar parseUTCDateString para evitar desfase de -1 día por zona horaria
+        const fromDate = parseUTCDateString(r.date_from);
+        const toDateVal = parseUTCDateString(r.date_to);
+        const from = fromDate ? format(fromDate, 'dd/MM/yyyy') : '-';
+        const to = toDateVal ? format(toDateVal, 'dd/MM/yyyy') : '-';
 
-        // Si es por horas o las fechas son iguales, mostrar solo fecha única
+        // Usar date_from/date_to que contienen la fecha correcta
         if (r.compensatory_type === 'hours' || from === to) {
           displayDate = from;
-          displayDateLabel = 'Fecha';
+          displayDateLabel = 'Fecha del compensatorio';
         } else {
           displayDate = `${from} – ${to}`;
-          displayDateLabel = 'Período';
+          displayDateLabel = 'Período del compensatorio';
         }
         summary = 'Compensatorio';
         details = [
@@ -2240,12 +2075,10 @@ export class BranchManagerComponent {
           details.push({ label: 'Notas', value: cleanReason });
         }
       } else if (r.requestType === 'incapacidad') {
-        const start = r.start_date
-          ? format(new Date(r.start_date), 'dd/MM/yyyy')
-          : '-';
-        const end = r.end_date
-          ? format(new Date(r.end_date), 'dd/MM/yyyy')
-          : '-';
+        const startDate = parseUTCDateString(r.start_date);
+        const endDate = parseUTCDateString(r.end_date);
+        const start = startDate ? format(startDate, 'dd/MM/yyyy') : '-';
+        const end = endDate ? format(endDate, 'dd/MM/yyyy') : '-';
 
         // Si las fechas son iguales, mostrar solo fecha única
         if (start === end) {
@@ -2263,12 +2096,10 @@ export class BranchManagerComponent {
         if (r.description)
           details.push({ label: 'Descripción', value: r.description });
       } else if (r.requestType === 'vacaciones') {
-        const start = r.start_date
-          ? format(new Date(r.start_date), 'dd/MM/yyyy')
-          : '-';
-        const end = r.end_date
-          ? format(new Date(r.end_date), 'dd/MM/yyyy')
-          : '-';
+        const startDate = parseUTCDateString(r.start_date);
+        const endDate = parseUTCDateString(r.end_date);
+        const start = startDate ? format(startDate, 'dd/MM/yyyy') : '-';
+        const end = endDate ? format(endDate, 'dd/MM/yyyy') : '-';
 
         // Si las fechas son iguales, mostrar solo fecha única
         if (start === end) {
@@ -2281,9 +2112,8 @@ export class BranchManagerComponent {
         summary = 'Vacaciones';
         if (r.reason) details.push({ label: 'Razón', value: r.reason });
       } else if (r.requestType === 'documentos') {
-        displayDate = r.required_date
-          ? format(new Date(r.required_date), 'dd/MM/yyyy')
-          : '-';
+        const reqDate = parseUTCDateString(r.required_date);
+        displayDate = reqDate ? format(reqDate, 'dd/MM/yyyy') : '-';
         summary = r.document_type || 'Solicitud de Documento';
         details = [{ label: 'Fecha requerida', value: displayDate }];
         if (r.reason) details.push({ label: 'Razón', value: r.reason });
@@ -2306,8 +2136,9 @@ export class BranchManagerComponent {
       } else if (r.requestType === 'timelog_correction') {
         // Timelog Correction: show timelog_date, timelog_type from metadata
         const metadata = r.metadata || {};
-        const timelogDate = metadata.timelog_date
-          ? format(new Date(metadata.timelog_date), 'dd/MM/yyyy')
+        const timelogDateParsed = parseUTCDateString(metadata.timelog_date);
+        const timelogDate = timelogDateParsed
+          ? format(timelogDateParsed, 'dd/MM/yyyy')
           : '-';
         displayDate = timelogDate;
         const timelogTypeLabels: Record<string, string> = {
@@ -3120,6 +2951,40 @@ export class BranchManagerComponent {
 
       return searchDate >= start && searchDate <= end;
     });
+  }
+
+  // Función para obtener la fecha del compensatorio desde las notas (consistente con hr-disabilities)
+  public getCompensatoryDateFromNotes(data: any): string | null {
+    if (data.notes) {
+      const notesArray = Array.isArray(data.notes)
+        ? data.notes
+        : typeof data.notes === 'string'
+        ? [data.notes]
+        : [];
+
+      const dateNote = notesArray.find(
+        (note: any) =>
+          typeof note === 'string' && note.includes('Fecha compensatorio:')
+      );
+
+      if (dateNote) {
+        const match = dateNote.match(/Fecha compensatorio:\s*(.+)/);
+        if (match && match[1]) {
+          const dateStr = match[1].trim();
+          // Si viene en formato ISO (YYYY-MM-DD), convertir a DD/MM/YYYY
+          if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            try {
+              const date = new Date(dateStr);
+              return format(date, 'dd/MM/yyyy');
+            } catch (error) {
+              return dateStr; // fallback al string original si hay error
+            }
+          }
+          return dateStr;
+        }
+      }
+    }
+    return null;
   }
 
   // Helper methods

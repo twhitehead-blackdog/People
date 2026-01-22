@@ -587,8 +587,8 @@ import { EmployeesStore } from '../stores/employees.store';
                   {{ instance.assigned_employee?.father_name }}
                 </td>
                 <td>{{ instance.branch?.name || '-' }}</td>
-                <td>{{ instance.scheduled_date | date : 'dd/MM/yyyy' }}</td>
-                <td>{{ instance.due_date | date : 'dd/MM/yyyy' }}</td>
+                <td>{{ instance.scheduled_date | date : 'dd/MM/yyyy' : 'UTC' }}</td>
+                <td>{{ instance.due_date | date : 'dd/MM/yyyy' : 'UTC' }}</td>
                 <td>
                   <p-tag
                     [value]="getStatusLabel(instance.status)"

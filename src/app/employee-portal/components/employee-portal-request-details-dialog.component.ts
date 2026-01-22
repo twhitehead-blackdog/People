@@ -111,15 +111,15 @@ type UnifiedRequest = {
             </div>
             @if (quantityForPeriod.isDays) {
             <p class="text-white font-semibold text-lg">
-              {{ data.date_from | date : 'dd/MM/yyyy' }}
+              {{ data.date_from | date : 'dd/MM/yyyy' : 'UTC' }}
             </p>
             @if (data.date_from !== data.date_to) {
             <p class="text-gray-400 text-sm mt-1">
-              hasta {{ data.date_to | date : 'dd/MM/yyyy' }}
+              hasta {{ data.date_to | date : 'dd/MM/yyyy' : 'UTC' }}
             </p>
             } } @else { @if (data.date_from) {
             <p class="text-white font-semibold text-lg">
-              {{ data.date_from | date : 'dd/MM/yyyy' }}
+              {{ data.date_from | date : 'dd/MM/yyyy' : 'UTC' }}
             </p>
             @if (data.date_from && hasTimeInfo()(data.date_from)) {
             <p class="text-gray-400 text-sm mt-1">
@@ -238,11 +238,11 @@ type UnifiedRequest = {
               >
             </div>
             <p class="text-white font-semibold text-lg">
-              {{ data.start_date | date : 'dd/MM/yyyy' }}
+              {{ data.start_date | date : 'dd/MM/yyyy' : 'UTC' }}
             </p>
             @if (data.end_date) {
             <p class="text-gray-400 text-sm mt-1">
-              hasta {{ data.end_date | date : 'dd/MM/yyyy' }}
+              hasta {{ data.end_date | date : 'dd/MM/yyyy' : 'UTC' }}
             </p>
             }
           </div>
@@ -332,7 +332,7 @@ type UnifiedRequest = {
               >
             </div>
             <p class="text-white font-semibold text-lg">
-              {{ data.required_date | date : 'fullDate' }}
+              {{ data.required_date | date : 'fullDate' : 'UTC' }}
             </p>
           </div>
           }
@@ -467,6 +467,88 @@ type UnifiedRequest = {
             (onClick)="onViewResponse(data)"
           />
         </div>
+        }
+
+        @if (req.request_type === 'vacation') {
+        <!-- Vacaciones -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div
+            class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700"
+          >
+            <div class="flex items-center gap-2 mb-2">
+              <i class="pi pi-calendar text-orange-400"></i>
+              <span class="text-sm text-gray-400 font-medium"
+                >Período de Vacaciones</span
+              >
+            </div>
+            <p class="text-white font-semibold text-lg">
+              {{ data.date_from | date : 'dd/MM/yyyy' : 'UTC' }}
+            </p>
+            @if (data.date_to) {
+            <p class="text-gray-400 text-sm mt-1">
+              hasta {{ data.date_to | date : 'dd/MM/yyyy' : 'UTC' }}
+            </p>
+            }
+          </div>
+
+          <div
+            class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700"
+          >
+            <div class="flex items-center gap-2 mb-2">
+              <i class="pi pi-calendar-check text-orange-400"></i>
+              <span class="text-sm text-gray-400 font-medium">Días Solicitados</span>
+            </div>
+            <p class="text-white font-semibold text-xl">
+              {{ calculateDays(data.date_from, data.date_to) }} día(s)
+            </p>
+          </div>
+
+          <div
+            class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700"
+          >
+            <div class="flex items-center gap-2 mb-2">
+              <i class="pi pi-list text-orange-400"></i>
+              <span class="text-sm text-gray-400 font-medium"
+                >Tipo de Solicitud</span
+              >
+            </div>
+            <p class="text-white font-semibold">
+              {{ getRequestTypeLabel()(req.request_type) }}
+            </p>
+          </div>
+        </div>
+
+        <!-- Motivo -->
+        @if (data.reason || req.description) {
+        <div class="bg-neutral-800/50 rounded-lg p-4 border border-neutral-700">
+          <div class="flex items-center gap-2 mb-3">
+            <i class="pi pi-comment text-orange-400"></i>
+            <span class="text-sm text-gray-400 font-medium">Motivo</span>
+          </div>
+          <p class="text-white text-sm whitespace-pre-wrap">
+            {{ data.reason || req.description || 'Sin motivo especificado' }}
+          </p>
+        </div>
+        }
+
+        <!-- Comentario de Rechazo -->
+        @if (data.rejection_comment && req.status === 'rejected') {
+        <div class="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+          <div class="flex items-start gap-3">
+            <i
+              class="pi pi-exclamation-triangle text-red-400 text-xl mt-0.5"
+            ></i>
+            <div class="flex-1">
+              <h4 class="text-red-300 font-semibold mb-2">
+                Motivo del Rechazo
+              </h4>
+              <p class="text-red-200 text-sm whitespace-pre-wrap">
+                {{ data.rejection_comment }}
+              </p>
+            </div>
+          </div>
+        </div>
+        }
         }
       </div>
       }

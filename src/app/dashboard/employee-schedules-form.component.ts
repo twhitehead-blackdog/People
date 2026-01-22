@@ -1148,14 +1148,12 @@ export class EmployeeSchedulesFormComponent implements OnInit {
 
         requests.push(
           this.http.patch(
-            this.apiUrl.build('rest/v1/employee_schedules'),
+            this.apiUrl.build('rest/v1/employee_schedules', {
+              id: `eq.${this.originalSchedule.id}`,
+              ...(companyId ? { company_id: `eq.${companyId}` } : {}),
+            }),
             updateData,
-            {
-              params: {
-                id: `eq.${this.originalSchedule.id}`,
-                ...(companyId ? { company_id: `eq.${companyId}` } : {}),
-              },
-            }
+            {}
           )
         );
       }
@@ -1177,14 +1175,12 @@ export class EmployeeSchedulesFormComponent implements OnInit {
 
       requests.push(
         this.http.patch(
-          this.apiUrl.build('rest/v1/employee_schedules'),
+          this.apiUrl.build('rest/v1/employee_schedules', {
+            id: `eq.${this.originalSchedule.id}`,
+            ...(companyId ? { company_id: `eq.${companyId}` } : {}),
+          }),
           updateData1,
-          {
-            params: {
-              id: `eq.${this.originalSchedule.id}`,
-              ...(companyId ? { company_id: `eq.${companyId}` } : {}),
-            },
-          }
+          {}
         )
       );
 
