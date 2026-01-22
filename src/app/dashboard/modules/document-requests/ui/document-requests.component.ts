@@ -468,10 +468,11 @@ import { DocumentRequest } from '../models/document-request.model';
               >
                 <div class="flex items-center justify-between">
                   <span class="text-xs font-semibold text-purple-300">
-                    Fecha Solicitud
+                    Fecha Requerida
                   </span>
                   <span class="text-xs font-bold text-purple-400">
-                    {{ selectedDocument()!.created_at | date : 'dd/MM/yyyy' }}
+                    {{ selectedDocument()!.required_date
+                      | date : 'dd/MM/yyyy' : 'UTC' }}
                   </span>
                 </div>
               </div>
