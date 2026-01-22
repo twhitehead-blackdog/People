@@ -515,6 +515,19 @@ import { DocumentRequest } from '../models/document-request.model';
                 {{ selectedDocument()!.created_at | date : 'dd/MM/yyyy HH:mm' }}
               </p>
             </div>
+            @if (selectedDocument()?.required_date) {
+            <div>
+              <label class="block text-sm font-medium text-gray-400 mb-1"
+                >Fecha Requerida</label
+              >
+              <p class="text-white">
+                {{
+                  selectedDocument()!.required_date
+                    | date : 'dd/MM/yyyy' : 'UTC'
+                }}
+              </p>
+            </div>
+            }
             <div>
               <label class="block text-sm font-medium text-gray-400 mb-1"
                 >Creador</label

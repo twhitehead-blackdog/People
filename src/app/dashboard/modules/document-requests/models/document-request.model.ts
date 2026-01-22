@@ -40,6 +40,7 @@ export interface DocumentRequest {
   rejection_comment?: string;
   notes?: string;
   metadata?: DocumentRequestMetadata;
+  required_date?: string;
   company_id: string;
   created_at: string;
   updated_at: string;
