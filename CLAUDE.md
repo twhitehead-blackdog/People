@@ -118,6 +118,174 @@ All queries MUST include `company_id` filter (except `companies` table). Stores 
 - Do not modify overtime/payroll calculation logic without extreme care
 - Do not mix refactoring with feature work
 
+## File Upload Pattern (Supabase Storage)
+
+Cuando un formulario necesita subir archivos a Supabase Storage, seguir este patrón exacto:
+
+### Signals Requeridos
+
+```typescript
+// Archivo seleccionado por el usuario
+public myFile = signal<File | null>(null);
+// URL del archivo ya subido (background upload)
+public myDocUrl = signal<string | null>(null);
+// Indica si el upload está en progreso
+public uploadingMyDoc = signal<boolean>(false);
+```
+
+### Template (PrimeNG FileUpload)
+
+```html
+<p-fileUpload
+  mode="basic"
+  accept=".pdf,.jpg,.jpeg,.png"
+  maxFileSize="5000000"
+  [auto]="false"
+  chooseLabel="Seleccionar Archivo"
+  (onSelect)="onMyFileSelect($event)"
+/>
+
+@if (myFile()) {
+<div class="flex items-center gap-2">
+  @if (uploadingMyDoc()) {
+    <i class="pi pi-spin pi-spinner"></i>
+    <span>Subiendo...</span>
+  } @else {
+    <i class="pi pi-file"></i>
+    <span>{{ myFile()!.name }}</span>
+  }
+  <p-button
+    icon="pi pi-times"
+    (onClick)="clearMyFile()"
+    [disabled]="uploadingMyDoc()"
+  />
+</div>
+}
+```
+
+### Background Upload (al seleccionar archivo)
+
+```typescript
+public async onMyFileSelect(event: any): Promise<void> {
+  const files = event.currentFiles || event.files;
+  if (!files || files.length === 0) return;
+
+  const file = files[0];
+  this.myFile.set(file);
+  this.uploadingMyDoc.set(true);
+
+  try {
+    const employeeId = this.selectedEmployee()?.id || 'temp';
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${employeeId}/${Date.now()}.${fileExt}`;
+
+    const storageKey =
+      getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') ||
+      getEnv('ENV_SUPABASE_API_KEY') ||
+      '';
+
+    // ✅ CORRECTO: Usar apiUrl.baseUrl para upload
+    const uploadUrl = `${this.apiUrl.baseUrl}/storage/v1/object/BUCKET_NAME/${fileName}`;
+
+    await firstValueFrom(
+      this.http.post(uploadUrl, file, {
+        headers: {
+          apikey: storageKey,
+          Authorization: `Bearer ${storageKey}`,
+          'x-upsert': 'true',  // Permite sobrescribir
+        },
+      })
+    );
+
+    // ✅ CORRECTO: Usar apiUrl.build() para URL pública
+    const publicUrl = this.apiUrl.build(
+      `storage/v1/object/public/BUCKET_NAME/${fileName}`
+    );
+    this.myDocUrl.set(publicUrl);
+
+  } catch (error) {
+    console.error('Background upload failed:', error);
+    this.myDocUrl.set(null);  // Limpiar URL si falla
+  } finally {
+    this.uploadingMyDoc.set(false);
+  }
+}
+```
+
+### Limpiar Archivo (IMPORTANTE)
+
+```typescript
+// ✅ CORRECTO: Limpiar AMBOS signals juntos
+public clearMyFile(): void {
+  this.myFile.set(null);
+  this.myDocUrl.set(null);  // ¡NO OLVIDAR!
+}
+
+// ❌ INCORRECTO: Solo limpiar el archivo
+// (onClick)="myFile.set(null)"  // La URL queda huérfana
+```
+
+### Submit con Fallback
+
+```typescript
+public async submitRequest(): Promise<void> {
+  // Bloquear si aún está subiendo
+  if (this.uploadingMyDoc()) {
+    this.messageService.add({
+      severity: 'info',
+      detail: 'Por favor espera a que termine de subirse el documento.',
+    });
+    return;
+  }
+
+  let documentUrl = this.myDocUrl();
+  const file = this.myFile();
+
+  // Fallback upload si background falló
+  if (file && !documentUrl) {
+    const fileName = `${employeeId}/${Date.now()}.${file.name.split('.').pop()}`;
+    const storageKey = getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') || '';
+    const uploadUrl = `${this.apiUrl.baseUrl}/storage/v1/object/BUCKET_NAME/${fileName}`;
+
+    await firstValueFrom(this.http.post(uploadUrl, file, {
+      headers: {
+        apikey: storageKey,
+        Authorization: `Bearer ${storageKey}`,
+        'x-upsert': 'true',
+      },
+    }));
+
+    // ✅ CORRECTO: Usar apiUrl.build() - NUNCA getEnv() directo
+    documentUrl = this.apiUrl.build(`storage/v1/object/public/BUCKET_NAME/${fileName}`);
+  }
+
+  // Enviar datos con document_url
+  const data = {
+    // ... otros campos
+    document_url: documentUrl || null,
+  };
+}
+```
+
+### Buckets Disponibles
+
+| Bucket | Uso |
+|--------|-----|
+| `disabilities` | Certificados médicos de incapacidad |
+| `compensatory` | Documentos de tiempo compensatorio |
+| `employee-documents` | Documentos generales (vacaciones, etc.) |
+
+### Errores Comunes
+
+| Error | Causa | Solución |
+|-------|-------|----------|
+| URL `undefined/storage/...` | Usar `getEnv()` directo para URL | Usar `apiUrl.build()` |
+| Archivo no se adjunta | No limpiar URL al eliminar archivo | Usar método `clearMyFile()` |
+| Upload silencioso falla | Sin indicador visual | Agregar spinner con `uploadingMyDoc()` |
+| Headers incorrectos | Usar `Content-Type: file.type` | Omitir Content-Type, usar solo apikey/auth |
+
+**Referencia:** Ver `branch-manager-gestiones.component.ts` métodos `onDisabilityFileSelect`, `onVacationFileSelect`.
+
 ## Environment Variables
 
 Required for development:

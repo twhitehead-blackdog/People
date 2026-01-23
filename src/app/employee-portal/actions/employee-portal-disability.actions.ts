@@ -87,8 +87,10 @@ export async function uploadDisability(
           )
         );
 
-        // Get public URL for the uploaded file
-        documentUrl = `${apiUrl.baseUrl}/storage/v1/object/public/disabilities/${fileName}`;
+        // Get public URL for the uploaded file using apiUrl.build()
+        documentUrl = apiUrl.build(
+          `storage/v1/object/public/disabilities/${fileName}`
+        );
       } catch (uploadError: any) {
         console.error('Error uploading file to storage:', uploadError);
         const errorDetail =
@@ -118,7 +120,7 @@ export async function uploadDisability(
     };
 
     http
-      .post(`${apiUrl.baseUrl}/rest/v1/employee_disabilities`, disabilityData)
+      .post(apiUrl.build('rest/v1/employee_disabilities'), disabilityData)
       .subscribe({
         next: (created: any) => {
           messageService.add({

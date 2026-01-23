@@ -15,6 +15,7 @@ import { TextareaModule } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
+import { ApiUrlService } from '../../../../services/api-url.service';
 import { DashboardStore } from '../../../../stores/dashboard.store';
 import { getEnv } from '../../../../utils/env.utils';
 import { HrFiltersPanelComponent } from '../../shared/components/hr-filters-panel.component';
@@ -886,6 +887,7 @@ export class DocumentRequestsComponent {
   private confirmationService = inject(ConfirmationService);
   private dashboardStore = inject(DashboardStore);
   private http = inject(HttpClient);
+  private apiUrl = inject(ApiUrlService);
   private domSanitizer = inject(DomSanitizer);
 
   public searchText = signal('');
@@ -1085,31 +1087,36 @@ export class DocumentRequestsComponent {
         '_'
       )}`;
       const filePath = `document-requests/${doc.id}/${fileName}`;
-      const bucketName = 'employee-documents'; // Changed to 'documents' as per plan
+      const bucketName = 'employee-documents';
 
-      const formData = new FormData();
-      formData.append('file', file);
+      const storageKey =
+        getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') ||
+        getEnv('ENV_SUPABASE_API_KEY') ||
+        '';
 
       await firstValueFrom(
         this.http.post(
-          `${getEnv(
-            'ENV_SUPABASE_URL'
-          )}/storage/v1/object/${bucketName}/${filePath}`,
-          formData
+          `${this.apiUrl.baseUrl}/storage/v1/object/${bucketName}/${filePath}`,
+          file,
+          {
+            headers: {
+              apikey: storageKey,
+              Authorization: `Bearer ${storageKey}`,
+              'x-upsert': 'true',
+            },
+          }
         )
       );
 
-      // 2. Construct Public URL
-      const documentUrl = `${getEnv(
-        'ENV_SUPABASE_URL'
-      )}/storage/v1/object/public/${bucketName}/${filePath}`;
+      // 2. Construct Public URL using apiUrl.build()
+      const documentUrl = this.apiUrl.build(
+        `storage/v1/object/public/${bucketName}/${filePath}`
+      );
 
       // 3. Update Request Record
       await firstValueFrom(
         this.http.patch(
-          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/document_requests?id=eq.${
-            doc.id
-          }`,
+          this.apiUrl.build('rest/v1/document_requests', { id: `eq.${doc.id}` }),
           {
             status: 'completed',
             processed_by: currentEmployee.id,

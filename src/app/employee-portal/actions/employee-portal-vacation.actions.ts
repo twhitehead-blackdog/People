@@ -118,18 +118,20 @@ export async function submitVacationRequest(
         throw new Error('No se pudo obtener la clave de API de Supabase');
       }
 
-      const uploadResponse = await firstValueFrom(
+      await firstValueFrom(
         http.post(uploadUrl, file, {
           headers: {
-            'Content-Type': file.type,
             apikey: apiKey,
             Authorization: `Bearer ${apiKey}`,
+            'x-upsert': 'true',
           },
         })
       );
 
-      // Construir URL del documento
-      documentUrl = `${apiUrl.baseUrl}/storage/v1/object/public/employee-documents/${filePath}`;
+      // Construir URL del documento usando apiUrl.build()
+      documentUrl = apiUrl.build(
+        `storage/v1/object/public/employee-documents/${filePath}`
+      );
     }
 
     // Crear solicitud en la tabla employee_vacations
