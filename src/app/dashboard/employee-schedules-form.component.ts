@@ -155,11 +155,18 @@ import { DashboardStore } from '../stores/dashboard.store';
           placeholder="Seleccionar sucursal"
           appendTo="body"
         />
+        @if (isStoreManager()) {
+        <small class="text-gray-400 text-xs mt-1">
+          Asignada automáticamente según tu sucursal
+        </small>
+        }
       </div>
+      @if (!isStoreManager()) {
       <div class="flex items-center gap-2">
         <p-toggleswitch formControlName="approved" inputId="approved" />
         <label for="approved">Aprobado</label>
       </div>
+      }
     </div>
     <div class="flex justify-end gap-4 mt-4">
       <p-button
@@ -240,6 +247,14 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     '9AM - 6PM',
   ];
 
+  /**
+   * Determina si el usuario actual es gerente de tienda
+   * (schedule_admin pero NO admin)
+   */
+  public isStoreManager = computed(() => {
+    return this.store.isScheduleAdmin() && !this.store.isAdmin();
+  });
+
   // Filtrar turnos disponibles según permisos
   public availableSchedules = computed(() => {
     const allSchedules = this.store.schedules.entities() ?? [];
@@ -288,17 +303,27 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       this.form.get('approved')?.disable();
     }
 
-    // Establecer la sucursal por defecto: primero la que viene explícitamente,
-    // luego la del empleado si existe employee_id, y finalmente ninguna
-    if (branch) {
-      this.form.get('branch_id')?.patchValue(branch);
-    } else if (employee_id) {
-      // Buscar el empleado y usar su sucursal como valor por defecto
-      const employee = this.store.employees
-        .entities()
-        .find((emp) => emp.id === employee_id);
-      if (employee?.branch_id) {
-        this.form.get('branch_id')?.patchValue(employee.branch_id);
+    // Para gerentes de tienda: deshabilitar selector de sucursal y auto-asignar su sucursal
+    const isManager = this.store.isScheduleAdmin() && !this.store.isAdmin();
+    if (isManager) {
+      const managerBranchId = this.store.currentBranch()?.id;
+      if (managerBranchId) {
+        this.form.get('branch_id')?.patchValue(managerBranchId);
+      }
+      this.form.get('branch_id')?.disable();
+    } else {
+      // Establecer la sucursal por defecto: primero la que viene explícitamente,
+      // luego la del empleado si existe employee_id, y finalmente ninguna
+      if (branch) {
+        this.form.get('branch_id')?.patchValue(branch);
+      } else if (employee_id) {
+        // Buscar el empleado y usar su sucursal como valor por defecto
+        const employee = this.store.employees
+          .entities()
+          .find((emp) => emp.id === employee_id);
+        if (employee?.branch_id) {
+          this.form.get('branch_id')?.patchValue(employee.branch_id);
+        }
       }
     }
 

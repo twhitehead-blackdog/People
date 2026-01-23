@@ -63,6 +63,7 @@ type EmployeeWithDays = {
               [canApprove]="canApproveSchedules()"
               [selectionMode]="selectionMode()"
               [isSelected]="isShiftSelected(day.shift?.id, day.date)"
+              [isStoreManager]="isStoreManager()"
               (edit)="onEditShift($event)"
               (delete)="onDeleteShift($event)"
               (approve)="onApproveShift($event)"
@@ -89,6 +90,9 @@ export class TimetableGridComponent {
   // Selection inputs from parent
   public selectionMode = input<boolean>(false);
   public selectedKeys = input<Set<string>>(new Set());
+
+  // Indica si el usuario es gerente de tienda (para ocultar estados de aprobación)
+  public isStoreManager = input<boolean>(false);
 
   // Outputs
   public editShift = output<{

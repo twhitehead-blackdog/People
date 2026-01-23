@@ -15,8 +15,8 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
       class="inline-flex gap-1 py-0.5 px-1.5 rounded-sm font-medium items-center justify-center text-[11px] transition-all duration-200 border shadow-sm"
       [class]="getColorClass(shiftValue?.schedule?.color)"
       [ngClass]="{
-        'opacity-60 hover:opacity-100': !shiftValue?.approved,
-        'ring-1 ring-amber-400/70 shadow-md': shiftValue?.approved && !selectionMode(),
+        'opacity-60 hover:opacity-100': !shiftValue?.approved && !isStoreManager(),
+        'ring-1 ring-amber-400/70 shadow-md': shiftValue?.approved && !selectionMode() && !isStoreManager(),
         'cursor-pointer hover:scale-105 hover:shadow-md': !selectionMode(),
         'ring-2 ring-cyan-400 shadow-lg shadow-cyan-400/30 scale-105': isSelected(),
         'cursor-pointer hover:ring-2 hover:ring-cyan-400/50': selectionMode() && !shiftValue?.approved,
@@ -40,7 +40,7 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
       <span class="truncate max-w-[65px] font-semibold leading-tight">
         {{ shiftValue?.schedule?.name }}
       </span>
-      @if (!selectionMode()) { @if (shiftValue?.approved) {
+      @if (!selectionMode() && !isStoreManager()) { @if (shiftValue?.approved) {
       <i
         class="pi pi-check-circle text-green-400 text-[9px] ml-0.5 flex-shrink-0"
       ></i>
@@ -69,7 +69,7 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
         >
         } @else {
         <span class="italic">Click para seleccionar</span>
-        } } } @else { @if (shiftValue?.approved) {
+        } } } @else if (!isStoreManager()) { @if (shiftValue?.approved) {
         <span class="font-bold">Aprobado por RRHH</span>
         } @else {
         <span class="italic">Pendiente por aprobacion</span>
@@ -135,6 +135,7 @@ export class ShiftCellComponent {
   public canApprove = input.required<boolean>();
   public selectionMode = input<boolean>(false);
   public isSelected = input<boolean>(false);
+  public isStoreManager = input<boolean>(false);
 
   // Outputs
   public edit = output<{ shift: EmployeeSchedule; date: Date }>();
