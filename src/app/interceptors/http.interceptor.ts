@@ -17,7 +17,10 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
   const apiUrl = inject(ApiUrlService);
   const diagnosticService = inject(DiagnosticService);
 
+  console.log('[HttpInterceptor] Processing request:', req.url);
+
   if (req.url.includes('supabase')) {
+    console.log('[HttpInterceptor] Supabase request detected');
     // Logging de métricas (solo en desarrollo)
     const startTime = isDevelopment ? performance.now() : null;
     const method = req.method;
@@ -68,7 +71,13 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
       '/rest/v1/v_lates_daily_detail',
       '/rest/v1/rpc/',
       '/storage/v1/object/',
-      
+      // Performance 360 tables
+      '/rest/v1/performance_rules',
+      '/rest/v1/audit_forms',
+      '/rest/v1/audit_sections',
+      '/rest/v1/audit_questions',
+      '/rest/v1/audit_evaluations',
+      '/rest/v1/audit_answers',
     ];
 
     const needsServiceRoleKey = whitelist.some((path) =>
@@ -162,6 +171,10 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
 
         // Capturar errores de Supabase
         if (error.status === 401 || error.status === 403) {
+          console.error('[HttpInterceptor] Auth error on Supabase request!');
+          console.error('[HttpInterceptor] Status:', error.status);
+          console.error('[HttpInterceptor] URL:', req.url);
+          console.error('[HttpInterceptor] Error body:', error.error);
           diagnosticService.addSupabaseError(
             `Error de autenticación: ${error.status}`,
             req.url,
@@ -198,16 +211,19 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
   }
 
   // For non-Supabase requests, use Auth0 token
+  console.log('[HttpInterceptor] Non-Supabase request, getting Auth0 token for:', req.url);
   return inject(AuthService)
     .getAccessTokenSilently()
     .pipe(
       switchMap((token) => {
+        console.log('[HttpInterceptor] Got Auth0 token, proceeding with request');
         const request = req.clone({
           headers: req.headers.set('Authorization', `Bearer ${token}`),
         });
         return next(request);
       }),
       catchError((error) => {
+        console.error('[HttpInterceptor] Error getting Auth0 token or making request:', error);
         // Capturar errores de red para requests al backend
         if (error.status === 0 || !error.status) {
           diagnosticService.addNetworkError(

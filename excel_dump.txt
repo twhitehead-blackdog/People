@@ -1,0 +1,113 @@
+HOJAS ENCONTRADAS: ['Consolidado', 'Petshop', 'Grooming', 'Clinica', 'Parametros', 'Riesgo']
+
+========================================
+HOJA: Petshop
+========================================
+R02:  | EVALUACIÓN EN TIENDA |  |  |  |  |  |  |  |  |  |  | 
+R03:  | SUCURSAL: |  | GERENTE: |  |  | FECHA: |  |  |  |  |  | 
+R04:  | ID | Aspectos Evaluados | Ponderación Global | Peso Relativo | Resultado Evaluación | Puntos Finales por Área | Puntos por Área |  |  |  |  | 
+R05:  | OPERACIONES - PUNTO DE VENTA |  | 0.3 | 30 | Critico | 9 | 0.3 |  |  |  |  | 
+R06:  | OP.1 | Se realiza el protocolo de cierre de punto de venta al fi... | 0.4 | 13.5 | Critico | 4.05 |  |  |  |  |  | 
+R07:  | OP.2 | Se valida que la venta de medicamentos con receta se real... | 0.3 | 7.5 | Critico | 2.25 |  |  |  |  |  | 
+R08:  | OP.3 | Se mantiene la integridad de precios (el precio marcado e... | 0.1 | 3 | Critico | 0.8999999999999999 |  |  |  |  |  | 
+R09:  | OP.4 | Se revisa y valida que los descuentos y promociones espec... | 0.1 | 3 | Critico | 0.8999999999999999 |  |  |  |  |  | 
+R10:  | OP.5 | Se emiten los comprobantes fiscales/facturas electrónicas... | 0.1 | 3 | Critico | 0.8999999999999999 |  |  |  |  |  | 
+R11:  | ATENCIÓN A CLIENTES |  | 0.2 | 20 | Critico | 5.999999999999999 | 0.29999999999999993 |  |  |  |  | 
+R12:  | AC.1 | Se implementa y vive la experiencia de marca "BLACK DOG" ... | 0.4 | 7 | Critico | 2.1 |  |  |  |  |  | 
+R13:  | AC.2 | El personal está capacitado para proporcionar la informac... | 0.3 | 5 | Critico | 1.5 |  |  |  |  |  | 
+R14:  | AC.3 | Se registran y gestionan de forma protocolaria las quejas... | 0.2 | 4 | Critico | 1.2 |  |  |  |  |  | 
+R15:  | AC.4 | Se Le envian fotos a los clientes al final de cada servic... | 0.05 | 2 | Critico | 0.6 |  |  |  |  |  | 
+R16:  | AC.5 | Se ofrece una despedida profesional al cliente (se agrade... | 0.05 | 2 | Critico | 0.6 |  |  |  |  |  | 
+R17:  | GESTIÓN DE INVENTARIO |  | 0.3 | 30 | Critico | 9 | 0.3 |  |  |  |  | 
+R18:  | GI.1 | Realizan bisemanalmente un control riguroso de la fecha d... | 0.45 | 15 | Critico | 4.5 |  |  |  |  |  | 
+R19:  | GI.2 | Sistema FEFO aplicado a medicamentos y alimentos perecede... | 0.3 | 10 | Critico | 3 |  |  |  |  |  | 
+R20:  | GI.3 | Se solicita la dotación de mercancía baja en stock (requi... | 0.15 | 3 | Critico | 0.8999999999999999 |  |  |  |  |  | 
+R21:  | GI.4 | Cuentan con un espacio de almacenamiento dentro de las in... | 0.1 | 2 | Critico | 0.6 |  |  |  |  |  | 
+R22:  | SEGURIDAD Y LIMPIEZA |  | 0.15 | 15 | Critico | 4.5 | 0.3 |  |  |  |  | 
+R23:  | SL.1 | Las estanterías y exhibidores se encuentran organizadas, ... | 0.4 | 8 | Critico | 2.4 |  |  |  |  |  | 
+R24:  | SL.2 | Los productos pesados o voluminosos están colocados en lu... | 0.3 | 5 | Critico | 1.5 |  |  |  |  |  | 
+R25:  | SL.3 | Se realiza diariamente la limpieza general de las áreas c... | 0.2 | 2 | Critico | 0.6 |  |  |  |  |  | 
+R26:  | AUTO-DIAGNÓSTICO |  | 0.05 | 5 | Moderado | 3.5 | 0.7 |  |  |  |  | 
+R27:  | AE.1 | revisión objetiva y honesta del nivel de cumplimiento y r... | 1 | 5 | Moderado | 3.5 |  |  |  |  |  | 
+R28:  |  |  | 1 | 100 |  |  |  |  |  |  |  | 
+R29:  | PORCENTAJE DE CUMPLIMIENTO |  |  |  |  | 28.5 |  |  |  |  |  | 
+R31:  | FIRMA DEL GERENTE |  |  |  |  |  |  |  |  |  |  | 
+R35:  | OBSERVACIONES |  |  |  |  |  |  |  |  |  |  | 
+R36:  | 1 |  |  |  |  |  |  |  |  |  |  | 
+R37:  | 2 |  |  |  |  |  |  |  |  |  |  | 
+R38:  | 3 |  |  |  |  |  |  |  |  |  |  | 
+R39:  | 4 |  |  |  |  |  |  |  |  |  |  | 
+R40:  | 5 |  |  |  |  |  |  |  |  |  |  | 
+R42:  |  | CALIFICACION SUCURSAL | 28.5 |  |  | DEFICIENTE |  |  |  |  |  | 
+R44:  |  | Aceptable |  |  |  |  |  |  |  |  |  | 
+R45:  |  | Moderado |  |  |  |  |  |  |  |  |  | 
+R46:  |  | Critico |  |  |  |  |  |  |  |  |  | 
+
+========================================
+HOJA: Grooming
+========================================
+R02:  | EVALUACIÓN EN PELUQUERIA |  |  |  |  |  |  |  |  |  |  | 
+R03:  | SUCURSAL: |  | FECHA: |  |  |  |  |  |  |  |  | 
+R04:  | ID | Aspectos Evaluados | Ponderación Global | Peso Relativo | Resultado Evaluación | Puntos Finales por Área | Puntos por Área |  |  |  |  | 
+R05:  | BIENESTAR ANIMAL |  | 0.45 | 45 | Aceptable | 45 | 1 |  |  |  |  | 
+R06:  | BA.1 | Se mantiene un protocolo de manejo de animales nerviosos ... | 0.35 | 13 | Aceptable | 13 |  |  |  |  |  | 
+R07:  | BA.2 | Utilizan equipos de sujecion seguros y adecuados para cad... | 0.2 | 10 | Aceptable | 10 |  |  |  |  |  | 
+R08:  | BA.3 | Nunca dejan a los animales solos en las bañeras o en las ... | 0.2 | 10 | Aceptable | 10 |  |  |  |  |  | 
+R09:  | BA.3 | Se realiza el triage en la peluqueria para conocer proble... | 0.15 | 7 | Aceptable | 7 |  |  |  |  |  | 
+R10:  | BA.4 | Todas las jaulas mantienen sus comanda y un correcto cron... | 0.1 | 5 | Aceptable | 5 |  |  |  |  |  | 
+R11:  | HIGIENE Y DESINFECCION |  | 0.3 | 30 | Aceptable | 30 | 1 |  |  |  |  | 
+R12:  | HD.1 | Realizan la limpieza y desinfección de las herramientas (... | 0.4 | 12.5 | Aceptable | 12.5 |  |  |  |  |  | 
+R13:  | HD.2 | Mantienen una limpieza diaria de bañeras, mesas y suelo e... | 0.3 | 10 | Aceptable | 10 |  |  |  |  |  | 
+R14:  | HD.3 | Utilizan los productos (champús, acondicionadores) de gra... | 0.2 | 7.5 | Aceptable | 7.5 |  |  |  |  |  | 
+R15:  | PERSONAL CAPACITADO |  | 0.2 | 20 | Aceptable | 20 | 1 |  |  |  |  | 
+R16:  | PC.1 | Se cuenta con el personal capacitado o con experiencia en... | 0.5 | 14.5 | Aceptable | 14.5 |  |  |  |  |  | 
+R17:  | PC.2 | Este personal cuenta con conocimientos basicos en primero... | 0.3 | 5.5 | Aceptable | 5.5 |  |  |  |  |  | 
+R18:  | AUTO-DIAGNÓSTICO |  | 0.05 | 5 | Critico | 1.5 | 0.3 |  |  |  |  | 
+R19:  | AE.1 | revisión objetiva y honesta del nivel de cumplimiento y r... | 1 | 5 | Critico | 1.5 |  |  |  |  |  | 
+R20:  |  |  | 1 | 100 |  |  |  |  |  |  |  | 
+R21:  | PORCENTAJE DE CUMPLIMIENTO |  |  |  |  | 95 |  |  |  |  |  | 
+R23:  | FIRMA DEL GERENTE |  |  |  |  |  |  |  |  |  |  | 
+R27:  | OBSERVACIONES |  |  |  |  |  |  |  |  |  |  | 
+R28:  | 1 |  |  |  |  |  |  |  |  |  |  | 
+R29:  | 2 |  |  |  |  |  |  |  |  |  |  | 
+R30:  | 3 |  |  |  |  |  |  |  |  |  |  | 
+R31:  | 4 |  |  |  |  |  |  |  |  |  |  | 
+R32:  | 5 |  |  |  |  |  |  |  |  |  |  | 
+R35:  |  | CALIFICACION SUCURSAL | 95 |  |  | SATISFACTORIO |  |  |  |  |  | 
+R36:  |  | Aceptable |  |  |  |  |  |  |  |  |  | 
+R37:  |  | Moderado |  |  |  |  |  |  |  |  |  | 
+R38:  |  | Critico |  |  |  |  |  |  |  |  |  | 
+
+========================================
+HOJA: Clinica
+========================================
+R02:  | EVALUACIÓN EN VETERINARIA |  |  |  |  |  |  |  |  |  |  | 
+R03:  | SUCURSAL: |  | DOCTOR: |  |  | FECHA: |  |  |  |  |  | 
+R04:  | ID | Aspectos Evaluados | Ponderación Global | Peso Relativo | Resultado Evaluación | Puntos Finales por Área | Puntos por Área |  |  |  |  | 
+R05:  | GESTION FARMACOLÓGICA |  | 0.475 | 47.5 | Aceptable | 47.5 | 1 |  |  |  |  | 
+R06:  | GF.1 | Realiza el uso obligatorio de Equipo de Protección Person... | 0.4 | 14 | Aceptable | 14 |  |  |  |  |  | 
+R07:  | GF.2 | Protocolo de manejo y desecho adecuado de material punzoc... | 0.4 | 14 | Aceptable | 14 |  |  |  |  |  | 
+R08:  | GF.3 | Se mantiene un debido control y registro de medicamentos ... | 0.1 | 10 | Aceptable | 10 |  |  |  |  |  | 
+R09:  | GF.4 | Se verifica la cadena de frío para vacunas y medicamentos... | 0.1 | 9.5 | Aceptable | 9.5 |  |  |  |  |  | 
+R10:  | PROCEDIMIENTO Y REGISTRO MÉDICO |  | 0.475 | 47.5 | Aceptable | 47.5 | 1 |  |  |  |  | 
+R11:  | PR.1 | Realiza la revisión de la historia clínica de los pacient... | 0.25 | 12 | Aceptable | 12 |  |  |  |  |  | 
+R12:  | PR.2 | El HC incluye la identificación completa del propietario,... | 0.25 | 12 | Aceptable | 12 |  |  |  |  |  | 
+R13:  | PR.3 | Se realiza la verificación de los protocolos de comunicac... | 0.25 | 12 | Aceptable | 12 |  |  |  |  |  | 
+R14:  | PR.4 | Realiza la revision de disponibilidad y mantenimiento de ... | 0.1 | 5 | Aceptable | 5 |  |  |  |  |  | 
+R15:  | PR.5 | Mantiene un protocolos de limpieza y esterilización del i... | 0.1 | 5 | Aceptable | 5 |  |  |  |  |  | 
+R16:  | PR.6 | Mantiene un protocolo de desinfección entre pacientes en ... | 0.05 | 1.5 | Aceptable | 1.5 |  |  |  |  |  | 
+R17:  | AUTO-DIAGNÓSTICO |  | 0.05 | 5 | Critico | 1.5 | 0.3 |  |  |  |  | 
+R18:  | AE.1 | revisión objetiva y honesta del nivel de cumplimiento y r... | 1 | 5 | Critico | 1.5 |  |  |  |  |  | 
+R19:  |  |  | 1 | 100 |  |  |  |  |  |  |  | 
+R20:  | PORCENTAJE DE CUMPLIMIENTO |  |  |  |  | 95 |  |  |  |  |  | 
+R22:  | FIRMA DEL GERENTE |  |  |  |  |  |  |  |  |  |  | 
+R26:  | OBSERVACIONES |  |  |  |  |  |  |  |  |  |  | 
+R27:  | 1 |  |  |  |  |  |  |  |  |  |  | 
+R28:  | 2 |  |  |  |  |  |  |  |  |  |  | 
+R29:  | 3 |  |  |  |  |  |  |  |  |  |  | 
+R30:  | 4 |  |  |  |  |  |  |  |  |  |  | 
+R31:  | 5 |  |  |  |  |  |  |  |  |  |  | 
+R34:  |  | CALIFICACION SUCURSAL | 95 |  |  | SATISFACTORIO |  |  |  |  |  | 
+R35:  |  | Aceptable |  |  |  |  |  |  |  |  |  | 
+R36:  |  | Moderado |  |  |  |  |  |  |  |  |  | 
+R37:  |  | Critico |  |  |  |  |  |  |  |  |  | 

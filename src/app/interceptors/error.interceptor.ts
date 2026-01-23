@@ -12,6 +12,9 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 
   return next(req).pipe(
     catchError((error: HttpErrorResponse) => {
+      console.error('[ErrorInterceptor] Error caught for URL:', req.url);
+      console.error('[ErrorInterceptor] Status:', error.status);
+      console.error('[ErrorInterceptor] Error body:', error.error);
       let errorMessage = 'Ocurrió un error inesperado';
 
       if (error.error instanceof ErrorEvent) {
@@ -24,6 +27,9 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
             errorMessage = 'Solicitud incorrecta. Por favor, verifica los datos.';
             break;
           case 401:
+            console.error('[ErrorInterceptor] 401 Unauthorized detected!');
+            console.error('[ErrorInterceptor] URL:', req.url);
+            console.error('[ErrorInterceptor] Error details:', error.error);
             errorMessage = 'Tu sesion ha expirado. Por favor, inicia sesion nuevamente.';
             // Invalidar cache del guard si existe
             if (typeof window !== 'undefined') {

@@ -1,4 +1,5 @@
 import { computed, inject, Injectable } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import {
   ALL_PERMISSIONS,
   PERMISSION_DEFINITIONS,
@@ -133,7 +134,9 @@ export class PermissionsService {
     if (Object.keys(updates).length > 0) {
       // Cast to any/Position because editItem expects T (full entity) but we only want to patch specific fields
       // The implementation of editItem uses patch, so it should handle partial updates if the API supports it.
-      await this.positionsStore.editItem({ id: positionId, ...updates } as any);
+      await firstValueFrom(
+        this.positionsStore.editItem({ id: positionId, ...updates } as any)
+      );
     }
   }
 

@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { employeePortalGuard } from '../guards/employee-portal.guard';
+import { permissionGuard } from '../guards/permission.guard';
 
 export const DASHBOARD_ROUTES: Routes = [
   {
@@ -105,6 +106,7 @@ export const DASHBOARD_ROUTES: Routes = [
               import('./pt-permissions/permissions-management.component').then(
                 (x) => x.PermissionsManagementComponent
               ),
+            canActivate: [permissionGuard('admin')],
           },
           {
             path: 'complaints-inbox',
@@ -145,6 +147,13 @@ export const DASHBOARD_ROUTES: Routes = [
             loadComponent: () =>
               import('./audit-tasks.component').then(
                 (x) => x.AuditTasksComponent
+              ),
+          },
+          {
+            path: 'performance',
+            loadChildren: () =>
+              import('./performance-360/performance-360.routes').then(
+                (m) => m.PERFORMANCE_360_ROUTES
               ),
           },
           { path: '', redirectTo: 'employees', pathMatch: 'full' },

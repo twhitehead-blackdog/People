@@ -881,3 +881,96 @@ export const AUDIT_TASK_STATUSES = [
     icon: 'pi pi-times-circle',
   },
 ] as const;
+
+// ============================================
+// PERFORMANCE 360 - AUDIT SYSTEM
+// ============================================
+
+export interface PerformanceRule {
+  id: string;
+  name: string; // 'Critico', 'Moderado', 'Aceptable'
+  min_score: number;
+  max_score: number;
+  multiplier: number;
+  severity: 'danger' | 'warn' | 'success';
+}
+
+export interface AuditForm {
+  id: string;
+  company_id: string;
+  title: string;
+  business_unit: 'Petshop' | 'Grooming' | 'Clinica' | string;
+  version: number;
+  is_active: boolean;
+  description?: string;
+  created_at?: Date | string;
+  updated_at?: Date | string;
+  // Joins
+  sections?: AuditSection[];
+}
+
+export interface AuditSection {
+  id: string;
+  audit_form_id: string;
+  code: string; // 'OP', 'AC'
+  title: string;
+  weight_percentage: number; // 30.00
+  order_index: number;
+  // Joins
+  questions?: AuditQuestion[];
+}
+
+export interface AuditQuestion {
+  id: string;
+  audit_section_id: string;
+  code: string; // 'OP.1'
+  question_text: string;
+  weight_relative: number; // 0.40
+  is_critical?: boolean;
+  order_index: number;
+}
+
+export type AuditEvaluationStatus = 'draft' | 'completed' | 'archived';
+
+export interface AuditEvaluation {
+  id: string;
+  company_id: string;
+  branch_id: string;
+  branch?: Branch; // Join
+  audit_form_id: string;
+  audit_form?: AuditForm; // Join
+  form_version: number;
+
+  audited_by: string;
+  auditor?: Partial<Employee>; // Join
+  evaluated_employee_id?: string;
+  evaluated_employee?: Partial<Employee>; // Join
+
+  status: AuditEvaluationStatus;
+
+  total_score?: number;
+  performance_level?: string;
+
+  observations?: string;
+  started_at?: Date | string;
+  completed_at?: Date | string;
+  created_at?: Date | string;
+  updated_at?: Date | string;
+
+  // Joins
+  answers?: AuditAnswer[];
+}
+
+export interface AuditAnswer {
+  id: string;
+  audit_evaluation_id: string;
+  audit_question_id: string;
+  question?: AuditQuestion; // Join
+
+  answer_value: 'yes' | 'no' | 'na';
+  notes?: string;
+
+  // Snapshots
+  question_text_snapshot?: string;
+  weight_relative_snapshot?: number;
+}
