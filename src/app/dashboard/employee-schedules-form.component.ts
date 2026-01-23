@@ -245,6 +245,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     '7AM-4PM ',
     '8AM-5PM',
     '9AM - 6PM',
+    '12:30 PM - 9:00 PM',
   ];
 
   /**
