@@ -57,6 +57,7 @@ export function getRequestStatusLabel(request: any): string {
   const labels: Record<string, string> = {
     pending: 'Pendiente',
     approved: 'Aprobado',
+    completed: 'Completado',
     rejected: 'Rechazado',
   };
   return labels[status] || 'Sin estado';
@@ -72,6 +73,7 @@ export function getRequestStatusSeverity(
   > = {
     pending: 'warn',
     approved: 'success',
+    completed: 'success',
     rejected: 'danger',
   };
   return severities[status] || 'secondary';

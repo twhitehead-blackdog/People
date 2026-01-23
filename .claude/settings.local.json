@@ -16,7 +16,8 @@
       "Bash(dir:*)",
       "Bash(npm run:*)",
       "Bash(npm start)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "mcp__plugin_supabase_supabase__list_projects"
     ]
   },
   "enableAllProjectMcpServers": true,
