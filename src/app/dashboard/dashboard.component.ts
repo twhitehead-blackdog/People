@@ -153,9 +153,7 @@ import { EmployeePortalComponent } from './employee-portal.component';
                   ><i class="pi pi-calendar text-base"></i>
                   <span>Gestión de tiempo</span></a
                 >
-                } @if(store.hasDashboardAccess() &&
-                (!store.hasPortalAccessOnly() ||
-                store.hasTimeManagementAccess())) {
+                }
                 <a
                   (click)="navigateTo('timeclock')"
                   [class.selected]="isTimeclockActive()"
@@ -163,7 +161,6 @@ import { EmployeePortalComponent } from './employee-portal.component';
                   ><i class="pi pi-clock text-base"></i>
                   <span>Reloj de marcación</span></a
                 >
-                }
               </div>
             </div>
             <div class="header-user hidden md:block">
@@ -269,8 +266,7 @@ import { EmployeePortalComponent } from './employee-portal.component';
               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
               ><i class="pi pi-money-bill text-lg"></i> <span>Nómina</span></a
             >
-            } @if(store.hasDashboardAccess() && (!store.hasPortalAccessOnly() ||
-            store.hasTimeManagementAccess())) {
+            }
             <a
               (click)="navigateTo('timeclock'); toggleMenu()"
               [class.bg-gray-700]="isTimeclockActive()"
@@ -280,7 +276,6 @@ import { EmployeePortalComponent } from './employee-portal.component';
               ><i class="pi pi-clock text-lg"></i>
               <span>Reloj de marcación</span></a
             >
-            }
           </div>
           @if(user) {
           <div class="border-t border-gray-700/50 pt-4 pb-3 px-5">

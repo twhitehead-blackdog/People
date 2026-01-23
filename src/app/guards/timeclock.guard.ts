@@ -41,7 +41,8 @@ export const timeclockGuard: CanActivateFn = (route, state) => {
 
       const url = apiUrl.build('rest/v1/employees', {
         work_email: `eq.${user.email}`,
-        select: 'id,position:positions(name,admin),has_portal_access,account_approved',
+        select:
+          'id,position:positions(name,admin),has_portal_access,account_approved',
       });
       return http
         .get<
@@ -99,12 +100,6 @@ export const timeclockGuard: CanActivateFn = (route, state) => {
             // Si tiene acceso especial a gestión de tiempo, permitir acceso al timeclock
             if (hasTimeManagementAccess) {
               return employee.account_approved === true;
-            }
-
-            // Si tiene un cargo que solo permite acceso al portal, denegar acceso al timeclock
-            if (isPortalOnlyPosition) {
-              router.navigate(['/employee-portal']);
-              return false;
             }
 
             // Permitir acceso si la cuenta está aprobada y no tiene restricciones

@@ -491,10 +491,15 @@ type ManagementCard = {
                 class="mt-3 p-3 bg-blue-500/10 border border-blue-400/30 rounded-lg flex items-center justify-between"
               >
                 <div class="flex items-center gap-2">
+                  @if (uploadingDisabilityDoc()) {
+                  <i class="pi pi-spin pi-spinner text-blue-400"></i>
+                  <span class="text-sm text-gray-300">Subiendo...</span>
+                  } @else {
                   <i class="pi pi-file text-blue-400"></i>
                   <span class="text-sm text-gray-300">{{
                     disabilityFile()!.name
                   }}</span>
+                  }
                 </div>
                 <p-button
                   icon="pi pi-times"
@@ -502,8 +507,9 @@ type ManagementCard = {
                   text
                   rounded
                   size="small"
-                  (onClick)="disabilityFile.set(null)"
+                  (onClick)="clearDisabilityFile()"
                   pTooltip="Eliminar archivo"
+                  [disabled]="uploadingDisabilityDoc()"
                 />
               </div>
               }
@@ -652,10 +658,15 @@ type ManagementCard = {
                 class="mt-3 p-3 bg-purple-500/10 border border-purple-400/30 rounded-lg flex items-center justify-between"
               >
                 <div class="flex items-center gap-2">
+                  @if (uploadingVacationDoc()) {
+                  <i class="pi pi-spin pi-spinner text-purple-400"></i>
+                  <span class="text-sm text-gray-300">Subiendo...</span>
+                  } @else {
                   <i class="pi pi-file text-purple-400"></i>
                   <span class="text-sm text-gray-300">{{
                     vacationFile()!.name
                   }}</span>
+                  }
                 </div>
                 <p-button
                   icon="pi pi-times"
@@ -663,8 +674,9 @@ type ManagementCard = {
                   text
                   rounded
                   size="small"
-                  (onClick)="vacationFile.set(null)"
+                  (onClick)="clearVacationFile()"
                   pTooltip="Eliminar archivo"
+                  [disabled]="uploadingVacationDoc()"
                 />
               </div>
               }
@@ -1796,13 +1808,13 @@ export class BranchManagerGestionesComponent {
       const file = this.disabilityFile();
 
       // Fallback upload (si falló el background upload o no se usó)
-      // Pero si file existe y url no, intentamos subir de nuevo.
       if (file && !documentUrl) {
-        // Logic for fallback upload could be here, but for now we rely on background upload working or user retrying.
-        // If we want to be robust:
         const fileExt = file.name.split('.').pop();
         const fileName = `${employee.id}/${Date.now()}.${fileExt}`;
-        const storageKey = getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') || '';
+        const storageKey =
+          getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') ||
+          getEnv('ENV_SUPABASE_API_KEY') ||
+          '';
         const uploadUrl = `${this.apiUrl.baseUrl}/storage/v1/object/disabilities/${fileName}`;
 
         await firstValueFrom(
@@ -1814,9 +1826,10 @@ export class BranchManagerGestionesComponent {
             },
           })
         );
-        documentUrl = `${getEnv(
-          'ENV_SUPABASE_URL'
-        )}/storage/v1/object/public/disabilities/${fileName}`;
+        // Usar apiUrl.build() para construir la URL pública correctamente
+        documentUrl = this.apiUrl.build(
+          `storage/v1/object/public/disabilities/${fileName}`
+        );
       }
 
       // Crear solicitud en employee_disabilities (no timeoffs)
@@ -1908,15 +1921,17 @@ export class BranchManagerGestionesComponent {
         await firstValueFrom(
           this.http.post(uploadUrl, file, {
             headers: {
-              'Content-Type': file.type,
               apikey: apiKey,
               Authorization: `Bearer ${apiKey}`,
+              'x-upsert': 'true',
             },
           })
         );
 
-        // Construir URL del documento
-        documentUrl = `${this.apiUrl.baseUrl}/storage/v1/object/public/employee-documents/${filePath}`;
+        // Usar apiUrl.build() para construir la URL pública correctamente
+        documentUrl = this.apiUrl.build(
+          `storage/v1/object/public/employee-documents/${filePath}`
+        );
       }
 
       const vacationData = {
@@ -2027,6 +2042,22 @@ export class BranchManagerGestionesComponent {
     this.disabilityFile.set(null);
     this.disabilityDocUrl.set(null);
     this.uploadingDisabilityDoc.set(false);
+  }
+
+  /**
+   * Limpia el archivo de incapacidad y su URL pre-subida
+   */
+  public clearDisabilityFile(): void {
+    this.disabilityFile.set(null);
+    this.disabilityDocUrl.set(null);
+  }
+
+  /**
+   * Limpia el archivo de vacaciones y su URL pre-subida
+   */
+  public clearVacationFile(): void {
+    this.vacationFile.set(null);
+    this.vacationDocUrl.set(null);
   }
 
   private resetVacationForm(): void {

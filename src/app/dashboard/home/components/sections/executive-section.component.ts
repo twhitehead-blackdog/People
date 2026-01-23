@@ -186,30 +186,6 @@ import { KpiCardComponent } from '../kpi-card/kpi-card.component';
         tooltip="Muestra el número de empleados que cumplen años en el mes actual."
       ></pt-kpi-card>
 
-      <!-- Payroll Cost Compact -->
-      <pt-kpi-card
-        variant="financial"
-        icon="pi pi-money-bill"
-        label="Costo de Planilla"
-        value=""
-        class="payroll-cost-compact"
-        tooltip="Muestra el costo total de la planilla de empleados."
-      >
-        <div value class="kpi-value-stacked">
-          <div class="value-item">
-            <span class="value-lg">{{
-              state.monthlyBudget() | currency : '$' : 'symbol' : '1.0-0'
-            }}</span>
-            <span class="value-label">Mensual</span>
-          </div>
-          <div class="value-item">
-            <span class="value-lg">{{
-              state.monthlyBudget() * 12 | currency : '$' : 'symbol' : '1.0-0'
-            }}</span>
-            <span class="value-label">Anual</span>
-          </div>
-        </div>
-      </pt-kpi-card>
 
       <!-- Average Tenure -->
       <pt-kpi-card
