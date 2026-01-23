@@ -176,6 +176,7 @@ import {
                 (onClick)="openAddEmployeeDialog()"
               />
               }
+              @if (!permissionsService.isStoreManager()) {
               <p-button
                 icon="pi pi-history"
                 severity="info"
@@ -186,6 +187,7 @@ import {
                 tooltipPosition="top"
                 (onClick)="openAuditHistoryDialog()"
               />
+              }
             </div>
           </div>
         </pt-timetable-filters>
@@ -962,6 +964,17 @@ export class EmployeesTimetableComponent implements OnInit {
       return;
     }
 
+    // Gerentes de tienda no pueden editar horarios aprobados
+    if (this.permissionsService.isStoreManager() && employee_schedule?.approved) {
+      this.message.add({
+        severity: 'warn',
+        summary: 'Acción no permitida',
+        detail:
+          'No puedes editar horarios que ya han sido aprobados. Contacta a un administrador o al departamento de RRHH.',
+      });
+      return;
+    }
+
     // Verificar si el empleado tiene horarios en la semana actual
     const employeeHasSchedulesInWeek = employee_id
       ? this.shifts()?.some(
@@ -1008,6 +1021,17 @@ export class EmployeesTimetableComponent implements OnInit {
         summary: 'Sin permisos',
         detail:
           'No tienes permisos para eliminar horarios. Solo los administradores, gerentes de tienda, aprobadores de horarios y personal de administración pueden eliminar horarios.',
+      });
+      return;
+    }
+
+    // Gerentes de tienda no pueden eliminar horarios aprobados
+    if (this.permissionsService.isStoreManager() && employee_schedule.approved) {
+      this.message.add({
+        severity: 'warn',
+        summary: 'Acción no permitida',
+        detail:
+          'No puedes eliminar horarios que ya han sido aprobados. Contacta a un administrador o al departamento de RRHH.',
       });
       return;
     }

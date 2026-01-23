@@ -17,7 +17,8 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
       [ngClass]="{
         'opacity-60 hover:opacity-100': !shiftValue?.approved && !isStoreManager(),
         'ring-1 ring-amber-400/70 shadow-md': shiftValue?.approved && !selectionMode() && !isStoreManager(),
-        'cursor-pointer hover:scale-105 hover:shadow-md': !selectionMode(),
+        'cursor-pointer hover:scale-105 hover:shadow-md': !selectionMode() && !(isStoreManager() && shiftValue?.approved),
+        'cursor-default': isStoreManager() && shiftValue?.approved && !selectionMode(),
         'ring-2 ring-cyan-400 shadow-lg shadow-cyan-400/30 scale-105': isSelected(),
         'cursor-pointer hover:ring-2 hover:ring-cyan-400/50': selectionMode() && !shiftValue?.approved,
         'cursor-not-allowed opacity-50': selectionMode() && shiftValue?.approved
@@ -40,15 +41,17 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
       <span class="truncate max-w-[65px] font-semibold leading-tight">
         {{ shiftValue?.schedule?.name }}
       </span>
-      @if (!selectionMode() && !isStoreManager()) { @if (shiftValue?.approved) {
-      <i
-        class="pi pi-check-circle text-green-400 text-[9px] ml-0.5 flex-shrink-0"
-      ></i>
-      } @else {
-      <i
-        class="pi pi-exclamation-circle text-yellow-200 text-[9px] ml-0.5 animate-pulse flex-shrink-0 drop-shadow-[0_0_4px_rgba(251,191,36,0.8)]"
-      ></i>
-      } }
+      @if (!selectionMode()) {
+        @if (shiftValue?.approved) {
+        <i
+          class="pi pi-check-circle text-green-400 text-[9px] ml-0.5 flex-shrink-0"
+        ></i>
+        } @else if (!isStoreManager()) {
+        <i
+          class="pi pi-exclamation-circle text-yellow-200 text-[9px] ml-0.5 animate-pulse flex-shrink-0 drop-shadow-[0_0_4px_rgba(251,191,36,0.8)]"
+        ></i>
+        }
+      }
     </div>
     <ng-template #tooltipContent>
       <div class="flex flex-col gap-1">
@@ -69,25 +72,30 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
         >
         } @else {
         <span class="italic">Click para seleccionar</span>
-        } } } @else if (!isStoreManager()) { @if (shiftValue?.approved) {
-        <span class="font-bold">Aprobado por RRHH</span>
-        } @else {
-        <span class="italic">Pendiente por aprobacion</span>
-        } }
+        } } } @else {
+          @if (shiftValue?.approved) {
+          <span class="font-bold">Aprobado por RRHH</span>
+          } @else if (!isStoreManager()) {
+          <span class="italic">Pendiente por aprobacion</span>
+          }
+        }
       </div>
     </ng-template>
     <p-popover #options>
       <div class="relative">
-        <!-- Icono de auditoría en esquina superior derecha -->
+        <!-- Icono de auditoría en esquina superior derecha (oculto para gerentes de tienda) -->
+        @if (!isStoreManager()) {
         <i
           class="pi pi-history absolute top-0 right-0 text-xs text-gray-400 hover:text-cyan-400 cursor-pointer transition-colors z-10"
           pTooltip="Ver historial de auditoría de este día"
           tooltipPosition="left"
           (click)="onViewAudit(); options.hide()"
         ></i>
+        }
         <span class="font-medium block mb-2 pr-6">Opciones</span>
         <ul class="list-non flex flex-col">
           @if (canManageSchedules()) {
+          @if (!isStoreManager() || !shift()?.approved) {
           <li
             class="flex items-center gap-2 p-2 hover:bg-emphasis cursor-pointer rounded-md"
             (click)="onEdit(); options.hide()"
@@ -102,6 +110,7 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
             <i class="pi pi-trash text-red-700"></i>
             Eliminar
           </li>
+          }
           } @if (canApprove()) {
           <li
             class="flex items-center gap-2 p-2 hover:bg-emphasis cursor-pointer rounded-md"
@@ -168,6 +177,11 @@ export class ShiftCellComponent {
         });
       }
       // Don't open popover in selection mode
+      return;
+    }
+
+    // Gerentes de tienda no pueden abrir el menú en horarios aprobados
+    if (this.isStoreManager() && shiftValue?.approved) {
       return;
     }
 
