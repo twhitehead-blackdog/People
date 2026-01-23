@@ -41,8 +41,13 @@ export class TimetablePermissionsService {
   /**
    * Determina si el usuario puede aprobar horarios
    * Pueden: admins, schedule approvers
+   * NO pueden: gerentes de tienda (aunque tengan flag de approver)
    */
   public canApproveSchedules(): boolean {
+    // Gerentes de tienda NO pueden aprobar horarios bajo ninguna circunstancia
+    if (this.isStoreManager()) {
+      return false;
+    }
     return this.store.isAdmin() || this.store.isScheduleApprover();
   }
 
