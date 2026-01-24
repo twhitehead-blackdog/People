@@ -63,6 +63,7 @@ import { ScreenLockService } from '../../services/screen-lock.service';
               [integerOnly]="true"
               styleClass="otp-custom-salary"
               (onCompleted)="onSubmit()"
+              (keydown.enter)="onSubmit()"
             >
             </p-inputOtp>
 
