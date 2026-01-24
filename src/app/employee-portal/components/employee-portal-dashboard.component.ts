@@ -1,5 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+} from '@angular/core';
 import { Card } from 'primeng/card';
 
 import { Employee } from '../../models';
@@ -88,7 +94,9 @@ interface DashboardTimelogEvent {
         <p-card class="dashboard-stat-card">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-sm text-gray-400 m-0 mb-1">Horas de Compensatorio Aprobadas</p>
+              <p class="text-sm text-gray-400 m-0 mb-1">
+                Horas de Compensatorio Aprobadas
+              </p>
               <p class="text-2xl font-bold text-white m-0">
                 {{ approvedCompensatoryHours }}
               </p>
@@ -106,30 +114,53 @@ interface DashboardTimelogEvent {
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm text-gray-400 m-0 mb-1">Salario Mensual</p>
-              <p
-                class="text-2xl font-bold m-0 cursor-pointer transition-colors"
-                [class.text-green-400]="showSalary"
-                [class.text-gray-500]="!showSalary"
+              <div
+                class="flex items-center gap-2 cursor-pointer group"
                 (click)="toggleSalary.emit()"
+                [title]="
+                  showSalary
+                    ? 'Ocultar salario'
+                    : 'Ingresa tu PIN para ver salario'
+                "
               >
-                @if (showSalary && employee?.monthly_salary) {
+                <p
+                  class="text-2xl font-bold m-0 transition-colors"
+                  [class.text-green-400]="showSalary"
+                  [class.text-gray-500]="!showSalary"
+                >
+                  @if (showSalary && employee?.monthly_salary) {
                   {{ employee?.monthly_salary | currency : '$' }}
-                } @else {
+                  } @else {
                   <span class="text-gray-500">••••••</span>
+                  }
+                </p>
+                @if (!showSalary) {
+                <i
+                  class="pi pi-lock text-gray-600 text-sm group-hover:text-amber-500 transition-colors"
+                ></i>
                 }
-              </p>
+              </div>
               <p class="text-xs text-gray-500 m-0 mt-1">Base</p>
             </div>
             <div
-              class="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center cursor-pointer hover:bg-amber-500/30 transition-colors"
+              class="w-12 h-12 rounded-full flex items-center justify-center cursor-pointer transition-colors"
+              [ngClass]="
+                showSalary
+                  ? 'bg-amber-500/20 hover:bg-amber-500/30'
+                  : 'bg-neutral-700/50 hover:bg-neutral-700/80'
+              "
               (click)="toggleSalary.emit()"
-              [title]="showSalary ? 'Ocultar salario' : 'Click para ver salario'"
+              [title]="
+                showSalary
+                  ? 'Ocultar salario'
+                  : 'Ingresa tu PIN para ver salario'
+              "
             >
               <i
                 [class]="
                   showSalary
                     ? 'pi pi-eye-slash text-amber-400 text-xl'
-                    : 'pi pi-eye text-amber-400 text-xl'
+                    : 'pi pi-lock text-gray-400 text-xl'
                 "
               ></i>
             </div>
@@ -146,8 +177,8 @@ interface DashboardTimelogEvent {
             </div>
           </ng-template>
           <div class="flex flex-col gap-3">
-            @if (recentTimelogs && recentTimelogs.length > 0) {
-            @for (event of recentTimelogs; track event.id) {
+            @if (recentTimelogs && recentTimelogs.length > 0) { @for (event of
+            recentTimelogs; track event.id) {
             <div
               class="flex items-center justify-between p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50 hover:bg-neutral-800/70 transition-colors"
             >
@@ -162,9 +193,9 @@ interface DashboardTimelogEvent {
                     {{ event.typeLabel }}
                   </p>
                   <p class="text-sm text-gray-400 m-0">
-                    {{ event.date | date : 'mediumDate' }} a las {{ event.time }}
-                    @if (event.branch?.name) {
-                      - {{ event.branch?.name }}
+                    {{ event.date | date : 'mediumDate' }} a las
+                    {{ event.time }} @if (event.branch?.name) { -
+                    {{ event.branch?.name }}
                     }
                   </p>
                 </div>
@@ -178,21 +209,16 @@ interface DashboardTimelogEvent {
                   [ngClass]="{
                     'bg-green-500/20': event.type === 'entry',
                     'bg-blue-500/20': event.type === 'exit',
-                    'bg-amber-500/20': event.type === 'lunch_start' || event.type === 'lunch_end'
+                    'bg-amber-500/20':
+                      event.type === 'lunch_start' || event.type === 'lunch_end'
                   }"
                 >
-                  @if (event.type === 'entry') {
-                    Entrada
-                  } @else if (event.type === 'exit') {
-                    Salida
-                  } @else {
-                    Almuerzo
-                  }
+                  @if (event.type === 'entry') { Entrada } @else if (event.type
+                  === 'exit') { Salida } @else { Almuerzo }
                 </span>
               </div>
             </div>
-            }
-            } @else {
+            } } @else {
             <p class="text-gray-400 text-center py-4">
               No hay marcaciones recientes
             </p>

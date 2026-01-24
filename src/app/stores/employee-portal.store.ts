@@ -1,6 +1,12 @@
 import { computed } from '@angular/core';
+import {
+  patchState,
+  signalStore,
+  withComputed,
+  withMethods,
+  withState,
+} from '@ngrx/signals';
 import { addDays, endOfMonth, startOfToday } from 'date-fns';
-import { patchState, signalStore, withComputed, withMethods, withState } from '@ngrx/signals';
 
 type EmployeePortalViewMode = 'calendar' | 'table';
 
@@ -11,7 +17,6 @@ type DocumentFormState = {
   requiredDate: Date | null;
   submitting: boolean;
 };
-
 
 type TimeRange = {
   startDate: Date | null;
@@ -47,12 +52,16 @@ type EmployeePortalState = {
   replyMessage: string;
   sendingReply: boolean;
   showSalary: boolean;
+  showSalaryPinDialog: boolean;
   documentForm: DocumentFormState;
   vacationForm: VacationFormState;
   compensatoryForm: CompensatoryFormState;
 };
 
-const initialDateRange: Date[] = [addDays(new Date(), -7), endOfMonth(new Date())];
+const initialDateRange: Date[] = [
+  addDays(new Date(), -7),
+  endOfMonth(new Date()),
+];
 
 const initialState: EmployeePortalState = {
   activeSection: 'dashboard',
@@ -63,6 +72,7 @@ const initialState: EmployeePortalState = {
   replyMessage: '',
   sendingReply: false,
   showSalary: false,
+  showSalaryPinDialog: false,
   documentForm: {
     type: 'work_letter',
     customType: '',
@@ -104,7 +114,8 @@ const roundToHour = (date: Date | null): Date | null => {
   return rounded;
 };
 
-export const EmployeePortalStore = signalStore({ providedIn: 'root' },
+export const EmployeePortalStore = signalStore(
+  { providedIn: 'root' },
   withState(initialState),
   withComputed((state) => ({
     // Solo mantener computed para valores derivados o transformados
@@ -153,10 +164,22 @@ export const EmployeePortalStore = signalStore({ providedIn: 'root' },
       patchState(state, { sendingReply: value });
     },
     toggleShowSalary() {
-      patchState(state, { showSalary: !state.showSalary() });
+      // If currently showing, just hide it
+      if (state.showSalary()) {
+        patchState(state, { showSalary: false });
+      } else {
+        // If hidden, we need authentication -> open dialog
+        patchState(state, { showSalaryPinDialog: true });
+      }
     },
     setShowSalary(value: boolean) {
       patchState(state, { showSalary: value });
+    },
+    openSalaryPinDialog() {
+      patchState(state, { showSalaryPinDialog: true });
+    },
+    closeSalaryPinDialog() {
+      patchState(state, { showSalaryPinDialog: false });
     },
     setDocumentType(value: string) {
       patchState(state, {
@@ -333,7 +356,9 @@ export const EmployeePortalStore = signalStore({ providedIn: 'root' },
       });
     },
     toggleOvertimeDay(day: string) {
-      const currentDays = new Set(state.compensatoryForm().selectedOvertimeDays);
+      const currentDays = new Set(
+        state.compensatoryForm().selectedOvertimeDays
+      );
       if (currentDays.has(day)) {
         currentDays.delete(day);
       } else {

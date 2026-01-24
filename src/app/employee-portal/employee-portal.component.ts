@@ -42,6 +42,7 @@ import { EmployeePortalTimelogCorrectionComponent } from './components/employee-
 import { EmployeePortalTimelogsComponent } from './components/employee-portal-timelogs.component';
 import { EmployeePortalUniformRequestComponent } from './components/employee-portal-uniform-request.component';
 import { EmployeePortalVacationsComponent } from './components/employee-portal-vacations.component';
+import { SalaryPinDialogComponent } from './components/salary-pin-dialog.component';
 import { EmployeePortalApiService } from './services/employee-portal-api.service';
 import { EmployeePortalProfileService } from './services/employee-portal-profile.service';
 import { EmployeePortalRequestsService } from './services/employee-portal-requests.service';
@@ -85,7 +86,9 @@ import {
     EmployeePortalCompensatoryTutorialDialogComponent,
     EmployeePortalRequestDetailsDialogComponent,
     EmployeePortalTimelogCorrectionComponent,
+    EmployeePortalTimelogCorrectionComponent,
     EmployeePortalUniformRequestComponent,
+    SalaryPinDialogComponent,
   ],
   // NOTA: Estos servicios dependen de DashboardStore (proveído por el layout del portal),
   // por eso se proveen aquí y NO con providedIn:'root' para evitar NG0201 (SignalStore).
@@ -242,7 +245,6 @@ import {
         />
       </div>
       }
-
 
       <!-- Solicitar Vacaciones Section -->
       @if (portalStore.activeSection() === 'vacations') {
@@ -425,7 +427,6 @@ import {
       }
     </div>
 
-
     <!-- Dialog de Tutorial de Tiempo Compensatorio -->
     <pt-employee-portal-compensatory-tutorial-dialog
       [visible]="portalStore.compensatoryForm().showTutorial"
@@ -445,6 +446,18 @@ import {
       [hasTimeInfo]="hasTimeInfo.bind(this)"
       (viewResponse)="viewResponse($event)"
       (downloadDocument)="downloadDocument($event)"
+      (downloadDocument)="downloadDocument($event)"
+    />
+
+    <!-- Dialog de PIN para Salario -->
+    <pt-salary-pin-dialog
+      [visible]="portalStore.showSalaryPinDialog()"
+      (visibleChange)="
+        $event
+          ? portalStore.openSalaryPinDialog()
+          : portalStore.closeSalaryPinDialog()
+      "
+      (unlocked)="portalStore.setShowSalary(true)"
     />
 
     <p-toast />
@@ -814,7 +827,6 @@ export class EmployeePortalComponent {
     this.portalStore.setDocumentRequiredDate(value);
   }
 
-
   constructor() {
     // Fechas estables para template (evita que el DatePicker se “resetee” en cada change detection)
     this.today = startOfDay(new Date());
@@ -858,7 +870,6 @@ export class EmployeePortalComponent {
         // Sección timelogs activada - no se requiere logging
       }
     });
-
 
     // Suscribirse a cambios de navegación desde el layout
     effect(() => {
@@ -969,8 +980,6 @@ export class EmployeePortalComponent {
   // Delegar document requests al servicio
   public documentRequestsApi = this.requestsService.documentRequestsApi;
   public myDocumentRequests = this.requestsService.allDocumentRequests;
-
-
 
   // Helper methods - delegados a utils y servicios
   public calculateWorkedHours = this.timelogsService.calculateWorkedHours;
@@ -1722,7 +1731,6 @@ export class EmployeePortalComponent {
     });
   }
 
-
   public downloadDocument(url: string | null | undefined): void {
     if (!url) {
       return;
@@ -1764,12 +1772,9 @@ export class EmployeePortalComponent {
     this.cdr.markForCheck();
   }
 
-
   public closeConversation(): void {
     this.portalStore.closeConversation();
   }
-
-
 
   // Métodos para manejar notificaciones
   public markNotificationAsRead(notificationId: string): void {
