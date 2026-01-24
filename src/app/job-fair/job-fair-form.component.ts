@@ -24,7 +24,6 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { FileUploadModule } from 'primeng/fileupload';
-import { InputNumber } from 'primeng/inputnumber';
 import { InputText } from 'primeng/inputtext';
 import { MultiSelectModule } from 'primeng/multiselect';
 import { Textarea } from 'primeng/textarea';
@@ -44,7 +43,6 @@ import { PositionsStore } from '../stores/positions.store';
     Card,
     Button,
     InputText,
-    InputNumber,
     Textarea,
     MultiSelectModule,
     ToggleSwitch,

@@ -17,9 +17,13 @@
       "Bash(npm run:*)",
       "Bash(npm start)",
       "Bash(git add:*)",
-      "mcp__plugin_supabase_supabase__list_projects"
+      "mcp__plugin_supabase_supabase__list_projects",
+      "Bash(npx nx build --skip-nx-cache)"
     ]
   },
   "enableAllProjectMcpServers": true,
-  "enabledMcpjsonServers": ["supabase", "filesystem"]
+  "enabledMcpjsonServers": [
+    "supabase",
+    "filesystem"
+  ]
 }

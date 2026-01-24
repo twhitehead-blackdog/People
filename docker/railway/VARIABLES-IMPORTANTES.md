@@ -76,6 +76,20 @@ ENV_SMTP_NOREPLY_EMAIL=noreply@tudominio.com
 ENV_SMTP_NOREPLY_NAME=Tu Nombre
 ```
 
+### Variables de Postmark (Recomendado)
+
+```
+ENV_POSTMARK_API_KEY=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+ENV_POSTMARK_FROM_EMAIL=noreply@tu-dominio.com
+ENV_POSTMARK_FROM_NAME=People - RRHH
+```
+
+**📝 Notas sobre Postmark:**
+- Obtén tu Server API Token desde: https://account.postmarkapp.com/servers > Tu Server > API Tokens
+- El Server API Token se usa tanto como username como password para SMTP
+- Host: smtp.postmarkapp.com (automático en el código)
+- Puerto: 587 (TLS) o 2525 (automático en el código)
+
 ### Variables de Auth0
 
 ```

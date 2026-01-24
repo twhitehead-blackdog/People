@@ -10,7 +10,6 @@ import {
   signal,
   ViewChild,
 } from '@angular/core';
-import { Button } from 'primeng/button';
 import { TutorialGuideService } from '../../services/tutorial-guide.service';
 
 interface TooltipPosition {
@@ -22,7 +21,7 @@ interface TooltipPosition {
 @Component({
   selector: 'pt-tutorial-spotlight',
   standalone: true,
-  imports: [NgClass, NgStyle, Button],
+  imports: [NgClass, NgStyle],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (tutorialService.isActive()) {

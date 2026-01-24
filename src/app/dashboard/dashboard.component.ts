@@ -46,6 +46,8 @@ import { PositionsStore } from '../stores/positions.store';
 import { SchedulesStore } from '../stores/schedules.store';
 import { EmployeePortalComponent } from './employee-portal.component';
 
+import { DogAnimationComponent } from './components/dog.component';
+
 @Component({
   selector: 'pt-dashboard',
   standalone: true,
@@ -78,6 +80,7 @@ import { EmployeePortalComponent } from './employee-portal.component';
     NgClass,
     CommonModule,
     ScreenLockComponent,
+    DogAnimationComponent,
   ],
   template: `
     <p-toast />
@@ -98,9 +101,15 @@ import { EmployeePortalComponent } from './employee-portal.component';
         class="bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900 border-b border-neutral-700/50 w-full min-w-0 shadow-lg relative z-[1000]"
         [ngClass]="{ 'naz-nav': isNaz() }"
       >
+        <!-- Constrained Area for Dog (Logo Zone) -->
+        <div
+          class="absolute bottom-0 left-2 sm:left-4 lg:left-6 w-[280px] h-0 z-[30]"
+        >
+          <pt-dog-animation></pt-dog-animation>
+        </div>
         <div class="mx-auto max-w-7xl px-2 sm:px-4 lg:px-6">
-          <div class="header-container h-14 md:h-16">
-            <div class="header-logo">
+          <div class="header-container h-14 md:h-20">
+            <div class="header-logo relative">
               <a
                 (click)="navigateTo('home')"
                 class="flex items-center gap-2 group cursor-pointer"
