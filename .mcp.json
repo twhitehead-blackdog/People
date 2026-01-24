@@ -2,7 +2,17 @@
   "mcpServers": {
     "supabase": {
       "type": "http",
-      "url": "http://localhost:54321/mcp?features=docs%2Cdatabase%2Cdebugging%2Cdevelopment"
+      "url": "http://localhost:54321/mcp?features=docs%2Cdatabase%2Cdebugging%2Cdevelopment",
+      "description": "Servidor MCP local para desarrollo con Supabase"
+    },
+    "filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "c:/Users/Diegu/People"
+      ],
+      "description": "Permite al asistente interactuar con el sistema de archivos del proyecto"
     }
   }
 }
