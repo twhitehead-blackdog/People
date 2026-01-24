@@ -452,6 +452,7 @@ import {
     <!-- Dialog de PIN para Salario -->
     <pt-salary-pin-dialog
       [visible]="portalStore.showSalaryPinDialog()"
+      [employee]="currentEmployee()"
       (visibleChange)="
         $event
           ? portalStore.openSalaryPinDialog()

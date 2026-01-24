@@ -108,6 +108,7 @@ export class SalaryPinDialogComponent {
   private screenLockService = inject(ScreenLockService);
 
   @Input() visible = false;
+  @Input() employee: any = null;
   @Output() visibleChange = new EventEmitter<boolean>();
   @Output() unlocked = new EventEmitter<void>();
   @Output() cancelled = new EventEmitter<void>();
@@ -126,6 +127,11 @@ export class SalaryPinDialogComponent {
     this.error.set(null);
 
     const pin = this.pinForm.get('pin')?.value || '';
+
+    // Ensure service has the correct employee context for TOTP validation
+    if (this.employee) {
+      this.screenLockService.setCurrentEmployee(this.employee);
+    }
 
     // Small delay to simulate processing and give better UX
     await new Promise((resolve) => setTimeout(resolve, 300));
