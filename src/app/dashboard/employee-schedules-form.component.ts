@@ -245,9 +245,9 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     '7AM-4PM ',
     '8AM-5PM', // Peluquero, ayudante de peluqueria o doctor, chofer
     '9AM - 6PM', // Peluqueria, doctor, chofer, ayudante de peluqueria
-    '12:30 PM - 9:00 PM', // 12:00pm - 9:00pm
+    '12:00 PM - 9:00 PM', // 12:00pm - 9:00pm
     'Lactancia 1',
-    '10:30am-7:00pm', //10:00am - 7:00pm (Solo domingos)
+    '10:00am-7:00pm', //10:00am - 7:00pm (Solo domingos)
     'Dia Libre',
 
     //Gerente y subgerente no pueden estar en el mismo horario
