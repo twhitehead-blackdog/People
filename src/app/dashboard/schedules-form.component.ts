@@ -22,8 +22,8 @@ import { InputText } from 'primeng/inputtext';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { v4 } from 'uuid';
 import { colorVariants } from '../models';
-import { SchedulesStore } from '../stores/schedules.store';
 import { DashboardStore } from '../stores/dashboard.store';
+import { SchedulesStore } from '../stores/schedules.store';
 
 @Component({
   selector: 'pt-schedules-form',
@@ -240,17 +240,42 @@ export class SchedulesFormComponent implements OnInit {
   ];
 
   ngOnInit() {
-    const { schedule } = this.dialog.data;
+    const { schedule } = this.dialog.data || {};
+    console.log(
+      '[SchedulesFormComponent] ngOnInit - dialog.data:',
+      this.dialog.data
+    );
+    console.log(
+      '[SchedulesFormComponent] ngOnInit - schedule received:',
+      schedule
+    );
+
     if (schedule) {
       const { id, name, minutes_tolerance, color, day_off } = schedule;
       let { entry_time, lunch_end_time, lunch_start_time, exit_time } =
         schedule;
+
+      console.log('[SchedulesFormComponent] Raw time values:', {
+        entry_time,
+        lunch_start_time,
+        lunch_end_time,
+        exit_time,
+      });
+
       entry_time = this.setTime(entry_time);
       lunch_end_time = this.setTime(lunch_end_time);
       lunch_start_time = this.setTime(lunch_start_time);
       exit_time = this.setTime(exit_time);
+
+      console.log('[SchedulesFormComponent] Converted time values:', {
+        entry_time,
+        lunch_start_time,
+        lunch_end_time,
+        exit_time,
+      });
+
       const no_tolerance = minutes_tolerance === 0;
-      this.form.patchValue({
+      const patchData = {
         id,
         name,
         color: color || '',
@@ -261,7 +286,18 @@ export class SchedulesFormComponent implements OnInit {
         lunch_end_time,
         lunch_start_time,
         exit_time,
-      });
+      };
+
+      console.log('[SchedulesFormComponent] Patching form with:', patchData);
+      this.form.patchValue(patchData);
+      console.log(
+        '[SchedulesFormComponent] Form value after patch:',
+        this.form.getRawValue()
+      );
+    } else {
+      console.log(
+        '[SchedulesFormComponent] No schedule provided - creating new'
+      );
     }
 
     // Watch no_tolerance toggle and update minutes_tolerance accordingly
@@ -282,7 +318,7 @@ export class SchedulesFormComponent implements OnInit {
       });
       return;
     }
-    
+
     if (this.form.invalid) {
       this.message.add({
         severity: 'error',
@@ -328,13 +364,29 @@ export class SchedulesFormComponent implements OnInit {
     }
   }
 
-  setTime(time: string) {
-    const date = new Date();
-    const [hours, minutes] = time.split(':');
-    date.setHours(Number(hours));
-    date.setMinutes(Number(minutes));
-    date.setSeconds(0);
-    return date;
+  setTime(time: string | null | undefined): Date | null {
+    if (!time) {
+      console.log(
+        '[SchedulesFormComponent] setTime - null/undefined time received'
+      );
+      return null;
+    }
+
+    try {
+      const date = new Date();
+      const [hours, minutes] = time.split(':');
+      date.setHours(Number(hours));
+      date.setMinutes(Number(minutes));
+      date.setSeconds(0);
+      return date;
+    } catch (error) {
+      console.error(
+        '[SchedulesFormComponent] setTime - Error parsing time:',
+        time,
+        error
+      );
+      return null;
+    }
   }
 
   // Seleccionar color recomendado

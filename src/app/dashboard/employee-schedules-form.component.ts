@@ -243,12 +243,14 @@ export class EmployeeSchedulesFormComponent implements OnInit {
   // Turnos permitidos para gerentes de tienda (schedule_admin pero no admin)
   private readonly ALLOWED_STORE_MANAGER_SHIFTS = [
     '7AM-4PM ',
-    '8AM-5PM',
-    '9AM - 6PM',
-    '12:30 PM - 9:00 PM',
+    '8AM-5PM', // Peluquero, ayudante de peluqueria o doctor, chofer
+    '9AM - 6PM', // Peluqueria, doctor, chofer, ayudante de peluqueria
+    '12:30 PM - 9:00 PM', // 12:00pm - 9:00pm
     'Lactancia 1',
-    '10:30am-7:00pm',
-    'Dia Libre'	
+    '10:30am-7:00pm', //10:00am - 7:00pm (Solo domingos)
+    'Dia Libre',
+
+    //Gerente y subgerente no pueden estar en el mismo horario
   ];
 
   /**
@@ -298,6 +300,15 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       weekEnd,
       employeeHasSchedulesInWeek,
     } = this.dialog.data;
+    console.log(
+      '[EmployeeSchedulesFormComponent] ngOnInit data:',
+      this.dialog.data
+    );
+
+    this.logger.debug(
+      '[EmployeeSchedulesFormComponent] OnInit data received:',
+      this.dialog.data
+    );
 
     // Guardar información de la semana
     this.weekStart = weekStart || null;
@@ -383,9 +394,12 @@ export class EmployeeSchedulesFormComponent implements OnInit {
           this.form.get('end_date')?.patchValue(endDateObj);
         }
       }
-      return;
+      if (!employee_schedule) return;
     }
     if (employee_schedule) {
+      console.log(
+        '[EmployeeSchedulesFormComponent] Found employee_schedule, starting patch...'
+      );
       const {
         id,
         employee_id: scheduleEmployeeId,
@@ -480,6 +494,9 @@ export class EmployeeSchedulesFormComponent implements OnInit {
         });
         this.form.get('start_date')?.patchValue(startDateObj);
         this.form.get('end_date')?.patchValue(endDateObj);
+        this.logger.debug(
+          '[EmployeeSchedulesFormComponent] patchValue done (normal edit)'
+        );
       }
     }
   }

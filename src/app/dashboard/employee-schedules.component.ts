@@ -18,9 +18,9 @@ import { catchError, EMPTY } from 'rxjs';
 import { CalendarComponent } from '../calendar.component';
 import { colorVariants, EmployeeSchedule } from '../models';
 import { TimePipe } from '../pipes/time.pipe';
+import { LoggerService } from '../services/logger.service';
 import { OrganizationService } from '../services/organization.service';
 import { EmployeeSchedulesFormComponent } from './employee-schedules-form.component';
-import { LoggerService } from '../services/logger.service';
 @Component({
   selector: 'pt-employee-schedules',
   imports: [Button, CalendarComponent, Popover, Tooltip, TimePipe, NgClass],
@@ -125,19 +125,19 @@ export class EmployeeSchedulesComponent {
   private resourceSchedules = httpResource<EmployeeSchedule[]>(() => {
     const companyId = this.organizationService.getCurrentCompanyId();
     const employeeId = this.employeeId();
-    
+
     // Construir URL manualmente para poder usar filtro a través de employees
     let url = `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules?select=*,schedule:schedules(*),branch:branches(*),employee:employees!inner(id,company_id,is_active)`;
     url += `&employee_id=eq.${employeeId}`;
-    
+
     // Filtrar solo empleados activos
     url += `&employee.is_active=eq.true`;
-    
+
     // Filtrar a través de employees.company_id (funciona incluso si employee_schedules no tiene company_id)
     if (companyId) {
       url += `&employee.company_id=eq.${companyId}`;
     }
-    
+
     return {
       url,
       method: 'GET',
@@ -151,9 +151,17 @@ export class EmployeeSchedulesComponent {
     employee_id?: string;
     employee_schedule?: EmployeeSchedule;
   } = {}): void {
+    this.logger.debug('[EmployeeSchedulesComponent] Opening editSchedule', {
+      employee_id,
+      employee_schedule,
+    });
+    console.log('[EmployeeSchedulesComponent] Opening dialog with data:', {
+      employee_id,
+      employee_schedule,
+    });
     this.dialog
       .open(EmployeeSchedulesFormComponent, {
-        header: 'Editar horario',
+        header: employee_schedule ? 'Editar horario' : 'Nuevo horario',
         data: { employee_id, employee_schedule },
         width: '40%',
       })
@@ -179,12 +187,12 @@ export class EmployeeSchedulesComponent {
       accept: () => {
         const companyId = this.organizationService.getCurrentCompanyId();
         const params: any = { id: `eq.${id}` };
-        
+
         // Agregar filtro por company_id para seguridad
         if (companyId) {
           params.company_id = `eq.${companyId}`;
         }
-        
+
         this.http
           .delete(
             `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
@@ -192,7 +200,10 @@ export class EmployeeSchedulesComponent {
           )
           .pipe(
             catchError((error) => {
-              this.logger.error('[EmployeeSchedulesComponent] Error al eliminar horario:', error);
+              this.logger.error(
+                '[EmployeeSchedulesComponent] Error al eliminar horario:',
+                error
+              );
               this.message.add({
                 severity: 'error',
                 summary: 'Error',
