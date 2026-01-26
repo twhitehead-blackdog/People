@@ -16,6 +16,7 @@ import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
 import { PermissionsService } from '../../services/permissions.service';
+import { DashboardStore } from '../../stores/dashboard.store';
 import { PermissionEditorDialogComponent } from './permission-editor-dialog.component';
 import { UserPermissionProfile } from './permissions.types';
 
@@ -151,12 +152,18 @@ import { UserPermissionProfile } from './permissions.types';
 export class PermissionsManagementComponent {
   private service = inject(PermissionsService);
   private dialogService = inject(DialogService);
+  private store = inject(DashboardStore);
 
   public searchTerm = model<string>('');
 
   public permissionDefinitions = this.service.getPermissionDefinitions();
 
   public profiles = this.service.allUserProfiles;
+
+  // Verificar si el usuario actual puede editar permisos
+  public canEdit = computed(() => {
+    return this.service.canCurrentUser('admin');
+  });
 
   public filteredProfiles = computed(() => {
     const term = (this.searchTerm() ?? '').toLowerCase().trim();
@@ -177,7 +184,7 @@ export class PermissionsManagementComponent {
   }
 
   public openEditor(profile: UserPermissionProfile) {
-    this.dialogService.open(PermissionEditorDialogComponent, {
+    const dialogRef = this.dialogService.open(PermissionEditorDialogComponent, {
       header: `Permisos: ${profile.positionName}`,
       width: '500px',
       data: {
@@ -187,6 +194,15 @@ export class PermissionsManagementComponent {
       },
       contentStyle: { overflow: 'auto' },
       baseZIndex: 10000,
+    });
+
+    // Refrescar datos tras guardar cambios
+    dialogRef.onClose.subscribe((result) => {
+      if (result) {
+        // Recargar employees y positions para reflejar cambios
+        this.store.employees.reloadItems();
+        this.store.positions.reloadItems();
+      }
     });
   }
 }

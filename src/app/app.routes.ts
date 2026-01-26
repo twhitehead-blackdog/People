@@ -1,5 +1,5 @@
 import { Route } from '@angular/router';
-import { authGuardFn } from '../../guard';
+import { authGuardFn } from './guards/auth.guard';
 import { timeclockKioskGuard } from './guards/timeclock-kiosk.guard';
 
 export const appRoutes: Route[] = [

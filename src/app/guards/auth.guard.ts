@@ -4,6 +4,11 @@ import { ActivatedRouteSnapshot, CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
 import { catchError, filter, map, of, switchMap, take, timeout } from 'rxjs';
 
+/**
+ * Guard de autenticación para Auth0
+ * Espera a que Auth0 termine de cargar antes de verificar autenticación
+ * para evitar race conditions en navegaciones internas.
+ */
 export const authGuardFn: CanActivateFn = (_route: ActivatedRouteSnapshot) => {
   const auth = inject(AuthService);
   const router = inject(Router);
@@ -31,19 +36,26 @@ export const authGuardFn: CanActivateFn = (_route: ActivatedRouteSnapshot) => {
         return of(router.createUrlTree(['/login']));
       }
 
+      console.log('[AuthGuard] User is authenticated, checking employee...');
+
       return auth.user$.pipe(
         take(1),
         switchMap((user) => {
+          console.log('[AuthGuard] User email:', user?.email);
+
           if (!user?.email) {
+            console.log('[AuthGuard] No email found, redirecting to /login');
             return of(router.createUrlTree(['/login']));
           }
 
           const supabaseUrl = process.env['ENV_SUPABASE_URL'];
           if (!supabaseUrl) {
+            console.log('[AuthGuard] No Supabase URL, allowing access');
             return of(true);
           }
 
           const email = user.email.toLowerCase();
+          console.log('[AuthGuard] Checking employee in database for:', email);
 
           // Buscar en employees (tabla unificada que incluye todos los empleados con company_id)
           // Primero intentar buscar por work_email (más común)
@@ -67,6 +79,10 @@ export const authGuardFn: CanActivateFn = (_route: ActivatedRouteSnapshot) => {
                   return of(true);
                 }
 
+                console.log(
+                  '[AuthGuard] Not found by work_email, trying email field...'
+                );
+
                 // Si no se encontró, intentar buscar por email (campo alternativo)
                 const emailParams = new HttpParams()
                   .set('select', 'id')
@@ -82,16 +98,29 @@ export const authGuardFn: CanActivateFn = (_route: ActivatedRouteSnapshot) => {
                   )
                   .pipe(
                     timeout(10000),
-                    map((emailRecords) =>
-                      emailRecords.length > 0
-                        ? true
-                        : router.createUrlTree(['/sin-acceso'])
-                    ),
-                    catchError(() => of(router.createUrlTree(['/sin-acceso'])))
+                    map((emailRecords) => {
+                      if (emailRecords.length > 0) {
+                        console.log(
+                          '[AuthGuard] Employee found by email field, allowing access'
+                        );
+                        return true;
+                      }
+                      console.log(
+                        '[AuthGuard] Employee not found, redirecting to /sin-acceso'
+                      );
+                      return router.createUrlTree(['/sin-acceso']);
+                    }),
+                    catchError((err) => {
+                      console.error(
+                        '[AuthGuard] Error searching by email:',
+                        err
+                      );
+                      return of(router.createUrlTree(['/sin-acceso']));
+                    })
                   );
               }),
               catchError((error) => {
-                console.error('Error en authGuard:', error);
+                console.error('[AuthGuard] Error searching employee:', error);
                 return of(router.createUrlTree(['/sin-acceso']));
               })
             );
@@ -99,7 +128,7 @@ export const authGuardFn: CanActivateFn = (_route: ActivatedRouteSnapshot) => {
       );
     }),
     catchError((error) => {
-      console.error('Error en authGuard (nivel superior):', error);
+      console.error('[AuthGuard] Top level error:', error);
       return of(router.createUrlTree(['/login']));
     })
   );

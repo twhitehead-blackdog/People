@@ -5,6 +5,7 @@ import {
   model,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { InputSwitchModule } from 'primeng/inputswitch';
@@ -67,6 +68,7 @@ export class PermissionEditorDialogComponent {
   private ref = inject(DynamicDialogRef);
   private config = inject(DynamicDialogConfig);
   private service = inject(PermissionsService);
+  private messageService = inject(MessageService);
 
   public definitions = this.service.getPermissionDefinitions();
   public tempPermissions: Record<PermissionKey, boolean> = {
@@ -86,10 +88,19 @@ export class PermissionEditorDialogComponent {
         positionId,
         this.tempPermissions
       );
+      this.messageService.add({
+        severity: 'success',
+        summary: 'Éxito',
+        detail: 'Permisos actualizados correctamente',
+      });
       this.ref.close(true);
     } catch (error) {
       console.error('Error saving permissions:', error);
-      // Could show toast error here
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error',
+        detail: 'No se pudieron guardar los permisos',
+      });
     } finally {
       this.saving.set(false);
     }
