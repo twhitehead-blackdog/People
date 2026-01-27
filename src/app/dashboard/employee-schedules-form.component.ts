@@ -242,15 +242,13 @@ export class EmployeeSchedulesFormComponent implements OnInit {
 
   // Turnos permitidos para gerentes de tienda (schedule_admin pero no admin)
   private readonly ALLOWED_STORE_MANAGER_SHIFTS = [
-    '7AM-4PM ',
-    '8AM-5PM', // Peluquero, ayudante de peluqueria o doctor, chofer
-    '9AM - 6PM', // Peluqueria, doctor, chofer, ayudante de peluqueria
-    '12:00 PM - 9:00 PM', // 12:00pm - 9:00pm
+    '7:00 AM - 4:00 PM',
+    '8:00 AM - 5:00 PM',  // Peluquero, ayudante de peluqueria o doctor, chofer
+    '9:00 AM - 6:00 PM',  // Peluqueria, doctor, chofer, ayudante de peluqueria
+    '12:30 PM - 9:00 PM', // 12:00pm - 9:00pm
     'Lactancia 1',
-    '10:00am-7:00pm', //10:00am - 7:00pm (Solo domingos)
+    '10:30 AM - 7:00 PM', //10:00am - 7:00pm (Solo domingos)
     'Dia Libre',
-
-    //Gerente y subgerente no pueden estar en el mismo horario
   ];
 
   /**
