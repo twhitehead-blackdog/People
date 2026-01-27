@@ -1,14 +1,16 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, OnDestroy, OnInit } from '@angular/core';
+import { AuthService } from '@auth0/auth0-angular';
 import { Button } from 'primeng/button';
-import { Card } from 'primeng/card';
 import { ScrollPanel } from 'primeng/scrollpanel';
 import { Tag } from 'primeng/tag';
 import { Subject, takeUntil } from 'rxjs';
-import { DiagnosticService, DiagnosticError } from '../services/diagnostic.service';
+import {
+  DiagnosticError,
+  DiagnosticService,
+} from '../services/diagnostic.service';
 import { OrganizationService } from '../services/organization.service';
 import { ScreenLockService } from '../services/screen-lock.service';
-import { AuthService } from '@auth0/auth0-angular';
 
 @Component({
   selector: 'pt-diagnostic-panel',
@@ -16,149 +18,163 @@ import { AuthService } from '@auth0/auth0-angular';
   imports: [CommonModule, Button, ScrollPanel, Tag],
   template: `
     @if (isVisible) {
+    <div
+      class="fixed bottom-4 right-4 z-[9999] w-full max-w-2xl max-h-[80vh] bg-gray-900 border border-gray-700 rounded-lg shadow-2xl"
+      style="box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);"
+    >
       <div
-        class="fixed bottom-4 right-4 z-[9999] w-full max-w-2xl max-h-[80vh] bg-gray-900 border border-gray-700 rounded-lg shadow-2xl"
-        style="box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);"
+        class="flex items-center justify-between p-4 border-b border-gray-700 bg-gray-800"
       >
-        <div class="flex items-center justify-between p-4 border-b border-gray-700 bg-gray-800">
-          <div class="flex items-center gap-3">
-            <h3 class="text-white font-bold text-lg">🔍 Diagnóstico de Errores</h3>
-            <p-tag
-              [value]="errorCount.toString()"
-              severity="danger"
-              [rounded]="true"
-            />
-          </div>
-          <div class="flex items-center gap-2">
-            <p-button
-              icon="pi pi-bug"
-              [text]="true"
-              [rounded]="true"
-              severity="secondary"
-              (click)="testErrorCapture()"
-              title="Probar captura de errores"
-            />
-            @if (!organizationService.isNaz()) {
-            <p-button
-              icon="pi pi-sync"
-              [text]="true"
-              [rounded]="true"
-              severity="secondary"
-              (click)="changeToNaz()"
-              title="Cambiar a Naz"
-            />
-            }
-            <p-button
-              icon="pi pi-refresh"
-              [text]="true"
-              [rounded]="true"
-              severity="secondary"
-              (click)="checkServices()"
-              title="Verificar servicios"
-            />
-            <p-button
-              icon="pi pi-trash"
-              [text]="true"
-              [rounded]="true"
-              severity="secondary"
-              (click)="clearErrors()"
-              title="Limpiar errores"
-            />
-            <p-button
-              icon="pi pi-times"
-              [text]="true"
-              [rounded]="true"
-              severity="secondary"
-              (click)="close()"
-              title="Cerrar"
-            />
-          </div>
+        <div class="flex items-center gap-3">
+          <h3 class="text-white font-bold text-lg">
+            🔍 Diagnóstico de Errores
+          </h3>
+          <p-tag
+            [value]="errorCount.toString()"
+            severity="danger"
+            [rounded]="true"
+          />
         </div>
-
-        <p-scrollPanel [style]="{ width: '100%', height: 'calc(80vh - 120px)' }">
-          <div class="p-4 space-y-3">
-            @if (errors.length === 0) {
-              <div class="text-center py-8 text-gray-400">
-                <i class="pi pi-check-circle text-4xl mb-2"></i>
-                <p>No hay errores registrados</p>
-              </div>
-            } @else {
-              @for (error of errors; track error.id) {
-                <div
-                  class="bg-gray-800 border-l-4 rounded p-3"
-                  [ngClass]="{
-                    'border-red-500': error.type === 'http' || error.type === 'network',
-                    'border-yellow-500': error.type === 'console' || error.type === 'auth',
-                    'border-blue-500': error.type === 'supabase',
-                    'border-gray-500': error.type === 'other'
-                  }"
-                >
-                  <div class="flex items-start justify-between gap-2 mb-2">
-                    <div class="flex-1">
-                      <div class="flex items-center gap-2 mb-1">
-                        <p-tag
-                          [value]="error.type.toUpperCase()"
-                          [severity]="getSeverity(error.type)"
-                          [rounded]="true"
-                          styleClass="text-xs"
-                        />
-                        <span class="text-xs text-gray-400">
-                          {{ error.timestamp | date: 'HH:mm:ss' }}
-                        </span>
-                      </div>
-                      <p class="text-white text-sm font-medium mb-1">
-                        {{ error.message }}
-                      </p>
-                      @if (error.url) {
-                        <p class="text-xs text-gray-400 mb-1 break-all">
-                          <i class="pi pi-link mr-1"></i>
-                          {{ error.url }}
-                        </p>
-                      }
-                      @if (error.status) {
-                        <p class="text-xs text-gray-400">
-                          Status: <span class="font-mono">{{ error.status }}</span>
-                        </p>
-                      }
-                    </div>
-                  </div>
-                  @if (error.details) {
-                    <details class="mt-2">
-                      <summary class="text-xs text-gray-400 cursor-pointer hover:text-gray-300">
-                        Ver detalles
-                      </summary>
-                      <pre class="mt-2 p-2 bg-gray-900 rounded text-xs text-gray-300 overflow-auto max-h-40">{{
-                        formatDetails(error.details)
-                      }}</pre>
-                    </details>
-                  }
-                </div>
-              }
-            }
-          </div>
-        </p-scrollPanel>
-
-        <div class="p-3 border-t border-gray-700 bg-gray-800 flex items-center justify-between text-xs text-gray-400">
-          <div class="flex items-center gap-4">
-            <span>HTTP: {{ getErrorCount('http') }}</span>
-            <span>Console: {{ getErrorCount('console') }}</span>
-            <span>Network: {{ getErrorCount('network') }}</span>
-            <span>Auth: {{ getErrorCount('auth') }}</span>
-            <span>Supabase: {{ getErrorCount('supabase') }}</span>
-          </div>
-          <div>
-            <span>Presiona <kbd class="px-1 py-0.5 bg-gray-700 rounded">Ctrl+Shift+D</kbd> para abrir/cerrar</span>
-          </div>
+        <div class="flex items-center gap-2">
+          <p-button
+            icon="pi pi-bug"
+            [text]="true"
+            [rounded]="true"
+            severity="secondary"
+            (click)="testErrorCapture()"
+            title="Probar captura de errores"
+          />
+          @if (!organizationService.isNaz()) {
+          <p-button
+            icon="pi pi-sync"
+            [text]="true"
+            [rounded]="true"
+            severity="secondary"
+            (click)="changeToNaz()"
+            title="Cambiar a Naz"
+          />
+          }
+          <p-button
+            icon="pi pi-refresh"
+            [text]="true"
+            [rounded]="true"
+            severity="secondary"
+            (click)="checkServices()"
+            title="Verificar servicios"
+          />
+          <p-button
+            icon="pi pi-trash"
+            [text]="true"
+            [rounded]="true"
+            severity="secondary"
+            (click)="clearErrors()"
+            title="Limpiar errores"
+          />
+          <p-button
+            icon="pi pi-times"
+            [text]="true"
+            [rounded]="true"
+            severity="secondary"
+            (click)="close()"
+            title="Cerrar"
+          />
         </div>
       </div>
+
+      <p-scrollPanel [style]="{ width: '100%', height: 'calc(80vh - 120px)' }">
+        <div class="p-4 space-y-3">
+          @if (errors.length === 0) {
+          <div class="text-center py-8 text-gray-400">
+            <i class="pi pi-check-circle text-4xl mb-2"></i>
+            <p>No hay errores registrados</p>
+          </div>
+          } @else { @for (error of errors; track error.id) {
+          <div
+            class="bg-gray-800 border-l-4 rounded p-3"
+            [ngClass]="{
+              'border-red-500':
+                error.type === 'http' || error.type === 'network',
+              'border-yellow-500':
+                error.type === 'console' || error.type === 'auth',
+              'border-blue-500': error.type === 'supabase',
+              'border-gray-500': error.type === 'other'
+            }"
+          >
+            <div class="flex items-start justify-between gap-2 mb-2">
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-1">
+                  <p-tag
+                    [value]="error.type.toUpperCase()"
+                    [severity]="getSeverity(error.type)"
+                    [rounded]="true"
+                    styleClass="text-xs"
+                  />
+                  <span class="text-xs text-gray-400">
+                    {{ error.timestamp | date : 'HH:mm:ss' }}
+                  </span>
+                </div>
+                <p class="text-white text-sm font-medium mb-1">
+                  {{ error.message }}
+                </p>
+                @if (error.url) {
+                <p class="text-xs text-gray-400 mb-1 break-all">
+                  <i class="pi pi-link mr-1"></i>
+                  {{ error.url }}
+                </p>
+                } @if (error.status) {
+                <p class="text-xs text-gray-400">
+                  Status: <span class="font-mono">{{ error.status }}</span>
+                </p>
+                }
+              </div>
+            </div>
+            @if (error.details) {
+            <details class="mt-2">
+              <summary
+                class="text-xs text-gray-400 cursor-pointer hover:text-gray-300"
+              >
+                Ver detalles
+              </summary>
+              <pre
+                class="mt-2 p-2 bg-gray-900 rounded text-xs text-gray-300 overflow-auto max-h-40"
+                >{{ formatDetails(error.details) }}</pre
+              >
+            </details>
+            }
+          </div>
+          } }
+        </div>
+      </p-scrollPanel>
+
+      <div
+        class="p-3 border-t border-gray-700 bg-gray-800 flex items-center justify-between text-xs text-gray-400"
+      >
+        <div class="flex items-center gap-4">
+          <span>HTTP: {{ getErrorCount('http') }}</span>
+          <span>Console: {{ getErrorCount('console') }}</span>
+          <span>Network: {{ getErrorCount('network') }}</span>
+          <span>Auth: {{ getErrorCount('auth') }}</span>
+          <span>Supabase: {{ getErrorCount('supabase') }}</span>
+        </div>
+        <div>
+          <span
+            >Presiona
+            <kbd class="px-1 py-0.5 bg-gray-700 rounded">Ctrl+Shift+D</kbd> para
+            abrir/cerrar</span
+          >
+        </div>
+      </div>
+    </div>
     }
   `,
-  styles: [`
-    kbd {
-      font-family: monospace;
-      font-size: 0.75rem;
-    }
-  `],
+  styles: [
+    `
+      kbd {
+        font-family: monospace;
+        font-size: 0.75rem;
+      }
+    `,
+  ],
 })
 export class DiagnosticPanelComponent implements OnInit, OnDestroy {
   private diagnosticService = inject(DiagnosticService);
@@ -178,28 +194,45 @@ export class DiagnosticPanelComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     // Solo log en desarrollo
-    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    if (
+      typeof window !== 'undefined' &&
+      window.location.hostname === 'localhost'
+    ) {
       console.log('[Diagnóstico] Panel inicializado');
     }
-    
+
     // Suscribirse a cambios de visibilidad
     this.diagnosticService.isVisible$
       .pipe(takeUntil(this.destroy$))
-      .subscribe(visible => {
+      .subscribe((visible) => {
         this.isVisible = visible;
-        if (visible && typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-          console.log('[Diagnóstico] Panel visible, errores actuales:', this.diagnosticService.getErrors().length);
+        if (
+          visible &&
+          typeof window !== 'undefined' &&
+          window.location.hostname === 'localhost'
+        ) {
+          console.log(
+            '[Diagnóstico] Panel visible, errores actuales:',
+            this.diagnosticService.getErrors().length
+          );
         }
       });
 
     // Suscribirse a errores
     this.diagnosticService.errors$
       .pipe(takeUntil(this.destroy$))
-      .subscribe(errors => {
+      .subscribe((errors) => {
         this.errors = errors;
         this.errorCount = errors.length;
-        if (errors.length > 0 && typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-          console.log('[Diagnóstico] Nuevo error capturado:', errors[0].message);
+        if (
+          errors.length > 0 &&
+          typeof window !== 'undefined' &&
+          window.location.hostname === 'localhost'
+        ) {
+          console.log(
+            '[Diagnóstico] Nuevo error capturado:',
+            errors[0].message
+          );
         }
       });
 
@@ -212,7 +245,10 @@ export class DiagnosticPanelComponent implements OnInit, OnDestroy {
     // No agregar mensaje informativo como error - solo log en desarrollo
     setTimeout(() => {
       const initialErrors = this.diagnosticService.getErrors();
-      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      if (
+        typeof window !== 'undefined' &&
+        window.location.hostname === 'localhost'
+      ) {
         console.log('[Diagnóstico] Errores iniciales:', initialErrors.length);
       }
     }, 1000);
@@ -264,10 +300,7 @@ export class DiagnosticPanelComponent implements OnInit, OnDestroy {
       'https://test.supabase.co/rest/v1/test',
       { test: true }
     );
-    this.diagnosticService.addAuthError(
-      'Test: Error de Auth0',
-      { test: true }
-    );
+    this.diagnosticService.addAuthError('Test: Error de Auth0', { test: true });
     this.diagnosticService.addConsoleError(
       'Test: Error de consola',
       { test: true },
@@ -295,21 +328,23 @@ export class DiagnosticPanelComponent implements OnInit, OnDestroy {
     this.organizationService.setOrganization('naz');
 
     // Limpiar selección de organización antes de cerrar sesión
-    this.organizationService.clearOrganization();
+    // this.organizationService.clearOrganization();
 
     // Cerrar sesión con Auth0 y redirigir al login
     this.auth.logout({
       logoutParams: {
-        returnTo: window.location.origin + '/login'
-      }
+        returnTo: window.location.origin + '/login',
+      },
     });
   }
 
   getErrorCount(type: DiagnosticError['type']): number {
-    return this.errors.filter(e => e.type === type).length;
+    return this.errors.filter((e) => e.type === type).length;
   }
 
-  getSeverity(type: DiagnosticError['type']): 'success' | 'info' | 'warn' | 'danger' {
+  getSeverity(
+    type: DiagnosticError['type']
+  ): 'success' | 'info' | 'warn' | 'danger' {
     switch (type) {
       case 'http':
       case 'network':
@@ -335,4 +370,3 @@ export class DiagnosticPanelComponent implements OnInit, OnDestroy {
     }
   }
 }
-

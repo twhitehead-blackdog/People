@@ -526,18 +526,13 @@ export class DiagnosticService {
       });
     }
 
+    // Legacy Optional: Warn only (do not block)
     if (!apiUrl && !hasApiUrlError) {
-      this.addError({
-        type: 'network',
-        message: 'ENV_API_URL no está configurado',
-      });
+      console.debug('[Diagnostic] ENV_API_URL not set (Optional in Naz Mode)');
     }
 
     if (!appUrl && !hasAppUrlError) {
-      this.addError({
-        type: 'auth',
-        message: 'ENV_APP_URL no está configurado',
-      });
+      console.debug('[Diagnostic] ENV_APP_URL not set (Optional in Naz Mode)');
     }
   }
 

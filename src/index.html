@@ -3,9 +3,11 @@
   <head>
     <script>
       // EJECUTAR PRIMERO: Interceptar y filtrar logs de XHR y URLs de base de datos en producción
-      (function() {
-        const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-        
+      (function () {
+        const isLocalhost =
+          window.location.hostname === 'localhost' ||
+          window.location.hostname === '127.0.0.1';
+
         if (!isLocalhost) {
           // Patrones a filtrar (URLs de base de datos, XHR logs, etc.)
           const sensitivePatterns = [
@@ -30,40 +32,48 @@
             /Posiciones recibidas/i,
             /Company ID:/i,
           ];
-          
+
           // Función para verificar si un mensaje contiene información sensible
           function containsSensitiveInfo(...args) {
             try {
-              const message = args.map(arg => {
-                if (typeof arg === 'string') return arg;
-                if (typeof arg === 'object' && arg !== null) {
-                  try {
-                    return JSON.stringify(arg);
-                  } catch {
-                    return String(arg);
+              const message = args
+                .map((arg) => {
+                  if (typeof arg === 'string') return arg;
+                  if (typeof arg === 'object' && arg !== null) {
+                    try {
+                      return JSON.stringify(arg);
+                    } catch {
+                      return String(arg);
+                    }
                   }
-                }
-                return String(arg);
-              }).join(' ');
-              return sensitivePatterns.some(pattern => pattern.test(message));
+                  return String(arg);
+                })
+                .join(' ');
+              return sensitivePatterns.some((pattern) => pattern.test(message));
             } catch {
               return false;
             }
           }
-          
+
           // Guardar las funciones originales ANTES de que Angular las use
           const originalLog = console.log;
           const originalWarn = console.warn;
           const originalError = console.error;
           const originalInfo = console.info;
           const originalDebug = console.debug;
-          
+
           // Usar Proxy para interceptar console de manera más agresiva
           try {
             const consoleProxy = new Proxy(console, {
-              get: function(target, prop) {
-                if (prop === 'log' || prop === 'warn' || prop === 'error' || prop === 'info' || prop === 'debug') {
-                  return function(...args) {
+              get: function (target, prop) {
+                if (
+                  prop === 'log' ||
+                  prop === 'warn' ||
+                  prop === 'error' ||
+                  prop === 'info' ||
+                  prop === 'debug'
+                ) {
+                  return function (...args) {
                     if (containsSensitiveInfo(...args)) {
                       return; // No mostrar en producción
                     }
@@ -71,51 +81,51 @@
                   };
                 }
                 return target[prop];
-              }
+              },
             });
-            
+
             // Reemplazar console con el proxy
             window.console = consoleProxy;
           } catch (e) {
             // Fallback: usar Object.defineProperty
             const createFilteredMethod = (original) => {
-              return function(...args) {
+              return function (...args) {
                 if (containsSensitiveInfo(...args)) {
                   return; // No mostrar en producción
                 }
                 return original.apply(console, args);
               };
             };
-            
+
             try {
               Object.defineProperty(console, 'log', {
                 value: createFilteredMethod(originalLog),
                 writable: true,
-                configurable: true
+                configurable: true,
               });
-              
+
               Object.defineProperty(console, 'warn', {
                 value: createFilteredMethod(originalWarn),
                 writable: true,
-                configurable: true
+                configurable: true,
               });
-              
+
               Object.defineProperty(console, 'error', {
                 value: createFilteredMethod(originalError),
                 writable: true,
-                configurable: true
+                configurable: true,
               });
-              
+
               Object.defineProperty(console, 'info', {
                 value: createFilteredMethod(originalInfo),
                 writable: true,
-                configurable: true
+                configurable: true,
               });
-              
+
               Object.defineProperty(console, 'debug', {
                 value: createFilteredMethod(originalDebug),
                 writable: true,
-                configurable: true
+                configurable: true,
               });
             } catch (e2) {
               // Último fallback: asignación directa
@@ -133,7 +143,7 @@
     <title>People | Registro de Empleados</title>
     <base href="/" />
     <meta content="width=device-width, initial-scale=1" name="viewport" />
-    <link href="favicon.ico" rel="icon" type="image/x-icon" />
+    <link href="images/Naz_Logo.jpg" rel="icon" />
     <!-- Google Fonts para tema Naz -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -146,7 +156,9 @@
       document.documentElement.classList.add('dark');
       // Prevenir cambios de tema
       if (window.matchMedia) {
-        const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: light)');
+        const darkModeMediaQuery = window.matchMedia(
+          '(prefers-color-scheme: light)'
+        );
         darkModeMediaQuery.addEventListener('change', () => {
           document.documentElement.classList.add('dark');
         });

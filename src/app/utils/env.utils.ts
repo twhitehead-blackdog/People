@@ -25,10 +25,25 @@ export function getEnv(key: string): string | undefined {
     value = process.env['ENV_SUPABASE_API_KEY'];
   if (key === 'ENV_SUPABASE_TOKEN' && !value)
     value = process.env['ENV_SUPABASE_TOKEN'];
-  if (key === 'ENV_API_URL' && !value)
-    value = process.env['ENV_API_URL'];
-  if (key === 'ENV_APP_URL' && !value)
-    value = process.env['ENV_APP_URL'];
+  // Naz Hardening - Mandatory
+  if (key === 'ENV_NAZ_COMPANY_ID' && !value) {
+    value = process.env['ENV_NAZ_COMPANY_ID'];
+    // Fallback for Dev/Seed environment
+    if (!value) {
+      // In production, this should fail hard. In dev, we use the known Naz ID.
+      // Ideally this comes from the .env file, but for legacy dev setup we fallback.
+      console.warn(
+        '⚠️ ENV_NAZ_COMPANY_ID missing. FALLBACK to known Naz ID for development.'
+      );
+      value = 'ddff33e5-1585-48ed-8689-fe4b8e77a63f';
+    }
+  }
+
+  // Legacy Optional - Warn only, do not block
+  if ((key === 'ENV_API_URL' || key === 'ENV_APP_URL') && !value) {
+    console.debug(`[Env] Optional legacy var ${key} not found.`);
+    return undefined;
+  }
 
   if (!value) return undefined;
 

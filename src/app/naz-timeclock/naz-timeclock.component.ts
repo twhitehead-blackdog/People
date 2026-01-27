@@ -27,7 +27,9 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { DialogModule } from 'primeng/dialog';
 import { InputOtp } from 'primeng/inputotp';
+import { InputTextModule } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
 import { Toast } from 'primeng/toast';
 import { catchError, EMPTY, Observable, of } from 'rxjs';
@@ -42,6 +44,7 @@ import {
   TimelogType,
 } from '../models';
 import { TrimPipe } from '../pipes/trim.pipe';
+import { DeviceService } from '../services/device.service';
 import { IpMonitorService } from '../services/ip-monitor.service';
 import { OrganizationService } from '../services/organization.service';
 
@@ -57,6 +60,8 @@ import { OrganizationService } from '../services/organization.service';
     ConfirmDialogModule,
     TrimPipe,
     NgClass,
+    DialogModule,
+    InputTextModule,
   ],
   providers: [ConfirmationService],
   template: `<p-confirmDialog key="confirm1">
@@ -84,15 +89,55 @@ import { OrganizationService } from '../services/organization.service';
       class="flex flex-col items-center justify-center animated-gradient-container"
       style="width: 100%; position: relative; min-height: 100vh; overflow-y: auto; overflow-x: hidden;"
     >
-      @if (!isKioskMode() || isIPValid()) {
+      @if (!deviceService.isKioskAuthorized()) {
+      <!-- ENROLLMENT SCREEN -->
+      <div
+        class="flex flex-col gap-4 items-center justify-center min-h-screen text-gray-200"
+      >
+        <i class="pi pi-shield text-6xl text-yellow-500 mb-4"></i>
+        <h1 class="text-3xl font-bold">Dispositivo No Autorizado</h1>
+        <p>Este dispositivo no está registrado como Kiosko.</p>
+
+        <div class="flex flex-col gap-2 w-full max-w-xs">
+          <input
+            pInputText
+            type="text"
+            placeholder="Código de Vinculación"
+            [formControl]="enrollmentCodeCtrl"
+            class="text-center text-xl p-3 bg-gray-800 border-gray-600 rounded-md text-white"
+          />
+          <p-button
+            label="Vincular Dispositivo"
+            (onClick)="attemptEnrollment()"
+            [disabled]="!enrollmentCodeCtrl.value"
+            styleClass="w-full bg-yellow-600 hover:bg-yellow-500 border-none"
+          ></p-button>
+        </div>
+
+        <div class="mt-8 text-xs text-gray-500 font-mono">
+          Device ID: {{ deviceService.getDeviceId() }}
+        </div>
+      </div>
+      } @else if (!isKioskMode() || isIPValid()) {
+      <!-- CLOCK SCREEN -->
       <div
         class="flex flex-col gap-2 md:gap-3 lg:gap-4 items-center px-3 md:px-6 relative z-10 timeclock-content"
         style="max-width: 600px; width: 100%; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem 0;"
       >
-        <img
-          [src]="isNazCompany() ? 'images/Naz_Logo.jpg' : 'images/blackdog.png'"
-          class="h-12 md:h-16 lg:h-20 w-auto object-contain drop-shadow-2xl relative z-10"
-        />
+        <div class="flex justify-between w-full items-start">
+          <img
+            src="images/Naz_Logo.jpg"
+            class="h-12 md:h-16 lg:h-20 w-auto object-contain drop-shadow-2xl relative z-10"
+          />
+          <!-- Admin Exit Trigger (Hidden/Subtle) -->
+          <button
+            (click)="showAdminExit = true"
+            class="opacity-10 hover:opacity-100 transition-opacity text-white p-2"
+          >
+            <i class="pi pi-lock"></i>
+          </button>
+        </div>
+
         <p-card class="w-full timeclock-card relative z-10">
           <ng-template #title>
             <div class="flex flex-col gap-1 md:gap-2 items-center">
@@ -266,7 +311,7 @@ import { OrganizationService } from '../services/organization.service';
         style="max-width: 600px; width: 100%; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 2rem 0;"
       >
         <img
-          [src]="isNazCompany() ? 'images/Naz_Logo.jpg' : 'images/blackdog.png'"
+          src="images/Naz_Logo.jpg"
           class="h-12 md:h-16 lg:h-20 w-auto object-contain drop-shadow-2xl relative z-10"
         />
         <p-card class="w-full timeclock-card relative z-10">
@@ -319,7 +364,38 @@ import { OrganizationService } from '../services/organization.service';
         </p-card>
       </div>
       }
-    </div>`,
+    </div>
+
+    <!-- Admin Exit Dialog -->
+    <p-dialog
+      header="Administración Kiosko"
+      [(visible)]="showAdminExit"
+      [modal]="true"
+      [style]="{ width: '300px' }"
+    >
+      <div class="flex flex-col gap-4">
+        <p>Ingrese PIN Administrativo para salir.</p>
+        <input
+          pInputText
+          type="password"
+          [formControl]="adminPinCtrl"
+          class="text-center text-xl p-2 w-full"
+          autofocus
+        />
+        <div class="flex justify-end gap-2">
+          <p-button
+            label="Cancelar"
+            (onClick)="showAdminExit = false"
+            styleClass="p-button-text"
+          ></p-button>
+          <p-button
+            label="Salir"
+            (onClick)="attemptAdminExit()"
+            styleClass="p-button-danger"
+          ></p-button>
+        </div>
+      </div>
+    </p-dialog> `,
   styles: `
     .animated-gradient-container {
       background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 25%, #000000 50%, #0d0d0d 75%, #2a2a2a 100%);
@@ -656,6 +732,11 @@ export class NazTimeclockComponent implements OnDestroy {
   private ipMonitor = inject(IpMonitorService);
   private destroyRef = inject(DestroyRef);
   private organizationService = inject(OrganizationService);
+  public deviceService = inject(DeviceService);
+
+  public enrollmentCodeCtrl = new FormControl('');
+  public adminPinCtrl = new FormControl('');
+  public showAdminExit = false;
   // Get IP address - try multiple methods to get real IP even from localhost
   public currentIP = signal<string>('127.0.0.1');
   public isProcessing = signal<boolean>(false);
@@ -798,6 +879,50 @@ export class NazTimeclockComponent implements OnDestroy {
     // Detener monitoreo de IP si está activo
     if (this.isKioskMode()) {
       this.ipMonitor.stopMonitoring();
+    }
+  }
+
+  // --- DEVICE LOGIC ---
+
+  attemptEnrollment() {
+    const code = this.enrollmentCodeCtrl.value;
+    if (!code) return;
+
+    if (this.deviceService.registerDevice(code)) {
+      this.message.add({
+        severity: 'success',
+        summary: 'Dispositivo Vinculado',
+        detail: 'El modo Kiosko ha sido activado exitosamente.',
+      });
+      this.enrollmentCodeCtrl.reset();
+    } else {
+      this.message.add({
+        severity: 'error',
+        summary: 'Error de Vinculación',
+        detail: 'Código inválido o expirado.',
+      });
+    }
+  }
+
+  attemptAdminExit() {
+    const pin = this.adminPinCtrl.value;
+    if (!pin) return;
+
+    if (this.deviceService.exitKiosk(pin)) {
+      this.message.add({
+        severity: 'info',
+        summary: 'Sesión Finalizada',
+        detail: 'Modo Kiosko desactivado.',
+      });
+      this.showAdminExit = false;
+      this.adminPinCtrl.reset();
+      this.router.navigate(['/login']); // Go to Admin Login
+    } else {
+      this.message.add({
+        severity: 'error',
+        summary: 'Acceso Denegado',
+        detail: 'PIN Administrativo incorrecto.',
+      });
     }
   }
 

@@ -115,9 +115,9 @@ import { DogAnimationComponent } from './components/dog.component';
                 class="flex items-center gap-2 group cursor-pointer"
               >
                 <img
-                  [src]="logoPath()"
+                  src="images/Naz_Logo.jpg"
                   class="h-7 md:h-9 transition-transform duration-300 group-hover:scale-105"
-                  alt="People"
+                  alt="Naz Logo"
                 />
               </a>
             </div>
@@ -142,7 +142,7 @@ import { DogAnimationComponent } from './components/dog.component';
                   <i class="pi pi-building text-base"></i>
                   <span>Administración</span></a
                 >
-                } @if(store.hasDashboardAccess() && store.isAdmin() &&
+                /* } @if(store.hasDashboardAccess() && store.isAdmin() &&
                 !store.hasPortalAccessOnly()) {
                 <a
                   (click)="navigateTo('payroll')"
@@ -152,7 +152,7 @@ import { DogAnimationComponent } from './components/dog.component';
                   <i class="pi pi-money-bill text-base"></i>
                   <span>Nómina</span></a
                 >
-                } @if((store.hasDashboardAccess() && (store.isAdmin() ||
+                */ } @if((store.hasDashboardAccess() && (store.isAdmin() ||
                 (store.isScheduleAdmin() && !store.hasPortalAccessOnly()))) ||
                 store.hasTimeManagementAccess()) {
                 <a
@@ -265,7 +265,7 @@ import { DogAnimationComponent } from './components/dog.component';
               ><i class="pi pi-calendar text-lg"></i>
               <span>Gestión de tiempo</span></a
             >
-            } @if(store.hasDashboardAccess() && store.isAdmin() &&
+            /* } @if(store.hasDashboardAccess() && store.isAdmin() &&
             !store.hasPortalAccessOnly()) {
             <a
               (click)="navigateTo('payroll'); toggleMenu()"
@@ -275,7 +275,7 @@ import { DogAnimationComponent } from './components/dog.component';
               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
               ><i class="pi pi-money-bill text-lg"></i> <span>Nómina</span></a
             >
-            }
+            */ }
             <a
               (click)="navigateTo('timeclock'); toggleMenu()"
               [class.bg-gray-700]="isTimeclockActive()"
@@ -640,13 +640,11 @@ export class DashboardComponent {
   // Signal para la IP actual
   private currentIP = signal<string | null>(null);
 
-  // Computed para verificar si es Naz
-  public isNaz = computed(() => this.organizationService.isNaz());
+  // Computed para verificar si es Naz (Siempre true en Single-Tenant)
+  public isNaz = computed(() => true);
 
-  // Logo dinámico según organización
-  public logoPath = computed(() => {
-    return this.isNaz() ? 'images/Naz_Logo.jpg' : 'images/blackdog.png';
-  });
+  // Computed para obtener la ruta del logo
+  public logoPath = computed(() => 'images/Naz_Logo.jpg');
 
   // Verificar si el usuario es soporte2@blackdogpanama.com
   // Memoized to avoid recalculation
@@ -751,7 +749,6 @@ export class DashboardComponent {
 
       // Solo recargar si el company_id está listo, hay un cambio real y no es la primera vez
       if (
-        this.organizationService.companyIdsReady() &&
         currentCompanyId &&
         this.previousOrganization !== null &&
         this.previousOrganization !== currentOrg
@@ -1054,9 +1051,6 @@ export class DashboardComponent {
         label: 'Cerrar sesion',
         icon: 'pi pi-sign-out',
         command: () => {
-          // Limpiar selección de organización antes de cerrar sesión
-          this.organizationService.clearOrganization();
-
           // Cerrar sesión con Auth0
           this.auth.logout();
         },

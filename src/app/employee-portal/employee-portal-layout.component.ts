@@ -18,10 +18,10 @@ import { MenuModule } from 'primeng/menu';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { filter, Subscription } from 'rxjs';
+import { NotificationsDropdownComponent } from '../components/notifications-dropdown.component';
+import { EmployeePortalNavigationService } from '../services/employee-portal-navigation.service';
 import { NotificationsService } from '../services/notifications.service';
 import { OrganizationService } from '../services/organization.service';
-import { EmployeePortalNavigationService } from '../services/employee-portal-navigation.service';
-import { NotificationsDropdownComponent } from '../components/notifications-dropdown.component';
 import { AuthStore } from '../stores/auth.store';
 import { BanksStore } from '../stores/banks.store';
 import { BranchesStore } from '../stores/branches.store';
@@ -91,11 +91,9 @@ type NavSection = {
                 class="shrink-0 flex items-center gap-2 group cursor-pointer"
               >
                 <img
-                  [src]="
-                    isNaz() ? 'images/Naz_Logo.jpg' : 'images/blackdog.png'
-                  "
+                  src="images/Naz_Logo.jpg"
                   class="h-9 transition-transform duration-300 group-hover:scale-105"
-                  [alt]="isNaz() ? 'Naz Logo' : 'Black Dog Logo'"
+                  alt="Naz Logo"
                 />
               </a>
               <div class="hidden md:block">
@@ -251,7 +249,9 @@ type NavSection = {
                   class="ml-auto w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white"
                 >
                   {{
-                    unreadNotificationsCount() > 99 ? '99+' : unreadNotificationsCount()
+                    unreadNotificationsCount() > 99
+                      ? '99+'
+                      : unreadNotificationsCount()
                   }}
                 </span>
                 }
@@ -346,11 +346,11 @@ type NavSection = {
         @apply bg-gradient-to-r from-gray-700/80 to-gray-600/80 text-white shadow-md transition-all duration-300 ease-in-out;
         border-left: 3px solid #fbbf24;
       }
-      
+
       /* Tema Naz - cambiar amarillo a gris */
       :host-context(.naz-theme) .selected,
       .naz-theme .selected {
-        border-left-color: #C6C2BF !important;
+        border-left-color: #c6c2bf !important;
       }
 
       ::ng-deep .p-menu {
@@ -360,7 +360,7 @@ type NavSection = {
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
         padding: 0.5rem !important;
       }
-      
+
       /* Tema Naz - cambiar amarillo a gris en menú */
       :host-context(.naz-theme) ::ng-deep .p-menu,
       .naz-theme ::ng-deep .p-menu {
@@ -376,7 +376,7 @@ type NavSection = {
       ::ng-deep .p-menu .p-menuitem-link:hover {
         background: rgba(251, 191, 36, 0.1) !important;
       }
-      
+
       /* Tema Naz - hover gris */
       :host-context(.naz-theme) ::ng-deep .p-menu .p-menuitem-link:hover,
       .naz-theme ::ng-deep .p-menu .p-menuitem-link:hover {
@@ -394,17 +394,25 @@ type NavSection = {
       ::ng-deep .p-menu .p-menuitem-link .p-menuitem-icon {
         color: #fbbf24 !important;
       }
-      
+
       /* Tema Naz - iconos grises */
-      :host-context(.naz-theme) ::ng-deep .p-menu .p-menuitem-link .p-menuitem-icon,
+      :host-context(.naz-theme)
+        ::ng-deep
+        .p-menu
+        .p-menuitem-link
+        .p-menuitem-icon,
       .naz-theme ::ng-deep .p-menu .p-menuitem-link .p-menuitem-icon {
-        color: #C6C2BF !important;
+        color: #c6c2bf !important;
       }
-      
+
       /* Tema Naz - hover iconos blancos */
-      :host-context(.naz-theme) ::ng-deep .p-menu .p-menuitem-link:hover .p-menuitem-icon,
+      :host-context(.naz-theme)
+        ::ng-deep
+        .p-menu
+        .p-menuitem-link:hover
+        .p-menuitem-icon,
       .naz-theme ::ng-deep .p-menu .p-menuitem-link:hover .p-menuitem-icon {
-        color: #FFFFFF !important;
+        color: #ffffff !important;
       }
 
       /* Avatar Container Styles */
@@ -465,7 +473,7 @@ type NavSection = {
         border-color: #fbbf24 !important;
         box-shadow: 0 0 0 0.2rem rgba(251, 191, 36, 0.2) !important;
       }
-      
+
       /* Tema Naz - focus gris */
       :host-context(.naz-theme) ::ng-deep textarea.p-inputtextarea:focus,
       :host-context(.naz-theme) ::ng-deep .p-inputtextarea:focus,
@@ -473,7 +481,7 @@ type NavSection = {
       .naz-theme ::ng-deep textarea.p-inputtextarea:focus,
       .naz-theme ::ng-deep .p-inputtextarea:focus,
       .naz-theme ::ng-deep textarea[pinputtextarea]:focus {
-        border-color: #C6C2BF !important;
+        border-color: #c6c2bf !important;
         box-shadow: 0 0 0 0.2rem rgba(198, 194, 191, 0.2) !important;
       }
 
@@ -499,7 +507,7 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
   public notificationsService = inject(NotificationsService);
   private navigationService = inject(EmployeePortalNavigationService);
 
-  public isNaz = computed(() => this.organizationService.isNaz());
+  // public isNaz = computed(() => this.organizationService.isNaz());
 
   public isCollapsed = signal(true);
   public currentFragment = signal<string | null>(null);
@@ -510,7 +518,9 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
   private dropdownTimeout: any = null;
 
   // Usar el servicio compartido de notificaciones
-  public unreadNotificationsCount = computed(() => this.notificationsService.unreadCount());
+  public unreadNotificationsCount = computed(() =>
+    this.notificationsService.unreadCount()
+  );
 
   constructor() {
     // Inicializar notificaciones cuando cambia el empleado actual
@@ -590,7 +600,7 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
       const url = this.router.url;
       const urlFragment = url.includes('#') ? url.split('#')[1] : null;
       const currentFragment = urlFragment || this.currentFragment();
-      
+
       // Verificar si estamos en una subsección de gestiones
       const isInManagementSubsection =
         currentFragment === 'disabilities' ||
@@ -598,7 +608,7 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
         currentFragment === 'vacations' ||
         currentFragment === 'compensatory' ||
         currentFragment === 'my-requests';
-      
+
       // Si estamos en una subsección, usar el servicio para cambiar directamente la sección
       if (isInManagementSubsection) {
         this.navigationService.goToSection('management');
@@ -609,22 +619,24 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
         return;
       }
     }
-    
+
     // Navegación normal para otros casos
-    this.router.navigate(['/employee-portal'], { 
-      fragment: section,
-      replaceUrl: false
-    }).then(() => {
-      this.currentFragment.set(section);
-      this.updateFragment();
-      
-      setTimeout(() => {
-        const element = document.querySelector('pt-employee-portal');
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 200);
-    });
+    this.router
+      .navigate(['/employee-portal'], {
+        fragment: section,
+        replaceUrl: false,
+      })
+      .then(() => {
+        this.currentFragment.set(section);
+        this.updateFragment();
+
+        setTimeout(() => {
+          const element = document.querySelector('pt-employee-portal');
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 200);
+      });
     this.openDropdown.set(null);
     if (!this.isCollapsed()) {
       this.isCollapsed.set(true);
@@ -637,20 +649,22 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
 
   isActiveSection(section: string): boolean {
     const fragment = this.currentFragment();
-    
+
     // Dashboard está activo cuando no hay fragmento o cuando el fragmento es 'dashboard'
     if (section === 'dashboard') {
       return !fragment || fragment === 'dashboard';
     }
-    
+
     // Gestiones está activo cuando estamos en cualquier sección de gestiones
     // (disabilities, documents, o management)
     if (section === 'management') {
-      return fragment === 'management' ||
-             fragment === 'disabilities' ||
-             fragment === 'documents';
+      return (
+        fragment === 'management' ||
+        fragment === 'disabilities' ||
+        fragment === 'documents'
+      );
     }
-    
+
     // Para otras secciones, verificar coincidencia exacta
     return fragment === section;
   }

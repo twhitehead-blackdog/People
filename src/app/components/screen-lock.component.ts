@@ -52,8 +52,8 @@ interface DogConfig {
         (click)="togglePinInput()"
       >
         <img
-          src="images/blackdog.png"
-          alt="BlackDog"
+          src="images/Naz_Logo.jpg"
+          alt="Naz"
           class="h-12 w-auto opacity-90 group-hover:opacity-100 transition-opacity"
         />
       </div>

@@ -26,50 +26,6 @@ import { DashboardStore } from '../stores/dashboard.store';
       <div class="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
         <div class="flex items-center justify-center gap-6">
           <!-- Auditoría Dropdown -->
-          <div
-            class="relative group cursor-pointer select-none"
-            (mouseenter)="openDropdown('auditoria')"
-            (mouseleave)="closeDropdown()"
-          >
-            <!-- Título Auditoría -->
-            <div
-              class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
-              [class.selected]="
-                isActiveRoute('audit-tasks') || isActiveRoute('performance')
-              "
-            >
-              <i class="pi pi-check-square text-base"></i>
-              <span>Auditoría</span>
-            </div>
-
-            <!-- Dropdown Menu -->
-            <div
-              class="absolute left-0 top-full hidden group-hover:block bg-neutral-800/95 border border-neutral-600/40 shadow-xl rounded-md w-56 z-50 overflow-hidden"
-              style="margin-top: -1px;"
-              [class.block]="isDropdownOpen('auditoria')"
-              (mouseenter)="openDropdown('auditoria')"
-              (mouseleave)="closeDropdown()"
-            >
-              <a
-                routerLink="performance"
-                class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
-                [class.bg-neutral-700]="isActiveRoute('performance')"
-                [class.text-amber-300]="isActiveRoute('performance')"
-              >
-                <i class="pi pi-chart-line text-sm"></i>
-                <span>Rendimiento 360</span>
-              </a>
-              <a
-                routerLink="audit-tasks"
-                class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
-                [class.bg-neutral-700]="isActiveRoute('audit-tasks')"
-                [class.text-amber-300]="isActiveRoute('audit-tasks')"
-              >
-                <i class="pi pi-check-square text-sm"></i>
-                <span>Control de Tareas</span>
-              </a>
-            </div>
-          </div>
 
           <!-- RRHH Dropdown -->
           <div

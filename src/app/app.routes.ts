@@ -1,5 +1,6 @@
 import { Route } from '@angular/router';
 import { authGuardFn } from './guards/auth.guard';
+import { adminBlockGuard } from './guards/kiosk.guard';
 import { timeclockKioskGuard } from './guards/timeclock-kiosk.guard';
 
 export const appRoutes: Route[] = [
@@ -10,6 +11,7 @@ export const appRoutes: Route[] = [
   },
   {
     path: 'employee-portal',
+    canActivate: [adminBlockGuard], // Block Kiosks
     canActivateChild: [authGuardFn],
     loadChildren: () =>
       import('./employee-portal/employee-portal.routes').then(
@@ -18,6 +20,7 @@ export const appRoutes: Route[] = [
   },
   {
     path: '',
+    canActivate: [adminBlockGuard], // Block Kiosks
     canActivateChild: [authGuardFn],
     loadChildren: () =>
       import('./dashboard/dashboard.routes').then((x) => x.DASHBOARD_ROUTES),

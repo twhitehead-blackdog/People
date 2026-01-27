@@ -4,7 +4,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  effect,
   inject,
   signal,
 } from '@angular/core';
@@ -14,11 +13,10 @@ import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { Toast } from 'primeng/toast';
-import { Branch } from '../models';
 import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
-import { APP_VERSION } from '../version';
 import { logger } from '../utils/logger';
+import { APP_VERSION } from '../version';
 
 @Component({
   selector: 'pt-login',
@@ -35,35 +33,13 @@ import { logger } from '../utils/logger';
       >
         <div class="logo-wrapper">
           <div class="logo-selector-container">
-            @if (canChangeOrganization()) {
-            <button
-              type="button"
-              class="arrow-button arrow-left"
-              (click)="previousOrganization()"
-              aria-label="Organización anterior"
-            >
-              <i class="pi pi-chevron-left"></i>
-            </button>
-            }
             <div class="logo-container">
               <img
                 [src]="logoPath()"
-                [class]="
-                  'logo-image ' + (isNaz() ? 'logo-naz' : 'logo-blackdog')
-                "
-                [alt]="isNaz() ? 'Naz Logo' : 'Black Dog Logo'"
+                class="logo-image logo-naz"
+                alt="Naz Logo"
               />
             </div>
-            @if (canChangeOrganization()) {
-            <button
-              type="button"
-              class="arrow-button arrow-right"
-              (click)="nextOrganization()"
-              aria-label="Siguiente organización"
-            >
-              <i class="pi pi-chevron-right"></i>
-            </button>
-            }
           </div>
         </div>
 
@@ -1376,87 +1352,14 @@ export class LoginComponent {
   // Versión de la aplicación (leída automáticamente desde package.json)
   public appVersion = APP_VERSION;
 
-  // Signal para la IP actual
-  private currentIP = signal<string | null>(null);
-
-  // Signal para las sucursales
-  private branches = signal<Branch[]>([]);
-
   // Signal para el email del usuario (si está autenticado)
   private userEmail = signal<string | null>(null);
 
-  // Computed para verificar si es soporte2@blackdogpanama.com
-  public isSupportUser = computed(() => {
-    const email = this.userEmail();
-    return email === 'soporte2@blackdogpanama.com';
-  });
-
-  // Computed para verificar si se puede cambiar de organización
-  public canChangeOrganization = computed(() => {
-    // Verificar si el easter egg está activado
-    if (typeof window !== 'undefined' && window.localStorage) {
-      const easterEggActivated = window.localStorage.getItem(
-        'easter_egg_activated'
-      );
-      if (easterEggActivated === 'true') {
-        return true;
-      }
-    }
-
-    // Si es soporte2@blackdogpanama.com, siempre permitir cambio
-    if (this.isSupportUser()) {
-      return true;
-    }
-
-    const ip = this.currentIP();
-
-    // Si no se puede detectar la IP o es localhost, permitir cambio
-    if (!ip || ip === '127.0.0.1') {
-      return true;
-    }
-
-    // Obtener sucursales
-    const branchesList = this.branches();
-    if (!branchesList || branchesList.length === 0) {
-      return true; // Permitir cambio si no hay sucursales cargadas
-    }
-
-    // Verificar si la IP actual coincide con alguna sucursal
-    const matchingBranch = branchesList.find(
-      (branch) => branch.ip && branch.ip.trim() === ip
-    );
-
-    // Si hay una sucursal que coincide con la IP
-    if (matchingBranch) {
-      // Verificar si es oficina central (nombre contiene "central" o "oficina central")
-      const branchName = matchingBranch.name?.toLowerCase() || '';
-      const branchShortName = matchingBranch.short_name?.toLowerCase() || '';
-      const isCentralOffice =
-        branchName.includes('central') ||
-        branchName.includes('oficina central') ||
-        branchShortName.includes('central') ||
-        branchShortName.includes('oficina central');
-
-      // Si es oficina central, permitir cambio
-      if (isCentralOffice) {
-        return true;
-      }
-
-      // Si no es oficina central, NO permitir cambiar organización
-      return false;
-    }
-
-    // Si no hay coincidencia, permitir cambio
-    return true;
-  });
-
-  // Computed para verificar si es Naz
-  public isNaz = computed(() => this.organizationService.isNaz());
+  // Computed para verificar si es Naz (Siempre true en Single-Tenant)
+  public isNaz = computed(() => true);
 
   // Computed para obtener la ruta del logo
-  public logoPath = computed(() =>
-    this.isNaz() ? 'images/Naz_Logo.jpg' : 'images/blackdog.png'
-  );
+  public logoPath = computed(() => 'images/Naz_Logo.jpg');
 
   constructor() {
     // Obtener email del usuario si está autenticado
@@ -1466,45 +1369,8 @@ export class LoginComponent {
       }
     });
 
-    // Obtener IP y sucursales al inicializar
-    this.fetchCurrentIP();
-    this.fetchBranches();
-
-    // Forzar Black Dog si estamos en una IP de sucursal (excepto para soporte2 o easter egg activado)
-    effect(() => {
-      const ip = this.currentIP();
-      const canChange = this.canChangeOrganization();
-      const isSupport = this.isSupportUser();
-
-      // Verificar si el easter egg está activado
-      const easterEggActivated =
-        typeof window !== 'undefined' && window.localStorage
-          ? window.localStorage.getItem('easter_egg_activated') === 'true'
-          : false;
-
-      // No forzar si es soporte2 o si el easter egg está activado
-      if (isSupport || easterEggActivated) {
-        return;
-      }
-
-      if (!canChange && ip && ip !== '127.0.0.1') {
-        // Si no se puede cambiar y estamos en una IP de sucursal, forzar Black Dog
-        if (this.organizationService.isNaz()) {
-          this.organizationService.setOrganization('blackdog');
-          logger.debug('🔒 Forzando Black Dog por IP de sucursal');
-        }
-      }
-    });
-  }
-
-  nextOrganization() {
-    logger.debug('🔄 Cambiando a siguiente organización desde login');
-    this.organizationService.nextOrganization();
-  }
-
-  previousOrganization() {
-    logger.debug('🔄 Cambiando a organización anterior desde login');
-    this.organizationService.previousOrganization();
+    // Enforce Naz context explicitly on load
+    this.organizationService.setOrganization('naz');
   }
 
   setMode(mode: 'dashboard' | 'kiosk') {
@@ -1533,14 +1399,10 @@ export class LoginComponent {
     await this.organizationService.waitForCompanyIds();
 
     const currentCompanyId = this.organizationService.getCurrentCompanyId();
-    const currentOrg = this.organizationService.currentOrganization;
 
     if (!currentCompanyId) {
-      logger.error('❌ No se pudo obtener company_id. Usando organización por defecto.');
-      // Asegurar que al menos tengamos una organización
-      if (!currentOrg) {
-        this.organizationService.setOrganization('blackdog');
-      }
+      logger.error('❌ No se pudo obtener company_id. Fatal error.');
+      // En modo single-tenant, esto no debería pasar si NazContextService funciona.
     }
 
     // Usar Auth0 para iniciar sesión
@@ -1551,123 +1413,5 @@ export class LoginComponent {
     // Abrir el modo kiosko con el parámetro de organización
     const org = this.organizationService.currentOrganization;
     window.open(`/timeclock-kiosk?org=${org}`, '_blank');
-  }
-
-  /**
-   * Obtiene la IP actual del cliente
-   */
-  private fetchCurrentIP(): void {
-    // Intentar obtener IP desde el servidor
-    this.http.get<{ ip: string }>('/api/client-ip').subscribe({
-      next: (response) => {
-        if (response?.ip) {
-          const ip = response.ip.trim();
-          this.currentIP.set(ip);
-          logger.debug('📍 IP detectada en login');
-        }
-      },
-      error: () => {
-        // Si falla, intentar obtener IP vía WebRTC como fallback
-        this.getIPViaWebRTC()
-          .then((ip) => {
-            this.currentIP.set(ip);
-            logger.debug('📍 IP detectada vía WebRTC');
-          })
-          .catch(() => {
-            // Si todo falla, usar localhost como fallback
-            this.currentIP.set('127.0.0.1');
-          });
-      },
-    });
-  }
-
-  /**
-   * Obtiene las sucursales desde la base de datos
-   */
-  private fetchBranches(): void {
-    const url = this.apiUrl.build('rest/v1/branches', {
-      select: 'ip',
-      is_active: 'eq.true',
-    });
-    this.http
-      .get<Branch[]>(url)
-      .subscribe({
-        next: (branches) => {
-          this.branches.set(branches);
-          logger.debug(`📍 Sucursales cargadas: ${branches.length}`);
-        },
-        error: (error) => {
-          logger.error('Error obteniendo sucursales', error);
-        },
-      });
-  }
-
-  /**
-   * Obtiene IP vía WebRTC (fallback)
-   */
-  private getIPViaWebRTC(): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const RTCPeerConnection =
-        (window as any).RTCPeerConnection ||
-        (window as any).webkitRTCPeerConnection ||
-        (window as any).mozRTCPeerConnection;
-
-      if (!RTCPeerConnection) {
-        reject(new Error('WebRTC not supported'));
-        return;
-      }
-
-      const pc = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
-      });
-
-      const ips: string[] = [];
-
-      pc.createDataChannel('');
-
-      pc.onicecandidate = (event: any) => {
-        if (event.candidate) {
-          const candidate = event.candidate.candidate;
-          const match = candidate.match(
-            /([0-9]{1,3}(\.[0-9]{1,3}){3}|[a-f0-9]{1,4}(:[a-f0-9]{1,4}){7})/
-          );
-          if (match) {
-            const ip = match[1];
-            if (
-              ips.indexOf(ip) === -1 &&
-              !ip.startsWith('127.') &&
-              ip !== '::1'
-            ) {
-              ips.push(ip);
-            }
-          }
-        } else {
-          if (ips.length > 0) {
-            pc.close();
-            resolve(ips[0]);
-          } else {
-            pc.close();
-            reject(new Error('No IP found'));
-          }
-        }
-      };
-
-      pc.createOffer()
-        .then((offer: any) => pc.setLocalDescription(offer))
-        .catch((err: any) => {
-          pc.close();
-          reject(err);
-        });
-
-      setTimeout(() => {
-        if (ips.length > 0) {
-          pc.close();
-          resolve(ips[0]);
-        } else {
-          pc.close();
-          reject(new Error('WebRTC timeout'));
-        }
-      }, 3000);
-    });
   }
 }

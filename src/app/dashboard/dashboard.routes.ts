@@ -207,6 +207,7 @@ export const DASHBOARD_ROUTES: Routes = [
           { path: '', redirectTo: 'timetables', pathMatch: 'full' },
         ],
       },
+      /*
       {
         path: 'payroll',
         loadComponent: () =>
@@ -252,6 +253,7 @@ export const DASHBOARD_ROUTES: Routes = [
           { path: '', redirectTo: 'payrolls', pathMatch: 'full' },
         ],
       },
+      */
       {
         path: 'timeclock',
         loadComponent: () =>
