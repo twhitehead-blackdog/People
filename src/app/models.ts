@@ -101,6 +101,75 @@ export type TimeOff = {
   created_by?: string;
 };
 
+/**
+ * Estado de revisión para solicitudes HR
+ */
+export type HRRequestStatus = 'pending' | 'approved' | 'rejected';
+
+/**
+ * Solicitud de vacaciones de un empleado
+ */
+export type EmployeeVacation = {
+  id: string;
+  employee_id: string;
+  employee?: Employee;
+  start_date: Date | string;
+  end_date: Date | string;
+  reason?: string;
+  status: HRRequestStatus;
+  reviewed_by?: string;
+  reviewed_at?: Date | string;
+  review_notes?: string;
+  rejection_comment?: string;
+  company_id?: string;
+  document_url?: string;
+  created_at?: Date | string;
+  updated_at?: Date | string;
+};
+
+/**
+ * Solicitud de incapacidad médica de un empleado
+ */
+export type EmployeeDisability = {
+  id: string;
+  employee_id: string;
+  employee?: Employee;
+  start_date: Date | string;
+  end_date: Date | string;
+  description?: string;
+  document_url?: string;
+  status: HRRequestStatus;
+  reviewed_by?: string;
+  reviewed_at?: Date | string;
+  review_notes?: string;
+  rejection_comment?: string;
+  company_id?: string;
+  created_at?: Date | string;
+  updated_at?: Date | string;
+};
+
+/**
+ * Solicitud de tiempo compensatorio (usa tabla timeoffs)
+ */
+export type CompensatoryRequest = {
+  id: string;
+  type_id: string;
+  employee_id: string;
+  employee?: Employee;
+  date_from: Date | string;
+  date_to: Date | string;
+  notes?: string[];
+  is_approved: boolean;
+  review_status?: HRRequestStatus;
+  reviewed_by?: string;
+  reviewed_at?: Date | string;
+  compensatory_type?: 'hours' | 'days';
+  compensatory_amount?: number;
+  document_url?: string;
+  company_id?: string;
+  created_at?: Date | string;
+};
+
 export type Termination = {
   id: string;
   employee_id: string;
@@ -144,6 +213,20 @@ export type Schedule = {
   minutes_tolerance: number;
   min_lunch_minutes?: number;
   max_lunch_minutes?: number;
+  configuration?: ScheduleConfiguration;
+};
+
+export type ScheduleConfiguration = {
+  id: string;
+  schedule_id: string;
+  company_id?: string | null;
+  is_active: boolean;
+  allow_for_managers: boolean;
+  allow_for_submanagers: boolean;
+  allowed_position_ids: string[];
+  daily_usage_limit: number;
+  created_at?: Date | string;
+  updated_at?: Date | string;
 };
 
 export type Creditor = {
@@ -265,6 +348,16 @@ export type TimeLog = {
   created_at: Date;
 };
 
+/**
+ * Tipo de tiempo libre que puede afectar un horario
+ */
+export type TimeoffCategory = 'VACACIONES' | 'INCAPACIDAD';
+
+/**
+ * Estado calculado del horario según solicitudes HR
+ */
+export type ScheduleHRState = 'NORMAL' | 'TIMEOFF' | 'COMPENSATORY';
+
 export type EmployeeSchedule = {
   id: string;
   employee_id: string;
@@ -279,6 +372,38 @@ export type EmployeeSchedule = {
   updated_at?: Date;
   approved_at?: Date;
   company_id?: string;
+
+  // === Campos de Tracking HR ===
+
+  // Compensatorio: ajusta horarios de trabajo existentes
+  is_compensatory?: boolean;
+  compensatory_request_id?: string;
+
+  // Tiempo libre: representa ausencias (vacaciones/incapacidades)
+  is_timeoff?: boolean;
+  timeoff_type?: TimeoffCategory;
+
+  // Referencias a solicitudes específicas
+  vacation_request_id?: string;
+  disability_request_id?: string;
+
+  // Snapshot del horario original (antes de cambios HR)
+  original_schedule_id?: string;
+  original_schedule?: Schedule;
+
+  // Auditoría de cambios HR
+  hr_request_notes?: string;
+  modified_by?: string;
+  hr_modified_at?: Date;
+
+  // Estado calculado (usado por la vista)
+  schedule_state?: ScheduleHRState;
+
+  // Campos legacy (mantener por compatibilidad)
+  /** @deprecated Usar is_compensatory */
+  isCompensatory?: boolean;
+  /** @deprecated Usar compensatory_request_id */
+  compensatoryRequestId?: string;
 };
 
 export type VetBranchAssignment = {

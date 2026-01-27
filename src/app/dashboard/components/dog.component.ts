@@ -69,26 +69,30 @@ const ALL_STATES: DogState[] = [
     <!-- Container: z-index 30 to sit above standard header but below modals -->
     <div
       #dogContainer
-      class="dog-container absolute bottom-0 left-0 w-full h-1 pointer-events-none z-[30]"
+      class="dog-container absolute bottom-0 left-0 w-full h-1 pointer-events-none z-[30] overflow-visible"
     >
       <!-- Movable Wrapper -->
       <div
         #dogWrapper
-        class="absolute bottom-[-19px] cursor-pointer pointer-events-auto dog-wrapper"
+        class="absolute bottom-[-19px] cursor-pointer pointer-events-auto dog-wrapper overflow-visible"
         (click)="onDogClick()"
         [style.transform]="'translateX(' + currentPixelPosition() + 'px)'"
         [class.is-moving]="isWalkingOrRunning()"
         [style.--move-duration]="moveDuration() + 's'"
       >
-        <!-- Tooltip Bubble -->
+        <!-- Pixel Art Dialog Box (appears below the dog) -->
         @if (showTip()) {
         <div
-          class="absolute top-[50px] left-1/2 -translate-x-1/2 bg-white text-gray-800 text-xs px-3 py-2 rounded-lg shadow-lg whitespace-nowrap z-[20] opacity-0 animate-fade-in-up border border-gray-100"
+          class="pixel-dialog-container"
+          [style.left.px]="dialogLeftPosition()"
         >
-          {{ currentTip() }}
-          <div
-            class="absolute top-[-5px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-white rotate-45 border-l border-t border-gray-100"
-          ></div>
+          <!-- Pixel Arrow pointing up -->
+          <div class="pixel-arrow" [style.margin-left.px]="arrowOffset()"></div>
+          <div class="pixel-dialog">
+            <div class="pixel-dialog-inner">
+              <span class="pixel-text">{{ currentTip() }}</span>
+            </div>
+          </div>
         </div>
         }
 
@@ -121,14 +125,127 @@ const ALL_STATES: DogState[] = [
     </div>
   `,
   styles: `
-    @keyframes fade-in-up {
-      0% { opacity: 0; transform: translate(-50%, 10px); }
-      100% { opacity: 1; transform: translate(-50%, 0); }
+    /* ========== PIXEL ART DIALOG ========== */
+    
+    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+    .pixel-dialog-container {
+      position: fixed;
+      bottom: 60px;
+      z-index: 100;
+      animation: pixel-pop-in 0.15s steps(3) forwards;
     }
 
-    .animate-fade-in-up {
-      animation: fade-in-up 0.3s ease-out forwards;
+    .pixel-arrow {
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-bottom: 8px solid #e8e8e8;
+      image-rendering: pixelated;
+      position: relative;
     }
+
+    .pixel-arrow::after {
+      content: '';
+      position: absolute;
+      top: 4px;
+      left: -6px;
+      width: 0;
+      height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-bottom: 6px solid #1a1a2e;
+    }
+
+    .pixel-dialog {
+      /* Pixel-perfect border using box-shadow layers */
+      background: #1a1a2e;
+      padding: 3px;
+      image-rendering: pixelated;
+      box-shadow:
+        /* Outer white border */
+        -4px 0 0 0 #e8e8e8,
+        4px 0 0 0 #e8e8e8,
+        0 -4px 0 0 #e8e8e8,
+        0 4px 0 0 #e8e8e8,
+        /* Corner pixels */
+        -4px -4px 0 0 #1a1a2e,
+        4px -4px 0 0 #1a1a2e,
+        -4px 4px 0 0 #1a1a2e,
+        4px 4px 0 0 #1a1a2e,
+        /* Inner shadow for depth */
+        inset 0 0 0 2px #3a3a5e;
+    }
+
+    .pixel-dialog-inner {
+      background: linear-gradient(180deg, #2a2a4e 0%, #1a1a2e 100%);
+      padding: 10px 14px;
+      min-width: 180px;
+      max-width: 280px;
+    }
+
+    .pixel-text {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 8px;
+      line-height: 1.8;
+      color: #f0f0f0;
+      text-shadow: 1px 1px 0 #000;
+      display: block;
+      word-wrap: break-word;
+      white-space: normal;
+      animation: pixel-typing 0.5s steps(20) forwards;
+    }
+
+    /* Arrow pointing UP */
+    .pixel-arrow {
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-bottom: 8px solid #e8e8e8;
+      margin: 0 auto;
+      image-rendering: pixelated;
+      position: relative;
+    }
+
+    .pixel-arrow::after {
+      content: '';
+      position: absolute;
+      top: 4px;
+      left: -6px;
+      width: 0;
+      height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-bottom: 6px solid #1a1a2e;
+    }
+
+    @keyframes pixel-pop-in {
+      0% {
+        opacity: 0;
+        transform: translateX(-50%) scale(0.8);
+      }
+      50% {
+        opacity: 1;
+        transform: translateX(-50%) scale(1.05);
+      }
+      100% {
+        opacity: 1;
+        transform: translateX(-50%) scale(1);
+      }
+    }
+
+    @keyframes pixel-typing {
+      0% {
+        opacity: 0;
+      }
+      100% {
+        opacity: 1;
+      }
+    }
+
+    /* ========== ORIGINAL ANIMATIONS ========== */
 
     /* 
       1. Wrapper movement 
@@ -281,9 +398,44 @@ export class DogAnimationComponent implements OnInit, OnDestroy {
   // Computed
   public isWalkingOrRunning = computed(() => this.currentState() === 'walking');
 
+  // Dialog width constant
+  private readonly DIALOG_WIDTH = 220;
+  private readonly DIALOG_PADDING = 20;
+
+  // Calculate dialog left position to keep it on screen
+  public dialogLeftPosition = computed(() => {
+    const dogPos = this.currentPixelPosition() + 24; // Center of dog (48px / 2)
+    const screenWidth =
+      typeof window !== 'undefined' ? window.innerWidth : 1000;
+    const halfDialog = this.DIALOG_WIDTH / 2;
+
+    // Ideal position: centered on dog
+    let dialogLeft = dogPos - halfDialog;
+
+    // Clamp to keep dialog on screen
+    const minLeft = this.DIALOG_PADDING;
+    const maxLeft = screenWidth - this.DIALOG_WIDTH - this.DIALOG_PADDING;
+
+    dialogLeft = Math.max(minLeft, Math.min(maxLeft, dialogLeft));
+
+    return dialogLeft;
+  });
+
+  // Calculate arrow offset to point at dog
+  public arrowOffset = computed(() => {
+    const dogPos = this.currentPixelPosition() + 24; // Center of dog
+    const dialogLeft = this.dialogLeftPosition();
+
+    // Arrow should point to dog center relative to dialog
+    const arrowPos = dogPos - dialogLeft - 8; // 8px is half arrow width
+
+    // Clamp arrow within dialog bounds
+    return Math.max(12, Math.min(this.DIALOG_WIDTH - 28, arrowPos));
+  });
+
   public canShowTips = computed(() => {
     const employee = this.store.currentEmployee();
-    const allowed = ['Gerente', 'Desarrollador', 'Soporte IT'];
+    const allowed = ['Gerente de Tienda', 'Desarrollador', 'Soporte IT'];
     return employee?.position?.name
       ? allowed.includes(employee.position.name)
       : false;
@@ -509,7 +661,6 @@ export class DogAnimationComponent implements OnInit, OnDestroy {
 
     this.timeoutIds.forEach(clearTimeout);
     this.timeoutIds = [];
-    this.showTip.set(false);
 
     // Stop and Sit
     if (this.isWalkingOrRunning()) {
@@ -520,7 +671,8 @@ export class DogAnimationComponent implements OnInit, OnDestroy {
     const isSitting = current === 'sitting';
 
     if (isSitting) {
-      // Already sitting -> Bark briefly then resume walking
+      // Already sitting -> Hide tip, bark briefly then resume walking
+      this.showTip.set(false);
       this.currentState.set('barking');
 
       const id = setTimeout(() => {
@@ -530,9 +682,14 @@ export class DogAnimationComponent implements OnInit, OnDestroy {
       }, 1000);
       this.timeoutIds.push(id);
     } else {
-      // Not sitting -> Sit down and stay
+      // Not sitting -> Sit down and show tip
       this.currentState.set('sitting');
-      // No timeout - stays sitting until clicked again
+
+      // Show a random tip (always show for now to test)
+      const tip = this.tips[Math.floor(Math.random() * this.tips.length)];
+      this.currentTip.set(tip);
+      this.showTip.set(true);
+      // Stays sitting until clicked again
     }
   }
 
@@ -548,6 +705,12 @@ export class DogAnimationComponent implements OnInit, OnDestroy {
   private decideNextMove() {
     if (this.isDestroyed) return;
     const roll = Math.random();
+
+    // 10% chance to show a tip (only for allowed roles)
+    if (roll < 0.1 && this.canShowTips()) {
+      this.performSitAndTip();
+      return;
+    }
 
     // Simplified flow: Only walking, barking, and idle
     if (roll < 0.6) {

@@ -365,7 +365,7 @@ export class HomeComponent {
     // Usaremos ambas estrategias: primero intentar con company_id directo,
     // y si no hay resultados, usar el filtro a través de employees
     
-    let url = `${baseUrl}/rest/v1/employee_schedules?select=*,schedule:schedules(*),employee:employees!inner(id,company_id,is_active)`;
+    let url = `${baseUrl}/rest/v1/employee_schedules?select=*,schedule:schedules!employee_schedules_schedule_id_fkey(*),employee:employees!inner(id,company_id,is_active)`;
     url += `&start_date=lte.${monthEnd}&end_date=gte.${monthStart}`;
     
     // Filtrar solo empleados activos
@@ -424,7 +424,7 @@ export class HomeComponent {
                 console.warn('  - Company ID:', companyId);
                 // No mostrar URL completa en producción para evitar exponer información de la base de datos
               if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                console.warn('  - URL completa:', `${this.apiUrl.baseUrl}/rest/v1/employee_schedules?select=*,schedule:schedules(*)&start_date=lte.${format(endOfMonth(new Date()), 'yyyy-MM-dd')}&end_date=gte.${format(startOfMonth(new Date()), 'yyyy-MM-dd')}&company_id=eq.${companyId}`);
+                console.warn('  - URL completa:', `${this.apiUrl.baseUrl}/rest/v1/employee_schedules?select=*,schedule:schedules!employee_schedules_schedule_id_fkey(*)&start_date=lte.${format(endOfMonth(new Date()), 'yyyy-MM-dd')}&end_date=gte.${format(startOfMonth(new Date()), 'yyyy-MM-dd')}&company_id=eq.${companyId}`);
               }
                 console.warn('  - Posibles causas:');
                 console.warn('    1. No hay employee_schedules con este company_id');

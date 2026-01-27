@@ -811,7 +811,7 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
       addDays(this.payment.value()![0].end_date, 1),
       'yyyy-MM-dd'
     );
-    const select = `*,schedule:schedules(*)`;
+    const select = `*,schedule:schedules!employee_schedules_schedule_id_fkey(*)`;
     
     let url = `${baseUrl}?select=${encodeURIComponent(select)},employee:employees(id,company_id)`;
     url += `&start_date=gte.${startDate}`;

@@ -2280,7 +2280,7 @@ export class BranchManagerComponent {
     const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`;
     const startDate = format(start, 'yyyy-MM-dd');
     const endDate = format(end, 'yyyy-MM-dd');
-    const select = `*,schedule:schedules(*), branch:branches(id, name, short_name)`;
+    const select = `*,schedule:schedules!employee_schedules_schedule_id_fkey(*), branch:branches(id, name, short_name)`;
 
     let url = `${baseUrl}?select=${encodeURIComponent(
       select
@@ -2317,7 +2317,7 @@ export class BranchManagerComponent {
     // Usar ApiUrlService.build() como en timetables (no process.env directamente)
     const url = this.apiUrl.build('rest/v1/employee_schedules', {
       select:
-        '*,schedule:schedules(*),branch:branches(id, name, short_name),employee:employees(id,company_id)',
+        '*,schedule:schedules!employee_schedules_schedule_id_fkey(*),branch:branches(id, name, short_name),employee:employees(id,company_id)',
       start_date: `lte.${endDate}`,
       end_date: `gte.${startDate}`,
       ...(companyId ? { 'employee.company_id': `eq.${companyId}` } : {}),

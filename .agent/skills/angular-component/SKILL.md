@@ -150,3 +150,23 @@ this.items().push(newItem);
 // ✅ SI: Usar update
 this.items.update((current) => [...current, newItem]);
 ```
+
+## Type Narrowing en Templates (Union Types)
+
+Cuando uses tipos de unión (Union Types) con Signals, **siempre** usa variables de template (`as variable`) para permitir el refinamiento de tipos (type narrowing). Evita llamar al signal directamente dentro de bloques condicionales si necesitas acceder a propiedades específicas del tipo refinado.
+
+```typescript
+// ❌ NO: Llamar al signal directamente (el narrowing puede fallar en otras partes del bloque)
+@if (isTypeA(mySignal())) {
+  {{ mySignal().propertyA }} // ERROR: propertyA no existe en TypeB
+}
+
+// ✅ SI: Usar variable de template con "as"
+@if (mySignal(); as value) {
+  @if (isTypeA(value)) {
+    {{ value.propertyA }} // TypeScript refina "value" correctamente
+  } @else {
+    {{ value.propertyB }} // Refinado a TypeB
+  }
+}
+```

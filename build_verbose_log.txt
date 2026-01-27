@@ -13,7 +13,7 @@
 [32mÔ£ö[0m [33mConsole Ninja[0m extension is connected to [33mAngular[0m, see [36mhttps://tinyurl.com/2vt8jxzw[0m
 [32mÔ£ö[0m [33mConsole Ninja[0m extension is connected to [33mAngular[0m, see [36mhttps://tinyurl.com/2vt8jxzw[0m
 [32mÔ£ö[39m Building...
-[37mApplication bundle generation failed. [59.649 seconds] - 2026-01-27T17:15:38.903Z[39m
+[37mApplication bundle generation failed. [60.277 seconds] - 2026-01-27T17:18:00.354Z[39m
 [37m[39m
 
 

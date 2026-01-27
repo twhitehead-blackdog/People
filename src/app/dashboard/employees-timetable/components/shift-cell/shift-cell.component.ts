@@ -4,6 +4,10 @@ import { Button } from 'primeng/button';
 import { Popover } from 'primeng/popover';
 import { Tooltip } from 'primeng/tooltip';
 import { colorVariants, EmployeeSchedule } from '../../../../models';
+import {
+  EmployeeRequest,
+  GridItem,
+} from '../../../models/employee-requests.model';
 
 @Component({
   selector: 'pt-shift-cell',
@@ -11,118 +15,147 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
   imports: [NgClass, Button, Popover, Tooltip],
   template: `
     @if (shift(); as shiftValue) {
-    <div
-      class="inline-flex gap-1 py-0.5 px-1.5 rounded-sm font-medium items-center justify-center text-[11px] transition-all duration-200 border shadow-sm"
-      [class]="getColorClass(shiftValue?.schedule?.color)"
-      [ngClass]="{
-        'opacity-60 hover:opacity-100': !shiftValue?.approved && !isStoreManager(),
-        'ring-1 ring-amber-400/70 shadow-md': shiftValue?.approved && !selectionMode() && !isStoreManager(),
-        'cursor-pointer hover:scale-105 hover:shadow-md': !selectionMode() && !(isStoreManager() && shiftValue?.approved),
-        'cursor-default': isStoreManager() && shiftValue?.approved && !selectionMode(),
-        'ring-2 ring-cyan-400 shadow-lg shadow-cyan-400/30 scale-105': isSelected(),
-        'cursor-pointer hover:ring-2 hover:ring-cyan-400/50': selectionMode() && !shiftValue?.approved,
-        'cursor-not-allowed opacity-50': selectionMode() && shiftValue?.approved
-      }"
-      [class.border-black/20]="!isSelected()"
-      [class.border-cyan-400]="isSelected()"
-      [pTooltip]="tooltipContent"
-      tooltipPosition="top"
-      (click)="handleClick($event)"
-    >
-      @if (selectionMode() && !shiftValue?.approved) {
-      <i
-        class="pi text-[10px] flex-shrink-0"
+    <!-- CHECK FOR REQUEST -->
+    @if (isRequest(shiftValue)) {
+      <div
+        class="inline-flex gap-1 py-0.5 px-1.5 rounded-sm font-medium items-center justify-center text-[11px] transition-all duration-200 border shadow-sm cursor-help opacity-90 hover:opacity-100"
+        [class]="getColorClass(shiftValue)"
+        [pTooltip]="shiftValue.tooltip"
+        tooltipPosition="top"
+      >
+        <span class="truncate max-w-[65px] font-semibold leading-tight">
+          {{ shiftValue.type }}
+        </span>
+      </div>
+    } @else {
+      <!-- EXISTING SCHEDULE LOGIC -->
+      <div
+        class="inline-flex gap-1 py-0.5 px-1.5 rounded-sm font-medium items-center justify-center text-[11px] transition-all duration-200 border shadow-sm"
+        [class]="getColorClass(shiftValue)"
         [ngClass]="{
-            'pi-check-square text-cyan-400': isSelected(),
-            'pi-square text-gray-400': !isSelected()
-          }"
-      ></i>
-      }
-      <span class="truncate max-w-[65px] font-semibold leading-tight">
-        {{ shiftValue?.schedule?.name }}
-      </span>
-      @if (!selectionMode()) {
-        @if (shiftValue?.approved) {
+          'opacity-60 hover:opacity-100': !shiftValue?.approved && !isStoreManager(),
+          'ring-1 ring-amber-400/70 shadow-md': shiftValue?.approved && !selectionMode() && !isStoreManager(),
+          'cursor-pointer hover:scale-105 hover:shadow-md': !selectionMode() && !(isStoreManager() && shiftValue?.approved),
+          'cursor-default': isStoreManager() && shiftValue?.approved && !selectionMode(),
+          'ring-2 ring-cyan-400 shadow-lg shadow-cyan-400/30 scale-105': isSelected(),
+          'cursor-pointer hover:ring-2 hover:ring-cyan-400/50': selectionMode() && !shiftValue?.approved,
+          'cursor-not-allowed opacity-50': selectionMode() && shiftValue?.approved
+        }"
+        [class.border-black/20]="!isSelected()"
+        [class.border-cyan-400]="isSelected()"
+        [pTooltip]="tooltipContent"
+        tooltipPosition="top"
+        (click)="handleClick($event)"
+      >
+        @if (selectionMode() && !shiftValue?.approved) {
         <i
-          class="pi pi-check-circle text-green-400 text-[9px] ml-0.5 flex-shrink-0"
-        ></i>
-        } @else if (!isStoreManager()) {
-        <i
-          class="pi pi-exclamation-circle text-yellow-200 text-[9px] ml-0.5 animate-pulse flex-shrink-0 drop-shadow-[0_0_4px_rgba(251,191,36,0.8)]"
+          class="pi text-[10px] flex-shrink-0"
+          [ngClass]="{
+              'pi-check-square text-cyan-400': isSelected(),
+              'pi-square text-gray-400': !isSelected()
+            }"
         ></i>
         }
-      }
-    </div>
-    <ng-template #tooltipContent>
-      <div class="flex flex-col gap-1">
-        <div>
-          Horario:
-          <span class="font-bold">{{ shiftValue?.schedule?.name }}</span>
-        </div>
-        @if (!shiftValue?.schedule?.day_off) {
-        <div>
-          Sucursal:
-          <span class="font-bold">{{ shiftValue?.branch?.name }}</span>
-        </div>
-        } @if (selectionMode()) { @if (shiftValue?.approved) {
-        <span class="text-gray-400 italic">Ya aprobado - no seleccionable</span>
-        } @else { @if (isSelected()) {
-        <span class="text-cyan-400 font-bold"
-          >✓ Seleccionado - click para deseleccionar</span
-        >
-        } @else {
-        <span class="italic">Click para seleccionar</span>
-        } } } @else {
+        <span class="truncate max-w-[65px] font-semibold leading-tight">
+          {{ shiftValue?.schedule?.name }}
+        </span>
+        @if (!selectionMode()) {
           @if (shiftValue?.approved) {
-          <span class="font-bold">Aprobado por RRHH</span>
+          <i
+            class="pi pi-check-circle text-green-400 text-[9px] ml-0.5 flex-shrink-0"
+          ></i>
           } @else if (!isStoreManager()) {
-          <span class="italic">Pendiente por aprobacion</span>
+          <i
+            class="pi pi-exclamation-circle text-yellow-200 text-[9px] ml-0.5 animate-pulse flex-shrink-0 drop-shadow-[0_0_4px_rgba(251,191,36,0.8)]"
+          ></i>
           }
         }
-      </div>
-    </ng-template>
-    <p-popover #options>
-      <div class="relative">
-        <!-- Icono de auditoría en esquina superior derecha (oculto para gerentes de tienda) -->
-        @if (!isStoreManager()) {
-        <i
-          class="pi pi-history absolute top-0 right-0 text-xs text-gray-400 hover:text-cyan-400 cursor-pointer transition-colors z-10"
-          pTooltip="Ver historial de auditoría de este día"
-          tooltipPosition="left"
-          (click)="onViewAudit(); options.hide()"
-        ></i>
+        @if (!isRequest(shiftValue) && shiftValue?.isCompensatory) {
+          <i
+            class="pi pi-clock text-green-400 text-[10px] ml-1 flex-shrink-0"
+            pTooltip="Ajuste compensatorio aplicado"
+          ></i>
         }
-        <span class="font-medium block mb-2 pr-6">Opciones</span>
-        <ul class="list-non flex flex-col">
-          @if (canManageSchedules()) {
-          @if (!isStoreManager() || !shift()?.approved) {
-          <li
-            class="flex items-center gap-2 p-2 hover:bg-emphasis cursor-pointer rounded-md"
-            (click)="onEdit(); options.hide()"
-          >
-            <i class="pi pi-pencil text-primary-600"></i>
-            Editar
-          </li>
-          <li
-            class="flex items-center gap-2 p-2 hover:bg-emphasis cursor-pointer rounded-md"
-            (click)="onDelete(); options.hide()"
-          >
-            <i class="pi pi-trash text-red-700"></i>
-            Eliminar
-          </li>
-          }
-          } @if (canApprove()) {
-          <li
-            class="flex items-center gap-2 p-2 hover:bg-emphasis cursor-pointer rounded-md"
-            (click)="onApprove(); options.hide()"
-          >
-            <i class="pi pi-check-circle text-green-700"></i>
-            Aprobar
-          </li>
-          }
-        </ul>
       </div>
-    </p-popover>
+      <ng-template #tooltipContent>
+        <div class="flex flex-col gap-1">
+          <div>
+            Horario:
+            <span class="font-bold">{{ shiftValue?.schedule?.name }}</span>
+          </div>
+          @if (!shiftValue?.schedule?.day_off) {
+          <div>
+            Sucursal:
+            <span class="font-bold">{{ shiftValue?.branch?.name }}</span>
+          </div>
+          } @if (selectionMode()) { @if (shiftValue?.approved) {
+          <span class="text-gray-400 italic">Ya aprobado - no seleccionable</span>
+          } @else { @if (isSelected()) {
+          <span class="text-cyan-400 font-bold"
+            >✓ Seleccionado - click para deseleccionar</span
+          >
+          } @else {
+          <span class="italic">Click para seleccionar</span>
+          } } } @else {
+            @if (shiftValue?.approved) {
+            <span class="font-bold">Aprobado por RRHH</span>
+            } @else if (!isStoreManager()) {
+            <span class="italic">Pendiente por aprobacion</span>
+            }
+          }
+          @if (!isRequest(shiftValue) && shiftValue?.isCompensatory) {
+            <div class="mt-1 pt-1 border-t border-gray-600 text-green-300 text-xs">
+              <i class="pi pi-info-circle mr-1"></i>
+              Ajuste compensatorio activo
+            </div>
+          }
+        </div>
+      </ng-template>
+      <p-popover #options>
+        <div class="relative">
+          @if (!isStoreManager()) {
+          <i
+            class="pi pi-history absolute top-0 right-0 text-xs text-gray-400 hover:text-cyan-400 cursor-pointer transition-colors z-10"
+            pTooltip="Ver historial de auditoría de este día"
+            tooltipPosition="left"
+            (click)="onViewAudit(); options.hide()"
+          ></i>
+          }
+          <span class="font-medium block mb-2 pr-6">Opciones</span>
+          <ul class="list-non flex flex-col">
+            @if (canManageSchedules()) {
+            @if (!isStoreManager() || !shiftValue.approved) {
+            <li
+              class="flex items-center gap-2 p-2 hover:bg-emphasis cursor-pointer rounded-md"
+              (click)="onEdit(); options.hide()"
+            >
+              <i class="pi pi-pencil text-primary-600"></i>
+              Editar
+            </li>
+            <li
+              class="flex items-center gap-2 p-2 hover:bg-emphasis cursor-pointer rounded-md"
+              (click)="onDelete(); options.hide()"
+            >
+              <i class="pi pi-trash text-red-700"></i>
+              Eliminar
+            </li>
+            }
+            }
+            @if (canApprove()) {
+              @if (!shiftValue.isCompensatory) {
+              <li
+                class="flex items-center gap-2 p-2 hover:bg-emphasis cursor-pointer rounded-md"
+                (click)="onApprove(); options.hide()"
+              >
+                <i class="pi pi-check-circle text-green-700"></i>
+                Aprobar
+              </li>
+              }
+            }
+          </ul>
+        </div>
+      </p-popover>
+    } <!-- END ELSE -->
     } @else { @if (canManageSchedules()) {
     <p-button
       icon="pi pi-plus"
@@ -137,7 +170,7 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
 })
 export class ShiftCellComponent {
   // Inputs
-  public shift = input<EmployeeSchedule | null | undefined>();
+  public shift = input<GridItem | null | undefined>();
   public date = input.required<Date>();
   public employeeId = input.required<string>();
   public canManageSchedules = input.required<boolean>();
@@ -159,13 +192,32 @@ export class ShiftCellComponent {
 
   @ViewChild('options') optionsPopover!: Popover;
 
-  public getColorClass(color: string | undefined): string {
-    if (!color) return 'bg-neutral-700 text-gray-300';
-    return this.colorVariants[color] || 'bg-neutral-700 text-gray-300';
+  public isRequest(item: GridItem | null | undefined): item is EmployeeRequest {
+    return !!item && 'is_request' in item && item.is_request === true;
+  }
+
+  public getColorClass(item: GridItem | null | undefined): string {
+    if (!item) return 'bg-neutral-700 text-gray-300';
+
+    if (this.isRequest(item)) {
+      return (
+        this.colorVariants[item.color || ''] || 'bg-neutral-700 text-gray-300'
+      );
+    }
+
+    const schedule = (item as EmployeeSchedule).schedule;
+    return (
+      this.colorVariants[schedule?.color || ''] ||
+      'bg-neutral-700 text-gray-300'
+    );
   }
 
   public handleClick(event: Event): void {
     const shiftValue = this.shift();
+
+    if (this.isRequest(shiftValue)) {
+      return; // Requests don't have actions
+    }
 
     // If in selection mode
     if (this.selectionMode()) {
@@ -194,21 +246,29 @@ export class ShiftCellComponent {
 
   public onEdit(): void {
     const shiftValue = this.shift();
-    if (shiftValue) {
+    if (
+      shiftValue &&
+      !this.isRequest(shiftValue) &&
+      !shiftValue.isCompensatory
+    ) {
       this.edit.emit({ shift: shiftValue, date: this.date() });
     }
   }
 
   public onDelete(): void {
     const shiftValue = this.shift();
-    if (shiftValue) {
+    if (
+      shiftValue &&
+      !this.isRequest(shiftValue) &&
+      !shiftValue.isCompensatory
+    ) {
       this.delete.emit({ shift: shiftValue, date: this.date() });
     }
   }
 
   public onApprove(): void {
     const shiftValue = this.shift();
-    if (shiftValue?.id) {
+    if (shiftValue?.id && !this.isRequest(shiftValue)) {
       this.approve.emit(shiftValue.id);
     }
   }

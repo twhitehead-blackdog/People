@@ -127,7 +127,7 @@ export class EmployeeSchedulesComponent {
     const employeeId = this.employeeId();
 
     // Construir URL manualmente para poder usar filtro a través de employees
-    let url = `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules?select=*,schedule:schedules(*),branch:branches(*),employee:employees!inner(id,company_id,is_active)`;
+    let url = `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules?select=*,schedule:schedules!employee_schedules_schedule_id_fkey(*),branch:branches(*),employee:employees!inner(id,company_id,is_active)`;
     url += `&employee_id=eq.${employeeId}`;
 
     // Filtrar solo empleados activos

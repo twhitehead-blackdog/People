@@ -1697,7 +1697,7 @@ export class TimeclockComponent implements OnDestroy {
     const today = format(new Date(), 'yyyy-MM-dd');
     const companyId = this.organizationService.getCurrentCompanyId();
     const params: any = {
-      select: '*,schedule:schedules(*)',
+      select: '*,schedule:schedules!employee_schedules_schedule_id_fkey(*)',
       employee_id: `eq.${employeeId}`,
       start_date: `lte.${today}`,
       end_date: `gte.${today}`,
@@ -2454,7 +2454,7 @@ export class TimeclockComponent implements OnDestroy {
       // Obtener schedules del empleado
       const schedulesUrl = this.apiUrl.build('rest/v1/employee_schedules', {
         employee_id: `eq.${employeeId}`,
-        select: '*,schedule:schedules(*)',
+        select: '*,schedule:schedules!employee_schedules_schedule_id_fkey(*)',
         order: 'start_date.desc',
         limit: '100',
       });

@@ -10,6 +10,7 @@ import { Card } from 'primeng/card';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { MessageService } from 'primeng/api';
 import { TableModule } from 'primeng/table';
+import { Tooltip } from 'primeng/tooltip';
 import {
   colorVariants,
   getScheduleColorInlineStyle as getColorStyle,
@@ -19,10 +20,11 @@ import { TimePipe } from '../pipes/time.pipe';
 import { SchedulesStore } from '../stores/schedules.store';
 import { DashboardStore } from '../stores/dashboard.store';
 import { SchedulesFormComponent } from './schedules-form.component';
+import { ScheduleConfigurationDialogComponent } from './schedule-configuration-dialog.component';
 
 @Component({
   selector: 'pt-schedules',
-  imports: [Card, TableModule, Button, TimePipe, NgClass, NgStyle],
+  imports: [Card, TableModule, Button, TimePipe, NgClass, NgStyle, Tooltip],
   providers: [DynamicDialogRef, DialogService],
   template: `<p-card>
     <ng-template #title>
@@ -105,6 +107,17 @@ import { SchedulesFormComponent } from './schedules-form.component';
           </td>
           <td>
             <div class="flex gap-2 items-center">
+              @if(dashboardStore.isAdmin()) {
+              <p-button
+                severity="info"
+                icon="pi pi-cog"
+                text
+                rounded
+                pTooltip="Configurar reglas"
+                tooltipPosition="top"
+                (onClick)="openConfiguration(schedule)"
+              />
+              }
               <p-button
                 severity="success"
                 icon="pi pi-pen-to-square"
@@ -150,10 +163,31 @@ export class SchedulesComponent {
       });
       return;
     }
-    
+
     this.ref = this.dialogService.open(SchedulesFormComponent, {
       header: 'Editar horario',
       modal: true,
+      data: {
+        schedule,
+      },
+    });
+  }
+
+  openConfiguration(schedule: Schedule) {
+    // Verificar permisos antes de abrir el modal de configuración
+    if (!this.dashboardStore.isAdmin()) {
+      this.message.add({
+        severity: 'warn',
+        summary: 'Sin permisos',
+        detail: 'Solo los administradores pueden configurar reglas de horarios.',
+      });
+      return;
+    }
+
+    this.ref = this.dialogService.open(ScheduleConfigurationDialogComponent, {
+      header: `Configurar: ${schedule.name}`,
+      modal: true,
+      width: '500px',
       data: {
         schedule,
       },

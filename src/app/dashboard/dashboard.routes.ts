@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { employeePortalGuard } from '../guards/employee-portal.guard';
+import { modulePermissionGuard } from '../guards/module-permission.guard';
 import { permissionGuard } from '../guards/permission.guard';
 
 export const DASHBOARD_ROUTES: Routes = [
@@ -106,7 +107,11 @@ export const DASHBOARD_ROUTES: Routes = [
               import('./pt-permissions/permissions-management.component').then(
                 (x) => x.PermissionsManagementComponent
               ),
-            canActivate: [permissionGuard('admin')],
+            // Usar ambos guards: legacy + nuevo
+            canActivate: [
+              permissionGuard('admin'),
+              modulePermissionGuard('admin.permissions'),
+            ],
           },
           {
             path: 'complaints-inbox',

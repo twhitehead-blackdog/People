@@ -26,14 +26,16 @@ import {
 } from 'date-fns';
 import { toDate } from 'date-fns-tz';
 import { es } from 'date-fns/locale';
-import { MessageService } from 'primeng/api';
+import { ConfirmationService, MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
+import { ConfirmDialog } from 'primeng/confirmdialog';
 import { DatePicker } from 'primeng/datepicker';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { SelectModule } from 'primeng/select';
 import { ToggleSwitch } from 'primeng/toggleswitch';
-import { forkJoin, iif } from 'rxjs';
+import { firstValueFrom, forkJoin, iif } from 'rxjs';
 import { v4 } from 'uuid';
+import { EmployeeSchedule } from '../models';
 import {
   colorVariants,
   getScheduleColorInlineStyle as getColorStyle,
@@ -43,7 +45,9 @@ import { ApiUrlService } from '../services/api-url.service';
 import { LoggerService } from '../services/logger.service';
 import { OrganizationService } from '../services/organization.service';
 import { ScheduleAuditService } from '../services/schedule-audit.service';
+import { ScheduleValidationService } from '../services/schedule-validation.service';
 import { DashboardStore } from '../stores/dashboard.store';
+import { ScheduleConfigurationsStore } from '../stores/schedule-configurations.store';
 
 @Component({
   selector: 'pt-employee-schedules-form',
@@ -57,7 +61,9 @@ import { DashboardStore } from '../stores/dashboard.store';
     NgClass,
     NgStyle,
     ToggleSwitch,
+    ConfirmDialog,
   ],
+  providers: [ConfirmationService],
   template: `<form [formGroup]="form" (ngSubmit)="saveChanges()">
     <div class="flex flex-col  md:grid grid-cols-2 gap-4">
       <div class="input-container">
@@ -182,7 +188,8 @@ import { DashboardStore } from '../stores/dashboard.store';
         [loading]="loading()"
       />
     </div>
-  </form>`,
+  </form>
+  <p-confirmDialog />`,
   styles: ``,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -225,8 +232,13 @@ export class EmployeeSchedulesFormComponent implements OnInit {
   private destroyRef = inject(DestroyRef);
   private logger = inject(LoggerService);
   private auditService = inject(ScheduleAuditService);
+  private scheduleValidation = inject(ScheduleValidationService);
+  private configStore = inject(ScheduleConfigurationsStore);
+  private confirmationService = inject(ConfirmationService);
   private originalSchedule: any = null;
   private singleDayEdit = false;
+  private shouldClearHRTracking = false;
+
   private weekStart: Date | null = null;
   private weekEnd: Date | null = null;
   private employeeHasSchedulesInWeek = false;
@@ -240,19 +252,6 @@ export class EmployeeSchedulesFormComponent implements OnInit {
   private readonly COMPENSATORY_SCHEDULE_ID =
     'f2d92995-96a0-414f-b64a-9823db776745';
 
-  // Turnos permitidos para gerentes de tienda (schedule_admin pero no admin)
-  private readonly ALLOWED_STORE_MANAGER_SHIFTS = [
-    '7AM-4PM ',
-    '8AM-5PM', // Peluquero, ayudante de peluqueria o doctor, chofer
-    '9AM - 6PM', // Peluqueria, doctor, chofer, ayudante de peluqueria
-    '12:00 PM - 9:00 PM', // 12:00pm - 9:00pm
-    'Lactancia 1',
-    '10:00am-7:00pm', //10:00am - 7:00pm (Solo domingos)
-    'Dia Libre',
-
-    //Gerente y subgerente no pueden estar en el mismo horario
-  ];
-
   /**
    * Determina si el usuario actual es gerente de tienda
    * (schedule_admin pero NO admin)
@@ -264,33 +263,46 @@ export class EmployeeSchedulesFormComponent implements OnInit {
   // Filtrar turnos disponibles según permisos
   public availableSchedules = computed(() => {
     const allSchedules = this.store.schedules.entities() ?? [];
+    const selectedEmployeeId = this.form.get('employee_id')?.value;
+    const selectedDate = this.form.get('start_date')?.value || null;
 
-    // Administradores ven todos los turnos
-    if (this.store.isAdmin()) return allSchedules;
-
-    // Gerentes de tienda (schedule_admin pero no admin) solo ven turnos específicos
-    const isStoreManager =
-      this.store.isScheduleAdmin() && !this.store.isAdmin();
-    if (isStoreManager) {
-      return allSchedules.filter((schedule: any) => {
-        const scheduleName = String(schedule?.name ?? '').toUpperCase();
-        return this.ALLOWED_STORE_MANAGER_SHIFTS.some(
-          (allowed) => scheduleName === allowed.toUpperCase()
+    // Si no hay empleado seleccionado, mostrar todos (o filtrar solo para admin/gerente básico)
+    if (!selectedEmployeeId) {
+      // Fallback logic minimal or return all if admin
+      if (this.store.isAdmin()) return allSchedules;
+      // Si es Store Manager, mostrar solo los permitidos genéricos
+      if (this.isStoreManager()) {
+        // Usar una lista base de permitidos si no hay empleado seleccionado aún,
+        // o esperar a que seleccione.
+        // Para UX, mejor retornamos los schedules genéricos validos para la mayoría.
+        // O mejor, retornamos todos los que NO son compensatorios ni especiales.
+        return allSchedules.filter(
+          (s) =>
+            !s.name.toUpperCase().includes('COMPENSATORIO') &&
+            !s.name.toUpperCase().includes('10:30AM')
         );
-      });
+      }
+      return allSchedules;
     }
 
-    // Otros usuarios: ocultar Compensatorio
-    return allSchedules.filter((schedule: any) => {
-      const scheduleName = String(schedule?.name ?? '').toLowerCase();
-      return (
-        schedule?.id !== this.COMPENSATORY_SCHEDULE_ID &&
-        !scheduleName.includes('compensatorio')
-      );
-    });
+    const employee = this.store.employees
+      .entities()
+      .find((e) => e.id === selectedEmployeeId);
+
+    return this.scheduleValidation.getAvailableSchedulesForEmployee(
+      allSchedules,
+      employee,
+      selectedDate,
+      this.store.isAdmin()
+    );
   });
 
   ngOnInit(): void {
+    // Ensure schedule configurations are loaded
+    this.configStore.fetchItems();
+    // Also preload configurations into the validation service cache
+    this.scheduleValidation.loadConfigurations();
+
     const {
       employee_schedule,
       employee_id,
@@ -300,9 +312,30 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       weekEnd,
       employeeHasSchedulesInWeek,
     } = this.dialog.data;
+
+    // DEBUG: Log detallado de datos recibidos
     console.log(
-      '[EmployeeSchedulesFormComponent] ngOnInit data:',
-      this.dialog.data
+      '[EmployeeSchedulesFormComponent] ngOnInit - datos recibidos:',
+      {
+        employee_schedule: employee_schedule
+          ? {
+              id: employee_schedule.id,
+              employee_id: employee_schedule.employee_id,
+              schedule_id: employee_schedule.schedule_id,
+              branch_id: employee_schedule.branch_id,
+              start_date: employee_schedule.start_date,
+              end_date: employee_schedule.end_date,
+              approved: employee_schedule.approved,
+              schedule_name: employee_schedule.schedule?.name,
+            }
+          : null,
+        employee_id,
+        date,
+        branch,
+        weekStart,
+        weekEnd,
+        employeeHasSchedulesInWeek,
+      }
     );
 
     this.logger.debug(
@@ -398,8 +431,9 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     }
     if (employee_schedule) {
       console.log(
-        '[EmployeeSchedulesFormComponent] Found employee_schedule, starting patch...'
+        '[EmployeeSchedulesFormComponent] Modo EDICION - cargando datos del horario existente'
       );
+
       const {
         id,
         employee_id: scheduleEmployeeId,
@@ -409,6 +443,16 @@ export class EmployeeSchedulesFormComponent implements OnInit {
         branch_id,
         approved,
       } = employee_schedule;
+
+      console.log('[EmployeeSchedulesFormComponent] Valores extraídos:', {
+        id,
+        scheduleEmployeeId,
+        schedule_id,
+        start_date,
+        end_date,
+        branch_id,
+        approved,
+      });
 
       // Guardar el turno original para comparación
       this.originalSchedule = employee_schedule;
@@ -435,15 +479,34 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       const startDateObj = toDate(start_date, { timeZone: 'America/Panama' });
       const endDateObj = toDate(end_date, { timeZone: 'America/Panama' });
 
+      console.log('[EmployeeSchedulesFormComponent] Fechas procesadas:', {
+        startDateObj,
+        endDateObj,
+        finalBranchId,
+      });
+
       // Detectar si se está editando un solo día dentro de un rango existente
       if (date) {
         const dateObj = toDate(date, { timeZone: 'America/Panama' });
         const isSingleDay = isSameDay(startDateObj, endDateObj);
         const dateIsInRange = dateObj >= startDateObj && dateObj <= endDateObj;
 
+        console.log(
+          '[EmployeeSchedulesFormComponent] Análisis de edición con fecha:',
+          {
+            dateObj,
+            isSingleDay,
+            dateIsInRange,
+            isSameDayAsStart: isSameDay(startDateObj, dateObj),
+          }
+        );
+
         // Si el turno original es de un solo día y se está editando ese mismo día,
         // simplemente actualizar (no dividir)
         if (isSingleDay && isSameDay(startDateObj, dateObj)) {
+          console.log(
+            '[EmployeeSchedulesFormComponent] Caso: Edición normal de turno de un solo día'
+          );
           // Comportamiento normal: cargar y actualizar el turno existente
           this.form.patchValue({
             id,
@@ -457,6 +520,9 @@ export class EmployeeSchedulesFormComponent implements OnInit {
         }
         // Si el turno original cubre múltiples días y se seleccionó un día específico
         else if (!isSingleDay && dateIsInRange) {
+          console.log(
+            '[EmployeeSchedulesFormComponent] Caso: División de turno multi-día'
+          );
           this.singleDayEdit = true;
           // Establecer solo el día seleccionado
           this.form.get('start_date')?.patchValue(dateObj);
@@ -472,6 +538,9 @@ export class EmployeeSchedulesFormComponent implements OnInit {
             approved,
           });
         } else {
+          console.log(
+            '[EmployeeSchedulesFormComponent] Caso: Edición normal con fecha fuera de rango'
+          );
           // Comportamiento normal: cargar todo el rango
           this.form.patchValue({
             id,
@@ -484,6 +553,9 @@ export class EmployeeSchedulesFormComponent implements OnInit {
           this.form.get('end_date')?.patchValue(endDateObj);
         }
       } else {
+        console.log(
+          '[EmployeeSchedulesFormComponent] Caso: Edición normal sin fecha específica'
+        );
         // Comportamiento normal: cargar todo el rango
         this.form.patchValue({
           id,
@@ -494,15 +566,23 @@ export class EmployeeSchedulesFormComponent implements OnInit {
         });
         this.form.get('start_date')?.patchValue(startDateObj);
         this.form.get('end_date')?.patchValue(endDateObj);
-        this.logger.debug(
-          '[EmployeeSchedulesFormComponent] patchValue done (normal edit)'
-        );
       }
+
+      // DEBUG: Verificar que el formulario se haya llenado correctamente
+      console.log(
+        '[EmployeeSchedulesFormComponent] Valores del formulario después de patchValue:',
+        {
+          formValue: this.form.getRawValue(),
+          formValid: this.form.valid,
+          formStatus: this.form.status,
+        }
+      );
     }
   }
 
-  saveChanges(): void {
+  async saveChanges(): Promise<void> {
     this.loading.set(true);
+    this.shouldClearHRTracking = false; // Reset flag
 
     // Verificar permisos antes de guardar
     if (!this.store.canManageSchedules()) {
@@ -573,6 +653,43 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       }
     }
 
+    // Validar límite diario de uso del horario (si está configurado)
+    if (value.schedule_id && value.start_date) {
+      try {
+        // Get the ID to exclude (if updating an existing schedule)
+        const excludeId = this.originalSchedule?.id || undefined;
+
+        const dailyLimitValidation =
+          await this.scheduleValidation.validateDailyUsageLimit(
+            value.schedule_id,
+            value.start_date,
+            excludeId
+          );
+
+        if (!dailyLimitValidation.valid) {
+          this.message.add({
+            severity: 'error',
+            summary: 'Límite diario alcanzado',
+            detail: dailyLimitValidation.message,
+            life: 6000,
+          });
+          this.loading.set(false);
+          return;
+        }
+      } catch (error) {
+        console.error('Error validating daily limit:', error);
+        // Continue if validation fails
+      }
+    }
+
+    // Verificar si el horario existente tiene tracking HR (vacaciones, incapacidad, compensatorio)
+    const hrTrackingCheck = await this.checkHRTrackingAndConfirm();
+    if (!hrTrackingCheck.canProceed) {
+      this.loading.set(false);
+      return;
+    }
+    this.shouldClearHRTracking = hrTrackingCheck.shouldClear;
+
     const companyId = this.organizationService.getCurrentCompanyId();
 
     // Verificar si el usuario estableció fechas específicas diferentes a la semana completa
@@ -630,6 +747,43 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       return;
     }
 
+    // VALIDACIÓN DE CONFLICTO GERENTE/SUBGERENTE
+    const employee = this.store.employees
+      .entities()
+      .find((e) => e.id === value.employee_id);
+    if (employee && value.schedule_id && value.start_date && value.end_date) {
+      try {
+        // Validar asincrónicamente
+        const conflict = await this.validateManagerConflictsAsync(
+          employee,
+          value.schedule_id,
+          value.branch_id || employee.branch_id,
+          new Date(value.start_date),
+          new Date(value.end_date)
+        );
+
+        if (!conflict.valid) {
+          this.message.add({
+            severity: 'error',
+            summary: 'Conflicto de horarios',
+            detail: conflict.message,
+            life: 5000,
+          });
+          this.loading.set(false);
+          return;
+        }
+      } catch (e) {
+        console.error('Error validating conflicts', e);
+        this.message.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'No se pudo validar reglas de negocio.',
+        });
+        this.loading.set(false);
+        return;
+      }
+    }
+
     // Comportamiento normal: crear o actualizar
     // IMPORTANTE: Formatear fechas a strings antes de enviar
     const requestData: any = {
@@ -670,6 +824,20 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     // Asegurar que schedule_id esté incluido si existe en el formulario
     if (value.schedule_id && !updateData.schedule_id) {
       updateData.schedule_id = value.schedule_id;
+    }
+
+    // Si se debe limpiar tracking HR (confirmado por RRHH), agregar campos null
+    if (this.shouldClearHRTracking) {
+      updateData.is_timeoff = false;
+      updateData.is_compensatory = false;
+      updateData.timeoff_type = null;
+      updateData.vacation_request_id = null;
+      updateData.disability_request_id = null;
+      updateData.compensatory_request_id = null;
+      updateData.original_schedule_id = null;
+      updateData.hr_request_notes = null;
+      updateData.hr_modified_at = null;
+      updateData.modified_by = null;
     }
 
     const updateRequest = this.http.patch(
@@ -1427,5 +1595,155 @@ export class EmployeeSchedulesFormComponent implements OnInit {
           });
         },
       });
+  }
+
+  private async validateManagerConflictsAsync(
+    employee: any,
+    scheduleId: string,
+    branchId: string,
+    start: Date,
+    end: Date
+  ): Promise<{ valid: boolean; message?: string }> {
+    // 1. Check if checking is needed
+    const positionName = employee.position?.name?.toUpperCase() || '';
+    if (
+      !positionName.includes('GERENTE') &&
+      !positionName.includes('SUBGERENTE')
+    ) {
+      return { valid: true };
+    }
+
+    // 2. Identify counterpart
+    const isManager =
+      positionName.includes('GERENTE') && !positionName.includes('SUBGERENTE');
+    const counterpartTerm = isManager ? 'SUBGERENTE' : 'GERENTE';
+
+    // 3. Find counterpart employees in branch
+    const allEmployees = this.store.employees.employeesList();
+    const counterparts = allEmployees.filter(
+      (e) =>
+        e.branch_id === branchId &&
+        e.id !== employee.id &&
+        e.position?.name?.toUpperCase().includes(counterpartTerm)
+    );
+
+    if (counterparts.length === 0) return { valid: true };
+
+    // 4. Fetch schedules for counterparts in date range
+    // Query: employee_schedules where employee_id IN (counterparts) AND overlap with [start, end]
+    // Since supabase filtering with OR/AND and multiple IDs is complex,
+    // we'll fetch schedules for these employees for the relevant week(s)
+    // or just filter client side if we fetch a broad range.
+
+    const startDateStr = format(start, 'yyyy-MM-dd');
+    const endDateStr = format(end, 'yyyy-MM-dd');
+
+    const counterpartIds = counterparts.map((c) => `"${c.id}"`).join(','); // for IN query
+
+    const url = this.apiUrl.build('rest/v1/employee_schedules');
+    // format: employee_id=in.("id1","id2")&start_date=lte.end&end_date=gte.start
+
+    const params: any = {
+      select: '*',
+      employee_id: `in.(${counterpartIds})`,
+      start_date: `lte.${endDateStr}`,
+      end_date: `gte.${startDateStr}`,
+    };
+
+    try {
+      const checkSchedules = await firstValueFrom(
+        this.http.get<any[]>(url, { params })
+      );
+
+      if (!checkSchedules || checkSchedules.length === 0)
+        return { valid: true };
+
+      // 5. Use service to validate with the fetched schedules
+      return this.scheduleValidation.validateManagerSubmanagerConflict(
+        employee,
+        scheduleId,
+        this.store.schedules.entities() || [],
+        counterparts,
+        checkSchedules,
+        start,
+        end
+      );
+    } catch (error) {
+      console.error('Error fetching schedules for validation', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Verifica si el horario existente tiene tracking HR (vacaciones, incapacidad, compensatorio).
+   * Solo RRHH (admin) puede sobrescribir horarios con solicitudes HR activas.
+   * Muestra un diálogo de confirmación antes de sobrescribir.
+   *
+   * @returns Promise con canProceed (si puede continuar) y shouldClear (si debe limpiar campos HR)
+   */
+  private async checkHRTrackingAndConfirm(): Promise<{
+    canProceed: boolean;
+    shouldClear: boolean;
+  }> {
+    // Solo verificar si estamos editando un horario existente
+    const existingSchedule = this.dialog.data
+      .employee_schedule as EmployeeSchedule | null;
+    if (!existingSchedule) {
+      return { canProceed: true, shouldClear: false };
+    }
+
+    // Verificar si tiene tracking HR
+    const hasHRTracking =
+      existingSchedule.is_timeoff ||
+      existingSchedule.is_compensatory ||
+      existingSchedule.vacation_request_id ||
+      existingSchedule.disability_request_id ||
+      existingSchedule.compensatory_request_id;
+
+    if (!hasHRTracking) {
+      return { canProceed: true, shouldClear: false };
+    }
+
+    // Determinar el tipo de solicitud HR
+    let hrType = '';
+    if (existingSchedule.is_timeoff) {
+      hrType =
+        existingSchedule.timeoff_type === 'VACACIONES'
+          ? 'VACACIONES'
+          : existingSchedule.timeoff_type === 'INCAPACIDAD'
+            ? 'INCAPACIDAD'
+            : 'TIEMPO LIBRE';
+    } else if (existingSchedule.is_compensatory) {
+      hrType = 'COMPENSATORIO';
+    }
+
+    // Solo RRHH (admin) puede sobrescribir
+    if (!this.store.isAdmin()) {
+      this.message.add({
+        severity: 'error',
+        summary: 'Horario con solicitud HR',
+        detail: `Este horario tiene ${hrType} aprobado. Solo RRHH puede modificar horarios con solicitudes HR activas.`,
+        life: 6000,
+      });
+      return { canProceed: false, shouldClear: false };
+    }
+
+    // Mostrar confirmación para RRHH
+    return new Promise((resolve) => {
+      this.confirmationService.confirm({
+        message: `Este horario tiene ${hrType} aprobado. ¿Desea sobrescribir y eliminar la referencia a la solicitud HR?`,
+        header: 'Sobrescribir solicitud HR',
+        icon: 'pi pi-exclamation-triangle',
+        acceptLabel: 'Sí, sobrescribir',
+        rejectLabel: 'Cancelar',
+        acceptButtonStyleClass: 'p-button-danger',
+        accept: () => {
+          resolve({ canProceed: true, shouldClear: true });
+        },
+        reject: () => {
+          resolve({ canProceed: false, shouldClear: false });
+        },
+      });
+    });
   }
 }

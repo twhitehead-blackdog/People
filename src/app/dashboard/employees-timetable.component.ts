@@ -52,6 +52,8 @@ import { MonthWeekSelectorComponent } from './employees-timetable/components/mon
 import { TimetableFiltersComponent } from './employees-timetable/components/timetable-filters/timetable-filters.component';
 import { TimetableGridComponent } from './employees-timetable/components/timetable-grid/timetable-grid.component';
 import { TimetableHeaderComponent } from './employees-timetable/components/timetable-header/timetable-header.component';
+import { EmployeeRequest } from './models/employee-requests.model';
+import { EmployeeRequestsService } from './services/employee-requests.service';
 import { TimetableFilterService } from './services/timetable-filter.service';
 import { TimetableNavigationService } from './services/timetable-navigation.service';
 import { TimetablePermissionsService } from './services/timetable-permissions.service';
@@ -175,8 +177,7 @@ import {
                 size="small"
                 (onClick)="openAddEmployeeDialog()"
               />
-              }
-              @if (!permissionsService.isStoreManager()) {
+              } @if (!permissionsService.isStoreManager()) {
               <p-button
                 icon="pi pi-history"
                 severity="info"
@@ -582,6 +583,7 @@ import {
 })
 export class EmployeesTimetableComponent implements OnInit {
   public store = inject(DashboardStore);
+  private requestsService = inject(EmployeeRequestsService);
   public editionLocked = model<boolean>();
   public unlockModal = signal(false);
   public monthWeekSelectorVisible = signal(false);
@@ -616,8 +618,8 @@ export class EmployeesTimetableComponent implements OnInit {
     const employees = this.employeeSchedulesList();
     for (const emp of employees) {
       for (const day of emp.days) {
-        // day.shift exists and is not approved
-        if (day.shift && !day.shift.approved) {
+        // day.shift exists, is not a request, and is not approved
+        if (day.shift && !('is_request' in day.shift) && !day.shift.approved) {
           count++;
         }
       }
@@ -737,7 +739,7 @@ export class EmployeesTimetableComponent implements OnInit {
 
     const url = this.apiUrl.build('rest/v1/employee_schedules', {
       select:
-        '*,schedule:schedules(*),branch:branches(id, name, short_name),employee:employees(id,company_id)',
+        '*,schedule:schedules!employee_schedules_schedule_id_fkey(*),branch:branches(id, name, short_name),employee:employees(id,company_id)',
       start_date: `lte.${endDate}`,
       end_date: `gte.${startDate}`,
       ...(companyId ? { 'employee.company_id': `eq.${companyId}` } : {}),
@@ -841,24 +843,78 @@ export class EmployeesTimetableComponent implements OnInit {
     return null;
   }
 
-  public employeeSchedulesList = computed(() =>
-    this.currentEmployees().map((employee) => ({
+  public employeeSchedulesList = computed(() => {
+    const requests = this.requestsService.approvedRequests();
+
+    // Separate requests into Overlays and Adjustments
+    const overlaysMap = new Map<string, EmployeeRequest[]>();
+    const adjustmentsMap = new Map<string, EmployeeRequest[]>();
+
+    for (const req of requests) {
+      if (!req.employee_id) continue;
+
+      if (req.type === 'COMPENSATORIO') {
+        const list = adjustmentsMap.get(req.employee_id) || [];
+        list.push(req);
+        adjustmentsMap.set(req.employee_id, list);
+      } else {
+        const list = overlaysMap.get(req.employee_id) || [];
+        list.push(req);
+        overlaysMap.set(req.employee_id, list);
+      }
+    }
+
+    return this.currentEmployees().map((employee) => ({
       id: employee.id,
       first_name: employee.first_name,
       father_name: employee.father_name,
       position: employee.position
         ? { name: employee.position.name }
         : { name: '' },
-      days: employee.days.map((day) => ({
-        ...day,
-        shift:
+      days: employee.days.map((day) => {
+        const dayStr = format(day.date, 'yyyy-MM-dd');
+
+        // 1. Check for Overlays (Vacations, Disabilities) -> Replaces Schedule
+        const employeeOverlays = overlaysMap.get(employee.id) || [];
+        const foundOverlay = employeeOverlays.find((req) => {
+          return dayStr >= req.start_date && dayStr <= req.end_date;
+        });
+
+        if (foundOverlay) {
+          return { ...day, shift: foundOverlay };
+        }
+
+        // 2. Get Standard Schedule
+        let shift =
           this.findIntervalForDate(
             this.shiftIntervalsByEmployeeId().get(employee.id) ?? [],
             day.date
-          )?.shift ?? null,
-      })),
-    }))
-  );
+          )?.shift ?? null;
+
+        // 3. Check for Adjustments (Compensatory) -> Modifies Schedule
+        if (shift) {
+          const employeeAdjustments = adjustmentsMap.get(employee.id) || [];
+          const foundAdjustment = employeeAdjustments.find((req) => {
+            return dayStr >= req.start_date && dayStr <= req.end_date;
+          });
+
+          if (foundAdjustment) {
+            // Clone shift to avoid mutating shared state if necessary (though usually unique per day/emp)
+            shift = {
+              ...shift,
+              isCompensatory: true,
+              compensatoryRequestId: foundAdjustment.id,
+            };
+          }
+        }
+
+        return {
+          ...day,
+          shift,
+        };
+      }),
+    }));
+  });
 
   ngOnInit(): void {
     this.editionLocked.set(true);
@@ -878,6 +934,24 @@ export class EmployeesTimetableComponent implements OnInit {
           this.filterService.currentBranch.set(filterBranchId);
         }
         // Si filterBranchId es null (admin), permitir selección libre
+      },
+      { injector: this.injector }
+    );
+
+    // Sync dates with Requests Service
+    effect(
+      () => {
+        this.requestsService.startDate.set(this.start());
+        this.requestsService.endDate.set(this.end());
+      },
+      { injector: this.injector }
+    );
+
+    // Sync dates with Requests Service
+    effect(
+      () => {
+        this.requestsService.startDate.set(this.start());
+        this.requestsService.endDate.set(this.end());
       },
       { injector: this.injector }
     );
@@ -965,7 +1039,10 @@ export class EmployeesTimetableComponent implements OnInit {
     }
 
     // Gerentes de tienda no pueden editar horarios aprobados
-    if (this.permissionsService.isStoreManager() && employee_schedule?.approved) {
+    if (
+      this.permissionsService.isStoreManager() &&
+      employee_schedule?.approved
+    ) {
       this.message.add({
         severity: 'warn',
         summary: 'Acción no permitida',
@@ -1026,7 +1103,10 @@ export class EmployeesTimetableComponent implements OnInit {
     }
 
     // Gerentes de tienda no pueden eliminar horarios aprobados
-    if (this.permissionsService.isStoreManager() && employee_schedule.approved) {
+    if (
+      this.permissionsService.isStoreManager() &&
+      employee_schedule.approved
+    ) {
       this.message.add({
         severity: 'warn',
         summary: 'Acción no permitida',

@@ -1185,7 +1185,7 @@ export class NazTimeclockComponent implements OnDestroy {
     const companyId = this.organizationService.getCurrentCompanyId();
 
     const params: any = {
-      select: '*,schedule:schedules(*)',
+      select: '*,schedule:schedules!employee_schedules_schedule_id_fkey(*)',
       employee_id: `eq.${employeeId}`,
       start_date: `lte.${today}`,
       end_date: `gte.${today}`,
