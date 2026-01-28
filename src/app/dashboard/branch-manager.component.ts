@@ -30,17 +30,8 @@ import {
   startOfDay,
   startOfWeek,
   subWeeks,
-  parseISO,
 } from 'date-fns';
 import { formatInTimeZone, toDate } from 'date-fns-tz';
-
-// Helper para parsear fechas de la DB como UTC (evita desfase de -1 día)
-const parseUTCDateString = (dateStr: string | null | undefined): Date | null => {
-  if (!dateStr) return null;
-  // Tomar solo la parte de fecha (YYYY-MM-DD) y forzar interpretación UTC
-  const cleanDate = dateStr.split('T')[0];
-  return new Date(cleanDate + 'T12:00:00Z'); // Usar mediodía UTC para evitar problemas de zona horaria
-};
 import { ConfirmationService, MenuItem, MessageService } from 'primeng/api';
 import { Avatar } from 'primeng/avatar';
 import { Button } from 'primeng/button';
@@ -81,6 +72,16 @@ import {
   getRequestTypeSeverity,
   getSeverityColor,
 } from './request.helpers';
+
+// Helper para parsear fechas de la DB como UTC (evita desfase de -1 día)
+const parseUTCDateString = (
+  dateStr: string | null | undefined
+): Date | null => {
+  if (!dateStr) return null;
+  // Tomar solo la parte de fecha (YYYY-MM-DD) y forzar interpretación UTC
+  const cleanDate = dateStr.split('T')[0];
+  return new Date(cleanDate + 'T12:00:00Z'); // Usar mediodía UTC para evitar problemas de zona horaria
+};
 
 type Notification = {
   id: string;
@@ -1022,7 +1023,6 @@ type Reminder = {
             />
           </p-tabpanel>
 
-
           <p-tabpanel value="reminders">
             <div class="space-y-4">
               <div class="flex gap-2 items-center flex-wrap">
@@ -1750,17 +1750,12 @@ export class BranchManagerComponent {
   // Branch employees
   public branchEmployees = computed(() => {
     const branchId = this.currentBranch()?.id;
-    const currentEmpId = this.currentEmployee()?.id;
     let employees = this.employeesStore
       .employeesList()
       .filter((emp) => emp.is_active);
     // Si hay sucursal seleccionada (o es gerente), filtrar por sucursal
     if (branchId) {
       employees = employees.filter((emp) => emp.branch_id === branchId);
-    }
-    // Excluir al gerente mismo de la lista
-    if (currentEmpId) {
-      employees = employees.filter((emp) => emp.id !== currentEmpId);
     }
     // Retornar los empleados completos con short_name agregado
     return employees.map((emp) => ({
@@ -2244,15 +2239,18 @@ export class BranchManagerComponent {
 
     // Construir URL usando ApiUrlService
     // Usar !timelogs_employee_id_fkey para especificar la relación correcta (hay dos FKs a employees)
+    // REMOVED !inner to allow fetching logs even if employee relation is somehow partial, though in practice we drive from branchEmployees
     const select = `*,employee:employees!timelogs_employee_id_fkey(id,first_name,father_name,is_active),branch:branches(id, name, short_name)`;
 
-    const url = this.apiUrl.build('rest/v1/timelogs', {
-      select,
-      'employee.is_active': 'eq.true',
-      branch_id: branchId ? `eq.${branchId}` : undefined,
-      company_id: companyId ? `eq.${companyId}` : undefined,
-      order: 'created_at.asc',
-    }) + `&and=(created_at.gte.${startOfDayISO},created_at.lte.${endOfDayISO})`;
+    const url =
+      this.apiUrl.build('rest/v1/timelogs', {
+        select,
+        'employee.is_active': 'eq.true',
+        branch_id: branchId ? `eq.${branchId}` : undefined,
+        company_id: companyId ? `eq.${companyId}` : undefined,
+        order: 'created_at.asc',
+      }) +
+      `&and=(created_at.gte.${startOfDayISO},created_at.lte.${endOfDayISO})`;
 
     return {
       url,
