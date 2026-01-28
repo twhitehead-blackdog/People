@@ -899,7 +899,8 @@ export class TimelogsComponent {
       created_at: string;
       employee_id?: string;
     } = {
-      select: `*,employee:employees(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)`,
+      // Usar !timelogs_employee_id_fkey para especificar la relación correcta (hay dos FKs a employees)
+      select: `*,employee:employees!timelogs_employee_id_fkey(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)`,
       created_at: `gte.${format(start, 'yyyy-MM-dd 00:00:00')}`,
     };
     if (this.employeeId()) {
@@ -1151,8 +1152,13 @@ export class TimelogsComponent {
           return acc;
         }
 
+        // Validar que el log tenga employee (puede ser null en datos legacy)
+        if (!x.employee?.id) {
+          return acc;
+        }
+
         const index = acc.findIndex(
-          (y: DayLog) => y.day === x.day && y.employee.id === x.employee.id
+          (y: DayLog) => y.day === x.day && y.employee?.id === x.employee.id
         );
 
         // Si no se encuentra el índice, significa que el día no está en this.days()

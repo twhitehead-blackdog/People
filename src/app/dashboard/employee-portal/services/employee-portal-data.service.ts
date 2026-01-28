@@ -52,7 +52,8 @@ export class EmployeePortalDataService {
       addDays(this.dateRange()[1], 1),
       "yyyy-MM-dd'T'06:00:00"
     );
-    const select = `*,employee:employees(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)`;
+    // Usar !timelogs_employee_id_fkey para especificar la relación correcta (hay dos FKs a employees)
+    const select = `*,employee:employees!timelogs_employee_id_fkey(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)`;
 
     const url = this.apiUrl.build('rest/v1/timelogs', {
       select: select,
@@ -156,7 +157,8 @@ export class EmployeePortalDataService {
 
     const startDate = format(monthStart, "yyyy-MM-dd'T'06:00:00");
     const endDate = format(addDays(monthEnd, 1), "yyyy-MM-dd'T'06:00:00");
-    const select = `*,employee:employees(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)`;
+    // Usar !timelogs_employee_id_fkey para especificar la relación correcta (hay dos FKs a employees)
+    const select = `*,employee:employees!timelogs_employee_id_fkey(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)`;
 
     const url = this.apiUrl.build('rest/v1/timelogs', {
       select: select,

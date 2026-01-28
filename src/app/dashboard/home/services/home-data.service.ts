@@ -74,7 +74,8 @@ export class HomeDataService {
         company_id: `eq.${companyId}`,
         type: 'eq.entry',
         'created_at': `gte.${monthStart}T00:00:00`,
-        select: 'id,employee_id,type,created_at,employee:employees(first_name,father_name)',
+        // Usar !timelogs_employee_id_fkey para especificar la relación correcta (hay dos FKs a employees)
+        select: 'id,employee_id,type,created_at,employee:employees!timelogs_employee_id_fkey(first_name,father_name)',
       }),
     };
   });
