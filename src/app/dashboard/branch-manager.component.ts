@@ -2242,27 +2242,17 @@ export class BranchManagerComponent {
     const endOfDayISO =
       new Date(`${dateStr}T23:59:59-05:00`).toISOString().split('.')[0] + 'Z';
 
-    // Construir URL con filtros correctos usando 'and' para rango de fechas
-    const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`;
-    const select = `*,employee:employees!inner(id,first_name,father_name,is_active),branch:branches(id, name, short_name)`;
+    // Construir URL usando ApiUrlService
+    // Usar !timelogs_employee_id_fkey para especificar la relación correcta (hay dos FKs a employees)
+    const select = `*,employee:employees!timelogs_employee_id_fkey(id,first_name,father_name,is_active),branch:branches(id, name, short_name)`;
 
-    let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
-
-    // Usar 'and' para combinar condiciones de fecha como en timelogs-api.service
-    url += `&and=(created_at.gte.${startOfDayISO},created_at.lte.${endOfDayISO})`;
-
-    // Filtrar solo empleados activos
-    url += `&employee.is_active=eq.true`;
-
-    if (branchId) {
-      url += `&branch_id=eq.${branchId}`;
-    }
-
-    if (companyId) {
-      url += `&company_id=eq.${companyId}`;
-    }
-
-    url += `&order=created_at.asc`;
+    const url = this.apiUrl.build('rest/v1/timelogs', {
+      select,
+      'employee.is_active': 'eq.true',
+      branch_id: branchId ? `eq.${branchId}` : undefined,
+      company_id: companyId ? `eq.${companyId}` : undefined,
+      order: 'created_at.asc',
+    }) + `&and=(created_at.gte.${startOfDayISO},created_at.lte.${endOfDayISO})`;
 
     return {
       url,
@@ -2276,25 +2266,17 @@ export class BranchManagerComponent {
     const start = this.weekStart();
     const end = this.weekEnd();
 
-    // Construir URL manualmente para asegurar que los filtros se apliquen correctamente
-    const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`;
     const startDate = format(start, 'yyyy-MM-dd');
     const endDate = format(end, 'yyyy-MM-dd');
-    const select = `*,schedule:schedules(*), branch:branches(id, name, short_name)`;
+    const select = `*,schedule:schedules(*),branch:branches(id, name, short_name),employee:employees!inner(id,company_id,is_active)`;
 
-    let url = `${baseUrl}?select=${encodeURIComponent(
-      select
-    )},employee:employees!inner(id,company_id,is_active)`;
-    url += `&start_date=lte.${endDate}`;
-    url += `&end_date=gte.${startDate}`;
-
-    // Filtrar solo empleados activos
-    url += `&employee.is_active=eq.true`;
-
-    // Filtrar a través de employees.company_id (funciona incluso si employee_schedules no tiene company_id)
-    if (companyId) {
-      url += `&employee.company_id=eq.${companyId}`;
-    }
+    const url = this.apiUrl.build('rest/v1/employee_schedules', {
+      select,
+      start_date: `lte.${endDate}`,
+      end_date: `gte.${startDate}`,
+      'employee.is_active': 'eq.true',
+      'employee.company_id': companyId ? `eq.${companyId}` : undefined,
+    });
 
     return {
       url,

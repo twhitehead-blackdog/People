@@ -33,8 +33,9 @@ export class TimelogsApiService {
     const startDate = new Date(startDateStrPanama).toISOString().split('.')[0] + 'Z';
     const endDate = new Date(endDateStrPanama).toISOString().split('.')[0] + 'Z';
 
+    // Usar !timelogs_employee_id_fkey para especificar la relación correcta (hay dos FKs a employees)
     const select =
-      '*,employee:employees!inner(id,first_name,father_name,is_active,branch:branches(id, name)),branch:branches(id, name, short_name)';
+      '*,employee:employees!timelogs_employee_id_fkey(id,first_name,father_name,is_active,branch:branches(id, name)),branch:branches(id, name, short_name)';
 
     const params: Record<string, string> = {
       select: select,
