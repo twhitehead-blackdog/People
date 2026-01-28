@@ -249,6 +249,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     'Lactancia 1',
     '10:30 AM - 7:00 PM', //10:00am - 7:00pm (Solo domingos)
     'Dia Libre',
+    'Licencia maternidad'
   ];
 
   /**
