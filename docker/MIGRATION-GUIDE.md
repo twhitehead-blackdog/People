@@ -88,6 +88,7 @@ sudo systemctl restart nginx
 ### Paso 7: Configurar DNS
 
 En tu proveedor de DNS:
+
 - `stage.people.blackdogpanama.com` → IP del servidor
 - `people.blackdogpanama.com` → IP del servidor
 
@@ -176,7 +177,7 @@ sudo systemctl restart nginx
 docker-compose logs backend
 
 # Verificar health
-curl http://localhost:3000/api/health
+curl http://localhost:3000/health
 
 # Verificar variables de entorno
 docker-compose exec backend env | grep ENV_
@@ -196,9 +197,9 @@ docker-compose exec backend env | grep ENV_
 ## 📞 Soporte
 
 Si algo no funciona:
+
 1. Revisa los logs: `docker-compose logs`
 2. Verifica healthcheck: `./scripts/healthcheck.sh`
 3. Verifica variables de entorno
 4. Verifica que los puertos no estén ocupados
 5. Revisa la documentación en `docker/README.md`
-

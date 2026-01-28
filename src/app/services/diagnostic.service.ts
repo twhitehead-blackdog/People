@@ -366,17 +366,13 @@ export class DiagnosticService {
     try {
       const apiUrl = getEnv('ENV_API_URL');
       if (apiUrl) {
-        const response = await fetch(`${apiUrl}/api/health`, {
+        const response = await fetch(`${apiUrl}/health`, {
           method: 'GET',
         });
         results.backend = response.ok;
       }
     } catch (error) {
-      this.addNetworkError(
-        '/api/health',
-        'No se pudo conectar al backend',
-        error
-      );
+      this.addNetworkError('/health', 'No se pudo conectar al backend', error);
     }
 
     // Verificar Auth0 (solo verificar configuración)

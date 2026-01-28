@@ -76,6 +76,15 @@ export function app(): express.Express {
     next();
   });
 
+  /**
+   * Health Check Endpoint
+   * Used by Railway for deployment verification.
+   * Must return 200 OK without auth or heavy logic.
+   */
+  server.get('/health', (req, res) => {
+    res.status(200).send('ok');
+  });
+
   // Endpoint proxy para Wassenger (evita problemas de CORS)
   server.post('/api/wassenger/send-message', async (req, res) => {
     try {
@@ -912,7 +921,7 @@ export function app(): express.Express {
         message: 'People API Server is running',
         version: '1.0.0',
         endpoints: {
-          health: '/api/health',
+          health: '/health',
           clientIp: '/api/client-ip',
           serverTime: '/api/server-time',
           wassenger: '/api/wassenger/send-message',
@@ -931,7 +940,7 @@ export function app(): express.Express {
   });
 
   // Health check endpoint
-  server.get('/api/health', (req, res) => {
+  server.get('/health', (req, res) => {
     res.json({ status: 'ok', message: 'Server is running' });
   });
 

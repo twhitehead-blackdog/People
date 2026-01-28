@@ -203,7 +203,7 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
   // /api/email/send es usado por el formulario público de feria de empleo
   if (
     req.url.includes('/api/client-ip') ||
-    req.url.includes('/api/health') ||
+    req.url.includes('/health') ||
     req.url.includes('/api/email/send')
   ) {
     // Permitir peticiones sin autenticación
@@ -211,19 +211,27 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
   }
 
   // For non-Supabase requests, use Auth0 token
-  console.log('[HttpInterceptor] Non-Supabase request, getting Auth0 token for:', req.url);
+  console.log(
+    '[HttpInterceptor] Non-Supabase request, getting Auth0 token for:',
+    req.url
+  );
   return inject(AuthService)
     .getAccessTokenSilently()
     .pipe(
       switchMap((token) => {
-        console.log('[HttpInterceptor] Got Auth0 token, proceeding with request');
+        console.log(
+          '[HttpInterceptor] Got Auth0 token, proceeding with request'
+        );
         const request = req.clone({
           headers: req.headers.set('Authorization', `Bearer ${token}`),
         });
         return next(request);
       }),
       catchError((error) => {
-        console.error('[HttpInterceptor] Error getting Auth0 token or making request:', error);
+        console.error(
+          '[HttpInterceptor] Error getting Auth0 token or making request:',
+          error
+        );
         // Capturar errores de red para requests al backend
         if (error.status === 0 || !error.status) {
           diagnosticService.addNetworkError(

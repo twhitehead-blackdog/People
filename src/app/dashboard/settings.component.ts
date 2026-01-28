@@ -17,6 +17,7 @@ import { ToastModule } from 'primeng/toast';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { ApiUrlService } from '../services/api-url.service';
 import { DashboardStore } from '../stores/dashboard.store';
+import { ManualTimelogComponent } from './settings/manual-timelog.component';
 
 interface Setting {
   id: string;
@@ -48,6 +49,7 @@ interface EmailConfig {
     FormsModule,
     ToastModule,
     TabsModule,
+    ManualTimelogComponent,
   ],
   providers: [MessageService],
   template: `
@@ -77,6 +79,12 @@ interface EmailConfig {
             <i class="pi pi-shopping-cart mr-2"></i>
             M-Pets Precios
           </p-tab>
+          @if (canManageSchedules()) {
+          <p-tab value="4">
+            <i class="pi pi-clock mr-2"></i>
+            Marcación Manual
+          </p-tab>
+          }
         </p-tablist>
 
         <!-- Tab: Correo -->
@@ -813,6 +821,13 @@ interface EmailConfig {
             </div>
           </p-card>
         </p-tabpanel>
+
+        <!-- Tab: Marcación Manual -->
+        @if (canManageSchedules()) {
+        <p-tabpanel value="4">
+          <pt-manual-timelog />
+        </p-tabpanel>
+        }
       </p-tabs>
     </div>
 
@@ -832,6 +847,9 @@ export class SettingsComponent {
   public messageService = inject(MessageService);
   private http = inject(HttpClient);
   private apiUrl = inject(ApiUrlService);
+
+  // Permiso para ver el tab de Marcación Manual
+  public canManageSchedules = this.store.canManageSchedules;
 
   public saving = signal(false);
   public wassengerEnabled = signal(false);

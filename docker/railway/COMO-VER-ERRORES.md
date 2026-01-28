@@ -122,7 +122,7 @@ Para cada error verás:
 El panel puede verificar automáticamente:
 
 1. **Supabase**: Intenta conectar a la API
-2. **Backend**: Verifica el endpoint `/api/health`
+2. **Backend**: Verifica el endpoint `/health`
 3. **Auth0**: Verifica que las variables estén configuradas
 
 **Cómo usar:**

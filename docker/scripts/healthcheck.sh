@@ -33,7 +33,7 @@ else
 fi
 
 # Backend (a través del frontend)
-if curl -f -s "http://localhost:$PORT/api/health" > /dev/null; then
+if curl -f -s "http://localhost:$PORT/health" > /dev/null; then
     echo "✅ Backend: OK"
 else
     echo "❌ Backend: ERROR"

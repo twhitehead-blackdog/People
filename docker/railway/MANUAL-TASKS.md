@@ -202,7 +202,7 @@ Esta lista contiene todas las tareas que **TÚ** debes hacer manualmente en Rail
 
 ### Después de cada deploy, verificar:
 
-- [ ] Backend responde en `/api/health`
+- [ ] Backend responde en `/health`
 - [ ] Frontend carga sin errores en consola
 - [ ] Login con Auth0 funciona
 - [ ] Datos de Supabase se cargan
@@ -215,11 +215,13 @@ Esta lista contiene todas las tareas que **TÚ** debes hacer manualmente en Rail
 ## 🚨 Si algo no funciona
 
 1. Revisar logs en Railway:
+
    - Ir a Proyecto → Servicio → "Deployments"
    - Click en el deployment más reciente
    - Revisar logs completos
 
 2. Verificar variables de entorno:
+
    - Asegurarse de que todas las variables estén configuradas
    - Verificar que no haya espacios extra
    - Verificar que las URLs tengan `https://`
@@ -255,4 +257,3 @@ Esta lista contiene todas las tareas que **TÚ** debes hacer manualmente en Rail
 ---
 
 ¡Listo! Tu aplicación debería estar funcionando en Railway. 🚀
-

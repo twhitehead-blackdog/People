@@ -13,7 +13,7 @@ Verificar que todo funcione correctamente después de configurar Auth0 y quitar 
 1. **Abrir el dominio del backend en el navegador:**
 
    ```
-   https://people-dev-backend.railway.app/api/health
+   https://people-dev-backend.railway.app/health
    ```
 
    O el dominio que te asignó Railway

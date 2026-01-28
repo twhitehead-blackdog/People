@@ -108,7 +108,7 @@
 ### Backend
 
 - [ ] `https://backend-dev-production-5b38.up.railway.app` responde JSON con status
-- [ ] `https://backend-dev-production-5b38.up.railway.app/api/health` responde `ok`
+- [ ] `https://backend-dev-production-5b38.up.railway.app/health` responde `ok`
 - [ ] No aparece "Cannot GET /"
 
 ---

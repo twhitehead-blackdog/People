@@ -263,6 +263,11 @@ export type TimeLog = {
   ip?: string;
   invalid_id?: boolean;
   created_at: Date;
+  // Campos para marcaciones manuales
+  source?: 'KIOSK' | 'MANUAL' | 'RPC';
+  created_by?: string;
+  punched_at?: Date;
+  reason?: string;
 };
 
 export type EmployeeSchedule = {
