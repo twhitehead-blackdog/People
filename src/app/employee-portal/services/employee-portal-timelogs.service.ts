@@ -60,31 +60,25 @@ export class EmployeePortalTimelogsService {
       return undefined;
     }
 
-    // Construir URL manualmente para aplicar correctamente filtros gte y lte
-    const baseUrl = this.apiUrl.build('rest/v1/timelogs');
-    // Construir rango en Panamá y convertirlo a UTC ISO para PostgREST
-    const startDateStrPanama =
-      formatInTimeZone(dateRange[0], this.TIMEZONE, 'yyyy-MM-dd') +
-      'T00:00:00-05:00';
-    const endDateStrPanama =
-      formatInTimeZone(addDays(dateRange[1], 1), this.TIMEZONE, 'yyyy-MM-dd') +
-      'T00:00:00-05:00';
-
     const startDate =
-      new Date(startDateStrPanama).toISOString().split('.')[0] + 'Z';
+      formatInTimeZone(dateRange[0], this.TIMEZONE, 'yyyy-MM-dd') + 'T00:00:00';
     const endDate =
-      new Date(endDateStrPanama).toISOString().split('.')[0] + 'Z';
-    const select = `*,employee:employees(id,first_name,father_name,company_id, branch:branches(id, name)),branch:branches(id, name, short_name)`;
+      formatInTimeZone(dateRange[1], this.TIMEZONE, 'yyyy-MM-dd') + 'T23:59:59';
 
-    let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
-    url += `&employee_id=eq.${employeeId}`;
-    // Filtrar directamente por company_id de timelogs (la tabla tiene este campo)
-    if (companyId) {
-      url += `&company_id=eq.${companyId}`;
-    }
-    url += `&created_at=gte.${startDate}`;
-    url += `&created_at=lte.${endDate}`;
-    url += `&order=created_at.asc`;
+    const select = `*,employee:employees!timelogs_employee_id_fkey(id,first_name,father_name,company_id, branch:branches(id, name)),branch:branches(id, name, short_name)`;
+
+    const params: Record<string, string> = {
+      select,
+      employee_id: `eq.${employeeId}`,
+      company_id: `eq.${companyId}`,
+      order: 'created_at.asc',
+    };
+
+    const manualLogsCondition = `and(punched_at.gte.${startDate},punched_at.lte.${endDate})`;
+    const autoLogsCondition = `and(punched_at.is.null,created_at.gte.${startDate},created_at.lte.${endDate})`;
+    params['or'] = `(${manualLogsCondition},${autoLogsCondition})`;
+
+    const url = this.apiUrl.build('rest/v1/timelogs', params);
 
     return {
       url,
@@ -99,7 +93,7 @@ export class EmployeePortalTimelogsService {
       .map((x) => ({
         ...x,
         day: formatInTimeZone(
-          new Date(x.created_at),
+          this.parseLogDate(x),
           this.TIMEZONE,
           'yyyy-MM-dd'
         ),
@@ -125,24 +119,25 @@ export class EmployeePortalTimelogsService {
               x.type === TimeLogEnum.exit
                 ? { date: new Date(x.created_at), branch: x.branch }
                 : undefined,
-            schedule: null, // Would need to fetch schedules separately
+            schedule: null,
             delay: undefined,
           });
         } else {
+          const effectiveDate = this.parseLogDate(x);
           if (x.type === TimeLogEnum.entry)
-            existing.entry = { date: new Date(x.created_at), branch: x.branch };
+            existing.entry = { date: effectiveDate, branch: x.branch };
           if (x.type === TimeLogEnum.lunch_start)
             existing.lunch_start = {
-              date: new Date(x.created_at),
+              date: effectiveDate,
               branch: x.branch,
             };
           if (x.type === TimeLogEnum.lunch_end)
             existing.lunch_end = {
-              date: new Date(x.created_at),
+              date: effectiveDate,
               branch: x.branch,
             };
           if (x.type === TimeLogEnum.exit)
-            existing.exit = { date: new Date(x.created_at), branch: x.branch };
+            existing.exit = { date: effectiveDate, branch: x.branch };
         }
         return acc;
       }, []);
@@ -181,26 +176,25 @@ export class EmployeePortalTimelogsService {
     const monthStart = startOfMonth(month);
     const monthEnd = endOfMonth(month);
 
-    const baseUrl = this.apiUrl.build('rest/v1/timelogs');
-    const startDateStrPanama =
-      formatInTimeZone(monthStart, this.TIMEZONE, 'yyyy-MM-dd') +
-      'T00:00:00-05:00';
-    const endDateStrPanama =
-      formatInTimeZone(addDays(monthEnd, 1), this.TIMEZONE, 'yyyy-MM-dd') +
-      'T00:00:00-05:00';
     const startDate =
-      new Date(startDateStrPanama).toISOString().split('.')[0] + 'Z';
+      formatInTimeZone(monthStart, this.TIMEZONE, 'yyyy-MM-dd') + 'T00:00:00';
     const endDate =
-      new Date(endDateStrPanama).toISOString().split('.')[0] + 'Z';
-    const select = `*,employee:employees(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)`;
+      formatInTimeZone(monthEnd, this.TIMEZONE, 'yyyy-MM-dd') + 'T23:59:59';
 
-    let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
-    url += `&employee_id=eq.${employeeId}`;
-    // Filtrar directamente por company_id de timelogs (la tabla tiene este campo)
-    url += `&company_id=eq.${companyId}`;
-    url += `&created_at=gte.${startDate}`;
-    url += `&created_at=lte.${endDate}`;
-    url += `&order=created_at.asc`;
+    const select = `*,employee:employees!timelogs_employee_id_fkey(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)`;
+
+    const params: Record<string, string> = {
+      select,
+      employee_id: `eq.${employeeId}`,
+      company_id: `eq.${companyId}`,
+      order: 'created_at.asc',
+    };
+
+    const manualLogsCondition = `and(punched_at.gte.${startDate},punched_at.lte.${endDate})`;
+    const autoLogsCondition = `and(punched_at.is.null,created_at.gte.${startDate},created_at.lte.${endDate})`;
+    params['or'] = `(${manualLogsCondition},${autoLogsCondition})`;
+
+    const url = this.apiUrl.build('rest/v1/timelogs', params);
 
     return {
       url,
@@ -229,20 +223,19 @@ export class EmployeePortalTimelogsService {
       .reduce<any[]>((acc, x) => {
         if (!x) return acc;
 
-        const logDate = new Date(x.created_at);
+        const effectiveDate = this.parseLogDate(x);
         const logBranch = x.branch || null;
 
         // Determinar el día en Panamá (no depende del timezone del dispositivo)
         const actualDay = formatInTimeZone(
-          logDate,
+          effectiveDate,
           this.TIMEZONE,
           'yyyy-MM-dd'
         );
 
-        // Buscar registro existente por el día de esta marcación
+        // ... rest of reduction logic using effectiveDate ...
         let existing = acc.find((item) => item.day === actualDay);
 
-        // Si no existe, crear uno nuevo
         if (!existing) {
           existing = {
             day: actualDay,
@@ -256,23 +249,24 @@ export class EmployeePortalTimelogsService {
           acc.push(existing);
         }
 
-        // Agregar la marcación al registro
-        // Si ya existe una marcación del mismo tipo, mantener la más temprana (para entrada) o la más tardía (para salida)
         if (x.type === TimeLogEnum.entry) {
-          if (!existing.entry || logDate < existing.entry.date) {
-            existing.entry = { date: logDate, branch: logBranch };
+          if (!existing.entry || effectiveDate < existing.entry.date) {
+            existing.entry = { date: effectiveDate, branch: logBranch };
           }
         } else if (x.type === TimeLogEnum.exit) {
-          if (!existing.exit || logDate > existing.exit.date) {
-            existing.exit = { date: logDate, branch: logBranch };
+          if (!existing.exit || effectiveDate > existing.exit.date) {
+            existing.exit = { date: effectiveDate, branch: logBranch };
           }
         } else if (x.type === TimeLogEnum.lunch_start) {
-          if (!existing.lunch_start || logDate < existing.lunch_start.date) {
-            existing.lunch_start = { date: logDate, branch: logBranch };
+          if (
+            !existing.lunch_start ||
+            effectiveDate < existing.lunch_start.date
+          ) {
+            existing.lunch_start = { date: effectiveDate, branch: logBranch };
           }
         } else if (x.type === TimeLogEnum.lunch_end) {
-          if (!existing.lunch_end || logDate > existing.lunch_end.date) {
-            existing.lunch_end = { date: logDate, branch: logBranch };
+          if (!existing.lunch_end || effectiveDate > existing.lunch_end.date) {
+            existing.lunch_end = { date: effectiveDate, branch: logBranch };
           }
         }
 
@@ -624,4 +618,17 @@ export class EmployeePortalTimelogsService {
 
   // Exponer función de cálculo de horas trabajadas
   public calculateWorkedHours = calculateWorkedHours;
+
+  /**
+   * Parsea una fecha de un log de forma robusta, priorizando punched_at.
+   */
+  private parseLogDate(log: any): Date {
+    if (!log) return new Date();
+    const rawDate = log.punched_at || log.created_at;
+    const date = new Date(rawDate);
+    if (isNaN(date.getTime())) {
+      return new Date();
+    }
+    return date;
+  }
 }

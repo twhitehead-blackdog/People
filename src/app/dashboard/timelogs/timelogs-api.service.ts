@@ -30,15 +30,16 @@ export class TimelogsApiService {
       formatInTimeZone(addDays(end, 1), this.TIMEZONE, 'yyyy-MM-dd') +
       'T00:00:00-05:00';
 
-    const startDate = new Date(startDateStrPanama).toISOString().split('.')[0] + 'Z';
-    const endDate = new Date(endDateStrPanama).toISOString().split('.')[0] + 'Z';
+    const startDate =
+      new Date(startDateStrPanama).toISOString().split('.')[0] + 'Z';
+    const endDate =
+      new Date(endDateStrPanama).toISOString().split('.')[0] + 'Z';
 
     const select =
-      '*,employee:employees!inner(id,first_name,father_name,is_active,branch:branches(id, name)),branch:branches(id, name, short_name)';
+      '*,employee:employees!timelogs_employee_id_fkey!inner(id,first_name,father_name,is_active,branch:branches(id, name)),branch:branches(id, name, short_name)';
 
     const params: Record<string, string> = {
       select: select,
-      created_at: `gte.${startDate}`,
       'employee.is_active': 'eq.true',
       order: 'created_at.asc',
     };
@@ -51,10 +52,10 @@ export class TimelogsApiService {
       params['company_id'] = `eq.${companyId}`;
     }
 
-    // Agregar el segundo filtro de fecha usando PostgREST 'and' para combinar condiciones
-    params['and'] = `(created_at.gte.${startDate},created_at.lte.${endDate})`;
-    delete params['created_at']; // Remover el filtro simple ya que usamos 'and'
+    const manualLogsCondition = `and(punched_at.gte.${startDate},punched_at.lte.${endDate})`;
+    const autoLogsCondition = `and(punched_at.is.null,created_at.gte.${startDate},created_at.lte.${endDate})`;
 
+    params['or'] = `(${manualLogsCondition},${autoLogsCondition})`;
     const url = this.apiUrl.build('rest/v1/timelogs', params);
 
     return { url, method: 'GET' as const };

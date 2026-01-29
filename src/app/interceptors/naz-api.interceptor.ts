@@ -21,14 +21,15 @@ export class NazApiInterceptor implements HttpInterceptor {
 
       // 1. Inject into Query Params
       let params = req.params;
+      const rawCompanyId = params.get('company_id');
+      const companyId = rawCompanyId?.replace(/^eq\./, '');
+
       if (!params.has('company_id')) {
-        params = params.set('company_id', nazId);
-      } else if (params.get('company_id') !== nazId) {
+        params = params.set('company_id', `eq.${nazId}`);
+      } else if (companyId !== nazId) {
         // Validation: Block cross-company attempts in params
         throw new Error(
-          `SECURITY: Request blocked. 'company_id' param (${params.get(
-            'company_id'
-          )}) matches foreign entity.`
+          `SECURITY: Request blocked. 'company_id' param (${rawCompanyId}) matches foreign entity.`
         );
       }
 
@@ -48,7 +49,8 @@ export class NazApiInterceptor implements HttpInterceptor {
           body = { ...body };
 
           if ('company_id' in body) {
-            if (body.company_id !== nazId) {
+            const bodyCompanyId = String(body.company_id).replace(/^eq\./, '');
+            if (bodyCompanyId !== nazId) {
               throw new Error(
                 `SECURITY: Request blocked. Body 'company_id' (${body.company_id}) matches foreign entity.`
               );

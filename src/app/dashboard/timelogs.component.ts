@@ -100,7 +100,7 @@ import { calcTimeDiff } from './timelogs/utils/time.utils';
         [onlyLunchExceeded]="onlyLunchExceeded"
         [onlyWithMarcaciones]="onlyWithMarcaciones"
         [lunchExceededRange]="lunchExceededRange"
-        [delayRange]="delayRange"
+        [delayRange]="delayRangeFilter"
         [delayToleranceMinutes]="delayToleranceMinutes"
         [filtersExpanded]="filtersExpanded"
         [activeEmployeesList]="activeEmployeesList"
@@ -226,7 +226,7 @@ export class TimelogsComponent {
   public maxScheduleBadgeWidth = computed(() => {
     const schedules = this.schedules.value() || [];
     const scheduleNames = schedules.map(
-      (s) => s.schedule?.name || 'Sin horario'
+      (s: EmployeeScheduleData) => s.schedule?.name || 'Sin horario'
     );
     const maxLength = Math.max(
       ...scheduleNames.map((name: string) => name.length),
@@ -353,10 +353,40 @@ export class TimelogsComponent {
   public onlyEarlyExit = signal(false);
   public onlyLunchExceeded = signal(false);
   public lunchExceededRange = signal<string | null>(null);
+  public delayRangeFilter = signal<string | null>(null);
   public onlyWithMarcaciones = signal(false); // Desactivar por defecto para mostrar todos los días
   public delayToleranceMinutes = signal(5); // Tolerancia por defecto de 5 minutos
-  public delayRange = signal<string | null>(null);
   public filtersExpanded = signal(false);
+
+  /**
+   * Parsea una fecha de un log de forma robusta, priorizando punched_at.
+   * Útil para soportar backfilling y evitar errores de zona horaria.
+   */
+  private parseLogDate(log: any): Date {
+    if (!log) return new Date();
+    // 1. Priorizar punched_at sobre created_at
+    const rawDate = log.punched_at || log.created_at || log.date;
+
+    // 2. Crear fecha
+    const date = new Date(rawDate);
+
+    // 3. Validar fecha
+    if (isNaN(date.getTime())) {
+      this.logger.warn('[TimelogsComponent] Fecha inválida encontrada:', log);
+      return new Date(); // Fallback a hoy para evitar crash, pero loggeado
+    }
+
+    // 4. Validación de año (sanidad)
+    if (date.getFullYear() < 2020) {
+      this.logger.warn('[TimelogsComponent] Fecha sospechosa (año < 2020):', {
+        id: log.id,
+        date: rawDate,
+        parsed: date,
+      });
+    }
+
+    return date;
+  }
 
   // Computed para verificar si hay filtros activos
   public hasActiveFilters = computed(() => {
@@ -899,7 +929,7 @@ export class TimelogsComponent {
       created_at: string;
       employee_id?: string;
     } = {
-      select: `*,employee:employees(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)`,
+      select: `*,employee:employees!timelogs_employee_id_fkey(id,first_name,father_name, branch:branches(id, name)),branch:branches(id, name, short_name)`,
       created_at: `gte.${format(start, 'yyyy-MM-dd 00:00:00')}`,
     };
     if (this.employeeId()) {
@@ -957,16 +987,11 @@ export class TimelogsComponent {
         this.branchId() ? x.branch_id === this.branchId() : true
       )
       .map((x: any) => {
-        // Convertir created_at de UTC (viene de Supabase) a hora local de Panamá
-        // x.created_at viene en formato ISO string desde Supabase (UTC)
-        const logDateUTC = new Date(x.created_at);
-        // Usar formatInTimeZone directamente para obtener la fecha en formato yyyy-MM-dd
-        // en la zona horaria de Panamá, sin crear un Date intermedio que pueda cambiar el día
-        const dayStr = formatInTimeZone(
-          logDateUTC,
-          this.TIMEZONE,
-          'yyyy-MM-dd'
-        );
+        // Usar helper para obtener la fecha correcta (prioriza punched_at)
+        const logDate = this.parseLogDate(x);
+
+        // Usar formatInTimeZone para obtener el bucket del día correcto en Panamá
+        const dayStr = formatInTimeZone(logDate, this.TIMEZONE, 'yyyy-MM-dd');
 
         return { ...x, day: dayStr };
       })
@@ -1064,7 +1089,7 @@ export class TimelogsComponent {
 
         // Buscar schedules que coincidan con el rango de fechas
         const matchingSchedules = schedulesData.filter(
-          (schedule) =>
+          (schedule: EmployeeScheduleData) =>
             schedule.employee_id === employee.id &&
             schedule.start_date <= day &&
             schedule.end_date >= day
@@ -1078,7 +1103,7 @@ export class TimelogsComponent {
           // Para días laborales (Lunes-Viernes = 1-5), priorizar schedules que NO sean día libre
           if (dayOfWeek >= 1 && dayOfWeek <= 5) {
             const workSchedule = matchingSchedules.find(
-              (s) =>
+              (s: EmployeeScheduleData) =>
                 s.schedule &&
                 !s.schedule.day_off &&
                 !this.restrictedScheduleIds.includes(s.schedule.id || '') &&
@@ -1093,10 +1118,10 @@ export class TimelogsComponent {
           // Para sábado (6), buscar "Dia Libre"
           else if (dayOfWeek === 6) {
             const dayOffSchedule = matchingSchedules.find(
-              (s) =>
+              (s: EmployeeScheduleData) =>
                 s.schedule?.day_off ||
                 this.restrictedScheduleNames.some(
-                  (name) =>
+                  (name: string) =>
                     s.schedule?.name?.toLowerCase().includes('dia libre') ||
                     s.schedule?.name?.toLowerCase().includes('día libre')
                 )
@@ -1108,9 +1133,9 @@ export class TimelogsComponent {
           // Para domingo (0), buscar "Feriado"
           else if (dayOfWeek === 0) {
             const holidaySchedule = matchingSchedules.find(
-              (s) =>
+              (s: EmployeeScheduleData) =>
                 this.restrictedScheduleIds.includes(s.schedule?.id || '') ||
-                this.restrictedScheduleNames.some((name) =>
+                this.restrictedScheduleNames.some((name: string) =>
                   s.schedule?.name?.toLowerCase().includes('feriado')
                 )
             );
@@ -1161,9 +1186,17 @@ export class TimelogsComponent {
           return acc;
         }
 
+        // Usar helper robusto para determinar la fecha efectiva
+        // Esto corrige problemas de backfilling y parseo
+        const effectiveDate = this.parseLogDate(x);
+
         acc[index] = {
           ...acc[index],
-          [x.type]: { date: x.created_at, branch: x.branch, id: x.id },
+          [x.type]: {
+            date: effectiveDate, // Usar la fecha parseada y validada
+            branch: x.branch,
+            id: x.id,
+          },
         };
 
         // Detectar alertas cuando hay marcación
@@ -1424,98 +1457,13 @@ export class TimelogsComponent {
               if (workMinutes < requiredWorkMinutes) {
                 acc[index].insufficientHours = true;
               }
+            } else {
+              // Fallback: Si el horario existe pero no tiene horas definidas, calcular desde la entrada real
+              this.calculateHoursWithoutSchedule(acc, index);
             }
-          } else if (acc[index].entry && acc[index].exit) {
-            // Si no hay horario establecido, calcular desde la entrada real
-            const entryDate = new Date(acc[index].entry.date);
-            const exitDate = new Date(acc[index].exit.date);
-
-            // Validar que las fechas sean válidas y que exitDate > entryDate
-            if (
-              isNaN(entryDate.getTime()) ||
-              isNaN(exitDate.getTime()) ||
-              exitDate <= entryDate
-            ) {
-              this.logger.warn(
-                '[TimelogsComponent] Fechas inválidas o salida anterior a entrada (sin horario)',
-                {
-                  day: acc[index].day,
-                  entry: acc[index].entry.date,
-                  exit: acc[index].exit.date,
-                  entryDateUTC: entryDate.toISOString(),
-                  exitDateUTC: exitDate.toISOString(),
-                  employee: `${acc[index].employee?.first_name} ${acc[index].employee?.father_name}`,
-                  employee_id: acc[index].employee?.id,
-                  diferencia_segundos:
-                    exitDate <= entryDate
-                      ? (exitDate.getTime() - entryDate.getTime()) / 1000
-                      : null,
-                }
-              );
-              acc[index].totalHours = 0;
-              acc[index].overtimeHours = 0;
-              return acc;
-            }
-
-            const totalMinutes = differenceInMinutes(exitDate, entryDate);
-
-            // Calcular tiempo de almuerzo (solo restar 1 hora = 60 minutos máximo)
-            let lunchTimeToSubtract = 0;
-            if (acc[index].lunch_start && acc[index].lunch_end) {
-              const lunchStart = acc[index].lunch_start.date;
-              const lunchEnd = acc[index].lunch_end.date;
-
-              // Validar que las fechas sean válidas
-              if (lunchStart && lunchEnd) {
-                const lunchStartDate = new Date(lunchStart);
-                const lunchEndDate = new Date(lunchEnd);
-
-                // Validar que las fechas sean válidas y que lunch_end > lunch_start
-                if (
-                  !isNaN(lunchStartDate.getTime()) &&
-                  !isNaN(lunchEndDate.getTime()) &&
-                  lunchEndDate > lunchStartDate
-                ) {
-                  const actualLunchMinutes = differenceInMinutes(
-                    lunchEndDate,
-                    lunchStartDate
-                  );
-                  // Solo usar si la diferencia es positiva y razonable (máximo 3 horas)
-                  if (actualLunchMinutes > 0 && actualLunchMinutes <= 180) {
-                    // Solo restar 60 minutos (1 hora permitida), el exceso no cuenta como trabajo
-                    // El exceso se acumula automáticamente en total_lunch_exceeded_minutes
-                    lunchTimeToSubtract = Math.min(actualLunchMinutes, 60);
-                  }
-                } else {
-                  this.logger.warn(
-                    '[TimelogsComponent] Fechas de almuerzo inválidas o lunch_end <= lunch_start (sin horario)',
-                    {
-                      lunch_start: lunchStart,
-                      lunch_end: lunchEnd,
-                      employee: acc[index].employee?.first_name,
-                    }
-                  );
-                }
-              }
-            }
-
-            const workMinutes = totalMinutes - lunchTimeToSubtract;
-            // Validar que workMinutes sea válido antes de dividir
-            const totalHours = workMinutes > 0 ? workMinutes / 60 : 0;
-            acc[index].totalHours = totalHours;
-
-            // Calcular horas extras: más de 8 horas de trabajo (sin contar almuerzo)
-            // 8 horas = 480 minutos
-            const requiredWorkMinutes = 480; // 8 horas de trabajo (480 minutos)
-            const overtimeByWorkTime =
-              workMinutes > requiredWorkMinutes
-                ? workMinutes - requiredWorkMinutes
-                : 0;
-
-            // Las horas extras se calculan solo sobre el trabajo
-            const totalOvertimeMinutes = Math.max(0, overtimeByWorkTime);
-            acc[index].overtimeHours =
-              totalOvertimeMinutes > 0 ? totalOvertimeMinutes / 60 : 0;
+          } else {
+            // Fallback: Si no hay horario o es día libre pero el empleado marcó, calcular desde la entrada real
+            this.calculateHoursWithoutSchedule(acc, index);
           }
         } else {
           // Si no hay marcación pero hay schedule, calcular retraso si aplica
@@ -1523,7 +1471,7 @@ export class TimelogsComponent {
             acc[index].schedule?.schedule &&
             !acc[index].schedule.schedule.day_off
           ) {
-            // No hay nada que hacer aquí, el delay se calcula cuando hay entrada
+            // El delay se calcula arriba cuando hay entrada
           }
         }
 
@@ -1627,7 +1575,7 @@ export class TimelogsComponent {
           return false;
         }
 
-        const range = this.delayRange();
+        const range = this.delayRangeFilter();
         // Si no hay rango seleccionado (está en "Todos"), mostrar todos los retrasos
         if (!range) {
           return true; // Mostrar todos los retrasos
@@ -2162,5 +2110,68 @@ export class TimelogsComponent {
     // This will cause httpResource to refetch
     const current = this.dateRange();
     this.dateRange.set([...current]);
+  }
+
+  /**
+   * Calcula las horas trabajadas y extras para un día sin horario definido
+   * o cuando se trabaja en día libre.
+   */
+  private calculateHoursWithoutSchedule(acc: DayLog[], index: number): void {
+    const entryDate = this.parseLogDate(acc[index].entry);
+    const exitDate = this.parseLogDate(acc[index].exit);
+
+    // Validar que las fechas sean válidas y que exitDate > entryDate
+    if (
+      isNaN(entryDate.getTime()) ||
+      isNaN(exitDate.getTime()) ||
+      exitDate <= entryDate
+    ) {
+      if (acc[index].entry || acc[index].exit) {
+        this.logger.warn(
+          '[TimelogsComponent] Fechas inválidas o salida anterior a entrada (sin horario)',
+          {
+            day: acc[index].day,
+            entry: acc[index].entry?.date,
+            exit: acc[index].exit?.date,
+            employee: `${acc[index].employee?.first_name} ${acc[index].employee?.father_name}`,
+          }
+        );
+      }
+      acc[index].totalHours = 0;
+      acc[index].overtimeHours = 0;
+      return;
+    }
+
+    const totalMinutes = differenceInMinutes(exitDate, entryDate);
+
+    // Calcular tiempo de almuerzo (solo restar 1 hora = 60 minutos máximo)
+    let lunchTimeToSubtract = 0;
+    if (acc[index].lunch_start && acc[index].lunch_end) {
+      const lunchStartDate = new Date(acc[index].lunch_start.date);
+      const lunchEndDate = new Date(acc[index].lunch_end.date);
+
+      if (
+        !isNaN(lunchStartDate.getTime()) &&
+        !isNaN(lunchEndDate.getTime()) &&
+        lunchEndDate > lunchStartDate
+      ) {
+        const actualLunchMinutes = differenceInMinutes(
+          lunchEndDate,
+          lunchStartDate
+        );
+        if (actualLunchMinutes > 0) {
+          lunchTimeToSubtract = Math.min(actualLunchMinutes, 60);
+        }
+      }
+    }
+
+    const workMinutes = totalMinutes - lunchTimeToSubtract;
+    const totalHours = workMinutes > 0 ? workMinutes / 60 : 0;
+    acc[index].totalHours = totalHours;
+
+    // Calcular horas extras: más de 8 horas
+    const requiredWorkMinutes = 480;
+    const overtimeMinutes = Math.max(0, workMinutes - requiredWorkMinutes);
+    acc[index].overtimeHours = overtimeMinutes / 60;
   }
 }

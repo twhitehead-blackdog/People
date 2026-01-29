@@ -30,17 +30,8 @@ import {
   startOfDay,
   startOfWeek,
   subWeeks,
-  parseISO,
 } from 'date-fns';
 import { formatInTimeZone, toDate } from 'date-fns-tz';
-
-// Helper para parsear fechas de la DB como UTC (evita desfase de -1 día)
-const parseUTCDateString = (dateStr: string | null | undefined): Date | null => {
-  if (!dateStr) return null;
-  // Tomar solo la parte de fecha (YYYY-MM-DD) y forzar interpretación UTC
-  const cleanDate = dateStr.split('T')[0];
-  return new Date(cleanDate + 'T12:00:00Z'); // Usar mediodía UTC para evitar problemas de zona horaria
-};
 import { ConfirmationService, MenuItem, MessageService } from 'primeng/api';
 import { Avatar } from 'primeng/avatar';
 import { Button } from 'primeng/button';
@@ -81,6 +72,16 @@ import {
   getRequestTypeSeverity,
   getSeverityColor,
 } from './request.helpers';
+
+// Helper para parsear fechas de la DB como UTC (evita desfase de -1 día)
+const parseUTCDateString = (
+  dateStr: string | null | undefined
+): Date | null => {
+  if (!dateStr) return null;
+  // Tomar solo la parte de fecha (YYYY-MM-DD) y forzar interpretación UTC
+  const cleanDate = dateStr.split('T')[0];
+  return new Date(cleanDate + 'T12:00:00Z'); // Usar mediodía UTC para evitar problemas de zona horaria
+};
 
 type Notification = {
   id: string;
@@ -1021,7 +1022,6 @@ type Reminder = {
               (requestCreated)="refreshEmployeeRequests()"
             />
           </p-tabpanel>
-
 
           <p-tabpanel value="reminders">
             <div class="space-y-4">
@@ -2242,27 +2242,27 @@ export class BranchManagerComponent {
     const endOfDayISO =
       new Date(`${dateStr}T23:59:59-05:00`).toISOString().split('.')[0] + 'Z';
 
-    // Construir URL con filtros correctos usando 'and' para rango de fechas
-    const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`;
-    const select = `*,employee:employees!inner(id,first_name,father_name,is_active),branch:branches(id, name, short_name)`;
+    const select = `*,employee:employees!timelogs_employee_id_fkey(id,first_name,father_name,is_active),branch:branches(id, name, short_name)`;
 
-    let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
-
-    // Usar 'and' para combinar condiciones de fecha como en timelogs-api.service
-    url += `&and=(created_at.gte.${startOfDayISO},created_at.lte.${endOfDayISO})`;
-
-    // Filtrar solo empleados activos
-    url += `&employee.is_active=eq.true`;
+    const params: Record<string, string> = {
+      select,
+      'employee.is_active': 'eq.true',
+      order: 'created_at.asc',
+    };
 
     if (branchId) {
-      url += `&branch_id=eq.${branchId}`;
+      params['branch_id'] = `eq.${branchId}`;
     }
 
     if (companyId) {
-      url += `&company_id=eq.${companyId}`;
+      params['company_id'] = `eq.${companyId}`;
     }
 
-    url += `&order=created_at.asc`;
+    const manualLogsCondition = `and(punched_at.gte.${startOfDayISO},punched_at.lte.${endOfDayISO})`;
+    const autoLogsCondition = `and(punched_at.is.null,created_at.gte.${startOfDayISO},created_at.lte.${endOfDayISO})`;
+    params['or'] = `(${manualLogsCondition},${autoLogsCondition})`;
+
+    const url = this.apiUrl.build('rest/v1/timelogs', params);
 
     return {
       url,
@@ -2471,7 +2471,7 @@ export class BranchManagerComponent {
     const branchId = this.currentBranch()?.id;
     const companyId = this.organizationService.getCurrentCompanyId();
     const params: any = {
-      select: `*,employee:employees!inner(id,first_name,father_name,is_active)`,
+      select: `*,employee:employees!timelogs_employee_id_fkey(id,first_name,father_name,is_active),branch:branches(id, name, short_name)`,
       order: 'due_date.asc',
       'employee.is_active': 'eq.true', // Solo empleados activos
     };
@@ -2711,7 +2711,7 @@ export class BranchManagerComponent {
         };
       }
 
-      const logTime = new Date(log.created_at);
+      const logTime = new Date(log.punched_at || log.created_at);
       const entry = grouped[log.employee_id];
 
       // Al tener al menos una marcación en esta sucursal, ya no está missing

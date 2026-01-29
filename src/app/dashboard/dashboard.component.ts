@@ -142,17 +142,7 @@ import { DogAnimationComponent } from './components/dog.component';
                   <i class="pi pi-building text-base"></i>
                   <span>Administración</span></a
                 >
-                /* } @if(store.hasDashboardAccess() && store.isAdmin() &&
-                !store.hasPortalAccessOnly()) {
-                <a
-                  (click)="navigateTo('payroll')"
-                  [class.selected]="isPayrollActive()"
-                  class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
-                >
-                  <i class="pi pi-money-bill text-base"></i>
-                  <span>Nómina</span></a
-                >
-                */ } @if((store.hasDashboardAccess() && (store.isAdmin() ||
+                } @if((store.hasDashboardAccess() && (store.isAdmin() ||
                 (store.isScheduleAdmin() && !store.hasPortalAccessOnly()))) ||
                 store.hasTimeManagementAccess()) {
                 <a
@@ -265,17 +255,7 @@ import { DogAnimationComponent } from './components/dog.component';
               ><i class="pi pi-calendar text-lg"></i>
               <span>Gestión de tiempo</span></a
             >
-            /* } @if(store.hasDashboardAccess() && store.isAdmin() &&
-            !store.hasPortalAccessOnly()) {
-            <a
-              (click)="navigateTo('payroll'); toggleMenu()"
-              [class.bg-gray-700]="isPayrollActive()"
-              [class.text-white]="isPayrollActive()"
-              [class.shadow-md]="isPayrollActive()"
-              class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
-              ><i class="pi pi-money-bill text-lg"></i> <span>Nómina</span></a
-            >
-            */ }
+            }
             <a
               (click)="navigateTo('timeclock'); toggleMenu()"
               [class.bg-gray-700]="isTimeclockActive()"
