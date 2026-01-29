@@ -279,6 +279,32 @@ export class TimelogsComponent {
   private injector = inject(Injector);
   public timelogsApiService = inject(TimelogsApiService);
 
+  // Helper robusto para parsear fechas de logs
+  private parseLogDate(log: any): Date {
+    // 1. Priorizar punched_at sobre created_at
+    const rawDate = log.punched_at || log.created_at;
+
+    // 2. Crear fecha
+    const date = new Date(rawDate);
+
+    // 3. Validar fecha
+    if (isNaN(date.getTime())) {
+      this.logger.warn('[TimelogsComponent] Fecha inválida encontrada:', log);
+      return new Date(); // Fallback a hoy para evitar crash, pero loggeado
+    }
+
+    // 4. Validación de año (sanidad)
+    if (date.getFullYear() < 2020) {
+      this.logger.warn('[TimelogsComponent] Fecha sospechosa (año < 2020):', {
+        id: log.id,
+        date: rawDate,
+        parsed: date,
+      });
+    }
+
+    return date;
+  }
+
   // Computed para verificar si es Naz
   public isNaz = computed(() => this.organizationService.isNaz());
 
@@ -958,16 +984,11 @@ export class TimelogsComponent {
         this.branchId() ? x.branch_id === this.branchId() : true
       )
       .map((x: any) => {
-        // Convertir created_at de UTC (viene de Supabase) a hora local de Panamá
-        // x.created_at viene en formato ISO string desde Supabase (UTC)
-        const logDateUTC = new Date(x.created_at);
-        // Usar formatInTimeZone directamente para obtener la fecha en formato yyyy-MM-dd
-        // en la zona horaria de Panamá, sin crear un Date intermedio que pueda cambiar el día
-        const dayStr = formatInTimeZone(
-          logDateUTC,
-          this.TIMEZONE,
-          'yyyy-MM-dd'
-        );
+        // Usar helper para obtener la fecha correcta (prioriza punched_at)
+        const logDate = this.parseLogDate(x);
+
+        // Usar formatInTimeZone para obtener el bucket del día correcto en Panamá
+        const dayStr = formatInTimeZone(logDate, this.TIMEZONE, 'yyyy-MM-dd');
 
         return { ...x, day: dayStr };
       })
@@ -1167,13 +1188,22 @@ export class TimelogsComponent {
           return acc;
         }
 
+        // Usar helper robusto para determinar la fecha efectiva
+        // Esto corrige problemas de backfilling y parseo
+        const effectiveDate = this.parseLogDate(x);
+
         acc[index] = {
           ...acc[index],
-          [x.type]: { date: x.created_at, branch: x.branch, id: x.id },
+          [x.type]: {
+            date: effectiveDate, // Usar la fecha parseada y validada
+            branch: x.branch,
+            id: x.id,
+          },
         };
 
         // Detectar alertas cuando hay marcación
-        const dayDate = new Date(acc[index].day);
+        const dayDate = new Date(acc[index].day); // Esto usa el string YYYY-MM-DD del bucket
+
         const dayStr = formatInTimeZone(dayDate, this.TIMEZONE, 'yyyy-MM-dd');
         const timeoffForDay = timeoffsData.find((timeoff) => {
           if (timeoff.employee_id !== acc[index].employee.id) return false;

@@ -324,7 +324,7 @@ export class HomeComponent {
     // El interceptor HTTP agregará el header Range automáticamente para peticiones a timelogs
     const companyId = this.organizationService.getCurrentCompanyId();
     // Usar !timelogs_employee_id_fkey para especificar la relación correcta (hay dos FKs a employees)
-    let url = `${baseUrl}/rest/v1/timelogs?select=created_at,employee_id,type,employee:employees!timelogs_employee_id_fkey(first_name,father_name,is_active)&type=eq.entry&created_at=gte.${from}&created_at=lte.${to}&order=created_at.asc&limit=5000`;
+    let url = `${baseUrl}/rest/v1/timelogs?select=created_at,employee_id,type,employee:employees!timelogs_employee_id_fkey!inner(first_name,father_name,is_active)&type=eq.entry&created_at=gte.${from}&created_at=lte.${to}&order=created_at.asc&limit=5000`;
     
     // Filtrar solo empleados activos
     url += `&employee.is_active=eq.true`;

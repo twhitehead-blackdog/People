@@ -2238,9 +2238,8 @@ export class BranchManagerComponent {
       new Date(`${dateStr}T23:59:59-05:00`).toISOString().split('.')[0] + 'Z';
 
     // Construir URL usando ApiUrlService
-    // Usar !timelogs_employee_id_fkey para especificar la relación correcta (hay dos FKs a employees)
-    // REMOVED !inner to allow fetching logs even if employee relation is somehow partial, though in practice we drive from branchEmployees
-    const select = `*,employee:employees!timelogs_employee_id_fkey(id,first_name,father_name,is_active),branch:branches(id, name, short_name)`;
+    // Usar !timelogs_employee_id_fkey!inner para especificar la FK correcta con INNER JOIN
+    const select = `*,employee:employees!timelogs_employee_id_fkey!inner(id,first_name,father_name,is_active),branch:branches(id, name, short_name)`;
 
     const url =
       this.apiUrl.build('rest/v1/timelogs', {

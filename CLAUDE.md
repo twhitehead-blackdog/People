@@ -92,6 +92,52 @@ All queries MUST include `company_id` filter (except `companies` table). Stores 
 - Timezone: `America/Panama`
 - Hours display: `formatHoursMinutes()` utility
 
+### PostgREST: Múltiples Foreign Keys a la Misma Tabla
+
+**CRÍTICO:** Cuando una tabla tiene múltiples FKs apuntando a la misma tabla (ej: `timelogs` tiene `employee_id` y `created_by` ambos referenciando `employees`), PostgREST NO puede determinar automáticamente cuál relación usar.
+
+**Error típico:**
+```
+PGRST201: Could not embed because more than one relationship was found for 'timelogs' and 'employees'
+```
+
+**Solución:** Especificar explícitamente el nombre de la FK en el select:
+
+```typescript
+// ❌ INCORRECTO - PostgREST no sabe cuál FK usar
+const select = `*,employee:employees(id,first_name)`;
+const select = `*,employee:employees!inner(id,first_name)`;
+
+// ✅ CORRECTO - Especificar la FK (LEFT JOIN por defecto)
+const select = `*,employee:employees!timelogs_employee_id_fkey(id,first_name)`;
+
+// ✅ CORRECTO - Especificar FK + INNER JOIN (cuando se filtra por employee.is_active, etc.)
+const select = `*,employee:employees!timelogs_employee_id_fkey!inner(id,first_name,is_active)`;
+
+// ✅ CORRECTO - Para obtener el creador (created_by)
+const select = `*,creator:employees!timelogs_created_by_fkey(id,first_name)`;
+```
+
+**IMPORTANTE sobre `!inner`:**
+- Si la consulta original usaba `employees!inner(...)`, la versión corregida DEBE ser `employees!fk_name!inner(...)`
+- Sin `!inner`, los filtros como `employee.is_active=eq.true` NO filtran los registros principales (solo los embebidos)
+- Orden correcto: `!fk_name!inner` (FK primero, inner después)
+
+**Tablas afectadas actualmente:**
+| Tabla | FK Principal | FK Secundaria |
+|-------|--------------|---------------|
+| `timelogs` | `timelogs_employee_id_fkey` (employee_id) | `timelogs_created_by_fkey` (created_by) |
+| `employee_disabilities` | `employee_disabilities_employee_id_fkey` | `employee_disabilities_created_by_fkey` |
+| `employee_vacations` | `employee_vacations_employee_id_fkey` | `employee_vacations_created_by_fkey` |
+| `document_requests` | `document_requests_employee_id_fkey` | `document_requests_created_by_fkey` |
+| `time_offs` | `time_offs_employee_id_fkey` | `timeoffs_created_by_fkey` |
+
+**Al agregar una nueva FK a employees en cualquier tabla:**
+1. Buscar TODAS las consultas que usen esa tabla con `employees`
+2. Actualizar cada una para especificar `!nombre_de_la_fk`
+3. **Si usaba `!inner`, mantenerlo:** `employees!fk_name!inner`
+4. El nombre de la FK sigue el patrón: `{tabla}_{columna}_fkey`
+
 ## Key Files
 
 - `src/app/models.ts` - All TypeScript interfaces

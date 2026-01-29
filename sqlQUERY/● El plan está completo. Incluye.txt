@@ -1,0 +1,296 @@
+● El plan está completo. Incluye:
+
+  1. Migración DB - Agregar campos source, created_by, punched_at, reason a timelogs
+  2. Los 4 tipos de marcación - entry, lunch_start, lunch_end, exit
+  3. Validación estricta - Bloqueo completo sin entrada previa, secuencia lógica obligatoria
+  4. Control de acceso - Solo visible para admin/schedule_admin/schedule_approver
+  5. Panel de estado - Muestra las 4 marcaciones del día seleccionado
+
+──────────────────────────────────────────────────────────────────────────────────────────────────
+ Ready to code?
+
+ Here is Claude's plan:
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+ Plan: Marcación Manual (Omisiones de Marcación)
+
+ Resumen
+
+ Agregar funcionalidad de marcación manual para administradores en pt-settings, permitiendo
+ registrar los 4 tipos de marcación (entrada, inicio almuerzo, fin almuerzo, salida) para
+ empleados que omitieron su marcación.
+
+ ---
+ 1. Migración de Base de Datos
+
+ Archivo: database/migrations/YYYYMMDD_add_manual_timelog_fields.sql
+
+ ALTER TABLE timelogs
+   ADD COLUMN IF NOT EXISTS source VARCHAR(20) DEFAULT 'KIOSK',
+   ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES employees(id),
+   ADD COLUMN IF NOT EXISTS punched_at TIMESTAMPTZ,
+   ADD COLUMN IF NOT EXISTS reason TEXT;
+
+ -- Índice para consultas por source
+ CREATE INDEX IF NOT EXISTS idx_timelogs_source ON timelogs(source);
+
+ COMMENT ON COLUMN timelogs.source IS 'KIOSK (reloj), MANUAL (admin), RPC (legacy)';
+ COMMENT ON COLUMN timelogs.created_by IS 'ID del admin que creó la marcación manual';
+ COMMENT ON COLUMN timelogs.punched_at IS 'Fecha/hora de la marcación (para manual, puede diferir
+  de created_at)';
+ COMMENT ON COLUMN timelogs.reason IS 'Razón de la marcación manual';
+
+ ---
+ 2. Actualizar Modelo TypeScript
+
+ Archivo: src/app/models.ts (línea ~266)
+
+ export type TimeLog = {
+   // ... campos existentes ...
+   source?: 'KIOSK' | 'MANUAL' | 'RPC';
+   created_by?: string;
+   punched_at?: Date;
+   reason?: string;
+ };
+
+ ---
+ 3. Nuevo Componente: ManualTimelogComponent
+
+ Archivo: src/app/dashboard/settings/manual-timelog.component.ts
+
+ Signals:
+
+ // Selectores
+ selectedBranch = signal<string | null>(null);
+ selectedEmployee = signal<string | null>(null);
+
+ // Fecha/hora
+ selectedDate = signal<Date>(new Date());
+ selectedTime = signal<Date>(new Date());
+
+ // Tipo de marcación (los 4 tipos)
+ punchType = signal<'entry' | 'lunch_start' | 'lunch_end' | 'exit'>('entry');
+
+ // Estado de marcaciones existentes (los 4 tipos)
+ existingPunches = signal<{
+   entry: Date | null;
+   lunch_start: Date | null;
+   lunch_end: Date | null;
+   exit: Date | null;
+ }>({ entry: null, lunch_start: null, lunch_end: null, exit: null });
+
+ // Razón y UI state
+ reason = signal<string>('');
+ loadingPunches = signal<boolean>(false);
+ submitting = signal<boolean>(false);
+
+ Opciones de tipo de marcación:
+
+ punchTypes = [
+   { label: 'Entrada', value: 'entry' },
+   { label: 'Inicio Almuerzo', value: 'lunch_start' },
+   { label: 'Fin Almuerzo', value: 'lunch_end' },
+   { label: 'Salida', value: 'exit' }
+ ];
+
+ Template - Panel de estado (los 4 tipos):
+
+ <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+   <span [class]="existingPunches().entry ? 'text-green-500' : 'text-orange-500'">
+     <i class="pi" [class.pi-check]="existingPunches().entry"
+ [class.pi-times]="!existingPunches().entry"></i>
+     Entrada: {{ existingPunches().entry ? (existingPunches().entry | date:'h:mm a') : 'NO' }}
+   </span>
+   <span [class]="existingPunches().lunch_start ? 'text-green-500' : 'text-orange-500'">
+     <i class="pi" [class.pi-check]="existingPunches().lunch_start"
+ [class.pi-times]="!existingPunches().lunch_start"></i>
+     Ini.Almuerzo: {{ existingPunches().lunch_start ? (existingPunches().lunch_start | date:'h:mm
+  a') : 'NO' }}
+   </span>
+   <span [class]="existingPunches().lunch_end ? 'text-green-500' : 'text-orange-500'">
+     <i class="pi" [class.pi-check]="existingPunches().lunch_end"
+ [class.pi-times]="!existingPunches().lunch_end"></i>
+     Fin.Almuerzo: {{ existingPunches().lunch_end ? (existingPunches().lunch_end | date:'h:mm a')
+  : 'NO' }}
+   </span>
+   <span [class]="existingPunches().exit ? 'text-green-500' : 'text-orange-500'">
+     <i class="pi" [class.pi-check]="existingPunches().exit"
+ [class.pi-times]="!existingPunches().exit"></i>
+     Salida: {{ existingPunches().exit ? (existingPunches().exit | date:'h:mm a') : 'NO' }}
+   </span>
+ </div>
+
+ Lógica de validación (BLOQUEO COMPLETO sin entrada):
+
+ canSubmit = computed(() => {
+   if (!this.selectedEmployee() || !this.selectedDate() || !this.selectedTime()) return false;
+   if (this.submitting() || this.loadingPunches()) return false;
+
+   const existing = this.existingPunches();
+   const type = this.punchType();
+
+   // Bloquear si ya existe ese tipo de marcación
+   if (existing[type]) return false;
+
+   // BLOQUEO COMPLETO: No permitir lunch_start, lunch_end o exit si no hay entrada
+   if (type !== 'entry' && !existing.entry) return false;
+
+   // No permitir lunch_end sin lunch_start
+   if (type === 'lunch_end' && !existing.lunch_start) return false;
+
+   // No permitir exit sin lunch_end (si lunch_start existe)
+   if (type === 'exit' && existing.lunch_start && !existing.lunch_end) return false;
+
+   return true;
+ });
+
+ validationError = computed(() => {
+   const existing = this.existingPunches();
+   const type = this.punchType();
+
+   if (existing[type]) {
+     const labels: Record<string, string> = {
+       entry: 'una entrada',
+       lunch_start: 'un inicio de almuerzo',
+       lunch_end: 'un fin de almuerzo',
+       exit: 'una salida'
+     };
+     return `Ya existe ${labels[type]} registrada para este día.`;
+   }
+
+   if (type !== 'entry' && !existing.entry) {
+     return 'No se puede registrar esta marcación sin una entrada previa.';
+   }
+
+   if (type === 'lunch_end' && !existing.lunch_start) {
+     return 'No se puede registrar fin de almuerzo sin inicio de almuerzo.';
+   }
+
+   if (type === 'exit' && existing.lunch_start && !existing.lunch_end) {
+     return 'No se puede registrar salida sin fin de almuerzo.';
+   }
+
+   return null;
+ });
+
+ Consulta de marcaciones existentes:
+
+ async checkExistingPunches() {
+   const employeeId = this.selectedEmployee();
+   const date = this.selectedDate();
+   if (!employeeId || !date) return;
+
+   this.loadingPunches.set(true);
+
+   const startDate = startOfDay(date);
+   const endDate = endOfDay(date);
+
+   const url = this.apiUrl.build('rest/v1/timelogs', {
+     employee_id: `eq.${employeeId}`,
+     company_id: `eq.${this.orgService.getCurrentCompanyId()}`,
+     and: `(created_at.gte.${startDate.toISOString()},created_at.lt.${endDate.toISOString()})`,
+     select: 'type,created_at,punched_at'
+   });
+
+   try {
+     const logs = await firstValueFrom(this.http.get<TimeLog[]>(url));
+
+     this.existingPunches.set({
+       entry: this.findPunchTime(logs, 'entry'),
+       lunch_start: this.findPunchTime(logs, 'lunch_start'),
+       lunch_end: this.findPunchTime(logs, 'lunch_end'),
+       exit: this.findPunchTime(logs, 'exit')
+     });
+   } finally {
+     this.loadingPunches.set(false);
+   }
+ }
+
+ private findPunchTime(logs: TimeLog[], type: string): Date | null {
+   const log = logs.find(l => l.type === type);
+   return log ? new Date(log.punched_at || log.created_at) : null;
+ }
+
+ ---
+ 4. Integrar en Settings Component
+
+ Archivo: src/app/dashboard/settings.component.ts
+
+ Imports:
+
+ import { ManualTimelogComponent } from './settings/manual-timelog.component';
+
+ Agregar a imports array y DashboardStore:
+
+ imports: [..., ManualTimelogComponent],
+
+ // En la clase:
+ private dashboardStore = inject(DashboardStore);
+ public canManageSchedules = this.dashboardStore.canManageSchedules;
+
+ Tab en template (después de M-Pets):
+
+ <!-- En p-tablist -->
+ @if (canManageSchedules()) {
+   <p-tab value="4">
+     <i class="pi pi-clock mr-2"></i>
+     Marcación Manual
+   </p-tab>
+ }
+
+ <!-- En p-tabpanels -->
+ @if (canManageSchedules()) {
+   <p-tabpanel value="4">
+     <pt-manual-timelog />
+   </p-tabpanel>
+ }
+
+ ---
+ 5. Validación Backend (RLS)
+
+ CREATE OR REPLACE FUNCTION can_create_manual_timelog(creator_id UUID)
+ RETURNS BOOLEAN AS $$
+ DECLARE
+   creator_position RECORD;
+ BEGIN
+   SELECT p.admin, p.schedule_admin, p.schedule_approver
+   INTO creator_position
+   FROM employees e
+   JOIN positions p ON e.position_id = p.id
+   WHERE e.id = creator_id;
+
+   RETURN creator_position.admin = true
+       OR creator_position.schedule_admin = true
+       OR creator_position.schedule_approver = true;
+ END;
+ $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+ ---
+ 6. Archivos a Crear/Modificar
+ ┌────────────────────────────────────────────────────────────┬───────────┐
+ │                          Archivo                           │  Acción   │
+ ├────────────────────────────────────────────────────────────┼───────────┤
+ │ database/migrations/YYYYMMDD_add_manual_timelog_fields.sql │ CREAR     │
+ ├────────────────────────────────────────────────────────────┼───────────┤
+ │ src/app/models.ts                                          │ MODIFICAR │
+ ├────────────────────────────────────────────────────────────┼───────────┤
+ │ src/app/dashboard/settings/manual-timelog.component.ts     │ CREAR     │
+ ├────────────────────────────────────────────────────────────┼───────────┤
+ │ src/app/dashboard/settings.component.ts                    │ MODIFICAR │
+ └────────────────────────────────────────────────────────────┴───────────┘
+ ---
+ 7. Verificación
+
+ 1. npm run start:dev
+ 2. Login como admin/schedule_admin
+ 3. Ir a /admin/settings → Tab "Marcación Manual"
+ 4. Probar secuencia: seleccionar empleado → fecha → ver estado
+ 5. Validar bloqueos:
+   - No permitir duplicados
+   - No permitir lunch_start/lunch_end/exit sin entry
+   - No permitir lunch_end sin lunch_start
+   - No permitir exit si hay lunch_start sin lunch_end
+ 6. Registrar marcación válida
+ 7. Verificar en DB: SELECT * FROM timelogs WHERE source='MANUAL'
+ 8. Probar con usuario sin permisos → tab no visible
+╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌
+

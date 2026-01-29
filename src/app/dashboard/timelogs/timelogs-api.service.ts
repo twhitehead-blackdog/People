@@ -1,6 +1,5 @@
 import { inject, Injectable } from '@angular/core';
 import { addDays, format } from 'date-fns';
-import { formatInTimeZone } from 'date-fns-tz';
 import { ApiUrlService } from '../../services/api-url.service';
 import { LoggerService } from '../../services/logger.service';
 import { OrganizationService } from '../../services/organization.service';
@@ -24,23 +23,27 @@ export class TimelogsApiService {
   public buildLogsRequest(start: Date, end: Date, employeeId?: string) {
     const companyId = this.organizationService.getCurrentCompanyId();
 
-    const startDateStrPanama =
-      formatInTimeZone(start, this.TIMEZONE, 'yyyy-MM-dd') + 'T00:00:00-05:00';
-    const endDateStrPanama =
-      formatInTimeZone(addDays(end, 1), this.TIMEZONE, 'yyyy-MM-dd') +
-      'T00:00:00-05:00';
+    const normalizedStart = format(start, 'yyyy-MM-dd');
+    // Sumar 1 día para incluir el rango completo (hasta el inicio del día siguiente)
+    const normalizedEnd = format(addDays(end, 1), 'yyyy-MM-dd');
 
-    const startDate = new Date(startDateStrPanama).toISOString().split('.')[0] + 'Z';
-    const endDate = new Date(endDateStrPanama).toISOString().split('.')[0] + 'Z';
+    // Construir fechas explícitamente en zona horaria de Panamá (-05:00)
+    // Esto asegura que "2024-01-29" sea "2024-01-29T00:00:00-05:00"
+    const startDateStrPanama = `${normalizedStart}T00:00:00-05:00`;
+    const endDateStrPanama = `${normalizedEnd}T00:00:00-05:00`;
 
-    // Usar !timelogs_employee_id_fkey para especificar la relación correcta (hay dos FKs a employees)
+    const startDate =
+      new Date(startDateStrPanama).toISOString().split('.')[0] + 'Z';
+    const endDate =
+      new Date(endDateStrPanama).toISOString().split('.')[0] + 'Z';
+
+    // Usar !timelogs_employee_id_fkey para especificar la relación correcta
+    // Se elimina !inner y el filtro de is_active para ver historial completo
     const select =
       '*,employee:employees!timelogs_employee_id_fkey(id,first_name,father_name,is_active,branch:branches(id, name)),branch:branches(id, name, short_name)';
 
     const params: Record<string, string> = {
       select: select,
-      created_at: `gte.${startDate}`,
-      'employee.is_active': 'eq.true',
       order: 'created_at.asc',
     };
 
@@ -52,9 +55,14 @@ export class TimelogsApiService {
       params['company_id'] = `eq.${companyId}`;
     }
 
-    // Agregar el segundo filtro de fecha usando PostgREST 'and' para combinar condiciones
-    params['and'] = `(created_at.gte.${startDate},created_at.lte.${endDate})`;
-    delete params['created_at']; // Remover el filtro simple ya que usamos 'and'
+    // Filtro complejo para soportar logs backfilled (creados después pero efectivos antes)
+    // 1. Logs manuales: punched_at está en el rango
+    // 2. Logs automáticos: punched_at es null Y created_at está en el rango
+    // Nota: Usamos paréntesis para agrupar las condiciones OR y AND de PostgREST
+    const manualLogsCondition = `and(punched_at.gte.${startDate},punched_at.lte.${endDate})`;
+    const autoLogsCondition = `and(punched_at.is.null,created_at.gte.${startDate},created_at.lte.${endDate})`;
+
+    params['or'] = `(${manualLogsCondition},${autoLogsCondition})`;
 
     const url = this.apiUrl.build('rest/v1/timelogs', params);
 
