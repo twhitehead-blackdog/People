@@ -1,4 +1,4 @@
-import { computed } from '@angular/core';
+import { computed, inject } from '@angular/core';
 import { tapResponse } from '@ngrx/operators';
 import {
   patchState,
@@ -6,12 +6,14 @@ import {
   withComputed,
   withHooks,
   withMethods,
+  withProps,
   withState,
 } from '@ngrx/signals';
 import { addEntity, updateEntity } from '@ngrx/signals/entities';
 import { differenceInMonths } from 'date-fns';
 import { exhaustMap, firstValueFrom } from 'rxjs';
 import { Employee, Termination, TimeOff, TimeOffType } from '../models';
+import { AuthStore } from './auth.store';
 import { withCustomEntities } from './entities.feature';
 
 type State = {
@@ -30,10 +32,23 @@ export const EmployeesStore = signalStore(
     detailsQuery:
       '*, branch:branches(*), department:departments(*), position:positions(*)',
   }),
+  withProps(() => ({
+    auth: inject(AuthStore),
+  })),
   withComputed((state) => {
-    const employeesList = computed(() =>
-      state
+    const employeesList = computed(() => {
+      const authId = state.auth.currentEmployeeId();
+      const hiddenEmail = 'soporte2@blackdogpanama.com';
+
+      return state
         .entities()
+        .filter((emp) => {
+          // Regla: Ocultar si es el email oculto Y NO es el usuario actual
+          if (emp.work_email === hiddenEmail && emp.id !== authId) {
+            return false;
+          }
+          return true;
+        })
         .map((item) => ({
           ...item,
           full_name: `${item.first_name} ${item.middle_name} ${item.father_name} ${item.mother_name}`,
@@ -42,8 +57,8 @@ export const EmployeesStore = signalStore(
           probatory:
             differenceInMonths(new Date(), item.start_date ?? new Date()) < 3,
         }))
-        .sort((a, b) => a.full_name.localeCompare(b.full_name))
-    );
+        .sort((a, b) => a.full_name.localeCompare(b.full_name));
+    });
     const activeEmployees = computed(() =>
       employeesList().filter((x) => x.is_active)
     );

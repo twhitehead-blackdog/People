@@ -1,0 +1,443 @@
+[
+  {
+    "id": "eeacbf8d-f046-4603-83e0-4795f1941383",
+    "name": "Administrador",
+    "department_id": "d9b1c8bc-e52b-44cc-9398-0ae7568b2ece",
+    "company_id": "56db17da-bd8b-4ad8-89d3-78e0d5dcbe0a",
+    "employee_count": 1
+  },
+  {
+    "id": "92ef611f-ced7-457d-85cc-adb3fe6ab1c0",
+    "name": "Administrador",
+    "department_id": "c1c56709-0792-4dff-a131-f34e3df34905",
+    "company_id": "ddff33e5-1585-48ed-8689-fe4b8e77a63f",
+    "employee_count": 3
+  },
+  {
+    "id": "e93f748c-a07c-4d7f-b81a-a26d6bb829df",
+    "name": "Asistente Administrativa",
+    "department_id": "c1c56709-0792-4dff-a131-f34e3df34905",
+    "company_id": "ddff33e5-1585-48ed-8689-fe4b8e77a63f",
+    "employee_count": 0
+  },
+  {
+    "id": "17ff7977-9be3-44ea-b7f9-cdc4bc736d35",
+    "name": "Asistente Administrativa",
+    "department_id": "d9b1c8bc-e52b-44cc-9398-0ae7568b2ece",
+    "company_id": "56db17da-bd8b-4ad8-89d3-78e0d5dcbe0a",
+    "employee_count": 1
+  },
+  {
+    "id": "c96780c0-6d7b-4631-9dc2-3e0b76cfa214",
+    "name": "Asistente de contabilidad",
+    "department_id": "c1c56709-0792-4dff-a131-f34e3df34905",
+    "company_id": "ddff33e5-1585-48ed-8689-fe4b8e77a63f",
+    "employee_count": 0
+  },
+  {
+    "id": "08e1136d-7b29-49c4-9e32-a4ea8a383811",
+    "name": "Asistente de contabilidad",
+    "department_id": "d9b1c8bc-e52b-44cc-9398-0ae7568b2ece",
+    "company_id": "56db17da-bd8b-4ad8-89d3-78e0d5dcbe0a",
+    "employee_count": 5
+  },
+  {
+    "id": "f6d1fd56-2495-498f-9858-c2d20dfa7559",
+    "name": "Asistente de Mercadeo",
+    "department_id": "d9b1c8bc-e52b-44cc-9398-0ae7568b2ece",
+    "company_id": "56db17da-bd8b-4ad8-89d3-78e0d5dcbe0a",
+    "employee_count": 1
+  },
+  {
+    "id": "9b710dd3-7ea9-4c90-8bca-a58330e92573",
+    "name": "Asistente de Mercadeo",
+    "department_id": "c1c56709-0792-4dff-a131-f34e3df34905",
+    "company_id": "ddff33e5-1585-48ed-8689-fe4b8e77a63f",
+    "employee_count": 0
+  },
+  {
+    "id": "a8e17e71-3556-429a-8cc2-d1b580076bae",
+    "name": "Asistente de peluquería",
+    "department_id": "a1205ea8-d111-4492-8154-98cd175badd4",
+    "company_id": "56db17da-bd8b-4ad8-89d3-78e0d5dcbe0a",
+    "employee_count": 20
+  },
+  {
+    "id": "287fcb18-49c0-48d4-94c2-74a385161a12",
+    "name": "Asistente de peluquería",
+    "department_id": "87115168-556b-44b8-9ed6-59c701f431fa",
+    "company_id": "ddff33e5-1585-48ed-8689-fe4b8e77a63f",
+    "employee_count": 0
+  },
+  {
+    "id": "fde13789-b3ce-4453-a447-1ef0e50b31a6",
+    "name": "Asistente RR HH y Contabilidad",
+    "department_id": "c1c56709-0792-4dff-a131-f34e3df34905",
+    "company_id": "ddff33e5-1585-48ed-8689-fe4b8e77a63f",
+    "employee_count": 0
+  },
+  {
+    "id": "0c475ab8-4f6c-4c50-85d9-6f9b7cb908ca",
+    "name": "Asistente Veterinario ",
+    "department_id": "87115168-556b-44b8-9ed6-59c701f431fa",
+    "company_id": "ddff33e5-1585-48ed-8689-fe4b8e77a63f",
+    "employee_count": 0
+  },
+  {
+    "id": "5d770697-e80c-451c-8663-99e4211a971c",
+    "name": "Asistente Veterinario ",
+    "department_id": "a1205ea8-d111-4492-8154-98cd175badd4",
+    "company_id": "56db17da-bd8b-4ad8-89d3-78e0d5dcbe0a",
+    "employee_count": 3
+  },
+  {
+    "id": "696544e7-ef61-4a47-a5aa-49075c8a3fcc",
+    "name": "Ayudante de bodega",
+    "department_id": "a238f13e-b2b6-4bf6-8d37-b684fe6d3d80",
+    "company_id": "ddff33e5-1585-48ed-8689-fe4b8e77a63f",
+    "employee_count": 0
+  },
+  {
+    "id": "943c5d28-d714-4ca5-9182-1bf23f6d2046",
+    "name": "Ayudante de bodega",
+    "department_id": "b46b0fdb-5f4a-4a0a-8485-d4f7fd0e02d0",
+    "company_id": "56db17da-bd8b-4ad8-89d3-78e0d5dcbe0a",
+    "employee_count": 11
+  },
+  {
+    "id": "9db84384-ec53-4b16-9b42-a6cca9d44a11",
+    "name": "Conductor",
+    "department_id": "a1205ea8-d111-4492-8154-98cd175badd4",
+    "company_id": "56db17da-bd8b-4ad8-89d3-78e0d5dcbe0a",
+    "employee_count": 15
+  },
+  {
+    "id": "9597ed20-75d5-44b7-b158-9da3a2b271a1",
+    "name": "Conductor",
+    "department_id": "87115168-556b-44b8-9ed6-59c701f431fa",
+    "company_id": "ddff33e5-1585-48ed-8689-fe4b8e77a63f",
+    "employee_count": 0
+  },
+  {
+    "id": "51a458d7-ed89-4d1b-b76a-35cfaf89199b",
+    "name": "Coordinadora de Compras y Cadena de Suministro",
+    "department_id": "d9b1c8bc-e52b-44cc-9398-0ae7568b2ece",
+    "company_id": "56db17da-bd8b-4ad8-89d3-78e0d5dcbe0a",
+    "employee_count": 1
+  },
+  {
+    "id": "052aca5d-79e6-443f-9141-d07d35979fad",
+    "name": "Coordinadora de Compras y Cadena de Suministro",
+    "department_id": "c1c56709-0792-4dff-a131-f34e3df34905",
+    "company_id": "ddff33e5-1585-48ed-8689-fe4b8e77a63f",
+    "employee_count": 0
+  },
+  {
+    "id": "0feb3690-67ac-43d2-aa5c-84db727e1096",
+    "name": "Coordinador de Eficiencia Operativa",
+    "department_id": "c1c56709-0792-4dff-a131-f34e3df34905",
+    "company_id": "ddff33e5-1585-48ed-8689-fe4b8e77a63f",
+    "employee_count": 0
+  },
+  {
+    "id": "ab875592-1e98-4265-b076-ea46111b515c",
+    "name": "Coordinador de Eficiencia Operativa",
+    "department_id": "d9b1c8bc-e52b-44cc-9398-0ae7568b2ece",
+    "company_id": "56db17da-bd8b-4ad8-89d3-78e0d5dcbe0a",
+    "employee_count": 1
+  },
+  {
+    "id": "dc8b4463-6e05-48e9-adbb-043d928ec1bf",
+    "name": "Coordinador de Operaciones",
+    "department_id": "a1205ea8-d111-4492-8154-98cd175badd4",
+    "company_id": "56db17da-bd8b-4ad8-89d3-78e0d5dcbe0a",
+    "employee_count": 1
+  },
+  {
+    "id": "6e723428-b92b-44e8-ae0e-e72154849a75",
+    "name": "Desarrollador y Soporte IT",
+    "department_id": "c1c56709-0792-4dff-a131-f34e3df34905",
+    "company_id": "ddff33e5-1585-48ed-8689-fe4b8e77a63f",
+    "employee_count": 1
+  },
+  {
+    "id": "4ca524c8-072f-4e87-b244-3fce005a291c",
+    "name": "Desarrollador y Soporte IT",
+    "department_id": "d9b1c8bc-e52b-44cc-9398-0ae7568b2ece",
+    "company_id": "56db17da-bd8b-4ad8-89d3-78e0d5dcbe0a",
+    "employee_count": 3
+  },
+  {
+    "id": "68089fb1-cd40-46af-8826-b3d5f58d71c2",
+    "name": "Encargada de Contabilidad",
+    "department_id": "d9b1c8bc-e52b-44cc-9398-0ae7568b2ece",
+    "company_id": "56db17da-bd8b-4ad8-89d3-78e0d5dcbe0a",
+    "employee_count": 3
+  },
+  {
+    "id": "ef7d8f2e-77ae-48ac-acdb-fbcce4e31d32",
+    "name": "Encargada de Contabilidad",
+    "department_id": "c1c56709-0792-4dff-a131-f34e3df34905",
+    "company_id": "ddff33e5-1585-48ed-8689-fe4b8e77a63f",
+    "employee_count": 0
+  },
+  {
+    "id": "85e77fb3-edfa-406b-8114-3fd9262f3ac3",
+    "name": "Encargada de Inventario ",
+    "department_id": "c1c56709-0792-4dff-a131-f34e3df34905",
+    "company_id": "ddff33e5-1585-48ed-8689-fe4b8e77a63f",
+    "employee_count": 0
+  },
+  {
+    "id": "c2f981a3-2436-4b4e-8f93-97151e70b4b5",
+    "name": "Encargada de Inventario ",
+    "department_id": "d9b1c8bc-e52b-44cc-9398-0ae7568b2ece",
+    "company_id": "56db17da-bd8b-4ad8-89d3-78e0d5dcbe0a",
+    "employee_count": 2
+  },
+  {
+    "id": "d3f5308c-8e03-4fb0-be64-6c49d0949b39",
+    "name": "Encargada de Recursos Humanos",
+    "department_id": "c1c56709-0792-4dff-a131-f34e3df34905",
+    "company_id": "ddff33e5-1585-48ed-8689-fe4b8e77a63f",
+    "employee_count": 0
+  },
+  {
+    "id": "dff05302-d03c-41df-a047-49551bbc337a",
+    "name": "Encargada de Recursos Humanos",
+    "department_id": "d9b1c8bc-e52b-44cc-9398-0ae7568b2ece",
+    "company_id": "56db17da-bd8b-4ad8-89d3-78e0d5dcbe0a",
+    "employee_count": 2
+  },
+  {
+    "id": "6d7d6e2a-22e8-4488-86dd-e7c208fb6283",
+    "name": "Encargado de Marketing",
+    "department_id": "d9b1c8bc-e52b-44cc-9398-0ae7568b2ece",
+    "company_id": "56db17da-bd8b-4ad8-89d3-78e0d5dcbe0a",
+    "employee_count": 1
+  },
+  {
+    "id": "7ac45ec2-de8d-46ca-b021-198bdce3a61a",
+    "name": "Encargado de Marketing",
+    "department_id": "c1c56709-0792-4dff-a131-f34e3df34905",
+    "company_id": "ddff33e5-1585-48ed-8689-fe4b8e77a63f",
+    "employee_count": 0
+  },
+  {
+    "id": "9a12dd78-55a7-44e2-8bf4-e00723de75f7",
+    "name": "Especialista de Compras",
+    "department_id": "b46b0fdb-5f4a-4a0a-8485-d4f7fd0e02d0",
+    "company_id": "56db17da-bd8b-4ad8-89d3-78e0d5dcbe0a",
+    "employee_count": 2
+  },
+  {
+    "id": "5d20169d-b924-4378-8d6e-58de1747edb7",
+    "name": "Especialista de Eficiencia Operativa",
+    "department_id": "c1c56709-0792-4dff-a131-f34e3df34905",
+    "company_id": "ddff33e5-1585-48ed-8689-fe4b8e77a63f",
+    "employee_count": 0
+  },
+  {
+    "id": "0b525113-1515-4e66-8b51-c1e2e843ab51",
+    "name": "Especialista de Eficiencia Operativa",
+    "department_id": "d9b1c8bc-e52b-44cc-9398-0ae7568b2ece",
+    "company_id": "56db17da-bd8b-4ad8-89d3-78e0d5dcbe0a",
+    "employee_count": 1
+  },
+  {
+    "id": "5ae19cf3-969a-40e3-9fc4-478f4cca1402",
+    "name": "Especialista de Nómina y Gestión Administrativa",
+    "department_id": "c1c56709-0792-4dff-a131-f34e3df34905",
+    "company_id": "ddff33e5-1585-48ed-8689-fe4b8e77a63f",
+    "employee_count": 0
+  },
+  {
+    "id": "9645e59c-16ec-4d1b-b14e-f8ca4d3b6278",
+    "name": "Especialista de Nómina y Gestión Administrativa",
+    "department_id": "d9b1c8bc-e52b-44cc-9398-0ae7568b2ece",
+    "company_id": "56db17da-bd8b-4ad8-89d3-78e0d5dcbe0a",
+    "employee_count": 1
+  },
+  {
+    "id": "2e5250c5-598d-4a57-ab0b-b1f5c036191f",
+    "name": "Especialista en Mercadeo",
+    "department_id": "c1c56709-0792-4dff-a131-f34e3df34905",
+    "company_id": "ddff33e5-1585-48ed-8689-fe4b8e77a63f",
+    "employee_count": 0
+  },
+  {
+    "id": "ee4b83df-0d12-4a22-be14-7a9a1f783046",
+    "name": "Especialista en Mercadeo",
+    "department_id": "d9b1c8bc-e52b-44cc-9398-0ae7568b2ece",
+    "company_id": "56db17da-bd8b-4ad8-89d3-78e0d5dcbe0a",
+    "employee_count": 1
+  },
+  {
+    "id": "43e4c9ff-f599-4d71-94d0-dc9659e95897",
+    "name": "Especialista en Planificacion de la Demanda y Abastecimiento",
+    "department_id": "c1c56709-0792-4dff-a131-f34e3df34905",
+    "company_id": "ddff33e5-1585-48ed-8689-fe4b8e77a63f",
+    "employee_count": 0
+  },
+  {
+    "id": "65b44d07-e52b-4c47-9055-434d7e0def15",
+    "name": "Especialista en Planificacion de la Demanda y Abastecimiento",
+    "department_id": "d9b1c8bc-e52b-44cc-9398-0ae7568b2ece",
+    "company_id": "56db17da-bd8b-4ad8-89d3-78e0d5dcbe0a",
+    "employee_count": 1
+  },
+  {
+    "id": "5178d607-3e64-4849-8c86-e7984e3a7174",
+    "name": "Gerente de Operaciones",
+    "department_id": "87115168-556b-44b8-9ed6-59c701f431fa",
+    "company_id": "ddff33e5-1585-48ed-8689-fe4b8e77a63f",
+    "employee_count": 0
+  },
+  {
+    "id": "0b660014-936f-498b-80ea-c13bbf43f59c",
+    "name": "Gerente de Tienda",
+    "department_id": "a1205ea8-d111-4492-8154-98cd175badd4",
+    "company_id": "56db17da-bd8b-4ad8-89d3-78e0d5dcbe0a",
+    "employee_count": 21
+  },
+  {
+    "id": "f624907d-4de6-47f3-955b-8fe5faaeccc2",
+    "name": "Gerente de Tienda",
+    "department_id": "87115168-556b-44b8-9ed6-59c701f431fa",
+    "company_id": "ddff33e5-1585-48ed-8689-fe4b8e77a63f",
+    "employee_count": 0
+  },
+  {
+    "id": "be1bf427-5eee-43d9-a839-a5da7c3c4d82",
+    "name": "Gerente General",
+    "department_id": "c1c56709-0792-4dff-a131-f34e3df34905",
+    "company_id": "ddff33e5-1585-48ed-8689-fe4b8e77a63f",
+    "employee_count": 0
+  },
+  {
+    "id": "dd2f963d-c400-44cc-a50b-d96c382729f0",
+    "name": "Gerente General",
+    "department_id": "d9b1c8bc-e52b-44cc-9398-0ae7568b2ece",
+    "company_id": "56db17da-bd8b-4ad8-89d3-78e0d5dcbe0a",
+    "employee_count": 0
+  },
+  {
+    "id": "da426130-a27c-471b-8105-6c3a9a2b98bb",
+    "name": "Jefe de Bodega",
+    "department_id": "c1c56709-0792-4dff-a131-f34e3df34905",
+    "company_id": "ddff33e5-1585-48ed-8689-fe4b8e77a63f",
+    "employee_count": 0
+  },
+  {
+    "id": "9ad2ac54-9817-4b78-8a74-d1479d2969e8",
+    "name": "Jefe de Bodega",
+    "department_id": "d9b1c8bc-e52b-44cc-9398-0ae7568b2ece",
+    "company_id": "56db17da-bd8b-4ad8-89d3-78e0d5dcbe0a",
+    "employee_count": 5
+  },
+  {
+    "id": "5b13248f-d602-4ea0-a9d0-4680f3e27bcb",
+    "name": "Jefe de Compras",
+    "department_id": "a238f13e-b2b6-4bf6-8d37-b684fe6d3d80",
+    "company_id": "ddff33e5-1585-48ed-8689-fe4b8e77a63f",
+    "employee_count": 0
+  },
+  {
+    "id": "d2098e2e-eda9-46d8-99fe-2503a6bf9cd2",
+    "name": "Médico Veterinario",
+    "department_id": "87115168-556b-44b8-9ed6-59c701f431fa",
+    "company_id": "ddff33e5-1585-48ed-8689-fe4b8e77a63f",
+    "employee_count": 0
+  },
+  {
+    "id": "dd002d82-10b9-49e5-8e8d-a49bbcbe0d34",
+    "name": "Médico Veterinario",
+    "department_id": "a1205ea8-d111-4492-8154-98cd175badd4",
+    "company_id": "56db17da-bd8b-4ad8-89d3-78e0d5dcbe0a",
+    "employee_count": 15
+  },
+  {
+    "id": "36d53ed7-1011-4894-a3b5-ab9d11acf7ca",
+    "name": "Mensajero",
+    "department_id": "c1c56709-0792-4dff-a131-f34e3df34905",
+    "company_id": "ddff33e5-1585-48ed-8689-fe4b8e77a63f",
+    "employee_count": 0
+  },
+  {
+    "id": "53f7b14a-7ea0-4765-b167-21b8b8fe8b8f",
+    "name": "Mensajero",
+    "department_id": "d9b1c8bc-e52b-44cc-9398-0ae7568b2ece",
+    "company_id": "56db17da-bd8b-4ad8-89d3-78e0d5dcbe0a",
+    "employee_count": 5
+  },
+  {
+    "id": "6c3cc3d1-c594-423c-8d26-339b1ba1fc77",
+    "name": "Peluquero",
+    "department_id": "87115168-556b-44b8-9ed6-59c701f431fa",
+    "company_id": "ddff33e5-1585-48ed-8689-fe4b8e77a63f",
+    "employee_count": 0
+  },
+  {
+    "id": "8fae41e2-6054-48c6-91f9-7388a87d6245",
+    "name": "Peluquero",
+    "department_id": "a1205ea8-d111-4492-8154-98cd175badd4",
+    "company_id": "56db17da-bd8b-4ad8-89d3-78e0d5dcbe0a",
+    "employee_count": 43
+  },
+  {
+    "id": "de6dd73b-f787-49d7-a3ad-9b4a0feb8964",
+    "name": "Piso de Venta",
+    "department_id": "87115168-556b-44b8-9ed6-59c701f431fa",
+    "company_id": "ddff33e5-1585-48ed-8689-fe4b8e77a63f",
+    "employee_count": 3
+  },
+  {
+    "id": "37798195-2f2b-43b7-835e-c3fcfd491f37",
+    "name": "Piso de Venta",
+    "department_id": "a1205ea8-d111-4492-8154-98cd175badd4",
+    "company_id": "56db17da-bd8b-4ad8-89d3-78e0d5dcbe0a",
+    "employee_count": 78
+  },
+  {
+    "id": "998e5ece-afeb-475c-b894-8d1d02da6e6c",
+    "name": "Socio",
+    "department_id": "d9b1c8bc-e52b-44cc-9398-0ae7568b2ece",
+    "company_id": "56db17da-bd8b-4ad8-89d3-78e0d5dcbe0a",
+    "employee_count": 2
+  },
+  {
+    "id": "721075e8-77de-4934-8233-351e47f26437",
+    "name": "Socio",
+    "department_id": "c1c56709-0792-4dff-a131-f34e3df34905",
+    "company_id": "ddff33e5-1585-48ed-8689-fe4b8e77a63f",
+    "employee_count": 0
+  },
+  {
+    "id": "4e58edc4-2943-4a71-920c-a2f0f4d31bcc",
+    "name": "Sub Gerente",
+    "department_id": "a1205ea8-d111-4492-8154-98cd175badd4",
+    "company_id": "56db17da-bd8b-4ad8-89d3-78e0d5dcbe0a",
+    "employee_count": 20
+  },
+  {
+    "id": "9524dbe0-db20-449b-ac76-adaf1c7f9eb1",
+    "name": "Sub Gerente",
+    "department_id": "87115168-556b-44b8-9ed6-59c701f431fa",
+    "company_id": "ddff33e5-1585-48ed-8689-fe4b8e77a63f",
+    "employee_count": 1
+  },
+  {
+    "id": "17a5afbf-ec23-455d-8b56-f7d2be486fd3",
+    "name": "Tecnico de Administracion",
+    "department_id": "d9b1c8bc-e52b-44cc-9398-0ae7568b2ece",
+    "company_id": "56db17da-bd8b-4ad8-89d3-78e0d5dcbe0a",
+    "employee_count": 1
+  },
+  {
+    "id": "96d4ee55-400a-41b1-a4fc-2d61065025ce",
+    "name": "Tecnico de Administracion",
+    "department_id": "c1c56709-0792-4dff-a131-f34e3df34905",
+    "company_id": "ddff33e5-1585-48ed-8689-fe4b8e77a63f",
+    "employee_count": 0
+  }
+]

@@ -17,6 +17,7 @@ import { ToastModule } from 'primeng/toast';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { ApiUrlService } from '../services/api-url.service';
 import { DashboardStore } from '../stores/dashboard.store';
+import { ManualTimelogComponent } from './settings/manual-timelog.component';
 
 interface Setting {
   id: string;
@@ -48,6 +49,7 @@ interface EmailConfig {
     FormsModule,
     ToastModule,
     TabsModule,
+    ManualTimelogComponent,
   ],
   providers: [MessageService],
   template: `
@@ -76,6 +78,10 @@ interface EmailConfig {
           <p-tab value="3">
             <i class="pi pi-shopping-cart mr-2"></i>
             M-Pets Precios
+          </p-tab>
+          <p-tab value="4">
+            <i class="pi pi-clock mr-2"></i>
+            Marcación Manual
           </p-tab>
         </p-tablist>
 
@@ -812,6 +818,11 @@ interface EmailConfig {
               </div>
             </div>
           </p-card>
+        </p-tabpanel>
+
+        <!-- Tab: Marcación Manual -->
+        <p-tabpanel value="4">
+          <pt-manual-timelog />
         </p-tabpanel>
       </p-tabs>
     </div>

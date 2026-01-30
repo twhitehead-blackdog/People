@@ -5,7 +5,6 @@ import {
   importProvidersFrom,
   LOCALE_ID,
 } from '@angular/core';
-import { getEnv } from './utils/env.utils';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import {
   provideRouter,
@@ -15,6 +14,7 @@ import {
 } from '@angular/router';
 import Aura from '@primeng/themes/aura';
 import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
+import { getEnv } from './utils/env.utils';
 
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideAuth0 } from '@auth0/auth0-angular';
@@ -68,7 +68,11 @@ export const appConfig: ApplicationConfig = {
       authorizationParams: {
         // En desarrollo, siempre usar localhost para Auth0 (requisito de seguridad)
         // El servidor escucha en 0.0.0.0 para permitir acceso desde dispositivos móviles
-        redirect_uri: getEnv('ENV_APP_URL') ?? 'http://localhost:4200',
+        redirect_uri: (() => {
+          const url = getEnv('ENV_APP_URL');
+          if (!url) return 'http://localhost:4200';
+          return url.startsWith('http') ? url : `https://${url}`;
+        })(),
         audience: getEnv('ENV_AUTH0_AUDIENCE') ?? '',
       },
       useRefreshTokens: true,

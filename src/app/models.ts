@@ -263,6 +263,10 @@ export type TimeLog = {
   ip?: string;
   invalid_id?: boolean;
   created_at: Date;
+  source?: string;
+  punched_at?: Date | string;
+  created_by?: string;
+  reason?: string;
 };
 
 export type EmployeeSchedule = {

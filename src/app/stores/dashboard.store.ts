@@ -38,7 +38,8 @@ const initialState: State = {
   currentEmployeeId: null,
 };
 
-export const DashboardStore = signalStore({ providedIn: 'root' },
+export const DashboardStore = signalStore(
+  { providedIn: 'root' },
   withState(initialState),
   withProps(() => ({
     companies: inject(CompaniesStore),
@@ -54,15 +55,27 @@ export const DashboardStore = signalStore({ providedIn: 'root' },
   })),
   withComputed(
     ({ employees, branches, companies, selectedCompanyId, auth, testMode }) => {
+      const visibleEntities = computed(() => {
+        const authId = auth.currentEmployeeId();
+        const hiddenEmail = 'soporte2@blackdogpanama.com';
+
+        return employees.entities().filter((emp) => {
+          if (emp.work_email === hiddenEmail && emp.id !== authId) {
+            return false;
+          }
+          return true;
+        });
+      });
+
       const headCount = computed(() => {
-        const allEmployees = employees.entities();
+        const allEmployees = visibleEntities();
         const activeEmployees = allEmployees.filter((x) => x.is_active);
         return activeEmployees.length;
       });
 
       const currentEmployee = computed(() => {
         const employeeId = auth.currentEmployeeId();
-        const allEmployees = employees.entities();
+        const allEmployees = visibleEntities();
         return allEmployees.find((x) => x.id === employeeId);
       });
 
@@ -243,7 +256,7 @@ export const DashboardStore = signalStore({ providedIn: 'root' },
       );
 
       const employeesByGender = computed(() =>
-        employees.entities().reduce<
+        visibleEntities().reduce<
           {
             gender: string;
             count: number;
@@ -260,8 +273,7 @@ export const DashboardStore = signalStore({ providedIn: 'root' },
       );
 
       const countByGender = computed(() =>
-        employees
-          .entities()
+        visibleEntities()
           .filter((x) => x.is_active)
           .reduce((acc, item) => {
             acc[item.gender] = (acc[item.gender] || 0) + 1;
@@ -270,8 +282,7 @@ export const DashboardStore = signalStore({ providedIn: 'root' },
       );
 
       const birthDates = computed(() =>
-        employees
-          .entities()
+        visibleEntities()
           .filter((x) => x.is_active)
           .filter(
             (x) =>
@@ -315,7 +326,7 @@ export const DashboardStore = signalStore({ providedIn: 'root' },
       );
 
       const employeesList = computed(() =>
-        employees.entities().map((item) => ({
+        visibleEntities().map((item) => ({
           ...item,
           full_name: `${item.first_name} ${item.middle_name} ${item.father_name} ${item.mother_name}`,
           short_name: `${item.first_name} ${item.father_name}`,
@@ -330,19 +341,17 @@ export const DashboardStore = signalStore({ providedIn: 'root' },
         const now = new Date();
         const monthStart = startOfMonth(now);
         const monthEnd = endOfMonth(now);
-        const activeEmployees = employees.entities().filter((x) => x.is_active);
+        const activeEmployees = visibleEntities().filter((x) => x.is_active);
         const totalEmployees = activeEmployees.length;
 
         if (totalEmployees === 0) return 0;
 
-        const terminatedThisMonth = employees
-          .entities()
-          .filter(
-            (x) =>
-              x.end_date &&
-              new Date(x.end_date) >= monthStart &&
-              new Date(x.end_date) <= monthEnd
-          ).length;
+        const terminatedThisMonth = visibleEntities().filter(
+          (x) =>
+            x.end_date &&
+            new Date(x.end_date) >= monthStart &&
+            new Date(x.end_date) <= monthEnd
+        ).length;
 
         return totalEmployees > 0
           ? Math.round((terminatedThisMonth / totalEmployees) * 100 * 100) / 100
@@ -353,19 +362,17 @@ export const DashboardStore = signalStore({ providedIn: 'root' },
         const now = new Date();
         const yearStart = startOfMonth(subMonths(now, 11));
         const yearEnd = endOfMonth(now);
-        const activeEmployees = employees.entities().filter((x) => x.is_active);
+        const activeEmployees = visibleEntities().filter((x) => x.is_active);
         const totalEmployees = activeEmployees.length;
 
         if (totalEmployees === 0) return 0;
 
-        const terminatedThisYear = employees
-          .entities()
-          .filter(
-            (x) =>
-              x.end_date &&
-              new Date(x.end_date) >= yearStart &&
-              new Date(x.end_date) <= yearEnd
-          ).length;
+        const terminatedThisYear = visibleEntities().filter(
+          (x) =>
+            x.end_date &&
+            new Date(x.end_date) >= yearStart &&
+            new Date(x.end_date) <= yearEnd
+        ).length;
 
         return totalEmployees > 0
           ? Math.round((terminatedThisYear / totalEmployees) * 100 * 100) / 100
@@ -374,9 +381,9 @@ export const DashboardStore = signalStore({ providedIn: 'root' },
 
       // Antigüedad promedio
       const averageTenure = computed(() => {
-        const activeEmployees = employees
-          .entities()
-          .filter((x) => x.is_active && x.start_date);
+        const activeEmployees = visibleEntities().filter(
+          (x) => x.is_active && x.start_date
+        );
 
         if (activeEmployees.length === 0) return 0;
 
@@ -424,7 +431,7 @@ export const DashboardStore = signalStore({ providedIn: 'root' },
       // Nota: El cálculo real se hace en el componente usando httpResource
       // porque httpResource no puede estar dentro de withComputed
       const monthlyAbsenteeism = computed(() => {
-        const activeEmployees = employees.entities().filter((x) => x.is_active);
+        const activeEmployees = visibleEntities().filter((x) => x.is_active);
         const totalEmployees = activeEmployees.length;
 
         if (totalEmployees === 0) return { percentage: 0, totalDays: 0 };
@@ -448,7 +455,7 @@ export const DashboardStore = signalStore({ providedIn: 'root' },
 
       // Distribución por tipo de contrato
       const contractDistribution = computed(() => {
-        const activeEmployees = employees.entities().filter((x) => x.is_active);
+        const activeEmployees = visibleEntities().filter((x) => x.is_active);
         const now = new Date();
 
         const fixed = activeEmployees.filter(
@@ -509,7 +516,7 @@ export const DashboardStore = signalStore({ providedIn: 'root' },
       // Placeholder: usando planilla mensual como proxy
       // En producción debería usar ingresos reales de la empresa
       const peopleEfficiencyRatio = computed(() => {
-        const activeEmployees = employees.entities().filter((x) => x.is_active);
+        const activeEmployees = visibleEntities().filter((x) => x.is_active);
         const totalEmployees = activeEmployees.length;
 
         if (totalEmployees === 0) return 0;
@@ -525,20 +532,18 @@ export const DashboardStore = signalStore({ providedIn: 'root' },
         const now = new Date();
         const monthStart = startOfMonth(now);
         const monthEnd = endOfMonth(now);
-        const activeEmployees = employees.entities().filter((x) => x.is_active);
+        const activeEmployees = visibleEntities().filter((x) => x.is_active);
         const totalEmployees = activeEmployees.length;
 
         if (totalEmployees === 0) return 0;
 
-        const hiredThisMonth = employees
-          .entities()
-          .filter(
-            (x) =>
-              x.start_date &&
-              new Date(x.start_date) >= monthStart &&
-              new Date(x.start_date) <= monthEnd &&
-              x.is_active
-          ).length;
+        const hiredThisMonth = visibleEntities().filter(
+          (x) =>
+            x.start_date &&
+            new Date(x.start_date) >= monthStart &&
+            new Date(x.start_date) <= monthEnd &&
+            x.is_active
+        ).length;
 
         return totalEmployees > 0
           ? Math.round((hiredThisMonth / totalEmployees) * 100 * 100) / 100
@@ -550,27 +555,23 @@ export const DashboardStore = signalStore({ providedIn: 'root' },
         const monthStart = startOfMonth(now);
         const monthEnd = endOfMonth(now);
 
-        return employees
-          .entities()
-          .filter(
-            (x) =>
-              x.start_date &&
-              new Date(x.start_date) >= monthStart &&
-              new Date(x.start_date) <= monthEnd &&
-              x.is_active
-          ).length;
+        return visibleEntities().filter(
+          (x) =>
+            x.start_date &&
+            new Date(x.start_date) >= monthStart &&
+            new Date(x.start_date) <= monthEnd &&
+            x.is_active
+        ).length;
       });
 
       // Empleados en período de prueba
       const probatoryEmployees = computed(() => {
-        return employees
-          .entities()
-          .filter(
-            (x) =>
-              x.is_active &&
-              x.start_date &&
-              differenceInMonths(new Date(), new Date(x.start_date)) < 3
-          ).length;
+        return visibleEntities().filter(
+          (x) =>
+            x.is_active &&
+            x.start_date &&
+            differenceInMonths(new Date(), new Date(x.start_date)) < 3
+        ).length;
       });
 
       // Tasa de retención
@@ -579,27 +580,23 @@ export const DashboardStore = signalStore({ providedIn: 'root' },
         const yearStart = startOfMonth(subMonths(now, 11));
 
         // Empleados que estaban activos al inicio del período (empezaron antes del inicio del año)
-        const employeesAtYearStart = employees
-          .entities()
-          .filter(
-            (x) =>
-              x.start_date &&
-              new Date(x.start_date) <= yearStart &&
-              (!x.end_date || new Date(x.end_date) >= yearStart)
-          ).length;
+        const employeesAtYearStart = visibleEntities().filter(
+          (x) =>
+            x.start_date &&
+            new Date(x.start_date) <= yearStart &&
+            (!x.end_date || new Date(x.end_date) >= yearStart)
+        ).length;
 
         if (employeesAtYearStart === 0) return 0;
 
         // Empleados que estaban al inicio y siguen activos actualmente
-        const employeesStillActive = employees
-          .entities()
-          .filter(
-            (x) =>
-              x.is_active &&
-              x.start_date &&
-              new Date(x.start_date) <= yearStart &&
-              (!x.end_date || new Date(x.end_date) > now)
-          ).length;
+        const employeesStillActive = visibleEntities().filter(
+          (x) =>
+            x.is_active &&
+            x.start_date &&
+            new Date(x.start_date) <= yearStart &&
+            (!x.end_date || new Date(x.end_date) > now)
+        ).length;
 
         const rate = (employeesStillActive / employeesAtYearStart) * 100;
         return Math.round(rate * 100) / 100;
@@ -653,14 +650,12 @@ export const DashboardStore = signalStore({ providedIn: 'root' },
 
       // Promedio de edad
       const averageAge = computed(() => {
-        const activeEmployees = employees
-          .entities()
-          .filter(
-            (x) =>
-              x.is_active &&
-              x.birth_date &&
-              (x.birth_date as unknown as string) !== '1970-01-01'
-          );
+        const activeEmployees = visibleEntities().filter(
+          (x) =>
+            x.is_active &&
+            x.birth_date &&
+            (x.birth_date as unknown as string) !== '1970-01-01'
+        );
 
         if (activeEmployees.length === 0) return 0;
 
@@ -682,14 +677,12 @@ export const DashboardStore = signalStore({ providedIn: 'root' },
 
       // Distribución etaria
       const ageDistribution = computed(() => {
-        const activeEmployees = employees
-          .entities()
-          .filter(
-            (x) =>
-              x.is_active &&
-              x.birth_date &&
-              (x.birth_date as unknown as string) !== '1970-01-01'
-          );
+        const activeEmployees = visibleEntities().filter(
+          (x) =>
+            x.is_active &&
+            x.birth_date &&
+            (x.birth_date as unknown as string) !== '1970-01-01'
+        );
 
         const now = new Date();
         const distribution = {
@@ -725,20 +718,17 @@ export const DashboardStore = signalStore({ providedIn: 'root' },
 
       // Empleados con deudas pendientes
       const employeesWithDebts = computed(() => {
-        return employees
-          .entities()
-          .filter(
-            (x) =>
-              x.is_active &&
-              x.debts &&
-              x.debts.length > 0 &&
-              x.debts.some((d) => d.balance > 0)
-          ).length;
+        return visibleEntities().filter(
+          (x) =>
+            x.is_active &&
+            x.debts &&
+            x.debts.length > 0 &&
+            x.debts.some((d) => d.balance > 0)
+        ).length;
       });
 
       const totalDebtAmount = computed(() => {
-        return employees
-          .entities()
+        return visibleEntities()
           .filter((x) => x.is_active && x.debts && x.debts.length > 0)
           .reduce((acc, emp) => {
             const employeeDebt = emp.debts!.reduce(
@@ -751,7 +741,7 @@ export const DashboardStore = signalStore({ providedIn: 'root' },
 
       // Costo por empleado
       const costPerEmployee = computed(() => {
-        const activeEmployees = employees.entities().filter((x) => x.is_active);
+        const activeEmployees = visibleEntities().filter((x) => x.is_active);
         const totalEmployees = activeEmployees.length;
 
         if (totalEmployees === 0) return 0;
@@ -761,7 +751,7 @@ export const DashboardStore = signalStore({ providedIn: 'root' },
 
       // Ratio de supervisión (empleados por supervisor/admin)
       const supervisionRatio = computed(() => {
-        const activeEmployees = employees.entities().filter((x) => x.is_active);
+        const activeEmployees = visibleEntities().filter((x) => x.is_active);
         const supervisors = activeEmployees.filter(
           (x) => x.position?.admin || x.position?.schedule_admin
         ).length;
@@ -777,8 +767,7 @@ export const DashboardStore = signalStore({ providedIn: 'root' },
         const thirtyDaysFromNow = new Date(now);
         thirtyDaysFromNow.setDate(now.getDate() + 30);
 
-        return employees
-          .entities()
+        return visibleEntities()
           .filter((x) => x.is_active && x.start_date)
           .map((emp) => {
             const startDate = new Date(emp.start_date!);
@@ -956,7 +945,10 @@ export const DashboardStore = signalStore({ providedIn: 'root' },
       // Usar ensureEmployeeLoaded que carga sin filtrar por company_id
       state.employees.ensureEmployeeLoaded(employeeId);
       // Solo log en desarrollo
-      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      if (
+        typeof window !== 'undefined' &&
+        window.location.hostname === 'localhost'
+      ) {
         console.log('[DashboardStore] Cargando empleado actual:', employeeId);
       }
     },
