@@ -16,6 +16,7 @@ import {
   startOfMonth,
   subMonths,
 } from 'date-fns';
+import { checkSalaryAccess } from '../dashboard/pt-permissions/permissions.types';
 import { Branch, Department, Position } from '../models';
 import { TestModeService } from '../services/test-mode.service';
 import { AuthStore } from './auth.store';
@@ -38,7 +39,8 @@ const initialState: State = {
   currentEmployeeId: null,
 };
 
-export const DashboardStore = signalStore({ providedIn: 'root' },
+export const DashboardStore = signalStore(
+  { providedIn: 'root' },
   withState(initialState),
   withProps(() => ({
     companies: inject(CompaniesStore),
@@ -67,6 +69,11 @@ export const DashboardStore = signalStore({ providedIn: 'root' },
       });
 
       const monthlyBudget = computed(() => {
+        const employee = currentEmployee();
+        const canViewSalaries = checkSalaryAccess(employee?.position?.name);
+
+        if (!canViewSalaries) return 0;
+
         const MAX_SALARY = 999999999; // Límite máximo para evitar overflow
         const total = employees
           .employeesList()
@@ -467,8 +474,13 @@ export const DashboardStore = signalStore({ providedIn: 'root' },
       });
 
       // Promedio salarial por sucursal
-      const averageSalaryByBranch = computed(() =>
-        employeesByBranch().map((item) => {
+      const averageSalaryByBranch = computed(() => {
+        const employee = currentEmployee();
+        const canViewSalaries = checkSalaryAccess(employee?.position?.name);
+
+        if (!canViewSalaries) return [];
+
+        return employeesByBranch().map((item) => {
           const branchEmployees = employees
             .employeesList()
             .filter((x) => x.is_active && x.branch_id === item.branch?.id);
@@ -486,11 +498,16 @@ export const DashboardStore = signalStore({ providedIn: 'root' },
             branch: item.branch,
             averageSalary: Math.round(totalSalary / branchEmployees.length),
           };
-        })
-      );
+        });
+      });
 
       // Promedio salarial general
       const averageSalary = computed(() => {
+        const employee = currentEmployee();
+        const canViewSalaries = checkSalaryAccess(employee?.position?.name);
+
+        if (!canViewSalaries) return 0;
+
         const activeEmployees = employees
           .employeesList()
           .filter((x) => x.is_active);
@@ -509,6 +526,11 @@ export const DashboardStore = signalStore({ providedIn: 'root' },
       // Placeholder: usando planilla mensual como proxy
       // En producción debería usar ingresos reales de la empresa
       const peopleEfficiencyRatio = computed(() => {
+        const employee = currentEmployee();
+        const canViewSalaries = checkSalaryAccess(employee?.position?.name);
+
+        if (!canViewSalaries) return 0;
+
         const activeEmployees = employees.entities().filter((x) => x.is_active);
         const totalEmployees = activeEmployees.length;
 
@@ -751,6 +773,11 @@ export const DashboardStore = signalStore({ providedIn: 'root' },
 
       // Costo por empleado
       const costPerEmployee = computed(() => {
+        const employee = currentEmployee();
+        const canViewSalaries = checkSalaryAccess(employee?.position?.name);
+
+        if (!canViewSalaries) return 0;
+
         const activeEmployees = employees.entities().filter((x) => x.is_active);
         const totalEmployees = activeEmployees.length;
 
@@ -956,7 +983,10 @@ export const DashboardStore = signalStore({ providedIn: 'root' },
       // Usar ensureEmployeeLoaded que carga sin filtrar por company_id
       state.employees.ensureEmployeeLoaded(employeeId);
       // Solo log en desarrollo
-      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      if (
+        typeof window !== 'undefined' &&
+        window.location.hostname === 'localhost'
+      ) {
         console.log('[DashboardStore] Cargando empleado actual:', employeeId);
       }
     },

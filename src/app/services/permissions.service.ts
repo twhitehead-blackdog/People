@@ -2,6 +2,7 @@ import { computed, inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import {
   ALL_PERMISSIONS,
+  checkSalaryAccess,
   PERMISSION_DEFINITIONS,
   PermissionDefinition,
   PermissionKey,
@@ -63,6 +64,7 @@ export class PermissionsService {
       schedule_admin: position?.schedule_admin || false,
       schedule_approver: position?.schedule_approver || false,
       dashboard_access: position?.dashboard_access || false,
+      view_salaries: checkSalaryAccess(position?.name),
     };
 
     // 2. Get User Overrides (Placeholder for now)
@@ -78,6 +80,7 @@ export class PermissionsService {
       schedule_admin: 'position',
       schedule_approver: 'position',
       dashboard_access: 'position',
+      view_salaries: 'position',
     };
 
     /* Future Override Logic:
@@ -130,6 +133,7 @@ export class PermissionsService {
       updates.schedule_approver = permissions.schedule_approver;
     if (permissions.dashboard_access !== undefined)
       updates.dashboard_access = permissions.dashboard_access;
+    // Note: view_salaries is currently derived from role name, not persisted in DB column yet.
 
     if (Object.keys(updates).length > 0) {
       // Cast to any/Position because editItem expects T (full entity) but we only want to patch specific fields

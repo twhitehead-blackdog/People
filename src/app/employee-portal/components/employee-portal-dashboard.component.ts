@@ -3,10 +3,12 @@ import {
   ChangeDetectionStrategy,
   Component,
   EventEmitter,
+  inject,
   Input,
   Output,
 } from '@angular/core';
 import { Card } from 'primeng/card';
+import { PermissionsService } from '../../services/permissions.service';
 
 import { Employee } from '../../models';
 
@@ -110,6 +112,7 @@ interface DashboardTimelogEvent {
           </div>
         </p-card>
 
+        @if (canViewSalary()) {
         <p-card class="dashboard-stat-card">
           <div class="flex items-center justify-between">
             <div>
@@ -166,6 +169,7 @@ interface DashboardTimelogEvent {
             </div>
           </div>
         </p-card>
+        }
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -287,6 +291,8 @@ interface DashboardTimelogEvent {
   `,
 })
 export class EmployeePortalDashboardComponent {
+  private permissions = inject(PermissionsService);
+
   @Input() employee: Employee | null = null;
   @Input() daysWorkedThisMonth = 0;
   @Input() myLates: Array<{ minutes: number }> | null = [];
@@ -295,4 +301,8 @@ export class EmployeePortalDashboardComponent {
   @Input() currentDate: Date = new Date();
   @Input() showSalary = false;
   @Output() toggleSalary = new EventEmitter<void>();
+
+  canViewSalary(): boolean {
+    return this.permissions.canCurrentUser('view_salaries');
+  }
 }

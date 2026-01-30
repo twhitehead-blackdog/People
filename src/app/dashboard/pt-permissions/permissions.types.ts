@@ -2,13 +2,15 @@ export type PermissionKey =
   | 'admin'
   | 'schedule_admin'
   | 'schedule_approver'
-  | 'dashboard_access';
+  | 'dashboard_access'
+  | 'view_salaries';
 
 export const ALL_PERMISSIONS: PermissionKey[] = [
   'admin',
   'schedule_admin',
   'schedule_approver',
   'dashboard_access',
+  'view_salaries',
 ];
 
 export interface PermissionDefinition {
@@ -52,6 +54,14 @@ export const PERMISSION_DEFINITIONS: Record<
     icon: 'pi pi-th-large',
     severity: 'info',
   },
+  view_salaries: {
+    key: 'view_salaries',
+    label: 'Ver Salarios',
+    description:
+      'Permite visualizar información salarial y financiera sensible.',
+    icon: 'pi pi-money-bill',
+    severity: 'danger',
+  },
 };
 
 export interface UserPermissionProfile {
@@ -67,4 +77,16 @@ export interface UserPermissionProfile {
   userType: 'employee' | 'manager' | 'admin' | 'superadmin';
   isSupportUser: boolean;
   testMode: boolean;
+}
+
+export function checkSalaryAccess(positionName?: string): boolean {
+  if (!positionName) return false;
+  const allowedRoles = [
+    'Desarrollador y Soporte IT',
+    'Encargada de Recursos Humanos',
+    'Encargada de Contabilidad',
+  ];
+  return allowedRoles.some(
+    (role) => role.toLowerCase() === positionName.toLowerCase()
+  );
 }
