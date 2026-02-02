@@ -476,7 +476,7 @@ import { getEnv } from './utils/env.utils';
       border-radius: 12px !important;
       box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(107, 114, 128, 0.2) !important;
       backdrop-filter: blur(10px);
-      background: rgba(17, 24, 39, 0.95) !important;
+      background: rgba(38, 38, 38, 0.95) !important;
       animation: cardEntrance 0.25s ease-out;
     }
     
@@ -902,7 +902,7 @@ import { getEnv } from './utils/env.utils';
     }
     
     .blackdog-theme .timeclock-card ::ng-deep .p-card-body {
-      background: rgba(17, 24, 39, 0.95) !important;
+      background: rgba(38, 38, 38, 0.95) !important;
       border-radius: 12px !important;
     }
     
@@ -1923,6 +1923,9 @@ export class TimeclockComponent implements OnDestroy {
   }
 
   onEmployeeSelected(employee: Employee | undefined) {
+    // Inicializar audio con interacción del usuario
+    this.getAudioContext();
+    
     if (employee?.id) {
       this.getLastTimelog(employee.id).subscribe({
         next: (lastTimelog) => {
@@ -2101,6 +2104,8 @@ export class TimeclockComponent implements OnDestroy {
       const validation = totp.validate({ token: otp });
       if (validation === null) {
         this.isProcessing.set(false);
+        // Reproducir sonido de error
+        this.playFailureSound();
         this.message.add({
           severity: 'error',
           summary: 'Error',
@@ -2197,6 +2202,8 @@ export class TimeclockComponent implements OnDestroy {
       .pipe(
         catchError((error) => {
           this.isProcessing.set(false);
+          // Reproducir sonido de error
+          this.playFailureSound();
           const isNaz = this.isNazCompany();
           console.error('Error al procesar timelog:', error);
 
@@ -2284,6 +2291,8 @@ export class TimeclockComponent implements OnDestroy {
           // Verificar si la RPC retornó error
           if (!result.success) {
             this.isProcessing.set(false);
+            // Reproducir sonido de error
+            this.playFailureSound();
             this.message.add({
               severity: 'error',
               summary: 'Error',
@@ -2304,24 +2313,84 @@ export class TimeclockComponent implements OnDestroy {
 
           const typeLabel =
             this.types.find((t) => t.value === type)?.label || type;
-          const message = `<div style="text-align: center;">
+          
+          // Calcular tardanza en el cliente (desde el primer segundo)
+          let delayMinutes = 0;
+          let isLate = false;
+          
+          if (type === 'entry' && result.schedule?.entry_time && !result.isDayOff) {
+            // Parsear hora de entrada del horario (formato HH:mm:ss)
+            const entryTimeParts = result.schedule.entry_time.split(':');
+            const scheduledHour = parseInt(entryTimeParts[0], 10);
+            const scheduledMinute = parseInt(entryTimeParts[1], 10);
+            const scheduledSecond = parseInt(entryTimeParts[2] || '0', 10);
+            
+            // Obtener hora actual en zona de Panamá
+            const nowInPanama = toZonedTime(officialTime, this.DISPLAY_TIMEZONE);
+            const currentHour = nowInPanama.getHours();
+            const currentMinute = nowInPanama.getMinutes();
+            const currentSecond = nowInPanama.getSeconds();
+            
+            // Calcular diferencia en segundos
+            const scheduledTotalSeconds = scheduledHour * 3600 + scheduledMinute * 60 + scheduledSecond;
+            const currentTotalSeconds = currentHour * 3600 + currentMinute * 60 + currentSecond;
+            const diffSeconds = currentTotalSeconds - scheduledTotalSeconds;
+            
+            // Si llegó después de la hora programada (desde el primer segundo)
+            if (diffSeconds > 0) {
+              isLate = true;
+              delayMinutes = Math.floor(diffSeconds / 60);
+            }
+          }
+          
+          const isVeryLate = delayMinutes >= 60; // Más de 1 hora tarde
+
+          let message = `<div style="text-align: center;">
             <div style="margin-bottom: 0.5rem;"><b>${typeLabel}</b> registrada exitosamente a las <b>${formatInTimeZone(
             officialTime,
             this.DISPLAY_TIMEZONE,
             'h:mm:ss aaa'
-          )}</b></div>
-          </div>`;
+          )}</b></div>`;
 
-          // Variables para tracking interno (no mostrar al usuario)
-          let isLate = false;
-          if (result.delay !== null && result.delay !== undefined) {
-            isLate = true;
+          // Agregar mensaje de tardanza si aplica
+          if (isLate && type === 'entry') {
+            const hoursLate = Math.floor(delayMinutes / 60);
+            const minutesLate = delayMinutes % 60;
+            let timeStr = '';
+            if (hoursLate > 0 && minutesLate > 0) {
+              timeStr = `${hoursLate} hora${hoursLate > 1 ? 's' : ''} y ${minutesLate} minuto${minutesLate !== 1 ? 's' : ''}`;
+            } else if (hoursLate > 0) {
+              timeStr = `${hoursLate} hora${hoursLate > 1 ? 's' : ''}`;
+            } else if (minutesLate > 0) {
+              timeStr = `${minutesLate} minuto${minutesLate !== 1 ? 's' : ''}`;
+            } else {
+              timeStr = 'menos de 1 minuto';
+            }
+            
+            message += `<div style="margin-top: 0.75rem; padding: 0.75rem; background: rgba(251, 191, 36, 0.2); border-radius: 8px; border: 1px solid rgba(251, 191, 36, 0.5);">
+              <div style="color: #fbbf24; font-weight: bold; margin-bottom: 0.25rem;">
+                <i class="pi pi-clock" style="margin-right: 0.5rem;"></i>Llegó tarde
+              </div>
+              <div style="color: #fcd34d;">Tardanza: ${timeStr}</div>
+            </div>`;
+
+            // Mensaje especial si es más de 1 hora tarde
+            if (isVeryLate) {
+              message += `<div style="margin-top: 0.5rem; padding: 0.75rem; background: rgba(239, 68, 68, 0.2); border-radius: 8px; border: 1px solid rgba(239, 68, 68, 0.5);">
+                <div style="color: #f87171; font-weight: bold; margin-bottom: 0.25rem;">
+                  <i class="pi pi-exclamation-triangle" style="margin-right: 0.5rem;"></i>Atención
+                </div>
+                <div style="color: #fca5a5; font-size: 0.9rem;">Tardanza mayor a 1 hora. Por favor verifique con el gerente si el horario está configurado correctamente.</div>
+              </div>`;
+            }
           }
+
+          message += `</div>`;
 
           // Nota: El tiempo excedido ya se acumuló en la RPC, no necesitamos llamar a increment_lunch_exceeded_minutes
 
-          // Mostrar solo el mensaje básico de confirmación
-          this.showConfirmationDialog(message);
+          // Mostrar diálogo con sonido apropiado
+          this.showConfirmationDialogWithSound(message, isLate);
         },
         error: () => {
           this.isProcessing.set(false);
@@ -2331,12 +2400,23 @@ export class TimeclockComponent implements OnDestroy {
 
   // Mostrar diálogo de confirmación
   private showConfirmationDialog(message: string): void {
+    this.showConfirmationDialogWithSound(message, false);
+  }
+
+  // Mostrar diálogo de confirmación con sonido según tardanza
+  private showConfirmationDialogWithSound(message: string, isLate: boolean): void {
     this.isProcessing.set(false);
+    // Reproducir sonido según si llegó tarde o no
+    if (isLate) {
+      this.playLateSound();
+    } else {
+      this.playSuccessSound();
+    }
     this.confirmation.confirm({
       message,
       key: 'confirm1',
-      header: 'Éxito',
-      icon: 'pi pi-check',
+      header: isLate ? 'Registrado con Tardanza' : 'Éxito',
+      icon: isLate ? 'pi pi-clock' : 'pi pi-check',
       acceptLabel: 'Aceptar',
       rejectVisible: false,
       accept: () => {
@@ -2351,73 +2431,107 @@ export class TimeclockComponent implements OnDestroy {
     });
   }
 
-  // Reproducir sonido de éxito
+  // AudioContext compartido para evitar límites del navegador
+  private audioContext: AudioContext | null = null;
+
+  private getAudioContext(): AudioContext | null {
+    try {
+      if (!this.audioContext) {
+        this.audioContext = new (window.AudioContext ||
+          (window as any).webkitAudioContext)();
+      }
+      // Resumir si está suspendido (política de autoplay)
+      if (this.audioContext.state === 'suspended') {
+        this.audioContext.resume();
+      }
+      return this.audioContext;
+    } catch (error) {
+      console.warn('Audio no soportado:', error);
+      return null;
+    }
+  }
+
+  // Reproducir sonido de éxito (ladrido)
   private playSuccessSound(): void {
     try {
-      const audioContext = new (window.AudioContext ||
-        (window as any).webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-
-      // Frecuencia ascendente (éxito) - tono agradable
-      oscillator.frequency.setValueAtTime(523.25, audioContext.currentTime); // C5
-      oscillator.frequency.setValueAtTime(
-        659.25,
-        audioContext.currentTime + 0.1
-      ); // E5
-      oscillator.frequency.setValueAtTime(
-        783.99,
-        audioContext.currentTime + 0.2
-      ); // G5
-
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(
-        0.01,
-        audioContext.currentTime + 0.3
-      );
-
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.3);
+      const audio = new Audio('/sounds/bark.mp3');
+      audio.volume = 0.7;
+      audio.play().then(() => {
+        console.log('🐕 Sonido de éxito (ladrido) reproducido');
+      }).catch((error) => {
+        console.warn('Error reproduciendo sonido de éxito:', error);
+      });
     } catch (error) {
-      // Silenciar errores de audio (puede fallar en algunos navegadores)
+      console.warn('Error reproduciendo sonido de éxito:', error);
     }
   }
 
   // Reproducir sonido de fracaso
   private playFailureSound(): void {
+    const audioContext = this.getAudioContext();
+    if (!audioContext) return;
+
     try {
-      const audioContext = new (window.AudioContext ||
-        (window as any).webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
+      const now = audioContext.currentTime;
 
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
+      // Tono de error: dos beeps cortos descendentes
+      const osc1 = audioContext.createOscillator();
+      const gain1 = audioContext.createGain();
+      osc1.frequency.value = 400;
+      osc1.type = 'square';
+      gain1.gain.setValueAtTime(0.2, now);
+      gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+      osc1.connect(gain1);
+      gain1.connect(audioContext.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.15);
 
-      // Frecuencia descendente (fracaso) - tono bajo
-      oscillator.frequency.setValueAtTime(392.0, audioContext.currentTime); // G4
-      oscillator.frequency.setValueAtTime(
-        311.13,
-        audioContext.currentTime + 0.1
-      ); // D#4
-      oscillator.frequency.setValueAtTime(
-        261.63,
-        audioContext.currentTime + 0.2
-      ); // C4
+      // Segundo beep más bajo
+      const osc2 = audioContext.createOscillator();
+      const gain2 = audioContext.createGain();
+      osc2.frequency.value = 300;
+      osc2.type = 'square';
+      gain2.gain.setValueAtTime(0, now);
+      gain2.gain.setValueAtTime(0.2, now + 0.2);
+      gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+      osc2.connect(gain2);
+      gain2.connect(audioContext.destination);
+      osc2.start(now + 0.2);
+      osc2.stop(now + 0.4);
 
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(
-        0.01,
-        audioContext.currentTime + 0.3
-      );
-
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.3);
+      console.log('🔊 Sonido de error reproducido');
     } catch (error) {
-      // Silenciar errores de audio (puede fallar en algunos navegadores)
+      console.warn('Error reproduciendo sonido de error:', error);
+    }
+  }
+
+  // Reproducir sonido de advertencia (tardanza)
+  private playLateSound(): void {
+    const audioContext = this.getAudioContext();
+    if (!audioContext) return;
+
+    try {
+      const now = audioContext.currentTime;
+
+      // Tono de advertencia: tres beeps de alerta
+      for (let i = 0; i < 3; i++) {
+        const osc = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        osc.frequency.value = 880; // A5 - tono alto de alerta
+        osc.type = 'triangle';
+        const startTime = now + i * 0.25;
+        gain.gain.setValueAtTime(0, startTime);
+        gain.gain.setValueAtTime(0.25, startTime + 0.01);
+        gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.15);
+        osc.connect(gain);
+        gain.connect(audioContext.destination);
+        osc.start(startTime);
+        osc.stop(startTime + 0.15);
+      }
+
+      console.log('🔊 Sonido de tardanza reproducido');
+    } catch (error) {
+      console.warn('Error reproduciendo sonido de tardanza:', error);
     }
   }
 

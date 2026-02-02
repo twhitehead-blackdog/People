@@ -26,13 +26,15 @@ import {
 } from 'date-fns';
 import { toDate } from 'date-fns-tz';
 import { es } from 'date-fns/locale';
-import { MessageService } from 'primeng/api';
+import { ConfirmationService, MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
+import { ConfirmDialog } from 'primeng/confirmdialog';
 import { DatePicker } from 'primeng/datepicker';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { SelectModule } from 'primeng/select';
 import { ToggleSwitch } from 'primeng/toggleswitch';
-import { forkJoin, iif } from 'rxjs';
+import { firstValueFrom, forkJoin, iif } from 'rxjs';
+import { format as formatDate, getDay } from 'date-fns';
 import { v4 } from 'uuid';
 import {
   colorVariants,
@@ -57,8 +59,11 @@ import { DashboardStore } from '../stores/dashboard.store';
     NgClass,
     NgStyle,
     ToggleSwitch,
+    ConfirmDialog,
   ],
-  template: `<form [formGroup]="form" (ngSubmit)="saveChanges()">
+  providers: [ConfirmationService],
+  template: `<p-confirmDialog />
+    <form [formGroup]="form" (ngSubmit)="saveChanges()">
     <div class="flex flex-col  md:grid grid-cols-2 gap-4">
       <div class="input-container">
         <label for="employee_id">Empleado</label>
@@ -216,6 +221,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
   private http = inject(HttpClient);
   private apiUrl = inject(ApiUrlService);
   private message = inject(MessageService);
+  private confirmationService = inject(ConfirmationService);
   private organizationService = inject(OrganizationService);
   public colorVariants = colorVariants;
   public getScheduleColorInlineStyle(color: string | undefined | null) {
@@ -236,20 +242,60 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     this.store.employees.employeesList().filter((emp) => emp.is_active)
   );
 
+  // Signal para el empleado seleccionado actualmente
+  public selectedEmployee = signal<any>(null);
+
   // ID del turno "Compensatorio" - solo admins pueden seleccionarlo
   private readonly COMPENSATORY_SCHEDULE_ID =
     'f2d92995-96a0-414f-b64a-9823db776745';
 
   // Turnos permitidos para gerentes de tienda (schedule_admin pero no admin)
   private readonly ALLOWED_STORE_MANAGER_SHIFTS = [
+    'CM',
+    'Incapacidad',
     '7:00 AM - 4:00 PM',
-    '8:00 AM - 5:00 PM', // Peluquero, ayudante de peluqueria o doctor, chofer
-    '9:00 AM - 6:00 PM', // Peluqueria, doctor, chofer, ayudante de peluqueria
-    '12:30 PM - 9:00 PM', // 12:00pm - 9:00pm
+    '8:00 AM - 5:00 PM', // Solo domingos - mostrar confirmación si no es domingo
     'Lactancia 1',
-    '10:30 AM - 7:00 PM', //10:00am - 7:00pm (Solo domingos)
+    'Lactancia 2',
+    '10:30 AM - 7:00 PM', // Solo domingos - mostrar confirmación si no es domingo
     'Dia Libre',
-    'Licencia de maternidad',
+    'A. Injus',
+    'Licencia maternidad',
+    'Permiso',
+    'Vacaciones',
+    'Inventario 2',
+    'Entrenamiento',
+  ];
+
+  // IDs de horarios que solo deben usarse en domingos para gerentes
+  private readonly SUNDAY_ONLY_SCHEDULES = [
+    'af7ede83-ffc9-4b98-b481-665ee9dea624', // 10:30 AM - 7:00 PM
+    '5d908594-89a1-4a9a-8ab7-e8b7df3e031f', // 8:00 AM - 5:00 PM
+    '3d312b26-346d-4f83-9584-91296f3cbc1f', // Otro horario solo domingos
+  ];
+
+  // IDs de horarios ocultos para gerentes de tienda
+  private readonly HIDDEN_FOR_STORE_MANAGERS = [
+    'cac0d93b-5277-4d42-978d-d4c5eda52f80',
+  ];
+
+  // IDs de horarios ocultos para TODOS los usuarios
+  private readonly HIDDEN_FOR_ALL = [
+    '1f4161d1-4935-4fab-9a53-b6eee2a3efd6',
+    '85d5eeb8-6e6e-4f1b-a4d0-62e00bdd67d5',
+  ];
+
+  // IDs de posiciones que no deben tener el mismo horario en la misma tienda
+  // Uno debe estar en apertura y el otro en cierre (Gerente de Tienda y Sub Gerente)
+  private readonly POSITION_PAIR_VALIDATION = [
+    '0b660014-936f-498b-80ea-c13bbf43f59c', // Gerente de Tienda (BlackDog)
+    '4e58edc4-2943-4a71-920c-a2f0f4d31bcc', // Sub Gerente (BlackDog)
+  ];
+
+  // Turnos exclusivos para mujeres (lactancia y maternidad)
+  private readonly FEMALE_ONLY_SCHEDULES = [
+    'lactancia',
+    'maternidad',
   ];
 
   /**
@@ -260,33 +306,92 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     return this.store.isScheduleAdmin() && !this.store.isAdmin();
   });
 
-  // Filtrar turnos disponibles según permisos
-  public availableSchedules = computed(() => {
-    const allSchedules = this.store.schedules.entities() ?? [];
+  /**
+   * Verifica si un turno es exclusivo para mujeres
+   */
+  private isFemaleOnlySchedule(scheduleName: string): boolean {
+    const nameLower = scheduleName.toLowerCase();
+    return this.FEMALE_ONLY_SCHEDULES.some(keyword => nameLower.includes(keyword));
+  }
 
-    // Administradores ven todos los turnos
-    if (this.store.isAdmin()) return allSchedules;
+  // Filtrar turnos disponibles según permisos y género del empleado
+  public availableSchedules = computed(() => {
+    const allSchedulesRaw = this.store.schedules.entities() ?? [];
+    
+    // Primero filtrar horarios ocultos para TODOS
+    const allSchedules = allSchedulesRaw.filter(
+      (schedule: any) => !this.HIDDEN_FOR_ALL.includes(schedule?.id)
+    );
+    
+    const employee = this.selectedEmployee();
+    const isFemale = employee?.gender === 'F';
+    const currentEmployee = this.store.currentEmployee();
+    const positionName = currentEmployee?.position?.name;
+    
+    // Debug logs
+    console.log('[availableSchedules] currentEmployee:', currentEmployee?.first_name, currentEmployee?.father_name);
+    console.log('[availableSchedules] position:', positionName);
+    console.log('[availableSchedules] isAdmin:', this.store.isAdmin());
+    console.log('[availableSchedules] isScheduleAdmin:', this.store.isScheduleAdmin());
+    console.log('[availableSchedules] position.schedule_admin:', currentEmployee?.position?.schedule_admin);
+    console.log('[availableSchedules] position.admin:', currentEmployee?.position?.admin);
+
+    // Función para filtrar turnos exclusivos de mujeres
+    const filterByGender = (schedules: any[]) => {
+      if (isFemale) {
+        // Si es mujer, mostrar todos los turnos
+        return schedules;
+      }
+      // Si es hombre o no hay empleado seleccionado, ocultar turnos de lactancia/maternidad
+      return schedules.filter((schedule: any) => {
+        const scheduleName = String(schedule?.name ?? '');
+        return !this.isFemaleOnlySchedule(scheduleName);
+      });
+    };
+
+    // Administradores ven todos los turnos (filtrados por género)
+    if (this.store.isAdmin()) {
+      console.log('[availableSchedules] User is ADMIN - showing all schedules');
+      return filterByGender(allSchedules);
+    }
 
     // Gerentes de tienda (schedule_admin pero no admin) solo ven turnos específicos
     const isStoreManager =
       this.store.isScheduleAdmin() && !this.store.isAdmin();
+    console.log('[availableSchedules] isStoreManager:', isStoreManager);
+    
     if (isStoreManager) {
-      return allSchedules.filter((schedule: any) => {
+      console.log('[availableSchedules] User is STORE MANAGER - filtering schedules');
+      const filteredByRole = allSchedules.filter((schedule: any) => {
+        // Primero verificar si está en la lista de ocultos por ID
+        if (this.HIDDEN_FOR_STORE_MANAGERS.includes(schedule?.id)) {
+          console.log('[availableSchedules] Filtering out by ID:', schedule?.name);
+          return false;
+        }
+        
         const scheduleName = String(schedule?.name ?? '').toUpperCase();
-        return this.ALLOWED_STORE_MANAGER_SHIFTS.some(
+        const isAllowed = this.ALLOWED_STORE_MANAGER_SHIFTS.some(
           (allowed) => scheduleName === allowed.toUpperCase()
         );
+        if (!isAllowed) {
+          console.log('[availableSchedules] Filtering out by name:', scheduleName);
+        }
+        return isAllowed;
       });
+      console.log('[availableSchedules] Filtered schedules count:', filteredByRole.length);
+      return filterByGender(filteredByRole);
     }
 
-    // Otros usuarios: ocultar Compensatorio
-    return allSchedules.filter((schedule: any) => {
+    // Otros usuarios: ocultar Compensatorio y filtrar por género
+    console.log('[availableSchedules] User is OTHER - hiding Compensatorio only');
+    const filteredByRole = allSchedules.filter((schedule: any) => {
       const scheduleName = String(schedule?.name ?? '').toLowerCase();
       return (
         schedule?.id !== this.COMPENSATORY_SCHEDULE_ID &&
         !scheduleName.includes('compensatorio')
       );
     });
+    return filterByGender(filteredByRole);
   });
 
   ngOnInit(): void {
@@ -308,6 +413,18 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       '[EmployeeSchedulesFormComponent] OnInit data received:',
       this.dialog.data
     );
+
+    // Escuchar cambios en employee_id para actualizar selectedEmployee
+    this.form.get('employee_id')?.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((empId) => {
+        if (empId) {
+          const employee = this.store.employees.entities().find((e) => e.id === empId);
+          this.selectedEmployee.set(employee || null);
+        } else {
+          this.selectedEmployee.set(null);
+        }
+      });
 
     // Guardar información de la semana
     this.weekStart = weekStart || null;
@@ -359,6 +476,8 @@ export class EmployeeSchedulesFormComponent implements OnInit {
         this.form.patchValue({ employee_id });
       } else {
         this.form.patchValue({ employee_id });
+        // Actualizar selectedEmployee para filtrar turnos por género
+        this.selectedEmployee.set(employee);
       }
 
       this.form.get('employee_id')?.disable();
@@ -572,6 +691,190 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       }
     }
 
+    // Validar horarios que solo deben usarse en domingos (8:00 AM - 5:00 PM y 10:30 AM - 7:00 PM)
+    if (this.SUNDAY_ONLY_SCHEDULES.includes(value.schedule_id) && value.start_date) {
+      const startDate = new Date(value.start_date);
+      const endDate = value.end_date ? new Date(value.end_date) : startDate;
+      
+      // Verificar si hay algún día que no sea domingo en el rango
+      let hasNonSunday = false;
+      const currentDate = new Date(startDate);
+      while (currentDate <= endDate) {
+        if (getDay(currentDate) !== 0) { // 0 = Domingo
+          hasNonSunday = true;
+          break;
+        }
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      if (hasNonSunday) {
+        this.loading.set(false);
+        // Obtener el nombre del horario seleccionado
+        const selectedSchedule = this.availableSchedules().find(
+          (s: any) => s.id === value.schedule_id
+        );
+        const scheduleName = selectedSchedule?.name || 'Este horario';
+        
+        this.confirmationService.confirm({
+          message: `El horario "${scheduleName}" es normalmente para domingos. Los gerentes solo deben estar en apertura o cierre. ¿Está seguro de asignar este horario?`,
+          header: 'Confirmar asignación',
+          icon: 'pi pi-exclamation-triangle',
+          acceptLabel: 'Sí, continuar',
+          rejectLabel: 'Cancelar',
+          accept: () => {
+            this.loading.set(true);
+            this.proceedWithSave(value);
+          },
+          reject: () => {
+            // No hacer nada, el usuario canceló
+          }
+        });
+        return;
+      }
+    }
+
+    // Validar que posiciones específicas no tengan el mismo horario en la misma tienda
+    this.validatePositionPairSchedule(value).then((hasConflict) => {
+      if (hasConflict) {
+        // Si hay conflicto, la función ya mostró la confirmación
+        return;
+      }
+      this.proceedWithSave(value);
+    });
+  }
+
+  /**
+   * Valida que las posiciones específicas no tengan el mismo horario en la misma tienda.
+   * Retorna true si hay conflicto y se mostró confirmación, false si no hay conflicto.
+   */
+  private async validatePositionPairSchedule(value: any): Promise<boolean> {
+    const employee = this.selectedEmployee();
+    
+    console.log('[validatePositionPairSchedule] employee:', employee?.first_name, employee?.father_name);
+    console.log('[validatePositionPairSchedule] employee.position_id:', employee?.position_id);
+    console.log('[validatePositionPairSchedule] POSITION_PAIR_VALIDATION:', this.POSITION_PAIR_VALIDATION);
+    
+    if (!employee?.position_id) {
+      console.log('[validatePositionPairSchedule] No position_id - skipping');
+      return false;
+    }
+
+    // Verificar si el empleado seleccionado tiene una de las posiciones a validar
+    if (!this.POSITION_PAIR_VALIDATION.includes(employee.position_id)) {
+      console.log('[validatePositionPairSchedule] Position not in validation list - skipping');
+      return false;
+    }
+
+    console.log('[validatePositionPairSchedule] Position IS in validation list!');
+
+    // Obtener la otra posición del par
+    const otherPositionId = this.POSITION_PAIR_VALIDATION.find(
+      (id) => id !== employee.position_id
+    );
+    console.log('[validatePositionPairSchedule] otherPositionId:', otherPositionId);
+    if (!otherPositionId) return false;
+
+    const branchId = value.branch_id;
+    const scheduleId = value.schedule_id;
+    const startDate = value.start_date ? formatDate(new Date(value.start_date), 'yyyy-MM-dd') : null;
+    const endDate = value.end_date ? formatDate(new Date(value.end_date), 'yyyy-MM-dd') : null;
+
+    console.log('[validatePositionPairSchedule] branchId:', branchId);
+    console.log('[validatePositionPairSchedule] scheduleId:', scheduleId);
+    console.log('[validatePositionPairSchedule] startDate:', startDate);
+    console.log('[validatePositionPairSchedule] endDate:', endDate);
+
+    if (!branchId || !scheduleId || !startDate || !endDate) {
+      console.log('[validatePositionPairSchedule] Missing required fields - skipping');
+      return false;
+    }
+
+    try {
+      // Buscar empleados con la otra posición (sin filtrar por branch_id del empleado)
+      const allEmployees = this.store.employees.entities();
+      console.log('[validatePositionPairSchedule] Total employees in store:', allEmployees.length);
+      
+      const employeesWithOtherPosition = allEmployees.filter(
+          (emp) =>
+            emp.position_id === otherPositionId &&
+            emp.is_active &&
+            emp.id !== employee.id
+        );
+
+      console.log('[validatePositionPairSchedule] Employees with other position:', employeesWithOtherPosition.map(e => `${e.first_name} ${e.father_name} (branch: ${e.branch_id})`));
+
+      if (employeesWithOtherPosition.length === 0) {
+        console.log('[validatePositionPairSchedule] No employees with other position found');
+        return false;
+      }
+
+      const employeeIds = employeesWithOtherPosition.map((e) => e.id);
+      console.log('[validatePositionPairSchedule] Employee IDs to check:', employeeIds);
+
+      // Buscar horarios de esos empleados con el mismo turno en el rango de fechas
+      const url = this.apiUrl.build('rest/v1/employee_schedules', {
+        select: 'id,employee_id,schedule_id,start_date,end_date,branch_id',
+        employee_id: `in.(${employeeIds.join(',')})`,
+        schedule_id: `eq.${scheduleId}`,
+        branch_id: `eq.${branchId}`,
+        start_date: `lte.${endDate}`,
+        end_date: `gte.${startDate}`,
+      });
+
+      console.log('[validatePositionPairSchedule] API URL:', url);
+
+      const conflictingSchedules = await firstValueFrom(
+        this.http.get<any[]>(url)
+      ).catch((error) => {
+        console.error('[validatePositionPairSchedule] HTTP Error:', error);
+        return [];
+      });
+      
+      console.log('[validatePositionPairSchedule] Conflicting schedules found:', conflictingSchedules);
+
+      if (conflictingSchedules.length > 0) {
+        console.log('[validatePositionPairSchedule] CONFLICT DETECTED!');
+        // Hay conflicto - mostrar advertencia
+        const conflictingEmployee = employeesWithOtherPosition.find(
+          (e) => e.id === conflictingSchedules[0].employee_id
+        );
+        const selectedSchedule = this.availableSchedules().find(
+          (s: any) => s.id === scheduleId
+        );
+        const scheduleName = selectedSchedule?.name || 'Este horario';
+        const conflictName = conflictingEmployee
+          ? `${conflictingEmployee.first_name} ${conflictingEmployee.father_name}`
+          : 'otro empleado';
+
+        this.loading.set(false);
+        
+        return new Promise<boolean>((resolve) => {
+          this.confirmationService.confirm({
+            message: `El horario "${scheduleName}" ya está asignado a ${conflictName} en esta tienda para las mismas fechas. Los empleados con estas posiciones deberían tener horarios diferentes (uno en apertura y otro en cierre). ¿Está seguro de continuar?`,
+            header: 'Advertencia: Mismo horario',
+            icon: 'pi pi-exclamation-triangle',
+            acceptLabel: 'Sí, continuar',
+            rejectLabel: 'Cancelar',
+            accept: () => {
+              this.loading.set(true);
+              this.proceedWithSave(value);
+              resolve(true); // Indica que se manejó el conflicto
+            },
+            reject: () => {
+              resolve(true); // Indica que se manejó (canceló)
+            },
+          });
+        });
+      }
+
+      return false;
+    } catch (error) {
+      console.error('[validatePositionPairSchedule] Error:', error);
+      return false;
+    }
+  }
+
+  private proceedWithSave(value: any): void {
     const companyId = this.organizationService.getCurrentCompanyId();
 
     // Verificar si el usuario estableció fechas específicas diferentes a la semana completa

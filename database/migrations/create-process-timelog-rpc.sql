@@ -128,8 +128,9 @@ BEGIN
         (v_now::date + v_now::time) - (v_now::date + v_schedule.entry_time)
       )) / 60;
       
-      -- Solo retornar delay si excede la tolerancia
-      IF v_delay <= COALESCE(v_schedule.minutes_tolerance, 0) THEN
+      -- Retornar delay si es positivo (llegó tarde desde el primer segundo)
+      -- La tolerancia ya no se usa para ocultar la tardanza
+      IF v_delay <= 0 THEN
         v_delay := NULL;
       END IF;
     END IF;

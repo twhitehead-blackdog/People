@@ -127,7 +127,12 @@ import { logger } from '../utils/logger';
       </div>
 
       <!-- Versión en la esquina inferior derecha -->
-      <div class="version-badge" [ngClass]="{ 'naz-version': isNaz() }">
+      <div 
+        class="version-badge" 
+        [ngClass]="{ 'naz-version': isNaz() }"
+        (dblclick)="playBarkSound()"
+        title="🐕"
+      >
         v{{ appVersion }}
       </div>
     </div>
@@ -1669,5 +1674,22 @@ export class LoginComponent {
         }
       }, 3000);
     });
+  }
+
+  /**
+   * Reproduce un sonido de ladrido al hacer doble clic en la versión
+   */
+  playBarkSound(): void {
+    try {
+      const audio = new Audio('/sounds/bark.mp3');
+      audio.volume = 0.5;
+      audio.play().then(() => {
+        console.log('🐕 Woof woof!');
+      }).catch((error) => {
+        console.log('🐕 Woof! (audio autoplay blocked)', error);
+      });
+    } catch (error) {
+      console.log('🐕 Woof! (audio not available)');
+    }
   }
 }

@@ -74,7 +74,7 @@ import { TopAbsencesDialogComponent } from './home/components/dialogs/top-absenc
         <i class="pi pi-bars"></i>
       </button>
 
-      <main class="dashboard-container">
+      <main class="dashboard-container" [class.sidebar-collapsed]="!sidebarOpen()">
         @switch (activeSection()) {
           @case ('executive') {
             <pt-executive-section

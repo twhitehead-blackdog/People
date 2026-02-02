@@ -486,7 +486,7 @@ export const DashboardStore = signalStore(
             .filter((x) => x.is_active && x.branch_id === item.branch?.id);
 
           if (branchEmployees.length === 0) {
-            return { branch: item.branch, averageSalary: 0 };
+            return { branch: item.branch, averageSalary: 0, totalSalary: 0 };
           }
 
           const totalSalary = branchEmployees.reduce(
@@ -497,6 +497,7 @@ export const DashboardStore = signalStore(
           return {
             branch: item.branch,
             averageSalary: Math.round(totalSalary / branchEmployees.length),
+            totalSalary: Math.round(totalSalary),
           };
         });
       });
