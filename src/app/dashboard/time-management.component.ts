@@ -6,6 +6,7 @@ import {
   inject,
 } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { PermissionsStore } from '../core/permissions/permissions.store';
 import { OrganizationService } from '../services/organization.service';
 import { DashboardStore } from '../stores/dashboard.store';
 
@@ -22,7 +23,7 @@ import { DashboardStore } from '../stores/dashboard.store';
       >
         <div class="block w-full overflow-x-auto">
           <div class="flex gap-2 min-w-max justify-center">
-            @if (store.isAdmin()) {
+            @if (permissionsStore.can('schedules.read')) {
             <a
               routerLink="timelogs"
               class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
@@ -35,7 +36,8 @@ import { DashboardStore } from '../stores/dashboard.store';
               ]"
               ><i class="pi pi-clock text-base"></i> <span>Marcaciones</span></a
             >
-            } @if(store.isAdmin()) {
+            }
+            @if (permissionsStore.can('schedules.write')) {
             <a
               routerLink="vet-schedule"
               class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
@@ -48,7 +50,8 @@ import { DashboardStore } from '../stores/dashboard.store';
               ]"
               ><i class="pi pi-heart text-base"></i> <span>Horario Vet</span></a
             >
-            } @if(store.isAdmin()) {
+            }
+            @if (permissionsStore.can('schedules.write')) {
             <a
               routerLink="salon-schedule"
               class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
@@ -63,6 +66,7 @@ import { DashboardStore } from '../stores/dashboard.store';
               <span>Horario Peluquería</span></a
             >
             }
+            @if (permissionsStore.can('schedules.read')) {
             <a
               routerLink="timetables"
               class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
@@ -76,7 +80,8 @@ import { DashboardStore } from '../stores/dashboard.store';
               ><i class="pi pi-calendar-clock text-base"></i>
               <span>Turnos</span></a
             >
-            @if(store.isAdmin()) {
+            }
+            @if (permissionsStore.can('schedules.write')) {
             <a
               routerLink="schedules"
               class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
@@ -132,6 +137,7 @@ import { DashboardStore } from '../stores/dashboard.store';
 })
 export class TimeManagementComponent {
   public store = inject(DashboardStore);
+  public permissionsStore = inject(PermissionsStore);
   public organizationService = inject(OrganizationService);
 
   // Computed para verificar si es Naz

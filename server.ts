@@ -58,6 +58,27 @@ export function app(): express.Express {
   // Middleware para parsear JSON
   server.use(express.json());
 
+  // Security headers middleware (#3, #7, #9)
+  server.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    next();
+  });
+
+  // HTTPS redirect in production (#9 TLS Downgrade)
+  if (isProduction) {
+    server.use((req, res, next) => {
+      if (req.headers['x-forwarded-proto'] !== 'https') {
+        return res.redirect(301, `https://${req.headers.host}${req.url}`);
+      }
+      next();
+    });
+  }
+
   // CORS middleware para permitir requests desde el frontend
   server.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
@@ -159,7 +180,6 @@ export function app(): express.Express {
       safeLogger.error('Error en proxy de Wassenger', error);
       return res.status(500).json({
         error: 'Error interno del servidor',
-        message: error.message,
       });
     }
   });
@@ -573,8 +593,8 @@ export function app(): express.Express {
 
       return res.status(500).json({
         error: 'Error interno del servidor',
-        message: errorMessage,
-        code: error.code,
+        message: isProduction ? 'Error al enviar el email' : errorMessage,
+        code: isProduction ? undefined : error.code,
         details:
           process.env['NODE_ENV'] === 'development'
             ? {
@@ -651,10 +671,9 @@ export function app(): express.Express {
         },
       });
     } catch (error: any) {
-      console.error('[Email Config] Error:', error);
+      safeLogger.error('Error en /api/email/config', error);
       return res.status(500).json({
         error: 'Error al obtener configuración de email',
-        message: error?.message || 'Error desconocido',
       });
     }
   });
@@ -918,15 +937,6 @@ export function app(): express.Express {
     if (req.headers.accept && req.headers.accept.includes('application/json')) {
       res.json({
         status: 'ok',
-        message: 'People API Server is running',
-        version: '1.0.0',
-        endpoints: {
-          health: '/health',
-          clientIp: '/api/client-ip',
-          serverTime: '/api/server-time',
-          wassenger: '/api/wassenger/send-message',
-          email: '/api/email/send',
-        },
       });
     } else {
       // Para peticiones del navegador, servir index.html directamente
@@ -1073,8 +1083,6 @@ export function app(): express.Express {
       safeLogger.error('Error en /api/client-ip', error);
       res.status(200).json({
         ip: null,
-        error: 'Error al obtener IP del cliente',
-        message: error?.message || 'Error desconocido',
       });
       return;
     }

@@ -21,6 +21,7 @@ import { KpiCardComponent } from '../kpi-card/kpi-card.component';
         icon="pi pi-users"
         label="TOTAL COLABORADORES"
         [value]="state.headCount()"
+        [trend]="state.headCountTrend()"
         sublabel="Empleados activos"
         class="headcount-card"
         tooltip="Muestra el número total de empleados activos en la empresa."
@@ -186,7 +187,6 @@ import { KpiCardComponent } from '../kpi-card/kpi-card.component';
         tooltip="Muestra el número de empleados que cumplen años en el mes actual."
       ></pt-kpi-card>
 
-
       <!-- Average Tenure -->
       <pt-kpi-card
         icon="pi pi-calendar-clock"
@@ -207,7 +207,6 @@ import { KpiCardComponent } from '../kpi-card/kpi-card.component';
         tooltip="Calcula la edad promedio de todos los empleados activos."
       ></pt-kpi-card>
 
-
       <!-- Work Climate -->
       <pt-kpi-card
         icon="pi pi-users"
@@ -216,6 +215,29 @@ import { KpiCardComponent } from '../kpi-card/kpi-card.component';
         sublabel="Satisfacción general"
         class="climate-card"
         tooltip="Indicador compuesto que mide el clima laboral."
+      ></pt-kpi-card>
+
+      <!-- Absenteeism (New) -->
+      <pt-kpi-card
+        icon="pi pi-user-minus"
+        label="Tasa de Absentismo"
+        [value]="state.monthlyAbsenteeism().percentage + '%'"
+        [trend]="state.monthlyAbsenteeism().trend"
+        [trendInverse]="true"
+        sublabel="Días perdidos: {{ state.monthlyAbsenteeism().totalDays }}"
+        class="absenteeism-card"
+        tooltip="Porcentaje de días laborales perdidos por inasistencias."
+      ></pt-kpi-card>
+
+      <!-- Pending Requests (New) -->
+      <pt-kpi-card
+        icon="pi pi-inbox"
+        label="Solicitudes Pendientes"
+        [value]="state.pendingRequests()"
+        sublabel="Requieren atención"
+        class="pending-requests-card"
+        [clickable]="true"
+        tooltip="Solicitudes de vacaciones o permisos pendientes de aprobación."
       ></pt-kpi-card>
 
       <!-- Schedule Compliance -->

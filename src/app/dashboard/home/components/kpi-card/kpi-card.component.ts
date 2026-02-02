@@ -30,7 +30,15 @@ import { TooltipModule } from 'primeng/tooltip';
       <div class="kpi-content">
         <div class="kpi-label">{{ label() }}</div>
 
-        <!-- Main Value Slot -->
+        <!-- Trend Indicator -->
+        @if (trend()) {
+        <div class="kpi-trend" [ngClass]="getTrendClass()">
+          <i [class]="getTrendIcon()"></i>
+          <span class="trend-value">{{ trend()?.value }}%</span>
+          <span class="trend-label">{{ trend()?.label }}</span>
+        </div>
+        }
+
         <div class="kpi-value-container">
           <ng-content select="[value]"></ng-content>
           <!-- Allow complex value projection -->
@@ -195,6 +203,43 @@ import { TooltipModule } from 'primeng/tooltip';
         display: flex;
         align-items: baseline;
       }
+
+      .kpi-trend {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+
+        &.trend-up {
+          color: #34d399;
+        }
+        &.trend-down {
+          color: #f87171;
+        }
+        &.trend-neutral {
+          color: #a1a1aa;
+        }
+
+        &.trend-inverse {
+          &.trend-up {
+            color: #f87171;
+          }
+          &.trend-down {
+            color: #34d399;
+          }
+        }
+
+        i {
+          font-size: 0.75rem;
+        }
+        .trend-label {
+          font-weight: 400;
+          color: #71717a;
+          margin-left: 0.25rem;
+        }
+      }
     `,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -210,6 +255,30 @@ export class KpiCardComponent {
   iconClass = input<string>('');
 
   cardClick = output<void>();
+
+  // Trend Inputs
+  trend = input<{
+    value: number;
+    direction: 'up' | 'down' | 'neutral';
+    label?: string;
+  } | null>(null);
+  trendInverse = input<boolean>(false); // If true, Up is Bad (Red), Down is Good (Green)
+
+  // Computed helpers for template
+  getTrendClass() {
+    const t = this.trend();
+    if (!t) return '';
+    const baseClass = `trend-${t.direction}`; // trend-up, trend-down
+    return this.trendInverse() ? `${baseClass} trend-inverse` : baseClass;
+  }
+
+  getTrendIcon() {
+    const t = this.trend();
+    if (!t) return '';
+    if (t.direction === 'up') return 'pi pi-arrow-up';
+    if (t.direction === 'down') return 'pi pi-arrow-down';
+    return 'pi pi-minus';
+  }
 
   // Helper to check for content projection - in a real app would use contentChild
   // but for simplicity in this template we'll just check layout

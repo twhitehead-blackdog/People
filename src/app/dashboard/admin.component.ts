@@ -10,6 +10,7 @@ import {
   signal,
 } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { PermissionsStore } from '../core/permissions/permissions.store';
 import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
 import { DashboardStore } from '../stores/dashboard.store';
@@ -26,6 +27,7 @@ import { DashboardStore } from '../stores/dashboard.store';
       <div class="mx-auto max-w-7xl px-4 py-3 sm:px-6 lg:px-8">
         <div class="flex items-center justify-center gap-6">
           <!-- Auditoría Dropdown -->
+          @if (permissionsStore.can('employees.read')) {
           <div
             class="relative group cursor-pointer select-none"
             (mouseenter)="openDropdown('auditoria')"
@@ -70,8 +72,10 @@ import { DashboardStore } from '../stores/dashboard.store';
               </a>
             </div>
           </div>
+          }
 
           <!-- RRHH Dropdown -->
+          @if (permissionsStore.can('hr.time.read') || permissionsStore.can('employees.read')) {
           <div
             class="relative group cursor-pointer select-none"
             (mouseenter)="openDropdown('rrhh')"
@@ -111,6 +115,7 @@ import { DashboardStore } from '../stores/dashboard.store';
               </a>
               }
               <!-- Gestión de Solicitudes -->
+              @if (permissionsStore.can('hr.time.read')) {
               <a
                 routerLink="hr/disabilities"
                 class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
@@ -120,9 +125,10 @@ import { DashboardStore } from '../stores/dashboard.store';
                 <i class="pi pi-heart text-sm"></i>
                 <span>Gestión de Solicitudes</span>
               </a>
+              }
 
               <!-- Feria de empleo (solo para Black Dog) -->
-              @if (!isNaz()) {
+              @if (!isNaz() && permissionsStore.can('employees.read')) {
               <a
                 routerLink="job-applications"
                 class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
@@ -135,8 +141,10 @@ import { DashboardStore } from '../stores/dashboard.store';
               }
             </div>
           </div>
+          }
 
           <!-- Organización Dropdown -->
+          @if (permissionsStore.can('employees.read') || permissionsStore.can('structure.read')) {
           <div
             class="relative group cursor-pointer select-none"
             (mouseenter)="openDropdown('organizacion')"
@@ -160,6 +168,7 @@ import { DashboardStore } from '../stores/dashboard.store';
               (mouseleave)="closeDropdown()"
             >
               <!-- Empleados -->
+              @if (permissionsStore.can('employees.read')) {
               <a
                 routerLink="employees"
                 class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
@@ -169,8 +178,10 @@ import { DashboardStore } from '../stores/dashboard.store';
                 <i class="pi pi-users text-sm"></i>
                 <span>Empleados</span>
               </a>
+              }
 
               <!-- Organigrama -->
+              @if (permissionsStore.can('structure.read')) {
               <a
                 routerLink="organigrama"
                 class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
@@ -180,8 +191,10 @@ import { DashboardStore } from '../stores/dashboard.store';
                 <i class="pi pi-sitemap text-sm"></i>
                 <span>Organigrama</span>
               </a>
+              }
 
               <!-- Empresas -->
+              @if (permissionsStore.can('structure.read')) {
               <a
                 routerLink="companies"
                 class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
@@ -191,8 +204,10 @@ import { DashboardStore } from '../stores/dashboard.store';
                 <i class="pi pi-building text-sm"></i>
                 <span>Empresas</span>
               </a>
+              }
 
               <!-- Cargos -->
+              @if (permissionsStore.can('structure.read')) {
               <a
                 routerLink="positions"
                 class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
@@ -202,8 +217,10 @@ import { DashboardStore } from '../stores/dashboard.store';
                 <i class="pi pi-user-plus text-sm"></i>
                 <span>Cargos</span>
               </a>
+              }
 
               <!-- Sucursales -->
+              @if (permissionsStore.can('structure.read')) {
               <a
                 routerLink="branches"
                 class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
@@ -213,8 +230,10 @@ import { DashboardStore } from '../stores/dashboard.store';
                 <i class="pi pi-shop text-sm"></i>
                 <span>Sucursales</span>
               </a>
+              }
 
               <!-- Areas -->
+              @if (permissionsStore.can('structure.read')) {
               <a
                 routerLink="departments"
                 class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
@@ -224,8 +243,10 @@ import { DashboardStore } from '../stores/dashboard.store';
                 <i class="pi pi-sitemap text-sm"></i>
                 <span>Areas</span>
               </a>
+              }
 
               <!-- Permisos -->
+              @if (permissionsStore.can('admin.permissions')) {
               <a
                 routerLink="permissions"
                 class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
@@ -235,12 +256,15 @@ import { DashboardStore } from '../stores/dashboard.store';
                 <i class="pi pi-lock text-sm"></i>
                 <span>Permisos</span>
               </a>
+              }
             </div>
           </div>
+          }
 
           <!-- Enlaces directos a la derecha -->
           <div class="flex items-center gap-6">
             <!-- Configuración -->
+            @if (permissionsStore.can('admin.settings')) {
             <a
               routerLink="settings"
               class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
@@ -255,6 +279,7 @@ import { DashboardStore } from '../stores/dashboard.store';
               <i class="pi pi-cog text-base"></i>
               <span>Configuración</span>
             </a>
+            }
           </div>
         </div>
       </div>
@@ -363,6 +388,7 @@ export class AdminComponent implements OnInit, OnDestroy {
   private dropdownTimeout?: number;
   public organizationService = inject(OrganizationService);
   private dashboardStore = inject(DashboardStore);
+  public permissionsStore = inject(PermissionsStore);
 
   // Computed para verificar si es Naz
   public isNaz = computed(() => this.organizationService.isNaz());

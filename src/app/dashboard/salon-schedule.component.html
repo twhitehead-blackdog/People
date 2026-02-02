@@ -33,6 +33,13 @@
           pTooltip="Semana siguiente"
         />
         <p-button
+          label="Llegadas Tarde"
+          icon="pi pi-clock"
+          severity="warn"
+          (onClick)="lateArrivalsVisible.set(true)"
+          pTooltip="Ver llegadas tarde de peluqueros"
+        />
+        <p-button
           label="Exportar Excel"
           icon="pi pi-file-excel"
           severity="success"
@@ -118,5 +125,11 @@
     (visibleChange)="dialogVisible.set($event)"
     (confirm)="onDialogConfirm($event)"
     (cancel)="onDialogCancel()"
+  />
+
+  <!-- Diálogo de llegadas tarde -->
+  <pt-late-arrivals-dialog
+    [visible]="lateArrivalsVisible()"
+    (visibleChange)="lateArrivalsVisible.set($event)"
   />
 </p-card>

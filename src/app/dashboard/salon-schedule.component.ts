@@ -35,6 +35,7 @@ import { OrganizationService } from '../services/organization.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { GroomerBranchCellComponent } from './groomer-branch-cell.component';
 import { GroomerBranchSelectionDialogComponent } from './groomer-branch-selection-dialog.component';
+import { LateArrivalsDialogComponent } from './late-arrivals-dialog.component';
 
 type GroomerWithAssignments = {
   employee: Employee;
@@ -52,6 +53,7 @@ type GroomerWithAssignments = {
     DatePipe,
     GroomerBranchCellComponent,
     GroomerBranchSelectionDialogComponent,
+    LateArrivalsDialogComponent,
   ],
   providers: [DynamicDialogRef, DialogService],
   templateUrl: './salon-schedule.component.html',
@@ -126,6 +128,7 @@ export class SalonScheduleComponent {
 
   // Estado del diálogo
   dialogVisible = signal<boolean>(false);
+  lateArrivalsVisible = signal<boolean>(false);
   selectedEmployee = signal<Employee | undefined>(undefined);
   selectedDate = signal<Date | undefined>(undefined);
   selectedAssignment = signal<GroomerBranchAssignment | undefined>(undefined);

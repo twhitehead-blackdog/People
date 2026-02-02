@@ -28,10 +28,12 @@ import { Avatar } from 'primeng/avatar';
 import { Button } from 'primeng/button';
 import { MenuModule } from 'primeng/menu';
 import { ScreenLockComponent } from '../components/screen-lock.component';
+import { PermissionsStore } from '../core/permissions/permissions.store';
 import {
   Organization,
   OrganizationService,
 } from '../services/organization.service';
+import { PermissionsService } from '../services/permissions.service';
 import { ScreenLockService } from '../services/screen-lock.service';
 import { TestModeService } from '../services/test-mode.service';
 import { AuthStore } from '../stores/auth.store';
@@ -123,17 +125,14 @@ import { DogAnimationComponent } from './components/dog.component';
             </div>
             <div class="header-menu hidden md:block">
               <div class="flex items-baseline space-x-1">
-                @if(store.hasDashboardAccess() && store.isAdmin() &&
-                !store.hasPortalAccessOnly() &&
-                !store.hasTimeManagementAccess()) {
+                @if(permissionsStore.can('dashboard.access')) {
                 <a
                   (click)="navigateTo('home')"
                   [class.selected]="isHomeActive()"
                   class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
                   ><i class="pi pi-home text-base"></i> <span>Inicio</span></a
                 >
-                } @if(store.hasDashboardAccess() && store.isAdmin() &&
-                !store.hasPortalAccessOnly()) {
+                } @if(permissionsStore.can('dashboard.access')) {
                 <a
                   (click)="navigateTo('admin')"
                   [class.selected]="isAdminActive()"
@@ -142,8 +141,7 @@ import { DogAnimationComponent } from './components/dog.component';
                   <i class="pi pi-building text-base"></i>
                   <span>Administración</span></a
                 >
-                } @if(store.hasDashboardAccess() && store.isAdmin() &&
-                !store.hasPortalAccessOnly()) {
+                } @if(permissionsStore.can('payroll.read')) {
                 <a
                   (click)="navigateTo('payroll')"
                   [class.selected]="isPayrollActive()"
@@ -152,9 +150,7 @@ import { DogAnimationComponent } from './components/dog.component';
                   <i class="pi pi-money-bill text-base"></i>
                   <span>Nómina</span></a
                 >
-                } @if((store.hasDashboardAccess() && (store.isAdmin() ||
-                (store.isScheduleAdmin() && !store.hasPortalAccessOnly()))) ||
-                store.hasTimeManagementAccess()) {
+                } @if(permissionsStore.can('schedules.read')) {
                 <a
                   (click)="navigateTo('time-management')"
                   [class.selected]="isTimeManagementActive()"
@@ -232,8 +228,7 @@ import { DogAnimationComponent } from './components/dog.component';
           [class.hidden]="isCollapsed()"
         >
           <div class="space-y-1 px-2 pt-2 pb-3 sm:px-3">
-            @if(store.hasDashboardAccess() && store.isAdmin() &&
-            !store.hasPortalAccessOnly() && !store.hasTimeManagementAccess()) {
+            @if(permissionsStore.can('dashboard.access')) {
             <a
               (click)="navigateTo('home'); toggleMenu()"
               [class.bg-gray-700]="isHomeActive()"
@@ -242,8 +237,7 @@ import { DogAnimationComponent } from './components/dog.component';
               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
               ><i class="pi pi-home text-lg"></i> <span>Inicio</span></a
             >
-            } @if(store.hasDashboardAccess() && store.isAdmin() &&
-            !store.hasPortalAccessOnly()) {
+            } @if(permissionsStore.can('dashboard.access')) {
             <a
               (click)="navigateTo('admin'); toggleMenu()"
               [class.bg-gray-700]="isAdminActive()"
@@ -253,9 +247,7 @@ import { DogAnimationComponent } from './components/dog.component';
               ><i class="pi pi-building text-lg"></i>
               <span>Administración</span></a
             >
-            } @if((store.hasDashboardAccess() && (store.isAdmin() ||
-            (store.isScheduleAdmin() && !store.hasPortalAccessOnly()))) ||
-            store.hasTimeManagementAccess()) {
+            } @if(permissionsStore.can('schedules.read')) {
             <a
               (click)="navigateTo('time-management'); toggleMenu()"
               [class.bg-gray-700]="isTimeManagementActive()"
@@ -265,8 +257,7 @@ import { DogAnimationComponent } from './components/dog.component';
               ><i class="pi pi-calendar text-lg"></i>
               <span>Gestión de tiempo</span></a
             >
-            } @if(store.hasDashboardAccess() && store.isAdmin() &&
-            !store.hasPortalAccessOnly()) {
+            } @if(permissionsStore.can('payroll.read')) {
             <a
               (click)="navigateTo('payroll'); toggleMenu()"
               [class.bg-gray-700]="isPayrollActive()"
@@ -635,6 +626,7 @@ export class DashboardComponent {
   public banksStore = inject(BanksStore);
   public payrollsStore = inject(PayrollsStore);
   public screenLockService = inject(ScreenLockService);
+  private permissionsService = inject(PermissionsService);
   private injector = inject(Injector);
 
   // Signal para la IP actual
@@ -851,6 +843,12 @@ export class DashboardComponent {
         this.screenLockService.setCurrentEmployee(employee);
       }
     });
+
+    // Cargar permisos del usuario cuando el empleado actual esté disponible
+    effect(() => {
+      const employee = this.store.currentEmployee();
+      this.permissionsService.loadUserPermissions(employee ?? null);
+    });
   }
 
   navigateTo(route: string) {
@@ -915,12 +913,11 @@ export class DashboardComponent {
     }
   }
 
+  // Inject PermissionsStore
+  public permissionsStore = inject(PermissionsStore);
+
   public items = computed<MenuItem[]>(() => {
     const isSupport = this.isSupportUser();
-    const hasDashboardAccess = this.store.hasDashboardAccess();
-    const isAdmin = this.store.isAdmin();
-    const isScheduleAdmin = this.store.isScheduleAdmin();
-    const hasTimeManagementAccess = this.store.hasTimeManagementAccess();
     const currentEmployee = this.store.currentEmployee();
 
     const items: MenuItem[] = [
@@ -931,12 +928,8 @@ export class DashboardComponent {
       },
     ];
 
-    // Agregar Gestión de Tienda para gerentes, administradores y Gerente de Tienda
-    // Si tiene hasTimeManagementAccess, mostrar independientemente de hasDashboardAccess
-    if (
-      (hasDashboardAccess && (isAdmin || isScheduleAdmin)) ||
-      hasTimeManagementAccess
-    ) {
+    // Gestion de Tienda (Branch Manager)
+    if (this.permissionsStore.can('schedules.read')) {
       items.push({
         label: 'Gestión de Tienda',
         icon: 'pi pi-shop',
@@ -948,10 +941,12 @@ export class DashboardComponent {
 
     // Agregar opción de bloqueo de pantalla para Gerente de Tienda y Admins
     // También permitir en modo gerente (modo de prueba)
+    // Permission check: schedules.read works as proxy for managers/admins who need this
     const canUseScreenLock =
       currentEmployee &&
       (this.screenLockService.canUseScreenLock(currentEmployee) ||
         this.isGerenteMode());
+
     if (canUseScreenLock) {
       if (this.screenLockService.isEnabled()) {
         // Si está habilitado, mostrar opción de bloquear ahora y de desactivar

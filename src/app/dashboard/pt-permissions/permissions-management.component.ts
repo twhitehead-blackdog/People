@@ -15,10 +15,16 @@ import { InputText } from 'primeng/inputtext';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
 import { TooltipModule } from 'primeng/tooltip';
+import { PermissionsStore } from '../../core/permissions/permissions.store';
 import { PermissionsService } from '../../services/permissions.service';
 import { DashboardStore } from '../../stores/dashboard.store';
 import { PermissionEditorDialogComponent } from './permission-editor-dialog.component';
-import { UserPermissionProfile } from './permissions.types';
+import {
+  EDITABLE_PERMISSIONS,
+  PERMISSION_DEFINITIONS,
+  UserPermissionProfile,
+} from './permissions.types';
+import { UserPermissionEditorDialogComponent } from './user-permission-editor-dialog.component';
 
 @Component({
   selector: 'pt-permissions-management',
@@ -83,8 +89,8 @@ import { UserPermissionProfile } from './permissions.types';
             <th pSortableColumn="positionName" style="width: 20%">
               Cargo <p-sortIcon field="positionName" />
             </th>
-            <th style="width: 45%">Permisos Activos</th>
-            <th style="width: 10%"></th>
+            <th style="width: 35%">Permisos Activos</th>
+            <th style="width: 20%" class="text-right">Acciones</th>
           </tr>
         </ng-template>
         <ng-template #body let-profile>
@@ -126,14 +132,25 @@ import { UserPermissionProfile } from './permissions.types';
               </div>
             </td>
             <td class="text-right">
-              <p-button
-                icon="pi pi-pencil"
-                [rounded]="true"
-                [text]="true"
-                pTooltip="Editar permisos del cargo"
-                tooltipPosition="left"
-                (onClick)="openEditor(profile)"
-              ></p-button>
+              <div class="flex justify-end gap-1">
+                <p-button
+                  icon="pi pi-user-edit"
+                  [rounded]="true"
+                  [text]="true"
+                  severity="success"
+                  pTooltip="Gestionar Overrides de Usuario"
+                  tooltipPosition="left"
+                  (onClick)="openUserEditor(profile)"
+                ></p-button>
+                <p-button
+                  icon="pi pi-pencil"
+                  [rounded]="true"
+                  [text]="true"
+                  pTooltip="Editar permisos del CARGO"
+                  tooltipPosition="left"
+                  (onClick)="openPositionEditor(profile)"
+                ></p-button>
+              </div>
             </td>
           </tr>
         </ng-template>
@@ -151,18 +168,21 @@ import { UserPermissionProfile } from './permissions.types';
 })
 export class PermissionsManagementComponent {
   private service = inject(PermissionsService);
+  private permissionsStore = inject(PermissionsStore);
   private dialogService = inject(DialogService);
   private store = inject(DashboardStore);
 
   public searchTerm = model<string>('');
 
-  public permissionDefinitions = this.service.getPermissionDefinitions();
+  public permissionDefinitions = EDITABLE_PERMISSIONS.map(
+    (key) => PERMISSION_DEFINITIONS[key]
+  );
 
   public profiles = this.service.allUserProfiles;
 
   // Verificar si el usuario actual puede editar permisos
   public canEdit = computed(() => {
-    return this.service.canCurrentUser('admin');
+    return this.service.canCurrentUser('admin.permissions');
   });
 
   public filteredProfiles = computed(() => {
@@ -183,26 +203,60 @@ export class PermissionsManagementComponent {
     return !Object.values(profile.permissions).some((v) => v);
   }
 
-  public openEditor(profile: UserPermissionProfile) {
+  public openPositionEditor(profile: UserPermissionProfile) {
+    // Obtener las flags reales de la posición desde el store
+    const position = this.store.positions
+      .entities()
+      .find((p) => p.id === profile.positionId);
+
     const dialogRef = this.dialogService.open(PermissionEditorDialogComponent, {
-      header: `Permisos: ${profile.positionName}`,
+      header: `Permisos de Cargo: ${profile.positionName}`,
       width: '500px',
       data: {
         positionId: profile.positionId,
         positionName: profile.positionName,
-        currentPermissions: profile.permissions,
+        positionFlags: {
+          admin: position?.admin ?? false,
+          dashboard_access: position?.dashboard_access ?? false,
+          schedule_admin: position?.schedule_admin ?? false,
+          schedule_approver: position?.schedule_approver ?? false,
+        },
       },
       contentStyle: { overflow: 'auto' },
       baseZIndex: 10000,
     });
 
-    // Refrescar datos tras guardar cambios
-    dialogRef.onClose.subscribe((result) => {
+    dialogRef.onClose.subscribe(async (result) => {
       if (result) {
-        // Recargar employees y positions para reflejar cambios
         this.store.employees.reloadItems();
         this.store.positions.reloadItems();
+        // Recargar permisos del usuario actual (su cargo pudo haber cambiado)
+        const currentEmployee = this.store.currentEmployee();
+        if (currentEmployee) {
+          await this.service.loadUserPermissions(currentEmployee);
+        }
       }
+    });
+  }
+
+  public openUserEditor(profile: UserPermissionProfile) {
+    const dialogRef = this.dialogService.open(
+      UserPermissionEditorDialogComponent,
+      {
+        header: `Permisos de Usuario: ${profile.employeeName}`,
+        width: '500px',
+        data: {
+          profile: profile,
+          employeeName: profile.employeeName,
+          positionName: profile.positionName,
+        },
+        contentStyle: { overflow: 'auto' },
+        baseZIndex: 10000,
+      }
+    );
+
+    dialogRef.onClose.subscribe(() => {
+      // Permisos ya se recargan dentro del dialog si el usuario editado es el actual
     });
   }
 }

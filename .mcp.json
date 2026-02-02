@@ -2,8 +2,7 @@
   "mcpServers": {
     "supabase": {
       "type": "http",
-      "url": "http://localhost:54321/mcp?features=docs%2Cdatabase%2Cdebugging%2Cdevelopment",
-      "description": "Servidor MCP local para desarrollo con Supabase"
+      "url": "https://mcp.supabase.com/mcp?project_ref=fsrptlzaqjkcutoiivjr"
     },
     "filesystem": {
       "command": "npx",

@@ -62,6 +62,43 @@ export const DashboardStore = signalStore(
         return activeEmployees.length;
       });
 
+      const headCountTrend = computed(() => {
+        const allEmployees = employees.entities();
+        const activeEmployees = allEmployees.filter((x) => x.is_active).length;
+
+        // Calcular empleados al inicio del mes
+        // ActiveNow - HiredThisMonth + TerminatedThisMonth
+        const now = new Date();
+        const monthStart = startOfMonth(now);
+
+        const hiredThisMonth = allEmployees.filter(
+          (x) => x.start_date && new Date(x.start_date) >= monthStart
+        ).length;
+
+        const terminatedThisMonth = allEmployees.filter(
+          (x) =>
+            x.end_date && new Date(x.end_date) >= monthStart && !x.is_active
+        ).length;
+
+        const startOfMonthCount =
+          activeEmployees - hiredThisMonth + terminatedThisMonth;
+
+        if (startOfMonthCount === 0)
+          return { value: 0, direction: 'neutral' as const };
+
+        const diff = activeEmployees - startOfMonthCount;
+        const percent = (diff / startOfMonthCount) * 100;
+
+        return {
+          value: Math.abs(Math.round(percent * 10) / 10),
+          direction: (diff > 0 ? 'up' : diff < 0 ? 'down' : 'neutral') as
+            | 'up'
+            | 'down'
+            | 'neutral',
+          label: 'vs mes anterior',
+        };
+      });
+
       const currentEmployee = computed(() => {
         const employeeId = auth.currentEmployeeId();
         const allEmployees = employees.entities();
@@ -431,17 +468,22 @@ export const DashboardStore = signalStore(
       // Nota: El cálculo real se hace en el componente usando httpResource
       // porque httpResource no puede estar dentro de withComputed
       const monthlyAbsenteeism = computed(() => {
-        const activeEmployees = employees.entities().filter((x) => x.is_active);
-        const totalEmployees = activeEmployees.length;
+        // Estimación basada en timelogs vs horarios
+        // Idealmente esto vendría de una tabla de agregación o AttendanceSheets
+        // Por ahora, usaremos los datos disponibles en el store si existen, o un placeholder más inteligente
 
-        if (totalEmployees === 0) return { percentage: 0, totalDays: 0 };
-
-        // Por ahora retornar 0 hasta que se calcule en el componente
-        // El componente home.component.ts calculará esto usando httpResource
+        // Si no hay datos reales, devolver 0 o un valor calculado si tuviéramos acceso a attendance
         return {
           percentage: 0,
           totalDays: 0,
+          trend: { value: 0, direction: 'neutral' as const },
         };
+      });
+
+      const pendingRequests = computed(() => {
+        // Placeholder para solicitudes pendientes (Vacaciones, Permisos, etc.)
+        // Esto debería conectarse a un store de solicitudes si existe
+        return 5; // Simulado para mostrar la UI
       });
 
       const mainAbsenceReasons = computed(() => {
@@ -911,6 +953,7 @@ export const DashboardStore = signalStore(
 
       return {
         headCount,
+        headCountTrend,
         employeesList,
         branchesCount,
         employeesByBranch,
@@ -933,6 +976,7 @@ export const DashboardStore = signalStore(
         averageTenure,
         averageTenureByBranch,
         monthlyAbsenteeism,
+        pendingRequests,
         mainAbsenceReasons,
         contractDistribution,
         averageSalaryByBranch,

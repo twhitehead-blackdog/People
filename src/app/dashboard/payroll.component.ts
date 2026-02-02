@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { NgClass } from '@angular/common';
+import { PermissionsStore } from '../core/permissions/permissions.store';
 import { CreditorsStore } from '../stores/creditors.store';
 import { PayrollStore } from '../stores/payroll.store';
 import { OrganizationService } from '../services/organization.service';
@@ -28,6 +29,7 @@ import { OrganizationService } from '../services/organization.service';
               ]"
               ><i class="pi pi-money-bill text-base"></i> <span>Planillas</span></a
             >
+            @if (permissionsStore.can('finance.read')) {
             <a
               routerLink="creditors"
               class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
@@ -40,6 +42,8 @@ import { OrganizationService } from '../services/organization.service';
               ]"
               ><i class="pi pi-users text-base"></i> <span>Acreedores</span></a
             >
+            }
+            @if (permissionsStore.can('finance.read')) {
             <a
               routerLink="banks"
               class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
@@ -52,6 +56,7 @@ import { OrganizationService } from '../services/organization.service';
               ]"
               ><i class="pi pi-building-columns text-base"></i> <span>Bancos</span></a
             >
+            }
           </div>
         </div>
       </div>
@@ -91,6 +96,7 @@ import { OrganizationService } from '../services/organization.service';
 })
 export class PayrollComponent {
   public organizationService = inject(OrganizationService);
+  public permissionsStore = inject(PermissionsStore);
   
   // Computed para verificar si es Naz
   public isNaz = computed(() => this.organizationService.isNaz());

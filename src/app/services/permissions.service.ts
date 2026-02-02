@@ -1,16 +1,20 @@
+import { HttpClient } from '@angular/common/http';
 import { computed, inject, Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
+import { resolvePermissions } from '../core/permissions/permissions.resolver';
+import { PermissionsStore } from '../core/permissions/permissions.store';
 import {
   ALL_PERMISSIONS,
-  checkSalaryAccess,
   PERMISSION_DEFINITIONS,
   PermissionDefinition,
   PermissionKey,
+  UserPermissionOverride,
   UserPermissionProfile,
 } from '../dashboard/pt-permissions/permissions.types';
 import { Employee, Position } from '../models';
 import { DashboardStore } from '../stores/dashboard.store';
 import { PositionsStore } from '../stores/positions.store';
+import { ApiUrlService } from './api-url.service';
 
 @Injectable({
   providedIn: 'root',
@@ -18,9 +22,9 @@ import { PositionsStore } from '../stores/positions.store';
 export class PermissionsService {
   private store = inject(DashboardStore);
   private positionsStore = inject(PositionsStore);
-
-  // TODO: In the future, this signal will hold the user overrides fetched from DB
-  // private employeeOverrides = signal<Record<string, Record<PermissionKey, boolean>>>({});
+  private permissionsStore = inject(PermissionsStore);
+  private http = inject(HttpClient);
+  private apiUrl = inject(ApiUrlService);
 
   /**
    * Returns all system permission definitions
@@ -53,57 +57,54 @@ export class PermissionsService {
   }
 
   /**
+   * Loads permissions for the current user into the PermissionsStore
+   * Should be called on login or reload
+   */
+  public async loadUserPermissions(employee: Employee | null): Promise<void> {
+    if (!employee) {
+      this.permissionsStore.reset();
+      return;
+    }
+
+    try {
+      // Phase 2: Fetch overrides from DB
+      const overrides = await this.fetchUserOverrides(employee.id);
+      this.permissionsStore.load(employee.position, overrides);
+    } catch (error) {
+      console.error('Error loading permissions:', error);
+      // Fallback: load only position permissions
+      this.permissionsStore.load(employee.position, []);
+    }
+  }
+
+  /**
    * Build a single user profile merging Position + Overrides
    */
   private buildUserProfile(employee: Employee): UserPermissionProfile {
-    const position = employee.position;
+    // 1. Resolve effective permissions using central resolver
+    // Overrides are loaded async and cached in the store for the current user.
+    // For the admin list view, we resolve from position only (overrides load on detail).
+    const finalPermissions = resolvePermissions(employee.position, []);
 
-    // 1. Get Base Permissions from Position
-    const basePermissions: Record<PermissionKey, boolean> = {
-      admin: position?.admin || false,
-      schedule_admin: position?.schedule_admin || false,
-      schedule_approver: position?.schedule_approver || false,
-      dashboard_access: position?.dashboard_access || false,
-      view_salaries: checkSalaryAccess(position?.name),
-    };
-
-    // 2. Get User Overrides (Placeholder for now)
-    // const overrides = this.employeeOverrides()[employee.id] || {};
-
-    // 3. Merge Permissions (Hybrid Logic)
-    // For now, source is always 'position' as overrides are not implemented in DB yet
-    const finalPermissions: Record<PermissionKey, boolean> = {
-      ...basePermissions,
-    };
-    const sources: Record<PermissionKey, 'position' | 'user_override'> = {
-      admin: 'position',
-      schedule_admin: 'position',
-      schedule_approver: 'position',
-      dashboard_access: 'position',
-      view_salaries: 'position',
-    };
-
-    /* Future Override Logic:
-    ALL_PERMISSIONS.forEach(key => {
-      if (overrides[key] !== undefined) {
-        finalPermissions[key] = overrides[key];
-        sources[key] = 'user_override';
-      }
+    // 2. Determine sources
+    const sources: Record<PermissionKey, 'position' | 'user_override'> =
+      {} as any;
+    (Object.keys(finalPermissions) as PermissionKey[]).forEach((key) => {
+      sources[key] = 'position';
     });
-    */
 
     return {
       employeeId: employee.id,
       employeeName:
         employee.full_name || `${employee.first_name} ${employee.father_name}`,
       positionId: employee.position_id,
-      positionName: position?.name || 'Sin Cargo',
+      positionName: employee.position?.name || 'Sin Cargo',
       branchName: employee.branch?.name || 'Sin Sucursal',
       permissions: finalPermissions,
       sources: sources,
       userType: this.determineUserType(employee),
       isSupportUser: this.store.testMode.isSupportUser(employee.work_email),
-      testMode: false, // Can come from TestModeService if needed for context
+      testMode: false,
     };
   }
 
@@ -116,28 +117,24 @@ export class PermissionsService {
   }
 
   /**
-   * Updates permissions at the Position level
+   * Updates permissions at the Position level.
+   * Only accepts the 4 actual DB columns: admin, dashboard_access, schedule_admin, schedule_approver.
    */
   public async updatePositionPermissions(
     positionId: string,
-    permissions: Partial<Record<PermissionKey, boolean>>
+    flags: Record<string, boolean>
   ): Promise<void> {
-    // Delegate to PositionsStore
-    // We map our PermissionKey to the partial Position object expected by store
     const updates: Partial<Position> = {};
 
-    if (permissions.admin !== undefined) updates.admin = permissions.admin;
-    if (permissions.schedule_admin !== undefined)
-      updates.schedule_admin = permissions.schedule_admin;
-    if (permissions.schedule_approver !== undefined)
-      updates.schedule_approver = permissions.schedule_approver;
-    if (permissions.dashboard_access !== undefined)
-      updates.dashboard_access = permissions.dashboard_access;
-    // Note: view_salaries is currently derived from role name, not persisted in DB column yet.
+    if (flags['admin'] !== undefined) updates.admin = flags['admin'];
+    if (flags['dashboard_access'] !== undefined)
+      updates.dashboard_access = flags['dashboard_access'];
+    if (flags['schedule_admin'] !== undefined)
+      updates.schedule_admin = flags['schedule_admin'];
+    if (flags['schedule_approver'] !== undefined)
+      updates.schedule_approver = flags['schedule_approver'];
 
     if (Object.keys(updates).length > 0) {
-      // Cast to any/Position because editItem expects T (full entity) but we only want to patch specific fields
-      // The implementation of editItem uses patch, so it should handle partial updates if the API supports it.
       await firstValueFrom(
         this.positionsStore.editItem({ id: positionId, ...updates } as any)
       );
@@ -146,13 +143,55 @@ export class PermissionsService {
 
   /**
    * Helper checks for current user (consumed by guards/components)
-   * These parallel the existing checks in DashboardStore but centralized
+   * Delegates to PermissionsStore
    */
   public canCurrentUser(action: PermissionKey): boolean {
-    const currentEmployee = this.store.currentEmployee();
-    if (!currentEmployee) return false;
+    return this.permissionsStore.can(action);
+  }
 
-    const profile = this.buildUserProfile(currentEmployee);
-    return profile.permissions[action];
+  /**
+   * Fetch user overrides from employee_permissions table (v2)
+   */
+  public async fetchUserOverrides(
+    employeeId: string
+  ): Promise<UserPermissionOverride[]> {
+    const url = this.apiUrl.build('rest/v1/employee_permissions', {
+      employee_id: `eq.${employeeId}`,
+      allowed: 'eq.true',
+      or: '(expires_at.is.null,expires_at.gt.now())',
+      select: 'permission_key,allowed,expires_at',
+    });
+
+    const records = await firstValueFrom(
+      this.http.get<any[]>(url)
+    );
+
+    return (records || []).map((row) => ({
+      employeeId,
+      permissionKey: row.permission_key as PermissionKey,
+      granted: row.allowed,
+      expiresAt: row.expires_at ? new Date(row.expires_at) : undefined,
+    }));
+  }
+
+  /**
+   * Save a single user override via set_employee_permission RPC (v2)
+   */
+  public async saveUserOverride(
+    employeeId: string,
+    permissionKey: PermissionKey,
+    granted: boolean,
+    reason?: string
+  ): Promise<void> {
+    const url = this.apiUrl.build('rest/v1/rpc/set_employee_permission');
+
+    await firstValueFrom(
+      this.http.post(url, {
+        p_employee_id: employeeId,
+        p_key: permissionKey,
+        p_allowed: granted,
+        p_reason: reason || null,
+      })
+    );
   }
 }

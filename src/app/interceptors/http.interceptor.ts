@@ -78,6 +78,8 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
       '/rest/v1/audit_questions',
       '/rest/v1/audit_evaluations',
       '/rest/v1/audit_answers',
+      '/rest/v1/employee_permissions',
+      '/rest/v1/late_arrivals',
     ];
 
     const needsServiceRoleKey = whitelist.some((path) =>

@@ -23,7 +23,8 @@ export const DASHBOARD_ROUTES: Routes = [
         path: 'admin',
         loadComponent: () =>
           import('./admin.component').then((x) => x.AdminComponent),
-        canActivate: [employeePortalGuard],
+        canActivate: [permissionGuard('dashboard.access')],
+        data: { permissionKey: 'dashboard.access' },
         children: [
           {
             path: 'employees',
@@ -34,6 +35,8 @@ export const DASHBOARD_ROUTES: Routes = [
                   import('./employee-list.component').then(
                     (x) => x.EmployeeListComponent
                   ),
+                canActivate: [permissionGuard('employees.read')],
+                data: { permissionKey: 'employees.read' },
               },
               {
                 path: 'new',
@@ -41,6 +44,8 @@ export const DASHBOARD_ROUTES: Routes = [
                   import('./employee-form.component').then(
                     (x) => x.EmployeeFormComponent
                   ),
+                canActivate: [permissionGuard('employees.write')],
+                data: { permissionKey: 'employees.write' },
               },
               {
                 path: ':employee_id',
@@ -48,6 +53,8 @@ export const DASHBOARD_ROUTES: Routes = [
                   import('./employee-detail.component').then(
                     (x) => x.EmployeeDetailComponent
                   ),
+                canActivate: [permissionGuard('employees.read')],
+                data: { permissionKey: 'employees.read' },
               },
 
               {
@@ -56,6 +63,8 @@ export const DASHBOARD_ROUTES: Routes = [
                   import('./employee-form.component').then(
                     (x) => x.EmployeeFormComponent
                   ),
+                canActivate: [permissionGuard('employees.write')],
+                data: { permissionKey: 'employees.write' },
               },
             ],
           },
@@ -65,11 +74,15 @@ export const DASHBOARD_ROUTES: Routes = [
               import('./organigrama.component').then(
                 (x) => x.OrganigramaComponent
               ),
+            data: { permissionKey: 'structure.read' },
+            canActivate: [permissionGuard('structure.read')],
           },
           {
             path: 'companies',
             loadComponent: () =>
               import('./companies.component').then((x) => x.CompaniesComponent),
+            canActivate: [permissionGuard('structure.read')],
+            data: { permissionKey: 'structure.read' },
           },
           {
             path: 'departments',
@@ -77,21 +90,29 @@ export const DASHBOARD_ROUTES: Routes = [
               import('./departments.component').then(
                 (x) => x.DepartmentsComponent
               ),
+            canActivate: [permissionGuard('structure.read')],
+            data: { permissionKey: 'structure.read' },
           },
           {
             path: 'positions',
             loadComponent: () =>
               import('./positions.component').then((x) => x.PositionsComponent),
+            canActivate: [permissionGuard('structure.read')],
+            data: { permissionKey: 'structure.read' },
           },
           {
             path: 'branches',
             loadComponent: () =>
               import('./branches.component').then((x) => x.BranchesComponent),
+            canActivate: [permissionGuard('structure.read')],
+            data: { permissionKey: 'structure.read' },
           },
           {
             path: 'settings',
             loadComponent: () =>
               import('./settings.component').then((x) => x.SettingsComponent),
+            data: { permissionKey: 'admin.settings' },
+            canActivate: [permissionGuard('admin.settings')],
           },
           {
             path: 'user-management',
@@ -99,6 +120,8 @@ export const DASHBOARD_ROUTES: Routes = [
               import('./user-management.component').then(
                 (x) => x.UserManagementComponent
               ),
+            data: { permissionKey: 'admin.users' },
+            canActivate: [permissionGuard('admin.users')],
           },
           {
             path: 'permissions',
@@ -106,7 +129,9 @@ export const DASHBOARD_ROUTES: Routes = [
               import('./pt-permissions/permissions-management.component').then(
                 (x) => x.PermissionsManagementComponent
               ),
-            canActivate: [permissionGuard('admin')],
+            // Legacy passed 'admin', now using specific key
+            canActivate: [permissionGuard('admin.permissions')],
+            data: { permissionKey: 'admin.permissions' },
           },
           {
             path: 'complaints-inbox',
@@ -114,6 +139,8 @@ export const DASHBOARD_ROUTES: Routes = [
               import('./complaints-inbox.component').then(
                 (x) => x.ComplaintsInboxComponent
               ),
+            canActivate: [permissionGuard('hr.time.read')],
+            data: { permissionKey: 'hr.time.read' },
           },
           {
             path: 'job-applications',
@@ -121,6 +148,8 @@ export const DASHBOARD_ROUTES: Routes = [
               import('./job-applications-list.component').then(
                 (x) => x.JobApplicationsListComponent
               ),
+            canActivate: [permissionGuard('employees.read')],
+            data: { permissionKey: 'employees.read' },
           },
           {
             path: 'hr',
@@ -131,6 +160,8 @@ export const DASHBOARD_ROUTES: Routes = [
                   import('./hr-time-dashboard.component').then(
                     (x) => x.HRTimeDashboardComponent
                   ),
+                canActivate: [permissionGuard('hr.time.read')],
+                data: { permissionKey: 'hr.time.read' },
               },
               {
                 path: 'disabilities',
@@ -138,6 +169,8 @@ export const DASHBOARD_ROUTES: Routes = [
                   import('./hr-disabilities.component').then(
                     (x) => x.HRDisabilitiesComponent
                   ),
+                canActivate: [permissionGuard('hr.time.read')],
+                data: { permissionKey: 'hr.time.read' },
               },
               { path: '', redirectTo: 'time-dashboard', pathMatch: 'full' },
             ],
@@ -148,6 +181,8 @@ export const DASHBOARD_ROUTES: Routes = [
               import('./audit-tasks.component').then(
                 (x) => x.AuditTasksComponent
               ),
+            canActivate: [permissionGuard('employees.read')],
+            data: { permissionKey: 'employees.read' },
           },
           {
             path: 'performance',
@@ -155,6 +190,8 @@ export const DASHBOARD_ROUTES: Routes = [
               import('./performance-360/performance-360.routes').then(
                 (m) => m.PERFORMANCE_360_ROUTES
               ),
+            canActivate: [permissionGuard('employees.read')],
+            data: { permissionKey: 'employees.read' },
           },
           { path: '', redirectTo: 'employees', pathMatch: 'full' },
         ],
@@ -165,12 +202,15 @@ export const DASHBOARD_ROUTES: Routes = [
           import('./time-management.component').then(
             (x) => x.TimeManagementComponent
           ),
-        canActivate: [employeePortalGuard],
+        canActivate: [employeePortalGuard, permissionGuard('schedules.read')],
+        data: { permissionKey: 'schedules.read' },
         children: [
           {
             path: 'timelogs',
             loadComponent: () =>
               import('./timelogs.component').then((x) => x.TimelogsComponent),
+            canActivate: [permissionGuard('schedules.read')],
+            data: { permissionKey: 'schedules.read' },
           },
           {
             path: 'timetables',
@@ -178,12 +218,15 @@ export const DASHBOARD_ROUTES: Routes = [
               import('./employees-timetable.component').then(
                 (x) => x.EmployeesTimetableComponent
               ),
+            canActivate: [permissionGuard('schedules.read')],
+            data: { permissionKey: 'schedules.read' },
           },
-
           {
             path: 'schedules',
             loadComponent: () =>
               import('./schedules.component').then((x) => x.SchedulesComponent),
+            canActivate: [permissionGuard('schedules.write')],
+            data: { permissionKey: 'schedules.write' },
           },
           {
             path: 'vet-schedule',
@@ -191,6 +234,8 @@ export const DASHBOARD_ROUTES: Routes = [
               import('./vet-schedule.component').then(
                 (x) => x.VetScheduleComponent
               ),
+            canActivate: [permissionGuard('schedules.write')],
+            data: { permissionKey: 'schedules.write' },
           },
           {
             path: 'salon-schedule',
@@ -198,11 +243,15 @@ export const DASHBOARD_ROUTES: Routes = [
               import('./salon-schedule.component').then(
                 (x) => x.SalonScheduleComponent
               ),
+            canActivate: [permissionGuard('schedules.write')],
+            data: { permissionKey: 'schedules.write' },
           },
           {
             path: 'shifts',
             loadComponent: () =>
               import('./shifts.component').then((x) => x.ShiftsComponent),
+            canActivate: [permissionGuard('schedules.write')],
+            data: { permissionKey: 'schedules.write' },
           },
           { path: '', redirectTo: 'timetables', pathMatch: 'full' },
         ],
@@ -211,12 +260,15 @@ export const DASHBOARD_ROUTES: Routes = [
         path: 'payroll',
         loadComponent: () =>
           import('./payroll.component').then((x) => x.PayrollComponent),
-        canActivate: [employeePortalGuard],
+        canActivate: [employeePortalGuard, permissionGuard('payroll.read')],
+        data: { permissionKey: 'payroll.read' },
         children: [
           {
             path: 'payrolls',
             loadComponent: () =>
               import('./payrolls.component').then((x) => x.PayrollsComponent),
+            canActivate: [permissionGuard('payroll.read')],
+            data: { permissionKey: 'payroll.read' },
           },
           {
             path: 'payrolls/:payroll_id',
@@ -224,6 +276,8 @@ export const DASHBOARD_ROUTES: Routes = [
               import('./payrolls-details.component').then(
                 (x) => x.PayrollsDetailsComponent
               ),
+            canActivate: [permissionGuard('payroll.read')],
+            data: { permissionKey: 'payroll.read' },
           },
           {
             path: 'payrolls/:payroll_id/payments/:payment_id',
@@ -231,6 +285,8 @@ export const DASHBOARD_ROUTES: Routes = [
               import('./payroll-payments-details.component').then(
                 (x) => x.PayrollPaymentsDetailsComponent
               ),
+            canActivate: [permissionGuard('payroll.read')],
+            data: { permissionKey: 'payroll.read' },
           },
           {
             path: 'payrolls/:payroll_id/payments/:payment_id/draft',
@@ -238,16 +294,22 @@ export const DASHBOARD_ROUTES: Routes = [
               import('./payroll-summary.component').then(
                 (x) => x.PayrollSummaryComponent
               ),
+            canActivate: [permissionGuard('payroll.write')],
+            data: { permissionKey: 'payroll.write' },
           },
           {
             path: 'creditors',
             loadComponent: () =>
               import('./creditors.component').then((x) => x.CreditorsComponent),
+            data: { permissionKey: 'finance.read' },
+            canActivate: [permissionGuard('finance.read')],
           },
           {
             path: 'banks',
             loadComponent: () =>
               import('./banks.component').then((x) => x.BanksComponent),
+            data: { permissionKey: 'finance.read' },
+            canActivate: [permissionGuard('finance.read')],
           },
           { path: '', redirectTo: 'payrolls', pathMatch: 'full' },
         ],
@@ -274,7 +336,8 @@ export const DASHBOARD_ROUTES: Routes = [
           import('./branch-manager.component').then(
             (x) => x.BranchManagerComponent
           ),
-        canActivate: [employeePortalGuard],
+        canActivate: [employeePortalGuard, permissionGuard('schedules.read')],
+        data: { permissionKey: 'schedules.read' },
       },
     ],
   },

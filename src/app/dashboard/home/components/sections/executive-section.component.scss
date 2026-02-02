@@ -23,23 +23,27 @@
 }
 
 /* ============================================
-   FILA 1: Headcount, Gender, Lates (5+5+6 = 16)
+   FILA 1: Headcount, Gender, Absenteeism, Lates (4+4+4+4 = 16)
    ============================================ */
 .executive-kpi-grid > .headcount-card {
   grid-row: 1;
-  grid-column: span 5;
+  grid-column: span 4;
 }
 .executive-kpi-grid > .gender-vs-card {
   grid-row: 1;
-  grid-column: span 5;
+  grid-column: span 4;
+}
+.executive-kpi-grid > .absenteeism-card {
+  grid-row: 1;
+  grid-column: span 4;
 }
 .executive-kpi-grid > .lates-card {
   grid-row: 1;
-  grid-column: span 6;
+  grid-column: span 4;
 }
 
 /* ============================================
-   FILA 2: TopLates, TopAbsences, HiresExits, Retention (4+4+4+4 = 16)
+   FILA 2: TopLates, TopAbsences, PendingRequests, HiresExits (4+4+4+4 = 16)
    ============================================ */
 .executive-kpi-grid > .top-lates-card {
   grid-row: 2;
@@ -49,23 +53,23 @@
   grid-row: 2;
   grid-column: span 4;
 }
-.executive-kpi-grid > .hires-exits-vs-card {
+.executive-kpi-grid > .pending-requests-card {
   grid-row: 2;
   grid-column: span 4;
 }
-.executive-kpi-grid > .retention-card {
+.executive-kpi-grid > .hires-exits-vs-card {
   grid-row: 2;
   grid-column: span 4;
 }
 
 /* ============================================
-   FILA 3: Birthdays, Payroll, Tenure, Age (4+4+4+4 = 16)
+   FILA 3: Retention, Birthdays, Tenure, Age (4+4+4+4 = 16)
    ============================================ */
-.executive-kpi-grid > .birthdays-card {
+.executive-kpi-grid > .retention-card {
   grid-row: 3;
   grid-column: span 4;
 }
-.executive-kpi-grid > .payroll-cost-compact {
+.executive-kpi-grid > .birthdays-card {
   grid-row: 3;
   grid-column: span 4;
 }
@@ -79,19 +83,15 @@
 }
 
 /* ============================================
-   FILA 4: Salary, Climate, Compliance (5+6+5 = 16)
+   FILA 4: Climate, Compliance (8+8 = 16)
    ============================================ */
-.executive-kpi-grid > .salary-card {
-  grid-row: 4;
-  grid-column: span 5;
-}
 .executive-kpi-grid > .climate-card {
   grid-row: 4;
-  grid-column: span 6;
+  grid-column: span 8;
 }
 .executive-kpi-grid > .compliance-card {
   grid-row: 4;
-  grid-column: span 5;
+  grid-column: span 8;
 }
 
 /* ============================================
@@ -129,14 +129,17 @@
 /* Primera fila - tarjetas con gráficos */
 .headcount-card ::ng-deep .kpi-card,
 .lates-card ::ng-deep .kpi-card,
-.gender-vs-card ::ng-deep .kpi-card {
+.gender-vs-card ::ng-deep .kpi-card,
+.absenteeism-card ::ng-deep .kpi-card {
   height: 100%;
   display: flex;
   flex-direction: column;
 }
 
 .headcount-card ::ng-deep .kpi-content,
-.lates-card ::ng-deep .kpi-content {
+.lates-card ::ng-deep .kpi-content,
+.gender-vs-card ::ng-deep .kpi-content,
+.absenteeism-card ::ng-deep .kpi-content {
   align-items: center;
   text-align: center;
   gap: 0.125rem;
@@ -145,7 +148,8 @@
 }
 
 .headcount-card ::ng-deep .kpi-value,
-.lates-card ::ng-deep .kpi-value {
+.lates-card ::ng-deep .kpi-value,
+.absenteeism-card ::ng-deep .kpi-value {
   font-size: 1.75rem !important;
   line-height: 1;
 }
@@ -153,6 +157,7 @@
 /* Contenido centrado para tarjetas pequeñas */
 .top-lates-card ::ng-deep .kpi-content,
 .top-absences-card ::ng-deep .kpi-content,
+.pending-requests-card ::ng-deep .kpi-content,
 .hires-exits-vs-card ::ng-deep .kpi-content,
 .retention-card ::ng-deep .kpi-content,
 .birthdays-card ::ng-deep .kpi-content,

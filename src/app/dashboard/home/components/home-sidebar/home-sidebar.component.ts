@@ -273,11 +273,11 @@ export class HomeSidebarComponent {
 
   private baseMenuItems = [
     { id: 'executive', label: 'Resumen', icon: 'pi pi-chart-line' },
-    {
-      id: 'financial',
-      label: 'Indicadores Financieros',
-      icon: 'pi pi-money-bill',
-    },
+    // {
+    //   id: 'financial',
+    //   label: 'Indicadores Financieros',
+    //   icon: 'pi pi-money-bill',
+    // },
     { id: 'management', label: 'Gestión de Personal', icon: 'pi pi-user-plus' },
     {
       id: 'structure',

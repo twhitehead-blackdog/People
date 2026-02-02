@@ -20,7 +20,15 @@
       "mcp__plugin_supabase_supabase__list_projects",
       "Bash(npx nx build --skip-nx-cache)",
       "mcp__plugin_supabase_supabase__list_migrations",
-      "Skill(hookify:configure)"
+      "Skill(hookify:configure)",
+      "Bash(grep:*)",
+      "Bash(npx jest:*)",
+      "mcp__filesystem__write_file",
+      "Bash(npx:*)",
+      "Bash(claude plugin add supermemoryai/claude-supermemory)",
+      "Bash(xargs -I {} sh -c 'echo \"\"=== {} ===\"\" && head -50 \"\"{}\"\"')",
+      "mcp__plugin_supabase_supabase__execute_sql",
+      "mcp__plugin_supabase_supabase__list_tables"
     ]
   },
   "enableAllProjectMcpServers": true,

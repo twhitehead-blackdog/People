@@ -1,4 +1,4 @@
-import { CommonModule, CurrencyPipe, TitleCasePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { httpResource } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
@@ -19,25 +19,25 @@ import {
   subMonths,
 } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
-import { BaseChartDirective } from 'ng2-charts';
 import { ApiUrlService } from '../services/api-url.service';
+import { OrganizationService } from '../services/organization.service';
+import { PermissionsService } from '../services/permissions.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
-import { OrganizationService } from '../services/organization.service';
 
 // New Components
-import { HomeSidebarComponent } from './home/components/home-sidebar/home-sidebar.component';
-import { ExecutiveSectionComponent } from './home/components/sections/executive-section.component';
-import { FinancialSectionComponent } from './home/components/sections/financial-section.component';
-import { StructureSectionComponent } from './home/components/sections/structure-section.component';
-import { ChartsSectionComponent } from './home/components/sections/charts-section.component';
-import { EventsSectionComponent } from './home/components/sections/events-section.component';
-import { ManagementSectionComponent } from './home/components/sections/management-section.component';
 import { BirthdaysDialogComponent } from './home/components/dialogs/birthdays-dialog.component';
 import { HiresExitsDialogComponent } from './home/components/dialogs/hires-exits-dialog.component';
 import { LateDetailsDialogComponent } from './home/components/dialogs/late-details-dialog.component';
-import { TopLatesDialogComponent } from './home/components/dialogs/top-lates-dialog.component';
 import { TopAbsencesDialogComponent } from './home/components/dialogs/top-absences-dialog.component';
+import { TopLatesDialogComponent } from './home/components/dialogs/top-lates-dialog.component';
+import { HomeSidebarComponent } from './home/components/home-sidebar/home-sidebar.component';
+import { ChartsSectionComponent } from './home/components/sections/charts-section.component';
+import { EventsSectionComponent } from './home/components/sections/events-section.component';
+import { ExecutiveSectionComponent } from './home/components/sections/executive-section.component';
+import { FinancialSectionComponent } from './home/components/sections/financial-section.component';
+import { ManagementSectionComponent } from './home/components/sections/management-section.component';
+import { StructureSectionComponent } from './home/components/sections/structure-section.component';
 
 @Component({
   selector: 'pt-home',
@@ -55,113 +55,127 @@ import { TopAbsencesDialogComponent } from './home/components/dialogs/top-absenc
     HiresExitsDialogComponent,
     LateDetailsDialogComponent,
     TopLatesDialogComponent,
-    TopAbsencesDialogComponent
+    TopAbsencesDialogComponent,
   ],
-  template: `
-    <div class="dashboard-wrapper">
-      @if (sidebarOpen()) {
-        <div class="sidebar-overlay md:hidden" (click)="toggleSidebar()"></div>
+  template: ` <div class="dashboard-wrapper">
+    @if (sidebarOpen()) {
+    <div class="sidebar-overlay md:hidden" (click)="toggleSidebar()"></div>
+    }
+
+    <pt-home-sidebar
+      [isOpen]="sidebarOpen()"
+      [activeSection]="activeSection()"
+      (sectionChange)="selectSection($event)"
+      (toggleSidebar)="toggleSidebar()"
+    ></pt-home-sidebar>
+
+    <button
+      class="mobile-sidebar-toggle"
+      (click)="toggleSidebar()"
+      [class.hidden]="sidebarOpen()"
+      title="Alternar menú"
+    >
+      <i class="pi pi-bars"></i>
+    </button>
+
+    <main class="dashboard-container">
+      @switch (activeSection()) { @case ('executive') {
+      <pt-executive-section
+        [headcountChartData]="headcountChartData()"
+        [headcountChartOptions]="headcountChartOptions"
+        [genderChartData]="genderChartData()"
+        [genderChartOptions]="genderChartOptions"
+        [genderCounts]="{
+          male: getGenderCount('M'),
+          female: getGenderCount('F')
+        }"
+        [genderPercentages]="{
+          male: getGenderPercentage('M'),
+          female: getGenderPercentage('F')
+        }"
+        [monthlyLates]="getMonthlyLates()"
+        [latesDailyChartData]="latesDailyChartData()"
+        [latesChartOptions]="latesChartOptions"
+        [topLatesCount]="getTopLatesCount()"
+        [topLatesEmployeeName]="getTopLatesEmployeeName()"
+        [topAbsencesCount]="getTopAbsencesCount()"
+        [topAbsencesEmployeeName]="getTopAbsencesEmployeeName()"
+        [monthlyBirthdaysCount]="monthlyBirthdaysCount()"
+        [hiresExitsChartData]="hiresExitsChartData()"
+        [hiresExitsChartOptions]="hiresExitsChartOptions"
+        [hiresExitsCounts]="{
+          hires: getHiresExitsCount('hires'),
+          exits: getHiresExitsCount('exits')
+        }"
+        [workClimateIndex]="getWorkClimateIndex()"
+        [scheduleComplianceIndex]="getScheduleComplianceIndex()"
+        (openTopLates)="openTopLatesDialog()"
+        (openTopAbsences)="openTopAbsencesDialog()"
+        (openHiresExits)="openCurrentMonthHiresExitsDialog()"
+        (openBirthdays)="openBirthdaysDialog()"
+      ></pt-executive-section>
       }
-      
-      <pt-home-sidebar
-        [isOpen]="sidebarOpen()"
-        [activeSection]="activeSection()"
-        (sectionChange)="selectSection($event)"
-        (toggleSidebar)="toggleSidebar()"
-      ></pt-home-sidebar>
 
-      <button class="mobile-sidebar-toggle" (click)="toggleSidebar()" [class.hidden]="sidebarOpen()" title="Alternar menú">
-        <i class="pi pi-bars"></i>
-      </button>
+      <!-- Financial Section Disabled -->
 
-      <main class="dashboard-container">
-        @switch (activeSection()) {
-          @case ('executive') {
-            <pt-executive-section
-              [headcountChartData]="headcountChartData()"
-              [headcountChartOptions]="headcountChartOptions"
-              [genderChartData]="genderChartData()"
-              [genderChartOptions]="genderChartOptions"
-              [genderCounts]="{ male: getGenderCount('M'), female: getGenderCount('F') }"
-              [genderPercentages]="{ male: getGenderPercentage('M'), female: getGenderPercentage('F') }"
-              [monthlyLates]="getMonthlyLates()"
-              [latesDailyChartData]="latesDailyChartData()"
-              [latesChartOptions]="latesChartOptions"
-              [topLatesCount]="getTopLatesCount()"
-              [topLatesEmployeeName]="getTopLatesEmployeeName()"
-              [topAbsencesCount]="getTopAbsencesCount()"
-              [topAbsencesEmployeeName]="getTopAbsencesEmployeeName()"
-              [monthlyBirthdaysCount]="monthlyBirthdaysCount()"
-              [hiresExitsChartData]="hiresExitsChartData()"
-              [hiresExitsChartOptions]="hiresExitsChartOptions"
-              [hiresExitsCounts]="{ hires: getHiresExitsCount('hires'), exits: getHiresExitsCount('exits') }"
-              [workClimateIndex]="getWorkClimateIndex()"
-              [scheduleComplianceIndex]="getScheduleComplianceIndex()"
-              (openTopLates)="openTopLatesDialog()"
-              (openTopAbsences)="openTopAbsencesDialog()"
-              (openHiresExits)="openCurrentMonthHiresExitsDialog()"
-              (openBirthdays)="openBirthdaysDialog()"
-            ></pt-executive-section>
-          }
-          @case ('financial') {
-            <pt-financial-section></pt-financial-section>
-          }
-          @case ('structure') {
-            <pt-structure-section></pt-structure-section>
-          }
-          @case ('charts') {
-            <pt-charts-section
-              [branchData]="branchData()"
-              [branchLabels]="branchLabels()"
-              [barChartOptions]="barChartOptions"
-              [ageRanges]="ageRanges"
-            ></pt-charts-section>
-          }
-          @case ('events') {
-            <pt-events-section [currentMonth]="currentMonth()"></pt-events-section>
-          }
-          @case ('management') {
-            <pt-management-section></pt-management-section>
-          }
-        }
-    
-        <!-- Dialogs -->
-        <pt-birthdays-dialog 
-            [(visible)]="birthdaysDialogVisible" 
-            [birthDates]="state.birthDates()"
-        ></pt-birthdays-dialog>
+      @case ('structure') {
+      <pt-structure-section></pt-structure-section>
+      } @case ('charts') {
+      <pt-charts-section
+        [branchData]="branchData()"
+        [branchLabels]="branchLabels()"
+        [barChartOptions]="barChartOptions"
+        [ageRanges]="ageRanges"
+      ></pt-charts-section>
+      } @case ('events') {
+      <pt-events-section [currentMonth]="currentMonth()"></pt-events-section>
+      } @case ('management') {
+      <pt-management-section></pt-management-section>
+      } }
 
-        <!-- Month Specific Hires/Exits (from chart click) -->
-        <pt-hires-exits-dialog
-            [(visible)]="monthHiresExitsDialogVisible"
-            [hires]="selectedMonthHiresList()"
-            [exits]="selectedMonthExitsList()"
-            [headerTitle]="'Ingresos y Salidas - ' + selectedMonthLabel()"
-        ></pt-hires-exits-dialog>
-        
-        <!-- General Hires/Exits (from widget click if any) -->
-        <!-- Note: If home component logic doesn't distinguish, we bind both to same or different logic. Widget click in Executive actually emits openHiresExits which could trigger this generic one or openMonthDialog with current month? The logic will clarify. -->
+      <!-- Dialogs -->
+      <pt-birthdays-dialog
+        [(visible)]="birthdaysDialogVisible"
+        [birthDates]="state.birthDates()"
+      ></pt-birthdays-dialog>
 
-        <pt-late-details-dialog
-            [(visible)]="lateDialogVisible"
-            [details]="lateDialogDetails()"
-            [headerTitle]="lateDialogTitle()"
-        ></pt-late-details-dialog>
+      <!-- Month Specific Hires/Exits (from chart click) -->
+      <pt-hires-exits-dialog
+        [(visible)]="monthHiresExitsDialogVisible"
+        [hires]="selectedMonthHiresList()"
+        [exits]="selectedMonthExitsList()"
+        [headerTitle]="'Ingresos y Salidas - ' + selectedMonthLabel()"
+      ></pt-hires-exits-dialog>
 
-        <pt-top-lates-dialog
-            [(visible)]="topLatesDialogVisible"
-            [list]="topLatesList()"
-        ></pt-top-lates-dialog>
+      <!-- General Hires/Exits (from widget click if any) -->
+      <!-- Note: If home component logic doesn't distinguish, we bind both to same or different logic. Widget click in Executive actually emits openHiresExits which could trigger this generic one or openMonthDialog with current month? The logic will clarify. -->
 
-        <pt-top-absences-dialog
-            [(visible)]="topAbsencesDialogVisible"
-            [list]="topAbsencesList()"
-        ></pt-top-absences-dialog>
-      </main>
-    </div>`,
-  styles: [`
-    :host { display: block; height: 100vh; overflow: hidden; }
-  `],
+      <pt-late-details-dialog
+        [(visible)]="lateDialogVisible"
+        [details]="lateDialogDetails()"
+        [headerTitle]="lateDialogTitle()"
+      ></pt-late-details-dialog>
+
+      <pt-top-lates-dialog
+        [(visible)]="topLatesDialogVisible"
+        [list]="topLatesList()"
+      ></pt-top-lates-dialog>
+
+      <pt-top-absences-dialog
+        [(visible)]="topAbsencesDialogVisible"
+        [list]="topAbsencesList()"
+      ></pt-top-absences-dialog>
+    </main>
+  </div>`,
+  styles: [
+    `
+      :host {
+        display: block;
+        height: 100vh;
+        overflow: hidden;
+      }
+    `,
+  ],
   styleUrls: ['./home/home.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -188,6 +202,12 @@ export class HomeComponent {
   public employees = inject(EmployeesStore);
   private apiUrl = inject(ApiUrlService);
   private organizationService = inject(OrganizationService);
+  private permissionsService = inject(PermissionsService);
+
+  // Computed for salary access check
+  public canViewSalaries = computed(() =>
+    this.permissionsService.canCurrentUser('view_salaries')
+  );
 
   // Inicializar sidebar como abierto en desktop, cerrado en móvil
   public sidebarOpen = signal(
@@ -313,7 +333,9 @@ export class HomeComponent {
     // Rango en Panamá (no depende del timezone del dispositivo) y convertido a UTC ISO para PostgREST
     const { year, month, day } = this.getPanamaNowParts();
     const fromPanama = `${year}-${this.pad2(month)}-01T00:00:00-05:00`;
-    const toPanama = `${year}-${this.pad2(month)}-${this.pad2(day)}T23:59:59-05:00`;
+    const toPanama = `${year}-${this.pad2(month)}-${this.pad2(
+      day
+    )}T23:59:59-05:00`;
     const from = new Date(fromPanama).toISOString().split('.')[0] + 'Z';
     const to = new Date(toPanama).toISOString().split('.')[0] + 'Z';
 
@@ -325,22 +347,25 @@ export class HomeComponent {
     const companyId = this.organizationService.getCurrentCompanyId();
     // Usar !timelogs_employee_id_fkey para especificar la relación correcta (hay dos FKs a employees)
     let url = `${baseUrl}/rest/v1/timelogs?select=created_at,employee_id,type,employee:employees!timelogs_employee_id_fkey!inner(first_name,father_name,is_active)&type=eq.entry&created_at=gte.${from}&created_at=lte.${to}&order=created_at.asc&limit=5000`;
-    
+
     // Filtrar solo empleados activos
     url += `&employee.is_active=eq.true`;
-    
+
     // Agregar filtro por company_id
     if (companyId) {
       url += `&company_id=eq.${companyId}`;
     }
-    
+
     // Debug logs solo en desarrollo
-    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    if (
+      typeof window !== 'undefined' &&
+      window.location.hostname === 'localhost'
+    ) {
       console.log('[HomeComponent] latesFromTimelogs URL:', url);
       console.log('[HomeComponent] Company ID:', companyId);
       console.log('[HomeComponent] Date range:', from, 'to', to);
     }
-    
+
     return {
       url,
       method: 'GET',
@@ -359,19 +384,19 @@ export class HomeComponent {
     // A schedule overlaps if: start_date <= month_end AND end_date >= month_start
     // Esto captura TODOS los horarios que se solapan con cualquier día del mes
     const companyId = this.organizationService.getCurrentCompanyId();
-    
+
     // ESTRATEGIA: Filtrar employee_schedules por company_id de dos formas:
     // 1. Si employee_schedules tiene company_id, usar filtro directo
     // 2. Si no, filtrar a través de employees usando INNER JOIN (!inner)
     // Usaremos ambas estrategias: primero intentar con company_id directo,
     // y si no hay resultados, usar el filtro a través de employees
-    
+
     let url = `${baseUrl}/rest/v1/employee_schedules?select=*,schedule:schedules(*),employee:employees!inner(id,company_id,is_active)`;
     url += `&start_date=lte.${monthEnd}&end_date=gte.${monthStart}`;
-    
+
     // Filtrar solo empleados activos
     url += `&employee.is_active=eq.true`;
-    
+
     // ESTRATEGIA: Filtrar a través de employees usando INNER JOIN
     // Esto funciona incluso si employee_schedules no tiene company_id asignado
     // PostgREST permite usar !inner para hacer INNER JOIN y filtrar por la relación
@@ -381,21 +406,31 @@ export class HomeComponent {
       // Esto garantiza que solo retornemos employee_schedules donde el employee tenga el company_id correcto
       // Funciona incluso si employee_schedules no tiene company_id asignado directamente
       url += `&employee.company_id=eq.${companyId}`;
-      
+
       // NOTA: También podríamos intentar con company_id directo si employee_schedules lo tiene
       // Pero PostgREST no soporta OR fácilmente, así que usamos el filtro a través de employees como principal
       // Si algunos employee_schedules tienen company_id y otros no, esta consulta los incluirá todos
       // siempre que el employee tenga el company_id correcto
     }
-    
+
     // Debug logs solo en desarrollo
-    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    if (
+      typeof window !== 'undefined' &&
+      window.location.hostname === 'localhost'
+    ) {
       console.log('[HomeComponent] employeeSchedules URL:', url);
       console.log('[HomeComponent] employeeSchedules - Company ID:', companyId);
-      console.log('[HomeComponent] employeeSchedules - Month range:', monthStart, 'to', monthEnd);
-      console.log('[HomeComponent] employeeSchedules - Estrategia: Filtrando a través de employee.company_id');
+      console.log(
+        '[HomeComponent] employeeSchedules - Month range:',
+        monthStart,
+        'to',
+        monthEnd
+      );
+      console.log(
+        '[HomeComponent] employeeSchedules - Estrategia: Filtrando a través de employee.company_id'
+      );
     }
-    
+
     return {
       url,
       method: 'GET',
@@ -403,51 +438,87 @@ export class HomeComponent {
   });
 
   private injector = inject(Injector);
-  
+
   // Effect para verificar la respuesta de employeeSchedules
   constructor() {
-    effect(() => {
-      const schedules = this.employeeSchedules.value();
-      const error = this.employeeSchedules.error();
-      const isLoading = this.employeeSchedules.isLoading();
-      const companyId = this.organizationService.getCurrentCompanyId();
-      
-      if (!isLoading) {
-        if (error) {
-          console.error('[HomeComponent] employeeSchedules - Error:', error);
-        } else if (schedules) {
-          if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-            // Solo log en desarrollo
-            if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-              console.log('[HomeComponent] employeeSchedules - Respuesta recibida:', schedules.length, 'schedules');
-              if (schedules.length === 0) {
-                console.warn('[HomeComponent] employeeSchedules - No hay schedules. Verificar:');
-                console.warn('  - Company ID:', companyId);
-                // No mostrar URL completa en producción para evitar exponer información de la base de datos
-              if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                console.warn('  - URL completa:', `${this.apiUrl.baseUrl}/rest/v1/employee_schedules?select=*,schedule:schedules(*)&start_date=lte.${format(endOfMonth(new Date()), 'yyyy-MM-dd')}&end_date=gte.${format(startOfMonth(new Date()), 'yyyy-MM-dd')}&company_id=eq.${companyId}`);
-              }
-                console.warn('  - Posibles causas:');
-                console.warn('    1. No hay employee_schedules con este company_id');
-                console.warn('    2. Los schedules no se solapan con el mes actual');
-                console.warn('    3. Problema con políticas RLS en Supabase');
-              } else {
-                console.log('[HomeComponent] employeeSchedules - Muestra (primeros 3):', 
-                  schedules.slice(0, 3).map(s => ({
-                    id: s.id,
-                    employee_id: s.employee_id,
-                    company_id: s.company_id,
-                    start_date: s.start_date,
-                    end_date: s.end_date,
-                    schedule: s.schedule ? { id: s.schedule.id, name: s.schedule.name } : null,
-                  }))
+    effect(
+      () => {
+        const schedules = this.employeeSchedules.value();
+        const error = this.employeeSchedules.error();
+        const isLoading = this.employeeSchedules.isLoading();
+        const companyId = this.organizationService.getCurrentCompanyId();
+
+        if (!isLoading) {
+          if (error) {
+            console.error('[HomeComponent] employeeSchedules - Error:', error);
+          } else if (schedules) {
+            if (
+              typeof window !== 'undefined' &&
+              window.location.hostname === 'localhost'
+            ) {
+              // Solo log en desarrollo
+              if (
+                typeof window !== 'undefined' &&
+                window.location.hostname === 'localhost'
+              ) {
+                console.log(
+                  '[HomeComponent] employeeSchedules - Respuesta recibida:',
+                  schedules.length,
+                  'schedules'
                 );
+                if (schedules.length === 0) {
+                  console.warn(
+                    '[HomeComponent] employeeSchedules - No hay schedules. Verificar:'
+                  );
+                  console.warn('  - Company ID:', companyId);
+                  // No mostrar URL completa en producción para evitar exponer información de la base de datos
+                  if (
+                    window.location.hostname === 'localhost' ||
+                    window.location.hostname === '127.0.0.1'
+                  ) {
+                    console.warn(
+                      '  - URL completa:',
+                      `${
+                        this.apiUrl.baseUrl
+                      }/rest/v1/employee_schedules?select=*,schedule:schedules(*)&start_date=lte.${format(
+                        endOfMonth(new Date()),
+                        'yyyy-MM-dd'
+                      )}&end_date=gte.${format(
+                        startOfMonth(new Date()),
+                        'yyyy-MM-dd'
+                      )}&company_id=eq.${companyId}`
+                    );
+                  }
+                  console.warn('  - Posibles causas:');
+                  console.warn(
+                    '    1. No hay employee_schedules con este company_id'
+                  );
+                  console.warn(
+                    '    2. Los schedules no se solapan con el mes actual'
+                  );
+                  console.warn('    3. Problema con políticas RLS en Supabase');
+                } else {
+                  console.log(
+                    '[HomeComponent] employeeSchedules - Muestra (primeros 3):',
+                    schedules.slice(0, 3).map((s) => ({
+                      id: s.id,
+                      employee_id: s.employee_id,
+                      company_id: s.company_id,
+                      start_date: s.start_date,
+                      end_date: s.end_date,
+                      schedule: s.schedule
+                        ? { id: s.schedule.id, name: s.schedule.name }
+                        : null,
+                    }))
+                  );
+                }
               }
             }
           }
         }
-      }
-    }, { injector: this.injector });
+      },
+      { injector: this.injector }
+    );
   }
 
   // Chart options specifically for headcount chart (shows month/year)
@@ -1000,33 +1071,55 @@ export class HomeComponent {
     const namesByDate = new Map<string, string[]>();
     const timelogs = this.latesFromTimelogs.value() ?? [];
     const schedules = this.employeeSchedules.value() ?? [];
-    
+
     // Debug logs
-    console.log('[HomeComponent] latesDailyChartData - Timelogs cargados:', timelogs.length);
-    console.log('[HomeComponent] latesDailyChartData - Schedules cargados:', schedules.length);
-    console.log('[HomeComponent] latesDailyChartData - Company ID:', this.organizationService.getCurrentCompanyId());
-    
+    console.log(
+      '[HomeComponent] latesDailyChartData - Timelogs cargados:',
+      timelogs.length
+    );
+    console.log(
+      '[HomeComponent] latesDailyChartData - Schedules cargados:',
+      schedules.length
+    );
+    console.log(
+      '[HomeComponent] latesDailyChartData - Company ID:',
+      this.organizationService.getCurrentCompanyId()
+    );
+
     if (timelogs.length > 0) {
-      console.log('[HomeComponent] latesDailyChartData - Muestra de timelogs (primeros 3):', 
-        timelogs.slice(0, 3).map(log => ({
+      console.log(
+        '[HomeComponent] latesDailyChartData - Muestra de timelogs (primeros 3):',
+        timelogs.slice(0, 3).map((log) => ({
           id: log.id,
           employee_id: log.employee_id,
           type: log.type,
           created_at: log.created_at,
-          employee: log.employee ? `${log.employee.first_name} ${log.employee.father_name}` : 'N/A',
+          employee: log.employee
+            ? `${log.employee.first_name} ${log.employee.father_name}`
+            : 'N/A',
         }))
       );
     }
-    
+
     if (schedules.length > 0) {
-      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-        console.log('[HomeComponent] latesDailyChartData - Muestra de schedules (primeros 3):', 
-          schedules.slice(0, 3).map(s => ({
+      if (
+        typeof window !== 'undefined' &&
+        window.location.hostname === 'localhost'
+      ) {
+        console.log(
+          '[HomeComponent] latesDailyChartData - Muestra de schedules (primeros 3):',
+          schedules.slice(0, 3).map((s) => ({
             id: s.id,
             employee_id: s.employee_id,
             start_date: s.start_date,
             end_date: s.end_date,
-            schedule: s.schedule ? { id: s.schedule.id, name: s.schedule.name, entry_time: s.schedule.entry_time } : null,
+            schedule: s.schedule
+              ? {
+                  id: s.schedule.id,
+                  name: s.schedule.name,
+                  entry_time: s.schedule.entry_time,
+                }
+              : null,
           }))
         );
       }
@@ -1034,12 +1127,20 @@ export class HomeComponent {
       // Solo mostrar warning si hay un error real, no cuando simplemente no hay datos todavía
       const schedulesError = this.employeeSchedules.error();
       const schedulesLoading = this.employeeSchedules.isLoading();
-      
+
       if (schedulesError) {
         // Solo log en desarrollo
-        if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-          console.warn('[HomeComponent] latesDailyChartData - Error al cargar schedules:');
-          console.warn('  - Company ID:', this.organizationService.getCurrentCompanyId());
+        if (
+          typeof window !== 'undefined' &&
+          window.location.hostname === 'localhost'
+        ) {
+          console.warn(
+            '[HomeComponent] latesDailyChartData - Error al cargar schedules:'
+          );
+          console.warn(
+            '  - Company ID:',
+            this.organizationService.getCurrentCompanyId()
+          );
           console.warn('  - Error en employeeSchedules:', schedulesError);
         }
       } else if (!schedulesLoading && schedules.length === 0) {
@@ -1768,15 +1869,36 @@ export class HomeComponent {
     const schedulesLoading = this.employeeSchedules.isLoading();
     const timelogsError = this.latesFromTimelogs.error();
     const schedulesError = this.employeeSchedules.error();
-    
+
     // Solo mostrar logs de debug si hay datos o errores, no durante la carga inicial (solo en desarrollo)
-    if ((timelogs.length > 0 || schedules.length > 0 || timelogsError || schedulesError) && 
-        typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-      console.log('[HomeComponent] getMonthlyLates - Timelogs cargados:', timelogs.length);
-      console.log('[HomeComponent] getMonthlyLates - Schedules cargados:', schedules.length);
-      console.log('[HomeComponent] getMonthlyLates - Company ID:', this.organizationService.getCurrentCompanyId());
-      console.log('[HomeComponent] getMonthlyLates - activeSection:', this.activeSection());
-      console.log('[HomeComponent] getMonthlyLates - Chart data available:', !!chartData);
+    if (
+      (timelogs.length > 0 ||
+        schedules.length > 0 ||
+        timelogsError ||
+        schedulesError) &&
+      typeof window !== 'undefined' &&
+      window.location.hostname === 'localhost'
+    ) {
+      console.log(
+        '[HomeComponent] getMonthlyLates - Timelogs cargados:',
+        timelogs.length
+      );
+      console.log(
+        '[HomeComponent] getMonthlyLates - Schedules cargados:',
+        schedules.length
+      );
+      console.log(
+        '[HomeComponent] getMonthlyLates - Company ID:',
+        this.organizationService.getCurrentCompanyId()
+      );
+      console.log(
+        '[HomeComponent] getMonthlyLates - activeSection:',
+        this.activeSection()
+      );
+      console.log(
+        '[HomeComponent] getMonthlyLates - Chart data available:',
+        !!chartData
+      );
     }
 
     // Si los datos están cargando, retornar 0 sin mostrar warnings
@@ -1900,11 +2022,26 @@ export class HomeComponent {
         }
       }
 
-      if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-        console.log('[HomeComponent] getMonthlyLates - Tardanzas calculadas:', lateCount);
-        console.log('[HomeComponent] getMonthlyLates - Entradas sin schedule:', entriesWithoutSchedule);
-        console.log('[HomeComponent] getMonthlyLates - Entradas con errores de schedule:', entriesWithScheduleErrors);
-        console.log('[HomeComponent] getMonthlyLates - Entradas procesadas:', entriesProcessed);
+      if (
+        typeof window !== 'undefined' &&
+        window.location.hostname === 'localhost'
+      ) {
+        console.log(
+          '[HomeComponent] getMonthlyLates - Tardanzas calculadas:',
+          lateCount
+        );
+        console.log(
+          '[HomeComponent] getMonthlyLates - Entradas sin schedule:',
+          entriesWithoutSchedule
+        );
+        console.log(
+          '[HomeComponent] getMonthlyLates - Entradas con errores de schedule:',
+          entriesWithScheduleErrors
+        );
+        console.log(
+          '[HomeComponent] getMonthlyLates - Entradas procesadas:',
+          entriesProcessed
+        );
       }
       return lateCount;
     } else {
@@ -1912,8 +2049,13 @@ export class HomeComponent {
       // (puede ser que no haya timelogs o schedules para el mes actual, lo cual es válido)
       if (timelogsError || schedulesError) {
         // Solo log en desarrollo
-        if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-          console.warn('[HomeComponent] getMonthlyLates - Error al cargar datos para calcular tardanzas:');
+        if (
+          typeof window !== 'undefined' &&
+          window.location.hostname === 'localhost'
+        ) {
+          console.warn(
+            '[HomeComponent] getMonthlyLates - Error al cargar datos para calcular tardanzas:'
+          );
           if (timelogsError) {
             console.warn('  - Error en latesFromTimelogs:', timelogsError);
           }
@@ -1935,7 +2077,7 @@ export class HomeComponent {
   public topLatesList = computed(() => {
     const timelogs = this.latesFromTimelogs.value() ?? [];
     const schedules = this.employeeSchedules.value() ?? [];
-    
+
     if (timelogs.length === 0 || schedules.length === 0) {
       return [];
     }
@@ -1960,10 +2102,7 @@ export class HomeComponent {
       const logMonthIndex =
         parseInt(formatInTimeZone(entryTime, this.TIMEZONE, 'MM'), 10) - 1;
 
-      if (
-        logMonthIndex !== currentMonthIndex ||
-        logYear !== currentYear
-      ) {
+      if (logMonthIndex !== currentMonthIndex || logYear !== currentYear) {
         continue;
       }
 
@@ -1987,7 +2126,10 @@ export class HomeComponent {
     }
 
     // Count lates per employee
-    const latesByEmployee = new Map<string, { employee_name: string; count: number }>();
+    const latesByEmployee = new Map<
+      string,
+      { employee_name: string; count: number }
+    >();
 
     for (const [_, entry] of entriesByEmployeeDay) {
       const schedule = schedules.find(
@@ -2003,8 +2145,7 @@ export class HomeComponent {
 
       const scheduleId = schedule.schedule.id;
       const isFeriado = scheduleId === '3d07f626-d58f-4203-bac5-f6e35557e0ad';
-      const isDiaLibre =
-        scheduleId === 'c01dff8f-ce0d-498f-a473-46418576e589';
+      const isDiaLibre = scheduleId === 'c01dff8f-ce0d-498f-a473-46418576e589';
       if (isFeriado || isDiaLibre || schedule.schedule?.day_off) {
         continue;
       }
@@ -2078,7 +2219,7 @@ export class HomeComponent {
   public topAbsencesList = computed(() => {
     const timelogs = this.latesFromTimelogs.value() ?? [];
     const schedules = this.employeeSchedules.value() ?? [];
-    
+
     if (schedules.length === 0) {
       return [];
     }
@@ -2105,10 +2246,7 @@ export class HomeComponent {
       const logMonthIndex =
         parseInt(formatInTimeZone(entryTime, this.TIMEZONE, 'MM'), 10) - 1;
 
-      if (
-        logMonthIndex !== currentMonthIndex ||
-        logYear !== currentYear
-      ) {
+      if (logMonthIndex !== currentMonthIndex || logYear !== currentYear) {
         continue;
       }
 
@@ -2122,12 +2260,19 @@ export class HomeComponent {
     }
 
     // Count absences per employee
-    const absencesByEmployee = new Map<string, { employee_name: string; count: number }>();
+    const absencesByEmployee = new Map<
+      string,
+      { employee_name: string; count: number }
+    >();
 
     // For each day of the month so far, check if employee had schedule but no entry
     for (let day = 1; day <= daysSoFar; day++) {
       const checkDate = new Date(year, currentMonthIndex, day);
-      const checkDateStr = formatInTimeZone(checkDate, this.TIMEZONE, 'yyyy-MM-dd');
+      const checkDateStr = formatInTimeZone(
+        checkDate,
+        this.TIMEZONE,
+        'yyyy-MM-dd'
+      );
 
       // Get all employees who should have worked this day (have a schedule)
       const employeesWithSchedule = schedules.filter((s: any) => {
@@ -2164,12 +2309,16 @@ export class HomeComponent {
             // Get employee name from employees store (more reliable)
             let employeeName = 'Empleado desconocido';
             const employees = this.employees.entities();
-            const employee = employees.find(e => e.id === employeeId);
+            const employee = employees.find((e) => e.id === employeeId);
             if (employee) {
-              employeeName = `${employee.first_name ?? ''} ${employee.father_name ?? ''}`.trim();
+              employeeName = `${employee.first_name ?? ''} ${
+                employee.father_name ?? ''
+              }`.trim();
             } else if (schedule.employee) {
               // Fallback: try from schedule if available
-              employeeName = `${schedule.employee.first_name ?? ''} ${schedule.employee.father_name ?? ''}`.trim();
+              employeeName = `${schedule.employee.first_name ?? ''} ${
+                schedule.employee.father_name ?? ''
+              }`.trim();
             }
             if (!employeeName || employeeName === '') {
               employeeName = 'Empleado desconocido';
