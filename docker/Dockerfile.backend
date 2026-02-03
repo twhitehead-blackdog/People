@@ -12,8 +12,8 @@ RUN apk add --no-cache python3 make g++
 # Copiar archivos de dependencias
 COPY package*.json ./
 
-# Instalar dependencias
-RUN npm ci --only=production
+# Instalar dependencias (legacy-peer-deps por conflicto primeng/Angular en monorepo)
+RUN npm ci --omit=dev --legacy-peer-deps
 
 # Copiar código fuente
 COPY server.ts ./

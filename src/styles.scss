@@ -596,3 +596,41 @@ html.light .p-paginator .p-dropdown-panel .p-dropdown-items .p-dropdown-item.p-h
     }
   }
 }
+
+/* ============================================
+   LOGIN MÓVIL — Botones idénticos sin glow (anula tema PrimeNG)
+   PC usa botones nativos .login-pc__action-btn (sin PrimeNG)
+   ============================================ */
+pt-login p-button.switch-button-active button,
+pt-login p-button.switch-button-active .p-button,
+pt-login .switch-button-active button.p-button,
+pt-login .switch-button-active .p-button {
+  background: #fbbf24 !important;
+  box-shadow: none !important;
+  border: none !important;
+  color: #1a1a1a !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+pt-login p-button.switch-button-active button:hover,
+pt-login p-button.switch-button-active .p-button:hover,
+pt-login .switch-button-active button.p-button:hover,
+pt-login .switch-button-active .p-button:hover {
+  background: #f59e0b !important;
+  box-shadow: none !important;
+}
+
+pt-login p-button.switch-button-active button:focus,
+pt-login p-button.switch-button-active button:focus-visible,
+pt-login .switch-button-active button.p-button:focus,
+pt-login .switch-button-active button.p-button:focus-visible {
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+pt-login p-button.switch-button-active .p-button-icon,
+pt-login .switch-button-active .p-button-icon {
+  color: #1a1a1a !important;
+  filter: none !important;
+}

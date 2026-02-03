@@ -39,6 +39,12 @@ export const appRoutes: Route[] = [
     canActivate: [timeclockKioskGuard],
   },
   {
+    path: 'timeclock-kiosk-mobile',
+    loadComponent: () =>
+      import('./timeclock.component').then((x) => x.TimeclockComponent),
+    canActivate: [timeclockKioskGuard],
+  },
+  {
     path: 'naz-timeclock',
     loadChildren: () =>
       import('./naz-timeclock/naz-timeclock.routes').then(

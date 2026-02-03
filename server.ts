@@ -1019,9 +1019,16 @@ export function app(): express.Express {
 
       let clientIP: string | undefined;
 
+      // 0. IP real del cliente enviada por el primer proxy (Nginx host) para modo kiosko detrás de Traefik/Docker
+      const clientRealIP = req.headers['x-client-real-ip'];
+      if (clientRealIP) {
+        const ip = Array.isArray(clientRealIP) ? clientRealIP[0] : clientRealIP;
+        if (ip && ip.trim()) clientIP = ip.trim();
+      }
+
       // 1. Intentar desde X-Forwarded-For (puede tener múltiples IPs, tomar la primera)
       const forwardedFor = req.headers['x-forwarded-for'];
-      if (forwardedFor) {
+      if (!clientIP && forwardedFor) {
         const ips = Array.isArray(forwardedFor)
           ? forwardedFor[0]
           : forwardedFor;

@@ -92,7 +92,8 @@ import { getEnv } from './utils/env.utils';
       class="flex flex-col items-center justify-center animated-gradient-container"
       [ngClass]="{
         'naz-theme': isNazCompany(),
-        'blackdog-theme': isBlackDogCompany()
+        'blackdog-theme': isBlackDogCompany(),
+        'timeclock-mobile-kiosk': isMobileKiosk()
       }"
       style="width: 100%; position: relative; min-height: 100vh; overflow-y: auto; overflow-x: hidden;"
     >
@@ -450,6 +451,28 @@ import { getEnv } from './utils/env.utils';
     
     .timeclock-content {
       flex-shrink: 0;
+    }
+
+    /* Versión móvil modo kiosko: logo más grande, controles táctiles más grandes */
+    .timeclock-mobile-kiosk .timeclock-content img {
+      height: 4rem !important;
+      max-height: 80px !important;
+    }
+    .timeclock-mobile-kiosk .timeclock-content {
+      padding: 1.5rem 0.75rem !important;
+      gap: 1rem !important;
+    }
+    .timeclock-mobile-kiosk .timeclock-card ::ng-deep .p-card-body,
+    .timeclock-mobile-kiosk .timeclock-card ::ng-deep .p-card-content {
+      padding: 1.25rem !important;
+    }
+    .timeclock-mobile-kiosk .timeclock-card ::ng-deep .p-select,
+    .timeclock-mobile-kiosk .timeclock-card ::ng-deep .p-inputotp {
+      min-height: 3rem;
+    }
+    .timeclock-mobile-kiosk .mark-button ::ng-deep .p-button {
+      min-height: 3.5rem;
+      font-size: 1.125rem;
     }
     
     @media (max-width: 640px) {
@@ -1002,6 +1025,12 @@ export class TimeclockComponent implements OnDestroy {
   private destroyRef = inject(DestroyRef);
   private diagnosticService = inject(DiagnosticService);
   private readonly DISPLAY_TIMEZONE = 'America/Panama';
+  /** Empleado con sonido personalizado al marcar exitosamente */
+  private readonly EMPLOYEE_PERSONALIZED_SOUND_ID = '202c46ab-04f9-41e8-a572-d9f50f7f31b6';
+  /** Sonidos personalizados para empleado específico (squirrel/cockatoo al azar) */
+  private readonly PERSONALIZED_SUCCESS_SOUNDS = ['/sounds/squirrel.mp3', '/sounds/cockatoo.mp3'];
+  /** Sonidos para empleados en general (meow/bark al azar) */
+  private readonly GENERAL_SUCCESS_SOUNDS = ['/sounds/meow.mp3', '/sounds/bark.mp3'];
   // Get IP address - try multiple methods to get real IP even from localhost
   public currentIP = signal<string>('127.0.0.1');
   public isProcessing = signal<boolean>(false);
@@ -1009,6 +1038,7 @@ export class TimeclockComponent implements OnDestroy {
   public currentTime = signal<Date>(new Date());
   public availableTypes = signal<Array<{ value: string; label: string }>>([]);
   public isKioskMode = signal<boolean>(false);
+  public isMobileKiosk = signal<boolean>(false);
   public isIPValid = signal<boolean>(true);
   // Usar el servicio de organización como fuente principal
   public isNazCompany = computed(() => this.organizationService.isNaz());
@@ -1030,9 +1060,10 @@ export class TimeclockComponent implements OnDestroy {
       this.organizationService.setOrganization(orgParam as 'naz' | 'blackdog');
     }
 
-    // Detectar si está en modo kiosko
+    // Detectar si está en modo kiosko y si es versión móvil
     const isKioskRoute = this.router.url.includes('/timeclock-kiosk');
     this.isKioskMode.set(isKioskRoute);
+    this.isMobileKiosk.set(this.router.url.includes('/timeclock-kiosk-mobile'));
 
     // Sincronizar reloj con hora del servidor (sin tocar DB).
     // Esto evita depender del reloj/zona horaria del dispositivo.
@@ -2390,7 +2421,7 @@ export class TimeclockComponent implements OnDestroy {
           // Nota: El tiempo excedido ya se acumuló en la RPC, no necesitamos llamar a increment_lunch_exceeded_minutes
 
           // Mostrar diálogo con sonido apropiado
-          this.showConfirmationDialogWithSound(message, isLate);
+          this.showConfirmationDialogWithSound(message, isLate, employeeId);
         },
         error: () => {
           this.isProcessing.set(false);
@@ -2404,13 +2435,13 @@ export class TimeclockComponent implements OnDestroy {
   }
 
   // Mostrar diálogo de confirmación con sonido según tardanza
-  private showConfirmationDialogWithSound(message: string, isLate: boolean): void {
+  private showConfirmationDialogWithSound(message: string, isLate: boolean, employeeId?: string): void {
     this.isProcessing.set(false);
     // Reproducir sonido según si llegó tarde o no
     if (isLate) {
       this.playLateSound();
     } else {
-      this.playSuccessSound();
+      this.playSuccessSound(employeeId);
     }
     this.confirmation.confirm({
       message,
@@ -2451,13 +2482,21 @@ export class TimeclockComponent implements OnDestroy {
     }
   }
 
-  // Reproducir sonido de éxito (ladrido)
-  private playSuccessSound(): void {
+  // Reproducir sonido de éxito: empleado personalizado (squirrel/cockatoo al azar), resto (meow/bark al azar)
+  private playSuccessSound(employeeId?: string): void {
     try {
-      const audio = new Audio('/sounds/bark.mp3');
+      let src: string;
+      if (employeeId === this.EMPLOYEE_PERSONALIZED_SOUND_ID && this.PERSONALIZED_SUCCESS_SOUNDS.length > 0) {
+        const idx = Math.floor(Math.random() * this.PERSONALIZED_SUCCESS_SOUNDS.length);
+        src = this.PERSONALIZED_SUCCESS_SOUNDS[idx];
+      } else {
+        const idx = Math.floor(Math.random() * this.GENERAL_SUCCESS_SOUNDS.length);
+        src = this.GENERAL_SUCCESS_SOUNDS[idx];
+      }
+      const audio = new Audio(src);
       audio.volume = 0.7;
       audio.play().then(() => {
-        console.log('🐕 Sonido de éxito (ladrido) reproducido');
+        console.log('🔊 Sonido de éxito reproducido');
       }).catch((error) => {
         console.warn('Error reproduciendo sonido de éxito:', error);
       });

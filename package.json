@@ -6,6 +6,8 @@
     "start": "nx serve",
     "start:dev": "concurrently \"nx serve\" \"tsx server.ts\"",
     "server": "tsx server.ts",
+    "serve:frontend": "node scripts/serve-frontend.js",
+    "start:host": "concurrently -n backend,frontend \"tsx server.ts\" \"node scripts/serve-frontend.js\"",
     "build": "npm run update-version && nx build",
     "test": "nx run people:test --codeCoverage=true",
     "setup:env": "powershell -ExecutionPolicy Bypass -File ./scripts/setup-env.ps1",

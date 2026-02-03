@@ -1,0 +1,25 @@
+# Servicio systemd para el backend de People (puerto 3000).
+# Instalar:
+#   sudo cp /opt/people-test/docker/people-backend.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable people-backend
+#   sudo systemctl start people-backend
+# Ver estado: sudo systemctl status people-backend
+
+[Unit]
+Description=People Backend (API + frontend)
+After=network.target docker.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/people-test
+Environment=PORT=3000
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/npx --yes tsx /opt/people-test/server.ts
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

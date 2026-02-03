@@ -12,7 +12,6 @@ import { Router } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
-import { Card } from 'primeng/card';
 import { Toast } from 'primeng/toast';
 import { Branch } from '../models';
 import { ApiUrlService } from '../services/api-url.service';
@@ -22,969 +21,566 @@ import { logger } from '../utils/logger';
 
 @Component({
   selector: 'pt-login',
-  imports: [Card, Button, Toast, NgClass],
+  imports: [Button, Toast, NgClass],
   template: `
     <div
-      class="w-full flex flex-col items-center justify-center relative animated-gradient-container"
+      class="login-root"
       [ngClass]="{ 'naz-theme': isNaz() }"
-      style="overflow: visible; min-height: 100vh; min-height: 100dvh;"
     >
+      <!-- Fondo en movimiento: misma idea que Docker, transición al cambiar Black Dog ↔ Naz -->
+      <div class="login-bg-wrap">
+        <div class="login-bg-layer login-bg--blackdog" [class.visible]="!isNaz()"></div>
+        <div class="login-bg-layer login-bg--naz" [class.visible]="isNaz()"></div>
+      </div>
       <p-toast />
-      <div
-        class="login-container flex flex-col items-center justify-center w-full relative z-10"
-      >
-        <div class="logo-wrapper">
-          <div class="logo-selector-container">
-            @if (canChangeOrganization()) {
-            <button
-              type="button"
-              class="arrow-button arrow-left"
-              (click)="previousOrganization()"
-              aria-label="Organización anterior"
-            >
-              <i class="pi pi-chevron-left"></i>
-            </button>
-            }
-            <div class="logo-container">
-              <img
-                [src]="logoPath()"
-                [class]="
-                  'logo-image ' + (isNaz() ? 'logo-naz' : 'logo-blackdog')
-                "
-                [alt]="isNaz() ? 'Naz Logo' : 'Black Dog Logo'"
-              />
+
+      <!-- ========== VERSIÓN PC (≥768px) — refactor completo (sin p-card, botones nativos) ========== -->
+      <div class="login-view login-view--desktop login-pc" data-login-pc="v2">
+        <div class="login-pc__inner">
+          <header class="login-pc__brand">
+            <div class="login-pc__logo-row">
+              @if (canChangeOrganization()) {
+                <button type="button" class="login-pc__nav" (click)="previousOrganization()" aria-label="Organización anterior">
+                  <i class="pi pi-chevron-left"></i>
+                </button>
+              }
+              <div class="login-pc__logo-wrap">
+                <img [src]="blackDogLogoPath()" [class]="'login-pc__logo ' + (isNaz() ? 'login-pc__logo--hidden' : '')" alt="Black Dog" />
+                <img [src]="nazLogoPath()" [class]="'login-pc__logo ' + (isNaz() ? '' : 'login-pc__logo--hidden')" alt="Naz" />
+              </div>
+              @if (canChangeOrganization()) {
+                <button type="button" class="login-pc__nav" (click)="nextOrganization()" aria-label="Siguiente organización">
+                  <i class="pi pi-chevron-right"></i>
+                </button>
+              }
             </div>
-            @if (canChangeOrganization()) {
-            <button
-              type="button"
-              class="arrow-button arrow-right"
-              (click)="nextOrganization()"
-              aria-label="Siguiente organización"
-            >
-              <i class="pi pi-chevron-right"></i>
-            </button>
-            }
-          </div>
+          </header>
+          <main class="login-pc__main">
+            <section class="login-pc__panel" [ngClass]="{ 'login-pc__panel--naz': isNaz() }">
+              <div class="login-pc__heading">
+                <p class="login-pc__subtitle" [ngClass]="{ 'login-pc__subtitle--naz': isNaz() }">Sistema de Gestión de Personal</p>
+                <h1 class="login-pc__title" [ngClass]="{ 'login-pc__title--naz': isNaz() }">Iniciar sesión</h1>
+                <p class="login-pc__desc" [ngClass]="{ 'login-pc__desc--naz': isNaz() }">Ingresa con tu cuenta para continuar</p>
+              </div>
+              <div class="login-pc__actions">
+                <button type="button" class="login-pc__action-btn"
+                  [ngClass]="{ 'login-pc__action-btn--active': activeMode() === 'dashboard', 'login-pc__action-btn--naz': isNaz(), 'login-pc__action-btn--fly': isFlying() }"
+                  [disabled]="isFlying()" (click)="launchButton()">
+                  <i class="pi pi-sign-in"></i>
+                  <span>Entrar al dashboard</span>
+                </button>
+                <button type="button" class="login-pc__action-btn"
+                  [ngClass]="{ 'login-pc__action-btn--active': activeMode() === 'kiosk', 'login-pc__action-btn--naz': isNaz() }"
+                  (click)="openKioskMode()">
+                  <i class="pi pi-desktop"></i>
+                  <span>Modo Kiosko</span>
+                </button>
+              </div>
+            </section>
+          </main>
         </div>
-
-        <p-card class="login-card" [ngClass]="{ 'naz-card': isNaz() }">
-          <ng-template #title>
-            <div class="card-title-wrapper">
-              <div
-                [ngClass]="{ 'card-subtitle': true, 'naz-subtitle': isNaz() }"
-              >
-                Sistema de Gestión de Personal
-              </div>
-              <div [ngClass]="{ 'card-title': true, 'naz-title': isNaz() }">
-                Iniciar sesión
-              </div>
-            </div>
-          </ng-template>
-          <ng-template #subtitle>
-            <div
-              [ngClass]="{
-                'card-description': true,
-                'naz-description': isNaz()
-              }"
-            >
-              Ingresa con tu cuenta para continuar
-            </div>
-          </ng-template>
-
-          <ng-template #footer>
-            <div class="card-footer-wrapper">
-              <div class="card-footer">
-                <div class="switch-container">
-                  <p-button
-                    label="Entrar al dashboard"
-                    (click)="launchButton()"
-                    icon="pi pi-sign-in"
-                    size="large"
-                    [ngClass]="{
-                      'switch-button-active': activeMode() === 'dashboard',
-                      fly: isFlying(),
-                      'naz-button': isNaz()
-                    }"
-                    styleClass="switch-button switch-button-dashboard"
-                    [disabled]="isFlying()"
-                  />
-                  <p-button
-                    label="Modo Kiosko"
-                    (click)="openKioskMode()"
-                    icon="pi pi-desktop"
-                    size="large"
-                    [ngClass]="{
-                      'switch-button-active': activeMode() === 'kiosk',
-                      'naz-button': isNaz()
-                    }"
-                    styleClass="switch-button switch-button-kiosk"
-                  />
-                </div>
-              </div>
-            </div>
-          </ng-template>
-        </p-card>
       </div>
 
-      <!-- Versión en la esquina inferior derecha -->
-      <div 
-        class="version-badge" 
-        [ngClass]="{ 'naz-version': isNaz() }"
-        (dblclick)="playBarkSound()"
-        title="🐕"
-      >
+      <!-- ========== VERSIÓN MÓVIL (visible hasta 767px) — estructura propia ========== -->
+      <div class="login-view login-view--mobile">
+        <div class="mobile-layout">
+          <header class="mobile-header">
+            <div class="mobile-logo-row">
+              @if (canChangeOrganization()) {
+              <button type="button" class="arrow-button arrow-left" (click)="previousOrganization()" aria-label="Organización anterior">
+                <i class="pi pi-chevron-left"></i>
+              </button>
+              }
+              <div class="mobile-logo-wrap">
+                <img [src]="blackDogLogoPath()" [class]="'mobile-logo-img logo-blackdog ' + (isNaz() ? 'logo-fade-out' : '')" alt="Black Dog Logo" />
+                <img [src]="nazLogoPath()" [class]="'mobile-logo-img logo-naz logo-abs ' + (isNaz() ? '' : 'logo-fade-out')" alt="Naz Logo" />
+              </div>
+              @if (canChangeOrganization()) {
+              <button type="button" class="arrow-button arrow-right" (click)="nextOrganization()" aria-label="Siguiente organización">
+                <i class="pi pi-chevron-right"></i>
+              </button>
+              }
+            </div>
+          </header>
+          <main class="mobile-main">
+            <p class="mobile-label">Sistema de Gestión de Personal</p>
+            <h1 class="mobile-title">Iniciar sesión</h1>
+            <p class="mobile-desc">Ingresa con tu cuenta para continuar</p>
+            <div class="mobile-actions">
+              <p-button label="Entrar al dashboard" (click)="launchButton()" icon="pi pi-sign-in" size="large"
+                severity="secondary"
+                [ngClass]="{ 'switch-button-active': activeMode() === 'dashboard', fly: isFlying(), 'naz-button': isNaz() }"
+                styleClass="switch-button switch-button-dashboard mobile-btn" [disabled]="isFlying()" />
+              <p-button label="Modo Kiosko" (click)="openKioskMode()" icon="pi pi-desktop" size="large"
+                severity="secondary"
+                [ngClass]="{ 'switch-button-active': activeMode() === 'kiosk', 'naz-button': isNaz() }"
+                styleClass="switch-button switch-button-kiosk mobile-btn" />
+            </div>
+          </main>
+        </div>
+      </div>
+
+      <!-- Versión en la esquina inferior derecha (un clic = sonido + easter egg) -->
+      <div class="version-badge" [ngClass]="{ 'naz-version': isNaz(), 'version-badge--pop': easterEggPop() }" (click)="onVersionClick()" title="¡Tócame!">
         v{{ appVersion }}
       </div>
+      @if (easterEggBurst()) {
+        <div class="easter-egg-burst" [class.easter-egg-burst--visible]="easterEggBurst()">{{ easterEggBurst() }}</div>
+      }
     </div>
   `,
   styles: `
-    .animated-gradient-container {
+    /* ========== ROOT — transición suave entre Black Dog y Naz ========== */
+    .login-root {
       position: relative;
+      width: 100%;
+      height: 100vh;
+      max-height: 100dvh;
+      min-height: 0;
       overflow: hidden;
-      transition: background 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      z-index: 0;
+      transition: background 0.5s ease;
+    }
+
+    /* Fondo en movimiento: capas con transición (Naz ya no usa ::before) */
+    .login-bg-wrap {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+    .login-bg-layer {
+      position: absolute;
+      inset: -50%;
+      width: 200%;
+      height: 200%;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+      pointer-events: none;
+    }
+    .login-bg-layer.visible {
+      opacity: 1;
+      z-index: 1;
+    }
+    /* Black Dog: gradiente oscuro en movimiento (solo en modo oscuro) */
+    :host-context(html.dark) .login-bg--blackdog {
+      background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 25%, #000000 50%, #0d0d0d 75%, #2a2a2a 100%);
+      background-size: 400% 400%;
+      animation: brutalGradientMove 12s ease-in-out infinite;
+    }
+    :host-context(html.dark) .login-bg--blackdog::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: 
+        radial-gradient(ellipse 80% 50% at 20% 40%, rgba(251, 191, 36, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse 60% 80% at 80% 60%, rgba(30, 30, 30, 0.9) 0%, transparent 50%);
+      animation: brutalFloat 18s ease-in-out infinite;
+      pointer-events: none;
+    }
+    :host-context(html.dark) .login-bg--blackdog::after {
+      content: '';
+      position: absolute;
+      inset: -20%;
+      background: linear-gradient(125deg, #111 0%, transparent 40%, #1a1a1a 70%, #0d0d0d 100%);
+      background-size: 300% 300%;
+      animation: brutalGradientMove 20s ease-in-out infinite reverse;
+      opacity: 0.7;
+      pointer-events: none;
+    }
+    @keyframes brutalGradientMove {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    @keyframes brutalFloat {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      33% { transform: translate(5%, -8%) rotate(3deg); }
+      66% { transform: translate(-6%, 5%) rotate(-2deg); }
+    }
+    /* Naz: lava plateada en movimiento */
+    .login-bg--naz {
+      background: #000000;
+    }
+    .login-bg--naz::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      min-height: 200vh;
+      background: 
+        repeating-linear-gradient(45deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.6) 2%, rgba(229,226,223,0.65) 4%, rgba(198,194,191,0.55) 6%, transparent 8%, transparent 12%, rgba(198,194,191,0.5) 14%, rgba(229,226,223,0.6) 16%, rgba(255,255,255,0.55) 18%, transparent 20%),
+        linear-gradient(135deg, rgba(255,255,255,0.6) 0%, rgba(229,226,223,0.7) 25%, rgba(198,194,191,0.6) 50%, rgba(229,226,223,0.65) 75%, rgba(255,255,255,0.55) 100%);
+      animation: silverLavaFlow 25s ease-in-out infinite;
+      z-index: 0;
+      filter: blur(25px);
+      pointer-events: none;
+    }
+    .login-bg--naz::after {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -50%;
+      width: 200%;
+      height: 200%;
+      min-height: 200vh;
+      background: 
+        repeating-linear-gradient(-45deg, rgba(229,226,223,0.55) 0%, rgba(255,255,255,0.65) 2%, rgba(198,194,191,0.6) 4%, rgba(229,226,223,0.5) 6%, transparent 8%, transparent 12%, rgba(255,255,255,0.55) 14%, rgba(198,194,191,0.65) 16%, rgba(229,226,223,0.6) 18%, transparent 20%),
+        linear-gradient(-135deg, rgba(198,194,191,0.7) 0%, rgba(229,226,223,0.75) 30%, rgba(255,255,255,0.65) 60%, rgba(198,194,191,0.6) 100%);
+      animation: silverLavaFlow 30s ease-in-out infinite reverse;
+      z-index: 0;
+      filter: blur(30px);
+      pointer-events: none;
+    }
+    @keyframes silverLavaFlow {
+      0% { transform: translate(-20%, -20%) rotate(0deg) scale(1); opacity: 0.9; }
+      25% { transform: translate(10%, 5%) rotate(5deg) scale(1.1); opacity: 1; }
+      50% { transform: translate(5%, 15%) rotate(-3deg) scale(0.95); opacity: 0.85; }
+      75% { transform: translate(-10%, 8%) rotate(4deg) scale(1.05); opacity: 0.95; }
+      100% { transform: translate(-20%, -20%) rotate(0deg) scale(1); opacity: 0.9; }
+    }
+
+    .login-view--desktop,
+    .login-view--mobile,
+    .version-badge {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ========== VISIBILIDAD POR VERSIÓN (PC vs MÓVIL) ========== */
+    .login-view--desktop {
+      display: none;
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      width: 100%;
+    }
+    .login-view--mobile {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      width: 100%;
+    }
+    @media (min-width: 768px) {
+      .login-view--desktop {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .login-view--mobile {
+        display: none !important;
+      }
+    }
+    @media (max-width: 767px) {
+      .login-view--desktop {
+        display: none !important;
+      }
+      .login-view--mobile {
+        display: flex !important;
+      }
     }
 
     /* Modo Oscuro - Fondo por defecto */
-    :host-context(html.dark) .animated-gradient-container {
+    :host-context(html.dark) .login-root {
       background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 25%, #000000 50%, #0d0d0d 75%, #2a2a2a 100%);
     }
 
     /* Modo Claro - Fondo claro */
-    :host-context(html.light) .animated-gradient-container {
+    :host-context(html.light) .login-root {
       background: linear-gradient(135deg, #f5f5f5 0%, #ffffff 25%, #fafafa 50%, #ffffff 75%, #f0f0f0 100%);
     }
-    
-    /* Login Container */
-    .login-container {
-      padding: 1rem 0.75rem;
-      min-height: auto;
-      position: relative;
-      justify-content: flex-start;
-      padding-top: 8rem;
-      overflow: visible;
+
+    /* ========== VERSIÓN PC — refactor completo (BEM .login-pc) ========== */
+    .login-pc {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 0;
+      padding: 2rem;
     }
-    
-    @media (min-width: 768px) {
-      .login-container {
-        padding: 3rem 2rem;
-        padding-top: 10rem;
-        min-height: 100vh;
-        justify-content: center;
-      }
+    .login-pc__inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2rem;
+      width: 100%;
+      max-width: 420px;
+    }
+    .login-pc__brand {
+      flex-shrink: 0;
+    }
+    .login-pc__logo-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+    }
+    .login-pc__logo-wrap {
+      position: relative;
+      width: 190px;
+      height: 5.75rem;
+    }
+    @media (min-width: 1024px) {
+      .login-pc__logo-wrap { width: 230px; height: 7.5rem; }
+    }
+    .login-pc__logo {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      transition: opacity 0.5s ease;
+    }
+    .login-pc__logo--hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .login-pc__nav {
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.05);
+      color: rgba(255, 255, 255, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.35s ease, border-color 0.35s ease, color 0.35s ease, transform 0.2s ease;
+    }
+    .login-pc__nav:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.35);
+      color: #fff;
+      transform: scale(1.08);
+    }
+    .login-pc__nav:active {
+      transform: scale(0.95);
+    }
+    .login-pc__nav i {
+      font-size: 1.15rem;
+    }
+    .naz-theme .login-pc__nav {
+      border-color: rgba(255, 255, 255, 0.25);
+      color: rgba(255, 255, 255, 0.85);
+    }
+    .naz-theme .login-pc__nav:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.5);
+      color: #fff;
+    }
+    .login-pc__main {
+      width: 100%;
+    }
+    .login-pc__panel {
+      width: 100%;
+      border-radius: 16px;
+      padding: 2rem 1.75rem;
+      transition: background 0.5s ease, border-color 0.5s ease, box-shadow 0.5s ease;
+    }
+    :host-context(html.dark) .login-pc__panel {
+      background: rgba(18, 18, 20, 0.88);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+    }
+    :host-context(html.light) .login-pc__panel {
+      background: rgba(255, 255, 255, 0.95);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+    .login-pc__panel--naz {
+      background: #0d0d0d !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      box-shadow: none !important;
+    }
+    .login-pc__heading {
+      text-align: center;
+      margin-bottom: 1.75rem;
+    }
+    .login-pc__subtitle {
+      font-size: 0.6875rem;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      margin: 0 0 0.5rem 0;
+      transition: color 0.5s ease;
+    }
+    :host-context(html.dark) .login-pc__subtitle {
+      color: rgba(220, 215, 210, 0.7);
+    }
+    :host-context(html.light) .login-pc__subtitle {
+      color: rgba(100, 100, 100, 0.8);
+    }
+    .login-pc__subtitle--naz {
+      color: #c6c2bf !important;
+    }
+    .login-pc__title {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.25;
+      margin: 0 0 0.5rem 0;
+      transition: color 0.5s ease;
+    }
+    :host-context(html.dark) .login-pc__title {
+      color: #fafafa;
+    }
+    :host-context(html.light) .login-pc__title {
+      color: #1f2937;
+    }
+    .login-pc__title--naz {
+      color: #fff !important;
+      font-family: 'Playfair Display', Georgia, serif;
+      font-weight: 400;
+    }
+    .login-pc__desc {
+      font-size: 0.875rem;
+      color: rgba(200, 198, 195, 0.85);
+      margin: 0;
+      line-height: 1.45;
+      transition: color 0.5s ease;
+    }
+    :host-context(html.light) .login-pc__desc {
+      color: rgba(75, 85, 99, 0.9);
+    }
+    .login-pc__desc--naz {
+      color: #c6c2bf !important;
+    }
+    .login-pc__actions {
+      display: flex;
+      gap: 0.75rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    /* Botones nativos PC — mismo estilo para ambos, sin glow */
+    .login-pc__action-btn {
+      min-width: 200px;
+      min-height: 3.5rem;
+      padding: 1rem 2rem;
+      font-size: 1.0625rem;
+      font-weight: 500;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: transparent;
+      color: rgba(255, 255, 255, 0.85);
+      box-shadow: none;
+      cursor: pointer;
+      transition: background 0.35s ease, border-color 0.35s ease, color 0.35s ease;
+      font-family: inherit;
+    }
+    :host-context(html.light) .login-pc__action-btn:not(.login-pc__action-btn--active):not(.login-pc__action-btn--naz) {
+      border-color: rgba(0, 0, 0, 0.12);
+      color: rgba(0, 0, 0, 0.7);
+    }
+    .login-pc__action-btn:not(.login-pc__action-btn--active):not(.login-pc__action-btn--naz):hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.35);
+      color: #fff;
+    }
+    :host-context(html.light) .login-pc__action-btn:not(.login-pc__action-btn--active):not(.login-pc__action-btn--naz):hover {
+      border-color: rgba(245, 158, 11, 0.5);
+      color: rgba(180, 83, 9, 0.95);
+    }
+    /* Activo Black Dog — mismo color exacto para ambos botones, sin sombra */
+    .login-pc__action-btn--active:not(.login-pc__action-btn--naz) {
+      background: #fbbf24;
+      border-color: #fbbf24;
+      color: #1a1a1a;
+      box-shadow: none;
+    }
+    .login-pc__action-btn--active:not(.login-pc__action-btn--naz):hover {
+      background: #f59e0b;
+      border-color: #f59e0b;
+      color: #1a1a1a;
+      box-shadow: none;
+    }
+    .login-pc__action-btn--active.login-pc__action-btn--naz {
+      background: transparent;
+      border: 1px solid #fff;
+      color: #fff;
+      box-shadow: none;
+    }
+    .login-pc__action-btn--active.login-pc__action-btn--naz:hover {
+      background: #e5e2df;
+      border-color: #e5e2df;
+      color: #000;
+      box-shadow: none;
+    }
+    .login-pc__action-btn--naz:not(.login-pc__action-btn--active) {
+      background: #e5e2df;
+      border-color: #e5e2df;
+      color: #000;
+    }
+    .login-pc__action-btn:focus,
+    .login-pc__action-btn:focus-visible {
+      outline: none;
+      box-shadow: none;
+    }
+    .login-pc__action-btn:disabled {
+      opacity: 0.8;
+      cursor: not-allowed;
+    }
+    .login-pc__action-btn--fly {
+      animation: login-pc-fly 0.9s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+      pointer-events: none;
+    }
+    @keyframes login-pc-fly {
+      0% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1; }
+      100% { transform: translate(280px, -380px) rotate(-24deg) scale(0.55); opacity: 0; visibility: hidden; }
+    }
+    .mobile-logo-wrap {
+      position: relative;
+      display: inline-block;
+      height: 5.5rem;
+      width: 170px;
+    }
+    .mobile-logo-wrap .mobile-logo-img {
+      position: absolute;
+      inset: 0;
+      width: 100% !important;
+      height: 100% !important;
+      max-width: none;
+      object-fit: contain;
+      transition: opacity 0.5s ease;
+    }
+    .mobile-logo-wrap .mobile-logo-img.logo-fade-out {
+      opacity: 0;
+      pointer-events: none;
     }
 
     /* ============================================
        TEMA BLACK DOG - ESTILOS
        ============================================ */
     
-    /* Fondo Black Dog - Modo Oscuro */
-    :host-context(html.dark) .animated-gradient-container:not(.naz-theme) {
-      background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 25%, #000000 50%, #0d0d0d 75%, #2a2a2a 100%);
-    }
-
-    /* Fondo Black Dog - Modo Claro */
-    :host-context(html.light) .animated-gradient-container:not(.naz-theme) {
-      background: linear-gradient(135deg, #f5f5f5 0%, #ffffff 25%, #fafafa 50%, #ffffff 75%, #f0f0f0 100%);
-    }
+    /* Fondo Black Dog - Modo Oscuro (ya aplicado en .login-root arriba) */
+    /* Fondo Black Dog - Modo Claro (ya aplicado en .login-root arriba) */
 
     /* ============================================
        TEMA NAZ - ESTILOS MINIMALISTAS PREMIUM
        ============================================ */
     
     /* Fondo Naz - negro con animación de lava lamp plateada */
-    .naz-theme .animated-gradient-container {
+    .naz-theme .login-root {
       background: #000000;
-      position: relative;
-      overflow: hidden;
-      min-height: 100vh;
     }
 
-    /* Animación de lava lamp plateada - DESACTIVADA */
-    .naz-theme .animated-gradient-container::before {
-      display: none;
-    }
 
-    .naz-theme .animated-gradient-container::after {
-      display: none;
-    }
-
-    /* Animación de lava lamp plateada también en login-container - DESACTIVADA */
-    .naz-theme .login-container {
-      background: transparent;
-      position: relative;
-      overflow: visible;
-    }
-
-    .naz-theme .login-container::before {
-      display: none;
-    }
-
-    .naz-theme .login-container::after {
-      display: none;
-    }
-
-    /* Código anterior comentado - animaciones desactivadas
-    .naz-theme .login-container::before {
-      display: none;
-    }
-
-    .naz-theme .login-container::after {
-      display: none;
-    }
-
-    /* Asegurar que el contenido esté por encima de la animación */
-    .naz-theme .login-container > * {
-      position: relative;
-      z-index: 1;
-    }
-
-    @keyframes silverLavaFlow {
-      0% {
-        transform: translate(-20%, -20%) rotate(0deg) scale(1);
-        opacity: 0.9;
-      }
-      25% {
-        transform: translate(10%, 5%) rotate(5deg) scale(1.1);
-        opacity: 1;
-      }
-      50% {
-        transform: translate(5%, 15%) rotate(-3deg) scale(0.95);
-        opacity: 0.85;
-      }
-      75% {
-        transform: translate(-10%, 8%) rotate(4deg) scale(1.05);
-        opacity: 0.95;
-      }
-      100% {
-        transform: translate(-20%, -20%) rotate(0deg) scale(1);
-        opacity: 0.9;
-      }
-    }
-    
-    /* Logo */
-    .logo-wrapper {
-      padding: 0.5rem 0;
-      margin-bottom: 1rem;
-      animation: logo-entrance 0.8s ease-out;
-    }
-    
-    @media (min-width: 768px) {
-      .logo-wrapper {
-        padding: 2rem 0;
-        margin-bottom: 0;
-      }
-    }
-    
-    .logo-image {
-      height: 3.5rem;
-      width: auto;
-      max-width: 90vw;
-      object-fit: contain;
-      filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.4)) 
-              drop-shadow(0 4px 12px rgba(255, 255, 255, 0.1));
-      transition: transform 0.3s ease;
-    }
-    
-    @media (min-width: 480px) {
-      .logo-image {
-        height: 4.5rem;
-      }
-    }
-    
-    @media (min-width: 768px) {
-      .logo-image {
-        height: 6rem;
-        max-width: none;
-      }
-    }
-    
-    @media (min-width: 1024px) {
-      .logo-image {
-        height: 7rem;
-      }
-    }
-    
-    .logo-image:hover {
-      transform: scale(1.02);
-    }
-    
-    @keyframes logo-entrance {
-      from {
-        opacity: 0;
-        transform: translateY(-20px) scale(0.95);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-      }
-    }
-    
-    /* Login Card */
-    .login-card {
-      width: 100%;
-      max-width: 420px;
-      animation: card-entrance 0.6s ease-out 0.2s both;
-      border-radius: 16px !important;
-      transition: all 0.3s ease;
-      overflow: visible;
-    }
-
-    /* Login Card - Modo Oscuro */
-    :host-context(html.dark) .login-card {
-      border: 1px solid rgba(150, 150, 150, 0.2) !important;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
-                  0 2px 8px rgba(0, 0, 0, 0.2),
-                  inset 0 1px 0 rgba(255, 255, 255, 0.05) !important;
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
-      background: rgba(20, 20, 20, 0.75) !important;
-    }
-
-    /* Login Card - Modo Claro */
-    :host-context(html.light) .login-card {
-      border: 1px solid rgba(0, 0, 0, 0.1) !important;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1),
-                  0 2px 8px rgba(0, 0, 0, 0.05),
-                  inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
-      backdrop-filter: blur(20px) saturate(180%);
-      -webkit-backdrop-filter: blur(20px) saturate(180%);
-      background: rgba(255, 255, 255, 0.95) !important;
-    }
-    
-    @media (max-width: 767px) {
-      .login-card {
-        max-width: 100%;
-        border-radius: 12px !important;
-      }
-    }
-    
-    .login-card ::ng-deep .p-card {
-      background: transparent !important;
-      border: none !important;
-      box-shadow: none !important;
-    }
-    
-    .login-card ::ng-deep .p-card-body {
-      padding: 1.5rem 1rem !important;
-      overflow: visible !important;
-    }
-
-    .login-card ::ng-deep .p-card-footer {
-      padding: 0 1rem 1rem 1rem !important;
-      overflow: visible !important;
-    }
-    
-    @media (min-width: 768px) {
-      .login-card ::ng-deep .p-card-body {
-        padding: 2.5rem 2rem !important;
-      }
-
-      .login-card ::ng-deep .p-card-footer {
-        padding: 0 2rem 2rem 2rem !important;
-      }
-    }
-    
-    @keyframes card-entrance {
-      from {
-        opacity: 0;
-        transform: translateY(30px) scale(0.96);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-      }
-    }
-    
-    /* Typography */
-    .card-title-wrapper {
-      text-align: center;
-      padding: 0.25rem 0;
-    }
-    
-    @media (min-width: 768px) {
-      .card-title-wrapper {
-        padding: 0.5rem 0;
-      }
-    }
-    
-    .card-subtitle {
-      font-size: 0.625rem;
-      font-weight: 500;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      margin-bottom: 0.5rem;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      transition: color 0.3s ease;
-    }
-
-    :host-context(html.dark) .card-subtitle {
-      color: rgba(200, 200, 200, 0.7);
-    }
-
-    :host-context(html.light) .card-subtitle {
-      color: rgba(100, 100, 100, 0.8);
-    }
-    
-    @media (min-width: 480px) {
-      .card-subtitle {
-        font-size: 0.6875rem;
-        margin-bottom: 0.625rem;
-      }
-    }
-    
-    @media (min-width: 768px) {
-      .card-subtitle {
-        font-size: 0.8125rem;
-        margin-bottom: 1rem;
-      }
-    }
-    
-    .card-title {
-      font-size: 1.375rem;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      line-height: 1.2;
-      transition: color 0.3s ease;
-    }
-
-    :host-context(html.dark) .card-title {
-      color: #f5f5f5;
-    }
-
-    :host-context(html.light) .card-title {
-      color: #1f2937;
-    }
-    
-    @media (min-width: 480px) {
-      .card-title {
-        font-size: 1.5rem;
-      }
-    }
-    
-    @media (min-width: 768px) {
-      .card-title {
-        font-size: 2rem;
-        line-height: 1.3;
-      }
-    }
-    
-    .card-description {
-      font-size: 0.75rem;
-      margin-top: 0.375rem;
-      text-align: center;
-      font-weight: 400;
-      line-height: 1.4;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-      transition: color 0.3s ease;
-    }
-
-    :host-context(html.dark) .card-description {
-      color: rgba(180, 180, 180, 0.8);
-    }
-
-    :host-context(html.light) .card-description {
-      color: rgba(75, 85, 99, 0.9);
-    }
-    
-    @media (min-width: 480px) {
-      .card-description {
-        font-size: 0.8125rem;
-        margin-top: 0.5rem;
-      }
-    }
-    
-    @media (min-width: 768px) {
-      .card-description {
-        font-size: 0.9375rem;
-        margin-top: 0.75rem;
-        line-height: 1.5;
-      }
-    }
-    
-    /* Card Footer Wrapper */
-    .card-footer-wrapper {
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    /* Card Footer */
-    .card-footer {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding-top: 1rem;
-      width: 100%;
-    }
-    
-    @media (min-width: 768px) {
-      .card-footer {
-        padding-top: 1.5rem;
-      }
-    }
-
-    
-    @media (min-width: 640px) {
-      .card-footer {
-        flex-direction: row;
-        justify-content: center;
-      }
-    }
-
-    /* Switch Container - Diseño Simple */
-    .switch-container {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.75rem;
-      border-radius: 16px;
-      padding: 0.5rem 0.75rem;
-      transition: all 0.3s ease;
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      width: 100%;
-    }
-
-    :host-context(html.dark) .switch-container {
-      background: rgba(20, 20, 20, 0.95);
-      border: 1px solid rgba(100, 100, 100, 0.2);
-      box-shadow: 
-        inset 0 2px 4px rgba(0, 0, 0, 0.5),
-        0 4px 16px rgba(0, 0, 0, 0.4),
-        0 0 0 1px rgba(255, 255, 255, 0.05);
-    }
-
-    :host-context(html.light) .switch-container {
-      background: rgba(255, 255, 255, 0.95);
-      border: 1px solid rgba(0, 0, 0, 0.1);
-      box-shadow: 
-        inset 0 2px 4px rgba(255, 255, 255, 0.8),
-        0 4px 16px rgba(0, 0, 0, 0.1),
-        0 0 0 1px rgba(0, 0, 0, 0.05);
-    }
-    
-    @media (min-width: 768px) {
-      .switch-container {
-        width: auto;
-      }
-    }
-
-    /* Switch Buttons - Estilos base iguales para ambos */
-    .switch-button {
-      position: relative;
-      min-width: 180px;
-      width: 180px;
-      margin: 0;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-      flex: 1 1 0;
-    }
-
-    /* Asegurar que ambos botones tengan el mismo tamaño */
-    .switch-button-dashboard,
-    .switch-button-kiosk {
-      min-width: 180px;
-      width: 180px;
-      flex: 1 1 0;
-    }
-
-    /* Hover effect on active button */
-    .switch-button-active ::ng-deep .p-button:hover {
-      transform: translateY(-1px);
-    }
-
-    /* Botones inactivos - mismo tamaño y estilo para ambos */
-    .switch-button:not(.switch-button-active) ::ng-deep .p-button {
-      padding: 0.875rem 2rem !important;
-      font-size: 1rem !important;
-      font-weight: 500 !important;
-      letter-spacing: 0.02em !important;
-      border-radius: 12px !important;
-      min-width: 180px !important;
-      width: 100% !important;
-      height: auto !important;
-      min-height: 3rem !important;
-      background: transparent !important;
-      border: 1px solid transparent !important;
-      text-shadow: none !important;
-      box-shadow: none !important;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-      position: relative;
-      overflow: hidden;
-      cursor: pointer;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-    }
-
-    :host-context(html.dark) .switch-button:not(.switch-button-active) ::ng-deep .p-button {
-      color: rgba(255, 255, 255, 0.7) !important;
-    }
-
-    :host-context(html.light) .switch-button:not(.switch-button-active) ::ng-deep .p-button {
-      color: rgba(0, 0, 0, 0.6) !important;
-    }
-
-    /* Iconos de botones inactivos - mismo color para ambos */
-    .switch-button:not(.switch-button-active) ::ng-deep .p-button-icon {
-      color: rgba(0, 0, 0, 0.7) !important;
-    }
-
-    /* Centrar contenido del botón (icono + texto) */
-    .switch-button ::ng-deep .p-button {
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-    }
-
-    .switch-button ::ng-deep .p-button .p-button-content {
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      width: 100% !important;
-      gap: 0.5rem !important;
-      flex: 1 !important;
-    }
-
-    .switch-button ::ng-deep .p-button .p-button-label {
-      display: inline-block !important;
-      text-align: center !important;
-      white-space: normal !important;
-      line-height: 1.2 !important;
-      flex: 0 0 auto !important;
-    }
-
-    .switch-button ::ng-deep .p-button-icon {
-      flex: 0 0 auto !important;
-    }
-
-    /* Iconos de botones inactivos - mismo estilo para ambos */
-    .switch-button:not(.switch-button-active) ::ng-deep .p-button-icon {
-      font-size: 1.125rem !important;
-      margin-right: 1rem !important;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-      filter: none !important;
-      text-shadow: none !important;
-      flex-shrink: 0 !important;
-    }
-
-    /* Asegurar que ambos botones inactivos tengan iconos con el mismo color */
-    :host-context(html.dark) .switch-button-dashboard:not(.switch-button-active) ::ng-deep .p-button-icon,
-    :host-context(html.dark) .switch-button-kiosk:not(.switch-button-active) ::ng-deep .p-button-icon {
-      color: rgba(255, 255, 255, 0.7) !important;
-    }
-
-    :host-context(html.light) .switch-button-dashboard:not(.switch-button-active) ::ng-deep .p-button-icon,
-    :host-context(html.light) .switch-button-kiosk:not(.switch-button-active) ::ng-deep .p-button-icon {
-      color: rgba(0, 0, 0, 0.6) !important;
-    }
-
-    /* Hover en botones inactivos - cambiar a amarillo (solo Black Dog) */
-    .switch-button:not(.switch-button-active):not(.naz-button) ::ng-deep .p-button:hover {
-      color: rgba(251, 191, 36, 0.95) !important;
-      background: transparent !important;
-      text-shadow: none !important;
-      box-shadow: none !important;
-      transform: translateY(-1px);
-    }
-
-    .switch-button:not(.switch-button-active):not(.naz-button) ::ng-deep .p-button:hover .p-button-icon {
-      color: rgba(251, 191, 36, 0.9) !important;
-      transform: scale(1.05);
-      filter: none !important;
-    }
-    
-    /* Hover en botones inactivos Naz - cambiar a gris */
-    .naz-theme .switch-button:not(.switch-button-active) ::ng-deep .p-button:hover {
-      color: rgba(198, 194, 191, 0.95) !important;
-      background: transparent !important;
-      text-shadow: none !important;
-      box-shadow: none !important;
-      transform: translateY(-1px);
-    }
-
-    .naz-theme .switch-button:not(.switch-button-active) ::ng-deep .p-button:hover .p-button-icon {
-      color: rgba(198, 194, 191, 0.9) !important;
-      transform: scale(1.05);
-      filter: none !important;
-    }
-
-    /* Botón activo - Estilos base iguales para ambos */
-    .switch-button-active ::ng-deep .p-button {
-      padding: 0.875rem 2rem !important;
-      font-size: 1rem !important;
-      font-weight: 600 !important;
-      letter-spacing: 0.02em !important;
-      border-radius: 12px !important;
-      min-width: 180px !important;
-      width: 100% !important;
-      height: auto !important;
-      min-height: 3rem !important;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-      position: relative !important;
-      overflow: hidden;
-      cursor: pointer;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      z-index: 2 !important;
-    }
-    
-    /* Botón activo de Dashboard - fondo amarillo sólido (solo Black Dog) */
-    .switch-button-active.switch-button-dashboard:not(.naz-button) ::ng-deep .p-button {
-      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
-      border: none !important;
-      box-shadow: 
-        0 4px 16px rgba(251, 191, 36, 0.5),
-        0 2px 8px rgba(251, 191, 36, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.25),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.2) !important;
-      color: #ffffff !important;
-      text-shadow: 
-        0 1px 2px rgba(0, 0, 0, 0.3),
-        0 0 8px rgba(0, 0, 0, 0.2) !important;
-    }
-    
-    /* Botón activo de Dashboard Naz - fondo gris */
-    .naz-theme .switch-button-active.switch-button-dashboard ::ng-deep .p-button {
-      background: linear-gradient(135deg, #C6C2BF 0%, #E5E2DF 100%) !important;
-      border: 1px solid #FFFFFF !important;
-      box-shadow: 
-        0 4px 16px rgba(198, 194, 191, 0.3),
-        0 2px 8px rgba(198, 194, 191, 0.2),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.1) !important;
-      color: #000000 !important;
-      text-shadow: none !important;
-    }
-    
-    /* Botón activo de Kiosko - mismo estilo pero sin fondo amarillo (solo Black Dog) */
-    .switch-button-active.switch-button-kiosk:not(.naz-button) ::ng-deep .p-button {
-      background: transparent !important;
-      border: 1px solid transparent !important;
-      box-shadow: none !important;
-      color: #ffffff !important;
-      text-shadow: 
-        0 1px 2px rgba(0, 0, 0, 0.3),
-        0 0 8px rgba(251, 191, 36, 0.3) !important;
-    }
-    
-    /* Botón activo de Kiosko Naz */
-    .naz-theme .switch-button-active.switch-button-kiosk ::ng-deep .p-button {
-      background: transparent !important;
-      border: 1px solid #FFFFFF !important;
-      box-shadow: none !important;
-      color: #FFFFFF !important;
-      text-shadow: none !important;
-    }
-
-    /* Iconos de botones activos - mismo estilo para ambos (solo Black Dog) */
-    .switch-button-active:not(.naz-button) ::ng-deep .p-button-icon {
-      font-size: 1.125rem !important;
-      margin-right: 1rem !important;
-      color: #ffffff !important;
-      transform: scale(1.1);
-      filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.5));
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-      flex-shrink: 0 !important;
-    }
-
-    /* Asegurar que el icono de Kiosko activo tenga el mismo estilo (solo Black Dog) */
-    .switch-button-active.switch-button-kiosk:not(.naz-button) ::ng-deep .p-button-icon {
-      color: #ffffff !important;
-      transform: scale(1.1);
-      filter: drop-shadow(0 0 4px rgba(251, 191, 36, 0.5));
-    }
-    
-    /* Iconos de botones activos Naz - sin efectos amarillos */
-    .naz-theme .switch-button-active ::ng-deep .p-button-icon {
-      font-size: 1.125rem !important;
-      margin-right: 1rem !important;
-      color: inherit !important;
-      transform: scale(1.1);
-      filter: none !important;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-      flex-shrink: 0 !important;
-    }
-
-    /* Hover en botones activos - mismo efecto para ambos (solo Black Dog) */
-    .switch-button-active:not(.naz-button) ::ng-deep .p-button:hover {
-      color: #ffffff !important;
-      text-shadow: 
-        0 1px 2px rgba(0, 0, 0, 0.3),
-        0 0 10px rgba(251, 191, 36, 0.4) !important;
-      transform: translateY(-1px);
-    }
-
-    .switch-button-active:not(.naz-button) ::ng-deep .p-button:hover .p-button-icon {
-      color: #ffffff !important;
-      transform: scale(1.15);
-      filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.7));
-    }
-
-    /* Asegurar que el hover de Kiosko activo tenga el mismo efecto (solo Black Dog) */
-    .switch-button-active.switch-button-kiosk:not(.naz-button) ::ng-deep .p-button:hover {
-      color: #ffffff !important;
-      text-shadow: 
-        0 1px 2px rgba(0, 0, 0, 0.3),
-        0 0 10px rgba(251, 191, 36, 0.4) !important;
-      transform: translateY(-1px);
-    }
-
-    .switch-button-active.switch-button-kiosk:not(.naz-button) ::ng-deep .p-button:hover .p-button-icon {
-      color: #ffffff !important;
-      transform: scale(1.15);
-      filter: drop-shadow(0 0 6px rgba(251, 191, 36, 0.7));
-    }
-    
-    /* Hover en botones activos Naz */
-    .naz-theme .switch-button-active ::ng-deep .p-button:hover {
-      color: inherit !important;
-      text-shadow: none !important;
-      transform: translateY(-1px);
-    }
-
-    .naz-theme .switch-button-active ::ng-deep .p-button:hover .p-button-icon {
-      color: inherit !important;
-      transform: scale(1.15);
-      filter: none !important;
-    }
-
-    .switch-button ::ng-deep .p-button:active {
-      transform: scale(0.98);
-    }
-
-    /* Responsive */
-    @media (max-width: 640px) {
-      .switch-container {
-        flex-direction: column;
-        width: 100%;
-        gap: 0.5rem;
-        padding: 0.5rem;
-      }
-
-      .switch-slider {
-        display: none;
-      }
-
-      .switch-button {
-        width: 100%;
-        min-width: auto;
-        flex: 1 1 0;
-      }
-
-      .switch-button-dashboard,
-      .switch-button-kiosk {
-        width: 100%;
-        min-width: auto;
-        flex: 1 1 0;
-      }
-
-      /* Botones activos en móvil - mismo tamaño base */
-      .switch-button-active ::ng-deep .p-button {
-        min-width: 100% !important;
-        width: 100% !important;
-        min-height: 3rem !important;
-        padding: 0.875rem 2rem !important;
-      }
-
-      /* Dashboard activo en móvil - fondo amarillo (solo Black Dog) */
-      .switch-button-active.switch-button-dashboard:not(.naz-button) ::ng-deep .p-button {
-        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
-        border: none !important;
-        box-shadow: 
-          0 4px 12px rgba(251, 191, 36, 0.3),
-          0 2px 6px rgba(251, 191, 36, 0.2) !important;
-        color: #ffffff !important;
-      }
-      
-      /* Dashboard activo en móvil Naz - fondo gris */
-      .naz-theme .switch-button-active.switch-button-dashboard ::ng-deep .p-button {
-        background: linear-gradient(135deg, #C6C2BF 0%, #E5E2DF 100%) !important;
-        border: 1px solid #FFFFFF !important;
-        box-shadow: 
-          0 4px 12px rgba(198, 194, 191, 0.2),
-          0 2px 6px rgba(198, 194, 191, 0.15) !important;
-        color: #000000 !important;
-      }
-
-      /* Kiosko activo en móvil - mismo tamaño pero sin fondo amarillo */
-      .switch-button-active.switch-button-kiosk ::ng-deep .p-button {
-        background: transparent !important;
-        border: 1px solid transparent !important;
-        box-shadow: none !important;
-        color: #ffffff !important;
-
-      }
-
-      /* Iconos en móvil - mismo color para ambos botones activos */
-      .switch-button-active ::ng-deep .p-button-icon {
-        color: #ffffff !important;
-      }
-
-      /* Botones inactivos en móvil - mismo tamaño */
-      .switch-button:not(.switch-button-active) ::ng-deep .p-button {
-        min-width: 100% !important;
-        width: 100% !important;
-        min-height: 3rem !important;
-      }
-
-      .switch-button:not(.switch-button-active) ::ng-deep .p-button {
-        background: rgba(30, 30, 30, 0.6) !important;
-        border: 1px solid rgba(100, 100, 100, 0.2) !important;
-      }
-    }
-    
-    
-    /* Responsive adjustments adicionales para móvil */
-    @media (max-width: 767px) {
-      .animated-gradient-container {
-        min-height: 100vh;
-        min-height: 100dvh;
-        padding: 0.75rem;
-      }
-      
-      .login-container {
-        padding: 1rem 0.5rem;
-        padding-top: 1.5rem;
-        padding-bottom: 1.5rem;
-        gap: 1rem;
-      }
-      
-      @media (min-width: 480px) {
-        .animated-gradient-container {
-          padding: 1rem;
-        }
-        
-        .login-container {
-          padding: 1rem 0.75rem;
-        }
-      }
-      
-      .login-card ::ng-deep .p-card-footer {
-        padding: 0 1rem 1.25rem 1rem !important;
-      }
-      
-      /* Ajustes para textos muy pequeños */
-      @media (max-width: 360px) {
-        .card-title {
-          font-size: 1.25rem;
-        }
-        
-        .card-subtitle {
-          font-size: 0.5625rem;
-        }
-        
-        .card-description {
-          font-size: 0.6875rem;
-        }
-        
-        .logo-image {
-          height: 3rem;
-        }
-      }
-    }
-    
     /* Desactivar animaciones SOLO en dispositivos móviles táctiles pequeños (teléfonos) */
     /* Esta regla solo se aplica a pantallas pequeñas con touch y sin hover - NO afecta a PC */
     @media (max-width: 768px) and (hover: none) and (pointer: coarse) {
@@ -1018,11 +614,20 @@ import { logger } from '../utils/logger';
         transform: none !important;
       }
       
-      .logo-image {
+      .login-bg--blackdog,
+      .login-bg--blackdog::before,
+      .login-bg--blackdog::after,
+      .login-bg--naz::before,
+      .login-bg--naz::after {
+        animation: none !important;
+        transform: none !important;
+      }
+      
+      .login-pc__logo {
         animation: none !important;
       }
       
-      .login-card {
+      .login-pc__panel {
         animation: none !important;
       }
     }
@@ -1031,55 +636,6 @@ import { logger } from '../utils/logger';
     * {
       -webkit-font-smoothing: antialiased;
       -moz-osx-font-smoothing: grayscale;
-    }
-
-    /* Animación de vuelo del botón - Flying Button Animation */
-    .switch-button-dashboard {
-      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    .switch-button-dashboard.fly {
-      animation: flyAway 0.9s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-      pointer-events: none;
-    }
-
-    @keyframes flyAway {
-      0% {
-        transform: translate(0, 0) rotate(0deg) scale(1);
-        opacity: 1;
-      }
-      20% {
-        transform: translate(20px, -30px) rotate(-8deg) scale(0.95);
-        opacity: 0.95;
-      }
-      40% {
-        transform: translate(50px, -80px) rotate(-15deg) scale(0.85);
-        opacity: 0.85;
-      }
-      60% {
-        transform: translate(100px, -150px) rotate(-20deg) scale(0.75);
-        opacity: 0.7;
-      }
-      80% {
-        transform: translate(180px, -250px) rotate(-23deg) scale(0.65);
-        opacity: 0.4;
-      }
-      100% {
-        transform: translate(300px, -400px) rotate(-25deg) scale(0.6);
-        opacity: 0;
-        visibility: hidden;
-      }
-    }
-
-    /* Mejorar el efecto visual del botón durante el vuelo */
-    .switch-button-dashboard.fly ::ng-deep .p-button {
-      transform-origin: center center;
-      will-change: transform, opacity;
-    }
-
-    /* Asegurar que el botón mantenga su estilo antes de volar */
-    .switch-button-dashboard:not(.fly) ::ng-deep .p-button {
-      transform: translate(0, 0) rotate(0deg) scale(1);
     }
 
     /* ============================================
@@ -1098,17 +654,17 @@ import { logger } from '../utils/logger';
     }
 
     .arrow-button {
-      background: transparent;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      color: rgba(255, 255, 255, 0.7);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: rgba(255, 255, 255, 0.75);
       width: 2.5rem;
       height: 2.5rem;
       border-radius: 50%;
       display: flex;
       align-items: center;
+      transition: background 0.45s ease, border-color 0.45s ease, color 0.45s ease, transform 0.2s ease;
       justify-content: center;
       cursor: pointer;
-      transition: all 0.3s ease;
       flex-shrink: 0;
     }
 
@@ -1163,51 +719,141 @@ import { logger } from '../utils/logger';
     }
 
     /* ============================================
+       VERSIÓN MÓVIL — estructura propia (sin card)
+       ============================================ */
+    .login-view--mobile .mobile-layout {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+      width: 100%;
+      overflow: hidden;
+    }
+    .login-view--mobile .mobile-header {
+      flex-shrink: 0;
+      padding: 3.25rem 0.75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .login-view--mobile .mobile-logo-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+    .login-view--mobile .mobile-logo-img {
+      height: 5.5rem;
+      width: auto;
+      max-width: 72vw;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+    }
+    .login-view--mobile .mobile-main {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.25rem 1rem 1.5rem;
+      text-align: center;
+    }
+    .login-view--mobile .mobile-label {
+      font-size: 0.625rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin: 0 0 0.25rem 0;
+    }
+    :host-context(html.dark) .login-view--mobile .mobile-label {
+      color: rgba(220, 215, 210, 0.75);
+    }
+    :host-context(html.light) .login-view--mobile .mobile-label {
+      color: rgba(100, 100, 100, 0.85);
+    }
+    .login-view--mobile .mobile-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin: 0 0 0.375rem 0;
+      line-height: 1.2;
+    }
+    :host-context(html.dark) .login-view--mobile .mobile-title {
+      color: #fafafa;
+    }
+    :host-context(html.light) .login-view--mobile .mobile-title {
+      color: #1f2937;
+    }
+    .login-view--mobile .mobile-desc {
+      font-size: 0.8125rem;
+      margin: 0 0 1.25rem 0;
+      line-height: 1.4;
+    }
+    :host-context(html.dark) .login-view--mobile .mobile-desc {
+      color: rgba(200, 198, 195, 0.85);
+    }
+    :host-context(html.light) .login-view--mobile .mobile-desc {
+      color: rgba(75, 85, 99, 0.9);
+    }
+    /* Móvil: transición de color al cambiar tema */
+    .login-view--mobile .mobile-label,
+    .login-view--mobile .mobile-title,
+    .login-view--mobile .mobile-desc {
+      transition: color 0.5s ease;
+    }
+    /* Tema Naz en móvil — mismos colores que desktop */
+    .naz-theme .login-view--mobile .mobile-label,
+    .naz-theme .login-view--mobile .mobile-desc {
+      color: #C6C2BF !important;
+    }
+    .naz-theme .login-view--mobile .mobile-title {
+      color: #FFFFFF !important;
+    }
+    .login-view--mobile .mobile-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.625rem;
+      width: 100%;
+      max-width: 320px;
+    }
+    .login-view--mobile .mobile-btn ::ng-deep .p-button {
+      width: 100% !important;
+      min-width: 100% !important;
+      justify-content: center !important;
+      padding: 1rem 1.5rem !important;
+      min-height: 3.5rem !important;
+      font-size: 1.0625rem !important;
+      border-radius: 12px !important;
+      display: flex !important;
+      flex-direction: row !important;
+      align-items: center !important;
+      gap: 0.5rem !important;
+    }
+    /* Móvil: botones activos idénticos (Black Dog), sin glow */
+    .login-view--mobile .switch-button-dashboard.switch-button-active:not(.naz-button) ::ng-deep .p-button,
+    .login-view--mobile .switch-button-kiosk.switch-button-active:not(.naz-button) ::ng-deep .p-button {
+      background: #fbbf24 !important;
+      box-shadow: none !important;
+    }
+
+    /* ============================================
        TEMA NAZ - ESTILOS MINIMALISTAS PREMIUM
        ============================================ */
     .naz-theme {
       background: #000000 !important;
     }
-
-    .naz-theme .animated-gradient-container {
-      background: #000000 !important;
-    }
+    /* .login-root fondo Naz ya se hace con ::before (crossfade) */
 
     /* Logo Naz */
     .logo-naz {
       filter: none !important;
     }
 
-    /* Card Naz */
-    .naz-card {
-      background: #0D0D0D !important;
-      border: 1px solid rgba(255, 255, 255, 0.1) !important;
-      box-shadow: none !important;
-      border-radius: 2px !important;
+    /* Botones Naz (móvil) — transición suave */
+    .naz-theme .switch-button ::ng-deep .p-button {
+      transition: background 0.5s ease, border-color 0.5s ease, color 0.5s ease, box-shadow 0.5s ease !important;
     }
-
-    .naz-card ::ng-deep .p-card {
-      background: transparent !important;
-    }
-
-    /* Tipografía Naz */
-    .naz-subtitle {
-      color: #C6C2BF !important;
-      font-family: 'Inter', 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-    }
-
-    .naz-title {
-      color: #FFFFFF !important;
-      font-family: 'Playfair Display', serif !important;
-      font-weight: 400 !important;
-    }
-
-    .naz-description {
-      color: #C6C2BF !important;
-      font-family: 'Inter', 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-    }
-
-    /* Botones Naz - Minimalistas */
     .naz-theme .switch-button-active.naz-button ::ng-deep .p-button {
       background: transparent !important;
       border: 1px solid #FFFFFF !important;
@@ -1283,10 +929,11 @@ import { logger } from '../utils/logger';
       filter: none !important;
     }
 
-    /* Flechas en tema Naz */
+    /* Flechas en tema Naz — transición suave */
     .naz-theme .arrow-button {
       border-color: rgba(255, 255, 255, 0.3);
       color: rgba(255, 255, 255, 0.8);
+      transition: background 0.5s ease, border-color 0.5s ease, color 0.5s ease !important;
     }
 
     .naz-theme .arrow-button:hover {
@@ -1295,53 +942,146 @@ import { logger } from '../utils/logger';
       color: #FFFFFF;
     }
 
-    /* Switch container Naz */
-    .naz-theme .switch-container {
-      background: rgba(13, 13, 13, 0.8) !important;
-      border: 1px solid rgba(255, 255, 255, 0.1) !important;
-      box-shadow: none !important;
-    }
-
-    /* Badge de versión */
+    /* Badge de versión: no seleccionable + efecto llamativo */
     .version-badge {
       position: fixed;
       bottom: 1rem;
       right: 1rem;
       padding: 0.375rem 0.75rem;
-      border-radius: 8px;
+      border-radius: 10px;
       font-size: 0.75rem;
-      font-weight: 500;
+      font-weight: 600;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       z-index: 1000;
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
-      transition: all 0.3s ease;
+      transition: transform 0.2s ease, box-shadow 0.3s ease, background 0.45s ease, border-color 0.45s ease, color 0.45s ease;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      letter-spacing: 0.02em;
+      animation: version-glow 3s ease-in-out infinite;
+    }
+
+    .version-badge:hover {
+      transform: scale(1.05);
+    }
+
+    .version-badge:active {
+      transform: scale(0.98);
+      animation: none;
+    }
+
+    .version-badge--pop {
+      transform: scale(1.12);
+      box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.25), 0 0 40px rgba(120, 180, 255, 0.3);
+    }
+
+    /* Easter egg: emoji que explota y flota */
+    .easter-egg-burst {
+      position: fixed;
+      bottom: 3rem;
+      right: 1.5rem;
+      font-size: 4rem;
+      line-height: 1;
+      z-index: 1001;
+      pointer-events: none;
+      opacity: 0;
+      transform: scale(0.3) translateY(0);
+      animation: easter-egg-burst 1.2s ease-out forwards;
+    }
+
+    .easter-egg-burst--visible {
+      opacity: 1;
+    }
+
+    @keyframes easter-egg-burst {
+      0% {
+        opacity: 0;
+        transform: scale(0.3) translateY(0);
+        filter: blur(0);
+      }
+      15% {
+        opacity: 1;
+        transform: scale(1.4) translateY(-0.5rem);
+        filter: blur(0);
+      }
+      30% {
+        transform: scale(1.2) translateY(-1.5rem);
+      }
+      100% {
+        opacity: 0;
+        transform: scale(1.5) translateY(-4rem);
+        filter: blur(2px);
+      }
+    }
+
+    @keyframes version-glow {
+      0%, 100% { filter: brightness(1); }
+      50% { filter: brightness(1.15); }
+    }
+
+    /* Invita sutilmente a tocarlo: pulso suave que llama la atención */
+    @keyframes version-tap-me {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(120, 140, 200, 0.08);
+      }
+      50% {
+        transform: scale(1.03);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35), 0 0 32px rgba(120, 160, 255, 0.14);
+      }
     }
 
     :host-context(html.dark) .version-badge {
-      background: rgba(20, 20, 20, 0.85);
-      border: 1px solid rgba(150, 150, 150, 0.2);
-      color: rgba(200, 200, 200, 0.7);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+      animation: version-tap-me 2.5s ease-in-out infinite, version-glow 4s ease-in-out infinite;
     }
 
-    :host-context(html.dark) .version-badge:hover {
-      background: rgba(30, 30, 30, 0.95);
-      color: rgba(255, 255, 255, 0.9);
-      border-color: rgba(150, 150, 150, 0.3);
+    @keyframes version-tap-me-light {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 0 20px rgba(100, 130, 200, 0.06);
+      }
+      50% {
+        transform: scale(1.03);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1), 0 0 32px rgba(100, 150, 255, 0.12);
+      }
     }
 
     :host-context(html.light) .version-badge {
-      background: rgba(255, 255, 255, 0.9);
-      border: 1px solid rgba(0, 0, 0, 0.1);
-      color: rgba(75, 85, 99, 0.8);
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      animation: version-tap-me-light 2.5s ease-in-out infinite, version-glow 4s ease-in-out infinite;
+    }
+
+    :host-context(html.dark) .version-badge {
+      background: linear-gradient(135deg, rgba(40, 40, 45, 0.9) 0%, rgba(25, 25, 30, 0.95) 100%);
+      border: 1px solid rgba(180, 180, 200, 0.25);
+      color: rgba(230, 230, 240, 0.95);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(120, 140, 200, 0.08);
+    }
+
+    :host-context(html.dark) .version-badge:hover {
+      background: linear-gradient(135deg, rgba(50, 50, 58, 0.95) 0%, rgba(35, 35, 42, 0.98) 100%);
+      color: #fff;
+      border-color: rgba(180, 200, 255, 0.35);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 28px rgba(120, 160, 255, 0.12);
+      animation: none;
+    }
+
+    :host-context(html.light) .version-badge {
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 255, 0.98) 100%);
+      border: 1px solid rgba(100, 120, 180, 0.2);
+      color: rgba(50, 65, 110, 0.9);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08), 0 0 20px rgba(100, 130, 200, 0.06);
     }
 
     :host-context(html.light) .version-badge:hover {
-      background: rgba(255, 255, 255, 0.95);
-      color: rgba(0, 0, 0, 0.9);
-      border-color: rgba(0, 0, 0, 0.2);
+      background: linear-gradient(135deg, #fff 0%, rgba(245, 248, 255, 0.98) 100%);
+      color: rgba(30, 50, 100, 0.95);
+      border-color: rgba(100, 140, 220, 0.3);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1), 0 0 28px rgba(100, 150, 255, 0.15);
+      animation: none;
     }
     
     /* Versión para tema Naz */
@@ -1380,6 +1120,17 @@ export class LoginComponent {
 
   // Versión de la aplicación (leída automáticamente desde package.json)
   public appVersion = APP_VERSION;
+
+  /** Índice para ciclar sonidos al tocar la versión */
+  private versionSoundIndex = 0;
+  /** Sonidos disponibles (ciclo al tocar versión) */
+  private readonly VERSION_SOUNDS = ['/sounds/bark.mp3', '/sounds/meow.mp3', '/sounds/squirrel.mp3', '/sounds/cockatoo.mp3'];
+  /** Emojis por sonido (mismo orden que VERSION_SOUNDS) */
+  private readonly VERSION_EMOJIS = ['🐕', '🐱', '🐿️', '🦜'];
+  /** Emoji que explota al hacer clic (easter egg) */
+  easterEggBurst = signal<string | null>(null);
+  /** Clase "pop" en el badge al hacer clic */
+  easterEggPop = signal(false);
 
   // Signal para la IP actual
   private currentIP = signal<string | null>(null);
@@ -1458,9 +1209,11 @@ export class LoginComponent {
   // Computed para verificar si es Naz
   public isNaz = computed(() => this.organizationService.isNaz());
 
-  // Computed para obtener la ruta del logo
+  // Rutas de logos para crossfade al cambiar tema
+  public blackDogLogoPath = (): string => 'images/blackdog.png';
+  public nazLogoPath = (): string => 'images/Naz_Logo.jpg';
   public logoPath = computed(() =>
-    this.isNaz() ? 'images/Naz_Logo.jpg' : 'images/blackdog.png'
+    this.isNaz() ? this.nazLogoPath() : this.blackDogLogoPath()
   );
 
   constructor() {
@@ -1553,9 +1306,10 @@ export class LoginComponent {
   }
 
   openKioskMode() {
-    // Abrir el modo kiosko con el parámetro de organización
     const org = this.organizationService.currentOrganization;
-    window.open(`/timeclock-kiosk?org=${org}`, '_blank');
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+    const kioskPath = isMobile ? 'timeclock-kiosk-mobile' : 'timeclock-kiosk';
+    window.open(`/${kioskPath}?org=${org}`, isMobile ? '_self' : '_blank');
   }
 
   /**
@@ -1677,19 +1431,23 @@ export class LoginComponent {
   }
 
   /**
-   * Reproduce un sonido de ladrido al hacer doble clic en la versión
+   * Un clic en la versión: reproduce el siguiente sonido del ciclo + easter egg épico (emoji que explota)
    */
-  playBarkSound(): void {
+  onVersionClick(): void {
+    const idx = this.versionSoundIndex % this.VERSION_SOUNDS.length;
+    const src = this.VERSION_SOUNDS[idx];
+    const emoji = this.VERSION_EMOJIS[idx];
+    this.versionSoundIndex += 1;
+
     try {
-      const audio = new Audio('/sounds/bark.mp3');
+      const audio = new Audio(src);
       audio.volume = 0.5;
-      audio.play().then(() => {
-        console.log('🐕 Woof woof!');
-      }).catch((error) => {
-        console.log('🐕 Woof! (audio autoplay blocked)', error);
-      });
-    } catch (error) {
-      console.log('🐕 Woof! (audio not available)');
-    }
+      audio.play().catch(() => {});
+    } catch {}
+
+    this.easterEggPop.set(true);
+    this.easterEggBurst.set(emoji);
+    setTimeout(() => this.easterEggPop.set(false), 220);
+    setTimeout(() => this.easterEggBurst.set(null), 1400);
   }
 }

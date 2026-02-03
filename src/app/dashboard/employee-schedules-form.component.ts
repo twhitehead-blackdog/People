@@ -259,6 +259,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     'Lactancia 2',
     '10:30 AM - 7:00 PM', // Solo domingos - mostrar confirmación si no es domingo
     'Dia Libre',
+    '11:30 AM - 8:00 PM',
     'A. Injus',
     'Licencia maternidad',
     'Permiso',
@@ -317,17 +318,17 @@ export class EmployeeSchedulesFormComponent implements OnInit {
   // Filtrar turnos disponibles según permisos y género del empleado
   public availableSchedules = computed(() => {
     const allSchedulesRaw = this.store.schedules.entities() ?? [];
-    
+
     // Primero filtrar horarios ocultos para TODOS
     const allSchedules = allSchedulesRaw.filter(
       (schedule: any) => !this.HIDDEN_FOR_ALL.includes(schedule?.id)
     );
-    
+
     const employee = this.selectedEmployee();
     const isFemale = employee?.gender === 'F';
     const currentEmployee = this.store.currentEmployee();
     const positionName = currentEmployee?.position?.name;
-    
+
     // Debug logs
     console.log('[availableSchedules] currentEmployee:', currentEmployee?.first_name, currentEmployee?.father_name);
     console.log('[availableSchedules] position:', positionName);
@@ -359,7 +360,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     const isStoreManager =
       this.store.isScheduleAdmin() && !this.store.isAdmin();
     console.log('[availableSchedules] isStoreManager:', isStoreManager);
-    
+
     if (isStoreManager) {
       console.log('[availableSchedules] User is STORE MANAGER - filtering schedules');
       const filteredByRole = allSchedules.filter((schedule: any) => {
@@ -368,7 +369,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
           console.log('[availableSchedules] Filtering out by ID:', schedule?.name);
           return false;
         }
-        
+
         const scheduleName = String(schedule?.name ?? '').toUpperCase();
         const isAllowed = this.ALLOWED_STORE_MANAGER_SHIFTS.some(
           (allowed) => scheduleName === allowed.toUpperCase()
@@ -546,8 +547,8 @@ export class EmployeeSchedulesFormComponent implements OnInit {
         branch_id ||
         (scheduleEmployeeId
           ? this.store.employees
-              .entities()
-              .find((emp) => emp.id === scheduleEmployeeId)?.branch_id
+            .entities()
+            .find((emp) => emp.id === scheduleEmployeeId)?.branch_id
           : null);
 
       const startDateObj = toDate(start_date, { timeZone: 'America/Panama' });
@@ -695,7 +696,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     if (this.SUNDAY_ONLY_SCHEDULES.includes(value.schedule_id) && value.start_date) {
       const startDate = new Date(value.start_date);
       const endDate = value.end_date ? new Date(value.end_date) : startDate;
-      
+
       // Verificar si hay algún día que no sea domingo en el rango
       let hasNonSunday = false;
       const currentDate = new Date(startDate);
@@ -714,7 +715,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
           (s: any) => s.id === value.schedule_id
         );
         const scheduleName = selectedSchedule?.name || 'Este horario';
-        
+
         this.confirmationService.confirm({
           message: `El horario "${scheduleName}" es normalmente para domingos. Los gerentes solo deben estar en apertura o cierre. ¿Está seguro de asignar este horario?`,
           header: 'Confirmar asignación',
@@ -749,11 +750,11 @@ export class EmployeeSchedulesFormComponent implements OnInit {
    */
   private async validatePositionPairSchedule(value: any): Promise<boolean> {
     const employee = this.selectedEmployee();
-    
+
     console.log('[validatePositionPairSchedule] employee:', employee?.first_name, employee?.father_name);
     console.log('[validatePositionPairSchedule] employee.position_id:', employee?.position_id);
     console.log('[validatePositionPairSchedule] POSITION_PAIR_VALIDATION:', this.POSITION_PAIR_VALIDATION);
-    
+
     if (!employee?.position_id) {
       console.log('[validatePositionPairSchedule] No position_id - skipping');
       return false;
@@ -793,13 +794,13 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       // Buscar empleados con la otra posición (sin filtrar por branch_id del empleado)
       const allEmployees = this.store.employees.entities();
       console.log('[validatePositionPairSchedule] Total employees in store:', allEmployees.length);
-      
+
       const employeesWithOtherPosition = allEmployees.filter(
-          (emp) =>
-            emp.position_id === otherPositionId &&
-            emp.is_active &&
-            emp.id !== employee.id
-        );
+        (emp) =>
+          emp.position_id === otherPositionId &&
+          emp.is_active &&
+          emp.id !== employee.id
+      );
 
       console.log('[validatePositionPairSchedule] Employees with other position:', employeesWithOtherPosition.map(e => `${e.first_name} ${e.father_name} (branch: ${e.branch_id})`));
 
@@ -829,7 +830,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
         console.error('[validatePositionPairSchedule] HTTP Error:', error);
         return [];
       });
-      
+
       console.log('[validatePositionPairSchedule] Conflicting schedules found:', conflictingSchedules);
 
       if (conflictingSchedules.length > 0) {
@@ -847,7 +848,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
           : 'otro empleado';
 
         this.loading.set(false);
-        
+
         return new Promise<boolean>((resolve) => {
           this.confirmationService.confirm({
             message: `El horario "${scheduleName}" ya está asignado a ${conflictName} en esta tienda para las mismas fechas. Los empleados con estas posiciones deberían tener horarios diferentes (uno en apertura y otro en cierre). ¿Está seguro de continuar?`,
@@ -1074,19 +1075,19 @@ export class EmployeeSchedulesFormComponent implements OnInit {
 
               const oldStartFormatted = this.originalSchedule?.start_date
                 ? format(
-                    toDate(this.originalSchedule.start_date, {
-                      timeZone: 'America/Panama',
-                    }),
-                    'dd/MM/yyyy'
-                  )
+                  toDate(this.originalSchedule.start_date, {
+                    timeZone: 'America/Panama',
+                  }),
+                  'dd/MM/yyyy'
+                )
                 : '';
               const oldEndFormatted = this.originalSchedule?.end_date
                 ? format(
-                    toDate(this.originalSchedule.end_date, {
-                      timeZone: 'America/Panama',
-                    }),
-                    'dd/MM/yyyy'
-                  )
+                  toDate(this.originalSchedule.end_date, {
+                    timeZone: 'America/Panama',
+                  }),
+                  'dd/MM/yyyy'
+                )
                 : '';
               const newStartFormatted = value.start_date
                 ? format(new Date(value.start_date), 'dd/MM/yyyy')
@@ -1103,20 +1104,20 @@ export class EmployeeSchedulesFormComponent implements OnInit {
                 newStatus: value.approved,
                 oldValue: this.originalSchedule
                   ? {
-                      employee_id: this.originalSchedule.employee_id,
-                      employee_name: employee
-                        ? `${employee.first_name} ${employee.father_name}`
-                        : 'Desconocido',
-                      schedule_id: this.originalSchedule.schedule_id,
-                      schedule_name: oldSchedule?.name || 'Desconocido',
-                      branch_id: this.originalSchedule.branch_id,
-                      branch_name: oldBranch?.name || 'Desconocido',
-                      start_date: this.originalSchedule.start_date,
-                      end_date: this.originalSchedule.end_date,
-                      start_date_formatted: oldStartFormatted,
-                      end_date_formatted: oldEndFormatted,
-                      approved: this.originalSchedule.approved,
-                    }
+                    employee_id: this.originalSchedule.employee_id,
+                    employee_name: employee
+                      ? `${employee.first_name} ${employee.father_name}`
+                      : 'Desconocido',
+                    schedule_id: this.originalSchedule.schedule_id,
+                    schedule_name: oldSchedule?.name || 'Desconocido',
+                    branch_id: this.originalSchedule.branch_id,
+                    branch_name: oldBranch?.name || 'Desconocido',
+                    start_date: this.originalSchedule.start_date,
+                    end_date: this.originalSchedule.end_date,
+                    start_date_formatted: oldStartFormatted,
+                    end_date_formatted: oldEndFormatted,
+                    approved: this.originalSchedule.approved,
+                  }
                   : null,
                 newValue: {
                   employee_id: value.employee_id,
@@ -1134,32 +1135,24 @@ export class EmployeeSchedulesFormComponent implements OnInit {
                   approved: value.approved,
                 },
                 comment: this.singleDayEdit
-                  ? `Horario "${
-                      oldSchedule?.name || 'Desconocido'
-                    }" dividido (día específico modificado) para ${
-                      employee
-                        ? `${employee.first_name} ${employee.father_name}`
-                        : 'empleado'
-                    }`
-                  : `Horario "${
-                      oldSchedule?.name || 'Desconocido'
-                    }" actualizado para ${
-                      employee
-                        ? `${employee.first_name} ${employee.father_name}`
-                        : 'empleado'
-                    }: ${oldStartFormatted} - ${oldEndFormatted} → ${newStartFormatted} - ${newEndFormatted}${
-                      oldSchedule?.name !== newSchedule?.name
-                        ? ` (turno cambiado a "${
-                            newSchedule?.name || 'Desconocido'
-                          }")`
-                        : ''
-                    }${
-                      oldBranch?.name !== newBranch?.name
-                        ? ` (sucursal cambiada de ${
-                            oldBranch?.name || 'Desconocido'
-                          } a ${newBranch?.name || 'Desconocido'})`
-                        : ''
-                    }`,
+                  ? `Horario "${oldSchedule?.name || 'Desconocido'
+                  }" dividido (día específico modificado) para ${employee
+                    ? `${employee.first_name} ${employee.father_name}`
+                    : 'empleado'
+                  }`
+                  : `Horario "${oldSchedule?.name || 'Desconocido'
+                  }" actualizado para ${employee
+                    ? `${employee.first_name} ${employee.father_name}`
+                    : 'empleado'
+                  }: ${oldStartFormatted} - ${oldEndFormatted} → ${newStartFormatted} - ${newEndFormatted}${oldSchedule?.name !== newSchedule?.name
+                    ? ` (turno cambiado a "${newSchedule?.name || 'Desconocido'
+                    }")`
+                    : ''
+                  }${oldBranch?.name !== newBranch?.name
+                    ? ` (sucursal cambiada de ${oldBranch?.name || 'Desconocido'
+                    } a ${newBranch?.name || 'Desconocido'})`
+                    : ''
+                  }`,
               });
             } else {
               // Creación
@@ -1204,20 +1197,16 @@ export class EmployeeSchedulesFormComponent implements OnInit {
                   approved: value.approved,
                 },
                 comment: isSingleDay
-                  ? `Horario "${schedule?.name || 'Desconocido'}" creado para ${
-                      employee
-                        ? `${employee.first_name} ${employee.father_name}`
-                        : 'empleado'
-                    } el día ${startDate}${
-                      branch ? ` en sucursal ${branch.name}` : ''
-                    }`
-                  : `Horario "${schedule?.name || 'Desconocido'}" creado para ${
-                      employee
-                        ? `${employee.first_name} ${employee.father_name}`
-                        : 'empleado'
-                    } del ${startDate} al ${endDate}${
-                      branch ? ` en sucursal ${branch.name}` : ''
-                    }`,
+                  ? `Horario "${schedule?.name || 'Desconocido'}" creado para ${employee
+                    ? `${employee.first_name} ${employee.father_name}`
+                    : 'empleado'
+                  } el día ${startDate}${branch ? ` en sucursal ${branch.name}` : ''
+                  }`
+                  : `Horario "${schedule?.name || 'Desconocido'}" creado para ${employee
+                    ? `${employee.first_name} ${employee.father_name}`
+                    : 'empleado'
+                  } del ${startDate} al ${endDate}${branch ? ` en sucursal ${branch.name}` : ''
+                  }`,
               });
             }
           } catch (auditError) {
@@ -1353,15 +1342,12 @@ export class EmployeeSchedulesFormComponent implements OnInit {
                     is_single_day: true,
                     approved: scheduleData.approved,
                   },
-                  comment: `Horario "${
-                    schedule?.name || 'Desconocido'
-                  }" creado para ${
-                    employee
+                  comment: `Horario "${schedule?.name || 'Desconocido'
+                    }" creado para ${employee
                       ? `${employee.first_name} ${employee.father_name}`
                       : 'empleado'
-                  } el ${dayName} ${dayDate}${
-                    branch ? ` en sucursal ${branch.name}` : ''
-                  } (semana completa)`,
+                    } el ${dayName} ${dayDate}${branch ? ` en sucursal ${branch.name}` : ''
+                    } (semana completa)`,
                 });
               }
             }
@@ -1689,23 +1675,19 @@ export class EmployeeSchedulesFormComponent implements OnInit {
                     : this.originalSchedule.approved,
               },
               comment: isSingleDay
-                ? `Horario "${
-                    schedule?.name || 'Desconocido'
-                  }" dividido: día específico ${dayName} ${newStartFormatted} extraído del rango ${originalStartFormatted} - ${originalEndFormatted} para ${
-                    employee
-                      ? `${employee.first_name} ${employee.father_name}`
-                      : 'empleado'
-                  }${branch ? ` en sucursal ${branch.name}` : ''}`
-                : `Horario "${
-                    schedule?.name || 'Desconocido'
-                  }" dividido: rango ${newStartFormatted} - ${format(
-                    newEnd,
-                    'dd/MM/yyyy'
-                  )} extraído del rango ${originalStartFormatted} - ${originalEndFormatted} para ${
-                    employee
-                      ? `${employee.first_name} ${employee.father_name}`
-                      : 'empleado'
-                  }${branch ? ` en sucursal ${branch.name}` : ''}`,
+                ? `Horario "${schedule?.name || 'Desconocido'
+                }" dividido: día específico ${dayName} ${newStartFormatted} extraído del rango ${originalStartFormatted} - ${originalEndFormatted} para ${employee
+                  ? `${employee.first_name} ${employee.father_name}`
+                  : 'empleado'
+                }${branch ? ` en sucursal ${branch.name}` : ''}`
+                : `Horario "${schedule?.name || 'Desconocido'
+                }" dividido: rango ${newStartFormatted} - ${format(
+                  newEnd,
+                  'dd/MM/yyyy'
+                )} extraído del rango ${originalStartFormatted} - ${originalEndFormatted} para ${employee
+                  ? `${employee.first_name} ${employee.father_name}`
+                  : 'empleado'
+                }${branch ? ` en sucursal ${branch.name}` : ''}`,
             });
           }
 

@@ -71,7 +71,8 @@ import { EmployeeFormComponent } from './employee-form.component';
   template: `
     <p-toast />
     <p-confirmDialog />
-    <p-card>
+    <div class="employee-list-page w-full">
+    <p-card styleClass="employee-list-card">
       <ng-template #title>
         <div
           class="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3"
@@ -235,21 +236,28 @@ import { EmployeeFormComponent } from './employee-form.component';
         }
       </div>
 
-      <div class="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+      <div class="employee-table-wrap overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
         <p-table
           #dt
           [value]="this.filtered()"
           [loading]="store.employees.isLoading()"
           [paginator]="true"
-          [rows]="10"
-          [rowsPerPageOptions]="[5, 10, 20]"
+          [rows]="20"
+          [rowsPerPageOptions]="[10, 20, 50, 100]"
           [scrollable]="true"
           dataKey="id"
           paginatorDropdownAppendTo="body"
-          [showCurrentPageReport]="false"
+          [showCurrentPageReport]="true"
           currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} empleados"
-          styleClass="min-w-full"
+          styleClass="p-datatable-sm p-datatable-striped employee-list-table min-w-full"
         >
+          <ng-template pTemplate="empty">
+            <div class="text-center py-12 px-4 text-gray-400">
+              <i class="pi pi-inbox text-5xl mb-4 block opacity-60"></i>
+              <p class="text-base font-medium">No se encontraron empleados</p>
+              <p class="text-sm mt-1">Prueba a cambiar los filtros o el texto de búsqueda.</p>
+            </div>
+          </ng-template>
           <ng-template #caption>
             <div class="flex flex-col sm:flex-row gap-3 items-center mb-3">
               <input
@@ -257,75 +265,28 @@ import { EmployeeFormComponent } from './employee-form.component';
                 type="text"
                 [(ngModel)]="searchTerm"
                 placeholder="Buscar por número, nombre o cédula..."
-                class="w-full sm:w-auto flex-1 text-sm"
+                class="w-full sm:max-w-sm flex-1 text-sm rounded-lg border-neutral-600 bg-neutral-800/80 px-3 py-2"
               />
             </div>
           </ng-template>
           <ng-template #header>
-            <tr>
-              <th></th>
-              <th></th>
+            <tr class="employee-table-header-row">
+              <th pSortableColumn="employee_number" class="col-number">Número<p-sortIcon field="employee_number" /></th>
+              <th pSortableColumn="short_name" class="col-name">Nombre<p-sortIcon field="short_name" /></th>
               @if (inactiveValue()) {
-              <th></th>
+              <th pSortableColumn="is_active" class="col-status">Estado<p-sortIcon field="is_active" /></th>
               }
-              <th></th>
-              <th></th>
-              <th></th>
-              <th></th>
-              <th></th>
-              <th></th>
-              <th></th>
-              <th></th>
-              <th></th>
-              <th></th>
-              <th></th>
-            </tr>
-            <tr>
-              <th pSortableColumn="employee_number">
-                Número<p-sortIcon field="employee_number" />
-              </th>
-              <th pSortableColumn="short_name">
-                Nombre<p-sortIcon field="short_name" />
-              </th>
-              @if (inactiveValue()) {
-              <th pSortableColumn="is_active">
-                Status<p-sortIcon field="is_active" />
-              </th>
-              }
-              <th pSortableColumn="document_id">
-                Cedula<p-sortIcon field="document_id" />
-              </th>
-              <th pSortableColumn="branch.name">
-                Sucursal<p-sortIcon field="branch.name" />
-              </th>
-              <th pSortableColumn="department.name">
-                Area<p-sortIcon field="department.name" />
-              </th>
-              <th
-                style="width: 150px; max-width: 150px; min-width: 120px;"
-                pSortableColumn="position.name"
-              >
-                Cargo<p-sortIcon field="position.name" />
-              </th>
-              <th pSortableColumn="monthly_salary">
-                Salario<p-sortIcon field="monthly_salary" />
-              </th>
-              <th pSortableColumn="uniform_size">
-                Talla<p-sortIcon field="uniform_size" />
-              </th>
-              <th pSortableColumn="start_date">
-                Fecha de inicio<p-sortIcon field="start_date" />
-              </th>
-              <th pSortableColumn="birth_date">
-                Fecha de nacimiento<p-sortIcon field="birth_date" />
-              </th>
-              <th pSortableColumn="gender">
-                Sexo<p-sortIcon field="gender" />
-              </th>
-              <th pSortableColumn="created_at">
-                Creado<p-sortIcon field="created_at" />
-              </th>
-              <th>Acciones</th>
+              <th pSortableColumn="document_id" class="col-doc">Cédula<p-sortIcon field="document_id" /></th>
+              <th pSortableColumn="branch.name" class="col-branch">Sucursal<p-sortIcon field="branch.name" /></th>
+              <th pSortableColumn="department.name" class="col-area">Área<p-sortIcon field="department.name" /></th>
+              <th class="col-position" style="width: 150px; max-width: 150px; min-width: 120px;" pSortableColumn="position.name">Cargo<p-sortIcon field="position.name" /></th>
+              <th pSortableColumn="monthly_salary" class="col-salary">Salario<p-sortIcon field="monthly_salary" /></th>
+              <th pSortableColumn="uniform_size" class="col-size">Talla<p-sortIcon field="uniform_size" /></th>
+              <th pSortableColumn="start_date" class="col-date">F. inicio<p-sortIcon field="start_date" /></th>
+              <th pSortableColumn="birth_date" class="col-birth">F. nacimiento<p-sortIcon field="birth_date" /></th>
+              <th pSortableColumn="gender" class="col-gender">Sexo<p-sortIcon field="gender" /></th>
+              <th pSortableColumn="created_at" class="col-created hide-sm">Creado<p-sortIcon field="created_at" /></th>
+              <th class="col-actions">Acciones</th>
             </tr>
           </ng-template>
           <ng-template #body let-item let-columns="columns">
@@ -366,8 +327,8 @@ import { EmployeeFormComponent } from './employee-form.component';
                   item.birth_date | age
                 }})
               </td>
-              <td>
-                <span class="flex items-center gap-2">
+              <td class="col-gender">
+                <span class="flex items-center gap-2 justify-center min-w-[7rem]">
                   <i
                     [ngClass]="
                       item.gender === 'M'
@@ -378,7 +339,7 @@ import { EmployeeFormComponent } from './employee-form.component';
                   {{ item.gender === 'M' ? 'Masculino' : 'Femenino' }}
                 </span>
               </td>
-              <td>{{ item.created_at | date : 'medium' }}</td>
+              <td class="col-created hide-sm">{{ item.created_at | date : 'medium' }}</td>
               <td>
                 <div class="flex gap-1 sm:gap-2 flex-nowrap">
                   <p-button
@@ -433,10 +394,57 @@ import { EmployeeFormComponent } from './employee-form.component';
         </p-table>
       </div>
     </p-card>
+    </div>
   `,
   styles: `
+    :host {
+      display: block;
+      width: 100%;
+    }
+
+    /* Card integrada al tema del admin (mismo fondo y borde que el resto) */
+    :host ::ng-deep .employee-list-card.p-card {
+      background: rgba(31, 41, 55, 0.95) !important;
+      border: 1px solid rgba(75, 85, 99, 0.5) !important;
+      border-radius: 0.75rem !important;
+    }
+    :host ::ng-deep .employee-list-card .p-card-body {
+      background: transparent !important;
+    }
+    :host ::ng-deep .employee-list-card .p-card-title {
+      color: #f3f4f6 !important;
+    }
+    :host ::ng-deep .employee-list-card .p-card-subtitle {
+      color: #9ca3af !important;
+    }
+
+    /* En pantallas pequeñas ocultar columna "Creado" para que la tabla quepa mejor */
+    @media (max-width: 992px) {
+      :host ::ng-deep .hide-sm {
+        display: none !important;
+      }
+    }
+
+    /* Columna Sexo: ancho mínimo para que no se trunque Femenino/Masculino */
+    :host ::ng-deep .p-datatable .p-datatable-thead > tr > th.col-gender,
+    :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td.col-gender {
+      min-width: 7rem !important;
+      white-space: nowrap !important;
+    }
+    /* Contenedor tabla con scroll horizontal suave */
+    .employee-table-wrap {
+      border-radius: 0.75rem;
+      min-height: 320px;
+    }
+    @media (max-width: 992px) {
+      .employee-table-wrap {
+        -webkit-overflow-scrolling: touch;
+        box-shadow: inset -12px 0 12px -8px rgba(0, 0, 0, 0.25);
+      }
+    }
+
     /* Estilos modernos para la tabla */
-    :host ::ng-deep .p-datatable {
+    :host ::ng-deep .p-datatable.employee-list-table {
       border-radius: 0.75rem !important;
       overflow: hidden !important;
       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
@@ -446,6 +454,17 @@ import { EmployeeFormComponent } from './employee-form.component';
     :host ::ng-deep .p-datatable-table {
       border-collapse: separate !important;
       border-spacing: 0 !important;
+    }
+
+    /* Filas alternadas (striped) */
+    :host ::ng-deep .p-datatable .p-datatable-tbody > tr:nth-child(even) > td {
+      background: rgba(31, 41, 55, 0.95) !important;
+    }
+    :host ::ng-deep .p-datatable .p-datatable-tbody > tr:nth-child(odd) > td {
+      background: rgba(17, 24, 39, 0.98) !important;
+    }
+    :host ::ng-deep .p-datatable .p-datatable-tbody > tr:hover > td {
+      background: rgba(55, 65, 81, 0.7) !important;
     }
 
     /* Estilos para mantener dimensiones uniformes y consistentes */
@@ -461,7 +480,6 @@ import { EmployeeFormComponent } from './employee-form.component';
       text-overflow: ellipsis !important;
       white-space: nowrap !important;
       text-align: center !important;
-      background: #1f2937 !important;
       color: #e5e7eb !important;
       border-bottom: 1px solid rgba(75, 85, 99, 0.3) !important;
       font-size: 0.875rem !important;
@@ -476,16 +494,9 @@ import { EmployeeFormComponent } from './employee-form.component';
       transition: all 0.2s ease !important;
     }
 
-    /* Efecto hover moderno para las filas */
+    /* Efecto hover suave (sin transform para evitar saltos) */
     :host ::ng-deep .p-datatable .p-datatable-tbody > tr:hover {
-      background: rgba(55, 65, 81, 0.5) !important;
-      transform: translateY(-1px) !important;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
-    }
-
-    :host ::ng-deep .p-datatable .p-datatable-tbody > tr:hover > td {
-      background: rgba(55, 65, 81, 0.5) !important;
-      border-bottom-color: rgba(107, 114, 128, 0.5) !important;
+      background: transparent !important;
     }
 
     /* Columna Cargo - texto truncado con ellipsis */
@@ -529,8 +540,8 @@ import { EmployeeFormComponent } from './employee-form.component';
       text-align: center !important;
     }
 
-    /* Títulos de columnas modernos (segunda fila con los títulos) */
-    :host ::ng-deep .p-datatable .p-datatable-thead > tr:last-child > th {
+    /* Cabecera fija al hacer scroll y títulos de columnas */
+    :host ::ng-deep .p-datatable .p-datatable-thead > tr > th {
       font-weight: 600 !important;
       font-size: 0.8125rem !important;
       letter-spacing: 0.025em !important;
@@ -538,30 +549,27 @@ import { EmployeeFormComponent } from './employee-form.component';
       text-transform: uppercase !important;
       background: linear-gradient(135deg, #374151 0%, #1f2937 100%) !important;
       border-bottom: 2px solid rgba(107, 114, 128, 0.3) !important;
-      padding: 1.125rem 1rem !important;
+      padding: 0.875rem 1rem !important;
       position: relative !important;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) inset !important;
     }
-
-    :host ::ng-deep .p-datatable .p-datatable-thead > tr:last-child > th::after {
-      content: '' !important;
-      position: absolute !important;
-      bottom: 0 !important;
-      left: 0 !important;
-      right: 0 !important;
-      height: 2px !important;
-      background: linear-gradient(90deg, transparent, rgba(107, 114, 128, 0.5), transparent) !important;
+    :host ::ng-deep .p-datatable-scrollable .p-datatable-thead > tr > th {
+      position: sticky !important;
+      top: 0 !important;
+      z-index: 2 !important;
+      background: linear-gradient(135deg, #374151 0%, #1f2937 100%) !important;
+      box-shadow: 0 2px 0 rgba(107, 114, 128, 0.3) !important;
     }
 
-    /* Títulos de columnas ordenables modernos */
-    :host ::ng-deep .p-datatable .p-datatable-thead > tr:last-child > th.p-datatable-sortable-column {
+    /* Títulos de columnas ordenables */
+    :host ::ng-deep .p-datatable .p-datatable-thead > tr > th.p-datatable-sortable-column {
       color: #f9fafb !important;
       cursor: pointer !important;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
       background: linear-gradient(135deg, #374151 0%, #1f2937 100%) !important;
     }
 
-    :host ::ng-deep .p-datatable .p-datatable-thead > tr:last-child > th.p-datatable-sortable-column:hover {
+    :host ::ng-deep .p-datatable .p-datatable-thead > tr > th.p-datatable-sortable-column:hover {
       background: linear-gradient(135deg, rgba(107, 114, 128, 0.15) 0%, rgba(107, 114, 128, 0.05) 100%) !important;
       color: #d1d5db !important;
       transform: translateY(-1px) !important;
@@ -581,7 +589,7 @@ import { EmployeeFormComponent } from './employee-form.component';
       margin-left: 0.25rem !important;
     }
 
-    /* Estilo cuando la columna está activa (ordenada) - Moderno */
+    /* Columna ordenada activa */
     :host ::ng-deep .p-datatable .p-datatable-thead > tr > th.p-datatable-sortable-column.p-highlight,
     :host ::ng-deep .p-datatable .p-datatable-thead > tr > th.p-datatable-sortable-column.p-datatable-column-sorted {
       background: linear-gradient(135deg, rgba(107, 114, 128, 0.2) 0%, rgba(107, 114, 128, 0.1) 100%) !important;
@@ -629,10 +637,17 @@ import { EmployeeFormComponent } from './employee-form.component';
       text-decoration: underline !important;
     }
 
-    /* Centrar columna de número (primera columna en encabezados, primera columna en body) */
-    :host ::ng-deep .p-datatable .p-datatable-thead > tr:last-child > th:first-child,
+    /* Alineación: número centrado, nombre a la izquierda */
+    :host ::ng-deep .p-datatable .p-datatable-thead > tr > th.col-number,
     :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td:first-child {
       text-align: center !important;
+    }
+    :host ::ng-deep .p-datatable .p-datatable-thead > tr > th.col-name,
+    :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td:nth-child(2) {
+      text-align: left !important;
+    }
+    :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td:nth-child(2) a {
+      margin: 0;
     }
 
     /* Mejoras adicionales para modernizar la tabla */
