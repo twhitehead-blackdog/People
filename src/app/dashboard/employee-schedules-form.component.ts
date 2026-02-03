@@ -260,6 +260,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     '10:30 AM - 7:00 PM', // Solo domingos - mostrar confirmación si no es domingo
     'Dia Libre',
     '11:30 AM - 8:00 PM',
+    '12:30 PM - 9:00 PM',
     'A. Injus',
     'Licencia maternidad',
     'Permiso',
@@ -283,7 +284,6 @@ export class EmployeeSchedulesFormComponent implements OnInit {
   // IDs de horarios ocultos para TODOS los usuarios
   private readonly HIDDEN_FOR_ALL = [
     '1f4161d1-4935-4fab-9a53-b6eee2a3efd6',
-    '85d5eeb8-6e6e-4f1b-a4d0-62e00bdd67d5',
   ];
 
   // IDs de posiciones que no deben tener el mismo horario en la misma tienda
