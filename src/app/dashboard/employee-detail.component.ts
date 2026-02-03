@@ -25,6 +25,7 @@ import { Employee } from '../models';
 import { AgePipe } from '../pipes/age.pipe';
 import { SeniorityPipe } from '../pipes/seniority.pipe';
 import { OrganizationService } from '../services/organization.service';
+import { QrService } from '../services/qr.service';
 import { WassengerService } from '../services/wassenger.service';
 import { BanksStore } from '../stores/banks.store';
 import { EmployeesStore } from '../stores/employees.store';
@@ -517,7 +518,31 @@ import { TimeOffsComponent } from './time-offs.component';
             }
           </p-tabpanel>
           <p-tabpanel value="2">
-            <img src="{{ currentEmployee()?.qr_code }}" alt="QR Code" />
+            <div class="flex flex-col items-center gap-4 py-4">
+              @if(currentEmployee()?.qr_code) {
+                <img [src]="currentEmployee()?.qr_code" alt="QR Code" class="max-w-xs rounded-lg shadow-lg" />
+              } @else {
+                <div class="flex flex-col items-center gap-2 p-8 bg-neutral-800/50 rounded-lg border border-neutral-700/50">
+                  <i class="pi pi-qrcode text-4xl text-gray-500"></i>
+                  <p class="text-gray-400 m-0">No hay código QR generado</p>
+                </div>
+              }
+              <p-button
+                [label]="currentEmployee()?.qr_code ? 'Regenerar QR' : 'Generar QR'"
+                [icon]="currentEmployee()?.qr_code ? 'pi pi-refresh' : 'pi pi-plus'"
+                [severity]="currentEmployee()?.qr_code ? 'warn' : 'success'"
+                [loading]="regeneratingQr()"
+                [disabled]="regeneratingQr() || !currentEmployee()"
+                (onClick)="confirmRegenerateQr()"
+              />
+              <p class="text-xs text-gray-500 m-0 text-center max-w-xs">
+                @if(currentEmployee()?.qr_code) {
+                  Al regenerar el QR, el código anterior quedará inválido.
+                } @else {
+                  Genera un código QR para que el empleado pueda marcar asistencia.
+                }
+              </p>
+            </div>
           </p-tabpanel>
           <p-tabpanel value="3">
             @for(timeoff of currentEmployee()?.timeoffs; track $index) {
@@ -804,12 +829,13 @@ export class EmployeeDetailComponent implements OnInit {
   private confirmationService = inject(ConfirmationService);
   private wassengerService = inject(WassengerService);
   private organizationService = inject(OrganizationService);
+  private qrService = inject(QrService);
 
   public employee_id = signal<string | null>(null);
   public inviting = signal(false);
-  public portalUrl = `${
-    process.env['ENV_APP_URL'] || window.location.origin
-  }/my-portal`;
+  public regeneratingQr = signal(false);
+  public portalUrl = `${process.env['ENV_APP_URL'] || window.location.origin
+    }/my-portal`;
   public employee = httpResource<Employee[]>(() => {
     const id = this.employee_id();
     if (!id) {
@@ -1031,5 +1057,50 @@ export class EmployeeDetailComponent implements OnInit {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return mins > 0 ? `${hours} horas ${mins} minutos` : `${hours} horas`;
+  }
+
+  confirmRegenerateQr(): void {
+    const employee = this.currentEmployee();
+    if (!employee) {
+      return;
+    }
+
+    const hasExistingQr = !!employee.qr_code;
+    const message = hasExistingQr
+      ? '¿Estás seguro de regenerar el código QR? El código anterior quedará inválido y el empleado deberá usar el nuevo código para marcar asistencia.'
+      : '¿Generar un nuevo código QR para este empleado?';
+
+    this.confirmationService.confirm({
+      message,
+      header: hasExistingQr ? 'Regenerar QR' : 'Generar QR',
+      icon: hasExistingQr ? 'pi pi-exclamation-triangle' : 'pi pi-qrcode',
+      acceptLabel: hasExistingQr ? 'Regenerar' : 'Generar',
+      rejectLabel: 'Cancelar',
+      accept: () => {
+        this.regeneratingQr.set(true);
+        this.qrService.generateQrCode(employee).subscribe({
+          next: () => {
+            this.regeneratingQr.set(false);
+            this.employee.reload();
+            this.messageService.add({
+              severity: 'success',
+              summary: 'Éxito',
+              detail: hasExistingQr
+                ? 'Código QR regenerado correctamente'
+                : 'Código QR generado correctamente',
+            });
+          },
+          error: (err) => {
+            this.regeneratingQr.set(false);
+            console.error('Error generando QR:', err);
+            this.messageService.add({
+              severity: 'error',
+              summary: 'Error',
+              detail: 'No se pudo generar el código QR',
+            });
+          },
+        });
+      },
+    });
   }
 }

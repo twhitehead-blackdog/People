@@ -4,14 +4,15 @@ import {
   Component,
   inject,
   model,
+  signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import * as OTPAuth from 'otpauth';
+import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { DropdownModule } from 'primeng/dropdown';
-import QRCode from 'qrcode';
 import { Employee } from './models';
+import { QrService } from './services/qr.service';
 
 @Component({
   selector: 'pt-qr-generator',
@@ -38,8 +39,11 @@ import { Employee } from './models';
           </p-dropdown>
         </div>
         <canvas id="canvas"></canvas>
-        <p-button (onClick)="generateQrCode()" [disabled]="!employee()"
-          >Click</p-button
+        <p-button
+          (onClick)="generateQrCode()"
+          [disabled]="!employee() || generating()"
+          [loading]="generating()"
+          >Generar QR</p-button
         >
       </p-card>
     </div>
@@ -49,7 +53,9 @@ import { Employee } from './models';
 })
 export class QrGeneratorComponent {
   public employee = model<Employee>();
-  private http = inject(HttpClient);
+  private qrService = inject(QrService);
+  public generating = signal(false);
+
   public employees = httpResource<Partial<Employee>[]>(() => ({
     url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
     method: 'GET',
@@ -61,39 +67,22 @@ export class QrGeneratorComponent {
   }));
 
   generateQrCode() {
-    if (!this.employee()) {
+    const emp = this.employee();
+    if (!emp) {
       return;
     }
-    const totp = new OTPAuth.TOTP({
-      issuer: 'People Blackdog',
-      label: `${this.employee()!.first_name.trim()} ${this.employee()!.father_name.trim()}`,
-      algorithm: 'SHA1',
-      digits: 6,
-      period: 30,
-    });
 
-    const uri = totp.toString();
-
-    QRCode.toDataURL(uri, (error, qrUrl) => {
-      if (error) {
-        console.error(error);
-        return;
-      }
-
-      this.http
-        .patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
-          {
-            qr_code: qrUrl,
-            code_uri: uri,
-          },
-          {
-            params: {
-              id: `eq.${this.employee()!.id}`,
-            },
-          }
-        )
-        .subscribe();
+    this.generating.set(true);
+    this.qrService.generateQrCode(emp as Employee).subscribe({
+      next: (result) => {
+        this.generating.set(false);
+        console.log('✅ QR generado correctamente:', result.code_uri);
+      },
+      error: (err) => {
+        this.generating.set(false);
+        console.error('❌ Error generando QR:', err);
+      },
     });
   }
 }
+
