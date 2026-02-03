@@ -261,6 +261,7 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     'Dia Libre',
     '11:30 AM - 8:00 PM',
     '12:30 PM - 9:00 PM',
+    '9:00 AM - 6:00 PM',
     'A. Injus',
     'Licencia maternidad',
     'Permiso',
