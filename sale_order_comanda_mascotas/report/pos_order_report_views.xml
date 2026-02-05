@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Vista de búsqueda con filtros de estilistas (nueva, no hereda) -->
+    <record id="view_report_pos_order_search_estilista" model="ir.ui.view">
+        <field name="name">report.pos.order.search.estilista</field>
+        <field name="model">report.pos.order</field>
+        <field name="priority">100</field>
+        <field name="arch" type="xml">
+            <search string="Análisis de Pedidos POS">
+                <field name="order_id"/>
+                <field name="session_id"/>
+                <field name="product_id"/>
+                <field name="partner_id"/>
+                <field name="estilista_nombres" string="Estilistas"/>
+                <field name="mascota_nombre" string="Mascota"/>
+                <separator/>
+                <filter string="Con Estilistas" name="with_estilista" domain="[('estilista_nombres', '!=', False), ('estilista_nombres', '!=', '')]"/>
+                <filter string="Sin Estilistas" name="without_estilista" domain="['|', ('estilista_nombres', '=', False), ('estilista_nombres', '=', '')]"/>
+                <separator/>
+                <group expand="0" string="Agrupar por">
+                    <filter string="Estilistas" name="group_estilista" context="{'group_by': 'estilista_nombres'}"/>
+                    <filter string="Producto" name="group_product" context="{'group_by': 'product_id'}"/>
+                    <filter string="Sesión" name="group_session" context="{'group_by': 'session_id'}"/>
+                    <filter string="Cliente" name="group_partner" context="{'group_by': 'partner_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+</odoo>

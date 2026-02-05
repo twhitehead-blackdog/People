@@ -21,16 +21,6 @@ import { PermissionsService } from '../../../../services/permissions.service';
       </button>
 
     <aside class="dashboard-sidebar" [class.collapsed]="!isOpen()">
-      <div class="sidebar-header">
-        <button
-          class="sidebar-toggle min-w-[44px] min-h-[44px]"
-          (click)="toggleSidebar.emit()"
-          [title]="isOpen() ? 'Cerrar menú' : 'Abrir menú'"
-        >
-          <i [class]="isOpen() ? 'pi pi-times' : 'pi pi-bars'"></i>
-        </button>
-      </div>
-
       <nav class="sidebar-nav">
         @for (item of menuItems(); track item.id) {
         <button
@@ -39,7 +29,13 @@ import { PermissionsService } from '../../../../services/permissions.service';
           (click)="onSelectSection(item.id)"
           [title]="item.label"
         >
-          <i [class]="item.icon"></i>
+          @if (item.id === 'peluqueria') {
+            <span class="nav-icon-custom" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" width="1.125rem" height="1.125rem" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V7l8-4v18"/><path d="M19 21V11l-6-4"/><path d="M9 9v.01"/><path d="M9 12v.01"/><path d="M9 15v.01"/><path d="M9 18v.01"/></svg>
+            </span>
+          } @else {
+            <i [class]="item.icon"></i>
+          }
           @if (isOpen()) {
             <span class="nav-label">{{ item.label }}</span>
           }
@@ -59,9 +55,9 @@ import { PermissionsService } from '../../../../services/permissions.service';
     .sidebar {
       position: fixed;
       left: 0;
-      top: 64px;
+      top: 80px;
       width: 260px;
-      height: calc(100vh - 64px);
+      height: calc(100vh - 80px);
       background: linear-gradient(180deg, #18181b 0%, #0f0f10 100%);
       border-right: 1px solid rgba(255, 255, 255, 0.06);
       display: flex;
@@ -69,6 +65,7 @@ import { PermissionsService } from '../../../../services/permissions.service';
       z-index: 100;
       transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       overflow: hidden;
+      padding-top: 1.25rem;
 
       &.collapsed {
         width: 70px;
@@ -100,6 +97,7 @@ import { PermissionsService } from '../../../../services/permissions.service';
       cursor: pointer;
       transition: all 0.2s ease;
       margin-bottom: 0.5rem;
+      margin-top: 0;
 
       i {
         font-size: 1rem;
@@ -117,12 +115,12 @@ import { PermissionsService } from '../../../../services/permissions.service';
       }
     }
 
-    .nav {
+    .sidebar-nav {
       flex: 1;
       display: flex;
       flex-direction: column;
       gap: 0.25rem;
-      padding: 0 0.75rem;
+      padding: 0.5rem 0.75rem 0 0.75rem;
       overflow-y: auto;
       overflow-x: hidden;
 
@@ -148,10 +146,18 @@ import { PermissionsService } from '../../../../services/permissions.service';
       width: 100%;
       white-space: nowrap;
 
-      i {
+      i, .nav-icon-custom {
         font-size: 1.125rem;
         flex-shrink: 0;
         transition: all 0.2s ease;
+      }
+      .nav-icon-custom {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .nav-icon-custom svg {
+        display: block;
       }
 
       .nav-label {
@@ -171,8 +177,11 @@ import { PermissionsService } from '../../../../services/permissions.service';
         border-color: rgba(251, 191, 36, 0.15);
         color: #fbbf24;
 
-        i {
+        i, .nav-icon-custom {
           color: #fbbf24;
+        }
+        .nav-icon-custom svg {
+          stroke: #fbbf24;
         }
       }
     }
@@ -187,6 +196,14 @@ import { PermissionsService } from '../../../../services/permissions.service';
       color: #52525b;
       text-transform: uppercase;
       letter-spacing: 0.05em;
+    }
+
+    /* Mobile/tablet: header más bajo */
+    @media (max-width: 1023px) {
+      .sidebar {
+        top: 56px;
+        height: calc(100vh - 56px);
+      }
     }
 
     /* Mobile */
@@ -218,6 +235,7 @@ export class HomeSidebarComponent {
     { id: 'financial', label: 'Finanzas', icon: 'pi pi-dollar' },
     { id: 'management', label: 'Gestión de Personal', icon: 'pi pi-users' },
     { id: 'structure', label: 'Estructura', icon: 'pi pi-sitemap' },
+    { id: 'peluqueria', label: 'Peluquería', icon: 'pi pi-building' },
     { id: 'charts', label: 'Análisis', icon: 'pi pi-chart-bar' },
     { id: 'events', label: 'Eventos', icon: 'pi pi-calendar' },
   ];

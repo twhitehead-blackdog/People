@@ -55,6 +55,15 @@ ENV_SMTP_PASSWORD=tu-contraseña-o-app-password
 # 5. Reinicia la aplicación (detén con Ctrl+C y ejecuta npm start de nuevo)
 
 # ============================================
+# Odoo 18 / Odoo.sh - Integración sale.order (módulo sale_order_comanda_mascotas)
+# Copia las variables de env.odoo.append.txt a tu .env y luego borra env.odoo.append.txt
+# ============================================
+# ENV_ODOO_URL=https://blackdogpanama.odoo.com
+# ENV_ODOO_DB=dev-psdc-blackdogpanama-prod-3782039
+# ENV_ODOO_USERNAME=mercadeo@blackdogpanama.com
+# ENV_ODOO_PASSWORD=tu-password
+
+# ============================================
 # NUEVO: CONFIGURACIÓN DE DESTINATARIOS DE CORREO
 # ============================================
 # Ahora puedes configurar destinatarios específicos para cada módulo:

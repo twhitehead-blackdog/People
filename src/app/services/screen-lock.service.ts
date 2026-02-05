@@ -240,9 +240,10 @@ export class ScreenLockService {
     }
 
     const positionName = employee.position.name?.toLowerCase() || '';
-    // Permitir a Gerente de Tienda y Admins
+    // Permitir a Gerente/Subgerente de Tienda y Admins
     const result =
       positionName.includes('gerente de tienda') ||
+      positionName.includes('subgerente') ||
       employee.position?.admin === true;
     console.log('[ScreenLock] canUseScreenLock() ->', result, { positionName });
     return result;

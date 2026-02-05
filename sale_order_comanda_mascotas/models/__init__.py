@@ -1,0 +1,1 @@
+from . import sale_order, sale_order_line, mascota_line, mascota_atencion_historial, mascota_checklist, mascota_dashboard, pos_order

@@ -1,0 +1,234 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Vista de Formulario para Dashboard -->
+    <record id="view_mascota_dashboard_form" model="ir.ui.view">
+        <field name="name">x.mascota.dashboard.form</field>
+        <field name="model">x.mascota.dashboard</field>
+        <field name="arch" type="xml">
+            <form string="Dashboard de Estadísticas por Comercial">
+                <header>
+                    <button name="action_actualizar" 
+                            string="Actualizar" 
+                            type="object" 
+                            class="oe_highlight"
+                            icon="fa-refresh"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="fecha_inicio"/>
+                            <field name="fecha_fin"/>
+                            <field name="user_id" 
+                                   options="{'no_create': True, 'no_create_edit': True}"
+                                   placeholder="Todos los comerciales"/>
+                        </group>
+                    </group>
+                    
+                    <notebook>
+                        <!-- Pestaña: Resumen General -->
+                        <page string="Resumen General">
+                            <div class="row">
+                                <div class="col-12">
+                                    <h2>Métricas Generales</h2>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-3">
+                                    <div class="card">
+                                        <div class="card-body text-center">
+                                            <h3 class="text-primary">
+                                                <field name="total_presupuestos" readonly="1"/>
+                                            </h3>
+                                            <p class="mb-0">Total Presupuestos</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card">
+                                        <div class="card-body text-center">
+                                            <h3 class="text-success">
+                                                <field name="total_presupuestos_confirmados" readonly="1"/>
+                                            </h3>
+                                            <p class="mb-0">Confirmados</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card">
+                                        <div class="card-body text-center">
+                                            <h3 class="text-info">
+                                                <field name="total_presupuestos_facturados" readonly="1"/>
+                                            </h3>
+                                            <p class="mb-0">Facturados</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card">
+                                        <div class="card-body text-center">
+                                            <h3 class="text-warning">
+                                                <field name="tasa_conversion" readonly="1" widget="percentage"/>
+                                            </h3>
+                                            <p class="mb-0">Tasa Conversión</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row mt-3">
+                                <div class="col-md-4">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h4>Monto Total</h4>
+                                            <h2 class="text-primary">
+                                                <field name="monto_total" readonly="1"/>
+                                            </h2>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h4>Monto Promedio</h4>
+                                            <h2 class="text-success">
+                                                <field name="monto_promedio" readonly="1"/>
+                                            </h2>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </page>
+                        
+                        <!-- Pestaña: Métricas de Mascotas -->
+                        <page string="Métricas de Mascotas">
+                            <div class="row">
+                                <div class="col-12">
+                                    <h2>Estadísticas de Servicios</h2>
+                                </div>
+                            </div>
+                            <div class="row mt-3">
+                                <div class="col-md-3">
+                                    <div class="card">
+                                        <div class="card-body text-center">
+                                            <h3 class="text-primary">
+                                                <field name="total_mascotas" readonly="1"/>
+                                            </h3>
+                                            <p class="mb-0">Total Mascotas</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card">
+                                        <div class="card-body text-center">
+                                            <h3 class="text-info">
+                                                <field name="total_servicios" readonly="1"/>
+                                            </h3>
+                                            <p class="mb-0">Total Servicios</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card">
+                                        <div class="card-body text-center">
+                                            <h3 class="text-info">
+                                                <field name="total_peluqueria" readonly="1"/>
+                                            </h3>
+                                            <p class="mb-0">Peluquería</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="card">
+                                        <div class="card-body text-center">
+                                            <h3 class="text-success">
+                                                <field name="total_veterinaria" readonly="1"/>
+                                            </h3>
+                                            <p class="mb-0">Veterinaria</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row mt-3">
+                                <div class="col-md-4">
+                                    <div class="card">
+                                        <div class="card-body text-center">
+                                            <h3 class="text-warning">
+                                                <field name="total_cortes" readonly="1"/>
+                                            </h3>
+                                            <p class="mb-0">Total Cortes</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card">
+                                        <div class="card-body text-center">
+                                            <h3 class="text-info">
+                                                <field name="total_solo_bano" readonly="1"/>
+                                            </h3>
+                                            <p class="mb-0">Solo Baño</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card">
+                                        <div class="card-body text-center">
+                                            <h3 class="text-primary">
+                                                <field name="total_bano_y_corte" readonly="1"/>
+                                            </h3>
+                                            <p class="mb-0">Baño y Corte</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </page>
+                        
+                        <!-- Pestaña: Por Comercial -->
+                        <page string="Estadísticas por Comercial">
+                            <div class="row">
+                                <div class="col-12">
+                                    <h2>Desglose por Comercial</h2>
+                                    <field name="estadisticas_comerciales" 
+                                           widget="text" 
+                                           readonly="1"
+                                           nolabel="1"
+                                           style="font-family: monospace; white-space: pre; font-size: 12px;"/>
+                                </div>
+                            </div>
+                        </page>
+                        
+                        <!-- Pestaña: Servicios Más Solicitados -->
+                        <page string="Servicios Más Solicitados">
+                            <div class="row">
+                                <div class="col-12">
+                                    <h2>Top 10 Servicios Más Solicitados</h2>
+                                    <field name="servicios_mas_solicitados" 
+                                           widget="text" 
+                                           readonly="1"
+                                           nolabel="1"
+                                           style="font-family: monospace; white-space: pre; font-size: 12px;"/>
+                                </div>
+                            </div>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Acción de ventana para Dashboard -->
+    <record id="action_mascota_dashboard" model="ir.actions.act_window">
+        <field name="name">Dashboard por Comercial</field>
+        <field name="res_model">x.mascota.dashboard</field>
+        <field name="view_mode">form</field>
+        <field name="target">current</field>
+        <field name="view_id" ref="view_mascota_dashboard_form"/>
+    </record>
+
+    <!-- Menú para Dashboard - Al lado de Pedidos en el menú principal de Ventas -->
+    <menuitem id="menu_mascota_dashboard"
+              name="Dashboard"
+              parent="sale.sale_menu_root"
+              action="action_mascota_dashboard"
+              sequence="6"/>
+</odoo>

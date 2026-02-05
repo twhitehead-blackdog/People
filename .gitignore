@@ -42,6 +42,7 @@ Thumbs.db
 .nx/workspace-data
 .angular
 .env
+env.odoo.append.txt
 
 # Hookify rules (local)
 .claude/*.local.md

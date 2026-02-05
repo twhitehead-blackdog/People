@@ -14,6 +14,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import {
   addDays,
+  eachDayOfInterval,
   endOfDay,
   format,
   isBefore,
@@ -52,6 +53,12 @@ import { MonthWeekSelectorComponent } from './employees-timetable/components/mon
 import { TimetableFiltersComponent } from './employees-timetable/components/timetable-filters/timetable-filters.component';
 import { TimetableGridComponent } from './employees-timetable/components/timetable-grid/timetable-grid.component';
 import { TimetableHeaderComponent } from './employees-timetable/components/timetable-header/timetable-header.component';
+import {
+  conflictKey,
+  getScheduleWarningForManager,
+  isManagerPosition,
+  SCHEDULE_ID_DIA_LIBRE,
+} from './services/schedule-manager-rules';
 import { TimetableFilterService } from './services/timetable-filter.service';
 import { TimetableNavigationService } from './services/timetable-navigation.service';
 import { TimetablePermissionsService } from './services/timetable-permissions.service';
@@ -841,24 +848,77 @@ export class EmployeesTimetableComponent implements OnInit {
     return null;
   }
 
-  public employeeSchedulesList = computed(() =>
-    this.currentEmployees().map((employee) => ({
+  public employeeSchedulesList = computed(() => {
+    const employees = this.currentEmployees();
+    const intervalsMap = this.shiftIntervalsByEmployeeId();
+    const conflictKeys = this.managerConflictKeys();
+    return employees.map((employee) => ({
       id: employee.id,
       first_name: employee.first_name,
       father_name: employee.father_name,
+      position_id: employee.position_id,
       position: employee.position
-        ? { name: employee.position.name }
-        : { name: '' },
-      days: employee.days.map((day) => ({
-        ...day,
-        shift:
+        ? { id: (employee.position as any).id, name: employee.position.name }
+        : { id: '', name: '' },
+      days: employee.days.map((day) => {
+        const shift =
           this.findIntervalForDate(
-            this.shiftIntervalsByEmployeeId().get(employee.id) ?? [],
+            intervalsMap.get(employee.id) ?? [],
             day.date
-          )?.shift ?? null,
-      })),
-    }))
-  );
+          )?.shift ?? null;
+        const scheduleWarning = this.getCellScheduleWarning(
+          employee.position_id,
+          day.date,
+          shift,
+          conflictKeys
+        );
+        return { ...day, shift, scheduleWarning };
+      }),
+    }));
+  });
+
+  /** Claves (date|branch_id|schedule_id) donde hay 2+ Gerentes/Subgerentes en el mismo turno/sucursal/día. */
+  private managerConflictKeys = computed(() => {
+    const employees = this.currentEmployees();
+    const intervalsMap = this.shiftIntervalsByEmployeeId();
+    const countByKey = new Map<string, number>();
+    for (const emp of employees) {
+      if (!isManagerPosition(emp.position_id)) continue;
+      const intervals = intervalsMap.get(emp.id) ?? [];
+      for (const { start, end, shift } of intervals) {
+        const days = eachDayOfInterval({ start, end });
+        for (const d of days) {
+          const key = conflictKey(d, shift?.branch_id, shift?.schedule_id);
+          countByKey.set(key, (countByKey.get(key) ?? 0) + 1);
+        }
+      }
+    }
+    const conflictSet = new Set<string>();
+    countByKey.forEach((count, key) => {
+      if (count >= 2) conflictSet.add(key);
+    });
+    return conflictSet;
+  });
+
+  private getCellScheduleWarning(
+    positionId: string | undefined,
+    date: Date,
+    shift: any,
+    conflictKeys: Set<string>
+  ): string | null {
+    if (!isManagerPosition(positionId) || !shift) return null;
+    const msgs: string[] = [];
+    const scheduleWarn = getScheduleWarningForManager(shift.schedule_id, date, positionId, shift?.schedule?.day_off);
+    if (scheduleWarn) msgs.push(scheduleWarn);
+    const key = conflictKey(date, shift.branch_id, shift.schedule_id);
+    if (conflictKeys.has(key)) {
+      const isDayOff = shift?.schedule_id === SCHEDULE_ID_DIA_LIBRE || shift?.schedule?.day_off === true;
+      msgs.push(isDayOff
+        ? 'Gerente y Subgerente no deberían tener el mismo día libre en la misma sucursal.'
+        : 'Gerente y Subgerente no deberían estar en el mismo turno en la misma sucursal.');
+    }
+    return msgs.length ? msgs.join(' ') : null;
+  }
 
   ngOnInit(): void {
     this.editionLocked.set(true);

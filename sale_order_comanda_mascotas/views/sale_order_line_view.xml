@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Agregar campos de mascota y estilistas en la línea del pedido (dentro del formulario de sale.order) -->
+    <record id="view_sale_order_form_line_mascota" model="ir.ui.view">
+        <field name="name">sale.order.form.line.mascota</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="priority" eval="20"/>
+        <field name="arch" type="xml">
+            <!-- Agregar contexto al campo order_line para pasar order_id a las líneas -->
+            <xpath expr="//field[@name='order_line']" position="attributes">
+                <attribute name="context">{'default_order_id': id}</attribute>
+            </xpath>
+            
+            
+            <!-- Agregar columnas en la lista de líneas de pedido (después del nombre/descripción) -->
+            <xpath expr="//field[@name='order_line']/list//field[@name='name']" position="after">
+                <!-- Campos ocultos para lógica -->
+                <field name="mascotas_disponibles_ids" column_invisible="1"/>
+                <field name="es_servicio_mascota" column_invisible="1"/>
+                <field name="es_categoria_peluqueria" column_invisible="1"/>
+                <field name="es_categoria_clinica" column_invisible="1"/>
+                <field name="mascota_required" column_invisible="1"/>
+                <field name="mascota_id"
+                       string="Mascota"
+                       optional="show"
+                       required="mascota_required"
+                       options="{'no_create': True, 'no_create_edit': True}"/>
+                <field name="estilista_ids"
+                       string="Estilistas"
+                       widget="many2many_tags"
+                       optional="show"
+                       options="{'no_create': True, 'no_create_edit': True, 'color_field': 'color'}"/>
+                <field name="veterinario_id"
+                       string="Veterinario"
+                       optional="show"
+                       options="{'no_create': True, 'no_create_edit': True}"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
+

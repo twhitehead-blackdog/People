@@ -72,8 +72,8 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
     'Asistente de peluquería',
   ];
 
-  // Lista de cargos que tienen acceso especial a gestión de tiempo y reloj de marcaciones
-  const timeManagementAccessPositions = ['gerente de tienda'];
+  // Lista de cargos que tienen acceso especial a gestión de tiempo y reloj de marcaciones (gerente y subgerente con las mismas limitaciones)
+  const timeManagementAccessPositions = ['gerente de tienda', 'subgerente'];
 
   return authService.user$.pipe(
     take(1),

@@ -17,7 +17,7 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { toDate } from 'date-fns-tz';
 import * as OTPAuth from 'otpauth';
 import { ConfirmationService, MessageService } from 'primeng/api';
@@ -57,24 +57,24 @@ import {
     Skeleton,
   ],
   template: `
-    <div class="flex items-center justify-between">
-      <div class="flex flex-col items-center gap-2">
-        <h1>Datos del empleado</h1>
-        <p-button
-          text
-          label="Volver al listado"
-          icon="pi pi-arrow-left"
-          (onClick)="cancelChanges(true)"
-        />
+    <div class="employee-form-header flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-neutral-700/50">
+      <div class="flex flex-col gap-1">
+        <a href="#" role="button" class="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-amber-400 transition-colors no-underline w-fit mb-1" (click)="onBackClick($event)">
+          <i class="pi pi-arrow-left"></i>
+          Volver al listado
+        </a>
+        <h1 class="m-0 text-xl font-bold text-white">{{ employee_id() ? 'Editar empleado' : 'Nuevo empleado' }}</h1>
+        <p class="text-sm text-gray-400 m-0">Complete la información del colaborador</p>
       </div>
-      <div class="flex col-span-4 justify-end gap-2">
+      <div class="flex flex-wrap gap-2 sm:flex-nowrap">
         <p-button
           label="Cancelar"
           severity="secondary"
           outlined
           rounded
-          icon="pi pi-refresh"
+          icon="pi pi-times"
           (click)="cancelChanges()"
+          class="min-h-[44px]"
         />
         <p-button
           form="employee-form"
@@ -83,6 +83,7 @@ import {
           icon="pi pi-save"
           rounded
           [loading]="store.employees.isLoading()"
+          class="min-h-[44px]"
         />
       </div>
     </div>
@@ -111,23 +112,23 @@ import {
       (ngSubmit)="saveChanges()"
       id="employee-form"
     >
-      <p-tabs value="0">
-        <p-tablist>
+      <p-tabs value="0" scrollable>
+        <p-tablist class="employee-form-tablist">
           <p-tab value="0">
             <i class="pi pi-user mr-2"></i>
-            Información Personal
+            <span class="tab-label">Información Personal</span>
           </p-tab>
           <p-tab value="1">
             <i class="pi pi-phone mr-2"></i>
-            Contacto
+            <span class="tab-label">Contacto</span>
           </p-tab>
           <p-tab value="2">
             <i class="pi pi-money-bill mr-2"></i>
-            Información Bancaria
+            <span class="tab-label">Información Bancaria</span>
           </p-tab>
           <p-tab value="3">
             <i class="pi pi-briefcase mr-2"></i>
-            Datos Laborales
+            <span class="tab-label">Datos Laborales</span>
           </p-tab>
         </p-tablist>
         <p-tabpanels>
@@ -743,21 +744,40 @@ import {
       background: #18181b !important;
       border-bottom: 1px solid rgba(251, 191, 36, 0.2) !important;
     }
-    
+
+    /* Tabs scrollables en móvil: no envolver, scroll horizontal */
+    ::ng-deep .p-tabs.scrollable .p-tablist-content,
+    ::ng-deep .p-tabs .p-tablist-content {
+      overflow-x: auto !important;
+      overflow-y: hidden !important;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      flex-wrap: nowrap !important;
+    }
+    ::ng-deep .p-tabs .p-tablist-tab-list {
+      flex-wrap: nowrap !important;
+    }
     ::ng-deep .p-tabs .p-tab {
       color: #9ca3af !important;
       padding: 0.75rem 1rem !important;
       min-height: 44px;
+      flex-shrink: 0 !important;
+      white-space: nowrap !important;
     }
 
     @media (max-width: 768px) {
       ::ng-deep .p-tabs .p-tab {
-        padding: 0.75rem 0.75rem !important;
-        font-size: 0.875rem;
+        padding: 0.625rem 0.75rem !important;
+        font-size: 0.8125rem;
+        min-height: 40px;
       }
 
       ::ng-deep .p-tabs .p-tab i {
         font-size: 0.875rem;
+      }
+
+      .tab-label {
+        display: inline;
       }
     }
     
@@ -783,6 +803,8 @@ import {
     ::ng-deep .p-tabpanel {
       padding: 1.5rem 0 !important;
     }
+
+    .employee-form-header a.no-underline { text-decoration: none; }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -1483,6 +1505,11 @@ export class EmployeeFormComponent implements OnInit {
         });
       },
     });
+  }
+
+  onBackClick(event: Event) {
+    event.preventDefault();
+    this.cancelChanges(true);
   }
 
   cancelChanges(list = false) {

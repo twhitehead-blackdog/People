@@ -679,11 +679,11 @@ export class EmployeePortalComponent {
     return workEmail.endsWith(this.companyEmailDomain);
   });
 
-  // Verificar si el usuario es Branch Manager (Gerente de Tienda)
+  // Verificar si el usuario es Branch Manager (Gerente o Subgerente de Tienda)
   public isBranchManager = computed(() => {
     const currentEmp = this.currentEmployee();
-    const positionName = currentEmp?.position?.name || '';
-    return positionName.toLowerCase().includes('gerente de tienda');
+    const positionName = (currentEmp?.position?.name || '').toLowerCase();
+    return positionName.includes('gerente de tienda') || positionName.includes('subgerente');
   });
 
   // Empleados de la sucursal del Branch Manager (para solicitudes en su nombre)

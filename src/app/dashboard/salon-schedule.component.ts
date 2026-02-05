@@ -33,6 +33,7 @@ import { Branch, Employee, GroomerBranchAssignment } from '../models';
 import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
 import { DashboardStore } from '../stores/dashboard.store';
+import { GroomerScheduleUtilsService } from './services/groomer-schedule-utils.service';
 import { GroomerBranchCellComponent } from './groomer-branch-cell.component';
 import { GroomerBranchSelectionDialogComponent } from './groomer-branch-selection-dialog.component';
 
@@ -110,19 +111,7 @@ export class SalonScheduleComponent {
   assignments = signal<GroomerBranchAssignment[]>([]);
   nonWorkingMap = signal<Record<string, string>>({});
 
-  // Método utilitario para detectar posiciones de peluquería
-  private isGroomerPosition(employee: Employee): boolean {
-    const positionName = employee.position?.name?.toLowerCase() || '';
-    return (
-      positionName.includes('peluquer') || // Cubre "peluquero", "peluquera", "peluquería"
-      positionName.includes('groomer') ||
-      positionName.includes('estilista') ||
-      positionName.includes('bañador') || // Bañadores también pueden estar en peluquería
-      positionName.includes('bañista') ||
-      (positionName.includes('asistente') && positionName.includes('peluq')) || // "asistente peluquería"
-      positionName.includes('auxiliar peluq') // posiciones auxiliares de peluquería
-    );
-  }
+  private groomerUtils = inject(GroomerScheduleUtilsService);
 
   // Estado del diálogo
   dialogVisible = signal<boolean>(false);
@@ -143,7 +132,7 @@ export class SalonScheduleComponent {
     const groomers = this.store.employees
       .entities()
       .filter(
-        (employee) => employee.is_active && this.isGroomerPosition(employee)
+        (employee) => employee.is_active && this.groomerUtils.isGroomerPosition(employee)
       )
       .sort((a, b) => a.first_name.localeCompare(b.first_name));
 
@@ -256,7 +245,7 @@ export class SalonScheduleComponent {
 
     const groomerIds = this.store.employees
       .entities()
-      .filter((e) => e.is_active && this.isGroomerPosition(e))
+      .filter((e) => e.is_active && this.groomerUtils.isGroomerPosition(e))
       .map((e) => e.id);
 
     if (groomerIds.length === 0) {

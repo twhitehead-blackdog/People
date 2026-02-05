@@ -6,6 +6,7 @@ import {
   computed,
   DestroyRef,
   inject,
+  NgZone,
   OnInit,
   signal,
 } from '@angular/core';
@@ -44,6 +45,7 @@ import { TrimPipe } from '../pipes/trim.pipe';
 import { ApiUrlService } from '../services/api-url.service';
 import { LoggerService } from '../services/logger.service';
 import { OrganizationService } from '../services/organization.service';
+import { getScheduleWarningForManager, SCHEDULE_ID_DIA_LIBRE } from './services/schedule-manager-rules';
 import { ScheduleAuditService } from '../services/schedule-audit.service';
 import { DashboardStore } from '../stores/dashboard.store';
 
@@ -100,7 +102,7 @@ import { DashboardStore } from '../stores/dashboard.store';
           placeholder="Seleccionar turno"
         >
           <ng-template #item let-item>
-            <div class="flex items-center ">
+            <div class="flex items-center gap-2">
               <div
                 class="px-3 py-1.5 text-sm rounded"
                 [ngClass]="colorVariants[item.color] || ''"
@@ -112,6 +114,9 @@ import { DashboardStore } from '../stores/dashboard.store';
               >
                 {{ item.name }}
               </div>
+              @if (getScheduleWarningForSelectedEmployee(item)) {
+                <i class="pi pi-exclamation-triangle text-amber-400 text-xs" title="{{ getScheduleWarningForSelectedEmployee(item) }}"></i>
+              }
             </div>
           </ng-template>
           <ng-template #selectedItem let-selected>
@@ -130,6 +135,12 @@ import { DashboardStore } from '../stores/dashboard.store';
             </div>
           </ng-template>
         </p-select>
+        @if (selectedScheduleWarning()) {
+          <small class="block mt-1.5 text-amber-400 text-xs flex items-center gap-1">
+            <i class="pi pi-exclamation-triangle"></i>
+            {{ selectedScheduleWarning() }}
+          </small>
+        }
       </div>
 
       <div class="input-container">
@@ -231,11 +242,15 @@ export class EmployeeSchedulesFormComponent implements OnInit {
   private destroyRef = inject(DestroyRef);
   private logger = inject(LoggerService);
   private auditService = inject(ScheduleAuditService);
+  private ngZone = inject(NgZone);
+  private audioContext: AudioContext | null = null;
   private originalSchedule: any = null;
   private singleDayEdit = false;
   private weekStart: Date | null = null;
   private weekEnd: Date | null = null;
   private employeeHasSchedulesInWeek = false;
+  /** Fecha de referencia para advertencias Gerente/Subgerente (día que se está editando) */
+  private initialReferenceDate: Date | null = null;
 
   // Filtrar solo empleados activos para el selector
   public activeEmployeesList = computed(() =>
@@ -261,7 +276,6 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     'Dia Libre',
     '11:30 AM - 8:00 PM',
     '12:30 PM - 9:00 PM',
-    '9:00 AM - 6:00 PM',
     'A. Injus',
     'Licencia maternidad',
     'Permiso',
@@ -301,12 +315,81 @@ export class EmployeeSchedulesFormComponent implements OnInit {
   ];
 
   /**
-   * Determina si el usuario actual es gerente de tienda
-   * (schedule_admin pero NO admin)
+   * Determina si el usuario actual es gerente o subgerente de tienda (mismas limitaciones).
+   * Cierto si: schedule_admin y no admin, O el cargo es gerente de tienda o subgerente.
    */
   public isStoreManager = computed(() => {
-    return this.store.isScheduleAdmin() && !this.store.isAdmin();
+    if (this.store.isScheduleAdmin() && !this.store.isAdmin()) return true;
+    const name = (this.store.currentEmployee()?.position?.name || '').toLowerCase();
+    return name.includes('gerente de tienda') || name.includes('subgerente');
   });
+
+  /** Advertencia si el turno no es recomendado para Gerente/Subgerente (solo visual). */
+  public getScheduleWarningForSelectedEmployee(schedule: { id?: string; day_off?: boolean }): string | null {
+    const refDate = this.form.get('start_date')?.value ?? this.initialReferenceDate;
+    if (!refDate) return null;
+    return getScheduleWarningForManager(
+      schedule?.id,
+      refDate instanceof Date ? refDate : new Date(refDate),
+      this.selectedEmployee()?.position_id,
+      schedule?.day_off
+    );
+  }
+
+  /** Mensaje de advertencia para el turno actualmente seleccionado (Gerente/Subgerente). */
+  public selectedScheduleWarning(): string | null {
+    const scheduleId = this.form.get('schedule_id')?.value;
+    if (!scheduleId) return null;
+    const schedule = this.availableSchedules().find((s: any) => s.id === scheduleId);
+    return schedule ? this.getScheduleWarningForSelectedEmployee(schedule) : null;
+  }
+
+  private getAudioContext(): AudioContext | null {
+    try {
+      if (!this.audioContext) {
+        this.audioContext = new (window.AudioContext ||
+          (window as any).webkitAudioContext)();
+      }
+      if (this.audioContext.state === 'suspended') {
+        this.audioContext.resume();
+      }
+      return this.audioContext;
+    } catch {
+      return null;
+    }
+  }
+
+  /** Reproduce un sonido de error (dos beeps) al mostrar el aviso Gerente/Subgerente. */
+  private playErrorSound(): void {
+    const ctx = this.getAudioContext();
+    if (!ctx) return;
+    try {
+      const now = ctx.currentTime;
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.frequency.value = 400;
+      osc1.type = 'square';
+      gain1.gain.setValueAtTime(0.2, now);
+      gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.15);
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.frequency.value = 300;
+      osc2.type = 'square';
+      gain2.gain.setValueAtTime(0, now);
+      gain2.gain.setValueAtTime(0.2, now + 0.2);
+      gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.2);
+      osc2.stop(now + 0.4);
+    } catch {
+      // Ignorar si el navegador no soporta o bloquea audio
+    }
+  }
 
   /**
    * Verifica si un turno es exclusivo para mujeres
@@ -328,16 +411,6 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     const employee = this.selectedEmployee();
     const isFemale = employee?.gender === 'F';
     const currentEmployee = this.store.currentEmployee();
-    const positionName = currentEmployee?.position?.name;
-
-    // Debug logs
-    console.log('[availableSchedules] currentEmployee:', currentEmployee?.first_name, currentEmployee?.father_name);
-    console.log('[availableSchedules] position:', positionName);
-    console.log('[availableSchedules] isAdmin:', this.store.isAdmin());
-    console.log('[availableSchedules] isScheduleAdmin:', this.store.isScheduleAdmin());
-    console.log('[availableSchedules] position.schedule_admin:', currentEmployee?.position?.schedule_admin);
-    console.log('[availableSchedules] position.admin:', currentEmployee?.position?.admin);
-
     // Función para filtrar turnos exclusivos de mujeres
     const filterByGender = (schedules: any[]) => {
       if (isFemale) {
@@ -353,39 +426,27 @@ export class EmployeeSchedulesFormComponent implements OnInit {
 
     // Administradores ven todos los turnos (filtrados por género)
     if (this.store.isAdmin()) {
-      console.log('[availableSchedules] User is ADMIN - showing all schedules');
       return filterByGender(allSchedules);
     }
 
     // Gerentes de tienda (schedule_admin pero no admin) solo ven turnos específicos
     const isStoreManager =
       this.store.isScheduleAdmin() && !this.store.isAdmin();
-    console.log('[availableSchedules] isStoreManager:', isStoreManager);
 
     if (isStoreManager) {
-      console.log('[availableSchedules] User is STORE MANAGER - filtering schedules');
       const filteredByRole = allSchedules.filter((schedule: any) => {
-        // Primero verificar si está en la lista de ocultos por ID
         if (this.HIDDEN_FOR_STORE_MANAGERS.includes(schedule?.id)) {
-          console.log('[availableSchedules] Filtering out by ID:', schedule?.name);
           return false;
         }
-
         const scheduleName = String(schedule?.name ?? '').toUpperCase();
-        const isAllowed = this.ALLOWED_STORE_MANAGER_SHIFTS.some(
+        return this.ALLOWED_STORE_MANAGER_SHIFTS.some(
           (allowed) => scheduleName === allowed.toUpperCase()
         );
-        if (!isAllowed) {
-          console.log('[availableSchedules] Filtering out by name:', scheduleName);
-        }
-        return isAllowed;
       });
-      console.log('[availableSchedules] Filtered schedules count:', filteredByRole.length);
       return filterByGender(filteredByRole);
     }
 
     // Otros usuarios: ocultar Compensatorio y filtrar por género
-    console.log('[availableSchedules] User is OTHER - hiding Compensatorio only');
     const filteredByRole = allSchedules.filter((schedule: any) => {
       const scheduleName = String(schedule?.name ?? '').toLowerCase();
       return (
@@ -406,10 +467,6 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       weekEnd,
       employeeHasSchedulesInWeek,
     } = this.dialog.data;
-    console.log(
-      '[EmployeeSchedulesFormComponent] ngOnInit data:',
-      this.dialog.data
-    );
 
     this.logger.debug(
       '[EmployeeSchedulesFormComponent] OnInit data received:',
@@ -462,8 +519,11 @@ export class EmployeeSchedulesFormComponent implements OnInit {
 
     if (date) {
       const dateObj = toDate(date, { timeZone: 'America/Panama' });
+      this.initialReferenceDate = dateObj;
       this.form.get('start_date')?.patchValue(dateObj);
       this.form.get('end_date')?.patchValue(dateObj);
+    } else {
+      this.initialReferenceDate = this.form.get('start_date')?.value ?? null;
     }
     if (employee_id) {
       // Asegurar que el empleado esté cargado antes de establecer el valor
@@ -517,9 +577,6 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       if (!employee_schedule) return;
     }
     if (employee_schedule) {
-      console.log(
-        '[EmployeeSchedulesFormComponent] Found employee_schedule, starting patch...'
-      );
       const {
         id,
         employee_id: scheduleEmployeeId,
@@ -693,6 +750,33 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       }
     }
 
+    // Si el turno no es recomendado para Gerente/Subgerente, pedir confirmación antes de guardar
+    const scheduleWarning = this.selectedScheduleWarning();
+    if (scheduleWarning) {
+      this.playErrorSound();
+      this.confirmationService.confirm({
+        header: '¿Está seguro?',
+        message: `Este turno no es el recomendado para Gerente ni para Subgerente. ${scheduleWarning}\n¿Desea guardar de todas formas?`,
+        icon: 'pi pi-exclamation-triangle',
+        acceptLabel: 'Sí, guardar',
+        rejectLabel: 'Cancelar',
+        accept: () => {
+          // Ejecutar en el siguiente tick para que el diálogo cierre antes y no interfiera
+          setTimeout(() => this.ngZone.run(() => this.continueSaveAfterConfirm(value)), 0);
+        },
+        reject: () => this.loading.set(false),
+      });
+      return;
+    }
+
+    this.continueSaveAfterConfirm(value);
+  }
+
+  /**
+   * Continúa el flujo de guardado después de las validaciones iniciales
+   * (y opcionalmente después de la confirmación Gerente/Subgerente).
+   */
+  private continueSaveAfterConfirm(value: any): void {
     // Validar horarios que solo deben usarse en domingos (8:00 AM - 5:00 PM y 10:30 AM - 7:00 PM)
     if (this.SUNDAY_ONLY_SCHEDULES.includes(value.schedule_id) && value.start_date) {
       const startDate = new Date(value.start_date);
@@ -729,20 +813,31 @@ export class EmployeeSchedulesFormComponent implements OnInit {
           },
           reject: () => {
             // No hacer nada, el usuario canceló
-          }
+          },
         });
         return;
       }
     }
 
     // Validar que posiciones específicas no tengan el mismo horario en la misma tienda
-    this.validatePositionPairSchedule(value).then((hasConflict) => {
-      if (hasConflict) {
-        // Si hay conflicto, la función ya mostró la confirmación
-        return;
+    this.validatePositionPairSchedule(value).then(
+      (hasConflict) => {
+        this.ngZone.run(() => {
+          if (hasConflict) return;
+          this.proceedWithSave(value);
+        });
+      },
+      () => {
+        this.ngZone.run(() => {
+          this.loading.set(false);
+          this.message.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'No se pudo verificar los horarios. Intente de nuevo.',
+          });
+        });
       }
-      this.proceedWithSave(value);
-    });
+    );
   }
 
   /**
@@ -752,28 +847,17 @@ export class EmployeeSchedulesFormComponent implements OnInit {
   private async validatePositionPairSchedule(value: any): Promise<boolean> {
     const employee = this.selectedEmployee();
 
-    console.log('[validatePositionPairSchedule] employee:', employee?.first_name, employee?.father_name);
-    console.log('[validatePositionPairSchedule] employee.position_id:', employee?.position_id);
-    console.log('[validatePositionPairSchedule] POSITION_PAIR_VALIDATION:', this.POSITION_PAIR_VALIDATION);
-
     if (!employee?.position_id) {
-      console.log('[validatePositionPairSchedule] No position_id - skipping');
       return false;
     }
 
-    // Verificar si el empleado seleccionado tiene una de las posiciones a validar
     if (!this.POSITION_PAIR_VALIDATION.includes(employee.position_id)) {
-      console.log('[validatePositionPairSchedule] Position not in validation list - skipping');
       return false;
     }
 
-    console.log('[validatePositionPairSchedule] Position IS in validation list!');
-
-    // Obtener la otra posición del par
     const otherPositionId = this.POSITION_PAIR_VALIDATION.find(
       (id) => id !== employee.position_id
     );
-    console.log('[validatePositionPairSchedule] otherPositionId:', otherPositionId);
     if (!otherPositionId) return false;
 
     const branchId = value.branch_id;
@@ -781,20 +865,13 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     const startDate = value.start_date ? formatDate(new Date(value.start_date), 'yyyy-MM-dd') : null;
     const endDate = value.end_date ? formatDate(new Date(value.end_date), 'yyyy-MM-dd') : null;
 
-    console.log('[validatePositionPairSchedule] branchId:', branchId);
-    console.log('[validatePositionPairSchedule] scheduleId:', scheduleId);
-    console.log('[validatePositionPairSchedule] startDate:', startDate);
-    console.log('[validatePositionPairSchedule] endDate:', endDate);
-
     if (!branchId || !scheduleId || !startDate || !endDate) {
-      console.log('[validatePositionPairSchedule] Missing required fields - skipping');
       return false;
     }
 
     try {
       // Buscar empleados con la otra posición (sin filtrar por branch_id del empleado)
       const allEmployees = this.store.employees.entities();
-      console.log('[validatePositionPairSchedule] Total employees in store:', allEmployees.length);
 
       const employeesWithOtherPosition = allEmployees.filter(
         (emp) =>
@@ -803,15 +880,11 @@ export class EmployeeSchedulesFormComponent implements OnInit {
           emp.id !== employee.id
       );
 
-      console.log('[validatePositionPairSchedule] Employees with other position:', employeesWithOtherPosition.map(e => `${e.first_name} ${e.father_name} (branch: ${e.branch_id})`));
-
       if (employeesWithOtherPosition.length === 0) {
-        console.log('[validatePositionPairSchedule] No employees with other position found');
         return false;
       }
 
       const employeeIds = employeesWithOtherPosition.map((e) => e.id);
-      console.log('[validatePositionPairSchedule] Employee IDs to check:', employeeIds);
 
       // Buscar horarios de esos empleados con el mismo turno en el rango de fechas
       const url = this.apiUrl.build('rest/v1/employee_schedules', {
@@ -823,19 +896,11 @@ export class EmployeeSchedulesFormComponent implements OnInit {
         end_date: `gte.${startDate}`,
       });
 
-      console.log('[validatePositionPairSchedule] API URL:', url);
-
       const conflictingSchedules = await firstValueFrom(
         this.http.get<any[]>(url)
-      ).catch((error) => {
-        console.error('[validatePositionPairSchedule] HTTP Error:', error);
-        return [];
-      });
-
-      console.log('[validatePositionPairSchedule] Conflicting schedules found:', conflictingSchedules);
+      ).catch(() => []);
 
       if (conflictingSchedules.length > 0) {
-        console.log('[validatePositionPairSchedule] CONFLICT DETECTED!');
         // Hay conflicto - mostrar advertencia
         const conflictingEmployee = employeesWithOtherPosition.find(
           (e) => e.id === conflictingSchedules[0].employee_id
@@ -847,13 +912,16 @@ export class EmployeeSchedulesFormComponent implements OnInit {
         const conflictName = conflictingEmployee
           ? `${conflictingEmployee.first_name} ${conflictingEmployee.father_name}`
           : 'otro empleado';
+        const isDayOffConflict = scheduleId === SCHEDULE_ID_DIA_LIBRE;
 
         this.loading.set(false);
 
         return new Promise<boolean>((resolve) => {
           this.confirmationService.confirm({
-            message: `El horario "${scheduleName}" ya está asignado a ${conflictName} en esta tienda para las mismas fechas. Los empleados con estas posiciones deberían tener horarios diferentes (uno en apertura y otro en cierre). ¿Está seguro de continuar?`,
-            header: 'Advertencia: Mismo horario',
+            message: isDayOffConflict
+              ? `Gerente y Subgerente no deberían tener el mismo día libre en la misma tienda. ${conflictName} ya tiene Día Libre en las mismas fechas. ¿Está seguro de continuar?`
+              : `El horario "${scheduleName}" ya está asignado a ${conflictName} en esta tienda para las mismas fechas. Los empleados con estas posiciones deberían tener horarios diferentes (uno en apertura y otro en cierre). ¿Está seguro de continuar?`,
+            header: isDayOffConflict ? 'Advertencia: Mismo día libre' : 'Advertencia: Mismo horario',
             icon: 'pi pi-exclamation-triangle',
             acceptLabel: 'Sí, continuar',
             rejectLabel: 'Cancelar',
@@ -1047,13 +1115,6 @@ export class EmployeeSchedulesFormComponent implements OnInit {
             );
             return;
           }
-
-          console.log('📝 Registrando auditoría:', {
-            action: shouldUpdate ? 'updated' : 'created',
-            scheduleId,
-            employeeId: value.employee_id,
-            currentEmployeeId,
-          });
 
           try {
             if (shouldUpdate) {

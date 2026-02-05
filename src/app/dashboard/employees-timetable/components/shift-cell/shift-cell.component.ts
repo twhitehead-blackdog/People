@@ -29,6 +29,9 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
       tooltipPosition="top"
       (click)="handleClick($event)"
     >
+      @if (scheduleWarning(); as warn) {
+        <i class="pi pi-exclamation-triangle text-amber-400 text-[10px] flex-shrink-0" [pTooltip]="warn" tooltipPosition="top"></i>
+      }
       @if (selectionMode() && !shiftValue?.approved) {
       <i
         class="pi text-[10px] flex-shrink-0"
@@ -38,7 +41,7 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
           }"
       ></i>
       }
-      <span class="truncate max-w-[65px] font-semibold leading-tight">
+      <span class="line-clamp-2 max-w-[72px] font-semibold leading-tight break-words">
         {{ shiftValue?.schedule?.name }}
       </span>
       @if (!selectionMode()) {
@@ -64,7 +67,11 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
           Sucursal:
           <span class="font-bold">{{ shiftValue?.branch?.name }}</span>
         </div>
-        } @if (selectionMode()) { @if (shiftValue?.approved) {
+        }
+        @if (scheduleWarning(); as warn) {
+          <span class="text-amber-300 text-xs block mt-1">{{ warn }}</span>
+        }
+        @if (selectionMode()) { @if (shiftValue?.approved) {
         <span class="text-gray-400 italic">Ya aprobado - no seleccionable</span>
         } @else { @if (isSelected()) {
         <span class="text-cyan-400 font-bold"
@@ -145,6 +152,8 @@ export class ShiftCellComponent {
   public selectionMode = input<boolean>(false);
   public isSelected = input<boolean>(false);
   public isStoreManager = input<boolean>(false);
+  /** Advertencia visual: turno no recomendado o Gerente y Subgerente en el mismo turno. */
+  public scheduleWarning = input<string | null>(null);
 
   // Outputs
   public edit = output<{ shift: EmployeeSchedule; date: Date }>();

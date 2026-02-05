@@ -25,12 +25,11 @@ import { Branch, Position } from '../../../../models';
         [options]="branches()"
         [disabled]="disableBranch()"
         appendTo="body"
+        optionLabel="name"
         optionValue="id"
         placeholder="TODAS LAS SUCURSALES"
         filter
         showClear
-        optionLabel="name"
-        optionValue="id"
         class="w-full xl:w-auto flex-1 text-sm"
       />
       <p-select
