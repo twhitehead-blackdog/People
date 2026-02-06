@@ -172,6 +172,8 @@ export class SchedulesComponent {
     this.ref = this.dialogService.open(SchedulesFormComponent, {
       header: 'Editar horario',
       modal: true,
+      dismissableMask: true, // Cerrar al hacer clic fuera
+      closeOnEscape: true,   // Cerrar con tecla Escape
       data: {
         schedule,
       },

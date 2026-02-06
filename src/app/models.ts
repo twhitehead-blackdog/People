@@ -37,6 +37,8 @@ export type Position = {
   dashboard_access?: boolean;
   default_view?: string;
   available_for_job_fair?: boolean;
+  // NUEVO: Permisos de frontend por módulo/submódulo (JSON)
+  frontend_permissions?: string | Record<string, unknown>;
 };
 
 export type Employee = {
