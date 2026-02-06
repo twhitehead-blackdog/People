@@ -361,6 +361,9 @@ export function app(): express.Express {
         process.env['ENV_SUPABASE_ANON_KEY'];
 
       if (supabaseUrl && supabaseKey) {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
         const response = await fetch(
           `${supabaseUrl}/rest/v1/settings?key=in.(smtp_host,smtp_port,smtp_user,smtp_noreply_email,smtp_noreply_name)&select=key,value`,
           {
@@ -368,8 +371,10 @@ export function app(): express.Express {
               apikey: supabaseKey,
               Authorization: `Bearer ${supabaseKey}`,
             },
+            signal: controller.signal,
           }
         );
+        clearTimeout(timeout);
 
         if (response.ok) {
           const data: Array<{ key: string; value: string }> =
@@ -425,10 +430,15 @@ export function app(): express.Express {
         user: config.user,
         pass: config.password,
       },
+      connectionTimeout: 15000, // 15s para conectar al servidor SMTP
+      greetingTimeout: 15000, // 15s para recibir el greeting del servidor
+      socketTimeout: 30000, // 30s de inactividad máxima en el socket
       tls: {
         ciphers: 'SSLv3',
         rejectUnauthorized: false,
       },
+      logger: !isProduction, // Logs detallados solo en desarrollo
+      debug: !isProduction, // Debug SMTP solo en desarrollo
     });
   }
 
@@ -856,6 +866,8 @@ export function app(): express.Express {
 
   // Endpoint para probar envío de email
   server.post('/api/email/test', async (req, res) => {
+    console.log('[Email Test] === NUEVA PETICIÓN DE PRUEBA ===');
+    console.log('[Email Test] Body:', JSON.stringify(req.body));
     try {
       const { to } = req.body;
 
@@ -1026,9 +1038,26 @@ export function app(): express.Express {
 
       // Fallback a SMTP genérico (BD + env vars)
       console.log('[Email Test] 🔄 Usando SMTP genérico para prueba de email');
+      console.log('[Email Test] 📋 Env vars presentes:', {
+        ENV_RESEND_API_KEY: !!process.env['ENV_RESEND_API_KEY'],
+        ENV_POSTMARK_API_KEY: !!process.env['ENV_POSTMARK_API_KEY'],
+        ENV_SMTP_HOST: !!process.env['ENV_SMTP_HOST'],
+        ENV_SMTP_USER: !!process.env['ENV_SMTP_USER'],
+        ENV_SMTP_PASSWORD: !!process.env['ENV_SMTP_PASSWORD'],
+        ENV_SUPABASE_URL: !!process.env['ENV_SUPABASE_URL'],
+      });
+
       const smtpConfig = await getSmtpConfig();
+      console.log('[Email Test] ⚙️ Config obtenida:', {
+        host: smtpConfig.host,
+        port: smtpConfig.port,
+        user: smtpConfig.user,
+        hasPassword: !!smtpConfig.password,
+        noreplyEmail: smtpConfig.noreplyEmail,
+      });
 
       if (!smtpConfig.user || !smtpConfig.password) {
+        console.error('[Email Test] ❌ SMTP user o password faltante');
         return res.status(500).json({
           error: 'Ningún proveedor de email configurado',
           message:
@@ -1036,6 +1065,7 @@ export function app(): express.Express {
         });
       }
 
+      console.log('[Email Test] 🔌 Creando transporter SMTP...');
       const transporter = createSmtpTransporter(smtpConfig);
 
       const testHtml = `
@@ -1054,12 +1084,18 @@ export function app(): express.Express {
         </div>
       `;
 
+      console.log(
+        '[Email Test] 📤 Intentando sendMail a:',
+        to,
+        '(timeout: 30s)...'
+      );
       const info = await transporter.sendMail({
         from: `${smtpConfig.noreplyName} <${smtpConfig.noreplyEmail}>`,
         to: to,
         subject: '✅ Prueba de Correo - People (SMTP)',
         html: testHtml,
       });
+      console.log('[Email Test] ✅ sendMail completado:', info.messageId);
 
       safeLogger.safeLog('✅ Email de prueba enviado via SMTP', {
         to,
@@ -1073,14 +1109,30 @@ export function app(): express.Express {
         data: { messageId: info.messageId, to },
       });
     } catch (error: any) {
+      console.error('[Email Test] ❌ ERROR CAPTURADO:', {
+        code: error.code,
+        message: error.message,
+        name: error.name,
+        command: error.command,
+      });
       safeLogger.error('❌ Error en email de prueba', error);
 
       let errorMessage = 'Error desconocido';
       if (error.code === 'EAUTH') {
         errorMessage =
-          'Error de autenticación. Verifica las credenciales del proveedor configurado.';
+          'Error de autenticación SMTP. Verifica usuario y contraseña (ENV_SMTP_PASSWORD). Si usas Outlook con 2FA, necesitas un App Password.';
       } else if (error.code === 'ECONNECTION') {
-        errorMessage = 'No se pudo conectar al servidor de email.';
+        errorMessage =
+          'No se pudo conectar al servidor SMTP. El puerto puede estar bloqueado por Railway o el host es incorrecto.';
+      } else if (
+        error.code === 'ETIMEDOUT' ||
+        error.code === 'ESOCKET'
+      ) {
+        errorMessage =
+          'Timeout al conectar con el servidor SMTP. Railway puede estar bloqueando el puerto 587 saliente. Considera usar un servicio como Resend o Postmark.';
+      } else if (error.code === 'EENVELOPE') {
+        errorMessage =
+          'Error en el sobre del email. El remitente puede no estar autorizado.';
       } else if (error.message) {
         errorMessage = error.message;
       }
