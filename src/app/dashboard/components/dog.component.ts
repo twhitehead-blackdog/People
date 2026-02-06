@@ -14,7 +14,6 @@ import {
 } from '@angular/core';
 import { DashboardStore } from '../../stores/dashboard.store';
 
-// Types
 type DogState =
   | 'idle'
   | 'walking'
@@ -46,7 +45,18 @@ interface DogConfig {
   idleCase: 'idle' | 'Idle';
 }
 
-// Sprite configuration
+// Mapping from state name to filename suffix
+const STATE_TO_FILE: Record<DogState, string> = {
+  idle: 'idle',
+  walking: 'walk',
+  sitting: 'sitting',
+  barking: 'bark',
+  itching: 'itching',
+  stretching: 'stretching',
+  'lying-down': 'lying-down',
+  sleeping: 'sleeping',
+};
+
 const ACTIONS: DogAction[] = [
   { name: 'idle', frames: 10, width: 1000, duration: '1.2s' },
   { name: 'walking', frames: 8, width: 800, duration: '0.6s' },
@@ -99,75 +109,52 @@ const BREEDS: Record<DogBreed, DogConfig> = {
   template: `
     <div
       #dogContainer
-      class="dog-container absolute bottom-0 left-0 w-full h-1 pointer-events-none z-[30]"
+      class="absolute bottom-0 left-0 w-full h-1 pointer-events-none z-[30]"
     >
       <div
         #dogWrapper
-        class="dog-wrapper absolute bottom-[-19px] cursor-pointer pointer-events-auto"
-        [class.wrapper-ready]="isReady()"
+        class="absolute bottom-[-19px] cursor-pointer pointer-events-auto"
+        [class.opacity-0]="!isReady()"
+        [class.opacity-100]="isReady()"
         (click)="onDogClick()"
         [style.transform]="'translateX(' + currentPixelPosition() + 'px)'"
-        [class.is-moving]="isWalking()"
-        [style.--move-duration]="moveDuration() + 's'"
+        [class.transition-transform]="isWalking()"
+        [style.transition-duration]="moveDuration() + 's'"
       >
         @if (showTip()) {
         <div
-          class="tooltip absolute top-[50px] left-1/2 -translate-x-1/2 bg-white text-gray-800 text-xs px-3 py-2 rounded-lg shadow-lg whitespace-nowrap z-[20] border border-gray-100"
+          class="absolute top-[50px] left-1/2 -translate-x-1/2 bg-white text-gray-800 text-xs px-3 py-2 rounded-lg shadow-lg whitespace-nowrap z-[20] border border-gray-100 animate-fade-in"
         >
           {{ currentTip() }}
           <div
-            class="tooltip-arrow absolute top-[-5px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-white rotate-45 border-l border-t border-gray-100"
+            class="absolute top-[-5px] left-1/2 -translate-x-1/2 w-2.5 h-2.5 bg-white rotate-45 border-l border-t border-gray-100"
           ></div>
         </div>
         }
 
-        <!-- Single sprite element - like screen-lock -->
+        <!-- EXACT same approach as screen-lock -->
         <div
           class="dog-sprite w-[50px] h-[50px]"
           [ngStyle]="dogStyle()"
-          [class.flipped]="currentDirection() === 'left'"
+          [class.scale-x-[-1]]="currentDirection() === 'left'"
         ></div>
       </div>
     </div>
   `,
   styles: `
-    .dog-wrapper {
-      will-change: transform;
-      opacity: 0;
-      transition: opacity 0.3s ease-out;
+    @keyframes fade-in {
+      from { opacity: 0; transform: translate(-50%, 10px); }
+      to { opacity: 1; transform: translate(-50%, 0); }
     }
 
-    .dog-wrapper.wrapper-ready {
-      opacity: 1;
-    }
-
-    .dog-wrapper.is-moving {
-      transition: transform var(--move-duration, 0s) linear;
+    .animate-fade-in {
+      animation: fade-in 0.3s ease-out;
     }
 
     .dog-sprite {
       background-repeat: no-repeat;
-      background-size: auto 100%;
       image-rendering: pixelated;
       transform: translateZ(0);
-      will-change: background-position;
-    }
-
-    .dog-sprite.flipped {
-      transform: scaleX(-1) translateZ(0);
-    }
-
-    .tooltip {
-      animation: tooltip-in 0.3s ease-out;
-    }
-
-    @keyframes tooltip-in {
-      0% { opacity: 0; transform: translate(-50%, 10px); }
-      100% { opacity: 1; transform: translate(-50%, 0); }
-    }
-
-    .tooltip-arrow {
-      z-index: -1;
     }
   `,
 })
@@ -194,6 +181,7 @@ export class DogAnimationComponent implements OnInit, OnDestroy {
   // Computed
   public isWalking = computed(() => this.currentState() === 'walking');
 
+  // EXACT same approach as screen-lock - ngStyle with dynamic animation
   public dogStyle = computed(() => {
     const breed = BREEDS[this.currentBreed()];
     const action = ACTIONS.find((a) => a.name === this.currentState());
@@ -202,16 +190,21 @@ export class DogAnimationComponent implements OnInit, OnDestroy {
       return {};
     }
 
-    // Handle idle casing
-    let actionName = action.name;
-    if (actionName === 'idle' && breed.idleCase === 'Idle') {
-      actionName = 'Idle' as DogState;
+    // Get filename from state mapping
+    let fileName = STATE_TO_FILE[action.name];
+    
+    // Handle idle casing for specific breeds
+    if (action.name === 'idle' && breed.idleCase === 'Idle') {
+      fileName = 'Idle';
     }
 
-    const url = `${this.ASSET_BASE}${breed.folder}/${breed.prefix}${actionName}.png`;
+    const url = `assets_dog/Pet Dogs Pack/${breed.folder}/${breed.prefix}${fileName}.png`;
 
-    // Scale factor: 50px display size vs 100px original
-    const scale = 0.5;
+    // EXACT same calculation as screen-lock
+    // Screen-lock uses 150px size and multiplies width by 1.5
+    // We use 50px size, so multiply by 0.5 (which is 50/100)
+    const displaySize = 50;
+    const scale = displaySize / 100; // 0.5
     const endPos = -(action.width * scale);
 
     return {
@@ -219,10 +212,10 @@ export class DogAnimationComponent implements OnInit, OnDestroy {
       'background-size': 'auto 50px',
       width: '50px',
       height: '50px',
-      '--sprite-end': `${endPos}px`,
+      '--sprite-width': `${endPos}px`,
       animation:
         action.frames > 1
-          ? `dog-sprite-play ${action.duration} steps(${action.frames}) infinite`
+          ? `play-sprite ${action.duration} steps(${action.frames}) infinite`
           : 'none',
     };
   });
@@ -276,22 +269,22 @@ export class DogAnimationComponent implements OnInit, OnDestroy {
     this.resizeObserver?.disconnect();
   }
 
-  // Inject global keyframes once (like screen-lock)
+  // EXACT same as screen-lock - global keyframes
   private injectKeyframes() {
-    if (typeof document === 'undefined') return;
-
-    const styleId = 'dog-animation-keyframes';
-    if (document.getElementById(styleId)) return;
-
-    const style = document.createElement('style');
-    style.id = styleId;
-    style.innerHTML = `
-      @keyframes dog-sprite-play {
-        from { background-position: 0 0; }
-        to { background-position: var(--sprite-end) 0; }
+    if (typeof document !== 'undefined') {
+      const styleId = 'dog-sprite-keyframes';
+      if (!document.getElementById(styleId)) {
+        const style = document.createElement('style');
+        style.id = styleId;
+        style.innerHTML = `
+          @keyframes play-sprite {
+            from { background-position-x: 0px; }
+            to { background-position-x: var(--sprite-width); }
+          }
+        `;
+        document.head.appendChild(style);
       }
-    `;
-    document.head.appendChild(style);
+    }
   }
 
   private async initializeBreedRotation(): Promise<void> {
@@ -325,7 +318,6 @@ export class DogAnimationComponent implements OnInit, OnDestroy {
         this.isReady.set(true);
       }
 
-      // Schedule next rotation
       const timeRemaining = Math.max(0, ONE_HOUR - (now - data.timestamp));
       const id = setTimeout(() => {
         this.ngZone.run(() => this.initializeBreedRotation());
@@ -344,13 +336,12 @@ export class DogAnimationComponent implements OnInit, OnDestroy {
     this.currentBreed.set(breed);
     const config = BREEDS[breed];
 
-    // Preload all action images for this breed
     const urls = ACTIONS.map((action) => {
-      let actionName = action.name;
-      if (actionName === 'idle' && config.idleCase === 'Idle') {
-        actionName = 'Idle' as DogState;
+      let fileName = STATE_TO_FILE[action.name];
+      if (action.name === 'idle' && config.idleCase === 'Idle') {
+        fileName = 'Idle';
       }
-      return `${this.ASSET_BASE}${config.folder}/${config.prefix}${actionName}.png`;
+      return `assets_dog/Pet Dogs Pack/${config.folder}/${config.prefix}${fileName}.png`;
     });
 
     await Promise.all(
