@@ -337,6 +337,101 @@ export function app(): express.Express {
     }
   }
 
+  // Helper para obtener configuración SMTP: BD primero, env vars como fallback
+  interface SmtpConfig {
+    host: string;
+    port: number;
+    user: string;
+    password: string;
+    noreplyEmail: string;
+    noreplyName: string;
+  }
+
+  async function getSmtpConfig(): Promise<SmtpConfig> {
+    let dbHost: string | null = null;
+    let dbPort: string | null = null;
+    let dbUser: string | null = null;
+    let dbNoreplyEmail: string | null = null;
+    let dbNoreplyName: string | null = null;
+
+    try {
+      const supabaseUrl = process.env['ENV_SUPABASE_URL'];
+      const supabaseKey =
+        process.env['ENV_SUPABASE_SERVICE_KEY'] ||
+        process.env['ENV_SUPABASE_ANON_KEY'];
+
+      if (supabaseUrl && supabaseKey) {
+        const response = await fetch(
+          `${supabaseUrl}/rest/v1/settings?key=in.(smtp_host,smtp_port,smtp_user,smtp_noreply_email,smtp_noreply_name)&select=key,value`,
+          {
+            headers: {
+              apikey: supabaseKey,
+              Authorization: `Bearer ${supabaseKey}`,
+            },
+          }
+        );
+
+        if (response.ok) {
+          const data: Array<{ key: string; value: string }> =
+            await response.json();
+          for (const row of data) {
+            if (row.key === 'smtp_host' && row.value) dbHost = row.value;
+            if (row.key === 'smtp_port' && row.value) dbPort = row.value;
+            if (row.key === 'smtp_user' && row.value) dbUser = row.value;
+            if (row.key === 'smtp_noreply_email' && row.value)
+              dbNoreplyEmail = row.value;
+            if (row.key === 'smtp_noreply_name' && row.value)
+              dbNoreplyName = row.value;
+          }
+          console.log('[SMTP Config] Loaded from DB:', {
+            host: dbHost,
+            port: dbPort,
+            user: !!dbUser,
+          });
+        }
+      }
+    } catch (error) {
+      console.warn(
+        '[SMTP Config] Error reading from DB, using env vars:',
+        error
+      );
+    }
+
+    // DB values take priority; env vars are fallback
+    const host =
+      dbHost || process.env['ENV_SMTP_HOST'] || 'smtp-mail.outlook.com';
+    const port = parseInt(
+      dbPort || process.env['ENV_SMTP_PORT'] || '587'
+    );
+    const user = dbUser || process.env['ENV_SMTP_USER'] || '';
+    const password = process.env['ENV_SMTP_PASSWORD'] || ''; // ALWAYS from env
+    const noreplyEmail =
+      dbNoreplyEmail || process.env['ENV_SMTP_NOREPLY_EMAIL'] || user;
+    const noreplyName =
+      dbNoreplyName || process.env['ENV_SMTP_NOREPLY_NAME'] || 'People - RRHH';
+
+    return { host, port, user, password, noreplyEmail, noreplyName };
+  }
+
+  function createSmtpTransporter(config: SmtpConfig) {
+    const isSecure = config.port === 465;
+
+    return nodemailer.createTransport({
+      host: config.host,
+      port: config.port,
+      secure: isSecure, // true para 465, false para otros puertos
+      requireTLS: !isSecure, // Forzar STARTTLS en puerto 587 (requerido por Outlook)
+      auth: {
+        user: config.user,
+        pass: config.password,
+      },
+      tls: {
+        ciphers: 'SSLv3',
+        rejectUnauthorized: false,
+      },
+    });
+  }
+
   // Endpoint para enviar emails
   server.post('/api/email/send', async (req, res) => {
     console.log('[DEBUG Server] 📧 === NUEVA PETICIÓN DE EMAIL ===');
@@ -598,65 +693,44 @@ export function app(): express.Express {
         }
       }
 
-      // Fallback a SMTP genérico (Gmail, etc.) si no hay Resend ni Postmark configurado
+      // Fallback a SMTP genérico si no hay Resend ni Postmark configurado
       console.log(
         '[DEBUG Server] 🔄 Resend no configurado, intentando SMTP...'
       );
 
-      const smtpHost = process.env['ENV_SMTP_HOST'] || 'smtp.gmail.com';
-      const smtpPort = parseInt(process.env['ENV_SMTP_PORT'] || '587');
-      const smtpUser = process.env['ENV_SMTP_USER'];
-      const smtpPassword = process.env['ENV_SMTP_PASSWORD'];
+      const smtpConfig = await getSmtpConfig();
 
       console.log('[DEBUG Server] ⚙️ Configuración SMTP:');
-      console.log('[DEBUG Server] ⚙️ Host:', smtpHost);
-      console.log('[DEBUG Server] ⚙️ Port:', smtpPort);
-      console.log('[DEBUG Server] ⚙️ User presente:', !!smtpUser);
-      console.log('[DEBUG Server] ⚙️ Password presente:', !!smtpPassword);
+      console.log('[DEBUG Server] ⚙️ Host:', smtpConfig.host);
+      console.log('[DEBUG Server] ⚙️ Port:', smtpConfig.port);
+      console.log('[DEBUG Server] ⚙️ User presente:', !!smtpConfig.user);
+      console.log(
+        '[DEBUG Server] ⚙️ Password presente:',
+        !!smtpConfig.password
+      );
 
-      // Correo noreply para feria de empleo (opcional)
-      const noreplyEmail = process.env['ENV_SMTP_NOREPLY_EMAIL'] || smtpUser;
-      const noreplyName = process.env['ENV_SMTP_NOREPLY_NAME'] || 'Black Dog';
-
-      if (!smtpUser || !smtpPassword) {
+      if (!smtpConfig.user || !smtpConfig.password) {
         console.error('[DEBUG Server] ❌ ERROR: Configuración SMTP faltante');
-        console.error(
-          '[DEBUG Server] ❌ smtpUser:',
-          !!smtpUser,
-          'smtpPassword:',
-          !!smtpPassword
-        );
         safeLogger.error('❌ Configuración SMTP faltante');
         return res.status(500).json({
           error: 'Email service not configured',
           message:
-            'ENV_RESEND_API_KEY, ENV_POSTMARK_API_KEY o (ENV_SMTP_USER y ENV_SMTP_PASSWORD) no están configuradas. Por favor configura alguna de estas opciones en tu archivo .env',
+            'ENV_RESEND_API_KEY, ENV_POSTMARK_API_KEY o (SMTP user y ENV_SMTP_PASSWORD) no están configuradas. Por favor configura alguna de estas opciones.',
         });
       }
 
       console.log('[DEBUG Server] ✅ Usando SMTP para envío de email');
       console.log(
         '[DEBUG Server] 📧 From:',
-        `${noreplyName} <${noreplyEmail}>`
+        `${smtpConfig.noreplyName} <${smtpConfig.noreplyEmail}>`
       );
 
       // Determinar el correo remitente
-      // Si se especifica fromEmail en el request, usarlo; sino usar noreplyEmail o smtpUser
-      const senderEmail = fromEmail || noreplyEmail || smtpUser;
-      const senderName = fromName || noreplyName;
+      const senderEmail =
+        fromEmail || smtpConfig.noreplyEmail || smtpConfig.user;
+      const senderName = fromName || smtpConfig.noreplyName;
 
-      // Crear transporter de nodemailer con SMTP genérico
-      // Nota: El auth siempre usa smtpUser/smtpPassword (credenciales de autenticación)
-      // pero el remitente (from) puede ser diferente
-      const transporter = nodemailer.createTransport({
-        host: smtpHost,
-        port: smtpPort,
-        secure: smtpPort === 465, // true para 465, false para otros puertos
-        auth: {
-          user: smtpUser,
-          pass: smtpPassword,
-        },
-      });
+      const transporter = createSmtpTransporter(smtpConfig);
 
       // Enviar email
       const info = await transporter.sendMail({
@@ -711,65 +785,64 @@ export function app(): express.Express {
   });
 
   // Endpoint para obtener configuración de email (sin datos sensibles)
-  server.get('/api/email/config', (req, res) => {
+  server.get('/api/email/config', async (req, res) => {
     try {
       const resendApiKey = process.env['ENV_RESEND_API_KEY'];
       const postmarkApiKey = process.env['ENV_POSTMARK_API_KEY'];
-      const smtpHost = process.env['ENV_SMTP_HOST'] || 'smtp.gmail.com';
-      const smtpPort = process.env['ENV_SMTP_PORT'] || '587';
-      const smtpUser = process.env['ENV_SMTP_USER'];
 
       // Determinar el proveedor prioritario
       let provider = 'smtp';
-      let host = smtpHost;
-      let port = parseInt(smtpPort);
-      let user = smtpUser || 'No configurado';
+      let host: string;
+      let port: number;
+      let user: string;
+      let senderEmail: string;
+      let senderName: string;
 
       if (resendApiKey) {
         provider = 'resend';
         host = 'smtp.resend.com';
         port = 465;
         user = '(Resend API)';
+        senderEmail =
+          process.env['ENV_RESEND_FROM_EMAIL'] || 'No configurado';
+        senderName = process.env['ENV_RESEND_FROM_NAME'] || 'People';
       } else if (postmarkApiKey) {
         provider = 'postmark';
         host = 'smtp.postmarkapp.com';
         port = 587;
         user = '(Postmark Server API Token)';
+        senderEmail =
+          process.env['ENV_POSTMARK_FROM_EMAIL'] || 'No configurado';
+        senderName = process.env['ENV_POSTMARK_FROM_NAME'] || 'People';
+      } else {
+        // SMTP genérico: leer de BD con fallback a env vars
+        const smtpConfig = await getSmtpConfig();
+        host = smtpConfig.host;
+        port = smtpConfig.port;
+        user = smtpConfig.user || 'No configurado';
+        senderEmail = smtpConfig.noreplyEmail || 'No configurado';
+        senderName = smtpConfig.noreplyName;
       }
-
-      // Email remitente según el proveedor
-      const resendFromEmail = process.env['ENV_RESEND_FROM_EMAIL'];
-      const postmarkFromEmail = process.env['ENV_POSTMARK_FROM_EMAIL'];
-      const smtpFromEmail = process.env['ENV_SMTP_NOREPLY_EMAIL'] || smtpUser;
-
-      const senderEmail = resendApiKey
-        ? resendFromEmail
-        : postmarkApiKey
-        ? postmarkFromEmail
-        : smtpFromEmail || 'No configurado';
-
-      const resendFromName = process.env['ENV_RESEND_FROM_NAME'];
-      const postmarkFromName = process.env['ENV_POSTMARK_FROM_NAME'];
-      const smtpFromName = process.env['ENV_SMTP_NOREPLY_NAME'] || 'People';
-
-      const senderName = resendApiKey
-        ? resendFromName
-        : postmarkApiKey
-        ? postmarkFromName
-        : smtpFromName;
 
       return res.json({
         provider,
         host,
         port,
         user,
-        senderEmail: senderEmail || 'No configurado',
+        senderEmail,
         senderName,
-        configured: !!(resendApiKey || postmarkApiKey || smtpUser),
+        configured: !!(
+          resendApiKey ||
+          postmarkApiKey ||
+          (user && user !== 'No configurado')
+        ),
         priorities: {
           resend: !!resendApiKey,
           postmark: !!postmarkApiKey,
-          smtp: !!(smtpUser && process.env['ENV_SMTP_PASSWORD']),
+          smtp: !!(
+            (user && user !== 'No configurado') &&
+            process.env['ENV_SMTP_PASSWORD']
+          ),
         },
       });
     } catch (error: any) {
@@ -951,42 +1024,29 @@ export function app(): express.Express {
         }
       }
 
-      // Fallback a SMTP genérico
+      // Fallback a SMTP genérico (BD + env vars)
       console.log('[Email Test] 🔄 Usando SMTP genérico para prueba de email');
-      const smtpHost = process.env['ENV_SMTP_HOST'] || 'smtp.gmail.com';
-      const smtpPort = parseInt(process.env['ENV_SMTP_PORT'] || '587');
-      const smtpUser = process.env['ENV_SMTP_USER'];
-      const smtpPassword = process.env['ENV_SMTP_PASSWORD'];
-      const noreplyEmail = process.env['ENV_SMTP_NOREPLY_EMAIL'] || smtpUser;
-      const noreplyName = process.env['ENV_SMTP_NOREPLY_NAME'] || 'People';
+      const smtpConfig = await getSmtpConfig();
 
-      if (!smtpUser || !smtpPassword) {
+      if (!smtpConfig.user || !smtpConfig.password) {
         return res.status(500).json({
           error: 'Ningún proveedor de email configurado',
           message:
-            'ENV_RESEND_API_KEY, ENV_POSTMARK_API_KEY o (ENV_SMTP_USER y ENV_SMTP_PASSWORD) no están configuradas',
+            'ENV_RESEND_API_KEY, ENV_POSTMARK_API_KEY o (SMTP user y ENV_SMTP_PASSWORD) no están configuradas',
         });
       }
 
-      const transporter = nodemailer.createTransport({
-        host: smtpHost,
-        port: smtpPort,
-        secure: smtpPort === 465,
-        auth: {
-          user: smtpUser,
-          pass: smtpPassword,
-        },
-      });
+      const transporter = createSmtpTransporter(smtpConfig);
 
       const testHtml = `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #333;">✅ Prueba de Correo Exitosa - SMTP</h2>
-          <p>Este es un correo de prueba enviado desde el sistema <strong>People</strong> usando <strong>SMTP genérico</strong>.</p>
+          <p>Este es un correo de prueba enviado desde el sistema <strong>People</strong> usando <strong>SMTP</strong>.</p>
           <p>Si recibiste este mensaje, la configuración SMTP está funcionando correctamente.</p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
           <p style="color: #888; font-size: 12px;">
-            Proveedor: SMTP (${smtpHost}:${smtpPort})<br>
-            Enviado desde: ${noreplyEmail}<br>
+            Proveedor: SMTP (${smtpConfig.host}:${smtpConfig.port})<br>
+            Enviado desde: ${smtpConfig.noreplyEmail}<br>
             Fecha: ${new Date().toLocaleString('es-PA', {
               timeZone: 'America/Panama',
             })}
@@ -995,7 +1055,7 @@ export function app(): express.Express {
       `;
 
       const info = await transporter.sendMail({
-        from: `${noreplyName} <${noreplyEmail}>`,
+        from: `${smtpConfig.noreplyName} <${smtpConfig.noreplyEmail}>`,
         to: to,
         subject: '✅ Prueba de Correo - People (SMTP)',
         html: testHtml,

@@ -20,7 +20,8 @@
       "mcp__plugin_supabase_supabase__list_projects",
       "Bash(npx nx build --skip-nx-cache)",
       "mcp__plugin_supabase_supabase__list_migrations",
-      "Skill(hookify:configure)"
+      "Skill(hookify:configure)",
+      "Bash(npx nx build:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

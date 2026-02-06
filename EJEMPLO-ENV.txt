@@ -27,12 +27,19 @@ ENV_APP_URL=http://localhost:4200
 ENV_API_URL=
 
 # SMTP - Email service (configuración genérica para cualquier servidor SMTP)
+# Para Outlook: smtp-mail.outlook.com, puerto 587 (STARTTLS)
+# Para Office365: smtp.office365.com, puerto 587 (STARTTLS)
 # Para Gmail: smtp.gmail.com, puerto 587 (TLS) o 465 (SSL)
-# Para otros servicios, consulta la documentación de tu proveedor
-ENV_SMTP_HOST=smtp.gmail.com
+# NOTA: Host, puerto y usuario también se pueden configurar desde la UI (Configuración > Correo).
+# Los valores de BD tienen prioridad sobre estas variables de entorno.
+# La contraseña SIEMPRE se lee de ENV_SMTP_PASSWORD (nunca se almacena en BD).
+ENV_SMTP_HOST=smtp-mail.outlook.com
 ENV_SMTP_PORT=587
-ENV_SMTP_USER=tu-email@gmail.com
-ENV_SMTP_PASSWORD=tu-contraseña-o-app-password
+ENV_SMTP_USER=Danibotrrhh@outlook.com
+ENV_SMTP_PASSWORD=tu-contrasena-de-outlook
+# Remitente de correos (opcional, si no se configura usa ENV_SMTP_USER)
+# ENV_SMTP_NOREPLY_EMAIL=Danibotrrhh@outlook.com
+# ENV_SMTP_NOREPLY_NAME=People - RRHH
 
 # Alternativa: Resend (recomendado para mayor confiabilidad)
 # ENV_RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx

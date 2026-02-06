@@ -18,7 +18,6 @@ import { DashboardStore } from '../../stores/dashboard.store';
 type DogState =
   | 'idle'
   | 'walking'
-  // | 'running' -- disabled for stability
   | 'sitting'
   | 'barking'
   | 'itching'
@@ -38,7 +37,6 @@ type DogBreed =
 const STATE_TO_FILE: Record<DogState, string> = {
   idle: 'idle',
   walking: 'walk',
-  // running: 'walk', -- disabled for stability
   sitting: 'sitting',
   barking: 'bark',
   itching: 'itching',
@@ -51,7 +49,6 @@ const STATE_TO_FILE: Record<DogState, string> = {
 const ALL_STATES: DogState[] = [
   'idle',
   'walking',
-  // 'running', -- disabled for stability
   'sitting',
   'barking',
   'itching',
@@ -70,11 +67,13 @@ const ALL_STATES: DogState[] = [
     <div
       #dogContainer
       class="dog-container absolute bottom-0 left-0 w-full h-1 pointer-events-none z-[30]"
+      [class.is-ready]="isReady()"
     >
-      <!-- Movable Wrapper -->
+      <!-- Movable Wrapper - Only visible when ready -->
       <div
         #dogWrapper
         class="absolute bottom-[-19px] cursor-pointer pointer-events-auto dog-wrapper"
+        [class.wrapper-visible]="isReady()"
         (click)="onDogClick()"
         [style.transform]="'translateX(' + currentPixelPosition() + 'px)'"
         [class.is-moving]="isWalkingOrRunning()"
@@ -95,7 +94,8 @@ const ALL_STATES: DogState[] = [
         <!-- 
           Sprites Container 
           - All sprites are present in DOM.
-          - Visibility is toggled via opacity transition.
+          - Only the active sprite is visible (display: block vs none)
+          - No opacity transitions to prevent flickering
         -->
         <div
           class="sprites-container w-[42px] h-[42px] sm:w-[48px] sm:h-[48px] relative"
@@ -105,7 +105,7 @@ const ALL_STATES: DogState[] = [
           <div
             class="dog-sprite absolute inset-0"
             [style.background-image]="getSpriteUrl(state)"
-            [class.sprite-visible]="currentState() === state"
+            [class.sprite-active]="currentState() === state && isReady()"
             [class.animate-walk]="state === 'walking'"
             [class.animate-idle]="state === 'idle'"
             [class.animate-sit]="state === 'sitting'"
@@ -131,13 +131,21 @@ const ALL_STATES: DogState[] = [
     }
 
     /* 
-      1. Wrapper movement 
-         Using transform: translateX instead of left for better performance 
+      Wrapper - Hidden by default, visible when ready
     */
     .dog-wrapper {
       will-change: transform;
       contain: layout style;
-      transition: none; /* Instant snap by default */
+      transition: none;
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    .dog-wrapper.wrapper-visible {
+      opacity: 1;
+      visibility: visible;
+      /* Smooth fade in on first load */
+      transition: opacity 300ms ease-out, visibility 0s;
     }
 
     .dog-wrapper.is-moving {
@@ -145,8 +153,8 @@ const ALL_STATES: DogState[] = [
     }
 
     /* 
-      2. Sprites Container 
-         GPU layer promotion for the whole group 
+      Sprites Container 
+      GPU layer promotion for the whole group 
     */
     .sprites-container {
       transform: translateZ(0);
@@ -158,31 +166,26 @@ const ALL_STATES: DogState[] = [
     }
 
     /* 
-      3. Base Sprite 
-         - Opacity logic to eliminate flicker.
-         - 'visibility' is transitioned with a delay so it stays visible while fading out.
+      Base Sprite 
+      - Uses display:none/block for instant switching (no opacity flicker)
+      - GPU acceleration for animation
     */
     .dog-sprite {
       background-repeat: no-repeat;
       background-size: cover;
       image-rendering: pixelated;
       
+      display: none; /* Hidden by default */
       opacity: 0;
-      visibility: hidden;
       
       transform: translateZ(0);
-      will-change: opacity;
-
-      /* Fade out: opacity 1->0 in 150ms. Visibility becomes hidden AFTER 150ms. */
-      transition: opacity 150ms linear, visibility 0s linear 150ms;
+      will-change: transform;
     }
 
-    /* Visible State */
-    .dog-sprite.sprite-visible {
+    /* Active State - Display block with instant opacity */
+    .dog-sprite.sprite-active {
+      display: block;
       opacity: 1;
-      visibility: visible;
-      /* Fade in: opacity 0->1 in 150ms. Visibility becomes visible IMMEDIATELY (0s delay). */
-      transition: opacity 150ms linear, visibility 0s linear 0s;
     }
 
     /* --- Keyframes --- */
@@ -211,19 +214,25 @@ const ALL_STATES: DogState[] = [
     .animate-stretch,
     .animate-idle {
       animation: play-strip-4 0.8s steps(4) infinite;
+      animation-play-state: paused; /* Paused until active */
+    }
+
+    /* Only animate when sprite is active */
+    .sprite-active.animate-walk,
+    .sprite-active.animate-itch,
+    .sprite-active.animate-stretch,
+    .sprite-active.animate-idle {
       animation-play-state: running;
     }
 
     /* Specific durations */
-    .animate-walk { animation-duration: 0.6s; }
-    .animate-idle { animation-duration: 1.2s; }
-    .animate-itch { animation-duration: 0.8s; }
+    .sprite-active.animate-walk { animation-duration: 0.6s; }
+    .sprite-active.animate-idle { animation-duration: 1.2s; }
+    .sprite-active.animate-itch { animation-duration: 0.8s; }
 
     /* Static States (Single Frame) */
-    /* Sit, Lie, Sleep (static for stability) */
     .animate-sit,
     .animate-lie,
-    .animate-header, 
     .animate-sleep {
       background-position: 0 0;
       animation: none;
@@ -232,15 +241,19 @@ const ALL_STATES: DogState[] = [
     /* Bark uses 4-frame animation */
     .animate-bark {
       animation: play-strip-4 0.6s steps(4) infinite;
+      animation-play-state: paused;
+    }
+
+    .sprite-active.animate-bark {
       animation-play-state: running;
     }
 
     @media (max-width: 640px) {
-      .animate-walk,
-      .animate-itch,
-      .animate-stretch,
-      .animate-idle,
-      .animate-bark {
+      .sprite-active.animate-walk,
+      .sprite-active.animate-itch,
+      .sprite-active.animate-stretch,
+      .sprite-active.animate-idle,
+      .sprite-active.animate-bark {
         animation-name: play-strip-4-mobile;
       }
     }
@@ -265,14 +278,15 @@ export class DogAnimationComponent implements OnInit, OnDestroy {
     'Dog-5-Saint-Bernard',
     'Dog-6-Siberian-Husky',
   ];
-  private readonly ASSET_BASE = 'assets_dog/Pet%20Dogs%20Pack/'; // Encoded spaces
+  private readonly ASSET_BASE = 'assets_dog/Pet%20Dogs%20Pack/';
   private readonly ROTATION_KEY = 'pt_dog_rotation_v2';
 
   // Signals
   public currentBreed = signal<DogBreed>('Dog-1-Golden-Retriever');
   public currentState = signal<DogState>('idle');
   public currentDirection = signal<'left' | 'right'>('right');
-  public currentPixelPosition = signal<number>(0); // Applies to translateX
+  public currentPixelPosition = signal<number>(0);
+  public isReady = signal<boolean>(false); // NEW: Wait for images to load
 
   public showTip = signal<boolean>(false);
   public currentTip = signal<string>('');
@@ -291,6 +305,7 @@ export class DogAnimationComponent implements OnInit, OnDestroy {
 
   // Internal State
   private spriteUrlCache = new Map<DogState, string>();
+  private loadedImages = new Set<string>(); // Track loaded images
   private timeoutIds: ReturnType<typeof setTimeout>[] = [];
   private resizeObserver: ResizeObserver | null = null;
   private isDestroyed = false;
@@ -310,20 +325,22 @@ export class DogAnimationComponent implements OnInit, OnDestroy {
   ];
 
   constructor() {
-    // Ensure rotation check happens on init
     afterNextRender(() => {
-      // Safe to use browser APIs
       this.initResizeObserver();
     });
   }
 
-  ngOnInit() {
-    this.updateContainerMetrics(); // Initial guess
-    this.initializeBreedRotation(); // Start logic
-
-    // Start animation loop
-    this.currentPixelPosition.set(100); // Safe start
-    this.scheduleNextAction();
+  async ngOnInit() {
+    this.updateContainerMetrics();
+    
+    // Initialize breed and wait for images to load before showing
+    await this.initializeBreedRotation();
+    
+    // Start animation loop only after ready
+    if (!this.isDestroyed) {
+      this.currentPixelPosition.set(100);
+      this.scheduleNextAction();
+    }
   }
 
   ngOnDestroy() {
@@ -342,10 +359,8 @@ export class DogAnimationComponent implements OnInit, OnDestroy {
     const breedName = breed.split('-').slice(2).join('-');
     this.spriteUrlCache.clear();
 
-    // Use encoded base path
     ALL_STATES.forEach((state) => {
       const action = STATE_TO_FILE[state];
-      // Double check encoding for the filename part just in case
       const url = `url('${this.ASSET_BASE}${encodeURIComponent(
         breed
       )}/${encodeURIComponent(breedName)}-${action}.png')`;
@@ -353,99 +368,114 @@ export class DogAnimationComponent implements OnInit, OnDestroy {
     });
   }
 
-  private async preloadBreedImages(breed: DogBreed) {
+  /**
+   * Preload all images for a breed and wait for them to be ready
+   * Returns a promise that resolves when all images are loaded
+   */
+  private async preloadBreedImages(breed: DogBreed): Promise<void> {
     if (typeof window === 'undefined') return;
 
     const breedName = breed.split('-').slice(2).join('-');
-    const promises: Promise<void>[] = [];
+    const imageUrls: string[] = [];
 
+    // Build list of URLs to preload
     ALL_STATES.forEach((state) => {
       const action = STATE_TO_FILE[state];
-      // Construct exact path used in CSS
-      const src = `${this.ASSET_BASE}${breed}/${breedName}-${action}.png`; // Browser handles spaces in src usually, but better safe
-
-      const img = new Image();
-      img.src = src;
-
-      if ((img as any).decode) {
-        promises.push(img.decode().catch(() => {})); // decode() ensures frame is ready
-      } else {
-        // Fallback for older browsers
-        promises.push(
-          new Promise((resolve) => {
-            img.onload = () => resolve();
-            img.onerror = () => resolve();
-          })
-        );
-      }
+      const src = `${this.ASSET_BASE}${breed}/${breedName}-${action}.png`;
+      imageUrls.push(src);
     });
 
-    // We don't block UI but we start fetching everything
-    await Promise.all(promises);
+    // Load all images
+    const loadPromises = imageUrls.map((src) => {
+      // Skip if already loaded
+      if (this.loadedImages.has(src)) {
+        return Promise.resolve();
+      }
+
+      return new Promise<void>((resolve) => {
+        const img = new Image();
+        
+        img.onload = () => {
+          this.loadedImages.add(src);
+          resolve();
+        };
+        
+        img.onerror = () => {
+          // Even on error, resolve to not block other images
+          console.warn(`[DogAnimation] Failed to load: ${src}`);
+          resolve();
+        };
+
+        img.src = src;
+      });
+    });
+
+    // Wait for all images with a timeout
+    await Promise.all(loadPromises);
   }
 
   // --- Rotation Logic ---
 
-  private initializeBreedRotation() {
+  private async initializeBreedRotation(): Promise<void> {
     if (typeof window === 'undefined') return;
 
     const ONE_HOUR = 60 * 60 * 1000;
 
-    const checkRotation = () => {
-      if (this.isDestroyed) return;
+    try {
+      const stored = localStorage.getItem(this.ROTATION_KEY);
+      let data = stored ? JSON.parse(stored) : null;
+      const now = Date.now();
 
-      try {
-        const stored = localStorage.getItem(this.ROTATION_KEY);
-        let data = stored ? JSON.parse(stored) : null;
-        const now = Date.now();
+      if (!data || now - data.timestamp > ONE_HOUR) {
+        // Time to rotate
+        let newIndex = Math.floor(Math.random() * this.BREEDS.length);
 
-        if (!data || now - data.timestamp > ONE_HOUR) {
-          // Time to rotate
-          let newIndex = Math.floor(Math.random() * this.BREEDS.length);
-
-          // Avoid same breed consecutively
-          if (data && this.BREEDS.length > 1) {
-            while (newIndex === data.index) {
-              newIndex = Math.floor(Math.random() * this.BREEDS.length);
-            }
+        // Avoid same breed consecutively
+        if (data && this.BREEDS.length > 1) {
+          while (newIndex === data.index) {
+            newIndex = Math.floor(Math.random() * this.BREEDS.length);
           }
-
-          data = { index: newIndex, timestamp: now };
-          localStorage.setItem(this.ROTATION_KEY, JSON.stringify(data));
         }
 
-        // Apply Breed
-        const selected = this.BREEDS[data.index] || this.BREEDS[0];
-
-        if (this.currentBreed() !== selected) {
-          this.currentBreed.set(selected);
-          this.buildSpriteUrlCache(selected);
-          this.preloadBreedImages(selected);
-        } else if (this.spriteUrlCache.size === 0) {
-          // First load fallback
-          this.buildSpriteUrlCache(selected);
-          this.preloadBreedImages(selected);
-        }
-
-        // Schedule next check
-        const timePassed = now - data.timestamp;
-        const timeRemaining = Math.max(0, ONE_HOUR - timePassed);
-
-        const nextCheck = setTimeout(() => {
-          this.ngZone.run(() => checkRotation());
-        }, timeRemaining + 1000); // +1s buffer
-        this.timeoutIds.push(nextCheck);
-      } catch (e) {
-        console.warn('Dog rotation error', e);
-        // Fallback
-        const fallback = 'Dog-1-Golden-Retriever';
-        this.currentBreed.set(fallback);
-        this.buildSpriteUrlCache(fallback);
-        this.preloadBreedImages(fallback);
+        data = { index: newIndex, timestamp: now };
+        localStorage.setItem(this.ROTATION_KEY, JSON.stringify(data));
       }
-    };
 
-    checkRotation();
+      // Apply Breed
+      const selected = this.BREEDS[data.index] || this.BREEDS[0];
+
+      // Set breed and preload images
+      this.currentBreed.set(selected);
+      this.buildSpriteUrlCache(selected);
+      
+      // Wait for images to load before showing
+      await this.preloadBreedImages(selected);
+      
+      // Only mark as ready after images are loaded
+      if (!this.isDestroyed) {
+        this.isReady.set(true);
+      }
+
+      // Schedule next check
+      const timePassed = now - data.timestamp;
+      const timeRemaining = Math.max(0, ONE_HOUR - timePassed);
+
+      const nextCheck = setTimeout(() => {
+        this.ngZone.run(() => this.initializeBreedRotation());
+      }, timeRemaining + 1000);
+      this.timeoutIds.push(nextCheck);
+    } catch (e) {
+      console.warn('Dog rotation error', e);
+      // Fallback
+      const fallback = 'Dog-1-Golden-Retriever';
+      this.currentBreed.set(fallback);
+      this.buildSpriteUrlCache(fallback);
+      await this.preloadBreedImages(fallback);
+      
+      if (!this.isDestroyed) {
+        this.isReady.set(true);
+      }
+    }
   }
 
   // --- Responsiveness ---
@@ -488,16 +518,14 @@ export class DogAnimationComponent implements OnInit, OnDestroy {
   private freezeMovement() {
     if (!this.dogWrapper?.nativeElement) return;
 
-    // Get precise current visual position
     const rect = this.dogWrapper.nativeElement.getBoundingClientRect();
     const containerRect =
       this.dogContainer.nativeElement.getBoundingClientRect();
 
-    // Calculate local position relative to container
     const relativeLeft = rect.left - containerRect.left;
 
     this.currentPixelPosition.set(relativeLeft);
-    this.moveDuration.set(0); // Instant stop
+    this.moveDuration.set(0);
   }
 
   // --- Interaction ---
@@ -511,7 +539,6 @@ export class DogAnimationComponent implements OnInit, OnDestroy {
     this.timeoutIds = [];
     this.showTip.set(false);
 
-    // Stop and Sit
     if (this.isWalkingOrRunning()) {
       this.freezeMovement();
     }
@@ -520,7 +547,6 @@ export class DogAnimationComponent implements OnInit, OnDestroy {
     const isSitting = current === 'sitting';
 
     if (isSitting) {
-      // Already sitting -> Bark briefly then resume walking
       this.currentState.set('barking');
 
       const id = setTimeout(() => {
@@ -530,9 +556,7 @@ export class DogAnimationComponent implements OnInit, OnDestroy {
       }, 1000);
       this.timeoutIds.push(id);
     } else {
-      // Not sitting -> Sit down and stay
       this.currentState.set('sitting');
-      // No timeout - stays sitting until clicked again
     }
   }
 
@@ -549,61 +573,33 @@ export class DogAnimationComponent implements OnInit, OnDestroy {
     if (this.isDestroyed) return;
     const roll = Math.random();
 
-    // Simplified flow: Only walking, barking, and idle
     if (roll < 0.6) {
-      // 60% chance: Walk
       this.performMove();
     } else if (roll < 0.8) {
-      // 20% chance: Bark briefly then idle
       this.currentState.set('barking');
       this.scheduleNextAction(1500);
     } else {
-      // 20% chance: Stay idle briefly
       this.currentState.set('idle');
       this.scheduleNextAction(2000);
     }
   }
 
-  private performSitAndTip() {
-    this.currentState.set('sitting');
-
-    const id1 = setTimeout(() => {
-      if (this.isDestroyed) return;
-      const tip = this.tips[Math.floor(Math.random() * this.tips.length)];
-      this.currentTip.set(tip);
-      this.showTip.set(true);
-
-      const id2 = setTimeout(() => {
-        if (this.isDestroyed) return;
-        this.showTip.set(false);
-        this.currentState.set('idle');
-        this.scheduleNextAction(1000);
-      }, 5000);
-      this.timeoutIds.push(id2);
-    }, 500);
-    this.timeoutIds.push(id1);
-  }
-
   private performMove() {
     if (this.containerWidth === 0) this.updateContainerMetrics();
 
-    const margin = 30; // Safe margin to prevent edge clipping
+    const margin = 30;
     const maxPos = Math.max(0, this.containerWidth - margin - 50);
     const minPos = margin;
 
-    // 25% chance to aim specifically for a corner
     const isCornerRun = Math.random() < 0.25;
     let targetPos: number;
 
     if (isCornerRun) {
-      // Go to the furthest corner
       targetPos =
         this.currentPixelPosition() > this.containerWidth / 2 ? minPos : maxPos;
     } else {
-      // Random position
       targetPos = Math.random() * (maxPos - minPos) + minPos;
 
-      // Ensure minimum travel distance for random moves
       if (Math.abs(targetPos - this.currentPixelPosition()) < 100) {
         targetPos =
           this.currentPixelPosition() > this.containerWidth / 2
@@ -613,7 +609,7 @@ export class DogAnimationComponent implements OnInit, OnDestroy {
     }
 
     const distance = Math.abs(targetPos - this.currentPixelPosition());
-    const speed = 50; // px per second (walking speed only)
+    const speed = 50;
     const duration = distance / speed;
 
     const direction =
@@ -621,9 +617,7 @@ export class DogAnimationComponent implements OnInit, OnDestroy {
 
     this.currentDirection.set(direction);
     this.moveDuration.set(duration);
-    this.currentState.set('walking'); // Only walking, no running
-
-    // Use transform via Angular binding, no requestAnimationFrame needed for CSS transition
+    this.currentState.set('walking');
     this.currentPixelPosition.set(targetPos);
 
     const id = setTimeout(() => {
@@ -631,7 +625,6 @@ export class DogAnimationComponent implements OnInit, OnDestroy {
       this.currentState.set('idle');
 
       if (isCornerRun) {
-        // Wait 1-2 minutes at the corner
         const minutesInMillis = 1000 * 60;
         const waitTime = minutesInMillis + Math.random() * minutesInMillis;
         this.scheduleNextAction(waitTime);
