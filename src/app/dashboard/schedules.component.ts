@@ -3,7 +3,9 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  HostListener,
   inject,
+  signal,
 } from '@angular/core';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
@@ -26,10 +28,10 @@ import { SchedulesFormComponent } from './schedules-form.component';
   providers: [DynamicDialogRef, DialogService],
   template: `<p-card>
     <ng-template #title>
-      <div class="flex items-center justify-between w-full">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
         <div>
-          <h2 class="m-0">Horarios</h2>
-          <p class="text-sm text-gray-400 m-0 mt-1">
+          <h2 class="text-lg sm:text-xl font-semibold m-0">Horarios</h2>
+          <p class="text-xs sm:text-sm text-gray-400 m-0 mt-1">
             Listado de horarios y turnos disponibles
           </p>
         </div>
@@ -40,89 +42,105 @@ import { SchedulesFormComponent } from './schedules-form.component';
             icon="pi pi-plus-circle"
             (onClick)="editSchedule()"
             rounded
+            size="small"
           />
           }
         </div>
       </div>
     </ng-template>
-    <p-table
-      [value]="schedules()"
-      [rows]="10"
-      [rowsPerPageOptions]="[10, 20, 50]"
-      sortField="entry_time"
-      paginator
-      paginatorDropdownAppendTo="body"
-    >
-      <ng-template #header>
-        <tr>
-          <th pSortableColumn="name">Nombre<p-sortIcon field="name" /></th>
-          <th>Color</th>
-          <th pSortableColumn="entry_time">
-            Inicio<p-sortIcon field="entry_time" />
-          </th>
-          <th pSortableColumn="lunch_start_time">
-            Inicio de almuerzo<p-sortIcon field="lunch_start_time" />
-          </th>
-          <th pSortableColumn="lunch_end_time">
-            Fin de almuerzo<p-sortIcon field="lunch_end_time" />
-          </th>
-          <th pSortableColumn="exit_time">
-            Fin<p-sortIcon field="exit_time" />
-          </th>
-          <th pSortableColumn="minutes_tolerance">
-            Tolerancia<p-sortIcon field="minutes_tolerance" />
-          </th>
-          <th>Libre</th>
-          <th></th>
-        </tr>
-      </ng-template>
-      <ng-template #body let-schedule>
-        <tr>
-          <td>{{ schedule.name }}</td>
-          <td>
-            <span
-              class="rounded-full h-7 w-7 flex items-center justify-center ring-2 ring-neutral-700 hover:ring-amber-400/50 transition-all"
-              [ngClass]="colorVariants[schedule.color] || ''"
-              [ngStyle]="
-                !colorVariants[schedule.color]
-                  ? getScheduleColorInlineStyle(schedule.color)
-                  : null
-              "
-              ><i class="pi pi-check text-xs"></i
-            ></span>
-          </td>
-          <td>{{ schedule.entry_time | time }}</td>
-          <td>{{ schedule.lunch_start_time | time }}</td>
-          <td>{{ schedule.lunch_end_time | time }}</td>
-          <td>{{ schedule.exit_time | time }}</td>
-          <td>{{ schedule.minutes_tolerance }} min.</td>
-          <td class="text-center">
-            @if(schedule.day_off) {
-            <i class="pi pi-check-circle text-green-400 text-lg"></i>
-            }@else {
-            <i class="pi pi-times-circle text-red-400 text-lg"></i>
-            }
-          </td>
-          <td>
-            <div class="flex gap-2 items-center">
-              <p-button
-                severity="success"
-                icon="pi pi-pen-to-square"
-                text
-                rounded
-                (onClick)="editSchedule(schedule)"
-              />
-              <p-button severity="danger" icon="pi pi-trash" text rounded />
-            </div>
-          </td>
-        </tr>
-      </ng-template>
-    </p-table>
+    <div class="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+      <p-table
+        [value]="schedules()"
+        [rows]="isMobile() ? 5 : 10"
+        [rowsPerPageOptions]="[5, 10, 20, 50]"
+        sortField="entry_time"
+        paginator
+        paginatorDropdownAppendTo="body"
+        responsiveLayout="scroll"
+        [scrollable]="true"
+        scrollHeight="calc(100vh - 350px)"
+        styleClass="min-w-[900px] md:min-w-full"
+      >
+        <ng-template #header>
+          <tr>
+            <th pSortableColumn="name" class="min-w-[120px]">Nombre<p-sortIcon field="name" /></th>
+            <th class="min-w-[60px]">Color</th>
+            <th pSortableColumn="entry_time" class="min-w-[80px]">
+              Inicio<p-sortIcon field="entry_time" />
+            </th>
+            <th pSortableColumn="lunch_start_time" class="min-w-[100px] hidden sm:table-cell">
+              Inicio Alm.<p-sortIcon field="lunch_start_time" />
+            </th>
+            <th pSortableColumn="lunch_end_time" class="min-w-[100px] hidden sm:table-cell">
+              Fin Alm.<p-sortIcon field="lunch_end_time" />
+            </th>
+            <th pSortableColumn="exit_time" class="min-w-[80px]">
+              Fin<p-sortIcon field="exit_time" />
+            </th>
+            <th pSortableColumn="minutes_tolerance" class="min-w-[90px]">
+              Toler.<p-sortIcon field="minutes_tolerance" />
+            </th>
+            <th class="min-w-[60px]">Libre</th>
+            <th class="min-w-[100px]"></th>
+          </tr>
+        </ng-template>
+        <ng-template #body let-schedule>
+          <tr>
+            <td class="font-medium">{{ schedule.name }}</td>
+            <td>
+              <span
+                class="rounded-full h-7 w-7 flex items-center justify-center ring-2 ring-neutral-700 hover:ring-amber-400/50 transition-all"
+                [ngClass]="colorVariants[schedule.color] || ''"
+                [ngStyle]="
+                  !colorVariants[schedule.color]
+                    ? getScheduleColorInlineStyle(schedule.color)
+                    : null
+                "
+                ><i class="pi pi-check text-xs"></i
+              ></span>
+            </td>
+            <td>{{ schedule.entry_time | time }}</td>
+            <td class="hidden sm:table-cell">{{ schedule.lunch_start_time | time }}</td>
+            <td class="hidden sm:table-cell">{{ schedule.lunch_end_time | time }}</td>
+            <td>{{ schedule.exit_time | time }}</td>
+            <td>{{ schedule.minutes_tolerance }} min.</td>
+            <td class="text-center">
+              @if(schedule.day_off) {
+              <i class="pi pi-check-circle text-green-400 text-lg"></i>
+              }@else {
+              <i class="pi pi-times-circle text-red-400 text-lg"></i>
+              }
+            </td>
+            <td>
+              <div class="flex gap-1 items-center">
+                <p-button
+                  severity="success"
+                  icon="pi pi-pen-to-square"
+                  text
+                  rounded
+                  size="small"
+                  (onClick)="editSchedule(schedule)"
+                />
+                <p-button severity="danger" icon="pi pi-trash" text rounded size="small" />
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </div>
   </p-card>`,
   styles: ``,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SchedulesComponent {
+  // Mobile detection
+  public isMobile = signal(window.innerWidth < 768);
+
+  @HostListener('window:resize')
+  onResize() {
+    this.isMobile.set(window.innerWidth < 768);
+  }
+
   public store = inject(SchedulesStore);
   public dashboardStore = inject(DashboardStore);
   public message = inject(MessageService);

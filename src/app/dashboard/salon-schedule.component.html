@@ -1,18 +1,19 @@
 <p-card>
   <ng-template #title>
-    <div class="groomer-schedule-header">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3">
       <div>
-        <h2 class="groomer-schedule-title">Horario Peluquería</h2>
-        <p class="groomer-schedule-subtitle">
+        <h2 class="text-lg sm:text-xl font-semibold m-0">Horario Peluquería</h2>
+        <p class="text-xs sm:text-sm text-gray-400 m-0 mt-1">
           Asignación de sucursales por día para peluqueros
         </p>
       </div>
-      <div class="week-navigation">
+      <div class="flex items-center gap-2 flex-wrap">
         <p-button
           icon="pi pi-chevron-left"
           severity="secondary"
           rounded
           text
+          size="small"
           (onClick)="goToPreviousWeek()"
           pTooltip="Semana anterior"
         />
@@ -21,6 +22,7 @@
           severity="secondary"
           rounded
           text
+          size="small"
           (onClick)="goToCurrentWeek()"
           pTooltip="Ir a semana actual"
         />
@@ -29,13 +31,15 @@
           severity="secondary"
           rounded
           text
+          size="small"
           (onClick)="goToNextWeek()"
           pTooltip="Semana siguiente"
         />
         <p-button
-          label="Exportar Excel"
+          label="Exportar"
           icon="pi pi-file-excel"
           severity="success"
+          size="small"
           (onClick)="exportToExcel()"
           pTooltip="Exportar horario a Excel"
         />
@@ -43,47 +47,25 @@
     </div>
   </ng-template>
 
-  <p-table
-    [value]="groomerEmployeesWithAssignments()"
-    [scrollable]="true"
-    scrollHeight="600px"
-    [tableStyle]="{ 'min-width': '50rem' }"
-    [rowTrackBy]="trackByEmployeeId"
-  >
-    <ng-template #header>
-      <tr>
-        <th pFrozenColumn style="min-width: 200px">Nombre</th>
-        <th pFrozenColumn style="min-width: 150px">Cargo</th>
+  <!-- Mobile View: Card-based layout -->
+  <div class="md:hidden space-y-3">
+    @for(groomerData of groomerEmployeesWithAssignments(); track groomerData.employee.id){
+    <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <p class="font-semibold text-white">{{ getEmployeeFullName(groomerData.employee) }}</p>
+          <p-tag [value]="groomerData.employee.position?.name" severity="info" styleClass="text-xs mt-1" />
+        </div>
+      </div>
+      <div class="grid grid-cols-7 gap-1">
         @for(day of daysOfWeek(); track day){
-        <th class="branch-cell">
-          <div class="flex flex-col items-center gap-0 leading-[1.1]">
-            <span class="text-xs font-bold uppercase">{{
-              day | date : 'EEE' : undefined : 'es'
-            }}</span>
-            <span class="text-[10px]">{{
-              day | date : 'd MMM' : undefined : 'es'
-            }}</span>
+        <div class="text-center">
+          <div class="text-[10px] text-gray-400 mb-1 uppercase">
+            {{ day | date : 'EEE' : undefined : 'es' }}
           </div>
-        </th>
-        }
-      </tr>
-    </ng-template>
-
-    <ng-template #body let-groomerData>
-      <tr>
-        <td pFrozenColumn>
-          <div class="font-medium">
-            {{ getEmployeeFullName(groomerData.employee) }}
+          <div class="text-[10px] text-gray-500 mb-1">
+            {{ day | date : 'd' : undefined : 'es' }}
           </div>
-        </td>
-        <td pFrozenColumn>
-          <p-tag
-            [value]="groomerData.employee.position?.name"
-            severity="info"
-          />
-        </td>
-        @for(day of daysOfWeek(); track day){
-        <td class="text-center">
           <pt-groomer-branch-cell
             [assignment]="getAssignmentForDate(groomerData.employee, day)"
             [date]="day"
@@ -95,19 +77,87 @@
             (delete)="onDeleteAssignment($event)"
             (add)="onAddAssignment($event)"
           />
-        </td>
+        </div>
         }
-      </tr>
-    </ng-template>
+      </div>
+    </div>
+    }
+    @if(groomerEmployeesWithAssignments().length === 0) {
+    <div class="text-center py-8">
+      <p class="text-gray-400">No hay empleados peluqueros registrados</p>
+    </div>
+    }
+  </div>
 
-    <ng-template #emptymessage>
-      <tr>
-        <td [colSpan]="daysOfWeek().length + 2" class="text-center py-8">
-          <p class="text-gray-400">No hay empleados peluqueros registrados</p>
-        </td>
-      </tr>
-    </ng-template>
-  </p-table>
+  <!-- Desktop View: Table layout -->
+  <div class="hidden md:block overflow-x-auto">
+    <p-table
+      [value]="groomerEmployeesWithAssignments()"
+      [scrollable]="true"
+      scrollHeight="600px"
+      [tableStyle]="{ 'min-width': '50rem' }"
+      [rowTrackBy]="trackByEmployeeId"
+      responsiveLayout="scroll"
+    >
+      <ng-template #header>
+        <tr>
+          <th pFrozenColumn style="min-width: 200px">Nombre</th>
+          <th pFrozenColumn style="min-width: 150px">Cargo</th>
+          @for(day of daysOfWeek(); track day){
+          <th class="text-center min-w-[80px] lg:min-w-[100px]">
+            <div class="flex flex-col items-center gap-0 leading-[1.1]">
+              <span class="text-xs font-bold uppercase">{{
+                day | date : 'EEE' : undefined : 'es'
+              }}</span>
+              <span class="text-[10px]">{{
+                day | date : 'd MMM' : undefined : 'es'
+              }}</span>
+            </div>
+          </th>
+          }
+        </tr>
+      </ng-template>
+
+      <ng-template #body let-groomerData>
+        <tr>
+          <td pFrozenColumn>
+            <div class="font-medium">
+              {{ getEmployeeFullName(groomerData.employee) }}
+            </div>
+          </td>
+          <td pFrozenColumn>
+            <p-tag
+              [value]="groomerData.employee.position?.name"
+              severity="info"
+            />
+          </td>
+          @for(day of daysOfWeek(); track day){
+          <td class="text-center">
+            <pt-groomer-branch-cell
+              [assignment]="getAssignmentForDate(groomerData.employee, day)"
+              [date]="day"
+              [employeeId]="groomerData.employee.id"
+              [canManage]="isAdmin"
+              [isNonWorking]="isNonWorking(groomerData.employee.id, day)"
+              [nonWorkingLabel]="getNonWorkingLabel(groomerData.employee.id, day)"
+              (edit)="onEditAssignment($event)"
+              (delete)="onDeleteAssignment($event)"
+              (add)="onAddAssignment($event)"
+            />
+          </td>
+          }
+        </tr>
+      </ng-template>
+
+      <ng-template #emptymessage>
+        <tr>
+          <td [colSpan]="daysOfWeek().length + 2" class="text-center py-8">
+            <p class="text-gray-400">No hay empleados peluqueros registrados</p>
+          </td>
+        </tr>
+      </ng-template>
+    </p-table>
+  </div>
 
   <!-- Diálogo de selección de sucursal -->
   <pt-groomer-branch-selection-dialog

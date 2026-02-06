@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, input, output, TemplateRef } from '@angular/core';
+import { Component, HostListener, input, output, signal, TemplateRef } from '@angular/core';
 import { TableModule } from 'primeng/table';
 import { ShiftCellComponent } from '../shift-cell/shift-cell.component';
 
@@ -21,45 +21,29 @@ type EmployeeWithDays = {
   standalone: true,
   imports: [CommonModule, TableModule, ShiftCellComponent],
   template: `
-    <p-table
-      [value]="employees()"
-      paginator
-      [rows]="10"
-      [tableStyle]="{ 'min-width': '50rem' }"
-      [rowsPerPageOptions]="[10, 20, 50]"
-      paginatorDropdownAppendTo="body"
-    >
-      @if (captionTemplate(); as template) {
-      <ng-template caption>
-        <ng-container *ngTemplateOutlet="template" />
-      </ng-template>
-      }
-      <ng-template #header>
-        <tr>
-          <th pFrozenColumn>Nombre</th>
-          <th>Cargo</th>
-          @for(day of days(); track day.date){
-          <th class="text-center min-w-[100px] max-w-[100px]">
-            <div class="flex flex-col items-center gap-0 leading-[1.1]">
-              <span class="text-xs font-bold uppercase">{{
-                day.date | date : 'EEE'
-              }}</span>
-              <span class="text-[10px]">{{ day.date | date : 'd MMM' }}</span>
+    <!-- Mobile View: Card-based layout -->
+    <div class="md:hidden space-y-3">
+      @for(employee of employees(); track employee.id){
+      <div class="bg-neutral-800/50 rounded-lg border border-neutral-700/50 p-3">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <p class="font-semibold text-white">{{ employee.first_name }} {{ employee.father_name }}</p>
+            <p class="text-xs text-gray-400">{{ employee.position.name || 'Sin cargo' }}</p>
+          </div>
+        </div>
+        <div class="grid grid-cols-7 gap-1">
+          @for(day of employee.days; track day.date){
+          <div class="text-center">
+            <div class="text-[10px] text-gray-400 mb-1 uppercase">
+              {{ day.date | date : 'EEE' }}
             </div>
-          </th>
-          }
-        </tr>
-      </ng-template>
-      <ng-template #body let-item>
-        <tr>
-          <td pFrozenColumn>{{ item.first_name }} {{ item.father_name }}</td>
-          <td>{{ item.position.name }}</td>
-          @for(day of item.days; track day.date){
-          <td class="text-center">
+            <div class="text-[10px] text-gray-500 mb-1">
+              {{ day.date | date : 'd' }}
+            </div>
             <pt-shift-cell
               [shift]="day.shift"
               [date]="day.date"
-              [employeeId]="item.id"
+              [employeeId]="employee.id"
               [canManageSchedules]="canManageSchedules()"
               [canApprove]="canApproveSchedules()"
               [selectionMode]="selectionMode()"
@@ -73,14 +57,87 @@ type EmployeeWithDays = {
               (viewAudit)="onViewAudit($event)"
               (toggleSelection)="onToggleSelection($event)"
             />
-          </td>
+          </div>
           }
-        </tr>
-      </ng-template>
-    </p-table>
+        </div>
+      </div>
+      }
+    </div>
+
+    <!-- Desktop View: Table layout -->
+    <div class="hidden md:block overflow-x-auto">
+      <p-table
+        [value]="employees()"
+        paginator
+        [rows]="rowsPerPage()"
+        [tableStyle]="{ 'min-width': '50rem' }"
+        [rowsPerPageOptions]="[10, 20, 50]"
+        paginatorDropdownAppendTo="body"
+        responsiveLayout="scroll"
+      >
+        @if (captionTemplate(); as template) {
+        <ng-template caption>
+          <ng-container *ngTemplateOutlet="template" />
+        </ng-template>
+        }
+        <ng-template #header>
+          <tr>
+            <th pFrozenColumn class="min-w-[150px]">Nombre</th>
+            <th class="min-w-[120px]">Cargo</th>
+            @for(day of days(); track day.date){
+            <th class="text-center min-w-[80px] lg:min-w-[100px]">
+              <div class="flex flex-col items-center gap-0 leading-[1.1]">
+                <span class="text-xs font-bold uppercase">{{
+                  day.date | date : 'EEE'
+                }}</span>
+                <span class="text-[10px]">{{ day.date | date : 'd MMM' }}</span>
+              </div>
+            </th>
+            }
+          </tr>
+        </ng-template>
+        <ng-template #body let-item>
+          <tr>
+            <td pFrozenColumn class="whitespace-nowrap">{{ item.first_name }} {{ item.father_name }}</td>
+            <td class="whitespace-nowrap">{{ item.position.name }}</td>
+            @for(day of item.days; track day.date){
+            <td class="text-center">
+              <pt-shift-cell
+                [shift]="day.shift"
+                [date]="day.date"
+                [employeeId]="item.id"
+                [canManageSchedules]="canManageSchedules()"
+                [canApprove]="canApproveSchedules()"
+                [selectionMode]="selectionMode()"
+                [isSelected]="isShiftSelected(day.shift?.id, day.date)"
+                [isStoreManager]="isStoreManager()"
+                (edit)="onEditShift($event)"
+                (delete)="onDeleteShift($event)"
+                (approve)="onApproveShift($event)"
+                (add)="onAddShift($event)"
+                (viewAudit)="onViewAudit($event)"
+                (toggleSelection)="onToggleSelection($event)"
+              />
+            </td>
+            }
+          </tr>
+        </ng-template>
+      </p-table>
+    </div>
   `,
 })
 export class TimetableGridComponent {
+  // Mobile detection
+  public isMobile = signal(window.innerWidth < 768);
+  public rowsPerPage = signal(10);
+
+  @HostListener('window:resize')
+  onResize() {
+    this.isMobile.set(window.innerWidth < 768);
+    // Adjust rows per page based on screen size
+    this.rowsPerPage.set(window.innerWidth < 768 ? 5 : 10);
+  }
+
   // Inputs
   public employees = input.required<EmployeeWithDays[]>();
   public days =

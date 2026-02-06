@@ -2,9 +2,11 @@ import { CommonModule, NgClass, NgStyle } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  HostListener,
   Input,
   output,
   Signal,
+  signal,
   WritableSignal,
 } from '@angular/core';
 import { Avatar } from 'primeng/avatar';
@@ -45,7 +47,7 @@ import {
     <div class="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
       <p-table
         [value]="logs()"
-        [rows]="25"
+        [rows]="isMobile() ? 10 : 25"
         [rowsPerPageOptions]="[10, 25, 50, 100, 200]"
         paginator
         paginatorDropdownAppendTo="body"
@@ -53,20 +55,21 @@ import {
         stripedRows
         [loading]="isLoading"
         [scrollable]="true"
-        [scrollHeight]="'calc(100vh - 400px)'"
-        styleClass="min-w-full"
+        [scrollHeight]="isMobile() ? 'calc(100vh - 350px)' : 'calc(100vh - 400px)'"
+        styleClass="min-w-[1200px] md:min-w-full"
+        responsiveLayout="scroll"
       >
         <ng-template #header>
           <tr>
-            <th>Empleado</th>
-            <th>Día</th>
-            <th>Horario</th>
-            <th>Entrada</th>
-            <th>Inicio de almuerzo</th>
-            <th>Fin de almuerzo</th>
-            <th>Salida</th>
-            <th>Horas Trabajadas</th>
-            <th>Horas Extras</th>
+            <th class="min-w-[180px]">Empleado</th>
+            <th class="min-w-[120px]">Día</th>
+            <th class="min-w-[120px]">Horario</th>
+            <th class="min-w-[140px]">Entrada</th>
+            <th class="min-w-[140px]">Inicio Alm.</th>
+            <th class="min-w-[140px]">Fin Alm.</th>
+            <th class="min-w-[120px]">Salida</th>
+            <th class="min-w-[120px]">Horas</th>
+            <th class="min-w-[100px]">Extras</th>
           </tr>
         </ng-template>
         <ng-template #body let-log>
@@ -347,6 +350,14 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TimelogsTableComponent {
+  // Mobile detection
+  public isMobile = signal(window.innerWidth < 768);
+
+  @HostListener('window:resize')
+  onResize() {
+    this.isMobile.set(window.innerWidth < 768);
+  }
+
   @Input() public logs!: Signal<DayLog[]>;
   @Input() public isLoading = false;
   @Input() public delayToleranceMinutes!: WritableSignal<number>;

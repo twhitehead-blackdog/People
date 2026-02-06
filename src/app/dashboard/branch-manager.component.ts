@@ -192,22 +192,22 @@ type Reminder = {
     >
       <!-- Header Moderno -->
       <div
-        class="flex flex-col md:flex-row md:items-center justify-between gap-6"
+        class="flex flex-col md:flex-row md:items-center justify-between gap-4 md:gap-6"
         @fadeIn
       >
-        <div class="flex items-center gap-5">
+        <div class="flex items-center gap-3 md:gap-5">
           <div
-            class="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30 transition-transform hover:scale-105 duration-300"
+            class="w-12 h-12 md:w-14 md:h-14 rounded-xl md:rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30 transition-transform hover:scale-105 duration-300 flex-shrink-0"
           >
-            <i class="pi pi-shop text-white text-2xl"></i>
+            <i class="pi pi-shop text-white text-xl md:text-2xl"></i>
           </div>
-          <div>
+          <div class="min-w-0">
             <h1
-              class="text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent tracking-tight"
+              class="text-2xl sm:text-3xl md:text-4xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent tracking-tight truncate"
             >
               Gestión de Tienda
             </h1>
-            <p class="text-gray-400 text-sm mt-1">
+            <p class="text-gray-400 text-xs md:text-sm mt-1">
               @if (isAdmin()) {
               <span class="flex items-center gap-2">
                 <span
@@ -226,12 +226,12 @@ type Reminder = {
             </p>
           </div>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2 md:gap-3 flex-wrap">
           @if (isAdmin()) {
           <div
-            class="flex items-center gap-2 bg-white/5 backdrop-blur-sm rounded-xl px-4 py-2 border border-white/10"
+            class="flex items-center gap-2 bg-white/5 backdrop-blur-sm rounded-xl px-3 md:px-4 py-2 border border-white/10 w-full sm:w-auto"
           >
-            <i class="pi pi-building text-indigo-400"></i>
+            <i class="pi pi-building text-indigo-400 flex-shrink-0"></i>
             <p-select
               [options]="availableBranches()"
               optionLabel="name"
@@ -240,7 +240,7 @@ type Reminder = {
               placeholder="Todas las sucursales"
               showClear
               appendTo="body"
-              styleClass="w-56 border-0 bg-transparent"
+              styleClass="w-full sm:w-56 border-0 bg-transparent"
               (ngModelChange)="onBranchChange()"
             />
           </div>
@@ -259,96 +259,96 @@ type Reminder = {
       </div>
 
       <!-- Dashboard de Métricas - Diseño Moderno -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-6 py-4" @staggerFade>
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 py-2 md:py-4" @staggerFade>
         <!-- Empleados -->
         <div
-          class="group relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 p-5 transition-all duration-300 hover:bg-white/15 hover:border-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/20"
+          class="group relative overflow-hidden rounded-xl md:rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 p-3 md:p-5 transition-all duration-300 hover:bg-white/15 hover:border-emerald-500/30 hover:shadow-xl hover:shadow-emerald-500/20"
           @scaleIn
         >
           <div
-            class="absolute top-0 right-0 w-20 h-20 bg-emerald-500/10 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-500"
+            class="absolute top-0 right-0 w-16 h-16 md:w-20 md:h-20 bg-emerald-500/10 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-500"
           ></div>
           <div class="relative">
-            <div class="flex items-center gap-3 mb-3">
+            <div class="flex items-center gap-2 md:gap-3 mb-2 md:mb-3">
               <div
-                class="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center"
+                class="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-emerald-500/20 flex items-center justify-center flex-shrink-0"
               >
-                <i class="pi pi-users text-emerald-400"></i>
+                <i class="pi pi-users text-emerald-400 text-sm md:text-base"></i>
               </div>
-              <span class="text-3xl font-bold text-white">{{
+              <span class="text-2xl md:text-3xl font-bold text-white truncate">{{
                 todayStats().totalEmployees
               }}</span>
             </div>
-            <p class="text-gray-400 text-sm font-medium">Empleados hoy</p>
+            <p class="text-gray-400 text-xs md:text-sm font-medium truncate">Empleados hoy</p>
           </div>
         </div>
 
         <!-- Retrasos -->
         <div
-          class="group relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 p-5 transition-all duration-300 hover:bg-white/15 hover:border-rose-500/30 hover:shadow-xl hover:shadow-rose-500/20"
+          class="group relative overflow-hidden rounded-xl md:rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 p-3 md:p-5 transition-all duration-300 hover:bg-white/15 hover:border-rose-500/30 hover:shadow-xl hover:shadow-rose-500/20"
           @scaleIn
         >
           <div
-            class="absolute top-0 right-0 w-20 h-20 bg-rose-500/10 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-500"
+            class="absolute top-0 right-0 w-16 h-16 md:w-20 md:h-20 bg-rose-500/10 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-500"
           ></div>
           <div class="relative">
-            <div class="flex items-center gap-3 mb-3">
+            <div class="flex items-center gap-2 md:gap-3 mb-2 md:mb-3">
               <div
-                class="w-10 h-10 rounded-xl bg-rose-500/20 flex items-center justify-center"
+                class="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-rose-500/20 flex items-center justify-center flex-shrink-0"
               >
-                <i class="pi pi-clock text-rose-400"></i>
+                <i class="pi pi-clock text-rose-400 text-sm md:text-base"></i>
               </div>
-              <span class="text-3xl font-bold text-white">{{
+              <span class="text-2xl md:text-3xl font-bold text-white truncate">{{
                 todayStats().delayed
               }}</span>
             </div>
-            <p class="text-gray-400 text-sm font-medium">Retrasos hoy</p>
+            <p class="text-gray-400 text-xs md:text-sm font-medium truncate">Retrasos hoy</p>
           </div>
         </div>
 
         <!-- Notificaciones -->
         <div
-          class="group relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 p-5 transition-all duration-300 hover:bg-white/15 hover:border-blue-500/30 hover:shadow-xl hover:shadow-blue-500/20"
+          class="group relative overflow-hidden rounded-xl md:rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 p-3 md:p-5 transition-all duration-300 hover:bg-white/15 hover:border-blue-500/30 hover:shadow-xl hover:shadow-blue-500/20"
           @scaleIn
         >
           <div
-            class="absolute top-0 right-0 w-20 h-20 bg-blue-500/10 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-500"
+            class="absolute top-0 right-0 w-16 h-16 md:w-20 md:h-20 bg-blue-500/10 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-500"
           ></div>
           <div class="relative">
-            <div class="flex items-center gap-3 mb-3">
+            <div class="flex items-center gap-2 md:gap-3 mb-2 md:mb-3">
               <div
-                class="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center"
+                class="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-blue-500/20 flex items-center justify-center flex-shrink-0"
               >
-                <i class="pi pi-bell text-blue-400"></i>
+                <i class="pi pi-bell text-blue-400 text-sm md:text-base"></i>
               </div>
-              <span class="text-3xl font-bold text-white">{{
+              <span class="text-2xl md:text-3xl font-bold text-white truncate">{{
                 unreadNotificationsCount()
               }}</span>
             </div>
-            <p class="text-gray-400 text-sm font-medium">Notificaciones</p>
+            <p class="text-gray-400 text-xs md:text-sm font-medium truncate">Notificaciones</p>
           </div>
         </div>
 
         <!-- Recordatorios -->
         <div
-          class="group relative overflow-hidden rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 p-5 transition-all duration-300 hover:bg-white/15 hover:border-amber-500/30 hover:shadow-xl hover:shadow-amber-500/20"
+          class="group relative overflow-hidden rounded-xl md:rounded-2xl bg-white/5 backdrop-blur-sm border border-white/10 p-3 md:p-5 transition-all duration-300 hover:bg-white/15 hover:border-amber-500/30 hover:shadow-xl hover:shadow-amber-500/20"
           @scaleIn
         >
           <div
-            class="absolute top-0 right-0 w-20 h-20 bg-amber-500/10 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-500"
+            class="absolute top-0 right-0 w-16 h-16 md:w-20 md:h-20 bg-amber-500/10 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-150 transition-transform duration-500"
           ></div>
           <div class="relative">
-            <div class="flex items-center gap-3 mb-3">
+            <div class="flex items-center gap-2 md:gap-3 mb-2 md:mb-3">
               <div
-                class="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center"
+                class="w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-amber-500/20 flex items-center justify-center flex-shrink-0"
               >
-                <i class="pi pi-bookmark text-amber-400"></i>
+                <i class="pi pi-bookmark text-amber-400 text-sm md:text-base"></i>
               </div>
-              <span class="text-3xl font-bold text-white">{{
+              <span class="text-2xl md:text-3xl font-bold text-white truncate">{{
                 pendingRemindersCount()
               }}</span>
             </div>
-            <p class="text-gray-400 text-sm font-medium">Recordatorios</p>
+            <p class="text-gray-400 text-xs md:text-sm font-medium truncate">Recordatorios</p>
           </div>
         </div>
       </div>
@@ -356,24 +356,29 @@ type Reminder = {
       <!-- Card Principal -->
       <p-card @fadeIn>
         <p-tabs value="timelogs">
-          <p-tablist>
+          <p-tablist class="flex-wrap">
             <p-tab value="timelogs">
-              <i class="pi pi-clock mr-2"></i>
-              Marcaciones
+              <i class="pi pi-clock mr-1 md:mr-2"></i>
+              <span class="hidden sm:inline">Marcaciones</span>
+              <span class="sm:hidden">Marcas</span>
             </p-tab>
             <p-tab value="gestiones">
-              <i class="pi pi-file-edit mr-2"></i>
-              Gestiones
+              <i class="pi pi-file-edit mr-1 md:mr-2"></i>
+              <span class="hidden sm:inline">Gestiones</span>
+              <span class="sm:hidden">Gestiones</span>
             </p-tab>
             <p-tab value="employee-requests">
-              <i class="pi pi-list mr-2"></i>
-              Mis Solicitudes de Empleados
+              <i class="pi pi-list mr-1 md:mr-2"></i>
+              <span class="hidden sm:inline">Mis Solicitudes de Empleados</span>
+              <span class="sm:hidden">Solicitudes</span>
             </p-tab>
             <p-tab value="reminders">
-              <i class="pi pi-bookmark mr-2"></i>
-              Recordatorios @if (pendingRemindersCount() > 0) {
+              <i class="pi pi-bookmark mr-1 md:mr-2"></i>
+              <span class="hidden sm:inline">Recordatorios</span>
+              <span class="sm:hidden">Record.</span>
+              @if (pendingRemindersCount() > 0) {
               <span
-                class="ml-2 bg-amber-500 text-white text-xs rounded-full px-2 py-0.5 font-semibold"
+                class="ml-1 md:ml-2 bg-amber-500 text-white text-xs rounded-full px-1.5 md:px-2 py-0.5 font-semibold"
               >
                 {{ pendingRemindersCount() }}
               </span>
@@ -382,12 +387,12 @@ type Reminder = {
           </p-tablist>
 
           <p-tabpanel value="employee-requests">
-            <div class="space-y-5">
+            <div class="space-y-4 md:space-y-5">
               <!-- Filtros - Moderno -->
               <div
-                class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between bg-white/5 backdrop-blur-sm border border-white/10 p-4 rounded-2xl"
+                class="flex flex-col md:flex-row gap-3 md:gap-4 items-start md:items-center justify-between bg-white/5 backdrop-blur-sm border border-white/10 p-3 md:p-4 rounded-xl md:rounded-2xl"
               >
-                <div class="flex gap-3 items-center flex-wrap">
+                <div class="flex gap-2 md:gap-3 items-center flex-wrap w-full md:w-auto">
                   <p-select
                     [options]="[
                       { label: 'Todos los tipos', value: null },
@@ -407,7 +412,7 @@ type Reminder = {
                     placeholder="Tipo de solicitud"
                     showClear
                     appendTo="body"
-                    styleClass="w-48"
+                    styleClass="w-full sm:w-48"
                   />
                   <p-select
                     [options]="[
@@ -422,11 +427,11 @@ type Reminder = {
                     placeholder="Estado"
                     showClear
                     appendTo="body"
-                    styleClass="w-44"
+                    styleClass="w-full sm:w-44"
                   />
                   <p-button
                     icon="pi pi-refresh"
-                    label="Actualizar"
+                    [label]="isMobile() ? undefined : 'Actualizar'"
                     [outlined]="true"
                     severity="secondary"
                     (onClick)="refreshEmployeeRequests()"
@@ -440,12 +445,12 @@ type Reminder = {
                   />
                 </div>
                 <div
-                  class="flex items-center gap-2 bg-white/5 rounded-full px-4 py-2"
+                  class="flex items-center gap-2 bg-white/5 rounded-full px-3 md:px-4 py-2"
                 >
                   <i class="pi pi-list text-indigo-400"></i>
                   <span class="text-sm font-medium text-gray-300">
                     {{ filteredBranchEmployeeRequests().length }}
-                    <span class="text-gray-500">solicitud(es)</span>
+                    <span class="text-gray-500 hidden sm:inline">solicitud(es)</span>
                   </span>
                 </div>
               </div>
@@ -485,10 +490,10 @@ type Reminder = {
 
               <!-- Requests List -->
               @else {
-              <div class="grid grid-cols-1 gap-4" @staggerFade>
+              <div class="grid grid-cols-1 gap-3 md:gap-4" @staggerFade>
                 @for (request of unifiedRequests(); track request.id) {
                 <div
-                  class="group relative overflow-hidden border border-white/10 rounded-2xl p-5 transition-all duration-300 hover:border-white/20 hover:shadow-xl hover:scale-[1.005] cursor-pointer bg-white/5 backdrop-blur-sm"
+                  class="group relative overflow-hidden border border-white/10 rounded-xl md:rounded-2xl p-3 md:p-5 transition-all duration-300 hover:border-white/20 hover:shadow-xl hover:scale-[1.005] cursor-pointer bg-white/5 backdrop-blur-sm"
                   @scaleIn
                   (click)="viewRequestDetails(request)"
                 >
@@ -496,15 +501,15 @@ type Reminder = {
                     class="absolute inset-0 bg-gradient-to-r opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                     [ngClass]="request.unified.colorClassBg"
                   ></div>
-                  <div class="relative flex items-start justify-between gap-4">
-                    <div class="flex items-start gap-4 flex-1">
+                  <div class="relative flex items-start justify-between gap-2 md:gap-4">
+                    <div class="flex items-start gap-3 md:gap-4 flex-1 min-w-0">
                       <!-- Icono unificado -->
                       <div
-                        class="w-12 h-12 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110"
+                        class="w-10 h-10 md:w-12 md:h-12 rounded-lg md:rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 flex-shrink-0"
                         [ngClass]="request.unified.colorClassBg"
                       >
                         <i
-                          class="pi text-lg"
+                          class="pi text-base md:text-lg"
                           [ngClass]="[
                             request.unified.icon,
                             request.unified.colorClassActive
@@ -512,9 +517,9 @@ type Reminder = {
                         ></i>
                       </div>
 
-                      <div class="flex-1">
+                      <div class="flex-1 min-w-0">
                         <!-- Header con tipo, estado y fecha -->
-                        <div class="flex items-center gap-2 mb-2">
+                        <div class="flex flex-wrap items-center gap-1.5 md:gap-2 mb-1.5 md:mb-2">
                           <p-tag
                             [value]="request.unified.typeLabel"
                             [severity]="request.unified.typeSeverity"
@@ -525,30 +530,34 @@ type Reminder = {
                             [severity]="request.unified.statusSeverity"
                             styleClass="text-xs"
                           />
-                          <span class="text-xs text-gray-400">
+                          <span class="text-xs text-gray-400 hidden sm:inline">
                             {{ request.created_at | date : 'dd/MM/yyyy HH:mm' }}
+                          </span>
+                          <span class="text-xs text-gray-400 sm:hidden">
+                            {{ request.created_at | date : 'dd/MM/yy' }}
                           </span>
                         </div>
 
                         <!-- Información del empleado -->
-                        <div class="flex items-center gap-2 mb-2">
+                        <div class="flex items-center gap-2 mb-1.5 md:mb-2">
                           <p-avatar
                             [label]="getEmployeeInitials(request.employee)"
                             shape="circle"
                             styleClass="text-xs"
+                            size="normal"
                           />
-                          <span class="text-sm font-semibold text-white">
+                          <span class="text-sm font-semibold text-white truncate">
                             {{ request.employee?.first_name }}
                             {{ request.employee?.father_name }}
                           </span>
                         </div>
 
                         <!-- Detalles unificados -->
-                        <div class="text-sm text-gray-300">
-                          <p class="font-medium text-white mb-1">
+                        <div class="text-xs md:text-sm text-gray-300">
+                          <p class="font-medium text-white mb-1 truncate">
                             {{ request.unified.summary }}
                           </p>
-                          <p>
+                          <p class="truncate">
                             <span class="text-gray-400"
                               >{{
                                 request.requestType === 'compensatorio'
@@ -560,7 +569,7 @@ type Reminder = {
                           </p>
                           @let reason = request.reason || request.description ||
                           request.notes; @if (reason) {
-                          <p class="truncate max-w-md">
+                          <p class="truncate max-w-[200px] sm:max-w-md">
                             <span class="text-gray-400">Motivo:</span>
                             {{ reason }}
                           </p>
@@ -574,7 +583,8 @@ type Reminder = {
                           class="mt-2 flex items-center gap-1 text-xs text-gray-400"
                         >
                           <i class="pi pi-paperclip"></i>
-                          <span>Documento adjunto</span>
+                          <span class="hidden sm:inline">Documento adjunto</span>
+                          <span class="sm:hidden">Adjunto</span>
                         </div>
                         }
                       </div>
@@ -586,6 +596,7 @@ type Reminder = {
                       severity="secondary"
                       text
                       rounded
+                      size="small"
                       pTooltip="Ver detalles"
                       (onClick)="
                         viewRequestDetails(request); $event.stopPropagation()
@@ -600,13 +611,13 @@ type Reminder = {
           </p-tabpanel>
 
           <p-tabpanel value="timelogs">
-            <div class="space-y-5">
+            <div class="space-y-4 md:space-y-5">
               <!-- Filtros y acciones - Moderno -->
               <div
-                class="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between bg-white/5 backdrop-blur-sm border border-white/10 p-4 rounded-2xl"
+                class="flex flex-col md:flex-row gap-3 md:gap-4 items-start md:items-center justify-between bg-white/5 backdrop-blur-sm border border-white/10 p-3 md:p-4 rounded-xl md:rounded-2xl"
               >
-                <div class="flex gap-3 items-center flex-wrap">
-                  <div class="relative">
+                <div class="flex gap-2 md:gap-3 items-center flex-wrap w-full md:w-auto">
+                  <div class="relative w-full sm:w-auto">
                     <i
                       class="pi pi-user absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 z-10"
                     ></i>
@@ -619,10 +630,10 @@ type Reminder = {
                       showClear
                       filter
                       appendTo="body"
-                      styleClass="w-64 pl-8"
+                      styleClass="w-full sm:w-64 pl-8"
                     />
                   </div>
-                  <div class="relative">
+                  <div class="relative w-full sm:w-auto">
                     <p-datepicker
                       [(ngModel)]="selectedDate"
                       [showIcon]="true"
@@ -630,99 +641,99 @@ type Reminder = {
                       placeholder="Fecha"
                       appendTo="body"
                       (onSelect)="refreshTimelogs()"
-                      styleClass="rounded-xl"
+                      styleClass="rounded-xl w-full sm:w-auto"
                     />
                   </div>
                 </div>
                 <p-button
                   icon="pi pi-refresh"
-                  label="Actualizar"
+                  [label]="isMobile() ? undefined : 'Actualizar'"
                   [outlined]="true"
                   severity="secondary"
                   (onClick)="refreshTimelogs()"
                   [loading]="timelogsResource.isLoading()"
-                  styleClass="rounded-xl"
+                  styleClass="rounded-xl w-full md:w-auto"
                 />
               </div>
 
               <!-- Estadísticas del día - Diseño moderno con pills -->
               @if (todayStats().totalEmployees > 0) {
-              <div class="flex flex-wrap gap-3 pb-4">
+              <div class="flex flex-wrap gap-2 md:gap-3 pb-2 md:pb-4">
                 <div
-                  class="flex items-center gap-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-4 py-2 transition-all hover:bg-emerald-500/20"
+                  class="flex items-center gap-2 md:gap-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-3 md:px-4 py-1.5 md:py-2 transition-all hover:bg-emerald-500/20"
                 >
                   <div
-                    class="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center"
+                    class="w-6 h-6 md:w-8 md:h-8 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0"
                   >
-                    <i class="pi pi-check text-emerald-400 text-sm"></i>
+                    <i class="pi pi-check text-emerald-400 text-xs md:text-sm"></i>
                   </div>
                   <div>
-                    <span class="text-lg font-bold text-emerald-400">{{
+                    <span class="text-base md:text-lg font-bold text-emerald-400">{{
                       todayStats().onTime
                     }}</span>
-                    <span class="text-xs text-gray-400 ml-1.5">A tiempo</span>
+                    <span class="text-xs text-gray-400 ml-1 md:ml-1.5 hidden sm:inline">A tiempo</span>
                   </div>
                 </div>
                 <div
-                  class="flex items-center gap-2.5 bg-rose-500/10 border border-rose-500/20 rounded-full px-4 py-2 transition-all hover:bg-rose-500/20"
+                  class="flex items-center gap-2 md:gap-2.5 bg-rose-500/10 border border-rose-500/20 rounded-full px-3 md:px-4 py-1.5 md:py-2 transition-all hover:bg-rose-500/20"
                 >
                   <div
-                    class="w-8 h-8 rounded-full bg-rose-500/20 flex items-center justify-center"
+                    class="w-6 h-6 md:w-8 md:h-8 rounded-full bg-rose-500/20 flex items-center justify-center flex-shrink-0"
                   >
-                    <i class="pi pi-clock text-rose-400 text-sm"></i>
+                    <i class="pi pi-clock text-rose-400 text-xs md:text-sm"></i>
                   </div>
                   <div>
-                    <span class="text-lg font-bold text-rose-400">{{
+                    <span class="text-base md:text-lg font-bold text-rose-400">{{
                       todayStats().delayed
                     }}</span>
-                    <span class="text-xs text-gray-400 ml-1.5">Retrasos</span>
+                    <span class="text-xs text-gray-400 ml-1 md:ml-1.5 hidden sm:inline">Retrasos</span>
                   </div>
                 </div>
                 <div
-                  class="flex items-center gap-2.5 bg-amber-500/10 border border-amber-500/20 rounded-full px-4 py-2 transition-all hover:bg-amber-500/20"
+                  class="flex items-center gap-2 md:gap-2.5 bg-amber-500/10 border border-amber-500/20 rounded-full px-3 md:px-4 py-1.5 md:py-2 transition-all hover:bg-amber-500/20"
                 >
                   <div
-                    class="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center"
+                    class="w-6 h-6 md:w-8 md:h-8 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0"
                   >
                     <i
-                      class="pi pi-exclamation-triangle text-amber-400 text-sm"
+                      class="pi pi-exclamation-triangle text-amber-400 text-xs md:text-sm"
                     ></i>
                   </div>
                   <div>
-                    <span class="text-lg font-bold text-amber-400">{{
+                    <span class="text-base md:text-lg font-bold text-amber-400">{{
                       todayStats().missing
                     }}</span>
-                    <span class="text-xs text-gray-400 ml-1.5">Sin marcar</span>
+                    <span class="text-xs text-gray-400 ml-1 md:ml-1.5 hidden sm:inline">Sin marcar</span>
                   </div>
                 </div>
                 <div
-                  class="flex items-center gap-2.5 bg-orange-500/10 border border-orange-500/20 rounded-full px-4 py-2 transition-all hover:bg-orange-500/20"
+                  class="flex items-center gap-2 md:gap-2.5 bg-orange-500/10 border border-orange-500/20 rounded-full px-3 md:px-4 py-1.5 md:py-2 transition-all hover:bg-orange-500/20"
                 >
                   <div
-                    class="w-8 h-8 rounded-full bg-orange-500/20 flex items-center justify-center"
+                    class="w-6 h-6 md:w-8 md:h-8 rounded-full bg-orange-500/20 flex items-center justify-center flex-shrink-0"
                   >
-                    <i class="pi pi-stopwatch text-orange-400 text-sm"></i>
+                    <i class="pi pi-stopwatch text-orange-400 text-xs md:text-sm"></i>
                   </div>
                   <div>
-                    <span class="text-lg font-bold text-orange-400">{{
+                    <span class="text-base md:text-lg font-bold text-orange-400">{{
                       todayStats().lunchExceeded
                     }}</span>
-                    <span class="text-xs text-gray-400 ml-1.5">Almuerzo</span>
+                    <span class="text-xs text-gray-400 ml-1 md:ml-1.5 hidden sm:inline">Almuerzo</span>
                   </div>
                 </div>
                 <div
-                  class="flex items-center gap-2.5 bg-violet-500/10 border border-violet-500/20 rounded-full px-4 py-2 transition-all hover:bg-violet-500/20"
+                  class="flex items-center gap-2 md:gap-2.5 bg-violet-500/10 border border-violet-500/20 rounded-full px-3 md:px-4 py-1.5 md:py-2 transition-all hover:bg-violet-500/20"
                 >
                   <div
-                    class="w-8 h-8 rounded-full bg-violet-500/20 flex items-center justify-center"
+                    class="w-6 h-6 md:w-8 md:h-8 rounded-full bg-violet-500/20 flex items-center justify-center flex-shrink-0"
                   >
-                    <i class="pi pi-sign-out text-violet-400 text-sm"></i>
+                    <i class="pi pi-sign-out text-violet-400 text-xs md:text-sm"></i>
                   </div>
                   <div>
-                    <span class="text-lg font-bold text-violet-400">{{
+                    <span class="text-base md:text-lg font-bold text-violet-400">{{
                       todayStats().earlyExit
                     }}</span>
-                    <span class="text-xs text-gray-400 ml-1.5"
+                    <span class="text-xs text-gray-400 ml-1 md:ml-1.5 hidden sm:inline"
                       >Salida temp.</span
                     >
                   </div>
@@ -734,11 +745,12 @@ type Reminder = {
                 [value]="filteredTimelogs()"
                 [loading]="timelogsResource.isLoading()"
                 [paginator]="true"
-                [rows]="25"
+                [rows]="isMobile() ? 10 : 25"
                 [rowsPerPageOptions]="[10, 25, 50]"
                 styleClass="p-datatable-sm"
                 [scrollable]="true"
-                scrollHeight="600px"
+                [scrollHeight]="isMobile() ? '400px' : '600px'"
+                responsiveLayout="scroll"
               >
                 <ng-template #header>
                   <tr class="bg-white/5">
@@ -1024,7 +1036,7 @@ type Reminder = {
           </p-tabpanel>
 
           <p-tabpanel value="reminders">
-            <div class="space-y-4">
+            <div class="space-y-3 md:space-y-4">
               <div class="flex gap-2 items-center flex-wrap">
                 <p-select
                   [options]="branchEmployees()"
@@ -1035,17 +1047,17 @@ type Reminder = {
                   showClear
                   filter
                   appendTo="body"
-                  styleClass="w-64"
+                  styleClass="w-full sm:w-64"
                 />
                 <p-button
                   icon="pi pi-plus"
-                  label="Nuevo Recordatorio"
+                  [label]="isMobile() ? undefined : 'Nuevo Recordatorio'"
                   severity="success"
                   (onClick)="showReminderDialog.set(true)"
                 />
                 <p-button
                   icon="pi pi-refresh"
-                  label="Actualizar"
+                  [label]="isMobile() ? undefined : 'Actualizar'"
                   severity="secondary"
                   (onClick)="refreshReminders()"
                   [loading]="remindersResource.isLoading()"
@@ -1059,9 +1071,10 @@ type Reminder = {
                   auditTaskInstancesResource.isLoading()
                 "
                 [paginator]="true"
-                [rows]="25"
+                [rows]="isMobile() ? 10 : 25"
                 [rowsPerPageOptions]="[10, 25, 50]"
                 styleClass="p-datatable-sm"
+                responsiveLayout="scroll"
               >
                 <ng-template #header>
                   <tr>
@@ -1223,16 +1236,16 @@ type Reminder = {
       <!-- Dialog para crear recordatorio -->
       @if (showReminderDialog()) {
       <div
-        class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+        class="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-3 md:p-4"
         (click)="showReminderDialog.set(false)"
       >
         <div
-          class="bg-neutral-800 rounded-lg p-6 max-w-md w-full shadow-2xl"
+          class="bg-neutral-800 rounded-lg p-4 md:p-6 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto"
           (click)="$event.stopPropagation()"
           @scaleIn
         >
-          <h3 class="text-xl font-bold mb-4">Nuevo Recordatorio</h3>
-          <div class="space-y-4">
+          <h3 class="text-lg md:text-xl font-bold mb-3 md:mb-4">Nuevo Recordatorio</h3>
+          <div class="space-y-3 md:space-y-4">
             <div>
               <label class="block text-sm font-medium mb-2">Empleado</label>
               <p-select
@@ -1244,6 +1257,7 @@ type Reminder = {
                 showClear
                 filter
                 appendTo="body"
+                styleClass="w-full"
               />
             </div>
             <div>
@@ -1252,7 +1266,7 @@ type Reminder = {
                 pTextarea
                 [(ngModel)]="newReminderMessage"
                 placeholder="Escribe el recordatorio..."
-                rows="4"
+                rows="3"
                 class="w-full"
               ></textarea>
             </div>
@@ -1265,9 +1279,10 @@ type Reminder = {
                 [showTime]="true"
                 hourFormat="12"
                 appendTo="body"
+                styleClass="w-full"
               />
             </div>
-            <div class="flex gap-2 justify-end">
+            <div class="flex gap-2 justify-end pt-2">
               <p-button
                 label="Cancelar"
                 severity="secondary"
@@ -1289,10 +1304,11 @@ type Reminder = {
       <p-dialog
         [(visible)]="showRequestDetailsDialog"
         [modal]="true"
-        [style]="{ width: '95vw', maxWidth: '1200px' }"
+        [style]="{ width: isMobile() ? '98vw' : '95vw', maxWidth: '1200px' }"
         [draggable]="false"
         [resizable]="false"
         [dismissableMask]="true"
+        [maximizable]="isMobile()"
       >
         <ng-template pTemplate="header">
           <div class="flex items-center justify-between w-full">
@@ -1312,24 +1328,24 @@ type Reminder = {
 
         @if (selectedRequest()) {
         <div
-          class="grid transition-all duration-500 pt-4"
+          class="grid transition-all duration-500 pt-2 md:pt-4"
           [ngClass]="{
             'grid-cols-1': !hasDocument(),
-            'grid-cols-1 md:grid-cols-2 gap-6': hasDocument()
+            'grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6': hasDocument()
           }"
         >
           <!-- Columna Información -->
           <div class="space-y-4">
             <!-- Información del Empleado -->
             <div
-              class="p-4 rounded-lg border transition-all duration-300 w-full"
+              class="p-3 md:p-4 rounded-lg border transition-all duration-300 w-full"
               [ngClass]="
                 selectedRequest().unified?.colorClassBg ||
                 'bg-neutral-800 border-neutral-700'
               "
             >
               <h3
-                class="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+                class="text-base md:text-lg font-semibold text-white mb-3 md:mb-4 flex items-center gap-2"
               >
                 <i
                   class="pi pi-user"
@@ -1339,13 +1355,13 @@ type Reminder = {
                 ></i>
                 Información del Empleado
               </h3>
-              <div class="flex flex-col md:flex-row gap-6">
+              <div class="flex flex-col sm:flex-row gap-4 md:gap-6">
                 <!-- Lado izquierdo: Avatar y Datos Principales -->
-                <div class="flex items-center gap-4 min-w-[200px]">
+                <div class="flex items-center gap-3 md:gap-4 min-w-0 sm:min-w-[180px]">
                   <p-avatar
                     [label]="getEmployeeInitials(selectedRequest().employee)"
                     shape="circle"
-                    size="xlarge"
+                    [size]="isMobile() ? 'large' : 'xlarge'"
                     [style]="{
                       'background-color':
                         getSeverityColor(
@@ -1356,12 +1372,12 @@ type Reminder = {
                       )
                     }"
                   />
-                  <div>
-                    <p class="text-xl font-bold text-white leading-tight">
+                  <div class="min-w-0">
+                    <p class="text-lg md:text-xl font-bold text-white leading-tight truncate">
                       {{ selectedRequest().employee?.first_name }}
                       {{ selectedRequest().employee?.father_name }}
                     </p>
-                    <p class="text-sm text-gray-400">
+                    <p class="text-xs md:text-sm text-gray-400 truncate">
                       {{
                         selectedRequest().employee?.work_email ||
                           'Sin email registrado'
@@ -1372,7 +1388,7 @@ type Reminder = {
 
                 <!-- Lado derecho: Detalles Secundarios -->
                 <div
-                  class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 md:pt-0 md:pl-6 md:border-l border-neutral-700/50"
+                  class="flex-1 grid grid-cols-2 gap-3 md:gap-4 pt-3 sm:pt-0 sm:pl-4 md:pl-6 border-t sm:border-t-0 sm:border-l border-neutral-700/50"
                 >
                   <div>
                     <label
@@ -1408,14 +1424,14 @@ type Reminder = {
 
             <!-- Detalles de la Solicitud -->
             <div
-              class="p-4 rounded-lg border transition-all duration-300"
+              class="p-3 md:p-4 rounded-lg border transition-all duration-300"
               [ngClass]="
                 selectedRequest().unified?.colorClassBg ||
                 'bg-neutral-800 border-neutral-700'
               "
             >
               <h3
-                class="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+                class="text-base md:text-lg font-semibold text-white mb-3 md:mb-4 flex items-center gap-2"
               >
                 <i
                   class="pi"
@@ -1427,7 +1443,7 @@ type Reminder = {
                 Detalle de la Solicitud
               </h3>
               <div class="space-y-4">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
                   <!-- Estado -->
                   <div>
                     <label
@@ -1486,14 +1502,14 @@ type Reminder = {
                 </div>
 
                 <!-- Resumen y Detalles unificados -->
-                <div class="pt-4 border-t border-neutral-700/50">
-                  <div class="mb-4">
-                    <p class="text-lg font-bold text-white">
+                <div class="pt-3 md:pt-4 border-t border-neutral-700/50">
+                  <div class="mb-3 md:mb-4">
+                    <p class="text-base md:text-lg font-bold text-white">
                       {{ selectedRequest().unified?.summary }}
                     </p>
                   </div>
                   <div
-                    class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+                    class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6"
                   >
                     @for (detail of selectedRequest().unified?.details; track
                     detail.label) {
@@ -1528,14 +1544,14 @@ type Reminder = {
             <!-- Información de Creación -->
             @if (selectedRequest().created_by) {
             <div
-              class="p-4 rounded-lg border transition-all duration-300"
+              class="p-3 md:p-4 rounded-lg border transition-all duration-300"
               [ngClass]="
                 selectedRequest().unified?.colorClassBg ||
                 'bg-neutral-800 border-neutral-700'
               "
             >
               <h3
-                class="text-lg font-semibold text-white mb-4 flex items-center gap-2"
+                class="text-base md:text-lg font-semibold text-white mb-3 md:mb-4 flex items-center gap-2"
               >
                 <i
                   class="pi pi-info-circle"
@@ -1562,7 +1578,7 @@ type Reminder = {
 
           <!-- Documento Adjunto (Columna Derecha) -->
           @if (hasDocument()) {
-          <div class="h-full">
+          <div class="h-full mt-4 lg:mt-0">
             <pt-document-viewer-card
               [documentUrl]="
                 selectedRequest()?.document_url ||
@@ -1663,6 +1679,52 @@ type Reminder = {
       border: none;
       padding: 1rem 0;
     }
+
+    /* Responsive Table */
+    ::ng-deep .p-datatable-responsive .p-datatable-tbody > tr > td .p-column-title {
+      display: none;
+    }
+    
+    @media screen and (max-width: 768px) {
+      ::ng-deep .p-datatable.p-datatable-responsive .p-datatable-thead {
+        display: none;
+      }
+      
+      ::ng-deep .p-datatable.p-datatable-responsive .p-datatable-tbody > tr {
+        display: block;
+        margin-bottom: 0.5rem;
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 0.5rem;
+      }
+      
+      ::ng-deep .p-datatable.p-datatable-responsive .p-datatable-tbody > tr > td {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border: none;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        padding: 0.75rem 1rem;
+      }
+      
+      ::ng-deep .p-datatable.p-datatable-responsive .p-datatable-tbody > tr > td:last-child {
+        border-bottom: none;
+      }
+      
+      ::ng-deep .p-datatable.p-datatable-responsive .p-datatable-tbody > tr > td .p-column-title {
+        display: block;
+        font-weight: 600;
+        color: #9ca3af;
+      }
+      
+      ::ng-deep .p-tablist {
+        flex-wrap: wrap;
+      }
+      
+      ::ng-deep .p-tab {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+      }
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -1710,6 +1772,26 @@ export class BranchManagerComponent {
 
   // Signals
   public notificationTypeFilter = signal<string | null>(null);
+  public isMobile = signal<boolean>(window.innerWidth < 768);
+  
+  constructor() {
+    // Inicializar sucursal seleccionada para admins
+    if (this.isAdmin() && this.currentBranchFromStore()) {
+      this.selectedBranchId.set(this.currentBranchFromStore()?.id || null);
+    }
+
+    // Auto-refresh notifications every 30 seconds
+    setInterval(() => {
+      this.refreshNotifications();
+    }, 30000);
+    
+    // Listen for window resize to update isMobile
+    if (typeof window !== 'undefined') {
+      window.addEventListener('resize', () => {
+        this.isMobile.set(window.innerWidth < 768);
+      });
+    }
+  }
   public selectedEmployeeId = signal<string | null>(null);
   public selectedDate = signal<Date>(new Date());
   public selectedEmployeeForSchedule = signal<string | null>(null);
@@ -2797,18 +2879,6 @@ export class BranchManagerComponent {
     if (!employeeId) return reminders;
     return reminders.filter((r) => r.employee_id === employeeId);
   });
-
-  constructor() {
-    // Inicializar sucursal seleccionada para admins
-    if (this.isAdmin() && this.currentBranchFromStore()) {
-      this.selectedBranchId.set(this.currentBranchFromStore()?.id || null);
-    }
-
-    // Auto-refresh notifications every 30 seconds
-    setInterval(() => {
-      this.refreshNotifications();
-    }, 30000);
-  }
 
   public onBranchChange() {
     // Recargar todos los recursos cuando cambia la sucursal
