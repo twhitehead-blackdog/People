@@ -762,6 +762,56 @@ export interface EmployeeOvertimeRecord {
 }
 
 // ============================================
+// LATE RECORDS SYSTEM - Tardanzas
+// ============================================
+
+export type LateRecordStatus = 'active' | 'justified' | 'compensated' | 'discarded';
+export type LateRecordSource = 'peluqueria' | 'manual' | 'kiosk' | 'api' | 'import';
+
+export interface EmployeeLateRecord {
+  id: string;
+  employee_id: string;
+  timelog_date: string; // ISO date format (yyyy-MM-dd)
+
+  // Datos de horario
+  scheduled_entry_time: string; // HH:mm:ss
+  actual_entry_time: string; // HH:mm:ss
+  minutes_late: number;
+  tolerance_minutes: number;
+
+  // Datos del empleado (snapshot)
+  employee_name: string;
+  position_id?: string;
+  position_name?: string;
+
+  // Datos de ubicación
+  branch_id?: string;
+  branch_name?: string;
+
+  // Metadatos
+  source_module: LateRecordSource;
+  source_timelog_id?: string;
+
+  // Estado y gestión
+  status: LateRecordStatus;
+  justified_by?: string;
+  justified_at?: Date | string;
+  justification_reason?: string;
+
+  // Multi-tenant
+  company_id?: string;
+
+  // Timestamps
+  created_at?: Date | string;
+  updated_at?: Date | string;
+
+  // Joined data (from queries with select)
+  employee?: Partial<Employee>;
+  branch?: Partial<Branch>;
+  justifiedByEmployee?: Partial<Employee>;
+}
+
+// ============================================
 // AUDIT TASKS SYSTEM
 // ============================================
 
