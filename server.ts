@@ -503,27 +503,54 @@ export function app(): express.Express {
 
       // Intentar usar Resend primero (más confiable y fácil de configurar)
       const resendApiKey = process.env['ENV_RESEND_API_KEY'];
-      console.log('[DEBUG Server] 🔍 Verificando configuración Resend...');
-      console.log(
-        '[DEBUG Server] 🔍 ENV_RESEND_API_KEY presente:',
-        !!resendApiKey
-      );
 
       if (resendApiKey) {
-        console.log('[DEBUG Server] ✅ Usando Resend para envío de email');
-        try {
-          // Usar SMTP de Resend (más confiable que la API REST en algunos entornos)
-          const noreplyEmail =
-            process.env['ENV_RESEND_FROM_EMAIL'] || 'onboarding@resend.dev';
-          const noreplyName = process.env['ENV_RESEND_FROM_NAME'] || 'People';
-          const senderEmail = fromEmail || noreplyEmail;
-          const senderName = fromName || noreplyName;
+        console.error('[Email Send] ✅ Usando Resend para envío de email');
+        const noreplyEmail =
+          process.env['ENV_RESEND_FROM_EMAIL'] || 'onboarding@resend.dev';
+        const noreplyName = process.env['ENV_RESEND_FROM_NAME'] || 'People';
+        const senderEmail = fromEmail || noreplyEmail;
+        const senderName = fromName || noreplyName;
 
-          // Configurar SMTP de Resend
-          // Host: smtp.resend.com
-          // Puertos: 465 (SSL) o 587 (TLS)
-          // User: resend
-          // Password: API key
+        // Intentar via HTTP API primero (funciona en cualquier PaaS)
+        try {
+          const resendResponse = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${resendApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              from: `${senderName} <${senderEmail}>`,
+              to: recipients,
+              subject: subject,
+              html: html,
+              text: text || html.replace(/<[^>]*>/g, ''),
+            }),
+            signal: AbortSignal.timeout(15000),
+          });
+
+          const resendData = await resendResponse.json();
+
+          if (resendResponse.ok && resendData.id) {
+            console.error('[Email Send] ✅ Enviado via Resend HTTP API:', resendData.id);
+            return res.json({
+              success: true,
+              data: { messageId: resendData.id },
+            });
+          }
+
+          console.error('[Email Send] ❌ Resend HTTP API error:', JSON.stringify(resendData));
+          return res.status(resendResponse.status >= 400 ? resendResponse.status : 500).json({
+            error: 'Error al enviar email via Resend',
+            message: resendData.message || resendData.error || JSON.stringify(resendData),
+          });
+        } catch (resendHttpError: any) {
+          console.error('[Email Send] ❌ Resend HTTP falló, intentando SMTP:', resendHttpError.message);
+        }
+
+        // Fallback: Resend via SMTP
+        try {
           const envPortRaw = process.env['ENV_RESEND_SMTP_PORT'];
           const envPort = envPortRaw ? parseInt(envPortRaw) : undefined;
           const portsToTry = envPort ? [envPort] : [465, 587];
@@ -535,12 +562,12 @@ export function app(): express.Express {
               const transporter = nodemailer.createTransport({
                 host: 'smtp.resend.com',
                 port,
-                secure: port === 465, // SSL para 465; para 587 se usa STARTTLS
+                secure: port === 465,
                 requireTLS: port === 587,
-                auth: {
-                  user: 'resend',
-                  pass: resendApiKey,
-                },
+                auth: { user: 'resend', pass: resendApiKey },
+                connectionTimeout: 10000,
+                greetingTimeout: 10000,
+                socketTimeout: 15000,
               });
 
               info = await transporter.sendMail({
@@ -550,70 +577,41 @@ export function app(): express.Express {
                 html: html,
                 text: text || html.replace(/<[^>]*>/g, ''),
               });
-
-              safeLogger.safeLog('✅ Email enviado via Resend SMTP', {
-                to: recipients.join(', '),
-                port,
-              });
+              console.error(`[Email Send] ✅ Resend SMTP puerto ${port} OK`);
               break;
             } catch (err: any) {
               lastError = err;
-              safeLogger.error(`❌ Error con Resend SMTP (port ${port})`, err);
+              console.error(`[Email Send] ❌ Resend SMTP puerto ${port} falló:`, err.code, err.message);
             }
           }
 
-          if (!info) {
-            throw lastError || new Error('No se pudo enviar por Resend SMTP');
+          if (info) {
+            return res.json({
+              success: true,
+              data: { messageId: info.messageId },
+            });
           }
 
-          safeLogger.safeLog('✅ Email enviado exitosamente via Resend SMTP', {
-            to: recipients.join(', '),
-            messageId: info.messageId,
-          });
-
-          return res.json({
-            success: true,
-            data: { messageId: info.messageId },
-          });
-        } catch (resendError: any) {
-          safeLogger.error('❌ Error con Resend SMTP', resendError);
-          // Si Resend está configurado pero falló, devolver el error directamente
-          let errorMessage = 'Error desconocido de Resend SMTP';
-          if (resendError.code === 'EAUTH') {
-            errorMessage =
-              'Error de autenticación Resend SMTP. Verifica ENV_RESEND_API_KEY';
-          } else if (resendError.code === 'ECONNECTION') {
-            errorMessage =
-              'No se pudo conectar al servidor SMTP de Resend. Verifica la conexión';
-          } else if (resendError.message) {
-            errorMessage = resendError.message;
-          }
-
+          // Si todo Resend falló, devolver error (no continuar a Postmark/SMTP)
+          const errMsg = lastError?.message || 'Error desconocido';
           return res.status(500).json({
-            error: 'Error al enviar email via Resend SMTP',
-            message: errorMessage,
-            details:
-              process.env['NODE_ENV'] === 'development'
-                ? {
-                    code: resendError.code,
-                    message: resendError.message,
-                    stack: resendError.stack,
-                  }
-                : undefined,
+            error: 'Error al enviar email via Resend',
+            message: errMsg,
+          });
+        } catch (resendSmtpError: any) {
+          console.error('[Email Send] ❌ Resend SMTP error:', resendSmtpError.message);
+          return res.status(500).json({
+            error: 'Error al enviar email via Resend',
+            message: resendSmtpError.message,
           });
         }
       }
 
       // Intentar usar Postmark si Resend no está configurado
       const postmarkApiKey = process.env['ENV_POSTMARK_API_KEY'];
-      console.log('[DEBUG Server] 🔍 Verificando configuración Postmark...');
-      console.log(
-        '[DEBUG Server] 🔍 ENV_POSTMARK_API_KEY presente:',
-        !!postmarkApiKey
-      );
 
       if (postmarkApiKey) {
-        console.log('[DEBUG Server] ✅ Usando Postmark para envío de email');
+        console.error('[Email Send] Usando Postmark para envío de email');
         try {
           const noreplyEmail =
             process.env['ENV_POSTMARK_FROM_EMAIL'] || 'noreply@tu-dominio.com';
@@ -621,11 +619,6 @@ export function app(): express.Express {
           const senderEmail = fromEmail || noreplyEmail;
           const senderName = fromName || noreplyName;
 
-          // Configurar SMTP de Postmark
-          // Host: smtp.postmarkapp.com
-          // Puertos: 587 (TLS) o 2525 (alternativo)
-          // User: Server API Token
-          // Password: Server API Token (mismo que user)
           const envPortRaw = process.env['ENV_POSTMARK_SMTP_PORT'];
           const envPort = envPortRaw ? parseInt(envPortRaw) : undefined;
           const portsToTry = envPort ? [envPort] : [587, 2525];
@@ -637,12 +630,15 @@ export function app(): express.Express {
               const transporter = nodemailer.createTransport({
                 host: 'smtp.postmarkapp.com',
                 port,
-                secure: false, // false para STARTTLS
+                secure: false,
                 requireTLS: true,
                 auth: {
-                  user: postmarkApiKey, // Server API Token como username
-                  pass: postmarkApiKey, // Server API Token como password
+                  user: postmarkApiKey,
+                  pass: postmarkApiKey,
                 },
+                connectionTimeout: 10000,
+                greetingTimeout: 10000,
+                socketTimeout: 15000,
               });
 
               info = await transporter.sendMail({
@@ -652,18 +648,11 @@ export function app(): express.Express {
                 html: html,
                 text: text || html.replace(/<[^>]*>/g, ''),
               });
-
-              safeLogger.safeLog('✅ Email enviado via Postmark SMTP', {
-                to: recipients.join(', '),
-                port,
-              });
+              console.error(`[Email Send] ✅ Postmark SMTP puerto ${port} OK`);
               break;
             } catch (err: any) {
               lastError = err;
-              safeLogger.error(
-                `❌ Error con Postmark SMTP (port ${port})`,
-                err
-              );
+              console.error(`[Email Send] ❌ Postmark SMTP puerto ${port}:`, err.code, err.message);
             }
           }
 
@@ -676,29 +665,10 @@ export function app(): express.Express {
             data: { messageId: info.messageId },
           });
         } catch (postmarkError: any) {
-          safeLogger.error('❌ Error con Postmark SMTP', postmarkError);
-          let errorMessage = 'Error desconocido de Postmark SMTP';
-          if (postmarkError.code === 'EAUTH') {
-            errorMessage =
-              'Error de autenticación Postmark SMTP. Verifica ENV_POSTMARK_API_KEY';
-          } else if (postmarkError.code === 'ECONNECTION') {
-            errorMessage =
-              'No se pudo conectar al servidor SMTP de Postmark. Verifica la conexión';
-          } else if (postmarkError.message) {
-            errorMessage = postmarkError.message;
-          }
-
+          console.error('[Email Send] ❌ Postmark falló:', postmarkError.message);
           return res.status(500).json({
             error: 'Error al enviar email via Postmark SMTP',
-            message: errorMessage,
-            details:
-              process.env['NODE_ENV'] === 'development'
-                ? {
-                    code: postmarkError.code,
-                    message: postmarkError.message,
-                    stack: postmarkError.stack,
-                  }
-                : undefined,
+            message: postmarkError.message || 'Error desconocido de Postmark',
           });
         }
       }
@@ -866,8 +836,9 @@ export function app(): express.Express {
 
   // Endpoint para probar envío de email
   server.post('/api/email/test', async (req, res) => {
-    console.log('[Email Test] === NUEVA PETICIÓN DE PRUEBA ===');
-    console.log('[Email Test] Body:', JSON.stringify(req.body));
+    // IMPORTANTE: Usar console.error para que aparezca en Railway (NODE_ENV=production suprime console.log)
+    console.error('[Email Test] === NUEVA PETICIÓN DE PRUEBA ===');
+    console.error('[Email Test] Body:', JSON.stringify(req.body));
     try {
       const { to } = req.body;
 
@@ -880,11 +851,73 @@ export function app(): express.Express {
       // Intentar usar Resend primero (prioridad más alta)
       const resendApiKey = process.env['ENV_RESEND_API_KEY'];
       if (resendApiKey) {
-        console.log('[Email Test] ✅ Usando Resend para prueba de email');
+        console.error('[Email Test] ✅ Resend API key detectada, usando Resend');
+        const noreplyEmail =
+          process.env['ENV_RESEND_FROM_EMAIL'] || 'onboarding@resend.dev';
+        const noreplyName = process.env['ENV_RESEND_FROM_NAME'] || 'People';
+
+        const testHtml = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            <h2 style="color: #333;">✅ Prueba de Correo Exitosa - Resend</h2>
+            <p>Este es un correo de prueba enviado desde el sistema <strong>People</strong> usando <strong>Resend</strong>.</p>
+            <p>Si recibiste este mensaje, la configuración de Resend está funcionando correctamente.</p>
+            <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+            <p style="color: #888; font-size: 12px;">
+              Proveedor: Resend (HTTP API)<br>
+              Enviado desde: ${noreplyEmail}<br>
+              Fecha: ${new Date().toLocaleString('es-PA', {
+                timeZone: 'America/Panama',
+              })}
+            </p>
+          </div>
+        `;
+
+        // Intentar via HTTP API primero (funciona en cualquier PaaS, no necesita puertos SMTP)
         try {
-          const noreplyEmail =
-            process.env['ENV_RESEND_FROM_EMAIL'] || 'onboarding@resend.dev';
-          const noreplyName = process.env['ENV_RESEND_FROM_NAME'] || 'People';
+          console.error('[Email Test] 📤 Intentando Resend HTTP API...');
+          const resendResponse = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${resendApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              from: `${noreplyName} <${noreplyEmail}>`,
+              to: [to],
+              subject: '✅ Prueba de Correo - People (Resend)',
+              html: testHtml,
+            }),
+            signal: AbortSignal.timeout(15000), // 15s timeout
+          });
+
+          const resendData = await resendResponse.json();
+          console.error('[Email Test] Resend HTTP response:', resendResponse.status, JSON.stringify(resendData));
+
+          if (resendResponse.ok && resendData.id) {
+            console.error('[Email Test] ✅ Email enviado via Resend HTTP API:', resendData.id);
+            return res.json({
+              success: true,
+              message: 'Correo de prueba enviado correctamente via Resend',
+              provider: 'resend',
+              data: { messageId: resendData.id, to },
+            });
+          }
+
+          // Si la API devuelve error, mostrarlo
+          console.error('[Email Test] ❌ Resend HTTP API error:', JSON.stringify(resendData));
+          return res.status(resendResponse.status >= 400 ? resendResponse.status : 500).json({
+            error: 'Error al enviar via Resend',
+            message: resendData.message || resendData.error || JSON.stringify(resendData),
+            code: 'RESEND_API_ERROR',
+          });
+        } catch (resendHttpError: any) {
+          console.error('[Email Test] ❌ Resend HTTP API falló:', resendHttpError.message);
+          // Si falla HTTP API, intentar SMTP como fallback
+        }
+
+        // Fallback: Resend via SMTP (puede no funcionar si Railway bloquea puertos)
+        try {
+          console.error('[Email Test] 🔄 Intentando Resend via SMTP (fallback)...');
           const envPortRaw = process.env['ENV_RESEND_SMTP_PORT'];
           const envPort = envPortRaw ? parseInt(envPortRaw) : undefined;
           const portsToTry = envPort ? [envPort] : [465, 587];
@@ -893,72 +926,52 @@ export function app(): express.Express {
           let lastError: any;
           for (const port of portsToTry) {
             try {
+              console.error(`[Email Test] Probando Resend SMTP puerto ${port}...`);
               const transporter = nodemailer.createTransport({
                 host: 'smtp.resend.com',
                 port,
                 secure: port === 465,
                 requireTLS: port === 587,
-                auth: {
-                  user: 'resend',
-                  pass: resendApiKey,
-                },
+                auth: { user: 'resend', pass: resendApiKey },
+                connectionTimeout: 10000,
+                greetingTimeout: 10000,
+                socketTimeout: 15000,
               });
-
-              const testHtml = `
-                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                  <h2 style="color: #333;">✅ Prueba de Correo Exitosa - Resend</h2>
-                  <p>Este es un correo de prueba enviado desde el sistema <strong>People</strong> usando <strong>Resend</strong>.</p>
-                  <p>Si recibiste este mensaje, la configuración de Resend está funcionando correctamente.</p>
-                  <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-                  <p style="color: #888; font-size: 12px;">
-                    Proveedor: Resend<br>
-                    Enviado desde: ${noreplyEmail}<br>
-                    Fecha: ${new Date().toLocaleString('es-PA', {
-                      timeZone: 'America/Panama',
-                    })}
-                  </p>
-                </div>
-              `;
 
               info = await transporter.sendMail({
                 from: `${noreplyName} <${noreplyEmail}>`,
                 to: to,
-                subject: '✅ Prueba de Correo - People (Resend)',
+                subject: '✅ Prueba de Correo - People (Resend SMTP)',
                 html: testHtml,
               });
-
-              safeLogger.safeLog('✅ Email de prueba enviado via Resend', {
-                to,
-                port,
-                messageId: info.messageId,
-              });
+              console.error(`[Email Test] ✅ Resend SMTP puerto ${port} OK:`, info.messageId);
               break;
             } catch (err: any) {
               lastError = err;
-              safeLogger.error(`❌ Error con Resend SMTP (port ${port})`, err);
+              console.error(`[Email Test] ❌ Resend SMTP puerto ${port} falló:`, err.code, err.message);
             }
           }
 
-          if (!info) {
-            throw lastError || new Error('No se pudo enviar por Resend SMTP');
+          if (info) {
+            return res.json({
+              success: true,
+              message: 'Correo de prueba enviado correctamente via Resend SMTP',
+              provider: 'resend',
+              data: { messageId: info.messageId, to },
+            });
           }
 
-          return res.json({
-            success: true,
-            message: 'Correo de prueba enviado correctamente via Resend',
-            provider: 'resend',
-            data: { messageId: info.messageId, to },
-          });
-        } catch (resendError: any) {
-          safeLogger.error('❌ Error con Resend en prueba', resendError);
-          // Si Resend falla, continuar con Postmark
+          console.error('[Email Test] ❌ Todos los intentos de Resend fallaron');
+          // Continuar con Postmark/SMTP genérico
+        } catch (resendSmtpError: any) {
+          console.error('[Email Test] ❌ Resend SMTP falló completamente:', resendSmtpError.message);
         }
       }
 
       // Intentar usar Postmark si Resend no está configurado o falló
       const postmarkApiKey = process.env['ENV_POSTMARK_API_KEY'];
       if (postmarkApiKey) {
-        console.log('[Email Test] ✅ Usando Postmark para prueba de email');
+        console.error('[Email Test] Intentando Postmark...');
         try {
           const noreplyEmail =
             process.env['ENV_POSTMARK_FROM_EMAIL'] || 'noreply@tu-dominio.com';
@@ -971,6 +984,7 @@ export function app(): express.Express {
           let lastError: any;
           for (const port of portsToTry) {
             try {
+              console.error(`[Email Test] Probando Postmark SMTP puerto ${port}...`);
               const transporter = nodemailer.createTransport({
                 host: 'smtp.postmarkapp.com',
                 port,
@@ -980,6 +994,9 @@ export function app(): express.Express {
                   user: postmarkApiKey,
                   pass: postmarkApiKey,
                 },
+                connectionTimeout: 10000,
+                greetingTimeout: 10000,
+                socketTimeout: 15000,
               });
 
               const testHtml = `
@@ -1005,18 +1022,11 @@ export function app(): express.Express {
                 html: testHtml,
               });
 
-              safeLogger.safeLog('✅ Email de prueba enviado via Postmark', {
-                to,
-                port,
-                messageId: info.messageId,
-              });
+              console.error(`[Email Test] ✅ Postmark SMTP puerto ${port} OK:`, info.messageId);
               break;
             } catch (err: any) {
               lastError = err;
-              safeLogger.error(
-                `❌ Error con Postmark SMTP (port ${port})`,
-                err
-              );
+              console.error(`[Email Test] ❌ Postmark SMTP puerto ${port} falló:`, err.code, err.message);
             }
           }
 
@@ -1031,14 +1041,14 @@ export function app(): express.Express {
             data: { messageId: info.messageId, to },
           });
         } catch (postmarkError: any) {
-          safeLogger.error('❌ Error con Postmark en prueba', postmarkError);
+          console.error('[Email Test] ❌ Postmark falló:', postmarkError.message);
           // Si Postmark falla, continuar con SMTP genérico
         }
       }
 
       // Fallback a SMTP genérico (BD + env vars)
-      console.log('[Email Test] 🔄 Usando SMTP genérico para prueba de email');
-      console.log('[Email Test] 📋 Env vars presentes:', {
+      console.error('[Email Test] 🔄 Usando SMTP genérico para prueba de email');
+      console.error('[Email Test] 📋 Env vars presentes:', {
         ENV_RESEND_API_KEY: !!process.env['ENV_RESEND_API_KEY'],
         ENV_POSTMARK_API_KEY: !!process.env['ENV_POSTMARK_API_KEY'],
         ENV_SMTP_HOST: !!process.env['ENV_SMTP_HOST'],
@@ -1065,7 +1075,7 @@ export function app(): express.Express {
         });
       }
 
-      console.log('[Email Test] 🔌 Creando transporter SMTP...');
+      console.error('[Email Test] 🔌 Creando transporter SMTP genérico...');
       const transporter = createSmtpTransporter(smtpConfig);
 
       const testHtml = `
@@ -1084,18 +1094,14 @@ export function app(): express.Express {
         </div>
       `;
 
-      console.log(
-        '[Email Test] 📤 Intentando sendMail a:',
-        to,
-        '(timeout: 30s)...'
-      );
+      console.error('[Email Test] 📤 Intentando sendMail a:', to);
       const info = await transporter.sendMail({
         from: `${smtpConfig.noreplyName} <${smtpConfig.noreplyEmail}>`,
         to: to,
         subject: '✅ Prueba de Correo - People (SMTP)',
         html: testHtml,
       });
-      console.log('[Email Test] ✅ sendMail completado:', info.messageId);
+      console.error('[Email Test] ✅ sendMail completado:', info.messageId);
 
       safeLogger.safeLog('✅ Email de prueba enviado via SMTP', {
         to,
