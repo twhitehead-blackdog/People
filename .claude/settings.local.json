@@ -21,7 +21,13 @@
       "Bash(npx nx build --skip-nx-cache)",
       "mcp__plugin_supabase_supabase__list_migrations",
       "Skill(hookify:configure)",
-      "Bash(npx nx build:*)"
+      "Bash(npx nx build:*)",
+      "mcp__claude_ai_Supabase__list_projects",
+      "mcp__claude_ai_Supabase__execute_sql",
+      "mcp__claude_ai_Supabase__get_project",
+      "mcp__claude_ai_Supabase__get_publishable_keys",
+      "WebFetch(domain:fsrptlzaqjkcutoiivjr.supabase.co)",
+      "Bash(node:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

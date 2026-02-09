@@ -611,7 +611,7 @@ export class TimelogsComponent {
     const companyId = this.organizationService.getCurrentCompanyId();
     const startDate = format(start, 'yyyy-MM-dd');
     const endDate = format(end, 'yyyy-MM-dd');
-    const select = `*,approved,schedule:schedules(*),employee:employees(id,company_id)`;
+    const select = `*,schedule:schedules(*)`;
 
     const params: Record<string, string> = {
       select: select,
@@ -619,9 +619,15 @@ export class TimelogsComponent {
       end_date: `gte.${startDate}`,
     };
 
-    // Filtrar a través de employees.company_id (funciona incluso si employee_schedules no tiene company_id)
+    // Filtrar directamente por company_id de employee_schedules (la tabla tiene esta columna)
     if (companyId) {
-      params['employee.company_id'] = `eq.${companyId}`;
+      params['company_id'] = `eq.${companyId}`;
+    }
+
+    // Si hay un empleado seleccionado, filtrar para evitar superar el límite de 1000 filas de PostgREST
+    const empId = this.employeeId();
+    if (empId) {
+      params['employee_id'] = `eq.${empId}`;
     }
 
     const url = this.apiUrl.build('rest/v1/employee_schedules', params);
@@ -629,6 +635,7 @@ export class TimelogsComponent {
     return {
       url,
       method: 'GET',
+      headers: { Range: '0-9999' },
     };
   });
 
@@ -1059,9 +1066,8 @@ export class TimelogsComponent {
               }
             }
           } else {
-            // Si no hay filtro de sucursal y uniqueEmployees está vacío (no hay marcaciones),
-            // mostrar a todos los activos (comportamiento original)
-            if (uniqueEmployees.size === 0 && !uniqueEmployees.has(emp.id)) {
+            // Sin filtro de sucursal: mostrar todos los empleados activos
+            if (!uniqueEmployees.has(emp.id)) {
               uniqueEmployees.set(emp.id, emp);
             }
           }
