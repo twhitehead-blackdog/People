@@ -382,8 +382,9 @@ import { DeviceService } from '../../../../services/device.service';
     /* ===== ROW 1: Hero Cards ===== */
     .pc-row-1 {
       display: grid;
-      grid-template-columns: 1.2fr 1fr 1fr;
+      grid-template-columns: 1fr 1fr 1fr;
       gap: 1rem;
+      align-items: stretch;
     }
 
     /* Hero Card - Headcount */
@@ -396,6 +397,7 @@ import { DeviceService } from '../../../../services/device.service';
       flex-direction: column;
       position: relative;
       overflow: hidden;
+      min-height: 200px;
 
       &::before {
         content: '';
@@ -405,6 +407,7 @@ import { DeviceService } from '../../../../services/device.service';
         right: 0;
         height: 3px;
         background: linear-gradient(90deg, #fbbf24, #f59e0b);
+        border-radius: 16px 16px 0 0;
       }
     }
 
@@ -412,7 +415,9 @@ import { DeviceService } from '../../../../services/device.service';
       display: flex;
       justify-content: space-between;
       align-items: center;
+      gap: 0.5rem;
       margin-bottom: 0.75rem;
+      flex-shrink: 0;
     }
 
     .hero-icon {
@@ -441,23 +446,24 @@ import { DeviceService } from '../../../../services/device.service';
     }
 
     .hero-value {
-      font-size: 3rem;
+      font-size: 2.5rem;
       font-weight: 800;
       color: #ffffff;
-      line-height: 1;
+      line-height: 1.1;
       display: block;
     }
 
     .hero-label {
-      font-size: 0.875rem;
+      font-size: 0.8125rem;
       color: #a1a1aa;
       margin-top: 0.25rem;
       display: block;
     }
 
     .hero-chart {
-      height: 60px;
+      height: 56px;
       margin-top: auto;
+      min-height: 56px;
 
       canvas {
         width: 100% !important;
@@ -473,6 +479,9 @@ import { DeviceService } from '../../../../services/device.service';
       padding: 1.25rem;
       display: flex;
       flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      min-height: 200px;
 
       &::before {
         content: '';
@@ -482,12 +491,13 @@ import { DeviceService } from '../../../../services/device.service';
         right: 0;
         height: 3px;
         background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+        border-radius: 16px 16px 0 0;
       }
-      position: relative;
     }
 
     .gender-header {
-      margin-bottom: 1rem;
+      margin-bottom: 0.75rem;
+      flex-shrink: 0;
     }
 
     .gender-title {
@@ -501,13 +511,14 @@ import { DeviceService } from '../../../../services/device.service';
     .gender-body {
       display: flex;
       align-items: center;
-      gap: 1.25rem;
+      gap: 1rem;
       flex: 1;
+      min-height: 0;
     }
 
     .gender-chart-wrap {
-      width: 100px;
-      height: 100px;
+      width: 90px;
+      height: 90px;
       flex-shrink: 0;
 
       canvas {
@@ -519,19 +530,21 @@ import { DeviceService } from '../../../../services/device.service';
     .gender-details {
       display: flex;
       flex-direction: column;
-      gap: 0.75rem;
+      gap: 0.625rem;
       flex: 1;
+      min-width: 0;
     }
 
     .gender-item {
       display: flex;
       align-items: center;
-      gap: 0.625rem;
+      gap: 0.5rem;
 
       .gender-dot {
-        width: 10px;
-        height: 10px;
+        width: 8px;
+        height: 8px;
         border-radius: 50%;
+        flex-shrink: 0;
       }
 
       &.male .gender-dot { background: #60a5fa; }
@@ -541,23 +554,25 @@ import { DeviceService } from '../../../../services/device.service';
         display: flex;
         flex-direction: column;
         flex: 1;
+        min-width: 0;
       }
 
       .gender-count {
-        font-size: 1.125rem;
+        font-size: 1.0625rem;
         font-weight: 700;
         color: #ffffff;
       }
 
       .gender-label {
-        font-size: 0.65rem;
+        font-size: 0.6875rem;
         color: #71717a;
       }
 
       .gender-percent {
-        font-size: 0.875rem;
+        font-size: 0.8125rem;
         font-weight: 600;
         color: #a1a1aa;
+        flex-shrink: 0;
       }
     }
 
@@ -570,6 +585,8 @@ import { DeviceService } from '../../../../services/device.service';
       display: flex;
       flex-direction: column;
       position: relative;
+      overflow: hidden;
+      min-height: 200px;
 
       &::before {
         content: '';
@@ -579,6 +596,7 @@ import { DeviceService } from '../../../../services/device.service';
         right: 0;
         height: 3px;
         background: linear-gradient(90deg, #f59e0b, #fbbf24);
+        border-radius: 16px 16px 0 0;
       }
     }
 
@@ -587,18 +605,19 @@ import { DeviceService } from '../../../../services/device.service';
       align-items: center;
       gap: 0.625rem;
       margin-bottom: 0.75rem;
+      flex-shrink: 0;
     }
 
     .lates-icon {
-      width: 36px;
-      height: 36px;
+      width: 40px;
+      height: 40px;
       border-radius: 10px;
       background: rgba(245, 158, 11, 0.15);
       display: flex;
       align-items: center;
       justify-content: center;
 
-      i { font-size: 1rem; color: #f59e0b; }
+      i { font-size: 1.1rem; color: #f59e0b; }
     }
 
     .lates-title {
@@ -616,20 +635,21 @@ import { DeviceService } from '../../../../services/device.service';
       font-size: 2.5rem;
       font-weight: 800;
       color: #f59e0b;
-      line-height: 1;
+      line-height: 1.1;
       display: block;
     }
 
     .lates-label {
-      font-size: 0.75rem;
+      font-size: 0.8125rem;
       color: #71717a;
       display: block;
       margin-top: 0.25rem;
     }
 
     .lates-chart {
-      height: 50px;
+      height: 56px;
       margin-top: auto;
+      min-height: 56px;
 
       canvas {
         width: 100% !important;

@@ -12,6 +12,7 @@ type EmployeeWithDays = {
     date: Date;
     day: number;
     shift?: any;
+    scheduleWarning?: string | null;
   }>;
 };
 
@@ -64,6 +65,7 @@ type EmployeeWithDays = {
               [selectionMode]="selectionMode()"
               [isSelected]="isShiftSelected(day.shift?.id, day.date)"
               [isStoreManager]="isStoreManager()"
+              [scheduleWarning]="day.scheduleWarning ?? null"
               (edit)="onEditShift($event)"
               (delete)="onDeleteShift($event)"
               (approve)="onApproveShift($event)"

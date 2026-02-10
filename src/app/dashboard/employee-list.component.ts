@@ -11,10 +11,9 @@ import {
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
-import { Card } from 'primeng/card';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { InputText } from 'primeng/inputtext';
@@ -30,8 +29,8 @@ import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
 import { utils, writeFile } from 'xlsx';
 import { Employee, ExportColumn } from '../models';
-import { AgePipe } from '../pipes/age.pipe';
 import { ApiUrlService } from '../services/api-url.service';
+import { DeviceService } from '../services/device.service';
 import { OrganizationService } from '../services/organization.service';
 import { WassengerService } from '../services/wassenger.service';
 import { DashboardStore } from '../stores/dashboard.store';
@@ -44,13 +43,10 @@ import { EmployeeFormComponent } from './employee-form.component';
     DatePipe,
     ReactiveFormsModule,
     RouterLink,
-    AgePipe,
-    CurrencyPipe,
     Select,
     ToggleSwitch,
     TableModule,
     MenuModule,
-    Card,
     Skeleton,
     Tag,
     FormsModule,
@@ -72,328 +68,271 @@ import { EmployeeFormComponent } from './employee-form.component';
     <p-toast />
     <p-confirmDialog />
     <div class="employee-list-page w-full">
-    <p-card styleClass="employee-list-card">
-      <ng-template #title>
-        <div
-          class="flex flex-col sm:flex-row sm:items-center sm:justify-between w-full gap-3"
-        >
-          <div>
-            <h2 class="m-0 text-lg sm:text-xl">Empleados</h2>
-            <p class="text-xs sm:text-sm text-gray-400 m-0 mt-1">
-              Listado de colaboradores de la empresa
-            </p>
-          </div>
-          <div class="flex flex-wrap gap-2">
-            <p-button
-              icon="pi pi-file-excel"
-              severity="success"
-              [label]="'XLS'"
-              (onClick)="generateReport()"
-              rounded
-              class="min-h-[44px]"
-            />
-            <p-button
-              icon="pi pi-file-pdf"
-              severity="warn"
-              [label]="'PDF'"
-              (onClick)="generateReport()"
-              rounded
-              class="min-h-[44px]"
-            />
-            <p-button
-              label="Nuevo"
-              routerLink="new"
-              icon="pi pi-plus-circle"
-              rounded
-              class="min-h-[44px]"
-            />
-          </div>
+    @if (device.isDesktop()) {
+    <!-- Vista PC: layout moderno, fácil de usar, sin scroll horizontal -->
+    <div class="desktop-employee-list max-w-7xl mx-auto">
+      <!-- Barra superior: título + búsqueda + acciones -->
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-5">
+        <div>
+          <h1 class="text-2xl font-bold text-white m-0 tracking-tight">Empleados</h1>
+          <p class="text-sm text-gray-400 m-0 mt-0.5">Listado de colaboradores</p>
         </div>
-      </ng-template>
-      <!-- Panel de Filtros Colapsable -->
-      <div
-        class="mb-4 bg-neutral-800/50 rounded-lg border border-neutral-700/50 overflow-hidden"
-      >
-        <!-- Header del panel de filtros -->
-        <button
-          type="button"
-          (click)="filtersExpanded.set(!filtersExpanded())"
-          class="w-full flex items-center justify-between p-4 hover:bg-neutral-700/30 transition-colors"
-        >
-          <div class="flex items-center gap-3">
-            <i class="pi pi-filter text-yellow-400"></i>
-            <span class="text-lg font-semibold text-white">Filtros</span>
+        <div class="flex flex-wrap items-center gap-3">
+          <span class="relative flex-1 sm:flex-initial sm:w-72">
+            <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"></i>
+            <input
+              pInputText
+              type="text"
+              [(ngModel)]="searchTerm"
+              placeholder="Buscar por nombre, número o cédula..."
+              class="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-neutral-600 bg-neutral-800/80 text-white placeholder-gray-500 focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/30 transition-all"
+            />
+          </span>
+          <button
+            type="button"
+            (click)="filtersExpanded.set(!filtersExpanded())"
+            class="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-neutral-600 bg-neutral-800/80 text-gray-300 hover:bg-neutral-700/80 hover:text-white transition-colors text-sm font-medium"
+          >
+            <i class="pi pi-filter"></i>
+            Filtros
             @if (hasActiveFilters()) {
-            <span
-              class="px-2 py-1 bg-cyan-500/20 text-cyan-300 text-xs font-semibold rounded-full"
-            >
-              {{ getActiveFiltersCount() }} activo(s)
-            </span>
+              <span class="px-1.5 py-0.5 bg-amber-500/25 text-amber-300 text-xs font-semibold rounded-full">{{ getActiveFiltersCount() }}</span>
             }
-          </div>
-          <i
-            class="pi transition-transform duration-300"
-            [class.pi-chevron-down]="!filtersExpanded()"
-            [class.pi-chevron-up]="filtersExpanded()"
-            [class.text-gray-400]="true"
-          ></i>
-        </button>
-
-        <!-- Contenido desplegable -->
-        @if (filtersExpanded()) {
-        <div class="px-4 pb-4 border-t border-neutral-700/50 pt-4">
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <!-- Filtro por Sucursal -->
-            <div>
-              <label class="block text-sm font-medium text-gray-300 mb-2">
-                <i class="pi pi-building mr-2"></i>Sucursal
-              </label>
-              <p-multiSelect
-                [(ngModel)]="branchFilter"
-                [options]="store.branches.entities()"
-                placeholder="TODAS"
-                optionLabel="name"
-                appendTo="body"
-                class="w-full"
-              />
-            </div>
-
-            <!-- Filtro por Área -->
-            <div>
-              <label class="block text-sm font-medium text-gray-300 mb-2">
-                <i class="pi pi-sitemap mr-2"></i>Área
-              </label>
-              <p-multiSelect
-                [(ngModel)]="departmentFilter"
-                [options]="store.departments.entities()"
-                placeholder="TODAS"
-                optionLabel="name"
-                appendTo="body"
-                class="w-full"
-              />
-            </div>
-
-            <!-- Filtro por Cargo -->
-            <div>
-              <label class="block text-sm font-medium text-gray-300 mb-2">
-                <i class="pi pi-briefcase mr-2"></i>Cargo
-              </label>
-              <p-multiSelect
-                [(ngModel)]="positionFilter"
-                [options]="store.positions.entities()"
-                placeholder="TODOS"
-                optionLabel="name"
-                appendTo="body"
-                class="w-full"
-              />
-            </div>
-
-            <!-- Filtro por Género -->
-            <div>
-              <label class="block text-sm font-medium text-gray-300 mb-2">
-                <i class="pi pi-users mr-2"></i>Género
-              </label>
-              <p-select
-                [options]="genders"
-                [(ngModel)]="genderFilter"
-                optionLabel="label"
-                optionValue="value"
-                placeholder="Todos"
-                appendTo="body"
-                [showClear]="true"
-                class="w-full"
-              >
-                <ng-template let-option #item>
-                  <div class="flex items-center gap-2">
-                    <i
-                      [ngClass]="
-                        option.value === 'M' ? 'pi pi-mars' : 'pi pi-venus'
-                      "
-                    ></i>
-                    {{ option.label }}
-                  </div>
-                </ng-template>
-              </p-select>
-            </div>
-
-            <!-- Filtro Incluir Inactivos -->
-            <div>
-              <label class="block text-sm font-medium text-gray-300 mb-2">
-                <i class="pi pi-toggle-on mr-2"></i>Estado
-              </label>
-              <div class="flex items-center gap-2">
-                <p-toggleswitch
-                  [formControl]="inactiveToggle"
-                  inputId="active"
-                />
-                <label for="active" class="text-sm text-gray-300 cursor-pointer"
-                  >Incluir inactivos</label
-                >
-              </div>
-            </div>
-          </div>
+          </button>
+          <p-button icon="pi pi-file-excel" severity="success" [label]="'Exportar'" (onClick)="generateReport()" rounded class="!min-h-[42px]" pTooltip="Exportar a Excel" tooltipPosition="bottom" />
+          <p-button label="Nuevo empleado" routerLink="new" icon="pi pi-plus" rounded class="!min-h-[42px]" />
         </div>
-        }
       </div>
 
-      <div class="employee-table-wrap overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+      <!-- Filtros en una sola fila (colapsable) -->
+      @if (filtersExpanded()) {
+        <div class="flex flex-wrap items-end gap-4 p-4 rounded-xl border border-neutral-700/50 bg-neutral-800/40 mb-5">
+          <div class="min-w-[140px]">
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Sucursal</label>
+            <p-multiSelect
+              [(ngModel)]="branchFilter"
+              [options]="store.branches.entities()"
+              placeholder="Todas"
+              optionLabel="name"
+              appendTo="body"
+              class="w-full"
+              styleClass="!min-h-[38px]"
+            />
+          </div>
+          <div class="min-w-[140px]">
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Área</label>
+            <p-multiSelect
+              [(ngModel)]="departmentFilter"
+              [options]="store.departments.entities()"
+              placeholder="Todas"
+              optionLabel="name"
+              appendTo="body"
+              class="w-full"
+              styleClass="!min-h-[38px]"
+            />
+          </div>
+          <div class="min-w-[140px]">
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Cargo</label>
+            <p-multiSelect
+              [(ngModel)]="positionFilter"
+              [options]="store.positions.entities()"
+              placeholder="Todos"
+              optionLabel="name"
+              appendTo="body"
+              class="w-full"
+              styleClass="!min-h-[38px]"
+            />
+          </div>
+          <div class="min-w-[120px]">
+            <label class="block text-xs font-medium text-gray-400 mb-1.5">Género</label>
+            <p-select
+              [options]="genders"
+              [(ngModel)]="genderFilter"
+              optionLabel="label"
+              optionValue="value"
+              placeholder="Todos"
+              appendTo="body"
+              [showClear]="true"
+              class="w-full"
+              styleClass="!min-h-[38px]"
+            />
+          </div>
+          <div class="flex items-center gap-2">
+            <p-toggleswitch [formControl]="inactiveToggle" inputId="desktop-inactive" />
+            <label for="desktop-inactive" class="text-sm text-gray-400 cursor-pointer whitespace-nowrap">Incluir inactivos</label>
+          </div>
+          @if (hasActiveFilters()) {
+            <p-button label="Limpiar" icon="pi pi-times" [outlined]="true" severity="secondary" size="small" (onClick)="clearFilters()" class="!min-h-[38px]" />
+          }
+        </div>
+      }
+
+      <!-- Tabla compacta: solo columnas esenciales para caber sin scroll -->
+      <div class="rounded-xl border border-neutral-700/50 bg-neutral-800/40 overflow-hidden">
         <p-table
           #dt
           [value]="this.filtered()"
           [loading]="store.employees.isLoading()"
           [paginator]="true"
-          [rows]="20"
-          [rowsPerPageOptions]="[10, 20, 50, 100]"
-          [scrollable]="true"
+          [rows]="15"
+          [rowsPerPageOptions]="[10, 15, 25, 50]"
           dataKey="id"
           paginatorDropdownAppendTo="body"
           [showCurrentPageReport]="true"
-          currentPageReportTemplate="Mostrando {first} a {last} de {totalRecords} empleados"
-          styleClass="p-datatable-sm p-datatable-striped employee-list-table min-w-full"
+          currentPageReportTemplate="{totalRecords} empleados"
+          styleClass="p-datatable-sm p-datatable-striped desktop-employee-table"
         >
           <ng-template pTemplate="empty">
-            <div class="text-center py-12 px-4 text-gray-400">
-              <i class="pi pi-inbox text-5xl mb-4 block opacity-60"></i>
-              <p class="text-base font-medium">No se encontraron empleados</p>
-              <p class="text-sm mt-1">Prueba a cambiar los filtros o el texto de búsqueda.</p>
-            </div>
-          </ng-template>
-          <ng-template #caption>
-            <div class="flex flex-col sm:flex-row gap-3 items-center mb-3">
-              <input
-                pInputText
-                type="text"
-                [(ngModel)]="searchTerm"
-                placeholder="Buscar por número, nombre o cédula..."
-                class="w-full sm:max-w-sm flex-1 text-sm rounded-lg border-neutral-600 bg-neutral-800/80 px-3 py-2"
-              />
+            <div class="text-center py-16 px-4 text-gray-400">
+              <i class="pi pi-users text-5xl mb-4 block opacity-50"></i>
+              <p class="text-base font-medium text-white/80">No hay empleados</p>
+              <p class="text-sm mt-1">Ajusta la búsqueda o los filtros.</p>
             </div>
           </ng-template>
           <ng-template #header>
-            <tr class="employee-table-header-row">
-              <th pSortableColumn="employee_number" class="col-number">Número<p-sortIcon field="employee_number" /></th>
-              <th pSortableColumn="short_name" class="col-name">Nombre<p-sortIcon field="short_name" /></th>
+            <tr>
+              <th pSortableColumn="employee_number" class="desktop-th w-20">Nº<p-sortIcon field="employee_number" /></th>
+              <th pSortableColumn="short_name" class="desktop-th text-center">Nombre<p-sortIcon field="short_name" /></th>
               @if (inactiveValue()) {
-              <th pSortableColumn="is_active" class="col-status">Estado<p-sortIcon field="is_active" /></th>
+                <th pSortableColumn="is_active" class="desktop-th w-24">Estado<p-sortIcon field="is_active" /></th>
               }
-              <th pSortableColumn="document_id" class="col-doc">Cédula<p-sortIcon field="document_id" /></th>
-              <th pSortableColumn="branch.name" class="col-branch">Sucursal<p-sortIcon field="branch.name" /></th>
-              <th pSortableColumn="department.name" class="col-area">Área<p-sortIcon field="department.name" /></th>
-              <th class="col-position" style="width: 150px; max-width: 150px; min-width: 120px;" pSortableColumn="position.name">Cargo<p-sortIcon field="position.name" /></th>
-              <th pSortableColumn="monthly_salary" class="col-salary">Salario<p-sortIcon field="monthly_salary" /></th>
-              <th pSortableColumn="uniform_size" class="col-size">Talla<p-sortIcon field="uniform_size" /></th>
-              <th pSortableColumn="start_date" class="col-date">F. inicio<p-sortIcon field="start_date" /></th>
-              <th pSortableColumn="birth_date" class="col-birth">F. nacimiento<p-sortIcon field="birth_date" /></th>
-              <th pSortableColumn="gender" class="col-gender">Sexo<p-sortIcon field="gender" /></th>
-              <th pSortableColumn="created_at" class="col-created hide-sm">Creado<p-sortIcon field="created_at" /></th>
-              <th class="col-actions">Acciones</th>
+              <th pSortableColumn="branch.name" class="desktop-th">Sucursal<p-sortIcon field="branch.name" /></th>
+              <th pSortableColumn="department.name" class="desktop-th">Área<p-sortIcon field="department.name" /></th>
+              <th pSortableColumn="position.name" class="desktop-th">Cargo<p-sortIcon field="position.name" /></th>
+              <th pSortableColumn="start_date" class="desktop-th w-28">F. inicio<p-sortIcon field="start_date" /></th>
+              <th class="desktop-th w-40 text-right pr-4">Acciones</th>
             </tr>
           </ng-template>
-          <ng-template #body let-item let-columns="columns">
-            <tr>
-              <td>{{ getEmployeeDisplayNumber(item) }}</td>
-              <td>
-                <a
-                  [routerLink]="item.id"
-                  class="text-primary-700 font-semibold hover:underline"
-                  >{{ item.short_name }}</a
-                >
-              </td>
-              @if (inactiveValue()) {
-              <td>
-                <p-tag
-                  [severity]="item.is_active ? 'success' : 'danger'"
-                  [value]="item.is_active ? 'ACTIVO' : 'INACTIVO'"
-                />
-              </td>
-
-              }
-              <td>{{ item.document_id }}</td>
-              <td [class.text-red-600]="!item.branch">
-                {{ item.branch?.name || 'SIN SUCURSAL' }}
-              </td>
-              <td>{{ item.department?.name || 'SIN AREA' }}</td>
-              <td
-                class="position-cell"
-                [pTooltip]="item.position?.name || 'SIN CARGO'"
-              >
-                {{ item.position?.name || 'SIN CARGO' }}
-              </td>
-              <td>{{ item.monthly_salary | currency : '$' }}</td>
-              <td>{{ item.uniform_size }}</td>
-              <td>{{ item.start_date | date : 'mediumDate' }}</td>
-              <td>
-                {{ item.birth_date | date : 'mediumDate' }} ({{
-                  item.birth_date | age
-                }})
-              </td>
-              <td class="col-gender">
-                <span class="flex items-center gap-2 justify-center min-w-[7rem]">
-                  <i
-                    [ngClass]="
-                      item.gender === 'M'
-                        ? 'pi pi-mars text-sky-600 dark:text-sky-400'
-                        : 'pi pi-venus text-pink-600 dark:text-pink-400'
-                    "
-                  ></i>
-                  {{ item.gender === 'M' ? 'Masculino' : 'Femenino' }}
+          <ng-template #body let-item>
+            <tr class="desktop-tr desktop-tr-clickable cursor-pointer" (click)="navigateToEmployee(item.id)">
+              <td class="font-mono text-xs text-gray-400">{{ getEmployeeDisplayNumber(item) }}</td>
+              <td class="text-center">
+                <span class="desktop-name-link">
+                  {{ item.short_name }}
+                  @if (inactiveValue() && !item.is_active) {
+                    <span class="ml-1.5 text-[10px] text-red-400 font-medium">Inactivo</span>
+                  }
                 </span>
               </td>
-              <td class="col-created hide-sm">{{ item.created_at | date : 'medium' }}</td>
-              <td>
-                <div class="flex gap-1 sm:gap-2 flex-nowrap">
-                  <p-button
-                    icon="pi pi-info-circle"
-                    [routerLink]="item.id"
-                    rounded
-                    text
-                    pTooltip="Ver detalles"
-                    class="min-w-[44px] min-h-[44px]"
-                  />
-                  <p-button
-                    icon="pi pi-pen-to-square"
-                    [routerLink]="[item.id, 'edit']"
-                    rounded
-                    text
-                    severity="success"
-                    pTooltip="Editar"
-                    class="min-w-[44px] min-h-[44px]"
-                  />
+              @if (inactiveValue()) {
+                <td>
+                  <p-tag [severity]="item.is_active ? 'success' : 'danger'" [value]="item.is_active ? 'Activo' : 'Inactivo'" styleClass="!text-xs !px-2 !py-0.5" />
+                </td>
+              }
+              <td [class.text-red-400]="!item.branch" class="text-sm">{{ item.branch?.name || '—' }}</td>
+              <td class="text-sm">{{ item.department?.name || '—' }}</td>
+              <td class="text-sm max-w-[140px] truncate" [pTooltip]="item.position?.name || '—'">{{ item.position?.name || '—' }}</td>
+              <td class="text-sm text-gray-300">{{ item.start_date | date : 'd/M/yyyy' }}</td>
+              <td class="text-right pr-2" (click)="$event.stopPropagation()">
+                <div class="flex gap-0.5 justify-end">
+                  <p-button icon="pi pi-eye" [routerLink]="item.id" rounded [text]="true" size="small" pTooltip="Ver" class="!min-w-[36px] !min-h-[36px]" />
+                  <p-button icon="pi pi-pencil" [routerLink]="[item.id, 'edit']" rounded [text]="true" severity="success" size="small" pTooltip="Editar" class="!min-w-[36px] !min-h-[36px]" />
                   @if (!item.has_portal_access) {
-                  <p-button
-                    icon="pi pi-user-plus"
-                    (click)="inviteToPortal(item)"
-                    rounded
-                    text
-                    severity="info"
-                    pTooltip="Invitar al Portal"
-                    [loading]="invitingEmployeeId() === item.id"
-                    class="min-w-[44px] min-h-[44px]"
-                  />
+                    <p-button icon="pi pi-user-plus" (click)="inviteToPortal(item)" rounded [text]="true" severity="info" size="small" pTooltip="Invitar al portal" [loading]="invitingEmployeeId() === item.id" class="!min-w-[36px] !min-h-[36px]" />
                   } @else {
-                  <p-tag
-                    value="Portal Activo"
-                    severity="success"
-                    icon="pi pi-check-circle"
-                    class="text-xs"
-                  />
+                    <span class="inline-flex items-center text-[10px] text-green-400 px-1.5" title="Portal activo"><i class="pi pi-check-circle mr-0.5"></i>Portal</span>
                   }
                 </div>
               </td>
             </tr>
           </ng-template>
           <ng-template #loadingbody>
-            <tr style="height: 5rem">
-              @for (col of dt.columns; track $index) {
-              <td [attr.colspan]="col">
-                <p-skeleton shape="circle" size="5rem" class="mx-auto" />
-              </td>
-              }
-            </tr>
+            @for (i of [1,2,3,4,5]; track i) {
+              <tr class="desktop-tr">
+                <td colspan="8"><p-skeleton width="100%" height="2.5rem" /></td>
+              </tr>
+            }
           </ng-template>
         </p-table>
       </div>
-    </p-card>
+    </div>
+    } @else {
+    <!-- Vista móvil: lista de empleados en cards -->
+    <div class="mobile-employee-list flex flex-col min-h-[60vh]">
+      <header class="sticky top-0 z-20 bg-neutral-800/95 border-b border-neutral-700/50 px-3 py-3 shadow-sm">
+        <div class="flex items-center justify-between gap-2 mb-3">
+          <h2 class="m-0 text-lg font-bold text-white truncate">Empleados</h2>
+          <div class="flex gap-1 flex-shrink-0">
+            <p-button icon="pi pi-plus" [label]="''" routerLink="new" rounded size="small" pTooltip="Nuevo" tooltipPosition="bottom" />
+            <p-button icon="pi pi-file-excel" [label]="''" severity="success" (onClick)="generateReport()" rounded size="small" pTooltip="Exportar" tooltipPosition="bottom" />
+          </div>
+        </div>
+        <input pInputText type="text" [(ngModel)]="searchTerm" placeholder="Buscar por nombre, número o cédula..." class="w-full text-sm rounded-lg border-neutral-600 bg-neutral-900/80 px-3 py-2.5 text-white placeholder-gray-500" />
+        <button type="button" (click)="filtersExpanded.set(!filtersExpanded())" class="w-full mt-2 flex items-center justify-between py-2 px-3 rounded-lg bg-neutral-700/50 border border-neutral-600 text-left text-sm text-gray-300">
+          <span><i class="pi pi-filter text-amber-400 mr-2"></i>Filtros @if (hasActiveFilters()) { <span class="text-amber-400 text-xs">({{ getActiveFiltersCount() }})</span> }</span>
+          <i [class]="filtersExpanded() ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"></i>
+        </button>
+        @if (filtersExpanded()) {
+          <div class="mt-2 p-3 rounded-lg bg-neutral-800/80 border border-neutral-700/50 space-y-3">
+            <div>
+              <label class="block text-xs font-medium text-gray-400 mb-1">Sucursal</label>
+              <p-multiSelect [(ngModel)]="branchFilter" [options]="store.branches.entities()" placeholder="Todas" optionLabel="name" appendTo="body" class="w-full" styleClass="w-full" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-400 mb-1">Área</label>
+              <p-multiSelect [(ngModel)]="departmentFilter" [options]="store.departments.entities()" placeholder="Todas" optionLabel="name" appendTo="body" class="w-full" styleClass="w-full" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-400 mb-1">Cargo</label>
+              <p-multiSelect [(ngModel)]="positionFilter" [options]="store.positions.entities()" placeholder="Todos" optionLabel="name" appendTo="body" class="w-full" styleClass="w-full" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-400 mb-1">Género</label>
+              <p-select [options]="genders" [(ngModel)]="genderFilter" optionLabel="label" optionValue="value" placeholder="Todos" appendTo="body" [showClear]="true" class="w-full" styleClass="w-full" />
+            </div>
+            <div class="flex items-center gap-2 pt-1">
+              <p-toggleswitch [formControl]="inactiveToggle" inputId="mobile-inactive" />
+              <label for="mobile-inactive" class="text-sm text-gray-400">Incluir inactivos</label>
+            </div>
+            <p-button label="Limpiar filtros" icon="pi pi-filter-slash" [outlined]="true" severity="secondary" size="small" (onClick)="clearFilters()" [disabled]="!hasActiveFilters()" class="w-full" />
+          </div>
+        }
+      </header>
+
+      <main class="flex-1 overflow-y-auto px-3 py-3">
+        @if (store.employees.isLoading()) {
+          <div class="flex justify-center py-12"><p-skeleton width="100%" height="4rem" class="mb-2" /></div>
+          <p-skeleton width="100%" height="4rem" class="mb-2" />
+          <p-skeleton width="100%" height="4rem" />
+        } @else if (filtered().length === 0) {
+          <div class="text-center py-12 text-gray-400">
+            <i class="pi pi-inbox text-4xl block mb-2 opacity-60"></i>
+            <p class="text-sm font-medium">No hay empleados</p>
+            <p class="text-xs mt-1">Ajusta filtros o búsqueda</p>
+          </div>
+        } @else {
+          <div class="flex flex-col gap-1.5 pb-4">
+            @for (item of filtered(); track item.id) {
+              <div (click)="navigateToEmployee(item.id)" class="block rounded-lg border border-neutral-700/50 bg-neutral-800/80 p-2.5 active:bg-neutral-700/50 transition-colors cursor-pointer">
+                <div class="flex items-center justify-between gap-2">
+                  <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span class="text-[11px] font-mono text-gray-500">{{ getEmployeeDisplayNumber(item) }}</span>
+                      @if (inactiveValue() && !item.is_active) {
+                        <p-tag value="INACTIVO" severity="danger" [rounded]="true" styleClass="text-[10px] py-0" />
+                      }
+                    </div>
+                    <p class="font-semibold text-white text-sm leading-tight m-0 mt-0.5 truncate">{{ item.short_name }}</p>
+                    <p class="text-[11px] text-gray-400 leading-tight m-0 mt-0.5 truncate">{{ item.branch?.name || 'Sin sucursal' }} · {{ item.position?.name || 'Sin cargo' }}@if (item.department?.name) { · {{ item.department?.name }} }</p>
+                  </div>
+                  <i class="pi pi-chevron-right text-gray-500 flex-shrink-0 text-sm"></i>
+                </div>
+                <div class="flex gap-1.5 mt-1.5 flex-wrap" (click)="$event.stopPropagation()">
+                  <p-button icon="pi pi-eye" [label]="''" [routerLink]="item.id" rounded text size="small" class="min-w-[32px] min-h-[32px]" pTooltip="Ver" tooltipPosition="top" />
+                  <p-button icon="pi pi-pen" [label]="''" [routerLink]="[item.id, 'edit']" rounded text severity="success" size="small" class="min-w-[32px] min-h-[32px]" pTooltip="Editar" tooltipPosition="top" />
+                  @if (!item.has_portal_access) {
+                    <p-button icon="pi pi-user-plus" [label]="''" (click)="inviteToPortal(item)" rounded text severity="info" size="small" [loading]="invitingEmployeeId() === item.id" class="min-w-[32px] min-h-[32px]" pTooltip="Invitar al portal" tooltipPosition="top" />
+                  } @else {
+                    <p-tag value="Portal" severity="success" icon="pi pi-check" styleClass="text-[10px] py-0" />
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        }
+      </main>
+    </div>
+    }
     </div>
   `,
   styles: `
@@ -402,7 +341,59 @@ import { EmployeeFormComponent } from './employee-form.component';
       width: 100%;
     }
 
-    /* Card integrada al tema del admin (mismo fondo y borde que el resto) */
+    /* Vista PC: listado moderno */
+    :host ::ng-deep .desktop-employee-list .desktop-employee-table.p-datatable {
+      background: transparent !important;
+    }
+    :host ::ng-deep .desktop-employee-list .desktop-employee-table .p-datatable-thead > tr > th.desktop-th {
+      padding: 0.75rem 1rem !important;
+      font-size: 0.6875rem !important;
+      font-weight: 600 !important;
+      letter-spacing: 0.05em !important;
+      text-transform: uppercase !important;
+      color: #9ca3af !important;
+      background: rgba(31, 41, 55, 0.8) !important;
+      border-bottom: 1px solid rgba(75, 85, 99, 0.5) !important;
+    }
+    :host ::ng-deep .desktop-employee-list .desktop-employee-table .p-datatable-tbody > tr.desktop-tr > td {
+      padding: 0.75rem 1rem !important;
+      font-size: 0.875rem !important;
+      color: #e5e7eb !important;
+      border-bottom: 1px solid rgba(75, 85, 99, 0.25) !important;
+      vertical-align: middle !important;
+    }
+    :host ::ng-deep .desktop-employee-list .desktop-employee-table .p-datatable-tbody > tr.desktop-tr:hover > td {
+      background: rgba(55, 65, 81, 0.35) !important;
+    }
+    :host ::ng-deep .desktop-employee-list .desktop-employee-table .p-datatable-tbody > tr.desktop-tr:nth-child(even) > td {
+      background: rgba(31, 41, 55, 0.3) !important;
+    }
+    :host ::ng-deep .desktop-employee-list .desktop-employee-table .p-datatable-tbody > tr.desktop-tr:nth-child(even):hover > td {
+      background: rgba(55, 65, 81, 0.35) !important;
+    }
+    :host .desktop-name-link {
+      color: #fbbf24;
+      font-weight: 600;
+      transition: color 0.15s ease;
+    }
+    :host .desktop-tr-clickable:hover .desktop-name-link {
+      color: #fcd34d;
+    }
+    :host ::ng-deep .desktop-employee-list .desktop-employee-table .p-datatable-thead > tr > th.desktop-th.text-center,
+    :host ::ng-deep .desktop-employee-list .desktop-employee-table .p-datatable-tbody > tr > td.text-center {
+      text-align: center !important;
+    }
+    :host ::ng-deep .desktop-employee-list .desktop-employee-table .p-paginator {
+      background: rgba(31, 41, 55, 0.6) !important;
+      border-top: 1px solid rgba(75, 85, 99, 0.5) !important;
+      padding: 0.5rem 1rem !important;
+    }
+    :host ::ng-deep .desktop-employee-list .desktop-employee-table .p-paginator .p-paginator-current,
+    :host ::ng-deep .desktop-employee-list .desktop-employee-table .p-paginator button {
+      color: #9ca3af !important;
+    }
+
+    /* Card integrada al tema del admin (mismo fondo y borde que el resto) - solo móvil/legacy */
     :host ::ng-deep .employee-list-card.p-card {
       background: rgba(31, 41, 55, 0.95) !important;
       border: 1px solid rgba(75, 85, 99, 0.5) !important;
@@ -589,12 +580,12 @@ import { EmployeeFormComponent } from './employee-form.component';
       margin-left: 0.25rem !important;
     }
 
-    /* Columna ordenada activa */
+    /* Columna ordenada activa: acento ámbar */
     :host ::ng-deep .p-datatable .p-datatable-thead > tr > th.p-datatable-sortable-column.p-highlight,
     :host ::ng-deep .p-datatable .p-datatable-thead > tr > th.p-datatable-sortable-column.p-datatable-column-sorted {
-      background: linear-gradient(135deg, rgba(107, 114, 128, 0.2) 0%, rgba(107, 114, 128, 0.1) 100%) !important;
-      color: #d1d5db !important;
-      border-bottom-color: rgba(107, 114, 128, 0.5) !important;
+      background: linear-gradient(135deg, rgba(251, 191, 36, 0.12) 0%, rgba(251, 191, 36, 0.05) 100%) !important;
+      color: #fcd34d !important;
+      border-bottom-color: rgba(251, 191, 36, 0.5) !important;
     }
 
     /* Animación de iconos de ordenamiento */
@@ -616,7 +607,8 @@ import { EmployeeFormComponent } from './employee-form.component';
       transform: rotate(180deg) !important;
     }
 
-    /* Enlaces modernos con ellipsis */
+    /* Enlaces nombre: ámbar acorde al tema, sin azul */
+    :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td a.employee-name-link,
     :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td a {
       display: inline-block;
       max-width: 100%;
@@ -626,14 +618,15 @@ import { EmployeeFormComponent } from './employee-form.component';
       vertical-align: middle;
       text-align: center !important;
       margin: 0 auto;
-      color: #60a5fa !important;
-      font-weight: 500 !important;
-      transition: all 0.2s ease !important;
+      color: #fbbf24 !important;
+      font-weight: 600 !important;
+      transition: color 0.2s ease, text-decoration 0.2s ease !important;
       text-decoration: none !important;
     }
 
+    :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td a.employee-name-link:hover,
     :host ::ng-deep .p-datatable .p-datatable-tbody > tr > td a:hover {
-      color: #3b82f6 !important;
+      color: #fcd34d !important;
       text-decoration: underline !important;
     }
 
@@ -696,6 +689,15 @@ import { EmployeeFormComponent } from './employee-form.component';
       color: #f87171 !important;
       font-weight: 500 !important;
     }
+
+    /* Vista móvil: cards */
+    .mobile-employee-list a.no-underline {
+      text-decoration: none;
+      color: inherit;
+    }
+    :host ::ng-deep .mobile-employee-list .p-button {
+      margin: 0;
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -707,8 +709,15 @@ export class EmployeeListComponent implements OnInit {
   private confirmationService = inject(ConfirmationService);
   private wassengerService = inject(WassengerService);
   private organizationService = inject(OrganizationService);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  protected device = inject(DeviceService);
 
   public invitingEmployeeId = signal<string | null>(null);
+
+  navigateToEmployee(id: string): void {
+    this.router.navigate([id], { relativeTo: this.route });
+  }
 
   public inactiveToggle = new FormControl(false, { nonNullable: true });
   public probatories = [
@@ -749,6 +758,13 @@ export class EmployeeListComponent implements OnInit {
     if (this.genderFilter() !== null) count++;
     return count;
   });
+
+  public clearFilters(): void {
+    this.branchFilter.set([]);
+    this.departmentFilter.set([]);
+    this.positionFilter.set([]);
+    this.genderFilter.set(null);
+  }
 
   public filtered = computed(() => {
     const employees = this.store.employees.employeesList().filter(

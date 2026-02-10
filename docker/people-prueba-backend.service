@@ -1,0 +1,29 @@
+# Servicio systemd para la versión de PRUEBA de People (puerto 3001).
+# No tocar la producción: los cambios se hacen en /opt/people-prueba.
+#
+# Instalar:
+#   sudo cp /opt/people-prueba/docker/people-prueba-backend.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable people-prueba-backend
+#   sudo systemctl start people-prueba-backend
+#
+# Ver estado: sudo systemctl status people-prueba-backend
+# Reiniciar tras cambios: sudo systemctl restart people-prueba-backend
+
+[Unit]
+Description=People Backend - Versión prueba (puerto 3001)
+After=network.target docker.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/people-prueba
+Environment=PORT=3001
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/npx --yes tsx /opt/people-prueba/server.ts
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

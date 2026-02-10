@@ -86,8 +86,8 @@ export const timeclockGuard: CanActivateFn = (route, state) => {
               'Asistente de peluquería',
             ];
 
-            // Lista de cargos que tienen acceso especial a gestión de tiempo y reloj de marcaciones
-            const timeManagementAccessPositions = ['gerente de tienda'];
+            // Lista de cargos que tienen acceso especial a gestión de tiempo y reloj de marcaciones (gerente y subgerente)
+            const timeManagementAccessPositions = ['gerente de tienda', 'subgerente'];
 
             const positionName = employee.position?.name || '';
             const isPortalOnlyPosition = portalOnlyPositions.some((pos) =>

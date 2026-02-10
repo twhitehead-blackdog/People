@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Cambiar etiqueta de Salesperson a Veterinario y agregar campos -->
+    <record id="view_pos_pos_form_inherit_estilista" model="ir.ui.view">
+        <field name="name">pos.order.view.form.inherit.estilista</field>
+        <field name="model">pos.order</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_pos_form"/>
+        <field name="priority">100</field>
+        <field name="arch" type="xml">
+            <!-- Cambiar etiqueta de user_id de Salesperson a Veterinario -->
+            <xpath expr="//field[@name='lines']/list/field[@name='user_id']" position="attributes">
+                <attribute name="string">Veterinario</attribute>
+            </xpath>
+            <!-- Agregar campos de estilistas (Many2many) y mascota (Many2one) después de user_id (Veterinario) -->
+            <xpath expr="//field[@name='lines']/list/field[@name='user_id']" position="after">
+                <field name="estilista_ids" string="Estilistas" widget="many2many_tags" optional="show"/>
+                <field name="mascota_id" string="Mascota" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+    
+    <!-- También agregar campos a la vista tree de pos.order.line -->
+    <record id="view_pos_order_line_tree_inherit_mascotas" model="ir.ui.view">
+        <field name="name">pos.order.line.tree.inherit.mascotas</field>
+        <field name="model">pos.order.line</field>
+        <field name="inherit_id" ref="point_of_sale.view_pos_order_line"/>
+        <field name="priority">100</field>
+        <field name="arch" type="xml">
+            <xpath expr="//list" position="inside">
+                <field name="estilista_ids" string="Estilistas" widget="many2many_tags" optional="show"/>
+                <field name="mascota_id" string="Mascota" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

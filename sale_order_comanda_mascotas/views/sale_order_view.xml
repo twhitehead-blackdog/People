@@ -1,0 +1,322 @@
+<odoo>
+  <!-- Vista de Lista para Sale Order con contador de cortes -->
+  <record id="view_sale_order_tree_cortes" model="ir.ui.view">
+    <field name="name">sale.order.tree.cortes</field>
+    <field name="model">sale.order</field>
+    <field name="inherit_id" ref="sale.view_order_tree"/>
+    <field name="arch" type="xml">
+      <xpath expr="//field[@name='amount_total']" position="after">
+        <field name="count_peluqueria" string="Peluquería" optional="show" sum="Total Peluquería"/>
+        <field name="count_solo_bano" string="Solo Baño" optional="show" sum="Total Solo Baño"/>
+        <field name="count_bano_y_corte" string="Baño y Corte" optional="show" sum="Total Baño y Corte"/>
+        <field name="count_cortes" string="Con Corte" optional="show" sum="Total Cortes"/>
+        <field name="count_veterinaria" string="Veterinaria" optional="show" sum="Total Veterinaria"/>
+        <field name="count_total_mascotas" string="Mascotas" optional="hide" sum="Total Mascotas"/>
+      </xpath>
+    </field>
+  </record>
+
+  <!-- Vista Kanban para Sale Order con mascotas -->
+  <record id="view_sale_order_form_mascotas_peluqueria_veterinaria_top_alineado" model="ir.ui.view">
+    <field name="name">sale.order.form.mascotas.peluqueria.veterinaria.top.alineado</field>
+    <field name="model">sale.order</field>
+    <field name="inherit_id" ref="sale.view_order_form"/>
+    <field name="arch" type="xml">
+
+      <xpath expr="//sheet/notebook" position="before">
+        <div class="oe_clearfix" style="margin: 16px 0;">
+          <label for="mascota_line_ids" string="Mascotas en este pedido" class="o_form_label"/>
+
+          <field name="mascota_line_ids" widget="kanban" options="{'add_create': False}" nolabel="1" style="min-height: 500px;">
+            <kanban class="o_kanban_mascotas d-flex flex-wrap gap-3" style="display: flex; flex-wrap: wrap; gap: 18px;">
+              <field name="servicio_peluqueria"/>
+              <field name="servicio_veterinaria"/>
+              <field name="peluqueria_express"/>
+              <field name="mascota_id"/>
+              <field name="raza"/>
+              <field name="especie"/>
+              <field name="motivo_visita"/>
+              <field name="observaciones"/>
+              <field name="observaciones_cliente"/>
+              <field name="foto_llegada"/>
+              <field name="foto_salida"/>
+              <field name="acicalado"/>
+              <field name="deslanado"/>
+              <field name="profilaxis"/>
+              <field name="tinte"/>
+              <field name="rapado"/>
+              <field name="bano"/>
+              <field name="corte"/>
+              <field name="mantenimiento"/>
+              <field name="corte_unas"/>
+              <field name="limpieza_oidos"/>
+              <field name="vacunacion"/>
+              <field name="desparasitacion"/>
+              <field name="consulta_general"/>
+              <field name="consulta_Derma"/>
+              <field name="cirugia_menor"/>
+              <field name="analisis_sangre"/>
+              <field name="analisis_quimica"/>
+              <field name="prioridad"/>
+              <field name="estado_servicio"/>
+              <field name="fecha_programada"/>
+              <field name="fecha_inicio"/>
+              <field name="fecha_fin"/>
+              <field name="fecha_entrega"/>
+              <field name="responsable_peluqueria" widget="many2many_tags"/>
+              <field name="responsable_veterinaria"/>
+              <field name="nombres_estilistas"/>
+              <field name="tiempo_total_responsables"/>
+              <field name="estado_peluqueria"/>
+              <field name="estado_veterinaria"/>
+              <field name="count_historial_atencion"/>
+              <field name="count_cortes_historicos"/>
+
+              <templates>
+                <t t-name="card">
+                  <t t-set="prioridad" t-value="record.prioridad.value"/>
+                  <t t-set="peluqueria" t-value="record.servicio_peluqueria.raw_value"/>
+                  <t t-set="veterinaria" t-value="record.servicio_veterinaria.raw_value"/>
+                  <t t-set="express" t-value="record.peluqueria_express.raw_value"/>
+                  <t t-set="tiempo_total" t-value="record.tiempo_total_responsables.raw_value"/>
+
+                  <div class="oe_kanban_card d-flex flex-column justify-content-between position-relative p-3 rounded shadow-sm"
+                       style="flex: 1 1 calc(33.333% - 18px); min-width: 320px; min-height: 420px; border: 2px solid #714B67;">
+
+                    <!-- Header: Tipo de Servicio con Número del Día -->
+                    <div class="d-flex justify-content-center gap-3 mb-2" style="font-size: 1rem; font-weight: 700;">
+                      <t t-if="peluqueria">
+                        <span class="badge bg-info text-white d-flex align-items-center gap-2 px-3 py-2 rounded" title="Servicio Peluquería">
+                          <i class="fa fa-cut"/> Peluquería
+                        </span>
+                      </t>
+                      <t t-if="express">
+                        <span class="badge bg-warning text-dark d-flex align-items-center gap-2 px-3 py-2 rounded" title="Servicio Express (Ref: BEXPRESS)">
+                          <i class="fa fa-bolt"/> EXPRESS
+                        </span>
+                      </t>
+                      <t t-if="veterinaria">
+                        <span class="badge bg-success text-white d-flex align-items-center gap-2 px-3 py-2 rounded" title="Servicio Veterinaria">
+                          <i class="fa fa-heartbeat"/> Veterinaria
+                        </span>
+                      </t>
+                    </div>
+
+                    <!-- Prioridad y Estado (esquina superior derecha) -->
+                    <div class="position-absolute" style="top: 8px; right: 8px;">
+                      <t t-if="prioridad == 'urgente'">
+                        <span class="badge rounded-pill bg-danger" style="font-size: 11px;" title="URGENTE">
+                          <i class="fa fa-bolt"/> URGENTE
+                        </span>
+                      </t>
+                      <t t-elif="prioridad == 'alta'">
+                        <span class="badge rounded-pill bg-warning text-dark" style="font-size: 11px;" title="Alta prioridad">
+                          <i class="fa fa-exclamation-triangle"/> Alta
+                        </span>
+                      </t>
+                    </div>
+
+                    <!-- Datos de la Mascota -->
+                    <div class="mb-2 p-2 rounded o_kanban_card_content" style="border-left: 4px solid #714B67;">
+                      <div style="font-size: 16px; font-weight: bold;">
+                        <i class="fa fa-paw me-1" style="color: #714B67;"/>
+                        <t t-esc="record.mascota_id.value"/>
+                      </div>
+                      <div class="text-muted" style="font-size: 12px;">
+                        <t t-if="record.especie.value">
+                          <span class="me-2"><t t-esc="record.especie.value"/></span>
+                        </t>
+                        <t t-if="record.raza.value">
+                          <span>• <t t-esc="record.raza.value"/></span>
+                        </t>
+                      </div>
+                      <t t-if="record.count_cortes_historicos.raw_value > 0">
+                        <div class="text-muted" style="font-size: 11px; margin-top: 2px;">
+                          <i class="fa fa-scissors me-1"/>
+                          <t t-esc="record.count_cortes_historicos.value"/> cortes anteriores
+                        </div>
+                      </t>
+                    </div>
+
+                    <!-- Responsables -->
+                    <div class="mb-2" style="font-size: 13px;">
+                      <t t-if="record.nombres_estilistas.value">
+                        <div class="d-flex align-items-center mb-1">
+                          <i class="fa fa-user-circle me-2 text-info" title="Estilistas"/>
+                          <span><strong>Estilistas:</strong> <t t-esc="record.nombres_estilistas.value"/></span>
+                        </div>
+                      </t>
+                      <t t-if="record.responsable_veterinaria.value">
+                        <div class="d-flex align-items-center mb-1">
+                          <i class="fa fa-user-md me-2 text-success" title="Doctor"/>
+                          <span><strong>Doctor:</strong> <t t-esc="record.responsable_veterinaria.value"/></span>
+                        </div>
+                      </t>
+                      <t t-if="tiempo_total and tiempo_total > 0">
+                        <div class="d-flex align-items-center">
+                          <i class="fa fa-clock-o me-2 text-secondary" title="Tiempo"/>
+                          <span><strong>Tiempo:</strong> <t t-esc="tiempo_total.toFixed(1)"/>h</span>
+                        </div>
+                      </t>
+                    </div>
+
+                    <!-- Observaciones (solo si hay contenido) -->
+                    <t t-if="record.motivo_visita.value or record.observaciones.value or record.observaciones_cliente.value">
+                      <div class="mb-2 p-2 rounded alert alert-warning" role="alert" style="font-size: 12px; max-height: 80px; overflow-y: auto; margin-bottom: 0.5rem !important;">
+                        <t t-if="record.motivo_visita.value">
+                          <div><i class="fa fa-comment me-1" title="Motivo"/> <strong>Motivo:</strong> <t t-esc="record.motivo_visita.value"/></div>
+                        </t>
+                        <t t-if="record.observaciones.value">
+                          <div><i class="fa fa-sticky-note me-1" title="Observaciones"/> <strong>Obs:</strong> <t t-esc="record.observaciones.value"/></div>
+                        </t>
+                        <t t-if="record.observaciones_cliente.value">
+                          <div><i class="fa fa-user me-1" title="Cliente"/> <strong>Cliente:</strong> <t t-esc="record.observaciones_cliente.value"/></div>
+                        </t>
+                      </div>
+                    </t>
+
+                    <!-- Servicios de Peluquería -->
+                    <t t-if="record.bano.raw_value or record.corte.raw_value or record.acicalado.raw_value or record.rapado.raw_value or record.deslanado.raw_value or record.profilaxis.raw_value or record.tinte.raw_value or record.corte_unas.raw_value or record.limpieza_oidos.raw_value or record.mantenimiento.raw_value">
+                      <div class="mb-2">
+                        <div class="fw-bold text-info mb-1" style="font-size: 12px;">
+                          <i class="fa fa-cut me-1"/> Servicios de Peluquería:
+                        </div>
+                        <div class="d-flex flex-wrap gap-1">
+                          <t t-if="record.bano.raw_value"><span class="badge bg-info text-white" style="font-size: 11px;"><i class="fa fa-tint me-1"/> Baño</span></t>
+                          <t t-if="record.corte.raw_value"><span class="badge bg-info text-white" style="font-size: 11px;"><i class="fa fa-scissors me-1"/> Corte</span></t>
+                          <t t-if="record.acicalado.raw_value"><span class="badge bg-info text-white" style="font-size: 11px;"><i class="fa fa-magic me-1"/> Acicalado</span></t>
+                          <t t-if="record.mantenimiento.raw_value"><span class="badge bg-info text-white" style="font-size: 11px;"><i class="fa fa-refresh me-1"/> Mantenimiento</span></t>
+                          <t t-if="record.rapado.raw_value"><span class="badge bg-info text-white" style="font-size: 11px;"><i class="fa fa-eraser me-1"/> Rapado</span></t>
+                          <t t-if="record.deslanado.raw_value"><span class="badge bg-info text-white" style="font-size: 11px;"><i class="fa fa-leaf me-1"/> Deslanado</span></t>
+                          <t t-if="record.profilaxis.raw_value"><span class="badge bg-info text-white" style="font-size: 11px;"><i class="fa fa-smile-o me-1"/> Profilaxis</span></t>
+                          <t t-if="record.tinte.raw_value"><span class="badge bg-info text-white" style="font-size: 11px;"><i class="fa fa-paint-brush me-1"/> Tinte</span></t>
+                          <t t-if="record.corte_unas.raw_value"><span class="badge bg-info text-white" style="font-size: 11px;"><i class="fa fa-hand-paper-o me-1"/> Uñas</span></t>
+                          <t t-if="record.limpieza_oidos.raw_value"><span class="badge bg-info text-white" style="font-size: 11px;"><i class="fa fa-assistive-listening-systems me-1"/> Oídos</span></t>
+                        </div>
+                      </div>
+                    </t>
+
+                    <!-- Servicios Veterinarios -->
+                    <t t-if="record.vacunacion.raw_value or record.desparasitacion.raw_value or record.consulta_general.raw_value or record.consulta_Derma.raw_value or record.cirugia_menor.raw_value or record.analisis_sangre.raw_value or record.analisis_quimica.raw_value">
+                      <div class="mb-2">
+                        <div class="fw-bold text-success mb-1" style="font-size: 12px;">
+                          <i class="fa fa-medkit me-1"/> Servicios Veterinarios:
+                        </div>
+                        <div class="d-flex flex-wrap gap-1">
+                          <t t-if="record.vacunacion.raw_value"><span class="badge bg-success text-white" style="font-size: 11px;"><i class="fa fa-eyedropper me-1"/> Vacunación</span></t>
+                          <t t-if="record.desparasitacion.raw_value"><span class="badge bg-success text-white" style="font-size: 11px;"><i class="fa fa-bug me-1"/> Desparasitación</span></t>
+                          <t t-if="record.consulta_general.raw_value"><span class="badge bg-success text-white" style="font-size: 11px;"><i class="fa fa-stethoscope me-1"/> Consulta</span></t>
+                          <t t-if="record.consulta_Derma.raw_value"><span class="badge bg-success text-white" style="font-size: 11px;"><i class="fa fa-hand-lizard-o me-1"/> Derma</span></t>
+                          <t t-if="record.cirugia_menor.raw_value"><span class="badge bg-success text-white" style="font-size: 11px;"><i class="fa fa-heart me-1"/> Cirugía</span></t>
+                          <t t-if="record.analisis_sangre.raw_value"><span class="badge bg-success text-white" style="font-size: 11px;"><i class="fa fa-tint me-1"/> Hemograma</span></t>
+                          <t t-if="record.analisis_quimica.raw_value"><span class="badge bg-success text-white" style="font-size: 11px;"><i class="fa fa-flask me-1"/> Química</span></t>
+                        </div>
+                      </div>
+                    </t>
+
+                    <!-- Fotos Antes/Después -->
+                    <div class="d-flex justify-content-center gap-3 mt-2 mb-2">
+                      <div class="text-center">
+                        <div class="small text-muted mb-1"><i class="fa fa-camera"/> Llegada</div>
+                        <div style="width: 100px; height: 100px; overflow: hidden; border-radius: 8px; border: 1px solid #ddd;">
+                          <field name="foto_llegada" widget="image" style="width: 100%; height: 100%; object-fit: cover;"/>
+                        </div>
+                      </div>
+                      <div class="text-center">
+                        <div class="small text-muted mb-1"><i class="fa fa-camera-retro"/> Salida</div>
+                        <div style="width: 100px; height: 100px; overflow: hidden; border-radius: 8px; border: 1px solid #ddd;">
+                          <field name="foto_salida" widget="image" style="width: 100%; height: 100%; object-fit: cover;"/>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Historial -->
+                    <t t-if="record.count_historial_atencion.raw_value > 0">
+                      <div class="text-center mb-2" style="font-size: 11px; color: #888;">
+                        <i class="fa fa-history me-1"/>
+                        <t t-esc="record.count_historial_atencion.value"/> registros de atención
+                      </div>
+                    </t>
+
+                    <!-- Botones de acción -->
+                    <div class="d-flex gap-2 justify-content-center mt-auto pt-2" style="border-top: 1px solid #eee;">
+                      <button type="object"
+                              name="action_print_comanda"
+                              class="btn btn-primary btn-sm"
+                              title="Imprimir Comanda">
+                        <i class="fa fa-print me-1"/> Comanda
+                      </button>
+                      <button type="object"
+                              name="action_view_historial"
+                              class="btn btn-outline-primary btn-sm"
+                              title="Ver historial de atención">
+                        <i class="fa fa-history me-1"/> Historial
+                      </button>
+                      <button type="object"
+                              name="action_open_form"
+                              class="btn btn-outline-secondary btn-sm"
+                              title="Ver detalle completo">
+                        <i class="fa fa-expand me-1"/> Detalle
+                      </button>
+                    </div>
+
+                  </div>
+                </t>
+              </templates>
+            </kanban>
+          </field>
+        </div>
+      </xpath>
+
+    </field>
+  </record>
+
+  <!-- Vista de Búsqueda para Sale Order con filtros útiles -->
+  <record id="view_sale_order_search_mascotas" model="ir.ui.view">
+    <field name="name">sale.order.search.mascotas</field>
+    <field name="model">sale.order</field>
+    <field name="inherit_id" ref="sale.view_sales_order_filter"/>
+    <field name="arch" type="xml">
+      <!-- Agregar campos de búsqueda -->
+      <xpath expr="//field[@name='name']" position="after">
+        <field name="count_total_mascotas"/>
+        <field name="count_peluqueria"/>
+        <field name="count_veterinaria"/>
+        <field name="count_cortes"/>
+        <field name="count_solo_bano"/>
+        <field name="count_bano_y_corte"/>
+        <field name="nombres_mascotas"/>
+      </xpath>
+      
+      <!-- Agregar filtros útiles -->
+      <xpath expr="//filter[@name='my_sale_orders_filter']" position="after">
+        <separator/>
+        <filter string="Con Mascotas" name="con_mascotas" domain="[('count_total_mascotas', '>', 0)]"/>
+        <filter string="Sin Mascotas" name="sin_mascotas" domain="[('count_total_mascotas', '=', 0)]"/>
+        <filter string="Con Peluquería" name="con_peluqueria" domain="[('count_peluqueria', '>', 0)]"/>
+        <filter string="Con Veterinaria" name="con_veterinaria" domain="[('count_veterinaria', '>', 0)]"/>
+        <filter string="Con Corte" name="con_corte" domain="[('count_cortes', '>', 0)]"/>
+        <filter string="Solo Baño" name="solo_bano" domain="[('count_solo_bano', '>', 0)]"/>
+        <filter string="Baño y Corte" name="bano_y_corte" domain="[('count_bano_y_corte', '>', 0)]"/>
+        <separator/>
+        <filter string="Hoy" name="hoy" domain="[('date_order', '>=', datetime.datetime.combine(context_today(), datetime.time(0,0,0))), ('date_order', '&lt;=', datetime.datetime.combine(context_today(), datetime.time(23,59,59)))]"/>
+        <filter string="Esta Semana" name="esta_semana" domain="[('date_order', '>=', (datetime.datetime.now() - datetime.timedelta(days=7)).strftime('%Y-%m-%d'))]"/>
+        <filter string="Este Mes" name="este_mes" domain="[('date_order', '>=', (datetime.datetime.now() - datetime.timedelta(days=30)).strftime('%Y-%m-%d'))]"/>
+        <separator/>
+        <filter string="Con Servicios" name="con_servicios" domain="[('tiene_servicios', '=', True)]"/>
+        <filter string="Solo Peluquería" name="solo_peluqueria" domain="[('tipo_servicio', '=', 'solo_peluqueria')]"/>
+        <filter string="Solo Veterinaria" name="solo_veterinaria" domain="[('tipo_servicio', '=', 'solo_veterinaria')]"/>
+        <filter string="Ambos Servicios" name="ambos_servicios" domain="[('tipo_servicio', '=', 'ambos')]"/>
+      </xpath>
+      
+      <!-- Agregar opciones de agrupación -->
+      <xpath expr="//group[@expand='0']" position="inside">
+        <filter string="Mascotas" name="group_mascotas" context="{'group_by': 'count_total_mascotas'}"/>
+        <filter string="Tipo Servicio" name="group_tipo_servicio" context="{'group_by': 'tipo_servicio'}"/>
+        <filter string="Cliente" name="group_cliente" context="{'group_by': 'partner_id'}"/>
+        <filter string="Fecha de Pedido" name="group_fecha_pedido" context="{'group_by': 'date_order:day'}"/>
+        <filter string="Estado" name="group_estado" context="{'group_by': 'state'}"/>
+      </xpath>
+    </field>
+  </record>
+</odoo>

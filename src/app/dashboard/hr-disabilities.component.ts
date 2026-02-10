@@ -45,6 +45,7 @@ import {
 import { DashboardStore } from '../stores/dashboard.store';
 import { getEnv } from '../utils/env.utils';
 import { DocumentRequestsService } from './modules/document-requests/data/document-requests.service';
+import { DeviceService } from '../services/device.service';
 import { DocumentRequestsComponent } from './modules/document-requests/ui/document-requests.component';
 import { HrStatsGridComponent } from './modules/shared/components/hr-stats-grid.component';
 import { TimelogCorrectionsComponent } from './modules/timelog-corrections/ui/timelog-corrections.component';
@@ -309,7 +310,8 @@ export interface DocumentRequest {
     <div
       class="h-screen flex flex-col bg-gradient-to-br from-neutral-900 via-neutral-900 to-neutral-800 overflow-hidden"
     >
-      <!-- Header Compacto con Búsqueda Global -->
+      @if (device.isDesktop()) {
+      <!-- Header Compacto con Búsqueda Global (Desktop) -->
       <div
         class="bg-gradient-to-r from-neutral-800 via-neutral-800/95 to-neutral-800 border-b border-neutral-700/50 shadow-xl sticky top-0 z-40 backdrop-blur-sm"
       >
@@ -1351,6 +1353,155 @@ export interface DocumentRequest {
         <pt-uniform-requests />
         }
       </div>
+    } @else {
+      <!-- Vista móvil: RRHH Disabilities -->
+      <div class="flex flex-col h-full overflow-hidden">
+        <header class="flex-shrink-0 px-3 py-2 border-b border-neutral-700/50 bg-neutral-800/95 sticky top-0 z-30">
+          <div class="flex items-center justify-between gap-2">
+            <h1 class="text-base font-bold text-white truncate m-0">RRHH</h1>
+            <div class="flex items-center gap-1">
+              <p-button icon="pi pi-refresh" [label]="''" [outlined]="true" severity="secondary" size="small" (onClick)="refreshAll()" [loading]="isRefreshing()" pTooltip="Actualizar" tooltipPosition="bottom" />
+              <p-button icon="pi pi-download" [label]="''" [outlined]="true" severity="secondary" size="small" (onClick)="exportData()" [disabled]="isRefreshing()" pTooltip="Exportar" tooltipPosition="bottom" />
+            </div>
+          </div>
+          <div class="mt-2 relative">
+            <input type="text" pInputText placeholder="Buscar..." [(ngModel)]="globalSearchText" (input)="onGlobalSearch()" class="w-full text-sm py-2 pl-9 pr-8 bg-neutral-900/50 border-neutral-600 text-white placeholder-gray-500 rounded-lg" />
+            <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none"></i>
+            @if (globalSearchText()) {
+              <button type="button" (click)="clearGlobalSearch()" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 p-1"><i class="pi pi-times text-sm"></i></button>
+            }
+          </div>
+        </header>
+
+        <div class="flex overflow-x-auto gap-1 px-3 py-2 border-b border-neutral-700/50 bg-neutral-800/50 flex-shrink-0" style="scroll-snap-type: x mandatory;">
+          <button (click)="activeTab.set('disabilities')" [class]="'flex-shrink-0 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ' + (activeTab() === 'disabilities' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/30' : 'text-gray-400 bg-neutral-700/30')">
+            <i class="pi pi-heart mr-1 text-xs"></i>Incapacidades @if (pendingCount() > 0) { <span class="ml-1 px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded text-xs">{{ pendingCount() }}</span> }
+          </button>
+          <button (click)="activeTab.set('compensatory')" [class]="'flex-shrink-0 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ' + (activeTab() === 'compensatory' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/30' : 'text-gray-400 bg-neutral-700/30')">
+            <i class="pi pi-clock mr-1 text-xs"></i>Compensatorio @if (compensatoryPendingCount() > 0) { <span class="ml-1 px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded text-xs">{{ compensatoryPendingCount() }}</span> }
+          </button>
+          <button (click)="navigateToTab('documents')" [class]="'flex-shrink-0 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ' + (activeTab() === 'documents' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/30' : 'text-gray-400 bg-neutral-700/30')">
+            <i class="pi pi-file-edit mr-1 text-xs"></i>Documentos
+          </button>
+          <button (click)="navigateToTab('vacations')" [class]="'flex-shrink-0 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ' + (activeTab() === 'vacations' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/30' : 'text-gray-400 bg-neutral-700/30')">
+            <i class="pi pi-calendar mr-1 text-xs"></i>Vacaciones
+          </button>
+          <button (click)="navigateToTab('timelog_correction')" [class]="'flex-shrink-0 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ' + (activeTab() === 'timelog_correction' ? 'bg-orange-500/20 text-orange-300 border border-orange-400/30' : 'text-gray-400 bg-neutral-700/30')">
+            <i class="pi pi-exclamation-triangle mr-1 text-xs"></i>Marcación
+          </button>
+          <button (click)="navigateToTab('uniform_request')" [class]="'flex-shrink-0 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all ' + (activeTab() === 'uniform_request' ? 'bg-teal-500/20 text-teal-300 border border-teal-400/30' : 'text-gray-400 bg-neutral-700/30')">
+            <i class="pi pi-tag mr-1 text-xs"></i>Uniformes
+          </button>
+        </div>
+
+        <main class="flex-1 overflow-y-auto px-3 py-2">
+          @if (activeTab() === 'disabilities') {
+            <div class="space-y-3">
+              <pt-hr-stats-grid [totalCount]="totalCount()" [pendingCount]="pendingCount()" [approvedCount]="approvedCount()" [rejectedCount]="rejectedCount()" icon="pi-heart" approvedLabel="Aprobadas" />
+              <button type="button" (click)="showFilters.set(!showFilters())" class="w-full flex items-center justify-between py-2 px-3 rounded-lg bg-neutral-800/80 border border-neutral-700/50 text-left text-sm text-gray-300">
+                <span><i class="pi pi-filter text-cyan-400 mr-2"></i>Filtros @if (hasActiveFilters()) { <span class="text-cyan-400 text-xs">({{ getActiveFiltersCount() }})</span> }</span>
+                <i [class]="showFilters() ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"></i>
+              </button>
+              @if (showFilters()) {
+                <div class="grid grid-cols-1 gap-2 p-2 bg-neutral-800/80 rounded-lg border border-neutral-700/50">
+                  <input type="text" pInputText placeholder="Empleado, descripción..." [(ngModel)]="searchText" (input)="onFilterChange()" class="w-full text-sm py-2 bg-neutral-900/50 border-neutral-600 rounded" />
+                  <p-dropdown [options]="statusOptions" [(ngModel)]="selectedStatus" (onChange)="onFilterChange()" placeholder="Estado" [showClear]="true" class="w-full" styleClass="w-full" />
+                  <p-calendar [(ngModel)]="dateRange" selectionMode="range" dateFormat="dd/mm/yy" placeholder="Rango fechas" (onSelect)="onFilterChange()" [showClear]="true" class="w-full" [inputStyle]="{ width: '100%' }" />
+                  <p-button label="Limpiar filtros" icon="pi pi-filter-slash" [outlined]="true" severity="secondary" size="small" (onClick)="clearFilters()" [disabled]="!hasActiveFilters()" />
+                </div>
+              }
+
+              @if (disabilitiesApi.isLoading()) {
+                <div class="flex justify-center py-8"><p-progressSpinner /></div>
+              } @else if (filteredDisabilities().length === 0) {
+                <div class="text-center py-8 text-gray-400">
+                  <i class="pi pi-inbox text-3xl block mb-2"></i>
+                  <p class="text-sm">No hay solicitudes</p>
+                  <p-button label="Limpiar filtros" icon="pi pi-filter-slash" [outlined]="true" severity="secondary" size="small" (onClick)="clearFilters()" class="mt-2" />
+                </div>
+              } @else {
+                <div class="flex flex-col gap-2">
+                  @for (d of filteredDisabilities(); track d.id) {
+                    <div (click)="viewDetails(d)" class="rounded-xl border border-neutral-700/50 bg-neutral-800/80 p-3 active:bg-neutral-700/50 transition-colors">
+                      <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0 flex-1">
+                          <p class="font-semibold text-white text-sm m-0 truncate">{{ d.employee?.first_name }} {{ d.employee?.father_name }}</p>
+                          <p class="text-xs text-gray-400 m-0 mt-0.5">{{ d.employee?.branch?.name || '-' }}</p>
+                          <div class="flex flex-wrap gap-x-2 gap-y-0.5 mt-2 text-xs text-gray-400">
+                            <span>{{ d.start_date | date : 'dd/MM/yy' }} - {{ d.end_date | date : 'dd/MM/yy' }}</span>
+                            <span class="px-1.5 py-0.5 bg-blue-500/20 text-blue-300 rounded">{{ calculateDays(d.start_date, d.end_date) }} días</span>
+                          </div>
+                        </div>
+                        <p-tag [value]="getStatusLabel(d.status)" [severity]="getStatusSeverity(d.status)" [rounded]="true" [style]="{ 'font-size': '0.7rem' }" />
+                      </div>
+                      @if (d.status === 'pending') {
+                        <div class="flex gap-1 mt-2" (click)="$event.stopPropagation()">
+                          <p-button icon="pi pi-check" [text]="true" severity="success" size="small" (onClick)="approveDisability(d); $event.stopPropagation()" />
+                          <p-button icon="pi pi-times" [text]="true" severity="danger" size="small" (onClick)="rejectDisability(d); $event.stopPropagation()" />
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+          @if (activeTab() === 'compensatory') {
+            <div class="space-y-3">
+              <pt-hr-stats-grid [totalCount]="compensatoryTotalCount()" [pendingCount]="compensatoryPendingCount()" [approvedCount]="compensatoryApprovedCount()" [rejectedCount]="compensatoryRejectedCount()" icon="pi-clock" approvedLabel="Aprobadas" />
+              <button type="button" (click)="showCompensatoryFilters.set(!showCompensatoryFilters())" class="w-full flex items-center justify-between py-2 px-3 rounded-lg bg-neutral-800/80 border border-neutral-700/50 text-left text-sm text-gray-300">
+                <span><i class="pi pi-filter text-cyan-400 mr-2"></i>Filtros @if (hasActiveCompensatoryFilters()) { <span class="text-cyan-400 text-xs">({{ getActiveCompensatoryFiltersCount() }})</span> }</span>
+                <i [class]="showCompensatoryFilters() ? 'pi pi-chevron-up' : 'pi pi-chevron-down'"></i>
+              </button>
+              @if (showCompensatoryFilters()) {
+                <div class="grid grid-cols-1 gap-2 p-2 bg-neutral-800/80 rounded-lg border border-neutral-700/50">
+                  <input type="text" pInputText placeholder="Empleado, motivo..." [(ngModel)]="compensatorySearchText" (input)="onCompensatoryFilterChange()" class="w-full text-sm py-2 bg-neutral-900/50 border-neutral-600 rounded" />
+                  <p-dropdown [options]="compensatoryStatusOptions" [(ngModel)]="compensatorySelectedStatus" (onChange)="onCompensatoryFilterChange()" placeholder="Estado" [showClear]="true" class="w-full" styleClass="w-full" />
+                  <p-calendar [(ngModel)]="compensatoryDateRange" selectionMode="range" dateFormat="dd/mm/yy" placeholder="Rango fechas" (onSelect)="onCompensatoryFilterChange()" [showClear]="true" class="w-full" [inputStyle]="{ width: '100%' }" />
+                  <p-button label="Limpiar filtros" icon="pi pi-filter-slash" [outlined]="true" severity="secondary" size="small" (onClick)="clearCompensatoryFilters()" [disabled]="!hasActiveCompensatoryFilters()" />
+                </div>
+              }
+
+              @if (compensatoryTimeoffsApi.isLoading()) {
+                <div class="flex justify-center py-8"><p-progressSpinner /></div>
+              } @else if (filteredCompensatoryRequests().length === 0) {
+                <div class="text-center py-8 text-gray-400"><i class="pi pi-inbox text-3xl block mb-2"></i><p class="text-sm">No hay solicitudes</p></div>
+              } @else {
+                <div class="flex flex-col gap-2">
+                  @for (req of filteredCompensatoryRequests(); track req.id) {
+                    <div (click)="viewCompensatoryDetails(req)" class="rounded-xl border border-neutral-700/50 bg-neutral-800/80 p-3 active:bg-neutral-700/50 transition-colors">
+                      <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0 flex-1">
+                          <p class="font-semibold text-white text-sm m-0 truncate">{{ getEmployeeName(req) }}</p>
+                          <p class="text-xs text-gray-400 m-0 mt-0.5">{{ req.employee?.branch?.name || '-' }}</p>
+                          <div class="flex flex-wrap gap-x-2 mt-2 text-xs text-gray-400">
+                            <span>{{ req.date_from | date : 'dd/MM/yy' }} - {{ req.date_to | date : 'dd/MM/yy' }}</span>
+                            @let qty = getCompensatoryQuantity(req); @if (qty?.value != null && qty.value > 0) {
+                              <span class="px-1.5 py-0.5 bg-blue-500/20 text-blue-300 rounded">{{ qty.isDays ? qty.value + ' día(s)' : formatHoursMinutes(qty.value) }}</span>
+                            }
+                          </div>
+                        </div>
+                        <p-tag [value]="getCompensatoryStatusLabel(req)" [severity]="getCompensatoryStatusSeverity(req)" [rounded]="true" [style]="{ 'font-size': '0.7rem' }" />
+                      </div>
+                      @if (req.review_status === 'pending') {
+                        <div class="flex gap-1 mt-2" (click)="$event.stopPropagation()">
+                          <p-button icon="pi pi-check" [text]="true" severity="success" size="small" (onClick)="approveCompensatoryRequest(req); $event.stopPropagation()" />
+                          <p-button icon="pi pi-times" [text]="true" severity="danger" size="small" (onClick)="rejectCompensatoryRequest(req); $event.stopPropagation()" />
+                        </div>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+          @if (activeTab() === 'documents') { <pt-document-requests /> }
+          @if (activeTab() === 'vacations') { <pt-vacations /> }
+          @if (activeTab() === 'timelog_correction') { <pt-timelog-corrections /> }
+          @if (activeTab() === 'uniform_request') { <pt-uniform-requests /> }
+        </main>
+      </div>
+    }
     </div>
 
     <!-- Dialog de Detalles -->
@@ -2715,6 +2866,7 @@ export class HRDisabilitiesComponent {
   private sanitizer = inject(DomSanitizer);
   private vacationsService = inject(VacationsService);
   private documentRequestsService = inject(DocumentRequestsService);
+  protected device = inject(DeviceService);
 
   // Método para navegar a diferentes pestañas
   public navigateToTab(

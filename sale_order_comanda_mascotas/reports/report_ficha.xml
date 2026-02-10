@@ -1,0 +1,318 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <!-- Formato de papel para ticket 80mm - DEBE ir primero -->
+  <record id="paperformat_ticket_80mm" model="report.paperformat">
+    <field name="name">Ticket 80mm</field>
+    <field name="default" eval="False"/>
+    <field name="format">custom</field>
+    <field name="page_width">80</field>
+    <field name="page_height">297</field>
+    <field name="orientation">Portrait</field>
+    <field name="margin_top">2</field>
+    <field name="margin_bottom">2</field>
+    <field name="margin_left">2</field>
+    <field name="margin_right">2</field>
+    <field name="header_line" eval="False"/>
+    <field name="header_spacing">0</field>
+    <field name="dpi">96</field>
+  </record>
+
+  <template id="report_ficha_mascota_template">
+    <t t-call="web.html_container">
+      <t t-foreach="docs" t-as="line">
+        <t t-set="company" t-value="line.order_id.company_id or line.env.company"/>
+        <t t-set="es_urgente" t-value="line.prioridad in ('alta', 'urgente')"/>
+        
+        <div class="page" style="
+          width: 72mm;
+          max-width: 72mm;
+          margin: 0 auto;
+          padding: 4mm 2mm;
+          font-family: 'Courier New', Courier, monospace;
+          font-size: 11px;
+          line-height: 1.3;
+          color: #000;
+        ">
+          
+          <!-- ALERTA DE PRIORIDAD -->
+          <t t-if="es_urgente">
+            <div style="
+              text-align: center;
+              font-weight: bold;
+              font-size: 14px;
+              padding: 2mm;
+              border: 2px solid #000;
+              margin-bottom: 2mm;
+              background: #000;
+              color: #fff;
+            ">
+              <t t-esc="line.get_prioridad_display()"/>
+            </div>
+          </t>
+          
+          <!-- HEADER con Logo -->
+          <div style="text-align: center; margin-bottom: 3mm;">
+            <t t-set="logo_uri" t-value="line.get_company_logo_data_uri()"/>
+            <t t-if="logo_uri">
+              <img t-att-src="logo_uri" style="max-width: 45mm; max-height: 18mm;"/>
+            </t>
+            <t t-else="">
+              <div style="font-size: 16px; font-weight: bold; letter-spacing: 2px;">
+                <t t-esc="company.name or 'EMPRESA'"/>
+              </div>
+            </t>
+          </div>
+          
+          <!-- Titulo -->
+          <div style="
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            padding: 2mm 0;
+            border-top: 1px dashed #000;
+            border-bottom: 1px dashed #000;
+            margin-bottom: 2mm;
+            letter-spacing: 1px;
+          ">
+            FICHA DE COMANDA
+          </div>
+          
+          <!-- Fecha, Numero y Visita -->
+          <div style="text-align: center; font-size: 10px; margin-bottom: 2mm;">
+            <t t-esc="line.create_date and line.create_date.strftime('%d/%m/%Y %H:%M') or ''"/>
+            <br/>
+            <span style="font-weight: bold; font-size: 12px;">
+              #<t t-esc="line.numero_secuencia or ''"/>
+            </span>
+            <span style="margin-left: 3mm; font-size: 10px;">
+              (Visita #<t t-esc="line.get_numero_visita()"/>)
+            </span>
+          </div>
+          
+          <!-- Cita Programada -->
+          <t t-set="fecha_cita" t-value="line.get_fecha_cita_display()"/>
+          <t t-if="fecha_cita">
+            <div style="
+              text-align: center;
+              font-size: 11px;
+              padding: 1mm;
+              background: #eee;
+              margin-bottom: 2mm;
+            ">
+              CITA: <t t-esc="fecha_cita"/>
+            </div>
+          </t>
+          
+          <!-- Separador -->
+          <div style="border-top: 1px dashed #000; margin: 2mm 0;"></div>
+          
+          <!-- Datos del Cliente -->
+          <div style="
+            font-size: 10px;
+            padding: 1mm 0;
+            border-bottom: 1px dotted #999;
+            margin-bottom: 2mm;
+          ">
+            <div style="font-weight: bold; text-align: center; margin-bottom: 1mm;">
+              DATOS DEL CLIENTE
+            </div>
+            <table style="width: 100%; font-size: 10px;">
+              <tr>
+                <td style="font-weight: bold; width: 30%;">PEDIDO:</td>
+                <td><t t-esc="line.presupuesto_numero or '-'"/></td>
+              </tr>
+              <tr>
+                <td style="font-weight: bold;">CLIENTE:</td>
+                <td><t t-esc="line.order_id.partner_id.name or '-'"/></td>
+              </tr>
+              <tr>
+                <td style="font-weight: bold;">TELEFONO:</td>
+                <td style="font-weight: bold;">
+                  <t t-esc="line.get_telefono_cliente()"/>
+                </td>
+              </tr>
+            </table>
+          </div>
+          
+          <!-- Datos de la Mascota -->
+          <div style="
+            font-size: 11px;
+            padding: 2mm;
+            border: 1px solid #000;
+            margin-bottom: 3mm;
+          ">
+            <div style="font-weight: bold; text-align: center; margin-bottom: 2mm; font-size: 12px;">
+              DATOS DE LA MASCOTA
+            </div>
+            <table style="width: 100%; font-size: 11px;">
+              <tr>
+                <td style="font-weight: bold; width: 30%;">NOMBRE:</td>
+                <td style="font-size: 13px; font-weight: bold;">
+                  <t t-esc="line.mascota_id.x_name or '-'"/>
+                </td>
+              </tr>
+              <tr>
+                <td style="font-weight: bold;">TIPO:</td>
+                <td><t t-esc="line.get_especie_display()"/></td>
+              </tr>
+              <tr>
+                <td style="font-weight: bold;">RAZA:</td>
+                <td><t t-esc="line.raza or '-'"/></td>
+              </tr>
+              <tr>
+                <td style="font-weight: bold;">ESTADO:</td>
+                <td style="font-weight: bold;">
+                  <t t-esc="line.get_estado_display()"/>
+                </td>
+              </tr>
+              <t t-if="line.count_cortes_historicos">
+                <tr>
+                  <td style="font-weight: bold;">CORTES:</td>
+                  <td><t t-esc="line.count_cortes_historicos"/> anteriores</td>
+                </tr>
+              </t>
+            </table>
+          </div>
+          
+          <!-- Separador doble -->
+          <div style="border-top: 2px solid #000; margin: 2mm 0;"></div>
+          
+          <!-- Titulo Servicios -->
+          <div style="
+            text-align: center;
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 3mm;
+            letter-spacing: 1px;
+          ">
+            * SERVICIOS *
+          </div>
+          
+          <!-- Servicios de Peluqueria -->
+          <t t-if="line.servicio_peluqueria">
+            <div style="margin-bottom: 3mm;">
+              <div style="
+                font-weight: bold;
+                font-size: 11px;
+                text-align: center;
+                padding: 1mm 0;
+                background: #ddd;
+                border: 1px solid #000;
+                margin-bottom: 2mm;
+              ">
+                PELUQUERIA
+              </div>
+              <t t-if="line.responsable_peluqueria">
+                <div style="font-size: 10px; text-align: center; margin-bottom: 2mm; font-style: italic;">
+                  Estilistas: <t t-esc="', '.join(line.responsable_peluqueria.mapped('name'))"/>
+                </div>
+              </t>
+              <t t-set="servicios_pelu" t-value="line.get_servicios_peluqueria_activos()"/>
+              <t t-foreach="servicios_pelu" t-as="servicio">
+                <div style="padding: 1.5mm 0; font-size: 11px;">
+                  [    ] <t t-esc="servicio"/>
+                </div>
+              </t>
+            </div>
+          </t>
+          
+          <!-- Servicios de Veterinaria -->
+          <t t-if="line.servicio_veterinaria">
+            <div style="margin-bottom: 3mm;">
+              <div style="
+                font-weight: bold;
+                font-size: 11px;
+                text-align: center;
+                padding: 1mm 0;
+                background: #ddd;
+                border: 1px solid #000;
+                margin-bottom: 2mm;
+              ">
+                VETERINARIA
+              </div>
+              <t t-if="line.responsable_veterinaria">
+                <div style="font-size: 10px; text-align: center; margin-bottom: 2mm; font-style: italic;">
+                  Doctor(a): <t t-esc="line.responsable_veterinaria.name"/>
+                </div>
+              </t>
+              <t t-set="servicios_vet" t-value="line.get_servicios_veterinaria_activos()"/>
+              <t t-foreach="servicios_vet" t-as="servicio">
+                <div style="padding: 1.5mm 0; font-size: 11px;">
+                  [    ] <t t-esc="servicio"/>
+                </div>
+              </t>
+            </div>
+          </t>
+          
+          <!-- Separador -->
+          <div style="border-top: 1px dashed #000; margin: 2mm 0;"></div>
+          
+          <!-- Observaciones (solo si hay contenido) -->
+          <t t-if="line.observaciones">
+            <div style="margin-bottom: 2mm; padding: 1mm; background: #f5f5f5;">
+              <div style="font-weight: bold; font-size: 10px;">OBSERVACIONES:</div>
+              <div style="font-size: 10px; padding: 1mm 0;">
+                <t t-esc="line.observaciones"/>
+              </div>
+            </div>
+          </t>
+          
+          <t t-if="line.observaciones_cliente">
+            <div style="margin-bottom: 2mm; padding: 1mm; background: #f5f5f5;">
+              <div style="font-weight: bold; font-size: 10px;">NOTA DEL CLIENTE:</div>
+              <div style="font-size: 10px; padding: 1mm 0;">
+                <t t-esc="line.observaciones_cliente"/>
+              </div>
+            </div>
+          </t>
+          
+          <!-- Separador -->
+          <div style="border-top: 2px solid #000; margin: 3mm 0;"></div>
+          
+          <!-- Seccion de Firmas -->
+          <div style="margin: 3mm 0;">
+            <div style="font-size: 9px; margin-bottom: 1mm;">RECIBIDO POR:</div>
+            <div style="border-bottom: 1px solid #000; height: 8mm; margin-bottom: 2mm;"></div>
+            
+            <div style="font-size: 9px; margin-bottom: 1mm;">ENTREGADO A:</div>
+            <div style="border-bottom: 1px solid #000; height: 8mm; margin-bottom: 2mm;"></div>
+            
+            <div style="font-size: 9px; margin-bottom: 1mm;">HORA ENTREGA: _______________</div>
+          </div>
+          
+          <!-- Footer -->
+          <div style="border-top: 1px dashed #000; margin-top: 2mm; padding-top: 2mm;">
+            <div style="text-align: center; font-size: 9px; font-style: italic;">
+              La experiencia se construye con
+            </div>
+            <div style="text-align: center; font-size: 9px; font-style: italic;">
+              tu pasion y compromiso.
+            </div>
+          </div>
+          
+          <!-- Codigo de Referencia -->
+          <div style="
+            text-align: center;
+            font-size: 8px;
+            margin-top: 2mm;
+            font-family: monospace;
+            letter-spacing: 1px;
+          ">
+            <t t-esc="line.presupuesto_numero or ''"/>-<t t-esc="line.numero_secuencia or ''"/>
+          </div>
+          
+        </div>
+      </t>
+    </t>
+  </template>
+
+  <record id="report_ficha_mascota_action" model="ir.actions.report">
+    <field name="name">Ficha por Mascota</field>
+    <field name="model">x.mascota.line</field>
+    <field name="report_type">qweb-pdf</field>
+    <field name="report_name">sale_order_comanda_mascotas.report_ficha_mascota_template</field>
+    <field name="report_file">sale_order_comanda_mascotas.report_ficha_mascota_template</field>
+    <field name="print_report_name">'Ficha - %s' % (object.mascota_id.x_name or '')</field>
+    <field name="paperformat_id" ref="paperformat_ticket_80mm"/>
+  </record>
+</odoo>

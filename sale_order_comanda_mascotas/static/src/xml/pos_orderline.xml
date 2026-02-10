@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates id="template" xml:space="preserve">
+    <!-- Extender OrderSummary para mostrar mascota y estilistas en las líneas -->
+    <!-- Mascota y peluquero en una sola línea, sin botones X -->
+    <t t-name="sale_order_comanda_mascotas.OrderSummary" t-inherit="point_of_sale.OrderSummary" t-inherit-mode="extension">
+        <xpath expr="//Orderline" position="inside">
+            <!-- Mostrar mascota y estilistas en una sola línea -->
+            <t t-if="(line.hasMascota &amp;&amp; line.hasMascota()) || (line.hasEstilistas &amp;&amp; line.hasEstilistas())">
+                <li style="text-align: right; font-style: italic; font-size: 14px; padding: 2px 0;">
+                    <!-- Mascota -->
+                    <t t-if="line.hasMascota &amp;&amp; line.hasMascota()">
+                        <span style="color: #e67e22;">
+                            <i class="fa fa-paw" style="margin-right: 3px;" title="Mascota"/>
+                            <t t-esc="line._pos_mascota_nombre"/>
+                        </span>
+                    </t>
+                    <!-- Separador si hay ambos -->
+                    <t t-if="(line.hasMascota &amp;&amp; line.hasMascota()) &amp;&amp; (line.hasEstilistas &amp;&amp; line.hasEstilistas())">
+                        <span style="color: #888; margin: 0 8px;">|</span>
+                    </t>
+                    <!-- Estilistas/Peluquero -->
+                    <t t-if="line.hasEstilistas &amp;&amp; line.hasEstilistas()">
+                        <span style="color: #9b59b6;">
+                            <i class="fa fa-scissors" style="margin-right: 3px;" title="Peluquero"/>
+                            <t t-esc="line._pos_estilista_nombres"/>
+                        </span>
+                    </t>
+                </li>
+            </t>
+        </xpath>
+    </t>
+</templates>

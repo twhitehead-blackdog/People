@@ -15,15 +15,17 @@ import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { MenuModule } from 'primeng/menu';
 import { Tag } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
+import { Tooltip } from 'primeng/tooltip';
 
 import { HttpClient, httpResource } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Skeleton } from 'primeng/skeleton';
 import { TabsModule } from 'primeng/tabs';
 import { Employee } from '../models';
 import { AgePipe } from '../pipes/age.pipe';
 import { SeniorityPipe } from '../pipes/seniority.pipe';
+import { DeviceService } from '../services/device.service';
 import { OrganizationService } from '../services/organization.service';
 import { QrService } from '../services/qr.service';
 import { WassengerService } from '../services/wassenger.service';
@@ -51,6 +53,8 @@ import { TimeOffsComponent } from './time-offs.component';
     Tag,
     ToastModule,
     ConfirmDialogModule,
+    RouterLink,
+    Tooltip,
   ],
   providers: [
     DynamicDialogRef,
@@ -61,455 +65,143 @@ import { TimeOffsComponent } from './time-offs.component';
   template: `
     <p-toast />
     <p-confirmDialog />
-    <!-- Employee Detail Component -->
-    <div class="mx-4 md:mx-6 flex flex-col gap-2">
+    <div class="employee-detail-page w-full">
+    @if (device.isDesktop()) {
+    <!-- Vista Desktop: reestructurada para lectura rápida y uso fácil -->
+    <div class="desktop-detail max-w-5xl mx-auto px-4 md:px-6">
+      <!-- Barra superior: navegación + identidad + acciones -->
+      <div class="flex flex-wrap items-center justify-between gap-3 py-3 border-b border-neutral-700/50 mb-4">
+        <a routerLink=".." class="inline-flex items-center gap-2 text-sm text-gray-400 hover:text-amber-400 transition-colors no-underline shrink-0">
+          <i class="pi pi-arrow-left"></i>
+          Volver a empleados
+        </a>
+        @if (currentEmployee(); as emp) {
+          <div class="flex items-center gap-4 min-w-0 flex-1 justify-center md:justify-start">
+            <div class="min-w-0">
+              <h1 class="text-xl md:text-2xl font-bold text-white m-0 truncate">
+                {{ emp.first_name }} {{ emp.father_name }}
+              </h1>
+              <p class="text-sm text-gray-400 m-0 mt-0.5 truncate">
+                {{ emp.position?.name }} · {{ emp.branch?.name }}
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <p-button label="Editar" icon="pi pi-pencil" severity="secondary" [outlined]="true" (onClick)="goToEdit()" />
+            <p-menu #menu [model]="items" [popup]="true" appendTo="body" />
+            <p-button icon="pi pi-ellipsis-v" rounded severity="secondary" [outlined]="true" (onClick)="menu.toggle($event)" [pTooltip]="'Más acciones'" />
+          </div>
+        } @else if (employee.isLoading()) {
+          <div class="flex-1 flex items-center gap-3">
+            <p-skeleton shape="circle" size="3rem" />
+            <div class="space-y-1">
+              <p-skeleton width="12rem" height="1.5rem" />
+              <p-skeleton width="8rem" height="0.875rem" />
+            </div>
+          </div>
+        }
+      </div>
+
       <p-tabs value="0" scrollable>
-        <p-tablist>
-          <p-tab value="0">
-            <i class="pi pi-user mr-2"></i>
-            Información Personal
-          </p-tab>
-          <p-tab value="1">
-            <i class="pi pi-clock mr-2"></i>
-            Horarios
-          </p-tab>
-          <p-tab value="2">
-            <i class="pi pi-qrcode mr-2"></i>
-            Marcación
-          </p-tab>
-          <p-tab value="3">
-            <i class="pi pi-calendar mr-2"></i>
-            Tiempos fuera
-          </p-tab>
-          <p-tab value="4">
-            <i class="pi pi-user-plus mr-2"></i>
-            Portal de Empleado
-          </p-tab>
+        <p-tablist class="desktop-detail-tabs">
+          <p-tab value="0">Información</p-tab>
+          <p-tab value="1">Horarios</p-tab>
+          <p-tab value="2">Marcación</p-tab>
+          <p-tab value="3">Tiempos fuera</p-tab>
+          <p-tab value="4">Portal</p-tab>
         </p-tablist>
         <p-tabpanels>
           <p-tabpanel value="0">
             @if(employee.isLoading()) {
-            <div class="flex flex-col gap-4">
-              <p-skeleton shape="rectangle" height="3rem" />
-              <p-skeleton shape="rectangle" height="10rem" />
-              <p-skeleton shape="rectangle" height="10rem" />
-              <p-skeleton shape="rectangle" height="10rem" />
-            </div>
-            } @else if(currentEmployee()) {
-            <div class="space-y-4">
-              <!-- Header Card -->
-              <p-card class="shadow-lg border border-neutral-700/50">
-                <ng-template #title>
-                  <div class="flex items-center justify-between w-full">
-                    <div class="flex items-center gap-3">
-                      <div
-                        class="w-12 h-12 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center"
-                      >
-                        <i class="pi pi-user text-white text-xl"></i>
-                      </div>
-                      <div>
-                        <h3 class="text-xl font-bold text-white m-0">
-                          {{ currentEmployee()?.first_name }}
-                          {{ currentEmployee()?.father_name }}
-                        </h3>
-                        <p class="text-sm text-gray-400 m-0 mt-1">
-                          {{ currentEmployee()?.position?.name }}
-                        </p>
-                      </div>
-                    </div>
-                    <p-menu
-                      #menu
-                      [model]="items"
-                      [popup]="true"
-                      appendTo="body"
-                    />
-                    <p-button
-                      label="Acciones"
-                      icon="pi pi-ellipsis-v"
-                      rounded
-                      severity="secondary"
-                      outlined
-                      (onClick)="menu.toggle($event)"
-                    />
-                  </div>
-                </ng-template>
-              </p-card>
-
-              <!-- Información Básica Card -->
-              <p-card class="shadow-lg border border-neutral-700/50">
-                <ng-template #title>
-                  <div class="flex items-center gap-2">
-                    <i class="pi pi-id-card text-lg text-amber-400"></i>
-                    <h4 class="text-base font-bold text-white m-0">
-                      Información Básica
-                    </h4>
-                  </div>
-                </ng-template>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div
-                    class="flex flex-col p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
-                  >
-                    <dt
-                      class="text-xs font-semibold text-amber-400 mb-1 uppercase tracking-wide"
-                    >
-                      Nombre Completo
-                    </dt>
-                    <dd class="text-sm text-gray-200 font-medium">
-                      {{ currentEmployee()?.first_name }}
-                      {{ currentEmployee()?.middle_name }}
-                      {{ currentEmployee()?.father_name }}
-                      {{ currentEmployee()?.mother_name }}
-                    </dd>
-                  </div>
-                  <div
-                    class="flex flex-col p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
-                  >
-                    <dt
-                      class="text-xs font-semibold text-amber-400 mb-1 uppercase tracking-wide"
-                    >
-                      Cédula de Identidad
-                    </dt>
-                    <dd class="text-sm text-gray-200 font-medium">
-                      {{ currentEmployee()?.document_id || '-' }}
-                    </dd>
-                  </div>
-                  <div
-                    class="flex flex-col p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
-                  >
-                    <dt
-                      class="text-xs font-semibold text-amber-400 mb-1 uppercase tracking-wide"
-                    >
-                      Fecha de Nacimiento
-                    </dt>
-                    <dd class="text-sm text-gray-200 font-medium">
-                      {{ currentEmployee()?.birth_date | date : 'mediumDate' }}
-                      <span class="text-gray-500 ml-1"
-                        >({{ currentEmployee()?.birth_date | age }})</span
-                      >
-                    </dd>
-                  </div>
-                  <div
-                    class="flex flex-col p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
-                  >
-                    <dt
-                      class="text-xs font-semibold text-amber-400 mb-1 uppercase tracking-wide"
-                    >
-                      Sexo
-                    </dt>
-                    <dd class="text-sm text-gray-200 font-medium">
-                      {{
-                        currentEmployee()?.gender === 'M'
-                          ? 'Masculino'
-                          : 'Femenino'
-                      }}
-                    </dd>
-                  </div>
-                  <div
-                    class="flex flex-col p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
-                  >
-                    <dt
-                      class="text-xs font-semibold text-amber-400 mb-1 uppercase tracking-wide"
-                    >
-                      Talla de Uniforme
-                    </dt>
-                    <dd class="text-sm text-gray-200 font-medium">
-                      {{ currentEmployee()?.uniform_size || '-' }}
-                    </dd>
-                  </div>
-                </div>
-              </p-card>
-
-              <!-- Información de Contacto Card -->
-              <p-card class="shadow-lg border border-neutral-700/50">
-                <ng-template #title>
-                  <div class="flex items-center gap-2">
-                    <i class="pi pi-phone text-lg text-amber-400"></i>
-                    <h4 class="text-base font-bold text-white m-0">
-                      Información de Contacto
-                    </h4>
-                  </div>
-                </ng-template>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div
-                    class="flex flex-col p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
-                  >
-                    <dt
-                      class="text-xs font-semibold text-amber-400 mb-1 uppercase tracking-wide"
-                    >
-                      Email Personal
-                    </dt>
-                    <dd class="text-sm text-gray-200 font-medium">
-                      {{ currentEmployee()?.email || '-' }}
-                    </dd>
-                  </div>
-                  <div
-                    class="flex flex-col p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
-                  >
-                    <dt
-                      class="text-xs font-semibold text-amber-400 mb-1 uppercase tracking-wide"
-                    >
-                      Email Laboral
-                    </dt>
-                    <dd class="text-sm text-gray-200 font-medium">
-                      {{ currentEmployee()?.work_email || '-' }}
-                    </dd>
-                  </div>
-                  <div
-                    class="flex flex-col p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
-                  >
-                    <dt
-                      class="text-xs font-semibold text-amber-400 mb-1 uppercase tracking-wide"
-                    >
-                      Teléfono
-                    </dt>
-                    <dd class="text-sm text-gray-200 font-medium">
-                      {{ currentEmployee()?.phone_number || '-' }}
-                    </dd>
-                  </div>
-                  <div
-                    class="flex flex-col p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50 md:col-span-2"
-                  >
-                    <dt
-                      class="text-xs font-semibold text-amber-400 mb-1 uppercase tracking-wide"
-                    >
-                      Dirección
-                    </dt>
-                    <dd class="text-sm text-gray-200 font-medium">
-                      {{ currentEmployee()?.address || '-' }}
-                    </dd>
-                  </div>
-                </div>
-              </p-card>
-
-              <!-- Información Bancaria Card -->
-              <p-card class="shadow-lg border border-neutral-700/50">
-                <ng-template #title>
-                  <div class="flex items-center gap-2">
-                    <i class="pi pi-university text-lg text-amber-400"></i>
-                    <h4 class="text-base font-bold text-white m-0">
-                      Información Bancaria
-                    </h4>
-                  </div>
-                </ng-template>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div
-                    class="flex flex-col p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
-                  >
-                    <dt
-                      class="text-xs font-semibold text-amber-400 mb-1 uppercase tracking-wide"
-                    >
-                      Banco
-                    </dt>
-                    <dd class="text-sm text-gray-200 font-medium">
-                      {{ getBankName() }}
-                    </dd>
-                  </div>
-                  <div
-                    class="flex flex-col p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
-                  >
-                    <dt
-                      class="text-xs font-semibold text-amber-400 mb-1 uppercase tracking-wide"
-                    >
-                      Tipo de Cuenta
-                    </dt>
-                    <dd class="text-sm text-gray-200 font-medium">
-                      {{ currentEmployee()?.bank_account_type || '-' }}
-                    </dd>
-                  </div>
-                  <div
-                    class="flex flex-col p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
-                  >
-                    <dt
-                      class="text-xs font-semibold text-amber-400 mb-1 uppercase tracking-wide"
-                    >
-                      Número de Cuenta
-                    </dt>
-                    <dd class="text-sm text-gray-200 font-medium">
-                      {{ currentEmployee()?.account_number || '-' }}
-                    </dd>
-                  </div>
-                </div>
-              </p-card>
-
-              <!-- Datos Laborales Card -->
-              <p-card class="shadow-lg border border-neutral-700/50">
-                <ng-template #title>
-                  <div class="flex items-center gap-2">
-                    <i class="pi pi-briefcase text-lg text-amber-400"></i>
-                    <h4 class="text-base font-bold text-white m-0">
-                      Datos Laborales
-                    </h4>
-                  </div>
-                </ng-template>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div
-                    class="flex flex-col p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
-                  >
-                    <dt
-                      class="text-xs font-semibold text-amber-400 mb-1 uppercase tracking-wide"
-                    >
-                      Empresa
-                    </dt>
-                    <dd class="text-sm text-gray-200 font-medium">
-                      {{ getCompanyName() }}
-                    </dd>
-                  </div>
-                  <div
-                    class="flex flex-col p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
-                  >
-                    <dt
-                      class="text-xs font-semibold text-amber-400 mb-1 uppercase tracking-wide"
-                    >
-                      Departamento
-                    </dt>
-                    <dd class="text-sm text-gray-200 font-medium">
-                      {{ currentEmployee()?.department?.name || '-' }}
-                    </dd>
-                  </div>
-                  <div
-                    class="flex flex-col p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
-                  >
-                    <dt
-                      class="text-xs font-semibold text-amber-400 mb-1 uppercase tracking-wide"
-                    >
-                      Sucursal
-                    </dt>
-                    <dd class="text-sm text-gray-200 font-medium">
-                      {{ currentEmployee()?.branch?.name || '-' }}
-                    </dd>
-                  </div>
-                  <div
-                    class="flex flex-col p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
-                  >
-                    <dt
-                      class="text-xs font-semibold text-amber-400 mb-1 uppercase tracking-wide"
-                    >
-                      Cargo
-                    </dt>
-                    <dd class="text-sm text-gray-200 font-medium">
-                      {{ currentEmployee()?.position?.name || '-' }}
-                    </dd>
-                  </div>
-                  <div
-                    class="flex flex-col p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
-                  >
-                    <dt
-                      class="text-xs font-semibold text-amber-400 mb-1 uppercase tracking-wide"
-                    >
-                      Salario Mensual
-                    </dt>
-                    <dd
-                      class="text-sm text-gray-200 font-semibold text-green-400"
-                    >
-                      {{ currentEmployee()?.monthly_salary | currency : '$' }}
-                    </dd>
-                  </div>
-                  <div
-                    class="flex flex-col p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
-                  >
-                    <dt
-                      class="text-xs font-semibold text-amber-400 mb-1 uppercase tracking-wide"
-                    >
-                      Salario por Hora
-                    </dt>
-                    <dd
-                      class="text-sm text-gray-200 font-semibold text-green-400"
-                    >
-                      {{ currentEmployee()?.hourly_salary | currency : '$' }}
-                    </dd>
-                  </div>
-                  <div
-                    class="flex flex-col p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
-                  >
-                    <dt
-                      class="text-xs font-semibold text-amber-400 mb-1 uppercase tracking-wide"
-                    >
-                      Fecha de Ingreso
-                    </dt>
-                    <dd class="text-sm text-gray-200 font-medium">
-                      {{ currentEmployee()?.start_date | date : 'mediumDate' }}
-                      <span class="text-gray-500 ml-1"
-                        >({{
-                          currentEmployee()?.start_date! | seniority
-                        }})</span
-                      >
-                    </dd>
-                  </div>
-                  <div
-                    class="flex flex-col p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
-                  >
-                    <dt
-                      class="text-xs font-semibold text-amber-400 mb-1 uppercase tracking-wide"
-                    >
-                      Estado
-                    </dt>
-                    <dd class="text-sm">
-                      <span
-                        [class]="
-                          currentEmployee()?.is_active
-                            ? 'text-green-400 font-semibold'
-                            : 'text-red-400 font-semibold'
-                        "
-                      >
-                        <i
-                          [class]="
-                            currentEmployee()?.is_active
-                              ? 'pi pi-check-circle'
-                              : 'pi pi-times-circle'
-                          "
-                          class="mr-1"
-                        ></i>
-                        {{
-                          currentEmployee()?.is_active ? 'Activo' : 'Inactivo'
-                        }}
-                      </span>
-                    </dd>
-                  </div>
-                  <div
-                    class="flex flex-col p-3 rounded-lg bg-neutral-800/50 border border-neutral-700/50"
-                  >
-                    <dt
-                      class="text-xs font-semibold text-amber-400 mb-1 uppercase tracking-wide"
-                    >
-                      Tiempo Total Excedido de Almuerzo
-                    </dt>
-                    <dd class="text-sm text-gray-200 font-medium">
-                      @if(currentEmployee(); as employee) {
-                      @if(employee.total_lunch_exceeded_minutes !== undefined &&
-                      employee.total_lunch_exceeded_minutes !== null) {
-                      @if(employee.total_lunch_exceeded_minutes > 0) {
-                      <p-tag
-                        severity="warn"
-                        [value]="
-                          formatLunchExceeded(
-                            employee.total_lunch_exceeded_minutes
-                          )
-                        "
-                      />
-                      } @else {
-                      <span class="text-gray-500">0</span>
-                      } } @else {
-                      <span class="text-gray-500">0</span>
-                      } }
-                    </dd>
-                  </div>
-                </div>
-              </p-card>
-            </div>
-            } @else {
-            <div class="flex flex-col items-center justify-center py-16 px-4">
-              <div class="text-center">
-                <i
-                  class="pi pi-exclamation-triangle text-6xl text-amber-400 mb-4"
-                ></i>
-                <h3 class="text-2xl font-bold text-white mb-2">
-                  Empleado no encontrado
-                </h3>
-                <p class="text-gray-400 text-lg">
-                  No se pudo cargar la información del empleado.
-                </p>
+              <div class="flex flex-col gap-3 py-6">
+                <p-skeleton height="2.5rem" />
+                <p-skeleton height="14rem" />
+                <p-skeleton height="10rem" />
               </div>
-            </div>
+            } @else if(currentEmployee()) {
+              <!-- Una sola card con secciones en grid: fácil de escanear -->
+              <div class="bg-neutral-800/40 rounded-xl border border-neutral-700/50 overflow-hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-6 p-6">
+                  <!-- Columna 1: Básica + Contacto -->
+                  <div class="space-y-5">
+                    <section>
+                      <h3 class="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <i class="pi pi-id-card"></i> Datos personales
+                      </h3>
+                      <dl class="detail-grid">
+                        <dt>Nombre completo</dt><dd>{{ currentEmployee()?.first_name }} {{ currentEmployee()?.middle_name }} {{ currentEmployee()?.father_name }} {{ currentEmployee()?.mother_name }}</dd>
+                        <dt>Cédula</dt><dd>{{ currentEmployee()?.document_id || '-' }}</dd>
+                        <dt>Nacimiento</dt><dd>{{ currentEmployee()?.birth_date | date:'mediumDate' }} ({{ currentEmployee()?.birth_date | age }})</dd>
+                        <dt>Sexo</dt><dd>{{ currentEmployee()?.gender === 'M' ? 'Masculino' : 'Femenino' }}</dd>
+                        <dt>Talla uniforme</dt><dd>{{ currentEmployee()?.uniform_size || '-' }}</dd>
+                      </dl>
+                    </section>
+                    <section>
+                      <h3 class="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <i class="pi pi-phone"></i> Contacto
+                      </h3>
+                      <dl class="detail-grid">
+                        <dt>Email personal</dt><dd class="break-all">{{ currentEmployee()?.email || '-' }}</dd>
+                        <dt>Email laboral</dt><dd class="break-all">{{ currentEmployee()?.work_email || '-' }}</dd>
+                        <dt>Teléfono</dt><dd>{{ currentEmployee()?.phone_number || '-' }}</dd>
+                        <dt>Dirección</dt><dd>{{ currentEmployee()?.address || '-' }}</dd>
+                      </dl>
+                    </section>
+                  </div>
+                  <!-- Columna 2: Bancaria + Laboral -->
+                  <div class="space-y-5">
+                    <section>
+                      <h3 class="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <i class="pi pi-university"></i> Bancario
+                      </h3>
+                      <dl class="detail-grid">
+                        <dt>Banco</dt><dd>{{ getBankName() }}</dd>
+                        <dt>Tipo de cuenta</dt><dd>{{ currentEmployee()?.bank_account_type || '-' }}</dd>
+                        <dt>Nº cuenta</dt><dd class="font-mono">{{ currentEmployee()?.account_number || '-' }}</dd>
+                      </dl>
+                    </section>
+                    <section>
+                      <h3 class="text-xs font-semibold text-amber-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        <i class="pi pi-briefcase"></i> Laboral
+                      </h3>
+                      <dl class="detail-grid">
+                        <dt>Empresa</dt><dd>{{ getCompanyName() }}</dd>
+                        <dt>Área</dt><dd>{{ currentEmployee()?.department?.name || '-' }}</dd>
+                        <dt>Sucursal</dt><dd>{{ currentEmployee()?.branch?.name || '-' }}</dd>
+                        <dt>Cargo</dt><dd>{{ currentEmployee()?.position?.name || '-' }}</dd>
+                        <dt>Salario mensual</dt><dd class="text-green-400 font-semibold">{{ currentEmployee()?.monthly_salary | currency:'$' }}</dd>
+                        <dt>Salario/hora</dt><dd class="text-green-400 font-semibold">{{ currentEmployee()?.hourly_salary | currency:'$' }}</dd>
+                        <dt>Fecha ingreso</dt><dd>{{ currentEmployee()?.start_date | date:'mediumDate' }} ({{ currentEmployee()?.start_date! | seniority }})</dd>
+                        <dt>Estado</dt>
+                        <dd>
+                          <span [ngClass]="currentEmployee()?.is_active ? 'text-green-400' : 'text-red-400'" class="font-semibold">
+                            <i [class]="currentEmployee()?.is_active ? 'pi pi-check-circle' : 'pi pi-times-circle'" class="mr-1"></i>
+                            {{ currentEmployee()?.is_active ? 'Activo' : 'Inactivo' }}
+                          </span>
+                        </dd>
+                        <dt>Exceso almuerzo</dt>
+                        <dd>
+                          @if(currentEmployee(); as e) {
+                            @if (e.total_lunch_exceeded_minutes != null && e.total_lunch_exceeded_minutes > 0) {
+                              <p-tag severity="warn" [value]="formatLunchExceeded(e.total_lunch_exceeded_minutes)" />
+                            } @else {
+                              <span class="text-gray-500">0</span>
+                            }
+                          } @else {
+                            <span class="text-gray-500">-</span>
+                          }
+                        </dd>
+                      </dl>
+                    </section>
+                  </div>
+                </div>
+              </div>
+            } @else {
+              <div class="flex flex-col items-center justify-center py-16 px-4 text-center">
+                <i class="pi pi-exclamation-triangle text-5xl text-amber-400 mb-3"></i>
+                <h3 class="text-xl font-bold text-white mb-1">Empleado no encontrado</h3>
+                <p class="text-gray-400 text-sm m-0">No se pudo cargar la información.</p>
+              </div>
             }
           </p-tabpanel>
           <p-tabpanel value="1">
@@ -746,6 +438,176 @@ import { TimeOffsComponent } from './time-offs.component';
         </p-tabpanels>
       </p-tabs>
     </div>
+    } @else {
+    <!-- Vista Móvil: header fijo + secciones -->
+    <div class="mobile-employee-detail flex flex-col min-h-[60vh]">
+      <header class="sticky top-0 z-20 bg-neutral-800/95 border-b border-neutral-700/50 px-3 py-3 shadow-sm">
+        <div class="flex items-center gap-2">
+          <a [routerLink]="['..']" class="flex items-center justify-center w-10 h-10 rounded-lg bg-neutral-700/50 text-gray-300 hover:bg-neutral-600/50 active:bg-neutral-600">
+            <i class="pi pi-arrow-left"></i>
+          </a>
+          <div class="min-w-0 flex-1">
+            @if (currentEmployee(); as emp) {
+              <h1 class="text-base font-bold text-white truncate m-0">{{ emp.first_name }} {{ emp.father_name }}</h1>
+              <p class="text-xs text-gray-400 truncate m-0">{{ emp.position?.name }} · {{ emp.branch?.name }}</p>
+            } @else if (employee.isLoading()) {
+              <p-skeleton width="8rem" height="1.25rem" class="mb-1" />
+              <p-skeleton width="6rem" height="0.875rem" />
+            } @else {
+              <span class="text-gray-400 text-sm">Perfil</span>
+            }
+          </div>
+          @if (currentEmployee()) {
+            <p-menu #menu [model]="items" [popup]="true" appendTo="body" />
+            <p-button icon="pi pi-ellipsis-v" [rounded]="true" severity="secondary" [text]="true" (onClick)="menu.toggle($event)" class="min-w-[44px] min-h-[44px]" />
+          }
+        </div>
+      </header>
+
+      <main class="flex-1 overflow-y-auto">
+        @if (employee.isLoading()) {
+          <div class="p-4 space-y-3">
+            <p-skeleton height="4rem" />
+            <p-skeleton height="6rem" />
+            <p-skeleton height="6rem" />
+          </div>
+        } @else if (!currentEmployee()) {
+          <div class="p-6 text-center text-gray-400">
+            <i class="pi pi-user-minus text-4xl block mb-2"></i>
+            <p class="m-0">Empleado no encontrado</p>
+          </div>
+        } @else {
+          <p-tabs value="0" scrollable>
+            <p-tablist class="!flex !overflow-x-auto !gap-0 !border-0 !bg-neutral-800/50 !px-2">
+              <p-tab value="0" styleClass="!min-w-0 !px-3 !py-2.5 !text-xs">Info</p-tab>
+              <p-tab value="1" styleClass="!min-w-0 !px-3 !py-2.5 !text-xs">Horarios</p-tab>
+              <p-tab value="2" styleClass="!min-w-0 !px-3 !py-2.5 !text-xs">QR</p-tab>
+              <p-tab value="3" styleClass="!min-w-0 !px-3 !py-2.5 !text-xs">Tiempos</p-tab>
+              <p-tab value="4" styleClass="!min-w-0 !px-3 !py-2.5 !text-xs">Portal</p-tab>
+            </p-tablist>
+            <p-tabpanels>
+              <p-tabpanel value="0">
+                <div class="px-3 py-3 space-y-4 pb-8">
+                  <section class="rounded-xl bg-neutral-800/80 border border-neutral-700/50 overflow-hidden">
+                    <div class="px-3 py-2 bg-neutral-700/30 border-b border-neutral-700/50 flex items-center gap-2">
+                      <i class="pi pi-id-card text-amber-400 text-sm"></i>
+                      <span class="text-xs font-semibold text-white uppercase tracking-wide">Datos básicos</span>
+                    </div>
+                    <div class="divide-y divide-neutral-700/50">
+                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Nombre completo</span><span class="text-sm text-white text-right">{{ currentEmployee()?.first_name }} {{ currentEmployee()?.middle_name }} {{ currentEmployee()?.father_name }} {{ currentEmployee()?.mother_name }}</span></div>
+                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Cédula</span><span class="text-sm text-white">{{ currentEmployee()?.document_id || '-' }}</span></div>
+                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Nacimiento</span><span class="text-sm text-white">{{ currentEmployee()?.birth_date | date:'shortDate' }} ({{ currentEmployee()?.birth_date | age }})</span></div>
+                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Sexo</span><span class="text-sm text-white">{{ currentEmployee()?.gender === 'M' ? 'Masculino' : 'Femenino' }}</span></div>
+                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Talla</span><span class="text-sm text-white">{{ currentEmployee()?.uniform_size || '-' }}</span></div>
+                    </div>
+                  </section>
+                  <section class="rounded-xl bg-neutral-800/80 border border-neutral-700/50 overflow-hidden">
+                    <div class="px-3 py-2 bg-neutral-700/30 border-b border-neutral-700/50 flex items-center gap-2">
+                      <i class="pi pi-phone text-amber-400 text-sm"></i>
+                      <span class="text-xs font-semibold text-white uppercase tracking-wide">Contacto</span>
+                    </div>
+                    <div class="divide-y divide-neutral-700/50">
+                      <div class="px-3 py-2.5 flex justify-between items-start gap-2"><span class="text-xs text-gray-400 flex-shrink-0">Email personal</span><span class="text-sm text-white text-right break-all">{{ currentEmployee()?.email || '-' }}</span></div>
+                      <div class="px-3 py-2.5 flex justify-between items-start gap-2"><span class="text-xs text-gray-400 flex-shrink-0">Email laboral</span><span class="text-sm text-white text-right break-all">{{ currentEmployee()?.work_email || '-' }}</span></div>
+                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Teléfono</span><span class="text-sm text-white">{{ currentEmployee()?.phone_number || '-' }}</span></div>
+                      <div class="px-3 py-2.5 flex justify-between items-start gap-2"><span class="text-xs text-gray-400 flex-shrink-0">Dirección</span><span class="text-sm text-white text-right">{{ currentEmployee()?.address || '-' }}</span></div>
+                    </div>
+                  </section>
+                  <section class="rounded-xl bg-neutral-800/80 border border-neutral-700/50 overflow-hidden">
+                    <div class="px-3 py-2 bg-neutral-700/30 border-b border-neutral-700/50 flex items-center gap-2">
+                      <i class="pi pi-university text-amber-400 text-sm"></i>
+                      <span class="text-xs font-semibold text-white uppercase tracking-wide">Bancario</span>
+                    </div>
+                    <div class="divide-y divide-neutral-700/50">
+                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Banco</span><span class="text-sm text-white">{{ getBankName() }}</span></div>
+                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Tipo cuenta</span><span class="text-sm text-white">{{ currentEmployee()?.bank_account_type || '-' }}</span></div>
+                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Nº cuenta</span><span class="text-sm text-white font-mono">{{ currentEmployee()?.account_number || '-' }}</span></div>
+                    </div>
+                  </section>
+                  <section class="rounded-xl bg-neutral-800/80 border border-neutral-700/50 overflow-hidden">
+                    <div class="px-3 py-2 bg-neutral-700/30 border-b border-neutral-700/50 flex items-center gap-2">
+                      <i class="pi pi-briefcase text-amber-400 text-sm"></i>
+                      <span class="text-xs font-semibold text-white uppercase tracking-wide">Laboral</span>
+                    </div>
+                    <div class="divide-y divide-neutral-700/50">
+                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Empresa</span><span class="text-sm text-white">{{ getCompanyName() }}</span></div>
+                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Área</span><span class="text-sm text-white">{{ currentEmployee()?.department?.name || '-' }}</span></div>
+                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Sucursal</span><span class="text-sm text-white">{{ currentEmployee()?.branch?.name || '-' }}</span></div>
+                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Cargo</span><span class="text-sm text-white">{{ currentEmployee()?.position?.name || '-' }}</span></div>
+                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Salario mensual</span><span class="text-sm text-green-400 font-semibold">{{ currentEmployee()?.monthly_salary | currency:'$' }}</span></div>
+                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Ingreso</span><span class="text-sm text-white">{{ currentEmployee()?.start_date | date:'shortDate' }} ({{ currentEmployee()?.start_date! | seniority }})</span></div>
+                      <div class="px-3 py-2.5 flex justify-between items-center"><span class="text-xs text-gray-400">Estado</span>
+                        <span [ngClass]="currentEmployee()?.is_active ? 'text-green-400' : 'text-red-400'" class="text-sm font-semibold">
+                          <i [class]="currentEmployee()?.is_active ? 'pi pi-check-circle' : 'pi pi-times-circle'" class="mr-1"></i>
+                          {{ currentEmployee()?.is_active ? 'Activo' : 'Inactivo' }}
+                        </span>
+                      </div>
+                    </div>
+                  </section>
+                </div>
+              </p-tabpanel>
+              <p-tabpanel value="1">
+                @if (employee_id()) {
+                  <div class="px-3 py-3 pb-8"><pt-employee-schedules [employeeId]="employee_id()!" /></div>
+                }
+              </p-tabpanel>
+              <p-tabpanel value="2">
+                <div class="px-3 py-4 flex flex-col items-center gap-3 pb-8">
+                  @if (currentEmployee()?.qr_code) {
+                    <img [src]="currentEmployee()?.qr_code" alt="QR" class="w-48 h-48 rounded-lg shadow-lg" />
+                  } @else {
+                    <div class="w-48 h-48 rounded-lg bg-neutral-800/80 border border-neutral-700/50 flex items-center justify-center">
+                      <i class="pi pi-qrcode text-4xl text-gray-500"></i>
+                    </div>
+                  }
+                  <p-button [label]="currentEmployee()?.qr_code ? 'Regenerar QR' : 'Generar QR'" [icon]="currentEmployee()?.qr_code ? 'pi pi-refresh' : 'pi pi-plus'" [severity]="currentEmployee()?.qr_code ? 'warn' : 'success'" [loading]="regeneratingQr()" [disabled]="regeneratingQr() || !currentEmployee()" (onClick)="confirmRegenerateQr()" size="small" />
+                </div>
+              </p-tabpanel>
+              <p-tabpanel value="3">
+                <div class="px-3 py-3 space-y-2 pb-8">
+                  @if (currentEmployee()?.timeoffs?.length) {
+                    @for (timeoff of currentEmployee()?.timeoffs; track $index) {
+                      <div class="rounded-xl bg-neutral-800/80 border border-neutral-700/50 p-3">
+                        <p class="font-medium text-white text-sm m-0">{{ timeoff.type?.name }}</p>
+                        <p class="text-xs text-gray-400 m-0 mt-0.5">{{ timeoff.date_from }} - {{ timeoff.date_to }}</p>
+                      </div>
+                    }
+                  } @else {
+                    <p class="text-sm text-gray-400 text-center py-6 m-0">Sin tiempos fuera registrados</p>
+                  }
+                </div>
+              </p-tabpanel>
+              <p-tabpanel value="4">
+                @if (currentEmployee()) {
+                  <div class="px-3 py-3 space-y-4 pb-8">
+                    <div class="rounded-xl bg-neutral-800/80 border border-neutral-700/50 p-3 flex items-center justify-between gap-2">
+                      <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-full flex items-center justify-center" [ngClass]="currentEmployee()?.has_portal_access ? 'bg-green-500/20' : 'bg-gray-500/20'">
+                          <i class="pi text-xl" [ngClass]="currentEmployee()?.has_portal_access ? 'pi-check-circle text-green-400' : 'pi-times-circle text-gray-400'"></i>
+                        </div>
+                        <div>
+                          <p class="font-semibold text-white text-sm m-0">{{ currentEmployee()?.has_portal_access ? 'Portal activo' : 'Sin acceso' }}</p>
+                          <p class="text-xs text-gray-400 m-0">{{ currentEmployee()?.work_email || '-' }}</p>
+                        </div>
+                      </div>
+                      <p-tag [value]="currentEmployee()?.has_portal_access ? 'Activo' : 'Sin acceso'" [severity]="currentEmployee()?.has_portal_access ? 'success' : 'secondary'" styleClass="text-[10px]" />
+                    </div>
+                    @if (!currentEmployee()?.has_portal_access) {
+                      <p-button label="Invitar al portal" icon="pi pi-user-plus" severity="info" [disabled]="!canInvite() || inviting()" [loading]="inviting()" (onClick)="inviteToPortal()" class="w-full" size="small" />
+                      @if (!canInvite()) {
+                        <p class="text-xs text-amber-400 m-0">Email laboral y teléfono requeridos para invitar.</p>
+                      }
+                    }
+                  </div>
+                }
+              </p-tabpanel>
+            </p-tabpanels>
+          </p-tabs>
+        }
+      </main>
+    </div>
+    }
+    </div>
   `,
   styles: `
     p {
@@ -816,6 +678,50 @@ import { TimeOffsComponent } from './time-offs.component';
       background: rgba(251, 191, 36, 0.1) !important;
       color: #fbbf24 !important;
     }
+
+    .employee-detail-page a.no-underline { text-decoration: none; }
+
+    /* Vista desktop: grid de datos legible */
+    .desktop-detail .detail-grid {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 0.375rem 1.5rem;
+      align-items: baseline;
+      font-size: 0.875rem;
+    }
+    .desktop-detail .detail-grid dt {
+      color: #9ca3af;
+      font-weight: 500;
+      min-width: 0;
+    }
+    .desktop-detail .detail-grid dd {
+      color: #e5e7eb;
+      margin: 0;
+      min-width: 0;
+    }
+    .desktop-detail-tabs ::ng-deep .p-tablist {
+      background: transparent !important;
+      border-bottom: 1px solid rgba(75, 85, 99, 0.5) !important;
+    }
+    .desktop-detail-tabs ::ng-deep .p-tab {
+      padding: 0.5rem 1rem !important;
+      font-size: 0.875rem !important;
+    }
+    .mobile-employee-detail ::ng-deep .p-tabs .p-tablist {
+      flex-wrap: nowrap !important;
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch;
+      padding: 0.5rem 0.75rem !important;
+      gap: 0 !important;
+      background: rgba(39, 39, 42, 0.5) !important;
+      border-bottom: 1px solid rgba(75, 85, 99, 0.5) !important;
+    }
+    .mobile-employee-detail ::ng-deep .p-tabs .p-tab {
+      padding: 0.5rem 0.75rem !important;
+      font-size: 0.75rem !important;
+      white-space: nowrap !important;
+      flex-shrink: 0 !important;
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -824,6 +730,7 @@ export class EmployeeDetailComponent implements OnInit {
   protected readonly banksStore = inject(BanksStore);
   private router = inject(Router);
   private route = inject(ActivatedRoute);
+  protected device = inject(DeviceService);
   private http = inject(HttpClient);
   private messageService = inject(MessageService);
   private confirmationService = inject(ConfirmationService);
@@ -905,6 +812,10 @@ export class EmployeeDetailComponent implements OnInit {
       this.employee_id.set(employeeId);
       this.state.selectEntity(employeeId);
     }
+  }
+
+  goToEdit(): void {
+    this.router.navigate(['edit'], { relativeTo: this.route });
   }
 
   editEmployee() {

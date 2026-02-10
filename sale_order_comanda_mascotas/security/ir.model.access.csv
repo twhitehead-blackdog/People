@@ -1,0 +1,6 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_x_mascota_line_all,x.mascota.line all,model_x_mascota_line,base.group_user,1,1,1,1
+access_x_mascota_atencion_historial_all,x.mascota.atencion.historial all,model_x_mascota_atencion_historial,base.group_user,1,1,1,1
+access_x_mascota_atencion_foto_all,x.mascota.atencion.foto all,model_x_mascota_atencion_foto,base.group_user,1,1,1,1
+access_x_mascota_checklist_all,x.mascota.checklist all,model_x_mascota_checklist,base.group_user,1,1,1,1
+access_x_mascota_dashboard_all,x.mascota.dashboard all,model_x_mascota_dashboard,base.group_user,1,1,1,1

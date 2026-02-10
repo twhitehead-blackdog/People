@@ -33,6 +33,7 @@ import { StructureSectionComponent } from './home/components/sections/structure-
 import { ChartsSectionComponent } from './home/components/sections/charts-section.component';
 import { EventsSectionComponent } from './home/components/sections/events-section.component';
 import { ManagementSectionComponent } from './home/components/sections/management-section.component';
+import { PeluqueriaSectionComponent } from './home/components/sections/peluqueria-section.component';
 import { BirthdaysDialogComponent } from './home/components/dialogs/birthdays-dialog.component';
 import { HiresExitsDialogComponent } from './home/components/dialogs/hires-exits-dialog.component';
 import { LateDetailsDialogComponent } from './home/components/dialogs/late-details-dialog.component';
@@ -51,6 +52,7 @@ import { TopAbsencesDialogComponent } from './home/components/dialogs/top-absenc
     ChartsSectionComponent,
     EventsSectionComponent,
     ManagementSectionComponent,
+    PeluqueriaSectionComponent,
     BirthdaysDialogComponent,
     HiresExitsDialogComponent,
     LateDetailsDialogComponent,
@@ -109,6 +111,9 @@ import { TopAbsencesDialogComponent } from './home/components/dialogs/top-absenc
           @case ('structure') {
             <pt-structure-section></pt-structure-section>
           }
+          @case ('peluqueria') {
+            <pt-peluqueria-section></pt-peluqueria-section>
+          }
           @case ('charts') {
             <pt-charts-section
               [branchData]="branchData()"
@@ -160,7 +165,7 @@ import { TopAbsencesDialogComponent } from './home/components/dialogs/top-absenc
       </main>
     </div>`,
   styles: [`
-    :host { display: block; height: 100vh; overflow: hidden; }
+    :host { display: block; height: 100%; overflow: hidden; }
   `],
   styleUrls: ['./home/home.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,

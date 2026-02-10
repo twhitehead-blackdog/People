@@ -14,6 +14,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import {
   addDays,
+  eachDayOfInterval,
   endOfDay,
   format,
   isBefore,
@@ -52,6 +53,17 @@ import { MonthWeekSelectorComponent } from './employees-timetable/components/mon
 import { TimetableFiltersComponent } from './employees-timetable/components/timetable-filters/timetable-filters.component';
 import { TimetableGridComponent } from './employees-timetable/components/timetable-grid/timetable-grid.component';
 import { TimetableHeaderComponent } from './employees-timetable/components/timetable-header/timetable-header.component';
+import {
+  branchDayKey,
+  conflictKey,
+  getPeluqueroAfterAsistenteWarning,
+  getScheduleWarningForManager,
+  isAsistentePeluqueriaPosition,
+  isManagerPosition,
+  isPeluqueroPosition,
+  parseEntryTimeToMinutes,
+  SCHEDULE_ID_DIA_LIBRE,
+} from './services/schedule-manager-rules';
 import { TimetableFilterService } from './services/timetable-filter.service';
 import { TimetableNavigationService } from './services/timetable-navigation.service';
 import { TimetablePermissionsService } from './services/timetable-permissions.service';
@@ -841,24 +853,149 @@ export class EmployeesTimetableComponent implements OnInit {
     return null;
   }
 
-  public employeeSchedulesList = computed(() =>
-    this.currentEmployees().map((employee) => ({
+  public employeeSchedulesList = computed(() => {
+    const employees = this.currentEmployees();
+    const intervalsMap = this.shiftIntervalsByEmployeeId();
+    const conflictKeys = this.managerConflictKeys();
+    return employees.map((employee) => ({
       id: employee.id,
       first_name: employee.first_name,
       father_name: employee.father_name,
+      position_id: employee.position_id,
       position: employee.position
-        ? { name: employee.position.name }
-        : { name: '' },
-      days: employee.days.map((day) => ({
-        ...day,
-        shift:
+        ? { id: (employee.position as any).id, name: employee.position.name }
+        : { id: '', name: '' },
+      days: employee.days.map((day) => {
+        const shift =
           this.findIntervalForDate(
-            this.shiftIntervalsByEmployeeId().get(employee.id) ?? [],
+            intervalsMap.get(employee.id) ?? [],
             day.date
-          )?.shift ?? null,
-      })),
-    }))
-  );
+          )?.shift ?? null;
+        const scheduleWarning = this.getCellScheduleWarning(
+          employee.position_id,
+          day.date,
+          shift,
+          conflictKeys
+        );
+        return { ...day, shift, scheduleWarning };
+      }),
+    }));
+  });
+
+  /** Claves (date|branch_id|schedule_id) donde hay 2+ Gerentes/Subgerentes en el mismo turno/sucursal/día. */
+  private managerConflictKeys = computed(() => {
+    const employees = this.currentEmployees();
+    const intervalsMap = this.shiftIntervalsByEmployeeId();
+    const countByKey = new Map<string, number>();
+    for (const emp of employees) {
+      if (!isManagerPosition(emp.position_id)) continue;
+      const intervals = intervalsMap.get(emp.id) ?? [];
+      for (const { start, end, shift } of intervals) {
+        const days = eachDayOfInterval({ start, end });
+        for (const d of days) {
+          const key = conflictKey(d, shift?.branch_id, shift?.schedule_id);
+          countByKey.set(key, (countByKey.get(key) ?? 0) + 1);
+        }
+      }
+    }
+    const conflictSet = new Set<string>();
+    countByKey.forEach((count, key) => {
+      if (count >= 2) conflictSet.add(key);
+    });
+    return conflictSet;
+  });
+
+  /** Claves (date|branch_id|schedule_id) donde hay 2+ Peluqueros en el mismo turno/sucursal/día. Usa todos los employee_schedules de la semana para no depender de la lista filtrada. */
+  private peluqueroConflictKeys = computed(() => {
+    const schedules = this.schedulesResource.value() ?? [];
+    const employees = this.store.employees.entities();
+    const countByKey = new Map<string, number>();
+    for (const s of schedules) {
+      const emp = employees.find((e: any) => e.id === s.employee_id);
+      if (!isPeluqueroPosition(emp?.position_id)) continue;
+      const start = startOfDay(toDate(s.start_date, { timeZone: 'America/Panama' }));
+      const end = endOfDay(toDate(s.end_date, { timeZone: 'America/Panama' }));
+      const days = eachDayOfInterval({ start, end });
+      for (const d of days) {
+        const key = conflictKey(d, s.branch_id, s.schedule_id);
+        countByKey.set(key, (countByKey.get(key) ?? 0) + 1);
+      }
+    }
+    const conflictSet = new Set<string>();
+    countByKey.forEach((count, key) => {
+      if (count >= 2) conflictSet.add(key);
+    });
+    return conflictSet;
+  });
+
+  /** Por (date|branch_id), mínimo entry_time en minutos entre Asistentes de peluquería ese día en esa sucursal. Usa todos los employee_schedules de la semana y posición del store para no depender de la lista filtrada. */
+  private asistenteMinEntryMinutesByKey = computed(() => {
+    const schedules = this.schedulesResource.value() ?? [];
+    const employees = this.store.employees.entities();
+    const map = new Map<string, number>();
+    for (const s of schedules) {
+      const emp = employees.find((e: any) => e.id === s.employee_id);
+      if (!isAsistentePeluqueriaPosition(emp?.position_id)) continue;
+      const shift = {
+        start_date: s.start_date,
+        end_date: s.end_date,
+        branch_id: s.branch_id,
+        schedule: (s as any).schedule,
+      };
+      const start = startOfDay(toDate(shift.start_date, { timeZone: 'America/Panama' }));
+      const end = endOfDay(toDate(shift.end_date, { timeZone: 'America/Panama' }));
+      const days = eachDayOfInterval({ start, end });
+      const entryMin = parseEntryTimeToMinutes(shift.schedule?.entry_time);
+      if (entryMin == null) continue;
+      for (const d of days) {
+        const key = branchDayKey(d, shift.branch_id);
+        const current = map.get(key);
+        if (current == null || entryMin < current) map.set(key, entryMin);
+      }
+    }
+    return map;
+  });
+
+  private getCellScheduleWarning(
+    positionId: string | undefined,
+    date: Date,
+    shift: any,
+    conflictKeys: Set<string>
+  ): string | null {
+    const msgs: string[] = [];
+
+    // Reglas Gerente / Subgerente
+    if (isManagerPosition(positionId) && shift) {
+      const scheduleWarn = getScheduleWarningForManager(shift.schedule_id, date, positionId, shift?.schedule?.day_off);
+      if (scheduleWarn) msgs.push(scheduleWarn);
+      const key = conflictKey(date, shift.branch_id, shift.schedule_id);
+      if (conflictKeys.has(key)) {
+        const isDayOff = shift?.schedule_id === SCHEDULE_ID_DIA_LIBRE || shift?.schedule?.day_off === true;
+        msgs.push(isDayOff
+          ? 'Gerente y Subgerente no deberían tener el mismo día libre en la misma sucursal.'
+          : 'Gerente y Subgerente no deberían estar en el mismo turno en la misma sucursal.');
+      }
+    }
+
+    // Reglas Peluquero: no 2 peluqueros mismo horario; peluquero debe entrar después del asistente
+    if (isPeluqueroPosition(positionId) && shift) {
+      const peluqueroKeys = this.peluqueroConflictKeys();
+      const key = conflictKey(date, shift.branch_id, shift.schedule_id);
+      if (peluqueroKeys.has(key)) {
+        msgs.push('No deben haber 2 peluqueros con el mismo horario en la misma sucursal.');
+      }
+      const dayOff = shift?.schedule_id === SCHEDULE_ID_DIA_LIBRE || shift?.schedule?.day_off === true;
+      if (!dayOff && shift?.branch_id) {
+        const peluqueroEntry = parseEntryTimeToMinutes(shift?.schedule?.entry_time);
+        const bdKey = branchDayKey(date, shift.branch_id);
+        const asistenteMin = this.asistenteMinEntryMinutesByKey().get(bdKey) ?? null;
+        const afterWarn = getPeluqueroAfterAsistenteWarning(peluqueroEntry, asistenteMin);
+        if (afterWarn) msgs.push(afterWarn);
+      }
+    }
+
+    return msgs.length ? msgs.join(' ') : null;
+  }
 
   ngOnInit(): void {
     this.editionLocked.set(true);
@@ -1637,9 +1774,29 @@ export class EmployeesTimetableComponent implements OnInit {
     });
 
     const uniqueIds = Array.from(shiftIds);
-    if (uniqueIds.length > 0) {
-      this.batchApproveSchedules(uniqueIds, keys.length);
+    if (uniqueIds.length === 0) return;
+
+    // Si algún horario seleccionado tiene advertencia, no permitir aprobación en lote
+    const list = this.employeeSchedulesList();
+    const idsWithWarnings = new Set<string>();
+    for (const emp of list) {
+      for (const day of emp.days) {
+        if (day.shift?.id && day.scheduleWarning) {
+          idsWithWarnings.add(day.shift.id);
+        }
+      }
     }
+    const selectedWithWarnings = uniqueIds.filter((id) => idsWithWarnings.has(id));
+    if (selectedWithWarnings.length > 0) {
+      this.message.add({
+        severity: 'warn',
+        summary: 'Aprobación en lote no permitida',
+        detail: `${selectedWithWarnings.length} horario(s) tienen advertencias. Debes aprobarlos uno por uno desde cada celda.`,
+      });
+      return;
+    }
+
+    this.batchApproveSchedules(uniqueIds, keys.length);
   }
 
   public batchApproveSchedules(
@@ -1763,6 +1920,19 @@ export class EmployeesTimetableComponent implements OnInit {
       .map((d: any) => d.shift);
 
     if (pendingShifts.length === 0) return;
+
+    // Si algún horario de la semana tiene advertencia, no permitir aprobar toda la semana
+    const pendingWithWarnings = employee.days.filter(
+      (d: any) => d.shift && !d.shift.approved && d.scheduleWarning
+    );
+    if (pendingWithWarnings.length > 0) {
+      this.message.add({
+        severity: 'warn',
+        summary: 'Aprobación en lote no permitida',
+        detail: `${pendingWithWarnings.length} horario(s) tienen advertencias. Debes aprobarlos uno por uno desde cada celda.`,
+      });
+      return;
+    }
 
     this.confirm.confirm({
       header: 'Confirmar semana?',

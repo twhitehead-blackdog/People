@@ -19,7 +19,9 @@ import { EmployeesStore } from '../stores/employees.store';
 import { Position, Employee } from '../models';
 import { catchError } from 'rxjs/operators';
 import { of, firstValueFrom } from 'rxjs';
+import { TooltipModule } from 'primeng/tooltip';
 import { ApiUrlService } from '../services/api-url.service';
+import { DeviceService } from '../services/device.service';
 import { LoggerService } from '../services/logger.service';
 
 interface OrgNode {
@@ -32,15 +34,17 @@ interface OrgNode {
 @Component({
   selector: 'pt-organigrama',
   standalone: true,
-  imports: [Card, Button, ToastModule, MultiSelectModule, FormsModule, OrganizationChartModule],
+  imports: [Card, Button, ToastModule, MultiSelectModule, FormsModule, OrganizationChartModule, TooltipModule],
   providers: [MessageService, PositionsStore, EmployeesStore],
   template: `
     <p-toast />
-    <p-card>
+    <div class="organigrama-page w-full">
+    @if (device.isDesktop()) {
+    <p-card styleClass="organigrama-card">
       <ng-template #title>
         <div class="flex items-center justify-between w-full">
           <div>
-            <h2 class="m-0">Organigrama</h2>
+            <h2 class="m-0 text-xl font-bold text-white">Organigrama</h2>
             <p class="text-sm text-gray-400 m-0 mt-1">
               Visualiza y configura la estructura organizacional basada en posiciones laborales
             </p>
@@ -200,8 +204,115 @@ interface OrgNode {
         }
       </div>
     </p-card>
+    } @else {
+    <!-- Vista móvil Organigrama -->
+    <div class="mobile-organigrama flex flex-col min-h-[60vh]">
+      <header class="sticky top-0 z-20 bg-neutral-800/95 border-b border-neutral-700/50 px-3 py-3 shadow-sm">
+        <h2 class="m-0 text-lg font-bold text-white">Organigrama</h2>
+        <p class="text-xs text-gray-400 m-0 mt-1">Estructura organizacional</p>
+        <div class="flex gap-2 mt-3 overflow-x-auto pb-1 scrollbar-hide">
+          <button
+            type="button"
+            class="tab-button-mobile flex-shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            [class.bg-amber-500/20]="activeTab() === 'view'"
+            [class.text-amber-400]="activeTab() === 'view'"
+            [class.border]="activeTab() === 'view'"
+            [class.border-amber-500/50]="activeTab() === 'view'"
+            [class.text-gray-400]="activeTab() !== 'view'"
+            [class.bg-neutral-700/50]="activeTab() !== 'view'"
+            (click)="activeTab.set('view')"
+          >
+            <i class="pi pi-sitemap mr-2"></i>Vista
+          </button>
+          <button
+            type="button"
+            class="tab-button-mobile flex-shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+            [class.bg-amber-500/20]="activeTab() === 'config'"
+            [class.text-amber-400]="activeTab() === 'config'"
+            [class.border]="activeTab() === 'config'"
+            [class.border-amber-500/50]="activeTab() === 'config'"
+            [class.text-gray-400]="activeTab() !== 'config'"
+            [class.bg-neutral-700/50]="activeTab() !== 'config'"
+            (click)="activeTab.set('config')"
+          >
+            <i class="pi pi-cog mr-2"></i>Configuración
+          </button>
+        </div>
+      </header>
+      <main class="flex-1 overflow-y-auto px-3 py-3">
+        @if (activeTab() === 'view') {
+          @if (orgChartData() && orgChartData().length > 0) {
+            <div class="organigrama-tree organigrama-tree-mobile">
+              <p-organizationChart
+                [value]="orgChartData()"
+                [style]="{ width: '100%', height: 'auto' }"
+                selectionMode="single"
+                [collapsible]="true"
+                styleClass="compact-org-chart"
+              >
+                <ng-template let-node pTemplate="node">
+                  <div class="org-node-box">
+                    <div class="org-node-title">{{ node.data?.position?.name || node.label || 'Sin nombre' }}</div>
+                    <div class="org-node-subtitle">{{ node.data?.position?.department?.name || 'Sin departamento' }}</div>
+                    <div class="org-node-count">{{ (node.data?.employees?.length || 0) }} empleado(s)</div>
+                  </div>
+                </ng-template>
+              </p-organizationChart>
+            </div>
+          } @else {
+            <div class="text-center py-12 text-gray-400 px-4">
+              <i class="pi pi-sitemap text-4xl mb-4 block opacity-60"></i>
+              <p class="text-sm font-medium">No hay estructura configurada</p>
+              <p class="text-xs mt-2">Ve a Configuración para definir relaciones.</p>
+            </div>
+          }
+        } @else {
+          <div class="flex flex-col gap-3 pb-4">
+            <div class="flex gap-2 justify-end">
+              <p-button icon="pi pi-refresh" severity="secondary" rounded size="small" (click)="loadStructure()" pTooltip="Restablecer" />
+              <p-button icon="pi pi-save" [disabled]="!hasChanges()" rounded size="small" (click)="saveStructure()" pTooltip="Guardar" />
+            </div>
+            @for (position of availablePositions(); track position.id) {
+              <div class="rounded-xl border border-neutral-700/50 bg-neutral-800/80 p-3">
+                <div class="flex items-center justify-between mb-2">
+                  <div>
+                    <p class="font-semibold text-white text-sm m-0">{{ position.name }}</p>
+                    <p class="text-xs text-gray-400 m-0">{{ position.department?.name || 'Sin departamento' }}</p>
+                  </div>
+                  <span class="text-xs text-gray-500">{{ getEmployeeCount(position.id) }} emp.</span>
+                </div>
+                <label class="block text-xs text-gray-400 mb-1">Reporta a:</label>
+                <p-multiSelect
+                  [options]="getParentOptions(position.id)"
+                  optionLabel="name"
+                  optionValue="id"
+                  [ngModel]="getParentIds(position.id)"
+                  (ngModelChange)="setParents(position.id, $event)"
+                  [showClear]="true"
+                  placeholder="Superior(es)"
+                  [display]="'chip'"
+                  class="w-full"
+                  styleClass="w-full"
+                />
+              </div>
+            }
+          </div>
+        }
+      </main>
+    </div>
+    }
+    </div>
   `,
   styles: `
+    :host { display: block; width: 100%; }
+    :host ::ng-deep .organigrama-card.p-card {
+      background: rgba(31, 41, 55, 0.95) !important;
+      border: 1px solid rgba(75, 85, 99, 0.5) !important;
+      border-radius: 0.75rem !important;
+    }
+    :host ::ng-deep .organigrama-card .p-card-body { background: transparent !important; }
+    :host ::ng-deep .organigrama-card .p-card-title { color: #f3f4f6 !important; }
+
     .organigrama-container {
       padding: 1rem;
     }
@@ -531,6 +642,14 @@ interface OrgNode {
         display: table-row !important;
       }
     }
+
+    .organigrama-tree-mobile {
+      min-height: 300px;
+      padding: 0.5rem;
+      max-height: none;
+    }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -540,6 +659,7 @@ export class OrganigramaComponent {
   private messageService = inject(MessageService);
   public positionsStore = inject(PositionsStore);
   public employeesStore = inject(EmployeesStore);
+  protected device = inject(DeviceService);
 
   // Tab activa: 'view' o 'config'
   public activeTab = signal<'view' | 'config'>('view');

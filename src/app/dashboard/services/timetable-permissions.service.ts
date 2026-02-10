@@ -52,11 +52,15 @@ export class TimetablePermissionsService {
   }
 
   /**
-   * Determina si el usuario es gerente de tienda
-   * (schedule_admin pero no admin)
+   * Determina si el usuario es gerente o subgerente de tienda (mismas limitaciones).
+   * Cierto si: tiene schedule_admin y no es admin, O su cargo es gerente de tienda o subgerente.
    */
   public isStoreManager(): boolean {
-    return !!(this.store.isScheduleAdmin() && !this.store.isAdmin());
+    if (this.store.isScheduleAdmin() && !this.store.isAdmin()) {
+      return true;
+    }
+    const positionName = (this.store.currentEmployee()?.position?.name || '').toLowerCase();
+    return positionName.includes('gerente de tienda') || positionName.includes('subgerente');
   }
 
   /**

@@ -1,0 +1,377 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Vista de lista para checklist (debe estar antes de su uso) -->
+    <record id="view_mascota_checklist_list" model="ir.ui.view">
+        <field name="name">x.mascota.checklist.list</field>
+        <field name="model">x.mascota.checklist</field>
+        <field name="priority" eval="1"/>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="secuencia" widget="handle"/>
+                <field name="tarea"/>
+                <field name="obligatoria"/>
+                <field name="completada"/>
+                <field name="completada_por" readonly="not completada"/>
+                <field name="fecha_completada" readonly="not completada"/>
+                <field name="notas"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Acción para ver historial de atención (debe estar antes de su uso) -->
+    <record id="action_view_historial_atencion" model="ir.actions.act_window">
+        <field name="name">Historial de Atención</field>
+        <field name="res_model">x.mascota.atencion.historial</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('mascota_line_id', '=', active_id)]</field>
+        <field name="context">{'default_mascota_line_id': active_id}</field>
+    </record>
+
+    <!-- Vista de Formulario para Mascota Line -->
+    <record id="view_mascota_line_form" model="ir.ui.view">
+        <field name="name">x.mascota.line.form</field>
+        <field name="model">x.mascota.line</field>
+        <field name="priority" eval="1"/>
+        <field name="arch" type="xml">
+            <form string="Atención de Mascota">
+                <header>
+                    <button name="action_print_comanda" 
+                            string="Imprimir Comanda" 
+                            type="object" 
+                            class="btn-primary"
+                            icon="fa-print"/>
+                    <field name="estado_servicio" widget="statusbar" statusbar_visible="pendiente,confirmado,en_proceso,terminado,entregado"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="%(action_view_historial_atencion)d" 
+                                type="action" 
+                                class="oe_stat_button" 
+                                icon="fa-clock-o"
+                                invisible="count_historial_atencion == 0">
+                            <field name="count_historial_atencion" widget="statinfo" string="Registros de Atención"/>
+                        </button>
+                    </div>
+                    
+                    <widget name="web_ribbon" title="Cancelado" bg_color="text-danger" invisible="estado_servicio != 'cancelado'"/>
+                    <widget name="web_ribbon" title="EXPRESS" bg_color="text-warning" invisible="not peluqueria_express"/>
+                    
+                    <!-- SECCIÓN 1: Fotos (Antes/Después) - Lo más visible -->
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="card">
+                                <div class="card-header bg-info text-white text-center">
+                                    <strong>FOTO LLEGADA</strong>
+                                </div>
+                                <div class="card-body text-center p-2" style="overflow: hidden; max-height: 200px;">
+                                    <field name="foto_llegada" widget="image" options="{'size': [0, 160]}" style="max-height: 160px; max-width: 100%; object-fit: contain;"/>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card">
+                                <div class="card-header bg-success text-white text-center">
+                                    <strong>FOTO SALIDA</strong>
+                                </div>
+                                <div class="card-body text-center p-2" style="overflow: hidden; max-height: 200px;">
+                                    <field name="foto_salida" widget="image" options="{'size': [0, 160]}" style="max-height: 160px; max-width: 100%; object-fit: contain;"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <separator/>
+                    
+                    <!-- SECCIÓN 2: Información Principal -->
+                    <group>
+                        <group string="Mascota">
+                            <field name="mascota_id" options="{'no_create': True, 'no_create_edit': True}"/>
+                            <field name="cliente_id" readonly="1"/>
+                            <field name="presupuesto_numero" readonly="1"/>
+                            <field name="raza" readonly="1"/>
+                            <field name="especie" readonly="1"/>
+                        </group>
+                        <group string="Configuración del Servicio">
+                            <field name="peluqueria_express" widget="boolean_toggle" string="Peluquería Express"/>
+                            <field name="servicio_peluqueria" widget="boolean_toggle" string="Peluquería"/>
+                            <field name="servicio_veterinaria" widget="boolean_toggle" string="Veterinaria"/>
+                        </group>
+                    </group>
+                    
+                    <!-- SECCIÓN 3: Responsables (aparece según el servicio) -->
+                    <group string="Asignación de Responsables" invisible="not servicio_peluqueria and not servicio_veterinaria">
+                        <group string="Peluquería" invisible="not servicio_peluqueria">
+                            <field name="estado_peluqueria" widget="badge" 
+                                   decoration-success="estado_peluqueria == 'completado'"
+                                   decoration-warning="estado_peluqueria == 'en_proceso'"
+                                   decoration-info="estado_peluqueria == 'pendiente'"/>
+                            <field name="responsable_peluqueria" 
+                                   widget="many2many_tags" 
+                                   options="{'no_create': True, 'no_create_edit': True, 'color_field': 'color'}"
+                                   string="Estilistas"
+                                   placeholder="Seleccionar estilistas..."/>
+                        </group>
+                        <group string="Veterinaria" invisible="not servicio_veterinaria">
+                            <field name="estado_veterinaria" widget="badge"
+                                   decoration-success="estado_veterinaria == 'completado'"
+                                   decoration-warning="estado_veterinaria == 'en_proceso'"
+                                   decoration-info="estado_veterinaria == 'pendiente'"/>
+                            <field name="responsable_veterinaria" options="{'no_create': True}"
+                                   placeholder="Seleccionar veterinario..."/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <!-- Pestaña de Servicios de Peluquería (predeterminada) -->
+                        <page string="Servicios Peluquería" invisible="not servicio_peluqueria" name="page_peluqueria" autofocus="autofocus">
+                            <group>
+                                <group string="Baño y Corte">
+                                    <field name="bano" widget="boolean_toggle"/>
+                                    <field name="corte" widget="boolean_toggle"/>
+                                    <field name="mantenimiento" widget="boolean_toggle"/>
+                                    <field name="rapado" widget="boolean_toggle"/>
+                                </group>
+                                <group string="Otros Servicios">
+                                    <field name="acicalado" widget="boolean_toggle"/>
+                                    <field name="deslanado" widget="boolean_toggle"/>
+                                    <field name="profilaxis" widget="boolean_toggle"/>
+                                    <field name="tinte" widget="boolean_toggle"/>
+                                </group>
+                            </group>
+                            <group>
+                                <group string="Cuidado Básico">
+                                    <field name="corte_unas" widget="boolean_toggle"/>
+                                    <field name="limpieza_oidos" widget="boolean_toggle"/>
+                                </group>
+                                <group string="Resumen">
+                                    <field name="total_servicios" readonly="1"/>
+                                </group>
+                            </group>
+                        </page>
+                        
+                        <!-- Pestaña de Servicios Veterinarios -->
+                        <page string="Servicios Veterinaria" invisible="not servicio_veterinaria" name="page_veterinaria">
+                            <group>
+                                <group string="Consultas">
+                                    <field name="consulta_general" widget="boolean_toggle"/>
+                                    <field name="consulta_Derma" widget="boolean_toggle"/>
+                                </group>
+                                <group string="Tratamientos">
+                                    <field name="vacunacion" widget="boolean_toggle"/>
+                                    <field name="desparasitacion" widget="boolean_toggle"/>
+                                    <field name="cirugia_menor" widget="boolean_toggle"/>
+                                </group>
+                            </group>
+                            <group>
+                                <group string="Análisis">
+                                    <field name="analisis_sangre" widget="boolean_toggle"/>
+                                    <field name="analisis_quimica" widget="boolean_toggle"/>
+                                </group>
+                            </group>
+                        </page>
+
+                        <!-- Checklist de Peluquería -->
+                        <page string="Checklist Peluquería" invisible="not servicio_peluqueria" name="page_checklist_pel">
+                            <field name="checklist_peluqueria" nolabel="1" 
+                                   context="{'default_tipo_servicio': 'peluqueria', 'default_mascota_line_id': id}"/>
+                        </page>
+
+                        <!-- Checklist de Veterinaria -->
+                        <page string="Checklist Veterinaria" invisible="not servicio_veterinaria" name="page_checklist_vet">
+                            <field name="checklist_veterinaria" nolabel="1" 
+                                   context="{'default_tipo_servicio': 'veterinaria', 'default_mascota_line_id': id}"/>
+                        </page>
+
+                        <!-- Historial de Atención -->
+                        <page string="Historial" name="page_historial">
+                            <field name="historial_atencion_ids" nolabel="1">
+                                <list>
+                                    <field name="responsable_id"/>
+                                    <field name="tipo_servicio"/>
+                                    <field name="servicio_especifico"/>
+                                    <field name="fecha_inicio"/>
+                                    <field name="fecha_fin"/>
+                                    <field name="duracion_horas"/>
+                                    <field name="estado" widget="badge"/>
+                                    <field name="calificacion" widget="priority"/>
+                                </list>
+                                <form>
+                                    <sheet>
+                                        <group>
+                                            <group>
+                                                <field name="responsable_id"/>
+                                                <field name="tipo_servicio"/>
+                                                <field name="servicio_especifico"/>
+                                                <field name="estado"/>
+                                                <field name="calificacion"/>
+                                            </group>
+                                            <group>
+                                                <field name="fecha_inicio"/>
+                                                <field name="fecha_fin"/>
+                                                <field name="duracion_minutos"/>
+                                                <field name="duracion_horas"/>
+                                            </group>
+                                        </group>
+                                        <group string="Notas">
+                                            <field name="notas" nolabel="1"/>
+                                        </group>
+                                        <group string="Fotos">
+                                            <field name="fotos_ids" nolabel="1">
+                                                <list>
+                                                    <field name="foto" widget="image"/>
+                                                    <field name="tipo_foto"/>
+                                                    <field name="descripcion"/>
+                                                    <field name="fecha_tomada"/>
+                                                    <field name="tomada_por"/>
+                                                </list>
+                                            </field>
+                                        </group>
+                                    </sheet>
+                                </form>
+                            </field>
+                        </page>
+
+                        <!-- Observaciones -->
+                        <page string="Observaciones" name="page_obs">
+                            <group>
+                                <field name="motivo_visita" placeholder="Motivo de la visita..."/>
+                            </group>
+                            <group>
+                                <group string="Del Profesional">
+                                    <field name="observaciones" nolabel="1" placeholder="Observaciones del doctor o estilista..."/>
+                                </group>
+                                <group string="Del Cliente">
+                                    <field name="observaciones_cliente" nolabel="1" placeholder="Observaciones del cliente..."/>
+                                </group>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Vista heredada para forzar many2many_tags en responsable_peluqueria -->
+    <record id="view_mascota_line_form_force_tags" model="ir.ui.view">
+        <field name="name">x.mascota.line.form.force.tags</field>
+        <field name="model">x.mascota.line</field>
+        <field name="inherit_id" ref="view_mascota_line_form"/>
+        <field name="priority" eval="999"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='responsable_peluqueria']" position="attributes">
+                <attribute name="widget">many2many_tags</attribute>
+                <attribute name="options">{'no_create': True, 'no_create_edit': True, 'color_field': 'color'}</attribute>
+                <attribute name="string">Estilistas</attribute>
+            </xpath>
+        </field>
+    </record>
+
+    <!-- Vista de Lista para Mascota Line -->
+    <record id="view_mascota_line_tree" model="ir.ui.view">
+        <field name="name">x.mascota.line.tree</field>
+        <field name="model">x.mascota.line</field>
+        <field name="arch" type="xml">
+            <list string="Mascotas" decoration-success="estado_servicio == 'terminado'" 
+                  decoration-info="estado_servicio == 'en_proceso'" 
+                  decoration-warning="estado_servicio == 'pendiente'"
+                  decoration-danger="estado_servicio == 'cancelado'">
+                <field name="mascota_id"/>
+                <field name="presupuesto_numero"/>
+                <field name="cliente_id"/>
+                <field name="estado_servicio"/>
+                <field name="peluqueria_express" string="Express"/>
+                <field name="corte" string="Tiene Corte"/>
+                <field name="count_cortes_historicos" string="Cortes Totales"/>
+                <field name="responsable_peluqueria" widget="many2many_tags" invisible="not servicio_peluqueria"/>
+                <field name="responsable_veterinaria" invisible="not servicio_veterinaria"/>
+                <field name="fecha_programada"/>
+                <field name="total_servicios"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Vista de Calendario -->
+    <record id="view_mascota_line_calendar" model="ir.ui.view">
+        <field name="name">x.mascota.line.calendar</field>
+        <field name="model">x.mascota.line</field>
+        <field name="arch" type="xml">
+            <calendar string="Citas Programadas" 
+                      date_start="fecha_programada" 
+                      date_stop="fecha_programada"
+                      color="estado_servicio"
+                      event_open_popup="true">
+                <field name="mascota_id"/>
+                <field name="presupuesto_numero"/>
+                <field name="responsable_peluqueria" widget="many2many_tags"/>
+                <field name="responsable_veterinaria"/>
+                <field name="estado_servicio"/>
+                <field name="peluqueria_express" string="Express"/>
+            </calendar>
+        </field>
+    </record>
+
+    <!-- Acción de ventana principal para Mascota Line -->
+    <record id="action_mascota_line" model="ir.actions.act_window">
+        <field name="name">Servicios</field>
+        <field name="res_model">x.mascota.line</field>
+        <field name="view_mode">kanban,list,form,calendar</field>
+        <field name="context">{'group_by': ['tipo_servicio_display', 'fecha_programada:day', 'responsable_display']}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                ¡No hay servicios registrados!
+            </p>
+            <p>
+                Los servicios se crean automáticamente desde los presupuestos de venta.
+            </p>
+        </field>
+    </record>
+
+    <!-- Filtros -->
+    <record id="view_mascota_line_search" model="ir.ui.view">
+        <field name="name">x.mascota.line.search</field>
+        <field name="model">x.mascota.line</field>
+        <field name="arch" type="xml">
+            <search string="Buscar Servicios">
+                <field name="mascota_id"/>
+                <field name="presupuesto_numero"/>
+                <field name="cliente_id"/>
+                <field name="responsable_peluqueria"/>
+                <field name="responsable_veterinaria"/>
+                <filter string="Peluquería" name="peluqueria" domain="[('servicio_peluqueria', '=', True)]"/>
+                <filter string="Veterinaria" name="veterinaria" domain="[('servicio_veterinaria', '=', True)]"/>
+                <filter string="Con Corte" name="con_corte" domain="[('corte', '=', True)]"/>
+                <separator/>
+                <filter string="Pendiente" name="pendiente" domain="[('estado_servicio', '=', 'pendiente')]"/>
+                <filter string="En Proceso" name="en_proceso" domain="[('estado_servicio', '=', 'en_proceso')]"/>
+                <filter string="Terminado" name="terminado" domain="[('estado_servicio', '=', 'terminado')]"/>
+                <filter string="Express" name="express" domain="[('peluqueria_express', '=', True)]"/>
+                <filter string="Mi Peluquería" name="mi_peluqueria" domain="[('responsable_peluqueria.user_id', '=', uid)]"/>
+                <filter string="Mi Veterinaria" name="mi_veterinaria" domain="[('responsable_veterinaria.user_id', '=', uid)]"/>
+                <separator/>
+                <filter string="Hoy" name="hoy" domain="[('fecha_programada', '>=', datetime.datetime.combine(context_today(), datetime.time(0,0,0))), ('fecha_programada', '&lt;=', datetime.datetime.combine(context_today(), datetime.time(23,59,59)))]"/>
+                <filter string="Esta Semana" name="esta_semana" domain="[('fecha_programada', '>=', (datetime.datetime.now() - datetime.timedelta(days=7)).strftime('%Y-%m-%d'))]"/>
+                <group expand="0" string="Agrupar por">
+                    <filter string="Tipo de Servicio" name="group_tipo_servicio" context="{'group_by': 'tipo_servicio_display'}"/>
+                    <filter string="Fecha Programada" name="group_fecha" context="{'group_by': 'fecha_programada:day'}"/>
+                    <filter string="Responsable" name="group_responsable" context="{'group_by': 'responsable_display'}"/>
+                    <filter string="Estado" name="group_estado" context="{'group_by': 'estado_servicio'}"/>
+                    <filter string="Express" name="group_express" context="{'group_by': 'peluqueria_express'}"/>
+                    <filter string="Cliente" name="group_cliente" context="{'group_by': 'cliente_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Menú -->
+    <menuitem id="menu_mascota_line_root" 
+              name="Servicios" 
+              sequence="20"
+              groups="base.group_user"/>
+    <menuitem id="menu_mascota_line" 
+              name="Todos los Servicios" 
+              parent="menu_mascota_line_root" 
+              action="action_mascota_line" 
+              sequence="10"/>
+</odoo>
+

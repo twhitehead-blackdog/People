@@ -86,10 +86,10 @@ import { DogAnimationComponent } from './components/dog.component';
     <p-toast />
     <p-confirmDialog />
     @let user = currentUser$ | async;
-    <!-- Overlay para móvil cuando el menú está abierto -->
+    <!-- Overlay para móvil/tablet cuando el menú está abierto -->
     @if (!isCollapsed()) {
     <div
-      class="fixed inset-0 bg-black/50 z-[999] md:hidden"
+      class="fixed inset-0 bg-black/50 z-[999] lg:hidden"
       (click)="toggleMenu()"
     ></div>
     }
@@ -121,25 +121,25 @@ import { DogAnimationComponent } from './components/dog.component';
                 />
               </a>
             </div>
-            <div class="header-menu hidden md:block">
-              <div class="flex items-baseline space-x-1">
+            <div class="header-menu hidden lg:flex">
+              <div class="flex flex-wrap items-center justify-center gap-x-1 gap-y-1">
                 @if(store.hasDashboardAccess() && store.isAdmin() &&
                 !store.hasPortalAccessOnly() &&
                 !store.hasTimeManagementAccess()) {
                 <a
                   (click)="navigateTo('home')"
                   [class.selected]="isHomeActive()"
-                  class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
-                  ><i class="pi pi-home text-base"></i> <span>Inicio</span></a
+                  class="nav-link text-gray-300 hover:text-white hover:bg-gray-700/50 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer whitespace-nowrap"
+                  ><i class="pi pi-home text-base flex-shrink-0"></i> <span>Inicio</span></a
                 >
                 } @if(store.hasDashboardAccess() && store.isAdmin() &&
                 !store.hasPortalAccessOnly()) {
                 <a
                   (click)="navigateTo('admin')"
                   [class.selected]="isAdminActive()"
-                  class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
+                  class="nav-link text-gray-300 hover:text-white hover:bg-gray-700/50 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer whitespace-nowrap"
                 >
-                  <i class="pi pi-building text-base"></i>
+                  <i class="pi pi-building text-base flex-shrink-0"></i>
                   <span>Administración</span></a
                 >
                 } @if(store.hasDashboardAccess() && store.isAdmin() &&
@@ -147,9 +147,9 @@ import { DogAnimationComponent } from './components/dog.component';
                 <a
                   (click)="navigateTo('payroll')"
                   [class.selected]="isPayrollActive()"
-                  class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
+                  class="nav-link text-gray-300 hover:text-white hover:bg-gray-700/50 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer whitespace-nowrap"
                 >
-                  <i class="pi pi-money-bill text-base"></i>
+                  <i class="pi pi-money-bill text-base flex-shrink-0"></i>
                   <span>Nómina</span></a
                 >
                 } @if((store.hasDashboardAccess() && (store.isAdmin() ||
@@ -158,16 +158,16 @@ import { DogAnimationComponent } from './components/dog.component';
                 <a
                   (click)="navigateTo('time-management')"
                   [class.selected]="isTimeManagementActive()"
-                  class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
-                  ><i class="pi pi-calendar text-base"></i>
+                  class="nav-link text-gray-300 hover:text-white hover:bg-gray-700/50 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer whitespace-nowrap"
+                  ><i class="pi pi-calendar text-base flex-shrink-0"></i>
                   <span>Gestión de tiempo</span></a
                 >
                 }
                 <a
                   (click)="navigateTo('timeclock')"
                   [class.selected]="isTimeclockActive()"
-                  class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
-                  ><i class="pi pi-clock text-base"></i>
+                  class="nav-link text-gray-300 hover:text-white hover:bg-gray-700/50 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer whitespace-nowrap"
+                  ><i class="pi pi-clock text-base flex-shrink-0"></i>
                   <span>Reloj de marcación</span></a
                 >
               </div>
@@ -215,7 +215,7 @@ import { DogAnimationComponent } from './components/dog.component';
 
               }
             </div>
-            <div class="-mr-2 flex md:hidden">
+            <div class="-mr-2 flex lg:hidden">
               <p-button
                 rounded
                 text
@@ -228,7 +228,7 @@ import { DogAnimationComponent } from './components/dog.component';
           </div>
         </div>
         <div
-          class="md:hidden border-t border-neutral-700/50 bg-neutral-800/95 backdrop-blur-sm absolute top-full left-0 right-0 max-h-[calc(100vh-3.5rem)] overflow-y-auto z-[1001] shadow-2xl"
+          class="lg:hidden border-t border-neutral-700/50 bg-neutral-800/95 backdrop-blur-sm absolute top-full left-0 right-0 max-h-[calc(100vh-3.5rem)] overflow-y-auto z-[1001] shadow-2xl"
           [class.hidden]="isCollapsed()"
         >
           <div class="space-y-1 px-2 pt-2 pb-3 sm:px-3">
@@ -381,8 +381,8 @@ import { DogAnimationComponent } from './components/dog.component';
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15) !important;
       }
 
-      /* Asegurar que el menú móvil tenga z-index alto */
-      @media (max-width: 768px) {
+      /* Menú popup con z-index alto en móvil/tablet */
+      @media (max-width: 1023px) {
         ::ng-deep .p-menu {
           z-index: 1002 !important;
         }
@@ -459,7 +459,7 @@ import { DogAnimationComponent } from './components/dog.component';
         gap: 0.5rem;
       }
 
-      @media (min-width: 768px) {
+      @media (min-width: 1024px) {
         .header-container {
           gap: 1rem;
         }
@@ -472,9 +472,8 @@ import { DogAnimationComponent } from './components/dog.component';
 
       .header-menu {
         flex: 1;
-        display: flex;
-        justify-content: center;
         min-width: 0;
+        justify-content: center;
       }
 
       .header-user {
@@ -482,19 +481,8 @@ import { DogAnimationComponent } from './components/dog.component';
         margin-left: auto;
       }
 
-      /* Mobile menu improvements */
-      @media (max-width: 767px) {
-        .header-user {
-          display: none;
-        }
-
-        .header-menu {
-          display: none;
-        }
-      }
-
-      /* Touch-friendly improvements */
-      @media (max-width: 768px) {
+      /* Touch-friendly: botones y enlaces grandes en móvil/tablet */
+      @media (max-width: 1023px) {
         .header-container a,
         .header-container button {
           min-height: 44px;
@@ -502,22 +490,27 @@ import { DogAnimationComponent } from './components/dog.component';
           align-items: center;
         }
 
-        /* Mejorar el menú móvil */
         nav {
           position: relative;
         }
 
-        /* Asegurar que el contenido principal no se desplace cuando el menú está abierto */
         nav + div {
           position: relative;
           z-index: 1;
         }
       }
 
-      /* Overlay para móvil */
-      @media (max-width: 768px) {
+      /* Overlay del menú desplegable */
+      @media (max-width: 1023px) {
         .fixed.inset-0.bg-black\\/50 {
           animation: fadeIn 0.2s ease-in-out;
+        }
+      }
+
+      /* En desktop (lg), enlaces del menú en una sola línea cuando hay espacio */
+      @media (min-width: 1024px) {
+        .header-menu .nav-link {
+          white-space: nowrap;
         }
       }
 
@@ -575,18 +568,24 @@ import { DogAnimationComponent } from './components/dog.component';
       }
 
       :host-context(.naz-theme) .md\\:hidden a,
-      .naz-theme .md\\:hidden a {
+      .naz-theme .md\\:hidden a,
+      :host-context(.naz-theme) [class*="lg:hidden"] a,
+      .naz-theme [class*="lg:hidden"] a {
         color: #C6C2BF !important;
       }
 
       :host-context(.naz-theme) .md\\:hidden a:hover,
-      .naz-theme .md\\:hidden a:hover {
+      .naz-theme .md\\:hidden a:hover,
+      :host-context(.naz-theme) [class*="lg:hidden"] a:hover,
+      .naz-theme [class*="lg:hidden"] a:hover {
         color: #FFFFFF !important;
         background: rgba(255, 255, 255, 0.10) !important;
       }
 
       :host-context(.naz-theme) .md\\:hidden a.bg-gray-700,
-      .naz-theme .md\\:hidden a.bg-gray-700 {
+      .naz-theme .md\\:hidden a.bg-gray-700,
+      :host-context(.naz-theme) [class*="lg:hidden"] a.bg-gray-700,
+      .naz-theme [class*="lg:hidden"] a.bg-gray-700 {
         background: #0D0D0D !important;
         color: #FFFFFF !important;
       }

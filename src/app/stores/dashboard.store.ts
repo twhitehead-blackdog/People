@@ -174,8 +174,8 @@ export const DashboardStore = signalStore(
         () => currentEmployee()?.position?.schedule_admin
       );
 
-      // Lista de cargos que tienen acceso especial a gestión de tiempo y reloj de marcaciones
-      const timeManagementAccessPositions = ['gerente de tienda'];
+      // Lista de cargos que tienen acceso especial a gestión de tiempo y reloj de marcaciones (mismas limitaciones para ambos)
+      const timeManagementAccessPositions = ['gerente de tienda', 'subgerente'];
 
       const hasTimeManagementAccess = computed(() => {
         const employee = currentEmployee();

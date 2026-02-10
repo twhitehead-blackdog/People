@@ -1,23 +1,26 @@
 import { Injectable } from '@angular/core';
 import { Employee } from '../../models';
 
+/** Posiciones que se consideran en el módulo Peluquería (Horario Peluquería y vista por sucursal) */
+export const PELUQUERIA_POSITION_NAMES = [
+  'Asistente de peluquería',
+  'Peluquero',
+  'Conductor',
+] as const;
+
 @Injectable({
   providedIn: 'root',
 })
 export class GroomerScheduleUtilsService {
   /**
-   * Determina si un empleado tiene una posición de peluquería
+   * Determina si un empleado tiene una posición del módulo Peluquería.
+   * Solo se consideran: Asistente de peluquería, Peluquero, Conductor.
    */
   isGroomerPosition(employee: Employee): boolean {
-    const positionName = employee.position?.name?.toLowerCase() || '';
-    return (
-      positionName.includes('peluquer') || // Cubre "peluquero", "peluquera", "peluquería"
-      positionName.includes('groomer') ||
-      positionName.includes('estilista') ||
-      positionName.includes('bañador') || // Bañadores también pueden estar en peluquería
-      positionName.includes('bañista') ||
-      (positionName.includes('asistente') && positionName.includes('peluq')) || // "asistente peluquería"
-      positionName.includes('auxiliar peluq') // posiciones auxiliares de peluquería
+    const positionName = (employee.position?.name ?? '').trim();
+    if (!positionName) return false;
+    return (PELUQUERIA_POSITION_NAMES as readonly string[]).some(
+      (allowed) => positionName.toLowerCase() === allowed.toLowerCase()
     );
   }
 

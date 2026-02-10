@@ -49,6 +49,16 @@ th {
   white-space: nowrap;
 }
 
+/* Diálogo de confirmación: respetar saltos de línea (\n) en el mensaje */
+.p-confirmdialog-message {
+  white-space: pre-line;
+}
+
+/* Diálogo de confirmación: ancho máximo para que no se estire demasiado */
+.p-confirmdialog .p-dialog {
+  max-width: min(28rem, 92vw);
+}
+
 .input-container {
   @apply flex flex-col gap-1.5 w-full justify-end;
   label {

@@ -85,6 +85,128 @@ export function app(): express.Express {
     res.status(200).send('ok');
   });
 
+  /**
+   * Integración Odoo 18 (Odoo.sh) - JSON-RPC
+   * Lee sale.order del módulo de peluquería.
+   * Requiere: ENV_ODOO_URL, ENV_ODOO_DB, ENV_ODOO_USERNAME, ENV_ODOO_PASSWORD (o ENV_ODOO_API_KEY)
+   */
+  async function odooJsonRpc(
+    baseUrl: string,
+    service: string,
+    method: string,
+    args: unknown[]
+  ): Promise<unknown> {
+    const url = baseUrl.replace(/\/$/, '') + '/jsonrpc';
+    const body = {
+      jsonrpc: '2.0',
+      method: 'call',
+      params: { service, method, args },
+      id: Math.floor(Math.random() * 1e9),
+    };
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = (await res.json()) as {
+      result?: unknown;
+      error?: { data?: { message?: string }; message?: string };
+    };
+    if (!res.ok) {
+      throw new Error(data?.error?.data?.message || data?.error?.message || `Odoo HTTP ${res.status}`);
+    }
+    if (data.error) {
+      throw new Error(data.error.data?.message || data.error.message || 'Odoo RPC error');
+    }
+    return data.result;
+  }
+
+  server.get('/api/odoo/sale-orders', async (req, res) => {
+    try {
+      const url = process.env['ENV_ODOO_URL'];
+      const db = process.env['ENV_ODOO_DB'];
+      const username = process.env['ENV_ODOO_USERNAME'];
+      const password = process.env['ENV_ODOO_PASSWORD'] || process.env['ENV_ODOO_API_KEY'];
+
+      if (!url || !db || !username || !password) {
+        return res.status(503).json({
+          error: 'Odoo no configurado',
+          message:
+            'Configura ENV_ODOO_URL, ENV_ODOO_DB, ENV_ODOO_USERNAME y ENV_ODOO_PASSWORD (o ENV_ODOO_API_KEY) en el servidor.',
+        });
+      }
+
+      const uid = (await odooJsonRpc(url, 'common', 'authenticate', [
+        db,
+        username,
+        password,
+        {},
+      ])) as number | false;
+      if (!uid) {
+        return res.status(401).json({
+          error: 'Odoo: autenticación fallida',
+          message: 'Usuario o contraseña incorrectos, o API key inválida.',
+        });
+      }
+
+      // Filtro: solo órdenes con peluquería (solo_peluqueria o ambos)
+      const domain: unknown[] = [
+        ['tipo_servicio', 'in', ['solo_peluqueria', 'ambos']],
+      ];
+      const dateFrom = req.query['date_from'] as string | undefined;
+      const dateTo = req.query['date_to'] as string | undefined;
+      if (dateFrom) {
+        domain.push(['date_order', '>=', dateFrom]);
+      }
+      if (dateTo) {
+        domain.push(['date_order', '<=', dateTo]);
+      }
+
+      const fields = [
+        'id',
+        'name',
+        'partner_id',
+        'date_order',
+        'state',
+        'amount_total',
+        'amount_untaxed',
+        'user_id',
+        // Campos del módulo sale_order_comanda_mascotas
+        'nombres_mascotas',
+        'count_peluqueria',
+        'count_veterinaria',
+        'count_total_mascotas',
+        'count_cortes',
+        'count_solo_bano',
+        'count_bano_y_corte',
+        'tiene_peluqueria',
+        'tiene_veterinaria',
+        'tipo_servicio',
+        'mascota_line_ids',
+      ];
+      const limit = Math.min(Number(req.query['limit']) || 100, 500);
+
+      const domainList = domain.length ? domain : [[]];
+      const orders = (await odooJsonRpc(url, 'object', 'execute_kw', [
+        db,
+        uid,
+        password,
+        'sale.order',
+        'search_read',
+        [domainList],
+        { fields, limit, order: 'date_order desc' },
+      ])) as unknown[];
+
+      return res.json({ success: true, data: orders });
+    } catch (error: any) {
+      safeLogger.error('Error en /api/odoo/sale-orders', error);
+      return res.status(500).json({
+        error: 'Error al obtener órdenes de Odoo',
+        message: error?.message || 'Error desconocido',
+      });
+    }
+  });
+
   // Endpoint proxy para Wassenger (evita problemas de CORS)
   server.post('/api/wassenger/send-message', async (req, res) => {
     try {
@@ -926,6 +1048,7 @@ export function app(): express.Express {
           serverTime: '/api/server-time',
           wassenger: '/api/wassenger/send-message',
           email: '/api/email/send',
+          odooSaleOrders: '/api/odoo/sale-orders',
         },
       });
     } else {
