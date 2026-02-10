@@ -73,6 +73,43 @@ import { DashboardStore } from '../stores/dashboard.store';
             </div>
           </div>
 
+          <!-- IT Dropdown (solo para desarrolladores y Soporte IT) -->
+          @if (canViewITModule()) {
+          <div
+            class="relative group cursor-pointer select-none"
+            (mouseenter)="openDropdown('it')"
+            (mouseleave)="closeDropdown()"
+          >
+            <!-- Título IT -->
+            <div
+              class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer"
+              [class.selected]="isActiveRoute('device-inventory')"
+            >
+              <i class="pi pi-desktop text-base"></i>
+              <span>IT</span>
+            </div>
+
+            <!-- Dropdown Menu -->
+            <div
+              class="absolute left-0 top-full hidden group-hover:block bg-neutral-800/95 border border-neutral-600/40 shadow-xl rounded-md w-56 z-50 overflow-hidden"
+              style="margin-top: -1px;"
+              [class.block]="isDropdownOpen('it')"
+              (mouseenter)="openDropdown('it')"
+              (mouseleave)="closeDropdown()"
+            >
+              <a
+                routerLink="device-inventory"
+                class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
+                [class.bg-neutral-700]="isActiveRoute('device-inventory')"
+                [class.text-amber-300]="isActiveRoute('device-inventory')"
+              >
+                <i class="pi pi-box text-sm"></i>
+                <span>Inventario de Dispositivos</span>
+              </a>
+            </div>
+          </div>
+          }
+
           <!-- RRHH Dropdown -->
           <div
             class="relative group cursor-pointer select-none"
@@ -286,6 +323,11 @@ import { DashboardStore } from '../stores/dashboard.store';
             <a routerLink="performance" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('performance')" [class.text-amber-300]="isActiveRoute('performance')"><i class="pi pi-chart-line text-sm"></i><span>Rendimiento 360</span></a>
             <a routerLink="audit-tasks" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('audit-tasks')" [class.text-amber-300]="isActiveRoute('audit-tasks')"><i class="pi pi-check-square text-sm"></i><span>Control de Tareas</span></a>
 
+            @if (canViewITModule()) {
+            <div class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider px-2 py-1 mt-2">IT</div>
+            <a routerLink="device-inventory" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('device-inventory')" [class.text-amber-300]="isActiveRoute('device-inventory')"><i class="pi pi-box text-sm"></i><span>Inventario de Dispositivos</span></a>
+            }
+
             <div class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider px-2 py-1 mt-2">RRHH</div>
             @if (canViewTimeDashboard()) {
               <a routerLink="hr/time-dashboard" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('hr/time-dashboard')" [class.text-amber-300]="isActiveRoute('hr/time-dashboard')"><i class="pi pi-clock text-sm"></i><span>Tiempo</span></a>
@@ -429,6 +471,33 @@ export class AdminComponent implements OnInit, OnDestroy {
       currentEmployee?.work_email?.toLowerCase() ===
       'soporte2@blackdogpanama.com'
     );
+  });
+
+  // Computed para verificar si el usuario puede ver el módulo de IT
+  // Visible para: desarrolladores y Soporte IT
+  public canViewITModule = computed(() => {
+    const currentEmployee = this.dashboardStore.currentEmployee();
+    const email = currentEmployee?.work_email?.toLowerCase() || '';
+    const position = currentEmployee?.position?.name?.toLowerCase() || '';
+    
+    // Lista de emails con acceso a IT
+    const allowedEmails = [
+      'soporte2@blackdogpanama.com',
+      'soporte@blackdogpanama.com',
+      'desarrollo@blackdogpanama.com',
+      'dev@blackdogpanama.com',
+      'diego@blackdogpanama.com',
+    ];
+    
+    // Verificar por email o posición
+    const hasAccessByEmail = allowedEmails.some(allowed => email.includes(allowed.replace('@blackdogpanama.com', '')));
+    const hasAccessByPosition = position.includes('desarrollador') || 
+                                   position.includes('developer') || 
+                                   position.includes('soporte') ||
+                                   position.includes('it') ||
+                                   position.includes('sistemas');
+    
+    return hasAccessByEmail || hasAccessByPosition;
   });
 
   // Estado de los dropdowns
