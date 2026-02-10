@@ -159,8 +159,21 @@ export class PositionsFormComponent implements OnInit {
       this.store.positions.createItem(dataToSave)
     )
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => {
-        this.dialogRef.close();
+      .subscribe({
+        next: () => {
+          this.dialogRef.close();
+        },
+        error: (error) => {
+          // Mostrar error específico del backend
+          const errorMsg = error?.error?.message || error?.message || 'Error desconocido';
+          console.error('[PositionsForm] Error al guardar:', error);
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error al guardar',
+            detail: `No se pudo guardar el cargo: ${errorMsg}`,
+            sticky: true,
+          });
+        }
       });
   }
 }
