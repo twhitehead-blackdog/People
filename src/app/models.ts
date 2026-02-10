@@ -37,6 +37,8 @@ export type Position = {
   dashboard_access?: boolean;
   default_view?: string;
   available_for_job_fair?: boolean;
+  // NUEVO: Permisos de frontend por módulo/submódulo (JSON)
+  frontend_permissions?: string | Record<string, unknown>;
 };
 
 export type Employee = {
@@ -762,6 +764,56 @@ export interface EmployeeOvertimeRecord {
 }
 
 // ============================================
+// LATE RECORDS SYSTEM - Tardanzas
+// ============================================
+
+export type LateRecordStatus = 'active' | 'justified' | 'compensated' | 'discarded';
+export type LateRecordSource = 'peluqueria' | 'manual' | 'kiosk' | 'api' | 'import';
+
+export interface EmployeeLateRecord {
+  id: string;
+  employee_id: string;
+  timelog_date: string; // ISO date format (yyyy-MM-dd)
+
+  // Datos de horario
+  scheduled_entry_time: string; // HH:mm:ss
+  actual_entry_time: string; // HH:mm:ss
+  minutes_late: number;
+  tolerance_minutes: number;
+
+  // Datos del empleado (snapshot)
+  employee_name: string;
+  position_id?: string;
+  position_name?: string;
+
+  // Datos de ubicación
+  branch_id?: string;
+  branch_name?: string;
+
+  // Metadatos
+  source_module: LateRecordSource;
+  source_timelog_id?: string;
+
+  // Estado y gestión
+  status: LateRecordStatus;
+  justified_by?: string;
+  justified_at?: Date | string;
+  justification_reason?: string;
+
+  // Multi-tenant
+  company_id?: string;
+
+  // Timestamps
+  created_at?: Date | string;
+  updated_at?: Date | string;
+
+  // Joined data (from queries with select)
+  employee?: Partial<Employee>;
+  branch?: Partial<Branch>;
+  justifiedByEmployee?: Partial<Employee>;
+}
+
+// ============================================
 // AUDIT TASKS SYSTEM
 // ============================================
 
@@ -979,3 +1031,94 @@ export interface AuditAnswer {
   question_text_snapshot?: string;
   weight_relative_snapshot?: number;
 }
+
+// ============================================
+// IT DEVICE INVENTORY SYSTEM
+// ============================================
+
+export type DeviceStatus = 'available' | 'assigned' | 'maintenance' | 'retired';
+export type DeviceType =
+  | 'laptop'
+  | 'desktop'
+  | 'monitor'
+  | 'keyboard'
+  | 'mouse'
+  | 'printer'
+  | 'scanner'
+  | 'phone'
+  | 'tablet'
+  | 'headset'
+  | 'webcam'
+  | 'other';
+
+export interface Device {
+  id: string;
+  company_id: string;
+  name: string;
+  brand?: string | null;
+  model?: string | null;
+  serial_number?: string | null;
+  device_type: DeviceType;
+  status: DeviceStatus;
+  purchase_date?: Date | string | null;
+  warranty_expiry?: Date | string | null;
+  notes?: string | null;
+  created_at?: Date | string;
+  updated_at?: Date | string;
+}
+
+export type DeviceAssignmentStatus = 'active' | 'returned' | 'lost' | 'damaged';
+
+export interface DeviceAssignment {
+  id: string;
+  company_id: string;
+  device_id: string;
+  device?: Device;
+  employee_id: string;
+  employee?: Partial<Employee>;
+  assigned_by: string;
+  assignedByEmployee?: Partial<Employee>;
+  assigned_date: Date | string;
+  return_date?: Date | string | null;
+  status: DeviceAssignmentStatus;
+  // Confirmación por el empleado
+  employee_confirmed: boolean;
+  employee_confirmed_at?: Date | string | null;
+  employee_signature_url?: string | null;
+  employee_notes?: string | null;
+  // Condiciones al entregar
+  condition_notes?: string | null;
+  accessories_included?: string | null;
+  created_at?: Date | string;
+  updated_at?: Date | string;
+}
+
+// Opciones para los selectores
+export const DEVICE_TYPE_OPTIONS: { label: string; value: DeviceType; icon: string }[] = [
+  { label: 'Laptop', value: 'laptop', icon: 'pi pi-laptop' },
+  { label: 'Desktop', value: 'desktop', icon: 'pi pi-desktop' },
+  { label: 'Monitor', value: 'monitor', icon: 'pi pi-desktop' },
+  { label: 'Teclado', value: 'keyboard', icon: 'pi pi-keyboard' },
+  { label: 'Mouse', value: 'mouse', icon: 'pi pi-mouse' },
+  { label: 'Impresora', value: 'printer', icon: 'pi pi-print' },
+  { label: 'Escáner', value: 'scanner', icon: 'pi pi-scan' },
+  { label: 'Teléfono', value: 'phone', icon: 'pi pi-phone' },
+  { label: 'Tablet', value: 'tablet', icon: 'pi pi-tablet' },
+  { label: 'Audífonos', value: 'headset', icon: 'pi pi-headphones' },
+  { label: 'Cámara Web', value: 'webcam', icon: 'pi pi-video' },
+  { label: 'Otro', value: 'other', icon: 'pi pi-ellipsis-h' },
+];
+
+export const DEVICE_STATUS_OPTIONS: { label: string; value: DeviceStatus; severity: string }[] = [
+  { label: 'Disponible', value: 'available', severity: 'success' },
+  { label: 'Asignado', value: 'assigned', severity: 'info' },
+  { label: 'Mantenimiento', value: 'maintenance', severity: 'warn' },
+  { label: 'Retirado', value: 'retired', severity: 'secondary' },
+];
+
+export const DEVICE_ASSIGNMENT_STATUS_OPTIONS: { label: string; value: DeviceAssignmentStatus; severity: string }[] = [
+  { label: 'Activo', value: 'active', severity: 'success' },
+  { label: 'Devuelto', value: 'returned', severity: 'secondary' },
+  { label: 'Perdido', value: 'lost', severity: 'danger' },
+  { label: 'Dañado', value: 'damaged', severity: 'warn' },
+];

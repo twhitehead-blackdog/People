@@ -1239,6 +1239,8 @@ export class JobApplicationsListComponent implements OnInit {
       width: '36rem',
       data: { position },
       modal: true,
+      dismissableMask: true, // Cerrar al hacer clic fuera
+      closeOnEscape: true,   // Cerrar con tecla Escape
     });
 
     ref.onClose.subscribe(() => {

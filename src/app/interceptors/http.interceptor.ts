@@ -50,6 +50,7 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
       '/rest/v1/departments',
       '/rest/v1/schedules',
       '/rest/v1/terminations',
+      '/rest/v1/employee_terminations',
       '/rest/v1/timelogs',
       '/rest/v1/employee_schedules',
       '/rest/v1/attendance_sheets',
@@ -69,6 +70,7 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
       '/rest/v1/overtime_consumptions',
       '/rest/v1/v_lates_daily',
       '/rest/v1/v_lates_daily_detail',
+      '/rest/v1/employee_late_records',
       '/rest/v1/rpc/',
       '/storage/v1/object/',
       // Performance 360 tables

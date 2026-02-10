@@ -63,10 +63,15 @@ export class TimelogsApiService {
     const autoLogsCondition = `and(punched_at.is.null,created_at.gte.${startDate},created_at.lte.${endDate})`;
 
     params['or'] = `(${manualLogsCondition},${autoLogsCondition})`;
+    params['limit'] = '10000';
 
     const url = this.apiUrl.build('rest/v1/timelogs', params);
 
-    return { url, method: 'GET' as const };
+    return {
+      url,
+      method: 'GET' as const,
+      headers: { Range: '0-9999' },
+    };
   }
 
   public splitDateRange(range: { start: Date; end: Date }) {

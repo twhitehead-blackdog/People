@@ -877,6 +877,9 @@ export class EmployeeListComponent implements OnInit {
     this.ref = this.dialog.open(EmployeeFormComponent, {
       header: 'Datos de empleado',
       width: '90vw',
+      modal: true,
+      dismissableMask: true, // Cerrar al hacer clic fuera
+      closeOnEscape: true,   // Cerrar con tecla Escape
       data: { employee },
     });
   }

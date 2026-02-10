@@ -17,6 +17,7 @@ import { ToastModule } from 'primeng/toast';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { ApiUrlService } from '../services/api-url.service';
 import { DashboardStore } from '../stores/dashboard.store';
+import { EmailConfigComponent } from './settings/email-config.component';
 import { ManualTimelogComponent } from './settings/manual-timelog.component';
 
 interface Setting {
@@ -29,7 +30,7 @@ interface Setting {
 }
 
 interface EmailConfig {
-  provider: 'smtp' | 'resend';
+  provider: 'smtp' | 'resend' | 'postmark';
   host: string;
   port: number;
   user: string;
@@ -49,6 +50,7 @@ interface EmailConfig {
     FormsModule,
     ToastModule,
     TabsModule,
+    EmailConfigComponent,
     ManualTimelogComponent,
   ],
   providers: [MessageService],
@@ -170,7 +172,7 @@ interface EmailConfig {
                 >
                   <div class="text-sm text-gray-400 mb-1">Proveedor</div>
                   <div class="text-lg font-semibold text-white">
-                    {{ config.provider === 'smtp' ? 'Gmail SMTP' : 'Resend' }}
+                    {{ config.provider === 'smtp' ? 'SMTP (' + config.host + ')' : config.provider === 'resend' ? 'Resend' : 'Postmark' }}
                   </div>
                 </div>
                 <div
@@ -210,6 +212,9 @@ interface EmailConfig {
                   </div>
                 </div>
               </div>
+
+              <!-- Configuración SMTP editable -->
+              <pt-email-config />
 
               <!-- Probar envío -->
               <div
@@ -265,10 +270,13 @@ interface EmailConfig {
                       Configuración del Servidor
                     </p>
                     <p class="text-sm text-gray-300 m-0">
-                      Las credenciales SMTP se configuran en el archivo
-                      <code class="bg-neutral-700 px-1 rounded">.env</code> del
-                      servidor por razones de seguridad. Contacta al
-                      administrador del sistema para modificarlas.
+                      El servidor, puerto y usuario SMTP se pueden editar
+                      arriba. La contraseña se configura en la variable de
+                      entorno
+                      <code class="bg-neutral-700 px-1 rounded"
+                        >ENV_SMTP_PASSWORD</code
+                      >
+                      del servidor por seguridad.
                     </p>
                   </div>
                 </div>

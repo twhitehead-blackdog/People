@@ -822,6 +822,9 @@ export class EmployeeDetailComponent implements OnInit {
     this.ref = this.dialog.open(EmployeeFormComponent, {
       header: 'Datos de empleado',
       width: '90vw',
+      modal: true,
+      dismissableMask: true, // Cerrar al hacer clic fuera
+      closeOnEscape: true,   // Cerrar con tecla Escape
       data: { employee: this.currentEmployee() },
     });
   }
@@ -831,6 +834,9 @@ export class EmployeeDetailComponent implements OnInit {
       data: { employee: this.currentEmployee() },
       width: '90vw',
       header: 'Terminacion de empleado',
+      modal: true,
+      dismissableMask: true, // Cerrar al hacer clic fuera
+      closeOnEscape: true,   // Cerrar con tecla Escape
     });
   }
 
@@ -841,6 +847,9 @@ export class EmployeeDetailComponent implements OnInit {
       },
       width: '60vw',
       header: 'Tiempo fuera de empleado',
+      modal: true,
+      dismissableMask: true, // Cerrar al hacer clic fuera
+      closeOnEscape: true,   // Cerrar con tecla Escape
     });
   }
 

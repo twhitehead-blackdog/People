@@ -30,7 +30,7 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
       (click)="handleClick($event)"
     >
       @if (scheduleWarning(); as warn) {
-        <i class="pi pi-exclamation-triangle text-red-500 text-[10px] flex-shrink-0" [pTooltip]="warn" tooltipPosition="top"></i>
+        <i class="pi pi-exclamation-triangle text-amber-400 text-[10px] flex-shrink-0" [pTooltip]="warn" tooltipPosition="top"></i>
       }
       @if (selectionMode() && !shiftValue?.approved) {
       <i
@@ -69,7 +69,7 @@ import { colorVariants, EmployeeSchedule } from '../../../../models';
         </div>
         }
         @if (scheduleWarning(); as warn) {
-          <span class="text-red-400 text-xs block mt-1">{{ warn }}</span>
+          <span class="text-amber-300 text-xs block mt-1">{{ warn }}</span>
         }
         @if (selectionMode()) { @if (shiftValue?.approved) {
         <span class="text-gray-400 italic">Ya aprobado - no seleccionable</span>

@@ -94,6 +94,8 @@ export class BanksComponent {
       data: { bank },
       header: 'Datos del banco',
       modal: true,
+      dismissableMask: true, // Cerrar al hacer clic fuera
+      closeOnEscape: true,   // Cerrar con tecla Escape
     });
     
     // Recargar la lista cuando se cierre el diálogo

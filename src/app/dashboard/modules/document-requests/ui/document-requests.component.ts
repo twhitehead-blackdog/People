@@ -317,7 +317,7 @@ import { DocumentRequest } from '../models/document-request.model';
 
           <div>
             <label class="block text-sm font-medium text-gray-300 mb-2"
-              >Adjuntar Documento (PDF) *</label
+              >Adjuntar Documento (PDF) <span class="text-gray-500 text-xs">(opcional)</span></label
             >
             <p-fileUpload
               mode="basic"
@@ -349,7 +349,7 @@ import { DocumentRequest } from '../models/document-request.model';
           label="Completar y Guardar"
           icon="pi pi-check"
           severity="success"
-          [disabled]="!selectedFile() || isUploading()"
+          [disabled]="isUploading()"
           [loading]="isUploading()"
           (onClick)="completeDocument()"
         />
@@ -1076,53 +1076,63 @@ export class DocumentRequestsComponent {
     const file = this.selectedFile();
     const currentEmployee = this.dashboardStore.currentEmployee();
 
-    if (!doc || !file || !currentEmployee) return;
+    if (!doc || !currentEmployee) return;
 
     this.isUploading.set(true);
 
     try {
-      // 1. Upload file to Supabase Storage
-      const fileName = `${Date.now()}_${file.name.replace(
-        /[^a-zA-Z0-9.-]/g,
-        '_'
-      )}`;
-      const filePath = `document-requests/${doc.id}/${fileName}`;
-      const bucketName = 'employee-documents';
+      let documentUrl: string | undefined;
 
-      const storageKey =
-        getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') ||
-        getEnv('ENV_SUPABASE_API_KEY') ||
-        '';
+      // 1. Upload file to Supabase Storage (if file is selected)
+      if (file) {
+        const fileName = `${Date.now()}_${file.name.replace(
+          /[^a-zA-Z0-9.-]/g,
+          '_'
+        )}`;
+        const filePath = `document-requests/${doc.id}/${fileName}`;
+        const bucketName = 'employee-documents';
 
-      await firstValueFrom(
-        this.http.post(
-          `${this.apiUrl.baseUrl}/storage/v1/object/${bucketName}/${filePath}`,
-          file,
-          {
-            headers: {
-              apikey: storageKey,
-              Authorization: `Bearer ${storageKey}`,
-              'x-upsert': 'true',
-            },
-          }
-        )
-      );
+        const storageKey =
+          getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') ||
+          getEnv('ENV_SUPABASE_API_KEY') ||
+          '';
 
-      // 2. Construct Public URL using apiUrl.build()
-      const documentUrl = this.apiUrl.build(
-        `storage/v1/object/public/${bucketName}/${filePath}`
-      );
+        await firstValueFrom(
+          this.http.post(
+            `${this.apiUrl.baseUrl}/storage/v1/object/${bucketName}/${filePath}`,
+            file,
+            {
+              headers: {
+                apikey: storageKey,
+                Authorization: `Bearer ${storageKey}`,
+                'x-upsert': 'true',
+              },
+            }
+          )
+        );
+
+        // 2. Construct Public URL using apiUrl.build()
+        documentUrl = this.apiUrl.build(
+          `storage/v1/object/public/${bucketName}/${filePath}`
+        );
+      }
 
       // 3. Update Request Record
+      const updateData: Record<string, unknown> = {
+        status: 'completed',
+        processed_by: currentEmployee.id,
+        processed_at: new Date().toISOString(),
+      };
+
+      // Only include document_url if a file was uploaded
+      if (documentUrl) {
+        updateData['document_url'] = documentUrl;
+      }
+
       await firstValueFrom(
         this.http.patch(
           this.apiUrl.build('rest/v1/document_requests', { id: `eq.${doc.id}` }),
-          {
-            status: 'completed',
-            processed_by: currentEmployee.id,
-            processed_at: new Date().toISOString(),
-            document_url: documentUrl,
-          }
+          updateData
         )
       );
 
@@ -1132,10 +1142,13 @@ export class DocumentRequestsComponent {
       this.messageService.add({
         severity: 'success',
         summary: 'Éxito',
-        detail: 'Solicitud completada y documento adjuntado',
+        detail: file
+          ? 'Solicitud completada y documento adjuntado'
+          : 'Solicitud completada',
       });
 
       this.showCompleteDialog.set(false);
+      this.selectedFile.set(null);
       this.service.reload();
     } catch (error) {
       console.error('Error completing request:', error);

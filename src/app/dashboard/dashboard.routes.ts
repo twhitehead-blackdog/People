@@ -123,6 +123,13 @@ export const DASHBOARD_ROUTES: Routes = [
               ),
           },
           {
+            path: 'device-inventory',
+            loadComponent: () =>
+              import('./device-inventory.component').then(
+                (x) => x.DeviceInventoryComponent
+              ),
+          },
+          {
             path: 'hr',
             children: [
               {

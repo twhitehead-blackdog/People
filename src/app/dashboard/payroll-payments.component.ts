@@ -165,6 +165,8 @@ export class PayrollPaymentsComponent {
       modal: true,
       width: '48rem',
       header: 'Pago',
+      dismissableMask: true, // Cerrar al hacer clic fuera
+      closeOnEscape: true,   // Cerrar con tecla Escape
     });
   }
 }

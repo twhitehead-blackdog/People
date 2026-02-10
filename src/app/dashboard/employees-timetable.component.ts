@@ -1115,17 +1115,17 @@ export class EmployeesTimetableComponent implements OnInit {
     // Verificar si el empleado tiene horarios en la semana actual
     const employeeHasSchedulesInWeek = employee_id
       ? this.shifts()?.some(
-          (shift) =>
-            shift.employee_id === employee_id &&
-            isWithinInterval(this.start(), {
-              start: startOfDay(
-                toDate(shift.start_date, { timeZone: 'America/Panama' })
-              ),
-              end: endOfDay(
-                toDate(shift.end_date, { timeZone: 'America/Panama' })
-              ),
-            })
-        ) || false
+        (shift) =>
+          shift.employee_id === employee_id &&
+          isWithinInterval(this.start(), {
+            start: startOfDay(
+              toDate(shift.start_date, { timeZone: 'America/Panama' })
+            ),
+            end: endOfDay(
+              toDate(shift.end_date, { timeZone: 'America/Panama' })
+            ),
+          })
+      ) || false
       : false;
 
     this.dialog
@@ -1286,26 +1286,20 @@ export class EmployeesTimetableComponent implements OnInit {
             },
             newValue: null,
             comment: date
-              ? `Día ${format(date, 'dd/MM/yyyy')} eliminado del horario "${
-                  schedule?.name || 'Desconocido'
-                }" para ${
-                  employee
-                    ? `${employee.first_name} ${employee.father_name}`
-                    : 'empleado'
-                }${
-                  branch ? ` en sucursal ${branch.name}` : ''
-                } (rango original: ${startDateFormatted} - ${endDateFormatted})`
-              : `Horario "${
-                  schedule?.name || 'Desconocido'
-                }" eliminado completamente para ${
-                  employee
-                    ? `${employee.first_name} ${employee.father_name}`
-                    : 'empleado'
-                }${
-                  isSingleDay
-                    ? ` el día ${startDateFormatted}`
-                    : ` del ${startDateFormatted} al ${endDateFormatted}`
-                }${branch ? ` en sucursal ${branch.name}` : ''}`,
+              ? `Día ${format(date, 'dd/MM/yyyy')} eliminado del horario "${schedule?.name || 'Desconocido'
+              }" para ${employee
+                ? `${employee.first_name} ${employee.father_name}`
+                : 'empleado'
+              }${branch ? ` en sucursal ${branch.name}` : ''
+              } (rango original: ${startDateFormatted} - ${endDateFormatted})`
+              : `Horario "${schedule?.name || 'Desconocido'
+              }" eliminado completamente para ${employee
+                ? `${employee.first_name} ${employee.father_name}`
+                : 'empleado'
+              }${isSingleDay
+                ? ` el día ${startDateFormatted}`
+                : ` del ${startDateFormatted} al ${endDateFormatted}`
+              }${branch ? ` en sucursal ${branch.name}` : ''}`,
           });
         }
 
@@ -1549,15 +1543,12 @@ export class EmployeesTimetableComponent implements OnInit {
                   end_date_formatted: originalEndFormatted,
                 },
               },
-              comment: `Día ${dayName} ${dateFormatted} eliminado del horario "${
-                scheduleType?.name || 'Desconocido'
-              }" para ${
-                employee
+              comment: `Día ${dayName} ${dateFormatted} eliminado del horario "${scheduleType?.name || 'Desconocido'
+                }" para ${employee
                   ? `${employee.first_name} ${employee.father_name}`
                   : 'empleado'
-              }${
-                branch ? ` en sucursal ${branch.name}` : ''
-              } (rango original: ${originalStartFormatted} - ${originalEndFormatted})`,
+                }${branch ? ` en sucursal ${branch.name}` : ''
+                } (rango original: ${originalStartFormatted} - ${originalEndFormatted})`,
             });
           }
 
@@ -1676,17 +1667,14 @@ export class EmployeesTimetableComponent implements OnInit {
               is_single_day: isSingleDay,
               approved: true,
             },
-            comment: `Horario "${
-              schedule?.name || 'Desconocido'
-            }" aprobado para ${
-              employee
+            comment: `Horario "${schedule?.name || 'Desconocido'
+              }" aprobado para ${employee
                 ? `${employee.first_name} ${employee.father_name}`
                 : 'empleado'
-            }${
-              isSingleDay
+              }${isSingleDay
                 ? ` el día ${startDateFormatted}`
                 : ` del ${startDateFormatted} al ${endDateFormatted}`
-            }${branch ? ` en sucursal ${branch.name}` : ''}`,
+              }${branch ? ` en sucursal ${branch.name}` : ''}`,
           });
         }
 
@@ -1807,11 +1795,9 @@ export class EmployeesTimetableComponent implements OnInit {
 
     this.confirm.confirm({
       header: 'Aprobar múltiples horarios?',
-      message: `¿Estás seguro de aprobar ${visualCount} turno${
-        visualCount > 1 ? 's' : ''
-      } (correspondientes a ${ids.length} registro${
-        ids.length > 1 ? 's' : ''
-      } de horario)?`,
+      message: `¿Estás seguro de aprobar ${visualCount} turno${visualCount > 1 ? 's' : ''
+        } (correspondientes a ${ids.length} registro${ids.length > 1 ? 's' : ''
+        } de horario)?`,
       icon: 'pi pi-info-circle',
       rejectButtonProps: {
         label: 'Cancelar',
@@ -1863,13 +1849,11 @@ export class EmployeesTimetableComponent implements OnInit {
               newStatus: true,
               oldValue: { approved: false },
               newValue: { approved: true },
-              comment: `Aprobación masiva: "${
-                schedule?.name || 'Desconocido'
-              }" para ${
-                employee
+              comment: `Aprobación masiva: "${schedule?.name || 'Desconocido'
+                }" para ${employee
                   ? `${employee.first_name} ${employee.father_name}`
                   : 'empleado'
-              } (${startDateFormatted})`,
+                } (${startDateFormatted})`,
             });
           }
         }
@@ -1980,13 +1964,11 @@ export class EmployeesTimetableComponent implements OnInit {
               action: 'approved',
               oldStatus: false,
               newStatus: true,
-              comment: `Aprobación masiva semanal: Horario "${
-                schedule?.name || 'Desconocido'
-              }" aprobado para ${
-                employeeData
+              comment: `Aprobación masiva semanal: Horario "${schedule?.name || 'Desconocido'
+                }" aprobado para ${employeeData
                   ? `${employeeData.first_name} ${employeeData.father_name}`
                   : 'empleado'
-              } (${startDateFormatted} - ${endDateFormatted})`,
+                } (${startDateFormatted} - ${endDateFormatted})`,
             });
           }
         }

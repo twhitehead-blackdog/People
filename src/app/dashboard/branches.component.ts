@@ -138,6 +138,8 @@ export class BranchesComponent {
       data: { branch },
       header: 'Sucursal',
       modal: true,
+      dismissableMask: true, // Cerrar al hacer clic fuera
+      closeOnEscape: true,   // Cerrar con tecla Escape
     });
   }
 
