@@ -102,14 +102,13 @@ export function withCustomEntities<T extends { id: EntityId }>({
       };
     }
 
-    // Positions puede tener company_id NULL temporalmente (durante migración)
-    // Incluir tanto posiciones con company_id como sin company_id para evitar problemas
-    if (tableName === 'positions' && companyId) {
-      return {
-        ...params,
-        or: `(company_id.is.null,company_id.eq.${companyId})`,
-      };
-    }
+    // TEMP: Positions - No agregar filtro de company_id hasta que PostgREST reconozca la columna
+    // if (tableName === 'positions' && companyId) {
+    //   return {
+    //     ...params,
+    //     or: `(company_id.is.null,company_id.eq.${companyId})`,
+    //   };
+    // }
 
     // Schedules puede tener company_id NULL temporalmente (durante migración)
     // Incluir tanto schedules con company_id como sin company_id para evitar problemas
@@ -366,11 +365,12 @@ export function withCustomEntities<T extends { id: EntityId }>({
 
           // Agregar company_id si la tabla lo requiere y no está presente
           // Ahora que usamos tablas compartidas, TANTO Naz como Black Dog necesitan company_id
+          // NOTA: positions temporalmente excluido - PostgREST no reconoce la columna company_id
           const tablesRequiringCompanyId = [
             'employees',
             'branches',
             'departments',
-            'positions',
+            // 'positions', // TEMP: Error 400 - column positions.company_id does not exist
             'schedules',
             'employee_schedules',
             'attendance_sheets',
@@ -458,11 +458,12 @@ export function withCustomEntities<T extends { id: EntityId }>({
           const requestData: any = { ...request };
 
           // Agregar company_id si la tabla lo requiere y no está presente
+          // NOTA: positions temporalmente excluido - PostgREST no reconoce la columna company_id
           const tablesRequiringCompanyId = [
             'employees',
             'branches',
             'departments',
-            'positions',
+            // 'positions', // TEMP: Error 400 - column positions.company_id does not exist
             'schedules',
             'employee_schedules',
             'attendance_sheets',

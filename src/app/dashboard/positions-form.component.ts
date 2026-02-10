@@ -107,6 +107,25 @@ export class PositionsFormComponent implements OnInit {
     schedule_approver: new FormControl(false, { nonNullable: true }),
     dashboard_access: new FormControl(false, { nonNullable: true }),
   });
+  
+  // Permisos por defecto: solo reloj de marcación y portal de empleado (perfil)
+  private readonly defaultFrontendPermissions = {
+    modules: {
+      employee_portal: {
+        enabled: true,
+        subModules: {
+          portal_access: true
+        }
+      },
+      timeclock: {
+        enabled: true,
+        subModules: {
+          timeclock_access: true
+        }
+      }
+    },
+    version: 1
+  };
   public dialogRef = inject(DynamicDialogRef);
   private dialog = inject(DynamicDialogConfig);
   public store = inject(DashboardStore);
@@ -149,9 +168,20 @@ export class PositionsFormComponent implements OnInit {
       this.dialogRef.close();
       return;
     }
-    // Ya no se filtran campos, todo se guarda (tablas compartidas)
+    
     const formValue = this.form.getRawValue();
-    const dataToSave: any = formValue;
+    
+    // Si es creación o no tiene permisos definidos, asignar permisos por defecto
+    const isNew = !this.dialog.data.position;
+    const existingPermissions = this.dialog.data.position?.frontend_permissions;
+    const frontendPermissions = isNew || !existingPermissions 
+      ? this.defaultFrontendPermissions 
+      : existingPermissions;
+    
+    const dataToSave: any = {
+      ...formValue,
+      frontend_permissions: frontendPermissions,
+    };
 
     iif(
       () => this.dialog.data.position,
