@@ -327,7 +327,6 @@ import { DashboardStore } from '../stores/dashboard.store';
             <div class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider px-2 py-1 mt-2">IT</div>
             <a routerLink="device-inventory" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('device-inventory')" [class.text-amber-300]="isActiveRoute('device-inventory')"><i class="pi pi-box text-sm"></i><span>Inventario de Dispositivos</span></a>
             }
-
             <div class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider px-2 py-1 mt-2">RRHH</div>
             @if (canViewTimeDashboard()) {
               <a routerLink="hr/time-dashboard" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('hr/time-dashboard')" [class.text-amber-300]="isActiveRoute('hr/time-dashboard')"><i class="pi pi-clock text-sm"></i><span>Tiempo</span></a>
@@ -479,7 +478,7 @@ export class AdminComponent implements OnInit, OnDestroy {
     const currentEmployee = this.dashboardStore.currentEmployee();
     const email = currentEmployee?.work_email?.toLowerCase() || '';
     const position = currentEmployee?.position?.name?.toLowerCase() || '';
-    
+
     // Lista de emails con acceso a IT
     const allowedEmails = [
       'soporte2@blackdogpanama.com',
@@ -488,15 +487,15 @@ export class AdminComponent implements OnInit, OnDestroy {
       'dev@blackdogpanama.com',
       'diego@blackdogpanama.com',
     ];
-    
+
     // Verificar por email o posición
     const hasAccessByEmail = allowedEmails.some(allowed => email.includes(allowed.replace('@blackdogpanama.com', '')));
-    const hasAccessByPosition = position.includes('desarrollador') || 
-                                   position.includes('developer') || 
-                                   position.includes('soporte') ||
-                                   position.includes('it') ||
-                                   position.includes('sistemas');
-    
+    const hasAccessByPosition = position.includes('desarrollador') ||
+      position.includes('developer') ||
+      position.includes('soporte') ||
+      position.includes('it') ||
+      position.includes('sistemas');
+
     return hasAccessByEmail || hasAccessByPosition;
   });
 

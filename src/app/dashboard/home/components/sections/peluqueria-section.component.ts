@@ -823,7 +823,6 @@ export class PeluqueriaSectionComponent {
       }
     }
   }
-
   private formatScheduledTime(t: string | Date): string {
     if (typeof t === 'string') {
       const parts = t.split(':');

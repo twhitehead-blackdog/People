@@ -54,9 +54,14 @@ import { TimetableFiltersComponent } from './employees-timetable/components/time
 import { TimetableGridComponent } from './employees-timetable/components/timetable-grid/timetable-grid.component';
 import { TimetableHeaderComponent } from './employees-timetable/components/timetable-header/timetable-header.component';
 import {
+  branchDayKey,
   conflictKey,
+  getPeluqueroAfterAsistenteWarning,
   getScheduleWarningForManager,
+  isAsistentePeluqueriaPosition,
   isManagerPosition,
+  isPeluqueroPosition,
+  parseEntryTimeToMinutes,
   SCHEDULE_ID_DIA_LIBRE,
 } from './services/schedule-manager-rules';
 import { TimetableFilterService } from './services/timetable-filter.service';
@@ -900,23 +905,95 @@ export class EmployeesTimetableComponent implements OnInit {
     return conflictSet;
   });
 
+  /** Claves (date|branch_id|schedule_id) donde hay 2+ Peluqueros en el mismo turno/sucursal/día. Usa todos los employee_schedules de la semana para no depender de la lista filtrada. */
+  private peluqueroConflictKeys = computed(() => {
+    const schedules = this.schedulesResource.value() ?? [];
+    const employees = this.store.employees.entities();
+    const countByKey = new Map<string, number>();
+    for (const s of schedules) {
+      const emp = employees.find((e: any) => e.id === s.employee_id);
+      if (!isPeluqueroPosition(emp?.position_id)) continue;
+      const start = startOfDay(toDate(s.start_date, { timeZone: 'America/Panama' }));
+      const end = endOfDay(toDate(s.end_date, { timeZone: 'America/Panama' }));
+      const days = eachDayOfInterval({ start, end });
+      for (const d of days) {
+        const key = conflictKey(d, s.branch_id, s.schedule_id);
+        countByKey.set(key, (countByKey.get(key) ?? 0) + 1);
+      }
+    }
+    const conflictSet = new Set<string>();
+    countByKey.forEach((count, key) => {
+      if (count >= 2) conflictSet.add(key);
+    });
+    return conflictSet;
+  });
+
+  /** Por (date|branch_id), mínimo entry_time en minutos entre Asistentes de peluquería ese día en esa sucursal. Usa todos los employee_schedules de la semana y posición del store para no depender de la lista filtrada. */
+  private asistenteMinEntryMinutesByKey = computed(() => {
+    const schedules = this.schedulesResource.value() ?? [];
+    const employees = this.store.employees.entities();
+    const map = new Map<string, number>();
+    for (const s of schedules) {
+      const emp = employees.find((e: any) => e.id === s.employee_id);
+      if (!isAsistentePeluqueriaPosition(emp?.position_id)) continue;
+      const shift = {
+        start_date: s.start_date,
+        end_date: s.end_date,
+        branch_id: s.branch_id,
+        schedule: (s as any).schedule,
+      };
+      const start = startOfDay(toDate(shift.start_date, { timeZone: 'America/Panama' }));
+      const end = endOfDay(toDate(shift.end_date, { timeZone: 'America/Panama' }));
+      const days = eachDayOfInterval({ start, end });
+      const entryMin = parseEntryTimeToMinutes(shift.schedule?.entry_time);
+      if (entryMin == null) continue;
+      for (const d of days) {
+        const key = branchDayKey(d, shift.branch_id);
+        const current = map.get(key);
+        if (current == null || entryMin < current) map.set(key, entryMin);
+      }
+    }
+    return map;
+  });
+
   private getCellScheduleWarning(
     positionId: string | undefined,
     date: Date,
     shift: any,
     conflictKeys: Set<string>
   ): string | null {
-    if (!isManagerPosition(positionId) || !shift) return null;
     const msgs: string[] = [];
-    const scheduleWarn = getScheduleWarningForManager(shift.schedule_id, date, positionId, shift?.schedule?.day_off);
-    if (scheduleWarn) msgs.push(scheduleWarn);
-    const key = conflictKey(date, shift.branch_id, shift.schedule_id);
-    if (conflictKeys.has(key)) {
-      const isDayOff = shift?.schedule_id === SCHEDULE_ID_DIA_LIBRE || shift?.schedule?.day_off === true;
-      msgs.push(isDayOff
-        ? 'Gerente y Subgerente no deberían tener el mismo día libre en la misma sucursal.'
-        : 'Gerente y Subgerente no deberían estar en el mismo turno en la misma sucursal.');
+
+    // Reglas Gerente / Subgerente
+    if (isManagerPosition(positionId) && shift) {
+      const scheduleWarn = getScheduleWarningForManager(shift.schedule_id, date, positionId, shift?.schedule?.day_off);
+      if (scheduleWarn) msgs.push(scheduleWarn);
+      const key = conflictKey(date, shift.branch_id, shift.schedule_id);
+      if (conflictKeys.has(key)) {
+        const isDayOff = shift?.schedule_id === SCHEDULE_ID_DIA_LIBRE || shift?.schedule?.day_off === true;
+        msgs.push(isDayOff
+          ? 'Gerente y Subgerente no deberían tener el mismo día libre en la misma sucursal.'
+          : 'Gerente y Subgerente no deberían estar en el mismo turno en la misma sucursal.');
+      }
     }
+
+    // Reglas Peluquero: no 2 peluqueros mismo horario; peluquero debe entrar después del asistente
+    if (isPeluqueroPosition(positionId) && shift) {
+      const peluqueroKeys = this.peluqueroConflictKeys();
+      const key = conflictKey(date, shift.branch_id, shift.schedule_id);
+      if (peluqueroKeys.has(key)) {
+        msgs.push('No deben haber 2 peluqueros con el mismo horario en la misma sucursal.');
+      }
+      const dayOff = shift?.schedule_id === SCHEDULE_ID_DIA_LIBRE || shift?.schedule?.day_off === true;
+      if (!dayOff && shift?.branch_id) {
+        const peluqueroEntry = parseEntryTimeToMinutes(shift?.schedule?.entry_time);
+        const bdKey = branchDayKey(date, shift.branch_id);
+        const asistenteMin = this.asistenteMinEntryMinutesByKey().get(bdKey) ?? null;
+        const afterWarn = getPeluqueroAfterAsistenteWarning(peluqueroEntry, asistenteMin);
+        if (afterWarn) msgs.push(afterWarn);
+      }
+    }
+
     return msgs.length ? msgs.join(' ') : null;
   }
 
@@ -1038,17 +1115,17 @@ export class EmployeesTimetableComponent implements OnInit {
     // Verificar si el empleado tiene horarios en la semana actual
     const employeeHasSchedulesInWeek = employee_id
       ? this.shifts()?.some(
-          (shift) =>
-            shift.employee_id === employee_id &&
-            isWithinInterval(this.start(), {
-              start: startOfDay(
-                toDate(shift.start_date, { timeZone: 'America/Panama' })
-              ),
-              end: endOfDay(
-                toDate(shift.end_date, { timeZone: 'America/Panama' })
-              ),
-            })
-        ) || false
+        (shift) =>
+          shift.employee_id === employee_id &&
+          isWithinInterval(this.start(), {
+            start: startOfDay(
+              toDate(shift.start_date, { timeZone: 'America/Panama' })
+            ),
+            end: endOfDay(
+              toDate(shift.end_date, { timeZone: 'America/Panama' })
+            ),
+          })
+      ) || false
       : false;
 
     this.dialog
@@ -1209,26 +1286,20 @@ export class EmployeesTimetableComponent implements OnInit {
             },
             newValue: null,
             comment: date
-              ? `Día ${format(date, 'dd/MM/yyyy')} eliminado del horario "${
-                  schedule?.name || 'Desconocido'
-                }" para ${
-                  employee
-                    ? `${employee.first_name} ${employee.father_name}`
-                    : 'empleado'
-                }${
-                  branch ? ` en sucursal ${branch.name}` : ''
-                } (rango original: ${startDateFormatted} - ${endDateFormatted})`
-              : `Horario "${
-                  schedule?.name || 'Desconocido'
-                }" eliminado completamente para ${
-                  employee
-                    ? `${employee.first_name} ${employee.father_name}`
-                    : 'empleado'
-                }${
-                  isSingleDay
-                    ? ` el día ${startDateFormatted}`
-                    : ` del ${startDateFormatted} al ${endDateFormatted}`
-                }${branch ? ` en sucursal ${branch.name}` : ''}`,
+              ? `Día ${format(date, 'dd/MM/yyyy')} eliminado del horario "${schedule?.name || 'Desconocido'
+              }" para ${employee
+                ? `${employee.first_name} ${employee.father_name}`
+                : 'empleado'
+              }${branch ? ` en sucursal ${branch.name}` : ''
+              } (rango original: ${startDateFormatted} - ${endDateFormatted})`
+              : `Horario "${schedule?.name || 'Desconocido'
+              }" eliminado completamente para ${employee
+                ? `${employee.first_name} ${employee.father_name}`
+                : 'empleado'
+              }${isSingleDay
+                ? ` el día ${startDateFormatted}`
+                : ` del ${startDateFormatted} al ${endDateFormatted}`
+              }${branch ? ` en sucursal ${branch.name}` : ''}`,
           });
         }
 
@@ -1472,15 +1543,12 @@ export class EmployeesTimetableComponent implements OnInit {
                   end_date_formatted: originalEndFormatted,
                 },
               },
-              comment: `Día ${dayName} ${dateFormatted} eliminado del horario "${
-                scheduleType?.name || 'Desconocido'
-              }" para ${
-                employee
+              comment: `Día ${dayName} ${dateFormatted} eliminado del horario "${scheduleType?.name || 'Desconocido'
+                }" para ${employee
                   ? `${employee.first_name} ${employee.father_name}`
                   : 'empleado'
-              }${
-                branch ? ` en sucursal ${branch.name}` : ''
-              } (rango original: ${originalStartFormatted} - ${originalEndFormatted})`,
+                }${branch ? ` en sucursal ${branch.name}` : ''
+                } (rango original: ${originalStartFormatted} - ${originalEndFormatted})`,
             });
           }
 
@@ -1599,17 +1667,14 @@ export class EmployeesTimetableComponent implements OnInit {
               is_single_day: isSingleDay,
               approved: true,
             },
-            comment: `Horario "${
-              schedule?.name || 'Desconocido'
-            }" aprobado para ${
-              employee
+            comment: `Horario "${schedule?.name || 'Desconocido'
+              }" aprobado para ${employee
                 ? `${employee.first_name} ${employee.father_name}`
                 : 'empleado'
-            }${
-              isSingleDay
+              }${isSingleDay
                 ? ` el día ${startDateFormatted}`
                 : ` del ${startDateFormatted} al ${endDateFormatted}`
-            }${branch ? ` en sucursal ${branch.name}` : ''}`,
+              }${branch ? ` en sucursal ${branch.name}` : ''}`,
           });
         }
 
@@ -1697,9 +1762,29 @@ export class EmployeesTimetableComponent implements OnInit {
     });
 
     const uniqueIds = Array.from(shiftIds);
-    if (uniqueIds.length > 0) {
-      this.batchApproveSchedules(uniqueIds, keys.length);
+    if (uniqueIds.length === 0) return;
+
+    // Si algún horario seleccionado tiene advertencia, no permitir aprobación en lote
+    const list = this.employeeSchedulesList();
+    const idsWithWarnings = new Set<string>();
+    for (const emp of list) {
+      for (const day of emp.days) {
+        if (day.shift?.id && day.scheduleWarning) {
+          idsWithWarnings.add(day.shift.id);
+        }
+      }
     }
+    const selectedWithWarnings = uniqueIds.filter((id) => idsWithWarnings.has(id));
+    if (selectedWithWarnings.length > 0) {
+      this.message.add({
+        severity: 'warn',
+        summary: 'Aprobación en lote no permitida',
+        detail: `${selectedWithWarnings.length} horario(s) tienen advertencias. Debes aprobarlos uno por uno desde cada celda.`,
+      });
+      return;
+    }
+
+    this.batchApproveSchedules(uniqueIds, keys.length);
   }
 
   public batchApproveSchedules(
@@ -1710,11 +1795,9 @@ export class EmployeesTimetableComponent implements OnInit {
 
     this.confirm.confirm({
       header: 'Aprobar múltiples horarios?',
-      message: `¿Estás seguro de aprobar ${visualCount} turno${
-        visualCount > 1 ? 's' : ''
-      } (correspondientes a ${ids.length} registro${
-        ids.length > 1 ? 's' : ''
-      } de horario)?`,
+      message: `¿Estás seguro de aprobar ${visualCount} turno${visualCount > 1 ? 's' : ''
+        } (correspondientes a ${ids.length} registro${ids.length > 1 ? 's' : ''
+        } de horario)?`,
       icon: 'pi pi-info-circle',
       rejectButtonProps: {
         label: 'Cancelar',
@@ -1766,13 +1849,11 @@ export class EmployeesTimetableComponent implements OnInit {
               newStatus: true,
               oldValue: { approved: false },
               newValue: { approved: true },
-              comment: `Aprobación masiva: "${
-                schedule?.name || 'Desconocido'
-              }" para ${
-                employee
+              comment: `Aprobación masiva: "${schedule?.name || 'Desconocido'
+                }" para ${employee
                   ? `${employee.first_name} ${employee.father_name}`
                   : 'empleado'
-              } (${startDateFormatted})`,
+                } (${startDateFormatted})`,
             });
           }
         }
@@ -1824,6 +1905,19 @@ export class EmployeesTimetableComponent implements OnInit {
 
     if (pendingShifts.length === 0) return;
 
+    // Si algún horario de la semana tiene advertencia, no permitir aprobar toda la semana
+    const pendingWithWarnings = employee.days.filter(
+      (d: any) => d.shift && !d.shift.approved && d.scheduleWarning
+    );
+    if (pendingWithWarnings.length > 0) {
+      this.message.add({
+        severity: 'warn',
+        summary: 'Aprobación en lote no permitida',
+        detail: `${pendingWithWarnings.length} horario(s) tienen advertencias. Debes aprobarlos uno por uno desde cada celda.`,
+      });
+      return;
+    }
+
     this.confirm.confirm({
       header: 'Confirmar semana?',
       message: `¿Estás seguro de aprobar todos los horarios (${pendingShifts.length}) de ${employee.first_name} para esta semana?`,
@@ -1870,13 +1964,11 @@ export class EmployeesTimetableComponent implements OnInit {
               action: 'approved',
               oldStatus: false,
               newStatus: true,
-              comment: `Aprobación masiva semanal: Horario "${
-                schedule?.name || 'Desconocido'
-              }" aprobado para ${
-                employeeData
+              comment: `Aprobación masiva semanal: Horario "${schedule?.name || 'Desconocido'
+                }" aprobado para ${employeeData
                   ? `${employeeData.first_name} ${employeeData.father_name}`
                   : 'empleado'
-              } (${startDateFormatted} - ${endDateFormatted})`,
+                } (${startDateFormatted} - ${endDateFormatted})`,
             });
           }
         }

@@ -66,3 +66,54 @@ export function conflictKey(date: Date, branchId: string | undefined, scheduleId
   const d = typeof date === 'string' ? date : date.toISOString().slice(0, 10);
   return `${d}|${branchId ?? ''}|${scheduleId ?? ''}`;
 }
+
+/** Clave (date|branch_id) para buscar por día y sucursal (ej. mínimo entrada Asistente). */
+export function branchDayKey(date: Date, branchId: string | undefined): string {
+  const d = typeof date === 'string' ? date : date.toISOString().slice(0, 10);
+  return `${d}|${branchId ?? ''}`;
+}
+
+// --- Peluquería: Peluquero y Asistente de peluquería (solo advertencias) ---
+
+export const PELUQUERO_POSITION_ID = '6c3cc3d1-c594-423c-8d26-339b1ba1fc77';
+export const ASISTENTE_PELUQUERIA_POSITION_ID = '287fcb18-49c0-48d4-94c2-74a385161a12';
+
+export function isPeluqueroPosition(positionId: string | undefined | null): boolean {
+  return !!positionId && positionId === PELUQUERO_POSITION_ID;
+}
+
+export function isAsistentePeluqueriaPosition(positionId: string | undefined | null): boolean {
+  return !!positionId && positionId === ASISTENTE_PELUQUERIA_POSITION_ID;
+}
+
+/** Parsea entry_time (string "HH:mm:ss", "HH:mm", ISO "YYYY-MM-DDTHH:mm:ss..." o Date) a minutos desde medianoche. Devuelve null si no se puede parsear. */
+export function parseEntryTimeToMinutes(entryTime: Date | string | null | undefined): number | null {
+  if (entryTime == null) return null;
+  if (typeof entryTime === 'string') {
+    let s = entryTime.trim();
+    if (s.includes('T')) s = s.split('T')[1] ?? s;
+    const parts = s.split(':');
+    if (parts.length >= 2) {
+      const h = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10);
+      if (!Number.isNaN(h) && !Number.isNaN(m)) return h * 60 + m;
+    }
+    return null;
+  }
+  if (entryTime instanceof Date) {
+    return entryTime.getHours() * 60 + entryTime.getMinutes();
+  }
+  return null;
+}
+
+/** Mensaje si el peluquero debe entrar después del asistente (solo advertencia). */
+export function getPeluqueroAfterAsistenteWarning(
+  peluqueroEntryMinutes: number | null,
+  asistenteMinEntryMinutes: number | null
+): string | null {
+  if (peluqueroEntryMinutes == null || asistenteMinEntryMinutes == null) return null;
+  if (peluqueroEntryMinutes < asistenteMinEntryMinutes) {
+    return 'El peluquero debe entrar después del asistente de peluquería.';
+  }
+  return null;
+}
