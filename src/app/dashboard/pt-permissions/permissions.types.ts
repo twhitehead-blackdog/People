@@ -134,6 +134,10 @@ export interface UserPermissionProfile {
   sources: Record<LegacyPermissionKey, 'position' | 'user_override'>;
   // NUEVO: Permisos de frontend por módulo/submódulo
   frontendPermissions: FrontendPermissions;
+  // Override de permisos de frontend a nivel de empleado (raw)
+  employeeFrontendPermissions?: FrontendPermissions;
+  // Indica si el empleado tiene un override personalizado
+  hasEmployeeOverride: boolean;
   userType: 'employee' | 'manager' | 'admin' | 'superadmin';
   isSupportUser: boolean;
   testMode: boolean;

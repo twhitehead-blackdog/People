@@ -83,6 +83,7 @@ export type Employee = {
   has_portal_access?: boolean;
   account_approved?: boolean;
   total_lunch_exceeded_minutes?: number;
+  frontend_permissions_override?: string | Record<string, unknown>;
 };
 
 export type TimeOffType = {

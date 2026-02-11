@@ -23,6 +23,7 @@ import {
 } from '../dashboard/pt-permissions/module-permissions.types';
 import { Employee, Position } from '../models';
 import { DashboardStore } from '../stores/dashboard.store';
+import { EmployeesStore } from '../stores/employees.store';
 import { PositionsStore } from '../stores/positions.store';
 
 @Injectable({
@@ -30,6 +31,7 @@ import { PositionsStore } from '../stores/positions.store';
 })
 export class PermissionsService {
   private store = inject(DashboardStore);
+  private employeesStore = inject(EmployeesStore);
   private positionsStore = inject(PositionsStore);
 
   // ============================================
@@ -111,9 +113,16 @@ export class PermissionsService {
     };
 
     // 2. Build Frontend Permissions from Position
-    const frontendPermissions = this.buildFrontendPermissions(position);
+    const positionFrontendPermissions = this.buildFrontendPermissions(position);
 
-    // 3. Merge Permissions (Hybrid Logic)
+    // 3. Apply employee override if exists
+    const employeeOverride = this.parseEmployeeOverride(employee);
+    const hasEmployeeOverride = employeeOverride !== null;
+    const frontendPermissions = hasEmployeeOverride
+      ? this.mergeFrontendPermissions(positionFrontendPermissions, employeeOverride)
+      : positionFrontendPermissions;
+
+    // 4. Merge Permissions (Hybrid Logic)
     const finalPermissions: Record<LegacyPermissionKey, boolean> = {
       ...basePermissions,
     };
@@ -135,10 +144,54 @@ export class PermissionsService {
       permissions: finalPermissions,
       sources: sources,
       frontendPermissions: frontendPermissions,
+      employeeFrontendPermissions: employeeOverride ?? undefined,
+      hasEmployeeOverride,
       userType: this.determineUserType(employee),
       isSupportUser: this.store.testMode.isSupportUser(employee.work_email),
       testMode: false,
     };
+  }
+
+  /**
+   * Parsea el override de permisos de frontend del empleado
+   */
+  private parseEmployeeOverride(employee: Employee): FrontendPermissions | null {
+    if (!employee.frontend_permissions_override) return null;
+
+    try {
+      const parsed = typeof employee.frontend_permissions_override === 'string'
+        ? JSON.parse(employee.frontend_permissions_override)
+        : employee.frontend_permissions_override;
+
+      if (parsed && parsed.modules) {
+        return parsed as FrontendPermissions;
+      }
+      return null;
+    } catch (e) {
+      console.warn('Error parsing frontend_permissions_override for employee:', employee.id, e);
+      return null;
+    }
+  }
+
+  /**
+   * Mergea permisos de frontend: por cada módulo en override, reemplaza el módulo completo.
+   * Los módulos no definidos en override mantienen el valor del cargo.
+   */
+  private mergeFrontendPermissions(
+    base: FrontendPermissions,
+    override: FrontendPermissions
+  ): FrontendPermissions {
+    const merged: FrontendPermissions = {
+      version: override.version || base.version || 1,
+      modules: { ...base.modules },
+    };
+
+    // Override reemplaza módulo por módulo
+    for (const [moduleId, modulePerm] of Object.entries(override.modules)) {
+      merged.modules[moduleId] = { ...modulePerm };
+    }
+
+    return merged;
   }
 
   /**
@@ -285,6 +338,33 @@ export class PermissionsService {
 
     await firstValueFrom(
       this.positionsStore.editItem({ id: positionId, ...updates } as any)
+    );
+  }
+
+  /**
+   * Updates frontend module permissions at the Employee level (override)
+   */
+  public async updateEmployeeFrontendPermissions(
+    employeeId: string,
+    frontendPermissions: FrontendPermissions
+  ): Promise<void> {
+    const updates: Partial<Employee> = {
+      frontend_permissions_override: JSON.stringify(frontendPermissions),
+    };
+
+    await firstValueFrom(
+      this.employeesStore.editItem({ id: employeeId, ...updates } as any)
+    );
+  }
+
+  /**
+   * Clears the employee override, restoring position-level permissions
+   */
+  public async clearEmployeeFrontendPermissions(
+    employeeId: string
+  ): Promise<void> {
+    await firstValueFrom(
+      this.employeesStore.editItem({ id: employeeId, frontend_permissions_override: null } as any)
     );
   }
 

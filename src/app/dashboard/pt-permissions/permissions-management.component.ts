@@ -107,7 +107,12 @@ import { SYSTEM_MODULES } from './module-permissions.types';
             <tr class="hover:bg-neutral-800/50 transition-colors">
               <td>
                 <div class="flex flex-col">
-                  <span class="font-medium text-white">{{ profile.employeeName }}</span>
+                  <div class="flex items-center gap-2">
+                    <span class="font-medium text-white">{{ profile.employeeName }}</span>
+                    @if (profile.hasEmployeeOverride) {
+                      <p-tag value="Personalizado" severity="warn" styleClass="text-[10px] py-0"></p-tag>
+                    }
+                  </div>
                   <span class="text-xs text-gray-400">{{ profile.branchName }}</span>
                 </div>
               </td>
@@ -133,7 +138,10 @@ import { SYSTEM_MODULES } from './module-permissions.types';
                 </div>
               </td>
               <td class="text-right">
-                <p-button icon="pi pi-pencil" [rounded]="true" [text]="true" pTooltip="Editar permisos del cargo" tooltipPosition="left" (onClick)="openEditor(profile)"></p-button>
+                <div class="flex justify-end gap-1">
+                  <p-button icon="pi pi-user-edit" [rounded]="true" [text]="true" pTooltip="Editar permisos del empleado" tooltipPosition="left" (onClick)="openEmployeeEditor(profile)"></p-button>
+                  <p-button icon="pi pi-briefcase" [rounded]="true" [text]="true" severity="secondary" pTooltip="Editar permisos del cargo" tooltipPosition="left" (onClick)="openEditor(profile)"></p-button>
+                </div>
               </td>
             </tr>
           </ng-template>
@@ -245,7 +253,12 @@ import { SYSTEM_MODULES } from './module-permissions.types';
                   <div class="rounded-xl border border-neutral-700/50 bg-neutral-800/80 p-3">
                     <div class="flex items-start justify-between gap-2">
                       <div class="min-w-0 flex-1">
-                        <p class="font-semibold text-white text-sm m-0">{{ profile.employeeName }}</p>
+                        <div class="flex items-center gap-2">
+                          <p class="font-semibold text-white text-sm m-0">{{ profile.employeeName }}</p>
+                          @if (profile.hasEmployeeOverride) {
+                            <p-tag value="Personalizado" severity="warn" styleClass="text-[10px] py-0"></p-tag>
+                          }
+                        </div>
                         <p class="text-xs text-gray-400 m-0 mt-0.5" [class.text-blue-300]="profile.userType === 'manager'" [class.text-amber-300]="profile.userType === 'admin'">{{ profile.positionName }}</p>
                         @if (profile.branchName) {
                           <p class="text-xs text-gray-500 m-0 mt-0.5">{{ profile.branchName }}</p>
@@ -258,7 +271,7 @@ import { SYSTEM_MODULES } from './module-permissions.types';
                           }
                         </div>
                       </div>
-                      <p-button icon="pi pi-pencil" (onClick)="openEditor(profile)" rounded text size="small" class="min-w-[36px] min-h-[36px]" pTooltip="Editar permisos" tooltipPosition="top"></p-button>
+                      <p-button icon="pi pi-user-edit" (onClick)="openEmployeeEditor(profile)" rounded text size="small" class="min-w-[36px] min-h-[36px]" pTooltip="Editar permisos del empleado" tooltipPosition="top"></p-button>
                     </div>
                   </div>
                 }
@@ -428,12 +441,13 @@ export class PermissionsManagementComponent {
 
   public openEditor(profile: UserPermissionProfile) {
     const dialogRef = this.dialogService.open(PermissionEditorDialogComponent, {
-      header: `Permisos: ${profile.positionName}`,
+      header: `Permisos del cargo: ${profile.positionName}`,
       width: '600px',
       modal: true,
-      dismissableMask: true, // Cerrar al hacer clic fuera
-      closeOnEscape: true,   // Cerrar con tecla Escape
+      dismissableMask: true,
+      closeOnEscape: true,
       data: {
+        mode: 'position',
         positionId: profile.positionId,
         positionName: profile.positionName,
         currentPermissions: profile.permissions,
@@ -444,12 +458,42 @@ export class PermissionsManagementComponent {
       baseZIndex: 10000,
     });
 
-    // Refrescar datos tras guardar cambios
     dialogRef.onClose.subscribe((result) => {
       if (result) {
-        // Recargar employees y positions para reflejar cambios
         this.store.employees.reloadItems();
         this.store.positions.reloadItems();
+      }
+    });
+  }
+
+  public openEmployeeEditor(profile: UserPermissionProfile) {
+    // Si el empleado tiene override, usar esos permisos; si no, usar los del cargo como base
+    const editingPermissions = profile.hasEmployeeOverride
+      ? profile.frontendPermissions
+      : profile.frontendPermissions;
+
+    const dialogRef = this.dialogService.open(PermissionEditorDialogComponent, {
+      header: `Permisos: ${profile.employeeName}`,
+      width: '600px',
+      modal: true,
+      dismissableMask: true,
+      closeOnEscape: true,
+      data: {
+        mode: 'employee',
+        employeeId: profile.employeeId,
+        positionId: profile.positionId,
+        positionName: profile.positionName,
+        currentPermissions: profile.permissions,
+        frontendPermissions: editingPermissions,
+        isSupportUser: profile.isSupportUser,
+      },
+      contentStyle: { overflow: 'auto' },
+      baseZIndex: 10000,
+    });
+
+    dialogRef.onClose.subscribe((result) => {
+      if (result) {
+        this.store.employees.reloadItems();
       }
     });
   }
