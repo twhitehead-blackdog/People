@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import express from 'express';
+import { readFileSync } from 'fs';
 import nodemailer from 'nodemailer';
 import path from 'path';
 
@@ -47,6 +48,14 @@ const safeLogger = {
   },
 };
 
+// Leer versión una vez al iniciar el proceso (no en cada request)
+const appVersion = (() => {
+  try {
+    const pkg = JSON.parse(readFileSync(path.join(process.cwd(), 'package.json'), 'utf8'));
+    return pkg.version || '0.0.0';
+  } catch { return '0.0.0'; }
+})();
+
 // The Express app is exported so that it can be used by serverless Functions.
 export function app(): express.Express {
   const server = express();
@@ -83,6 +92,11 @@ export function app(): express.Express {
    */
   server.get('/health', (req, res) => {
     res.status(200).send('ok');
+  });
+
+  // Versión de la app (para detección de actualizaciones en el frontend)
+  server.get('/api/version', (_req, res) => {
+    res.json({ version: appVersion });
   });
 
   /**
@@ -1162,6 +1176,7 @@ export function app(): express.Express {
         version: '1.0.0',
         endpoints: {
           health: '/health',
+          version: '/api/version',
           clientIp: '/api/client-ip',
           serverTime: '/api/server-time',
           wassenger: '/api/wassenger/send-message',
