@@ -43,6 +43,7 @@ import {
 } from '../models';
 import { TrimPipe } from '../pipes/trim.pipe';
 import { IpMonitorService } from '../services/ip-monitor.service';
+import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
 
 @Component({
@@ -656,6 +657,7 @@ export class NazTimeclockComponent implements OnDestroy {
   private ipMonitor = inject(IpMonitorService);
   private destroyRef = inject(DestroyRef);
   private organizationService = inject(OrganizationService);
+  private apiUrl = inject(ApiUrlService);
   // Get IP address - try multiple methods to get real IP even from localhost
   public currentIP = signal<string>('127.0.0.1');
   public isProcessing = signal<boolean>(false);
@@ -1070,7 +1072,7 @@ export class NazTimeclockComponent implements OnDestroy {
 
   // Ya no hay tablas naz_*, todo es por company_id en tablas compartidas
   public companiesResource = httpResource<Company[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/companies`,
+    url: `${this.apiUrl.baseUrl}/rest/v1/companies`,
     method: 'GET',
     params: {
       select: '*',
@@ -1079,7 +1081,7 @@ export class NazTimeclockComponent implements OnDestroy {
   }));
 
   public branchesResource = httpResource<Branch[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/branches`,
+    url: `${this.apiUrl.baseUrl}/rest/v1/branches`,
     method: 'GET',
     params: {
       select: '*',
@@ -1113,7 +1115,7 @@ export class NazTimeclockComponent implements OnDestroy {
     }
 
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
+      url: `${this.apiUrl.baseUrl}/rest/v1/employees`,
       method: 'GET',
       params,
     };
@@ -1139,7 +1141,7 @@ export class NazTimeclockComponent implements OnDestroy {
     }
 
     return this.http
-      .get<TimeLog[]>(`${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`, {
+      .get<TimeLog[]>(`${this.apiUrl.baseUrl}/rest/v1/timelogs`, {
         params,
       })
       .pipe(
@@ -1198,7 +1200,7 @@ export class NazTimeclockComponent implements OnDestroy {
 
     return this.http
       .get<EmployeeSchedule[]>(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+        `${this.apiUrl.baseUrl}/rest/v1/employee_schedules`,
         { params }
       )
       .pipe(
@@ -1272,13 +1274,22 @@ export class NazTimeclockComponent implements OnDestroy {
     const todayEnd = `${today}T23:59:59`;
     const companyId = this.organizationService.getCurrentCompanyId();
 
-    // Construir URL con parámetros correctos para PostgREST
-    let url = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs?select=id,type,created_at&employee_id=eq.${employeeId}&type=eq.lunch_start&created_at=gte.${todayStart}&created_at=lte.${todayEnd}&order=created_at.desc&limit=1`;
+    const params: Record<string, string> = {
+      select: 'id,type,created_at',
+      employee_id: `eq.${employeeId}`,
+      type: 'eq.lunch_start',
+      'created_at': `gte.${todayStart}`,
+      order: 'created_at.desc',
+      limit: '1',
+    };
 
-    // Filtrar por company_id siempre (ya no hay tablas naz_*)
     if (companyId) {
-      url += `&company_id=eq.${companyId}`;
+      params['company_id'] = `eq.${companyId}`;
     }
+
+    // Agregar filtro lte de created_at manualmente (clave duplicada)
+    const url = this.apiUrl.build('rest/v1/timelogs', params)
+      + `&created_at=lte.${todayEnd}`;
 
     return this.http.get<TimeLog[]>(url).pipe(
       map((timelogs) => {
@@ -1548,7 +1559,7 @@ export class NazTimeclockComponent implements OnDestroy {
     const now = new Date();
     // Ya no se usan tablas naz_*, todo es por company_id
     this.http
-      .post(`${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`, {
+      .post(`${this.apiUrl.baseUrl}/rest/v1/timelogs`, {
         employee_id: employeeId,
         branch_id: branchId,
         company_id: companyId,

@@ -279,6 +279,19 @@ export class TimelogsComponent {
   private injector = inject(Injector);
   public timelogsApiService = inject(TimelogsApiService);
 
+  // Límite de registros por consulta (debe coincidir con timelogs-api.service.ts)
+  private readonly QUERY_LIMIT = 50000;
+
+  // Detectar si los resultados fueron truncados por el límite
+  public resultsTruncated = computed(() => {
+    const before = this.logsBefore22.value();
+    const after = this.logsAfter22.value();
+    return (
+      (before && before.length >= this.QUERY_LIMIT) ||
+      (after && after.length >= this.QUERY_LIMIT)
+    );
+  });
+
   // Helper robusto para parsear fechas de logs
   private parseLogDate(log: any): Date {
     // 1. Priorizar punched_at sobre created_at
@@ -916,6 +929,26 @@ export class TimelogsComponent {
           );
           this.logger.warn('    * Rango de fechas:', this.dateRange());
           this.logger.warn('    * Employee ID:', this.employeeId() || 'Todos');
+        }
+      },
+      { injector: this.injector }
+    );
+
+    // Effect para advertir si los resultados fueron truncados por el límite
+    effect(
+      () => {
+        if (this.resultsTruncated()) {
+          this.message.add({
+            severity: 'warn',
+            summary: 'Resultados incompletos',
+            detail:
+              'Se alcanzó el límite de registros. Algunos datos podrían no mostrarse. Seleccione un rango de fechas más corto o filtre por empleado.',
+            life: 8000,
+          });
+          this.logger.warn(
+            '[TimelogsComponent] Resultados truncados por límite de',
+            this.QUERY_LIMIT
+          );
         }
       },
       { injector: this.injector }

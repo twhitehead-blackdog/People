@@ -18,6 +18,7 @@ import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
 import { Button } from 'primeng/button';
+import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
 
 interface UserWithActivity {
@@ -227,6 +228,7 @@ interface UserWithActivity {
 export class OnlineUsersMonitorComponent implements OnInit, OnDestroy {
   private http = inject(HttpClient);
   private organizationService = inject(OrganizationService);
+  private apiUrl = inject(ApiUrlService);
   private refreshInterval?: number;
 
   // Constante para el umbral de tiempo en línea
@@ -250,7 +252,7 @@ export class OnlineUsersMonitorComponent implements OnInit, OnDestroy {
     }
 
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
+      url: `${this.apiUrl.baseUrl}/rest/v1/employees`,
       method: 'GET',
       params,
     };
@@ -270,7 +272,7 @@ export class OnlineUsersMonitorComponent implements OnInit, OnDestroy {
     }
 
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`,
+      url: `${this.apiUrl.baseUrl}/rest/v1/timelogs`,
       method: 'GET',
       params,
     };

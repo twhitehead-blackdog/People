@@ -63,14 +63,14 @@ export class TimelogsApiService {
     const autoLogsCondition = `and(punched_at.is.null,created_at.gte.${startDate},created_at.lte.${endDate})`;
 
     params['or'] = `(${manualLogsCondition},${autoLogsCondition})`;
-    params['limit'] = '10000';
+    params['limit'] = '50000';
 
     const url = this.apiUrl.build('rest/v1/timelogs', params);
 
     return {
       url,
       method: 'GET' as const,
-      headers: { Range: '0-9999' },
+      headers: { Range: '0-49999' },
     };
   }
 

@@ -43,6 +43,7 @@ import {
     TimeoffAuditLog,
     TimeoffAuditService,
 } from '../services/timeoff-audit.service';
+import { ApiUrlService } from '../services/api-url.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { getEnv } from '../utils/env.utils';
 import { DocumentRequestsService } from './modules/document-requests/data/document-requests.service';
@@ -2862,6 +2863,7 @@ export class HRDisabilitiesComponent {
   private messageService = inject(MessageService);
   private confirmationService = inject(ConfirmationService);
   private organizationService = inject(OrganizationService);
+  private apiUrl = inject(ApiUrlService);
   private dashboardStore = inject(DashboardStore);
   private router = inject(Router);
   private auditService = inject(TimeoffAuditService);
@@ -4512,7 +4514,7 @@ export class HRDisabilitiesComponent {
         .set('order', 'created_at.asc');
 
       const timelogs = await firstValueFrom(
-        this.http.get<any[]>(`${getEnv('ENV_SUPABASE_URL')}/rest/v1/timelogs`, {
+        this.http.get<any[]>(`${this.apiUrl.baseUrl}/rest/v1/timelogs`, {
           params: timelogParams,
         })
       );
@@ -4540,7 +4542,7 @@ export class HRDisabilitiesComponent {
 
       const consumptions = await firstValueFrom(
         this.http.get<any[]>(
-          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/overtime_consumptions`,
+          `${this.apiUrl.baseUrl}/rest/v1/overtime_consumptions`,
           { params: consumptionParams }
         )
       );
@@ -4983,7 +4985,7 @@ export class HRDisabilitiesComponent {
     if (manualIsoDays.length > 0) {
       // Traer timelogs y consumos solo para esas fechas (histórico)
       const timelogs = await firstValueFrom(
-        this.http.get<any[]>(`${getEnv('ENV_SUPABASE_URL')}/rest/v1/timelogs`, {
+        this.http.get<any[]>(`${this.apiUrl.baseUrl}/rest/v1/timelogs`, {
           params: {
             select: 'day,type,created_at,employee_id,company_id',
             employee_id: `eq.${request.employee_id}`,
@@ -4996,7 +4998,7 @@ export class HRDisabilitiesComponent {
 
       const consumptions = await firstValueFrom(
         this.http.get<any[]>(
-          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/overtime_consumptions`,
+          `${this.apiUrl.baseUrl}/rest/v1/overtime_consumptions`,
           {
             params: {
               select: 'overtime_day,hours_used',
@@ -5061,7 +5063,7 @@ export class HRDisabilitiesComponent {
 
     await firstValueFrom(
       this.http.post(
-        `${getEnv('ENV_SUPABASE_URL')}/rest/v1/overtime_consumptions`,
+        `${this.apiUrl.baseUrl}/rest/v1/overtime_consumptions`,
         rows,
         {
           headers: {

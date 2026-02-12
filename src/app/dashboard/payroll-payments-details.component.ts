@@ -21,6 +21,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
 import {
   addDays,
@@ -376,6 +377,7 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
   public loading = signal(false);
   private message = inject(MessageService);
   private organizationService = inject(OrganizationService);
+  private apiUrl = inject(ApiUrlService);
   public absenceCauses = [
     { value: 'PERSONAL', label: 'Personal' },
     { value: 'INJUSTIFICADA', label: 'Injustificada' },
@@ -401,7 +403,7 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
       return undefined;
     }
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/payrolls`,
+      url: `${this.apiUrl.baseUrl}/rest/v1/payrolls`,
       method: 'GET',
       params: {
         select: '*, deductions:payroll_deductions(*)',
@@ -415,7 +417,7 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
       return undefined;
     }
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/payroll_payment_employees`,
+      url: `${this.apiUrl.baseUrl}/rest/v1/payroll_payment_employees`,
       method: 'GET',
       params: {
         select:
@@ -471,7 +473,7 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
   });
 
   public payment = httpResource<PayrollPayment[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/payroll_payments`,
+    url: `${this.apiUrl.baseUrl}/rest/v1/payroll_payments`,
     method: 'GET',
     params: {
       select: '*, payroll:payrolls(*)',
@@ -484,7 +486,7 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
       return undefined;
     }
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_payrolls`,
+      url: `${this.apiUrl.baseUrl}/rest/v1/employee_payrolls`,
       method: 'GET',
       params: {
         select:
@@ -625,12 +627,12 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
     this.loading.set(true);
     const attendanceSheet = this.sheetRegistry();
     const sheets$ = this.http.post(
-      `${process.env['ENV_SUPABASE_URL']}/rest/v1/attendance_sheets`,
+      `${this.apiUrl.baseUrl}/rest/v1/attendance_sheets`,
       attendanceSheet
     );
 
     const summary$ = this.http.post<PayrollPaymentEmployee[]>(
-      `${process.env['ENV_SUPABASE_URL']}/rest/v1/payroll_payment_employees`,
+      `${this.apiUrl.baseUrl}/rest/v1/payroll_payment_employees`,
       this.employeeSummary(),
       {
         params: {
@@ -705,7 +707,7 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
         switchMap(([summary]) => {
           items.map((x) => (x.payment_employee_id = summary[0].id ?? ''));
           return this.http.post(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/payroll_payment_employee_items`,
+            `${this.apiUrl.baseUrl}/rest/v1/payroll_payment_employee_items`,
             items
           );
         }),
@@ -766,9 +768,7 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
       return undefined;
     }
     const companyId = this.organizationService.getCurrentCompanyId();
-    
-    // Construir URL manualmente para aplicar correctamente filtros gte y lte
-    const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`;
+
     const startDate = format(
       addDays(this.payment.value()![0].start_date, 1),
       "yyyy-MM-dd'T'06:00:00"
@@ -777,18 +777,22 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
       addDays(this.payment.value()![0].end_date, 1),
       "yyyy-MM-dd'T'23:59:59"
     );
-    const select = `*, employee:employees(id, first_name, father_name), branch:branches(id, name)`;
-    
-    let url = `${baseUrl}?select=${encodeURIComponent(select)}`;
-    url += `&created_at=gte.${startDate}`;
-    url += `&created_at=lte.${endDate}`;
-    
+
+    const params: Record<string, string> = {
+      select: '*, employee:employees!timelogs_employee_id_fkey(id, first_name, father_name), branch:branches(id, name)',
+      'created_at': `gte.${startDate}`,
+      order: 'created_at.asc',
+    };
+
     if (companyId) {
-      url += `&company_id=eq.${companyId}`;
+      params['company_id'] = `eq.${companyId}`;
     }
-    
-    url += `&order=created_at.asc`;
-    
+
+    // Construir URL con ApiUrlService y agregar filtro lte manualmente
+    // (ApiUrlService.build() no soporta claves duplicadas como created_at)
+    const url = this.apiUrl.build('rest/v1/timelogs', params)
+      + `&created_at=lte.${endDate}`;
+
     return {
       url,
       method: 'GET',
@@ -800,9 +804,7 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
       return undefined;
     }
     const companyId = this.organizationService.getCurrentCompanyId();
-    
-    // Construir URL manualmente para asegurar que los filtros se apliquen correctamente
-    const baseUrl = `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`;
+
     const startDate = format(
       this.payment.value()![0].start_date,
       'yyyy-MM-dd'
@@ -811,17 +813,21 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
       addDays(this.payment.value()![0].end_date, 1),
       'yyyy-MM-dd'
     );
-    const select = `*,schedule:schedules(*)`;
-    
-    let url = `${baseUrl}?select=${encodeURIComponent(select)},employee:employees(id,company_id)`;
-    url += `&start_date=gte.${startDate}`;
-    url += `&end_date=lte.${endDate}`;
-    
-    // Filtrar a través de employees.company_id (funciona incluso si employee_schedules no tiene company_id)
+
+    const params: Record<string, string> = {
+      select: '*,schedule:schedules(*),employee:employees(id,company_id)',
+      start_date: `gte.${startDate}`,
+      order: 'start_date.asc',
+    };
+
     if (companyId) {
-      url += `&employee.company_id=eq.${companyId}`;
+      params['employee.company_id'] = `eq.${companyId}`;
     }
-    
+
+    // Agregar filtro end_date manualmente (clave duplicada con start_date en PostgREST)
+    const url = this.apiUrl.build('rest/v1/employee_schedules', params)
+      + `&end_date=lte.${endDate}`;
+
     return {
       url,
       method: 'GET',
@@ -1048,7 +1054,7 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
 
     /*  this.http
       .post(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/attendance_sheets`,
+        `${this.apiUrl.baseUrl}/rest/v1/attendance_sheets`,
         attendanceSheets
       )
       .subscribe(); */
