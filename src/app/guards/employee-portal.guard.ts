@@ -21,6 +21,8 @@ type EmployeeWithPosition = {
   };
   has_portal_access?: boolean;
   account_approved?: boolean;
+  legacy_permissions_override?: string | Record<string, boolean>;
+  frontend_permissions_override?: string | Record<string, any>;
 };
 
 // Permisos resueltos
@@ -39,7 +41,7 @@ let employeeCache: {
   timestamp: number;
 } | null = null;
 
-const CACHE_DURATION = 30 * 1000; // 30 segundos
+const CACHE_DURATION = 15 * 1000; // 15 segundos (reducido para reflejar cambios de permisos más rápido)
 
 /**
  * Función para invalidar el cache del guard
@@ -105,11 +107,48 @@ function resolvePermissions(
   }
 
   const pos = employee.position;
-  const isAdmin = pos?.admin === true;
-  const hasDashboardAccess = pos?.dashboard_access === true;
-  const hasTimeManagementAccess =
+
+  // Base: flags de la posición
+  let isAdmin = pos?.admin === true;
+  let hasDashboardAccess = pos?.dashboard_access === true;
+  let hasTimeManagementAccess =
     pos?.schedule_admin === true || pos?.schedule_approver === true;
-  const isScheduleApprover = pos?.schedule_approver === true;
+  let isScheduleApprover = pos?.schedule_approver === true;
+
+  // Override: legacy_permissions_override del empleado
+  if (employee.legacy_permissions_override) {
+    try {
+      const legacy = typeof employee.legacy_permissions_override === 'string'
+        ? JSON.parse(employee.legacy_permissions_override)
+        : employee.legacy_permissions_override;
+      if (legacy.admin !== undefined) isAdmin = legacy.admin === true;
+      if (legacy.dashboard_access !== undefined) hasDashboardAccess = legacy.dashboard_access === true;
+      if (legacy.schedule_admin !== undefined || legacy.schedule_approver !== undefined) {
+        hasTimeManagementAccess = legacy.schedule_admin === true || legacy.schedule_approver === true;
+      }
+      if (legacy.schedule_approver !== undefined) isScheduleApprover = legacy.schedule_approver === true;
+    } catch (e) { /* ignore parse errors */ }
+  }
+
+  // Override: frontend_permissions_override — si tiene módulos activos, no es portal-only
+  if (employee.frontend_permissions_override) {
+    try {
+      const frontend = typeof employee.frontend_permissions_override === 'string'
+        ? JSON.parse(employee.frontend_permissions_override)
+        : employee.frontend_permissions_override;
+      if (frontend?.modules) {
+        const modules = frontend.modules as Record<string, { enabled?: boolean }>;
+        if (modules['admin']?.enabled) hasDashboardAccess = true;
+        if (modules['time_management']?.enabled) hasTimeManagementAccess = true;
+        if (modules['payroll']?.enabled) hasDashboardAccess = true;
+        if (modules['hr']?.enabled) hasDashboardAccess = true;
+        if (modules['performance']?.enabled) hasDashboardAccess = true;
+        if (modules['branch_manager']?.enabled) hasTimeManagementAccess = true;
+        if (modules['timeclock']?.enabled) hasTimeManagementAccess = true;
+      }
+    } catch (e) { /* ignore parse errors */ }
+  }
+
   const hasPortalAccessOnly =
     !isAdmin && !hasDashboardAccess && !hasTimeManagementAccess;
 
@@ -316,7 +355,7 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
       const params: any = {
         work_email: `eq.${user.email}`,
         select:
-          'id,work_email,position:positions(name,admin,dashboard_access,schedule_admin,schedule_approver,default_view),has_portal_access,account_approved',
+          'id,work_email,position:positions(name,admin,dashboard_access,schedule_admin,schedule_approver,default_view),has_portal_access,account_approved,legacy_permissions_override,frontend_permissions_override',
       };
 
       if (companyId) {
