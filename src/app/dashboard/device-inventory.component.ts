@@ -16,6 +16,7 @@ import { InputText } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
 import { FormsModule } from '@angular/forms';
 import { DeviceInventoryStore, DeviceAssignmentStore } from '../stores/device-inventory.store';
+import { DashboardStore } from '../stores/dashboard.store';
 import { DeviceService } from '../services/device.service';
 import { DeviceInventoryFormComponent } from './device-inventory-form.component';
 import { DeviceAssignmentFormComponent } from './device-assignment-form.component';
@@ -86,6 +87,19 @@ import { AccordionModule } from 'primeng/accordion';
               />
             </span>
           </div>
+          <div class="min-w-[200px]">
+            <span class="p-input-icon-left w-full">
+              <i class="pi pi-barcode"></i>
+              <input
+                type="text"
+                pInputText
+                [(ngModel)]="barcodeQuery"
+                placeholder="Escanear código..."
+                class="w-full"
+                (keyup.enter)="onBarcodeScan($event)"
+              />
+            </span>
+          </div>
           <p-select
             [(ngModel)]="selectedType"
             [options]="typeFilterOptions"
@@ -101,6 +115,14 @@ import { AccordionModule } from 'primeng/accordion';
             optionValue="value"
             placeholder="Filtrar por estado"
             styleClass="min-w-[150px]"
+          />
+          <p-select
+            [(ngModel)]="selectedBranch"
+            [options]="branchFilterOptions()"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Filtrar por sucursal"
+            styleClass="min-w-[170px]"
           />
         </div>
 
@@ -128,6 +150,7 @@ import { AccordionModule } from 'primeng/accordion';
                 <th pSortableColumn="serial_number">
                   Serie <p-sortIcon field="serial_number" />
                 </th>
+                <th>Sucursal</th>
                 <th pSortableColumn="status">
                   Estado <p-sortIcon field="status" />
                 </th>
@@ -160,6 +183,7 @@ import { AccordionModule } from 'primeng/accordion';
                 </td>
                 <td>{{ device.brand || '-' }}</td>
                 <td>{{ device.serial_number || '-' }}</td>
+                <td>{{ device.branch ? device.branch.name : '-' }}</td>
                 <td>
                   <p-tag
                     [value]="getStatusLabel(device.status)"
@@ -237,7 +261,7 @@ import { AccordionModule } from 'primeng/accordion';
             </ng-template>
             <ng-template #expandedrow let-device>
               <tr>
-                <td colspan="8">
+                <td colspan="9">
                   <div class="p-4 bg-neutral-800/50 rounded-lg m-2">
                     <h4 class="text-white font-medium mb-3">
                       Historial de Asignaciones
@@ -301,7 +325,7 @@ import { AccordionModule } from 'primeng/accordion';
             </ng-template>
             <ng-template #emptymessage>
               <tr>
-                <td colspan="8" class="text-center py-8 text-gray-400">
+                <td colspan="9" class="text-center py-8 text-gray-400">
                   No hay dispositivos registrados
                 </td>
               </tr>
@@ -373,6 +397,11 @@ import { AccordionModule } from 'primeng/accordion';
                   @if (device.brand || device.model) {
                   <p class="text-xs text-gray-400 m-0 mt-1">
                     {{ device.brand }} {{ device.model }}
+                  </p>
+                  }
+                  @if (device.branch?.name; as branchName) {
+                  <p class="text-xs text-blue-400 m-0 mt-1">
+                    <i class="pi pi-shop text-xs mr-1"></i>{{ branchName }}
                   </p>
                   }
                 </div>
@@ -486,13 +515,16 @@ import { AccordionModule } from 'primeng/accordion';
 export class DeviceInventoryComponent {
   readonly deviceStore = inject(DeviceInventoryStore);
   readonly assignmentStore = inject(DeviceAssignmentStore);
+  private dashboardStore = inject(DashboardStore);
   protected device = inject(DeviceService);
   private ref = inject(DynamicDialogRef);
   private dialog = inject(DialogService);
 
   searchQuery = signal('');
+  barcodeQuery = signal('');
   selectedType = signal<DeviceType | null>(null);
   selectedStatus = signal<DeviceStatus | null>(null);
+  selectedBranch = signal<string | null>(null);
   expandedRows = signal<Record<string, boolean>>({});
 
   deviceTypeOptions = DEVICE_TYPE_OPTIONS;
@@ -507,6 +539,11 @@ export class DeviceInventoryComponent {
     { label: 'Todos los estados', value: null },
     ...DEVICE_STATUS_OPTIONS,
   ];
+
+  branchFilterOptions = computed(() => [
+    { label: 'Todas las sucursales', value: null },
+    ...this.dashboardStore.branches.entities().map((b: any) => ({ label: b.name, value: b.id })),
+  ]);
 
   devices = computed(() => [...this.deviceStore.entities()]);
   assignments = computed(() => [...this.assignmentStore.entities()]);
@@ -535,8 +572,26 @@ export class DeviceInventoryComponent {
       result = result.filter((d) => d.status === status);
     }
 
+    const branch = this.selectedBranch();
+    if (branch) {
+      result = result.filter((d) => d.branch_id === branch);
+    }
+
     return result;
   });
+
+  onBarcodeScan(event: Event) {
+    const value = (event.target as HTMLInputElement).value.trim();
+    if (value) {
+      this.searchQuery.set(value);
+      this.barcodeQuery.set('');
+      // Auto-expand if single result
+      const results = this.filteredDevices();
+      if (results.length === 1) {
+        this.expandedRows.set({ [results[0].id]: true });
+      }
+    }
+  }
 
   getCurrentAssignment(deviceId: string): DeviceAssignment | undefined {
     return this.assignments().find(
