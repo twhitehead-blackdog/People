@@ -19,6 +19,14 @@ export type TimeOffType =
   | 'compensatory_hours'
   | 'disability';
 
+/** Map time-off type to the schedule name in the schedules table */
+const SCHEDULE_NAME_MAP: Record<TimeOffType, string> = {
+  vacation: 'Vacaciones',
+  compensatory_day: 'Compensatorio',
+  compensatory_hours: 'Compensatorio',
+  disability: 'Incapacidad',
+};
+
 interface ExistingSchedule {
   id: string;
   employee_id: string;
@@ -37,24 +45,35 @@ export class ScheduleAutoAssignService {
   private auditService = inject(ScheduleAuditService);
   private auth = inject(AuthService);
 
+  /** Cache resolved schedule IDs so we only look up once per session */
+  private scheduleIdCache = new Map<string, string>();
+
   async assignScheduleForTimeOff(params: {
     employeeId: string;
     startDate: string;
     endDate: string;
-    scheduleId: string;
     timeOffType: TimeOffType;
     timeOffSourceId: string;
     companyId?: string;
     createdBy: string;
     compensatoryHoursAmount?: number;
   }): Promise<void> {
-    // 1. Get employee's branch_id
+    // 1. Resolve the schedule ID by name
+    const scheduleId = await this.resolveScheduleId(params.timeOffType);
+    if (!scheduleId) {
+      console.error(
+        `[ScheduleAutoAssign] Could not find schedule for type "${params.timeOffType}" (name: "${SCHEDULE_NAME_MAP[params.timeOffType]}")`
+      );
+      return;
+    }
+
+    // 2. Get employee's branch_id
     const branchId = await this.getEmployeeBranchId(params.employeeId);
 
-    // 2. Get Auth0 user_id (sub) for the user_id column
+    // 3. Get Auth0 user_id (sub) for the user_id column
     const userId = await this.getAuth0UserId();
 
-    // 3. For all types EXCEPT compensatory_hours, replace existing schedules
+    // 4. For all types EXCEPT compensatory_hours, replace existing schedules
     if (params.timeOffType !== 'compensatory_hours') {
       await this.removeOverlappingSchedules(
         params.employeeId,
@@ -64,7 +83,7 @@ export class ScheduleAutoAssignService {
       );
     }
 
-    // 4. Create time-off schedule entries (one per day)
+    // 5. Create time-off schedule entries (one per day)
     const days = eachDayOfInterval({
       start: parseISO(params.startDate),
       end: parseISO(params.endDate),
@@ -74,7 +93,7 @@ export class ScheduleAutoAssignService {
       const dateStr = format(day, 'yyyy-MM-dd');
       const entry: Record<string, unknown> = {
         employee_id: params.employeeId,
-        schedule_id: params.scheduleId,
+        schedule_id: scheduleId,
         start_date: dateStr,
         end_date: dateStr,
         approved: true,
@@ -108,7 +127,7 @@ export class ScheduleAutoAssignService {
       )
     );
 
-    // 5. Best-effort audit
+    // 6. Best-effort audit
     try {
       await this.auditService.logChange({
         employeeScheduleId: null,
@@ -124,6 +143,40 @@ export class ScheduleAutoAssignService {
       });
     } catch {
       // Non-blocking
+    }
+  }
+
+  /**
+   * Resolve the schedule ID by looking up the schedules table by name.
+   * Results are cached for the session.
+   */
+  private async resolveScheduleId(
+    timeOffType: TimeOffType
+  ): Promise<string | null> {
+    const scheduleName = SCHEDULE_NAME_MAP[timeOffType];
+    if (this.scheduleIdCache.has(scheduleName)) {
+      return this.scheduleIdCache.get(scheduleName)!;
+    }
+
+    try {
+      const url = this.apiUrl.build('rest/v1/schedules', {
+        name: `eq.${scheduleName}`,
+        select: 'id',
+        limit: '1',
+      });
+      const resp = await firstValueFrom(
+        this.http.get<{ id: string }[]>(url)
+      );
+      const id = resp?.[0]?.id ?? null;
+      if (id) {
+        this.scheduleIdCache.set(scheduleName, id);
+      }
+      return id;
+    } catch {
+      console.warn(
+        `[ScheduleAutoAssign] Could not resolve schedule ID for "${scheduleName}"`
+      );
+      return null;
     }
   }
 
@@ -162,7 +215,7 @@ export class ScheduleAutoAssignService {
 
   /**
    * Remove or trim existing schedules that overlap with the time-off range.
-   * Handles three overlap cases:
+   * Handles four overlap cases:
    * - Fully contained: DELETE
    * - Starts before range: PATCH end_date to day before range
    * - Ends after range: PATCH start_date to day after range
@@ -174,13 +227,12 @@ export class ScheduleAutoAssignService {
     rangeEnd: string,
     companyId?: string
   ): Promise<void> {
-    // Fetch all schedules for this employee that overlap with the range
-    // Overlap condition: existing.start_date <= rangeEnd AND existing.end_date >= rangeStart
     const filterParams: Record<string, string> = {
       employee_id: `eq.${employeeId}`,
       start_date: `lte.${rangeEnd}`,
       end_date: `gte.${rangeStart}`,
-      select: 'id,employee_id,schedule_id,start_date,end_date,branch_id,approved,company_id',
+      select:
+        'id,employee_id,schedule_id,start_date,end_date,branch_id,approved,company_id',
     };
     if (companyId) {
       filterParams['company_id'] = `eq.${companyId}`;
@@ -193,7 +245,9 @@ export class ScheduleAutoAssignService {
         this.http.get<ExistingSchedule[]>(url)
       );
     } catch {
-      console.warn('[ScheduleAutoAssign] Could not fetch overlapping schedules');
+      console.warn(
+        '[ScheduleAutoAssign] Could not fetch overlapping schedules'
+      );
       return;
     }
 
@@ -224,11 +278,9 @@ export class ScheduleAutoAssignService {
         });
       } else {
         // Case 4: Spans entire range — split into before + after
-        // Trim original to end before range
         await this.patchSchedule(sched.id, companyId, {
           end_date: format(subDays(start, 1), 'yyyy-MM-dd'),
         });
-        // Create new entry for after range
         const afterEntry: Record<string, unknown> = {
           employee_id: sched.employee_id,
           schedule_id: sched.schedule_id,
@@ -262,7 +314,9 @@ export class ScheduleAutoAssignService {
     const params: Record<string, string> = { id: `eq.${id}` };
     if (companyId) params['company_id'] = `eq.${companyId}`;
     await firstValueFrom(
-      this.http.delete(this.apiUrl.build('rest/v1/employee_schedules', params))
+      this.http.delete(
+        this.apiUrl.build('rest/v1/employee_schedules', params)
+      )
     );
   }
 

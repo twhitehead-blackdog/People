@@ -1036,7 +1036,6 @@ export class VacationsComponent {
                 employeeId: vacation.employee_id,
                 startDate: vacation.start_date,
                 endDate: vacation.end_date,
-                scheduleId: 'e7e63bb4-ca86-4091-85fa-c4da16545b49',
                 timeOffType: 'vacation',
                 timeOffSourceId: vacation.id,
                 companyId: vacation.company_id,
