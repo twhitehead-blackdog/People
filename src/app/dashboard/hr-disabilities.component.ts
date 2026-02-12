@@ -38,6 +38,7 @@ import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
 import { utils, writeFile } from 'xlsx';
 import { OrganizationService } from '../services/organization.service';
+import { ScheduleAutoAssignService } from '../services/schedule-auto-assign.service';
 import {
     TimeoffAuditLog,
     TimeoffAuditService,
@@ -57,6 +58,7 @@ interface Disability {
   id: string;
   employee_id: string;
   created_by?: string | null;
+  company_id?: string;
   employee?: {
     id: string;
     first_name: string;
@@ -2867,6 +2869,7 @@ export class HRDisabilitiesComponent {
   private vacationsService = inject(VacationsService);
   private documentRequestsService = inject(DocumentRequestsService);
   protected device = inject(DeviceService);
+  private scheduleAutoAssign = inject(ScheduleAutoAssignService);
 
   // Método para navegar a diferentes pestañas
   public navigateToTab(
@@ -4869,6 +4872,28 @@ export class HRDisabilitiesComponent {
                 e
               );
             }
+
+            // Auto-assign compensatory schedule
+            try {
+              const timeOffType = request.compensatory_type === 'hours'
+                ? 'compensatory_hours' as const
+                : 'compensatory_day' as const;
+              await this.scheduleAutoAssign.assignScheduleForTimeOff({
+                employeeId: request.employee_id,
+                startDate: request.date_from,
+                endDate: request.date_to,
+                scheduleId: 'f2d92995-96a0-414f-b64a-9823db776745',
+                timeOffType,
+                timeOffSourceId: request.id,
+                companyId: request.company_id,
+                createdBy: currentEmployee.id,
+                compensatoryHoursAmount: request.compensatory_type === 'hours'
+                  ? request.compensatory_amount
+                  : undefined,
+              });
+            } catch (e) {
+              console.warn('[HRDisabilities] Auto-assign compensatory schedule failed (non-blocking):', e);
+            }
           } else if (status === 'rejected' && request) {
             // Enviar notificación al empleado sobre el rechazo
             await this.notifyEmployee(
@@ -5526,7 +5551,29 @@ export class HRDisabilitiesComponent {
         updateData
       )
       .subscribe({
-        next: () => {
+        next: async () => {
+          // Auto-assign disability schedule on approval
+          if (status === 'approved') {
+            const disability = this.disabilitiesApi.value()?.find((d) => d.id === id)
+              || this.selectedDisability();
+            const currentEmployee = this.dashboardStore.currentEmployee();
+            if (disability && currentEmployee) {
+              try {
+                await this.scheduleAutoAssign.assignScheduleForTimeOff({
+                  employeeId: disability.employee_id,
+                  startDate: disability.start_date,
+                  endDate: disability.end_date,
+                  scheduleId: '4983c002-7c5d-4440-a4f2-52f61acdd67a',
+                  timeOffType: 'disability',
+                  timeOffSourceId: disability.id,
+                  companyId: disability.company_id,
+                  createdBy: currentEmployee.id,
+                });
+              } catch (e) {
+                console.warn('[HRDisabilities] Auto-assign disability schedule failed (non-blocking):', e);
+              }
+            }
+          }
           const statusMessages: Record<string, string> = {
             approved: 'aprobada',
             rejected: 'rechazada',

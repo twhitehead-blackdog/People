@@ -288,6 +288,9 @@ export type EmployeeSchedule = {
   updated_at?: Date;
   approved_at?: Date;
   company_id?: string;
+  time_off_type?: 'vacation' | 'compensatory_day' | 'compensatory_hours' | 'disability' | null;
+  time_off_source_id?: string | null;
+  compensatory_hours_amount?: number | null;
 };
 
 export type VetBranchAssignment = {
