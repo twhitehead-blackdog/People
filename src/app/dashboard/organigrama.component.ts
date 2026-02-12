@@ -866,6 +866,7 @@ export class OrganigramaComponent {
         schedule_admin: false,
         admin: false,
         schedule_approver: false,
+        dashboard_access: false,
       };
       const result = [{
         label: 'Organización',

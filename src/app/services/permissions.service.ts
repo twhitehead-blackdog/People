@@ -103,36 +103,74 @@ export class PermissionsService {
   private buildUserProfile(employee: Employee): UserPermissionProfile {
     const position = employee.position;
 
-    // 1. Get Base Permissions from Position
+    // 1. Initial State (No Access)
     const basePermissions: Record<LegacyPermissionKey, boolean> = {
-      admin: position?.admin || false,
-      schedule_admin: position?.schedule_admin || false,
-      schedule_approver: position?.schedule_approver || false,
-      dashboard_access: position?.dashboard_access || false,
-      view_salaries: checkSalaryAccess(position?.name),
+      admin: false,
+      schedule_admin: false,
+      schedule_approver: false,
+      dashboard_access: false,
+      view_salaries: false,
     };
 
-    // 2. Build Frontend Permissions from Position
-    const positionFrontendPermissions = this.buildFrontendPermissions(position);
+    // 2. Build Legacy Permissions (from Employee Override ONLY)
+    const legacyOverride = this.parseLegacyOverride(employee);
+    // Legacy override is now the ONLY source of permissions
 
-    // 3. Apply employee override if exists
-    const employeeOverride = this.parseEmployeeOverride(employee);
-    const hasEmployeeOverride = employeeOverride !== null;
-    const frontendPermissions = hasEmployeeOverride
-      ? this.mergeFrontendPermissions(positionFrontendPermissions, employeeOverride)
-      : positionFrontendPermissions;
-
-    // 4. Merge Permissions (Hybrid Logic)
-    const finalPermissions: Record<LegacyPermissionKey, boolean> = {
-      ...basePermissions,
-    };
+    const finalPermissions: Record<LegacyPermissionKey, boolean> = { ...basePermissions };
     const sources: Record<LegacyPermissionKey, 'position' | 'user_override'> = {
-      admin: 'position',
-      schedule_admin: 'position',
-      schedule_approver: 'position',
-      dashboard_access: 'position',
-      view_salaries: 'position',
+      admin: 'user_override',
+      schedule_admin: 'user_override',
+      schedule_approver: 'user_override',
+      dashboard_access: 'user_override',
+      view_salaries: 'user_override',
     };
+
+    if (legacyOverride) {
+      Object.entries(legacyOverride).forEach(([key, value]) => {
+        const permKey = key as LegacyPermissionKey;
+        // Only valid keys
+        if (permKey in finalPermissions) {
+          finalPermissions[permKey] = value;
+          sources[permKey] = 'user_override';
+        }
+      });
+    } else {
+      // FALLBACK: If no override exists (migration didn't run), use Position permissions
+      // This ensures admins don't lose access before migration
+      if (position?.admin) {
+        finalPermissions.admin = true;
+        sources.admin = 'position';
+      }
+      if (position?.schedule_admin) {
+        finalPermissions.schedule_admin = true;
+        sources.schedule_admin = 'position';
+      }
+      if (position?.schedule_approver) {
+        finalPermissions.schedule_approver = true;
+        sources.schedule_approver = 'position';
+      }
+      if (position?.dashboard_access) {
+        finalPermissions.dashboard_access = true;
+        sources.dashboard_access = 'position';
+      }
+      if (checkSalaryAccess(position?.name)) {
+        finalPermissions.view_salaries = true;
+        sources.view_salaries = 'position';
+      }
+    }
+
+    // 3. Build Frontend Permissions (from Employee Override ONLY)
+    // We no longer read from Position. Defaults are all FALSE.
+    const defaultFrontend = { version: 1, modules: {} } as FrontendPermissions;
+
+    // 4. Apply employee override if exists
+    const employeeOverride = this.parseEmployeeOverride(employee);
+    const hasFrontendOverride = employeeOverride !== null;
+
+    // If override exists, use it. If not, fallback to Position permissions (for backward compatibility)
+    const frontendPermissions = hasFrontendOverride
+      ? employeeOverride
+      : this.buildFrontendPermissions(position);
 
     return {
       employeeId: employee.id,
@@ -145,11 +183,45 @@ export class PermissionsService {
       sources: sources,
       frontendPermissions: frontendPermissions,
       employeeFrontendPermissions: employeeOverride ?? undefined,
-      hasEmployeeOverride,
-      userType: this.determineUserType(employee),
+      hasEmployeeOverride: true, // Always considered "custom"/employee-level now
+      userType: this.determineUserType(employee, finalPermissions),
       isSupportUser: this.store.testMode.isSupportUser(employee.work_email),
       testMode: false,
     };
+  }
+
+  /**
+   * Helper to create empty frontend permissions (all disabled)
+   */
+  private createEmptyFrontendPermissions(): FrontendPermissions {
+    const perms = createDefaultFrontendPermissions();
+    // Ensure everything is disabled
+    Object.values(perms.modules).forEach(m => {
+      m.enabled = false;
+      Object.keys(m.subModules).forEach(k => m.subModules[k] = false);
+    });
+    return perms;
+  }
+
+  /**
+   * Parsea el override de permisos legacy del empleado
+   */
+  private parseLegacyOverride(employee: Employee): Record<string, boolean> | null {
+    if (!employee.legacy_permissions_override) return null;
+
+    try {
+      const parsed = typeof employee.legacy_permissions_override === 'string'
+        ? JSON.parse(employee.legacy_permissions_override)
+        : employee.legacy_permissions_override;
+
+      if (parsed && typeof parsed === 'object') {
+        return parsed as Record<string, boolean>;
+      }
+      return null;
+    } catch (e) {
+      console.warn('Error parsing legacy_permissions_override for employee:', employee.id, e);
+      return null;
+    }
   }
 
   /**
@@ -201,14 +273,14 @@ export class PermissionsService {
    */
   private buildFrontendPermissions(position?: Position): FrontendPermissions {
     const defaultPerms = createDefaultFrontendPermissions();
-    
+
     // Si el cargo tiene permisos de frontend guardados, usarlos
     if (position?.frontend_permissions) {
       try {
-        const saved = typeof position.frontend_permissions === 'string' 
+        const saved = typeof position.frontend_permissions === 'string'
           ? JSON.parse(position.frontend_permissions)
           : position.frontend_permissions;
-        
+
         return {
           version: saved.version || 1,
           modules: { ...defaultPerms.modules, ...saved.modules },
@@ -238,7 +310,7 @@ export class PermissionsService {
         enabled: false,
         subModules: {},
       };
-      
+
       // Todos los submódulos desactivados por defecto
       module.subModules.forEach(sub => {
         perms.modules[module.id].subModules[sub.id] = false;
@@ -248,7 +320,7 @@ export class PermissionsService {
     if (!position) return perms;
 
     // Aplicar reglas basadas en el tipo de cargo
-    
+
     // Administradores: acceso a casi todo
     if (position.admin) {
       SYSTEM_MODULES.forEach(module => {
@@ -289,8 +361,17 @@ export class PermissionsService {
   }
 
   private determineUserType(
-    employee: Employee
+    employee: Employee,
+    permissions?: Record<LegacyPermissionKey, boolean>
   ): 'employee' | 'manager' | 'admin' | 'superadmin' {
+    // If we have calculated permissions, use them (handles overrides)
+    if (permissions) {
+      if (permissions.admin) return 'admin';
+      if (permissions.schedule_admin) return 'manager';
+      return 'employee';
+    }
+
+    // Fallback to position properties (legacy behavior)
     if (employee.position?.admin) return 'admin';
     if (employee.position?.schedule_admin) return 'manager';
     return 'employee';
@@ -301,45 +382,27 @@ export class PermissionsService {
   // ============================================
 
   /**
-   * Updates permissions at the Position level (legacy)
+   * DEPRECATED: Position permissions are no longer used.
+   * Steps to remove completely:
+   * 1. Remove calls from UI (permissions-management.component.ts)
+   * 2. Remove calls from any other service
+   * 3. Delete these methods.
+   * For now, we leave empty implementations or warnings to avoid breaking build if called.
    */
   public async updatePositionPermissions(
     positionId: string,
     permissions: Partial<Record<LegacyPermissionKey, boolean>>
   ): Promise<void> {
-    const updates: Partial<Position> = {};
-
-    if (permissions.admin !== undefined) updates.admin = permissions.admin;
-    if (permissions.schedule_admin !== undefined)
-      updates.schedule_admin = permissions.schedule_admin;
-    if (permissions.schedule_approver !== undefined)
-      updates.schedule_approver = permissions.schedule_approver;
-    if (permissions.dashboard_access !== undefined)
-      updates.dashboard_access = permissions.dashboard_access;
-
-    if (Object.keys(updates).length > 0) {
-      await firstValueFrom(
-        this.positionsStore.editItem({ id: positionId, ...updates } as any)
-      );
-    }
+    console.warn('updatePositionPermissions is deprecated. Use updateEmployeeLegacyPermissions instead.');
   }
 
-  /**
-   * Updates frontend module permissions at the Position level
-   * NUEVO: Actualiza los permisos de frontend por módulo/submódulo
-   */
   public async updatePositionFrontendPermissions(
     positionId: string,
     frontendPermissions: FrontendPermissions
   ): Promise<void> {
-    const updates: Partial<Position> = {
-      frontend_permissions: JSON.stringify(frontendPermissions),
-    };
-
-    await firstValueFrom(
-      this.positionsStore.editItem({ id: positionId, ...updates } as any)
-    );
+    console.warn('updatePositionFrontendPermissions is deprecated. Use updateEmployeeFrontendPermissions instead.');
   }
+
 
   /**
    * Updates frontend module permissions at the Employee level (override)
@@ -368,6 +431,48 @@ export class PermissionsService {
     );
   }
 
+  /**
+   * Updates legacy permissions at the Employee level (override)
+   */
+  public async updateEmployeeLegacyPermissions(
+    employeeId: string,
+    permissions: Partial<Record<LegacyPermissionKey, boolean>>
+  ): Promise<void> {
+    const updates: Partial<Employee> = {
+      legacy_permissions_override: JSON.stringify(permissions),
+    };
+
+    await firstValueFrom(
+      this.employeesStore.editItem({ id: employeeId, ...updates } as any)
+    );
+  }
+
+  /**
+   * Clears the legacy employee override
+   */
+  public async clearEmployeeLegacyPermissions(
+    employeeId: string
+  ): Promise<void> {
+    await firstValueFrom(
+      this.employeesStore.editItem({ id: employeeId, legacy_permissions_override: null } as any)
+    );
+  }
+
+  /**
+   * Clears ALL employee overrides (frontend + legacy)
+   */
+  public async clearAllEmployeeOverrides(
+    employeeId: string
+  ): Promise<void> {
+    await firstValueFrom(
+      this.employeesStore.editItem({
+        id: employeeId,
+        frontend_permissions_override: null,
+        legacy_permissions_override: null
+      } as any)
+    );
+  }
+
   // ============================================
   // VERIFICACIÓN DE PERMISOS (HELPERS)
   // ============================================
@@ -392,11 +497,6 @@ export class PermissionsService {
     const currentEmployee = this.store.currentEmployee();
     if (!currentEmployee) return false;
 
-    // Support users tienen acceso a todo
-    if (this.store.testMode.isSupportUser(currentEmployee.work_email)) {
-      return true;
-    }
-
     const profile = this.buildUserProfile(currentEmployee);
     return hasSubModuleAccess(profile.frontendPermissions, moduleId, subModuleId);
   }
@@ -407,11 +507,6 @@ export class PermissionsService {
   public canAccessModule(moduleId: string): boolean {
     const currentEmployee = this.store.currentEmployee();
     if (!currentEmployee) return false;
-
-    // Support users tienen acceso a todo
-    if (this.store.testMode.isSupportUser(currentEmployee.work_email)) {
-      return true;
-    }
 
     const profile = this.buildUserProfile(currentEmployee);
     return hasModuleAccess(profile.frontendPermissions, moduleId);
@@ -436,17 +531,17 @@ export class PermissionsService {
     if (!perms) return [];
 
     const allowed: string[] = [];
-    
+
     for (const [moduleId, modulePerm] of Object.entries(perms.modules)) {
       if (!modulePerm.enabled) continue;
-      
+
       for (const [subModuleId, enabled] of Object.entries(modulePerm.subModules)) {
         if (enabled) {
           allowed.push(subModuleId);
         }
       }
     }
-    
+
     return allowed;
   }
 

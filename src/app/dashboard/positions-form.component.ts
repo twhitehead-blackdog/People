@@ -23,6 +23,7 @@ import { v4 } from 'uuid';
 import { OrganizationService } from '../services/organization.service';
 import { markGroupDirty } from '../services/util.service';
 import { DashboardStore } from '../stores/dashboard.store';
+import { invalidateEmployeeCache } from '../guards/employee-portal.guard';
 
 @Component({
   selector: 'pt-positions-form',
@@ -57,13 +58,57 @@ import { DashboardStore } from '../stores/dashboard.store';
             >Disponible en Feria de Empleo</label
           >
         </div>
-        } @if (!organizationService.isNaz()) {
-        <div class="flex items-center gap-2">
-          <p-toggleswitch
-            formControlName="dashboard_access"
-            inputId="dashboard_access"
-          />
-          <label for="dashboard_access">Acceso al Dashboard</label>
+
+        <div class="border-t border-gray-200 pt-3 mt-1">
+          <h4 class="text-sm font-semibold text-gray-600 mb-3">Permisos del sistema</h4>
+
+          <div class="flex flex-col gap-3">
+            <div class="flex items-center gap-2">
+              <p-toggleswitch
+                formControlName="dashboard_access"
+                inputId="dashboard_access"
+              />
+              <label for="dashboard_access">Acceso al Dashboard</label>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <p-toggleswitch
+                formControlName="admin"
+                inputId="admin"
+              />
+              <label for="admin">Administrador</label>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <p-toggleswitch
+                formControlName="schedule_admin"
+                inputId="schedule_admin"
+              />
+              <label for="schedule_admin">Admin de horarios</label>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <p-toggleswitch
+                formControlName="schedule_approver"
+                inputId="schedule_approver"
+              />
+              <label for="schedule_approver">Aprobador de horarios</label>
+            </div>
+
+            <div class="input-container">
+              <label for="default_view">Vista predeterminada</label>
+              <p-select
+                inputId="default_view"
+                formControlName="default_view"
+                [options]="defaultViewOptions"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Seleccione una vista"
+                showClear
+                appendTo="body"
+              />
+            </div>
+          </div>
         </div>
         }
         <div class="flex gap-4 items-center justify-end">
@@ -106,8 +151,9 @@ export class PositionsFormComponent implements OnInit {
     schedule_admin: new FormControl(false, { nonNullable: true }),
     schedule_approver: new FormControl(false, { nonNullable: true }),
     dashboard_access: new FormControl(false, { nonNullable: true }),
+    default_view: new FormControl('', { nonNullable: true }),
   });
-  
+
   // Permisos por defecto: solo reloj de marcación y portal de empleado (perfil)
   private readonly defaultFrontendPermissions = {
     modules: {
@@ -126,6 +172,16 @@ export class PositionsFormComponent implements OnInit {
     },
     version: 1
   };
+
+  defaultViewOptions = [
+    { label: 'Inicio', value: 'home' },
+    { label: 'Administración', value: 'admin' },
+    { label: 'Nómina', value: 'payroll' },
+    { label: 'Gestión de tiempo', value: 'time-management' },
+    { label: 'Reloj de marcación', value: 'timeclock' },
+    { label: 'Portal de empleado', value: 'employee-portal' },
+  ];
+
   public dialogRef = inject(DynamicDialogRef);
   private dialog = inject(DynamicDialogConfig);
   public store = inject(DashboardStore);
@@ -145,6 +201,7 @@ export class PositionsFormComponent implements OnInit {
         schedule_admin: position.schedule_admin || false,
         schedule_approver: position.schedule_approver || false,
         dashboard_access: position.dashboard_access || false,
+        default_view: position.default_view || '',
       });
     }
   }
@@ -168,16 +225,16 @@ export class PositionsFormComponent implements OnInit {
       this.dialogRef.close();
       return;
     }
-    
+
     const formValue = this.form.getRawValue();
-    
+
     // Si es creación o no tiene permisos definidos, asignar permisos por defecto
     const isNew = !this.dialog.data.position;
     const existingPermissions = this.dialog.data.position?.frontend_permissions;
-    const frontendPermissions = isNew || !existingPermissions 
-      ? this.defaultFrontendPermissions 
+    const frontendPermissions = isNew || !existingPermissions
+      ? this.defaultFrontendPermissions
       : existingPermissions;
-    
+
     const dataToSave: any = {
       ...formValue,
       frontend_permissions: frontendPermissions,
@@ -191,6 +248,7 @@ export class PositionsFormComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
+          invalidateEmployeeCache();
           this.dialogRef.close();
         },
         error: (error) => {

@@ -34,7 +34,7 @@ export type Position = {
   schedule_admin: boolean;
   admin: boolean;
   schedule_approver: boolean;
-  dashboard_access?: boolean;
+  dashboard_access: boolean;
   default_view?: string;
   available_for_job_fair?: boolean;
   // NUEVO: Permisos de frontend por módulo/submódulo (JSON)
@@ -84,6 +84,7 @@ export type Employee = {
   account_approved?: boolean;
   total_lunch_exceeded_minutes?: number;
   frontend_permissions_override?: string | Record<string, unknown>;
+  legacy_permissions_override?: string | Record<string, boolean>;
 };
 
 export type TimeOffType = {
@@ -230,11 +231,11 @@ export type AttendanceSheet = {
   is_justified: boolean;
   justification_notes: string;
   justification_cause?:
-    | 'NORMAL'
-    | 'PERSONAL'
-    | 'INJUSTIFICADA'
-    | 'JUSTIFICADA'
-    | 'COMPENSATORIO';
+  | 'NORMAL'
+  | 'PERSONAL'
+  | 'INJUSTIFICADA'
+  | 'JUSTIFICADA'
+  | 'COMPENSATORIO';
   justified_hours?: number;
   late_hours: number;
   overtime_hours: number;
@@ -681,11 +682,11 @@ export type NazAttendanceSheet = {
   is_justified: boolean;
   justification_notes: string;
   justification_cause?:
-    | 'NORMAL'
-    | 'PERSONAL'
-    | 'INJUSTIFICADA'
-    | 'JUSTIFICADA'
-    | 'COMPENSATORIO';
+  | 'NORMAL'
+  | 'PERSONAL'
+  | 'INJUSTIFICADA'
+  | 'JUSTIFICADA'
+  | 'COMPENSATORIO';
   justified_hours?: number;
   created_at?: Date;
 };

@@ -38,24 +38,16 @@ import { SYSTEM_MODULES, ModuleDefinition, SubModule } from './module-permission
     DividerModule,
   ],
   template: `
-    <div class="flex flex-col gap-4">
+    <div class="flex flex-col gap-4 permission-editor-container">
       <!-- Tabs para cambiar entre permisos legacy y frontend -->
       <p-tabView styleClass="permissions-tabs">
         <p-tabPanel header="Permisos del Sistema" leftIcon="pi pi-shield">
           <div class="flex flex-col gap-3 mt-2">
-            @if (mode === 'employee') {
-              <p-message
-                severity="info"
-                text="Estos permisos son específicos para este empleado y NO afectan a otros del mismo cargo."
-                styleClass="w-full block"
-              ></p-message>
-            } @else {
-              <p-message
-                severity="info"
-                text="Estás editando permisos a nivel de CARGO. Los cambios afectarán a TODOS los usuarios con este cargo."
-                styleClass="w-full block"
-              ></p-message>
-            }
+            <p-message
+              severity="info"
+              text="Estos permisos determinan el nivel de acceso administrativo del empleado."
+              styleClass="w-full block"
+            ></p-message>
 
             <div class="flex flex-col gap-3 mt-2">
               @for (def of legacyDefinitions; track def.key) {
@@ -81,19 +73,11 @@ import { SYSTEM_MODULES, ModuleDefinition, SubModule } from './module-permission
 
         <p-tabPanel header="Acceso al Frontend" leftIcon="pi pi-desktop">
           <div class="flex flex-col gap-3 mt-2">
-            @if (mode === 'employee') {
-              <p-message
-                severity="warn"
-                text="Controla qué módulos y páginas puede ver este empleado en el sistema."
-                styleClass="w-full block"
-              ></p-message>
-            } @else {
-              <p-message
-                severity="warn"
-                text="Controla qué módulos y páginas puede ver este cargo en el sistema."
-                styleClass="w-full block"
-              ></p-message>
-            }
+            <p-message
+              severity="warn"
+              text="Controla qué módulos y páginas puede ver este empleado en el sistema."
+              styleClass="w-full block"
+            ></p-message>
 
             <!-- Toggle para habilitar/deshabilitar todo -->
             <div class="flex items-center justify-between p-3 bg-blue-900/20 border border-blue-800/50 rounded-lg">
@@ -177,33 +161,19 @@ import { SYSTEM_MODULES, ModuleDefinition, SubModule } from './module-permission
         </p-tabPanel>
       </p-tabView>
 
-      <div class="flex justify-between mt-4">
-        @if (mode === 'employee') {
-          <p-button
-            label="Restaurar permisos del cargo"
-            icon="pi pi-refresh"
-            [text]="true"
-            severity="warn"
-            [loading]="saving()"
-            (onClick)="restorePositionPermissions()"
-          ></p-button>
-        } @else {
-          <div></div>
-        }
-        <div class="flex gap-2">
-          <p-button
-            label="Cancelar"
-            [text]="true"
-            severity="secondary"
-            (onClick)="close()"
-          ></p-button>
-          <p-button
-            label="Guardar Cambios"
-            severity="primary"
-            [loading]="saving()"
-            (onClick)="save()"
-          ></p-button>
-        </div>
+      <div class="sticky-buttons flex justify-end gap-2">
+        <p-button
+          label="Cancelar"
+          [text]="true"
+          severity="secondary"
+          (onClick)="close()"
+        ></p-button>
+        <p-button
+          label="Guardar Cambios"
+          severity="primary"
+          [loading]="saving()"
+          (onClick)="save()"
+        ></p-button>
       </div>
     </div>
   `,
@@ -245,6 +215,18 @@ import { SYSTEM_MODULES, ModuleDefinition, SubModule } from './module-permission
       border-color: rgba(75, 85, 99, 0.3);
       padding: 0.75rem;
     }
+
+    .sticky-buttons {
+      position: sticky;
+      bottom: -1.25rem;
+      background: var(--p-dialog-background, #1f2937);
+      padding: 0.75rem 0;
+      margin: 0 -1.25rem -1.25rem;
+      padding-left: 1.25rem;
+      padding-right: 1.25rem;
+      border-top: 1px solid rgba(75, 85, 99, 0.5);
+      z-index: 10;
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -254,14 +236,7 @@ export class PermissionEditorDialogComponent {
   private service = inject(PermissionsService);
   private messageService = inject(MessageService);
 
-  // Modo de edición: 'position' (cargo) o 'employee' (individual)
-  public mode: 'position' | 'employee' = this.config.data.mode || 'position';
   public employeeId: string | null = this.config.data.employeeId || null;
-
-  // Datos del cargo
-  public positionId = this.config.data.positionId;
-  public positionName = this.config.data.positionName;
-  public isSupportUser = this.config.data.isSupportUser || false;
 
   // Permisos legacy
   public legacyDefinitions = this.service.getPermissionDefinitions();
@@ -311,7 +286,7 @@ export class PermissionEditorDialogComponent {
 
   private createEmptyFrontendPermissions(): FrontendPermissions {
     const modules: Record<string, ModulePermission> = {};
-    
+
     for (const module of SYSTEM_MODULES) {
       const subModules: Record<string, boolean> = {};
       for (const sub of module.subModules) {
@@ -418,66 +393,33 @@ export class PermissionEditorDialogComponent {
   async save() {
     this.saving.set(true);
     try {
-      if (this.mode === 'employee' && this.employeeId) {
-        // Modo empleado: solo guardar frontend permissions como override
+      if (this.employeeId) {
+        // Guardar overrides (legacy + frontend)
         await this.service.updateEmployeeFrontendPermissions(
           this.employeeId,
           this.frontendPermissionsState()
         );
-      } else {
-        // Modo cargo: guardar permisos legacy + frontend a nivel de position
+
+        // Guardar legacy permissions como override
         const legacyUpdates: Partial<Record<LegacyPermissionKey, boolean>> = {};
         for (const key of Object.keys(this.tempPermissions) as LegacyPermissionKey[]) {
           legacyUpdates[key] = this.tempPermissions[key];
         }
+        await this.service.updateEmployeeLegacyPermissions(this.employeeId, legacyUpdates);
 
-        if (Object.keys(legacyUpdates).length > 0) {
-          await this.service.updatePositionPermissions(this.positionId, legacyUpdates);
-        }
-
-        await this.service.updatePositionFrontendPermissions(
-          this.positionId,
-          this.frontendPermissionsState()
-        );
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Éxito',
+          detail: 'Permisos del empleado actualizados',
+        });
+        this.ref.close(true);
       }
-
-      this.messageService.add({
-        severity: 'success',
-        summary: 'Éxito',
-        detail: this.mode === 'employee'
-          ? 'Permisos del empleado actualizados'
-          : 'Permisos del cargo actualizados',
-      });
-      this.ref.close(true);
     } catch (error) {
       console.error('Error saving permissions:', error);
       this.messageService.add({
         severity: 'error',
         summary: 'Error',
         detail: 'No se pudieron guardar los permisos',
-      });
-    } finally {
-      this.saving.set(false);
-    }
-  }
-
-  async restorePositionPermissions() {
-    if (!this.employeeId) return;
-    this.saving.set(true);
-    try {
-      await this.service.clearEmployeeFrontendPermissions(this.employeeId);
-      this.messageService.add({
-        severity: 'success',
-        summary: 'Éxito',
-        detail: 'Permisos restaurados a los del cargo',
-      });
-      this.ref.close(true);
-    } catch (error) {
-      console.error('Error restoring permissions:', error);
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Error',
-        detail: 'No se pudieron restaurar los permisos',
       });
     } finally {
       this.saving.set(false);

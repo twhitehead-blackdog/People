@@ -13,6 +13,7 @@ import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { DeviceService } from '../services/device.service';
 import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
+import { PermissionsService } from '../services/permissions.service';
 import { DashboardStore } from '../stores/dashboard.store';
 
 @Component({
@@ -52,6 +53,7 @@ import { DashboardStore } from '../stores/dashboard.store';
               (mouseenter)="openDropdown('auditoria')"
               (mouseleave)="closeDropdown()"
             >
+              @if (canAccessPerformance()) {
               <a
                 routerLink="performance"
                 class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
@@ -61,6 +63,8 @@ import { DashboardStore } from '../stores/dashboard.store';
                 <i class="pi pi-chart-line text-sm"></i>
                 <span>Rendimiento 360</span>
               </a>
+              }
+              @if (adminSubs().audit_tasks) {
               <a
                 routerLink="audit-tasks"
                 class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
@@ -70,6 +74,7 @@ import { DashboardStore } from '../stores/dashboard.store';
                 <i class="pi pi-check-square text-sm"></i>
                 <span>Control de Tareas</span>
               </a>
+              }
             </div>
           </div>
 
@@ -138,7 +143,7 @@ import { DashboardStore } from '../stores/dashboard.store';
               (mouseleave)="closeDropdown()"
             >
               <!-- Tiempo -->
-              @if (canViewTimeDashboard()) {
+              @if (hrSubs().time_dashboard) {
               <a
                 routerLink="hr/time-dashboard"
                 class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
@@ -150,6 +155,7 @@ import { DashboardStore } from '../stores/dashboard.store';
               </a>
               }
               <!-- Gestión de Solicitudes -->
+              @if (hrSubs().disabilities) {
               <a
                 routerLink="hr/disabilities"
                 class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
@@ -159,9 +165,10 @@ import { DashboardStore } from '../stores/dashboard.store';
                 <i class="pi pi-heart text-sm"></i>
                 <span>Gestión de Solicitudes</span>
               </a>
+              }
 
               <!-- Feria de empleo (solo para Black Dog) -->
-              @if (!isNaz()) {
+              @if (!isNaz() && adminSubs().job_applications) {
               <a
                 routerLink="job-applications"
                 class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
@@ -199,6 +206,7 @@ import { DashboardStore } from '../stores/dashboard.store';
               (mouseleave)="closeDropdown()"
             >
               <!-- Empleados -->
+              @if (adminSubs().employees) {
               <a
                 routerLink="employees"
                 class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
@@ -208,8 +216,10 @@ import { DashboardStore } from '../stores/dashboard.store';
                 <i class="pi pi-users text-sm"></i>
                 <span>Empleados</span>
               </a>
+              }
 
               <!-- Organigrama -->
+              @if (adminSubs().organigrama) {
               <a
                 routerLink="organigrama"
                 class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
@@ -219,8 +229,10 @@ import { DashboardStore } from '../stores/dashboard.store';
                 <i class="pi pi-sitemap text-sm"></i>
                 <span>Organigrama</span>
               </a>
+              }
 
               <!-- Empresas -->
+              @if (adminSubs().companies) {
               <a
                 routerLink="companies"
                 class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
@@ -230,8 +242,10 @@ import { DashboardStore } from '../stores/dashboard.store';
                 <i class="pi pi-building text-sm"></i>
                 <span>Empresas</span>
               </a>
+              }
 
               <!-- Cargos -->
+              @if (adminSubs().positions) {
               <a
                 routerLink="positions"
                 class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
@@ -241,8 +255,10 @@ import { DashboardStore } from '../stores/dashboard.store';
                 <i class="pi pi-user-plus text-sm"></i>
                 <span>Cargos</span>
               </a>
+              }
 
               <!-- Sucursales -->
+              @if (adminSubs().branches) {
               <a
                 routerLink="branches"
                 class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
@@ -252,8 +268,10 @@ import { DashboardStore } from '../stores/dashboard.store';
                 <i class="pi pi-shop text-sm"></i>
                 <span>Sucursales</span>
               </a>
+              }
 
               <!-- Areas -->
+              @if (adminSubs().departments) {
               <a
                 routerLink="departments"
                 class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
@@ -263,8 +281,10 @@ import { DashboardStore } from '../stores/dashboard.store';
                 <i class="pi pi-sitemap text-sm"></i>
                 <span>Areas</span>
               </a>
+              }
 
               <!-- Permisos -->
+              @if (adminSubs().permissions) {
               <a
                 routerLink="permissions"
                 class="block px-4 py-2 text-sm text-gray-200 hover:bg-neutral-700 hover:text-white transition-colors duration-150 flex items-center gap-2"
@@ -274,12 +294,14 @@ import { DashboardStore } from '../stores/dashboard.store';
                 <i class="pi pi-lock text-sm"></i>
                 <span>Permisos</span>
               </a>
+              }
             </div>
           </div>
 
           <!-- Enlaces directos a la derecha -->
           <div class="flex items-center gap-6">
             <!-- Configuración -->
+            @if (adminSubs().settings) {
             <a
               routerLink="settings"
               class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
@@ -294,6 +316,7 @@ import { DashboardStore } from '../stores/dashboard.store';
               <i class="pi pi-cog text-base"></i>
               <span>Configuración</span>
             </a>
+            }
           </div>
         </div>
       </div>
@@ -320,34 +343,56 @@ import { DashboardStore } from '../stores/dashboard.store';
           </div>
           <nav class="p-2 flex flex-col gap-1">
             <div class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider px-2 py-1">Auditoría</div>
+            @if (canAccessPerformance()) {
             <a routerLink="performance" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('performance')" [class.text-amber-300]="isActiveRoute('performance')"><i class="pi pi-chart-line text-sm"></i><span>Rendimiento 360</span></a>
+            }
+            @if (adminSubs().audit_tasks) {
             <a routerLink="audit-tasks" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('audit-tasks')" [class.text-amber-300]="isActiveRoute('audit-tasks')"><i class="pi pi-check-square text-sm"></i><span>Control de Tareas</span></a>
+            }
 
             @if (canViewITModule()) {
             <div class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider px-2 py-1 mt-2">IT</div>
             <a routerLink="device-inventory" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('device-inventory')" [class.text-amber-300]="isActiveRoute('device-inventory')"><i class="pi pi-box text-sm"></i><span>Inventario de Dispositivos</span></a>
             }
             <div class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider px-2 py-1 mt-2">RRHH</div>
-            @if (canViewTimeDashboard()) {
+            @if (hrSubs().time_dashboard) {
               <a routerLink="hr/time-dashboard" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('hr/time-dashboard')" [class.text-amber-300]="isActiveRoute('hr/time-dashboard')"><i class="pi pi-clock text-sm"></i><span>Tiempo</span></a>
             }
+            @if (hrSubs().disabilities) {
             <a routerLink="hr/disabilities" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('hr/disabilities')" [class.text-amber-300]="isActiveRoute('hr/disabilities')"><i class="pi pi-heart text-sm"></i><span>Gestión de Solicitudes</span></a>
-            @if (!isNaz()) {
+            }
+            @if (!isNaz() && adminSubs().job_applications) {
               <a routerLink="job-applications" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('job-applications')" [class.text-amber-300]="isActiveRoute('job-applications')"><i class="pi pi-briefcase text-sm"></i><span>Feria de empleo</span></a>
             }
 
             <div class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider px-2 py-1 mt-2">Organización</div>
+            @if (adminSubs().employees) {
             <a routerLink="employees" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('employees')" [class.text-amber-300]="isActiveRoute('employees')"><i class="pi pi-users text-sm"></i><span>Empleados</span></a>
+            }
+            @if (adminSubs().organigrama) {
             <a routerLink="organigrama" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('organigrama')" [class.text-amber-300]="isActiveRoute('organigrama')"><i class="pi pi-sitemap text-sm"></i><span>Organigrama</span></a>
+            }
+            @if (adminSubs().companies) {
             <a routerLink="companies" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('companies')" [class.text-amber-300]="isActiveRoute('companies')"><i class="pi pi-building text-sm"></i><span>Empresas</span></a>
+            }
+            @if (adminSubs().positions) {
             <a routerLink="positions" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('positions')" [class.text-amber-300]="isActiveRoute('positions')"><i class="pi pi-user-plus text-sm"></i><span>Cargos</span></a>
+            }
+            @if (adminSubs().branches) {
             <a routerLink="branches" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('branches')" [class.text-amber-300]="isActiveRoute('branches')"><i class="pi pi-shop text-sm"></i><span>Sucursales</span></a>
+            }
+            @if (adminSubs().departments) {
             <a routerLink="departments" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('departments')" [class.text-amber-300]="isActiveRoute('departments')"><i class="pi pi-sitemap text-sm"></i><span>Areas</span></a>
+            }
+            @if (adminSubs().permissions) {
             <a routerLink="permissions" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('permissions')" [class.text-amber-300]="isActiveRoute('permissions')"><i class="pi pi-lock text-sm"></i><span>Permisos</span></a>
+            }
 
+            @if (adminSubs().settings) {
             <div class="border-t border-neutral-600 mt-2 pt-2">
               <a routerLink="settings" (click)="mobileMenuOpen.set(false)" class="flex items-center gap-2 px-3 py-2 rounded-lg text-gray-200 hover:bg-neutral-700 hover:text-white" [class.bg-neutral-700]="isActiveRoute('settings')" [class.text-amber-300]="isActiveRoute('settings')"><i class="pi pi-cog text-sm"></i><span>Configuración</span></a>
             </div>
+            }
           </nav>
         </div>
       </div>
@@ -457,8 +502,34 @@ export class AdminComponent implements OnInit, OnDestroy {
   private dropdownTimeout?: number;
   public organizationService = inject(OrganizationService);
   private dashboardStore = inject(DashboardStore);
+  private permissionsService = inject(PermissionsService);
   protected device = inject(DeviceService);
   public mobileMenuOpen = signal(false);
+
+  // Computed: acceso a submódulos de admin
+  public adminSubs = computed(() => ({
+    employees: this.permissionsService.canAccessSubModule('admin', 'employees'),
+    organigrama: this.permissionsService.canAccessSubModule('admin', 'organigrama'),
+    companies: this.permissionsService.canAccessSubModule('admin', 'companies'),
+    departments: this.permissionsService.canAccessSubModule('admin', 'departments'),
+    positions: this.permissionsService.canAccessSubModule('admin', 'positions'),
+    branches: this.permissionsService.canAccessSubModule('admin', 'branches'),
+    settings: this.permissionsService.canAccessSubModule('admin', 'settings'),
+    user_management: this.permissionsService.canAccessSubModule('admin', 'user_management'),
+    permissions: this.permissionsService.canAccessSubModule('admin', 'permissions'),
+    complaints: this.permissionsService.canAccessSubModule('admin', 'complaints'),
+    job_applications: this.permissionsService.canAccessSubModule('admin', 'job_applications'),
+    audit_tasks: this.permissionsService.canAccessSubModule('admin', 'audit_tasks'),
+  }));
+
+  // Computed: acceso a submódulos de HR
+  public hrSubs = computed(() => ({
+    time_dashboard: this.permissionsService.canAccessSubModule('hr', 'hr_time_dashboard'),
+    disabilities: this.permissionsService.canAccessSubModule('hr', 'hr_disabilities'),
+  }));
+
+  // Computed: acceso al módulo de performance
+  public canAccessPerformance = computed(() => this.permissionsService.canAccessModule('performance'));
 
   // Computed para verificar si es Naz
   public isNaz = computed(() => this.organizationService.isNaz());
