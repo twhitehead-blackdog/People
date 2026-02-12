@@ -209,7 +209,8 @@ export class EmployeePortalDisabilitiesComponent {
   @Input() calculateDays: (start: Date, end: Date) => number = () => 0;
 
   public handleFileSelect(event: any): void {
-    const file = event?.files?.[0] ?? null;
+    const files = event?.currentFiles || event?.files;
+    const file = files?.[0] ?? null;
     this.fileChange.emit(file);
   }
 }

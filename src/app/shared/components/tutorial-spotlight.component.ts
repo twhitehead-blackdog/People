@@ -4,19 +4,11 @@ import {
   Component,
   computed,
   effect,
-  ElementRef,
   HostListener,
   inject,
   signal,
-  ViewChild,
 } from '@angular/core';
 import { TutorialGuideService } from '../../services/tutorial-guide.service';
-
-interface TooltipPosition {
-  top: number;
-  left: number;
-  arrowPosition: 'top' | 'bottom' | 'left' | 'right';
-}
 
 @Component({
   selector: 'pt-tutorial-spotlight',
@@ -25,582 +17,485 @@ interface TooltipPosition {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (tutorialService.isActive()) {
-    <!-- Dark overlay with spotlight hole (no blur inside the spotlight) -->
-    <div class="tutorial-overlay">
-      @if (!isWaitingForElement()) {
-      <!-- Top section -->
-      <div
-        class="overlay-section"
-        [ngStyle]="{
-          top: '0',
-          left: '0',
-          right: '0',
-          height: spotlightRect().top + 'px'
-        }"
-      ></div>
-      <!-- Bottom section -->
-      <div
-        class="overlay-section"
-        [ngStyle]="{
-          top: spotlightRect().bottom + 'px',
-          left: '0',
-          right: '0',
-          bottom: '0'
-        }"
-      ></div>
-      <!-- Left section -->
-      <div
-        class="overlay-section"
-        [ngStyle]="{
-          top: spotlightRect().top + 'px',
-          left: '0',
-          width: spotlightRect().left + 'px',
-          height: spotlightRect().height + 'px'
-        }"
-      ></div>
-      <!-- Right section -->
-      <div
-        class="overlay-section"
-        [ngStyle]="{
-          top: spotlightRect().top + 'px',
-          right: '0',
-          left: spotlightRect().right + 'px',
-          height: spotlightRect().height + 'px'
-        }"
-      ></div>
+    <!-- Light backdrop — purely visual, no pointer blocking -->
+    <div class="tutorial-backdrop"></div>
 
-      <!-- Spotlight border (pulsing ring) -->
-      <div class="spotlight-ring" [ngStyle]="spotlightStyle()"></div>
-
-      <!-- Tooltip (short text, click instruction) -->
-      <div
-        #tooltip
-        class="tutorial-tooltip"
-        [ngClass]="'arrow-' + tooltipPosition().arrowPosition"
-        [ngStyle]="tooltipStyle()"
-      >
-        <!-- Tooltip content -->
-        <div class="tooltip-content">
-          <span class="tooltip-text">{{ currentStep()?.tooltip }}</span>
-          @if (!tutorialService.showCompletionMessage()) { @if
-          (currentStep()?.isPrompt) {
-          <span class="click-hint">
-            <i class="pi pi-hand-point-up"></i>
-            ¡Ahora escoge una!
+    @if (!isWaitingForElement()) {
+    <!-- Tooltip positioned near the highlighted element -->
+    <div
+      class="tutorial-tooltip"
+      [ngClass]="'arrow-' + tooltipPos().arrow"
+      [ngStyle]="{ top: tooltipPos().top + 'px', left: tooltipPos().left + 'px' }"
+    >
+      <div class="tooltip-body">
+        <!-- Progress -->
+        <div class="tooltip-progress">
+          <span class="progress-text">
+            {{ tutorialService.currentStepIndex() + 1 }} /
+            {{ tutorialService.totalSteps() }}
           </span>
-          } @else if (currentStep()?.requireClick === false) {
-          <!-- Step with manual navigation - show Next button -->
-          <button class="next-button" (click)="next($event)">
-            Siguiente
-            <i class="pi pi-arrow-right"></i>
-          </button>
-          } @else {
-          <span class="click-hint">
-            <i class="pi pi-hand-point-up"></i>
-            Haz clic aquí
-          </span>
-          } }
+          <div class="progress-bar">
+            <div
+              class="progress-fill"
+              [ngStyle]="{ width: tutorialService.progress() + '%' }"
+            ></div>
+          </div>
         </div>
 
-        <!-- Exit button -->
-        <button
-          class="tooltip-close"
-          (click)="exit($event)"
-          aria-label="Cerrar tutorial"
-        >
-          <i class="pi pi-times"></i>
-        </button>
-      </div>
-      } @else {
-      <!-- Waiting for element to appear -->
-      <div class="overlay-section" style="inset: 0;"></div>
-      <div class="waiting-message">
-        <i class="pi pi-spin pi-spinner"></i>
-        <span>Completa la acción anterior...</span>
-        <button
-          class="tooltip-close waiting-close"
-          (click)="exit($event)"
-          aria-label="Cerrar tutorial"
-        >
-          <i class="pi pi-times"></i>
-        </button>
-      </div>
-      }
+        <!-- Content -->
+        <p class="tooltip-text">{{ tutorialService.currentStep()?.tooltip }}</p>
 
-      <!-- Completion message overlay -->
-      @if (tutorialService.showCompletionMessage()) {
-      <div class="completion-message">
-        <i class="pi pi-check-circle"></i>
-        <span>¡Ahora selecciona una gestión!</span>
+        <!-- Actions -->
+        <div class="tooltip-actions">
+          @if (tutorialService.currentStep()?.requireClick !== false) {
+          <span class="click-hint">
+            <i class="pi pi-hand-point-up"></i> Haz clic aquí
+          </span>
+          } @else {
+          <button class="btn-next" (click)="next($event)">
+            @if (tutorialService.isLastStep()) { Finalizar } @else {
+            Siguiente <i class="pi pi-arrow-right"></i>
+            }
+          </button>
+          }
+          <button class="btn-close" (click)="exit($event)">
+            <i class="pi pi-times"></i>
+          </button>
+        </div>
       </div>
-      }
     </div>
+    } @else {
+    <!-- Waiting for next element — floating message, NOT blocking -->
+    <div class="waiting-pill">
+      <i class="pi pi-spin pi-spinner"></i>
+      <span>Completa la acción para continuar...</span>
+      <button class="btn-close" (click)="exit($event)">
+        <i class="pi pi-times"></i>
+      </button>
+    </div>
+    }
+
+    <!-- Completion message -->
+    @if (tutorialService.showCompletionMessage()) {
+    <div class="completion-toast">
+      <i class="pi pi-check-circle"></i>
+      <span>¡Ahora selecciona una gestión!</span>
+    </div>
+    }
     }
   `,
   styles: `
-    .tutorial-overlay {
+    /* Light backdrop — dims background without blocking clicks */
+    .tutorial-backdrop {
       position: fixed;
       inset: 0;
-      z-index: 9998;
+      background: rgba(0, 0, 0, 0.35);
+      z-index: 9990;
       pointer-events: none;
-      animation: fadeIn 0.3s ease-out;
+      animation: fadeIn 0.25s ease-out;
     }
 
     @keyframes fadeIn {
-      from {
-        opacity: 0;
-      }
-      to {
-        opacity: 1;
-      }
+      from { opacity: 0; }
+      to { opacity: 1; }
     }
 
-    .overlay-section {
-      position: absolute;
-      background: rgba(0, 0, 0, 0.8);
-      pointer-events: auto;
-    }
-
-    .spotlight-ring {
-      position: absolute;
-      border: 3px solid var(--primary-color, #3b82f6);
-      border-radius: 8px;
-      box-shadow:
-        0 0 20px rgba(59, 130, 246, 0.5),
-        inset 0 0 20px rgba(59, 130, 246, 0.1);
-      animation: pulse-ring 1.5s ease-in-out infinite;
-      pointer-events: none;
-    }
-
-    @keyframes pulse-ring {
-      0%,
-      100% {
-        opacity: 1;
-        box-shadow:
-          0 0 20px rgba(59, 130, 246, 0.5),
-          inset 0 0 20px rgba(59, 130, 246, 0.1);
-      }
-      50% {
-        opacity: 0.7;
-        box-shadow:
-          0 0 30px rgba(59, 130, 246, 0.8),
-          inset 0 0 30px rgba(59, 130, 246, 0.2);
-      }
-    }
-
+    /* ─── Tooltip ─── */
     .tutorial-tooltip {
-      position: absolute;
-      max-width: 280px;
-      background: linear-gradient(
-        135deg,
-        rgba(30, 30, 45, 0.98) 0%,
-        rgba(20, 20, 35, 0.98) 100%
-      );
-      border: 1px solid rgba(59, 130, 246, 0.4);
-      border-radius: 12px;
-      padding: 12px 16px;
-      box-shadow:
-        0 10px 30px rgba(0, 0, 0, 0.5),
-        0 0 15px rgba(59, 130, 246, 0.3);
+      position: fixed;
+      width: 300px;
       z-index: 9999;
-      animation: tooltipIn 0.3s ease-out;
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
       pointer-events: auto;
+      animation: tooltipIn 0.25s ease-out;
     }
 
     @keyframes tooltipIn {
-      from {
-        opacity: 0;
-        transform: scale(0.95);
-      }
-      to {
-        opacity: 1;
-        transform: scale(1);
-      }
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
-    /* Arrow styles */
-    .tutorial-tooltip::before {
-      content: '';
-      position: absolute;
-      width: 12px;
-      height: 12px;
-      background: rgba(30, 30, 45, 0.98);
-      border: 1px solid rgba(59, 130, 246, 0.4);
-      transform: rotate(45deg);
+    .tooltip-body {
+      background: linear-gradient(135deg, #1e1e2d 0%, #14142a 100%);
+      border: 1px solid rgba(59, 130, 246, 0.45);
+      border-radius: 12px;
+      padding: 14px 16px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.55), 0 0 12px rgba(59, 130, 246, 0.25);
     }
 
-    .arrow-top::before {
-      top: -7px;
-      left: 24px;
-      border-bottom: none;
-      border-right: none;
-    }
-
-    .arrow-bottom::before {
-      bottom: -7px;
-      left: 24px;
-      border-top: none;
-      border-left: none;
-    }
-
-    .arrow-left::before {
-      left: -7px;
-      top: 16px;
-      border-top: none;
-      border-right: none;
-    }
-
-    .arrow-right::before {
-      right: -7px;
-      top: 16px;
-      border-bottom: none;
-      border-left: none;
-    }
-
-    .tooltip-content {
-      flex: 1;
+    /* Progress bar */
+    .tooltip-progress {
       display: flex;
-      flex-direction: column;
-      gap: 6px;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .progress-text {
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 0.7rem;
+      white-space: nowrap;
+    }
+    .progress-bar {
+      flex: 1;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: #3b82f6;
+      border-radius: 2px;
+      transition: width 0.3s;
     }
 
+    /* Text */
     .tooltip-text {
       color: #fff;
-      font-size: 0.95rem;
-      font-weight: 500;
-      line-height: 1.4;
+      font-size: 0.92rem;
+      line-height: 1.45;
+      margin: 0 0 10px;
+    }
+
+    /* Actions row */
+    .tooltip-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
     }
 
     .click-hint {
       display: flex;
       align-items: center;
-      gap: 6px;
-      color: rgba(59, 130, 246, 0.9);
-      font-size: 0.8rem;
-      animation: bounce 1s ease-in-out infinite;
+      gap: 5px;
+      color: #60a5fa;
+      font-size: 0.78rem;
+      animation: bounce 1.2s ease-in-out infinite;
     }
 
     @keyframes bounce {
-      0%,
-      100% {
-        transform: translateY(0);
-      }
-      50% {
-        transform: translateY(-3px);
-      }
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-2px); }
     }
 
-    .tooltip-close {
-      background: rgba(255, 255, 255, 0.1);
+    .btn-next {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: linear-gradient(135deg, #3b82f6, #2563eb);
+      border: none;
+      border-radius: 8px;
+      padding: 7px 14px;
+      color: #fff;
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-next:hover {
+      background: linear-gradient(135deg, #60a5fa, #3b82f6);
+    }
+    .btn-next i { font-size: 0.75rem; }
+
+    .btn-close {
+      background: rgba(255, 255, 255, 0.08);
       border: none;
       border-radius: 50%;
-      width: 24px;
-      height: 24px;
+      width: 26px;
+      height: 26px;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      color: rgba(255, 255, 255, 0.5);
+      color: rgba(255, 255, 255, 0.45);
+      font-size: 0.72rem;
       transition: all 0.2s;
       flex-shrink: 0;
-      font-size: 0.75rem;
     }
-
-    .tooltip-close:hover {
+    .btn-close:hover {
       background: rgba(239, 68, 68, 0.4);
       color: #fff;
     }
 
-    .next-button {
+    /* ─── Arrow ─── */
+    .tutorial-tooltip::before {
+      content: '';
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: #1e1e2d;
+      border: 1px solid rgba(59, 130, 246, 0.45);
+      transform: rotate(45deg);
+    }
+    /* Arrow on top edge → tooltip is BELOW element */
+    .arrow-top::before {
+      top: -7px;
+      left: 50%;
+      margin-left: -6px;
+      border-bottom: none;
+      border-right: none;
+    }
+    /* Arrow on bottom edge → tooltip is ABOVE element */
+    .arrow-bottom::before {
+      bottom: -7px;
+      left: 50%;
+      margin-left: -6px;
+      border-top: none;
+      border-left: none;
+    }
+    /* Arrow on left edge → tooltip is RIGHT of element */
+    .arrow-left::before {
+      left: -7px;
+      top: 20px;
+      border-top: none;
+      border-right: none;
+    }
+    /* Arrow on right edge → tooltip is LEFT of element */
+    .arrow-right::before {
+      right: -7px;
+      top: 20px;
+      border-bottom: none;
+      border-left: none;
+    }
+
+    /* ─── Waiting pill ─── */
+    .waiting-pill {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      pointer-events: auto;
       display: flex;
       align-items: center;
-      gap: 6px;
-      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-      border: none;
-      border-radius: 8px;
-      padding: 8px 16px;
-      color: white;
-      font-size: 0.9rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-      margin-top: 8px;
+      gap: 10px;
+      background: linear-gradient(135deg, #1e1e2d, #14142a);
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      border-radius: 28px;
+      padding: 10px 18px;
+      color: #fff;
+      font-size: 0.88rem;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+      animation: tooltipIn 0.25s ease-out;
+    }
+    .waiting-pill i.pi-spinner {
+      color: #3b82f6;
     }
 
-    .next-button:hover {
-      background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
-      transform: translateX(2px);
-    }
-
-    .next-button i {
-      font-size: 0.8rem;
-    }
-
-    .completion-message {
+    /* ─── Completion toast ─── */
+    .completion-toast {
       position: fixed;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background: linear-gradient(
-        135deg,
-        rgba(34, 197, 94, 0.95) 0%,
-        rgba(22, 163, 74, 0.95) 100%
-      );
-      border-radius: 16px;
-      padding: 24px 32px;
+      z-index: 10000;
+      pointer-events: none;
       display: flex;
       align-items: center;
-      gap: 12px;
-      color: white;
-      font-size: 1.2rem;
+      gap: 10px;
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      border-radius: 14px;
+      padding: 20px 28px;
+      color: #fff;
+      font-size: 1.15rem;
       font-weight: 600;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
-      animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
-      pointer-events: auto;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+      animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
-
-    .completion-message i {
-      font-size: 1.5rem;
-    }
+    .completion-toast i { font-size: 1.4rem; }
 
     @keyframes popIn {
-      from {
-        opacity: 0;
-        transform: translate(-50%, -50%) scale(0.8);
-      }
-      to {
-        opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
-      }
-    }
-
-    .waiting-message {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: linear-gradient(
-        135deg,
-        rgba(30, 30, 45, 0.98) 0%,
-        rgba(20, 20, 35, 0.98) 100%
-      );
-      border: 1px solid rgba(59, 130, 246, 0.4);
-      border-radius: 16px;
-      padding: 20px 28px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      color: white;
-      font-size: 1rem;
-      font-weight: 500;
-      box-shadow:
-        0 20px 50px rgba(0, 0, 0, 0.4),
-        0 0 15px rgba(59, 130, 246, 0.3);
-      animation: tooltipIn 0.3s ease-out;
-      pointer-events: auto;
-      z-index: 9999;
-    }
-
-    .waiting-message i.pi-spinner {
-      font-size: 1.2rem;
-      color: var(--primary-color, #3b82f6);
-    }
-
-    .waiting-close {
-      margin-left: 12px;
+      from { opacity: 0; transform: translate(-50%, -50%) scale(0.85); }
+      to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
     }
   `,
 })
 export class TutorialSpotlightComponent {
-  @ViewChild('tooltip') tooltipRef!: ElementRef;
-
   public tutorialService = inject(TutorialGuideService);
 
-  private windowSize = signal({
-    width: window.innerWidth,
-    height: window.innerHeight,
-  });
+  private windowSize = signal({ width: window.innerWidth, height: window.innerHeight });
   private elementRect = signal<DOMRect | null>(null);
-  private pollingInterval: ReturnType<typeof setInterval> | null = null;
+
+  /** Interval that searches for a not-yet-rendered element */
+  private findInterval: ReturnType<typeof setInterval> | null = null;
+  /** Interval that keeps the tooltip aligned with the element */
+  private trackInterval: ReturnType<typeof setInterval> | null = null;
+
   public isWaitingForElement = signal(false);
 
-  // Update element rect when step changes
   constructor() {
     effect(() => {
-      // React to step changes
       const step = this.tutorialService.currentStep();
-      if (step) {
-        // Stop any existing polling
-        this.stopPolling();
-        // Small delay to allow DOM updates
-        setTimeout(() => {
-          this.updateElementRect();
-          // If element not found, start polling
-          if (!this.elementRect()) {
-            this.startPollingForElement();
-          }
-        }, 100);
+      const isActive = this.tutorialService.isActive();
+
+      // Cleanup previous intervals on every change
+      this.stopAll();
+
+      if (!isActive || !step) {
+        this.elementRect.set(null);
+        return;
       }
+
+      // Give Angular a tick to render/register the directive
+      setTimeout(() => this.locateElement(), 0);
     });
   }
 
-  private startPollingForElement(): void {
-    this.isWaitingForElement.set(true);
-    this.pollingInterval = setInterval(() => {
-      const rect = this.tutorialService.getCurrentElementRect();
-      if (rect) {
-        this.elementRect.set(rect);
-        this.isWaitingForElement.set(false);
-        this.stopPolling();
-        // Scroll into view
-        const el = this.tutorialService.currentElement();
-        el?.nativeElement?.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center',
-        });
-      }
-    }, 200); // Check every 200ms
+  /**
+   * Try to find the element; if found start tracking, if not start polling.
+   */
+  private locateElement(): void {
+    this.refreshRect();
+    if (this.elementRect()) {
+      this.startTracking();
+    } else {
+      this.startFinding();
+    }
   }
 
-  private stopPolling(): void {
-    if (this.pollingInterval) {
-      clearInterval(this.pollingInterval);
-      this.pollingInterval = null;
+  // ── Finding (element not in DOM yet) ──
+
+  private startFinding(): void {
+    this.isWaitingForElement.set(true);
+    this.findInterval = setInterval(() => {
+      this.refreshRect();
+      if (this.elementRect()) {
+        this.isWaitingForElement.set(false);
+        this.clearFinding();
+        this.startTracking();
+      }
+    }, 200);
+  }
+
+  private clearFinding(): void {
+    if (this.findInterval) {
+      clearInterval(this.findInterval);
+      this.findInterval = null;
     }
+  }
+
+  // ── Tracking (element exists — keep tooltip aligned) ──
+
+  private startTracking(): void {
+    // Continuously refresh rect so the tooltip follows the element
+    this.trackInterval = setInterval(() => this.refreshRect(), 150);
+  }
+
+  private clearTracking(): void {
+    if (this.trackInterval) {
+      clearInterval(this.trackInterval);
+      this.trackInterval = null;
+    }
+  }
+
+  private stopAll(): void {
+    this.clearFinding();
+    this.clearTracking();
     this.isWaitingForElement.set(false);
   }
 
+  private refreshRect(): void {
+    const rect = this.tutorialService.getCurrentElementRect();
+    if (!rect) {
+      if (this.elementRect()) this.elementRect.set(null);
+      return;
+    }
+    // Only update signal if position actually changed (avoids re-render jitter)
+    const prev = this.elementRect();
+    if (
+      prev &&
+      Math.abs(prev.top - rect.top) < 1 &&
+      Math.abs(prev.left - rect.left) < 1 &&
+      Math.abs(prev.width - rect.width) < 1 &&
+      Math.abs(prev.height - rect.height) < 1
+    ) {
+      return; // No meaningful change — skip update
+    }
+    this.elementRect.set(rect);
+  }
+
+  // ── Resize ──
+
   @HostListener('window:resize')
   onResize(): void {
-    this.windowSize.set({
-      width: window.innerWidth,
-      height: window.innerHeight,
-    });
-    this.updateElementRect();
+    this.windowSize.set({ width: window.innerWidth, height: window.innerHeight });
   }
 
-  @HostListener('window:scroll')
-  onScroll(): void {
-    this.updateElementRect();
-  }
+  // ── Tooltip positioning (uses step.tooltipPosition preference) ──
 
-  private updateElementRect(): void {
-    const rect = this.tutorialService.getCurrentElementRect();
-    this.elementRect.set(rect);
-
-    // Scroll element into view if needed
-    if (rect) {
-      const padding = 100;
-      const isInView =
-        rect.top >= padding && rect.bottom <= window.innerHeight - padding;
-
-      if (!isInView) {
-        const el = this.tutorialService.currentElement();
-        el?.nativeElement?.scrollIntoView({
-          behavior: 'smooth',
-          block: 'center',
-        });
-        // Update rect after scroll
-        setTimeout(() => {
-          this.elementRect.set(this.tutorialService.getCurrentElementRect());
-        }, 500);
-      }
-    }
-  }
-
-  public currentStep = this.tutorialService.currentStep;
-
-  // Computed for spotlight rectangle (used for overlay sections)
-  public spotlightRect = computed(() => {
+  public tooltipPos = computed(() => {
     const rect = this.elementRect();
-    const padding = 8;
+    const win = this.windowSize();
+    const step = this.tutorialService.currentStep();
+    const TW = 300;
+    const TH = 130;
+    const GAP = 14;
 
     if (!rect) {
-      // Default centered position
-      const w = this.windowSize();
-      return {
-        top: w.height / 2 - 50,
-        left: w.width / 2 - 100,
-        right: w.width / 2 + 100,
-        bottom: w.height / 2 + 50,
-        width: 200,
-        height: 100,
-      };
+      return { top: win.height / 2 - TH / 2, left: win.width / 2 - TW / 2, arrow: 'top' as const };
     }
 
-    return {
-      top: rect.top - padding,
-      left: rect.left - padding,
-      right: rect.right + padding,
-      bottom: rect.bottom + padding,
-      width: rect.width + padding * 2,
-      height: rect.height + padding * 2,
-    };
-  });
+    // Centre helpers
+    const elCenterX = rect.left + rect.width / 2;
+    const elCenterY = rect.top + rect.height / 2;
 
-  public spotlightStyle = computed(() => {
-    const r = this.spotlightRect();
-    return {
-      top: `${r.top}px`,
-      left: `${r.left}px`,
-      width: `${r.width}px`,
-      height: `${r.height}px`,
-    };
-  });
-
-  public tooltipPosition = computed((): TooltipPosition => {
-    const rect = this.spotlightRect();
-    const window = this.windowSize();
-    const tooltipWidth = 280;
-    const tooltipHeight = 80;
-    const gap = 12;
-
-    // Determine best position based on available space
-    const spaceAbove = rect.top;
-    const spaceBelow = window.height - rect.bottom;
-    const spaceLeft = rect.left;
-    const spaceRight = window.width - rect.right;
+    const preferred = step?.tooltipPosition ?? 'auto';
 
     let top: number;
     let left: number;
-    let arrowPosition: 'top' | 'bottom' | 'left' | 'right';
+    let arrow: 'top' | 'bottom' | 'left' | 'right';
 
-    // Prefer bottom, then top, then right, then left
-    if (spaceBelow >= tooltipHeight + gap) {
-      top = rect.bottom + gap;
-      left = rect.left;
-      arrowPosition = 'top';
-    } else if (spaceAbove >= tooltipHeight + gap) {
-      top = rect.top - tooltipHeight - gap;
-      left = rect.left;
-      arrowPosition = 'bottom';
-    } else if (spaceRight >= tooltipWidth + gap) {
-      top = rect.top;
-      left = rect.right + gap;
-      arrowPosition = 'left';
+    const placeBottom = () => {
+      top = rect.bottom + GAP;
+      left = elCenterX - TW / 2;
+      arrow = 'top';
+    };
+    const placeTop = () => {
+      top = rect.top - TH - GAP;
+      left = elCenterX - TW / 2;
+      arrow = 'bottom';
+    };
+    const placeRight = () => {
+      top = elCenterY - TH / 2;
+      left = rect.right + GAP;
+      arrow = 'left';
+    };
+    const placeLeft = () => {
+      top = elCenterY - TH / 2;
+      left = rect.left - TW - GAP;
+      arrow = 'right';
+    };
+
+    // Use preferred position if there is enough space, else auto-fallback
+    const fits = {
+      bottom: win.height - rect.bottom >= TH + GAP,
+      top: rect.top >= TH + GAP,
+      right: win.width - rect.right >= TW + GAP,
+      left: rect.left >= TW + GAP,
+    };
+
+    if (preferred !== 'auto' && fits[preferred]) {
+      ({ bottom: placeBottom, top: placeTop, right: placeRight, left: placeLeft })[preferred]();
+    } else if (fits.top) {
+      placeTop();
+    } else if (fits.bottom) {
+      placeBottom();
+    } else if (fits.right) {
+      placeRight();
+    } else if (fits.left) {
+      placeLeft();
     } else {
-      top = rect.top;
-      left = rect.left - tooltipWidth - gap;
-      arrowPosition = 'right';
+      placeTop(); // last resort
     }
 
     // Clamp to viewport
-    left = Math.max(16, Math.min(left, window.width - tooltipWidth - 16));
-    top = Math.max(16, Math.min(top, window.height - tooltipHeight - 16));
+    left = Math.max(12, Math.min(left!, win.width - TW - 12));
+    top = Math.max(12, Math.min(top!, win.height - TH - 12));
 
-    return { top, left, arrowPosition };
+    return { top, left, arrow: arrow! };
   });
 
-  public tooltipStyle = computed(() => {
-    const pos = this.tooltipPosition();
-    return {
-      top: `${pos.top}px`,
-      left: `${pos.left}px`,
-    };
-  });
+  // ── Actions ──
 
   public exit(event: MouseEvent): void {
     event.stopPropagation();

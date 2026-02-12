@@ -49,6 +49,7 @@ export class TutorialGuideService {
   private _registeredElements = signal<Map<string, ElementRef>>(new Map());
   private _waitingForClick = signal(false);
   private _showCompletionMessage = signal(false);
+  private _completionTimeout: ReturnType<typeof setTimeout> | null = null;
 
   // Public computed values
   public readonly isActive = this._isActive.asReadonly();
@@ -121,6 +122,12 @@ export class TutorialGuideService {
       return;
     }
 
+    // Cancel any pending completion timeout from a previous tutorial
+    if (this._completionTimeout) {
+      clearTimeout(this._completionTimeout);
+      this._completionTimeout = null;
+    }
+
     this._currentConfig.set(config);
     this._currentStepIndex.set(0);
     this._isActive.set(true);
@@ -168,7 +175,8 @@ export class TutorialGuideService {
       // Show completion message briefly, then complete
       if (this._currentConfig()?.chainToSelection) {
         this._showCompletionMessage.set(true);
-        setTimeout(() => {
+        this._completionTimeout = setTimeout(() => {
+          this._completionTimeout = null;
           this.complete();
         }, 2000);
       } else {
@@ -188,6 +196,10 @@ export class TutorialGuideService {
    * Complete the tutorial
    */
   public complete(): void {
+    if (this._completionTimeout) {
+      clearTimeout(this._completionTimeout);
+      this._completionTimeout = null;
+    }
     this._isActive.set(false);
     this._currentConfig.set(null);
     this._currentStepIndex.set(0);
@@ -208,7 +220,13 @@ export class TutorialGuideService {
   public shouldInterceptClick(stepId: string): boolean {
     if (!this._isActive()) return false;
     const currentStep = this.currentStep();
-    return currentStep?.id === stepId && this._waitingForClick();
+    if (!currentStep) return false;
+    // Match the current step's own element (only if waiting for click)
+    const isCurrentStep =
+      currentStep.id === stepId && this._waitingForClick();
+    // Also match the advanceOnClickOf target (always)
+    const isAdvanceTarget = currentStep.advanceOnClickOf === stepId;
+    return isCurrentStep || isAdvanceTarget;
   }
 
   /**

@@ -305,6 +305,47 @@ type AssignmentType = 'employee' | 'branch' | null;
           </div>
         </div>
 
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="input-container">
+            <label for="cost">Costo (USD)</label>
+            <input
+              type="number"
+              id="cost"
+              pInputText
+              formControlName="cost"
+              placeholder="0.00"
+              min="0"
+              step="0.01"
+            />
+          </div>
+
+          <div class="input-container">
+            <label for="last_maintenance_date">Último Mantenimiento</label>
+            <p-date-picker
+              inputId="last_maintenance_date"
+              formControlName="last_maintenance_date"
+              [showIcon]="true"
+              dateFormat="dd/mm/yy"
+              appendTo="body"
+            />
+          </div>
+        </div>
+
+        <div class="input-container">
+          <label for="device_branch_id">Sucursal (ubicación del dispositivo)</label>
+          <p-select
+            inputId="device_branch_id"
+            formControlName="device_branch_id"
+            [options]="branches()"
+            optionLabel="name"
+            optionValue="id"
+            placeholder="Seleccione una sucursal"
+            appendTo="body"
+            [showClear]="true"
+            styleClass="w-full"
+          />
+        </div>
+
         <div class="input-container">
           <label for="notes">Notas</label>
           <textarea
@@ -405,6 +446,9 @@ export class DeviceInventoryFormComponent implements OnInit {
     purchase_date: new FormControl<Date | null>(null),
     warranty_expiry: new FormControl<Date | null>(null),
     notes: new FormControl<string | null>(null),
+    cost: new FormControl<number | null>(null),
+    last_maintenance_date: new FormControl<Date | null>(null),
+    device_branch_id: new FormControl<string | null>(null),
     company_id: new FormControl('', { nonNullable: true }),
 
     // Campos de asignación (solo cuando status = 'assigned')
@@ -456,6 +500,11 @@ export class DeviceInventoryFormComponent implements OnInit {
           ? new Date(device.warranty_expiry)
           : null,
         notes: device.notes || null,
+        cost: device.cost ?? null,
+        last_maintenance_date: device.last_maintenance_date
+          ? new Date(device.last_maintenance_date)
+          : null,
+        device_branch_id: device.branch_id || null,
         company_id: device.company_id || '',
       });
 
@@ -603,6 +652,9 @@ export class DeviceInventoryFormComponent implements OnInit {
       purchase_date: formValue.purchase_date || undefined,
       warranty_expiry: formValue.warranty_expiry || undefined,
       notes: formValue.notes,
+      cost: formValue.cost ?? null,
+      last_maintenance_date: formValue.last_maintenance_date || undefined,
+      branch_id: formValue.device_branch_id || null,
     };
 
     // Guardar el dispositivo

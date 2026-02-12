@@ -80,8 +80,7 @@ export async function uploadDisability(
               headers: {
                 apikey: storageKey,
                 Authorization: `Bearer ${storageKey}`,
-                'Content-Type': file.type || 'application/octet-stream',
-                'x-upsert': 'true', // Permite sobrescribir si el archivo ya existe
+                'x-upsert': 'true',
               },
             }
           )

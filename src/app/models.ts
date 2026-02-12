@@ -1068,6 +1068,10 @@ export interface Device {
   purchase_date?: Date | string | null;
   warranty_expiry?: Date | string | null;
   notes?: string | null;
+  cost?: number | null;
+  last_maintenance_date?: Date | string | null;
+  branch_id?: string | null;
+  branch?: { id: string; name: string } | null;
   created_at?: Date | string;
   updated_at?: Date | string;
 }

@@ -1,3 +1,4 @@
+import compression from 'compression';
 import dotenv from 'dotenv';
 import express from 'express';
 import { readFileSync } from 'fs';
@@ -63,6 +64,9 @@ export function app(): express.Express {
   // Configurar Express para confiar en proxies (necesario para obtener IP real en producción/VPS)
   // Esto permite que req.ip funcione correctamente cuando hay un proxy reverso (nginx, etc.)
   server.set('trust proxy', true);
+
+  // Compresión gzip/brotli — reduce ~70% del tamaño de transferencia
+  server.use(compression());
 
   // Middleware para parsear JSON
   server.use(express.json());
@@ -1346,40 +1350,37 @@ export function app(): express.Express {
   // Servir archivos estáticos del frontend Angular
   const distFolder = path.join(process.cwd(), 'dist/people/browser');
 
+  // Helper: cache headers + MIME types para archivos estáticos
+  const staticHeaders = (res: express.Response, filePath: string) => {
+    // MIME types
+    if (filePath.endsWith('.js')) {
+      res.setHeader('Content-Type', 'application/javascript; charset=UTF-8');
+    } else if (filePath.endsWith('.css')) {
+      res.setHeader('Content-Type', 'text/css; charset=UTF-8');
+    }
+    // Cache: archivos con hash en el nombre → inmutables (1 año)
+    // Resto → cache corto (1 hora) para revalidar
+    if (/\-[A-Z0-9]{8}\.(js|css|woff2?)$/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+    } else if (/\.(js|css|woff2?|ttf|svg|png|jpg|jpeg|webp|ico|json)$/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+    }
+  };
+
   // Servir archivos estáticos con el prefijo /people-test
   server.use(
     '/people-test',
     express.static(distFolder, {
-      setHeaders: (res, filePath) => {
-        // Asegurar que los archivos JS se sirvan con el MIME type correcto
-        if (filePath.endsWith('.js')) {
-          res.setHeader(
-            'Content-Type',
-            'application/javascript; charset=UTF-8'
-          );
-        } else if (filePath.endsWith('.css')) {
-          res.setHeader('Content-Type', 'text/css; charset=UTF-8');
-        }
-      },
-      fallthrough: true, // Permitir que el catch-all maneje si no encuentra el archivo
+      setHeaders: staticHeaders,
+      fallthrough: true,
     })
   );
 
   // También servir desde la raíz (por si Traefik quita el prefijo)
-  // Usar fallthrough: true para que si no encuentra el archivo, continúe al catch-all
   server.use(
     express.static(distFolder, {
-      setHeaders: (res, filePath) => {
-        if (filePath.endsWith('.js')) {
-          res.setHeader(
-            'Content-Type',
-            'application/javascript; charset=UTF-8'
-          );
-        } else if (filePath.endsWith('.css')) {
-          res.setHeader('Content-Type', 'text/css; charset=UTF-8');
-        }
-      },
-      fallthrough: true, // Permitir que el catch-all maneje si no encuentra el archivo
+      setHeaders: staticHeaders,
+      fallthrough: true,
     })
   );
 

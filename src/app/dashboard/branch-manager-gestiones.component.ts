@@ -362,7 +362,8 @@ type ManagementCard = {
             (addManualDate)="addManualOvertimeDate($event)"
             (removeManualDate)="removeManualOvertimeDate($event)"
             [compensatoryFile]="compensatoryFile()"
-            (compensatoryFileChange)="compensatoryFile.set($event)"
+            (compensatoryFileChange)="onCompensatoryFileChanged($event)"
+            [uploadingFile]="uploadingCompensatoryDoc()"
             [compensatoryAmount]="compensatoryAmount()"
             [canSubmit]="canSubmitCompensatory()"
             [submitting]="submittingCompensatory()"
@@ -938,10 +939,15 @@ type ManagementCard = {
                 class="mt-3 p-3 bg-orange-500/10 border border-orange-400/30 rounded-lg flex items-center justify-between"
               >
                 <div class="flex items-center gap-2">
+                  @if (uploadingTimelogCorrectionDoc()) {
+                  <i class="pi pi-spin pi-spinner text-orange-400"></i>
+                  <span class="text-sm text-gray-300">Subiendo...</span>
+                  } @else {
                   <i class="pi pi-file text-orange-400"></i>
                   <span class="text-sm text-gray-300">{{
                     timelogCorrectionFile()!.name
                   }}</span>
+                  }
                 </div>
                 <p-button
                   icon="pi pi-times"
@@ -949,8 +955,9 @@ type ManagementCard = {
                   text
                   rounded
                   size="small"
-                  (onClick)="timelogCorrectionFile.set(null)"
+                  (onClick)="clearTimelogCorrectionFile()"
                   pTooltip="Eliminar archivo"
+                  [disabled]="uploadingTimelogCorrectionDoc()"
                 />
               </div>
               }
@@ -1216,6 +1223,8 @@ export class BranchManagerGestionesComponent {
   >('entry');
   public timelogCorrectionReason = signal<string>('');
   public timelogCorrectionFile = signal<File | null>(null);
+  public timelogCorrectionDocUrl = signal<string | null>(null);
+  public uploadingTimelogCorrectionDoc = signal<boolean>(false);
   public submittingTimelogCorrection = signal<boolean>(false);
 
   // Signals para Solicitud de Uniforme
@@ -1667,6 +1676,16 @@ export class BranchManagerGestionesComponent {
     }
   }
 
+  public onCompensatoryFileChanged(file: File | null): void {
+    if (!file) {
+      this.compensatoryFile.set(null);
+      this.compensatoryDocUrl.set(null);
+      return;
+    }
+    // Simulate the event format expected by onCompensatoryFileSelect
+    this.onCompensatoryFileSelect({ files: [file], currentFiles: [file] });
+  }
+
   // Métodos de reset
   private resetCompensatoryForm(): void {
     this.compensatoryType.set('hours');
@@ -2081,6 +2100,8 @@ export class BranchManagerGestionesComponent {
     this.timelogCorrectionType.set('entry');
     this.timelogCorrectionReason.set('');
     this.timelogCorrectionFile.set(null);
+    this.timelogCorrectionDocUrl.set(null);
+    this.uploadingTimelogCorrectionDoc.set(false);
   }
 
   private resetUniformForm(): void {
@@ -2090,17 +2111,58 @@ export class BranchManagerGestionesComponent {
     this.uniformNotes.set('');
   }
 
-  // File upload handler for timelog correction
-  public onTimelogCorrectionFileSelect(event: any): void {
+  // File upload handler for timelog correction (background upload)
+  public async onTimelogCorrectionFileSelect(event: any): Promise<void> {
     const files = event.currentFiles || event.files;
-    if (files && files.length > 0) {
-      this.timelogCorrectionFile.set(files[0]);
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+    this.timelogCorrectionFile.set(file);
+    this.uploadingTimelogCorrectionDoc.set(true);
+
+    try {
+      const employee = this.selectedEmployee();
+      const employeeId = employee?.id || 'temp';
+      const fileExt = file.name.split('.').pop();
+      const fileName = `timelog-corrections/${employeeId}_${Date.now()}.${fileExt}`;
+
+      const uploadUrl = `${this.apiUrl.baseUrl}/storage/v1/object/employee-documents/${fileName}`;
+
+      await firstValueFrom(
+        this.http.post(uploadUrl, file, {
+          headers: {
+            'x-upsert': 'true',
+          },
+        })
+      );
+
+      const publicUrl = `${this.apiUrl.baseUrl}/storage/v1/object/public/employee-documents/${fileName}`;
+      this.timelogCorrectionDocUrl.set(publicUrl);
+    } catch (error) {
+      console.error('Background upload failed:', error);
+      this.timelogCorrectionDocUrl.set(null);
+    } finally {
+      this.uploadingTimelogCorrectionDoc.set(false);
     }
+  }
+
+  public clearTimelogCorrectionFile(): void {
+    this.timelogCorrectionFile.set(null);
+    this.timelogCorrectionDocUrl.set(null);
   }
 
   // Submit Omisión de Marcación request
   public async submitTimelogCorrectionRequest(): Promise<void> {
     if (!this.canSubmitTimelogCorrection() || !this.selectedEmployee()) return;
+
+    if (this.uploadingTimelogCorrectionDoc()) {
+      this.messageService.add({
+        severity: 'info',
+        summary: 'Subiendo archivo...',
+        detail: 'Por favor espera a que termine de subirse el documento adjunto.',
+      });
+      return;
+    }
 
     this.submittingTimelogCorrection.set(true);
 
@@ -2111,26 +2173,20 @@ export class BranchManagerGestionesComponent {
       const reason = this.timelogCorrectionReason();
       const file = this.timelogCorrectionFile();
 
-      let attachmentUrl: string | null = null;
+      // Use pre-uploaded URL if available
+      let attachmentUrl = this.timelogCorrectionDocUrl();
 
-      // Upload file if provided (optional)
-      if (file) {
+      // Fallback upload if background upload failed
+      if (file && !attachmentUrl) {
         const fileExt = file.name.split('.').pop();
-        const timestamp = Date.now();
-        const fileName = `timelog-corrections/${employee.id}_${timestamp}.${fileExt}`;
+        const fileName = `timelog-corrections/${employee.id}_${Date.now()}.${fileExt}`;
 
         const uploadUrl = `${this.apiUrl.baseUrl}/storage/v1/object/employee-documents/${fileName}`;
-        const apiKey =
-          getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') ||
-          getEnv('ENV_SUPABASE_API_KEY') ||
-          '';
 
         await firstValueFrom(
           this.http.post(uploadUrl, file, {
             headers: {
-              'Content-Type': file.type,
-              apikey: apiKey,
-              Authorization: `Bearer ${apiKey}`,
+              'x-upsert': 'true',
             },
           })
         );

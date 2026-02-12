@@ -6,7 +6,7 @@ export const DeviceInventoryStore = signalStore(
   { providedIn: 'root' },
   withCustomEntities<Device>({
     name: 'devices',
-    query: '*,assigned_to:device_assignments(*,employee:employees!device_assignments_employee_id_fkey(id,first_name,father_name))',
+    query: '*,branch:branches(id,name),assigned_to:device_assignments(*,employee:employees!device_assignments_employee_id_fkey(id,first_name,father_name))',
     order: 'name',
   }),
   withHooks({
