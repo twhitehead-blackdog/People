@@ -10,6 +10,7 @@ import {
   model,
   signal,
 } from '@angular/core';
+import { useRealtimeTrigger } from '../utils/realtime-trigger.utils';
 import { addDays, differenceInMinutes, format, startOfMonth } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { trim } from 'lodash';
@@ -174,7 +175,7 @@ import { calcTimeDiff } from './timelogs/utils/time.utils';
       }
       <pt-timelogs-table
         [logs]="filteredDaylogs"
-        [isLoading]="logs.isLoading()"
+        [isLoading]="logs.isLoading() && !silentReloading()"
         [delayToleranceMinutes]="delayToleranceMinutes"
         [employeeId]="employeeId"
         [maxEmployeeTagWidth]="maxEmployeeTagWidth()"
@@ -206,6 +207,9 @@ import { calcTimeDiff } from './timelogs/utils/time.utils';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TimelogsComponent {
+  // Indica si el reload actual fue disparado por realtime (no mostrar spinner)
+  protected silentReloading = signal(false);
+
   // Zona horaria de Panamá para todas las conversiones de fechas
   private readonly TIMEZONE = 'America/Panama';
 
@@ -278,6 +282,10 @@ export class TimelogsComponent {
   private apiUrl = inject(ApiUrlService);
   private injector = inject(Injector);
   public timelogsApiService = inject(TimelogsApiService);
+
+  // Realtime: reload timelogs and schedules when data changes
+  private timelogChanges = useRealtimeTrigger('timelogs');
+  private scheduleChanges = useRealtimeTrigger('employee_schedules');
 
   // Límite de registros por consulta (debe coincidir con timelogs-api.service.ts)
   private readonly QUERY_LIMIT = 50000;
@@ -882,6 +890,38 @@ export class TimelogsComponent {
   private _errorShown = false;
 
   constructor() {
+    // Realtime: reload httpResources when timelogs or schedules change
+    effect(
+      () => {
+        const batch = this.timelogChanges();
+        if (!batch) return;
+        this.silentReloading.set(true);
+        this.logsBefore22.reload();
+        this.logsAfter22.reload();
+      },
+      { injector: this.injector }
+    );
+    effect(
+      () => {
+        const batch = this.scheduleChanges();
+        if (!batch) return;
+        this.silentReloading.set(true);
+        this.schedules.reload();
+      },
+      { injector: this.injector }
+    );
+
+    // Resetear silentReloading cuando la carga termine
+    effect(
+      () => {
+        const loading = this._logsComputed().isLoading();
+        if (!loading && this.silentReloading()) {
+          this.silentReloading.set(false);
+        }
+      },
+      { injector: this.injector }
+    );
+
     // Effect para manejar errores
     effect(
       () => {

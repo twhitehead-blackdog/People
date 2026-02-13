@@ -68,8 +68,8 @@ type EmployeeWithDays = {
     <div class="hidden md:block overflow-x-auto">
       <p-table
         [value]="employees()"
-        paginator
-        [rows]="rowsPerPage()"
+        [paginator]="!disablePagination()"
+        [rows]="disablePagination() ? 9999 : rowsPerPage()"
         [tableStyle]="{ 'min-width': '50rem' }"
         [rowsPerPageOptions]="[10, 20, 50]"
         paginatorDropdownAppendTo="body"
@@ -152,6 +152,9 @@ export class TimetableGridComponent {
 
   // Indica si el usuario es gerente de tienda (para ocultar estados de aprobación)
   public isStoreManager = input<boolean>(false);
+
+  // Deshabilitar paginación (cuando se filtra por sucursal)
+  public disablePagination = input<boolean>(false);
 
   // Outputs
   public editShift = output<{

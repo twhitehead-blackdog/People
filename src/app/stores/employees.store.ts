@@ -13,6 +13,7 @@ import { differenceInMonths } from 'date-fns';
 import { exhaustMap, firstValueFrom } from 'rxjs';
 import { Employee, Termination, TimeOff, TimeOffType } from '../models';
 import { withCustomEntities } from './entities.feature';
+import { withRealtimeSync } from './realtime.feature';
 
 type State = {
   timeoff_types: TimeOffType[];
@@ -30,6 +31,7 @@ export const EmployeesStore = signalStore(
     detailsQuery:
       '*, branch:branches(*), department:departments(*), position:positions(*)',
   }),
+  withRealtimeSync('employees'),
   withComputed((state) => {
     const employeesList = computed(() =>
       state
