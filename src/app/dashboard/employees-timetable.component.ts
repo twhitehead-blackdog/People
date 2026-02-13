@@ -749,7 +749,7 @@ export class EmployeesTimetableComponent implements OnInit {
 
     const url = this.apiUrl.build('rest/v1/employee_schedules', {
       select:
-        '*,schedule:schedules(*),branch:branches(id, name, short_name),employee:employees(id,company_id)',
+        'id,employee_id,schedule_id,branch_id,start_date,end_date,approved,schedule:schedules(id,name,color,day_off,entry_time),branch:branches(id,name,short_name),employee:employees(id,company_id)',
       start_date: `lte.${endDate}`,
       end_date: `gte.${startDate}`,
       ...(companyId ? { 'employee.company_id': `eq.${companyId}` } : {}),

@@ -35,11 +35,13 @@ type State = {
 
 // Duración de caché por tipo de entidad (en segundos)
 const CACHE_DURATION: Record<string, number> = {
-  companies: 15 * 60,      // 15 minutos - catálogo que cambia poco
-  branches: 15 * 60,       // 15 minutos - catálogo que cambia poco
-  schedules: 10 * 60,      // 10 minutos - horarios que cambian ocasionalmente
+  companies: 30 * 60,      // 30 minutos - catálogo que cambia muy poco
+  branches: 30 * 60,       // 30 minutos - catálogo que cambia muy poco
+  schedules: 60 * 60,      // 60 minutos - horarios que cambian raramente
+  positions: 30 * 60,      // 30 minutos - cargos que cambian poco
+  departments: 30 * 60,    // 30 minutos - departamentos que cambian poco
   employees: 5 * 60,       // 5 minutos - datos que pueden cambiar más frecuentemente
-  timelogs: 30,            // 30 segundos - datos dinámicos
+  timelogs: 2 * 60,        // 2 minutos - datos dinámicos (antes 30seg era excesivo)
   default: 5 * 60,         // 5 minutos por defecto
 };
 

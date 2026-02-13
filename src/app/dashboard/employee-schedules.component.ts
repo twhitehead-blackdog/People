@@ -19,6 +19,7 @@ import { CalendarComponent } from '../calendar.component';
 import { colorVariants, EmployeeSchedule } from '../models';
 import { TimePipe } from '../pipes/time.pipe';
 import { LoggerService } from '../services/logger.service';
+import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
 import { EmployeeSchedulesFormComponent } from './employee-schedules-form.component';
 @Component({
@@ -119,6 +120,7 @@ export class EmployeeSchedulesComponent {
       )
       .flat()
   );
+  private apiUrl = inject(ApiUrlService);
   private dialog = inject(DialogService);
   public colorVariants = colorVariants;
 
@@ -127,7 +129,7 @@ export class EmployeeSchedulesComponent {
     const employeeId = this.employeeId();
 
     // Construir URL manualmente para poder usar filtro a través de employees
-    let url = `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules?select=*,schedule:schedules(*),branch:branches(*),employee:employees!inner(id,company_id,is_active)`;
+    let url = `${this.apiUrl.baseUrl}/rest/v1/employee_schedules?select=id,employee_id,schedule_id,branch_id,start_date,end_date,approved,schedule:schedules(id,name,color,day_off,entry_time,exit_time),branch:branches(id,name,short_name),employee:employees!inner(id,company_id,is_active)`;
     url += `&employee_id=eq.${employeeId}`;
 
     // Filtrar solo empleados activos
@@ -195,7 +197,7 @@ export class EmployeeSchedulesComponent {
 
         this.http
           .delete(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_schedules`,
+            this.apiUrl.build('rest/v1/employee_schedules'),
             { params }
           )
           .pipe(
