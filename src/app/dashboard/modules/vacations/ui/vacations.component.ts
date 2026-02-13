@@ -14,6 +14,7 @@ import { Textarea } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
+import { ScheduleAutoAssignService } from '../../../../services/schedule-auto-assign.service';
 import { TimeoffAuditService } from '../../../../services/timeoff-audit.service';
 import { DashboardStore } from '../../../../stores/dashboard.store';
 import { getEnv } from '../../../../utils/env.utils';
@@ -731,6 +732,7 @@ export class VacationsComponent {
   private http = inject(HttpClient);
   private domSanitizer = inject(DomSanitizer);
   private auditService = inject(TimeoffAuditService);
+  private scheduleAutoAssign = inject(ScheduleAutoAssignService);
 
   public searchText = signal('');
   public selectedStatus = signal<string | null>(null);
@@ -1026,6 +1028,22 @@ export class VacationsComponent {
               status as 'approved' | 'rejected',
               rejectionComment
             );
+          }
+          // Auto-assign vacation schedule on approval
+          if (status === 'approved') {
+            try {
+              await this.scheduleAutoAssign.assignScheduleForTimeOff({
+                employeeId: vacation.employee_id,
+                startDate: vacation.start_date,
+                endDate: vacation.end_date,
+                timeOffType: 'vacation',
+                timeOffSourceId: vacation.id,
+                companyId: vacation.company_id,
+                createdBy: currentEmployee.id,
+              });
+            } catch (e) {
+              console.warn('[Vacations] Auto-assign schedule failed (non-blocking):', e);
+            }
           }
           this.messageService.add({
             severity: 'success',

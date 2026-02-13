@@ -1,7 +1,9 @@
 import { signal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { of } from 'rxjs';
 import { DashboardStore } from '../stores/dashboard.store';
 import { PositionsStore } from '../stores/positions.store';
+import { EmployeesStore } from '../stores/employees.store';
 import { PermissionsService } from './permissions.service';
 
 describe('PermissionsService', () => {
@@ -53,7 +55,11 @@ describe('PermissionsService', () => {
   };
 
   const mockPositionsStore = {
-    editItem: jest.fn(),
+    editItem: jest.fn().mockReturnValue(of(null)),
+  };
+
+  const mockEmployeesStore = {
+    editItem: jest.fn().mockReturnValue(of(null)),
   };
 
   beforeEach(() => {
@@ -62,6 +68,7 @@ describe('PermissionsService', () => {
         PermissionsService,
         { provide: DashboardStore, useValue: mockDashboardStore },
         { provide: PositionsStore, useValue: mockPositionsStore },
+        { provide: EmployeesStore, useValue: mockEmployeesStore },
       ],
     });
     service = TestBed.inject(PermissionsService);

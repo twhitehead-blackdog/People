@@ -22,34 +22,45 @@ export const GESTIONES_TUTORIAL_INTRO: TutorialConfig = {
   steps: [
     {
       id: 'gestiones-card-compensatory',
-      tooltip: '⏰ Para compensar horas extras trabajadas',
-      tooltipPosition: 'bottom',
+      tooltip:
+        '⏰ Tiempo Compensatorio: Permite al empleado solicitar tiempo libre a cambio de horas extras que ya trabajó.',
+      tooltipPosition: 'top',
+      requireClick: false,
     },
     {
       id: 'gestiones-card-disabilities',
-      tooltip: '📋 Para registrar ausencias por enfermedad',
-      tooltipPosition: 'bottom',
+      tooltip:
+        '📋 Incapacidades: Registra ausencias por enfermedad. Se adjunta el certificado médico y RRHH lo revisa.',
+      tooltipPosition: 'top',
+      requireClick: false,
     },
     {
       id: 'gestiones-card-vacations',
-      tooltip: '🏖️ Para solicitar días de vacaciones',
-      tooltipPosition: 'bottom',
+      tooltip:
+        '🏖️ Vacaciones: Solicita días de vacaciones para un empleado. Se indica el período y el motivo.',
+      tooltipPosition: 'top',
+      requireClick: false,
     },
     {
       id: 'gestiones-card-documents',
-      tooltip: '📄 Para cartas de trabajo y constancias',
-      tooltipPosition: 'bottom',
+      tooltip:
+        '📄 Documentos: Solicita cartas de trabajo, constancias laborales u otros documentos oficiales a RRHH.',
+      tooltipPosition: 'top',
+      requireClick: false,
     },
     {
       id: 'gestiones-card-timelog_correction',
-      tooltip: '⚠️ Para corregir marcaciones de asistencia',
-      tooltipPosition: 'bottom',
+      tooltip:
+        '⚠️ Omisión de Marcación: Reporta cuando un empleado olvidó marcar entrada o salida para que RRHH lo corrija.',
+      tooltipPosition: 'top',
+      requireClick: false,
     },
     {
       id: 'gestiones-card-uniform_request',
-      tooltip: '👕 Para solicitar uniformes de trabajo',
-      tooltipPosition: 'bottom',
-      isPrompt: true, // Last step - shows "selecciona una"
+      tooltip:
+        '👕 Uniforme: Solicita prendas de uniforme nuevas indicando tipo, talla y cantidad. ¡Selecciona una tarjeta para comenzar!',
+      tooltipPosition: 'top',
+      requireClick: false,
     },
   ],
   chainToSelection: true,
@@ -64,38 +75,46 @@ export const DISABILITIES_TUTORIAL: TutorialConfig = {
   steps: [
     {
       id: 'gestiones-employee-select',
-      tooltip: '👤 Abre y selecciona un empleado',
-      tooltipPosition: 'bottom',
-    },
-    {
-      id: 'gestiones-employee-confirm',
-      tooltip: '✅ Confirma para continuar',
-      tooltipPosition: 'right',
+      tooltip:
+        '👤 Abre la lista, selecciona al empleado y presiona "Confirmar". El tutorial avanzará automáticamente.',
+      tooltipPosition: 'top',
+      requireClick: false,
+      advanceOnClickOf: 'gestiones-employee-confirm',
     },
     {
       id: 'disabilities-start-date',
-      tooltip: '📅 ¿Cuándo inició la incapacidad?',
+      tooltip:
+        '📅 Selecciona la fecha en que inició la incapacidad según el certificado médico.',
       tooltipPosition: 'right',
+      requireClick: false,
     },
     {
       id: 'disabilities-end-date',
-      tooltip: '📅 ¿Cuándo termina?',
+      tooltip:
+        '📅 Selecciona la fecha en que termina la incapacidad según el certificado.',
       tooltipPosition: 'left',
+      requireClick: false,
     },
     {
       id: 'disabilities-description',
-      tooltip: '📝 Describe el diagnóstico',
+      tooltip:
+        '📝 Escribe el diagnóstico o motivo de la incapacidad. Esto ayuda a RRHH a clasificarla.',
       tooltipPosition: 'top',
+      requireClick: false,
     },
     {
       id: 'disabilities-file',
-      tooltip: '📎 Sube el certificado médico',
+      tooltip:
+        '📎 Adjunta una foto o PDF del certificado médico. Es obligatorio para que RRHH pueda aprobar.',
       tooltipPosition: 'top',
+      requireClick: false,
     },
     {
       id: 'disabilities-submit',
-      tooltip: '🚀 ¡Listo! Envía la solicitud',
+      tooltip:
+        '🚀 Revisa los datos y envía la solicitud. RRHH la revisará y te notificará.',
       tooltipPosition: 'top',
+      requireClick: false,
     },
   ],
 };
@@ -109,33 +128,39 @@ export const VACATIONS_TUTORIAL: TutorialConfig = {
   steps: [
     {
       id: 'gestiones-employee-select',
-      tooltip: '👤 Abre y selecciona un empleado',
-      tooltipPosition: 'bottom',
-    },
-    {
-      id: 'gestiones-employee-confirm',
-      tooltip: '✅ Confirma para continuar',
-      tooltipPosition: 'right',
+      tooltip:
+        '👤 Abre la lista, selecciona al empleado y presiona "Confirmar". El tutorial avanzará automáticamente.',
+      tooltipPosition: 'top',
+      requireClick: false,
+      advanceOnClickOf: 'gestiones-employee-confirm',
     },
     {
       id: 'vacations-start-date',
-      tooltip: '📅 Primer día de vacaciones',
+      tooltip:
+        '📅 Selecciona el primer día de vacaciones. El empleado no trabajará a partir de esta fecha.',
       tooltipPosition: 'right',
+      requireClick: false,
     },
     {
       id: 'vacations-end-date',
-      tooltip: '📅 Último día de vacaciones',
+      tooltip:
+        '📅 Selecciona el último día de vacaciones. El empleado regresa al día siguiente.',
       tooltipPosition: 'left',
+      requireClick: false,
     },
     {
       id: 'vacations-reason',
-      tooltip: '📝 Agrega un motivo (opcional)',
+      tooltip:
+        '📝 Puedes agregar un motivo o notas adicionales. Este campo es opcional.',
       tooltipPosition: 'top',
+      requireClick: false,
     },
     {
       id: 'vacations-submit',
-      tooltip: '🚀 ¡Listo! Solicita las vacaciones',
+      tooltip:
+        '🚀 Envía la solicitud de vacaciones. RRHH la revisará y notificará la decisión.',
       tooltipPosition: 'top',
+      requireClick: false,
     },
   ],
 };
@@ -149,33 +174,39 @@ export const DOCUMENTS_TUTORIAL: TutorialConfig = {
   steps: [
     {
       id: 'gestiones-employee-select',
-      tooltip: '👤 Abre y selecciona un empleado',
-      tooltipPosition: 'bottom',
-    },
-    {
-      id: 'gestiones-employee-confirm',
-      tooltip: '✅ Confirma para continuar',
-      tooltipPosition: 'right',
+      tooltip:
+        '👤 Abre la lista, selecciona al empleado y presiona "Confirmar". El tutorial avanzará automáticamente.',
+      tooltipPosition: 'top',
+      requireClick: false,
+      advanceOnClickOf: 'gestiones-employee-confirm',
     },
     {
       id: 'documents-type',
-      tooltip: '📄 ¿Qué documento necesitas?',
-      tooltipPosition: 'bottom',
+      tooltip:
+        '📄 Elige el tipo de documento: carta de trabajo, constancia laboral, u otro documento oficial.',
+      tooltipPosition: 'top',
+      requireClick: false,
     },
     {
       id: 'documents-reason',
-      tooltip: '📝 ¿Para qué lo necesitas?',
+      tooltip:
+        '📝 Indica para qué necesitas el documento (ej: trámite bancario, visa, etc.).',
       tooltipPosition: 'top',
+      requireClick: false,
     },
     {
       id: 'documents-date',
-      tooltip: '📅 ¿Para cuándo lo necesitas?',
+      tooltip:
+        '📅 Selecciona la fecha límite en que necesitas el documento listo.',
       tooltipPosition: 'right',
+      requireClick: false,
     },
     {
       id: 'documents-submit',
-      tooltip: '🚀 ¡Listo! Envía la solicitud',
+      tooltip:
+        '🚀 Envía la solicitud. RRHH preparará el documento y te notificará cuando esté listo.',
       tooltipPosition: 'top',
+      requireClick: false,
     },
   ],
 };
@@ -189,33 +220,39 @@ export const COMPENSATORY_TUTORIAL: TutorialConfig = {
   steps: [
     {
       id: 'gestiones-employee-select',
-      tooltip: '👤 Abre y selecciona un empleado',
-      tooltipPosition: 'bottom',
-    },
-    {
-      id: 'gestiones-employee-confirm',
-      tooltip: '✅ Confirma para continuar',
-      tooltipPosition: 'right',
+      tooltip:
+        '👤 Abre la lista, selecciona al empleado y presiona "Confirmar". El tutorial avanzará automáticamente.',
+      tooltipPosition: 'top',
+      requireClick: false,
+      advanceOnClickOf: 'gestiones-employee-confirm',
     },
     {
       id: 'compensatory-type',
-      tooltip: '⏰ ¿Compensar horas o días?',
-      tooltipPosition: 'bottom',
+      tooltip:
+        '⏰ Elige si el empleado compensará por horas (salir temprano) o por días completos (día libre).',
+      tooltipPosition: 'top',
+      requireClick: false,
     },
     {
       id: 'compensatory-dates',
-      tooltip: '📅 Elige cuándo tomarlo',
-      tooltipPosition: 'bottom',
+      tooltip:
+        '📅 Selecciona cuándo tomará el compensatorio. Si es por horas, indica fecha y rango horario.',
+      tooltipPosition: 'top',
+      requireClick: false,
     },
     {
       id: 'compensatory-reason',
-      tooltip: '📝 Describe el motivo',
+      tooltip:
+        '📝 Describe brevemente el motivo de la solicitud. Este campo es opcional.',
       tooltipPosition: 'top',
+      requireClick: false,
     },
     {
       id: 'compensatory-submit',
-      tooltip: '🚀 ¡Envía la solicitud!',
+      tooltip:
+        '🚀 Envía la solicitud. RRHH verificará las horas extras y aprobará o rechazará.',
       tooltipPosition: 'top',
+      requireClick: false,
     },
   ],
 };
@@ -229,38 +266,46 @@ export const TIMELOG_CORRECTION_TUTORIAL: TutorialConfig = {
   steps: [
     {
       id: 'gestiones-employee-select',
-      tooltip: '👤 Abre y selecciona un empleado',
-      tooltipPosition: 'bottom',
-    },
-    {
-      id: 'gestiones-employee-confirm',
-      tooltip: '✅ Confirma para continuar',
-      tooltipPosition: 'right',
+      tooltip:
+        '👤 Abre la lista, selecciona al empleado y presiona "Confirmar". El tutorial avanzará automáticamente.',
+      tooltipPosition: 'top',
+      requireClick: false,
+      advanceOnClickOf: 'gestiones-employee-confirm',
     },
     {
       id: 'timelog-correction-date',
-      tooltip: '📅 ¿Qué día ocurrió el error?',
+      tooltip:
+        '📅 Selecciona el día en que ocurrió la omisión de marcación.',
       tooltipPosition: 'right',
+      requireClick: false,
     },
     {
       id: 'timelog-correction-type',
-      tooltip: '⏰ ¿Qué marcación fue incorrecta?',
+      tooltip:
+        '⏰ Indica qué marcación faltó: entrada, salida, inicio de almuerzo o fin de almuerzo.',
       tooltipPosition: 'left',
+      requireClick: false,
     },
     {
       id: 'timelog-correction-reason',
-      tooltip: '📝 Explica qué pasó',
+      tooltip:
+        '📝 Explica por qué no se realizó la marcación (ej: olvidó marcar, problemas con el reloj, etc.).',
       tooltipPosition: 'top',
+      requireClick: false,
     },
     {
       id: 'timelog-correction-file',
-      tooltip: '📎 Adjunta evidencia (opcional)',
+      tooltip:
+        '📎 Si tienes evidencia de respaldo (foto, captura), puedes adjuntarla aquí. Es opcional.',
       tooltipPosition: 'top',
+      requireClick: false,
     },
     {
       id: 'timelog-correction-submit',
-      tooltip: '🚀 ¡Envía la corrección!',
+      tooltip:
+        '🚀 Envía el reporte. RRHH revisará y corregirá la marcación del empleado.',
       tooltipPosition: 'top',
+      requireClick: false,
     },
   ],
 };
@@ -274,38 +319,46 @@ export const UNIFORM_REQUEST_TUTORIAL: TutorialConfig = {
   steps: [
     {
       id: 'gestiones-employee-select',
-      tooltip: '👤 Abre y selecciona un empleado',
-      tooltipPosition: 'bottom',
-    },
-    {
-      id: 'gestiones-employee-confirm',
-      tooltip: '✅ Confirma para continuar',
-      tooltipPosition: 'right',
+      tooltip:
+        '👤 Abre la lista, selecciona al empleado y presiona "Confirmar". El tutorial avanzará automáticamente.',
+      tooltipPosition: 'top',
+      requireClick: false,
+      advanceOnClickOf: 'gestiones-employee-confirm',
     },
     {
       id: 'uniform-item-type',
-      tooltip: '👕 ¿Qué prenda necesitas?',
-      tooltipPosition: 'bottom',
+      tooltip:
+        '👕 Selecciona qué prenda necesita el empleado (camisa, pantalón, zapatos, etc.).',
+      tooltipPosition: 'top',
+      requireClick: false,
     },
     {
       id: 'uniform-size',
-      tooltip: '📏 Selecciona la talla',
+      tooltip:
+        '📏 Elige la talla correcta del empleado para esta prenda.',
       tooltipPosition: 'right',
+      requireClick: false,
     },
     {
       id: 'uniform-quantity',
-      tooltip: '🔢 ¿Cuántas unidades?',
+      tooltip:
+        '🔢 Indica cuántas unidades de esta prenda se necesitan.',
       tooltipPosition: 'left',
+      requireClick: false,
     },
     {
       id: 'uniform-notes',
-      tooltip: '📝 Agrega notas (opcional)',
+      tooltip:
+        '📝 Agrega notas adicionales si es necesario (ej: color específico, urgencia). Es opcional.',
       tooltipPosition: 'top',
+      requireClick: false,
     },
     {
       id: 'uniform-submit',
-      tooltip: '🚀 ¡Solicita el uniforme!',
+      tooltip:
+        '🚀 Envía la solicitud de uniforme. RRHH gestionará el pedido.',
       tooltipPosition: 'top',
+      requireClick: false,
     },
   ],
 };

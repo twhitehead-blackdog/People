@@ -38,10 +38,12 @@ import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
 import { utils, writeFile } from 'xlsx';
 import { OrganizationService } from '../services/organization.service';
+import { ScheduleAutoAssignService } from '../services/schedule-auto-assign.service';
 import {
     TimeoffAuditLog,
     TimeoffAuditService,
 } from '../services/timeoff-audit.service';
+import { ApiUrlService } from '../services/api-url.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { getEnv } from '../utils/env.utils';
 import { DocumentRequestsService } from './modules/document-requests/data/document-requests.service';
@@ -57,6 +59,7 @@ interface Disability {
   id: string;
   employee_id: string;
   created_by?: string | null;
+  company_id?: string;
   employee?: {
     id: string;
     first_name: string;
@@ -239,7 +242,8 @@ export interface DocumentRequest {
             label="Confirmar Rechazo"
             severity="danger"
             icon="pi pi-times"
-            [disabled]="!disabilityRejectionComment().trim()"
+            [disabled]="!disabilityRejectionComment().trim() || updatingDisabilityStatus()"
+            [loading]="updatingDisabilityStatus()"
             (onClick)="confirmDisabilityRejection()"
           />
         </div>
@@ -300,7 +304,8 @@ export interface DocumentRequest {
             label="Confirmar Rechazo"
             severity="danger"
             icon="pi pi-times"
-            [disabled]="!compensatoryRejectionComment().trim()"
+            [disabled]="!compensatoryRejectionComment().trim() || updatingCompensatoryStatus()"
+            [loading]="updatingCompensatoryStatus()"
             (onClick)="confirmCompensatoryRejection()"
           />
         </div>
@@ -901,6 +906,7 @@ export interface DocumentRequest {
                           pTooltip="Aprobar"
                           tooltipPosition="top"
                           [rounded]="true"
+                          [loading]="updatingDisabilityStatus()"
                         />
                         <p-button
                           icon="pi pi-times"
@@ -914,6 +920,7 @@ export interface DocumentRequest {
                           pTooltip="Rechazar"
                           tooltipPosition="top"
                           [rounded]="true"
+                          [disabled]="updatingDisabilityStatus()"
                         />
                         }
                         <p-button
@@ -1302,6 +1309,7 @@ export interface DocumentRequest {
                           pTooltip="Aprobar"
                           tooltipPosition="top"
                           [rounded]="true"
+                          [loading]="updatingCompensatoryStatus()"
                         />
                         <p-button
                           icon="pi pi-times"
@@ -1315,6 +1323,7 @@ export interface DocumentRequest {
                           pTooltip="Rechazar"
                           tooltipPosition="top"
                           [rounded]="true"
+                          [disabled]="updatingCompensatoryStatus()"
                         />
                         }
                         <p-button
@@ -1436,8 +1445,8 @@ export interface DocumentRequest {
                       </div>
                       @if (d.status === 'pending') {
                         <div class="flex gap-1 mt-2" (click)="$event.stopPropagation()">
-                          <p-button icon="pi pi-check" [text]="true" severity="success" size="small" (onClick)="approveDisability(d); $event.stopPropagation()" />
-                          <p-button icon="pi pi-times" [text]="true" severity="danger" size="small" (onClick)="rejectDisability(d); $event.stopPropagation()" />
+                          <p-button icon="pi pi-check" [text]="true" severity="success" size="small" [loading]="updatingDisabilityStatus()" (onClick)="approveDisability(d); $event.stopPropagation()" />
+                          <p-button icon="pi pi-times" [text]="true" severity="danger" size="small" [disabled]="updatingDisabilityStatus()" (onClick)="rejectDisability(d); $event.stopPropagation()" />
                         </div>
                       }
                     </div>
@@ -1485,8 +1494,8 @@ export interface DocumentRequest {
                       </div>
                       @if (req.review_status === 'pending') {
                         <div class="flex gap-1 mt-2" (click)="$event.stopPropagation()">
-                          <p-button icon="pi pi-check" [text]="true" severity="success" size="small" (onClick)="approveCompensatoryRequest(req); $event.stopPropagation()" />
-                          <p-button icon="pi pi-times" [text]="true" severity="danger" size="small" (onClick)="rejectCompensatoryRequest(req); $event.stopPropagation()" />
+                          <p-button icon="pi pi-check" [text]="true" severity="success" size="small" [loading]="updatingCompensatoryStatus()" (onClick)="approveCompensatoryRequest(req); $event.stopPropagation()" />
+                          <p-button icon="pi pi-times" [text]="true" severity="danger" size="small" [disabled]="updatingCompensatoryStatus()" (onClick)="rejectCompensatoryRequest(req); $event.stopPropagation()" />
                         </div>
                       }
                     </div>
@@ -1861,7 +1870,8 @@ export interface DocumentRequest {
               "
               [outlined]="selectedDisability()!.status !== status.value"
               (onClick)="updateDisabilityStatusFromDialog(status.value)"
-              [disabled]="selectedDisability()!.status === status.value"
+              [disabled]="selectedDisability()!.status === status.value || updatingDisabilityStatus()"
+              [loading]="updatingDisabilityStatus() && selectedDisability()!.status !== status.value"
             />
             }
           </div>
@@ -1887,7 +1897,9 @@ export interface DocumentRequest {
           <div class="flex items-center gap-2">
             <p-button
               [icon]="
-                selectedCompensatoryRequest()!.document_url
+                attachingCompensatoryDoc()
+                  ? 'pi pi-spin pi-spinner'
+                  : selectedCompensatoryRequest()!.document_url
                   ? 'pi pi-file'
                   : 'pi pi-paperclip'
               "
@@ -1900,12 +1912,15 @@ export interface DocumentRequest {
                   : attachDocumentToCompensatoryRequest()
               "
               [pTooltip]="
-                selectedCompensatoryRequest()!.document_url
+                attachingCompensatoryDoc()
+                  ? 'Subiendo documento...'
+                  : selectedCompensatoryRequest()!.document_url
                   ? 'Ver documento adjunto'
                   : 'Adjuntar documento'
               "
               tooltipPosition="left"
               size="small"
+              [disabled]="attachingCompensatoryDoc()"
             />
             <p-button
               icon="pi pi-history"
@@ -2393,6 +2408,8 @@ export interface DocumentRequest {
                   severity="info"
                   size="small"
                   pTooltip="Adjuntar nuevo"
+                  [loading]="attachingCompensatoryDoc()"
+                  [disabled]="attachingCompensatoryDoc()"
                 />
               </div>
             </div>
@@ -2415,6 +2432,8 @@ export interface DocumentRequest {
               icon="pi pi-upload"
               severity="info"
               (onClick)="attachDocumentToCompensatoryRequest()"
+              [loading]="attachingCompensatoryDoc()"
+              [disabled]="attachingCompensatoryDoc()"
             />
           </div>
           }
@@ -2860,6 +2879,7 @@ export class HRDisabilitiesComponent {
   private messageService = inject(MessageService);
   private confirmationService = inject(ConfirmationService);
   private organizationService = inject(OrganizationService);
+  private apiUrl = inject(ApiUrlService);
   private dashboardStore = inject(DashboardStore);
   private router = inject(Router);
   private auditService = inject(TimeoffAuditService);
@@ -2867,6 +2887,7 @@ export class HRDisabilitiesComponent {
   private vacationsService = inject(VacationsService);
   private documentRequestsService = inject(DocumentRequestsService);
   protected device = inject(DeviceService);
+  private scheduleAutoAssign = inject(ScheduleAutoAssignService);
 
   // Método para navegar a diferentes pestañas
   public navigateToTab(
@@ -3006,6 +3027,9 @@ export class HRDisabilitiesComponent {
   public compensatoryRejectionComment = signal('');
   public savingDisabilityComment = signal(false);
   public savingCompensatoryComment = signal(false);
+  public attachingCompensatoryDoc = signal(false);
+  public updatingDisabilityStatus = signal(false);
+  public updatingCompensatoryStatus = signal(false);
 
   // Opciones de estado
   public statusOptions = [
@@ -4509,7 +4533,7 @@ export class HRDisabilitiesComponent {
         .set('order', 'created_at.asc');
 
       const timelogs = await firstValueFrom(
-        this.http.get<any[]>(`${getEnv('ENV_SUPABASE_URL')}/rest/v1/timelogs`, {
+        this.http.get<any[]>(`${this.apiUrl.baseUrl}/rest/v1/timelogs`, {
           params: timelogParams,
         })
       );
@@ -4537,7 +4561,7 @@ export class HRDisabilitiesComponent {
 
       const consumptions = await firstValueFrom(
         this.http.get<any[]>(
-          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/overtime_consumptions`,
+          `${this.apiUrl.baseUrl}/rest/v1/overtime_consumptions`,
           { params: consumptionParams }
         )
       );
@@ -4816,6 +4840,8 @@ export class HRDisabilitiesComponent {
       return;
     }
 
+    this.updatingCompensatoryStatus.set(true);
+
     // Obtener estado anterior antes de actualizar
     const request = this.compensatoryTimeoffsApi
       .value()
@@ -4824,19 +4850,18 @@ export class HRDisabilitiesComponent {
 
     const updateData: any = {
       review_status: status,
-      is_approved: status === 'approved', // Eliminar paso "Registrado" - aprobar es final
+      is_approved: status === 'approved',
       reviewed_by: currentEmployee.id,
       reviewed_at: new Date().toISOString(),
     };
 
-    // El rejectionComment solo se guarda si se proporciona y el status es 'rejected'
     if (status === 'rejected' && rejectionComment) {
       updateData.rejection_comment = rejectionComment;
     }
 
     this.http
       .patch(
-        `${getEnv('ENV_SUPABASE_URL')}/rest/v1/timeoffs?id=eq.${id}`,
+        this.apiUrl.build('rest/v1/timeoffs', { id: `eq.${id}` }),
         updateData
       )
       .subscribe({
@@ -4869,6 +4894,27 @@ export class HRDisabilitiesComponent {
                 e
               );
             }
+
+            // Auto-assign compensatory schedule
+            try {
+              const timeOffType = request.compensatory_type === 'hours'
+                ? 'compensatory_hours' as const
+                : 'compensatory_day' as const;
+              await this.scheduleAutoAssign.assignScheduleForTimeOff({
+                employeeId: request.employee_id,
+                startDate: request.date_from,
+                endDate: request.date_to,
+                timeOffType,
+                timeOffSourceId: request.id,
+                companyId: request.company_id,
+                createdBy: currentEmployee.id,
+                compensatoryHoursAmount: request.compensatory_type === 'hours'
+                  ? request.compensatory_amount
+                  : undefined,
+              });
+            } catch (e) {
+              console.warn('[HRDisabilities] Auto-assign compensatory schedule failed (non-blocking):', e);
+            }
           } else if (status === 'rejected' && request) {
             // Enviar notificación al empleado sobre el rechazo
             await this.notifyEmployee(
@@ -4894,6 +4940,7 @@ export class HRDisabilitiesComponent {
           ) {
             this.loadAuditHistory(id);
           }
+          this.updatingCompensatoryStatus.set(false);
         },
         error: () => {
           this.messageService.add({
@@ -4901,6 +4948,7 @@ export class HRDisabilitiesComponent {
             summary: 'Error',
             detail: 'No se pudo actualizar el estado de la solicitud',
           });
+          this.updatingCompensatoryStatus.set(false);
         },
       });
   }
@@ -4959,7 +5007,7 @@ export class HRDisabilitiesComponent {
     if (manualIsoDays.length > 0) {
       // Traer timelogs y consumos solo para esas fechas (histórico)
       const timelogs = await firstValueFrom(
-        this.http.get<any[]>(`${getEnv('ENV_SUPABASE_URL')}/rest/v1/timelogs`, {
+        this.http.get<any[]>(`${this.apiUrl.baseUrl}/rest/v1/timelogs`, {
           params: {
             select: 'day,type,created_at,employee_id,company_id',
             employee_id: `eq.${request.employee_id}`,
@@ -4972,7 +5020,7 @@ export class HRDisabilitiesComponent {
 
       const consumptions = await firstValueFrom(
         this.http.get<any[]>(
-          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/overtime_consumptions`,
+          `${this.apiUrl.baseUrl}/rest/v1/overtime_consumptions`,
           {
             params: {
               select: 'overtime_day,hours_used',
@@ -5037,7 +5085,7 @@ export class HRDisabilitiesComponent {
 
     await firstValueFrom(
       this.http.post(
-        `${getEnv('ENV_SUPABASE_URL')}/rest/v1/overtime_consumptions`,
+        `${this.apiUrl.baseUrl}/rest/v1/overtime_consumptions`,
         rows,
         {
           headers: {
@@ -5210,7 +5258,6 @@ export class HRDisabilitiesComponent {
   }
 
   public attachDocumentToCompensatoryRequest(): void {
-    // Crear input file oculto
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.pdf';
@@ -5221,7 +5268,6 @@ export class HRDisabilitiesComponent {
       if (!file) return;
 
       if (file.size > 5000000) {
-        // 5MB
         this.messageService.add({
           severity: 'error',
           summary: 'Archivo demasiado grande',
@@ -5243,87 +5289,32 @@ export class HRDisabilitiesComponent {
         const request = this.selectedCompensatoryRequest();
         if (!request) return;
 
-        // Mostrar loading
-        this.messageService.add({
-          severity: 'info',
-          summary: 'Subiendo archivo',
-          detail: 'Por favor espera...',
-        });
+        this.attachingCompensatoryDoc.set(true);
 
-        // Subir archivo
         const employeeId = request.employee_id;
         const fileName = `${employeeId}/${Date.now()}.pdf`;
 
-        const storageKey =
-          getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') ||
-          getEnv('ENV_SUPABASE_API_KEY') ||
-          '';
+        const uploadUrl = `${this.apiUrl.baseUrl}/storage/v1/object/compensatory/${fileName}`;
 
-        const uploadUrl = `${getEnv(
-          'ENV_SUPABASE_URL'
-        )}/storage/v1/object/compensatory/${fileName}`;
+        await firstValueFrom(
+          this.http.post(uploadUrl, file, {
+            headers: {
+              'x-upsert': 'true',
+            },
+          })
+        );
 
-        // Debug logging restored
-        console.log('Key check:', {
-          hasServiceKey: !!getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY'),
-          hasAnonKey: !!getEnv('ENV_SUPABASE_API_KEY'),
-          usedKeyLength: storageKey.length,
+        const documentUrl = this.apiUrl.build(
+          `storage/v1/object/public/compensatory/${fileName}`
+        );
+
+        const updateUrl = this.apiUrl.build('rest/v1/timeoffs', {
+          id: `eq.${request.id}`,
         });
 
-        const response = await fetch(uploadUrl, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${storageKey}`,
-            apikey: storageKey,
-            'Content-Type': file.type,
-            'x-upsert': 'true',
-          },
-          body: file,
-        });
-
-        if (!response.ok) {
-          const errorData = await response.text();
-          console.error('Upload Failed Body:', errorData);
-
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Error Supabase',
-            detail: `Status: ${response.status}. Msg: ${errorData.substring(
-              0,
-              100
-            )}`,
-          });
-          throw new Error(
-            `Error al subir archivo: ${response.status} ${response.statusText} - ${errorData}`
-          );
-        }
-
-        // Obtener URL pública
-        const documentUrl = `${getEnv(
-          'ENV_SUPABASE_URL'
-        )}/storage/v1/object/public/compensatory/${fileName}`;
-
-        // Actualizar solicitud en la base de datos
-        const updateUrl = `${getEnv(
-          'ENV_SUPABASE_URL'
-        )}/rest/v1/timeoffs?id=eq.${request.id}`;
-        const updateResponse = await fetch(updateUrl, {
-          method: 'PATCH',
-          headers: {
-            Authorization: `Bearer ${storageKey}`,
-            apikey: storageKey,
-            'Content-Type': 'application/json',
-            Prefer: 'return=representation',
-          },
-          body: JSON.stringify({ document_url: documentUrl }),
-        });
-
-        if (!updateResponse.ok) {
-          throw new Error('Error al actualizar solicitud');
-        }
-
-        // Actualizar la solicitud local
-        request.document_url = documentUrl;
+        await firstValueFrom(
+          this.http.patch(updateUrl, { document_url: documentUrl })
+        );
 
         this.messageService.add({
           severity: 'success',
@@ -5331,7 +5322,6 @@ export class HRDisabilitiesComponent {
           detail: 'El documento se adjuntó correctamente a la solicitud.',
         });
 
-        // Recargar datos para refrescar la vista
         this.compensatoryTimeoffsApi.reload();
       } catch (error) {
         console.error('Error attaching document:', error);
@@ -5340,10 +5330,11 @@ export class HRDisabilitiesComponent {
           summary: 'Error al adjuntar archivo',
           detail: 'No se pudo adjuntar el archivo. Inténtalo nuevamente.',
         });
+      } finally {
+        this.attachingCompensatoryDoc.set(false);
       }
     };
 
-    // Hacer click en el input
     document.body.appendChild(input);
     input.click();
     document.body.removeChild(input);
@@ -5505,6 +5496,8 @@ export class HRDisabilitiesComponent {
     status: 'pending' | 'approved' | 'rejected',
     rejectionComment?: string
   ): void {
+    this.updatingDisabilityStatus.set(true);
+
     const updateData: any = {
       status,
     };
@@ -5520,13 +5513,34 @@ export class HRDisabilitiesComponent {
 
     this.http
       .patch(
-        `${getEnv(
-          'ENV_SUPABASE_URL'
-        )}/rest/v1/employee_disabilities?id=eq.${id}`,
+        this.apiUrl.build('rest/v1/employee_disabilities', {
+          id: `eq.${id}`,
+        }),
         updateData
       )
       .subscribe({
-        next: () => {
+        next: async () => {
+          // Auto-assign disability schedule on approval
+          if (status === 'approved') {
+            const disability = this.disabilitiesApi.value()?.find((d) => d.id === id)
+              || this.selectedDisability();
+            const currentEmployee = this.dashboardStore.currentEmployee();
+            if (disability && currentEmployee) {
+              try {
+                await this.scheduleAutoAssign.assignScheduleForTimeOff({
+                  employeeId: disability.employee_id,
+                  startDate: disability.start_date,
+                  endDate: disability.end_date,
+                  timeOffType: 'disability',
+                  timeOffSourceId: disability.id,
+                  companyId: disability.company_id,
+                  createdBy: currentEmployee.id,
+                });
+              } catch (e) {
+                console.warn('[HRDisabilities] Auto-assign disability schedule failed (non-blocking):', e);
+              }
+            }
+          }
           const statusMessages: Record<string, string> = {
             approved: 'aprobada',
             rejected: 'rechazada',
@@ -5549,6 +5563,7 @@ export class HRDisabilitiesComponent {
               this.selectedDisability.set(updated);
             }
           }
+          this.updatingDisabilityStatus.set(false);
         },
         error: () => {
           this.messageService.add({
@@ -5556,6 +5571,7 @@ export class HRDisabilitiesComponent {
             summary: 'Error',
             detail: 'No se pudo actualizar el estado de la incapacidad',
           });
+          this.updatingDisabilityStatus.set(false);
         },
       });
   }

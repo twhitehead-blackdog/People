@@ -4,6 +4,7 @@ import { NgClass } from '@angular/common';
 import { CreditorsStore } from '../stores/creditors.store';
 import { PayrollStore } from '../stores/payroll.store';
 import { OrganizationService } from '../services/organization.service';
+import { PermissionsService } from '../services/permissions.service';
 
 @Component({
   selector: 'pt-payroll',
@@ -16,6 +17,7 @@ import { OrganizationService } from '../services/organization.service';
       >
         <div class="block w-full overflow-x-auto">
           <div class="flex gap-2 min-w-max justify-center">
+            @if (payrollSubs().payrolls) {
             <a
               routerLink="payrolls"
               class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
@@ -28,6 +30,8 @@ import { OrganizationService } from '../services/organization.service';
               ]"
               ><i class="pi pi-money-bill text-base"></i> <span>Planillas</span></a
             >
+            }
+            @if (payrollSubs().creditors) {
             <a
               routerLink="creditors"
               class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
@@ -40,6 +44,8 @@ import { OrganizationService } from '../services/organization.service';
               ]"
               ><i class="pi pi-users text-base"></i> <span>Acreedores</span></a
             >
+            }
+            @if (payrollSubs().banks) {
             <a
               routerLink="banks"
               class="flex gap-2 items-center rounded-lg font-medium text-gray-300 hover:text-white hover:bg-neutral-600/50 px-4 py-2 transition-all duration-200"
@@ -52,6 +58,7 @@ import { OrganizationService } from '../services/organization.service';
               ]"
               ><i class="pi pi-building-columns text-base"></i> <span>Bancos</span></a
             >
+            }
           </div>
         </div>
       </div>
@@ -91,7 +98,15 @@ import { OrganizationService } from '../services/organization.service';
 })
 export class PayrollComponent {
   public organizationService = inject(OrganizationService);
-  
+  private permissionsService = inject(PermissionsService);
+
   // Computed para verificar si es Naz
   public isNaz = computed(() => this.organizationService.isNaz());
+
+  // Computed: acceso a submódulos de payroll
+  public payrollSubs = computed(() => ({
+    payrolls: this.permissionsService.canAccessSubModule('payroll', 'payrolls'),
+    creditors: this.permissionsService.canAccessSubModule('payroll', 'creditors'),
+    banks: this.permissionsService.canAccessSubModule('payroll', 'banks'),
+  }));
 }

@@ -125,6 +125,8 @@ export class DepartmentsComponent {
       header: 'Area',
       width: '36rem',
       modal: true,
+      dismissableMask: true, // Cerrar al hacer clic fuera
+      closeOnEscape: true,   // Cerrar con tecla Escape
       data: { department },
     });
   }

@@ -27,6 +27,7 @@ import { ToggleSwitch } from 'primeng/toggleswitch';
 import { TooltipModule } from 'primeng/tooltip';
 import { TabsModule } from 'primeng/tabs';
 import { Employee } from '../models';
+import { ApiUrlService } from '../services/api-url.service';
 import { OrganizationService } from '../services/organization.service';
 import { DashboardStore } from '../stores/dashboard.store';
 
@@ -296,6 +297,7 @@ export class UserManagementComponent {
   private messageService = inject(MessageService);
   private confirmationService = inject(ConfirmationService);
   private orgService = inject(OrganizationService);
+  private apiUrl = inject(ApiUrlService);
   public store = inject(DashboardStore);
 
   public searchTerm = model<string>('');
@@ -330,7 +332,7 @@ export class UserManagementComponent {
     }
 
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
+      url: `${this.apiUrl.baseUrl}/rest/v1/employees`,
       method: 'GET',
       params,
     };
@@ -351,7 +353,7 @@ export class UserManagementComponent {
     }
 
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/timelogs`,
+      url: `${this.apiUrl.baseUrl}/rest/v1/timelogs`,
       method: 'GET',
       params,
     };
@@ -491,7 +493,7 @@ export class UserManagementComponent {
 
     this.http
       .patch(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
+        `${this.apiUrl.baseUrl}/rest/v1/employees`,
         { account_approved: approved },
         {
           params: {
@@ -536,7 +538,7 @@ export class UserManagementComponent {
 
     this.http
       .patch(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
+        `${this.apiUrl.baseUrl}/rest/v1/employees`,
         { has_portal_access: user.has_portal_access },
         {
           params: {

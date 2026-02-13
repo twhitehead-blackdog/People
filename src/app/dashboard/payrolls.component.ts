@@ -93,6 +93,8 @@ export class PayrollsComponent {
       width: '36rem',
       data: { payroll },
       modal: true,
+      dismissableMask: true, // Cerrar al hacer clic fuera
+      closeOnEscape: true,   // Cerrar con tecla Escape
     });
   }
 }

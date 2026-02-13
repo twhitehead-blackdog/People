@@ -22,7 +22,7 @@ import {
 import { rxMethod } from '@ngrx/signals/rxjs-interop';
 import { differenceInSeconds } from 'date-fns';
 import { ConfirmationService, MessageService } from 'primeng/api';
-import { filter, Observable, pipe, switchMap, tap } from 'rxjs';
+import { filter, from, Observable, pipe, switchMap, tap } from 'rxjs';
 import { OrganizationService } from '../services/organization.service';
 import { getTableNameFromService } from '../utils/table-helper';
 
@@ -86,6 +86,8 @@ export function withCustomEntities<T extends { id: EntityId }>({
       'attendance_sheets',
       'timelogs',
       'payrolls',
+      'devices',
+      'device_assignments',
     ];
 
     // Bancos y creditors pueden tener company_id NULL (compartidos)
@@ -100,14 +102,13 @@ export function withCustomEntities<T extends { id: EntityId }>({
       };
     }
 
-    // Positions puede tener company_id NULL temporalmente (durante migración)
-    // Incluir tanto posiciones con company_id como sin company_id para evitar problemas
-    if (tableName === 'positions' && companyId) {
-      return {
-        ...params,
-        or: `(company_id.is.null,company_id.eq.${companyId})`,
-      };
-    }
+    // TEMP: Positions - No agregar filtro de company_id hasta que PostgREST reconozca la columna
+    // if (tableName === 'positions' && companyId) {
+    //   return {
+    //     ...params,
+    //     or: `(company_id.is.null,company_id.eq.${companyId})`,
+    //   };
+    // }
 
     // Schedules puede tener company_id NULL temporalmente (durante migración)
     // Incluir tanto schedules con company_id como sin company_id para evitar problemas
@@ -357,7 +358,6 @@ export function withCustomEntities<T extends { id: EntityId }>({
         createItem(request: T): Observable<T[]> {
           patchState(state, { isLoading: true, error: null });
           const tableName = getTable();
-          const companyId = getCurrentCompanyId();
           const cleanedQuery = cleanQuery(query, tableName, state._orgService);
 
           // Asegurar que company_id esté presente en el request
@@ -365,139 +365,178 @@ export function withCustomEntities<T extends { id: EntityId }>({
 
           // Agregar company_id si la tabla lo requiere y no está presente
           // Ahora que usamos tablas compartidas, TANTO Naz como Black Dog necesitan company_id
+          // NOTA: positions temporalmente excluido - PostgREST no reconoce la columna company_id
           const tablesRequiringCompanyId = [
             'employees',
             'branches',
             'departments',
-            'positions',
+            // 'positions', // TEMP: Error 400 - column positions.company_id does not exist
             'schedules',
             'employee_schedules',
             'attendance_sheets',
             'timelogs',
             'payrolls',
+            'devices',
+            'device_assignments',
           ];
 
-          // Agregar company_id si la tabla lo requiere y companyId está disponible
-          // (ya no excluimos a Naz porque ahora usa tablas compartidas)
-          if (
-            tablesRequiringCompanyId.includes(name) &&
-            companyId &&
-            !requestData.company_id
-          ) {
-            requestData.company_id = companyId;
-          }
+          // Función para ejecutar la creación con el company_id correcto
+          const doCreate = (companyId: string | null) => {
+            // Agregar company_id si la tabla lo requiere y companyId está disponible
+            if (
+              tablesRequiringCompanyId.includes(name) &&
+              companyId &&
+              !requestData.company_id
+            ) {
+              requestData.company_id = companyId;
+            }
 
-          // Para banks y creditors, company_id es opcional (puede ser NULL para compartidos)
-          if (
-            (name === 'banks' || name === 'creditors') &&
-            companyId &&
-            !requestData.company_id
-          ) {
-            requestData.company_id = companyId;
-          }
+            // Para banks y creditors, company_id es opcional (puede ser NULL para compartidos)
+            if (
+              (name === 'banks' || name === 'creditors') &&
+              companyId &&
+              !requestData.company_id
+            ) {
+              requestData.company_id = companyId;
+            }
 
-          const params = addCompanyFilter(
-            { select: cleanedQuery },
-            companyId,
-            tableName,
-            state._orgService
-          );
+            const params = addCompanyFilter(
+              { select: cleanedQuery },
+              companyId,
+              tableName,
+              state._orgService
+            );
 
-          const url = state._apiUrl.build(`rest/v1/${tableName}`, params);
-          return state._http
-            .post<T[]>(url, requestData)
-            .pipe(
-              tapResponse({
-                next: (item) => {
-                  patchState(state, addEntity(item[0]));
-                  state._message.add({
-                    severity: 'success',
-                    detail: 'Elemento creado con exito',
-                    summary: 'Exito',
-                  });
-                },
-                error: (error) => {
-                  patchState(state, { error });
-                  state._message.add({
-                    severity: 'error',
-                    detail: 'Algo salio mal, intente de nuevo',
-                    summary: 'Error',
-                  });
-                  console.error(error);
-                  throw error;
-                },
-                finalize: () => patchState(state, { isLoading: false }),
+            const url = state._apiUrl.build(`rest/v1/${tableName}`, params);
+            return state._http
+              .post<T[]>(url, requestData)
+              .pipe(
+                tapResponse({
+                  next: (item) => {
+                    patchState(state, addEntity(item[0]));
+                    state._message.add({
+                      severity: 'success',
+                      detail: 'Elemento creado con exito',
+                      summary: 'Exito',
+                    });
+                  },
+                  error: (error) => {
+                    patchState(state, { error });
+                    state._message.add({
+                      severity: 'error',
+                      detail: 'Algo salio mal, intente de nuevo',
+                      summary: 'Error',
+                    });
+                    console.error(error);
+                    throw error;
+                  },
+                  finalize: () => patchState(state, { isLoading: false }),
+                })
+              );
+          };
+
+          // Esperar a que los company_ids estén listos antes de crear
+          const companyId = getCurrentCompanyId();
+          if (companyId) {
+            // Si ya tenemos company_id, crear inmediatamente
+            return doCreate(companyId);
+          } else {
+            // Si no tenemos company_id, esperar a que esté listo
+            return from(state._orgService.waitForCompanyIds()).pipe(
+              switchMap(() => {
+                const finalCompanyId = getCurrentCompanyId();
+                return doCreate(finalCompanyId);
               })
             );
+          }
         },
-        editItem(request: T) {
+        editItem(request: T): Observable<unknown> {
           patchState(state, { isLoading: true, error: null });
           const tableName = getTable();
-          const companyId = getCurrentCompanyId();
 
           // Asegurar que company_id esté presente en el request si es requerido
           const requestData: any = { ...request };
 
           // Agregar company_id si la tabla lo requiere y no está presente
+          // NOTA: positions temporalmente excluido - PostgREST no reconoce la columna company_id
           const tablesRequiringCompanyId = [
             'employees',
             'branches',
             'departments',
-            'positions',
+            // 'positions', // TEMP: Error 400 - column positions.company_id does not exist
             'schedules',
             'employee_schedules',
             'attendance_sheets',
             'timelogs',
             'payrolls',
+            'devices',
+            'device_assignments',
           ];
 
-          // Agregar company_id si la tabla lo requiere y companyId está disponible
-          // (ya no excluimos a Naz porque ahora usa tablas compartidas)
-          if (
-            tablesRequiringCompanyId.includes(name) &&
-            companyId &&
-            !requestData.company_id
-          ) {
-            requestData.company_id = companyId;
-          }
+          // Función para ejecutar la edición con el company_id correcto
+          const doEdit = (companyId: string | null) => {
+            // Agregar company_id si la tabla lo requiere y companyId está disponible
+            if (
+              tablesRequiringCompanyId.includes(name) &&
+              companyId &&
+              !requestData.company_id
+            ) {
+              requestData.company_id = companyId;
+            }
 
-          const params = addCompanyFilter(
-            { id: `eq.${request.id}` },
-            companyId,
-            tableName,
-            state._orgService
-          );
+            const params = addCompanyFilter(
+              { id: `eq.${request.id}` },
+              companyId,
+              tableName,
+              state._orgService
+            );
 
-          const url = state._apiUrl.build(`rest/v1/${tableName}`, params);
-          return state._http
-            .patch(url, requestData)
-            .pipe(
-              tap(() => console.log('editItem')),
-              tapResponse({
-                next: () => {
-                  patchState(
-                    state,
-                    updateEntity({ id: request.id, changes: request })
-                  );
-                  state._message.add({
-                    severity: 'success',
-                    detail: 'Elemento actualizado con exito',
-                    summary: 'Exito',
-                  });
-                },
-                error: (error) => {
-                  patchState(state, { error });
-                  state._message.add({
-                    severity: 'error',
-                    detail: 'Algo salio mal, intente de nuevo',
-                    summary: 'Error',
-                  });
-                  console.error(error);
-                  throw error;
-                },
-                finalize: () => patchState(state, { isLoading: false }),
+            const url = state._apiUrl.build(`rest/v1/${tableName}`, params);
+            return state._http
+              .patch(url, requestData)
+              .pipe(
+                tap(() => console.log('editItem')),
+                tapResponse({
+                  next: () => {
+                    patchState(
+                      state,
+                      updateEntity({ id: request.id, changes: request })
+                    );
+                    state._message.add({
+                      severity: 'success',
+                      detail: 'Elemento actualizado con exito',
+                      summary: 'Exito',
+                    });
+                  },
+                  error: (error) => {
+                    patchState(state, { error });
+                    state._message.add({
+                      severity: 'error',
+                      detail: 'Algo salio mal, intente de nuevo',
+                      summary: 'Error',
+                    });
+                    console.error(error);
+                    throw error;
+                  },
+                  finalize: () => patchState(state, { isLoading: false }),
+                })
+              );
+          };
+
+          // Esperar a que los company_ids estén listos antes de editar
+          const companyId = getCurrentCompanyId();
+          if (companyId) {
+            // Si ya tenemos company_id, editar inmediatamente
+            return doEdit(companyId);
+          } else {
+            // Si no tenemos company_id, esperar a que esté listo
+            return from(state._orgService.waitForCompanyIds()).pipe(
+              switchMap(() => {
+                const finalCompanyId = getCurrentCompanyId();
+                return doEdit(finalCompanyId);
               })
             );
+          }
         },
         deleteItem(id: EntityId): void {
           state._confirm.confirm({

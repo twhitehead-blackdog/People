@@ -1,9 +1,11 @@
 import { computed } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { DialogService } from 'primeng/dynamicdialog';
+import { DeviceService } from '../../services/device.service';
 import { PermissionsService } from '../../services/permissions.service';
 import { PermissionEditorDialogComponent } from './permission-editor-dialog.component';
 import { PermissionsManagementComponent } from './permissions-management.component';
+import { DashboardStore } from '../../stores/dashboard.store';
 
 describe('PermissionsManagementComponent', () => {
   let component: PermissionsManagementComponent;
@@ -65,12 +67,24 @@ describe('PermissionsManagementComponent', () => {
     open: jest.fn(),
   };
 
+  const mockDeviceService = {
+    isDesktop: jest.fn().mockReturnValue(true),
+  };
+
+  const mockDashboardStore = {
+    employees: { reloadItems: jest.fn() },
+    positions: { reloadItems: jest.fn() },
+    testMode: { isSupportUser: jest.fn().mockReturnValue(false) },
+  };
+
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [PermissionsManagementComponent],
       providers: [
         { provide: PermissionsService, useValue: mockPermissionsService },
         { provide: DialogService, useValue: mockDialogService },
+        { provide: DeviceService, useValue: mockDeviceService },
+        { provide: DashboardStore, useValue: mockDashboardStore },
       ],
     }).compileComponents();
 
@@ -91,14 +105,16 @@ describe('PermissionsManagementComponent', () => {
     expect(filtered[0].employeeName).toBe('User One');
   });
 
-  it('should open editor dialog when edit is clicked', () => {
-    const profile = mockPermissionsService.allUserProfiles()[0];
-    component.openEditor(profile);
+  it('should open employee editor dialog when edit is clicked', () => {
+    const profile = component.profiles()[0]; // Use signal value
+    component.openEmployeeEditor(profile);
     expect(mockDialogService.open).toHaveBeenCalledWith(
       PermissionEditorDialogComponent,
       expect.objectContaining({
-        header: expect.stringContaining('Permisos: Manager'),
+        header: expect.stringContaining('Permisos: User One'),
         data: expect.objectContaining({
+          mode: 'employee',
+          employeeId: '1',
           positionId: 'p1',
         }),
       })

@@ -5,20 +5,48 @@ import { MessageService } from 'primeng/api';
 import { filter, take } from 'rxjs';
 
 import { NgxSpinnerComponent, NgxSpinnerService } from 'ngx-spinner';
+import { DialogModule } from 'primeng/dialog';
+import { Button } from 'primeng/button';
 import { OrganizationService } from './services/organization.service';
 import { DiagnosticPanelComponent } from './components/diagnostic-panel.component';
 import { DiagnosticService } from './services/diagnostic.service';
 import { ThemeService } from './services/theme.service';
+import { VersionCheckService } from './services/version-check.service';
 
 @Component({
-  imports: [RouterOutlet, NgxSpinnerComponent, DiagnosticPanelComponent],
+  imports: [RouterOutlet, NgxSpinnerComponent, DiagnosticPanelComponent, DialogModule, Button],
   providers: [MessageService],
   selector: 'pt-root',
-  template: ` <router-outlet />
+  template: `
+    <router-outlet />
     <ngx-spinner type="ball-scale-multiple" [bdColor]="spinnerBgColor()">
-      <p [class]="spinnerTextClass()">Cargando...</p></ngx-spinner
+      <p [class]="spinnerTextClass()">Cargando...</p>
+    </ngx-spinner>
+    <pt-diagnostic-panel />
+
+    <p-dialog
+      header="Nueva versión disponible"
+      [visible]="versionCheck.updateAvailable()"
+      [modal]="true"
+      [closable]="false"
+      [draggable]="false"
+      [resizable]="false"
+      [style]="{ width: '28rem' }"
     >
-    <pt-diagnostic-panel />`,
+      <div class="flex flex-col items-center gap-4 py-2">
+        <i class="pi pi-refresh text-4xl text-yellow-500"></i>
+        <p class="text-center text-lg">
+          Hay una nueva versión de la aplicación disponible.
+          Por favor, actualiza para continuar.
+        </p>
+      </div>
+      <ng-template #footer>
+        <div class="flex justify-center w-full">
+          <p-button label="Actualizar ahora" icon="pi pi-refresh" (onClick)="reloadApp()" />
+        </div>
+      </ng-template>
+    </p-dialog>
+  `,
   styles: ``,
 })
 export class AppComponent implements OnInit {
@@ -28,6 +56,7 @@ export class AppComponent implements OnInit {
   private organizationService = inject(OrganizationService);
   private diagnosticService = inject(DiagnosticService);
   private themeService = inject(ThemeService);
+  readonly versionCheck = inject(VersionCheckService);
 
   // Computed para el color de fondo del spinner según el tema
   spinnerBgColor = () => {
@@ -39,7 +68,14 @@ export class AppComponent implements OnInit {
     return this.themeService.isDark() ? 'text-white' : 'text-gray-900';
   };
 
+  reloadApp(): void {
+    window.location.reload();
+  }
+
   ngOnInit() {
+    // Iniciar polling de versión para detectar actualizaciones
+    this.versionCheck.startPolling();
+
     // Inicializar servicio de diagnóstico temprano
     // Esto asegura que capture errores desde el inicio
     // Solo log en desarrollo

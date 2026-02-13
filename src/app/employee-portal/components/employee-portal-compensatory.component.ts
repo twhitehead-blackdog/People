@@ -14,6 +14,7 @@ import { FileUpload } from 'primeng/fileupload';
 import { InputTextarea } from 'primeng/inputtextarea';
 import { TooltipModule } from 'primeng/tooltip';
 import { Employee } from '../../models';
+import { TutorialStepDirective } from '../../shared/directives/tutorial-step.directive';
 
 @Component({
   selector: 'pt-employee-portal-compensatory',
@@ -27,6 +28,7 @@ import { Employee } from '../../models';
     FileUpload,
     InputTextarea,
     TooltipModule,
+    TutorialStepDirective,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -75,6 +77,7 @@ import { Employee } from '../../models';
 
         <div
           class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md"
+          ptTutorialStep="compensatory-type"
         >
           <div class="flex items-center gap-3 mb-4">
             <div
@@ -156,6 +159,7 @@ import { Employee } from '../../models';
 
         <div
           class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md"
+          ptTutorialStep="compensatory-dates"
         >
           <div class="flex items-center gap-3 mb-4">
             <div
@@ -260,6 +264,7 @@ import { Employee } from '../../models';
 
         <div
           class="p-5 rounded-lg bg-neutral-800/50 border border-neutral-700/50 shadow-md"
+          ptTutorialStep="compensatory-reason"
         >
           <div class="flex items-center gap-3 mb-4">
             <div
@@ -416,10 +421,15 @@ import { Employee } from '../../models';
             class="mt-3 p-3 bg-cyan-500/10 border border-cyan-500/30 rounded-lg flex items-center justify-between"
           >
             <div class="flex items-center gap-2">
+              @if (uploadingFile) {
+              <i class="pi pi-spin pi-spinner text-cyan-400"></i>
+              <span class="text-sm text-gray-300">Subiendo...</span>
+              } @else {
               <i class="pi pi-file text-cyan-400"></i>
               <span class="text-sm text-gray-300">{{
                 compensatoryFile.name
               }}</span>
+              }
             </div>
             <p-button
               icon="pi pi-times"
@@ -429,6 +439,7 @@ import { Employee } from '../../models';
               size="small"
               (onClick)="compensatoryFileChange.emit(null)"
               pTooltip="Eliminar archivo"
+              [disabled]="uploadingFile"
             />
           </div>
           }
@@ -467,6 +478,7 @@ import { Employee } from '../../models';
             [disabled]="!canSubmit || submitting"
             (onClick)="submitRequest.emit()"
             class="ml-auto"
+            ptTutorialStep="compensatory-submit"
           />
         </div>
       </div>
@@ -504,6 +516,7 @@ export class EmployeePortalCompensatoryComponent {
   @Input() minPastDate: Date = new Date();
   @Input() today: Date = new Date();
   @Input() compensatoryFile: File | null = null;
+  @Input() uploadingFile = false;
   @Output() compensatoryFileChange = new EventEmitter<File | null>();
   @Output() submitRequest = new EventEmitter<void>();
   @Output() openTutorial = new EventEmitter<void>();
@@ -511,7 +524,8 @@ export class EmployeePortalCompensatoryComponent {
   @Output() viewRequests = new EventEmitter<void>();
 
   public handleFileSelect(event: any): void {
-    const file = event?.files?.[0] ?? null;
+    const files = event?.currentFiles || event?.files;
+    const file = files?.[0] ?? null;
     this.compensatoryFileChange.emit(file);
   }
 

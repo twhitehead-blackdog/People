@@ -134,13 +134,16 @@
     <base href="/" />
     <meta content="width=device-width, initial-scale=1" name="viewport" />
     <link href="favicon.ico" rel="icon" type="image/x-icon" />
-    <!-- Google Fonts para tema Naz -->
+    <!-- Preconnect: Supabase API + Auth0 -->
+    <link rel="preconnect" href="https://dzyckfezcmcqvnmagafq.supabase.co" crossorigin />
+    <link rel="dns-prefetch" href="https://dzyckfezcmcqvnmagafq.supabase.co" />
+    <link rel="preconnect" href="https://dev-gyiiy3lphqlh0zo8.us.auth0.com" crossorigin />
+    <link rel="dns-prefetch" href="https://dev-gyiiy3lphqlh0zo8.us.auth0.com" />
+    <!-- Google Fonts (async load) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@300;400;500;600&family=Poppins:wght@300;400;500;600&display=swap"
-      rel="stylesheet"
-    />
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@300;400;500;600&family=Poppins:wght@300;400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@300;400;500;600&family=Poppins:wght@300;400;500;600&display=swap" /></noscript>
     <script>
       // Forzar modo oscuro siempre
       document.documentElement.classList.add('dark');

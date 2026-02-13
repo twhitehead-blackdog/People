@@ -11,6 +11,8 @@ import { CalendarModule } from 'primeng/calendar';
 import { HomeDataService, OdooSaleOrder } from '../../services/home-data.service';
 import { BranchesStore } from '../../../../stores/branches.store';
 import { PELUQUERIA_POSITION_NAMES } from '../../../services/groomer-schedule-utils.service';
+import { LateRecordsService } from '../../../services/late-records.service';
+import { LoggerService } from '../../../../services/logger.service';
 import { toZonedTime } from 'date-fns-tz';
 import { format, parseISO, differenceInMinutes } from 'date-fns';
 
@@ -28,6 +30,7 @@ const SCHEDULE_ID_FERIADO = '3d07f626-d58f-4203-bac5-f6e35557e0ad';
 const SCHEDULE_ID_DIA_LIBRE = 'c01dff8f-ce0d-498f-a473-46418576e589';
 
 type TimelogWithBranch = {
+  id: string;
   employee_id: string;
   branch_id: string;
   created_at?: string;
@@ -57,6 +60,11 @@ export type PersonPeluqueria = {
   exitTime?: string;
   isLate?: boolean;
   minutesLate?: number;
+  scheduledEntryTime?: string; // Hora programada de entrada (HH:mm:ss)
+  toleranceMinutes?: number; // Minutos de tolerancia aplicados
+  branchId?: string; // ID de la sucursal
+  branchName?: string; // Nombre de la sucursal
+  timelogId?: string; // ID del timelog de entrada
 };
 
 export type BranchPeluqueriaRow = {
@@ -524,6 +532,8 @@ export type BranchPeluqueriaRow = {
 export class PeluqueriaSectionComponent {
   homeData = inject(HomeDataService);
   private branchesStore = inject(BranchesStore);
+  private lateRecordsService = inject(LateRecordsService);
+  private logger = inject(LoggerService);
 
   readonly ALERT_POSITION_THRESHOLD = ALERT_POSITION_THRESHOLD;
   private readonly peluqueriaPositionNames = PELUQUERIA_POSITION_NAMES as readonly string[];
@@ -621,10 +631,23 @@ export class PeluqueriaSectionComponent {
       }
     }
 
-    // Por branch_id: mapa de employee_id -> { name, position, positionId, entryTime, exitTime, isLate, minutesLate }
+    // Por branch_id: mapa de employee_id -> datos del empleado incluyendo tardanza
     const byBranch = new Map<
       string,
-      Map<string, { name: string; position?: string; positionId?: string; entryTime: string; exitTime?: string; isLate?: boolean; minutesLate?: number }>
+      Map<string, {
+        name: string;
+        position?: string;
+        positionId?: string;
+        entryTime: string;
+        exitTime?: string;
+        isLate?: boolean;
+        minutesLate?: number;
+        scheduledEntryTime?: string;
+        toleranceMinutes?: number;
+        branchId?: string;
+        branchName?: string;
+        timelogId?: string;
+      }>
     >();
 
     for (const log of timelogs) {
@@ -644,6 +667,8 @@ export class PeluqueriaSectionComponent {
 
       let isLate: boolean | undefined;
       let minutesLate: number | undefined;
+      let scheduledEntryTime: string | undefined;
+      let toleranceMinutes: number | undefined;
       const schedule = schedulesToday.find(
         (s: any) => s.employee_id === log.employee_id && s.start_date <= selectedDayStr && s.end_date >= selectedDayStr
       );
@@ -656,6 +681,8 @@ export class PeluqueriaSectionComponent {
             isLate = true;
             minutesLate = diff; // minutos después de la hora programada
           }
+          scheduledEntryTime = scheduledEntry;
+          toleranceMinutes = tolerance;
         }
       }
 
@@ -674,6 +701,11 @@ export class PeluqueriaSectionComponent {
           exitTime,
           isLate,
           minutesLate,
+          scheduledEntryTime,
+          toleranceMinutes,
+          branchId,
+          branchName: log.branch?.name ?? '',
+          timelogId: log.id,
         });
       }
     }
@@ -690,6 +722,11 @@ export class PeluqueriaSectionComponent {
         exitTime: data.exitTime,
         isLate: data.isLate,
         minutesLate: data.minutesLate,
+        scheduledEntryTime: data.scheduledEntryTime,
+        toleranceMinutes: data.toleranceMinutes,
+        branchId: data.branchId,
+        branchName: data.branchName,
+        timelogId: data.timelogId,
       }));
       const positionCounts: Record<string, number> = {};
       for (const data of peopleMap.values()) {
@@ -725,9 +762,67 @@ export class PeluqueriaSectionComponent {
       };
     });
 
+    // Persistir tardanzas automáticamente (fire-and-forget, no bloquea UI)
+    const allLatePeople = rows.flatMap((r) =>
+      r.people.filter((p) => p.isLate && p.minutesLate && p.minutesLate > 0)
+    );
+    if (allLatePeople.length > 0) {
+      this.persistLateRecords(allLatePeople, selectedDayStr);
+    }
+
     return rows.sort((a, b) => a.branchName.localeCompare(b.branchName));
   });
 
+  /**
+   * Persiste automáticamente los registros de tardanza en la base de datos
+   * Ejecuta en background sin bloquear la UI
+   */
+  private async persistLateRecords(
+    latePeople: PersonPeluqueria[],
+    timelogDate: string
+  ): Promise<void> {
+    for (const person of latePeople) {
+      try {
+        // Verificar que tengamos todos los datos necesarios
+        if (!person.scheduledEntryTime || !person.entryTime || !person.minutesLate) {
+          this.logger.warn(
+            `[Peluqueria] Datos incompletos para tardanza: ${person.name}`
+          );
+          continue;
+        }
+
+        // Formatear horas a HH:mm:ss
+        const [actualH, actualM] = person.entryTime.split(':');
+        const actualEntryTime = `${actualH.padStart(2, '0')}:${actualM.padStart(2, '0')}:00`;
+
+        await this.lateRecordsService.save({
+          employee_id: person.employeeId,
+          timelog_date: timelogDate,
+          scheduled_entry_time: person.scheduledEntryTime,
+          actual_entry_time: actualEntryTime,
+          minutes_late: person.minutesLate,
+          tolerance_minutes: person.toleranceMinutes ?? 0,
+          employee_name: person.name,
+          position_id: person.positionId,
+          position_name: person.position,
+          branch_id: person.branchId,
+          branch_name: person.branchName,
+          source_module: 'peluqueria',
+          source_timelog_id: person.timelogId,
+        });
+
+        this.logger.debug(
+          `[Peluqueria] Tardanza persistida: ${person.name} - ${person.minutesLate} min`
+        );
+      } catch (error) {
+        // Error silencioso - no afecta la UI
+        this.logger.error(
+          `[Peluqueria] Error persistiendo tardanza para ${person.name}:`,
+          error
+        );
+      }
+    }
+  }
   private formatScheduledTime(t: string | Date): string {
     if (typeof t === 'string') {
       const parts = t.split(':');

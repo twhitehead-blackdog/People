@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 import { employeePortalGuard } from '../guards/employee-portal.guard';
-import { permissionGuard } from '../guards/permission.guard';
+import { modulePermissionGuard, permissionGuard } from '../guards/permission.guard';
 
 export const DASHBOARD_ROUTES: Routes = [
   {
@@ -23,7 +23,7 @@ export const DASHBOARD_ROUTES: Routes = [
         path: 'admin',
         loadComponent: () =>
           import('./admin.component').then((x) => x.AdminComponent),
-        canActivate: [employeePortalGuard],
+        canActivate: [employeePortalGuard, modulePermissionGuard('admin')],
         children: [
           {
             path: 'employees',
@@ -123,6 +123,13 @@ export const DASHBOARD_ROUTES: Routes = [
               ),
           },
           {
+            path: 'device-inventory',
+            loadComponent: () =>
+              import('./device-inventory.component').then(
+                (x) => x.DeviceInventoryComponent
+              ),
+          },
+          {
             path: 'hr',
             children: [
               {
@@ -165,7 +172,7 @@ export const DASHBOARD_ROUTES: Routes = [
           import('./time-management.component').then(
             (x) => x.TimeManagementComponent
           ),
-        canActivate: [employeePortalGuard],
+        canActivate: [employeePortalGuard, modulePermissionGuard('time_management')],
         children: [
           {
             path: 'timelogs',
@@ -179,7 +186,6 @@ export const DASHBOARD_ROUTES: Routes = [
                 (x) => x.EmployeesTimetableComponent
               ),
           },
-
           {
             path: 'schedules',
             loadComponent: () =>
@@ -211,7 +217,7 @@ export const DASHBOARD_ROUTES: Routes = [
         path: 'payroll',
         loadComponent: () =>
           import('./payroll.component').then((x) => x.PayrollComponent),
-        canActivate: [employeePortalGuard],
+        canActivate: [employeePortalGuard, modulePermissionGuard('payroll')],
         children: [
           {
             path: 'payrolls',
@@ -257,6 +263,7 @@ export const DASHBOARD_ROUTES: Routes = [
         loadComponent: () =>
           import('../timeclock.component').then((x) => x.TimeclockComponent),
         canActivate: [
+          modulePermissionGuard('timeclock'),
           () =>
             import('../guards/timeclock.guard').then((m) => m.timeclockGuard),
         ],
@@ -274,7 +281,7 @@ export const DASHBOARD_ROUTES: Routes = [
           import('./branch-manager.component').then(
             (x) => x.BranchManagerComponent
           ),
-        canActivate: [employeePortalGuard],
+        canActivate: [employeePortalGuard, modulePermissionGuard('branch_manager')],
       },
     ],
   },

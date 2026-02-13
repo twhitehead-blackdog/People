@@ -93,6 +93,8 @@ export class CreditorsComponent {
       data: { creditor },
       header: 'Datos del accreedor',
       modal: true,
+      dismissableMask: true, // Cerrar al hacer clic fuera
+      closeOnEscape: true,   // Cerrar con tecla Escape
     });
     
     // Recargar la lista cuando se cierre el diálogo

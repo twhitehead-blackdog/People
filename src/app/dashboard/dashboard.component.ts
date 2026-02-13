@@ -47,6 +47,7 @@ import { SchedulesStore } from '../stores/schedules.store';
 import { EmployeePortalComponent } from './employee-portal.component';
 
 import { DogAnimationComponent } from './components/dog.component';
+import { PermissionsService } from '../services/permissions.service';
 
 @Component({
   selector: 'pt-dashboard',
@@ -123,17 +124,14 @@ import { DogAnimationComponent } from './components/dog.component';
             </div>
             <div class="header-menu hidden lg:flex">
               <div class="flex flex-wrap items-center justify-center gap-x-1 gap-y-1">
-                @if(store.hasDashboardAccess() && store.isAdmin() &&
-                !store.hasPortalAccessOnly() &&
-                !store.hasTimeManagementAccess()) {
+                @if(store.isAdmin() && canAccessAdmin()) {
                 <a
                   (click)="navigateTo('home')"
                   [class.selected]="isHomeActive()"
                   class="nav-link text-gray-300 hover:text-white hover:bg-gray-700/50 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md cursor-pointer whitespace-nowrap"
                   ><i class="pi pi-home text-base flex-shrink-0"></i> <span>Inicio</span></a
                 >
-                } @if(store.hasDashboardAccess() && store.isAdmin() &&
-                !store.hasPortalAccessOnly()) {
+                } @if(store.isAdmin() && canAccessAdmin()) {
                 <a
                   (click)="navigateTo('admin')"
                   [class.selected]="isAdminActive()"
@@ -142,8 +140,7 @@ import { DogAnimationComponent } from './components/dog.component';
                   <i class="pi pi-building text-base flex-shrink-0"></i>
                   <span>Administración</span></a
                 >
-                } @if(store.hasDashboardAccess() && store.isAdmin() &&
-                !store.hasPortalAccessOnly()) {
+                } @if(store.isAdmin() && canAccessPayroll()) {
                 <a
                   (click)="navigateTo('payroll')"
                   [class.selected]="isPayrollActive()"
@@ -152,9 +149,7 @@ import { DogAnimationComponent } from './components/dog.component';
                   <i class="pi pi-money-bill text-base flex-shrink-0"></i>
                   <span>Nómina</span></a
                 >
-                } @if((store.hasDashboardAccess() && (store.isAdmin() ||
-                (store.isScheduleAdmin() && !store.hasPortalAccessOnly()))) ||
-                store.hasTimeManagementAccess()) {
+                } @if((store.isAdmin() || store.hasTimeManagementAccess()) && canAccessTimeManagement()) {
                 <a
                   (click)="navigateTo('time-management')"
                   [class.selected]="isTimeManagementActive()"
@@ -162,7 +157,7 @@ import { DogAnimationComponent } from './components/dog.component';
                   ><i class="pi pi-calendar text-base flex-shrink-0"></i>
                   <span>Gestión de tiempo</span></a
                 >
-                }
+                } @if((store.isAdmin() || store.hasDashboardAccess() || store.hasTimeManagementAccess()) && canAccessTimeclock()) {
                 <a
                   (click)="navigateTo('timeclock')"
                   [class.selected]="isTimeclockActive()"
@@ -170,6 +165,7 @@ import { DogAnimationComponent } from './components/dog.component';
                   ><i class="pi pi-clock text-base flex-shrink-0"></i>
                   <span>Reloj de marcación</span></a
                 >
+                }
               </div>
             </div>
             <div class="header-user hidden md:block">
@@ -232,8 +228,7 @@ import { DogAnimationComponent } from './components/dog.component';
           [class.hidden]="isCollapsed()"
         >
           <div class="space-y-1 px-2 pt-2 pb-3 sm:px-3">
-            @if(store.hasDashboardAccess() && store.isAdmin() &&
-            !store.hasPortalAccessOnly() && !store.hasTimeManagementAccess()) {
+            @if(store.isAdmin() && canAccessAdmin()) {
             <a
               (click)="navigateTo('home'); toggleMenu()"
               [class.bg-gray-700]="isHomeActive()"
@@ -242,8 +237,7 @@ import { DogAnimationComponent } from './components/dog.component';
               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
               ><i class="pi pi-home text-lg"></i> <span>Inicio</span></a
             >
-            } @if(store.hasDashboardAccess() && store.isAdmin() &&
-            !store.hasPortalAccessOnly()) {
+            } @if(store.isAdmin() && canAccessAdmin()) {
             <a
               (click)="navigateTo('admin'); toggleMenu()"
               [class.bg-gray-700]="isAdminActive()"
@@ -253,9 +247,7 @@ import { DogAnimationComponent } from './components/dog.component';
               ><i class="pi pi-building text-lg"></i>
               <span>Administración</span></a
             >
-            } @if((store.hasDashboardAccess() && (store.isAdmin() ||
-            (store.isScheduleAdmin() && !store.hasPortalAccessOnly()))) ||
-            store.hasTimeManagementAccess()) {
+            } @if((store.isAdmin() || store.hasTimeManagementAccess()) && canAccessTimeManagement()) {
             <a
               (click)="navigateTo('time-management'); toggleMenu()"
               [class.bg-gray-700]="isTimeManagementActive()"
@@ -265,8 +257,7 @@ import { DogAnimationComponent } from './components/dog.component';
               ><i class="pi pi-calendar text-lg"></i>
               <span>Gestión de tiempo</span></a
             >
-            } @if(store.hasDashboardAccess() && store.isAdmin() &&
-            !store.hasPortalAccessOnly()) {
+            } @if(store.isAdmin() && canAccessPayroll()) {
             <a
               (click)="navigateTo('payroll'); toggleMenu()"
               [class.bg-gray-700]="isPayrollActive()"
@@ -275,7 +266,7 @@ import { DogAnimationComponent } from './components/dog.component';
               class="rounded-lg px-4 py-3 min-h-[44px] text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer touch-manipulation"
               ><i class="pi pi-money-bill text-lg"></i> <span>Nómina</span></a
             >
-            }
+            } @if((store.isAdmin() || store.hasDashboardAccess() || store.hasTimeManagementAccess()) && canAccessTimeclock()) {
             <a
               (click)="navigateTo('timeclock'); toggleMenu()"
               [class.bg-gray-700]="isTimeclockActive()"
@@ -285,6 +276,7 @@ import { DogAnimationComponent } from './components/dog.component';
               ><i class="pi pi-clock text-lg"></i>
               <span>Reloj de marcación</span></a
             >
+            }
           </div>
           @if(user) {
           <div class="border-t border-gray-700/50 pt-4 pb-3 px-5">
@@ -634,10 +626,28 @@ export class DashboardComponent {
   public banksStore = inject(BanksStore);
   public payrollsStore = inject(PayrollsStore);
   public screenLockService = inject(ScreenLockService);
+  private permissionsService = inject(PermissionsService);
   private injector = inject(Injector);
 
   // Signal para la IP actual
   private currentIP = signal<string | null>(null);
+
+  // Computed para verificar acceso a módulos de frontend
+  public canAccessAdmin = computed(() =>
+    this.permissionsService.canAccessModule('admin')
+  );
+  public canAccessTimeManagement = computed(() =>
+    this.permissionsService.canAccessModule('time_management')
+  );
+  public canAccessPayroll = computed(() =>
+    this.permissionsService.canAccessModule('payroll')
+  );
+  public canAccessTimeclock = computed(() =>
+    this.permissionsService.canAccessModule('timeclock')
+  );
+  public canAccessBranchManager = computed(() =>
+    this.permissionsService.canAccessModule('branch_manager')
+  );
 
   // Computed para verificar si es Naz
   public isNaz = computed(() => this.organizationService.isNaz());
@@ -930,12 +940,9 @@ export class DashboardComponent {
       },
     ];
 
-    // Agregar Gestión de Tienda para gerentes, administradores y Gerente de Tienda
-    // Si tiene hasTimeManagementAccess, mostrar independientemente de hasDashboardAccess
-    if (
-      (hasDashboardAccess && (isAdmin || isScheduleAdmin)) ||
-      hasTimeManagementAccess
-    ) {
+    // Agregar Gestión de Tienda para admins y usuarios con acceso a gestión de tiempo
+    const canBranchManager = this.canAccessBranchManager();
+    if ((isAdmin || hasTimeManagementAccess) && canBranchManager) {
       items.push({
         label: 'Gestión de Tienda',
         icon: 'pi pi-shop',

@@ -30,14 +30,24 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
             console.error('[ErrorInterceptor] 401 Unauthorized detected!');
             console.error('[ErrorInterceptor] URL:', req.url);
             console.error('[ErrorInterceptor] Error details:', error.error);
-            errorMessage = 'Tu sesion ha expirado. Por favor, inicia sesion nuevamente.';
-            // Invalidar cache del guard si existe
-            if (typeof window !== 'undefined') {
-              // Limpiar cualquier dato de sesión local
-              sessionStorage.clear();
-              localStorage.removeItem('auth_token');
+            
+            // Solo redirigir al login si es un error de Auth0, NO si es de Supabase
+            // Los errores 401 de Supabase son por RLS o claves incorrectas, no por sesión expirada
+            const isSupabaseRequest = req.url.includes('supabase') || req.url.includes('dzyckfezcmcqvnmagafq');
+            
+            if (isSupabaseRequest) {
+              errorMessage = 'Error de autenticación con la base de datos. Contacta al administrador.';
+              // No limpiar sesión ni redirigir para errores de Supabase
+            } else {
+              errorMessage = 'Tu sesion ha expirado. Por favor, inicia sesion nuevamente.';
+              // Invalidar cache del guard si existe
+              if (typeof window !== 'undefined') {
+                // Limpiar cualquier dato de sesión local
+                sessionStorage.clear();
+                localStorage.removeItem('auth_token');
+              }
+              router.navigate(['/login']);
             }
-            router.navigate(['/login']);
             break;
           case 403:
             errorMessage = 'No tienes permisos para realizar esta acción.';

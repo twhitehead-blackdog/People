@@ -17,7 +17,7 @@ import {
   subMonths,
 } from 'date-fns';
 import { checkSalaryAccess } from '../dashboard/pt-permissions/permissions.types';
-import { Branch, Department, Position } from '../models';
+import { Branch, Department, Employee, Position } from '../models';
 import { TestModeService } from '../services/test-mode.service';
 import { AuthStore } from './auth.store';
 import { BanksStore } from './banks.store';
@@ -28,6 +28,36 @@ import { EmployeesStore } from './employees.store';
 import { PayrollsStore } from './payrolls.store';
 import { PositionsStore } from './positions.store';
 import { SchedulesStore } from './schedules.store';
+
+/**
+ * Helper: reads a specific legacy permission from the employee's override,
+ * falling back to position property if no override exists.
+ * This avoids importing PermissionsService (circular dependency).
+ */
+function getEmployeePermission(
+  employee: Employee | undefined,
+  key: 'admin' | 'schedule_admin' | 'schedule_approver' | 'dashboard_access'
+): boolean {
+  if (!employee) return false;
+
+  // 1. Try legacy_permissions_override (primary source)
+  const raw = employee.legacy_permissions_override;
+  if (raw) {
+    try {
+      const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      if (parsed && typeof parsed === 'object' && key in parsed) {
+        return !!parsed[key];
+      }
+    } catch {
+      // Fall through to position
+    }
+  }
+
+  // 2. Fallback to position (for employees without override yet)
+  const position = employee.position;
+  if (!position) return false;
+  return !!(position as any)[key];
+}
 
 type State = {
   selectedCompanyId: string | null;
@@ -94,12 +124,6 @@ export const DashboardStore = signalStore(
         return total;
       });
 
-      // Lista de correos con acceso completo (super admins)
-      const superAdminEmails = [
-        'mercadeo@blackdogpanama.com',
-        'soporte2@blackdogpanama.com',
-      ];
-
       const isAdmin = computed(() => {
         const employee = currentEmployee();
         const currentMode = testMode.currentMode;
@@ -108,33 +132,12 @@ export const DashboardStore = signalStore(
 
         // Si es soporte2 y está en modo de prueba, respetar el modo
         if (isSupportUser && currentMode !== null) {
-          // Solo es admin si está en modo "admin"
           return currentMode === 'admin';
         }
 
-        // Verificar si es super admin por correo
-        if (
-          employee?.work_email &&
-          superAdminEmails.includes(employee.work_email.toLowerCase())
-        ) {
-          return true;
-        }
-        // Si el empleado solo tiene acceso al portal, no es admin
-        if (employee?.has_portal_access && !employee?.position?.admin) {
-          return false;
-        }
-        // Verificar si es admin por posición
-        return employee?.position?.admin || false;
+        // Usar legacy_permissions_override > position fallback
+        return getEmployeePermission(employee, 'admin');
       });
-
-      // Lista de cargos que solo tienen acceso al portal (no al reloj de marcaciones)
-      const portalOnlyPositions = [
-        'Piso de venta',
-        'Veterinario',
-        'Peluquero',
-        'Asistente de veterinario',
-        'Asistente de peluquería',
-      ];
 
       const hasPortalAccessOnly = computed(() => {
         const employee = currentEmployee();
@@ -144,53 +147,41 @@ export const DashboardStore = signalStore(
 
         // Si es soporte2 y está en modo de prueba, respetar el modo
         if (isSupportUser && currentMode !== null) {
-          // Solo tiene acceso al portal si está en modo "empleado"
           return currentMode === 'empleado';
         }
 
-        const positionName = employee?.position?.name || '';
+        // Derivar de flags: si ningún permiso está activo, solo tiene acceso al portal
+        const isAdminPerm = getEmployeePermission(employee, 'admin');
+        const hasDashboard = getEmployeePermission(employee, 'dashboard_access');
+        const hasScheduleAdmin = getEmployeePermission(employee, 'schedule_admin');
+        const hasScheduleApprover = getEmployeePermission(employee, 'schedule_approver');
 
-        // Verificar si el cargo está en la lista de cargos que solo tienen acceso al portal
-        const isPortalOnlyPosition = portalOnlyPositions.some((pos) =>
-          positionName.toLowerCase().includes(pos.toLowerCase())
-        );
-
-        // Si tiene uno de estos cargos, solo acceso al portal
-        if (isPortalOnlyPosition) {
-          return true;
-        }
-
-        // Si tiene dashboard_access = true, NO es solo portal access
-        if (employee?.position?.dashboard_access === true) {
-          return false;
-        }
-
-        // Verificación original: si tiene has_portal_access y no es admin
-        return (
-          employee?.has_portal_access === true && !employee?.position?.admin
-        );
+        return !isAdminPerm && !hasDashboard && !hasScheduleAdmin && !hasScheduleApprover;
       });
       const isScheduleAdmin = computed(
-        () => currentEmployee()?.position?.schedule_admin
+        () => getEmployeePermission(currentEmployee(), 'schedule_admin')
       );
-
-      // Lista de cargos que tienen acceso especial a gestión de tiempo y reloj de marcaciones (mismas limitaciones para ambos)
-      const timeManagementAccessPositions = ['gerente de tienda', 'subgerente'];
 
       const hasTimeManagementAccess = computed(() => {
         const employee = currentEmployee();
-        const positionName = employee?.position?.name || '';
-        return timeManagementAccessPositions.some((pos) =>
-          positionName.toLowerCase().includes(pos.toLowerCase())
-        );
+        const currentMode = testMode.currentMode;
+        const isSupportUser =
+          employee?.work_email && testMode.isSupportUser(employee.work_email);
+
+        // Si es soporte2 y está en modo de prueba, respetar el modo
+        if (isSupportUser && currentMode !== null) {
+          return currentMode === 'gerente';
+        }
+
+        // Usar flags: schedule_admin o schedule_approver
+        return getEmployeePermission(employee, 'schedule_admin') ||
+          getEmployeePermission(employee, 'schedule_approver');
       });
 
       const hasDashboardAccess = computed(() => {
         const employee = currentEmployee();
-        const dashboardAccess = employee?.position?.dashboard_access;
-        // Si dashboard_access es null/undefined, permitir acceso (compatibilidad con datos antiguos)
-        // Solo denegar si es explícitamente false
-        return dashboardAccess !== false;
+        // Usar legacy_permissions_override > position fallback
+        return getEmployeePermission(employee, 'dashboard_access');
       });
 
       const isScheduleApprover = computed(() => {
@@ -201,12 +192,11 @@ export const DashboardStore = signalStore(
 
         // Si es soporte2 y está en modo de prueba, respetar el modo
         if (isSupportUser && currentMode !== null) {
-          // Tiene permisos de schedule_approver si está en modo "gerente"
           return currentMode === 'gerente';
         }
 
-        // Comportamiento normal
-        return employee?.position?.schedule_approver || false;
+        // Usar legacy_permissions_override > position fallback
+        return getEmployeePermission(employee, 'schedule_approver');
       });
 
       // Método unificado: verifica si el usuario puede gestionar horarios
@@ -694,7 +684,7 @@ export const DashboardStore = signalStore(
           const monthDiff = now.getMonth() - birthDate.getMonth();
           const adjustedAge =
             monthDiff < 0 ||
-            (monthDiff === 0 && now.getDate() < birthDate.getDate())
+              (monthDiff === 0 && now.getDate() < birthDate.getDate())
               ? age - 1
               : age;
           return acc + adjustedAge;
@@ -729,7 +719,7 @@ export const DashboardStore = signalStore(
           const monthDiff = now.getMonth() - birthDate.getMonth();
           const adjustedAge =
             monthDiff < 0 ||
-            (monthDiff === 0 && now.getDate() < birthDate.getDate())
+              (monthDiff === 0 && now.getDate() < birthDate.getDate())
               ? age - 1
               : age;
 
@@ -871,8 +861,8 @@ export const DashboardStore = signalStore(
         return (
           Math.round(
             ((currentEmployees - employeesLastMonth) / employeesLastMonth) *
-              100 *
-              100
+            100 *
+            100
           ) / 100
         );
       });

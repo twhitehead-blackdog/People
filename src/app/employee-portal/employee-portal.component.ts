@@ -311,6 +311,7 @@ import {
           [today]="today"
           [compensatoryFile]="portalStore.compensatoryForm().compensatoryFile"
           (compensatoryFileChange)="setCompensatoryFile($event)"
+          [uploadingFile]="false"
           [isBranchManagerView]="isBranchManager()"
           [availableEmployees]="branchEmployees()"
           [selectedEmployeeId]="
