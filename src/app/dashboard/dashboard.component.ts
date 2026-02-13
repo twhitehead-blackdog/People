@@ -33,6 +33,7 @@ import {
   OrganizationService,
 } from '../services/organization.service';
 import { ScreenLockService } from '../services/screen-lock.service';
+import { SupabaseRealtimeService } from '../services/supabase-realtime.service';
 import { TestModeService } from '../services/test-mode.service';
 import { AuthStore } from '../stores/auth.store';
 import { BanksStore } from '../stores/banks.store';
@@ -615,6 +616,7 @@ export class DashboardComponent {
   public currentRoute = signal('');
   public showEmployeePortalView = signal(false);
   public organizationService = inject(OrganizationService);
+  private realtimeService = inject(SupabaseRealtimeService);
   public testModeService = inject(TestModeService);
   public http = inject(HttpClient);
   public branchesStore = inject(BranchesStore);
@@ -1060,6 +1062,9 @@ export class DashboardComponent {
         label: 'Cerrar sesion',
         icon: 'pi pi-sign-out',
         command: () => {
+          // Desconectar Supabase Realtime antes de cerrar sesión
+          this.realtimeService.disconnectAll();
+
           // Limpiar selección de organización antes de cerrar sesión
           this.organizationService.clearOrganization();
 

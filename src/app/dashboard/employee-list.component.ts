@@ -173,8 +173,8 @@ import { EmployeeFormComponent } from './employee-form.component';
           #dt
           [value]="this.filtered()"
           [loading]="store.employees.isLoading()"
-          [paginator]="true"
-          [rows]="15"
+          [paginator]="branchFilter().length === 0"
+          [rows]="branchFilter().length > 0 ? 9999 : 15"
           [rowsPerPageOptions]="[10, 15, 25, 50]"
           dataKey="id"
           paginatorDropdownAppendTo="body"

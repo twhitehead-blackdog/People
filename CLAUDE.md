@@ -332,6 +332,47 @@ public async submitRequest(): Promise<void> {
 
 **Referencia:** Ver `branch-manager-gestiones.component.ts` métodos `onDisabilityFileSelect`, `onVacationFileSelect`.
 
+## Versioning (OBLIGATORIO en cada deploy)
+
+**Cada vez que se haga un cambio y se despliegue, se DEBE bumpar la versión en `package.json`.** Esto activa el popup de "Nueva versión disponible" para los usuarios que tienen la app abierta.
+
+### Cómo funciona
+
+1. `src/app/services/version-check.service.ts` hace polling a `/api/version` cada 60 segundos
+2. `server.ts` expone `/api/version` leyendo la versión de `package.json`
+3. Si la versión del servidor difiere de la que el usuario cargó, `AppComponent` muestra un diálogo modal obligando a recargar
+4. Sin bump de versión → los usuarios no ven el popup → pueden usar código viejo con datos nuevos
+
+### Pasos para bumpar
+
+```bash
+# En package.json, incrementar la versión (semver: major.minor.patch)
+# Ejemplo: "4.0.6" → "4.0.7" para un fix/cambio menor
+
+# npm run build ya incluye update-version automáticamente
+npm run build    # actualiza src/app/version.ts + compila
+
+# Reiniciar el servicio (el servidor lee package.json al arrancar)
+sudo systemctl restart people-backend          # producción
+sudo systemctl restart people-prueba-backend   # staging
+```
+
+### Reglas de versionado
+
+- **Patch** (4.0.X): bug fixes, ajustes de UI, cambios menores
+- **Minor** (4.X.0): features nuevos, cambios de comportamiento
+- **Major** (X.0.0): cambios que rompen compatibilidad (raro)
+
+### Archivos involucrados
+
+| Archivo | Rol |
+|---------|-----|
+| `package.json` → `version` | Fuente de verdad, se edita manualmente |
+| `src/app/version.ts` | Generado por `npm run update-version`, embebido en el build frontend |
+| `server.ts` → `/api/version` | Endpoint que expone la versión al frontend |
+| `src/app/services/version-check.service.ts` | Polling cada 60s, compara versiones |
+| `src/app/app.component.ts` | Muestra el diálogo modal cuando hay diferencia |
+
 ## Environment Variables
 
 Required for development:

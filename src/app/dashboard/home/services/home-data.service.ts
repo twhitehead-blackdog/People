@@ -1,7 +1,8 @@
-import { Injectable, inject, computed, signal } from '@angular/core';
+import { Injectable, inject, computed, signal, effect } from '@angular/core';
 import { httpResource } from '@angular/common/http';
 import { ApiUrlService } from '../../../services/api-url.service';
 import { OrganizationService } from '../../../services/organization.service';
+import { SupabaseRealtimeService } from '../../../services/supabase-realtime.service';
 import { startOfMonth, endOfMonth, format, startOfDay, addDays } from 'date-fns';
 import { toZonedTime } from 'date-fns-tz';
 
@@ -68,8 +69,22 @@ export interface OdooSaleOrder {
 export class HomeDataService {
   private apiUrl = inject(ApiUrlService);
   private organizationService = inject(OrganizationService);
+  private realtimeService = inject(SupabaseRealtimeService);
 
   private currentCompanyId = computed(() => this.organizationService.getCurrentCompanyId());
+
+  // Realtime: reload timelog resources when timelogs table changes
+  private timelogChanges = this.realtimeService.subscribeToTable('timelogs');
+  private realtimeReloadTrigger = effect(() => {
+    const batch = this.timelogChanges();
+    if (!batch) return;
+    // Reload all timelog-related httpResources
+    this.latesFromTimelogs.reload();
+    this.timelogsEntryToday.reload();
+    this.timelogsExitToday.reload();
+    this.timelogsEntryForPeluqueriaView.reload();
+    this.timelogsExitForPeluqueriaView.reload();
+  });
 
   // Terminations API for calculating exits/turnover
   terminationsApi = httpResource<TerminationRecord[]>(() => {

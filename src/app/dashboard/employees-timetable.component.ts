@@ -225,6 +225,7 @@ import {
         [selectionMode]="bulkSelectionMode()"
         [selectedKeys]="selectedSelectionKeys()"
         [isStoreManager]="permissionsService.isStoreManager()"
+        [disablePagination]="!!filterService.currentBranch()"
         (editShift)="editSchedule($event)"
         (deleteShift)="deleteSchedule($event.shift, $event.date)"
         (approveShift)="approveSchedule($event)"

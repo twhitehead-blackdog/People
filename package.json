@@ -1,6 +1,6 @@
 {
   "name": "@people/source",
-  "version": "4.0.5",
+  "version": "4.1.1",
   "license": "MIT",
   "scripts": {
     "start": "nx serve",

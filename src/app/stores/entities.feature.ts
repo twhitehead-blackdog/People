@@ -24,6 +24,7 @@ import { differenceInSeconds } from 'date-fns';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { filter, from, Observable, pipe, switchMap, tap } from 'rxjs';
 import { OrganizationService } from '../services/organization.service';
+import { RealtimeBatch } from '../services/supabase-realtime.service';
 import { getTableNameFromService } from '../utils/table-helper';
 
 type State = {
@@ -194,6 +195,38 @@ export function withCustomEntities<T extends { id: EntityId }>({
 
       // Obtener el nombre correcto de la tabla según la organización
       const getTable = () => getTableNameFromService(name, state._orgService);
+
+      // Helper to perform a full reload (shared between reloadItems and _handleRealtimeBatch)
+      const doReload = () => {
+        patchState(state, { lastUpdated: null, isLoading: true, error: null });
+        const tableName = getTable();
+        const companyId = getCurrentCompanyId();
+        const cleanedQuery = cleanQuery(query, tableName, state._orgService);
+        const params = addCompanyFilter(
+          { select: cleanedQuery, order: order },
+          companyId,
+          tableName,
+          state._orgService
+        );
+        const url = state._apiUrl.build(`rest/v1/${tableName}`, params);
+        state._http
+          .get<T[]>(url)
+          .pipe(
+            tapResponse({
+              next: (entities) => {
+                patchState(state, setAllEntities(entities), {
+                  lastUpdated: new Date(),
+                });
+              },
+              error: (error: unknown) => {
+                console.error(`[${name}] Error reloading items:`, error);
+                patchState(state, { error });
+              },
+              finalize: () => patchState(state, { isLoading: false }),
+            })
+          )
+          .subscribe();
+      };
 
       return {
         selectEntity: (id: EntityId) => {
@@ -597,6 +630,60 @@ export function withCustomEntities<T extends { id: EntityId }>({
                 .subscribe();
             },
           });
+        },
+        /**
+         * Handle a batch of realtime events from Supabase Realtime.
+         * Called by withRealtimeSync feature.
+         */
+        _handleRealtimeBatch(batch: RealtimeBatch): void {
+          // If the query has JOINs (embedded relations), we need a full reload
+          // to get the complete data with relations populated.
+          const hasJoins = query.includes(':') && query.includes('(');
+
+          let needsReload = false;
+
+          for (const event of batch.events) {
+            switch (event.type) {
+              case 'INSERT': {
+                if (hasJoins) {
+                  // Can't add with incomplete data (missing relations), reload
+                  needsReload = true;
+                } else {
+                  const entity = event.record as T;
+                  if (entity?.id) {
+                    patchState(state, addEntity(entity));
+                  }
+                }
+                break;
+              }
+              case 'UPDATE': {
+                const entity = event.record as T;
+                if (entity?.id) {
+                  // Update with flat fields immediately for responsiveness
+                  patchState(
+                    state,
+                    updateEntity({ id: entity.id, changes: entity as any })
+                  );
+                  // If query has JOINs, also reload to refresh embedded relations
+                  if (hasJoins) {
+                    needsReload = true;
+                  }
+                }
+                break;
+              }
+              case 'DELETE': {
+                const id = event.old_record?.['id'] as EntityId;
+                if (id) {
+                  patchState(state, removeEntity(id));
+                }
+                break;
+              }
+            }
+          }
+
+          if (needsReload) {
+            doReload();
+          }
         },
       };
     })
