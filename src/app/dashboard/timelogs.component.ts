@@ -624,7 +624,7 @@ export class TimelogsComponent {
     const companyId = this.organizationService.getCurrentCompanyId();
     const startDate = format(start, 'yyyy-MM-dd');
     const endDate = format(end, 'yyyy-MM-dd');
-    const select = `*,schedule:schedules(*)`;
+    const select = `id,employee_id,start_date,end_date,approved,schedule:schedules(id,name,entry_time,lunch_start_time,lunch_end_time,exit_time,day_off,minutes_tolerance,min_lunch_minutes,max_lunch_minutes)`;
 
     const params: Record<string, string> = {
       select: select,

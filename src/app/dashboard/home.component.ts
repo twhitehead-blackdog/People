@@ -212,11 +212,16 @@ export class HomeComponent {
     return this.state.birthDates().length;
   });
 
-  // API resource para obtener todas las terminaciones (necesario para cálculo histórico)
+  // API resource para obtener terminaciones filtradas por company_id
   public terminationsApi = httpResource<any[]>(() => {
-    const baseUrl = this.apiUrl.baseUrl;
-    // Obtener todas las terminaciones, no solo del mes actual
-    const url = `${baseUrl}/rest/v1/terminations?select=date,reason,employee_id&order=date.asc`;
+    const companyId = this.organizationService.getCurrentCompanyId();
+    if (!companyId) return undefined;
+
+    const url = this.apiUrl.build('rest/v1/terminations', {
+      company_id: `eq.${companyId}`,
+      select: 'date,reason,employee_id',
+      order: 'date.asc',
+    });
     return {
       url,
       method: 'GET',
@@ -329,7 +334,7 @@ export class HomeComponent {
     // El interceptor HTTP agregará el header Range automáticamente para peticiones a timelogs
     const companyId = this.organizationService.getCurrentCompanyId();
     // Usar !timelogs_employee_id_fkey para especificar la relación correcta (hay dos FKs a employees)
-    let url = `${baseUrl}/rest/v1/timelogs?select=created_at,employee_id,type,employee:employees!timelogs_employee_id_fkey!inner(first_name,father_name,is_active)&type=eq.entry&created_at=gte.${from}&created_at=lte.${to}&order=created_at.asc&limit=5000`;
+    let url = `${baseUrl}/rest/v1/timelogs?select=created_at,employee_id,type,employee:employees!timelogs_employee_id_fkey!inner(first_name,father_name,is_active)&type=eq.entry&created_at=gte.${from}&created_at=lte.${to}&order=created_at.asc&limit=2000`;
     
     // Filtrar solo empleados activos
     url += `&employee.is_active=eq.true`;
@@ -371,7 +376,7 @@ export class HomeComponent {
     // Usaremos ambas estrategias: primero intentar con company_id directo,
     // y si no hay resultados, usar el filtro a través de employees
     
-    let url = `${baseUrl}/rest/v1/employee_schedules?select=*,schedule:schedules(*),employee:employees!inner(id,company_id,is_active)`;
+    let url = `${baseUrl}/rest/v1/employee_schedules?select=id,employee_id,schedule_id,branch_id,start_date,end_date,approved,schedule:schedules(id,name,day_off,entry_time,exit_time),employee:employees!inner(id,company_id,is_active)`;
     url += `&start_date=lte.${monthEnd}&end_date=gte.${monthStart}`;
     
     // Filtrar solo empleados activos
