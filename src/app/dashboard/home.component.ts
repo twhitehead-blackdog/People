@@ -212,13 +212,9 @@ export class HomeComponent {
     return this.state.birthDates().length;
   });
 
-  // API resource para obtener terminaciones filtradas por company_id
+  // API resource para obtener terminaciones (tabla no tiene company_id)
   public terminationsApi = httpResource<any[]>(() => {
-    const companyId = this.organizationService.getCurrentCompanyId();
-    if (!companyId) return undefined;
-
     const url = this.apiUrl.build('rest/v1/terminations', {
-      company_id: `eq.${companyId}`,
       select: 'date,reason,employee_id',
       order: 'date.asc',
     });
