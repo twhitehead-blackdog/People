@@ -27,7 +27,7 @@ export const EmployeesStore = signalStore(
     // Query base - se adaptará automáticamente para naz_* cuando corresponda
     // Nota: naz_positions no tiene dashboard_access ni default_view, así que no los incluimos
     query:
-      'id,employee_number,first_name,middle_name,father_name,mother_name,birth_date,gender,start_date,monthly_salary,end_date,email,phone_number,is_active,company_id,branch_id,department_id,position_id,created_at,branch:branches(id,name,short_name),department:departments(id,name),position:positions(id,name,admin,schedule_admin,schedule_approver,dashboard_access,default_view),work_email,has_portal_access,account_approved,frontend_permissions_override,legacy_permissions_override',
+      'id,employee_number,first_name,middle_name,father_name,mother_name,birth_date,gender,start_date,monthly_salary,document_id,uniform_size,end_date,email,phone_number,is_active,company_id,branch_id,department_id,position_id,created_at,branch:branches(id,name,short_name),department:departments(id,name),position:positions(id,name,admin,schedule_admin,schedule_approver,dashboard_access,default_view),work_email,has_portal_access,account_approved,frontend_permissions_override,legacy_permissions_override',
     detailsQuery:
       '*, branch:branches(*), department:departments(*), position:positions(*)',
   }),

@@ -1,5 +1,7 @@
 # CLAUDE.md
 
+> **⚠️ OBLIGATORIO:** Al iniciar CADA conversación, SIEMPRE ejecutar primero el workflow `/context` para cargar el contexto del proyecto desde `.context/`. Esto reduce tokens y evita re-descubrir información. Leer `.context/00-INDEX.md` como mínimo antes de cualquier tarea.
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
