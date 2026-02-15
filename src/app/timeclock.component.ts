@@ -21,7 +21,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { Router } from '@angular/router';
-import { compareDesc, differenceInMinutes, format, getDate, getHours, getMinutes, getMonth, getSeconds, getYear, set } from 'date-fns';
+import { format, getHours, getMinutes, getSeconds } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 import * as OTPAuth from 'otpauth';
@@ -52,6 +52,22 @@ import { DiagnosticService } from './services/diagnostic.service';
 import { IpMonitorService } from './services/ip-monitor.service';
 import { OrganizationService } from './services/organization.service';
 import { TimeSyncService } from './services/time-sync.service';
+import {
+  initAudioContext,
+  playFailureSound,
+  playLateSound,
+  playSuccessSound,
+} from './timeclock/timeclock-audio.utils';
+import {
+  calculateEntryDelay,
+  calculateExitDifference,
+  calculateLunchExcess,
+  calculateStreak,
+  formatTimeDifference,
+  getAvailableTypes,
+  getNextTimelogType,
+  getPanamaNowParts,
+} from './timeclock/timeclock-calculations.utils';
 import { getEnv } from './utils/env.utils';
 
 @Component({
@@ -1026,12 +1042,6 @@ export class TimeclockComponent implements OnDestroy {
   private destroyRef = inject(DestroyRef);
   private diagnosticService = inject(DiagnosticService);
   private readonly DISPLAY_TIMEZONE = 'America/Panama';
-  /** Empleado con sonido personalizado al marcar exitosamente */
-  private readonly EMPLOYEE_PERSONALIZED_SOUND_ID = '202c46ab-04f9-41e8-a572-d9f50f7f31b6';
-  /** Sonidos personalizados para empleado específico (squirrel/cockatoo al azar) */
-  private readonly PERSONALIZED_SUCCESS_SOUNDS = ['/sounds/squirrel.mp3', '/sounds/cockatoo.mp3'];
-  /** Sonidos para empleados en general (meow/bark al azar) */
-  private readonly GENERAL_SUCCESS_SOUNDS = ['/sounds/meow.mp3', '/sounds/bark.mp3'];
   // Get IP address - try multiple methods to get real IP even from localhost
   public currentIP = signal<string>('127.0.0.1');
   public isProcessing = signal<boolean>(false);
@@ -1439,43 +1449,7 @@ export class TimeclockComponent implements OnDestroy {
 
   // Update available types based on last timelog
   private updateAvailableTypes(lastType: string | null) {
-    const allTypes = this.types;
-    if (!lastType) {
-      // No previous log today, show all types
-      this.availableTypes.set(allTypes);
-      return;
-    }
-
-    // Filter types based on last log
-    // Allow exit at any point after entry (for emergencies)
-    let filtered: Array<{ value: string; label: string }> = [];
-
-    switch (lastType) {
-      case 'entry':
-        // Can do lunch_start or exit (for emergencies)
-        filtered = allTypes.filter(
-          (t) => t.value === 'lunch_start' || t.value === 'exit'
-        );
-        break;
-      case 'lunch_start':
-        // Can do lunch_end or exit (for emergencies)
-        filtered = allTypes.filter(
-          (t) => t.value === 'lunch_end' || t.value === 'exit'
-        );
-        break;
-      case 'lunch_end':
-        // Can do exit next
-        filtered = allTypes.filter((t) => t.value === 'exit');
-        break;
-      case 'exit':
-        // Can start new day with entry
-        filtered = allTypes.filter((t) => t.value === 'entry');
-        break;
-      default:
-        filtered = allTypes;
-    }
-
-    this.availableTypes.set(filtered.length > 0 ? filtered : allTypes);
+    this.availableTypes.set(getAvailableTypes(lastType, this.types));
   }
 
   // Add number to OTP from keypad
@@ -1676,25 +1650,9 @@ export class TimeclockComponent implements OnDestroy {
     );
   }
 
-  // Determine next timelog type based on last entry
+  // Delegates to pure function
   private getNextTimelogType(lastType: string | null): string {
-    if (!lastType) {
-      return 'entry'; // First entry of the day
-    }
-
-    // Determine next type in sequence
-    switch (lastType) {
-      case 'entry':
-        return 'lunch_start';
-      case 'lunch_start':
-        return 'lunch_end';
-      case 'lunch_end':
-        return 'exit';
-      case 'exit':
-        return 'entry'; // New day starts (shouldn't happen if we filter by today)
-      default:
-        return 'entry';
-    }
+    return getNextTimelogType(lastType);
   }
 
   // Get employee schedule for today
@@ -1731,57 +1689,15 @@ export class TimeclockComponent implements OnDestroy {
       );
   }
 
-  // Calculate if entry is late
   private calculateDelay(
     entryTime: Date,
     schedule: Schedule | NazSchedule | undefined
   ): number | null {
-    if (!schedule || !schedule.entry_time || schedule.day_off) {
-      return null;
-    }
-
-    const entryTimeStr = format(entryTime, 'HH:mm:ss');
-    const scheduleTimeStr =
-      typeof schedule.entry_time === 'string'
-        ? schedule.entry_time
-        : format(new Date(schedule.entry_time), 'HH:mm:ss');
-
-    const entryParts = entryTimeStr.split(':');
-    const scheduleParts = scheduleTimeStr.split(':');
-
-    let entryDate = new Date();
-    entryDate = set(entryDate, { hours: +entryParts[0], minutes: +entryParts[1], seconds: +entryParts[2] || 0, milliseconds: 0 });
-
-    let scheduleDate = new Date();
-    scheduleDate = set(scheduleDate, {
-      hours: +scheduleParts[0],
-      minutes: +scheduleParts[1],
-      seconds: +scheduleParts[2] || 0,
-      milliseconds: 0
-    });
-
-    const delay = differenceInMinutes(entryDate, scheduleDate);
-
-    if (delay > (schedule.minutes_tolerance || 0)) {
-      return delay;
-    }
-
-    return null;
+    return calculateEntryDelay(entryTime, schedule);
   }
 
-  // Format minutes to hours and minutes
   private formatTimeDifference(minutes: number): string {
-    if (minutes < 60) {
-      return `${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}`;
-    }
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
-    if (remainingMinutes === 0) {
-      return `${hours} ${hours === 1 ? 'hora' : 'horas'}`;
-    }
-    return `${hours} ${hours === 1 ? 'hora' : 'horas'} y ${remainingMinutes} ${
-      remainingMinutes === 1 ? 'minuto' : 'minutos'
-    }`;
+    return formatTimeDifference(minutes);
   }
 
   // Get lunch_start timelog for today
@@ -1821,80 +1737,19 @@ export class TimeclockComponent implements OnDestroy {
     );
   }
 
-  // Calculate if lunch end exceeds 60 minutes based on actual lunch duration only
-  // No longer compares with scheduled time - only validates duration
   private calculateLunchEndDifference(
     lunchEndTime: Date,
     lunchStartTime: Date | null,
-    schedule: Schedule | NazSchedule | undefined | null
+    _schedule: Schedule | NazSchedule | undefined | null
   ): { exceededMinutes: number; shouldShowWarning: boolean } | null {
-    // Si no hay lunch_start, no podemos calcular
-    if (!lunchStartTime) {
-      return null;
-    }
-
-    // Calcular duración real del almuerzo
-    const actualDuration = differenceInMinutes(lunchEndTime, lunchStartTime);
-    const expectedDuration = 60; // 1 hora
-
-    // Si el almuerzo duró menos de 60 minutos, no hay exceso
-    if (actualDuration < expectedDuration) {
-      return null;
-    }
-
-    // Calcular minutos excedidos
-    const exceededMinutes = actualDuration - expectedDuration;
-
-    // Solo mostrar advertencia si excede más de 5 minutos
-    // Si es 5 minutos o menos, solo acumular (shouldShowWarning = false)
-    const shouldShowWarning = exceededMinutes > 5;
-
-    return {
-      exceededMinutes,
-      shouldShowWarning,
-    };
+    return calculateLunchExcess(lunchEndTime, lunchStartTime);
   }
 
-  // Calculate if exit is early or late
   private calculateExitDifference(
     exitTime: Date,
     schedule: Schedule | NazSchedule | undefined
   ): { minutes: number; isEarly: boolean } | null {
-    if (!schedule || !schedule.exit_time || schedule.day_off) {
-      return null;
-    }
-
-    const exitTimeStr = format(exitTime, 'HH:mm:ss');
-    const scheduleTimeStr =
-      typeof schedule.exit_time === 'string'
-        ? schedule.exit_time
-        : format(new Date(schedule.exit_time), 'HH:mm:ss');
-
-    const exitParts = exitTimeStr.split(':');
-    const scheduleParts = scheduleTimeStr.split(':');
-
-    let exitDate = new Date();
-    exitDate = set(exitDate, { hours: +exitParts[0], minutes: +exitParts[1], seconds: +exitParts[2] || 0, milliseconds: 0 });
-
-    let scheduleDate = new Date();
-    scheduleDate = set(scheduleDate, {
-      hours: +scheduleParts[0],
-      minutes: +scheduleParts[1],
-      seconds: +scheduleParts[2] || 0,
-      milliseconds: 0
-    });
-
-    const difference = differenceInMinutes(exitDate, scheduleDate);
-
-    // If difference is negative, exited early; if positive, exited late
-    if (Math.abs(difference) > (schedule.minutes_tolerance || 0)) {
-      return {
-        minutes: Math.abs(difference),
-        isEarly: difference < 0,
-      };
-    }
-
-    return null;
+    return calculateExitDifference(exitTime, schedule);
   }
 
   public form = new FormGroup({
@@ -1931,7 +1786,7 @@ export class TimeclockComponent implements OnDestroy {
 
   onEmployeeSelected(employee: Employee | undefined) {
     // Inicializar audio con interacción del usuario
-    this.getAudioContext();
+    initAudioContext();
     
     if (employee?.id) {
       this.getLastTimelog(employee.id).subscribe({
@@ -2112,7 +1967,7 @@ export class TimeclockComponent implements OnDestroy {
       if (validation === null) {
         this.isProcessing.set(false);
         // Reproducir sonido de error
-        this.playFailureSound();
+        playFailureSound();
         this.message.add({
           severity: 'error',
           summary: 'Error',
@@ -2210,7 +2065,7 @@ export class TimeclockComponent implements OnDestroy {
         catchError((error) => {
           this.isProcessing.set(false);
           // Reproducir sonido de error
-          this.playFailureSound();
+          playFailureSound();
           const isNaz = this.isNazCompany();
           console.error('Error al procesar timelog:', error);
 
@@ -2299,7 +2154,7 @@ export class TimeclockComponent implements OnDestroy {
           if (!result.success) {
             this.isProcessing.set(false);
             // Reproducir sonido de error
-            this.playFailureSound();
+            playFailureSound();
             this.message.add({
               severity: 'error',
               summary: 'Error',
@@ -2415,9 +2270,9 @@ export class TimeclockComponent implements OnDestroy {
     this.isProcessing.set(false);
     // Reproducir sonido según si llegó tarde o no
     if (isLate) {
-      this.playLateSound();
+      playLateSound();
     } else {
-      this.playSuccessSound(employeeId);
+      playSuccessSound(employeeId);
     }
     this.confirmation.confirm({
       message,
@@ -2438,124 +2293,10 @@ export class TimeclockComponent implements OnDestroy {
     });
   }
 
-  // AudioContext compartido para evitar límites del navegador
-  private audioContext: AudioContext | null = null;
+  // Audio delegated to timeclock-audio.utils.ts
 
-  private getAudioContext(): AudioContext | null {
-    try {
-      if (!this.audioContext) {
-        this.audioContext = new (window.AudioContext ||
-          (window as any).webkitAudioContext)();
-      }
-      // Resumir si está suspendido (política de autoplay)
-      if (this.audioContext.state === 'suspended') {
-        this.audioContext.resume();
-      }
-      return this.audioContext;
-    } catch (error) {
-      console.warn('Audio no soportado:', error);
-      return null;
-    }
-  }
-
-  // Reproducir sonido de éxito: empleado personalizado (squirrel/cockatoo al azar), resto (meow/bark al azar)
-  private playSuccessSound(employeeId?: string): void {
-    try {
-      let src: string;
-      if (employeeId === this.EMPLOYEE_PERSONALIZED_SOUND_ID && this.PERSONALIZED_SUCCESS_SOUNDS.length > 0) {
-        const idx = Math.floor(Math.random() * this.PERSONALIZED_SUCCESS_SOUNDS.length);
-        src = this.PERSONALIZED_SUCCESS_SOUNDS[idx];
-      } else {
-        const idx = Math.floor(Math.random() * this.GENERAL_SUCCESS_SOUNDS.length);
-        src = this.GENERAL_SUCCESS_SOUNDS[idx];
-      }
-      const audio = new Audio(src);
-      audio.volume = 0.7;
-      audio.play().then(() => {
-        console.log('🔊 Sonido de éxito reproducido');
-      }).catch((error) => {
-        console.warn('Error reproduciendo sonido de éxito:', error);
-      });
-    } catch (error) {
-      console.warn('Error reproduciendo sonido de éxito:', error);
-    }
-  }
-
-  // Reproducir sonido de fracaso
-  private playFailureSound(): void {
-    const audioContext = this.getAudioContext();
-    if (!audioContext) return;
-
-    try {
-      const now = audioContext.currentTime;
-
-      // Tono de error: dos beeps cortos descendentes
-      const osc1 = audioContext.createOscillator();
-      const gain1 = audioContext.createGain();
-      osc1.frequency.value = 400;
-      osc1.type = 'square';
-      gain1.gain.setValueAtTime(0.2, now);
-      gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
-      osc1.connect(gain1);
-      gain1.connect(audioContext.destination);
-      osc1.start(now);
-      osc1.stop(now + 0.15);
-
-      // Segundo beep más bajo
-      const osc2 = audioContext.createOscillator();
-      const gain2 = audioContext.createGain();
-      osc2.frequency.value = 300;
-      osc2.type = 'square';
-      gain2.gain.setValueAtTime(0, now);
-      gain2.gain.setValueAtTime(0.2, now + 0.2);
-      gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
-      osc2.connect(gain2);
-      gain2.connect(audioContext.destination);
-      osc2.start(now + 0.2);
-      osc2.stop(now + 0.4);
-
-      console.log('🔊 Sonido de error reproducido');
-    } catch (error) {
-      console.warn('Error reproduciendo sonido de error:', error);
-    }
-  }
-
-  // Reproducir sonido de advertencia (tardanza)
-  private playLateSound(): void {
-    const audioContext = this.getAudioContext();
-    if (!audioContext) return;
-
-    try {
-      const now = audioContext.currentTime;
-
-      // Tono de advertencia: tres beeps de alerta
-      for (let i = 0; i < 3; i++) {
-        const osc = audioContext.createOscillator();
-        const gain = audioContext.createGain();
-        osc.frequency.value = 880; // A5 - tono alto de alerta
-        osc.type = 'triangle';
-        const startTime = now + i * 0.25;
-        gain.gain.setValueAtTime(0, startTime);
-        gain.gain.setValueAtTime(0.25, startTime + 0.01);
-        gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.15);
-        osc.connect(gain);
-        gain.connect(audioContext.destination);
-        osc.start(startTime);
-        osc.stop(startTime + 0.15);
-      }
-
-      console.log('🔊 Sonido de tardanza reproducido');
-    } catch (error) {
-      console.warn('Error reproduciendo sonido de tardanza:', error);
-    }
-  }
-
-  // Calcular racha de días consecutivos marcando a tiempo
   private async calculateAndShowStreak(employeeId: string): Promise<number> {
     try {
-      const { year, month, day } = this.getPanamaNowParts();
-
-      // Obtener timelogs de entrada del empleado (últimos 100 días)
       const timelogsUrl = this.apiUrl.build('rest/v1/timelogs', {
         employee_id: `eq.${employeeId}`,
         type: 'eq.entry',
@@ -2563,127 +2304,37 @@ export class TimeclockComponent implements OnDestroy {
         limit: '100',
       });
       const anonKey = getEnv('ENV_SUPABASE_API_KEY');
-      const timelogs = await firstValueFrom(this.http
-        .get<TimeLog[]>(timelogsUrl, {
-          headers: {
-            apikey: anonKey!,
-            Authorization: `Bearer ${anonKey}`,
-          },
-        })
-        .pipe(
+      const headers = {
+        apikey: anonKey!,
+        Authorization: `Bearer ${anonKey}`,
+      };
+
+      const timelogs = await firstValueFrom(
+        this.http.get<TimeLog[]>(timelogsUrl, { headers }).pipe(
           catchError(() => of([])),
           map((logs) => logs || [])
-        ));
+        )
+      );
 
-      if (!timelogs || timelogs.length === 0) {
-        return 0;
-      }
+      if (!timelogs.length) return 0;
 
-      // Obtener schedules del empleado
       const schedulesUrl = this.apiUrl.build('rest/v1/employee_schedules', {
         employee_id: `eq.${employeeId}`,
         select: '*,schedule:schedules(*)',
         order: 'start_date.desc',
         limit: '100',
       });
-      const schedules = await firstValueFrom(this.http
-        .get<EmployeeSchedule[]>(schedulesUrl, {
-          headers: {
-            apikey: anonKey!,
-            Authorization: `Bearer ${anonKey}`,
-          },
-        })
-        .pipe(
+      const schedules = await firstValueFrom(
+        this.http.get<EmployeeSchedule[]>(schedulesUrl, { headers }).pipe(
           catchError(() => of([])),
           map((scheds) => scheds || [])
-        ));
+        )
+      );
 
-      if (!schedules || schedules.length === 0) {
-        return 0;
-      }
-
-      // Calcular racha: días consecutivos marcando a tiempo (hacia atrás desde hoy)
-      let streak = 0;
-      const checkedDates = new Set<string>();
-
-      // Ordenar timelogs por fecha (más reciente primero)
-      const sortedLogs = [...timelogs].sort((a, b) => {
-        const dateA = new Date(a.created_at);
-        const dateB = new Date(b.created_at);
-        return compareDesc(dateA, dateB);
-      });
-
-      for (const log of sortedLogs) {
-        const logDate = new Date(log.created_at);
-        const logDateStr = format(logDate, 'yyyy-MM-dd');
-
-        // Evitar contar el mismo día dos veces
-        if (checkedDates.has(logDateStr)) {
-          continue;
-        }
-        checkedDates.add(logDateStr);
-
-        // Verificar si este día fue a tiempo
-        const schedule = schedules.find((s) => {
-          const startDate =
-            s.start_date instanceof Date
-              ? s.start_date
-              : new Date(s.start_date);
-          const endDate =
-            s.end_date instanceof Date ? s.end_date : new Date(s.end_date);
-          const startDateStr = format(startDate, 'yyyy-MM-dd');
-          const endDateStr = format(endDate, 'yyyy-MM-dd');
-          return (
-            startDateStr <= logDateStr &&
-            endDateStr >= logDateStr &&
-            !s.schedule?.day_off
-          );
-        });
-
-        if (!schedule || !schedule.schedule?.entry_time) {
-          // Sin horario = no cuenta para la racha, pero no la rompe
-          continue;
-        }
-
-        // Verificar si fue tarde usando la misma lógica que calculateIsLate
-        const entryTimeZoned = toZonedTime(logDate, 'America/Panama');
-        const entryTimeStr = format(entryTimeZoned, 'HH:mm:ss');
-        const scheduledTimeStr =
-          typeof schedule.schedule.entry_time === 'string'
-            ? schedule.schedule.entry_time
-            : format(new Date(schedule.schedule.entry_time), 'HH:mm:ss');
-
-        const entryParts = entryTimeStr.split(':');
-        const scheduledParts = scheduledTimeStr.split(':');
-
-        const entryMinutes = +entryParts[0] * 60 + +entryParts[1];
-        const scheduledMinutes = +scheduledParts[0] * 60 + +scheduledParts[1];
-        const tolerance = schedule.schedule.minutes_tolerance ?? 0;
-
-        // Si marcó a tiempo (dentro de la tolerancia), incrementar racha
-        if (entryMinutes <= scheduledMinutes + tolerance) {
-          streak++;
-        } else {
-          // Marcó tarde, rompe la racha
-          break;
-        }
-      }
-
-      return streak;
-    } catch (error) {
-      // Si hay error, retornar 0
+      return calculateStreak(timelogs, schedules);
+    } catch {
       return 0;
     }
-  }
-
-  // Helper para obtener partes de fecha en Panamá
-  private getPanamaNowParts(): { year: number; month: number; day: number } {
-    const now = toZonedTime(new Date(), 'America/Panama');
-    return {
-      year: getYear(now),
-      month: getMonth(now) + 1,
-      day: getDate(now),
-    };
   }
 
   private alertInvalidIP() {

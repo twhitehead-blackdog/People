@@ -17,9 +17,7 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { toDate } from 'date-fns-tz';
-import * as OTPAuth from 'otpauth';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Checkbox } from 'primeng/checkbox';
@@ -29,7 +27,6 @@ import { InputText } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
 import { Skeleton } from 'primeng/skeleton';
 import { TabsModule } from 'primeng/tabs';
-import QRCode from 'qrcode';
 import { debounceTime, firstValueFrom } from 'rxjs';
 import { markGroupDirty } from 'src/app/services/util.service';
 import { v4 } from 'uuid';
@@ -42,7 +39,22 @@ import {
   generateNextEmployeeNumber,
   getEmployeeNumberPrefix,
 } from '../utils/employee-number.utils';
-import { getEnv } from '../utils/env.utils';
+import {
+  ACCOUNT_TYPES,
+  COUNTRY_CODES,
+  EMERGENCY_CONTACT_RELATIONSHIPS,
+  EMPLOYEE_SELECT_QUERY,
+  GENDER_OPTIONS,
+  UNIFORM_SIZES,
+} from './employee-form/employee-form.constants';
+import {
+  buildSavePayload,
+  formatPhoneField,
+  generateTimeclockQR,
+  getInvalidFieldLabels,
+  preloadEmployeeForm,
+  setBankIfExists,
+} from './employee-form/employee-form.utils';
 
 @Component({
   selector: 'pt-employee-form',
@@ -811,43 +823,11 @@ import { getEnv } from '../utils/env.utils';
 })
 export class EmployeeFormComponent implements OnInit {
   public store = inject(DashboardStore);
-  public sizes = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL'];
-  public genderOptions = [
-    { label: 'Masculino', value: 'M' },
-    { label: 'Femenino', value: 'F' },
-  ];
-  public accountTypes = ['Ahorros', 'Corriente'];
-  public emergencyContactRelationships = [
-    'Pareja',
-    'Familiar',
-    'Amigo',
-    'Padre',
-    'Madre',
-    'Hermano',
-    'Hermana',
-    'Hijo',
-    'Hija',
-    'Otro',
-  ];
-
-  public countryCodes = [
-    { label: '+507', value: '+507' }, // Panamá (predeterminado)
-    { label: '+1', value: '+1' }, // USA/Canadá
-    { label: '+52', value: '+52' }, // México
-    { label: '+57', value: '+57' }, // Colombia
-    { label: '+51', value: '+51' }, // Perú
-    { label: '+56', value: '+56' }, // Chile
-    { label: '+54', value: '+54' }, // Argentina
-    { label: '+58', value: '+58' }, // Venezuela
-    { label: '+593', value: '+593' }, // Ecuador
-    { label: '+595', value: '+595' }, // Paraguay
-    { label: '+591', value: '+591' }, // Bolivia
-    { label: '+506', value: '+506' }, // Costa Rica
-    { label: '+504', value: '+504' }, // Honduras
-    { label: '+502', value: '+502' }, // Guatemala
-    { label: '+503', value: '+503' }, // El Salvador
-    { label: '+505', value: '+505' }, // Nicaragua
-  ];
+  public sizes = UNIFORM_SIZES;
+  public genderOptions = GENDER_OPTIONS;
+  public accountTypes = ACCOUNT_TYPES;
+  public countryCodes = COUNTRY_CODES;
+  public emergencyContactRelationships = EMERGENCY_CONTACT_RELATIONSHIPS;
 
   public banks = httpResource<Bank[]>(() => {
     // Cargar todos los bancos (compartidos y del company_id)
@@ -998,87 +978,49 @@ export class EmployeeFormComponent implements OnInit {
     }
     const companyId = this.organizationService.getCurrentCompanyId();
 
-    // Construir la query base - incluir todos los campos (week_hours y use_timelog son opcionales)
-    const selectQuery =
-      'id,first_name,father_name, middle_name, mother_name, document_id, email, phone_number, work_phone_number, address, emergency_contact_name, emergency_contact_phone, emergency_contact_relationship, birth_date, start_date, end_date, branch_id, department_id, position_id, gender, uniform_size, is_active, company_id, work_email, monthly_salary, hourly_salary, qr_code, code_uri, bank, account_number, bank_account_type, week_hours, use_timelog, total_lunch_exceeded_minutes';
-
     const params: any = {
-      select: selectQuery,
+      select: EMPLOYEE_SELECT_QUERY,
       limit: '1',
       order: 'father_name',
       is_active: 'eq.true',
       id: `eq.${this.employee_id()}`,
     };
 
-    // Agregar filtro por company_id
     if (companyId) {
       params.company_id = `eq.${companyId}`;
     }
 
     return {
-      url: `${getEnv('ENV_SUPABASE_URL')}/rest/v1/employees`,
+      url: this.apiUrl.build('rest/v1/employees'),
       method: 'GET',
       params,
     };
   });
 
   ngOnInit() {
-    // Cargar datos necesarios para los dropdowns
-    console.log('[EmployeeForm] Cargando datos para dropdowns...');
-    console.log(
-      '[EmployeeForm] Company ID actual:',
-      this.organizationService.getCurrentCompanyId()
-    );
-    console.log('[EmployeeForm] Es Naz:', this.organizationService.isNaz());
-
     this.store.positions.fetchItems();
     this.store.departments.fetchItems();
     this.store.companies.fetchItems();
     this.store.branches.fetchItems();
 
-    // Debug: Verificar posiciones cargadas
-    effect(
-      () => {
-        const positions = this.store.positions.entities();
-        console.log(
-          '[EmployeeForm] Posiciones cargadas:',
-          positions.length,
-          positions
-        );
-        if (positions.length === 0) {
-          console.warn(
-            '[EmployeeForm] ⚠️ No hay posiciones disponibles. Verificar company_id y que existan posiciones en la base de datos.'
-          );
-        }
-      },
-      { injector: this.injector }
-    );
-
-    // Ajustar validaciones según si es Naz o no
+    // Adjust validators based on Naz vs BlackDog
     effect(
       () => {
         const isNaz = this.organizationService.isNaz();
-
-        // Ajustar validación de company_id
         const companyControl = this.form.get('company_id');
         if (companyControl) {
-          if (isNaz) {
-            companyControl.clearValidators();
-          } else {
-            companyControl.setValidators([Validators.required]);
-          }
+          isNaz
+            ? companyControl.clearValidators()
+            : companyControl.setValidators([Validators.required]);
           companyControl.updateValueAndValidity({ emitEvent: false });
         }
 
-        // Ajustar validación de week_hours
         const weekHoursControl = this.form.get('week_hours');
         if (weekHoursControl) {
           if (isNaz) {
-            // En Naz, week_hours no existe, así que no debe tener validadores
             weekHoursControl.clearValidators();
             weekHoursControl.setValue(0, { emitEvent: false });
           } else {
-            // En Black Dog, week_hours debe estar entre 40 y 60
             weekHoursControl.setValidators([
               Validators.min(40),
               Validators.max(60),
@@ -1090,33 +1032,26 @@ export class EmployeeFormComponent implements OnInit {
       { injector: this.injector }
     );
 
+    // Preload form when employee data arrives
     effect(
       () => {
         const employee = this.currentEmployee.value()?.[0];
         if (!employee) return;
-
-        untracked(() => {
-          this.preloadForm(employee);
-        });
+        untracked(() => preloadEmployeeForm(this.form, employee));
       },
       { injector: this.injector }
     );
-    // Effect para actualizar el banco cuando se carguen los bancos
+
+    // Set bank when banks load
     effect(
       () => {
         const employee = this.currentEmployee.value()?.[0];
-        const banks = this.banks.value();
-        if (employee?.bank && banks && banks.length > 0) {
-          const bankExists = banks.some((b) => b.id === employee.bank);
-          if (bankExists) {
-            this.form
-              .get('bank')
-              ?.setValue(employee.bank, { emitEvent: false });
-          }
-        }
+        setBankIfExists(this.form, employee?.bank, this.banks.value());
       },
       { injector: this.injector }
     );
+
+    // Auto-compute hourly salary
     effect(
       () => {
         this.form.get('hourly_salary')?.patchValue(this.hourlySalary());
@@ -1124,87 +1059,25 @@ export class EmployeeFormComponent implements OnInit {
       { injector: this.injector }
     );
 
-    // Effect para establecer company_id por defecto si no es admin
+    // Set default company_id for non-admin users
     effect(
       () => {
         const isAdmin = this.store.isAdmin();
         const currentCompanyId = this.organizationService.getCurrentCompanyId();
         const companyControl = this.form.get('company_id');
-        const currentCompanyIdValue = companyControl?.value;
+        const currentValue = companyControl?.value;
 
-        // Si no es admin y no hay company_id establecido, establecer el actual
-        if (!isAdmin && currentCompanyId && !currentCompanyIdValue) {
+        if (!isAdmin && currentCompanyId && !currentValue) {
           companyControl?.setValue(currentCompanyId, { emitEvent: false });
         }
 
-        // Si no es admin y hay una empresa disponible, asegurar que esté seleccionada
         const available = this.availableCompanies();
-        if (!isAdmin && available.length === 1 && !currentCompanyIdValue) {
+        if (!isAdmin && available.length === 1 && !currentValue) {
           companyControl?.setValue(available[0].id, { emitEvent: false });
         }
       },
       { injector: this.injector }
     );
-  }
-
-  preloadForm(employee: Employee) {
-    this.form.patchValue(employee);
-    employee.birth_date &&
-      this.form
-        .get('birth_date')
-        ?.patchValue(
-          toDate(employee.birth_date, { timeZone: 'America/Panama' })
-        );
-    this.form
-      .get('start_date')
-      ?.patchValue(toDate(employee.start_date, { timeZone: 'America/Panama' }));
-    if (employee.end_date) {
-      this.form
-        .get('end_date')
-        ?.patchValue(toDate(employee.end_date, { timeZone: 'America/Panama' }));
-    }
-
-    // Separar código de país del número de teléfono personal
-    if (employee.phone_number) {
-      const { countryCode, number } = this.parsePhoneNumber(
-        employee.phone_number
-      );
-      this.form.get('phone_country_code')?.setValue(countryCode || '+507');
-      this.form.get('phone_number')?.setValue(number || '');
-    }
-
-    // Separar código de país del número de teléfono laboral
-    if (employee.work_phone_number) {
-      const { countryCode, number } = this.parsePhoneNumber(
-        employee.work_phone_number
-      );
-      this.form.get('work_phone_country_code')?.setValue(countryCode || '+507');
-      this.form.get('work_phone_number')?.setValue(number || '');
-    }
-
-    // Separar código de país del número de teléfono del contacto de emergencia
-    if (employee.emergency_contact_phone) {
-      const { countryCode, number } = this.parsePhoneNumber(
-        employee.emergency_contact_phone
-      );
-      this.form
-        .get('emergency_contact_phone_country_code')
-        ?.setValue(countryCode || '+507');
-      this.form.get('emergency_contact_phone')?.setValue(number || '');
-    }
-
-    // Asegurar que el banco se establezca correctamente cuando los bancos estén cargados
-    if (employee.bank && this.banks.value()) {
-      const bankExists = this.banks
-        .value()
-        ?.some((b) => b.id === employee.bank);
-      if (bankExists) {
-        this.form.get('bank')?.setValue(employee.bank);
-      }
-    }
-
-    this.form.markAsPristine();
-    this.form.markAsUntouched();
   }
 
   getBankName(bankId: string | null | undefined): string {
@@ -1215,140 +1088,29 @@ export class EmployeeFormComponent implements OnInit {
     return bank?.name || bankId;
   }
 
-  private getFieldLabel(fieldName: string): string {
-    const labels: Record<string, string> = {
-      first_name: 'Nombre',
-      father_name: 'Apellido Paterno',
-      document_id: 'Cédula de Identidad',
-      gender: 'Sexo',
-      branch_id: 'Sucursal',
-      department_id: 'Área',
-      position_id: 'Cargo',
-      start_date: 'Fecha de Inicio',
-      company_id: 'Empresa',
-    };
-    return labels[fieldName] || fieldName;
-  }
-
-  // Parsear número de teléfono para separar código de país
-  private parsePhoneNumber(phone: string): {
-    countryCode: string;
-    number: string;
-  } {
-    if (!phone) return { countryCode: '+507', number: '' };
-
-    // Buscar código de país conocido al inicio
-    for (const code of this.countryCodes.map((c) => c.value)) {
-      if (phone.startsWith(code)) {
-        return {
-          countryCode: code,
-          number: phone.substring(code.length).trim(),
-        };
-      }
-    }
-
-    // Si no se encuentra código conocido, asumir +507
-    if (phone.startsWith('+')) {
-      // Extraer código manualmente (primeros 1-4 dígitos después del +)
-      const match = phone.match(/^(\+\d{1,4})\s*(.+)$/);
-      if (match) {
-        return { countryCode: match[1], number: match[2] };
-      }
-    }
-
-    return { countryCode: '+507', number: phone };
-  }
-
-  // Formatear número de teléfono al perder el foco
   formatPhoneNumber(fieldName: 'phone_number' | 'work_phone_number') {
-    const numberControl = this.form.get(fieldName);
-    const codeControl = this.form.get(
+    const codeField =
       fieldName === 'phone_number'
         ? 'phone_country_code'
-        : 'work_phone_country_code'
-    );
-
-    if (numberControl && codeControl) {
-      const number = numberControl.value?.trim() || '';
-      const code = codeControl.value || '+507';
-
-      // Si el número ya tiene el código, separarlo
-      if (number.startsWith('+')) {
-        const parsed = this.parsePhoneNumber(number);
-        codeControl.setValue(parsed.countryCode);
-        numberControl.setValue(parsed.number);
-      }
-    }
+        : 'work_phone_country_code';
+    formatPhoneField(this.form, fieldName, codeField);
   }
 
-  // Combinar código de país con número de teléfono
-  private combinePhoneNumber(
-    fieldName: 'phone_number' | 'work_phone_number'
-  ): string {
-    const numberControl = this.form.get(fieldName);
-    const codeControl = this.form.get(
-      fieldName === 'phone_number'
-        ? 'phone_country_code'
-        : 'work_phone_country_code'
-    );
-
-    const number = numberControl?.value?.trim() || '';
-    const code = codeControl?.value || '+507';
-
-    if (!number) return '';
-
-    return `${code} ${number}`.trim();
-  }
-
-  // Formatear teléfono del contacto de emergencia
   formatEmergencyContactPhone() {
-    const numberControl = this.form.get('emergency_contact_phone');
-    const codeControl = this.form.get('emergency_contact_phone_country_code');
-
-    if (numberControl && codeControl) {
-      const number = numberControl.value?.trim() || '';
-
-      // Si el número ya tiene el código, separarlo
-      if (number.startsWith('+')) {
-        const parsed = this.parsePhoneNumber(number);
-        codeControl.setValue(parsed.countryCode);
-        numberControl.setValue(parsed.number);
-      }
-    }
-  }
-
-  // Combinar código de país con número de teléfono del contacto de emergencia
-  private combineEmergencyContactPhone(): string {
-    const numberControl = this.form.get('emergency_contact_phone');
-    const codeControl = this.form.get('emergency_contact_phone_country_code');
-
-    const number = numberControl?.value?.trim() || '';
-    const code = codeControl?.value || '+507';
-
-    if (!number) return '';
-
-    return `${code} ${number}`.trim();
+    formatPhoneField(
+      this.form,
+      'emergency_contact_phone',
+      'emergency_contact_phone_country_code'
+    );
   }
 
   saveChanges() {
-    const { pristine, invalid } = this.form;
-    if (invalid) {
-      // Obtener los campos inválidos para mostrar un mensaje más específico
-      const invalidFields: string[] = [];
-      Object.keys(this.form.controls).forEach((key) => {
-        const control = this.form.get(key);
-        if (control && control.invalid) {
-          const fieldName = this.getFieldLabel(key);
-          invalidFields.push(fieldName);
-        }
-      });
-
+    if (this.form.invalid) {
+      const invalidFields = getInvalidFieldLabels(this.form);
       const errorMessage =
         invalidFields.length > 0
-          ? `Por favor complete los siguientes campos requeridos: ${invalidFields.join(
-              ', '
-            )}`
-          : 'Formulario inválido. Por favor complete todos los campos requeridos.';
+          ? `Por favor complete los siguientes campos requeridos: ${invalidFields.join(', ')}`
+          : 'Formulario invalido. Por favor complete todos los campos requeridos.';
 
       this.message.add({
         severity: 'error',
@@ -1358,7 +1120,7 @@ export class EmployeeFormComponent implements OnInit {
       markGroupDirty(this.form);
       return;
     }
-    if (pristine) {
+    if (this.form.pristine) {
       this.message.add({
         severity: 'warn',
         summary: 'No se guardaron cambios',
@@ -1366,75 +1128,47 @@ export class EmployeeFormComponent implements OnInit {
       });
       return;
     }
+
+    const { data: dataToSave, phoneNumber } = buildSavePayload(this.form);
+
     if (!this.employee_id()) {
-      // Es un empleado nuevo
-      this.addTimeclockQR();
+      // New employee
+      const { first_name, father_name } = this.form.getRawValue();
+      generateTimeclockQR(this.form, first_name, father_name);
 
-      // Ya no se filtran campos, todo se guarda (tablas compartidas)
-      const formValue = this.form.getRawValue();
-      const dataToSave: any = {
-        ...formValue,
-        // Combinar código de país con número de teléfono
-        phone_number: this.combinePhoneNumber('phone_number'),
-        work_phone_number: this.combinePhoneNumber('work_phone_number'),
-        emergency_contact_phone: this.combineEmergencyContactPhone(),
-      };
-      // Eliminar campos internos de código de país
-      delete dataToSave.phone_country_code;
-      delete dataToSave.work_phone_country_code;
-      delete dataToSave.emergency_contact_phone_country_code;
-
-      // Si no tiene company_id, establecer automáticamente el company_id actual
-      if (!dataToSave.company_id) {
+      if (!dataToSave['company_id']) {
         const currentCompanyId = this.organizationService.getCurrentCompanyId();
         if (currentCompanyId) {
-          dataToSave.company_id = currentCompanyId;
+          dataToSave['company_id'] = currentCompanyId;
         }
       }
 
-      // Generar número de empleado automáticamente solo si no se proporcionó uno
       if (
-        !dataToSave.employee_number ||
-        dataToSave.employee_number.trim() === ''
+        !dataToSave['employee_number'] ||
+        dataToSave['employee_number'].trim() === ''
       ) {
-        this.generateEmployeeNumber(dataToSave.company_id)
+        this.generateEmployeeNumber(dataToSave['company_id'])
           .then((employeeNumber) => {
-            dataToSave.employee_number = employeeNumber;
-            this.saveNewEmployee(dataToSave);
+            dataToSave['employee_number'] = employeeNumber;
+            this.saveNewEmployee(dataToSave, phoneNumber);
           })
           .catch((error) => {
-            console.error('Error al generar número de empleado:', error);
+            console.error('Error al generar numero de empleado:', error);
             this.message.add({
               severity: 'error',
               summary: 'Error',
               detail:
-                'No se pudo generar el número de empleado. Por favor intente nuevamente.',
+                'No se pudo generar el numero de empleado. Por favor intente nuevamente.',
             });
           });
       } else {
-        // Si el usuario ya proporcionó un número, usarlo directamente
-        this.saveNewEmployee(dataToSave);
+        this.saveNewEmployee(dataToSave, phoneNumber);
       }
     } else {
-      // Ya no se filtran campos, todo se guarda (tablas compartidas)
-      const formValue = this.form.getRawValue();
-      const dataToSave: any = {
-        ...formValue,
-        // Combinar código de país con número de teléfono
-        phone_number: this.combinePhoneNumber('phone_number'),
-        work_phone_number: this.combinePhoneNumber('work_phone_number'),
-        emergency_contact_phone: this.combineEmergencyContactPhone(),
-      };
-      // Eliminar campos internos de código de país
-      delete dataToSave.phone_country_code;
-      delete dataToSave.work_phone_country_code;
-      delete dataToSave.emergency_contact_phone_country_code;
-
-      this.store.employees.editItem(dataToSave).subscribe({
+      // Existing employee
+      this.store.employees.editItem(dataToSave as Employee).subscribe({
         next: () => {
-          // Recargar la lista de empleados
           this.store.employees.reloadItems();
-          // Navegar de vuelta a la lista después de editar
           this.router.navigate(['/admin/employees']);
         },
         error: (error) => {
@@ -1444,28 +1178,25 @@ export class EmployeeFormComponent implements OnInit {
             summary: 'Error al guardar',
             detail:
               error?.error?.message ||
-              'Ocurrió un error al editar el empleado. Por favor intente nuevamente.',
+              'Ocurrio un error al editar el empleado. Por favor intente nuevamente.',
           });
         },
       });
     }
   }
 
-  private saveNewEmployee(dataToSave: any) {
+  private saveNewEmployee(dataToSave: any, phoneNumber: string) {
     this.store.employees.createItem(dataToSave).subscribe({
       next: () => {
-        // Recargar la lista de empleados
         this.store.employees.reloadItems();
 
-        // Después de crear, preguntar si quiere invitar por Wassenger
-        const phoneNumber = this.combinePhoneNumber('phone_number');
         if (phoneNumber && dataToSave.work_email) {
           this.confirmationService.confirm({
-            message: `¿Deseas enviar una invitación por Wassenger a ${dataToSave.first_name} ${dataToSave.father_name}?`,
-            header: 'Invitación por Wassenger',
+            message: `Deseas enviar una invitacion por Wassenger a ${dataToSave.first_name} ${dataToSave.father_name}?`,
+            header: 'Invitacion por Wassenger',
             icon: 'pi pi-comments',
-            acceptLabel: 'Sí, enviar',
-            rejectLabel: 'No, después',
+            acceptLabel: 'Si, enviar',
+            rejectLabel: 'No, despues',
             accept: () => {
               const employeeName = `${dataToSave.first_name} ${dataToSave.father_name}`;
               this.wassengerService
@@ -1478,20 +1209,18 @@ export class EmployeeFormComponent implements OnInit {
                   if (success) {
                     this.message.add({
                       severity: 'success',
-                      summary: 'Invitación enviada',
+                      summary: 'Invitacion enviada',
                       detail:
-                        'La invitación se envió correctamente por Wassenger',
+                        'La invitacion se envio correctamente por Wassenger',
                     });
                   }
                 });
             },
             reject: () => {
-              // Navegar de vuelta a la lista después de rechazar
               this.router.navigate(['/admin/employees']);
             },
           });
         } else {
-          // Si no hay datos para Wassenger, navegar directamente
           this.router.navigate(['/admin/employees']);
         }
       },
@@ -1502,7 +1231,7 @@ export class EmployeeFormComponent implements OnInit {
           summary: 'Error al guardar',
           detail:
             error?.error?.message ||
-            'Ocurrió un error al crear el empleado. Por favor intente nuevamente.',
+            'Ocurrio un error al crear el empleado. Por favor intente nuevamente.',
         });
       },
     });
@@ -1529,29 +1258,6 @@ export class EmployeeFormComponent implements OnInit {
     });
   }
 
-  private addTimeclockQR() {
-    const { first_name, father_name } = this.form.getRawValue();
-    const totp = new OTPAuth.TOTP({
-      issuer: 'People Blackdog',
-      label: `${first_name.trim()} ${father_name.trim()}`,
-      algorithm: 'SHA1',
-      digits: 6,
-      period: 30,
-    });
-
-    const uri = totp.toString();
-    QRCode.toDataURL(uri, async (error, qrCode) => {
-      if (error) {
-        console.error(error);
-        return;
-      }
-      this.form.patchValue({ qr_code: qrCode, code_uri: uri });
-    });
-  }
-
-  /**
-   * Genera el siguiente número de empleado disponible basado en el company_id o organización
-   */
   private async generateEmployeeNumber(
     companyId: string | undefined
   ): Promise<string> {
