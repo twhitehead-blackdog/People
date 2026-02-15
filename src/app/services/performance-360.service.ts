@@ -34,7 +34,7 @@ export class Performance360Service {
   // Reglas de rendimiento
   rulesResource = httpResource<PerformanceRule[]>(() => {
     const url = this.apiUrl.build('rest/v1/performance_rules', {
-      select: '*',
+      select: 'id,name,min_score,max_score,multiplier,severity',
       order: 'min_score.asc',
     });
     console.log('[Performance360Service] rulesResource URL:', url);

@@ -195,21 +195,31 @@ function resolveNavigation(
     return true;
   }
 
+  // Solo admins pueden acceder a /home — gerentes, tienda y demás se redirigen
+  if (!perms.isAdmin && isHomeRoute) {
+    if (perms.hasTimeManagementAccess) {
+      return router.createUrlTree(['/time-management']);
+    }
+    // Usuarios con dashboard_access pero sin time management → redirigir a su vista por defecto
+    if (employee.position?.default_view && employee.position.default_view !== 'home') {
+      const defaultRouteMap: Record<string, string> = {
+        admin: '/admin',
+        payroll: '/payroll',
+        'time-management': '/time-management',
+        timeclock: '/timeclock',
+        'employee-portal': '/my-portal',
+      };
+      return router.createUrlTree([defaultRouteMap[employee.position.default_view] || '/my-portal']);
+    }
+    return router.createUrlTree(['/my-portal']);
+  }
+
   // Si tiene acceso a gestión de tiempo, permitir time-management, timeclock y branch-manager
   if (
     perms.hasTimeManagementAccess &&
     (isTimeManagementRoute || isTimeclockRoute || isBranchManagerRoute)
   ) {
     return true;
-  }
-
-  // Time management users en home → redirigir a time-management
-  if (
-    perms.hasTimeManagementAccess &&
-    !perms.hasDashboardAccess &&
-    isHomeRoute
-  ) {
-    return router.createUrlTree(['/time-management']);
   }
 
   // Portal-only users: redirigir a employee-portal desde cualquier ruta no-portal
@@ -230,28 +240,6 @@ function resolveNavigation(
   // Portal siempre accesible
   if (isPortalRoute) {
     return true;
-  }
-
-  // Redirigir a vista predeterminada si está en home/root
-  if (isHomeRoute && employee.position?.default_view) {
-    const defaultView = employee.position.default_view;
-    const routeMap: Record<string, string> = {
-      home: '/home',
-      admin: '/admin',
-      payroll: '/payroll',
-      'time-management': '/time-management',
-      timeclock: '/timeclock',
-      'employee-portal': '/employee-portal',
-    };
-    if (
-      perms.hasTimeManagementAccess &&
-      !perms.hasDashboardAccess &&
-      defaultView === 'home'
-    ) {
-      return router.createUrlTree(['/time-management']);
-    }
-    const targetRoute = routeMap[defaultView] || '/home';
-    return router.createUrlTree([targetRoute]);
   }
 
   // Time management users pueden acceder a sus rutas
@@ -277,9 +265,9 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
   return authService.user$.pipe(
     take(1),
     switchMap((user: any) => {
-      // Si no hay usuario de Auth0, denegar acceso
+      // Si no hay usuario de Auth0, redirigir a sin-acceso
       if (!user) {
-        return of(false);
+        return of(router.createUrlTree(['/sin-acceso']));
       }
 
       const userEmail = user?.email?.toLowerCase();
@@ -378,7 +366,7 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
 
           if (!employee) {
             employeeCache = null;
-            return false;
+            return router.createUrlTree(['/sin-acceso']);
           }
 
           if (employee.account_approved === false) {
@@ -389,8 +377,7 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
           const perms = resolvePermissions(employee, testModeService);
           return resolveNavigation(perms, employee, route, state, router);
         }),
-        catchError((error) => {
-          console.error('Error en employeePortalGuard:', error);
+        catchError(() => {
           // Si hay error, usar cache si existe
           if (employeeCache && employeeCache.email === user.email) {
             const employee = employeeCache.employee;
@@ -405,11 +392,8 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
               resolveNavigation(perms, employee, route, state, router)
             );
           }
-          // Si no hay cache y hay error, permitir acceso por defecto (para evitar bloqueos)
-          console.warn(
-            'No hay cache y error en guard, permitiendo acceso por defecto'
-          );
-          return of(true);
+          // Si no hay cache y hay error, redirigir a sin-acceso para evitar pantalla negra
+          return of(router.createUrlTree(['/sin-acceso']));
         })
       );
     })

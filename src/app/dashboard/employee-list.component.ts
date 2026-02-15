@@ -27,7 +27,6 @@ import { ToastModule } from 'primeng/toast';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
-import { utils, writeFile } from 'xlsx';
 import { Employee, ExportColumn } from '../models';
 import { ApiUrlService } from '../services/api-url.service';
 import { DeviceService } from '../services/device.service';
@@ -910,7 +909,8 @@ export class EmployeeListComponent implements OnInit {
     return employee.id.substring(0, 8);
   }
 
-  generateReport() {
+  async generateReport() {
+    const { utils, writeFile } = await import('xlsx');
     const ws = utils.json_to_sheet(this.itemsToReports());
     const wb = utils.book_new();
     utils.book_append_sheet(wb, ws, 'Empleados');

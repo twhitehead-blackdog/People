@@ -760,7 +760,7 @@ export class JobFairFormComponent implements OnInit {
     url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
     method: 'GET',
     params: {
-      select: '*',
+      select: 'id,key,value',
       key: `in.(job_fair_enabled,job_fair_start_date,job_fair_end_date)`,
     },
   }));

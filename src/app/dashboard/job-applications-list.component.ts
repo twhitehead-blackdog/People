@@ -27,7 +27,6 @@ import { ToastModule } from 'primeng/toast';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
-import { utils, writeFile } from 'xlsx';
 import { JobApplication, Position } from '../models';
 import { OrganizationService } from '../services/organization.service';
 import { JobApplicationsStore } from '../stores/job-applications.store';
@@ -529,7 +528,7 @@ export class JobApplicationsListComponent implements OnInit {
     url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
     method: 'GET',
     params: {
-      select: '*',
+      select: 'id,key,value',
       key: `in.(job_fair_enabled,job_fair_start_date,job_fair_end_date)`,
     },
   }));
@@ -597,7 +596,7 @@ export class JobApplicationsListComponent implements OnInit {
     url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/job_application_statuses`,
     method: 'GET',
     params: {
-      select: '*',
+      select: 'id,code,label,severity,display_order,is_active',
       is_active: 'eq.true',
       order: 'display_order.asc',
     },
@@ -872,7 +871,7 @@ export class JobApplicationsListComponent implements OnInit {
           try {
             await firstValueFrom(
               this.http.patch(
-                `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${settingId}&select=*`,
+                `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${settingId}&select=id,key,value`,
                 { value: startDateString },
                 {
                   headers: this.getSettingsAdminHeaders(),
@@ -952,7 +951,7 @@ export class JobApplicationsListComponent implements OnInit {
           try {
             await firstValueFrom(
               this.http.patch(
-                `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${settingId}&select=*`,
+                `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${settingId}&select=id,key,value`,
                 { value: endDateString },
                 {
                   headers: this.getSettingsAdminHeaders(),
@@ -1155,7 +1154,7 @@ export class JobApplicationsListComponent implements OnInit {
         try {
           await firstValueFrom(
             this.http.patch(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${settingId}&select=*`,
+              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${settingId}&select=id,key,value`,
               { value: newValue },
               {
                 headers: this.getSettingsAdminHeaders(),
@@ -1441,8 +1440,9 @@ export class JobApplicationsListComponent implements OnInit {
     }
   }
 
-  exportToExcel() {
+  async exportToExcel() {
     try {
+      const { utils, writeFile } = await import('xlsx');
       const applications = this.filteredApplications();
 
       if (applications.length === 0) {

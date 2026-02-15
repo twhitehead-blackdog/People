@@ -24,8 +24,6 @@ import { Card } from 'primeng/card';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
-import { utils, writeFile } from 'xlsx';
-
 // Registrar locale español para Angular
 registerLocaleData(esLocale);
 
@@ -624,8 +622,9 @@ export class SalonScheduleComponent {
     this.selectedAssignment.set(undefined);
   }
 
-  exportToExcel() {
+  async exportToExcel() {
     try {
+      const { utils, writeFile } = await import('xlsx');
       const startDate = this.currentWeekStart();
       const endDate = endOfWeek(startDate, { weekStartsOn: 0 }); // Domingo a sábado
 

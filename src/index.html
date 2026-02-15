@@ -157,6 +157,154 @@
     </script>
   </head>
   <body class="dark">
-    <pt-root></pt-root>
+    <pt-root>
+      <style>
+        *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+        .sk{display:flex;flex-direction:column;height:100vh;background:#0a0a0a;font-family:Inter,system-ui,sans-serif;overflow:hidden}
+        .sk-pulse{animation:sk-p 1.8s ease-in-out infinite}
+        @keyframes sk-p{0%,100%{opacity:1}50%{opacity:.35}}
+        /* — Top Navbar — */
+        .sk-nav{height:80px;background:linear-gradient(90deg,#171717,#1f1f1f,#171717);border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;padding:0 1.5rem;gap:1rem;flex-shrink:0}
+        .sk-nav-logo{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#292524,#44403c);flex-shrink:0}
+        .sk-nav-links{display:flex;gap:.75rem;margin-left:2rem;flex:1}
+        .sk-nav-link{height:32px;border-radius:.5rem;background:rgba(255,255,255,.04)}
+        .sk-nav-user{display:flex;align-items:center;gap:.75rem;margin-left:auto}
+        .sk-nav-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#292524,#44403c)}
+        .sk-nav-name{display:flex;flex-direction:column;gap:4px}
+        .sk-nav-name div:first-child{width:90px;height:12px;border-radius:4px;background:rgba(255,255,255,.08)}
+        .sk-nav-name div:last-child{width:60px;height:10px;border-radius:4px;background:rgba(255,255,255,.04)}
+        /* — Body: Sidebar + Content — */
+        .sk-body{display:flex;flex:1;overflow:hidden}
+        /* — Sidebar — */
+        .sk-side{width:260px;background:linear-gradient(180deg,#18181b,#0f0f10);border-right:1px solid rgba(255,255,255,.06);padding:1.25rem .75rem;display:flex;flex-direction:column;gap:.25rem;flex-shrink:0}
+        .sk-side-item{display:flex;align-items:center;gap:.875rem;padding:.75rem 1rem;border-radius:10px}
+        .sk-side-item.active{background:linear-gradient(90deg,rgba(251,191,36,.15),rgba(251,191,36,.05))}
+        .sk-side-icon{width:20px;height:20px;border-radius:6px;background:rgba(255,255,255,.08);flex-shrink:0}
+        .sk-side-item.active .sk-side-icon{background:rgba(251,191,36,.3)}
+        .sk-side-label{height:12px;border-radius:4px;background:rgba(255,255,255,.06);flex:1}
+        .sk-side-item.active .sk-side-label{background:rgba(251,191,36,.2);width:70%}
+        .sk-side-sep{height:1px;background:rgba(255,255,255,.04);margin:.75rem .5rem}
+        /* — Main Content — */
+        .sk-main{flex:1;padding:1.5rem;overflow-y:auto;background:linear-gradient(180deg,#0a0a0a,#111)}
+        /* Hero row: 3 cards */
+        .sk-hero{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.25rem}
+        .sk-hero-card{border-radius:1rem;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);padding:1.25rem;min-height:180px;display:flex;flex-direction:column;justify-content:space-between}
+        .sk-hero-top{display:flex;justify-content:space-between;align-items:flex-start}
+        .sk-hero-title{height:12px;width:45%;border-radius:4px;background:rgba(255,255,255,.06)}
+        .sk-hero-badge{height:20px;width:70px;border-radius:10px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.15)}
+        .sk-hero-number{height:36px;width:30%;border-radius:8px;background:rgba(255,255,255,.05);margin:1rem 0 .5rem}
+        .sk-hero-chart{height:50px;border-radius:8px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.03)}
+        /* KPI grid: 3x3 */
+        .sk-kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;margin-bottom:1.25rem}
+        .sk-kpi-card{border-radius:.75rem;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.06);padding:1rem;display:flex;align-items:flex-start;gap:.75rem;min-height:90px}
+        .sk-kpi-icon{width:40px;height:40px;border-radius:10px;flex-shrink:0}
+        .sk-kpi-body{flex:1;display:flex;flex-direction:column;gap:6px}
+        .sk-kpi-label{height:10px;width:60%;border-radius:3px;background:rgba(255,255,255,.05)}
+        .sk-kpi-value{height:22px;width:35%;border-radius:6px;background:rgba(255,255,255,.07)}
+        .sk-kpi-sub{height:8px;width:50%;border-radius:3px;background:rgba(255,255,255,.03)}
+        /* Bottom row: small metric cards */
+        .sk-bottom{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem}
+        .sk-bottom-card{border-radius:.75rem;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);padding:.875rem;display:flex;align-items:center;gap:.625rem;min-height:60px}
+        .sk-bottom-icon{width:32px;height:32px;border-radius:8px;flex-shrink:0}
+        .sk-bottom-body{flex:1;display:flex;flex-direction:column;gap:4px}
+        .sk-bottom-label{height:9px;width:65%;border-radius:3px;background:rgba(255,255,255,.05)}
+        .sk-bottom-value{height:16px;width:30%;border-radius:4px;background:rgba(255,255,255,.06)}
+        /* KPI icon colors */
+        .ic-orange{background:rgba(249,115,22,.15)}.ic-red{background:rgba(239,68,68,.15)}
+        .ic-green{background:rgba(34,197,94,.15)}.ic-teal{background:rgba(20,184,166,.15)}
+        .ic-pink{background:rgba(236,72,153,.15)}.ic-emerald{background:rgba(16,185,129,.15)}
+        .ic-purple{background:rgba(168,85,247,.15)}.ic-blue{background:rgba(59,130,246,.15)}
+        .ic-cyan{background:rgba(6,182,212,.15)}.ic-rose{background:rgba(244,63,94,.15)}
+        .ic-yellow{background:rgba(234,179,8,.15)}
+        /* Responsive */
+        @media(max-width:1023px){
+          .sk-side{display:none}
+          .sk-nav{height:56px}
+          .sk-nav-links{display:none}
+          .sk-nav-name{display:none}
+          .sk-hero{grid-template-columns:1fr}
+          .sk-kpi{grid-template-columns:repeat(2,1fr)}
+          .sk-bottom{grid-template-columns:repeat(2,1fr)}
+        }
+        @media(max-width:640px){
+          .sk-kpi{grid-template-columns:1fr}
+          .sk-bottom{grid-template-columns:1fr}
+        }
+      </style>
+      <div class="sk">
+        <!-- Top Navbar -->
+        <div class="sk-nav sk-pulse">
+          <div class="sk-nav-logo"></div>
+          <div class="sk-nav-links">
+            <div class="sk-nav-link" style="width:70px"></div>
+            <div class="sk-nav-link" style="width:110px"></div>
+            <div class="sk-nav-link" style="width:80px"></div>
+            <div class="sk-nav-link" style="width:120px"></div>
+            <div class="sk-nav-link" style="width:80px"></div>
+          </div>
+          <div class="sk-nav-user">
+            <div class="sk-nav-name"><div></div><div></div></div>
+            <div class="sk-nav-avatar"></div>
+          </div>
+        </div>
+        <div class="sk-body">
+          <!-- Sidebar -->
+          <div class="sk-side sk-pulse">
+            <div class="sk-side-item active"><div class="sk-side-icon"></div><div class="sk-side-label"></div></div>
+            <div class="sk-side-item"><div class="sk-side-icon"></div><div class="sk-side-label"></div></div>
+            <div class="sk-side-item"><div class="sk-side-icon"></div><div class="sk-side-label"></div></div>
+            <div class="sk-side-item"><div class="sk-side-icon"></div><div class="sk-side-label"></div></div>
+            <div class="sk-side-sep"></div>
+            <div class="sk-side-item"><div class="sk-side-icon"></div><div class="sk-side-label"></div></div>
+            <div class="sk-side-item"><div class="sk-side-icon"></div><div class="sk-side-label"></div></div>
+            <div class="sk-side-item"><div class="sk-side-icon"></div><div class="sk-side-label"></div></div>
+          </div>
+          <!-- Main Content -->
+          <div class="sk-main sk-pulse">
+            <!-- Hero Row: 3 cards -->
+            <div class="sk-hero">
+              <div class="sk-hero-card">
+                <div class="sk-hero-top"><div class="sk-hero-title"></div><div class="sk-hero-badge"></div></div>
+                <div class="sk-hero-number"></div>
+                <div class="sk-hero-chart"></div>
+              </div>
+              <div class="sk-hero-card">
+                <div class="sk-hero-top"><div class="sk-hero-title"></div></div>
+                <div class="sk-hero-chart" style="height:80px;border-radius:50%;width:80px;margin:.5rem auto"></div>
+                <div class="sk-hero-title" style="width:60%;margin:0 auto"></div>
+              </div>
+              <div class="sk-hero-card">
+                <div class="sk-hero-top"><div class="sk-hero-title"></div></div>
+                <div class="sk-hero-number"></div>
+                <div class="sk-hero-chart"></div>
+              </div>
+            </div>
+            <!-- KPI Grid: 3x3 -->
+            <div class="sk-kpi">
+              <div class="sk-kpi-card"><div class="sk-kpi-icon ic-orange"></div><div class="sk-kpi-body"><div class="sk-kpi-label"></div><div class="sk-kpi-value"></div><div class="sk-kpi-sub"></div></div></div>
+              <div class="sk-kpi-card"><div class="sk-kpi-icon ic-red"></div><div class="sk-kpi-body"><div class="sk-kpi-label"></div><div class="sk-kpi-value"></div><div class="sk-kpi-sub"></div></div></div>
+              <div class="sk-kpi-card"><div class="sk-kpi-icon ic-green"></div><div class="sk-kpi-body"><div class="sk-kpi-label"></div><div class="sk-kpi-value"></div><div class="sk-kpi-sub"></div></div></div>
+              <div class="sk-kpi-card"><div class="sk-kpi-icon ic-teal"></div><div class="sk-kpi-body"><div class="sk-kpi-label"></div><div class="sk-kpi-value"></div><div class="sk-kpi-sub"></div></div></div>
+              <div class="sk-kpi-card"><div class="sk-kpi-icon ic-pink"></div><div class="sk-kpi-body"><div class="sk-kpi-label"></div><div class="sk-kpi-value"></div><div class="sk-kpi-sub"></div></div></div>
+              <div class="sk-kpi-card"><div class="sk-kpi-icon ic-emerald"></div><div class="sk-kpi-body"><div class="sk-kpi-label"></div><div class="sk-kpi-value"></div><div class="sk-kpi-sub"></div></div></div>
+              <div class="sk-kpi-card"><div class="sk-kpi-icon ic-purple"></div><div class="sk-kpi-body"><div class="sk-kpi-label"></div><div class="sk-kpi-value"></div><div class="sk-kpi-sub"></div></div></div>
+              <div class="sk-kpi-card"><div class="sk-kpi-icon ic-blue"></div><div class="sk-kpi-body"><div class="sk-kpi-label"></div><div class="sk-kpi-value"></div><div class="sk-kpi-sub"></div></div></div>
+              <div class="sk-kpi-card"><div class="sk-kpi-icon ic-cyan"></div><div class="sk-kpi-body"><div class="sk-kpi-label"></div><div class="sk-kpi-value"></div><div class="sk-kpi-sub"></div></div></div>
+            </div>
+            <!-- Bottom Row: 8 small cards -->
+            <div class="sk-bottom">
+              <div class="sk-bottom-card"><div class="sk-bottom-icon ic-purple"></div><div class="sk-bottom-body"><div class="sk-bottom-label"></div><div class="sk-bottom-value"></div></div></div>
+              <div class="sk-bottom-card"><div class="sk-bottom-icon ic-blue"></div><div class="sk-bottom-body"><div class="sk-bottom-label"></div><div class="sk-bottom-value"></div></div></div>
+              <div class="sk-bottom-card"><div class="sk-bottom-icon ic-green"></div><div class="sk-bottom-body"><div class="sk-bottom-label"></div><div class="sk-bottom-value"></div></div></div>
+              <div class="sk-bottom-card"><div class="sk-bottom-icon ic-pink"></div><div class="sk-bottom-body"><div class="sk-bottom-label"></div><div class="sk-bottom-value"></div></div></div>
+              <div class="sk-bottom-card"><div class="sk-bottom-icon ic-red"></div><div class="sk-bottom-body"><div class="sk-bottom-label"></div><div class="sk-bottom-value"></div></div></div>
+              <div class="sk-bottom-card"><div class="sk-bottom-icon ic-orange"></div><div class="sk-bottom-body"><div class="sk-bottom-label"></div><div class="sk-bottom-value"></div></div></div>
+              <div class="sk-bottom-card"><div class="sk-bottom-icon ic-yellow"></div><div class="sk-bottom-body"><div class="sk-bottom-label"></div><div class="sk-bottom-value"></div></div></div>
+              <div class="sk-bottom-card"><div class="sk-bottom-icon ic-rose"></div><div class="sk-bottom-body"><div class="sk-bottom-label"></div><div class="sk-bottom-value"></div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </pt-root>
   </body>
 </html>

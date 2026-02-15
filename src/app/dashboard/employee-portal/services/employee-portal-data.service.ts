@@ -285,7 +285,7 @@ export class EmployeePortalDataService {
   public disabilitiesApi = httpResource<any[]>(() => {
     if (!this.currentEmployee()?.id) return undefined;
     const url = this.apiUrl.build('rest/v1/employee_disabilities', {
-      select: '*',
+      select: 'id,employee_id,start_date,end_date,description,document_url,status,diagnosis,notes,rejection_comment,created_at',
       employee_id: `eq.${this.currentEmployee()!.id}`,
       order: 'created_at.desc',
     });
@@ -307,7 +307,7 @@ export class EmployeePortalDataService {
       url,
       method: 'GET' as const,
       params: {
-        select: '*',
+        select: 'id,employee_id,document_type,custom_document_type,reason,status,created_at',
         employee_id: `eq.${this.currentEmployee()!.id}`,
         order: 'created_at.desc',
       },
@@ -326,7 +326,7 @@ export class EmployeePortalDataService {
       url: this.apiUrl.build('rest/v1/complaints'),
       method: 'GET',
       params: {
-        select: '*',
+        select: 'id,creator_employee_id,category,complaint,status,priority,thread_id,created_at,updated_at',
         creator_employee_id: `eq.${this.currentEmployee()!.id}`,
         order: 'updated_at.desc',
       },
@@ -345,7 +345,7 @@ export class EmployeePortalDataService {
       url: this.apiUrl.build('rest/v1/complaint_messages'),
       method: 'GET',
       params: {
-        select: '*',
+        select: 'id,complaint_id,sender_id,sender_type,is_anonymous,message,is_read,read_at,created_at,thread_id',
         complaint_id: `eq.${complaint.id}`,
         order: 'created_at.asc',
       },
@@ -393,7 +393,7 @@ export class EmployeePortalDataService {
     url: this.apiUrl.build('rest/v1/timeoff_types'),
     method: 'GET',
     params: {
-      select: '*',
+      select: 'id,name',
       order: 'name.asc',
     },
   }));
@@ -407,7 +407,7 @@ export class EmployeePortalDataService {
       url: this.apiUrl.build('rest/v1/compensatory_requests'),
       method: 'GET',
       params: {
-        select: '*',
+        select: 'id,employee_id,amount,status,created_at',
         employee_id: `eq.${this.currentEmployee()!.id}`,
         status: 'eq.approved',
         order: 'created_at.desc',

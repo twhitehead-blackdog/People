@@ -211,7 +211,7 @@ export class JobApplicationStatusesDialogComponent {
     url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/job_application_statuses`,
     method: 'GET',
     params: {
-      select: '*',
+      select: 'id,code,label,severity,display_order,is_default,is_active',
       order: 'display_order.asc',
     },
   }));

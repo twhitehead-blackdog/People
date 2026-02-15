@@ -18,7 +18,7 @@ export class NotificationsService {
     const employeeId = this.currentEmployeeId();
     if (!employeeId) return undefined;
     const url = this.apiUrl.build('rest/v1/hr_messages', {
-      select: '*',
+      select: 'id,employee_id,title,message,message_type,is_read,read_at,related_type,created_at',
       employee_id: `eq.${employeeId}`,
       order: 'created_at.desc',
     });

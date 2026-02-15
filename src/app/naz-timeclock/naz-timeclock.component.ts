@@ -66,7 +66,7 @@ import { OrganizationService } from '../services/organization.service';
           class="flex flex-col items-center w-full gap-4 dark:border-surface-700"
         >
           <i [ngClass]="message.icon" class="!text-6xl text-orange-500"></i>
-          <div [innerHTML]="message.message" class="text-center w-full"></div>
+          <p class="text-center w-full">{{ message.message }}</p>
         </div>
       </ng-template>
     </p-confirmDialog>
@@ -1075,7 +1075,7 @@ export class NazTimeclockComponent implements OnDestroy {
     url: `${this.apiUrl.baseUrl}/rest/v1/companies`,
     method: 'GET',
     params: {
-      select: '*',
+      select: 'id,name',
       order: 'name',
     },
   }));
@@ -1084,7 +1084,7 @@ export class NazTimeclockComponent implements OnDestroy {
     url: `${this.apiUrl.baseUrl}/rest/v1/branches`,
     method: 'GET',
     params: {
-      select: '*',
+      select: 'id,name,ip,company_id',
       order: 'name',
     },
   }));
