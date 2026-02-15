@@ -10,7 +10,7 @@ import {
   signal,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { addDays, differenceInDays, format, startOfDay } from 'date-fns';
+import { addDays, addYears, differenceInDays, format, startOfDay } from 'date-fns';
 import { MessageService } from 'primeng/api';
 import { Card } from 'primeng/card';
 import { ToastModule } from 'primeng/toast';
@@ -1085,8 +1085,8 @@ export class EmployeePortalComponent {
   public selectedRequestDetails = signal<any>(null);
   public minVacationDate = new Date(); // No permitir fechas pasadas
   public maxVacationDate = computed(() => {
-    const date = new Date();
-    date.setFullYear(date.getFullYear() + 1); // Máximo 1 año en el futuro
+    let date = new Date();
+    date = addYears(date, 1); // Máximo 1 año en el futuro
     return date;
   });
 
@@ -1238,7 +1238,7 @@ export class EmployeePortalComponent {
 
       console.log('[DEBUG] 📡 Consultando configuracion compensatorios:', url);
 
-      const response = await this.http.get<any>(url).toPromise();
+      const response = await firstValueFrom(this.http.get<any>(url));
       console.log('[DEBUG] 📥 Respuesta API compensatorios:', response);
 
       const recipientsString =
@@ -1521,7 +1521,7 @@ export class EmployeePortalComponent {
 
       console.log('[DEBUG] 📡 Consultando configuracion incapacidades:', url);
 
-      const response = await this.http.get<any>(url).toPromise();
+      const response = await firstValueFrom(this.http.get<any>(url));
       console.log('[DEBUG] 📥 Respuesta API incapacidades:', response);
 
       const recipientsString =
@@ -1682,7 +1682,7 @@ export class EmployeePortalComponent {
 
       console.log('[DEBUG] 📡 Consultando configuracion documentos:', url);
 
-      const response = await this.http.get<any>(url).toPromise();
+      const response = await firstValueFrom(this.http.get<any>(url));
       console.log('[DEBUG] 📥 Respuesta API documentos:', response);
 
       const recipientsString =

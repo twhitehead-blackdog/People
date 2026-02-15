@@ -5,8 +5,11 @@ import {
   endOfWeek,
   format,
   getDate,
+  getMonth,
+  getYear,
   startOfMonth,
   startOfWeek,
+  differenceInMilliseconds,
 } from 'date-fns';
 
 /**
@@ -75,7 +78,7 @@ export function getCurrentWeekOfMonth(date: Date): number {
   const firstWeekStart = startOfWeek(monthStart, { weekStartsOn: 0 });
   const dateWeekStart = startOfWeek(date, { weekStartsOn: 0 });
   const diffInWeeks = Math.floor(
-    (dateWeekStart.getTime() - firstWeekStart.getTime()) /
+    differenceInMilliseconds(dateWeekStart, firstWeekStart) /
       (7 * 24 * 60 * 60 * 1000)
   );
   return diffInWeeks + 1;
@@ -105,10 +108,10 @@ export function getMonthOptions(): { label: string; value: Date }[] {
 
   // Agregar los últimos 12 meses y los próximos 3 meses
   for (let i = -12; i <= 3; i++) {
-    const date = new Date(today.getFullYear(), today.getMonth() + i, 1);
-    const monthName = monthNames[date.getMonth()];
+    const date = new Date(getYear(today), getMonth(today) + i, 1);
+    const monthName = monthNames[getMonth(date)];
     options.push({
-      label: `${monthName} ${date.getFullYear()}`,
+      label: `${monthName} ${getYear(date)}`,
       value: date,
     });
   }

@@ -6,6 +6,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { compareDesc } from 'date-fns';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
@@ -604,8 +605,7 @@ export class DeviceInventoryComponent {
       .filter((a) => a.device_id === deviceId)
       .sort(
         (a, b) =>
-          new Date(b.assigned_date).getTime() -
-          new Date(a.assigned_date).getTime()
+          compareDesc(new Date(a.assigned_date), new Date(b.assigned_date))
       );
   }
 

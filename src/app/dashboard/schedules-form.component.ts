@@ -12,7 +12,7 @@ import {
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { format } from 'date-fns';
+import { format, set } from 'date-fns';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { DatePicker } from 'primeng/datepicker';
@@ -373,11 +373,9 @@ export class SchedulesFormComponent implements OnInit {
     }
 
     try {
-      const date = new Date();
+      let date = new Date();
       const [hours, minutes] = time.split(':');
-      date.setHours(Number(hours));
-      date.setMinutes(Number(minutes));
-      date.setSeconds(0);
+      date = set(date, { hours: Number(hours), minutes: Number(minutes), seconds: 0 });
       return date;
     } catch (error) {
       console.error(

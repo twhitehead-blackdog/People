@@ -9,7 +9,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { endOfDay, format, startOfDay } from 'date-fns';
+import { endOfDay, format, getHours, getMinutes, set, startOfDay } from 'date-fns';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
@@ -613,8 +613,8 @@ export class ManualTimelogComponent {
     this.submitting.set(true);
 
     // Combinar fecha y hora
-    const punchedAt = new Date(date);
-    punchedAt.setHours(time.getHours(), time.getMinutes(), 0, 0);
+    let punchedAt = new Date(date);
+    punchedAt = set(punchedAt, { hours: getHours(time), minutes: getMinutes(time), seconds: 0, milliseconds: 0 });
 
     const companyId = this.orgService.getCurrentCompanyId();
     const currentEmployee = this.dashboardStore.currentEmployee();

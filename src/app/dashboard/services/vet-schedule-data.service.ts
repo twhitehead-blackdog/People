@@ -95,9 +95,9 @@ export class VetScheduleDataService {
 
       for (const d of days) {
         // Crear fechas solo con año/mes/día para comparación
-        const dDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-        const startDateOnly = new Date(rowStart.getFullYear(), rowStart.getMonth(), rowStart.getDate());
-        const endDateOnly = new Date(rowEnd.getFullYear(), rowEnd.getMonth(), rowEnd.getDate());
+        const dDate = new Date(getYear(d), getMonth(d), getDate(d));
+        const startDateOnly = new Date(getYear(rowStart), getMonth(rowStart), getDate(rowStart));
+        const endDateOnly = new Date(getYear(rowEnd), getMonth(rowEnd), getDate(rowEnd));
 
         // Comparación inclusive usando solo fecha (sin hora)
         if (dDate >= startDateOnly && dDate <= endDateOnly) {

@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { httpResource } from '@angular/common/http';
+import { differenceInMinutes, isValid } from 'date-fns';
 import {
   ConfirmationService,
   FilterService,
@@ -363,22 +364,22 @@ export class UserManagementComponent {
   public lastAccessMap = computed(() => {
     const timelogs = this.lastAccessApi.value() || [];
     const accessMap = new Map<string, Date>();
-    
+
     // Obtener el último timelog de cada empleado
     timelogs.forEach((log: any) => {
       if (!log.employee_id || !log.created_at) return;
-      
+
       const employeeId = log.employee_id;
       const logDate = new Date(log.created_at);
-      
-      if (isNaN(logDate.getTime())) return; // Validar fecha
-      
+
+      if (!isValid(logDate)) return; // Validar fecha
+
       const existing = accessMap.get(employeeId);
       if (!existing || logDate > existing) {
         accessMap.set(employeeId, logDate);
       }
     });
-    
+
     return accessMap;
   });
 
@@ -390,13 +391,12 @@ export class UserManagementComponent {
   // Función para formatear último acceso
   public formatLastAccess(date: Date | null): string {
     if (!date) return 'Nunca';
-    
+
     const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffMinutes = Math.floor(diffMs / (1000 * 60));
-    
+    const diffMinutes = differenceInMinutes(now, date);
+    const diffHours = Math.floor(diffMinutes / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
     if (diffMinutes < 60) {
       return `Hace ${diffMinutes} min`;
     } else if (diffHours < 24) {
@@ -404,10 +404,10 @@ export class UserManagementComponent {
     } else if (diffDays < 7) {
       return `Hace ${diffDays} días`;
     } else {
-      return date.toLocaleDateString('es-MX', { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric' 
+      return date.toLocaleDateString('es-MX', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
       });
     }
   }

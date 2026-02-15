@@ -9,6 +9,7 @@ import {
   output,
   signal,
 } from '@angular/core';
+import { differenceInCalendarDays } from 'date-fns';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer } from '@angular/platform-browser';
 import { ButtonModule } from 'primeng/button';
@@ -441,7 +442,7 @@ export class DisabilityDetailsDialogComponent {
   public calculateDays(start: string | Date, end: string | Date): number {
     const s = typeof start === 'string' ? new Date(start) : start;
     const e = typeof end === 'string' ? new Date(end) : end;
-    return Math.ceil((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    return differenceInCalendarDays(e, s) + 1;
   }
 
   public getStatusLabel(status: string): string {

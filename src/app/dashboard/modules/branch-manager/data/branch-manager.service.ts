@@ -2,6 +2,7 @@ import { HttpClient, httpResource } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
+  compareAsc,
   endOfDay,
   format,
   startOfDay,
@@ -268,7 +269,7 @@ export class BranchManagerService {
     }));
 
     return [...manualReminders, ...auditReminders].sort(
-      (a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+      (a, b) => compareAsc(new Date(a.due_date), new Date(b.due_date))
     );
   });
 

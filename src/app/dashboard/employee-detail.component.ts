@@ -19,6 +19,7 @@ import { Tooltip } from 'primeng/tooltip';
 
 import { HttpClient, httpResource } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
+import { getEnv } from '../utils/env.utils';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Skeleton } from 'primeng/skeleton';
 import { TabsModule } from 'primeng/tabs';
@@ -741,7 +742,7 @@ export class EmployeeDetailComponent implements OnInit {
   public employee_id = signal<string | null>(null);
   public inviting = signal(false);
   public regeneratingQr = signal(false);
-  public portalUrl = `${process.env['ENV_APP_URL'] || window.location.origin
+  public portalUrl = `${getEnv('ENV_APP_URL') || window.location.origin
     }/my-portal`;
   public employee = httpResource<Employee[]>(() => {
     const id = this.employee_id();
@@ -766,7 +767,7 @@ export class EmployeeDetailComponent implements OnInit {
     }
 
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
+      url: `${getEnv('ENV_SUPABASE_URL')}/rest/v1/employees`,
       method: 'GET',
       params,
     };
@@ -913,7 +914,7 @@ export class EmployeeDetailComponent implements OnInit {
 
           await firstValueFrom(
             this.http.patch(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
+              `${getEnv('ENV_SUPABASE_URL')}/rest/v1/employees`,
               { has_portal_access: true },
               {
                 params,

@@ -1,4 +1,4 @@
-import { differenceInDays } from 'date-fns';
+import { differenceInDays, isValid, differenceInMilliseconds, differenceInCalendarDays } from 'date-fns';
 
 /**
  * Calcula el número de días entre dos fechas (incluyendo ambos días)
@@ -9,9 +9,7 @@ export function calculateDays(
 ): number {
   const startDate = new Date(start);
   const endDate = new Date(end);
-  const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays + 1; // Include both start and end days
+  return differenceInCalendarDays(endDate, startDate) + 1;
 }
 
 /**
@@ -25,7 +23,7 @@ export function calculateDaysBetween(
     const from = typeof dateFrom === 'string' ? new Date(dateFrom) : dateFrom;
     const to = typeof dateTo === 'string' ? new Date(dateTo) : dateTo;
 
-    if (isNaN(from.getTime()) || isNaN(to.getTime())) {
+    if (!isValid(from) || !isValid(to)) {
       return 0;
     }
 
@@ -42,7 +40,7 @@ export function calculateDaysBetween(
 export function isDateFuture(date: Date | string): boolean {
   try {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
-    if (isNaN(dateObj.getTime())) {
+    if (!isValid(dateObj)) {
       return false;
     }
     return dateObj > new Date();

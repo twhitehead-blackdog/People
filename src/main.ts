@@ -2,11 +2,12 @@ import { bootstrapApplication } from '@angular/platform-browser';
 import { isDevMode } from '@angular/core';
 import { appConfig } from './app/app.config';
 import { AppComponent } from './app/app.component';
+import { getEnv } from './app/utils/env.utils';
 
 // Log de inicio solo en desarrollo
 if (isDevMode()) {
   console.log('🚀 Iniciando aplicación en modo desarrollo...');
-  console.log('📊 Supabase URL:', process.env['ENV_SUPABASE_URL']);
+  console.log('📊 Supabase URL:', getEnv('ENV_SUPABASE_URL'));
 }
 
 bootstrapApplication(AppComponent, appConfig).catch((err) => {

@@ -13,6 +13,7 @@ import { CardModule } from 'primeng/card';
 import { DropdownModule } from 'primeng/dropdown';
 import { Employee } from './models';
 import { QrService } from './services/qr.service';
+import { getEnv } from './utils/env.utils';
 
 @Component({
   selector: 'pt-qr-generator',
@@ -57,7 +58,7 @@ export class QrGeneratorComponent {
   public generating = signal(false);
 
   public employees = httpResource<Partial<Employee>[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
+    url: `${getEnv('ENV_SUPABASE_URL')}/rest/v1/employees`,
     method: 'GET',
     params: {
       select: 'id,first_name,father_name',

@@ -11,7 +11,7 @@ import {
   signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { addDays, startOfDay } from 'date-fns';
+import { addDays, compareAsc, differenceInCalendarDays, set, startOfDay } from 'date-fns';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
@@ -1336,18 +1336,14 @@ export class BranchManagerGestionesComponent {
     const start = this.disabilityStartDate();
     const end = this.disabilityEndDate();
     if (!start || !end) return 0;
-    return (
-      Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
-    );
+    return differenceInCalendarDays(end, start) + 1;
   });
 
   public vacationDaysCount = computed(() => {
     const start = this.vacationStartDate();
     const end = this.vacationEndDate();
     if (!start || !end) return 0;
-    return (
-      Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
-    );
+    return differenceInCalendarDays(end, start) + 1;
   });
 
   // Tarjetas de gestiones disponibles
@@ -1529,7 +1525,7 @@ export class BranchManagerGestionesComponent {
     if (dateToAdd) {
       const existing = this.manualOvertimeDates();
       this.manualOvertimeDates.set(
-        [...existing, dateToAdd].sort((a, b) => a.getTime() - b.getTime())
+        [...existing, dateToAdd].sort((a, b) => compareAsc(a, b))
       );
       this.newOvertimeDate.set(null);
     }
@@ -1538,9 +1534,7 @@ export class BranchManagerGestionesComponent {
   public setCompensatoryTimeStart(time: Date | null): void {
     if (time) {
       // Forzar minutos a 00
-      time.setMinutes(0);
-      time.setSeconds(0);
-      time.setMilliseconds(0);
+      time = set(time, { minutes: 0, seconds: 0, milliseconds: 0 });
     }
     this.compensatoryTimeStart.set(time);
   }
@@ -1548,9 +1542,7 @@ export class BranchManagerGestionesComponent {
   public setCompensatoryTimeEnd(time: Date | null): void {
     if (time) {
       // Forzar minutos a 00
-      time.setMinutes(0);
-      time.setSeconds(0);
-      time.setMilliseconds(0);
+      time = set(time, { minutes: 0, seconds: 0, milliseconds: 0 });
     }
     this.compensatoryTimeEnd.set(time);
   }

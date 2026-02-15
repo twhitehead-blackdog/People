@@ -6,6 +6,7 @@ import {
   endOfMonth,
   endOfWeek,
   format,
+  isValid,
   startOfMonth,
   startOfWeek,
 } from 'date-fns';
@@ -283,7 +284,7 @@ export class EmployeePortalTimelogsTabComponent {
     if (!entry || !exit) return '-';
     const entryDate = new Date(entry);
     const exitDate = new Date(exit);
-    if (isNaN(entryDate.getTime()) || isNaN(exitDate.getTime())) return '-';
+    if (!isValid(entryDate) || !isValid(exitDate)) return '-';
 
     const minutes = differenceInMinutes(exitDate, entryDate);
     if (minutes < 0) return '0h 0m';

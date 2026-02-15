@@ -1,6 +1,6 @@
 import { httpResource } from '@angular/common/http';
 import { computed, inject, Injectable, signal } from '@angular/core';
-import { endOfDay, startOfDay } from 'date-fns';
+import { compareDesc, endOfDay, startOfDay } from 'date-fns';
 import { ApiUrlService } from '../../services/api-url.service';
 import { OrganizationService } from '../../services/organization.service';
 import { DashboardStore } from '../../stores/dashboard.store';
@@ -136,9 +136,7 @@ export class EmployeePortalRequestsService {
     }
     const requests = this.vacationTimeoffsApi.value() ?? [];
     return [...requests].sort((a, b) => {
-      const dateA = new Date(a.date_from).getTime();
-      const dateB = new Date(b.date_from).getTime();
-      return dateB - dateA;
+      return compareDesc(new Date(a.date_from), new Date(b.date_from));
     });
   });
 
@@ -441,9 +439,7 @@ export class EmployeePortalRequestsService {
       let comparison = 0;
 
       if (sortBy === 'date') {
-        const dateA = new Date(a.created_at).getTime();
-        const dateB = new Date(b.created_at).getTime();
-        comparison = dateA - dateB;
+        comparison = compareDesc(new Date(b.created_at), new Date(a.created_at)) * -1;
       } else if (sortBy === 'status') {
         const statusOrder: Record<string, number> = {
           pending: 1,
@@ -522,9 +518,7 @@ export class EmployeePortalRequestsService {
       let comparison = 0;
 
       if (sortBy === 'date') {
-        const dateA = new Date(a.created_at).getTime();
-        const dateB = new Date(b.created_at).getTime();
-        comparison = dateA - dateB;
+        comparison = compareDesc(new Date(b.created_at), new Date(a.created_at)) * -1;
       } else if (sortBy === 'status') {
         const statusA = this.getRequestStatusOrder(a);
         const statusB = this.getRequestStatusOrder(b);

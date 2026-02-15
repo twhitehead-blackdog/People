@@ -22,6 +22,7 @@ import { PayrollDebt } from '../models';
 import { CreditorsStore } from '../stores/creditors.store';
 import { EmployeesStore } from '../stores/employees.store';
 import { OrganizationService } from '../services/organization.service';
+import { getEnv } from '../utils/env.utils';
 import { PayrollDebtsFormComponent } from './payroll-debts-form.component';
 
 @Component({
@@ -174,7 +175,7 @@ export class PayrollDebtsComponent implements OnInit {
     // Por ahora, dejamos que el filtro se haga a través de la relación employee si es necesario
     
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/payroll_debts`,
+      url: `${getEnv('ENV_SUPABASE_URL')}/rest/v1/payroll_debts`,
       method: 'GET',
       params,
     };
@@ -240,7 +241,7 @@ export class PayrollDebtsComponent implements OnInit {
       },
       accept: () => {
         this.http
-          .delete(`${process.env['ENV_SUPABASE_URL']}/rest/v1/payroll_debts`, {
+          .delete(`${getEnv('ENV_SUPABASE_URL')}/rest/v1/payroll_debts`, {
             params: {
               id: `eq.${debt.id}`,
             },

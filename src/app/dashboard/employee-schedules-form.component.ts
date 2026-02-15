@@ -22,7 +22,9 @@ import {
   addDays,
   eachDayOfInterval,
   format,
+  isEqual,
   isSameDay,
+  startOfDay as startOfDayFn,
   subDays,
 } from 'date-fns';
 import { toDate } from 'date-fns-tz';
@@ -733,10 +735,10 @@ export class EmployeeSchedulesFormComponent implements OnInit {
 
     // Validar que la fecha de inicio sea menor o igual a la fecha de fin
     if (value.start_date && value.end_date) {
-      const startDate = new Date(value.start_date);
-      const endDate = new Date(value.end_date);
-      startDate.setHours(0, 0, 0, 0);
-      endDate.setHours(0, 0, 0, 0);
+      let startDate = new Date(value.start_date);
+      let endDate = new Date(value.end_date);
+      startDate = startOfDayFn(startDate);
+      endDate = startOfDayFn(endDate);
 
       if (startDate > endDate) {
         this.message.add({
@@ -784,13 +786,13 @@ export class EmployeeSchedulesFormComponent implements OnInit {
 
       // Verificar si hay algún día que no sea domingo en el rango
       let hasNonSunday = false;
-      const currentDate = new Date(startDate);
+      let currentDate = new Date(startDate);
       while (currentDate <= endDate) {
         if (getDay(currentDate) !== 0) { // 0 = Domingo
           hasNonSunday = true;
           break;
         }
-        currentDate.setDate(currentDate.getDate() + 1);
+        currentDate = addDays(currentDate, 1);
       }
 
       if (hasNonSunday) {
@@ -948,20 +950,20 @@ export class EmployeeSchedulesFormComponent implements OnInit {
     const companyId = this.organizationService.getCurrentCompanyId();
 
     // Verificar si el usuario estableció fechas específicas diferentes a la semana completa
-    const userStartDate = value.start_date ? new Date(value.start_date) : null;
-    const userEndDate = value.end_date ? new Date(value.end_date) : null;
+    let userStartDate = value.start_date ? new Date(value.start_date) : null;
+    let userEndDate = value.end_date ? new Date(value.end_date) : null;
 
     if (userStartDate && userEndDate) {
-      userStartDate.setHours(0, 0, 0, 0);
-      userEndDate.setHours(0, 0, 0, 0);
+      userStartDate = startOfDayFn(userStartDate);
+      userEndDate = startOfDayFn(userEndDate);
     }
 
-    const weekStartDate = this.weekStart ? new Date(this.weekStart) : null;
-    const weekEndDate = this.weekEnd ? new Date(this.weekEnd) : null;
+    let weekStartDate = this.weekStart ? new Date(this.weekStart) : null;
+    let weekEndDate = this.weekEnd ? new Date(this.weekEnd) : null;
 
     if (weekStartDate && weekEndDate) {
-      weekStartDate.setHours(0, 0, 0, 0);
-      weekEndDate.setHours(0, 0, 0, 0);
+      weekStartDate = startOfDayFn(weekStartDate);
+      weekEndDate = startOfDayFn(weekEndDate);
     }
 
     // Verificar si las fechas del usuario son diferentes a la semana completa
@@ -970,8 +972,8 @@ export class EmployeeSchedulesFormComponent implements OnInit {
       userEndDate &&
       weekStartDate &&
       weekEndDate &&
-      userStartDate.getTime() === weekStartDate.getTime() &&
-      userEndDate.getTime() === weekEndDate.getTime();
+      isEqual(userStartDate, weekStartDate) &&
+      isEqual(userEndDate, weekEndDate);
 
     // Solo crear horarios para toda la semana si:
     // 1. No hay horarios previos en la semana

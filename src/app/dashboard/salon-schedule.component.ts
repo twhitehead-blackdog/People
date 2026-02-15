@@ -15,6 +15,10 @@ import {
   eachDayOfInterval,
   endOfWeek,
   format,
+  getDate,
+  getYear,
+  getMonth,
+  startOfDay,
   startOfWeek,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -289,21 +293,9 @@ export class SalonScheduleComponent {
 
             for (const d of days) {
               // Crear fechas solo con año/mes/día para comparación
-              const dDate = new Date(
-                d.getFullYear(),
-                d.getMonth(),
-                d.getDate()
-              );
-              const startDateOnly = new Date(
-                rowStart.getFullYear(),
-                rowStart.getMonth(),
-                rowStart.getDate()
-              );
-              const endDateOnly = new Date(
-                rowEnd.getFullYear(),
-                rowEnd.getMonth(),
-                rowEnd.getDate()
-              );
+              const dDate = startOfDay(d);
+              const startDateOnly = startOfDay(rowStart);
+              const endDateOnly = startOfDay(rowEnd);
 
               // Comparación inclusive usando solo fecha (sin hora)
               if (dDate >= startDateOnly && dDate <= endDateOnly) {

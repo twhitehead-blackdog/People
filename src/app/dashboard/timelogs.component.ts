@@ -11,7 +11,7 @@ import {
   signal,
 } from '@angular/core';
 import { useRealtimeTrigger } from '../utils/realtime-trigger.utils';
-import { addDays, differenceInMinutes, format, startOfMonth } from 'date-fns';
+import { addDays, compareAsc, differenceInMinutes, differenceInSeconds, format, getDate, getDay, getMonth, getYear, isEqual, isValid, set, startOfDay, startOfMonth } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
@@ -307,13 +307,13 @@ export class TimelogsComponent {
     const date = new Date(rawDate);
 
     // 3. Validar fecha
-    if (isNaN(date.getTime())) {
+    if (!isValid(date)) {
       this.logger.warn('[TimelogsComponent] Fecha inválida encontrada:', log);
       return new Date(); // Fallback a hoy para evitar crash, pero loggeado
     }
 
     // 4. Validación de año (sanidad)
-    if (date.getFullYear() < 2020) {
+    if (getYear(date) < 2020) {
       this.logger.warn('[TimelogsComponent] Fecha sospechosa (año < 2020):', {
         id: log.id,
         date: rawDate,
@@ -544,12 +544,12 @@ export class TimelogsComponent {
       return 0;
     }
 
-    const normalizedStart = new Date(startDate);
-    normalizedStart.setHours(0, 0, 0, 0);
+    let normalizedStart = new Date(startDate);
+    normalizedStart = startOfDay(normalizedStart);
     const dateRangeStart = format(normalizedStart, 'yyyy-MM-dd');
 
-    const normalizedEnd = new Date(endDate);
-    normalizedEnd.setHours(0, 0, 0, 0);
+    let normalizedEnd = new Date(endDate);
+    normalizedEnd = startOfDay(normalizedEnd);
     const dateRangeEnd = format(normalizedEnd, 'yyyy-MM-dd');
 
     return logs
@@ -574,12 +574,12 @@ export class TimelogsComponent {
       return 0;
     }
 
-    const normalizedStart = new Date(startDate);
-    normalizedStart.setHours(0, 0, 0, 0);
+    let normalizedStart = new Date(startDate);
+    normalizedStart = startOfDay(normalizedStart);
     const dateRangeStart = format(normalizedStart, 'yyyy-MM-dd');
 
-    const normalizedEnd = new Date(endDate);
-    normalizedEnd.setHours(0, 0, 0, 0);
+    let normalizedEnd = new Date(endDate);
+    normalizedEnd = startOfDay(normalizedEnd);
     const dateRangeEnd = format(normalizedEnd, 'yyyy-MM-dd');
 
     return logs
@@ -603,11 +603,11 @@ export class TimelogsComponent {
     }
 
     // Normalizar las fechas para asegurar que empezamos desde el inicio del día
-    const normalizedStart = new Date(startDate);
-    normalizedStart.setHours(0, 0, 0, 0);
+    let normalizedStart = new Date(startDate);
+    normalizedStart = startOfDay(normalizedStart);
 
-    const normalizedEnd = new Date(endDate);
-    normalizedEnd.setHours(0, 0, 0, 0);
+    let normalizedEnd = new Date(endDate);
+    normalizedEnd = startOfDay(normalizedEnd);
 
     const days = [];
     let currentDate = new Date(normalizedStart);
@@ -1025,12 +1025,12 @@ export class TimelogsComponent {
     }
 
     // Normalizar fechas al inicio del día para comparaciones precisas
-    const normalizedStart = new Date(startDate);
-    normalizedStart.setHours(0, 0, 0, 0);
+    let normalizedStart = new Date(startDate);
+    normalizedStart = startOfDay(normalizedStart);
     const dateRangeStart = format(normalizedStart, 'yyyy-MM-dd');
 
-    const normalizedEnd = new Date(endDate);
-    normalizedEnd.setHours(0, 0, 0, 0);
+    let normalizedEnd = new Date(endDate);
+    normalizedEnd = startOfDay(normalizedEnd);
     const dateRangeEnd = format(normalizedEnd, 'yyyy-MM-dd');
 
     // Obtener valores una sola vez para evitar múltiples accesos
@@ -1159,7 +1159,7 @@ export class TimelogsComponent {
 
         // Buscar schedule que corresponda a este día, considerando el día de la semana
         const dayDate = new Date(day + 'T00:00:00');
-        const dayOfWeek = dayDate.getDay(); // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
+        const dayOfWeek = getDay(dayDate); // 0 = Domingo, 1 = Lunes, ..., 6 = Sábado
 
         // Buscar schedules que coincidan con el rango de fechas
         const matchingSchedules = schedulesData.filter(
@@ -1455,8 +1455,8 @@ export class TimelogsComponent {
 
               // Validar que las fechas sean válidas
               if (
-                isNaN(entryDate.getTime()) ||
-                isNaN(exitDate.getTime()) ||
+                !isValid(entryDate) ||
+                !isValid(exitDate) ||
                 exitDate <= entryDate
               ) {
                 this.logger.warn(
@@ -1471,7 +1471,7 @@ export class TimelogsComponent {
                     employee_id: acc[index].employee?.id,
                     diferencia_segundos:
                       exitDate <= entryDate
-                        ? (exitDate.getTime() - entryDate.getTime()) / 1000
+                        ? differenceInSeconds(exitDate, entryDate)
                         : null,
                   }
                 );
@@ -1491,8 +1491,8 @@ export class TimelogsComponent {
 
                 // Validar que las fechas de almuerzo sean válidas y que lunch_end > lunch_start
                 if (
-                  !isNaN(lunchStartDate.getTime()) &&
-                  !isNaN(lunchEndDate.getTime()) &&
+                  isValid(lunchStartDate) &&
+                  isValid(lunchEndDate) &&
                   lunchEndDate > lunchStartDate
                 ) {
                   const actualLunchMinutes = differenceInMinutes(
@@ -1545,8 +1545,8 @@ export class TimelogsComponent {
 
             // Validar que las fechas sean válidas y que exitDate > entryDate
             if (
-              isNaN(entryDate.getTime()) ||
-              isNaN(exitDate.getTime()) ||
+              !isValid(entryDate) ||
+              !isValid(exitDate) ||
               exitDate <= entryDate
             ) {
               this.logger.warn(
@@ -1561,7 +1561,7 @@ export class TimelogsComponent {
                   employee_id: acc[index].employee?.id,
                   diferencia_segundos:
                     exitDate <= entryDate
-                      ? (exitDate.getTime() - entryDate.getTime()) / 1000
+                      ? differenceInSeconds(exitDate, entryDate)
                       : null,
                 }
               );
@@ -1585,8 +1585,8 @@ export class TimelogsComponent {
 
                 // Validar que las fechas sean válidas y que lunch_end > lunch_start
                 if (
-                  !isNaN(lunchStartDate.getTime()) &&
-                  !isNaN(lunchEndDate.getTime()) &&
+                  isValid(lunchStartDate) &&
+                  isValid(lunchEndDate) &&
                   lunchEndDate > lunchStartDate
                 ) {
                   const actualLunchMinutes = differenceInMinutes(
@@ -1644,10 +1644,11 @@ export class TimelogsComponent {
       }, acc) // Usar el array inicial que ya tiene todos los días
       .sort((a: DayLog, b: DayLog) => {
         // Ordenar primero por fecha (asegurar orden cronológico), luego por nombre de empleado
-        const dateA = new Date(a.day + 'T00:00:00').getTime();
-        const dateB = new Date(b.day + 'T00:00:00').getTime();
-        if (dateA !== dateB) {
-          return dateA - dateB;
+        const dateA = new Date(a.day + 'T00:00:00');
+        const dateB = new Date(b.day + 'T00:00:00');
+        const dateComparison = compareAsc(dateA, dateB);
+        if (dateComparison !== 0) {
+          return dateComparison;
         }
         const nameA =
           (a.employee.first_name || '') + ' ' + (a.employee.father_name || '');
@@ -1831,12 +1832,12 @@ export class TimelogsComponent {
     }
 
     // Normalizar fechas al inicio del día
-    const normalizedStart = new Date(startDate);
-    normalizedStart.setHours(0, 0, 0, 0);
+    let normalizedStart = new Date(startDate);
+    normalizedStart = startOfDay(normalizedStart);
     const dateRangeStart = format(normalizedStart, 'yyyy-MM-dd');
 
-    const normalizedEnd = new Date(endDate);
-    normalizedEnd.setHours(0, 0, 0, 0);
+    let normalizedEnd = new Date(endDate);
+    normalizedEnd = startOfDay(normalizedEnd);
     const dateRangeEnd = format(normalizedEnd, 'yyyy-MM-dd');
 
     // Filtrar y ordenar datos antes de mapear (usando x.day que está en formato 'yyyy-MM-dd')
@@ -1970,7 +1971,7 @@ export class TimelogsComponent {
       let formattedDate = '';
       try {
         const dayDate = new Date(x.day + 'T00:00:00'); // Asegurar parseo correcto
-        if (!isNaN(dayDate.getTime())) {
+        if (isValid(dayDate)) {
           formattedDate = formatInTimeZone(
             dayDate,
             this.TIMEZONE,
@@ -2056,7 +2057,7 @@ export class TimelogsComponent {
           (() => {
             const { start, end } = this.normalizedDateRange();
             if (!start || !end) return 'Sin fecha';
-            if (start.getTime() === end.getTime()) {
+            if (isEqual(start, end)) {
               return formatInTimeZone(start, this.TIMEZONE, 'dd/MM/yyyy');
             }
             return `${formatInTimeZone(

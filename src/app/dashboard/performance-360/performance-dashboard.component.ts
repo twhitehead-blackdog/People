@@ -11,6 +11,7 @@ import { KnobModule } from 'primeng/knob';
 import { ProgressBarModule } from 'primeng/progressbar';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { TableModule } from 'primeng/table';
+import { firstValueFrom } from 'rxjs';
 import { Performance360Service } from '../../services/performance-360.service';
 import { PermissionsService } from '../../services/permissions.service';
 import { BranchesStore } from '../../stores/branches.store';
@@ -335,9 +336,8 @@ export class PerformanceDashboardComponent {
         if (myBranch) filters.branchId = myBranch;
       }
 
-      const data = await this.performanceService
-        .getEvaluations(filters)
-        .toPromise();
+      const data = await firstValueFrom(this.performanceService
+        .getEvaluations(filters));
 
       if (data) {
         this.recentEvaluations.set(data);

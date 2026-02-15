@@ -1,4 +1,4 @@
-import { differenceInMinutes } from 'date-fns';
+import { differenceInMinutes, set } from 'date-fns';
 
 export function calcTimeDiff(time1: string, time2: string): number {
   if (!time1 || !time2) {
@@ -38,11 +38,8 @@ export function calcTimeDiff(time1: string, time2: string): number {
     return 0;
   }
 
-  const timeStart = new Date();
-  const timeEnd = new Date();
-
-  timeStart.setHours(hours1, minutes1, 0, 0);
-  timeEnd.setHours(hours2, minutes2, 0, 0);
+  const timeStart = set(new Date(), { hours: hours1, minutes: minutes1, seconds: 0, milliseconds: 0 });
+  const timeEnd = set(new Date(), { hours: hours2, minutes: minutes2, seconds: 0, milliseconds: 0 });
 
   return differenceInMinutes(timeStart, timeEnd);
 }

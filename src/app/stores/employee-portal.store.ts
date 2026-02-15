@@ -6,7 +6,7 @@ import {
   withMethods,
   withState,
 } from '@ngrx/signals';
-import { addDays, endOfMonth, startOfToday } from 'date-fns';
+import { addDays, endOfMonth, startOfHour, startOfToday } from 'date-fns';
 
 type EmployeePortalViewMode = 'calendar' | 'table';
 
@@ -109,9 +109,7 @@ const roundToHour = (date: Date | null): Date | null => {
   if (!date) {
     return null;
   }
-  const rounded = new Date(date);
-  rounded.setMinutes(0, 0, 0);
-  return rounded;
+  return startOfHour(date);
 };
 
 export const EmployeePortalStore = signalStore(

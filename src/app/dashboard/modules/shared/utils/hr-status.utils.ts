@@ -52,6 +52,8 @@ export const STATUS_OPTIONS = [
   { label: 'Rechazada', value: 'rejected' },
 ];
 
+import { differenceInCalendarDays } from 'date-fns';
+
 /**
  * Calculate the number of days between two dates (inclusive).
  */
@@ -61,8 +63,7 @@ export function calculateDaysBetween(
 ): number {
   const startDate = new Date(start);
   const endDate = new Date(end);
-  const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-  return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  return differenceInCalendarDays(endDate, startDate) + 1;
 }
 
 /**

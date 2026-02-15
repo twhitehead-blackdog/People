@@ -14,6 +14,7 @@ import {
   eachDayOfInterval,
   endOfMonth,
   format,
+  getDay,
   isSameDay,
   isSameMonth,
   startOfMonth,
@@ -179,7 +180,7 @@ export class CalendarComponent {
     this.days().map((day, i) => ({
       day,
       isToday: isSameDay(day, startOfToday()),
-      colStartClass: i === 0 ? this.#COL_START_CLASSES[day.getDay()] : '',
+      colStartClass: i === 0 ? this.#COL_START_CLASSES[getDay(day)] : '',
       markers: this.#markersMap().get(this.getMarkerMapKey(day)) || [],
     }))
   );

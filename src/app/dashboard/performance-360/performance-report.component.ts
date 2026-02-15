@@ -7,6 +7,7 @@ import { ProgressBarModule } from 'primeng/progressbar';
 import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { TableModule } from 'primeng/table';
 import { TagModule } from 'primeng/tag';
+import { firstValueFrom } from 'rxjs';
 import { AuditEvaluation, AuditForm } from '../../models';
 import { Performance360Service } from '../../services/performance-360.service';
 
@@ -401,9 +402,8 @@ export class PerformanceReportComponent {
     try {
       const id = this.evaluationId();
       if (id) {
-        const data = await this.performanceService
-          .getEvaluationById(id)
-          .toPromise();
+        const data = await firstValueFrom(this.performanceService
+          .getEvaluationById(id));
 
         if (data) {
           // Ajuste: si viene en array, tomar el primero

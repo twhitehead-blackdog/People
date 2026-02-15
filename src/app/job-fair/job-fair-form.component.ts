@@ -20,6 +20,7 @@ import {
   Validators,
 } from '@angular/forms';
 import { Router } from '@angular/router';
+import { getDate, getYear, getMonth, isValid } from 'date-fns';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
@@ -33,6 +34,7 @@ import { firstValueFrom } from 'rxjs';
 import { EmailService } from '../services/email.service';
 import { OrganizationService } from '../services/organization.service';
 import { PositionsStore } from '../stores/positions.store';
+import { getEnv } from '../utils/env.utils';
 
 @Component({
   selector: 'pt-job-fair-form',
@@ -757,7 +759,7 @@ export class JobFairFormComponent implements OnInit {
 
   // API para verificar el estado de la feria y fecha de entrevistas
   private jobFairSettingsApi = httpResource<any[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+    url: `${getEnv('ENV_SUPABASE_URL')}/rest/v1/settings`,
     method: 'GET',
     params: {
       select: 'id,key,value',
@@ -966,14 +968,14 @@ export class JobFairFormComponent implements OnInit {
 
         if (startDateSetting && startDateSetting.value) {
           const date = this.parseLocalDateString(startDateSetting.value);
-          if (date && !isNaN(date.getTime())) {
+          if (date && isValid(date)) {
             this.jobFairStartDate.set(date);
           }
         }
 
         if (endDateSetting && endDateSetting.value) {
           const date = this.parseLocalDateString(endDateSetting.value);
-          if (date && !isNaN(date.getTime())) {
+          if (date && isValid(date)) {
             this.jobFairEndDate.set(date);
           }
         }
@@ -1007,7 +1009,7 @@ export class JobFairFormComponent implements OnInit {
       // Cargar posiciones de Black Dog directamente
       const positions = await firstValueFrom(
         this.http.get<any[]>(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/positions`,
+          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/positions`,
           {
             params: {
               select:
@@ -1128,9 +1130,9 @@ export class JobFairFormComponent implements OnInit {
   formatInterviewDate(date: Date): string {
     // Asegurar que la fecha se formatee usando componentes locales
     const localDate = new Date(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate()
+      getYear(date),
+      getMonth(date),
+      getDate(date)
     );
     const options: Intl.DateTimeFormatOptions = {
       weekday: 'long',
@@ -1159,7 +1161,7 @@ export class JobFairFormComponent implements OnInit {
       // Verificar por email
       const emailCheck = await firstValueFrom(
         this.http.get<any[]>(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/job_applications`,
+          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/job_applications`,
           {
             params: {
               select: 'id,email,phone_number',
@@ -1179,7 +1181,7 @@ export class JobFairFormComponent implements OnInit {
       // Verificar por teléfono (comparar números limpios)
       const phoneCheck = await firstValueFrom(
         this.http.get<any[]>(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/job_applications`,
+          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/job_applications`,
           {
             params: {
               select: 'id,email,phone_number',
@@ -1311,7 +1313,7 @@ export class JobFairFormComponent implements OnInit {
 
     this.http
       .post(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/job_applications`,
+        `${getEnv('ENV_SUPABASE_URL')}/rest/v1/job_applications`,
         applicationData
       )
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -1388,8 +1390,8 @@ export class JobFairFormComponent implements OnInit {
     try {
       // Priorizar Service Role Key para bypass RLS, sino usar API Key pública
       // El Service Role Key bypassa todas las políticas RLS
-      const serviceRoleKey = process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'];
-      const apiKey = process.env['ENV_SUPABASE_API_KEY'] || '';
+      const serviceRoleKey = getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY');
+      const apiKey = getEnv('ENV_SUPABASE_API_KEY') || '';
       const storageKey = serviceRoleKey || apiKey;
 
       if (!storageKey) {
@@ -1401,7 +1403,7 @@ export class JobFairFormComponent implements OnInit {
       // Si usamos API Key pública, necesita que el bucket sea público y tenga políticas RLS correctas
       await firstValueFrom(
         this.http.post(
-          `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/job-applications/${fileName}`,
+          `${getEnv('ENV_SUPABASE_URL')}/storage/v1/object/job-applications/${fileName}`,
           file, // Enviar el archivo directamente como binario
           {
             headers: {
@@ -1415,7 +1417,7 @@ export class JobFairFormComponent implements OnInit {
       );
 
       // Get public URL for the uploaded file (mismo formato que incapacidades)
-      const publicUrl = `${process.env['ENV_SUPABASE_URL']}/storage/v1/object/public/job-applications/${fileName}`;
+      const publicUrl = `${getEnv('ENV_SUPABASE_URL')}/storage/v1/object/public/job-applications/${fileName}`;
 
       return {
         url: publicUrl,
@@ -1441,7 +1443,7 @@ export class JobFairFormComponent implements OnInit {
       'Confirmación de recepción – Feria de Empleo Black Dog';
 
     // Obtener la URL base de la aplicación para el logo
-    const appUrl = process.env['ENV_APP_URL'] || window.location.origin;
+    const appUrl = getEnv('ENV_APP_URL') || window.location.origin;
     const logoUrl = `${appUrl}/images/blackdog.png`;
 
     // Plantilla HTML del email

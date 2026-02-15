@@ -21,7 +21,8 @@ import {
   Validators,
 } from '@angular/forms';
 import { Router } from '@angular/router';
-import { differenceInMinutes, format } from 'date-fns';
+import { differenceInMinutes, format, getDate, getDay, getYear, getMonth, set } from 'date-fns';
+import { es } from 'date-fns/locale';
 import * as OTPAuth from 'otpauth';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
@@ -1021,33 +1022,8 @@ export class NazTimeclockComponent implements OnDestroy {
 
   // Format date for display
   formattedDate = computed(() => {
-    const days = [
-      'Domingo',
-      'Lunes',
-      'Martes',
-      'Miércoles',
-      'Jueves',
-      'Viernes',
-      'Sábado',
-    ];
-    const months = [
-      'enero',
-      'febrero',
-      'marzo',
-      'abril',
-      'mayo',
-      'junio',
-      'julio',
-      'agosto',
-      'septiembre',
-      'octubre',
-      'noviembre',
-      'diciembre',
-    ];
     const date = this.currentTime();
-    return `${days[date.getDay()]}, ${date.getDate()} de ${
-      months[date.getMonth()]
-    } de ${date.getFullYear()}`;
+    return format(date, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es });
   });
 
   // Get IP - always returns a valid IP (localhost in dev)
@@ -1232,16 +1208,16 @@ export class NazTimeclockComponent implements OnDestroy {
     const entryParts = entryTimeStr.split(':');
     const scheduleParts = scheduleTimeStr.split(':');
 
-    const entryDate = new Date();
-    entryDate.setHours(+entryParts[0], +entryParts[1], +entryParts[2] || 0, 0);
+    let entryDate = new Date();
+    entryDate = set(entryDate, { hours: +entryParts[0], minutes: +entryParts[1], seconds: +entryParts[2] || 0, milliseconds: 0 });
 
-    const scheduleDate = new Date();
-    scheduleDate.setHours(
-      +scheduleParts[0],
-      +scheduleParts[1],
-      +scheduleParts[2] || 0,
-      0
-    );
+    let scheduleDate = new Date();
+    scheduleDate = set(scheduleDate, {
+      hours: +scheduleParts[0],
+      minutes: +scheduleParts[1],
+      seconds: +scheduleParts[2] || 0,
+      milliseconds: 0
+    });
 
     const delay = differenceInMinutes(entryDate, scheduleDate);
 
@@ -1339,21 +1315,21 @@ export class NazTimeclockComponent implements OnDestroy {
         const lunchEndParts = lunchEndTimeStr.split(':');
         const scheduleParts = scheduleTimeStr.split(':');
 
-        const lunchEndDate = new Date();
-        lunchEndDate.setHours(
-          +lunchEndParts[0],
-          +lunchEndParts[1],
-          +lunchEndParts[2] || 0,
-          0
-        );
+        let lunchEndDate = new Date();
+        lunchEndDate = set(lunchEndDate, {
+          hours: +lunchEndParts[0],
+          minutes: +lunchEndParts[1],
+          seconds: +lunchEndParts[2] || 0,
+          milliseconds: 0
+        });
 
-        const scheduleDate = new Date();
-        scheduleDate.setHours(
-          +scheduleParts[0],
-          +scheduleParts[1],
-          +scheduleParts[2] || 0,
-          0
-        );
+        let scheduleDate = new Date();
+        scheduleDate = set(scheduleDate, {
+          hours: +scheduleParts[0],
+          minutes: +scheduleParts[1],
+          seconds: +scheduleParts[2] || 0,
+          milliseconds: 0
+        });
 
         const difference = differenceInMinutes(lunchEndDate, scheduleDate);
 
@@ -1373,21 +1349,21 @@ export class NazTimeclockComponent implements OnDestroy {
       const lunchEndParts = lunchEndTimeStr.split(':');
       const scheduleParts = scheduleTimeStr.split(':');
 
-      const lunchEndDate = new Date();
-      lunchEndDate.setHours(
-        +lunchEndParts[0],
-        +lunchEndParts[1],
-        +lunchEndParts[2] || 0,
-        0
-      );
+      let lunchEndDate = new Date();
+      lunchEndDate = set(lunchEndDate, {
+        hours: +lunchEndParts[0],
+        minutes: +lunchEndParts[1],
+        seconds: +lunchEndParts[2] || 0,
+        milliseconds: 0
+      });
 
-      const scheduleDate = new Date();
-      scheduleDate.setHours(
-        +scheduleParts[0],
-        +scheduleParts[1],
-        +scheduleParts[2] || 0,
-        0
-      );
+      let scheduleDate = new Date();
+      scheduleDate = set(scheduleDate, {
+        hours: +scheduleParts[0],
+        minutes: +scheduleParts[1],
+        seconds: +scheduleParts[2] || 0,
+        milliseconds: 0
+      });
 
       const difference = differenceInMinutes(lunchEndDate, scheduleDate);
 
@@ -1416,16 +1392,16 @@ export class NazTimeclockComponent implements OnDestroy {
     const exitParts = exitTimeStr.split(':');
     const scheduleParts = scheduleTimeStr.split(':');
 
-    const exitDate = new Date();
-    exitDate.setHours(+exitParts[0], +exitParts[1], +exitParts[2] || 0, 0);
+    let exitDate = new Date();
+    exitDate = set(exitDate, { hours: +exitParts[0], minutes: +exitParts[1], seconds: +exitParts[2] || 0, milliseconds: 0 });
 
-    const scheduleDate = new Date();
-    scheduleDate.setHours(
-      +scheduleParts[0],
-      +scheduleParts[1],
-      +scheduleParts[2] || 0,
-      0
-    );
+    let scheduleDate = new Date();
+    scheduleDate = set(scheduleDate, {
+      hours: +scheduleParts[0],
+      minutes: +scheduleParts[1],
+      seconds: +scheduleParts[2] || 0,
+      milliseconds: 0
+    });
 
     const difference = differenceInMinutes(exitDate, scheduleDate);
 

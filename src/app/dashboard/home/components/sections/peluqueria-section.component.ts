@@ -14,7 +14,7 @@ import { PELUQUERIA_POSITION_NAMES } from '../../../services/groomer-schedule-ut
 import { LateRecordsService } from '../../../services/late-records.service';
 import { LoggerService } from '../../../../services/logger.service';
 import { toZonedTime } from 'date-fns-tz';
-import { format, parseISO, differenceInMinutes } from 'date-fns';
+import { format, parseISO, differenceInMinutes, set } from 'date-fns';
 
 const TZ = 'America/Panama';
 
@@ -836,13 +836,13 @@ export class PeluqueriaSectionComponent {
 
 function calcMinutesDiff(actualTime: string, scheduledTime: string): number {
   if (!actualTime || !scheduledTime) return 0;
-  const actual = new Date();
-  const scheduled = new Date();
+  let actual = new Date();
+  let scheduled = new Date();
   const actualParts = actualTime.split(':');
   const scheduledParts = scheduledTime.split(':');
   if (actualParts.length < 2 || scheduledParts.length < 2) return 0;
-  actual.setHours(+actualParts[0], +actualParts[1], 0, 0);
-  scheduled.setHours(+scheduledParts[0], +scheduledParts[1], 0, 0);
+  actual = set(actual, { hours: +actualParts[0], minutes: +actualParts[1], seconds: 0, milliseconds: 0 });
+  scheduled = set(scheduled, { hours: +scheduledParts[0], minutes: +scheduledParts[1], seconds: 0, milliseconds: 0 });
   return differenceInMinutes(actual, scheduled);
 }
 

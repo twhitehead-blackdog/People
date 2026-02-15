@@ -959,11 +959,11 @@ export class DocumentRequestsComponent {
       docs = docs.filter((d) => d.status === status);
     }
     if (range && range[0] && range[1]) {
-      const start = range[0].getTime();
-      const end = range[1].getTime();
+      const start = range[0];
+      const end = range[1];
       docs = docs.filter((d) => {
-        const time = new Date(d.created_at).getTime();
-        return time >= start && time <= end;
+        const createdAt = new Date(d.created_at);
+        return createdAt >= start && createdAt <= end;
       });
     }
     return docs;

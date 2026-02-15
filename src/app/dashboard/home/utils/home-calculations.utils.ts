@@ -2,7 +2,7 @@
  * Pure calculation functions for the home dashboard
  */
 import { formatInTimeZone } from 'date-fns-tz';
-import { differenceInMinutes, startOfMonth, endOfMonth, parseISO } from 'date-fns';
+import { differenceInMinutes, startOfMonth, endOfMonth, parseISO, getDaysInMonth as dateFnsGetDaysInMonth, getDate, getMonth, set } from 'date-fns';
 
 export const PANAMA_TIMEZONE = 'America/Panama';
 
@@ -35,7 +35,7 @@ export function pad2(n: number): string {
  * Get number of days in a month
  */
 export function getDaysInMonth(year: number, month: number): number {
-  return new Date(year, month, 0).getDate();
+  return dateFnsGetDaysInMonth(new Date(year, month - 1));
 }
 
 /**
@@ -45,15 +45,13 @@ export function getDaysInMonth(year: number, month: number): number {
  */
 export function calcTimeDiff(actualTime: string, scheduledTime: string): number {
   if (!actualTime || !scheduledTime) return 0;
-  const actual = new Date();
-  const scheduled = new Date();
   const actualParts = actualTime.split(':');
   const scheduledParts = scheduledTime.split(':');
 
   if (actualParts.length < 2 || scheduledParts.length < 2) return 0;
 
-  actual.setHours(+actualParts[0], +actualParts[1], 0, 0);
-  scheduled.setHours(+scheduledParts[0], +scheduledParts[1], 0, 0);
+  const actual = set(new Date(), { hours: +actualParts[0], minutes: +actualParts[1], seconds: 0, milliseconds: 0 });
+  const scheduled = set(new Date(), { hours: +scheduledParts[0], minutes: +scheduledParts[1], seconds: 0, milliseconds: 0 });
 
   return differenceInMinutes(actual, scheduled);
 }
@@ -94,7 +92,7 @@ export function formatScheduledEntryTime(entryTime: string | Date | undefined): 
  */
 export function getBirthdayDay(date: Date | undefined): string {
   if (!date) return '??';
-  return new Date(date).getDate().toString();
+  return getDate(new Date(date)).toString();
 }
 
 /**
@@ -106,7 +104,7 @@ export function getBirthdayMonth(date: Date | undefined): string {
     'ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN',
     'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC',
   ];
-  return months[new Date(date).getMonth()];
+  return months[getMonth(new Date(date))];
 }
 
 /**
@@ -117,8 +115,8 @@ export function hasBirthdayPassed(date: Date | undefined): boolean {
   const today = new Date();
   const birthDate = new Date(date);
   return (
-    birthDate.getDate() < today.getDate() &&
-    birthDate.getMonth() === today.getMonth()
+    getDate(birthDate) < getDate(today) &&
+    getMonth(birthDate) === getMonth(today)
   );
 }
 
@@ -130,8 +128,8 @@ export function isBirthdayToday(date: Date | undefined): boolean {
   const today = new Date();
   const birthDate = new Date(date);
   return (
-    birthDate.getDate() === today.getDate() &&
-    birthDate.getMonth() === today.getMonth()
+    getDate(birthDate) === getDate(today) &&
+    getMonth(birthDate) === getMonth(today)
   );
 }
 
@@ -143,7 +141,7 @@ export function getCurrentMonthName(): string {
     'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
     'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
   ];
-  return months[new Date().getMonth()];
+  return months[getMonth(new Date())];
 }
 
 /**
@@ -163,7 +161,7 @@ export function getMonthNameSpanish(monthIndex: number): string {
 export function formatHireDate(date: Date | undefined): string {
   if (!date) return 'Sin fecha';
   const d = new Date(date);
-  return `${d.getDate()} de ${getBirthdayMonth(date)}`;
+  return `${getDate(d)} de ${getBirthdayMonth(date)}`;
 }
 
 /**
@@ -172,7 +170,7 @@ export function formatHireDate(date: Date | undefined): string {
 export function formatExitDate(date: Date | string | undefined): string {
   if (!date) return 'Sin fecha';
   const d = new Date(date);
-  return `${d.getDate()} de ${getBirthdayMonth(d)}`;
+  return `${getDate(d)} de ${getBirthdayMonth(d)}`;
 }
 
 /**
@@ -207,13 +205,13 @@ export function calcWorkClimateIndex(
  */
 export function sortBirthdays<T extends { birth_date?: Date | string }>(birthdays: T[]): T[] {
   const today = new Date();
-  const currentDay = today.getDate();
+  const currentDay = getDate(today);
 
   return [...birthdays].sort((a, b) => {
     if (!a.birth_date || !b.birth_date) return 0;
 
-    const dayA = new Date(a.birth_date).getDate();
-    const dayB = new Date(b.birth_date).getDate();
+    const dayA = getDate(new Date(a.birth_date));
+    const dayB = getDate(new Date(b.birth_date));
 
     // Today first
     const isTodayA = dayA === currentDay;

@@ -1,6 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { Component, computed, inject, input, output, OnChanges } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { differenceInCalendarDays } from 'date-fns';
 import { Button } from 'primeng/button';
 import { DatePicker } from 'primeng/datepicker';
 import { DialogModule } from 'primeng/dialog';
@@ -183,10 +184,7 @@ export class VetBranchSelectionDialogComponent implements OnChanges {
 
   dayCount = computed(() => {
     if (!this.startDate || !this.endDate) return 0;
-    const diffTime = Math.abs(
-      this.endDate.getTime() - this.startDate.getTime()
-    );
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    return Math.abs(differenceInCalendarDays(this.endDate, this.startDate)) + 1;
   });
 
   canConfirm(): boolean {

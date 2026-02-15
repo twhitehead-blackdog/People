@@ -12,6 +12,7 @@ import {
 } from '@angular/core';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { getDate, getYear, getMonth, isValid } from 'date-fns';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
@@ -27,6 +28,7 @@ import { ToastModule } from 'primeng/toast';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
+import { getEnv } from '../utils/env.utils';
 import { JobApplication, Position } from '../models';
 import { OrganizationService } from '../services/organization.service';
 import { JobApplicationsStore } from '../stores/job-applications.store';
@@ -525,7 +527,7 @@ export class JobApplicationsListComponent implements OnInit {
 
   // API para cargar el estado de la feria desde settings
   private jobFairSettingsApi = httpResource<any[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+    url: `${getEnv('ENV_SUPABASE_URL')}/rest/v1/settings`,
     method: 'GET',
     params: {
       select: 'id,key,value',
@@ -539,9 +541,9 @@ export class JobApplicationsListComponent implements OnInit {
    */
   private getSettingsAdminHeaders(): { [key: string]: string } {
     const serviceRoleKey = 
-      process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'] ?? 
-      process.env['ENV_SUPABASE_TOKEN'] ?? 
-      process.env['ENV_SUPABASE_API_KEY'] ??
+      getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') ?? 
+      getEnv('ENV_SUPABASE_TOKEN') ?? 
+      getEnv('ENV_SUPABASE_API_KEY') ??
       '';
     
     if (!serviceRoleKey) {
@@ -549,9 +551,9 @@ export class JobApplicationsListComponent implements OnInit {
         'Por favor, agrega ENV_SUPABASE_SERVICE_ROLE_KEY a tu archivo .env y REINICIA la aplicación (detén con Ctrl+C y ejecuta npm start de nuevo).';
       console.error('[ERROR]', errorMsg);
       console.error('[ERROR] Variables disponibles en tiempo de compilación:', {
-        'ENV_SUPABASE_SERVICE_ROLE_KEY': process.env['ENV_SUPABASE_SERVICE_ROLE_KEY'] ? '✅ Configurada' : '❌ No configurada',
-        'ENV_SUPABASE_TOKEN': process.env['ENV_SUPABASE_TOKEN'] ? '✅ Configurada' : '❌ No configurada',
-        'ENV_SUPABASE_API_KEY': process.env['ENV_SUPABASE_API_KEY'] ? '✅ Configurada' : '❌ No configurada',
+        'ENV_SUPABASE_SERVICE_ROLE_KEY': getEnv('ENV_SUPABASE_SERVICE_ROLE_KEY') ? '✅ Configurada' : '❌ No configurada',
+        'ENV_SUPABASE_TOKEN': getEnv('ENV_SUPABASE_TOKEN') ? '✅ Configurada' : '❌ No configurada',
+        'ENV_SUPABASE_API_KEY': getEnv('ENV_SUPABASE_API_KEY') ? '✅ Configurada' : '❌ No configurada',
       });
       console.error('[ERROR] IMPORTANTE: Las variables de entorno se inyectan en tiempo de compilación. ' +
         'Si agregaste ENV_SUPABASE_SERVICE_ROLE_KEY al .env después de iniciar la aplicación, ' +
@@ -593,7 +595,7 @@ export class JobApplicationsListComponent implements OnInit {
 
   // API para cargar estados personalizados
   private statusesApi = httpResource<any[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/job_application_statuses`,
+    url: `${getEnv('ENV_SUPABASE_URL')}/rest/v1/job_application_statuses`,
     method: 'GET',
     params: {
       select: 'id,code,label,severity,display_order,is_active',
@@ -703,8 +705,8 @@ export class JobApplicationsListComponent implements OnInit {
           (!currentRange && !newRange) ||
           (currentRange &&
             newRange &&
-            currentRange[0]?.getTime() === newRange[0]?.getTime() &&
-            currentRange[1]?.getTime() === newRange[1]?.getTime());
+            currentRange[0]?.valueOf() === newRange[0]?.valueOf() &&
+            currentRange[1]?.valueOf() === newRange[1]?.valueOf());
 
         if (!rangesEqual) {
           this.jobFairDateRange = newRange;
@@ -824,17 +826,17 @@ export class JobApplicationsListComponent implements OnInit {
 
       if (startDate) {
         normalizedStartDate = new Date(
-          startDate.getFullYear(),
-          startDate.getMonth(),
-          startDate.getDate()
+          getYear(startDate),
+          getMonth(startDate),
+          getDate(startDate)
         );
       }
 
       if (endDate) {
         normalizedEndDate = new Date(
-          endDate.getFullYear(),
-          endDate.getMonth(),
-          endDate.getDate()
+          getYear(endDate),
+          getMonth(endDate),
+          getDate(endDate)
         );
       }
 
@@ -854,7 +856,7 @@ export class JobApplicationsListComponent implements OnInit {
         // Primero intentar actualizar si existe
         const existingStartSettings = await firstValueFrom(
           this.http.get<any[]>(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+            `${getEnv('ENV_SUPABASE_URL')}/rest/v1/settings`,
             {
               params: {
                 select: 'id',
@@ -871,7 +873,7 @@ export class JobApplicationsListComponent implements OnInit {
           try {
             await firstValueFrom(
               this.http.patch(
-                `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${settingId}&select=id,key,value`,
+                `${getEnv('ENV_SUPABASE_URL')}/rest/v1/settings?id=eq.${settingId}&select=id,key,value`,
                 { value: startDateString },
                 {
                   headers: this.getSettingsAdminHeaders(),
@@ -886,7 +888,7 @@ export class JobApplicationsListComponent implements OnInit {
           // Crear nuevo usando POST
           await firstValueFrom(
             this.http.post(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+              `${getEnv('ENV_SUPABASE_URL')}/rest/v1/settings`,
               {
                 key: 'job_fair_start_date',
                 value: startDateString,
@@ -904,7 +906,7 @@ export class JobApplicationsListComponent implements OnInit {
         // Si no hay fecha, limpiar el setting existente
         const existingStartSettings = await firstValueFrom(
           this.http.get<any[]>(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+            `${getEnv('ENV_SUPABASE_URL')}/rest/v1/settings`,
             {
               params: {
                 select: 'id',
@@ -919,7 +921,7 @@ export class JobApplicationsListComponent implements OnInit {
           const settingId = existingStartSettings[0].id;
           await firstValueFrom(
             this.http.patch(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${settingId}`,
+              `${getEnv('ENV_SUPABASE_URL')}/rest/v1/settings?id=eq.${settingId}`,
               { value: '' },
               {
                 headers: this.getSettingsAdminHeaders(),
@@ -934,7 +936,7 @@ export class JobApplicationsListComponent implements OnInit {
         // Primero intentar actualizar si existe
         const existingEndSettings = await firstValueFrom(
           this.http.get<any[]>(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+            `${getEnv('ENV_SUPABASE_URL')}/rest/v1/settings`,
             {
               params: {
                 select: 'id',
@@ -951,7 +953,7 @@ export class JobApplicationsListComponent implements OnInit {
           try {
             await firstValueFrom(
               this.http.patch(
-                `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${settingId}&select=id,key,value`,
+                `${getEnv('ENV_SUPABASE_URL')}/rest/v1/settings?id=eq.${settingId}&select=id,key,value`,
                 { value: endDateString },
                 {
                   headers: this.getSettingsAdminHeaders(),
@@ -966,7 +968,7 @@ export class JobApplicationsListComponent implements OnInit {
           // Crear nuevo usando POST
           await firstValueFrom(
             this.http.post(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+              `${getEnv('ENV_SUPABASE_URL')}/rest/v1/settings`,
               {
                 key: 'job_fair_end_date',
                 value: endDateString,
@@ -984,7 +986,7 @@ export class JobApplicationsListComponent implements OnInit {
         // Si no hay fecha, limpiar el setting existente
         const existingEndSettings = await firstValueFrom(
           this.http.get<any[]>(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+            `${getEnv('ENV_SUPABASE_URL')}/rest/v1/settings`,
             {
               params: {
                 select: 'id',
@@ -999,7 +1001,7 @@ export class JobApplicationsListComponent implements OnInit {
           const settingId = existingEndSettings[0].id;
           await firstValueFrom(
             this.http.patch(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${settingId}`,
+              `${getEnv('ENV_SUPABASE_URL')}/rest/v1/settings?id=eq.${settingId}`,
               { value: '' },
               {
                 headers: this.getSettingsAdminHeaders(),
@@ -1055,9 +1057,9 @@ export class JobApplicationsListComponent implements OnInit {
 
   // Formatear fecha a string YYYY-MM-DD usando hora local (no UTC)
   private formatDateToLocalString(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
+    const year = getYear(date);
+    const month = String(getMonth(date) + 1).padStart(2, '0');
+    const day = String(getDate(date)).padStart(2, '0');
     return `${year}-${month}-${day}`;
   }
 
@@ -1078,7 +1080,7 @@ export class JobApplicationsListComponent implements OnInit {
   private async clearJobFairDates(): Promise<void> {
     const existingStartSettings = await firstValueFrom(
       this.http.get<any[]>(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+        `${getEnv('ENV_SUPABASE_URL')}/rest/v1/settings`,
         {
           params: {
             select: 'id',
@@ -1091,7 +1093,7 @@ export class JobApplicationsListComponent implements OnInit {
 
     const existingEndSettings = await firstValueFrom(
       this.http.get<any[]>(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+        `${getEnv('ENV_SUPABASE_URL')}/rest/v1/settings`,
         {
           params: {
             select: 'id',
@@ -1106,7 +1108,7 @@ export class JobApplicationsListComponent implements OnInit {
       const settingId = existingStartSettings[0].id;
       await firstValueFrom(
         this.http.patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${settingId}`,
+          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/settings?id=eq.${settingId}`,
           { value: '' },
           {
             headers: this.getSettingsAdminHeaders(),
@@ -1119,7 +1121,7 @@ export class JobApplicationsListComponent implements OnInit {
       const settingId = existingEndSettings[0].id;
       await firstValueFrom(
         this.http.patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${settingId}`,
+          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/settings?id=eq.${settingId}`,
           { value: '' },
           {
             headers: this.getSettingsAdminHeaders(),
@@ -1137,7 +1139,7 @@ export class JobApplicationsListComponent implements OnInit {
       // Verificar si ya existe el setting
       const existingSettings = await firstValueFrom(
         this.http.get<any[]>(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/settings`,
           {
             params: {
               select: 'id',
@@ -1154,7 +1156,7 @@ export class JobApplicationsListComponent implements OnInit {
         try {
           await firstValueFrom(
             this.http.patch(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings?id=eq.${settingId}&select=id,key,value`,
+              `${getEnv('ENV_SUPABASE_URL')}/rest/v1/settings?id=eq.${settingId}&select=id,key,value`,
               { value: newValue },
               {
                 headers: this.getSettingsAdminHeaders(),
@@ -1169,7 +1171,7 @@ export class JobApplicationsListComponent implements OnInit {
         // Crear nuevo setting usando POST
         await firstValueFrom(
           this.http.post(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/settings`,
+            `${getEnv('ENV_SUPABASE_URL')}/rest/v1/settings`,
             {
               key: 'job_fair_enabled',
               value: newValue,
@@ -1263,7 +1265,7 @@ export class JobApplicationsListComponent implements OnInit {
 
       await firstValueFrom(
         this.http.patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/positions`,
+          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/positions`,
           { available_for_job_fair: isAvailable },
           { params }
         )
@@ -1301,7 +1303,7 @@ export class JobApplicationsListComponent implements OnInit {
   }
 
   openJobFairForm() {
-    const baseUrl = process.env['ENV_APP_URL'] || window.location.origin;
+    const baseUrl = getEnv('ENV_APP_URL') || window.location.origin;
     window.open(`${baseUrl}/job-fair`, '_blank');
   }
 
@@ -1341,7 +1343,7 @@ export class JobApplicationsListComponent implements OnInit {
     try {
       await firstValueFrom(
         this.http.patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/job_applications?id=eq.${application.id}`,
+          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/job_applications?id=eq.${application.id}`,
           { status: newStatus }
         )
       );
@@ -1562,7 +1564,7 @@ export class JobApplicationsListComponent implements OnInit {
     try {
       await firstValueFrom(
         this.http.patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/job_applications?id=eq.${application.id}`,
+          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/job_applications?id=eq.${application.id}`,
           { is_favorite: newFavoriteValue }
         )
       );

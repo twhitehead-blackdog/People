@@ -1,5 +1,6 @@
 import { CommonModule, CurrencyPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { startOfMonth, subMonths } from 'date-fns';
 import { TooltipModule } from 'primeng/tooltip';
 import { DashboardStore } from '../../../../stores/dashboard.store';
 import { DeviceService } from '../../../../services/device.service';
@@ -704,8 +705,8 @@ export class FinancialSectionComponent {
 
   getProbatoryPayroll(): number {
     const employees = this.state.employeesList();
-    const threeMonthsAgo = new Date();
-    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    let threeMonthsAgo = new Date();
+    threeMonthsAgo = subMonths(threeMonthsAgo, 3);
 
     return employees
       .filter(e => e.start_date && new Date(e.start_date) > threeMonthsAgo)
@@ -715,7 +716,7 @@ export class FinancialSectionComponent {
   getNewHiresPayroll(): number {
     const employees = this.state.employeesList();
     const now = new Date();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthStart = startOfMonth(now);
 
     return employees
       .filter(e => e.start_date && new Date(e.start_date) >= monthStart)

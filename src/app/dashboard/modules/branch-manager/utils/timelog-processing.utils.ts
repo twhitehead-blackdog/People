@@ -2,7 +2,7 @@
  * Pure functions for processing timelogs in the branch manager view.
  * Extracted from branch-manager.component.ts filteredTimelogs computed.
  */
-import { differenceInMinutes, endOfDay, startOfDay } from 'date-fns';
+import { differenceInMinutes, endOfDay, startOfDay, getHours, getMinutes, getSeconds, set } from 'date-fns';
 import { toDate } from 'date-fns-tz';
 
 /** Parse DB date strings as UTC to avoid -1 day timezone offset */
@@ -52,22 +52,20 @@ export function findEmployeeScheduleForDate(
 export function calculateDelayMinutes(entryTime: Date, schedule: any): number {
   if (!schedule?.entry_time || schedule.day_off) return 0;
 
-  const entryH = entryTime.getHours();
-  const entryM = entryTime.getMinutes();
-  const entryS = entryTime.getSeconds();
+  const entryH = getHours(entryTime);
+  const entryM = getMinutes(entryTime);
+  const entryS = getSeconds(entryTime);
 
   const scheduleTimeStr =
     typeof schedule.entry_time === 'string'
       ? schedule.entry_time
-      : `${new Date(schedule.entry_time).getHours().toString().padStart(2, '0')}:${new Date(schedule.entry_time).getMinutes().toString().padStart(2, '0')}:${new Date(schedule.entry_time).getSeconds().toString().padStart(2, '0')}`;
+      : `${getHours(new Date(schedule.entry_time)).toString().padStart(2, '0')}:${getMinutes(new Date(schedule.entry_time)).toString().padStart(2, '0')}:${getSeconds(new Date(schedule.entry_time)).toString().padStart(2, '0')}`;
 
   const scheduleParts = scheduleTimeStr.split(':');
 
-  const entryDate = new Date();
-  entryDate.setHours(entryH, entryM, entryS, 0);
+  const entryDate = set(new Date(), { hours: entryH, minutes: entryM, seconds: entryS, milliseconds: 0 });
 
-  const scheduleDate = new Date();
-  scheduleDate.setHours(+scheduleParts[0], +scheduleParts[1], +scheduleParts[2] || 0, 0);
+  const scheduleDate = set(new Date(), { hours: +scheduleParts[0], minutes: +scheduleParts[1], seconds: +scheduleParts[2] || 0, milliseconds: 0 });
 
   return differenceInMinutes(entryDate, scheduleDate);
 }
@@ -75,22 +73,20 @@ export function calculateDelayMinutes(entryTime: Date, schedule: any): number {
 export function calculateEarlyExitMinutes(exitTime: Date, schedule: any): number {
   if (!schedule?.exit_time || schedule.day_off) return 0;
 
-  const exitH = exitTime.getHours();
-  const exitM = exitTime.getMinutes();
-  const exitS = exitTime.getSeconds();
+  const exitH = getHours(exitTime);
+  const exitM = getMinutes(exitTime);
+  const exitS = getSeconds(exitTime);
 
   const scheduleTimeStr =
     typeof schedule.exit_time === 'string'
       ? schedule.exit_time
-      : `${new Date(schedule.exit_time).getHours().toString().padStart(2, '0')}:${new Date(schedule.exit_time).getMinutes().toString().padStart(2, '0')}:${new Date(schedule.exit_time).getSeconds().toString().padStart(2, '0')}`;
+      : `${getHours(new Date(schedule.exit_time)).toString().padStart(2, '0')}:${getMinutes(new Date(schedule.exit_time)).toString().padStart(2, '0')}:${getSeconds(new Date(schedule.exit_time)).toString().padStart(2, '0')}`;
 
   const scheduleParts = scheduleTimeStr.split(':');
 
-  const exitDate = new Date();
-  exitDate.setHours(exitH, exitM, exitS, 0);
+  const exitDate = set(new Date(), { hours: exitH, minutes: exitM, seconds: exitS, milliseconds: 0 });
 
-  const scheduleDate = new Date();
-  scheduleDate.setHours(+scheduleParts[0], +scheduleParts[1], +scheduleParts[2] || 0, 0);
+  const scheduleDate = set(new Date(), { hours: +scheduleParts[0], minutes: +scheduleParts[1], seconds: +scheduleParts[2] || 0, milliseconds: 0 });
 
   return differenceInMinutes(scheduleDate, exitDate);
 }

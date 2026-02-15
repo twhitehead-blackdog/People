@@ -1,4 +1,4 @@
-import { differenceInDays, differenceInMinutes, startOfDay } from 'date-fns';
+import { differenceInDays, differenceInMinutes, startOfDay, set, getHours, getMinutes, addDays } from 'date-fns';
 import { calculateDays } from './employee-portal-date.utils';
 import { calculateHoursFromDates } from './employee-portal-time.utils';
 
@@ -176,21 +176,23 @@ export function calculateCompensatoryAmount(params: {
     }
 
     // Calcular diferencia en horas
-    const startDateTime = new Date(date);
-    startDateTime.setHours(timeStart.getHours());
-    startDateTime.setMinutes(timeStart.getMinutes());
-    startDateTime.setSeconds(0);
-    startDateTime.setMilliseconds(0);
+    let startDateTime = set(new Date(date), {
+      hours: getHours(timeStart),
+      minutes: getMinutes(timeStart),
+      seconds: 0,
+      milliseconds: 0
+    });
 
-    const endDateTime = new Date(date);
-    endDateTime.setHours(timeEnd.getHours());
-    endDateTime.setMinutes(timeEnd.getMinutes());
-    endDateTime.setSeconds(0);
-    endDateTime.setMilliseconds(0);
+    let endDateTime = set(new Date(date), {
+      hours: getHours(timeEnd),
+      minutes: getMinutes(timeEnd),
+      seconds: 0,
+      milliseconds: 0
+    });
 
     // Si la hora fin es menor que la hora inicio, asumir que es del día siguiente
     if (endDateTime < startDateTime) {
-      endDateTime.setDate(endDateTime.getDate() + 1);
+      endDateTime = addDays(endDateTime, 1);
     }
 
     const diffMinutes = differenceInMinutes(endDateTime, startDateTime);

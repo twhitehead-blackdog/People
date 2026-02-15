@@ -10,14 +10,26 @@ import {
   signal,
 } from '@angular/core';
 import {
+  compareAsc,
+  differenceInDays,
   differenceInMinutes,
   eachMonthOfInterval,
+  endOfDay,
   endOfMonth,
   format,
+  getDate,
+  getDay,
+  getMonth,
+  getYear,
+  isSameDay,
+  isSameMonth,
   parseISO,
+  set,
+  startOfDay,
   startOfMonth,
   subMonths,
 } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { formatInTimeZone } from 'date-fns-tz';
 import { BaseChartDirective } from 'ng2-charts';
 import { ApiUrlService } from '../services/api-url.service';
@@ -772,24 +784,8 @@ export class HomeComponent {
     for (const month of months) {
       const monthStart = startOfMonth(month);
       const monthEnd = endOfMonth(month);
-      const monthStartTimestamp = new Date(
-        monthStart.getFullYear(),
-        monthStart.getMonth(),
-        monthStart.getDate(),
-        0,
-        0,
-        0,
-        0
-      ).getTime();
-      const monthEndTimestamp = new Date(
-        monthEnd.getFullYear(),
-        monthEnd.getMonth(),
-        monthEnd.getDate(),
-        23,
-        59,
-        59,
-        999
-      ).getTime();
+      const monthStartTimestamp = startOfDay(monthStart).getTime();
+      const monthEndTimestamp = endOfDay(monthEnd).getTime();
       const isCurrentOrFutureMonth =
         month.getTime() >= currentMonthStart.getTime();
 
@@ -834,15 +830,7 @@ export class HomeComponent {
         }
 
         // Normalize start_date to start of day for comparison
-        const empStartTimestamp = new Date(
-          empStartDate.getFullYear(),
-          empStartDate.getMonth(),
-          empStartDate.getDate(),
-          0,
-          0,
-          0,
-          0
-        ).getTime();
+        const empStartTimestamp = startOfDay(empStartDate).getTime();
 
         // Employee must have started on or before the last day of this month
         // If they started after this month, they cannot be counted
@@ -864,15 +852,7 @@ export class HomeComponent {
             }
 
             if (termDate) {
-              const termDateTimestamp = new Date(
-                termDate.getFullYear(),
-                termDate.getMonth(),
-                termDate.getDate(),
-                0,
-                0,
-                0,
-                0
-              ).getTime();
+              const termDateTimestamp = startOfDay(termDate).getTime();
 
               // If terminated on or before the last day of this month, exclude
               if (termDateTimestamp <= monthEndTimestamp) {
@@ -899,15 +879,7 @@ export class HomeComponent {
               return true;
             }
 
-            const empEndDateTimestamp = new Date(
-              empEndDate.getFullYear(),
-              empEndDate.getMonth(),
-              empEndDate.getDate(),
-              0,
-              0,
-              0,
-              0
-            ).getTime();
+            const empEndDateTimestamp = startOfDay(empEndDate).getTime();
 
             // If end_date is on or before the last day of this month, exclude
             if (empEndDateTimestamp <= monthEndTimestamp) {
@@ -925,7 +897,7 @@ export class HomeComponent {
         // we should be conservative and exclude them if the month is recent (within last 12 months)
         // Otherwise, assume they were active if they passed all other checks
         const monthsAgo = Math.floor(
-          (now.getTime() - monthEndTimestamp) / (1000 * 60 * 60 * 24 * 30)
+          differenceInDays(now, new Date(monthEndTimestamp)) / 30
         );
         if (!emp.is_active && monthsAgo <= 12) {
           // If employee is inactive and month is recent, and we couldn't find termination date,
@@ -958,7 +930,7 @@ export class HomeComponent {
         'Nov',
         'Dic',
       ];
-      const monthName = monthNames[month.getMonth()];
+      const monthName = monthNames[getMonth(month)];
       const year = format(month, 'yyyy');
       labels.push(`${monthName} ${year}`);
     }
@@ -1283,9 +1255,7 @@ export class HomeComponent {
       }))
       .sort((a, b) => {
         if (!a.start_date || !b.start_date) return 0;
-        return (
-          new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
-        );
+        return compareAsc(new Date(a.start_date), new Date(b.start_date));
       });
   });
 
@@ -1317,20 +1287,20 @@ export class HomeComponent {
       }))
       .sort((a, b) => {
         if (!a.date || !b.date) return 0;
-        return new Date(a.date).getTime() - new Date(b.date).getTime();
+        return compareAsc(new Date(a.date), new Date(b.date));
       });
   });
 
   public getHireDate(date: Date | undefined): string {
     if (!date) return 'Sin fecha';
     const d = new Date(date);
-    return `${d.getDate()} de ${this.getBirthdayMonth(date)}`;
+    return `${getDate(d)} de ${this.getBirthdayMonth(date)}`;
   }
 
   public getExitDate(date: Date | string | undefined): string {
     if (!date) return 'Sin fecha';
     const d = new Date(date);
-    return `${d.getDate()} de ${this.getBirthdayMonth(d)}`;
+    return `${getDate(d)} de ${this.getBirthdayMonth(d)}`;
   }
 
   public openMonthHiresExitsDialog(
@@ -1344,7 +1314,7 @@ export class HomeComponent {
   }
 
   public openCurrentMonthHiresExitsDialog(): void {
-    this.openMonthHiresExitsDialog(this.currentMonth(), new Date().getMonth());
+    this.openMonthHiresExitsDialog(this.currentMonth(), getMonth(new Date()));
   }
 
   // Get hires list for selected month from headcount chart
@@ -1414,7 +1384,7 @@ export class HomeComponent {
         const bDate: Date | string = b.start_date as any;
         const aDateObj = aDate instanceof Date ? aDate : parseISO(aDate);
         const bDateObj = bDate instanceof Date ? bDate : parseISO(bDate);
-        return aDateObj.getTime() - bDateObj.getTime();
+        return compareAsc(aDateObj, bDateObj);
       });
   });
 
@@ -1470,21 +1440,9 @@ export class HomeComponent {
           termDateValue instanceof Date
             ? termDateValue
             : parseISO(termDateValue);
-        const termDateNormalized = new Date(
-          terminationDate.getFullYear(),
-          terminationDate.getMonth(),
-          terminationDate.getDate()
-        );
-        const monthStartNormalized = new Date(
-          monthStart.getFullYear(),
-          monthStart.getMonth(),
-          monthStart.getDate()
-        );
-        const monthEndNormalized = new Date(
-          monthEnd.getFullYear(),
-          monthEnd.getMonth(),
-          monthEnd.getDate()
-        );
+        const termDateNormalized = startOfDay(terminationDate);
+        const monthStartNormalized = startOfDay(monthStart);
+        const monthEndNormalized = startOfDay(monthEnd);
         return (
           termDateNormalized >= monthStartNormalized &&
           termDateNormalized <= monthEndNormalized
@@ -1503,7 +1461,7 @@ export class HomeComponent {
           aDateValue instanceof Date ? aDateValue : parseISO(aDateValue);
         const bDate =
           bDateValue instanceof Date ? bDateValue : parseISO(bDateValue);
-        return aDate.getTime() - bDate.getTime();
+        return compareAsc(aDate, bDate);
       });
   });
 
@@ -2093,7 +2051,7 @@ export class HomeComponent {
     const currentMonthIndex = month - 1;
     const currentYear = year;
     const daysInMonth = this.getDaysInMonth(year, month);
-    const daysSoFar = new Date().getDate();
+    const daysSoFar = getDate(new Date());
 
     // Get all entry timelogs for current month grouped by employee and day
     const entriesByEmployeeDay = new Map<string, boolean>();
@@ -2151,7 +2109,7 @@ export class HomeComponent {
         }
 
         // Check if it's a work day (not Sunday by default, but could be configured)
-        const dayOfWeek = checkDate.getDay();
+        const dayOfWeek = getDay(checkDate);
         // You might want to add logic here to check if the schedule applies to this day of week
         // For now, we'll assume schedules apply to all weekdays
 
@@ -2220,15 +2178,15 @@ export class HomeComponent {
   // Returns negative minutes if actualTime is earlier than scheduledTime (person is early)
   private calcTimeDiff(actualTime: string, scheduledTime: string): number {
     if (!actualTime || !scheduledTime) return 0;
-    const actual = new Date();
-    const scheduled = new Date();
+    let actual = new Date();
+    let scheduled = new Date();
     const actualParts = actualTime.split(':');
     const scheduledParts = scheduledTime.split(':');
 
     if (actualParts.length < 2 || scheduledParts.length < 2) return 0;
 
-    actual.setHours(+actualParts[0], +actualParts[1], 0, 0);
-    scheduled.setHours(+scheduledParts[0], +scheduledParts[1], 0, 0);
+    actual = set(actual, { hours: +actualParts[0], minutes: +actualParts[1], seconds: 0, milliseconds: 0 });
+    scheduled = set(scheduled, { hours: +scheduledParts[0], minutes: +scheduledParts[1], seconds: 0, milliseconds: 0 });
 
     // Return actual - scheduled: positive if late, negative if early
     return differenceInMinutes(actual, scheduled);
@@ -2306,12 +2264,12 @@ export class HomeComponent {
       'noviembre',
       'diciembre',
     ];
-    return months[new Date().getMonth()];
+    return months[getMonth(new Date())];
   });
 
   public getBirthdayDay(date: Date | undefined): string {
     if (!date) return '??';
-    return new Date(date).getDate().toString();
+    return getDate(new Date(date)).toString();
   }
 
   public getBirthdayMonth(date: Date | undefined): string {
@@ -2330,7 +2288,7 @@ export class HomeComponent {
       'NOV',
       'DIC',
     ];
-    return months[new Date(date).getMonth()];
+    return months[getMonth(new Date(date))];
   }
 
   public hasBirthdayPassed(date: Date | undefined): boolean {
@@ -2338,8 +2296,8 @@ export class HomeComponent {
     const today = new Date();
     const birthDate = new Date(date);
     return (
-      birthDate.getDate() < today.getDate() &&
-      birthDate.getMonth() === today.getMonth()
+      getDate(birthDate) < getDate(today) &&
+      getMonth(birthDate) === getMonth(today)
     );
   }
 
@@ -2348,21 +2306,21 @@ export class HomeComponent {
     const today = new Date();
     const birthDate = new Date(date);
     return (
-      birthDate.getDate() === today.getDate() &&
-      birthDate.getMonth() === today.getMonth()
+      getDate(birthDate) === getDate(today) &&
+      getMonth(birthDate) === getMonth(today)
     );
   }
 
   public getSortedBirthdays() {
     const birthdays = [...this.state.birthDates()];
     const today = new Date();
-    const currentDay = today.getDate();
+    const currentDay = getDate(today);
 
     return birthdays.sort((a, b) => {
       if (!a.birth_date || !b.birth_date) return 0;
 
-      const dayA = new Date(a.birth_date).getDate();
-      const dayB = new Date(b.birth_date).getDate();
+      const dayA = getDate(new Date(a.birth_date));
+      const dayB = getDate(new Date(b.birth_date));
 
       // Los de hoy primero
       const isTodayA = dayA === currentDay;

@@ -42,6 +42,7 @@ import {
   generateNextEmployeeNumber,
   getEmployeeNumberPrefix,
 } from '../utils/employee-number.utils';
+import { getEnv } from '../utils/env.utils';
 
 @Component({
   selector: 'pt-employee-form',
@@ -1015,7 +1016,7 @@ export class EmployeeFormComponent implements OnInit {
     }
 
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employees`,
+      url: `${getEnv('ENV_SUPABASE_URL')}/rest/v1/employees`,
       method: 'GET',
       params,
     };

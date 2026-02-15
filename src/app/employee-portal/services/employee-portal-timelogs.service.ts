@@ -2,9 +2,11 @@ import { HttpClient, httpResource } from '@angular/common/http';
 import { computed, inject, Injectable } from '@angular/core';
 import {
   addDays,
+  compareDesc,
   differenceInMinutes,
   endOfMonth,
   format,
+  isValid,
   startOfMonth,
 } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
@@ -149,7 +151,7 @@ export class EmployeePortalTimelogsService {
       }, []);
 
     return processedLogs.sort(
-      (a, b) => new Date(b.day).getTime() - new Date(a.day).getTime()
+      (a, b) => compareDesc(new Date(a.day), new Date(b.day))
     );
   });
 
@@ -219,7 +221,7 @@ export class EmployeePortalTimelogsService {
       .map((x) => {
         try {
           const date = new Date(x.created_at);
-          if (isNaN(date.getTime())) {
+          if (!isValid(date)) {
             return null;
           }
           return x;
@@ -282,7 +284,7 @@ export class EmployeePortalTimelogsService {
       }, []);
 
     const sorted = processedLogs.sort(
-      (a, b) => new Date(b.day).getTime() - new Date(a.day).getTime()
+      (a, b) => compareDesc(new Date(a.day), new Date(b.day))
     );
     return sorted;
   });
@@ -300,7 +302,7 @@ export class EmployeePortalTimelogsService {
 
       // Verificar que la fecha sea válida
       const logDate = new Date(log.day);
-      if (isNaN(logDate.getTime())) {
+      if (!isValid(logDate)) {
         return false;
       }
 
@@ -368,7 +370,7 @@ export class EmployeePortalTimelogsService {
         actual_time: log.entry?.date ? format(log.entry.date, 'HH:mm') : '-',
         minutes: log.delay as number,
       }))
-      .sort((a, b) => b.date.getTime() - a.date.getTime());
+      .sort((a, b) => compareDesc(a.date, b.date));
   });
 
   // Dashboard computed properties
@@ -397,7 +399,7 @@ export class EmployeePortalTimelogsService {
     const entryDate = new Date(log.entry.date);
     const exitDate = new Date(log.exit.date);
 
-    if (isNaN(entryDate.getTime()) || isNaN(exitDate.getTime())) return 0;
+    if (!isValid(entryDate) || !isValid(exitDate)) return 0;
 
     // Calcular tiempo total desde entrada hasta salida
     const totalMinutes = differenceInMinutes(exitDate, entryDate);
@@ -444,7 +446,7 @@ export class EmployeePortalTimelogsService {
       const entryDate = new Date(log.entry.date);
       const exitDate = new Date(log.exit.date);
 
-      if (isNaN(entryDate.getTime()) || isNaN(exitDate.getTime())) return;
+      if (!isValid(entryDate) || !isValid(exitDate)) return;
 
       // Calcular tiempo total desde entrada hasta salida
       const totalMinutes = differenceInMinutes(exitDate, entryDate);
@@ -503,7 +505,7 @@ export class EmployeePortalTimelogsService {
       }
     });
 
-    return daysWithOvertime.sort((a, b) => b.date.getTime() - a.date.getTime());
+    return daysWithOvertime.sort((a, b) => compareDesc(a.date, b.date));
   });
 
   // Computed: Detalles completos de días con horas extra (para Paso 4)
@@ -562,7 +564,7 @@ export class EmployeePortalTimelogsService {
       }
     });
 
-    return details.sort((a, b) => b.date.getTime() - a.date.getTime());
+    return details.sort((a, b) => compareDesc(a.date, b.date));
   });
 
   public recentTimelogs = computed(() => {
@@ -614,7 +616,7 @@ export class EmployeePortalTimelogsService {
           created_at: log.created_at,
         };
       })
-      .sort((a, b) => b.date.getTime() - a.date.getTime()) // Más recientes primero
+      .sort((a, b) => compareDesc(a.date, b.date)) // Más recientes primero
       .slice(0, 4); // Últimas 4 marcaciones
 
     return recentEvents;

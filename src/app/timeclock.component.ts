@@ -21,7 +21,8 @@ import {
   Validators,
 } from '@angular/forms';
 import { Router } from '@angular/router';
-import { differenceInMinutes, format } from 'date-fns';
+import { compareDesc, differenceInMinutes, format, getDate, getHours, getMinutes, getMonth, getSeconds, getYear, set } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { formatInTimeZone, toZonedTime } from 'date-fns-tz';
 import * as OTPAuth from 'otpauth';
 import { ConfirmationService, MessageService } from 'primeng/api';
@@ -31,7 +32,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { InputOtp } from 'primeng/inputotp';
 import { Select } from 'primeng/select';
 import { Toast } from 'primeng/toast';
-import { catchError, EMPTY, Observable, of } from 'rxjs';
+import { catchError, EMPTY, firstValueFrom, Observable, of } from 'rxjs';
 import { map } from 'rxjs/operators';
 import {
   Branch,
@@ -1509,33 +1510,8 @@ export class TimeclockComponent implements OnDestroy {
 
   // Format date for display
   formattedDate = computed(() => {
-    const days = [
-      'Domingo',
-      'Lunes',
-      'Martes',
-      'Miércoles',
-      'Jueves',
-      'Viernes',
-      'Sábado',
-    ];
-    const months = [
-      'enero',
-      'febrero',
-      'marzo',
-      'abril',
-      'mayo',
-      'junio',
-      'julio',
-      'agosto',
-      'septiembre',
-      'octubre',
-      'noviembre',
-      'diciembre',
-    ];
     const date = toZonedTime(this.currentTime(), this.DISPLAY_TIMEZONE);
-    return `${days[date.getDay()]}, ${date.getDate()} de ${
-      months[date.getMonth()]
-    } de ${date.getFullYear()}`;
+    return format(date, "EEEE, d 'de' MMMM 'de' yyyy", { locale: es });
   });
 
   // Get IP - always returns a valid IP (localhost in dev)
@@ -1773,16 +1749,16 @@ export class TimeclockComponent implements OnDestroy {
     const entryParts = entryTimeStr.split(':');
     const scheduleParts = scheduleTimeStr.split(':');
 
-    const entryDate = new Date();
-    entryDate.setHours(+entryParts[0], +entryParts[1], +entryParts[2] || 0, 0);
+    let entryDate = new Date();
+    entryDate = set(entryDate, { hours: +entryParts[0], minutes: +entryParts[1], seconds: +entryParts[2] || 0, milliseconds: 0 });
 
-    const scheduleDate = new Date();
-    scheduleDate.setHours(
-      +scheduleParts[0],
-      +scheduleParts[1],
-      +scheduleParts[2] || 0,
-      0
-    );
+    let scheduleDate = new Date();
+    scheduleDate = set(scheduleDate, {
+      hours: +scheduleParts[0],
+      minutes: +scheduleParts[1],
+      seconds: +scheduleParts[2] || 0,
+      milliseconds: 0
+    });
 
     const delay = differenceInMinutes(entryDate, scheduleDate);
 
@@ -1897,16 +1873,16 @@ export class TimeclockComponent implements OnDestroy {
     const exitParts = exitTimeStr.split(':');
     const scheduleParts = scheduleTimeStr.split(':');
 
-    const exitDate = new Date();
-    exitDate.setHours(+exitParts[0], +exitParts[1], +exitParts[2] || 0, 0);
+    let exitDate = new Date();
+    exitDate = set(exitDate, { hours: +exitParts[0], minutes: +exitParts[1], seconds: +exitParts[2] || 0, milliseconds: 0 });
 
-    const scheduleDate = new Date();
-    scheduleDate.setHours(
-      +scheduleParts[0],
-      +scheduleParts[1],
-      +scheduleParts[2] || 0,
-      0
-    );
+    let scheduleDate = new Date();
+    scheduleDate = set(scheduleDate, {
+      hours: +scheduleParts[0],
+      minutes: +scheduleParts[1],
+      seconds: +scheduleParts[2] || 0,
+      milliseconds: 0
+    });
 
     const difference = differenceInMinutes(exitDate, scheduleDate);
 
@@ -2358,9 +2334,9 @@ export class TimeclockComponent implements OnDestroy {
             
             // Obtener hora actual en zona de Panamá
             const nowInPanama = toZonedTime(officialTime, this.DISPLAY_TIMEZONE);
-            const currentHour = nowInPanama.getHours();
-            const currentMinute = nowInPanama.getMinutes();
-            const currentSecond = nowInPanama.getSeconds();
+            const currentHour = getHours(nowInPanama);
+            const currentMinute = getMinutes(nowInPanama);
+            const currentSecond = getSeconds(nowInPanama);
             
             // Calcular diferencia en segundos
             const scheduledTotalSeconds = scheduledHour * 3600 + scheduledMinute * 60 + scheduledSecond;
@@ -2587,7 +2563,7 @@ export class TimeclockComponent implements OnDestroy {
         limit: '100',
       });
       const anonKey = getEnv('ENV_SUPABASE_API_KEY');
-      const timelogs = await this.http
+      const timelogs = await firstValueFrom(this.http
         .get<TimeLog[]>(timelogsUrl, {
           headers: {
             apikey: anonKey!,
@@ -2597,8 +2573,7 @@ export class TimeclockComponent implements OnDestroy {
         .pipe(
           catchError(() => of([])),
           map((logs) => logs || [])
-        )
-        .toPromise();
+        ));
 
       if (!timelogs || timelogs.length === 0) {
         return 0;
@@ -2611,7 +2586,7 @@ export class TimeclockComponent implements OnDestroy {
         order: 'start_date.desc',
         limit: '100',
       });
-      const schedules = await this.http
+      const schedules = await firstValueFrom(this.http
         .get<EmployeeSchedule[]>(schedulesUrl, {
           headers: {
             apikey: anonKey!,
@@ -2621,8 +2596,7 @@ export class TimeclockComponent implements OnDestroy {
         .pipe(
           catchError(() => of([])),
           map((scheds) => scheds || [])
-        )
-        .toPromise();
+        ));
 
       if (!schedules || schedules.length === 0) {
         return 0;
@@ -2636,7 +2610,7 @@ export class TimeclockComponent implements OnDestroy {
       const sortedLogs = [...timelogs].sort((a, b) => {
         const dateA = new Date(a.created_at);
         const dateB = new Date(b.created_at);
-        return dateB.getTime() - dateA.getTime();
+        return compareDesc(dateA, dateB);
       });
 
       for (const log of sortedLogs) {
@@ -2706,9 +2680,9 @@ export class TimeclockComponent implements OnDestroy {
   private getPanamaNowParts(): { year: number; month: number; day: number } {
     const now = toZonedTime(new Date(), 'America/Panama');
     return {
-      year: now.getFullYear(),
-      month: now.getMonth() + 1,
-      day: now.getDate(),
+      year: getYear(now),
+      month: getMonth(now) + 1,
+      day: getDate(now),
     };
   }
 

@@ -5,7 +5,7 @@
 
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
-import { format } from 'date-fns';
+import { endOfDay, format } from 'date-fns';
 import { firstValueFrom } from 'rxjs';
 import {
   EmployeeLateRecord,
@@ -338,8 +338,7 @@ export class LateRecordsService {
 
     // Validar que la fecha no sea futura
     const recordDate = new Date(params.timelog_date);
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
+    const today = endOfDay(new Date());
     if (recordDate > today) {
       throw new Error(
         'No se pueden registrar tardanzas para fechas futuras'

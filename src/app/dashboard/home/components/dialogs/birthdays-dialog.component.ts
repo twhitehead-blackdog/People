@@ -5,7 +5,7 @@ import {
   input,
   model,
 } from '@angular/core';
-import { format, parseISO, setYear } from 'date-fns';
+import { format, getDate, getYear, getMonth, parseISO, setYear } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { DialogModule } from 'primeng/dialog';
 
@@ -295,7 +295,7 @@ export class BirthdaysDialogComponent {
     const today = new Date();
     // Compare only day and month
     return (
-      date.getDate() === today.getDate() && date.getMonth() === today.getMonth()
+      getDate(date) === getDate(today) && getMonth(date) === getMonth(today)
     );
   }
 
@@ -305,16 +305,16 @@ export class BirthdaysDialogComponent {
     const today = new Date();
 
     // Set both to same year for comparison
-    const birthDateThisYear = setYear(date, today.getFullYear());
+    const birthDateThisYear = setYear(date, getYear(today));
 
     // Check if passed (ignoring time)
     // If month is less than current month, it passed
-    if (birthDateThisYear.getMonth() < today.getMonth()) return true;
+    if (getMonth(birthDateThisYear) < getMonth(today)) return true;
 
     // If month is same, check day
     if (
-      birthDateThisYear.getMonth() === today.getMonth() &&
-      birthDateThisYear.getDate() < today.getDate()
+      getMonth(birthDateThisYear) === getMonth(today) &&
+      getDate(birthDateThisYear) < getDate(today)
     )
       return true;
 

@@ -18,6 +18,7 @@ import { InputIcon } from 'primeng/inputicon';
 import { InputText } from 'primeng/inputtext';
 import { TableModule } from 'primeng/table';
 import { PayrollPayment } from '../models';
+import { getEnv } from '../utils/env.utils';
 import { PayrollPaymentsFormComponent } from './payroll-payments-form.component';
 
 @Component({
@@ -135,7 +136,7 @@ export class PayrollPaymentsComponent {
   }
 
   public payments = httpResource<PayrollPayment[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/payroll_payments`,
+    url: `${getEnv('ENV_SUPABASE_URL')}/rest/v1/payroll_payments`,
     method: 'GET',
     params: {
       select: 'id,title,payroll_id,start_date,end_date,status',

@@ -46,3 +46,9 @@ env.odoo.append.txt
 
 # Hookify rules (local)
 .claude/*.local.md
+
+# AI agent artifacts
+.agent/
+.context/
+GEMINI.md
+*.spec.ts.append

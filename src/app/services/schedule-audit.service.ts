@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
+import { endOfDay } from 'date-fns';
 import { firstValueFrom, Observable } from 'rxjs';
 import { ApiUrlService } from './api-url.service';
 

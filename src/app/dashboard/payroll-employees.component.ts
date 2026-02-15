@@ -21,6 +21,7 @@ import { TableModule } from 'primeng/table';
 import { PayrollEmployee } from '../models';
 import { OrganizationService } from '../services/organization.service';
 import { EmployeesStore } from '../stores/employees.store';
+import { getEnv } from '../utils/env.utils';
 import { PayrollEmployeesFormComponent } from './payroll-employees-form.component';
 
 /**
@@ -177,7 +178,7 @@ export class PayrollEmployeesComponent {
     // Por ahora, dejamos que el filtro se haga a través de la relación employee si es necesario
 
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_payrolls`,
+      url: `${getEnv('ENV_SUPABASE_URL')}/rest/v1/employee_payrolls`,
       method: 'GET',
       params,
     };
@@ -239,7 +240,7 @@ export class PayrollEmployeesComponent {
     }));
     this.http
       .post(
-        `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_payrolls`,
+        `${getEnv('ENV_SUPABASE_URL')}/rest/v1/employee_payrolls`,
         items
       )
       .subscribe(() => {
@@ -264,7 +265,7 @@ export class PayrollEmployeesComponent {
       accept: () => {
         this.http
           .delete(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_payrolls`,
+            `${getEnv('ENV_SUPABASE_URL')}/rest/v1/employee_payrolls`,
             {
               params: {
                 id: `eq.${employee.id}`,

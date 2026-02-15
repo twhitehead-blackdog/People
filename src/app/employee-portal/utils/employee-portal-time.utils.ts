@@ -1,4 +1,4 @@
-import { differenceInMinutes, format } from 'date-fns';
+import { differenceInMinutes, format, isValid } from 'date-fns';
 
 /**
  * Calcula las horas trabajadas entre entrada y salida, restando el tiempo de almuerzo
@@ -16,7 +16,7 @@ export function calculateWorkedHours(
   const entryDate = new Date(entry);
   const exitDate = new Date(exit);
 
-  if (isNaN(entryDate.getTime()) || isNaN(exitDate.getTime())) {
+  if (!isValid(entryDate) || !isValid(exitDate)) {
     return '-';
   }
 
@@ -32,7 +32,7 @@ export function calculateWorkedHours(
   if (lunchStart && lunchEnd) {
     const lunchStartDate = new Date(lunchStart);
     const lunchEndDate = new Date(lunchEnd);
-    if (!isNaN(lunchStartDate.getTime()) && !isNaN(lunchEndDate.getTime())) {
+    if (isValid(lunchStartDate) && isValid(lunchEndDate)) {
       const lunchDiff = differenceInMinutes(lunchEndDate, lunchStartDate);
       // Solo usar si la diferencia es positiva y razonable (máximo 3 horas)
       if (lunchDiff > 0 && lunchDiff <= 180) {
@@ -93,7 +93,7 @@ export function formatDateWithTimeRange(
     const from = new Date(dateFrom);
     const to = new Date(dateTo);
 
-    if (isNaN(from.getTime()) || isNaN(to.getTime())) {
+    if (!isValid(from) || !isValid(to)) {
       return '';
     }
 
@@ -142,7 +142,7 @@ export function calculateHoursFromDates(
     }
 
     // Validar que las fechas sean válidas
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+    if (!isValid(startDate) || !isValid(endDate)) {
       console.warn(
         '[getCompensatoryQuantity] Fechas inválidas:',
         dateFromStr,
@@ -151,8 +151,8 @@ export function calculateHoursFromDates(
       return 0;
     }
 
-    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-    const diffHours = diffTime / (1000 * 60 * 60);
+    const diffMinutes = Math.abs(differenceInMinutes(endDate, startDate));
+    const diffHours = diffMinutes / 60;
 
     // Redondear a 2 decimales para evitar errores de precisión
     return Math.round(diffHours * 100) / 100;

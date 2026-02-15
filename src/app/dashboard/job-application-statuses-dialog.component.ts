@@ -18,6 +18,7 @@ import { Button } from 'primeng/button';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
 import { DynamicDialogRef } from 'primeng/dynamicdialog';
 import { InputText } from 'primeng/inputtext';
+import { getEnv } from '../utils/env.utils';
 import { Select } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
@@ -208,7 +209,7 @@ export class JobApplicationStatusesDialogComponent {
 
   // API para cargar estados (todos, no solo activos)
   private statusesApi = httpResource<JobApplicationStatus[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/job_application_statuses`,
+    url: `${getEnv('ENV_SUPABASE_URL')}/rest/v1/job_application_statuses`,
     method: 'GET',
     params: {
       select: 'id,code,label,severity,display_order,is_default,is_active',
@@ -307,7 +308,7 @@ export class JobApplicationStatusesDialogComponent {
         // Actualizar estado existente
         await firstValueFrom(
           this.http.patch(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/job_application_statuses?id=eq.${editing.id}`,
+            `${getEnv('ENV_SUPABASE_URL')}/rest/v1/job_application_statuses?id=eq.${editing.id}`,
             {
               label: formValue.label,
               severity: formValue.severity,
@@ -349,7 +350,7 @@ export class JobApplicationStatusesDialogComponent {
         // Crear nuevo estado
         await firstValueFrom(
           this.http.post(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/job_application_statuses`,
+            `${getEnv('ENV_SUPABASE_URL')}/rest/v1/job_application_statuses`,
             {
               code: code,
               label: formValue.label,
@@ -396,7 +397,7 @@ export class JobApplicationStatusesDialogComponent {
         try {
           await firstValueFrom(
             this.http.delete(
-              `${process.env['ENV_SUPABASE_URL']}/rest/v1/job_application_statuses?id=eq.${status.id}`
+              `${getEnv('ENV_SUPABASE_URL')}/rest/v1/job_application_statuses?id=eq.${status.id}`
             )
           );
           this.messageService.add({

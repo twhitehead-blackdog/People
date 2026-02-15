@@ -563,11 +563,11 @@ export class UniformRequestsComponent {
     }
 
     if (range && range[0] && range[1]) {
-      const start = range[0].getTime();
-      const end = range[1].getTime();
+      const start = range[0];
+      const end = range[1];
       requests = requests.filter((r) => {
-        const time = new Date(r.created_at).getTime();
-        return time >= start && time <= end;
+        const createdAt = new Date(r.created_at);
+        return createdAt >= start && createdAt <= end;
       });
     }
 

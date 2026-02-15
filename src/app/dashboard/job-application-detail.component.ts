@@ -21,6 +21,7 @@ import { Tooltip } from 'primeng/tooltip';
 import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
 import { firstValueFrom } from 'rxjs';
+import { getEnv } from '../utils/env.utils';
 import { JobApplication } from '../models';
 import { DashboardStore } from '../stores/dashboard.store';
 import { JobApplicationsStore } from '../stores/job-applications.store';
@@ -352,7 +353,7 @@ export class JobApplicationDetailComponent implements OnInit {
 
       await firstValueFrom(
         this.http.patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/job_applications?id=eq.${this.application()!.id}`,
+          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/job_applications?id=eq.${this.application()!.id}`,
           updateData
         )
       );

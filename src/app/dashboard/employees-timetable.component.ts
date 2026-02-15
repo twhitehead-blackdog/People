@@ -14,13 +14,16 @@ import {
 import { FormsModule } from '@angular/forms';
 import {
   addDays,
+  compareAsc,
   eachDayOfInterval,
   endOfDay,
   format,
   isBefore,
   isSameDay,
+  isSameMonth,
   isWithinInterval,
   startOfDay,
+  startOfMonth,
   subDays,
 } from 'date-fns';
 import { toDate } from 'date-fns-tz';
@@ -818,7 +821,7 @@ export class EmployeesTimetableComponent implements OnInit {
       const list = map.get(shift.employee_id) ?? [];
       list.push({ start, end, shift });
       // Mantener ordenado por fecha de inicio para búsqueda binaria
-      list.sort((a, b) => a.start.getTime() - b.start.getTime());
+      list.sort((a, b) => compareAsc(a.start, b.start));
       map.set(shift.employee_id, list);
     }
 
@@ -1047,14 +1050,13 @@ export class EmployeesTimetableComponent implements OnInit {
 
   public openMonthWeekSelector() {
     const today = new Date();
-    const monthDate = new Date(today.getFullYear(), today.getMonth(), 1);
+    const monthDate = startOfMonth(today);
     this.selectedMonth.set(monthDate);
     const options = this.getMonthOptions();
     const currentOption =
       options.find(
         (opt) =>
-          opt.value.getFullYear() === monthDate.getFullYear() &&
-          opt.value.getMonth() === monthDate.getMonth()
+          isSameMonth(opt.value, monthDate)
       ) || options[options.length - 1];
     this.selectedMonthOption.set(currentOption);
     this.selectedWeek.set(this.getCurrentWeekOfMonth(today));

@@ -2,7 +2,7 @@
  * Pure functions for mapping and unifying branch employee requests.
  * Extracted from branch-manager.component.ts unifiedRequests / branchEmployeeRequests computeds.
  */
-import { format } from 'date-fns';
+import { format, compareDesc } from 'date-fns';
 import {
   getRequestColorClass,
   getRequestIcon,
@@ -99,7 +99,7 @@ export function mapBranchEmployeeRequests(
     ...enrichedVacations,
     ...enrichedDocuments,
   ].sort(
-    (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    (a, b) => compareDesc(new Date(a.created_at), new Date(b.created_at))
   );
 }
 

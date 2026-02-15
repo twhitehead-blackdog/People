@@ -1,4 +1,5 @@
 import { Pipe, PipeTransform } from '@angular/core';
+import { isValid } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
 import { es } from 'date-fns/locale';
 
@@ -60,12 +61,12 @@ export class PanamaDatePipe implements PipeTransform {
 
   private toDate(value: PanamaDateInput): Date | null {
     if (value instanceof Date) {
-      return isNaN(value.getTime()) ? null : value;
+      return !isValid(value) ? null : value;
     }
 
     if (typeof value === 'number') {
       const d = new Date(value);
-      return isNaN(d.getTime()) ? null : d;
+      return !isValid(d) ? null : d;
     }
 
     if (typeof value === 'string') {
@@ -76,11 +77,11 @@ export class PanamaDatePipe implements PipeTransform {
       // Interpretarlo como medianoche en Panamá para que el día no cambie con TZ local.
       if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
         const d = new Date(`${v}T00:00:00-05:00`);
-        return isNaN(d.getTime()) ? null : d;
+        return !isValid(d) ? null : d;
       }
 
       const d = new Date(v);
-      return isNaN(d.getTime()) ? null : d;
+      return !isValid(d) ? null : d;
     }
 
     return null;

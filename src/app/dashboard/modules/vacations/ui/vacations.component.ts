@@ -1,6 +1,7 @@
 import { CommonModule, DatePipe } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
+import { format as formatDate } from 'date-fns';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer } from '@angular/platform-browser';
 import { ConfirmationService, MessageService } from 'primeng/api';
@@ -781,11 +782,11 @@ export class VacationsComponent {
       vacations = vacations.filter((v) => v.status === status);
     }
     if (range && range[0] && range[1]) {
-      const start = range[0].getTime();
-      const end = range[1].getTime();
+      const start = range[0];
+      const end = range[1];
       vacations = vacations.filter((v) => {
-        const time = new Date(v.created_at).getTime();
-        return time >= start && time <= end;
+        const createdAt = new Date(v.created_at);
+        return createdAt >= start && createdAt <= end;
       });
     }
     return vacations;
@@ -1102,11 +1103,13 @@ export class VacationsComponent {
     status: 'approved' | 'rejected',
     rejectionComment?: string
   ) {
-    let message = `Tu solicitud de vacaciones del ${new Date(
-      vacation.start_date
-    ).toLocaleDateString()} al ${new Date(
-      vacation.end_date
-    ).toLocaleDateString()} ha sido ${
+    let message = `Tu solicitud de vacaciones del ${formatDate(
+      new Date(vacation.start_date),
+      'dd/MM/yyyy'
+    )} al ${formatDate(
+      new Date(vacation.end_date),
+      'dd/MM/yyyy'
+    )} ha sido ${
       status === 'approved' ? 'aprobada' : 'rechazada'
     }.`;
 

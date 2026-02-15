@@ -3,6 +3,7 @@ import { inject, isDevMode } from '@angular/core';
 import { ActivatedRouteSnapshot, CanActivateFn, Router } from '@angular/router';
 import { AuthService } from '@auth0/auth0-angular';
 import { catchError, filter, map, of, switchMap, take, timeout } from 'rxjs';
+import { getEnv } from '../utils/env.utils';
 
 /**
  * Guard de autenticación para Auth0
@@ -34,7 +35,7 @@ export const authGuardFn: CanActivateFn = (_route: ActivatedRouteSnapshot) => {
             return of(router.createUrlTree(['/login']));
           }
 
-          const supabaseUrl = process.env['ENV_SUPABASE_URL'];
+          const supabaseUrl = getEnv('ENV_SUPABASE_URL');
           if (!supabaseUrl) {
             return of(true);
           }

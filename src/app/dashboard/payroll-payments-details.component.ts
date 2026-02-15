@@ -32,6 +32,7 @@ import {
   isBefore,
   isSameDay,
   isSunday,
+  set,
 } from 'date-fns';
 import { toDate } from 'date-fns-tz';
 import { MessageService } from 'primeng/api';
@@ -1061,14 +1062,14 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
 
   calcTimeDiff = (time1: string, time2: string) => {
     if (!time1 || !time2) return 0;
-    
+
     // Validar formato de hora (debe tener :)
     if (!time1.includes(':') || !time2.includes(':')) {
       return 0;
     }
-    
-    const timeStart = new Date();
-    const timeEnd = new Date();
+
+    let timeStart = new Date();
+    let timeEnd = new Date();
     const valueStart = time1.split(':');
     const valueEnd = time2.split(':');
 
@@ -1077,8 +1078,8 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
       return 0;
     }
 
-    timeStart.setHours(+valueStart[0], +valueStart[1], 0, 0);
-    timeEnd.setHours(+valueEnd[0], +valueEnd[1], 0, 0);
+    timeStart = set(timeStart, { hours: +valueStart[0], minutes: +valueStart[1], seconds: 0, milliseconds: 0 });
+    timeEnd = set(timeEnd, { hours: +valueEnd[0], minutes: +valueEnd[1], seconds: 0, milliseconds: 0 });
 
     return differenceInMinutes(timeStart, timeEnd);
   };

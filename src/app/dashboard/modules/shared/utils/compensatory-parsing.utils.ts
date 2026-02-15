@@ -3,7 +3,7 @@
  * Extracts type, quantity, dates, times, and reasons from CompensatoryRequest objects.
  */
 
-import { format } from 'date-fns';
+import { format, isValid, differenceInMinutes } from 'date-fns';
 import { calculateDaysBetween } from './hr-status.utils';
 
 /** Minimal shape needed by parsing functions. */
@@ -32,9 +32,9 @@ export function calculateHoursFromDates(
 ): number {
   const startDate = new Date(dateFrom);
   const endDate = new Date(dateTo);
-  if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) return 0;
-  const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-  const diffHours = diffTime / (1000 * 60 * 60);
+  if (!isValid(startDate) || !isValid(endDate)) return 0;
+  const diffMinutes = Math.abs(differenceInMinutes(endDate, startDate));
+  const diffHours = diffMinutes / 60;
   return Math.round(diffHours * 100) / 100;
 }
 
@@ -66,7 +66,7 @@ export function parseDDMMYYYYToISO(dateStr: string): string | null {
     return null;
   try {
     const d = new Date(year, month - 1, day);
-    if (isNaN(d.getTime())) return null;
+    if (!isValid(d)) return null;
     return format(d, 'yyyy-MM-dd');
   } catch {
     return null;

@@ -12,6 +12,7 @@ import { Card } from 'primeng/card';
 import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { TableModule } from 'primeng/table';
 import { PayrollDeduction } from '../models';
+import { getEnv } from '../utils/env.utils';
 import { PayrollDeductionsFormComponent } from './payroll-deductions-form.component';
 
 @Component({
@@ -84,7 +85,7 @@ import { PayrollDeductionsFormComponent } from './payroll-deductions-form.compon
 export class PayrollDeductionsComponent {
   public payrollId = input.required<string>();
   public payrollDeductions = httpResource<PayrollDeduction[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/payroll_deductions`,
+    url: `${getEnv('ENV_SUPABASE_URL')}/rest/v1/payroll_deductions`,
     method: 'GET',
     params: {
       select: 'id,payroll_id,name,value,calculation_type,min_salary,income_tax',
@@ -130,7 +131,7 @@ export class PayrollDeductionsComponent {
       accept: () => {
         this.http
           .delete(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/payroll_deductions`,
+            `${getEnv('ENV_SUPABASE_URL')}/rest/v1/payroll_deductions`,
             {
               params: {
                 id: `eq.${deduction.id}`,

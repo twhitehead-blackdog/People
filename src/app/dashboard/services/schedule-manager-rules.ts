@@ -3,6 +3,8 @@
  * Las limitaciones son solo advertencias, no bloquean la asignación.
  */
 
+import { getDay, getHours, getMinutes } from 'date-fns';
+
 /** IDs de posiciones que tienen restricciones de horario (Gerente de Tienda, Sub Gerente) */
 export const MANAGER_POSITION_IDS = [
   '0b660014-936f-498b-80ea-c13bbf43f59c', // Gerente de Tienda
@@ -41,7 +43,7 @@ export function isManagerPosition(positionId: string | undefined | null): boolea
 }
 
 export function isSunday(date: Date): boolean {
-  return date.getDay() === 0;
+  return getDay(date) === 0;
 }
 
 /** Devuelve mensaje de advertencia si el turno no es recomendado para Gerente/Subgerente, o null. */
@@ -101,7 +103,7 @@ export function parseEntryTimeToMinutes(entryTime: Date | string | null | undefi
     return null;
   }
   if (entryTime instanceof Date) {
-    return entryTime.getHours() * 60 + entryTime.getMinutes();
+    return getHours(entryTime) * 60 + getMinutes(entryTime);
   }
   return null;
 }

@@ -1,5 +1,6 @@
 import { HttpClient, httpResource } from '@angular/common/http';
 import { inject, Injectable, signal } from '@angular/core';
+import { endOfDay } from 'date-fns';
 import { firstValueFrom } from 'rxjs';
 import {
   AuditAnswer,
@@ -75,8 +76,7 @@ export class Performance360Service {
       // created_at <= endDate (final del día ajustable o tal cual viene)
       // Ajustamos al final del día si viene sin hora, pero supongamos gestión externa
       // Usualmente para rango inclusivo se usa lte.
-      const end = new Date(filters.endDate);
-      end.setHours(23, 59, 59, 999);
+      const end = endOfDay(new Date(filters.endDate));
       queryParams.push(`created_at=lte.${end.toISOString()}`);
     }
 

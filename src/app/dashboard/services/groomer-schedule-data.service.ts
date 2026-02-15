@@ -102,16 +102,16 @@ export class GroomerScheduleDataService {
 
       for (const d of days) {
         // Crear fechas solo con año/mes/día para comparación
-        const dDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        const dDate = new Date(getYear(d), getMonth(d), getDate(d));
         const startDateOnly = new Date(
-          rowStart.getFullYear(),
-          rowStart.getMonth(),
-          rowStart.getDate()
+          getYear(rowStart),
+          getMonth(rowStart),
+          getDate(rowStart)
         );
         const endDateOnly = new Date(
-          rowEnd.getFullYear(),
-          rowEnd.getMonth(),
-          rowEnd.getDate()
+          getYear(rowEnd),
+          getMonth(rowEnd),
+          getDate(rowEnd)
         );
 
         // Comparación inclusive usando solo fecha (sin hora)

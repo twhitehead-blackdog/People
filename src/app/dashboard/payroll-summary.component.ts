@@ -10,6 +10,7 @@ import {
 import { AccordionModule } from 'primeng/accordion';
 import { PayrollPayment, PayrollPaymentEmployee } from '../models';
 import { DashboardStore } from '../stores/dashboard.store';
+import { getEnv } from '../utils/env.utils';
 import { OrganizationService } from '../services/organization.service';
 
 import { Button } from 'primeng/button';
@@ -148,7 +149,7 @@ export class PayrollSummaryComponent {
   public payment_id = input.required<string>();
   public payroll_id = input.required<string>();
   public payroll = httpResource<PayrollPayment[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/payroll_payments`,
+    url: `${getEnv('ENV_SUPABASE_URL')}/rest/v1/payroll_payments`,
     method: 'GET',
     params: {
       select: '*, payroll:payrolls(id, name)',
@@ -175,7 +176,7 @@ export class PayrollSummaryComponent {
     // Por ahora, dejamos que el filtro se haga a través de la relación employee si es necesario
     
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/payroll_payment_employees`,
+      url: `${getEnv('ENV_SUPABASE_URL')}/rest/v1/payroll_payment_employees`,
       method: 'GET',
       params,
     };

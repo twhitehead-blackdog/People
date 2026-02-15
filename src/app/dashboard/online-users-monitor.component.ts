@@ -10,7 +10,7 @@ import {
   signal,
 } from '@angular/core';
 import { httpResource } from '@angular/common/http';
-import { formatDistanceToNow } from 'date-fns';
+import { differenceInMinutes, formatDistanceToNow, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Card } from 'primeng/card';
 import { Skeleton } from 'primeng/skeleton';
@@ -282,21 +282,21 @@ export class OnlineUsersMonitorComponent implements OnInit, OnDestroy {
   public lastActivityMap = computed(() => {
     const timelogs = this.timelogsApi.value() || [];
     const activityMap = new Map<string, Date>();
-    
+
     timelogs.forEach((log: any) => {
       if (!log.employee_id || !log.created_at) return;
-      
+
       const employeeId = log.employee_id;
       const logDate = new Date(log.created_at);
-      
-      if (isNaN(logDate.getTime())) return;
-      
+
+      if (!isValid(logDate)) return;
+
       const existing = activityMap.get(employeeId);
       if (!existing || logDate > existing) {
         activityMap.set(employeeId, logDate);
       }
     });
-    
+
     return activityMap;
   });
 
@@ -305,11 +305,11 @@ export class OnlineUsersMonitorComponent implements OnInit, OnDestroy {
     const employees = this.employeesApi.value() || [];
     const activityMap = this.lastActivityMap();
     const now = new Date();
-    
+
     return employees.map((emp: any) => {
       const lastActivity = activityMap.get(emp.id) || null;
       const minutesAgo = lastActivity
-        ? Math.floor((now.getTime() - lastActivity.getTime()) / (1000 * 60))
+        ? differenceInMinutes(now, lastActivity)
         : 999999; // Usuarios sin actividad tienen un valor muy alto
       
       return {

@@ -8,7 +8,7 @@ import {
     signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { format } from 'date-fns';
+import { differenceInMilliseconds, format } from 'date-fns';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { InputTextarea } from 'primeng/inputtextarea';
@@ -18,6 +18,7 @@ import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
 import { EmployeesStore } from '../stores/employees.store';
+import { getEnv } from '../utils/env.utils';
 
 interface Complaint {
   id: string;
@@ -554,7 +555,7 @@ export class ComplaintsInboxComponent {
 
   // API para obtener quejas
   public complaintsApi = httpResource<Complaint[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaints`,
+    url: `${getEnv('ENV_SUPABASE_URL')}/rest/v1/complaints`,
     method: 'GET',
     params: {
       select: 'id,employee_id,creator_employee_id,category,complaint,allow_contact,contact_method,status,priority,closed,closed_at,response,responded_by,response_date,reveal_identity,thread_id,last_message_at,created_at,updated_at',
@@ -610,7 +611,7 @@ export class ComplaintsInboxComponent {
     if (!complaint) return undefined;
 
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages`,
+      url: `${getEnv('ENV_SUPABASE_URL')}/rest/v1/complaint_messages`,
       method: 'GET',
       params: {
         select: 'id,complaint_id,sender_id,sender_type,is_anonymous,message,is_read,read_at,created_at,thread_id',
@@ -622,7 +623,7 @@ export class ComplaintsInboxComponent {
 
   // API para obtener mensajes sin leer
   private unreadMessagesApi = httpResource<any[]>(() => ({
-    url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages`,
+    url: `${getEnv('ENV_SUPABASE_URL')}/rest/v1/complaint_messages`,
     method: 'GET',
     params: {
       select: 'complaint_id',
@@ -696,7 +697,7 @@ export class ComplaintsInboxComponent {
       try {
         await firstValueFrom(
           this.http.patch(
-            `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages?id=eq.${message.id}`,
+            `${getEnv('ENV_SUPABASE_URL')}/rest/v1/complaint_messages?id=eq.${message.id}`,
             { is_read: true, read_at: new Date().toISOString() },
             {
               headers: {
@@ -737,7 +738,7 @@ export class ComplaintsInboxComponent {
       // Primero eliminar todos los mensajes de la conversación
       await firstValueFrom(
         this.http.delete(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages?complaint_id=eq.${complaint.id}`,
+          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/complaint_messages?complaint_id=eq.${complaint.id}`,
           {
             headers: {
               'Content-Type': 'application/json',
@@ -749,7 +750,7 @@ export class ComplaintsInboxComponent {
       // Luego eliminar la queja
       await firstValueFrom(
         this.http.delete(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaints?id=eq.${complaint.id}`,
+          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/complaints?id=eq.${complaint.id}`,
           {
             headers: {
               'Content-Type': 'application/json',
@@ -798,7 +799,7 @@ export class ComplaintsInboxComponent {
     try {
       await firstValueFrom(
         this.http.post(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages`,
+          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/complaint_messages`,
           messageData
         )
       );
@@ -921,7 +922,7 @@ export class ComplaintsInboxComponent {
     try {
       await firstValueFrom(
         this.http.patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaints?id=eq.${targetComplaint.id}`,
+          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/complaints?id=eq.${targetComplaint.id}`,
           { status: newStatus },
           {
             headers: {
@@ -975,7 +976,7 @@ export class ComplaintsInboxComponent {
     try {
       await firstValueFrom(
         this.http.patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaints?id=eq.${targetComplaint.id}`,
+          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/complaints?id=eq.${targetComplaint.id}`,
           { priority: newPriority },
           {
             headers: {
@@ -1032,7 +1033,7 @@ export class ComplaintsInboxComponent {
     try {
       await firstValueFrom(
         this.http.patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaints?id=eq.${complaint.id}`,
+          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/complaints?id=eq.${complaint.id}`,
           {
             status: 'closed',
             closed: true,
@@ -1077,7 +1078,7 @@ export class ComplaintsInboxComponent {
     try {
       await firstValueFrom(
         this.http.patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaints?id=eq.${complaint.id}`,
+          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/complaints?id=eq.${complaint.id}`,
           {
             closed: false,
             closed_at: null,
@@ -1119,7 +1120,7 @@ export class ComplaintsInboxComponent {
     if (!dateString) return '';
     const date = new Date(dateString);
     const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
+    const diffMs = differenceInMilliseconds(now, date);
     const diffMins = Math.floor(diffMs / 60000);
     const diffHours = Math.floor(diffMs / 3600000);
     const diffDays = Math.floor(diffMs / 86400000);

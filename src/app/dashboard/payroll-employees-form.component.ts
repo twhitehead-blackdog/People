@@ -18,6 +18,7 @@ import {
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { DynamicDialogConfig, DynamicDialogRef } from 'primeng/dynamicdialog';
+import { getEnv } from '../utils/env.utils';
 import { InputNumber } from 'primeng/inputnumber';
 import { Select } from 'primeng/select';
 import { debounceTime } from 'rxjs';
@@ -174,7 +175,7 @@ export class PayrollEmployeesFormComponent implements OnInit {
     if (employee) {
       this.http
         .patch(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_payrolls`,
+          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/employee_payrolls`,
           this.form.value,
           {
             params: {
@@ -188,7 +189,7 @@ export class PayrollEmployeesFormComponent implements OnInit {
     } else {
       this.http
         .post(
-          `${process.env['ENV_SUPABASE_URL']}/rest/v1/employee_payrolls`,
+          `${getEnv('ENV_SUPABASE_URL')}/rest/v1/employee_payrolls`,
           this.form.value
         )
         .subscribe(() => {

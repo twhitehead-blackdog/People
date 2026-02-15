@@ -1,6 +1,7 @@
 import { HttpClient, httpResource } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { addDays, endOfMonth, format, startOfMonth } from 'date-fns';
+import { addDays, compareDesc, endOfMonth, format, isValid, startOfMonth } from 'date-fns';
+import { firstValueFrom } from 'rxjs';
 import { TimeLogEnum } from '../../../models';
 import { ApiUrlService } from '../../../services/api-url.service';
 import { NotificationsService } from '../../../services/notifications.service';
@@ -77,7 +78,7 @@ export class EmployeePortalDataService {
       .map((x) => {
         try {
           const date = new Date(x.created_at);
-          if (isNaN(date.getTime())) {
+          if (!isValid(date)) {
             return null;
           }
           return { ...x, day: format(date, 'yyyy-MM-dd') };
@@ -135,7 +136,7 @@ export class EmployeePortalDataService {
       }, []);
 
     return processedLogs.sort(
-      (a, b) => new Date(b.day).getTime() - new Date(a.day).getTime()
+      (a, b) => compareDesc(new Date(a.day), new Date(b.day))
     );
   });
 
@@ -182,7 +183,7 @@ export class EmployeePortalDataService {
       .map((x) => {
         try {
           const date = new Date(x.created_at);
-          if (isNaN(date.getTime())) {
+          if (!isValid(date)) {
             return null;
           }
           return { ...x, day: format(date, 'yyyy-MM-dd') };
@@ -240,7 +241,7 @@ export class EmployeePortalDataService {
       }, []);
 
     const sorted = processedLogs.sort(
-      (a, b) => new Date(b.day).getTime() - new Date(a.day).getTime()
+      (a, b) => compareDesc(new Date(a.day), new Date(b.day))
     );
     return sorted;
   });
@@ -278,7 +279,7 @@ export class EmployeePortalDataService {
           minutes: log.delay as number,
         };
       })
-      .sort((a, b) => b.date.getTime() - a.date.getTime());
+      .sort((a, b) => compareDesc(a.date, b.date));
   });
 
   // --- Disabilities API ---
@@ -436,15 +437,14 @@ export class EmployeePortalDataService {
 
   public async getDashboardDisabilityRecipients(): Promise<string[]> {
     try {
-      const response = await this.http
+      const response = await firstValueFrom(this.http
         .get<any>(
           this.apiUrl.build('rest/v1/settings', {
             select: 'value',
             key: 'eq.hr_email_recipients_disabilities',
             limit: 1,
           })
-        )
-        .toPromise();
+        ));
 
       const recipientsString =
         response?.[0]?.value || 'Verley@blackdogpanama.com';
@@ -460,15 +460,14 @@ export class EmployeePortalDataService {
 
   public async getDashboardDocumentRecipients(): Promise<string[]> {
     try {
-      const response = await this.http
+      const response = await firstValueFrom(this.http
         .get<any>(
           this.apiUrl.build('rest/v1/settings', {
             select: 'value',
             key: 'eq.hr_email_recipients_documents',
             limit: 1,
           })
-        )
-        .toPromise();
+        ));
 
       const recipientsString =
         response?.[0]?.value || 'Verley@blackdogpanama.com';

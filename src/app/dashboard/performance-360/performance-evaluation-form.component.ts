@@ -18,6 +18,7 @@ import { SelectButtonModule } from 'primeng/selectbutton';
 import { TabViewModule } from 'primeng/tabview';
 import { TagModule } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
+import { firstValueFrom } from 'rxjs';
 import { AuditAnswer, AuditEvaluation, AuditForm } from '../../models';
 import { Performance360Service } from '../../services/performance-360.service';
 import { BranchesStore } from '../../stores/branches.store';
@@ -265,9 +266,8 @@ export class PerformanceEvaluationFormComponent {
   async loadEvaluation(id: string) {
     this.isLoading.set(true);
     try {
-      const evaluation = await this.performanceService
-        .getEvaluationById(id)
-        .toPromise();
+      const evaluation = await firstValueFrom(this.performanceService
+        .getEvaluationById(id));
 
       if (evaluation && Array.isArray(evaluation) && evaluation.length > 0) {
         const evalData = evaluation[0] as AuditEvaluation;

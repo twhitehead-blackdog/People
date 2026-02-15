@@ -9,10 +9,16 @@ import {
   withState,
 } from '@ngrx/signals';
 import {
+  addDays,
+  compareAsc,
   differenceInMonths,
   differenceInYears,
   endOfMonth,
+  getDate,
   getMonth,
+  getYear,
+  set,
+  startOfDay,
   startOfMonth,
   subMonths,
 } from 'date-fns';
@@ -278,8 +284,8 @@ export const DashboardStore = signalStore(
           .filter((x) => getMonth(x.birth_date!) === getMonth(new Date()))
           .sort(
             (a, b) =>
-              new Date(a.birth_date!).getDate() -
-              new Date(b.birth_date!).getDate()
+              getDate(new Date(a.birth_date!)) -
+              getDate(new Date(b.birth_date!))
           )
           .map(({ first_name, father_name, birth_date, branch }) => ({
             first_name,
@@ -680,14 +686,8 @@ export const DashboardStore = signalStore(
         const now = new Date();
         const totalAge = activeEmployees.reduce((acc, emp) => {
           const birthDate = new Date(emp.birth_date!);
-          const age = now.getFullYear() - birthDate.getFullYear();
-          const monthDiff = now.getMonth() - birthDate.getMonth();
-          const adjustedAge =
-            monthDiff < 0 ||
-              (monthDiff === 0 && now.getDate() < birthDate.getDate())
-              ? age - 1
-              : age;
-          return acc + adjustedAge;
+          const age = differenceInYears(now, birthDate);
+          return acc + age;
         }, 0);
 
         return Math.round((totalAge / activeEmployees.length) * 10) / 10;
@@ -715,22 +715,16 @@ export const DashboardStore = signalStore(
 
         activeEmployees.forEach((emp) => {
           const birthDate = new Date(emp.birth_date!);
-          const age = now.getFullYear() - birthDate.getFullYear();
-          const monthDiff = now.getMonth() - birthDate.getMonth();
-          const adjustedAge =
-            monthDiff < 0 ||
-              (monthDiff === 0 && now.getDate() < birthDate.getDate())
-              ? age - 1
-              : age;
+          const age = differenceInYears(now, birthDate);
 
-          if (adjustedAge >= 18 && adjustedAge <= 25) distribution['18-25']++;
-          else if (adjustedAge >= 26 && adjustedAge <= 35)
+          if (age >= 18 && age <= 25) distribution['18-25']++;
+          else if (age >= 26 && age <= 35)
             distribution['26-35']++;
-          else if (adjustedAge >= 36 && adjustedAge <= 45)
+          else if (age >= 36 && age <= 45)
             distribution['36-45']++;
-          else if (adjustedAge >= 46 && adjustedAge <= 55)
+          else if (age >= 46 && age <= 55)
             distribution['46-55']++;
-          else if (adjustedAge >= 56) distribution['56+']++;
+          else if (age >= 56) distribution['56+']++;
         });
 
         return distribution;
@@ -792,24 +786,15 @@ export const DashboardStore = signalStore(
       // Aniversarios de trabajo (próximos 30 días)
       const upcomingAnniversaries = computed(() => {
         const now = new Date();
-        const thirtyDaysFromNow = new Date(now);
-        thirtyDaysFromNow.setDate(now.getDate() + 30);
+        const thirtyDaysFromNow = addDays(now, 30);
 
         return employees
           .entities()
           .filter((x) => x.is_active && x.start_date)
           .map((emp) => {
             const startDate = new Date(emp.start_date!);
-            const thisYearAnniversary = new Date(
-              now.getFullYear(),
-              startDate.getMonth(),
-              startDate.getDate()
-            );
-            const nextYearAnniversary = new Date(
-              now.getFullYear() + 1,
-              startDate.getMonth(),
-              startDate.getDate()
-            );
+            const thisYearAnniversary = set(startDate, { year: getYear(now) });
+            const nextYearAnniversary = set(startDate, { year: getYear(now) + 1 });
 
             let anniversaryDate = thisYearAnniversary;
             if (thisYearAnniversary < now) {
@@ -830,7 +815,7 @@ export const DashboardStore = signalStore(
               item.anniversaryDate <= thirtyDaysFromNow
           )
           .sort(
-            (a, b) => a.anniversaryDate.getTime() - b.anniversaryDate.getTime()
+            (a, b) => compareAsc(a.anniversaryDate, b.anniversaryDate)
           )
           .slice(0, 10); // Top 10 próximos aniversarios
       });
@@ -870,11 +855,7 @@ export const DashboardStore = signalStore(
       // Mujeres en licencia
       const womenOnLeave = computed(() => {
         const now = new Date();
-        const today = new Date(
-          now.getFullYear(),
-          now.getMonth(),
-          now.getDate()
-        );
+        const today = startOfDay(now);
 
         return employees.entities().filter(
           (x) =>
@@ -885,16 +866,8 @@ export const DashboardStore = signalStore(
             x.timeoffs.some((timeoff) => {
               const fromDate = new Date(timeoff.date_from);
               const toDate = new Date(timeoff.date_to);
-              const from = new Date(
-                fromDate.getFullYear(),
-                fromDate.getMonth(),
-                fromDate.getDate()
-              );
-              const to = new Date(
-                toDate.getFullYear(),
-                toDate.getMonth(),
-                toDate.getDate()
-              );
+              const from = startOfDay(fromDate);
+              const to = startOfDay(toDate);
               return today >= from && today <= to && timeoff.is_approved;
             })
         ).length;

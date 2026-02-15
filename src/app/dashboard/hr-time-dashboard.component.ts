@@ -9,10 +9,13 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { differenceInCalendarDays, format, getDate, getMonth, getYear } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { BaseChartDirective } from 'ng2-charts';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
 import { DropdownModule } from 'primeng/dropdown';
+import { getEnv } from '../utils/env.utils';
 import { OrganizationService } from '../services/organization.service';
 
 interface Request {
@@ -484,7 +487,7 @@ export class HRTimeDashboardComponent {
     }
 
     return {
-      url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/timeoffs`,
+      url: `${getEnv('ENV_SUPABASE_URL')}/rest/v1/timeoffs`,
       method: 'GET',
       params: {
         // Ahora podemos filtrar directamente por company_id ya que se agregó el campo a la tabla
@@ -662,8 +665,7 @@ export class HRTimeDashboardComponent {
   private calculateDuration(start: string | Date, end: string | Date): string {
     const startDate = typeof start === 'string' ? new Date(start) : start;
     const endDate = typeof end === 'string' ? new Date(end) : end;
-    const diffTime = endDate.getTime() - startDate.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+    const diffDays = differenceInCalendarDays(endDate, startDate) + 1;
     const months = Math.floor(diffDays / 30);
     if (months > 0) {
       return `${months} ${months === 1 ? 'mes' : 'meses'}`;
@@ -673,21 +675,7 @@ export class HRTimeDashboardComponent {
 
   private formatDate(date: string | Date): string {
     const d = typeof date === 'string' ? new Date(date) : date;
-    const months = [
-      'ENE',
-      'FEB',
-      'MAR',
-      'ABR',
-      'MAY',
-      'JUN',
-      'JUL',
-      'AGO',
-      'SEP',
-      'OCT',
-      'NOV',
-      'DIC',
-    ];
-    return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+    return format(d, 'd MMM yyyy', { locale: es }).toUpperCase();
   }
 
   public refreshEmployeeMetrics(): void {

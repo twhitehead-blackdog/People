@@ -3,7 +3,7 @@
  * Processes raw timelog records into overtime day summaries.
  */
 
-import { differenceInMinutes, format } from 'date-fns';
+import { differenceInMinutes, format, isValid } from 'date-fns';
 
 export interface OvertimeDaySummary {
   day: string;
@@ -80,7 +80,7 @@ export function calculateTotalOvertimeHours(logs: any[]): number {
 
     const entryDate = new Date(log.entry.date);
     const exitDate = new Date(log.exit.date);
-    if (isNaN(entryDate.getTime()) || isNaN(exitDate.getTime())) return;
+    if (!isValid(entryDate) || !isValid(exitDate)) return;
 
     const totalMinutes = differenceInMinutes(exitDate, entryDate);
     const lunchMinutes =
@@ -111,7 +111,7 @@ export function extractOvertimeDays(logs: any[]): OvertimeDaySummary[] {
 
     const entryDate = new Date(log.entry.date);
     const exitDate = new Date(log.exit.date);
-    if (isNaN(entryDate.getTime()) || isNaN(exitDate.getTime())) return;
+    if (!isValid(entryDate) || !isValid(exitDate)) return;
 
     const totalMinutes = differenceInMinutes(exitDate, entryDate);
     const lunchMinutes =
