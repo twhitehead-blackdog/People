@@ -13,13 +13,11 @@ import {
 import { useRealtimeTrigger } from '../utils/realtime-trigger.utils';
 import { addDays, differenceInMinutes, format, startOfMonth } from 'date-fns';
 import { formatInTimeZone } from 'date-fns-tz';
-import { trim } from 'lodash';
 import { MessageService } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { Tag } from 'primeng/tag';
 import { ToastModule } from 'primeng/toast';
-import { utils, writeFile } from 'xlsx';
 import {
   colorVariants,
   DayLog,
@@ -2009,9 +2007,10 @@ export class TimelogsComponent {
     return mappedData;
   });
 
-  generateReport() {
+  async generateReport() {
     try {
       this.loading.set(true);
+      const { utils, writeFile } = await import('xlsx');
       const data = this.timelogsReport();
 
       // Obtener los encabezados
@@ -2090,7 +2089,7 @@ export class TimelogsComponent {
         return;
       }
       const name = this.selectedEmployee()
-        ? trim(this.selectedEmployee()?.short_name.toUpperCase()).replace(
+        ? (this.selectedEmployee()?.short_name.toUpperCase() || '').trim().replace(
             ' ',
             '_'
           )

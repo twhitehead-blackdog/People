@@ -3,653 +3,693 @@ import {
   Component,
   computed,
   inject,
-  input,
   signal,
 } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { NgTemplateOutlet, UpperCasePipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { firstValueFrom } from 'rxjs';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
-import { MultiSelectModule } from 'primeng/multiselect';
-import { FormsModule } from '@angular/forms';
-import { OrganizationChartModule } from 'primeng/organizationchart';
+import { Select } from 'primeng/select';
+import { TooltipModule } from 'primeng/tooltip';
 import { PositionsStore } from '../stores/positions.store';
 import { EmployeesStore } from '../stores/employees.store';
 import { Position, Employee } from '../models';
-import { catchError } from 'rxjs/operators';
-import { of, firstValueFrom } from 'rxjs';
-import { TooltipModule } from 'primeng/tooltip';
 import { ApiUrlService } from '../services/api-url.service';
 import { DeviceService } from '../services/device.service';
 import { LoggerService } from '../services/logger.service';
+
+interface OrgStructureRow {
+  position_id: string;
+  parent_position_id: string | null;
+  sort_order: number;
+}
 
 interface OrgNode {
   position: Position;
   employees: Employee[];
   children: OrgNode[];
-  parentId?: string;
+  branchId?: string;
+  branchName?: string;
+}
+
+interface ConfigEntry {
+  position: Position;
+  parentId: string | null;
+  employeeCount: number;
 }
 
 @Component({
   selector: 'pt-organigrama',
   standalone: true,
-  imports: [Card, Button, ToastModule, MultiSelectModule, FormsModule, OrganizationChartModule, TooltipModule],
-  providers: [MessageService, PositionsStore, EmployeesStore],
+  imports: [Card, Button, ToastModule, Select, FormsModule, NgTemplateOutlet, TooltipModule, UpperCasePipe],
+  providers: [MessageService],
   template: `
     <p-toast />
-    <div class="organigrama-page w-full">
-    @if (device.isDesktop()) {
-    <p-card styleClass="organigrama-card">
-      <ng-template #title>
-        <div class="flex items-center justify-between w-full">
-          <div>
-            <h2 class="m-0 text-xl font-bold text-white">Organigrama</h2>
-            <p class="text-sm text-gray-400 m-0 mt-1">
-              Visualiza y configura la estructura organizacional basada en posiciones laborales
-            </p>
+
+    <!-- ========== DESKTOP: Recursive tree node ========== -->
+    <ng-template #treeNodeTpl let-node let-idx="idx">
+      <div class="tree-node-wrapper anim-pop" [class.has-children]="hasExpandableContent(node)" [style.animation-delay]="(idx || 0) * 60 + 'ms'">
+        <div class="node-card-container">
+          <div class="node-bubble" [style.background]="getGradient(node)" [class.node-bubble-branch]="!!node.branchName"
+               (click)="toggleNode(nodeKey(node))">
+            <div class="bubble-avatar" [style.background-color]="getDeptColor(node)">
+              {{ getInitials(node) }}
+            </div>
+            <span class="bubble-name">{{ getLeader(node) }}</span>
+            <span class="bubble-role">{{ node.position.name }}</span>
+            @if (node.branchName) {
+              <span class="bubble-branch">
+                <i class="pi pi-map-marker"></i> {{ node.branchName }}
+              </span>
+            } @else if (node.position.department?.name) {
+              <span class="bubble-dept">{{ node.position.department.name }}</span>
+            }
+            @if (hasExpandableContent(node)) {
+              <span class="bubble-toggle" [class.open]="isExpanded(nodeKey(node))">
+                <i class="pi pi-chevron-down"></i>
+                <span class="toggle-count">{{ node.children.length + node.employees.length }}</span>
+              </span>
+            }
           </div>
         </div>
-      </ng-template>
+        @if (isExpanded(nodeKey(node)) && hasExpandableContent(node)) {
+          <div class="tree-children-row anim-fade">
+            <!-- Employee bubbles -->
+            @for (emp of node.employees; track emp.id; let i = $index) {
+              <div class="tree-node-wrapper anim-pop" [style.animation-delay]="i * 40 + 'ms'">
+                <div class="node-card-container">
+                  <div class="emp-bubble" [style.border-color]="getDeptColor(node) + '30'">
+                    <div class="emp-bubble-avatar" [style.background-color]="getDeptColor(node)">
+                      {{ (emp.first_name?.[0] || '') + (emp.father_name?.[0] || '') | uppercase }}
+                    </div>
+                    <span class="emp-bubble-name">{{ emp.first_name }} {{ emp.father_name }}</span>
+                    @if (emp.branch?.name && !node.branchName) {
+                      <span class="emp-bubble-branch">{{ emp.branch.short_name || emp.branch.name }}</span>
+                    }
+                  </div>
+                </div>
+              </div>
+            }
+            <!-- Child position nodes -->
+            @for (child of node.children; track (child.branchId || '') + child.position.id; let i = $index) {
+              <ng-container *ngTemplateOutlet="treeNodeTpl; context: { $implicit: child, idx: node.employees.length + i }"></ng-container>
+            }
+          </div>
+        }
+      </div>
+    </ng-template>
 
-      <div class="organigrama-container">
-        <!-- Tabs para Organigrama y Configuración -->
-        <div class="organigrama-tabs">
-          <button
-            class="tab-button"
-            [class.active]="activeTab() === 'view'"
-            (click)="activeTab.set('view')"
-          >
-            <i class="pi pi-sitemap"></i>
-            <span>Vista del Organigrama</span>
-          </button>
-          <button
-            class="tab-button"
-            [class.active]="activeTab() === 'config'"
-            (click)="activeTab.set('config')"
-          >
-            <i class="pi pi-cog"></i>
-            <span>Configuración</span>
-          </button>
+    <!-- ========== MOBILE: Vertical tree node ========== -->
+    <ng-template #mobileNodeTpl let-node let-depth="depth" let-isLast="isLast" let-idx="idx">
+      <div class="m-node anim-slide-up" [style.animation-delay]="(idx || 0) * 40 + 'ms'">
+        <div class="m-card" [style.margin-left.px]="depth * 24" [style.border-left-color]="getDeptColor(node)"
+             (click)="toggleNode(nodeKey(node))">
+          <div class="m-card-avatar" [style.background]="getGradient(node)">
+            {{ getInitials(node) }}
+          </div>
+          <div class="m-card-body">
+            <span class="m-card-name">{{ getLeader(node) }}</span>
+            <span class="m-card-role">{{ node.position.name }}</span>
+            @if (node.branchName) {
+              <span class="m-card-branch"><i class="pi pi-map-marker"></i> {{ node.branchName }}</span>
+            }
+          </div>
+          @if (hasExpandableContent(node)) {
+            <span class="m-card-toggle" [class.open]="isExpanded(nodeKey(node))">
+              <i class="pi pi-chevron-down"></i>
+              <span>{{ node.children.length + node.employees.length }}</span>
+            </span>
+          }
+        </div>
+        @if (isExpanded(nodeKey(node))) {
+          <!-- Employee cards -->
+          @for (emp of node.employees; track emp.id; let i = $index) {
+            <div class="m-emp-card anim-slide-up" [style.margin-left.px]="(depth + 1) * 24" [style.animation-delay]="i * 30 + 'ms'">
+              <div class="m-emp-avatar" [style.background-color]="getDeptColor(node)">
+                {{ (emp.first_name?.[0] || '') + (emp.father_name?.[0] || '') | uppercase }}
+              </div>
+              <span class="m-emp-name">{{ emp.first_name }} {{ emp.father_name }}</span>
+              @if (emp.branch?.name && !node.branchName) {
+                <span class="m-emp-branch">{{ emp.branch.short_name || emp.branch.name }}</span>
+              }
+            </div>
+          }
+          <!-- Child position nodes -->
+          @for (child of node.children; track (child.branchId || '') + child.position.id; let last = $last; let i = $index) {
+            <ng-container *ngTemplateOutlet="mobileNodeTpl; context: { $implicit: child, depth: depth + 1, isLast: last, idx: node.employees.length + i }"></ng-container>
+          }
+        }
+      </div>
+    </ng-template>
+
+    <!-- ========== PAGE ========== -->
+    <div class="org-page">
+    @if (device.isDesktop()) {
+      <!-- DESKTOP -->
+      <div class="org-desktop">
+        <div class="org-header">
+          <div>
+            <h2 class="org-title">Organigrama</h2>
+            <p class="org-subtitle">Estructura organizacional por posiciones</p>
+          </div>
+          <div class="org-tabs">
+            <button class="otab" [class.active]="activeTab() === 'view'" (click)="activeTab.set('view')">
+              <i class="pi pi-sitemap"></i> Vista
+            </button>
+            <button class="otab" [class.active]="activeTab() === 'config'" (click)="activeTab.set('config')">
+              <i class="pi pi-cog"></i> Configurar
+            </button>
+          </div>
         </div>
 
-        <!-- Vista del Organigrama -->
         @if (activeTab() === 'view') {
-          <div class="organigrama-view-section">
-            <!-- Debug info -->
-            <div class="mb-4 p-3 bg-blue-900/20 border border-blue-500/30 rounded text-xs text-blue-300">
-              <div>Estructura cargada: {{ orgStructure().size }} relaciones</div>
-              <div>Nodos raíz: {{ rootNodes().length }}</div>
-              <div>Datos del chart: {{ orgChartData().length }} elementos</div>
-              <div>Posiciones disponibles: {{ availablePositions().length }}</div>
-            </div>
-            
-            <div class="organigrama-tree">
-              @if (orgChartData() && orgChartData().length > 0) {
-                <div class="org-chart-wrapper">
-                  <p-organizationChart
-                    [value]="orgChartData()"
-                    [style]="{ width: '100%', height: 'auto' }"
-                    selectionMode="single"
-                    [collapsible]="true"
-                    styleClass="compact-org-chart"
-                  >
-                  <ng-template let-node pTemplate="node">
-                    <div class="org-node-box">
-                      <div class="org-node-title">{{ node.data?.position?.name || node.label || 'Sin nombre' }}</div>
-                      <div class="org-node-subtitle">{{ node.data?.position?.department?.name || 'Sin departamento' }}</div>
-                      <div class="org-node-count">{{ (node.data?.employees?.length || 0) }} empleado{{ (node.data?.employees?.length || 0) !== 1 ? 's' : '' }}</div>
-                    </div>
-                  </ng-template>
-                  </p-organizationChart>
+          <div class="org-view anim-fade">
+            @if (rootNodes().length > 0) {
+              <div class="org-canvas">
+                <div class="org-tree-root">
+                  @for (root of rootNodes(); track (root.branchId || '') + root.position.id; let i = $index) {
+                    <ng-container *ngTemplateOutlet="treeNodeTpl; context: { $implicit: root, idx: i }"></ng-container>
+                  }
                 </div>
-              } @else {
-                <div class="text-center py-12 text-gray-400">
-                  <i class="pi pi-sitemap text-4xl mb-4"></i>
-                  <p>No hay estructura configurada.</p>
-                  <p class="text-sm mt-2">Ve a la pestaña "Configuración" para configurar las relaciones.</p>
-                  <p class="text-xs mt-4 text-gray-500">
-                    Debug: Estructura={{ orgStructure().size }}, Raíces={{ rootNodes().length }}, Chart={{ orgChartData().length }}
-                  </p>
+              </div>
+            } @else {
+              <div class="org-empty">
+                <div class="org-empty-icon"><i class="pi pi-sitemap"></i></div>
+                <p class="org-empty-title">Sin estructura configurada</p>
+                <p class="org-empty-sub">Ve a "Configurar" para armar el organigrama</p>
+              </div>
+            }
+          </div>
+        }
+
+        @if (activeTab() === 'config') {
+          <div class="org-config anim-fade">
+            <div class="config-actions">
+              <p-button label="Restablecer" (click)="loadStructure()" icon="pi pi-refresh" severity="secondary" rounded />
+              <p-button label="Guardar" (click)="saveStructure()" icon="pi pi-save" [disabled]="!hasChanges() || saving()" [loading]="saving()" rounded />
+            </div>
+            <div class="config-grid">
+              @for (entry of configEntries(); track entry.position.id; let i = $index) {
+                <div class="config-card anim-pop" [style.animation-delay]="i * 40 + 'ms'">
+                  <div class="config-card-top">
+                    <div class="config-card-color" [style.background-color]="getDeptColorByPosition(entry.position)"></div>
+                    <div class="config-card-info">
+                      <h4>{{ entry.position.name }}</h4>
+                      <p>{{ entry.position.department?.name || 'Sin departamento' }}</p>
+                    </div>
+                    <span class="config-card-badge">{{ entry.employeeCount }}</span>
+                  </div>
+                  <label>Reporta a:</label>
+                  <p-select
+                    [options]="parentOptionsMap().get(entry.position.id) ?? []"
+                    optionLabel="name"
+                    optionValue="id"
+                    [ngModel]="entry.parentId"
+                    (ngModelChange)="setParent(entry.position.id, $event)"
+                    [showClear]="true"
+                    placeholder="Sin superior (raiz)"
+                    appendTo="body"
+                    [filter]="true"
+                    filterBy="name"
+                    class="w-full"
+                    styleClass="w-full"
+                  />
                 </div>
               }
             </div>
           </div>
         }
-
-        <!-- Configuración del Organigrama -->
-        @if (activeTab() === 'config') {
-          <div class="organigrama-config-section">
-            <!-- Botones de acción -->
-            <div class="mb-6 flex justify-end gap-2">
-              <p-button
-                label="Restablecer"
-                (click)="loadStructure()"
-                icon="pi pi-refresh"
-                severity="secondary"
-                rounded
-              />
-              <p-button
-                label="Guardar Estructura"
-                (click)="saveStructure()"
-                icon="pi pi-save"
-                [disabled]="!hasChanges()"
-                rounded
-              />
-            </div>
-
-            <!-- Información de Estructura -->
-            <div class="mb-6 p-4 bg-amber-500/10 border border-amber-500/30 rounded-lg">
-              <h4 class="text-amber-300 font-semibold mb-3">
-                <i class="pi pi-info-circle mr-2"></i>Estructura Organizacional Black Dog
-              </h4>
-              <div class="text-sm text-gray-300 space-y-2">
-                <div>
-                  <strong class="text-amber-300">1. Dirección General:</strong> CEO → COO
-                </div>
-                <div>
-                  <strong class="text-amber-300">2. Dirección Administrativa:</strong> Administrador
-                  <ul class="ml-4 mt-1 text-xs text-gray-400">
-                    <li>• RRHH → Asistente de RRHH / Encargada de Planilla</li>
-                    <li>• Jefa de Contabilidad → Asistente de Contabilidad</li>
-                  </ul>
-                </div>
-                <div>
-                  <strong class="text-amber-300">3. Áreas Estratégicas:</strong> Mercadeo, Operaciones, Compras, Distribución, IT Manager → IT 2
-                </div>
-                <div>
-                  <strong class="text-amber-300">4. Estructura de Tienda:</strong> Gerente de Tienda → Subgerente, Piso de Venta, Peluquero, Veterinario
-                </div>
-              </div>
-            </div>
-
-            <!-- Vista de Configuración -->
-            <div class="mb-6">
-              <h3 class="text-lg font-semibold text-white mb-4">Configurar Jerarquía</h3>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                @for (position of availablePositions(); track position.id) {
-                  <div class="bg-neutral-800 rounded-lg p-4 border border-neutral-700">
-                    <div class="flex items-center justify-between mb-3">
-                      <div>
-                        <h4 class="text-white font-medium">{{ position.name }}</h4>
-                        <p class="text-sm text-gray-400">
-                          {{ position.department?.name || 'Sin departamento' }}
-                        </p>
-                      </div>
-                      <span class="text-xs text-gray-500">
-                        {{ getEmployeeCount(position.id) }} empleados
-                      </span>
-                    </div>
-                    <div class="mt-3">
-                      <label class="block text-sm text-gray-300 mb-2">
-                        Reporta a (puede seleccionar múltiples):
-                      </label>
-                      <p-multiSelect
-                        [options]="getParentOptions(position.id)"
-                        optionLabel="name"
-                        optionValue="id"
-                        [ngModel]="getParentIds(position.id)"
-                        (ngModelChange)="setParents(position.id, $event)"
-                        [showClear]="true"
-                        placeholder="Seleccionar posición(es) superior(es)"
-                        [display]="'chip'"
-                        class="w-full"
-                      />
-                    </div>
-                  </div>
+      </div>
+    } @else {
+      <!-- MOBILE -->
+      <div class="org-mobile">
+        <header class="org-mob-header">
+          <h2>Organigrama</h2>
+          <div class="org-mob-tabs">
+            <button [class.active]="activeTab() === 'view'" (click)="activeTab.set('view')">
+              <i class="pi pi-sitemap"></i> Vista
+            </button>
+            <button [class.active]="activeTab() === 'config'" (click)="activeTab.set('config')">
+              <i class="pi pi-cog"></i> Config
+            </button>
+          </div>
+        </header>
+        <main class="org-mob-main">
+          @if (activeTab() === 'view') {
+            @if (rootNodes().length > 0) {
+              <div class="m-tree-area">
+                @for (root of rootNodes(); track (root.branchId || '') + root.position.id; let last = $last; let i = $index) {
+                  <ng-container *ngTemplateOutlet="mobileNodeTpl; context: { $implicit: root, depth: 0, isLast: last, idx: i }"></ng-container>
                 }
               </div>
-            </div>
-          </div>
-        }
-      </div>
-    </p-card>
-    } @else {
-    <!-- Vista móvil Organigrama -->
-    <div class="mobile-organigrama flex flex-col min-h-[60vh]">
-      <header class="sticky top-0 z-20 bg-neutral-800/95 border-b border-neutral-700/50 px-3 py-3 shadow-sm">
-        <h2 class="m-0 text-lg font-bold text-white">Organigrama</h2>
-        <p class="text-xs text-gray-400 m-0 mt-1">Estructura organizacional</p>
-        <div class="flex gap-2 mt-3 overflow-x-auto pb-1 scrollbar-hide">
-          <button
-            type="button"
-            class="tab-button-mobile flex-shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-            [class.bg-amber-500/20]="activeTab() === 'view'"
-            [class.text-amber-400]="activeTab() === 'view'"
-            [class.border]="activeTab() === 'view'"
-            [class.border-amber-500/50]="activeTab() === 'view'"
-            [class.text-gray-400]="activeTab() !== 'view'"
-            [class.bg-neutral-700/50]="activeTab() !== 'view'"
-            (click)="activeTab.set('view')"
-          >
-            <i class="pi pi-sitemap mr-2"></i>Vista
-          </button>
-          <button
-            type="button"
-            class="tab-button-mobile flex-shrink-0 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-            [class.bg-amber-500/20]="activeTab() === 'config'"
-            [class.text-amber-400]="activeTab() === 'config'"
-            [class.border]="activeTab() === 'config'"
-            [class.border-amber-500/50]="activeTab() === 'config'"
-            [class.text-gray-400]="activeTab() !== 'config'"
-            [class.bg-neutral-700/50]="activeTab() !== 'config'"
-            (click)="activeTab.set('config')"
-          >
-            <i class="pi pi-cog mr-2"></i>Configuración
-          </button>
-        </div>
-      </header>
-      <main class="flex-1 overflow-y-auto px-3 py-3">
-        @if (activeTab() === 'view') {
-          @if (orgChartData() && orgChartData().length > 0) {
-            <div class="organigrama-tree organigrama-tree-mobile">
-              <p-organizationChart
-                [value]="orgChartData()"
-                [style]="{ width: '100%', height: 'auto' }"
-                selectionMode="single"
-                [collapsible]="true"
-                styleClass="compact-org-chart"
-              >
-                <ng-template let-node pTemplate="node">
-                  <div class="org-node-box">
-                    <div class="org-node-title">{{ node.data?.position?.name || node.label || 'Sin nombre' }}</div>
-                    <div class="org-node-subtitle">{{ node.data?.position?.department?.name || 'Sin departamento' }}</div>
-                    <div class="org-node-count">{{ (node.data?.employees?.length || 0) }} empleado(s)</div>
-                  </div>
-                </ng-template>
-              </p-organizationChart>
-            </div>
-          } @else {
-            <div class="text-center py-12 text-gray-400 px-4">
-              <i class="pi pi-sitemap text-4xl mb-4 block opacity-60"></i>
-              <p class="text-sm font-medium">No hay estructura configurada</p>
-              <p class="text-xs mt-2">Ve a Configuración para definir relaciones.</p>
-            </div>
-          }
-        } @else {
-          <div class="flex flex-col gap-3 pb-4">
-            <div class="flex gap-2 justify-end">
-              <p-button icon="pi pi-refresh" severity="secondary" rounded size="small" (click)="loadStructure()" pTooltip="Restablecer" />
-              <p-button icon="pi pi-save" [disabled]="!hasChanges()" rounded size="small" (click)="saveStructure()" pTooltip="Guardar" />
-            </div>
-            @for (position of availablePositions(); track position.id) {
-              <div class="rounded-xl border border-neutral-700/50 bg-neutral-800/80 p-3">
-                <div class="flex items-center justify-between mb-2">
-                  <div>
-                    <p class="font-semibold text-white text-sm m-0">{{ position.name }}</p>
-                    <p class="text-xs text-gray-400 m-0">{{ position.department?.name || 'Sin departamento' }}</p>
-                  </div>
-                  <span class="text-xs text-gray-500">{{ getEmployeeCount(position.id) }} emp.</span>
-                </div>
-                <label class="block text-xs text-gray-400 mb-1">Reporta a:</label>
-                <p-multiSelect
-                  [options]="getParentOptions(position.id)"
-                  optionLabel="name"
-                  optionValue="id"
-                  [ngModel]="getParentIds(position.id)"
-                  (ngModelChange)="setParents(position.id, $event)"
-                  [showClear]="true"
-                  placeholder="Superior(es)"
-                  [display]="'chip'"
-                  class="w-full"
-                  styleClass="w-full"
-                />
+            } @else {
+              <div class="org-empty" style="padding:3rem 1rem;">
+                <div class="org-empty-icon"><i class="pi pi-sitemap"></i></div>
+                <p class="org-empty-title">Sin estructura</p>
+                <p class="org-empty-sub">Ve a Config para armar el organigrama</p>
               </div>
             }
-          </div>
-        }
-      </main>
-    </div>
+          } @else {
+            <div class="m-config">
+              <div class="m-config-actions">
+                <p-button icon="pi pi-refresh" severity="secondary" rounded size="small" (click)="loadStructure()" pTooltip="Restablecer" />
+                <p-button icon="pi pi-save" [disabled]="!hasChanges() || saving()" [loading]="saving()" rounded size="small" (click)="saveStructure()" pTooltip="Guardar" />
+              </div>
+              @for (entry of configEntries(); track entry.position.id; let i = $index) {
+                <div class="m-config-card anim-slide-up" [style.animation-delay]="i * 40 + 'ms'">
+                  <div class="m-config-top">
+                    <div class="m-config-dot" [style.background-color]="getDeptColorByPosition(entry.position)"></div>
+                    <div class="m-config-info">
+                      <p class="m-config-name">{{ entry.position.name }}</p>
+                      <p class="m-config-dept">{{ entry.position.department?.name || 'Sin depto.' }}</p>
+                    </div>
+                    <span class="m-config-badge">{{ entry.employeeCount }}</span>
+                  </div>
+                  <label>Reporta a:</label>
+                  <p-select
+                    [options]="parentOptionsMap().get(entry.position.id) ?? []"
+                    optionLabel="name"
+                    optionValue="id"
+                    [ngModel]="entry.parentId"
+                    (ngModelChange)="setParent(entry.position.id, $event)"
+                    [showClear]="true"
+                    placeholder="Sin superior (raiz)"
+                    appendTo="body"
+                    [filter]="true"
+                    filterBy="name"
+                    class="w-full"
+                    styleClass="w-full"
+                  />
+                </div>
+              }
+            </div>
+          }
+        </main>
+      </div>
     }
     </div>
   `,
   styles: `
     :host { display: block; width: 100%; }
-    :host ::ng-deep .organigrama-card.p-card {
-      background: rgba(31, 41, 55, 0.95) !important;
-      border: 1px solid rgba(75, 85, 99, 0.5) !important;
-      border-radius: 0.75rem !important;
-    }
-    :host ::ng-deep .organigrama-card .p-card-body { background: transparent !important; }
-    :host ::ng-deep .organigrama-card .p-card-title { color: #f3f4f6 !important; }
 
-    .organigrama-container {
-      padding: 1rem;
+    /* ===== ANIMATIONS ===== */
+    @keyframes popIn {
+      0% { opacity: 0; transform: scale(0.85) translateY(12px); }
+      60% { transform: scale(1.03) translateY(-2px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
     }
-    
-    /* Tabs */
-    .organigrama-tabs {
-      display: flex;
-      gap: 0.5rem;
-      margin-bottom: 1.5rem;
-      border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-10px); }
+      to { opacity: 1; transform: translateX(0); }
     }
-    
-    .tab-button {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.75rem 1.5rem;
-      background: transparent;
-      border: none;
-      border-bottom: 2px solid transparent;
-      color: #9ca3af;
-      font-size: 0.875rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
     }
-    
-    .tab-button:hover {
-      color: #ffffff;
-      background: rgba(255, 255, 255, 0.05);
-    }
-    
-    .tab-button.active {
-      color: #fbbf24;
-      border-bottom-color: #fbbf24;
-      background: rgba(251, 191, 36, 0.05);
-    }
-    
-    .tab-button i {
-      font-size: 1rem;
-    }
-    
-    /* Secciones */
-    .organigrama-view-section,
-    .organigrama-config-section {
-      animation: fadeIn 0.3s ease;
-    }
-    
     @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity: 0; }
+      to { opacity: 1; }
     }
-    
-    .organigrama-tree {
-      min-height: 500px;
-      padding: 1rem;
-      background: #1f2937;
-      border-radius: 0.5rem;
-      border: 1px solid #374151;
-      overflow: auto;
-      max-height: calc(100vh - 200px);
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0.3); }
+      50% { box-shadow: 0 0 0 6px rgba(251, 191, 36, 0); }
     }
-    
-    .org-chart-wrapper {
-      width: 100%;
-      display: flex;
-      justify-content: center;
-      padding: 0.5rem;
+    .anim-pop { animation: popIn 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+    .anim-slide { animation: slideIn 0.35s ease both; }
+    .anim-slide-up { animation: slideUp 0.4s ease both; }
+    .anim-fade { animation: fadeIn 0.3s ease both; }
+
+    /* ===== DESKTOP LAYOUT ===== */
+    .org-page { width: 100%; }
+    .org-desktop {
+      background: linear-gradient(135deg, rgba(17,24,39,0.97), rgba(30,41,59,0.95));
+      border: 1px solid rgba(100,116,139,0.25);
+      border-radius: 16px; overflow: hidden;
     }
-    
-    .org-chart-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      width: 100%;
+    .org-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 24px; border-bottom: 1px solid rgba(100,116,139,0.2);
     }
-    
-    .org-root-level {
-      width: 100%;
+    .org-title { margin: 0; font-size: 1.25rem; font-weight: 800; color: #f1f5f9; }
+    .org-subtitle { margin: 4px 0 0; font-size: 0.8rem; color: #94a3b8; }
+    .org-tabs { display: flex; gap: 4px; background: rgba(30,41,59,0.6); border-radius: 10px; padding: 3px; }
+    .otab {
+      display: flex; align-items: center; gap: 6px;
+      padding: 8px 18px; border: none; border-radius: 8px;
+      background: transparent; color: #94a3b8;
+      font-size: 0.82rem; font-weight: 600; cursor: pointer;
+      transition: all 0.25s ease;
     }
-    
-    .org-root-boxes {
-      display: flex;
-      justify-content: center;
-      gap: 2rem;
-      align-items: flex-start;
+    .otab:hover { color: #e2e8f0; background: rgba(255,255,255,0.06); }
+    .otab.active {
+      color: #fbbf24; background: rgba(251,191,36,0.12);
+      box-shadow: 0 0 12px rgba(251,191,36,0.08);
     }
-    
-    .org-root-box-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      position: relative;
+    .otab i { font-size: 0.85rem; }
+
+    /* ===== VIEW: Canvas area ===== */
+    .org-view { padding: 12px; }
+    .org-canvas {
+      background: linear-gradient(160deg, #faf7f2 0%, #f0ebe3 40%, #e8e2d8 100%);
+      border-radius: 14px; padding: 16px 12px 24px;
+      min-height: 400px; overflow-x: auto; overflow-y: visible;
+      box-shadow: inset 0 2px 20px rgba(0,0,0,0.04);
     }
-    
-    .org-root-box {
-      padding: 1.25rem 2rem;
-      border-radius: 0.5rem;
-      text-align: center;
-      min-width: 200px;
-      background: #374151;
-      border: 2px solid #fbbf24;
-      color: white;
-      transition: all 0.2s;
-      cursor: pointer;
+    .org-tree-root {
+      display: flex; justify-content: center; gap: 0.6rem; min-width: fit-content;
     }
-    
-    .org-root-box:hover {
+
+    /* Empty state */
+    .org-empty { text-align: center; padding: 5rem 2rem; }
+    .org-empty-icon {
+      width: 72px; height: 72px; border-radius: 50%; margin: 0 auto 16px;
+      background: rgba(100,116,139,0.08);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .org-empty-icon i { font-size: 2rem; color: #64748b; }
+    .org-empty-title { font-size: 1rem; font-weight: 700; color: #94a3b8; margin: 0 0 6px; }
+    .org-empty-sub { font-size: 0.82rem; color: #64748b; margin: 0; }
+
+    /* ===== TREE NODE (Desktop) ===== */
+    .tree-node-wrapper {
+      display: flex; flex-direction: column; align-items: center; position: relative;
+    }
+    .node-card-container {
+      display: flex; flex-direction: column; align-items: center; position: relative;
+    }
+    .has-children > .node-card-container::after {
+      content: ''; position: absolute; bottom: 0; left: 50%;
+      transform: translateX(-50%) translateY(100%);
+      width: 1.5px; height: 18px; background: #c0b8ac;
+    }
+
+    /* Connectors */
+    .tree-children-row {
+      display: flex; justify-content: center; gap: 0.5rem;
+      padding-top: 18px; position: relative;
+    }
+    .tree-children-row > .tree-node-wrapper::before {
+      content: ''; position: absolute; top: -18px; left: 50%;
+      transform: translateX(-50%); width: 1.5px; height: 18px; background: #c0b8ac;
+    }
+    .tree-children-row > .tree-node-wrapper:not(:only-child)::after {
+      content: ''; position: absolute; top: -18px; height: 1.5px; background: #c0b8ac;
+    }
+    .tree-children-row > .tree-node-wrapper:first-child:not(:only-child)::after {
+      left: 50%; width: calc(50% + 0.25rem);
+    }
+    .tree-children-row > .tree-node-wrapper:last-child:not(:only-child)::after {
+      left: -0.25rem; width: calc(50% + 0.25rem);
+    }
+    .tree-children-row > .tree-node-wrapper:not(:first-child):not(:last-child)::after {
+      left: -0.25rem; right: -0.25rem; width: calc(100% + 0.5rem);
+    }
+
+    /* ===== BUBBLE CARD ===== */
+    .node-bubble {
+      display: flex; flex-direction: column; align-items: center;
+      width: 120px; padding: 10px 6px 8px; border-radius: 14px;
+      background: #fff;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.03);
+      border: 1px solid rgba(0,0,0,0.04);
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s;
+      cursor: default; position: relative;
+    }
+    .node-bubble:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+    }
+    .node-bubble-branch {
+      border: 1.5px solid rgba(37, 99, 235, 0.18);
+    }
+    .bubble-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 800; font-size: 0.7rem;
+      margin-bottom: 4px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+      transition: transform 0.25s;
+    }
+    .node-bubble:hover .bubble-avatar { transform: scale(1.08); }
+    .bubble-name {
+      font-size: 0.62rem; font-weight: 700; color: #1e293b;
+      text-align: center; line-height: 1.2; margin-bottom: 1px;
+      max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .bubble-role {
+      font-size: 0.55rem; font-weight: 500; color: #64748b;
+      text-align: center; line-height: 1.2;
+      max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .bubble-dept {
+      font-size: 0.5rem; color: #94a3b8; margin-top: 2px;
+    }
+    .bubble-branch {
+      display: inline-flex; align-items: center; gap: 2px;
+      margin-top: 3px; padding: 1px 6px; border-radius: 10px;
+      background: #eff6ff;
+      color: #1d4ed8; font-size: 0.5rem; font-weight: 700;
+    }
+    .bubble-branch i { font-size: 0.45rem; }
+
+    /* People pills below bubble */
+    .node-people {
+      display: flex; flex-direction: column; align-items: center;
+      gap: 2px; margin-top: 4px;
+    }
+    .person-pill {
+      display: flex; align-items: center; gap: 3px;
+      background: #fff; border: 1px solid #e9e3db; border-radius: 10px;
+      padding: 1px 6px 1px 4px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      transition: transform 0.2s;
+    }
+    .person-pill:hover { transform: translateX(2px); }
+    .pill-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+    /* Toggle expand/collapse */
+    .bubble-toggle {
+      display: flex; align-items: center; gap: 3px;
+      margin-top: 5px; padding: 2px 8px; border-radius: 10px;
+      background: #f1f5f9; color: #64748b;
+      font-size: 0.5rem; font-weight: 700;
+      transition: all 0.25s;
+    }
+    .bubble-toggle i {
+      font-size: 0.5rem;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .bubble-toggle.open { background: #fef3c7; color: #92400e; }
+    .bubble-toggle.open i { transform: rotate(180deg); }
+    .toggle-count { font-size: 0.48rem; }
+    .node-bubble { cursor: pointer; }
+
+    /* Employee bubble (individual person) */
+    .emp-bubble {
+      display: flex; flex-direction: column; align-items: center;
+      width: 100px; padding: 8px 6px 6px; border-radius: 12px;
+      background: #fff; border: 1.5px solid #e2e8f0;
+      box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+      transition: transform 0.25s, box-shadow 0.25s;
+    }
+    .emp-bubble:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 16px rgba(251, 191, 36, 0.3);
-      border-color: #fcd34d;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     }
-    
-    .org-root-box-container::after {
-      content: '';
-      position: absolute;
-      top: 100%;
-      left: 50%;
-      width: 2px;
-      height: 2rem;
-      background: #6b7280;
-      transform: translateX(-50%);
-      z-index: 1;
+    .emp-bubble-avatar {
+      width: 28px; height: 28px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 800; font-size: 0.6rem;
+      margin-bottom: 4px;
     }
-    
-    .org-root-boxes::before {
-      content: '';
-      position: absolute;
-      top: calc(100% + 2rem);
-      left: 0;
-      right: 0;
-      height: 2px;
-      background: #6b7280;
-      z-index: 1;
+    .emp-bubble-name {
+      font-size: 0.55rem; font-weight: 600; color: #334155;
+      text-align: center; line-height: 1.2;
+      max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
-    
-    .org-root-box-container:only-child::after {
-      display: block;
-    }
-    
-    .org-box-title {
-      font-weight: 600;
-      font-size: 1rem;
-      margin-bottom: 0.5rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      color: #fbbf24;
-    }
-    
-    .org-box-subtitle {
-      font-size: 0.8rem;
-      opacity: 0.8;
-      margin-bottom: 0.5rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      color: #d1d5db;
-    }
-    
-    .org-box-count {
-      font-size: 0.75rem;
-      opacity: 0.7;
-      margin-top: 0.5rem;
-      padding-top: 0.5rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-      color: #9ca3af;
+    .emp-bubble-branch {
+      font-size: 0.45rem; font-weight: 700; color: #2563eb;
+      background: #eff6ff; padding: 0 4px; border-radius: 6px; margin-top: 2px;
     }
 
-    /* Estilos para PrimeNG OrganizationChart */
-    ::ng-deep .p-organizationchart {
-      background: transparent !important;
-      width: 100% !important;
-      height: auto !important;
-      display: block !important;
-      
-      .p-organizationchart-table {
-        width: 100% !important;
-        table-layout: auto !important;
-        margin: 0 auto !important;
-        border-collapse: separate !important;
-        border-spacing: 0.25rem !important;
-      }
-      
-      .p-organizationchart-node-content {
-        padding: 0.6rem 0.8rem !important;
-        border-radius: 0.5rem !important;
-        background: #374151 !important;
-        border: 2px solid #fbbf24 !important;
-        color: white !important;
-        transition: all 0.2s;
-        cursor: pointer;
-        min-width: 130px !important;
-        max-width: 150px !important;
-        width: auto !important;
-        font-size: 0.75rem !important;
-        margin: 0.1rem !important;
-        box-sizing: border-box !important;
-      }
-
-      .p-organizationchart-node-content:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(251, 191, 36, 0.4);
-        border-color: #fcd34d !important;
-        background: #4b5563 !important;
-      }
-
-      .p-organizationchart-lines {
-        .p-organizationchart-line-down {
-          background: #6b7280 !important;
-          width: 2px !important;
-        }
-        .p-organizationchart-line-left {
-          border-left: 2px solid #6b7280 !important;
-        }
-        .p-organizationchart-line-right {
-          border-right: 2px solid #6b7280 !important;
-        }
-        .p-organizationchart-line-top {
-          border-top: 2px solid #6b7280 !important;
-        }
-      }
-
-      .p-organizationchart-node-content.p-organizationchart-selectable-node:not(.p-highlight):hover {
-        background: #4b5563 !important;
-        border-color: #fcd34d !important;
-      }
-
-      .p-organizationchart-node-content.p-highlight {
-        background: #4b5563 !important;
-        border-color: #fbbf24 !important;
-      }
-      
-      td {
-        padding: 0.1rem !important;
-        vertical-align: top !important;
-      }
+    /* ===== CONFIG TAB (Desktop) ===== */
+    .org-config { padding: 24px; }
+    .config-actions { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 20px; }
+    .config-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 14px;
+    }
+    .config-card {
+      background: rgba(30, 41, 59, 0.6); border-radius: 14px;
+      padding: 16px; border: 1px solid rgba(100,116,139,0.2);
+      transition: border-color 0.25s, box-shadow 0.25s;
+    }
+    .config-card:hover {
+      border-color: rgba(251,191,36,0.3);
+      box-shadow: 0 0 20px rgba(251,191,36,0.05);
+    }
+    .config-card-top {
+      display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+    }
+    .config-card-color {
+      width: 6px; height: 36px; border-radius: 3px; flex-shrink: 0;
+    }
+    .config-card-info { flex: 1; min-width: 0; }
+    .config-card-info h4 {
+      margin: 0; font-size: 0.88rem; font-weight: 700; color: #f1f5f9;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .config-card-info p { margin: 2px 0 0; font-size: 0.72rem; color: #94a3b8; }
+    .config-card-badge {
+      width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+      background: rgba(251,191,36,0.12); color: #fbbf24;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.75rem; font-weight: 800;
+    }
+    .config-card label {
+      display: block; font-size: 0.72rem; color: #94a3b8; margin-bottom: 6px;
     }
 
-    .org-node-box {
-      text-align: center;
-      width: 100%;
-      color: white !important;
-      padding: 0;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
+    /* ===== MOBILE ===== */
+    .org-mobile { display: flex; flex-direction: column; min-height: 80vh; }
+    .org-mob-header {
+      position: sticky; top: 0; z-index: 20;
+      background: rgba(15, 23, 42, 0.97); backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(100,116,139,0.2);
+      padding: 14px 16px 0;
+    }
+    .org-mob-header h2 { margin: 0; font-size: 1.1rem; font-weight: 800; color: #f1f5f9; }
+    .org-mob-tabs {
+      display: flex; gap: 0; margin-top: 12px;
+    }
+    .org-mob-tabs button {
+      flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 10px 0; border: none; background: none;
+      border-bottom: 2.5px solid transparent;
+      color: #94a3b8; font-size: 0.82rem; font-weight: 600;
+      cursor: pointer; transition: all 0.25s;
+    }
+    .org-mob-tabs button.active { color: #fbbf24; border-bottom-color: #fbbf24; }
+    .org-mob-tabs button i { font-size: 0.85rem; }
+    .org-mob-main {
+      flex: 1; overflow-y: auto; padding: 14px;
+      -webkit-overflow-scrolling: touch;
     }
 
-    .org-node-title {
-      font-weight: 600;
-      font-size: 0.7rem;
-      margin-bottom: 0.15rem;
-      color: #fbbf24 !important;
-      white-space: normal;
-      word-wrap: break-word;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      line-height: 1.15;
-      max-height: 2.3em;
+    /* Mobile Tree */
+    .m-tree-area {
+      background: linear-gradient(160deg, #faf7f2, #f0ebe3);
+      border-radius: 14px; padding: 16px 10px 24px;
     }
-
-    .org-node-subtitle {
+    .m-node { position: relative; }
+    .m-connector {
+      position: absolute; top: 0; bottom: 0;
+    }
+    .m-vline {
+      position: absolute; left: 0; top: -4px; bottom: 0;
+      width: 2px; background: #ccc5b9;
+    }
+    .m-vline.last { bottom: 50%; }
+    .m-hline {
+      position: absolute; top: 50%; left: 0;
+      width: 14px; height: 2px; background: #ccc5b9;
+      transform: translateY(-50%);
+    }
+    .m-card {
+      display: flex; align-items: center; gap: 10px;
+      background: #fff; border-radius: 14px;
+      padding: 10px 12px; margin: 3px 0;
+      border-left: 3.5px solid;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s;
+    }
+    .m-card:active {
+      transform: scale(0.97);
+    }
+    .m-card-avatar {
+      width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 800; font-size: 0.75rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    }
+    .m-card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+    .m-card-name {
+      font-size: 0.82rem; font-weight: 700; color: #1e293b;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .m-card-role {
+      font-size: 0.68rem; color: #64748b;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .m-card-branch {
+      display: inline-flex; align-items: center; gap: 3px; width: fit-content;
+      font-size: 0.62rem; font-weight: 700; color: #1d4ed8;
+      background: #eff6ff; padding: 1px 7px; border-radius: 10px;
+      margin-top: 2px;
+    }
+    .m-card-branch i { font-size: 0.5rem; }
+    .m-card-toggle {
+      flex-shrink: 0; display: flex; align-items: center; gap: 3px;
+      padding: 3px 8px; border-radius: 10px;
+      background: #f1f5f9; color: #64748b;
+      font-size: 0.6rem; font-weight: 700;
+      transition: all 0.25s;
+    }
+    .m-card-toggle i {
       font-size: 0.55rem;
-      opacity: 0.85;
-      margin-bottom: 0.15rem;
-      color: #d1d5db !important;
-      white-space: normal;
-      word-wrap: break-word;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      display: -webkit-box;
-      -webkit-line-clamp: 1;
-      -webkit-box-orient: vertical;
-      line-height: 1.1;
-      max-height: 1.65em;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .m-card-toggle.open { background: #fef3c7; color: #92400e; }
+    .m-card-toggle.open i { transform: rotate(180deg); }
+    .m-card { cursor: pointer; }
+
+    /* Mobile employee card */
+    .m-emp-card {
+      display: flex; align-items: center; gap: 8px;
+      background: #fff; border-radius: 10px;
+      padding: 7px 10px; margin: 2px 0;
+      border-left: 2px solid #e2e8f0;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.03);
+    }
+    .m-emp-avatar {
+      width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-weight: 800; font-size: 0.55rem;
+    }
+    .m-emp-name {
+      font-size: 0.72rem; font-weight: 600; color: #334155;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .m-emp-branch {
+      font-size: 0.55rem; font-weight: 700; color: #2563eb;
+      background: #eff6ff; padding: 1px 5px; border-radius: 6px;
+      margin-left: auto; flex-shrink: 0;
     }
 
-    .org-node-count {
-      font-size: 0.55rem;
-      opacity: 0.75;
-      margin-top: 0.15rem;
-      padding-top: 0.15rem;
-      border-top: 1px solid rgba(255, 255, 255, 0.15);
-      color: #9ca3af !important;
-      display: block;
+    /* Mobile Config */
+    .m-config { display: flex; flex-direction: column; gap: 10px; padding-bottom: 24px; }
+    .m-config-actions { display: flex; gap: 8px; justify-content: flex-end; }
+    .m-config-card {
+      background: rgba(30,41,59,0.7); border-radius: 14px;
+      padding: 14px; border: 1px solid rgba(100,116,139,0.2);
     }
-    
-    /* Estilos compactos para el organigrama */
-    ::ng-deep .compact-org-chart {
-      .p-organizationchart-table {
-        margin: 0 auto !important;
-        width: 100% !important;
-        max-width: 100% !important;
-      }
-      
-      .p-organizationchart-node-content {
-        margin: 0.1rem !important;
-      }
-      
-      .p-organizationchart-lines {
-        .p-organizationchart-line-down {
-          height: 0.5rem !important;
-        }
-      }
-      
-      td {
-        padding: 0.1rem !important;
-        text-align: center !important;
-      }
-      
-      tr {
-        display: table-row !important;
-      }
+    .m-config-top {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
     }
-
-    .organigrama-tree-mobile {
-      min-height: 300px;
-      padding: 0.5rem;
-      max-height: none;
+    .m-config-dot { width: 5px; height: 32px; border-radius: 3px; flex-shrink: 0; }
+    .m-config-info { flex: 1; min-width: 0; }
+    .m-config-name { margin: 0; font-size: 0.82rem; font-weight: 700; color: #f1f5f9; }
+    .m-config-dept { margin: 2px 0 0; font-size: 0.68rem; color: #94a3b8; }
+    .m-config-badge {
+      width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
+      background: rgba(251,191,36,0.12); color: #fbbf24;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.65rem; font-weight: 800;
     }
-    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .m-config-card label { display: block; font-size: 0.68rem; color: #94a3b8; margin-bottom: 6px; }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -657,450 +697,321 @@ export class OrganigramaComponent {
   private http = inject(HttpClient);
   private apiUrl = inject(ApiUrlService);
   private messageService = inject(MessageService);
-  public positionsStore = inject(PositionsStore);
-  public employeesStore = inject(EmployeesStore);
+  private positionsStore = inject(PositionsStore);
+  private employeesStore = inject(EmployeesStore);
   protected device = inject(DeviceService);
-
-  // Tab activa: 'view' o 'config'
-  public activeTab = signal<'view' | 'config'>('view');
-
-  // Estructura del organigrama: position_id -> Set<parent_position_id>
-  // Permite múltiples padres para la misma posición
-  public orgStructure = signal<Map<string, Set<string | null>>>(new Map());
-  public originalStructure = signal<Map<string, Set<string | null>>>(new Map());
-
-  public availablePositions = computed(() => {
-    return this.positionsStore.entities();
-  });
-
-  public employees = computed(() => {
-    return this.employeesStore.entities().filter((e) => e.is_active);
-  });
-
-  public getEmployeeCount(positionId: string): number {
-    return this.employees().filter((e) => e.position_id === positionId).length;
-  }
-
-  public getParentIds(positionId: string): (string | null)[] {
-    const parents = this.orgStructure().get(positionId);
-    if (!parents || parents.size === 0) return [];
-    return Array.from(parents);
-  }
-  
-  public getParentId(positionId: string): string | null {
-    const parents = this.getParentIds(positionId);
-    return parents.length > 0 ? parents[0] : null;
-  }
-
-  public getParentOptions(currentPositionId: string) {
-    return this.availablePositions().filter(
-      (p) => p.id !== currentPositionId
-    );
-  }
-  
-  public getPositionName(positionId: string | null): string {
-    if (!positionId) return '';
-    const position = this.availablePositions().find(p => p.id === positionId);
-    return position?.name || '';
-  }
-  
-  public setParents(positionId: string, parentIds: (string | null)[]) {
-    const newStructure = new Map(this.orgStructure());
-    if (!parentIds || parentIds.length === 0) {
-      newStructure.set(positionId, new Set());
-    } else {
-      newStructure.set(positionId, new Set(parentIds.filter(id => id !== null)));
-    }
-    this.orgStructure.set(newStructure);
-  }
-
-  public setParent(positionId: string, parentId: string | null) {
-    const newStructure = new Map(this.orgStructure());
-    const parents = newStructure.get(positionId) || new Set<string | null>();
-    if (parentId === null) {
-      // Si se selecciona null, limpiar todos los padres
-      newStructure.set(positionId, new Set());
-    } else {
-      parents.add(parentId);
-      newStructure.set(positionId, parents);
-    }
-    this.orgStructure.set(newStructure);
-  }
-  
-  public removeParent(positionId: string, parentId: string | null) {
-    const newStructure = new Map(this.orgStructure());
-    const parents = newStructure.get(positionId) || new Set<string | null>();
-    parents.delete(parentId);
-    if (parents.size === 0) {
-      newStructure.delete(positionId);
-    } else {
-      newStructure.set(positionId, parents);
-    }
-    this.orgStructure.set(newStructure);
-  }
-
-  public hasChanges(): boolean {
-    const current = this.orgStructure();
-    const original = this.originalStructure();
-    
-    if (current.size !== original.size) return true;
-    
-    for (const [key, currentParents] of Array.from(current.entries())) {
-      const originalParents = original.get(key);
-      if (!originalParents) return true;
-      
-      // Comparar sets
-      if (currentParents.size !== originalParents.size) return true;
-      
-      for (const parentId of currentParents) {
-        if (!originalParents.has(parentId)) return true;
-      }
-    }
-    
-    return false;
-  }
-
-  public rootNodes = computed(() => {
-    const structure = this.orgStructure();
-    const positions = this.availablePositions();
-    const employees = this.employees();
-
-    // Solo incluir posiciones que están en la estructura del organigrama
-    const configuredPositionIds = new Set<string>();
-    
-    // Agregar todas las posiciones que tienen padres configurados
-    structure.forEach((parents, positionId) => {
-      if (parents && parents.size > 0) {
-        configuredPositionIds.add(positionId);
-        // Agregar todos los padres
-        parents.forEach(parentId => {
-          if (parentId !== null) {
-            configuredPositionIds.add(parentId);
-          }
-        });
-      }
-    });
-
-    // Si no hay estructura configurada, retornar vacío
-    if (configuredPositionIds.size === 0) {
-      return [];
-    }
-
-    // Filtrar solo las posiciones configuradas
-    const configuredPositions = positions.filter(p => configuredPositionIds.has(p.id));
-
-    // Encontrar posiciones raíz (sin padres configurados)
-    const rootPositions = configuredPositions.filter(
-      (p) => {
-        const parents = structure.get(p.id);
-        // Es raíz si no tiene padres configurados o el set está vacío
-        return !parents || parents.size === 0;
-      }
-    );
-
-    // Construir árbol recursivamente solo con posiciones configuradas
-    // Si una posición tiene múltiples padres, aparecerá bajo el primer padre en el árbol
-    const buildTree = (position: Position): OrgNode => {
-      const positionEmployees = employees.filter(
-        (e) => e.position_id === position.id
-      );
-      
-      // Encontrar hijos: posiciones que tienen esta posición como uno de sus padres
-      const children = configuredPositions
-        .filter((p) => {
-          const parents = structure.get(p.id);
-          if (!parents || parents.size === 0) return false;
-          return parents.has(position.id);
-        })
-        .map((p) => buildTree(p));
-
-      return {
-        position,
-        employees: positionEmployees,
-        children,
-        parentId: undefined, // Ya no usamos un solo parentId
-      };
-    };
-
-    return rootPositions.map((p) => buildTree(p));
-  });
-
   private logger = inject(LoggerService);
 
-  // Convertir el árbol a formato compatible con PrimeNG OrganizationChart
-  public orgChartData = computed(() => {
-    const nodes = this.rootNodes();
-    this.logger.debug('[OrganigramaComponent] rootNodes:', nodes);
-    this.logger.debug('[OrganigramaComponent] orgStructure:', Array.from(this.orgStructure().entries()));
-    
-    if (nodes.length === 0) {
-      this.logger.debug('[OrganigramaComponent] No hay nodos raíz');
-      return [];
+  // === Writable signals ===
+  activeTab = signal<'view' | 'config'>('view');
+  orgStructure = signal<Map<string, string | null>>(new Map());
+  originalStructure = signal<Map<string, string | null>>(new Map());
+  saving = signal(false);
+  expandedNodes = signal<Set<string>>(new Set());
+
+  // === Computed: positions & employees from root stores ===
+  private availablePositions = computed(() => this.positionsStore.entities());
+  private activeEmployees = computed(() =>
+    this.employeesStore.entities().filter(e => e.is_active)
+  );
+
+  // === Computed: config entries (one per position) ===
+  configEntries = computed<ConfigEntry[]>(() => {
+    const positions = this.availablePositions();
+    const structure = this.orgStructure();
+    const employees = this.activeEmployees();
+    return positions.map(p => ({
+      position: p,
+      parentId: structure.get(p.id) ?? null,
+      employeeCount: employees.filter(e => e.position_id === p.id).length,
+    }));
+  });
+
+  // === Computed: valid parent options per position (excludes self + descendants) ===
+  parentOptionsMap = computed<Map<string, Position[]>>(() => {
+    const positions = this.availablePositions();
+    const structure = this.orgStructure();
+    const result = new Map<string, Position[]>();
+    for (const pos of positions) {
+      const excluded = this.getDescendants(pos.id, structure);
+      excluded.add(pos.id);
+      result.set(pos.id, positions.filter(p => !excluded.has(p.id)));
     }
-
-    // Convertir OrgNode a formato PrimeNG
-    const convertToPrimeNGFormat = (node: OrgNode): any => {
-      const result = {
-        label: node.position.name, // Label para compatibilidad con PrimeNG
-        data: {
-          position: node.position,
-          employees: node.employees,
-        },
-        expanded: true,
-        children: node.children.length > 0 
-          ? node.children.map(child => convertToPrimeNGFormat(child))
-          : undefined,
-      };
-      this.logger.debug('[OrganigramaComponent] Converted node:', result);
-      return result;
-    };
-
-    // Si hay múltiples raíces, crear un nodo raíz virtual
-    if (nodes.length > 1) {
-      // Crear un Position válido con valores por defecto
-      const virtualRootPosition: Position = {
-        id: 'virtual-root',
-        name: 'Organización',
-        department_id: '',
-        department: undefined,
-        schedule_admin: false,
-        admin: false,
-        schedule_approver: false,
-        dashboard_access: false,
-      };
-      const result = [{
-        label: 'Organización',
-        data: {
-          position: virtualRootPosition,
-          employees: [],
-        },
-        expanded: true,
-        children: nodes.map(node => convertToPrimeNGFormat(node)),
-      }];
-      this.logger.debug('[OrganigramaComponent] Multiple roots, created virtual root:', result);
-      return result;
-    }
-
-    const result = nodes.map(node => convertToPrimeNGFormat(node));
-    this.logger.debug('[OrganigramaComponent] Single root result:', result);
     return result;
   });
 
-  public loadStructure() {
-    const url = this.apiUrl.build('rest/v1/organization_chart', {
-      select: 'position_id,parent_position_id',
-    });
-    this.logger.debug('[OrganigramaComponent] Loading structure from:', url);
-    this.http
-      .get<any[]>(url)
-      .subscribe({
-        next: (data) => {
-          this.logger.debug('[OrganigramaComponent] Loaded structure data:', data);
-          const structure = new Map<string, Set<string | null>>();
-          
-          // Agrupar por position_id para manejar múltiples padres
-          data.forEach((item) => {
-            const positionId = item.position_id;
-            const parentId = item.parent_position_id;
-            
-            if (!structure.has(positionId)) {
-              structure.set(positionId, new Set());
-            }
-            
-            if (parentId) {
-              structure.get(positionId)!.add(parentId);
-            }
-          });
-          
-          this.logger.debug('[OrganigramaComponent] Parsed structure:', Array.from(structure.entries()).map(([k, v]) => [k, Array.from(v)]));
-          this.orgStructure.set(structure);
-          this.originalStructure.set(new Map(structure));
-          this.messageService.add({
-            severity: 'success',
-            summary: 'Éxito',
-            detail: 'Estructura cargada correctamente',
-          });
-        },
-        error: (error) => {
-          this.logger.error('[OrganigramaComponent] Error loading structure:', error);
-          // Si la tabla no existe, inicializar vacío
-          this.orgStructure.set(new Map<string, Set<string | null>>());
-          this.originalStructure.set(new Map<string, Set<string | null>>());
-        },
-      });
-  }
+  // === Computed: dirty check ===
+  hasChanges = computed(() => {
+    const current = this.orgStructure();
+    const original = this.originalStructure();
+    if (current.size !== original.size) return true;
+    for (const [key, value] of current) {
+      if (original.get(key) !== value) return true;
+    }
+    for (const key of original.keys()) {
+      if (!current.has(key)) return true;
+    }
+    return false;
+  });
 
-  public saveStructure() {
+  // === Computed: tree for view tab ===
+  rootNodes = computed<OrgNode[]>(() => {
     const structure = this.orgStructure();
+    const positions = this.availablePositions();
+    const employees = this.activeEmployees();
+    if (structure.size === 0) return [];
 
-    // Preparar los registros a guardar (cada posición puede tener múltiples padres)
-    const records: Array<{ position_id: string; parent_position_id: string }> = [];
-    
-    structure.forEach((parents, positionId) => {
-      if (parents && parents.size > 0) {
-        parents.forEach(parentId => {
-          if (parentId !== null) {
-            records.push({
-              position_id: positionId,
-              parent_position_id: parentId,
-            });
-          }
-        });
-      }
-    });
-
-    this.logger.debug('[OrganigramaComponent] Saving structure with records:', records);
-
-    if (records.length === 0) {
-      // Si no hay registros, eliminar todos los existentes
-      this.http
-        .delete(this.apiUrl.build('rest/v1/organization_chart'), {
-          params: { position_id: 'not.is.null' } // Eliminar todos
-        })
-        .subscribe({
-          next: () => {
-            this.originalStructure.set(new Map(structure));
-            this.messageService.add({
-              severity: 'success',
-              summary: 'Éxito',
-              detail: 'Estructura guardada correctamente',
-            });
-            this.loadStructure();
-          },
-          error: (error) => {
-            this.logger.error('[OrganigramaComponent] Error deleting all records:', error);
-            // Aún así marcar como guardado si no hay registros
-            this.originalStructure.set(new Map(structure));
-            this.messageService.add({
-              severity: 'success',
-              summary: 'Éxito',
-              detail: 'Estructura guardada correctamente',
-            });
-            this.loadStructure();
-          },
-        });
-      return;
+    const involvedIds = new Set<string>();
+    for (const [posId, parentId] of structure) {
+      involvedIds.add(posId);
+      if (parentId) involvedIds.add(parentId);
     }
 
-    // Obtener los registros existentes
-    this.http
-      .get<any[]>(this.apiUrl.build('rest/v1/organization_chart', {
-        select: 'position_id',
-      }))
-      .subscribe({
-        next: (existingRecords) => {
-          this.logger.debug('[OrganigramaComponent] Existing records:', existingRecords);
-          const existingPositionIds = new Set(existingRecords.map(r => r.position_id));
-          const newPositionIds = new Set(records.map(r => r.position_id));
-          
-          // Encontrar posiciones que deben eliminarse (están en BD pero no en la nueva estructura)
-          const toDelete = Array.from(existingPositionIds).filter(
-            id => !newPositionIds.has(id)
-          );
+    const posMap = new Map(positions.map(p => [p.id, p]));
+    const childrenMap = new Map<string, string[]>();
+    for (const [posId, parentId] of structure) {
+      if (parentId) {
+        const arr = childrenMap.get(parentId) || [];
+        arr.push(posId);
+        childrenMap.set(parentId, arr);
+      }
+    }
 
-          // Función para insertar/actualizar registros usando PATCH con UPSERT
-          const upsertRecords = () => {
-            // Usar PATCH con Prefer: resolution=merge-duplicates para hacer UPSERT
-            // Pero como Supabase REST API no soporta UPSERT directamente en POST,
-            // vamos a hacer DELETE + INSERT o usar PATCH individual
-            
-            // Hacer PATCH individual para cada registro (actualiza si existe)
-            // Si falla, hacer POST (crea nuevo)
-            const upsertOperations = records.map(record => {
-              const request = this.http
-                .patch(this.apiUrl.build('rest/v1/organization_chart'), record, {
-                  params: { position_id: `eq.${record.position_id}` }
-                })
-                .pipe(
-                  catchError((error) => {
-                    // Si el PATCH falla (404 o 400), intentar POST
-                    if (error.status === 404 || error.status === 400 || error.status === 0) {
-                      return this.http.post(this.apiUrl.build('rest/v1/organization_chart'), record);
-                    }
-                    // Si es otro error, propagarlo
-                    throw error;
-                  })
-                );
-              return firstValueFrom(request);
-            });
+    const rootIds = [...involvedIds].filter(id => {
+      const parent = structure.get(id);
+      return parent === null || parent === undefined;
+    });
 
-            Promise.all(upsertOperations)
-              .then(() => {
-                this.logger.debug('[OrganigramaComponent] Records upserted successfully');
-                this.originalStructure.set(new Map(structure));
-                this.messageService.add({
-                  severity: 'success',
-                  summary: 'Éxito',
-                  detail: 'Estructura guardada correctamente',
-                });
-                this.loadStructure();
-              })
-              .catch((error) => {
-                this.logger.error('[OrganigramaComponent] Error upserting records:', error);
-                this.messageService.add({
-                  severity: 'error',
-                  summary: 'Error',
-                  detail: error.error?.message || error.message || 'Error al guardar la estructura',
-                });
-              });
-          };
+    // Build basic position tree
+    const buildNode = (posId: string, depth: number): OrgNode | null => {
+      if (depth > 50) return null;
+      const position = posMap.get(posId);
+      if (!position) return null;
+      const posEmployees = employees.filter(e => e.position_id === posId);
+      const childIds = childrenMap.get(posId) || [];
+      const children = childIds
+        .map(cid => buildNode(cid, depth + 1))
+        .filter((n): n is OrgNode => n !== null);
+      return { position, employees: posEmployees, children };
+    };
 
-          // Eliminar registros que ya no están en la estructura
-          if (toDelete.length > 0) {
-            const deleteOperations = toDelete.map(positionId =>
-              firstValueFrom(
-                this.http.delete(this.apiUrl.build('rest/v1/organization_chart'), {
-                  params: { position_id: `eq.${positionId}` }
-                })
-              )
-            );
+    // Split nodes by branch when a position has employees in multiple branches.
+    // Once split, the branch filter cascades to all descendants.
+    const splitByBranch = (node: OrgNode, branchFilter?: string): OrgNode[] => {
+      const filteredEmps = branchFilter
+        ? node.employees.filter(e => e.branch_id === branchFilter)
+        : node.employees;
 
-            Promise.all(deleteOperations)
-              .then(() => {
-                this.logger.debug('[OrganigramaComponent] Deleted old records:', toDelete.length);
-                upsertRecords();
-              })
-              .catch((error) => {
-                this.logger.error('[OrganigramaComponent] Error deleting records:', error);
-                // Continuar con la inserción aunque falle el delete
-                upsertRecords();
-              });
-          } else {
-            upsertRecords();
-          }
-        },
-        error: (error) => {
-          this.logger.error('[OrganigramaComponent] Error fetching existing records:', error);
-          // Si falla obtener los existentes, intentar insertar directamente
-          const insertOperations = records.map(record =>
-            firstValueFrom(
-              this.http.post(this.apiUrl.build('rest/v1/organization_chart'), record)
-            )
-          );
+      // Group employees by branch
+      const branchGroups = new Map<string, { name: string; emps: Employee[] }>();
+      for (const emp of filteredEmps) {
+        const bid = emp.branch_id || '_none';
+        if (!branchGroups.has(bid)) {
+          branchGroups.set(bid, {
+            name: emp.branch?.short_name || emp.branch?.name || '',
+            emps: [],
+          });
+        }
+        branchGroups.get(bid)!.emps.push(emp);
+      }
 
-          Promise.all(insertOperations)
-            .then(() => {
-              this.originalStructure.set(new Map(structure));
-              this.messageService.add({
-                severity: 'success',
-                summary: 'Éxito',
-                detail: 'Estructura guardada correctamente',
-              });
-              this.loadStructure();
-            })
-            .catch((error) => {
-              this.logger.error('[OrganigramaComponent] Error inserting records:', error);
-              this.messageService.add({
-                severity: 'error',
-                summary: 'Error',
-                detail: error.error?.message || error.message || 'Error al guardar la estructura',
-              });
-            });
-        },
-      });
+      const shouldSplit = !branchFilter && branchGroups.size > 1;
+
+      if (shouldSplit) {
+        // Multiple branches → one node per branch, cascade filter to children
+        return [...branchGroups.entries()].map(([bid, group]) => ({
+          position: node.position,
+          employees: group.emps,
+          children: node.children.flatMap(c => splitByBranch(c, bid)),
+          branchId: bid,
+          branchName: group.name,
+        })).filter(n => n.employees.length > 0 || n.children.length > 0);
+      }
+
+      // No split needed - recurse children with same filter
+      const childNodes = node.children.flatMap(c => splitByBranch(c, branchFilter));
+
+      // If filtering and this node has no employees and no children, skip it
+      if (branchFilter && filteredEmps.length === 0 && childNodes.length === 0) {
+        return [];
+      }
+
+      const branchName = branchFilter && branchGroups.size > 0
+        ? branchGroups.values().next().value!.name
+        : undefined;
+
+      return [{
+        position: node.position,
+        employees: filteredEmps,
+        children: childNodes,
+        branchId: branchFilter,
+        branchName,
+      }];
+    };
+
+    const rawRoots = rootIds
+      .map(id => buildNode(id, 0))
+      .filter((n): n is OrgNode => n !== null);
+
+    return rawRoots.flatMap(root => splitByBranch(root));
+  });
+
+  // === Helper: get all descendants (prevents circular parent selection) ===
+  private getDescendants(posId: string, structure: Map<string, string | null>): Set<string> {
+    const descendants = new Set<string>();
+    const queue: string[] = [];
+    for (const [childId, parentId] of structure) {
+      if (parentId === posId) queue.push(childId);
+    }
+    while (queue.length > 0) {
+      const current = queue.shift()!;
+      if (descendants.has(current)) continue;
+      descendants.add(current);
+      for (const [childId, parentId] of structure) {
+        if (parentId === current && !descendants.has(childId)) queue.push(childId);
+      }
+    }
+    return descendants;
+  }
+
+  // === Config: set parent for a position ===
+  setParent(positionId: string, parentId: string | null): void {
+    const newStructure = new Map(this.orgStructure());
+    if (parentId === null || parentId === undefined) {
+      newStructure.delete(positionId);
+    } else {
+      newStructure.set(positionId, parentId);
+    }
+    this.orgStructure.set(newStructure);
+  }
+
+  // === Expand/collapse helpers ===
+  nodeKey(node: OrgNode): string {
+    return (node.branchId || '') + '_' + node.position.id;
+  }
+
+  hasExpandableContent(node: OrgNode): boolean {
+    return node.children.length > 0 || node.employees.length > 0;
+  }
+
+  isExpanded(key: string): boolean {
+    return this.expandedNodes().has(key);
+  }
+
+  toggleNode(key: string): void {
+    const current = new Set(this.expandedNodes());
+    if (current.has(key)) {
+      current.delete(key);
+    } else {
+      current.add(key);
+    }
+    this.expandedNodes.set(current);
+  }
+
+  // === View helpers ===
+  private readonly colorPalette = [
+    '#0d9488', '#7c3aed', '#2563eb', '#d97706',
+    '#db2777', '#059669', '#0891b2', '#dc2626',
+  ];
+  private deptColorMap: Record<string, string> = {};
+  private colorIdx = 0;
+
+  getDeptColor(node: OrgNode): string {
+    const dept = (node.position.department?.name || '').toLowerCase();
+    if (dept.includes('direc') || dept.includes('general') || dept.includes('ceo') || dept.includes('coo')) return '#0d9488';
+    if (dept.includes('comerci') || dept.includes('vent')) return '#7c3aed';
+    if (dept.includes('mercad') || dept.includes('market')) return '#2563eb';
+    if (dept.includes('admin') || dept.includes('finanz') || dept.includes('contab')) return '#d97706';
+    if (dept.includes('fabric') || dept.includes('produc')) return '#db2777';
+    if (dept.includes('rrhh') || dept.includes('human') || dept.includes('recur') || dept.includes('planilla')) return '#059669';
+    if (dept.includes('it') || dept.includes('tecno') || dept.includes('sistema')) return '#0891b2';
+    if (dept.includes('oper') || dept.includes('logist') || dept.includes('distri') || dept.includes('compra')) return '#7e22ce';
+    if (dept.includes('tienda') || dept.includes('sucursal')) return '#e11d48';
+    const key = dept || node.position.name.toLowerCase();
+    if (!this.deptColorMap[key]) {
+      this.deptColorMap[key] = this.colorPalette[this.colorIdx % this.colorPalette.length];
+      this.colorIdx++;
+    }
+    return this.deptColorMap[key];
+  }
+
+  getGradient(node: OrgNode): string {
+    const c = this.getDeptColor(node);
+    return `linear-gradient(135deg, ${c}18, ${c}08)`;
+  }
+
+  getDeptColorByPosition(pos: Position): string {
+    return this.getDeptColor({ position: pos, employees: [], children: [] });
+  }
+
+  getInitials(node: OrgNode): string {
+    if (node.employees.length > 0) {
+      const e = node.employees[0];
+      return ((e.first_name?.[0] || '') + (e.father_name?.[0] || '')).toUpperCase() || '?';
+    }
+    return node.position.name.split(' ').filter(w => w).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+  }
+
+  getLeader(node: OrgNode): string {
+    if (node.employees.length > 0) {
+      const e = node.employees[0];
+      return `${e.first_name || ''} ${e.father_name || ''}`.trim();
+    }
+    return node.position.name;
+  }
+
+  // === Data loading ===
+  loadStructure(): void {
+    const url = this.apiUrl.build('rest/v1/org_structure', {
+      select: 'position_id,parent_position_id,sort_order',
+    });
+    this.http.get<OrgStructureRow[]>(url).subscribe({
+      next: (data) => {
+        const structure = new Map<string, string | null>();
+        data.forEach(row => structure.set(row.position_id, row.parent_position_id));
+        this.orgStructure.set(structure);
+        this.originalStructure.set(new Map(structure));
+      },
+      error: (err) => {
+        this.logger.error('[Organigrama] Error loading:', err);
+        this.orgStructure.set(new Map());
+        this.originalStructure.set(new Map());
+      },
+    });
+  }
+
+  // === Data saving (delete-all + bulk insert) ===
+  async saveStructure(): Promise<void> {
+    this.saving.set(true);
+    const structure = this.orgStructure();
+    try {
+      await firstValueFrom(
+        this.http.delete(this.apiUrl.build('rest/v1/org_structure'), {
+          params: { position_id: 'not.is.null' },
+        })
+      );
+      const records: OrgStructureRow[] = [];
+      for (const [positionId, parentId] of structure) {
+        records.push({ position_id: positionId, parent_position_id: parentId, sort_order: 0 });
+      }
+      if (records.length > 0) {
+        await firstValueFrom(
+          this.http.post(this.apiUrl.build('rest/v1/org_structure'), records)
+        );
+      }
+      this.originalStructure.set(new Map(structure));
+      this.messageService.add({ severity: 'success', summary: 'Guardado', detail: 'Estructura guardada correctamente' });
+    } catch (err: any) {
+      this.logger.error('[Organigrama] Error saving:', err);
+      this.messageService.add({ severity: 'error', summary: 'Error', detail: err?.error?.message || 'Error al guardar' });
+    } finally {
+      this.saving.set(false);
+    }
   }
 
   constructor() {
+    this.positionsStore.fetchItems();
+    this.employeesStore.fetchItems();
     this.loadStructure();
   }
 }

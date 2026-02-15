@@ -114,7 +114,7 @@ export class EmployeePortalRequestsService {
       url: this.apiUrl.build('rest/v1/employee_disabilities'),
       method: 'GET',
       params: {
-        select: '*',
+        select: 'id,employee_id,created_at,status,diagnosis,notes',
         employee_id: `eq.${this.currentEmployee()!.id}`,
         order: 'created_at.desc',
       },

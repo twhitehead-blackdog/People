@@ -12,9 +12,6 @@ import { PayrollPayment, PayrollPaymentEmployee } from '../models';
 import { DashboardStore } from '../stores/dashboard.store';
 import { OrganizationService } from '../services/organization.service';
 
-import * as pdfMake from 'pdfmake/build/pdfmake.js';
-import * as pdfFonts from 'pdfmake/build/vfs_fonts.js';
-
 import { Button } from 'primeng/button';
 
 @Component({
@@ -238,20 +235,20 @@ export class PayrollSummaryComponent {
     );
   });
 
-  public generateDocument() {
+  public async generateDocument() {
+    const pdfMake = await import('pdfmake/build/pdfmake.js');
+    const pdfFonts = await import('pdfmake/build/vfs_fonts.js');
     pdfMake
       .createPdf(
         this.documentDefinition(),
         {},
         {
-          // Default font should still be available
           Roboto: {
             normal: 'Roboto-Regular.ttf',
             bold: 'Roboto-Medium.ttf',
             italics: 'Roboto-Italic.ttf',
             bolditalics: 'Roboto-Italic.ttf',
           },
-          // Make sure you define all 4 components - normal, bold, italics, bolditalics - (even if they all point to the same font file)
           Helvetica: {
             normal: 'Helvetica',
             bold: 'Helvetica-Bold',

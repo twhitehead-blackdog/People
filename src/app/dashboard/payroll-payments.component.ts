@@ -138,7 +138,7 @@ export class PayrollPaymentsComponent {
     url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/payroll_payments`,
     method: 'GET',
     params: {
-      select: '*',
+      select: 'id,title,payroll_id,start_date,end_date,status',
       payroll_id: `eq.${this.payrollId()}`,
     },
   }));

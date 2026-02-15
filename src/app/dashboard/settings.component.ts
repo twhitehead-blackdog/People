@@ -900,7 +900,7 @@ export class SettingsComponent {
   // Cargar configuraciones
   public settingsApi = httpResource<Setting[]>(() => {
     const url = this.apiUrl.build('rest/v1/settings', {
-      select: '*',
+      select: 'id,key,value',
       key: `in.(email_enabled,wassenger_api_key,wassenger_enabled,hr_email_notify_documents,hr_email_notify_disabilities,hr_email_notify_compensatory,hr_email_notify_vacations,hr_email_notify_uniform,hr_email_notify_timelog_correction,hr_email_recipients_compensatory,hr_email_recipients_documents,hr_email_recipients_disabilities,hr_email_recipients_vacations,hr_email_recipients_uniform,hr_email_recipients_timelog_correction,employee_email_notify_approvals,employee_email_notify_rejections)`,
       order: 'key.asc',
     });

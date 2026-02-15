@@ -96,7 +96,7 @@ export class OvertimeRecordsService {
     }
 
     const url = this.apiUrl.build('rest/v1/employee_overtime_records', {
-      select: '*',
+      select: 'id,employee_id,timelog_date,hours,status,reason,confirmed_by,confirmed_at,company_id,created_at,updated_at',
       employee_id: `eq.${employeeId}`,
       timelog_date: `eq.${date}`,
       company_id: `eq.${companyId}`,

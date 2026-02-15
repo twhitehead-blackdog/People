@@ -87,7 +87,7 @@ export class PayrollDeductionsComponent {
     url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/payroll_deductions`,
     method: 'GET',
     params: {
-      select: '*',
+      select: 'id,payroll_id,name,value,calculation_type,min_salary,income_tax',
       payroll_id: `eq.${this.payrollId()}`,
     },
   }));

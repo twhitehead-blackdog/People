@@ -65,6 +65,7 @@ const SERVICE_ROLE_PATHS = new Set([
   '/rest/v1/audit_answers',
   '/rest/v1/devices',
   '/rest/v1/device_assignments',
+  '/rest/v1/org_structure',
 ]);
 // Prefijos que no se pueden resolver con Set (rutas parciales)
 const SERVICE_ROLE_PREFIXES = ['/rest/v1/rpc/', '/storage/v1/object/'];
@@ -182,10 +183,6 @@ export const httpInterceptor: HttpInterceptorFn = (req, next) => {
 
         // Capturar errores de Supabase
         if (error.status === 401 || error.status === 403) {
-          console.error('[HttpInterceptor] Auth error on Supabase request!');
-          console.error('[HttpInterceptor] Status:', error.status);
-          console.error('[HttpInterceptor] URL:', req.url);
-          console.error('[HttpInterceptor] Error body:', error.error);
           diagnosticService.addSupabaseError(
             `Error de autenticación: ${error.status}`,
             req.url,

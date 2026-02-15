@@ -62,7 +62,7 @@ export class LateRecordsService {
     }
 
     const url = this.apiUrl.build('rest/v1/employee_late_records', {
-      select: '*',
+      select: 'id,employee_id,timelog_date,scheduled_entry_time,actual_entry_time,minutes_late,tolerance_minutes,employee_name,position_id,position_name,branch_id,branch_name,source_module,source_timelog_id,status,company_id,created_at,updated_at',
       employee_id: `eq.${employeeId}`,
       timelog_date: `eq.${date}`,
       company_id: `eq.${companyId}`,

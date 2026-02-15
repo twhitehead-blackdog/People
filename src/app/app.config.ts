@@ -2,7 +2,6 @@ import { registerLocaleData } from '@angular/common';
 import localeEs from '@angular/common/locales/es-MX';
 import {
   ApplicationConfig,
-  importProvidersFrom,
   LOCALE_ID,
 } from '@angular/core';
 import { getEnv } from './utils/env.utils';
@@ -19,7 +18,6 @@ import { provideCharts, withDefaultRegisterables } from 'ng2-charts';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideAuth0 } from '@auth0/auth0-angular';
 import { definePreset } from '@primeng/themes';
-import { NgxSpinnerModule } from 'ngx-spinner';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { providePrimeNG } from 'primeng/config';
 import es from '../../public/i18n/es.json';
@@ -98,8 +96,5 @@ export const appConfig: ApplicationConfig = {
     JobApplicationsStore,
     // Store para el Portal de Empleados
     EmployeePortalStore,
-    importProvidersFrom(
-      NgxSpinnerModule.forRoot({ type: 'ball-scale-multiple' })
-    ),
   ],
 };

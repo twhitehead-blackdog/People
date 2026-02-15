@@ -265,9 +265,9 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
   return authService.user$.pipe(
     take(1),
     switchMap((user: any) => {
-      // Si no hay usuario de Auth0, denegar acceso
+      // Si no hay usuario de Auth0, redirigir a sin-acceso
       if (!user) {
-        return of(false);
+        return of(router.createUrlTree(['/sin-acceso']));
       }
 
       const userEmail = user?.email?.toLowerCase();
@@ -366,7 +366,7 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
 
           if (!employee) {
             employeeCache = null;
-            return false;
+            return router.createUrlTree(['/sin-acceso']);
           }
 
           if (employee.account_approved === false) {
@@ -377,8 +377,7 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
           const perms = resolvePermissions(employee, testModeService);
           return resolveNavigation(perms, employee, route, state, router);
         }),
-        catchError((error) => {
-          console.error('Error en employeePortalGuard:', error);
+        catchError(() => {
           // Si hay error, usar cache si existe
           if (employeeCache && employeeCache.email === user.email) {
             const employee = employeeCache.employee;
@@ -393,11 +392,8 @@ export const employeePortalGuard: CanActivateFn = (route, state) => {
               resolveNavigation(perms, employee, route, state, router)
             );
           }
-          // Si no hay cache y hay error, permitir acceso por defecto (para evitar bloqueos)
-          console.warn(
-            'No hay cache y error en guard, permitiendo acceso por defecto'
-          );
-          return of(true);
+          // Si no hay cache y hay error, redirigir a sin-acceso para evitar pantalla negra
+          return of(router.createUrlTree(['/sin-acceso']));
         })
       );
     })

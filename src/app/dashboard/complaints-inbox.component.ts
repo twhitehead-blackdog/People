@@ -557,7 +557,7 @@ export class ComplaintsInboxComponent {
     url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaints`,
     method: 'GET',
     params: {
-      select: '*',
+      select: 'id,employee_id,creator_employee_id,category,complaint,allow_contact,contact_method,status,priority,closed,closed_at,response,responded_by,response_date,reveal_identity,thread_id,last_message_at,created_at,updated_at',
       order: 'created_at.desc',
     },
   }));
@@ -613,7 +613,7 @@ export class ComplaintsInboxComponent {
       url: `${process.env['ENV_SUPABASE_URL']}/rest/v1/complaint_messages`,
       method: 'GET',
       params: {
-        select: '*',
+        select: 'id,complaint_id,sender_id,sender_type,is_anonymous,message,is_read,read_at,created_at,thread_id',
         complaint_id: `eq.${complaint.id}`,
         order: 'created_at.asc',
       },

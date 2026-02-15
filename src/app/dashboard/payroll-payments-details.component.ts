@@ -41,7 +41,6 @@ import { DialogService, DynamicDialogRef } from 'primeng/dynamicdialog';
 import { Select } from 'primeng/select';
 import { TableModule } from 'primeng/table';
 import { catchError, forkJoin, switchMap, throwError } from 'rxjs';
-import { utils, writeFile } from 'xlsx';
 import {
   AttendanceSheet,
   EmployeeSchedule,
@@ -636,7 +635,7 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
       this.employeeSummary(),
       {
         params: {
-          select: '*',
+          select: 'id,payroll_id,employee_id,payroll_payment_id,total_amount,debt_amount,late_amount,absence_amount,income_amount,deduction_amount,created_at',
         },
       }
     );
@@ -1192,8 +1191,9 @@ export class PayrollPaymentsDetailsComponent implements OnInit {
     return lateHours;
   }
 
-  generateDraft() {
+  async generateDraft() {
     this.completed.reload();
+    const { utils, writeFile } = await import('xlsx');
     const wb = utils.book_new();
     // utils.book_append_sheet(wb, ws, 'Empleados');
     const ws = utils.aoa_to_sheet([

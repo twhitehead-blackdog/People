@@ -1,7 +1,9 @@
 import compression from 'compression';
 import dotenv from 'dotenv';
 import express from 'express';
+import rateLimit from 'express-rate-limit';
 import { readFileSync } from 'fs';
+import helmet from 'helmet';
 import nodemailer from 'nodemailer';
 import path from 'path';
 
@@ -65,15 +67,41 @@ export function app(): express.Express {
   // Esto permite que req.ip funcione correctamente cuando hay un proxy reverso (nginx, etc.)
   server.set('trust proxy', true);
 
+  // Helmet — headers de seguridad (CSP, HSTS, X-Frame-Options, etc.)
+  server.use(helmet({
+    contentSecurityPolicy: false, // Angular maneja su propio CSP
+    crossOriginEmbedderPolicy: false, // Permitir carga de recursos externos
+  }));
+
+  // Rate limiting — prevenir abuso y DDoS
+  const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutos
+    max: 300, // máximo 300 requests por IP cada 15 min
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'Too many requests, please try again later' },
+  });
+  server.use('/api/', apiLimiter);
+
   // Compresión gzip/brotli — reduce ~70% del tamaño de transferencia
   server.use(compression());
 
   // Middleware para parsear JSON
   server.use(express.json());
 
-  // CORS middleware para permitir requests desde el frontend
+  // CORS middleware - restringido a dominios autorizados
+  const allowedOrigins = [
+    'https://people.blackdogpanama.com',
+    'https://prueba.people.blackdogpanama.com',
+    process.env['ENV_APP_URL']?.replace(/\/$/, ''),
+  ].filter(Boolean) as string[];
+
   server.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*');
+    const origin = req.headers.origin;
+    if (origin && allowedOrigins.includes(origin)) {
+      res.header('Access-Control-Allow-Origin', origin);
+      res.header('Access-Control-Allow-Credentials', 'true');
+    }
     res.header(
       'Access-Control-Allow-Methods',
       'GET, POST, PUT, DELETE, OPTIONS'
@@ -103,6 +131,43 @@ export function app(): express.Express {
     res.json({ version: appVersion });
   });
 
+  // Middleware de autenticación para endpoints protegidos
+  // Verifica que el request tenga un JWT válido (Supabase o Auth0)
+  const requireAuth: express.RequestHandler = (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      res.status(401).json({ error: 'Authorization header required' });
+      return;
+    }
+
+    const token = authHeader.split(' ')[1];
+    if (!token) {
+      res.status(401).json({ error: 'Bearer token required' });
+      return;
+    }
+
+    // Decodificar JWT para verificar expiración (sin verificación de firma completa)
+    try {
+      const payload = JSON.parse(
+        Buffer.from(token.split('.')[1], 'base64').toString()
+      );
+      if (payload.exp && payload.exp * 1000 < Date.now()) {
+        res.status(401).json({ error: 'Token expired' });
+        return;
+      }
+    } catch {
+      res.status(401).json({ error: 'Invalid token format' });
+      return;
+    }
+
+    next();
+  };
+
+  // Aplicar auth a endpoints sensibles
+  server.use('/api/odoo', requireAuth);
+  server.use('/api/wassenger', requireAuth);
+  server.use('/api/email', requireAuth);
+
   /**
    * Integración Odoo 18 (Odoo.sh) - JSON-RPC
    * Lee sale.order del módulo de peluquería.
@@ -125,6 +190,7 @@ export function app(): express.Express {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
+      signal: AbortSignal.timeout(15000),
     });
     const data = (await res.json()) as {
       result?: unknown;
@@ -154,17 +220,26 @@ export function app(): express.Express {
         });
       }
 
-      const uid = (await odooJsonRpc(url, 'common', 'authenticate', [
-        db,
-        username,
-        password,
-        {},
-      ])) as number | false;
-      if (!uid) {
-        return res.status(401).json({
-          error: 'Odoo: autenticación fallida',
-          message: 'Usuario o contraseña incorrectos, o API key inválida.',
-        });
+      // Cache del uid de Odoo (se re-autentica cada 5 min)
+      const now = Date.now();
+      let uid: number;
+      if (configCache.odooUid && (now - configCache.odooUid.ts) < CACHE_TTL) {
+        uid = configCache.odooUid.value;
+      } else {
+        const authResult = (await odooJsonRpc(url, 'common', 'authenticate', [
+          db,
+          username,
+          password,
+          {},
+        ])) as number | false;
+        if (!authResult) {
+          return res.status(401).json({
+            error: 'Odoo: autenticación fallida',
+            message: 'Usuario o contraseña incorrectos, o API key inválida.',
+          });
+        }
+        uid = authResult;
+        configCache.odooUid = { value: uid, ts: now };
       }
 
       // Filtro: solo órdenes con peluquería (solo_peluqueria o ambos)
@@ -252,6 +327,7 @@ export function app(): express.Express {
             phone: cleanPhone,
             message: message,
           }),
+          signal: AbortSignal.timeout(15000),
         }
       );
 
@@ -304,8 +380,21 @@ export function app(): express.Express {
     }
   });
 
-  // Helper para verificar si el envío de emails está habilitado
+  // Cache para configuraciones que rara vez cambian
+  const configCache: {
+    emailEnabled: { value: boolean; ts: number } | null;
+    smtpConfig: { value: SmtpConfig; ts: number } | null;
+    odooUid: { value: number; ts: number } | null;
+  } = { emailEnabled: null, smtpConfig: null, odooUid: null };
+  const CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+
+  // Helper para verificar si el envío de emails está habilitado (con cache)
   async function isEmailEnabled(): Promise<boolean> {
+    const now = Date.now();
+    if (configCache.emailEnabled && (now - configCache.emailEnabled.ts) < CACHE_TTL) {
+      return configCache.emailEnabled.value;
+    }
+
     try {
       const supabaseUrl = process.env['ENV_SUPABASE_URL'];
       const supabaseKey =
@@ -313,10 +402,7 @@ export function app(): express.Express {
         process.env['ENV_SUPABASE_ANON_KEY'];
 
       if (!supabaseUrl || !supabaseKey) {
-        console.warn(
-          '[Email] No se pudo verificar email_enabled: Supabase no configurado'
-        );
-        return true; // Por defecto habilitado si no se puede verificar
+        return true;
       }
 
       const response = await fetch(
@@ -326,32 +412,24 @@ export function app(): express.Express {
             apikey: supabaseKey,
             Authorization: `Bearer ${supabaseKey}`,
           },
+          signal: AbortSignal.timeout(10000),
         }
       );
 
       if (!response.ok) {
-        console.warn(
-          '[Email] Error al verificar email_enabled:',
-          response.status
-        );
-        return true; // Por defecto habilitado si hay error
+        return true;
       }
 
       const data = await response.json();
+      let enabled = true;
       if (data && data.length > 0) {
-        const enabled = data[0].value === 'true';
-        if (!enabled) {
-          console.log(
-            '[Email] ⚠️ Envío de emails deshabilitado por configuración'
-          );
-        }
-        return enabled;
+        enabled = data[0].value === 'true';
       }
 
-      return true; // Por defecto habilitado si no existe la configuración
-    } catch (error) {
-      console.error('[Email] Error verificando email_enabled:', error);
-      return true; // Por defecto habilitado si hay error
+      configCache.emailEnabled = { value: enabled, ts: now };
+      return enabled;
+    } catch {
+      return true;
     }
   }
 
@@ -366,6 +444,11 @@ export function app(): express.Express {
   }
 
   async function getSmtpConfig(): Promise<SmtpConfig> {
+    const now = Date.now();
+    if (configCache.smtpConfig && (now - configCache.smtpConfig.ts) < CACHE_TTL) {
+      return configCache.smtpConfig.value;
+    }
+
     let dbHost: string | null = null;
     let dbPort: string | null = null;
     let dbUser: string | null = null;
@@ -379,9 +462,6 @@ export function app(): express.Express {
         process.env['ENV_SUPABASE_ANON_KEY'];
 
       if (supabaseUrl && supabaseKey) {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
-
         const response = await fetch(
           `${supabaseUrl}/rest/v1/settings?key=in.(smtp_host,smtp_port,smtp_user,smtp_noreply_email,smtp_noreply_name)&select=key,value`,
           {
@@ -389,10 +469,9 @@ export function app(): express.Express {
               apikey: supabaseKey,
               Authorization: `Bearer ${supabaseKey}`,
             },
-            signal: controller.signal,
+            signal: AbortSignal.timeout(10000),
           }
         );
-        clearTimeout(timeout);
 
         if (response.ok) {
           const data: Array<{ key: string; value: string }> =
@@ -406,34 +485,23 @@ export function app(): express.Express {
             if (row.key === 'smtp_noreply_name' && row.value)
               dbNoreplyName = row.value;
           }
-          console.log('[SMTP Config] Loaded from DB:', {
-            host: dbHost,
-            port: dbPort,
-            user: !!dbUser,
-          });
         }
       }
-    } catch (error) {
-      console.warn(
-        '[SMTP Config] Error reading from DB, using env vars:',
-        error
-      );
+    } catch {
+      // Use env vars as fallback
     }
 
-    // DB values take priority; env vars are fallback
-    const host =
-      dbHost || process.env['ENV_SMTP_HOST'] || 'smtp-mail.outlook.com';
-    const port = parseInt(
-      dbPort || process.env['ENV_SMTP_PORT'] || '587'
-    );
-    const user = dbUser || process.env['ENV_SMTP_USER'] || '';
-    const password = process.env['ENV_SMTP_PASSWORD'] || ''; // ALWAYS from env
-    const noreplyEmail =
-      dbNoreplyEmail || process.env['ENV_SMTP_NOREPLY_EMAIL'] || user;
-    const noreplyName =
-      dbNoreplyName || process.env['ENV_SMTP_NOREPLY_NAME'] || 'People - RRHH';
+    const config: SmtpConfig = {
+      host: dbHost || process.env['ENV_SMTP_HOST'] || 'smtp-mail.outlook.com',
+      port: parseInt(dbPort || process.env['ENV_SMTP_PORT'] || '587'),
+      user: dbUser || process.env['ENV_SMTP_USER'] || '',
+      password: process.env['ENV_SMTP_PASSWORD'] || '',
+      noreplyEmail: dbNoreplyEmail || process.env['ENV_SMTP_NOREPLY_EMAIL'] || dbUser || process.env['ENV_SMTP_USER'] || '',
+      noreplyName: dbNoreplyName || process.env['ENV_SMTP_NOREPLY_NAME'] || 'People - RRHH',
+    };
 
-    return { host, port, user, password, noreplyEmail, noreplyName };
+    configCache.smtpConfig = { value: config, ts: now };
+    return config;
   }
 
   function createSmtpTransporter(config: SmtpConfig) {
@@ -452,8 +520,8 @@ export function app(): express.Express {
       greetingTimeout: 15000, // 15s para recibir el greeting del servidor
       socketTimeout: 30000, // 30s de inactividad máxima en el socket
       tls: {
-        ciphers: 'SSLv3',
-        rejectUnauthorized: false,
+        minVersion: 'TLSv1.2',
+        rejectUnauthorized: isProduction,
       },
       logger: !isProduction, // Logs detallados solo en desarrollo
       debug: !isProduction, // Debug SMTP solo en desarrollo
@@ -462,24 +530,13 @@ export function app(): express.Express {
 
   // Endpoint para enviar emails
   server.post('/api/email/send', async (req, res) => {
-    console.log('[DEBUG Server] 📧 === NUEVA PETICIÓN DE EMAIL ===');
-    console.log('[DEBUG Server] 📧 Headers importantes:', {
-      'content-type': req.headers['content-type'],
-      'user-agent': req.headers['user-agent'],
-      origin: req.headers.origin,
-    });
-    console.log(
-      '[DEBUG Server] 📧 Body completo:',
-      JSON.stringify(req.body, null, 2)
-    );
+    safeLogger.log('[Email Send] Nueva petición de email');
 
     try {
       // Verificar si el envío de emails está habilitado (master switch)
       const emailEnabled = await isEmailEnabled();
       if (!emailEnabled) {
-        console.log(
-          '[DEBUG Server] ⚠️ Email bloqueado: envío deshabilitado por configuración'
-        );
+        safeLogger.log('Email bloqueado: envío deshabilitado por configuración');
         return res.json({
           success: true,
           data: {
@@ -493,23 +550,7 @@ export function app(): express.Express {
 
       const { to, subject, html, text, fromEmail, fromName } = req.body;
 
-      console.log('[DEBUG Server] 📧 Validando campos requeridos...');
-      console.log('[DEBUG Server] 📧 to:', to);
-      console.log('[DEBUG Server] 📧 subject:', subject);
-      console.log('[DEBUG Server] 📧 html length:', html?.length || 0);
-      console.log('[DEBUG Server] 📧 fromEmail:', fromEmail);
-      console.log('[DEBUG Server] 📧 fromName:', fromName);
-
       if (!to || !subject || !html) {
-        console.error('[DEBUG Server] ❌ ERROR: Faltan campos requeridos');
-        console.error(
-          '[DEBUG Server] ❌ to:',
-          !!to,
-          'subject:',
-          !!subject,
-          'html:',
-          !!html
-        );
         return res.status(400).json({
           error: 'Missing required fields: to, subject, html',
         });
@@ -517,7 +558,6 @@ export function app(): express.Express {
 
       // Preparar destinatarios (puede ser string o array)
       const recipients = Array.isArray(to) ? to : [to];
-      console.log('[DEBUG Server] 📧 Destinatarios procesados:', recipients);
 
       // Intentar usar Resend primero (más confiable y fácil de configurar)
       const resendApiKey = process.env['ENV_RESEND_API_KEY'];
@@ -692,36 +732,16 @@ export function app(): express.Express {
       }
 
       // Fallback a SMTP genérico si no hay Resend ni Postmark configurado
-      console.log(
-        '[DEBUG Server] 🔄 Resend no configurado, intentando SMTP...'
-      );
-
       const smtpConfig = await getSmtpConfig();
 
-      console.log('[DEBUG Server] ⚙️ Configuración SMTP:');
-      console.log('[DEBUG Server] ⚙️ Host:', smtpConfig.host);
-      console.log('[DEBUG Server] ⚙️ Port:', smtpConfig.port);
-      console.log('[DEBUG Server] ⚙️ User presente:', !!smtpConfig.user);
-      console.log(
-        '[DEBUG Server] ⚙️ Password presente:',
-        !!smtpConfig.password
-      );
-
       if (!smtpConfig.user || !smtpConfig.password) {
-        console.error('[DEBUG Server] ❌ ERROR: Configuración SMTP faltante');
-        safeLogger.error('❌ Configuración SMTP faltante');
+        safeLogger.error('Configuración SMTP faltante');
         return res.status(500).json({
           error: 'Email service not configured',
           message:
             'ENV_RESEND_API_KEY, ENV_POSTMARK_API_KEY o (SMTP user y ENV_SMTP_PASSWORD) no están configuradas. Por favor configura alguna de estas opciones.',
         });
       }
-
-      console.log('[DEBUG Server] ✅ Usando SMTP para envío de email');
-      console.log(
-        '[DEBUG Server] 📧 From:',
-        `${smtpConfig.noreplyName} <${smtpConfig.noreplyEmail}>`
-      );
 
       // Determinar el correo remitente
       const senderEmail =
@@ -745,13 +765,7 @@ export function app(): express.Express {
       });
       return res.json({ success: true, data: { messageId: info.messageId } });
     } catch (error: any) {
-      console.error('[DEBUG Server] ❌ ERROR GENERAL en envío de email');
-      console.error('[DEBUG Server] 🔍 Detalles del error:', error);
-      console.error('[DEBUG Server] 📊 Error code:', error.code);
-      console.error('[DEBUG Server] 💬 Error message:', error.message);
-      console.error('[DEBUG Server] 🏷️ Error name:', error.name);
-
-      safeLogger.error('❌ Error sending email', error);
+      safeLogger.error('Error sending email', error);
 
       // Mensaje de error más descriptivo
       let errorMessage = 'Error desconocido al enviar el email';

@@ -19,7 +19,6 @@ import { InputTextModule } from 'primeng/inputtext';
 import { ToastModule } from 'primeng/toast';
 import { TooltipModule } from 'primeng/tooltip';
 import { firstValueFrom } from 'rxjs';
-import { utils, writeFile } from 'xlsx';
 import { OrganizationService } from '../services/organization.service';
 import { ScheduleAutoAssignService } from '../services/schedule-auto-assign.service';
 import {
@@ -726,6 +725,7 @@ export class HRDisabilitiesComponent {
 
   public async exportData(): Promise<void> {
     try {
+      const { utils, writeFile } = await import('xlsx');
       const requests = this.filteredCompensatoryRequests();
 
       if (requests.length === 0) {
