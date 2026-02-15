@@ -66,7 +66,7 @@ import { OrganizationService } from '../services/organization.service';
           class="flex flex-col items-center w-full gap-4 dark:border-surface-700"
         >
           <i [ngClass]="message.icon" class="!text-6xl text-orange-500"></i>
-          <p class="text-center w-full">{{ message.message }}</p>
+          <p class="text-center w-full" [innerHTML]="message.message"></p>
         </div>
       </ng-template>
     </p-confirmDialog>
@@ -76,7 +76,7 @@ import { OrganizationService } from '../services/organization.service';
           class="flex flex-col items-center w-full gap-4 dark:border-surface-700"
         >
           <i [ngClass]="message.icon" class="!text-6xl text-orange-500"></i>
-          <p>{{ message.message }}</p>
+          <p [innerHTML]="message.message"></p>
         </div>
       </ng-template>
     </p-confirmDialog>
