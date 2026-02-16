@@ -286,7 +286,7 @@ export class TimelogsComponent {
   private scheduleChanges = useRealtimeTrigger('employee_schedules');
 
   // Límite de registros por consulta (debe coincidir con timelogs-api.service.ts)
-  private readonly QUERY_LIMIT = 50000;
+  private readonly QUERY_LIMIT = 10000;
 
   // Detectar si los resultados fueron truncados por el límite
   public resultsTruncated = computed(() => {
@@ -1242,6 +1242,9 @@ export class TimelogsComponent {
       });
     });
 
+    // Crear índice Map para lookup O(1) en vez de findIndex O(n)
+    const dayLogIndex = new Map<string, number>();
+
     // Ahora procesar los logs para actualizar los registros creados
     const result = (filteredLogs as any[])
       .reduce<DayLog[]>((acc: DayLog[], x: any) => {
@@ -1255,9 +1258,17 @@ export class TimelogsComponent {
           return acc;
         }
 
-        const index = acc.findIndex(
-          (y: DayLog) => y.day === x.day && y.employee?.id === x.employee.id
-        );
+        // Rebuild Map index when acc grows (new entries added by template generation)
+        if (dayLogIndex.size !== acc.length) {
+          dayLogIndex.clear();
+          for (let i = 0; i < acc.length; i++) {
+            const k = `${acc[i].day}|${acc[i].employee?.id}`;
+            dayLogIndex.set(k, i);
+          }
+        }
+
+        const key = `${x.day}|${x.employee.id}`;
+        const index = dayLogIndex.get(key) ?? -1;
 
         // Si no se encuentra el índice, significa que el día no está en this.days()
         // Esto no debería pasar si el query filtra correctamente, pero por seguridad lo validamos

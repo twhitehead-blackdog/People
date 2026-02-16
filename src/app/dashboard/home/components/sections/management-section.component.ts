@@ -1,13 +1,14 @@
-import { CommonModule, CurrencyPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
+import { ChangeDetectionStrategy, Component, inject, computed } from '@angular/core';
 import { TooltipModule } from 'primeng/tooltip';
 import { DashboardStore } from '../../../../stores/dashboard.store';
 import { DeviceService } from '../../../../services/device.service';
+import { HomeDataService, EmployeeAuditLog } from '../../services/home-data.service';
 
 @Component({
   selector: 'pt-management-section',
   standalone: true,
-  imports: [CommonModule, CurrencyPipe, TooltipModule],
+  imports: [CommonModule, CurrencyPipe, DatePipe, TooltipModule],
   template: `
     <!-- ===== PC VERSION ===== -->
     @if (device.isDesktop()) {
@@ -118,6 +119,49 @@ import { DeviceService } from '../../../../services/device.service';
             </div>
           </div>
         </div>
+
+        <!-- Audit Log -->
+        @if (auditLogList().length > 0) {
+          <div class="audit-section">
+            <div class="audit-header">
+              <div class="audit-icon"><i class="pi pi-history"></i></div>
+              <div>
+                <h3>Últimos Cambios en Empleados</h3>
+                <p>Registro de auditoría — últimas 50 modificaciones</p>
+              </div>
+            </div>
+            <div class="audit-table-wrap">
+              <table class="audit-table">
+                <thead>
+                  <tr>
+                    <th style="width:18%">Fecha</th>
+                    <th style="width:20%">Empleado</th>
+                    <th style="width:12%">Acción</th>
+                    <th style="width:15%">Campo</th>
+                    <th style="width:15%">Anterior</th>
+                    <th style="width:15%">Nuevo</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (log of auditLogList(); track log.id) {
+                    <tr>
+                      <td>{{ log.changed_at | date:'dd/MM/yy HH:mm' }}</td>
+                      <td class="emp-name">{{ log.employee?.first_name }} {{ log.employee?.father_name }}</td>
+                      <td>
+                        <span class="action-badge" [class.insert]="log.action === 'INSERT'" [class.update]="log.action === 'UPDATE'" [class.delete]="log.action === 'DELETE'">
+                          {{ log.action }}
+                        </span>
+                      </td>
+                      <td class="field-name">{{ getFieldLabel(log.field_name) }}</td>
+                      <td class="old-val">{{ log.old_value || '—' }}</td>
+                      <td class="new-val">{{ log.new_value || '—' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        }
       </div>
     }
 
@@ -413,10 +457,131 @@ import { DeviceService } from '../../../../services/device.service';
         &.orange { color: #f59e0b; }
       }
     }
+
+    /* Audit Log */
+    .audit-section {
+      margin-top: 1.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .audit-header {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+
+      h3 { font-size: 1rem; font-weight: 600; color: #fff; margin: 0; }
+      p { font-size: 0.75rem; color: #71717a; margin: 0.125rem 0 0; }
+    }
+
+    .audit-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: rgba(168, 85, 247, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      i { color: #a855f7; font-size: 1rem; }
+    }
+
+    .audit-table-wrap {
+      background: rgba(24, 24, 27, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 12px;
+      overflow-x: auto;
+      max-height: 350px;
+      overflow-y: auto;
+    }
+
+    .audit-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.75rem;
+      table-layout: fixed;
+
+      th, td {
+        padding: 0.5rem 0.625rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      th {
+        text-align: left;
+        font-size: 0.6rem;
+        font-weight: 600;
+        color: #71717a;
+        text-transform: uppercase;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        position: sticky;
+        top: 0;
+        background: #18181b;
+      }
+
+      td {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        color: #a1a1aa;
+      }
+
+      tbody tr:hover { background: rgba(255, 255, 255, 0.02); }
+    }
+
+    .emp-name { color: #fff; font-weight: 500; }
+    .field-name { color: #a855f7; }
+    .old-val { color: #f87171; }
+    .new-val { color: #34d399; }
+
+    .action-badge {
+      font-size: 0.6rem;
+      font-weight: 700;
+      padding: 0.125rem 0.375rem;
+      border-radius: 4px;
+      text-transform: uppercase;
+
+      &.insert { background: rgba(52, 211, 153, 0.15); color: #34d399; }
+      &.update { background: rgba(96, 165, 250, 0.15); color: #60a5fa; }
+      &.delete { background: rgba(248, 113, 113, 0.15); color: #f87171; }
+    }
   `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ManagementSectionComponent {
   state = inject(DashboardStore);
   device = inject(DeviceService);
+  homeData = inject(HomeDataService);
+
+  auditLogList = computed(() =>
+    (this.homeData.employeeAuditLog.value() ?? []) as EmployeeAuditLog[]
+  );
+
+  private readonly FIELD_LABELS: Record<string, string> = {
+    first_name: 'Nombre',
+    father_name: 'Apellido',
+    middle_name: '2do Nombre',
+    mother_name: '2do Apellido',
+    document_id: 'Cédula',
+    is_active: 'Activo',
+    branch_id: 'Sucursal',
+    department_id: 'Departamento',
+    position_id: 'Posición',
+    monthly_salary: 'Salario',
+    hourly_salary: 'Salario/Hora',
+    email: 'Email',
+    work_email: 'Email Trabajo',
+    phone_number: 'Teléfono',
+    gender: 'Género',
+    birth_date: 'Nacimiento',
+    start_date: 'Inicio',
+    address: 'Dirección',
+    emergency_contact_name: 'Contacto Emerg.',
+    emergency_contact_phone: 'Tel. Emerg.',
+  };
+
+  getFieldLabel(field: string | null): string {
+    if (!field) return '—';
+    return this.FIELD_LABELS[field] || field;
+  }
 }

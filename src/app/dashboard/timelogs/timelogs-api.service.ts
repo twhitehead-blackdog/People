@@ -39,12 +39,13 @@ export class TimelogsApiService {
 
     // Usar !timelogs_employee_id_fkey para especificar la relación correcta
     // Se elimina !inner y el filtro de is_active para ver historial completo
+    // Solo los campos que realmente se usan en el procesamiento de DayLogs
     const select =
-      '*,employee:employees!timelogs_employee_id_fkey(id,first_name,father_name,is_active,branch:branches(id, name)),branch:branches(id, name, short_name)';
+      'id,employee_id,type,created_at,punched_at,branch_id,employee:employees!timelogs_employee_id_fkey(id,first_name,father_name),branch:branches(id,name,short_name)';
 
     const params: Record<string, string> = {
       select: select,
-      order: 'created_at.asc',
+      order: 'punched_at.asc',
     };
 
     if (employeeId) {
@@ -55,22 +56,16 @@ export class TimelogsApiService {
       params['company_id'] = `eq.${companyId}`;
     }
 
-    // Filtro complejo para soportar logs backfilled (creados después pero efectivos antes)
-    // 1. Logs manuales: punched_at está en el rango
-    // 2. Logs automáticos: punched_at es null Y created_at está en el rango
-    // Nota: Usamos paréntesis para agrupar las condiciones OR y AND de PostgREST
-    const manualLogsCondition = `and(punched_at.gte.${startDate},punched_at.lte.${endDate})`;
-    const autoLogsCondition = `and(punched_at.is.null,created_at.gte.${startDate},created_at.lte.${endDate})`;
-
-    params['or'] = `(${manualLogsCondition},${autoLogsCondition})`;
-    params['limit'] = '50000';
+    // Filtro directo por punched_at (backfill + trigger garantizan que todos los registros lo tienen)
+    params['and'] = `(punched_at.gte.${startDate},punched_at.lte.${endDate})`;
+    params['limit'] = '10000';
 
     const url = this.apiUrl.build('rest/v1/timelogs', params);
 
     return {
       url,
       method: 'GET' as const,
-      headers: { Range: '0-49999' },
+      headers: { Range: '0-9999' },
     };
   }
 

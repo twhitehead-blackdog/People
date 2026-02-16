@@ -42,6 +42,121 @@ export interface EmployeeScheduleRecord {
   };
 }
 
+export interface GroomerAssignment {
+  id: string;
+  employee_id: string;
+  branch_id: string;
+  branch?: { id: string; name: string; short_name?: string };
+  employee?: { id: string; first_name: string; father_name: string; position?: { name: string } };
+}
+
+export interface TimelogEntryRecord {
+  id: string;
+  employee_id: string;
+  branch_id: string;
+  created_at: string;
+  punched_at?: string;
+  branch?: { id: string; name: string; short_name?: string };
+  employee?: { id: string; first_name: string; father_name: string; position?: { id: string; name: string } };
+}
+
+export interface TimelogExitRecord {
+  id: string;
+  employee_id: string;
+  branch_id: string;
+  created_at: string;
+  punched_at?: string;
+}
+
+export interface BranchFinancialRecord {
+  id: string;
+  branch_id: string;
+  year: number;
+  month: number;
+  pos_revenue: number;
+  pos_order_count: number;
+  pos_avg_ticket: number;
+  target_baja: number;
+  target_promedio: number;
+  target_alta: number;
+  target_oro: number;
+  target_ng: number;
+  payroll_total: number;
+  employee_count: number;
+  odoo_expenses: number;
+  revenue_vs_payroll_ratio: number;
+  revenue_per_employee: number;
+  target_achievement_pct: number;
+  synced_at: string;
+  branch?: { name: string };
+}
+
+export interface GroomerMonthlyStats {
+  id: string;
+  groomer_odoo_id: number;
+  groomer_name: string;
+  year: number;
+  month: number;
+  total_services: number;
+  total_sales: number;
+  avg_per_service: number;
+  shared_services: number;
+  shared_pct: number;
+  total_commission: number;
+  commission_final: number;
+  prev_month_sales: number;
+  prev_month_commission: number;
+  sales_growth: number;
+  services_growth: number;
+  ranking: number;
+  absences: number;
+  tardiness_hours: number;
+  complaints: number;
+  penalty_pct: number;
+  penalty_amount: number;
+}
+
+export interface BranchDailySalesRecord {
+  id: string;
+  branch_id: string;
+  sale_date: string;
+  revenue: number;
+  order_count: number;
+  avg_ticket: number;
+  branch?: { name: string };
+}
+
+export interface GroomerServiceLine {
+  id: string;
+  groomer_odoo_id: number;
+  groomer_name: string;
+  branch_name: string;
+  service_date: string;
+  product_name: string;
+  pet_name: string;
+  line_total: number;
+  groomer_count: number;
+  proportional_amount: number;
+  commission_pct: number;
+  commission_amount: number;
+  odoo_line_id: number;
+}
+
+export interface EmployeeAuditLog {
+  id: string;
+  employee_id: string;
+  changed_by: string | null;
+  changed_at: string;
+  action: string;
+  field_name: string | null;
+  old_value: string | null;
+  new_value: string | null;
+  employee?: {
+    first_name?: string;
+    father_name?: string;
+  };
+}
+
 /** Orden de venta de Odoo (módulo sale_order_comanda_mascotas) - solo peluquería */
 export interface OdooSaleOrder {
   id: number;
@@ -243,6 +358,92 @@ export class HomeDataService {
     const dateTo = format(nextDay, 'yyyy-MM-dd');
     return {
       url: `/api/odoo/sale-orders?date_from=${dateFrom}&date_to=${dateTo}&limit=100`,
+    };
+  });
+
+  /** Mes/año seleccionado para datos financieros */
+  financialMonth = signal(new Date().getMonth() + 1); // 1-12
+  financialYear = signal(new Date().getFullYear());
+
+  /** Datos financieros mensuales por sucursal (del sync Odoo→People) */
+  branchFinancials = httpResource<BranchFinancialRecord[]>(() => {
+    const year = this.financialYear();
+    const month = this.financialMonth();
+    return {
+      url: this.apiUrl.build('rest/v1/branch_financials', {
+        select: '*,branch:branches(name)',
+        year: `eq.${year}`,
+        month: `eq.${month}`,
+        order: 'pos_revenue.desc',
+      }),
+    };
+  });
+
+  /** Ventas diarias de los últimos 30 días (para tendencias) */
+  branchDailySales = httpResource<BranchDailySalesRecord[]>(() => {
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const fromDate = format(thirtyDaysAgo, 'yyyy-MM-dd');
+    return {
+      url: this.apiUrl.build('rest/v1/branch_daily_sales', {
+        select: '*,branch:branches(name)',
+        sale_date: `gte.${fromDate}`,
+        order: 'sale_date.desc',
+      }),
+    };
+  });
+
+  /** Stats mensuales de peluqueros (del sync Odoo→People) */
+  groomerStats = httpResource<GroomerMonthlyStats[]>(() => {
+    const year = this.financialYear();
+    const month = this.financialMonth();
+    return {
+      url: this.apiUrl.build('rest/v1/groomer_monthly_stats', {
+        select: '*',
+        year: `eq.${year}`,
+        month: `eq.${month}`,
+        order: 'ranking.asc',
+      }),
+    };
+  });
+
+  /** Datos financieros del mes anterior (para comparación MoM) */
+  prevMonthFinancials = httpResource<BranchFinancialRecord[]>(() => {
+    let prevMonth = this.financialMonth() - 1;
+    let prevYear = this.financialYear();
+    if (prevMonth < 1) { prevMonth = 12; prevYear--; }
+    return {
+      url: this.apiUrl.build('rest/v1/branch_financials', {
+        select: 'pos_revenue,payroll_total,pos_order_count,pos_avg_ticket,employee_count,odoo_expenses',
+        year: `eq.${prevYear}`,
+        month: `eq.${prevMonth}`,
+      }),
+    };
+  });
+
+  /** Líneas de servicio detalladas de peluqueros (últimos 30 días) */
+  groomerServiceLines = httpResource<GroomerServiceLine[]>(() => {
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const fromDate = format(thirtyDaysAgo, 'yyyy-MM-dd');
+    return {
+      url: this.apiUrl.build('rest/v1/groomer_service_lines', {
+        select: 'id,groomer_odoo_id,groomer_name,branch_name,service_date,product_name,pet_name,line_total,groomer_count,proportional_amount,commission_pct,commission_amount,odoo_line_id',
+        service_date: `gte.${fromDate}`,
+        order: 'service_date.desc',
+        limit: '500',
+      }),
+    };
+  });
+
+  /** Últimos cambios en empleados (audit log) */
+  employeeAuditLog = httpResource<EmployeeAuditLog[]>(() => {
+    return {
+      url: this.apiUrl.build('rest/v1/employee_audit_log', {
+        select: 'id,employee_id,changed_by,changed_at,action,field_name,old_value,new_value,employee:employees(first_name,father_name)',
+        order: 'changed_at.desc',
+        limit: '50',
+      }),
     };
   });
 }

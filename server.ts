@@ -73,13 +73,18 @@ export function app(): express.Express {
     crossOriginEmbedderPolicy: false, // Permitir carga de recursos externos
   }));
 
-  // Rate limiting — prevenir abuso y DDoS
+  // Rate limiting — prevenir abuso y DDoS (solo endpoints sensibles)
   const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 300, // máximo 300 requests por IP cada 15 min
+    max: 1000, // máximo 1000 requests por IP cada 15 min
     standardHeaders: true,
     legacyHeaders: false,
     message: { error: 'Too many requests, please try again later' },
+    validate: { trustProxy: false },
+    skip: (req) => {
+      const p = req.path;
+      return p === '/api/version' || p === '/api/client-ip' || p === '/api/server-time';
+    },
   });
   server.use('/api/', apiLimiter);
 
