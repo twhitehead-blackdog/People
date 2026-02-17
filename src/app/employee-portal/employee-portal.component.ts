@@ -43,6 +43,7 @@ import { EmployeePortalTimelogsComponent } from './components/employee-portal-ti
 import { EmployeePortalUniformRequestComponent } from './components/employee-portal-uniform-request.component';
 import { EmployeePortalVacationsComponent } from './components/employee-portal-vacations.component';
 import { SalaryPinDialogComponent } from './components/salary-pin-dialog.component';
+import { DeviceService } from '../services/device.service';
 import { EmployeePortalApiService } from './services/employee-portal-api.service';
 import { EmployeePortalProfileService } from './services/employee-portal-profile.service';
 import { EmployeePortalRequestsService } from './services/employee-portal-requests.service';
@@ -124,6 +125,7 @@ import {
       @if (portalStore.activeSection() === 'management' ||
       portalStore.activeSection() === 'gestiones') {
       <div id="management" class="section-content">
+        @if (device.isDesktop()) {
         <p-card>
           <ng-template #title>
             <div class="flex items-center gap-2">
@@ -142,6 +144,18 @@ import {
             />
           </div>
         </p-card>
+        } @else {
+        <div class="px-4 py-4">
+          <div class="flex items-center gap-2 mb-3">
+            <i class="pi pi-briefcase text-amber-400 text-sm"></i>
+            <span class="text-sm font-semibold text-white">Gestiones</span>
+          </div>
+          <pt-employee-portal-management-navigation
+            [activeSection]="portalStore.activeSection()"
+            (sectionChange)="setActiveSection($event)"
+          />
+        </div>
+        }
       </div>
       }
 
@@ -648,6 +662,7 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EmployeePortalComponent {
+  public device = inject(DeviceService);
   public store = inject(DashboardStore);
   public employees = inject(EmployeesStore);
   public portalStore = inject(EmployeePortalStore);

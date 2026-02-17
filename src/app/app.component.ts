@@ -11,6 +11,7 @@ import { DiagnosticPanelComponent } from './components/diagnostic-panel.componen
 import { DiagnosticService } from './services/diagnostic.service';
 import { ThemeService } from './services/theme.service';
 import { VersionCheckService } from './services/version-check.service';
+import { PwaService } from './services/pwa.service';
 
 @Component({
   imports: [RouterOutlet, DiagnosticPanelComponent, DialogModule, Button],
@@ -108,6 +109,44 @@ import { VersionCheckService } from './services/version-check.service';
         </div>
       </ng-template>
     </p-dialog>
+
+    <!-- PWA Install Banner -->
+    @if (pwa.showInstallBanner()) {
+      <div class="pwa-banner" (click)="pwa.install()">
+        <div class="pwa-banner-content">
+          <div class="pwa-banner-icon">
+            <i class="pi pi-download"></i>
+          </div>
+          <div class="pwa-banner-text">
+            <strong>Instalar People</strong>
+            <span>Accede m&aacute;s r&aacute;pido desde tu pantalla de inicio</span>
+          </div>
+          <button class="pwa-banner-btn" (click)="pwa.install(); $event.stopPropagation()">Instalar</button>
+          <button class="pwa-banner-close" (click)="pwa.dismissInstallBanner(); $event.stopPropagation()">
+            <i class="pi pi-times"></i>
+          </button>
+        </div>
+      </div>
+    }
+
+    <!-- Notification Permission Prompt -->
+    @if (pwa.showNotificationPrompt()) {
+      <div class="notif-prompt">
+        <div class="notif-prompt-content">
+          <div class="notif-prompt-icon">
+            <i class="pi pi-bell"></i>
+          </div>
+          <div class="notif-prompt-text">
+            <strong>Activar notificaciones</strong>
+            <span>Recibe alertas de marcaciones y recordatorios</span>
+          </div>
+          <div class="notif-prompt-actions">
+            <button class="notif-prompt-allow" (click)="pwa.requestNotificationPermission()">Permitir</button>
+            <button class="notif-prompt-dismiss" (click)="pwa.dismissNotificationPrompt()">Ahora no</button>
+          </div>
+        </div>
+      </div>
+    }
   `,
   styles: `
     .sk-overlay{position:fixed;inset:0;z-index:9999;background:#0a0a0a}
@@ -161,6 +200,30 @@ import { VersionCheckService } from './services/version-check.service';
     .ic-yw{background:rgba(234,179,8,.15)}
     @media(max-width:1023px){.sk-side{display:none}.sk-nav{height:56px}.sk-nav-links,.sk-nav-uname{display:none}.sk-hero{grid-template-columns:1fr}.sk-kpi{grid-template-columns:repeat(2,1fr)}.sk-bot{grid-template-columns:repeat(2,1fr)}}
     @media(max-width:640px){.sk-kpi{grid-template-columns:1fr}.sk-bot{grid-template-columns:1fr}}
+
+    /* PWA Install Banner */
+    .pwa-banner{position:fixed;bottom:0;left:0;right:0;z-index:10000;padding:12px 16px;background:linear-gradient(135deg,#1c1917,#292524);border-top:1px solid rgba(251,191,36,.2);animation:pwa-slideUp .4s cubic-bezier(.4,0,.2,1);cursor:pointer}
+    .pwa-banner-content{display:flex;align-items:center;gap:12px;max-width:600px;margin:0 auto}
+    .pwa-banner-icon{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,rgba(251,191,36,.2),rgba(251,191,36,.1));display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#fbbf24;font-size:1.25rem}
+    .pwa-banner-text{flex:1;display:flex;flex-direction:column;gap:2px}
+    .pwa-banner-text strong{color:#fafaf9;font-size:.875rem}
+    .pwa-banner-text span{color:#a8a29e;font-size:.75rem}
+    .pwa-banner-btn{background:#fbbf24;color:#0a0a0a;border:none;border-radius:8px;padding:8px 16px;font-weight:600;font-size:.8rem;cursor:pointer;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+    .pwa-banner-close{background:none;border:none;color:#78716c;padding:8px;cursor:pointer;-webkit-tap-highlight-color:transparent;font-size:.875rem}
+    @keyframes pwa-slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
+
+    /* Notification Prompt */
+    .notif-prompt{position:fixed;top:20px;right:20px;z-index:10000;animation:notif-slideIn .4s cubic-bezier(.4,0,.2,1)}
+    .notif-prompt-content{background:linear-gradient(135deg,#1c1917,#292524);border:1px solid rgba(251,191,36,.15);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;max-width:320px;box-shadow:0 20px 40px rgba(0,0,0,.5)}
+    .notif-prompt-icon{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,rgba(251,191,36,.2),rgba(251,191,36,.08));display:flex;align-items:center;justify-content:center;color:#fbbf24;font-size:1.5rem;margin:0 auto}
+    .notif-prompt-text{text-align:center;display:flex;flex-direction:column;gap:4px}
+    .notif-prompt-text strong{color:#fafaf9;font-size:.9rem}
+    .notif-prompt-text span{color:#a8a29e;font-size:.8rem}
+    .notif-prompt-actions{display:flex;gap:8px}
+    .notif-prompt-allow{flex:1;background:#fbbf24;color:#0a0a0a;border:none;border-radius:8px;padding:10px;font-weight:600;font-size:.8rem;cursor:pointer;-webkit-tap-highlight-color:transparent}
+    .notif-prompt-dismiss{flex:1;background:rgba(255,255,255,.06);color:#a8a29e;border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:10px;font-size:.8rem;cursor:pointer;-webkit-tap-highlight-color:transparent}
+    @keyframes notif-slideIn{from{transform:translateX(120%);opacity:0}to{transform:translateX(0);opacity:1}}
+    @media(max-width:640px){.notif-prompt{top:auto;bottom:80px;right:12px;left:12px}.notif-prompt-content{max-width:100%}}
   `,
 })
 export class AppComponent implements OnInit {
@@ -170,6 +233,7 @@ export class AppComponent implements OnInit {
   private diagnosticService = inject(DiagnosticService);
   private themeService = inject(ThemeService);
   readonly versionCheck = inject(VersionCheckService);
+  readonly pwa = inject(PwaService);
 
   /** Skeleton overlay visible durante carga post-login */
   readonly showSkeleton = signal(false);

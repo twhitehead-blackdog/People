@@ -21,6 +21,7 @@ import {
 import { formatInTimeZone } from 'date-fns-tz';
 import { BaseChartDirective } from 'ng2-charts';
 import { ApiUrlService } from '../services/api-url.service';
+import { DeviceService } from '../services/device.service';
 import { DashboardStore } from '../stores/dashboard.store';
 import { EmployeesStore } from '../stores/employees.store';
 import { OrganizationService } from '../services/organization.service';
@@ -34,6 +35,7 @@ import { ChartsSectionComponent } from './home/components/sections/charts-sectio
 import { EventsSectionComponent } from './home/components/sections/events-section.component';
 import { ManagementSectionComponent } from './home/components/sections/management-section.component';
 import { PeluqueriaSectionComponent } from './home/components/sections/peluqueria-section.component';
+import { ClinicaSectionComponent } from './home/components/sections/clinica-section.component';
 import { BirthdaysDialogComponent } from './home/components/dialogs/birthdays-dialog.component';
 import { HiresExitsDialogComponent } from './home/components/dialogs/hires-exits-dialog.component';
 import { LateDetailsDialogComponent } from './home/components/dialogs/late-details-dialog.component';
@@ -53,6 +55,7 @@ import { TopAbsencesDialogComponent } from './home/components/dialogs/top-absenc
     EventsSectionComponent,
     ManagementSectionComponent,
     PeluqueriaSectionComponent,
+    ClinicaSectionComponent,
     BirthdaysDialogComponent,
     HiresExitsDialogComponent,
     LateDetailsDialogComponent,
@@ -60,11 +63,13 @@ import { TopAbsencesDialogComponent } from './home/components/dialogs/top-absenc
     TopAbsencesDialogComponent
   ],
   template: `
+    @if (device.isDesktop()) {
+    <!-- ========== DESKTOP ========== -->
     <div class="dashboard-wrapper">
       @if (sidebarOpen()) {
         <div class="sidebar-overlay md:hidden" (click)="toggleSidebar()"></div>
       }
-      
+
       <pt-home-sidebar
         [isOpen]="sidebarOpen()"
         [activeSection]="activeSection()"
@@ -114,6 +119,9 @@ import { TopAbsencesDialogComponent } from './home/components/dialogs/top-absenc
           @case ('peluqueria') {
             <pt-peluqueria-section></pt-peluqueria-section>
           }
+          @case ('clinica') {
+            <pt-clinica-section></pt-clinica-section>
+          }
           @case ('charts') {
             <pt-charts-section
               [branchData]="branchData()"
@@ -129,10 +137,10 @@ import { TopAbsencesDialogComponent } from './home/components/dialogs/top-absenc
             <pt-management-section></pt-management-section>
           }
         }
-    
+
         <!-- Dialogs -->
-        <pt-birthdays-dialog 
-            [(visible)]="birthdaysDialogVisible" 
+        <pt-birthdays-dialog
+            [(visible)]="birthdaysDialogVisible"
             [birthDates]="state.birthDates()"
         ></pt-birthdays-dialog>
 
@@ -163,9 +171,157 @@ import { TopAbsencesDialogComponent } from './home/components/dialogs/top-absenc
             [list]="topAbsencesList()"
         ></pt-top-absences-dialog>
       </main>
-    </div>`,
+    </div>
+
+    } @else {
+    <!-- ========== MOBILE ========== -->
+    <div class="flex flex-col h-full bg-[#0a0a0a] overflow-hidden">
+      <!-- Section nav -->
+      <div class="flex-shrink-0 bg-[#0a0a0a]">
+        <div class="mobile-section-nav" style="scrollbar-width: none; -webkit-overflow-scrolling: touch; overflow-x: auto; display: flex; gap: 0; padding: 0 12px;">
+          @for (item of sidebarMenuItems(); track item.id) {
+          <button
+            class="mobile-section-tab"
+            [class.mobile-section-tab--active]="activeSection() === item.id"
+            style="-webkit-tap-highlight-color: transparent;"
+            (click)="selectSection(item.id)"
+          >
+            <i [class]="item.icon" style="font-size: 1rem;"></i>
+            <span>{{ item.label }}</span>
+            @if (activeSection() === item.id) {
+            <div class="mobile-section-tab__indicator"></div>
+            }
+          </button>
+          }
+        </div>
+      </div>
+
+      <!-- Content area -->
+      <div class="flex-1 overflow-y-auto">
+        @switch (activeSection()) {
+          @case ('executive') {
+            <pt-executive-section
+              [headcountChartData]="headcountChartData()"
+              [headcountChartOptions]="headcountChartOptions"
+              [genderChartData]="genderChartData()"
+              [genderChartOptions]="genderChartOptions"
+              [genderCounts]="{ male: getGenderCount('M'), female: getGenderCount('F') }"
+              [genderPercentages]="{ male: getGenderPercentage('M'), female: getGenderPercentage('F') }"
+              [monthlyLates]="getMonthlyLates()"
+              [latesDailyChartData]="latesDailyChartData()"
+              [latesChartOptions]="latesChartOptions"
+              [topLatesCount]="getTopLatesCount()"
+              [topLatesEmployeeName]="getTopLatesEmployeeName()"
+              [topAbsencesCount]="getTopAbsencesCount()"
+              [topAbsencesEmployeeName]="getTopAbsencesEmployeeName()"
+              [monthlyBirthdaysCount]="monthlyBirthdaysCount()"
+              [hiresExitsChartData]="hiresExitsChartData()"
+              [hiresExitsChartOptions]="hiresExitsChartOptions"
+              [hiresExitsCounts]="{ hires: getHiresExitsCount('hires'), exits: getHiresExitsCount('exits') }"
+              [workClimateIndex]="getWorkClimateIndex()"
+              [scheduleComplianceIndex]="getScheduleComplianceIndex()"
+              (openTopLates)="openTopLatesDialog()"
+              (openTopAbsences)="openTopAbsencesDialog()"
+              (openHiresExits)="openCurrentMonthHiresExitsDialog()"
+              (openBirthdays)="openBirthdaysDialog()"
+            ></pt-executive-section>
+          }
+          @case ('financial') {
+            <pt-financial-section></pt-financial-section>
+          }
+          @case ('structure') {
+            <pt-structure-section></pt-structure-section>
+          }
+          @case ('peluqueria') {
+            <pt-peluqueria-section></pt-peluqueria-section>
+          }
+          @case ('clinica') {
+            <pt-clinica-section></pt-clinica-section>
+          }
+          @case ('charts') {
+            <pt-charts-section
+              [branchData]="branchData()"
+              [branchLabels]="branchLabels()"
+              [barChartOptions]="barChartOptions"
+              [ageRanges]="ageRanges"
+            ></pt-charts-section>
+          }
+          @case ('events') {
+            <pt-events-section [currentMonth]="currentMonth()"></pt-events-section>
+          }
+          @case ('management') {
+            <pt-management-section></pt-management-section>
+          }
+        }
+
+        <!-- Dialogs (shared) -->
+        <pt-birthdays-dialog
+            [(visible)]="birthdaysDialogVisible"
+            [birthDates]="state.birthDates()"
+        ></pt-birthdays-dialog>
+        <pt-hires-exits-dialog
+            [(visible)]="monthHiresExitsDialogVisible"
+            [hires]="selectedMonthHiresList()"
+            [exits]="selectedMonthExitsList()"
+            [headerTitle]="'Ingresos y Salidas - ' + selectedMonthLabel()"
+        ></pt-hires-exits-dialog>
+        <pt-late-details-dialog
+            [(visible)]="lateDialogVisible"
+            [details]="lateDialogDetails()"
+            [headerTitle]="lateDialogTitle()"
+        ></pt-late-details-dialog>
+        <pt-top-lates-dialog
+            [(visible)]="topLatesDialogVisible"
+            [list]="topLatesList()"
+        ></pt-top-lates-dialog>
+        <pt-top-absences-dialog
+            [(visible)]="topAbsencesDialogVisible"
+            [list]="topAbsencesList()"
+        ></pt-top-absences-dialog>
+      </div>
+    </div>
+    }`,
   styles: [`
     :host { display: block; height: 100%; overflow: hidden; }
+
+    .mobile-section-nav {
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .mobile-section-tab {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 10px 14px 8px;
+      min-width: 64px;
+      background: transparent;
+      border: none;
+      color: #71717a;
+      font-size: 0.6875rem;
+      font-weight: 500;
+      white-space: nowrap;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: color 0.2s ease;
+      touch-action: manipulation;
+    }
+
+    .mobile-section-tab--active {
+      color: #fbbf24;
+    }
+
+    .mobile-section-tab__indicator {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 24px;
+      height: 2px;
+      background: #fbbf24;
+      border-radius: 1px;
+    }
   `],
   styleUrls: ['./home/home.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -189,6 +345,7 @@ export class HomeComponent {
     // month: 1-12
     return new Date(Date.UTC(year, month, 0)).getUTCDate();
   }
+  public device = inject(DeviceService);
   public state = inject(DashboardStore);
   public employees = inject(EmployeesStore);
   private apiUrl = inject(ApiUrlService);
@@ -199,6 +356,20 @@ export class HomeComponent {
     typeof window !== 'undefined' && window.innerWidth >= 769
   );
   public activeSection = signal('executive');
+
+  // Menu items for mobile pill nav (mirrors sidebar items)
+  public sidebarMenuItems = computed(() => {
+    return [
+      { id: 'executive', label: 'Resumen', icon: 'pi pi-th-large' },
+      { id: 'financial', label: 'Finanzas', icon: 'pi pi-dollar' },
+      { id: 'management', label: 'Personal', icon: 'pi pi-users' },
+      { id: 'structure', label: 'Estructura', icon: 'pi pi-sitemap' },
+      { id: 'peluqueria', label: 'Peluquería', icon: 'pi pi-building' },
+      { id: 'clinica', label: 'Clínica', icon: 'pi pi-heart' },
+      { id: 'charts', label: 'Análisis', icon: 'pi pi-chart-bar' },
+      { id: 'events', label: 'Eventos', icon: 'pi pi-calendar' },
+    ];
+  });
 
   // Computed para contar cumpleañeros del mes
   // Only calculate when executive or events section is active

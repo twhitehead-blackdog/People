@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  inject,
   input,
   output,
   signal,
@@ -13,6 +14,7 @@ import { Card } from 'primeng/card';
 import { DatePicker } from 'primeng/datepicker';
 import { InputText } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
+import { DeviceService } from '../../services/device.service';
 import { getCompensatoryQuantity } from '../utils/employee-portal-compensatory.utils';
 
 type UnifiedRequest = {
@@ -44,6 +46,8 @@ type UnifiedRequest = {
     NgClass,
   ],
   template: `
+    @if (device.isDesktop()) {
+    <!-- ========== DESKTOP ========== -->
     <p-card>
       <ng-template #title>
         <div class="flex items-center justify-between w-full">
@@ -657,10 +661,317 @@ type UnifiedRequest = {
       </div>
       }
     </p-card>
+
+    } @else {
+    <!-- ========== MOBILE ========== -->
+    <div class="px-4 py-4">
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-2">
+          <i class="pi pi-list text-amber-400 text-sm"></i>
+          <span class="text-sm font-semibold text-white">Mis Solicitudes</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <!-- Filter toggle button -->
+          <button
+            type="button"
+            class="flex items-center justify-center w-11 h-11 rounded-lg bg-neutral-800 border border-neutral-700 relative"
+            style="-webkit-tap-highlight-color: transparent;"
+            (click)="showMobileFilters.set(!showMobileFilters())"
+          >
+            <i class="pi pi-filter text-sm text-gray-300"></i>
+            @if (canClearFilters()) {
+            <span class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-amber-500 text-[0.6rem] text-white flex items-center justify-center font-bold">
+              {{ getActiveFiltersCount() }}
+            </span>
+            }
+          </button>
+        </div>
+      </div>
+
+      <!-- Mobile Filters Panel -->
+      @if (showMobileFilters()) {
+      <div class="mb-4 bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+        <div class="flex flex-col gap-3">
+          <!-- Search -->
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1">Buscar</label>
+            <input
+              pInputText
+              type="text"
+              [ngModel]="filterSearchValue()"
+              (ngModelChange)="setFilterSearch()($event)"
+              placeholder="Buscar solicitudes..."
+              class="w-full text-sm"
+            />
+          </div>
+
+          <!-- Status & Type in 2 columns -->
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-xs font-medium text-gray-400 mb-1">Estado</label>
+              <p-select
+                [options]="statusOptions()"
+                [ngModel]="filterStatusValue()"
+                (ngModelChange)="setFilterStatus()($event)"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Todos"
+                appendTo="body"
+                class="w-full"
+              />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-400 mb-1">Tipo</label>
+              <p-select
+                [options]="typeOptions()"
+                [ngModel]="filterTypeValue()"
+                (ngModelChange)="setFilterType()($event)"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="Todos"
+                appendTo="body"
+                class="w-full"
+              />
+            </div>
+          </div>
+
+          <!-- Date range -->
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1">Rango de fechas</label>
+            <p-datepicker
+              [ngModel]="filterDateRangeValue()"
+              (ngModelChange)="setFilterDateRange()($event)"
+              selectionMode="range"
+              [showIcon]="true"
+              dateFormat="dd/mm/yy"
+              placeholder="Seleccionar rango"
+              appendTo="body"
+              [showClear]="true"
+              class="w-full"
+            />
+          </div>
+
+          <!-- Sort -->
+          <div>
+            <label class="block text-xs font-medium text-gray-400 mb-1">Ordenar</label>
+            <p-select
+              [options]="sortOptions()"
+              [ngModel]="selectedSortValue()"
+              (ngModelChange)="onSortChange($event)"
+              optionLabel="label"
+              placeholder="Seleccionar orden"
+              appendTo="body"
+              class="w-full"
+            />
+          </div>
+
+          <!-- Results count and clear -->
+          <div class="flex items-center justify-between pt-2 border-t border-neutral-700/30">
+            <span class="text-xs text-gray-400">
+              <strong class="text-white">{{ filteredRequests().length }}</strong> de
+              <strong class="text-white">{{ allRequests().length }}</strong>
+            </span>
+            @if (canClearFilters()) {
+            <button
+              type="button"
+              class="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20"
+              style="min-height: 44px; -webkit-tap-highlight-color: transparent;"
+              (click)="clearFilters()"
+            >
+              <i class="pi pi-filter-slash text-xs"></i>
+              Limpiar
+            </button>
+            }
+          </div>
+        </div>
+      </div>
+      }
+
+      <!-- Active filters indicator (when panel is closed) -->
+      @if (!showMobileFilters() && canClearFilters()) {
+      <div class="mb-3 px-3 py-2 bg-amber-500/10 border border-amber-400/20 rounded-lg flex items-center justify-between">
+        <span class="text-xs text-amber-300">
+          <strong class="text-white">{{ filteredRequests().length }}</strong> de
+          <strong class="text-white">{{ allRequests().length }}</strong> solicitudes
+        </span>
+        <button
+          type="button"
+          class="text-xs text-amber-400 underline"
+          style="min-height: 44px; display: flex; align-items: center; -webkit-tap-highlight-color: transparent;"
+          (click)="clearFilters()"
+        >
+          Limpiar
+        </button>
+      </div>
+      }
+
+      <!-- Loading -->
+      @if (isLoading()) {
+      <div class="flex justify-center items-center py-12">
+        <div class="flex flex-col items-center gap-2">
+          <i class="pi pi-spin pi-spinner text-3xl text-amber-400"></i>
+          <p class="text-gray-400 text-xs">Cargando solicitudes...</p>
+        </div>
+      </div>
+      } @else if (allRequests().length === 0) {
+      <!-- Empty state -->
+      <div class="flex flex-col items-center justify-center py-12 px-4">
+        <div class="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center mb-3">
+          <i class="pi pi-inbox text-3xl text-amber-400/50"></i>
+        </div>
+        <h3 class="text-sm font-semibold text-white mb-1">No tienes solicitudes aún</h3>
+        <p class="text-gray-400 text-xs text-center mb-4">
+          Ve a "Gestiones" para crear una nueva solicitud.
+        </p>
+        <button
+          type="button"
+          class="flex items-center gap-1.5 px-4 rounded-lg bg-amber-500 text-white text-xs font-semibold"
+          style="min-height: 44px; -webkit-tap-highlight-color: transparent;"
+          (click)="onSetActiveSection('management')"
+        >
+          <i class="pi pi-briefcase text-xs"></i>
+          Ir a Gestiones
+        </button>
+      </div>
+      } @else if (filteredRequests().length === 0) {
+      <!-- No results -->
+      <div class="flex flex-col items-center justify-center py-12 px-4">
+        <div class="w-16 h-16 rounded-full bg-yellow-500/10 flex items-center justify-center mb-3">
+          <i class="pi pi-filter-slash text-3xl text-yellow-400/50"></i>
+        </div>
+        <h3 class="text-sm font-semibold text-white mb-1">Sin resultados</h3>
+        <p class="text-gray-400 text-xs text-center mb-4">
+          Ajusta los filtros para ver solicitudes.
+        </p>
+        <button
+          type="button"
+          class="flex items-center gap-1.5 px-4 rounded-lg bg-neutral-700 text-white text-xs font-semibold"
+          style="min-height: 44px; -webkit-tap-highlight-color: transparent;"
+          (click)="clearFilters()"
+        >
+          <i class="pi pi-filter-slash text-xs"></i>
+          Limpiar Filtros
+        </button>
+      </div>
+      } @else {
+      <!-- Request cards -->
+      <div class="flex flex-col gap-2.5 pb-20">
+        @for (request of filteredRequests(); track request.id) {
+        @let data = request.originalData;
+        <div
+          class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30 active:bg-neutral-700/40 transition-colors"
+          style="-webkit-tap-highlight-color: transparent;"
+          (click)="onViewRequestDetails(request)"
+        >
+          <!-- Top row: icon, title, status -->
+          <div class="flex items-start gap-2.5">
+            <!-- Type icon -->
+            <div
+              class="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+              [ngClass]="{
+                'bg-yellow-500/20': request.status === 'pending',
+                'bg-green-500/20': request.status === 'approved',
+                'bg-red-500/20': request.status === 'rejected',
+                'bg-cyan-500/20': request.status === 'in_registry'
+              }"
+            >
+              @if (request.request_type === 'compensatory') {
+              <i class="pi pi-clock text-cyan-400 text-sm"></i>
+              } @else if (request.request_type === 'disability') {
+              <i class="pi pi-file-plus text-blue-400 text-sm"></i>
+              } @else if (request.request_type === 'document') {
+              <i class="pi pi-file-edit text-green-400 text-sm"></i>
+              } @else if (request.request_type === 'complaint') {
+              <i class="pi pi-comments text-yellow-400 text-sm"></i>
+              } @else {
+              <i class="pi pi-calendar-plus text-purple-400 text-sm"></i>
+              }
+            </div>
+
+            <!-- Title & type label -->
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-semibold text-white truncate">{{ request.title }}</p>
+              <p class="text-xs text-gray-400">{{ getRequestTypeLabel()(request.request_type) }}</p>
+            </div>
+
+            <!-- Status badge -->
+            <span
+              class="flex-shrink-0 px-2 py-1 rounded-md text-[0.65rem] font-semibold flex items-center gap-1"
+              [class.text-yellow-300]="request.status === 'pending'"
+              [class.text-green-300]="request.status === 'approved'"
+              [class.text-red-300]="request.status === 'rejected'"
+              [class.text-cyan-300]="request.status === 'in_registry'"
+              [ngClass]="{
+                'bg-yellow-500/20': request.status === 'pending',
+                'bg-green-500/20': request.status === 'approved',
+                'bg-red-500/20': request.status === 'rejected',
+                'bg-cyan-500/20': request.status === 'in_registry'
+              }"
+            >
+              @if (request.status === 'approved') {
+              <i class="pi pi-check-circle text-[0.6rem]"></i>
+              } @else if (request.status === 'rejected') {
+              <i class="pi pi-times-circle text-[0.6rem]"></i>
+              } @else if (request.status === 'in_registry') {
+              <i class="pi pi-clock text-[0.6rem]"></i>
+              } @else {
+              <i class="pi pi-hourglass text-[0.6rem]"></i>
+              }
+              {{ getStatusLabel()(request.status) }}
+            </span>
+          </div>
+
+          <!-- Date row -->
+          <div class="flex items-center gap-1.5 mt-2 pt-2 border-t border-neutral-700/20">
+            <i class="pi pi-calendar text-xs text-gray-500"></i>
+            <span class="text-xs text-gray-400">
+              {{ request.created_at | date : 'dd/MM/yyyy' }} - {{ request.created_at | date : 'HH:mm' }}
+            </span>
+
+            <!-- Rejection indicator -->
+            @if (data.rejection_comment || (data.notes && request.status === 'rejected')) {
+            <span class="ml-auto flex items-center gap-1 text-[0.65rem] text-red-400">
+              <i class="pi pi-exclamation-triangle text-[0.6rem]"></i>
+              Rechazado
+            </span>
+            }
+
+            <!-- Complaint conversation link -->
+            @if (request.request_type === 'complaint') {
+            <button
+              type="button"
+              class="ml-auto flex items-center gap-1 text-xs text-amber-400"
+              style="min-height: 44px; -webkit-tap-highlight-color: transparent;"
+              (click)="onViewResponse(data); $event.stopPropagation()"
+            >
+              <i class="pi pi-comments text-xs"></i>
+            </button>
+            }
+          </div>
+        </div>
+        }
+      </div>
+      }
+
+      <!-- FAB: Nueva Solicitud -->
+      <button
+        type="button"
+        class="fixed bottom-6 right-4 w-12 h-12 rounded-full bg-amber-500 shadow-lg shadow-amber-500/30 flex items-center justify-center z-50 active:bg-amber-600 transition-colors"
+        style="-webkit-tap-highlight-color: transparent;"
+        (click)="onSetActiveSection('management')"
+      >
+        <i class="pi pi-plus text-white text-lg"></i>
+      </button>
+    </div>
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EmployeePortalMyRequestsComponent {
+  protected device = inject(DeviceService);
+  public showMobileFilters = signal(false);
+
   // Inputs
   public allRequests = input.required<UnifiedRequest[]>();
   public filteredRequests = input.required<UnifiedRequest[]>();

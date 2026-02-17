@@ -36,7 +36,6 @@ const SERVICE_ROLE_PATHS = new Set([
   '/rest/v1/departments',
   '/rest/v1/schedules',
   '/rest/v1/terminations',
-  '/rest/v1/employee_terminations',
   '/rest/v1/timelogs',
   '/rest/v1/employee_schedules',
   '/rest/v1/attendance_sheets',
@@ -66,6 +65,7 @@ const SERVICE_ROLE_PATHS = new Set([
   '/rest/v1/devices',
   '/rest/v1/device_assignments',
   '/rest/v1/org_structure',
+  '/rest/v1/branch_daily_pet_count',
 ]);
 // Prefijos que no se pueden resolver con Set (rutas parciales)
 const SERVICE_ROLE_PREFIXES = ['/rest/v1/rpc/', '/storage/v1/object/'];

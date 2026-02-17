@@ -49,6 +49,8 @@ import { EmployeePortalComponent } from './employee-portal.component';
 
 import { DogAnimationComponent } from './components/dog.component';
 import { PermissionsService } from '../services/permissions.service';
+import { DeviceService } from '../services/device.service';
+import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mobile-bottom-nav.component';
 
 @Component({
   selector: 'pt-dashboard',
@@ -83,12 +85,16 @@ import { PermissionsService } from '../services/permissions.service';
     CommonModule,
     ScreenLockComponent,
     DogAnimationComponent,
+    MobileBottomNavComponent,
   ],
   template: `
     <p-toast />
     <p-confirmDialog />
     @let user = currentUser$ | async;
-    <!-- Overlay para móvil/tablet cuando el menú está abierto -->
+
+    @if (device.isDesktop()) {
+    <!-- ========== DESKTOP ========== -->
+    <!-- Overlay para tablet cuando el menú está abierto -->
     @if (!isCollapsed()) {
     <div
       class="fixed inset-0 bg-black/50 z-[999] lg:hidden"
@@ -348,6 +354,82 @@ import { PermissionsService } from '../services/permissions.service';
       </div>
       <pt-screen-lock></pt-screen-lock>
     </div>
+
+    } @else {
+    <!-- ========== MOBILE ========== -->
+    <div
+      class="h-screen flex flex-col overflow-hidden"
+      [ngClass]="{ 'naz-theme': isNaz() }"
+    >
+      <!-- Mobile top bar -->
+      <nav class="bg-neutral-900 border-b border-neutral-800 w-full z-[1000] flex-shrink-0">
+        <div class="flex items-center justify-between h-[52px] px-3">
+          <a (click)="navigateTo('home')" class="flex items-center cursor-pointer" style="-webkit-tap-highlight-color: transparent;">
+            <img [src]="logoPath()" class="h-7" alt="People" />
+          </a>
+          <div class="flex items-center gap-2">
+            @if(user) {
+            <p-menu
+              #mobileMenuTop
+              [model]="getMenuItems()"
+              popup
+              [appendTo]="'body'"
+            />
+            <button
+              class="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-neutral-800/60 border border-neutral-700/40"
+              style="-webkit-tap-highlight-color: transparent;"
+              (click)="mobileMenuTop.toggle($event)"
+            >
+              <div class="relative flex-shrink-0">
+                <div class="w-7 h-7 rounded-full overflow-hidden border border-gray-600/40">
+                  <p-avatar [image]="user.picture" shape="circle" size="normal" />
+                </div>
+                <div class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-neutral-900"></div>
+              </div>
+              <i class="pi pi-chevron-down text-gray-400 text-[10px]"></i>
+            </button>
+            }
+          </div>
+        </div>
+      </nav>
+
+      <!-- Test mode banner -->
+      @if(isSupportUser() && isTestModeActive() && !isAdminMode()) {
+      <div class="bg-yellow-500/20 border-b border-yellow-500/50 px-3 py-1.5 flex items-center justify-between flex-shrink-0">
+        <div class="flex items-center gap-1.5 text-yellow-300">
+          <i class="pi pi-info-circle text-xs"></i>
+          <span class="text-xs font-medium">Prueba: <strong>{{ getModeLabel() }}</strong></span>
+        </div>
+        <button
+          (click)="setTestMode('admin')"
+          class="px-2 py-0.5 bg-yellow-500 text-black text-xs font-semibold rounded"
+          style="-webkit-tap-highlight-color: transparent;"
+        >
+          Admin
+        </button>
+      </div>
+      }
+
+      <!-- Content area -->
+      <div class="flex-1 overflow-y-auto" [style.padding-bottom]="showEmployeePortalView() ? '0' : '72px'">
+        @if(showEmployeePortalView()) {
+        <pt-employee-portal />
+        } @else {
+        <router-outlet />
+        }
+      </div>
+
+      <!-- Bottom nav (only for admin routes, not employee portal) -->
+      @if(!showEmployeePortalView()) {
+      <pt-mobile-bottom-nav
+        [tabs]="adminMobileTabs()"
+        [activeTab]="activeMobileAdminTab()"
+        (tabChange)="onMobileAdminTabChange($event)"
+      />
+      }
+      <pt-screen-lock></pt-screen-lock>
+    </div>
+    }
   `,
   styles: `
       .selected {
@@ -608,6 +690,7 @@ import { PermissionsService } from '../services/permissions.service';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DashboardComponent {
+  public device = inject(DeviceService);
   public isCollapsed = signal(true);
   public store = inject(DashboardStore);
   public auth = inject(AuthService);
@@ -650,6 +733,30 @@ export class DashboardComponent {
   public canAccessBranchManager = computed(() =>
     this.permissionsService.canAccessModule('branch_manager')
   );
+
+  // Mobile admin bottom nav tabs (computed based on permissions)
+  public adminMobileTabs = computed<MobileNavTab[]>(() => {
+    const tabs: MobileNavTab[] = [];
+    if (this.store.isAdmin() && this.canAccessAdmin()) {
+      tabs.push({ id: 'home', label: 'Inicio', icon: 'pi pi-home' });
+      tabs.push({ id: 'admin', label: 'Admin', icon: 'pi pi-building' });
+    }
+    if ((this.store.isAdmin() || this.store.hasTimeManagementAccess()) && this.canAccessTimeManagement()) {
+      tabs.push({ id: 'time-management', label: 'Tiempo', icon: 'pi pi-calendar' });
+    }
+    if ((this.store.isAdmin() || this.store.hasDashboardAccess() || this.store.hasTimeManagementAccess()) && this.canAccessTimeclock()) {
+      tabs.push({ id: 'timeclock', label: 'Reloj', icon: 'pi pi-clock' });
+    }
+    if (this.store.isAdmin() && this.canAccessPayroll()) {
+      tabs.push({ id: 'payroll', label: 'Nómina', icon: 'pi pi-money-bill' });
+    }
+    return tabs;
+  });
+
+  public activeMobileAdminTab = computed(() => {
+    const route = this.currentRoute();
+    return route || 'home';
+  });
 
   // Computed para verificar si es Naz
   public isNaz = computed(() => this.organizationService.isNaz());
@@ -867,6 +974,10 @@ export class DashboardComponent {
   navigateTo(route: string) {
     // Navigate relative to the current activated route (which is the dashboard component)
     this.router.navigate([route], { relativeTo: this.route });
+  }
+
+  onMobileAdminTabChange(tabId: string) {
+    this.navigateTo(tabId);
   }
 
   // Computed signals para rutas activas - se actualizan solo cuando cambia la URL

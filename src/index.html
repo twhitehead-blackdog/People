@@ -132,8 +132,20 @@
     <meta charset="utf-8" />
     <title>People | Registro de Empleados</title>
     <base href="/" />
-    <meta content="width=device-width, initial-scale=1" name="viewport" />
+    <meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport" />
+    <meta name="theme-color" content="#0a0a0a" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="People" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="People" />
+    <meta name="msapplication-TileColor" content="#0a0a0a" />
+    <meta name="msapplication-TileImage" content="icons/pwa/icon-144x144.png" />
     <link href="favicon.ico" rel="icon" type="image/x-icon" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="icons/pwa/icon-152x152.png" />
+    <link rel="apple-touch-icon" sizes="192x192" href="icons/pwa/icon-192x192.png" />
+    <link rel="apple-touch-icon" sizes="512x512" href="icons/pwa/icon-512x512.png" />
     <!-- Preconnect: Supabase API + Auth0 -->
     <link rel="preconnect" href="https://dzyckfezcmcqvnmagafq.supabase.co" crossorigin />
     <link rel="dns-prefetch" href="https://dzyckfezcmcqvnmagafq.supabase.co" />
@@ -306,5 +318,16 @@
         </div>
       </div>
     </pt-root>
+    <script>
+      // Register Service Worker for PWA
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+          navigator.serviceWorker.register('/sw.js').then(function(reg) {
+            // Check for updates every 60 minutes
+            setInterval(function() { reg.update(); }, 60 * 60 * 1000);
+          }).catch(function() {});
+        });
+      }
+    </script>
   </body>
 </html>

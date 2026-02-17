@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   EventEmitter,
+  inject,
   Input,
   Output,
 } from '@angular/core';
@@ -14,6 +15,7 @@ import { FileUpload } from 'primeng/fileupload';
 import { InputTextarea } from 'primeng/inputtextarea';
 import { TooltipModule } from 'primeng/tooltip';
 import { Employee } from '../../models';
+import { DeviceService } from '../../services/device.service';
 import { TutorialStepDirective } from '../../shared/directives/tutorial-step.directive';
 
 @Component({
@@ -32,6 +34,8 @@ import { TutorialStepDirective } from '../../shared/directives/tutorial-step.dir
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    @if (device.isDesktop()) {
+    <!-- ========== DESKTOP ========== -->
     <p-card>
       <ng-template #title>
         <div class="flex items-center gap-2">
@@ -483,9 +487,277 @@ import { TutorialStepDirective } from '../../shared/directives/tutorial-step.dir
         </div>
       </div>
     </p-card>
+    } @else {
+    <!-- ========== MOBILE ========== -->
+    <div class="px-4 py-4">
+      <!-- Header -->
+      <div class="flex items-center gap-3 mb-4">
+        <button class="text-gray-400 hover:text-white" (click)="closeSection.emit()">
+          <i class="pi pi-arrow-left text-lg"></i>
+        </button>
+        <div>
+          <h2 class="text-lg font-bold text-white m-0">Tiempo Compensatorio</h2>
+          <p class="text-xs text-gray-400 m-0">Solicita compensatorio por horas extras</p>
+        </div>
+      </div>
+
+      <!-- Employee info for branch manager -->
+      @if (isBranchManagerView && selectedEmployee) {
+      <div class="bg-neutral-800/60 rounded-xl p-3 border border-cyan-400/30 mb-3">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
+            <span class="text-cyan-400 font-semibold text-sm">
+              {{ selectedEmployee.first_name?.charAt(0) }}{{ selectedEmployee.father_name?.charAt(0) }}
+            </span>
+          </div>
+          <div>
+            <p class="text-white font-semibold text-sm m-0">{{ selectedEmployee.first_name }} {{ selectedEmployee.father_name }}</p>
+            <p class="text-xs text-gray-400 m-0">{{ selectedEmployee.position?.name }}</p>
+          </div>
+        </div>
+      </div>
+      }
+
+      <div class="grid grid-cols-1 gap-3">
+        <!-- Type Selection -->
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <h3 class="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+            <i class="pi pi-list text-cyan-400"></i>
+            Tipo de Compensatorio
+          </h3>
+          <div class="grid grid-cols-2 gap-2">
+            <div
+              class="p-3 rounded-lg border cursor-pointer text-center"
+              [class.border-cyan-400]="compensatoryType === 'hours'"
+              [class.border-neutral-600]="compensatoryType !== 'hours'"
+              [ngClass]="{ 'bg-cyan-500/10': compensatoryType === 'hours', 'bg-neutral-700/30': compensatoryType !== 'hours' }"
+              (click)="compensatoryTypeChange.emit('hours')"
+            >
+              <i class="pi pi-clock text-cyan-400 text-lg"></i>
+              <p class="text-sm text-gray-300 m-0 mt-1">Horas</p>
+            </div>
+            <div
+              class="p-3 rounded-lg border cursor-pointer text-center"
+              [class.border-cyan-400]="compensatoryType === 'days'"
+              [class.border-neutral-600]="compensatoryType !== 'days'"
+              [ngClass]="{ 'bg-cyan-500/10': compensatoryType === 'days', 'bg-neutral-700/30': compensatoryType !== 'days' }"
+              (click)="compensatoryTypeChange.emit('days')"
+            >
+              <i class="pi pi-calendar text-cyan-400 text-lg"></i>
+              <p class="text-sm text-gray-300 m-0 mt-1">Días</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dates -->
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <h3 class="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+            <i class="pi pi-calendar text-cyan-400"></i>
+            Fecha del Compensatorio
+          </h3>
+          @if (compensatoryType === 'hours') {
+          <div class="grid grid-cols-1 gap-3">
+            <div>
+              <label class="text-xs text-gray-400 mb-1 block">Fecha</label>
+              <p-datepicker
+                [ngModel]="compensatoryDate"
+                (ngModelChange)="compensatoryDateChange.emit($event)"
+                appendTo="body"
+                styleClass="w-full"
+                [minDate]="minPastDate"
+                placeholder="Selecciona la fecha"
+                [showIcon]="true"
+                dateFormat="dd/mm/yy"
+              />
+            </div>
+            <div>
+              <label class="text-xs text-gray-400 mb-1 block">Hora Inicio</label>
+              <p-datepicker
+                [ngModel]="compensatoryTimeStart"
+                (ngModelChange)="compensatoryTimeStartChange.emit($event)"
+                appendTo="body"
+                styleClass="w-full"
+                timeOnly
+                hourFormat="12"
+                stepMinute="60"
+                stepSecond="0"
+                hideSeconds="true"
+                placeholder="Hora inicio"
+                [showIcon]="true"
+              />
+            </div>
+            <div>
+              <label class="text-xs text-gray-400 mb-1 block">Hora Fin</label>
+              <p-datepicker
+                [ngModel]="compensatoryTimeEnd"
+                (ngModelChange)="compensatoryTimeEndChange.emit($event)"
+                appendTo="body"
+                styleClass="w-full"
+                timeOnly
+                hourFormat="12"
+                stepMinute="60"
+                stepSecond="0"
+                hideSeconds="true"
+                placeholder="Hora fin"
+                [showIcon]="true"
+              />
+            </div>
+          </div>
+          } @else {
+          <div class="grid grid-cols-1 gap-3">
+            <div>
+              <label class="text-xs text-gray-400 mb-1 block">Fecha de Inicio</label>
+              <p-datepicker
+                [ngModel]="compensatoryStartDate"
+                (ngModelChange)="compensatoryStartDateChange.emit($event)"
+                appendTo="body"
+                styleClass="w-full"
+                [minDate]="minPastDate"
+                placeholder="Fecha inicio"
+                [showIcon]="true"
+                dateFormat="dd/mm/yy"
+              />
+            </div>
+            <div>
+              <label class="text-xs text-gray-400 mb-1 block">Fecha de Fin</label>
+              <p-datepicker
+                [ngModel]="compensatoryEndDate"
+                (ngModelChange)="compensatoryEndDateChange.emit($event)"
+                appendTo="body"
+                styleClass="w-full"
+                [minDate]="compensatoryStartDate || minPastDate"
+                placeholder="Fecha fin"
+                [showIcon]="true"
+                dateFormat="dd/mm/yy"
+              />
+            </div>
+          </div>
+          }
+        </div>
+
+        <!-- Reason -->
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <h3 class="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+            <i class="pi pi-comment text-cyan-400"></i>
+            Motivo (Opcional)
+          </h3>
+          <textarea
+            pInputTextarea
+            [ngModel]="compensatoryReason"
+            (ngModelChange)="compensatoryReasonChange.emit($event)"
+            rows="3"
+            placeholder="Describe el motivo..."
+            class="w-full"
+          ></textarea>
+        </div>
+
+        <!-- Overtime Dates -->
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <h3 class="text-sm font-semibold text-white mb-2 flex items-center gap-2">
+            <i class="pi pi-clock text-cyan-400"></i>
+            Fechas de horas extra
+          </h3>
+          <p class="text-xs text-gray-400 mb-3">
+            Selecciona las fechas donde trabajaste horas extra.
+          </p>
+          <div class="mb-3">
+            <p-datepicker
+              [ngModel]="newOvertimeDate"
+              (ngModelChange)="onDateSelected($event)"
+              appendTo="body"
+              dateFormat="dd/mm/yy"
+              placeholder="Agregar fecha"
+              [maxDate]="today"
+              styleClass="w-full"
+            />
+          </div>
+          @if (!manualOvertimeDates.length) {
+          <div class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
+            <p class="text-xs text-yellow-300 m-0">
+              <i class="pi pi-info-circle mr-1"></i> No hay fechas agregadas
+            </p>
+          </div>
+          } @else {
+          <div class="space-y-2">
+            <p class="text-xs text-gray-400 m-0">Fechas ({{ manualOvertimeDates.length }}):</p>
+            @for (date of manualOvertimeDates; track $index) {
+            <div class="flex items-center justify-between p-2 rounded-lg bg-neutral-700/50">
+              <div class="flex items-center gap-2">
+                <i class="pi pi-calendar text-cyan-400 text-sm"></i>
+                <span class="text-sm text-white">{{ date | date : 'dd/MM/yyyy' }}</span>
+              </div>
+              <button class="text-red-400" (click)="removeManualDate.emit($index)">
+                <i class="pi pi-times text-sm"></i>
+              </button>
+            </div>
+            }
+          </div>
+          }
+        </div>
+
+        <!-- File Upload -->
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <h3 class="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+            <i class="pi pi-file text-cyan-400"></i>
+            Documento (Opcional)
+          </h3>
+          <p-fileUpload
+            mode="basic"
+            accept=".pdf"
+            maxFileSize="5000000"
+            [auto]="false"
+            chooseLabel="Seleccionar PDF"
+            (onSelect)="handleFileSelect($event)"
+            class="w-full"
+          />
+          <p class="text-xs text-gray-500 mt-1">PDF (máx. 5MB)</p>
+          @if (compensatoryFile) {
+          <div class="mt-2 p-2 bg-cyan-500/10 border border-cyan-500/30 rounded-lg flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              @if (uploadingFile) {
+              <i class="pi pi-spin pi-spinner text-cyan-400 text-sm"></i>
+              <span class="text-xs text-gray-300">Subiendo...</span>
+              } @else {
+              <i class="pi pi-file text-cyan-400 text-sm"></i>
+              <span class="text-xs text-gray-300">{{ compensatoryFile.name }}</span>
+              }
+            </div>
+            <button class="text-red-400" (click)="compensatoryFileChange.emit(null)" [disabled]="uploadingFile">
+              <i class="pi pi-times text-sm"></i>
+            </button>
+          </div>
+          }
+        </div>
+
+        <!-- Summary & Submit -->
+        @if (compensatoryAmount > 0) {
+        <div class="bg-cyan-500/10 border border-cyan-400/30 rounded-xl p-3">
+          <p class="text-xs text-gray-400 m-0">Total a Solicitar</p>
+          <p class="text-lg font-bold text-cyan-300 m-0">
+            @if (compensatoryType === 'hours') {
+            {{ compensatoryAmount.toFixed(1) }} hora(s)
+            } @else {
+            {{ compensatoryAmount }} día(s)
+            }
+          </p>
+        </div>
+        }
+
+        <p-button
+          label="Solicitar Compensatorio"
+          icon="pi pi-send"
+          [loading]="submitting"
+          [disabled]="!canSubmit || submitting"
+          (onClick)="submitRequest.emit()"
+          styleClass="w-full min-h-[44px]"
+        />
+      </div>
+    </div>
+    }
   `,
 })
 export class EmployeePortalCompensatoryComponent {
+  protected device = inject(DeviceService);
   @Input() compensatoryType: 'hours' | 'days' = 'hours';
   @Output() compensatoryTypeChange = new EventEmitter<'hours' | 'days'>();
   @Input() compensatoryDate: Date | null = null;

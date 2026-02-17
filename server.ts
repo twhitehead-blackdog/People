@@ -269,6 +269,7 @@ export function app(): express.Express {
         'amount_total',
         'amount_untaxed',
         'user_id',
+        'warehouse_id',
         // Campos del módulo sale_order_comanda_mascotas
         'nombres_mascotas',
         'count_peluqueria',
@@ -1377,9 +1378,13 @@ export function app(): express.Express {
     } else if (filePath.endsWith('.css')) {
       res.setHeader('Content-Type', 'text/css; charset=UTF-8');
     }
+    // Service Worker y manifest: nunca cachear (deben actualizarse siempre)
+    if (/sw\.js$|manifest\.webmanifest$/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    }
     // Cache: archivos con hash en el nombre → inmutables (1 año)
     // Resto → cache corto (1 hora) para revalidar
-    if (/\-[A-Z0-9]{8}\.(js|css|woff2?)$/i.test(filePath)) {
+    else if (/\-[A-Z0-9]{8}\.(js|css|woff2?)$/i.test(filePath)) {
       res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     } else if (/\.(js|css|woff2?|ttf|svg|png|jpg|jpeg|webp|ico|json)$/i.test(filePath)) {
       res.setHeader('Cache-Control', 'public, max-age=3600');

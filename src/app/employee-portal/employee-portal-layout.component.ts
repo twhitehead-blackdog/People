@@ -22,6 +22,8 @@ import { NotificationsService } from '../services/notifications.service';
 import { OrganizationService } from '../services/organization.service';
 import { EmployeePortalNavigationService } from '../services/employee-portal-navigation.service';
 import { NotificationsDropdownComponent } from '../components/notifications-dropdown.component';
+import { DeviceService } from '../services/device.service';
+import { MobileBottomNavComponent, MobileNavTab } from '../shared/components/mobile-bottom-nav.component';
 import { AuthStore } from '../stores/auth.store';
 import { BanksStore } from '../stores/banks.store';
 import { BranchesStore } from '../stores/branches.store';
@@ -73,11 +75,15 @@ type NavSection = {
     Button,
     TooltipModule,
     NotificationsDropdownComponent,
+    MobileBottomNavComponent,
   ],
   template: `
     <p-toast />
     <p-confirmDialog />
     @let user = auth.user$ | async;
+
+    @if (device.isDesktop()) {
+    <!-- ========== DESKTOP ========== -->
     <div class="h-screen flex flex-col">
       <nav
         class="bg-gradient-to-r from-neutral-900 via-neutral-800 to-neutral-900 border-b border-neutral-700/50 w-full min-w-0 shadow-lg"
@@ -91,63 +97,58 @@ type NavSection = {
                 class="shrink-0 flex items-center gap-2 group cursor-pointer"
               >
                 <img
-                  [src]="
-                    isNaz() ? 'images/Naz_Logo.jpg' : 'images/blackdog.png'
-                  "
+                  [src]="isNaz() ? 'images/Naz_Logo.jpg' : 'images/blackdog.png'"
                   class="h-9 transition-transform duration-300 group-hover:scale-105"
                   [alt]="isNaz() ? 'Naz Logo' : 'Black Dog Logo'"
                 />
               </a>
-              <div class="hidden md:block">
-                <div class="ml-10 flex items-center space-x-3">
-                  @for (nav of navSections; track nav.id) { @if (!nav.children)
-                  {
+              <div class="ml-10 flex items-center space-x-3">
+                @for (nav of navSections; track nav.id) { @if (!nav.children) {
+                <button
+                  type="button"
+                  (click)="navigateToSection(nav.section!)"
+                  [class.selected]="isActiveSection(nav.section!)"
+                  class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md min-h-[48px] leading-tight"
+                >
+                  <i [class]="nav.icon + ' text-base'"></i>
+                  <span class="whitespace-nowrap">{{ nav.label }}</span>
+                </button>
+                } @else {
+                <div
+                  class="relative"
+                  (mouseenter)="openDropdownWithDelay(nav.id)"
+                  (mouseleave)="closeDropdownWithDelay()"
+                >
                   <button
                     type="button"
-                    (click)="navigateToSection(nav.section!)"
-                    [class.selected]="isActiveSection(nav.section!)"
                     class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md min-h-[48px] leading-tight"
                   >
                     <i [class]="nav.icon + ' text-base'"></i>
                     <span class="whitespace-nowrap">{{ nav.label }}</span>
+                    <i class="pi pi-chevron-down text-xs"></i>
                   </button>
-                  } @else {
+                  @if (openDropdown() === nav.id) {
                   <div
-                    class="relative"
+                    class="absolute left-0 top-full w-56 rounded-lg bg-neutral-800 border border-neutral-700 shadow-xl z-50 py-2 mt-0"
+                    style="margin-top: -1px;"
                     (mouseenter)="openDropdownWithDelay(nav.id)"
                     (mouseleave)="closeDropdownWithDelay()"
                   >
+                    @for (child of nav.children; track child.id) {
                     <button
                       type="button"
-                      class="text-gray-300 hover:text-white hover:bg-gray-700/50 px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all duration-200 hover:shadow-md min-h-[48px] leading-tight"
+                      (click)="navigateToSection(child.section)"
+                      [class.selected]="isActiveSection(child.section)"
+                      class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-700/60 flex items-center gap-2 transition-colors"
                     >
-                      <i [class]="nav.icon + ' text-base'"></i>
-                      <span class="whitespace-nowrap">{{ nav.label }}</span>
-                      <i class="pi pi-chevron-down text-xs"></i>
+                      <i [class]="child.icon + ' text-sm'"></i>
+                      <span class="truncate">{{ child.label }}</span>
                     </button>
-                    @if (openDropdown() === nav.id) {
-                    <div
-                      class="absolute left-0 top-full w-56 rounded-lg bg-neutral-800 border border-neutral-700 shadow-xl z-50 py-2 mt-0"
-                      style="margin-top: -1px;"
-                      (mouseenter)="openDropdownWithDelay(nav.id)"
-                      (mouseleave)="closeDropdownWithDelay()"
-                    >
-                      @for (child of nav.children; track child.id) {
-                      <button
-                        type="button"
-                        (click)="navigateToSection(child.section)"
-                        [class.selected]="isActiveSection(child.section)"
-                        class="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-gray-700/60 flex items-center gap-2 transition-colors"
-                      >
-                        <i [class]="child.icon + ' text-sm'"></i>
-                        <span class="truncate">{{ child.label }}</span>
-                      </button>
-                      }
-                    </div>
                     }
                   </div>
-                  } }
+                  }
                 </div>
+                } }
               </div>
             </div>
             <div class="flex items-center">
@@ -166,11 +167,7 @@ type NavSection = {
                     <span
                       class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white border-2 border-gray-800"
                     >
-                      {{
-                        unreadNotificationsCount() > 99
-                          ? '99+'
-                          : unreadNotificationsCount()
-                      }}
+                      {{ unreadNotificationsCount() > 99 ? '99+' : unreadNotificationsCount() }}
                     </span>
                     }
                   </button>
@@ -179,7 +176,7 @@ type NavSection = {
                     [onClose]="closeNotificationsDropdown.bind(this)"
                   />
                 </div>
-                <div class="hidden md:flex items-center gap-3">
+                <div class="flex items-center gap-3">
                   <p-menu #menu [model]="items" popup />
                   <div
                     class="flex items-center gap-3 cursor-pointer group px-3 py-2 rounded-lg hover:bg-gray-700/50 transition-all duration-200"
@@ -187,158 +184,88 @@ type NavSection = {
                   >
                     <div class="relative flex-shrink-0">
                       <div class="avatar-container">
-                        <p-avatar
-                          [image]="user?.picture"
-                          shape="circle"
-                          size="normal"
-                        />
+                        <p-avatar [image]="user?.picture" shape="circle" size="normal" />
                       </div>
-                      <div
-                        class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-800"
-                      ></div>
+                      <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-800"></div>
                     </div>
                     <div class="flex flex-col min-w-0 flex-1">
-                      <div
-                        class="text-sm font-semibold text-white group-hover:text-gray-100 transition-colors truncate"
-                      >
-                        {{ store.currentEmployee()?.first_name }}
-                        {{ store.currentEmployee()?.father_name }}
+                      <div class="text-sm font-semibold text-white group-hover:text-gray-100 transition-colors truncate">
+                        {{ store.currentEmployee()?.first_name }} {{ store.currentEmployee()?.father_name }}
                       </div>
-                      <div
-                        class="text-xs text-gray-400 group-hover:text-gray-300 transition-colors truncate"
-                      >
-                        {{
-                          store.currentEmployee()?.position?.name || 'Sin cargo'
-                        }}
+                      <div class="text-xs text-gray-400 group-hover:text-gray-300 transition-colors truncate">
+                        {{ store.currentEmployee()?.position?.name || 'Sin cargo' }}
                       </div>
                     </div>
-                    <i
-                      class="pi pi-chevron-down text-gray-400 group-hover:text-gray-300 transition-colors text-xs flex-shrink-0"
-                    ></i>
+                    <i class="pi pi-chevron-down text-gray-400 group-hover:text-gray-300 transition-colors text-xs flex-shrink-0"></i>
                   </div>
                 </div>
               </div>
               }
             </div>
-            <div class="-mr-2 flex md:hidden">
-              <p-button
-                rounded
-                text
-                [icon]="isCollapsed() ? 'pi pi-bars' : 'pi pi-times'"
-                severity="secondary"
-                (onClick)="toggleMenu()"
-                class="text-white hover:bg-gray-700/50"
-              />
-            </div>
           </div>
-        </div>
-        <div
-          class="md:hidden border-t border-neutral-700/50 bg-neutral-800/90 backdrop-blur-sm"
-          [class.hidden]="isCollapsed()"
-        >
-          <div class="space-y-2 px-2 pt-2 pb-3 sm:px-3">
-            @if(user) {
-            <div class="relative">
-              <button
-                type="button"
-                (click)="toggleNotificationsDropdown()"
-                class="relative w-full rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer text-left"
-              >
-                <i class="pi pi-bell text-lg"></i>
-                <span>Notificaciones</span>
-                @if (unreadNotificationsCount() > 0) {
-                <span
-                  class="ml-auto w-6 h-6 bg-red-500 rounded-full flex items-center justify-center text-xs font-bold text-white"
-                >
-                  {{
-                    unreadNotificationsCount() > 99 ? '99+' : unreadNotificationsCount()
-                  }}
-                </span>
-                }
-              </button>
-              <pt-notifications-dropdown
-                [isVisible]="showNotificationsDropdown()"
-                [onClose]="closeNotificationsDropdown.bind(this)"
-              />
-            </div>
-            } @for (nav of navSections; track nav.id) { @if (!nav.children) {
-            <button
-              type="button"
-              (click)="navigateToSection(nav.section!)"
-              [class.selected]="isActiveSection(nav.section!)"
-              class="w-full rounded-lg px-4 py-3 text-base font-medium text-gray-300 hover:bg-gray-700/50 hover:text-white flex gap-3 items-center transition-all duration-200 cursor-pointer text-left"
-            >
-              <i [class]="nav.icon + ' text-lg'"></i>
-              <span>{{ nav.label }}</span>
-            </button>
-            } @else {
-            <div
-              class="rounded-lg bg-neutral-900/40 border border-neutral-700/60"
-            >
-              <button
-                type="button"
-                (click)="toggleMobileCategory(nav.id)"
-                class="w-full px-4 py-3 text-base font-medium text-gray-300 flex items-center justify-between"
-              >
-                <span class="flex items-center gap-3">
-                  <i [class]="nav.icon + ' text-lg'"></i>
-                  {{ nav.label }}
-                </span>
-                <i
-                  class="pi"
-                  [class.pi-chevron-up]="isMobileCategoryOpen(nav.id)"
-                  [class.pi-chevron-down]="!isMobileCategoryOpen(nav.id)"
-                ></i>
-              </button>
-              @if (isMobileCategoryOpen(nav.id)) {
-              <div class="pb-2">
-                @for (child of nav.children; track child.id) {
-                <button
-                  type="button"
-                  (click)="navigateToSection(child.section)"
-                  [class.selected]="isActiveSection(child.section)"
-                  class="w-full px-6 py-2 text-left text-sm text-gray-300 hover:bg-gray-800 flex gap-2 items-center transition-colors"
-                >
-                  <i [class]="child.icon + ' text-sm'"></i>
-                  <span>{{ child.label }}</span>
-                </button>
-                }
-              </div>
-              }
-            </div>
-            } }
-          </div>
-          @if(user) {
-          <div class="border-t border-gray-700/50 pt-4 pb-3 px-5">
-            <div class="flex items-center gap-3">
-              <div class="relative">
-                <div class="avatar-container">
-                  <p-avatar
-                    [image]="user.picture"
-                    shape="circle"
-                    size="normal"
-                  />
-                </div>
-                <div
-                  class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-800"
-                ></div>
-              </div>
-              <div class="flex-1">
-                <div class="text-base font-semibold text-white">
-                  {{ store.currentEmployee()?.first_name }}
-                  {{ store.currentEmployee()?.father_name }}
-                </div>
-                <div class="text-sm text-gray-400">
-                  {{ store.currentEmployee()?.position?.name }}
-                </div>
-              </div>
-            </div>
-          </div>
-          }
         </div>
       </nav>
       <div class="flex-1 overflow-y-auto"><router-outlet /></div>
     </div>
+
+    } @else {
+    <!-- ========== MOBILE ========== -->
+    <div class="h-screen flex flex-col bg-neutral-950">
+      <!-- Slim top bar -->
+      <nav class="bg-neutral-900 border-b border-neutral-800 px-4 flex items-center justify-between" style="height: 52px; min-height: 52px; padding-top: env(safe-area-inset-top, 0px); z-index: 1000;">
+        <a (click)="navigateToTimeclock()" class="flex items-center cursor-pointer">
+          <img
+            [src]="isNaz() ? 'images/Naz_Logo.jpg' : 'images/blackdog.png'"
+            class="h-7"
+            [alt]="isNaz() ? 'Naz Logo' : 'Black Dog Logo'"
+          />
+        </a>
+        <div class="flex items-center gap-2">
+          <!-- Notification bell -->
+          <button
+            type="button"
+            (click)="toggleNotificationsDropdown()"
+            class="relative w-10 h-10 flex items-center justify-center rounded-full bg-neutral-800 text-gray-300"
+            style="-webkit-tap-highlight-color: transparent;"
+          >
+            <i class="pi pi-bell text-lg"></i>
+            @if (unreadNotificationsCount() > 0) {
+            <span class="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-[0.55rem] font-bold text-white">
+              {{ unreadNotificationsCount() > 9 ? '9+' : unreadNotificationsCount() }}
+            </span>
+            }
+          </button>
+          <pt-notifications-dropdown
+            [isVisible]="showNotificationsDropdown()"
+            [onClose]="closeNotificationsDropdown.bind(this)"
+          />
+          <!-- Avatar with menu -->
+          @if (user) {
+          <p-menu #mobileMenu [model]="items" popup />
+          <button
+            (click)="mobileMenu.toggle($event)"
+            class="w-10 h-10 rounded-full overflow-hidden border-2 border-neutral-700"
+            style="-webkit-tap-highlight-color: transparent;"
+          >
+            <p-avatar [image]="user.picture" shape="circle" size="normal" styleClass="w-full h-full" />
+          </button>
+          }
+        </div>
+      </nav>
+
+      <!-- Content area with bottom padding for tab bar -->
+      <div class="flex-1 overflow-y-auto pb-[72px]">
+        <router-outlet />
+      </div>
+
+      <!-- Bottom tab bar -->
+      <pt-mobile-bottom-nav
+        [tabs]="mobileTabs"
+        [activeTab]="activeMobileTab()"
+        (tabChange)="onMobileTabChange($event)"
+      />
+    </div>
+    }
   `,
   styles: [
     `
@@ -498,6 +425,7 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
   public organizationService = inject(OrganizationService);
   public notificationsService = inject(NotificationsService);
   private navigationService = inject(EmployeePortalNavigationService);
+  public device = inject(DeviceService);
 
   public isNaz = computed(() => this.organizationService.isNaz());
 
@@ -557,6 +485,28 @@ export class EmployeePortalLayoutComponent implements OnInit, OnDestroy {
       command: () => this.auth.logout(),
     },
   ];
+
+  // Mobile bottom nav tabs
+  public mobileTabs: MobileNavTab[] = [
+    { id: 'dashboard', label: 'Inicio', icon: 'pi pi-home' },
+    { id: 'management', label: 'Gestiones', icon: 'pi pi-briefcase' },
+    { id: 'timelogs', label: 'Marcaciones', icon: 'pi pi-clock' },
+    { id: 'profile', label: 'Mi Perfil', icon: 'pi pi-id-card' },
+  ];
+
+  public activeMobileTab = computed(() => {
+    const fragment = this.currentFragment();
+    if (!fragment || fragment === 'dashboard') return 'dashboard';
+    if (fragment === 'management' || fragment === 'disabilities' || fragment === 'documents' ||
+        fragment === 'vacations' || fragment === 'compensatory' || fragment === 'my-requests') return 'management';
+    if (fragment === 'timelogs') return 'timelogs';
+    if (fragment === 'profile') return 'profile';
+    return 'dashboard';
+  });
+
+  onMobileTabChange(tabId: string) {
+    this.navigateToSection(tabId);
+  }
 
   ngOnInit() {
     // Inicializar con el fragmento actual

@@ -8,12 +8,15 @@ import {
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { DashboardStore } from '../../../../stores/dashboard.store';
+import { DeviceService } from '../../../../services/device.service';
 
 @Component({
   selector: 'pt-events-section',
   standalone: true,
   imports: [CommonModule, TitleCasePipe],
   template: `
+    <!-- ========== DESKTOP ========== -->
+    @if (device.isDesktop()) {
     <div class="section-content">
       <div class="events-grid">
         <div class="event-card">
@@ -74,6 +77,65 @@ import { DashboardStore } from '../../../../stores/dashboard.store';
         </div>
       </div>
     </div>
+    }
+
+    <!-- ========== MOBILE ========== -->
+    @if (!device.isDesktop()) {
+    <div class="px-4 py-4">
+      <!-- Cumpleañeros -->
+      <div class="mb-4">
+        <h3 class="text-sm font-semibold text-white flex items-center gap-2 mb-3">
+          <i class="pi pi-star text-xs text-amber-400"></i>
+          Cumpleañeros de {{ currentMonth() | titlecase }}
+        </h3>
+        @if (state.birthDates().length > 0) {
+          <div class="space-y-2">
+            @for (item of state.birthDates(); track item) {
+              <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30 flex items-center gap-3">
+                <div class="flex flex-col items-center justify-center w-10 h-10 bg-amber-400/10 border border-amber-400/20 rounded-lg flex-shrink-0">
+                  <span class="text-sm font-bold text-amber-400 leading-none">{{ getBirthdayDay(item.birth_date) }}</span>
+                  <span class="text-xs text-gray-400 uppercase leading-none mt-0.5">{{ getBirthdayMonth(item.birth_date) }}</span>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <span class="text-sm text-white font-semibold block truncate">{{ item.first_name }} {{ item.father_name }}</span>
+                  <span class="text-xs text-gray-400 block truncate">{{ item.branch?.name || 'Sin sucursal' }}</span>
+                </div>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30 text-center text-gray-500 text-xs py-6">
+            No hay cumpleañeros este mes
+          </div>
+        }
+      </div>
+
+      <!-- Aniversarios -->
+      <div>
+        <h3 class="text-sm font-semibold text-white flex items-center gap-2 mb-3">
+          <i class="pi pi-star text-xs text-green-400"></i>
+          Próximos Aniversarios
+        </h3>
+        @if (state.upcomingAnniversaries().length > 0) {
+          <div class="space-y-2">
+            @for (item of state.upcomingAnniversaries(); track item.employee.id) {
+              <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30 flex items-center justify-between gap-2">
+                <div class="min-w-0 flex-1">
+                  <span class="text-sm text-white font-semibold block truncate">{{ item.employee.first_name }} {{ item.employee.father_name }}</span>
+                  <span class="text-xs text-gray-400 block truncate">{{ item.employee.branch?.name || 'Sin sucursal' }}</span>
+                </div>
+                <span class="text-xs text-green-400 font-semibold bg-green-400/10 border border-green-400/20 px-2 py-0.5 rounded-full flex-shrink-0 whitespace-nowrap">{{ item.years }} años</span>
+              </div>
+            }
+          </div>
+        } @else {
+          <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30 text-center text-gray-500 text-xs py-6">
+            No hay aniversarios próximos
+          </div>
+        }
+      </div>
+    </div>
+    }
   `,
   styles: [
     `
@@ -214,6 +276,7 @@ import { DashboardStore } from '../../../../stores/dashboard.store';
 })
 export class EventsSectionComponent {
   state = inject(DashboardStore);
+  protected device = inject(DeviceService);
   currentMonth = input.required<string>();
 
   getBirthdayDay(date: Date | string | undefined): string {

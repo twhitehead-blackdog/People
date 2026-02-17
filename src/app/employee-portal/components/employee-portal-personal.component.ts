@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   EventEmitter,
+  inject,
   Input,
   Output,
 } from '@angular/core';
@@ -13,6 +14,7 @@ import { DatePicker } from 'primeng/datepicker';
 import { TableModule } from 'primeng/table';
 import { TooltipModule } from 'primeng/tooltip';
 import { Textarea } from 'primeng/textarea';
+import { DeviceService } from '../../services/device.service';
 
 @Component({
   selector: 'pt-employee-portal-personal',
@@ -20,6 +22,8 @@ import { Textarea } from 'primeng/textarea';
   imports: [CommonModule, FormsModule, Card, DatePicker, Textarea, Button, TableModule, TooltipModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    @if (device.isDesktop()) {
+    <!-- ========== DESKTOP ========== -->
     <p-card>
       <ng-template #title>
         <div class="flex items-center justify-between w-full">
@@ -276,9 +280,157 @@ import { Textarea } from 'primeng/textarea';
         </div>
       </div>
     </p-card>
+    } @else {
+    <!-- ========== MOBILE ========== -->
+    <div class="px-4 py-4">
+      <!-- Header -->
+      <div class="flex items-center gap-3 mb-4">
+        <button class="text-gray-400 hover:text-white" (click)="closeSection.emit()">
+          <i class="pi pi-arrow-left text-lg"></i>
+        </button>
+        <div>
+          <h2 class="text-lg font-bold text-white m-0">Permiso Personal</h2>
+          <p class="text-xs text-gray-400 m-0">Solicita un permiso por asuntos personales</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-3">
+        <!-- Form -->
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <h3 class="text-sm font-semibold text-white mb-3">Nueva Solicitud</h3>
+          <div class="grid grid-cols-1 gap-3">
+            <div>
+              <label class="text-xs text-gray-400 mb-1 block">Fecha de Inicio <span class="text-red-400">*</span></label>
+              <p-datepicker
+                [ngModel]="personalStartDate"
+                (ngModelChange)="personalStartDateChange.emit($event)"
+                appendTo="body"
+                [minDate]="minPersonalDate"
+                [maxDate]="maxPersonalDate"
+                styleClass="w-full"
+                [showIcon]="true"
+                dateFormat="dd/mm/yy"
+                placeholder="Fecha inicio"
+              />
+            </div>
+            <div>
+              <label class="text-xs text-gray-400 mb-1 block">Fecha de Fin <span class="text-red-400">*</span></label>
+              <p-datepicker
+                [ngModel]="personalEndDate"
+                (ngModelChange)="personalEndDateChange.emit($event)"
+                appendTo="body"
+                [minDate]="personalStartDate || minPersonalDate"
+                [maxDate]="maxPersonalDate"
+                styleClass="w-full"
+                [showIcon]="true"
+                dateFormat="dd/mm/yy"
+                placeholder="Fecha fin"
+              />
+            </div>
+          </div>
+          @if (personalStartDate && personalEndDate) {
+          <div class="mt-2 p-2 bg-indigo-500/10 border border-indigo-400/30 rounded-lg">
+            <p class="text-xs text-indigo-300 m-0">
+              <i class="pi pi-info-circle mr-1"></i>
+              Días solicitados: <strong>{{ calculatePersonalDays() }}</strong>
+            </p>
+          </div>
+          }
+        </div>
+
+        <!-- Motivo -->
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <label class="text-xs text-gray-400 mb-1 block">Motivo del Permiso <span class="text-red-400">*</span></label>
+          <textarea
+            pTextarea
+            [ngModel]="personalReason"
+            (ngModelChange)="personalReasonChange.emit($event)"
+            rows="3"
+            placeholder="Describe el motivo..."
+            class="w-full"
+            maxlength="500"
+          ></textarea>
+          <p class="text-xs text-gray-500 mt-1 m-0">{{ personalReason.length }}/500</p>
+        </div>
+
+        <!-- Info -->
+        <div class="bg-indigo-500/10 border border-indigo-500/30 rounded-xl p-3">
+          <p class="text-xs text-gray-300 m-0">
+            <i class="pi pi-info-circle text-indigo-400 mr-1"></i>
+            Los permisos están sujetos a aprobación del supervisor. Coordina con anticipación.
+          </p>
+        </div>
+
+        <!-- Submit -->
+        <p-button
+          label="Solicitar Permiso"
+          icon="pi pi-send"
+          severity="info"
+          [loading]="submitting"
+          [disabled]="!canSubmit || submitting"
+          (onClick)="submitRequest.emit()"
+          styleClass="w-full min-h-[44px]"
+        />
+
+        <!-- Requests List -->
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-semibold text-white m-0">Mis Solicitudes</h3>
+            <button class="text-gray-400 hover:text-white" (click)="reloadList.emit()">
+              <i class="pi pi-refresh text-sm" [class.pi-spin]="requestsLoading"></i>
+            </button>
+          </div>
+
+          @if (personalRequests.length === 0 && !requestsLoading) {
+          <div class="text-center py-6">
+            <i class="pi pi-user-times text-2xl text-indigo-400 mb-2"></i>
+            <p class="text-xs text-gray-400 m-0">No hay solicitudes todavía</p>
+          </div>
+          } @else if (requestsLoading) {
+          <div class="flex justify-center py-6">
+            <i class="pi pi-spin pi-spinner text-2xl text-indigo-400"></i>
+          </div>
+          } @else {
+          <div class="space-y-2">
+            @for (request of personalRequests; track request.id || $index) {
+            <div class="bg-neutral-900/50 rounded-lg p-2 border border-neutral-700/30">
+              <div class="flex items-center justify-between mb-1">
+                <span class="text-xs text-gray-400">{{ request.created_at | date : 'dd/MM/yyyy' }}</span>
+                <span
+                  class="px-2 py-0.5 rounded-full text-xs font-semibold inline-flex items-center gap-1"
+                  [class.text-yellow-300]="!request.is_approved && isDateFuture(request.date_from)"
+                  [class.text-green-300]="request.is_approved"
+                  [class.text-red-300]="!request.is_approved && !isDateFuture(request.date_from)"
+                  [ngClass]="{
+                    'bg-yellow-500/20': !request.is_approved && isDateFuture(request.date_from),
+                    'bg-green-500/20': request.is_approved,
+                    'bg-red-500/20': !request.is_approved && !isDateFuture(request.date_from)
+                  }"
+                >
+                  {{ request.is_approved ? 'Aprobada' : isDateFuture(request.date_from) ? 'Pendiente' : 'Rechazada' }}
+                </span>
+              </div>
+              <p class="text-sm text-white font-medium m-0">
+                {{ request.date_from | date : 'dd/MM' }} - {{ request.date_to | date : 'dd/MM' }}
+                <span class="text-indigo-400 text-xs ml-1">({{ calculateDaysBetween(request.date_from, request.date_to) }}d)</span>
+              </p>
+              @if (request.notes && request.notes.length > 0 && request.notes[0]) {
+              <p class="text-xs text-gray-400 mt-1 m-0">
+                {{ request.notes[0].length > 60 ? request.notes[0].substring(0, 60) + '...' : request.notes[0] }}
+              </p>
+              }
+            </div>
+            }
+          </div>
+          }
+        </div>
+      </div>
+    </div>
+    }
   `,
 })
 export class EmployeePortalPersonalComponent {
+  protected device = inject(DeviceService);
   @Input() minPersonalDate: Date = new Date();
   @Input() maxPersonalDate: Date = new Date();
   @Input() personalStartDate: Date | null = null;

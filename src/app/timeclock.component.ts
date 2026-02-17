@@ -52,6 +52,8 @@ import { IpMonitorService } from './services/ip-monitor.service';
 import { OrganizationService } from './services/organization.service';
 import { TimeSyncService } from './services/time-sync.service';
 import { getEnv } from './utils/env.utils';
+import { APP_VERSION } from './version';
+import { PwaService } from './services/pwa.service';
 
 @Component({
   selector: 'pt-timeclock',
@@ -95,24 +97,27 @@ import { getEnv } from './utils/env.utils';
         'blackdog-theme': isBlackDogCompany(),
         'timeclock-mobile-kiosk': isMobileKiosk()
       }"
-      style="width: 100%; position: relative; min-height: 100vh; overflow-y: auto; overflow-x: hidden;"
+      style="width: 100%;"
     >
       @if (!isKioskMode() || isIPValid() || isNazCompany()) {
       <div
-        class="flex flex-col gap-2 sm:gap-3 md:gap-4 items-center px-4 sm:px-6 md:px-8 relative z-10 timeclock-content"
-        style="max-width: 100%; width: 100%; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem 0.5rem;"
+        class="flex flex-col items-center justify-center relative z-10 timeclock-content"
+        style="width: 100%; padding: 0 0.5rem; gap: 0.5vh;"
       >
         @if (isKioskMode()) {
         <img
           [src]="isNazCompany() ? 'images/Naz_Logo.jpg' : 'images/blackdog.png'"
-          class="h-6 sm:h-8 md:h-10 w-auto object-contain drop-shadow-2xl relative z-10 mb-1 sm:mb-2 flex-shrink-0"
-          style="max-width: 90%; height: auto;"
+          class="w-auto object-contain drop-shadow-2xl relative z-10 flex-shrink-0"
+          style="max-width: 280px; height: auto; margin-bottom: 2vh;"
         />
         }
+        <div class="timeclock-card-wrapper">
+        <div class="animated-border-box">
+          <div class="animated-border-glow"></div>
         <p-card class="w-full max-w-lg mx-auto timeclock-card relative z-10">
           <ng-template #title>
             <div
-              class="flex flex-col gap-1.5 sm:gap-2 md:gap-2.5 items-center px-2 py-1"
+              class="flex flex-col gap-[0.5vh] items-center px-2 py-[0.3vh]"
             >
               <div
                 class="text-sm sm:text-base md:text-lg lg:text-xl font-bold text-gray-100 text-center w-full break-words"
@@ -129,7 +134,7 @@ import { getEnv } from './utils/env.utils';
                 "
               >
                 <div
-                  class="text-lg sm:text-xl md:text-2xl lg:text-3xl font-mono font-bold clock-time break-words text-center"
+                  class="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-mono font-bold clock-time break-words text-center"
                   [ngClass]="
                     isBlackDogCompany() ? 'text-yellow-400' : 'text-gray-300'
                   "
@@ -171,7 +176,7 @@ import { getEnv } from './utils/env.utils';
           </ng-template>
           <form
             [formGroup]="form"
-            class="flex flex-col gap-2.5 sm:gap-3 md:gap-4 items-center w-full"
+            class="flex flex-col gap-[1vh] sm:gap-[1.2vh] md:gap-[1.5vh] items-center w-full"
             (keydown.enter)="onEnterKey($event)"
           >
             @if (!form.get('company_id')?.value) {
@@ -234,6 +239,18 @@ import { getEnv } from './utils/env.utils';
                 </ng-template>
               </p-select>
             </div>
+
+            <!-- Suggested Type Badge -->
+            @if (suggestedType()) {
+            <div class="suggested-type-badge"
+              [style.background]="'linear-gradient(135deg, ' + suggestedTypeColor() + '22, ' + suggestedTypeColor() + '11)'"
+              [style.borderColor]="suggestedTypeColor() + '66'"
+            >
+              <i [class]="suggestedTypeIcon()" [style.color]="suggestedTypeColor()"></i>
+              <span class="suggested-type-label" [style.color]="suggestedTypeColor()">{{ suggestedTypeLabel() }}</span>
+            </div>
+            }
+
             <div class="input-container w-full">
               <p-select
                 formControlName="type"
@@ -249,13 +266,33 @@ import { getEnv } from './utils/env.utils';
             <!-- PIN Input Section -->
             <div
               class="w-full flex flex-col gap-0.5 sm:gap-1 items-center justify-center px-2"
+              [class]="'otp-container otp-filled-' + otpLength()"
             >
-              <label
-                class="text-gray-300 font-medium text-[11px] sm:text-xs md:text-sm text-center mb-1"
-              >
-                Ingrese su PIN
-              </label>
+              <div class="flex items-center gap-2 mb-1">
+                <label class="text-gray-300 font-medium text-[11px] sm:text-xs md:text-sm text-center">
+                  Ingrese su PIN
+                </label>
+                @if (form.get('employee')?.value && !isMobileKiosk() && !showKeypad()) {
+                <button type="button" class="numpad-toggle-btn" (click)="showKeypad.set(true)" title="Abrir teclado">
+                  <i class="pi pi-th-large"></i>
+                </button>
+                }
+              </div>
               <div class="w-full flex justify-center items-center">
+                @if (isMobileKiosk()) {
+                <input
+                  type="tel"
+                  inputmode="numeric"
+                  pattern="[0-9]*"
+                  maxlength="6"
+                  placeholder="000000"
+                  class="mobile-pin-input"
+                  [value]="form.get('otp')?.value || ''"
+                  (input)="onMobilePinInput($event)"
+                  (keydown.enter)="onEnterKey($event)"
+                  autocomplete="one-time-code"
+                />
+                } @else {
                 <p-inputOtp
                   #otpInput
                   formControlName="otp"
@@ -265,6 +302,7 @@ import { getEnv } from './utils/env.utils';
                   (input)="onOtpInput($event)"
                   styleClass="p-inputotp-input"
                 />
+                }
               </div>
             </div>
 
@@ -314,12 +352,63 @@ import { getEnv } from './utils/env.utils';
             }
           </form>
         </p-card>
+        </div>
+
+        <!-- Floating Draggable Numpad (desktop only) -->
+        @if (showKeypad() && !isMobileKiosk()) {
+        <div class="numpad-popup"
+          [style.transform]="numpadPos() ? 'translate(' + numpadPos()!.x + 'px, ' + numpadPos()!.y + 'px)' : ''"
+        >
+          <div class="numpad-popup-header"
+            (mousedown)="onNumpadDragStart($event)"
+            (touchstart)="onNumpadDragStart($event)"
+          >
+            <span class="numpad-popup-title">
+              <i class="pi pi-th-large"></i>
+              Teclado
+            </span>
+            <button type="button" class="numpad-popup-close" (click)="showKeypad.set(false)">
+              <i class="pi pi-times"></i>
+            </button>
+          </div>
+          <div class="numpad-pin-preview">
+            @for (i of [0,1,2,3,4,5]; track i) {
+            <div class="numpad-dot" [class.numpad-dot-filled]="otpLength() > i" [class.numpad-dot-active]="otpLength() === i"></div>
+            }
+          </div>
+          <div class="numpad-grid">
+            @for (num of ['1','2','3','4','5','6','7','8','9']; track num) {
+            <button type="button" class="numpad-btn" (click)="addNumberToOtp(num)">
+              <span class="numpad-btn-num">{{ num }}</span>
+              <span class="numpad-btn-ripple"></span>
+            </button>
+            }
+            <button type="button" class="numpad-btn numpad-fn" (click)="clearOtp()">
+              <span class="numpad-btn-label">CLR</span>
+            </button>
+            <button type="button" class="numpad-btn" (click)="addNumberToOtp('0')">
+              <span class="numpad-btn-num">0</span>
+              <span class="numpad-btn-ripple"></span>
+            </button>
+            <button type="button" class="numpad-btn numpad-fn numpad-delete" (click)="deleteFromOtp()">
+              <i class="pi pi-delete-left"></i>
+            </button>
+          </div>
+        </div>
+        }
+        </div>
+        <div class="version-badge" [ngClass]="{ 'naz-version': isNazCompany(), 'version-badge--pop': easterEggPop() }" (click)="onVersionClick()" title="¡Tócame!">
+          v{{ appVersion }}
+        </div>
+        @if (easterEggBurst()) {
+          <div class="easter-egg-burst" [class.easter-egg-burst--visible]="easterEggBurst()">{{ easterEggBurst() }}</div>
+        }
       </div>
       } @else {
       <!-- Mensaje de acceso restringido en modo kiosko -->
       <div
-        class="flex flex-col gap-3 sm:gap-4 items-center px-4 sm:px-6 md:px-8 relative z-10"
-        style="max-width: 100%; width: 100%; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem 0.5rem;"
+        class="flex flex-col gap-3 sm:gap-4 items-center justify-center relative z-10"
+        style="width: 100%; padding: 0 0.5rem;"
       >
         <img
           [src]="isNazCompany() ? 'images/Naz_Logo.jpg' : 'images/blackdog.png'"
@@ -375,17 +464,97 @@ import { getEnv } from './utils/env.utils';
         </p-card>
       </div>
       }
+
+      <!-- IP Alert Overlay -->
+      @if (ipAlertVisible()) {
+      <div class="ip-alert-overlay" (click)="dismissIPAlert()">
+        <div class="ip-alert-card" (click)="$event.stopPropagation()">
+          <div class="ip-alert-icon-wrap">
+            <div class="ip-alert-pulse"></div>
+            <i class="pi pi-shield ip-alert-icon"></i>
+          </div>
+          <div class="ip-alert-title">IP No Autorizada</div>
+          <div class="ip-alert-desc">
+            La dirección IP detectada no coincide con ninguna sucursal registrada. Este incidente ha sido registrado.
+          </div>
+          @if (currentIP()) {
+          <div class="ip-alert-ip">
+            <i class="pi pi-globe"></i>
+            {{ currentIP() }}
+          </div>
+          }
+          <div class="ip-alert-hint">
+            <i class="pi pi-info-circle"></i>
+            Contacte a Recursos Humanos si cree que es un error
+          </div>
+          <button class="ip-alert-btn" (click)="dismissIPAlert()">Entendido</button>
+        </div>
+      </div>
+      }
+
+      <!-- Success Overlay -->
+      @if (successOverlay(); as overlay) {
+      <div class="success-overlay" (click)="dismissOverlay()">
+        <!-- Ambient glow -->
+        <div class="success-glow" [class.success-glow-late]="overlay.isLate"></div>
+        <div class="success-overlay-card" [class.success-overlay-late]="overlay.isLate">
+          <!-- Confetti particles -->
+          @if (!overlay.isLate) {
+          <div class="confetti-container">
+            <div class="confetti c1"></div>
+            <div class="confetti c2"></div>
+            <div class="confetti c3"></div>
+            <div class="confetti c4"></div>
+            <div class="confetti c5"></div>
+            <div class="confetti c6"></div>
+            <div class="confetti c7"></div>
+            <div class="confetti c8"></div>
+          </div>
+          }
+          <!-- Animated checkmark with glow ring -->
+          <div class="success-icon-container">
+            <div class="success-glow-ring" [class.late-glow-ring]="overlay.isLate"></div>
+            <div class="success-checkmark" [class.late-checkmark]="overlay.isLate">
+              <svg viewBox="0 0 52 52" class="checkmark-svg">
+                <circle class="checkmark-circle" cx="26" cy="26" r="25" fill="none"/>
+                @if (overlay.isLate) {
+                <path class="checkmark-icon" fill="none" d="M18 18 34 34 M34 18 18 34"/>
+                } @else {
+                <path class="checkmark-icon" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8"/>
+                }
+              </svg>
+            </div>
+          </div>
+          <div class="success-name">{{ overlay.name }}</div>
+          <div class="success-divider"></div>
+          <div class="success-type">{{ overlay.type }}</div>
+          <div class="success-time">{{ overlay.time }}</div>
+          @if (overlay.isLate && overlay.lateMsg) {
+          <div class="success-late-badge">
+            <i class="pi pi-clock"></i>
+            Tardanza: {{ overlay.lateMsg }}
+          </div>
+          }
+          <!-- Motivational message -->
+          <div class="success-motivational">{{ overlay.motivationalMsg }}</div>
+          <!-- Countdown progress bar -->
+          <div class="success-countdown-bar">
+            <div class="success-countdown-fill" [class.success-countdown-late]="overlay.isLate"></div>
+          </div>
+        </div>
+      </div>
+      }
     </div>`,
   styles: `
     .animated-gradient-container {
-      position: relative;
-      min-height: 100vh;
-      overflow-y: auto;
-      overflow-x: hidden;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
       transition: background 0.3s ease;
+      position: relative;
     }
 
     :host-context(html.dark) .animated-gradient-container {
@@ -449,58 +618,136 @@ import { getEnv } from './utils/env.utils';
       scrollbar-color: rgba(107, 114, 128, 0.6) rgba(0, 0, 0, 0.3);
     }
     
-    .timeclock-content {
-      flex-shrink: 0;
+    :host {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
     }
 
-    /* Versión móvil modo kiosko: logo más grande, controles táctiles más grandes */
+    .timeclock-content {
+      flex-shrink: 1;
+      min-height: 0;
+      max-height: 100%;
+    }
+
+    /* Versión móvil modo kiosko: táctil pero compacto para no desbordar */
     .timeclock-mobile-kiosk .timeclock-content img {
-      height: 4rem !important;
-      max-height: 80px !important;
+      max-height: 5vh !important;
     }
     .timeclock-mobile-kiosk .timeclock-content {
-      padding: 1.5rem 0.75rem !important;
-      gap: 1rem !important;
+      padding: 1vh 0.5rem !important;
+      gap: 0.5vh !important;
     }
-    .timeclock-mobile-kiosk .timeclock-card ::ng-deep .p-card-body,
+    .timeclock-mobile-kiosk .timeclock-card ::ng-deep .p-card-body {
+      padding: 1vh 0.75rem !important;
+    }
     .timeclock-mobile-kiosk .timeclock-card ::ng-deep .p-card-content {
-      padding: 1.25rem !important;
+      padding: 0 !important;
     }
     .timeclock-mobile-kiosk .timeclock-card ::ng-deep .p-select,
     .timeclock-mobile-kiosk .timeclock-card ::ng-deep .p-inputotp {
-      min-height: 3rem;
+      min-height: 2.5rem;
     }
     .timeclock-mobile-kiosk .mark-button ::ng-deep .p-button {
-      min-height: 3.5rem;
-      font-size: 1.125rem;
-    }
-    
-    @media (max-width: 640px) {
-      .timeclock-content {
-        padding: 0.75rem 0.25rem !important;
-      }
-    }
-    
-    @media (max-height: 700px) {
-      .timeclock-content {
-        padding: 0.5rem 0.25rem !important;
-      }
-    }
-    
-    @media (max-height: 600px) {
-      .timeclock-content {
-        padding: 0.25rem 0.25rem !important;
-      }
+      min-height: 2.75rem;
+      font-size: 1rem;
     }
     
     
+    /* ============================================
+       ANIMATED GRADIENT BORDER
+       ============================================ */
+    .animated-border-box {
+      position: relative;
+      border-radius: 14px;
+      padding: 2px;
+      overflow: hidden;
+      max-height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .animated-border-glow {
+      position: absolute;
+      inset: -50%;
+      background: conic-gradient(
+        from 0deg,
+        transparent 0%,
+        rgba(107, 114, 128, 0.7) 8%,
+        transparent 16%,
+        transparent 50%,
+        rgba(107, 114, 128, 0.7) 58%,
+        transparent 66%
+      );
+      animation: borderRotate 6s linear infinite;
+      z-index: 0;
+    }
+
+    .blackdog-theme .animated-border-glow {
+      background: conic-gradient(
+        from 0deg,
+        transparent 0%,
+        rgba(251, 191, 36, 0.9) 8%,
+        rgba(251, 191, 36, 0.2) 14%,
+        transparent 20%,
+        transparent 50%,
+        rgba(251, 191, 36, 0.2) 56%,
+        rgba(251, 191, 36, 0.9) 62%,
+        transparent 68%
+      );
+    }
+
+    .naz-theme .animated-border-glow {
+      background: conic-gradient(
+        from 0deg,
+        transparent 0%,
+        rgba(229, 226, 223, 0.8) 8%,
+        rgba(198, 194, 191, 0.2) 14%,
+        transparent 20%,
+        transparent 50%,
+        rgba(198, 194, 191, 0.2) 56%,
+        rgba(229, 226, 223, 0.8) 62%,
+        transparent 68%
+      );
+    }
+
+    @keyframes borderRotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
     .timeclock-card {
-      border: 2px solid rgba(107, 114, 128, 0.5) !important;
+      border: none !important;
       border-radius: 12px !important;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(107, 114, 128, 0.2) !important;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
       backdrop-filter: blur(10px);
-      background: rgba(38, 38, 38, 0.95) !important;
+      background: rgba(38, 38, 38, 0.98) !important;
       animation: cardEntrance 0.25s ease-out;
+      position: relative;
+      z-index: 1;
+      max-height: 100%;
+      overflow: hidden;
+    }
+
+    .timeclock-card ::ng-deep .p-card {
+      max-height: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .timeclock-card ::ng-deep .p-card-body {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      scrollbar-width: none;
+    }
+
+    .timeclock-card ::ng-deep .p-card-body::-webkit-scrollbar {
+      display: none;
     }
     
     @media (max-width: 640px) {
@@ -920,8 +1167,8 @@ import { getEnv } from './utils/env.utils';
     
     /* Aplicar colores amarillos cuando es Black Dog */
     .blackdog-theme .timeclock-card {
-      border: 2px solid rgba(251, 191, 36, 0.5) !important;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(251, 191, 36, 0.2) !important;
+      border: none !important;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5) !important;
     }
     
     .blackdog-theme .timeclock-card ::ng-deep .p-card-body {
@@ -1010,6 +1257,1145 @@ import { getEnv } from './utils/env.utils';
       color: #fbbf24 !important;
     }
 
+    /* ============================================
+       NUMPAD TOGGLE BUTTON
+       ============================================ */
+    .numpad-toggle-btn {
+      width: 26px;
+      height: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(107, 114, 128, 0.4);
+      border-radius: 8px;
+      background: rgba(39, 39, 42, 0.6);
+      color: #71717a;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 0.7rem;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .numpad-toggle-btn:hover {
+      background: rgba(63, 63, 70, 0.9);
+      color: #a1a1aa;
+      border-color: rgba(107, 114, 128, 0.6);
+    }
+
+    .blackdog-theme .numpad-toggle-btn {
+      border-color: rgba(251, 191, 36, 0.3);
+    }
+
+    .blackdog-theme .numpad-toggle-btn:hover {
+      border-color: rgba(251, 191, 36, 0.6);
+      color: #fbbf24;
+      background: rgba(251, 191, 36, 0.08);
+    }
+
+    /* ============================================
+       DESKTOP FIT-TO-SCREEN (no scroll)
+       ============================================ */
+    @media (min-width: 641px) {
+      .timeclock-card ::ng-deep .p-card-body {
+        padding: 1vh 1rem !important;
+      }
+      .timeclock-card ::ng-deep .p-card-content {
+        padding: 0 !important;
+      }
+      .timeclock-card ::ng-deep .p-card-title {
+        padding: 0.5vh 0.75rem !important;
+      }
+      .timeclock-card ::ng-deep .p-card-subtitle {
+        padding: 0.3vh 0.75rem !important;
+      }
+    }
+
+    /* Scale down on short desktop viewports */
+    @media (max-height: 800px) and (min-width: 641px) {
+      .timeclock-content {
+        padding: 0.5vh 0.5rem !important;
+      }
+      .timeclock-content img {
+        max-width: 220px !important;
+      }
+      .clock-display {
+        padding: 0.5rem 0.75rem !important;
+      }
+      .timeclock-card ::ng-deep .p-card-body {
+        padding: 0.8vh 0.75rem !important;
+      }
+    }
+
+    @media (max-height: 650px) and (min-width: 641px) {
+      .timeclock-content img {
+        max-width: 160px !important;
+      }
+      .input-container ::ng-deep .p-select .p-select-trigger {
+        min-height: 36px !important;
+        padding: 0.25rem 0.6rem !important;
+      }
+      .timeclock-card ::ng-deep .p-inputotp-input {
+        height: 34px !important;
+        min-width: 30px !important;
+      }
+      .timeclock-card ::ng-deep .mark-button button {
+        padding: 0.4rem 1rem !important;
+        min-height: 36px !important;
+      }
+    }
+
+    /* ============================================
+       SUGGESTED TYPE BADGE
+       ============================================ */
+    .suggested-type-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: 12px;
+      border: 1px solid;
+      width: 100%;
+      animation: badgeBounceIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .suggested-type-badge i {
+      font-size: 1.1rem;
+    }
+
+    .suggested-type-label {
+      font-size: 0.875rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    @keyframes badgeBounceIn {
+      0% { opacity: 0; transform: translateY(-10px) scale(0.9); }
+      60% { opacity: 1; transform: translateY(3px) scale(1.02); }
+      100% { transform: translateY(0) scale(1); }
+    }
+
+    /* ============================================
+       CARD WRAPPER (for numpad positioning)
+       ============================================ */
+    .timeclock-card-wrapper {
+      position: relative;
+      width: 100%;
+      max-width: 32rem;
+      max-height: 96vh;
+      max-height: 96dvh;
+      margin: 0 auto;
+      overflow: hidden;
+      flex-shrink: 1;
+      min-height: 0;
+    }
+
+    /* ============================================
+       FLOATING NUMPAD POPUP
+       ============================================ */
+    .numpad-popup {
+      position: fixed;
+      top: 50%;
+      right: 2rem;
+      margin-top: -180px;
+      width: 220px;
+      background: rgba(24, 24, 27, 0.95);
+      backdrop-filter: blur(20px) saturate(1.5);
+      border: 1px solid rgba(107, 114, 128, 0.3);
+      border-radius: 20px;
+      padding: 1rem;
+      box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.5),
+        0 0 40px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      z-index: 500;
+      animation: numpadPopIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+      cursor: default;
+      user-select: none;
+    }
+
+    .blackdog-theme .numpad-popup {
+      border-color: rgba(251, 191, 36, 0.25);
+      box-shadow:
+        0 20px 60px rgba(0, 0, 0, 0.5),
+        0 0 30px rgba(251, 191, 36, 0.08),
+        inset 0 1px 0 rgba(251, 191, 36, 0.1);
+    }
+
+    .numpad-popup-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      cursor: grab;
+    }
+
+    .numpad-popup-header:active {
+      cursor: grabbing;
+    }
+
+    .numpad-popup-title {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: #71717a;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .numpad-popup-close {
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 6px;
+      color: #71717a;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-size: 0.7rem;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .numpad-popup-close:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #a1a1aa;
+    }
+
+    /* PIN preview dots */
+    .numpad-pin-preview {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .numpad-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: 2px solid rgba(107, 114, 128, 0.4);
+      background: transparent;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .numpad-dot-filled {
+      background: #6b7280;
+      border-color: #6b7280;
+      transform: scale(1.1);
+    }
+
+    .numpad-dot-active {
+      border-color: #9ca3af;
+      animation: dotPulse 1s ease-in-out infinite;
+    }
+
+    .blackdog-theme .numpad-dot-filled {
+      background: #fbbf24;
+      border-color: #fbbf24;
+    }
+
+    .blackdog-theme .numpad-dot-active {
+      border-color: #fbbf24;
+    }
+
+    @keyframes dotPulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.7; }
+    }
+
+    .numpad-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 6px;
+    }
+
+    .numpad-btn {
+      position: relative;
+      min-height: 46px;
+      border: 1px solid rgba(107, 114, 128, 0.2);
+      border-radius: 12px;
+      background: rgba(39, 39, 42, 0.8);
+      color: #e5e7eb;
+      font-size: 1.15rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.12s ease;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .numpad-btn:hover {
+      background: rgba(63, 63, 70, 0.9);
+      border-color: rgba(107, 114, 128, 0.4);
+    }
+
+    .numpad-btn:active {
+      transform: scale(0.9);
+      background: rgba(107, 114, 128, 0.3);
+    }
+
+    .numpad-btn-num {
+      position: relative;
+      z-index: 1;
+    }
+
+    .numpad-btn-label {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: #71717a;
+      position: relative;
+      z-index: 1;
+    }
+
+    .numpad-fn {
+      background: rgba(39, 39, 42, 0.5);
+    }
+
+    .numpad-fn:active {
+      background: rgba(239, 68, 68, 0.15);
+    }
+
+    .numpad-delete i {
+      font-size: 1rem;
+      color: #a1a1aa;
+    }
+
+    /* Ripple effect */
+    .numpad-btn-ripple {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at center, rgba(255,255,255,0.15) 0%, transparent 70%);
+      opacity: 0;
+      transform: scale(0);
+      transition: none;
+    }
+
+    .numpad-btn:active .numpad-btn-ripple {
+      opacity: 1;
+      transform: scale(2.5);
+      transition: transform 0.4s ease, opacity 0.4s ease;
+    }
+
+    .blackdog-theme .numpad-btn {
+      border-color: rgba(251, 191, 36, 0.15);
+    }
+
+    .blackdog-theme .numpad-btn:hover {
+      border-color: rgba(251, 191, 36, 0.35);
+      background: rgba(251, 191, 36, 0.06);
+    }
+
+    .blackdog-theme .numpad-btn:active {
+      background: rgba(251, 191, 36, 0.15);
+      border-color: rgba(251, 191, 36, 0.5);
+    }
+
+    .blackdog-theme .numpad-btn:active .numpad-btn-ripple {
+      background: radial-gradient(circle at center, rgba(251, 191, 36, 0.2) 0%, transparent 70%);
+    }
+
+    @keyframes numpadPopIn {
+      0% { opacity: 0; transform: translateX(20px) scale(0.9); }
+      100% { opacity: 1; transform: translateX(0) scale(1); }
+    }
+
+    /* ============================================
+       OTP FILLED STATES
+       ============================================ */
+    .otp-filled-1 ::ng-deep .p-inputotp-input:nth-child(1),
+    .otp-filled-2 ::ng-deep .p-inputotp-input:nth-child(-n+2),
+    .otp-filled-3 ::ng-deep .p-inputotp-input:nth-child(-n+3) {
+      border-color: rgba(251, 191, 36, 0.5) !important;
+      background: rgba(251, 191, 36, 0.08) !important;
+    }
+
+    .otp-filled-4 ::ng-deep .p-inputotp-input:nth-child(-n+4),
+    .otp-filled-5 ::ng-deep .p-inputotp-input:nth-child(-n+5) {
+      border-color: rgba(251, 191, 36, 0.7) !important;
+      background: rgba(251, 191, 36, 0.12) !important;
+    }
+
+    .otp-filled-6 ::ng-deep .p-inputotp-input {
+      border-color: rgba(34, 197, 94, 0.8) !important;
+      background: rgba(34, 197, 94, 0.12) !important;
+      animation: otpComplete 0.3s ease;
+    }
+
+    @keyframes otpComplete {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.06); }
+      100% { transform: scale(1); }
+    }
+
+    /* ============================================
+       SUCCESS OVERLAY
+       ============================================ */
+    .success-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(12px) saturate(0.8);
+      animation: overlayFadeIn 0.3s ease;
+      cursor: pointer;
+    }
+
+    .success-glow {
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(34, 197, 94, 0.25) 0%, transparent 70%);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      animation: glowPulse 2s ease-in-out infinite;
+      pointer-events: none;
+    }
+
+    .success-glow-late {
+      background: radial-gradient(circle, rgba(251, 191, 36, 0.25) 0%, transparent 70%);
+    }
+
+    @keyframes glowPulse {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; }
+      50% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+    }
+
+    .success-overlay-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 2rem 2rem 1rem;
+      border-radius: 24px;
+      background: linear-gradient(145deg, rgba(34, 197, 94, 0.12), rgba(16, 185, 129, 0.05));
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      box-shadow:
+        0 0 80px rgba(34, 197, 94, 0.15),
+        0 25px 80px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      animation: cardScaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      max-width: 380px;
+      width: 90%;
+      position: relative;
+      overflow: hidden;
+      backdrop-filter: blur(20px) saturate(1.3);
+    }
+
+    .success-overlay-late {
+      background: linear-gradient(145deg, rgba(251, 191, 36, 0.12), rgba(245, 158, 11, 0.05));
+      border-color: rgba(251, 191, 36, 0.3);
+      box-shadow:
+        0 0 80px rgba(251, 191, 36, 0.15),
+        0 25px 80px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    }
+
+    /* Glow ring around checkmark */
+    .success-icon-container {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .success-glow-ring {
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      border: 2px solid rgba(34, 197, 94, 0.3);
+      animation: ringExpand 0.8s 0.2s ease-out both, ringGlow 2s 1s ease-in-out infinite;
+    }
+
+    .late-glow-ring {
+      border-color: rgba(251, 191, 36, 0.3);
+    }
+
+    @keyframes ringExpand {
+      0% { transform: scale(0.5); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    @keyframes ringGlow {
+      0%, 100% { box-shadow: 0 0 15px rgba(34, 197, 94, 0.15); }
+      50% { box-shadow: 0 0 30px rgba(34, 197, 94, 0.3); }
+    }
+
+    .late-glow-ring {
+      animation: ringExpand 0.8s 0.2s ease-out both, ringGlowLate 2s 1s ease-in-out infinite;
+    }
+
+    @keyframes ringGlowLate {
+      0%, 100% { box-shadow: 0 0 15px rgba(251, 191, 36, 0.15); }
+      50% { box-shadow: 0 0 30px rgba(251, 191, 36, 0.3); }
+    }
+
+    .success-checkmark {
+      width: 80px;
+      height: 80px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .checkmark-svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    .checkmark-circle {
+      stroke: #22c55e;
+      stroke-width: 2;
+      stroke-dasharray: 157;
+      stroke-dashoffset: 157;
+      animation: drawCircle 0.6s ease forwards;
+    }
+
+    .late-checkmark .checkmark-circle {
+      stroke: #fbbf24;
+    }
+
+    .checkmark-icon {
+      stroke: #22c55e;
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-dasharray: 50;
+      stroke-dashoffset: 50;
+      animation: drawCheck 0.4s 0.4s ease forwards;
+    }
+
+    .late-checkmark .checkmark-icon {
+      stroke: #fbbf24;
+    }
+
+    @keyframes drawCircle {
+      to { stroke-dashoffset: 0; }
+    }
+
+    @keyframes drawCheck {
+      to { stroke-dashoffset: 0; }
+    }
+
+    .success-name {
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #f3f4f6;
+      text-align: center;
+      animation: nameSlideIn 0.5s 0.3s ease both;
+      line-height: 1.3;
+    }
+
+    .success-divider {
+      width: 40px;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(34, 197, 94, 0.5), transparent);
+      border-radius: 1px;
+      animation: nameSlideIn 0.5s 0.4s ease both;
+    }
+
+    .success-overlay-late .success-divider {
+      background: linear-gradient(90deg, transparent, rgba(251, 191, 36, 0.5), transparent);
+    }
+
+    .success-type {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #22c55e;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      animation: nameSlideIn 0.5s 0.45s ease both;
+    }
+
+    .success-overlay-late .success-type {
+      color: #fbbf24;
+    }
+
+    .success-time {
+      font-size: 2.2rem;
+      font-weight: 800;
+      font-family: ui-monospace, monospace;
+      color: #e5e7eb;
+      text-shadow: 0 0 30px rgba(34, 197, 94, 0.3);
+      letter-spacing: 0.02em;
+      animation: timeAppear 0.6s 0.5s ease both;
+    }
+
+    .success-overlay-late .success-time {
+      text-shadow: 0 0 30px rgba(251, 191, 36, 0.3);
+    }
+
+    @keyframes timeAppear {
+      0% { opacity: 0; transform: scale(0.8); }
+      60% { opacity: 1; transform: scale(1.03); }
+      100% { transform: scale(1); }
+    }
+
+    .success-late-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: 10px;
+      background: rgba(251, 191, 36, 0.12);
+      border: 1px solid rgba(251, 191, 36, 0.4);
+      color: #fcd34d;
+      font-size: 0.85rem;
+      font-weight: 600;
+      animation: nameSlideIn 0.5s 0.6s ease both;
+    }
+
+    /* Countdown progress bar */
+    .success-motivational {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.65);
+      font-style: italic;
+      text-align: center;
+      animation: motivationalFadeIn 0.6s 0.7s ease both;
+      letter-spacing: 0.01em;
+    }
+
+    @keyframes motivationalFadeIn {
+      from { opacity: 0; transform: translateY(8px) scale(0.95); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .success-countdown-bar {
+      width: 100%;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 0 0 24px 24px;
+      overflow: hidden;
+      margin-top: 0.75rem;
+      margin-left: -2rem;
+      margin-right: -2rem;
+      margin-bottom: -1rem;
+      width: calc(100% + 4rem);
+    }
+
+    .success-countdown-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #22c55e, #10b981);
+      animation: countdownShrink 4s linear forwards;
+      border-radius: 0 0 0 24px;
+    }
+
+    .success-countdown-late {
+      background: linear-gradient(90deg, #fbbf24, #f59e0b);
+    }
+
+    @keyframes countdownShrink {
+      from { width: 100%; }
+      to { width: 0%; }
+    }
+
+    @keyframes overlayFadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    @keyframes cardScaleIn {
+      0% { opacity: 0; transform: scale(0.7) translateY(30px); }
+      70% { opacity: 1; transform: scale(1.02) translateY(-5px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    @keyframes nameSlideIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Confetti particles */
+    .confetti-container {
+      position: absolute;
+      top: 40%;
+      left: 50%;
+      width: 0;
+      height: 0;
+      pointer-events: none;
+    }
+
+    .confetti {
+      position: absolute;
+      border-radius: 2px;
+      animation: confettiBurst 1.2s ease-out forwards;
+      opacity: 0;
+    }
+
+    .c1 { width: 8px; height: 8px; background: #22c55e; animation-delay: 0.1s; --tx: -70px; --ty: -90px; --rot: 120deg; }
+    .c2 { width: 6px; height: 10px; background: #fbbf24; animation-delay: 0.15s; --tx: 80px; --ty: -70px; --rot: -60deg; }
+    .c3 { width: 10px; height: 6px; background: #3b82f6; animation-delay: 0.2s; --tx: -50px; --ty: 80px; --rot: 200deg; }
+    .c4 { width: 7px; height: 7px; background: #ef4444; animation-delay: 0.25s; --tx: 60px; --ty: 90px; --rot: -150deg; }
+    .c5 { width: 5px; height: 9px; background: #a855f7; animation-delay: 0.3s; --tx: -90px; --ty: 25px; --rot: 80deg; }
+    .c6 { width: 9px; height: 5px; background: #06b6d4; animation-delay: 0.35s; --tx: 90px; --ty: -25px; --rot: -90deg; }
+    .c7 { width: 6px; height: 6px; background: #f472b6; animation-delay: 0.4s; --tx: -30px; --ty: -100px; --rot: 45deg; }
+    .c8 { width: 8px; height: 5px; background: #34d399; animation-delay: 0.45s; --tx: 40px; --ty: 100px; --rot: -200deg; }
+
+    @keyframes confettiBurst {
+      0% { opacity: 1; transform: translate(0, 0) scale(0) rotate(0deg); }
+      40% { opacity: 1; transform: translate(var(--tx), var(--ty)) scale(1.3) rotate(var(--rot)); }
+      100% { opacity: 0; transform: translate(calc(var(--tx) * 1.8), calc(var(--ty) * 1.8 + 40px)) scale(0.3) rotate(calc(var(--rot) * 2)); }
+    }
+
+    /* ============================================
+       VERSION BADGE (same as login)
+       ============================================ */
+    .version-badge {
+      position: fixed;
+      bottom: 0.75rem;
+      right: 0.75rem;
+      padding: 0.375rem 0.75rem;
+      border-radius: 10px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      z-index: 1000;
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transition: transform 0.2s ease, box-shadow 0.3s ease, background 0.45s ease, border-color 0.45s ease, color 0.45s ease;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      letter-spacing: 0.02em;
+      background: linear-gradient(135deg, rgba(40, 40, 45, 0.9) 0%, rgba(25, 25, 30, 0.95) 100%);
+      border: 1px solid rgba(180, 180, 200, 0.25);
+      color: rgba(230, 230, 240, 0.95);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(120, 140, 200, 0.08);
+      animation: versionTapMe 2.5s ease-in-out infinite, versionGlow 4s ease-in-out infinite;
+    }
+
+    .version-badge:hover {
+      transform: scale(1.05);
+      background: linear-gradient(135deg, rgba(50, 50, 58, 0.95) 0%, rgba(35, 35, 42, 0.98) 100%);
+      color: #fff;
+      border-color: rgba(180, 200, 255, 0.35);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 28px rgba(120, 160, 255, 0.12);
+      animation: none;
+    }
+
+    .version-badge:active {
+      transform: scale(0.98);
+      animation: none;
+    }
+
+    .version-badge--pop {
+      transform: scale(1.12);
+      box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.25), 0 0 40px rgba(120, 180, 255, 0.3);
+    }
+
+    .naz-version {
+      background: rgba(13, 13, 13, 0.85) !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      color: #C6C2BF !important;
+    }
+
+    .naz-version:hover {
+      background: rgba(13, 13, 13, 0.95) !important;
+      border-color: rgba(255, 255, 255, 0.2) !important;
+      color: #FFFFFF !important;
+    }
+
+    .easter-egg-burst {
+      position: fixed;
+      bottom: 3rem;
+      right: 1.5rem;
+      font-size: 4rem;
+      line-height: 1;
+      z-index: 1001;
+      pointer-events: none;
+      opacity: 0;
+      transform: scale(0.3) translateY(0);
+      animation: easterEggBurst 1.2s ease-out forwards;
+    }
+
+    .easter-egg-burst--visible {
+      opacity: 1;
+    }
+
+    @keyframes easterEggBurst {
+      0% { opacity: 0; transform: scale(0.3) translateY(0); filter: blur(0); }
+      15% { opacity: 1; transform: scale(1.4) translateY(-0.5rem); filter: blur(0); }
+      30% { transform: scale(1.2) translateY(-1.5rem); }
+      100% { opacity: 0; transform: scale(1.5) translateY(-4rem); filter: blur(2px); }
+    }
+
+    @keyframes versionGlow {
+      0%, 100% { filter: brightness(1); }
+      50% { filter: brightness(1.15); }
+    }
+
+    @keyframes versionTapMe {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4), 0 0 20px rgba(120, 140, 200, 0.08);
+      }
+      50% {
+        transform: scale(1.03);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35), 0 0 32px rgba(120, 160, 255, 0.14);
+      }
+    }
+
+    @media (max-width: 767px) {
+      .version-badge {
+        bottom: 0.5rem;
+        right: 0.5rem;
+        font-size: 0.6875rem;
+        padding: 0.25rem 0.5rem;
+      }
+    }
+
+    /* ============================================
+       IP ALERT OVERLAY
+       ============================================ */
+    .ip-alert-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.88);
+      backdrop-filter: blur(12px);
+      animation: overlayFadeIn 0.3s ease;
+    }
+
+    .ip-alert-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 2rem 2rem 1.5rem;
+      border-radius: 24px;
+      background: linear-gradient(145deg, rgba(239, 68, 68, 0.1), rgba(127, 29, 29, 0.05));
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      box-shadow: 0 0 80px rgba(239, 68, 68, 0.1), 0 25px 80px rgba(0, 0, 0, 0.5);
+      max-width: 380px;
+      width: 90%;
+      animation: cardScaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      backdrop-filter: blur(20px);
+    }
+
+    .ip-alert-icon-wrap {
+      position: relative;
+      width: 80px;
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .ip-alert-pulse {
+      position: absolute;
+      inset: -6px;
+      border-radius: 50%;
+      border: 2px solid rgba(239, 68, 68, 0.3);
+      animation: ringExpand 0.8s 0.2s ease-out both, ipPulse 2s 1s ease-in-out infinite;
+    }
+
+    @keyframes ipPulse {
+      0%, 100% { box-shadow: 0 0 15px rgba(239, 68, 68, 0.15); }
+      50% { box-shadow: 0 0 30px rgba(239, 68, 68, 0.35); }
+    }
+
+    .ip-alert-icon {
+      font-size: 2.5rem;
+      color: #ef4444;
+      filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.4));
+    }
+
+    .ip-alert-title {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #fca5a5;
+      text-align: center;
+      animation: nameSlideIn 0.5s 0.3s ease both;
+    }
+
+    .ip-alert-desc {
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.6);
+      text-align: center;
+      line-height: 1.5;
+      animation: nameSlideIn 0.5s 0.4s ease both;
+    }
+
+    .ip-alert-ip {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: 10px;
+      background: rgba(239, 68, 68, 0.08);
+      border: 1px solid rgba(239, 68, 68, 0.25);
+      color: #f87171;
+      font-family: ui-monospace, monospace;
+      font-size: 0.9rem;
+      font-weight: 600;
+      animation: nameSlideIn 0.5s 0.5s ease both;
+    }
+
+    .ip-alert-hint {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.4);
+      animation: nameSlideIn 0.5s 0.6s ease both;
+    }
+
+    .ip-alert-btn {
+      margin-top: 0.25rem;
+      padding: 0.6rem 2rem;
+      border-radius: 12px;
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      background: rgba(239, 68, 68, 0.12);
+      color: #fca5a5;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      animation: nameSlideIn 0.5s 0.7s ease both;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .ip-alert-btn:hover {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: rgba(239, 68, 68, 0.6);
+    }
+
+    /* ============================================
+       IMPROVED CARD ENTRANCE ANIMATION
+       ============================================ */
+    @keyframes cardEntrance {
+      0% {
+        opacity: 0;
+        transform: scale(0.95) translateY(15px);
+      }
+      60% {
+        opacity: 1;
+        transform: scale(1.01) translateY(-3px);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    /* Mobile: prevent native keyboard from appearing on OTP inputs */
+
+    /* ============================================
+       MOBILE PIN INPUT (replaces p-inputOtp on mobile)
+       ============================================ */
+    .mobile-pin-input {
+      width: 100%;
+      max-width: 240px;
+      text-align: center;
+      font-size: 1.75rem;
+      font-weight: 700;
+      font-family: ui-monospace, monospace;
+      letter-spacing: 0.5rem;
+      padding: 0.6rem 1rem;
+      border-radius: 12px;
+      border: 2px solid rgba(107, 114, 128, 0.5);
+      background: rgba(31, 41, 55, 0.8);
+      color: #e5e7eb;
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      -webkit-appearance: none;
+    }
+
+    .mobile-pin-input::placeholder {
+      color: rgba(107, 114, 128, 0.3);
+      letter-spacing: 0.4rem;
+    }
+
+    .mobile-pin-input:focus {
+      border-color: rgba(107, 114, 128, 0.9);
+      box-shadow: 0 0 15px rgba(107, 114, 128, 0.3);
+    }
+
+    .blackdog-theme .mobile-pin-input {
+      border-color: rgba(251, 191, 36, 0.5);
+      color: #fbbf24;
+    }
+
+    .blackdog-theme .mobile-pin-input:focus {
+      border-color: rgba(251, 191, 36, 0.9);
+      box-shadow: 0 0 15px rgba(251, 191, 36, 0.3);
+    }
+
+    /* ============================================
+       PIN INPUT PULSE ON ACTIVE
+       ============================================ */
+    .timeclock-card ::ng-deep .p-inputotp-input:focus {
+      animation: pinPulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pinPulse {
+      0%, 100% { box-shadow: 0 0 10px rgba(107, 114, 128, 0.3); }
+      50% { box-shadow: 0 0 20px rgba(107, 114, 128, 0.6), 0 0 30px rgba(107, 114, 128, 0.2); }
+    }
+
+    .blackdog-theme .timeclock-card ::ng-deep .p-inputotp-input:focus {
+      animation: pinPulseYellow 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pinPulseYellow {
+      0%, 100% { box-shadow: 0 0 10px rgba(251, 191, 36, 0.3); }
+      50% { box-shadow: 0 0 20px rgba(251, 191, 36, 0.6), 0 0 30px rgba(251, 191, 36, 0.2); }
+    }
+
+    /* ============================================
+       FLOATING PARTICLES (background ambient)
+       ============================================ */
+    .blackdog-theme .timeclock-content::before,
+    .blackdog-theme .timeclock-content::after {
+      content: '';
+      position: fixed;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: rgba(251, 191, 36, 0.3);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .blackdog-theme .timeclock-content::before {
+      top: 20%;
+      left: 15%;
+      animation: floatParticle 8s ease-in-out infinite;
+    }
+
+    .blackdog-theme .timeclock-content::after {
+      bottom: 25%;
+      right: 20%;
+      animation: floatParticle 10s ease-in-out infinite reverse;
+    }
+
+    @keyframes floatParticle {
+      0%, 100% { transform: translateY(0) translateX(0); opacity: 0.3; }
+      25% { transform: translateY(-20px) translateX(10px); opacity: 0.6; }
+      50% { transform: translateY(-10px) translateX(-15px); opacity: 0.4; }
+      75% { transform: translateY(-25px) translateX(5px); opacity: 0.5; }
+    }
+
+    /* ============================================
+       COMPACT MOBILE CLOCK
+       ============================================ */
+    @media (max-width: 480px) {
+      .clock-display {
+        padding: 0.5rem 0.75rem !important;
+      }
+
+      .clock-display .clock-time {
+        font-size: 1.25rem !important;
+      }
+
+      .clock-display .text-\\[10px\\] {
+        font-size: 0.6rem !important;
+      }
+    }
+
+    .timeclock-mobile-kiosk .clock-display {
+      flex-direction: column !important;
+      gap: 0.25rem !important;
+      padding: 0.5rem 1rem !important;
+    }
+
+    .timeclock-mobile-kiosk .clock-display .clock-time {
+      font-size: 1.5rem !important;
+    }
+
+    /* ============================================
+       BUTTON HOVER LIFT ANIMATION
+       ============================================ */
+    .timeclock-card ::ng-deep .p-button:not(:disabled) {
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .timeclock-card ::ng-deep .p-button:not(:disabled):hover {
+      transform: translateY(-3px);
+    }
+
+    .timeclock-card ::ng-deep .p-button:not(:disabled):active {
+      transform: translateY(-1px) scale(0.98);
+    }
+
+    /* ============================================
+       SELECT DROPDOWN ANIMATION
+       ============================================ */
+    .timeclock-card ::ng-deep .p-select-overlay {
+      animation: dropdownFadeIn 0.2s ease !important;
+    }
+
+    @keyframes dropdownFadeIn {
+      from { opacity: 0; transform: translateY(-6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ============================================
+       SUGGESTED TYPE BADGE GLOW
+       ============================================ */
+    .suggested-type-badge {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .suggested-type-badge::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 120%;
+      height: 120%;
+      transform: translate(-50%, -50%);
+      background: radial-gradient(ellipse at center, currentColor, transparent 70%);
+      opacity: 0.04;
+      pointer-events: none;
+    }
+
+    /* ============================================
+       PREFERS REDUCED MOTION
+       ============================================ */
+    @media (prefers-reduced-motion: reduce) {
+      .suggested-type-badge,
+      .numpad-popup,
+      .success-overlay,
+      .success-overlay-card,
+      .success-checkmark,
+      .success-name,
+      .confetti,
+      .numpad-btn,
+      .timeclock-card ::ng-deep .p-inputotp-input {
+        animation: none !important;
+      }
+      .checkmark-circle,
+      .checkmark-icon {
+        stroke-dashoffset: 0 !important;
+        animation: none !important;
+      }
+    }
+
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -1024,6 +2410,7 @@ export class TimeclockComponent implements OnDestroy {
   private timeSync = inject(TimeSyncService);
   private destroyRef = inject(DestroyRef);
   private diagnosticService = inject(DiagnosticService);
+  private pwaService = inject(PwaService);
   private readonly DISPLAY_TIMEZONE = 'America/Panama';
   /** Empleado con sonido personalizado al marcar exitosamente */
   private readonly EMPLOYEE_PERSONALIZED_SOUND_ID = '202c46ab-04f9-41e8-a572-d9f50f7f31b6';
@@ -1040,11 +2427,355 @@ export class TimeclockComponent implements OnDestroy {
   public isKioskMode = signal<boolean>(false);
   public isMobileKiosk = signal<boolean>(false);
   public isIPValid = signal<boolean>(true);
+  public readonly appVersion = APP_VERSION;
+  easterEggBurst = signal<string | null>(null);
+  easterEggPop = signal(false);
+  private versionSoundIndex = 0;
+  private readonly VERSION_SOUNDS = ['/sounds/bark.mp3', '/sounds/meow.mp3', '/sounds/squirrel.mp3', '/sounds/cockatoo.mp3'];
+  private readonly VERSION_EMOJIS = ['🐕', '🐱', '🐿️', '🦜'];
+
+  public suggestedType = signal<string>('');
+  public otpLength = signal<number>(0);
+  public successOverlay = signal<{
+    name: string;
+    type: string;
+    time: string;
+    isLate: boolean;
+    lateMsg: string;
+    motivationalMsg: string;
+  } | null>(null);
+
+  private readonly motivationalMessages = [
+    // Motivacionales
+    '¡Gran día por delante!',
+    '¡Tú puedes con todo!',
+    '¡A dar lo mejor hoy!',
+    '¡Éxito en tu jornada!',
+    '¡Hoy será un gran día!',
+    '¡Arriba ese ánimo!',
+    '¡Tu esfuerzo vale oro!',
+    '¡Vamos con todo!',
+    '¡Cada día cuenta!',
+    '¡Eres parte esencial!',
+    '¡A brillar hoy!',
+    '¡Tu actitud inspira!',
+    '¡Haz que hoy valga!',
+    '¡Energía al máximo!',
+    '¡Tú marcas la diferencia!',
+    '¡Excelente trabajo!',
+    '¡Sigue así, campeón!',
+    '¡Hoy rompes récords!',
+    '¡La constancia es clave!',
+    '¡Ánimo, crack!',
+    '¡Siempre adelante!',
+    '¡Tu dedicación brilla!',
+    '¡A conquistar el día!',
+    '¡Imparable!',
+    '¡Lo estás logrando!',
+    '¡Eres increíble!',
+    '¡Hoy será épico!',
+    '¡Dale con ganas!',
+    '¡Nada te detiene!',
+    '¡Orgullosos de ti!',
+    '¡Paso a paso, se llega!',
+    '¡Tu equipo te necesita!',
+    '¡A romperla hoy!',
+    '¡Eres un ejemplo!',
+    '¡Hoy es tu día!',
+    '¡Fuerza y ánimo!',
+    '¡Juntos somos más!',
+    '¡Gracias por estar!',
+    '¡Tu presencia cuenta!',
+    '¡A crear historia!',
+    '¡Sonríe y avanza!',
+    '¡Haz lo que amas!',
+    '¡La meta está cerca!',
+    '¡Confía en ti!',
+    '¡Actitud positiva!',
+    '¡Tu talento importa!',
+    '¡Hoy es oportunidad!',
+    '¡Sé la diferencia!',
+    '¡Siempre mejorando!',
+    '¡Vamos, equipo!',
+    '¡Hoy brillas más!',
+    '¡Tu trabajo inspira!',
+    '¡A ganar el día!',
+    '¡Eres fundamental!',
+    '¡No hay límites!',
+    '¡Pura buena vibra!',
+    '¡Haz magia hoy!',
+    '¡El éxito te espera!',
+    '¡A por todas!',
+    '¡Buen trabajo, crack!',
+    '¡Eres de los buenos!',
+    '¡Tu energía contagia!',
+    '¡Hoy se logra todo!',
+    '¡Guerrero/a del día!',
+    '¡El equipo gana contigo!',
+    '¡Nadie para tu flow!',
+    '¡A dejar huella!',
+    '¡Sangre de campeón!',
+    '¡Tu familia está orgullosa!',
+    '¡Naciste para brillar!',
+    // Mascotas y peluditos
+    '¡Tu mascota te espera en casa!',
+    '¡Trabaja duro, tu perro confía en ti!',
+    '¡Hoy ganas croquetas extra!',
+    '¡Tu gato aprueba tu puntualidad!',
+    '¡Los peluditos dicen: buen humano!',
+    '¡Marca y vuelve con tu lomito!',
+    '¡Tu mascota manda saludos!',
+    '¡Eres el héroe de tu mascota!',
+    '¡Guau! ¡Llegaste a tiempo!',
+    '¡Miau! Buen trabajo, humano.',
+    '¡Black Dog aprueba tu marcación!',
+    '¡Los perritos te aplauden!',
+    '¡Tu mascota estaría orgullosa!',
+    '¡Patas arriba por tu esfuerzo!',
+    '¡El mejor amigo del hombre... y del trabajo!',
+    '¡A chambear como retriever!',
+    '¡Firme como pastor alemán!',
+    '¡Ágil como un border collie!',
+    '¡Leal como un golden!',
+    // Panamá y frases panameñas
+    '¡Vamo\' arriba, Panamá!',
+    '¡Con la garra canalera!',
+    '¡Panameño/a de corazón!',
+    '¡Échale salsita al día!',
+    '¡Pa\' lante como el Canal!',
+    '¡Qué xopa! A trabajar se dijo.',
+    '¡Tranque mental: cero. Productividad: mil!',
+    '¡Más pila que el Casco Viejo!',
+    '¡Con sabor a Panamá!',
+    '¡Dale que tú eres de Panamá!',
+    '¡Pura cepa istmeña!',
+    '¡Arroz con pollo y actitud!',
+    '¡Panamá la bella te respalda!',
+    '¡Con flow canalero!',
+    '¡Ñapa de energía para ti!',
+    '¡Más cool que la brisa del Causeway!',
+    '¡Firme como la Cinta Costera!',
+    '¡Rendimiento nivel Mariano Rivera!',
+    '¡Puntualidad nivel Roberto Durán!',
+    '¡Con la fuerza de Manos de Piedra!',
+    '¡Precisión nivel Rod Carew!',
+    '¡Corre como Irving Saladino!',
+    '¡Constancia nivel Rommel Fernández!',
+    '¡Talento panameño de exportación!',
+    '¡Campeón/a como Durán: 5 rounds más!',
+    // Jocosos
+    '¡El café ya está listo!',
+    '¡Hoy no, procrastinación!',
+    '¡Modo bestia: activado!',
+    '¡Hoy es solo un día más!',
+    '¡Ya falta menos para el fin de semana!',
+    '¡El WiFi del éxito te conectó!',
+    '¡Plot twist: hoy es tu mejor día!',
+    '¡Error 404: excusas no encontradas!',
+    '¡Cargando productividad... 100%!',
+    '¡Ctrl+S de tu esfuerzo!',
+    '¡Update completado: tú eres la versión mejorada!',
+    '¡Tu jefe secreto eres tú mismo!',
+    '¡Spoiler: hoy te va increíble!',
+    '¡La suerte es para los madrugadores!',
+    '¡Más puntual que reloj suizo!',
+    // Quincena y dinero
+    '¡Ya huele a quincena!',
+    '¡Falta menos para el payday!',
+    '¡Cada marcación te acerca al sueldo!',
+    '¡La quincena no se gana sola!',
+    '¡Hoy se trabaja, mañana se goza!',
+    '¡Tu cuenta bancaria te lo agradecerá!',
+    '¡Dólar a dólar, se arma el rancho!',
+    '¡Pin marcado = plata asegurada!',
+    '¡El sobre viene en camino!',
+    '¡Trabajando por esos Balboa!',
+    '¡La nómina te sonríe!',
+    '¡Tu billetera dice: gracias!',
+    '¡Otro día, otro dólar... bueno, varios!',
+    '¡Sudor = depósito directo!',
+    '¡Más cerca del weekend con cash!',
+    // Comida panameña y antojos
+    '¡Hoy te mereces un patacón doble!',
+    '¡A ganarse el ceviche del almuerzo!',
+    '¡Trabajando por la carimañola!',
+    '¡Huele a empanada de queso!',
+    '¡Hoy la sopa de pollo la pagas tú!',
+    '¡Arroz con pollo pa\' celebrar!',
+    '¡Un raspao\' después del turno!',
+    '¡Productividad nivel: tres leches!',
+    '¡A ganarse el almuerzo ejecutivo!',
+    '¡Te mereces un chicheme bien frío!',
+    // Más humor de oficina
+    '¡El aire acondicionado te extrañaba!',
+    '¡La silla de la oficina: "¡por fin!"!',
+    '¡Tu escritorio dijo: bienvenido/a!',
+    '¡Otro día sin quedarse dormido!',
+    '¡Achievement unlocked: llegué temprano!',
+    '¡Nivel de responsabilidad: legendario!',
+    '¡La alarma funcionó esta vez!',
+    '¡Ni el tranque te detuvo!',
+    '¡El MetroBus sí cumplió hoy!',
+    '¡Ganándole la carrera al tráfico!',
+    '¡Llegaste antes que el café se enfriara!',
+    '¡Tu almohada: "traidor/a..."!',
+    '¡Las ojeras son de campeón!',
+    '¡Más temprano que el sol!',
+    '¡Ni la lluvia panameña te para!',
+    // Más Panamá
+    '¡Más fuerte que el Puente de las Américas!',
+    '¡Con energía de Carnavales!',
+    '¡Bailando tamborito con la vida!',
+    '¡Panamá no para y tú tampoco!',
+    '¡Del Darién a Bocas, nadie te frena!',
+    '¡Más caliente que Chitré en verano!',
+    '¡Flow de Calle Uruguay!',
+    '¡Resistencia nivel: subir Ancón a pie!',
+    '¡Elegancia nivel: Casco Antiguo!',
+    '¡Velocidad nivel: línea 2 del Metro!',
+    // Más mascotas
+    '¡Tu perro ya armó el desastre en casa!',
+    '¡Tu gato ni se enteró que saliste!',
+    '¡Los peluditos en casa: "¿trae croquetas?"!',
+    '¡Mientras tú trabajas, tu perro duerme rico!',
+    '¡Tu mascota cuenta las horas para verte!',
+    '¡Trabajas para que tu mascota viva como rey!',
+    '¡Tu perro: el verdadero jefe de la casa!',
+    '¡El gato ya se adueñó de tu silla!',
+    // Motivación extra
+    '¡Tus hijos/familia están orgullosos!',
+    '¡Hoy se construye el futuro!',
+    '¡Cada día eres mejor versión!',
+    '¡Los sueños se trabajan, no se sueñan!',
+    '¡Disciplina mata talento!',
+    '¡El éxito es un hábito, no un accidente!',
+    '¡Pequeños pasos, grandes logros!',
+    '¡La excelencia no es un acto, es un hábito!',
+    '¡Haz hoy lo que otros no harán!',
+    '¡Mañana agradecerás el esfuerzo de hoy!',
+  ];
+
+  /** Mensajes específicos por día de la semana (0=Domingo, 1=Lunes, ..., 6=Sábado) */
+  private readonly dayMessages: Record<number, string[]> = {
+    0: [ // Domingo
+      '¡Domingo y aquí firme, qué héroe!',
+      '¡Trabajar en domingo = guerrero/a de verdad!',
+      '¡Domingo: día de descanso... pero no para ti, crack!',
+      '¡Hoy hasta Dios descansó, pero tú no!',
+      '¡Domingo productivo = semana ganada!',
+    ],
+    1: [ // Lunes
+      '¡Lunes: el jefe final del videojuego!',
+      '¡Lunes y con toda la actitud!',
+      '¡Nuevo lunes, nuevas oportunidades!',
+      '¡Lunes: modo guerrero activado!',
+      '¡Si sobrevives al lunes, lo demás es fácil!',
+      '¡Tu almohada lloró, pero el lunes no te gana!',
+      '¡Lunes: el enemigo es fuerte pero tú más!',
+    ],
+    2: [ // Martes
+      '¡Martes: ya pasó lo peor!',
+      '¡Martes con energía recargada!',
+      '¡Martes: el lunes ya quedó atrás!',
+      '¡Martes y la semana agarra impulso!',
+      '¡Martes: hoy se mantiene el ritmo!',
+    ],
+    3: [ // Miércoles
+      '¡Miércoles: mitad de camino, crack!',
+      '¡Miércoles: la cuesta ya va de bajada!',
+      '¡Mitad de semana y con todo!',
+      '¡Miércoles: ya se ve la luz del viernes!',
+      '¡Miércoles = ecuador de la semana!',
+    ],
+    4: [ // Jueves
+      '¡Jueves: ya huele a viernes!',
+      '¡Jueves: un día más y llegamos!',
+      '¡Jueves: el pre-viernes!',
+      '¡Jueves: mañana es viernes, aguanta!',
+      '¡Jueves con sabor a casi fin de semana!',
+    ],
+    5: [ // Viernes
+      '¡Viernes: modo fiesta en 3, 2, 1...!',
+      '¡VIERNES: hoy se celebra!',
+      '¡Viernes: último round y a disfrutar!',
+      '¡Viernes: ya casi saboreas el weekend!',
+      '¡Viernes: hoy hasta el trabajo sabe mejor!',
+      '¡Viernes: la semana es tuya!',
+      '¡Viernes de victoria!',
+    ],
+    6: [ // Sábado
+      '¡Sábado trabajando = doble respeto!',
+      '¡Sábado y aquí dando la cara!',
+      '¡Sábado: los guerreros no descansan!',
+      '¡Sábado: Flow de Calle Uruguay después!',
+      '¡Sábado: hoy se trabaja, mañana se descansa!',
+    ],
+  };
+
+  /** Obtiene un mensaje motivacional aleatorio, incluyendo mensajes del día actual */
+  private getRandomMotivationalMessage(): string {
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0=Dom, 1=Lun, ..., 6=Sáb
+    const todayMessages = this.dayMessages[dayOfWeek] || [];
+
+    // 30% de probabilidad de mostrar un mensaje del día
+    if (todayMessages.length > 0 && Math.random() < 0.3) {
+      return todayMessages[Math.floor(Math.random() * todayMessages.length)];
+    }
+
+    // 70% mensaje general
+    return this.motivationalMessages[
+      Math.floor(Math.random() * this.motivationalMessages.length)
+    ];
+  }
+
+  public numpadPos = signal<{ x: number; y: number } | null>(null);
+  private numpadDragging = false;
+  private numpadDragStart = { x: 0, y: 0, posX: 0, posY: 0 };
+  private inactivityTimer: any;
+  private readonly INACTIVITY_TIMEOUT = 60_000;
+  private inactivityHandler = () => this.resetInactivityTimer();
+
+  public suggestedTypeLabel = computed(() => {
+    const map: Record<string, string> = {
+      entry: 'Entrada',
+      lunch_start: 'Inicio Almuerzo',
+      lunch_end: 'Fin Almuerzo',
+      exit: 'Salida',
+    };
+    return map[this.suggestedType()] || '';
+  });
+
+  public suggestedTypeIcon = computed(() => {
+    const map: Record<string, string> = {
+      entry: 'pi pi-sign-in',
+      lunch_start: 'pi pi-clock',
+      lunch_end: 'pi pi-clock',
+      exit: 'pi pi-sign-out',
+    };
+    return map[this.suggestedType()] || '';
+  });
+
+  public suggestedTypeColor = computed(() => {
+    const map: Record<string, string> = {
+      entry: '#22c55e',
+      lunch_start: '#f97316',
+      lunch_end: '#3b82f6',
+      exit: '#ef4444',
+    };
+    return map[this.suggestedType()] || '#6b7280';
+  });
   // Usar el servicio de organización como fuente principal
-  public isNazCompany = computed(() => this.organizationService.isNaz());
-  public isBlackDogCompany = computed(() =>
-    this.organizationService.isBlackDog()
-  );
+  public isNazCompany = computed(() => {
+    const ready = this.organizationService.companyIdsReady();
+    if (ready) return this.organizationService.isNaz();
+    return this.organizationService.currentOrganization === 'naz';
+  });
+  public isBlackDogCompany = computed(() => {
+    const ready = this.organizationService.companyIdsReady();
+    if (ready) return this.organizationService.isBlackDog();
+    return this.organizationService.currentOrganization === 'blackdog';
+  });
   // Ya no hay tablas naz_*, todo es por company_id
   private employeesTable = computed(() => 'employees');
 
@@ -1063,7 +2794,11 @@ export class TimeclockComponent implements OnDestroy {
     // Detectar si está en modo kiosko y si es versión móvil
     const isKioskRoute = this.router.url.includes('/timeclock-kiosk');
     this.isKioskMode.set(isKioskRoute);
-    this.isMobileKiosk.set(this.router.url.includes('/timeclock-kiosk-mobile'));
+    const isMobileDevice = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
+      || (navigator.maxTouchPoints > 0 && window.innerWidth < 900);
+    this.isMobileKiosk.set(
+      this.router.url.includes('/timeclock-kiosk-mobile') || isMobileDevice
+    );
 
     // Sincronizar reloj con hora del servidor (sin tocar DB).
     // Esto evita depender del reloj/zona horaria del dispositivo.
@@ -1085,6 +2820,14 @@ export class TimeclockComponent implements OnDestroy {
     } else if (isKioskRoute && this.isNazCompany()) {
       // Para Naz, siempre considerar la IP como válida
       this.isIPValid.set(true);
+    }
+
+    // Setup inactivity timer for kiosk mode
+    if (isKioskRoute) {
+      document.addEventListener('touchstart', this.inactivityHandler, { passive: true });
+      document.addEventListener('click', this.inactivityHandler);
+      document.addEventListener('keydown', this.inactivityHandler);
+      this.resetInactivityTimer();
     }
 
     // Monitorear errores de recursos httpResource
@@ -1117,6 +2860,8 @@ export class TimeclockComponent implements OnDestroy {
         );
       }
     });
+
+    // (mobile keyboard handled natively by PrimeNG InputOtp)
 
     // Auto-select company and branch when data loads
     effect(
@@ -1285,15 +3030,36 @@ export class TimeclockComponent implements OnDestroy {
     if (this.isKioskMode()) {
       this.ipMonitor.stopMonitoring();
     }
+    // Clean up inactivity timer
+    if (this.inactivityTimer) {
+      clearTimeout(this.inactivityTimer);
+    }
+    document.removeEventListener('touchstart', this.inactivityHandler);
+    document.removeEventListener('click', this.inactivityHandler);
+    document.removeEventListener('keydown', this.inactivityHandler);
   }
 
   // Detect IP address using multiple methods
   private detectIP() {
+    // Check sessionStorage cache first
+    try {
+      const cached = sessionStorage.getItem('timeclock_ip');
+      if (cached && cached !== '127.0.0.1' && cached !== '::1') {
+        this.currentIP.set(cached);
+        return;
+      }
+    } catch { /* sessionStorage may not be available */ }
+
     // Method 1: Try WebRTC (works even from localhost)
+    const setIP = (ip: string) => {
+      this.currentIP.set(ip);
+      try { sessionStorage.setItem('timeclock_ip', ip); } catch { /* noop */ }
+    };
+
     this.getIPViaWebRTC()
       .then((ip) => {
         if (ip && ip !== '127.0.0.1' && ip !== '::1') {
-          this.currentIP.set(ip);
+          setIP(ip);
           return;
         }
 
@@ -1301,7 +3067,7 @@ export class TimeclockComponent implements OnDestroy {
         this.getIPViaHttp()
           .then((ip) => {
             if (ip && ip !== '127.0.0.1') {
-              this.currentIP.set(ip);
+              setIP(ip);
             }
           })
           .catch(() => {
@@ -1309,7 +3075,7 @@ export class TimeclockComponent implements OnDestroy {
             this.getIPViaAlternative()
               .then((ip) => {
                 if (ip && ip !== '127.0.0.1') {
-                  this.currentIP.set(ip);
+                  setIP(ip);
                 }
               })
               .catch(() => {
@@ -1322,14 +3088,14 @@ export class TimeclockComponent implements OnDestroy {
         this.getIPViaHttp()
           .then((ip) => {
             if (ip && ip !== '127.0.0.1') {
-              this.currentIP.set(ip);
+              setIP(ip);
             }
           })
           .catch(() => {
             this.getIPViaAlternative()
               .then((ip) => {
                 if (ip && ip !== '127.0.0.1') {
-                  this.currentIP.set(ip);
+                  setIP(ip);
                 }
               })
               .catch(() => {
@@ -1481,7 +3247,9 @@ export class TimeclockComponent implements OnDestroy {
   addNumberToOtp(num: string) {
     const currentOtp = this.form.get('otp')?.value || '';
     if (currentOtp.length < 6) {
-      this.form.get('otp')?.setValue(currentOtp + num);
+      const newVal = currentOtp + num;
+      this.form.get('otp')?.setValue(newVal);
+      this.otpLength.set(newVal.length);
     }
   }
 
@@ -1489,13 +3257,16 @@ export class TimeclockComponent implements OnDestroy {
   deleteFromOtp() {
     const currentOtp = this.form.get('otp')?.value || '';
     if (currentOtp.length > 0) {
-      this.form.get('otp')?.setValue(currentOtp.slice(0, -1));
+      const newVal = currentOtp.slice(0, -1);
+      this.form.get('otp')?.setValue(newVal);
+      this.otpLength.set(newVal.length);
     }
   }
 
   // Clear OTP
   clearOtp() {
     this.form.get('otp')?.setValue('');
+    this.otpLength.set(0);
   }
 
   // Format time for display (12-hour format with AM/PM)
@@ -1956,13 +3727,15 @@ export class TimeclockComponent implements OnDestroy {
   onEmployeeSelected(employee: Employee | undefined) {
     // Inicializar audio con interacción del usuario
     this.getAudioContext();
-    
+
     if (employee?.id) {
       this.getLastTimelog(employee.id).subscribe({
         next: (lastTimelog) => {
           const nextType = this.getNextTimelogType(lastTimelog?.type || null);
           this.updateAvailableTypes(lastTimelog?.type || null);
           this.form.get('type')?.setValue(nextType);
+          this.suggestedType.set(nextType);
+          this.showKeypad.set(true);
           // Focus OTP input when employee is selected
           this.focusOtpInput();
         },
@@ -1970,21 +3743,33 @@ export class TimeclockComponent implements OnDestroy {
           // Default to entry if error
           this.updateAvailableTypes(null);
           this.form.get('type')?.setValue('entry');
+          this.suggestedType.set('entry');
+          this.showKeypad.set(true);
           // Focus OTP input when employee is selected
           this.focusOtpInput();
         },
       });
     } else {
       this.updateAvailableTypes(null);
+      this.suggestedType.set('');
+      this.showKeypad.set(false);
     }
   }
 
+  onMobilePinInput(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const val = input.value.replace(/\D/g, '').slice(0, 6);
+    input.value = val;
+    this.form.get('otp')?.setValue(val);
+    this.otpLength.set(val.length);
+  }
+
   onOtpInput(event: any) {
-    // Auto-advance to next input when a digit is entered
-    const target = event.target;
-    if (target && target.value && target.nextElementSibling) {
-      target.nextElementSibling.focus();
-    }
+    // Track OTP length (PrimeNG handles auto-advance internally)
+    setTimeout(() => {
+      const otpVal = this.form.get('otp')?.value || '';
+      this.otpLength.set(otpVal.length);
+    });
   }
 
   focusOtpInput() {
@@ -2143,6 +3928,7 @@ export class TimeclockComponent implements OnDestroy {
           detail: 'Código incorrecto',
         });
         this.form.get('otp')?.reset();
+        this.otpLength.set(0);
         return;
       }
 
@@ -2434,7 +4220,7 @@ export class TimeclockComponent implements OnDestroy {
     this.showConfirmationDialogWithSound(message, false);
   }
 
-  // Mostrar diálogo de confirmación con sonido según tardanza
+  // Mostrar overlay de confirmación con sonido según tardanza
   private showConfirmationDialogWithSound(message: string, isLate: boolean, employeeId?: string): void {
     this.isProcessing.set(false);
     // Reproducir sonido según si llegó tarde o no
@@ -2443,23 +4229,58 @@ export class TimeclockComponent implements OnDestroy {
     } else {
       this.playSuccessSound(employeeId);
     }
-    this.confirmation.confirm({
-      message,
-      key: 'confirm1',
-      header: isLate ? 'Registrado con Tardanza' : 'Éxito',
-      icon: isLate ? 'pi pi-clock' : 'pi pi-check',
-      acceptLabel: 'Aceptar',
-      rejectVisible: false,
-      accept: () => {
-        this.form.get('otp')?.reset();
-        this.form.get('employee')?.reset();
-        this.showKeypad.set(false);
-        // Solo validar IP si NO es Naz
-        if (!this.isNazCompany() && !this.validIP()) {
-          this.alertInvalidIP();
-        }
-      },
+
+    // Get employee name and type for overlay
+    const employee = this.form.get('employee')?.value;
+    const typeName = this.form.get('type')?.value || '';
+    const typeLabel = this.types.find((t) => t.value === typeName)?.label || typeName;
+    const employeeName = employee
+      ? `${employee.first_name || ''} ${employee.father_name || ''}`.trim()
+      : '';
+    const timeStr = this.formattedTime();
+
+    // Extract late message from the HTML message
+    let lateMsg = '';
+    if (isLate) {
+      const match = message.match(/Tardanza:\s*([^<]+)/);
+      lateMsg = match ? match[1].trim() : '';
+    }
+
+    const motivationalMsg = this.getRandomMotivationalMessage();
+
+    this.successOverlay.set({
+      name: employeeName,
+      type: typeLabel,
+      time: timeStr,
+      isLate,
+      lateMsg,
+      motivationalMsg,
     });
+
+    // Send push notification if enabled
+    this.pwaService.sendNotification(
+      `${typeLabel} - ${employeeName}`,
+      `${timeStr}${isLate ? ' (Tardanza)' : ''} — ${motivationalMsg}`,
+    );
+
+    // Auto-dismiss after 4 seconds
+    setTimeout(() => {
+      this.dismissOverlay();
+    }, 4000);
+  }
+
+  /** Dismiss the success overlay and reset form */
+  dismissOverlay(): void {
+    this.successOverlay.set(null);
+    this.form.get('otp')?.reset();
+    this.form.get('employee')?.reset();
+    this.showKeypad.set(false);
+    this.suggestedType.set('');
+    this.otpLength.set(0);
+    // Solo validar IP si NO es Naz
+    if (!this.isNazCompany() && !this.validIP()) {
+      this.alertInvalidIP();
+    }
   }
 
   // AudioContext compartido para evitar límites del navegador
@@ -2712,14 +4533,112 @@ export class TimeclockComponent implements OnDestroy {
     };
   }
 
+  /** Reset inactivity timer (kiosk mode) */
+  private resetInactivityTimer(): void {
+    if (this.inactivityTimer) {
+      clearTimeout(this.inactivityTimer);
+    }
+    this.inactivityTimer = setTimeout(() => {
+      // Reset form after inactivity
+      this.form.get('otp')?.reset();
+      this.form.get('employee')?.reset();
+      this.showKeypad.set(false);
+      this.suggestedType.set('');
+      this.otpLength.set(0);
+      this.successOverlay.set(null);
+    }, this.INACTIVITY_TIMEOUT);
+  }
+
+  /** Start dragging the numpad */
+  onNumpadDragStart(e: MouseEvent | TouchEvent): void {
+    this.numpadDragging = true;
+    const clientX = e instanceof MouseEvent ? e.clientX : e.touches[0].clientX;
+    const clientY = e instanceof MouseEvent ? e.clientY : e.touches[0].clientY;
+    const pos = this.numpadPos();
+    this.numpadDragStart = {
+      x: clientX,
+      y: clientY,
+      posX: pos?.x ?? 0,
+      posY: pos?.y ?? 0,
+    };
+    e.preventDefault();
+
+    const onMove = (ev: MouseEvent | TouchEvent) => {
+      if (!this.numpadDragging) return;
+      const cx = ev instanceof MouseEvent ? ev.clientX : ev.touches[0].clientX;
+      const cy = ev instanceof MouseEvent ? ev.clientY : ev.touches[0].clientY;
+      const dx = cx - this.numpadDragStart.x;
+      const dy = cy - this.numpadDragStart.y;
+      this.numpadPos.set({
+        x: this.numpadDragStart.posX + dx,
+        y: this.numpadDragStart.posY + dy,
+      });
+    };
+
+    const onEnd = () => {
+      this.numpadDragging = false;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onEnd);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onEnd);
+    };
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onEnd);
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchend', onEnd);
+  }
+
   private alertInvalidIP() {
-    this.confirmation.confirm({
-      message: `La IP actual no coincide con la IP de ninguna sucursal, por favor verifique con Recursos Humanos`,
-      header: 'Advertencia',
-      key: 'confirm2',
-      icon: 'pi pi-exclamation-triangle',
-      acceptLabel: 'Aceptar',
-      rejectVisible: false,
-    });
+    this.ipAlertVisible.set(true);
+    this.logIPSecurityIncident();
+  }
+
+  public ipAlertVisible = signal(false);
+
+  dismissIPAlert() {
+    this.ipAlertVisible.set(false);
+  }
+
+  onVersionClick(): void {
+    const idx = this.versionSoundIndex % this.VERSION_SOUNDS.length;
+    const src = this.VERSION_SOUNDS[idx];
+    const emoji = this.VERSION_EMOJIS[idx];
+    this.versionSoundIndex += 1;
+
+    try {
+      const audio = new Audio(src);
+      audio.volume = 0.5;
+      audio.play().catch(() => {});
+    } catch {}
+
+    this.easterEggPop.set(true);
+    this.easterEggBurst.set(emoji);
+    setTimeout(() => this.easterEggPop.set(false), 220);
+    setTimeout(() => this.easterEggBurst.set(null), 1400);
+  }
+
+  /** Log IP mismatch to security_audit_log */
+  private logIPSecurityIncident() {
+    const ip = this.currentIP() || 'unknown';
+    const url = this.apiUrl.build('rest/v1/security_audit_log');
+    this.http.post(url, {
+      event_type: 'ip_mismatch_timeclock',
+      table_name: 'timeclock',
+      user_email: null,
+      ip_address: ip,
+      details: {
+        detected_ip: ip,
+        route: window.location.pathname,
+        user_agent: navigator.userAgent,
+        timestamp: new Date().toISOString(),
+        organization: this.isNazCompany() ? 'naz' : 'blackdog',
+      },
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal',
+      },
+    }).pipe(catchError(() => EMPTY)).subscribe();
   }
 }

@@ -2,16 +2,19 @@ import { CommonModule } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
+  inject,
   input,
   model,
 } from '@angular/core';
 import { DialogModule } from 'primeng/dialog';
+import { DeviceService } from '../../../../services/device.service';
 
 @Component({
   selector: 'pt-late-details-dialog',
   standalone: true,
   imports: [CommonModule, DialogModule],
   template: `
+    @if (device.isDesktop()) {
     <p-dialog
       [visible]="visible()"
       (visibleChange)="visible.set($event)"
@@ -88,6 +91,77 @@ import { DialogModule } from 'primeng/dialog';
         }
       </div>
     </p-dialog>
+    } @else {
+    <p-dialog
+      [visible]="visible()"
+      (visibleChange)="visible.set($event)"
+      [modal]="true"
+      [closable]="true"
+      [draggable]="false"
+      [resizable]="false"
+      [dismissableMask]="true"
+      [style]="{ width: '95vw', 'max-height': '90vh' }"
+      position="bottom"
+      [header]="headerTitle()"
+      styleClass="late-details-dialog lates-dialog"
+    >
+      <div class="p-2">
+        @if (details().length === 0) {
+        <div class="text-sm text-gray-400 text-center py-4">
+          No hay tardanzas registradas en esta fecha.
+        </div>
+        } @else {
+        <div class="flex flex-col gap-2.5 max-h-[70vh] overflow-y-auto">
+          @for (d of details(); track d.id || $index) {
+          <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+            <div class="flex items-center gap-3">
+              <div
+                class="lates-icon-box flex-shrink-0"
+                [class.late-severe]="d.minutesLate && d.minutesLate > 10"
+                [class.late-moderate]="d.minutesLate && d.minutesLate <= 10"
+              >
+                <i
+                  class="pi"
+                  [class.pi-clock]="d.minutesLate && d.minutesLate <= 10"
+                  [class.pi-exclamation-triangle]="
+                    d.minutesLate && d.minutesLate > 10
+                  "
+                ></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-sm text-white font-medium truncate">
+                  {{ d.name || 'Sin nombre' }}
+                </div>
+                <div class="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
+                  @if (d.scheduledEntry && d.actualEntry && d.minutesLate !== undefined) {
+                    <i class="pi pi-calendar-clock text-[10px]"></i>
+                    {{ d.scheduledEntry }} → {{ d.actualEntry }}
+                  } @else {
+                    <i class="pi pi-info-circle text-[10px]"></i>
+                    Sin detalles de horario
+                  }
+                </div>
+              </div>
+              <div class="flex-shrink-0">
+                @if (d.minutesLate !== undefined) {
+                <div
+                  class="text-sm font-semibold px-2 py-0.5 rounded"
+                  [class]="d.minutesLate > 10 ? 'text-red-400' : 'text-yellow-400'"
+                >
+                  {{ d.minutesLate }} min
+                </div>
+                } @else {
+                <span class="text-xs text-gray-400">-</span>
+                }
+              </div>
+            </div>
+          </div>
+          }
+        </div>
+        }
+      </div>
+    </p-dialog>
+    }
   `,
   styles: [
     `
@@ -193,6 +267,7 @@ import { DialogModule } from 'primeng/dialog';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LateDetailsDialogComponent {
+  protected device = inject(DeviceService);
   visible = model.required<boolean>();
   details = input.required<any[]>();
   headerTitle = input<string>('');

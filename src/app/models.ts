@@ -773,7 +773,7 @@ export interface EmployeeOvertimeRecord {
 // ============================================
 
 export type LateRecordStatus = 'active' | 'justified' | 'compensated' | 'discarded';
-export type LateRecordSource = 'peluqueria' | 'manual' | 'kiosk' | 'api' | 'import';
+export type LateRecordSource = 'peluqueria' | 'clinica' | 'manual' | 'kiosk' | 'api' | 'import';
 
 export interface EmployeeLateRecord {
   id: string;

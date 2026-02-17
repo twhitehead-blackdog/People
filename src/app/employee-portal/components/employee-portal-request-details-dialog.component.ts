@@ -2,10 +2,12 @@ import { DatePipe, NgClass } from '@angular/common';
 import {
     ChangeDetectionStrategy,
     Component,
+    inject,
     input,
     model,
     output,
 } from '@angular/core';
+import { DeviceService } from '../../services/device.service';
 import { Button } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { DocumentViewerCardComponent } from '../../shared/components/document-viewer-card.component';
@@ -41,6 +43,7 @@ type UnifiedRequest = {
     DocumentViewerCardComponent,
   ],
   template: `
+    @if (device.isDesktop()) {
     <p-dialog
       [(visible)]="visible"
       [modal]="true"
@@ -553,10 +556,353 @@ type UnifiedRequest = {
       </div>
       }
     </p-dialog>
+    } @else {
+    <!-- Mobile Template -->
+    <p-dialog
+      [(visible)]="visible"
+      [modal]="true"
+      [style]="{ width: '95vw', 'max-height': '90vh' }"
+      position="bottom"
+      [draggable]="false"
+      [resizable]="false"
+      [closable]="true"
+      [dismissableMask]="true"
+      [header]="request()?.title || 'Detalles de la Solicitud'"
+      (onHide)="onClose()"
+    >
+      @if (request()) { @let req = request()!; @let data = req.originalData;
+      <div class="flex flex-col gap-3 overflow-y-auto" style="max-height: 70vh;">
+        <!-- Estado y Fecha -->
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs text-gray-400">Estado</span>
+            <span class="text-xs text-gray-400">{{ req.created_at | date : 'dd/MM/yyyy HH:mm' }}</span>
+          </div>
+          <span
+            class="px-3 py-1.5 rounded-lg text-sm font-semibold inline-flex items-center gap-2"
+            [class.text-yellow-300]="req.status === 'pending'"
+            [class.text-green-300]="req.status === 'approved'"
+            [class.text-red-300]="req.status === 'rejected'"
+            [class.text-cyan-300]="req.status === 'in_registry'"
+            [ngClass]="{
+              'bg-yellow-500/20': req.status === 'pending',
+              'bg-green-500/20': req.status === 'approved',
+              'bg-red-500/20': req.status === 'rejected',
+              'bg-cyan-500/20': req.status === 'in_registry'
+            }"
+          >
+            @if (req.status === 'approved') {
+            <i class="pi pi-check-circle text-sm"></i>
+            } @else if (req.status === 'rejected') {
+            <i class="pi pi-times-circle text-sm"></i>
+            } @else if (req.status === 'in_registry') {
+            <i class="pi pi-clock text-sm"></i>
+            } @else {
+            <i class="pi pi-hourglass text-sm"></i>
+            }
+            {{ getStatusLabel()(req.status) }}
+          </span>
+        </div>
+
+        <!-- Compensatory -->
+        @if (req.request_type === 'compensatory') {
+        @let quantityForPeriod = getCompensatoryQuantity(data);
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <div class="flex items-center gap-2 mb-2">
+            <i class="pi pi-calendar text-cyan-400 text-sm"></i>
+            <span class="text-xs text-gray-400">
+              @if (quantityForPeriod.isDays) { Periodo } @else { Fecha y Horas }
+            </span>
+          </div>
+          @if (quantityForPeriod.isDays) {
+          <p class="text-sm text-white font-semibold">
+            {{ data.date_from | date : 'dd/MM/yyyy' : 'UTC' }}
+          </p>
+          @if (data.date_from !== data.date_to) {
+          <p class="text-xs text-gray-400 mt-1">hasta {{ data.date_to | date : 'dd/MM/yyyy' : 'UTC' }}</p>
+          }
+          } @else { @if (data.date_from) {
+          <p class="text-sm text-white font-semibold">
+            {{ data.date_from | date : 'dd/MM/yyyy' : 'UTC' }}
+          </p>
+          @if (data.date_from && hasTimeInfo()(data.date_from)) {
+          <p class="text-xs text-gray-400 mt-1">{{ formatDateWithTimeRange()(data.date_from, data.date_to) }}</p>
+          } @else {
+          <p class="text-xs text-gray-400 mt-1">{{ formatHoursMinutes()(quantityForPeriod.value) }}</p>
+          }
+          } @else {
+          <p class="text-xs text-gray-400">Sin fecha especifica</p>
+          } }
+        </div>
+
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <div class="flex items-center gap-2 mb-2">
+            @if (data.compensatory_type === 'days') {
+            <i class="pi pi-calendar text-cyan-400 text-sm"></i>
+            } @else {
+            <i class="pi pi-clock text-cyan-400 text-sm"></i>
+            }
+            <span class="text-xs text-gray-400">Cantidad</span>
+          </div>
+          @let quantity = getCompensatoryQuantity(data);
+          @if (quantity.isDays) {
+          <p class="text-sm text-white font-semibold">{{ quantity.value }} dia(s)</p>
+          <span class="text-xs text-gray-400">({{ quantity.value * 8 }} horas)</span>
+          } @else {
+          <p class="text-sm text-white font-semibold">{{ formatHoursMinutes()(quantity.value) }}</p>
+          }
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+            <span class="text-xs text-gray-400">Tipo</span>
+            <p class="text-sm text-white font-semibold mt-1">
+              @if (data.compensatory_type === 'days') { Dias } @else { Horas }
+            </p>
+          </div>
+          <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+            <span class="text-xs text-gray-400">Solicitud</span>
+            <p class="text-sm text-white font-semibold mt-1">{{ getRequestTypeLabel()(req.request_type) }}</p>
+          </div>
+        </div>
+
+        @if (data.reason || req.description || getCompensatoryReasonFromNotes(data)) {
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <div class="flex items-center gap-2 mb-2">
+            <i class="pi pi-comment text-cyan-400 text-sm"></i>
+            <span class="text-xs text-gray-400">Motivo</span>
+          </div>
+          <p class="text-sm text-white whitespace-pre-wrap">
+            {{ data.reason || req.description || getCompensatoryReasonFromNotes(data) || 'Sin motivo especificado' }}
+          </p>
+        </div>
+        }
+
+        @if ((data.rejection_comment || data.notes) && req.status === 'rejected') {
+        <div class="bg-red-500/10 border border-red-500/30 rounded-xl p-3">
+          <div class="flex items-start gap-2">
+            <i class="pi pi-exclamation-triangle text-red-400 text-sm mt-0.5"></i>
+            <div class="flex-1">
+              <h4 class="text-red-300 font-semibold text-sm mb-1">Motivo del Rechazo</h4>
+              <p class="text-red-200 text-xs whitespace-pre-wrap">{{ data.rejection_comment || data.notes }}</p>
+            </div>
+          </div>
+        </div>
+        }
+        }
+
+        <!-- Disability -->
+        @if (req.request_type === 'disability') {
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <div class="flex items-center gap-2 mb-2">
+            <i class="pi pi-calendar text-blue-400 text-sm"></i>
+            <span class="text-xs text-gray-400">Periodo de Incapacidad</span>
+          </div>
+          <p class="text-sm text-white font-semibold">{{ data.start_date | date : 'dd/MM/yyyy' : 'UTC' }}</p>
+          @if (data.end_date) {
+          <p class="text-xs text-gray-400 mt-1">hasta {{ data.end_date | date : 'dd/MM/yyyy' : 'UTC' }}</p>
+          }
+        </div>
+
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <div class="flex items-center gap-2 mb-2">
+            <i class="pi pi-calendar-check text-blue-400 text-sm"></i>
+            <span class="text-xs text-gray-400">Dias</span>
+          </div>
+          <p class="text-sm text-white font-semibold">{{ calculateDays(data.start_date, data.end_date) }} dia(s)</p>
+        </div>
+
+        @if (data.document_url) {
+        <pt-document-viewer-card
+          [documentUrl]="data.document_url"
+          [title]="'Documento de Incapacidad'"
+          [iconColorClass]="'text-blue-400'"
+          (download)="onDownloadDocument($event)"
+        />
+        }
+
+        @if (data.description || req.description) {
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <div class="flex items-center gap-2 mb-2">
+            <i class="pi pi-comment text-blue-400 text-sm"></i>
+            <span class="text-xs text-gray-400">Descripcion</span>
+          </div>
+          <p class="text-sm text-white whitespace-pre-wrap">{{ data.description || req.description || 'Sin descripcion' }}</p>
+        </div>
+        }
+
+        @if ((data.rejection_comment || data.review_notes) && req.status === 'rejected') {
+        <div class="bg-red-500/10 border border-red-500/30 rounded-xl p-3">
+          <div class="flex items-start gap-2">
+            <i class="pi pi-exclamation-triangle text-red-400 text-sm mt-0.5"></i>
+            <div class="flex-1">
+              <h4 class="text-red-300 font-semibold text-sm mb-1">Motivo del Rechazo</h4>
+              <p class="text-red-200 text-xs whitespace-pre-wrap">{{ data.rejection_comment || data.review_notes }}</p>
+            </div>
+          </div>
+        </div>
+        }
+        }
+
+        <!-- Document -->
+        @if (req.request_type === 'document') {
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <div class="flex items-center gap-2 mb-2">
+            <i class="pi pi-file text-green-400 text-sm"></i>
+            <span class="text-xs text-gray-400">Tipo de Documento</span>
+          </div>
+          <p class="text-sm text-white font-semibold">{{ getDocumentTypeLabel()(data.document_type) }}</p>
+        </div>
+
+        @if (data.required_date) {
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <div class="flex items-center gap-2 mb-2">
+            <i class="pi pi-calendar text-green-400 text-sm"></i>
+            <span class="text-xs text-gray-400">Fecha Requerida</span>
+          </div>
+          <p class="text-sm text-white font-semibold">{{ data.required_date | date : 'dd/MM/yyyy' : 'UTC' }}</p>
+        </div>
+        }
+
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <span class="text-xs text-gray-400">Tipo de Solicitud</span>
+          <p class="text-sm text-white font-semibold mt-1">{{ getRequestTypeLabel()(req.request_type) }}</p>
+        </div>
+
+        @if (data.status === 'approved' && data.document_url) {
+        <pt-document-viewer-card
+          [documentUrl]="data.document_url"
+          [title]="'Documento Solicitado'"
+          [iconColorClass]="'text-green-400'"
+          (download)="onDownloadDocument($event)"
+        />
+        }
+
+        @if (data.reason || req.description) {
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <div class="flex items-center gap-2 mb-2">
+            <i class="pi pi-comment text-green-400 text-sm"></i>
+            <span class="text-xs text-gray-400">Motivo o Uso del Documento</span>
+          </div>
+          <p class="text-sm text-white whitespace-pre-wrap">{{ data.reason || req.description || 'Sin motivo especificado' }}</p>
+        </div>
+        }
+
+        @if (data.rejection_comment && req.status === 'rejected') {
+        <div class="bg-red-500/10 border border-red-500/30 rounded-xl p-3">
+          <div class="flex items-start gap-2">
+            <i class="pi pi-exclamation-triangle text-red-400 text-sm mt-0.5"></i>
+            <div class="flex-1">
+              <h4 class="text-red-300 font-semibold text-sm mb-1">Motivo del Rechazo</h4>
+              <p class="text-red-200 text-xs whitespace-pre-wrap">{{ data.rejection_comment }}</p>
+            </div>
+          </div>
+        </div>
+        }
+        }
+
+        <!-- Complaint -->
+        @if (req.request_type === 'complaint') {
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <div class="flex items-center gap-2 mb-2">
+            <i class="pi pi-tag text-yellow-400 text-sm"></i>
+            <span class="text-xs text-gray-400">Categoria</span>
+          </div>
+          <p class="text-sm text-white font-semibold">{{ getComplaintCategoryLabel()(data.category) }}</p>
+        </div>
+
+        @if (data.priority) {
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <div class="flex items-center gap-2 mb-2">
+            <i class="pi pi-exclamation-circle text-yellow-400 text-sm"></i>
+            <span class="text-xs text-gray-400">Prioridad</span>
+          </div>
+          <p class="text-sm text-white font-semibold capitalize">{{ data.priority }}</p>
+        </div>
+        }
+
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <span class="text-xs text-gray-400">Tipo de Solicitud</span>
+          <p class="text-sm text-white font-semibold mt-1">{{ getRequestTypeLabel()(req.request_type) }}</p>
+        </div>
+
+        @if (data.complaint || req.description) {
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <div class="flex items-center gap-2 mb-2">
+            <i class="pi pi-comment text-yellow-400 text-sm"></i>
+            <span class="text-xs text-gray-400">Detalles de la Sugerencia</span>
+          </div>
+          <p class="text-sm text-white whitespace-pre-wrap">{{ data.complaint || req.description }}</p>
+        </div>
+        }
+
+        <p-button
+          label="Ver Conversacion"
+          icon="pi pi-comments"
+          severity="secondary"
+          [outlined]="true"
+          [rounded]="true"
+          styleClass="w-full min-h-[44px]"
+          (onClick)="onViewResponse(data)"
+        />
+        }
+
+        <!-- Vacation -->
+        @if (req.request_type === 'vacation') {
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <div class="flex items-center gap-2 mb-2">
+            <i class="pi pi-calendar text-orange-400 text-sm"></i>
+            <span class="text-xs text-gray-400">Periodo de Vacaciones</span>
+          </div>
+          <p class="text-sm text-white font-semibold">{{ data.date_from | date : 'dd/MM/yyyy' : 'UTC' }}</p>
+          @if (data.date_to) {
+          <p class="text-xs text-gray-400 mt-1">hasta {{ data.date_to | date : 'dd/MM/yyyy' : 'UTC' }}</p>
+          }
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+            <span class="text-xs text-gray-400">Dias Solicitados</span>
+            <p class="text-sm text-white font-semibold mt-1">{{ calculateDays(data.date_from, data.date_to) }} dia(s)</p>
+          </div>
+          <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+            <span class="text-xs text-gray-400">Tipo de Solicitud</span>
+            <p class="text-sm text-white font-semibold mt-1">{{ getRequestTypeLabel()(req.request_type) }}</p>
+          </div>
+        </div>
+
+        @if (data.reason || req.description) {
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <div class="flex items-center gap-2 mb-2">
+            <i class="pi pi-comment text-orange-400 text-sm"></i>
+            <span class="text-xs text-gray-400">Motivo</span>
+          </div>
+          <p class="text-sm text-white whitespace-pre-wrap">{{ data.reason || req.description || 'Sin motivo especificado' }}</p>
+        </div>
+        }
+
+        @if (data.rejection_comment && req.status === 'rejected') {
+        <div class="bg-red-500/10 border border-red-500/30 rounded-xl p-3">
+          <div class="flex items-start gap-2">
+            <i class="pi pi-exclamation-triangle text-red-400 text-sm mt-0.5"></i>
+            <div class="flex-1">
+              <h4 class="text-red-300 font-semibold text-sm mb-1">Motivo del Rechazo</h4>
+              <p class="text-red-200 text-xs whitespace-pre-wrap">{{ data.rejection_comment }}</p>
+            </div>
+          </div>
+        </div>
+        }
+        }
+      </div>
+      }
+    </p-dialog>
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EmployeePortalRequestDetailsDialogComponent {
+  protected device = inject(DeviceService);
+
   // Model
   public visible = model.required<boolean>();
   public request = input<UnifiedRequest | null | undefined>();

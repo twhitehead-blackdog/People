@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   EventEmitter,
+  inject,
   Input,
   Output,
 } from '@angular/core';
@@ -14,6 +15,7 @@ import { FileUpload } from 'primeng/fileupload';
 import { InputTextarea } from 'primeng/inputtextarea';
 import { Select } from 'primeng/select';
 import { TooltipModule } from 'primeng/tooltip';
+import { DeviceService } from '../../services/device.service';
 
 type CorrectionTypeOption = {
   label: string;
@@ -36,6 +38,8 @@ type CorrectionTypeOption = {
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    @if (device.isDesktop()) {
+    <!-- ========== DESKTOP ========== -->
     <p-card>
       <ng-template #title>
         <div class="flex items-center gap-2">
@@ -185,9 +189,122 @@ type CorrectionTypeOption = {
         />
       </div>
     </p-card>
+    } @else {
+    <!-- ========== MOBILE ========== -->
+    <div class="px-4 py-4">
+      <!-- Header -->
+      <div class="flex items-center gap-3 mb-4">
+        <button class="text-gray-400 hover:text-white" (click)="closeSection.emit()">
+          <i class="pi pi-arrow-left text-lg"></i>
+        </button>
+        <div>
+          <h2 class="text-lg font-bold text-white m-0">Omisión de Marcación</h2>
+          <p class="text-xs text-gray-400 m-0">Corrección de marcación de asistencia</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 gap-3">
+        <!-- Fecha y Tipo -->
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <h3 class="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+            <i class="pi pi-calendar text-orange-400"></i>
+            Fecha y Tipo
+          </h3>
+          <div class="grid grid-cols-1 gap-3">
+            <div>
+              <label class="text-xs text-gray-400 mb-1 block">Fecha de la omisión</label>
+              <p-datepicker
+                [ngModel]="correctionDate"
+                (ngModelChange)="correctionDateChange.emit($event)"
+                [showIcon]="true"
+                dateFormat="dd/mm/yy"
+                [maxDate]="today"
+                styleClass="w-full"
+                appendTo="body"
+                placeholder="Selecciona la fecha"
+              />
+            </div>
+            <div>
+              <label class="text-xs text-gray-400 mb-1 block">Tipo de marcación</label>
+              <p-select
+                [options]="correctionTypes"
+                [ngModel]="correctionType"
+                (ngModelChange)="correctionTypeChange.emit($event)"
+                placeholder="Selecciona el tipo"
+                styleClass="w-full"
+                appendTo="body"
+              />
+            </div>
+          </div>
+        </div>
+
+        <!-- Motivo -->
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <h3 class="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+            <i class="pi pi-comment text-orange-400"></i>
+            Motivo de Corrección
+          </h3>
+          <textarea
+            pInputTextarea
+            [ngModel]="correctionReason"
+            (ngModelChange)="correctionReasonChange.emit($event)"
+            rows="3"
+            placeholder="Explica por qué se necesita la corrección"
+            class="w-full"
+          ></textarea>
+        </div>
+
+        <!-- Documento -->
+        <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
+          <h3 class="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+            <i class="pi pi-file text-orange-400"></i>
+            Documento (Opcional)
+          </h3>
+          <p-fileUpload
+            mode="basic"
+            accept="image/*,.pdf"
+            maxFileSize="5000000"
+            [auto]="false"
+            chooseLabel="Seleccionar Archivo"
+            (onSelect)="handleFileSelect($event)"
+            class="w-full"
+          />
+          <p class="text-xs text-gray-500 mt-1">PDF, JPG, PNG (máx. 5MB)</p>
+          @if (correctionFile) {
+          <div class="mt-2 p-2 bg-orange-500/10 border border-orange-500/30 rounded-lg flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <i class="pi pi-file text-orange-400 text-sm"></i>
+              <span class="text-xs text-gray-300">{{ correctionFile.name }}</span>
+            </div>
+            <button class="text-red-400" (click)="correctionFileChange.emit(null)">
+              <i class="pi pi-times text-sm"></i>
+            </button>
+          </div>
+          }
+        </div>
+
+        <!-- Summary -->
+        <div class="bg-orange-500/10 border border-orange-400/30 rounded-xl p-3">
+          <p class="text-xs text-gray-400 m-0">Tipo de solicitud</p>
+          <p class="text-sm font-bold text-orange-300 m-0">{{ getCorrectionTypeLabel(correctionType) }}</p>
+        </div>
+
+        <!-- Submit -->
+        <p-button
+          label="Enviar Solicitud"
+          icon="pi pi-send"
+          [loading]="submitting"
+          [disabled]="!canSubmit || submitting"
+          (onClick)="submitRequest.emit()"
+          styleClass="w-full min-h-[44px]"
+        />
+      </div>
+    </div>
+    }
   `,
 })
 export class EmployeePortalTimelogCorrectionComponent {
+  protected device = inject(DeviceService);
   @Input() correctionDate: Date | null = null;
   @Output() correctionDateChange = new EventEmitter<Date | null>();
   @Input() correctionType = '';

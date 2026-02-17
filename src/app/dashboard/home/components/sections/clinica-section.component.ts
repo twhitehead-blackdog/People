@@ -12,7 +12,6 @@ import { TooltipModule } from 'primeng/tooltip';
 import { CalendarModule } from 'primeng/calendar';
 import { HomeDataService, OdooSaleOrder } from '../../services/home-data.service';
 import { BranchesStore } from '../../../../stores/branches.store';
-import { PELUQUERIA_POSITION_NAMES } from '../../../services/groomer-schedule-utils.service';
 import { HttpClient } from '@angular/common/http';
 import { LateRecordsService } from '../../../services/late-records.service';
 import { LoggerService } from '../../../../services/logger.service';
@@ -23,16 +22,34 @@ import { format, parseISO, differenceInMinutes } from 'date-fns';
 
 const TZ = 'America/Panama';
 
-// Alerta por posición específica: si hay más de este número con esta posición en la misma tienda
-const ALERT_POSITION_ID = '8fae41e2-6054-48c6-91f9-7388a87d6245';
-const ALERT_POSITION_THRESHOLD = 2; // más de 2 (es decir 3 o más) = alerta
-
-// Sucursales que no se muestran en la vista Peluquería
-const BRANCHES_EXCLUDED_FROM_PELUQUERIA = ['Oficina Central', 'Bodega Dos Caminos'];
-
-// IDs de horarios que no cuentan para tardanza (feriado, día libre)
+// IDs de horarios que no cuentan para tardanza
 const SCHEDULE_ID_FERIADO = '3d07f626-d58f-4203-bac5-f6e35557e0ad';
 const SCHEDULE_ID_DIA_LIBRE = 'c01dff8f-ce0d-498f-a473-46418576e589';
+
+/** Sucursales que tienen clínica veterinaria */
+const CLINICA_BRANCH_NAMES = [
+  'Plaza Emporio',
+  'Ocean Mall',
+  'Bella Vista',
+  'Albrook',
+  'Brisas del Golf',
+  'Calle 50',
+  'Santa Maria',
+  'Costa Verde',
+];
+
+/** Detecta si un nombre de posición es veterinaria */
+function isVetPosition(positionName: string | undefined): boolean {
+  if (!positionName?.trim()) return false;
+  const name = positionName.trim().toLowerCase();
+  return (
+    name.includes('veterinar') ||
+    name.includes('vet') ||
+    (name.includes('médic') && name.includes('veterinar')) ||
+    (name.includes('asistente') && name.includes('vet')) ||
+    name.includes('auxiliar veterinario')
+  );
+}
 
 type TimelogWithBranch = {
   id: string;
@@ -56,7 +73,7 @@ type TimelogExitRaw = {
   punched_at?: string | null;
 };
 
-export type PersonPeluqueria = {
+export type PersonClinica = {
   employeeId: string;
   name: string;
   position?: string;
@@ -65,61 +82,55 @@ export type PersonPeluqueria = {
   exitTime?: string;
   isLate?: boolean;
   minutesLate?: number;
-  scheduledEntryTime?: string; // Hora programada de entrada (HH:mm:ss)
-  toleranceMinutes?: number; // Minutos de tolerancia aplicados
-  branchId?: string; // ID de la sucursal
-  branchName?: string; // Nombre de la sucursal
-  timelogId?: string; // ID del timelog de entrada
+  scheduledEntryTime?: string;
+  toleranceMinutes?: number;
+  branchId?: string;
+  branchName?: string;
+  timelogId?: string;
 };
 
-export type BranchPeluqueriaRow = {
+export type BranchClinicaRow = {
   branchId: string;
   branchName: string;
   shortName: string;
   count: number;
-  /** Mascotas de peluquería en esta sucursal (del Odoo) */
+  /** Mascotas de veterinaria en esta sucursal (del Odoo) */
   petCount: number;
-  /** Contador por nombre de posición en esta tienda */
   positionCounts: Record<string, number>;
-  /** Lista agrupada por posición (para mostrar por secciones) */
-  peopleByPosition: { positionName: string; positionId?: string; people: PersonPeluqueria[] }[];
-  /** true si hay más de ALERT_POSITION_THRESHOLD con la posición específica (id 8fae41e2-...) en esta tienda */
-  alertOverflow: boolean;
-  /** Cantidad de la posición alerta en esta tienda (para el mensaje) */
-  alertPositionCount: number;
-  people: PersonPeluqueria[];
+  peopleByPosition: { positionName: string; positionId?: string; people: PersonClinica[] }[];
+  people: PersonClinica[];
 };
 
 @Component({
-  selector: 'pt-peluqueria-section',
+  selector: 'pt-clinica-section',
   standalone: true,
   imports: [CommonModule, FormsModule, TooltipModule, CalendarModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- ========== DESKTOP ========== -->
     @if (device.isDesktop()) {
-    <div class="peluqueria-section">
+    <div class="clinica-section">
       <div class="section-header">
         <div class="section-title-row">
           <h2 class="section-title">
-            <i class="pi pi-building"></i>
-            Peluquería por sucursal
+            <i class="pi pi-heart"></i>
+            Clínica Veterinaria por sucursal
           </h2>
           <div class="date-filter">
             <label class="date-filter-label">Ver fecha:</label>
             <p-calendar
-              [ngModel]="homeData.peluqueriaViewDate()"
+              [ngModel]="homeData.clinicaViewDate()"
               (ngModelChange)="onViewDateChange($event)"
               [showIcon]="true"
               dateFormat="dd/mm/yy"
               [maxDate]="maxDate()"
-              styleClass="peluqueria-date-picker"
-              inputStyleClass="peluqueria-date-input"
+              styleClass="clinica-date-picker"
+              inputStyleClass="clinica-date-input"
             ></p-calendar>
           </div>
         </div>
         <p class="section-subtitle">
-          Cantidad de peluqueros en cada tienda (quien marcó entrada en la fecha seleccionada)
+          Personal veterinario en cada tienda (quien marcó entrada en la fecha seleccionada)
         </p>
         <p class="section-date">{{ dateLabel() }}</p>
       </div>
@@ -130,7 +141,7 @@ export type BranchPeluqueriaRow = {
           <i class="pi pi-users stat-icon"></i>
           <div class="stat-content">
             <span class="stat-value">{{ totalPeopleCount() }}</span>
-            <span class="stat-label">Peluqueros</span>
+            <span class="stat-label">Veterinarios</span>
           </div>
         </div>
         <div class="stat-item stat-pets">
@@ -169,18 +180,12 @@ export type BranchPeluqueriaRow = {
       } @else if (branchRows().length === 0) {
         <div class="empty-state">
           <i class="pi pi-inbox"></i>
-          <span>No hay sucursales activas</span>
+          <span>No hay sucursales con clínica activas</span>
         </div>
       } @else {
         <div class="branch-grid">
           @for (row of branchRows(); track row.branchId) {
-            <div class="branch-card" [class.branch-card-alert]="row.alertOverflow">
-              @if (row.alertOverflow) {
-                <div class="overflow-alert" [pTooltip]="'Más de ' + ALERT_POSITION_THRESHOLD + ' con esta posición en la misma tienda'" tooltipPosition="top">
-                  <i class="pi pi-exclamation-triangle"></i>
-                  Alerta: más de {{ ALERT_POSITION_THRESHOLD }} con esta posición en tienda ({{ row.alertPositionCount }})
-                </div>
-              }
+            <div class="branch-card">
               <div class="branch-card-header">
                 <span class="branch-name">{{ row.branchName }}</span>
                 <div class="branch-badges">
@@ -200,7 +205,7 @@ export type BranchPeluqueriaRow = {
                 </div>
               }
               @if (row.peopleByPosition.length === 0) {
-                <p class="no-marcados">Ningún peluquero ha marcado entrada aún</p>
+                <p class="no-marcados">Ningún veterinario ha marcado entrada aún</p>
               } @else {
                 @for (group of row.peopleByPosition; track group.positionName) {
                   <div class="position-group">
@@ -241,21 +246,21 @@ export type BranchPeluqueriaRow = {
         </div>
       }
 
-      <!-- Órdenes de venta Odoo (peluquería) para la fecha seleccionada -->
+      <!-- Órdenes de venta Odoo (veterinaria) -->
       <div class="odoo-orders-section">
         <h3 class="odoo-orders-title">
           <i class="pi pi-shopping-cart"></i>
-          Órdenes de venta (Odoo) – Peluquería
+          Órdenes de venta (Odoo) – Veterinaria
         </h3>
         @if (odooOrdersLoading()) {
           <p class="odoo-orders-loading"><i class="pi pi-spin pi-spinner"></i> Cargando órdenes...</p>
         } @else if (odooOrdersError()) {
           <p class="odoo-orders-error">{{ odooOrdersError() }}</p>
-        } @else if (odooOrders().length === 0) {
-          <p class="odoo-orders-empty">No hay órdenes de peluquería para esta fecha.</p>
+        } @else if (odooOrdersVet().length === 0) {
+          <p class="odoo-orders-empty">No hay órdenes de veterinaria para esta fecha.</p>
         } @else {
           <div class="odoo-orders-grid">
-            @for (order of odooOrders(); track order.id) {
+            @for (order of odooOrdersVet(); track order.id) {
               <div class="odoo-order-card">
                 <span class="odoo-order-name">{{ order.name }}</span>
                 <span class="odoo-order-date">{{ formatOdooDate(order.date_order) }}</span>
@@ -263,11 +268,7 @@ export type BranchPeluqueriaRow = {
                   <span class="odoo-order-mascotas">{{ order.nombres_mascotas }}</span>
                 }
                 <span class="odoo-order-stats">
-                  Peluquería: {{ order.count_peluqueria ?? 0 }}
-                  @if ((order.count_bano_y_corte ?? 0) + (order.count_solo_bano ?? 0) > 0) {
-                    · Baño: {{ (order.count_solo_bano ?? 0) + (order.count_bano_y_corte ?? 0) }}
-                    · Corte: {{ order.count_cortes ?? 0 }}
-                  }
+                  Veterinaria: {{ order.count_veterinaria ?? 0 }}
                 </span>
                 <span class="odoo-order-state state-{{ order.state }}">{{ order.state }}</span>
               </div>
@@ -283,21 +284,21 @@ export type BranchPeluqueriaRow = {
     <div class="px-4 py-4">
       <!-- Header -->
       <div class="mb-4">
-        <h2 class="text-lg font-bold text-amber-400 flex items-center gap-2 mb-1">
-          <i class="pi pi-building text-base"></i>
-          Peluquería
+        <h2 class="text-lg font-bold text-emerald-400 flex items-center gap-2 mb-1">
+          <i class="pi pi-heart text-base"></i>
+          Clínica Veterinaria
         </h2>
-        <p class="text-xs text-gray-400 mb-2">Peluqueros por tienda</p>
+        <p class="text-xs text-gray-400 mb-2">Veterinarios por tienda</p>
         <div class="flex items-center gap-2 mb-1">
           <span class="text-xs text-gray-400">Fecha:</span>
           <p-calendar
-            [ngModel]="homeData.peluqueriaViewDate()"
+            [ngModel]="homeData.clinicaViewDate()"
             (ngModelChange)="onViewDateChange($event)"
             [showIcon]="true"
             dateFormat="dd/mm/yy"
             [maxDate]="maxDate()"
-            styleClass="peluqueria-date-picker"
-            inputStyleClass="peluqueria-date-input"
+            styleClass="clinica-date-picker"
+            inputStyleClass="clinica-date-input"
           ></p-calendar>
         </div>
         <p class="text-xs text-gray-500">{{ dateLabel() }}</p>
@@ -316,19 +317,19 @@ export type BranchPeluqueriaRow = {
       } @else if (branchRows().length === 0) {
         <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30 text-center text-gray-400 text-sm py-6">
           <i class="pi pi-inbox text-2xl mb-2 block opacity-60"></i>
-          <span>No hay sucursales activas</span>
+          <span>No hay sucursales con clínica activas</span>
         </div>
       } @else {
         <!-- Summary stats -->
         <div class="grid grid-cols-2 gap-2.5 mb-4">
           <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
-            <span class="text-xs text-gray-400 block">Peluqueros</span>
+            <span class="text-xs text-gray-400 block">Veterinarios</span>
             <span class="text-sm text-white font-semibold">{{ totalPeopleCount() }}</span>
           </div>
-          <div class="bg-neutral-800/60 rounded-xl p-3 border border-amber-500/20">
+          <div class="bg-neutral-800/60 rounded-xl p-3 border border-emerald-500/20">
             <div class="flex items-center gap-1.5">
-              <i class="pi pi-heart text-amber-400 text-xs"></i>
-              <span class="text-xs text-amber-400 block">Mascotas</span>
+              <i class="pi pi-heart text-emerald-400 text-xs"></i>
+              <span class="text-xs text-emerald-400 block">Mascotas</span>
             </div>
             <span class="text-sm text-white font-semibold">{{ totalPetsCount() }}</span>
           </div>
@@ -348,22 +349,15 @@ export type BranchPeluqueriaRow = {
         <!-- Branch cards -->
         <div class="space-y-3">
           @for (row of branchRows(); track row.branchId) {
-            <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30"
-                 [class.border-red-700\/40]="row.alertOverflow">
-              @if (row.alertOverflow) {
-                <div class="flex items-center gap-1.5 text-xs text-red-400 bg-red-900/20 rounded-lg px-2 py-1.5 mb-2">
-                  <i class="pi pi-exclamation-triangle text-xs"></i>
-                  <span>Alerta: {{ row.alertPositionCount }} con misma posicion</span>
-                </div>
-              }
+            <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
               <div class="flex justify-between items-center mb-1">
                 <span class="text-sm text-white font-semibold">{{ row.branchName }}</span>
-                <span class="text-xs font-semibold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-lg">{{ row.count }}</span>
+                <span class="text-xs font-semibold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-lg">{{ row.count }}</span>
               </div>
               @if (row.petCount > 0) {
               <div class="flex items-center gap-1 mb-2">
-                <i class="pi pi-heart text-amber-400" style="font-size: 0.625rem;"></i>
-                <span class="text-xs text-amber-300">{{ row.petCount }} mascota{{ row.petCount !== 1 ? 's' : '' }}</span>
+                <i class="pi pi-heart text-emerald-400" style="font-size: 0.625rem;"></i>
+                <span class="text-xs text-emerald-300">{{ row.petCount }} mascota{{ row.petCount !== 1 ? 's' : '' }}</span>
               </div>
               }
               @if (getPositionCountEntries(row.positionCounts).length > 0) {
@@ -381,13 +375,13 @@ export type BranchPeluqueriaRow = {
                     <p class="text-xs text-gray-400 font-semibold border-b border-white/5 pb-1 mb-1">{{ group.positionName }} ({{ group.people.length }})</p>
                     @for (p of group.people; track p.employeeId) {
                       <div class="py-1.5 flex justify-between items-start"
-                           [class.bg-amber-400\/5]="p.isLate"
+                           [class.bg-emerald-400\/5]="p.isLate"
                            [class.rounded-lg]="p.isLate"
                            [class.px-1.5]="p.isLate">
                         <div class="min-w-0 flex-1">
                           <span class="text-xs text-gray-300 block truncate">{{ p.name }}</span>
                           @if (p.isLate && p.minutesLate != null) {
-                            <span class="text-xs text-amber-400 flex items-center gap-1 mt-0.5">
+                            <span class="text-xs text-emerald-400 flex items-center gap-1 mt-0.5">
                               <i class="pi pi-clock text-xs"></i> +{{ p.minutesLate }} min
                             </span>
                           }
@@ -399,7 +393,7 @@ export type BranchPeluqueriaRow = {
                         @if (p.entryTime) {
                           <div class="flex-shrink-0 ml-2">
                             @if (p.isLate) {
-                              <i class="pi pi-exclamation-triangle text-xs text-amber-400"></i>
+                              <i class="pi pi-exclamation-triangle text-xs text-emerald-400"></i>
                             } @else {
                               <i class="pi pi-check-circle text-xs text-green-400"></i>
                             }
@@ -418,18 +412,18 @@ export type BranchPeluqueriaRow = {
       <!-- Odoo Orders -->
       <div class="mt-4 pt-3 border-t border-white/10">
         <h3 class="text-sm font-semibold text-white flex items-center gap-2 mb-3">
-          <i class="pi pi-shopping-cart text-xs text-amber-400"></i>
-          Ordenes Odoo - Peluquería
+          <i class="pi pi-shopping-cart text-xs text-emerald-400"></i>
+          Ordenes Odoo - Veterinaria
         </h3>
         @if (odooOrdersLoading()) {
           <p class="text-xs text-gray-400"><i class="pi pi-spin pi-spinner"></i> Cargando...</p>
         } @else if (odooOrdersError()) {
           <p class="text-xs text-red-400">{{ odooOrdersError() }}</p>
-        } @else if (odooOrders().length === 0) {
-          <p class="text-xs text-gray-500">Sin órdenes para esta fecha.</p>
+        } @else if (odooOrdersVet().length === 0) {
+          <p class="text-xs text-gray-500">Sin órdenes veterinarias para esta fecha.</p>
         } @else {
           <div class="space-y-2">
-            @for (order of odooOrders(); track order.id) {
+            @for (order of odooOrdersVet(); track order.id) {
               <div class="bg-neutral-800/60 rounded-xl p-3 border border-neutral-700/30">
                 <div class="flex justify-between items-start mb-1">
                   <span class="text-sm text-white font-semibold">{{ order.name }}</span>
@@ -450,11 +444,7 @@ export type BranchPeluqueriaRow = {
                   <span class="text-xs text-gray-400 block mt-0.5">{{ order.nombres_mascotas }}</span>
                 }
                 <span class="text-xs text-gray-500 block mt-1">
-                  Pel: {{ order.count_peluqueria ?? 0 }}
-                  @if ((order.count_bano_y_corte ?? 0) + (order.count_solo_bano ?? 0) > 0) {
-                    · Baño: {{ (order.count_solo_bano ?? 0) + (order.count_bano_y_corte ?? 0) }}
-                    · Corte: {{ order.count_cortes ?? 0 }}
-                  }
+                  Vet: {{ order.count_veterinaria ?? 0 }}
                 </span>
               </div>
             }
@@ -466,7 +456,7 @@ export type BranchPeluqueriaRow = {
   `,
   styles: [
     `
-      .peluqueria-section {
+      .clinica-section {
         padding: 1.5rem;
         max-width: 1400px;
         margin: 0 auto;
@@ -488,7 +478,7 @@ export type BranchPeluqueriaRow = {
         gap: 0.5rem;
         font-size: 1.5rem;
         font-weight: 700;
-        color: #fbbf24;
+        color: #34d399;
         margin: 0;
       }
       .section-title i {
@@ -503,15 +493,15 @@ export type BranchPeluqueriaRow = {
         font-size: 0.875rem;
         color: #a1a1aa;
       }
-      :host ::ng-deep .peluqueria-date-picker .p-inputtext {
+      :host ::ng-deep .clinica-date-picker .p-inputtext {
         background: rgba(255, 255, 255, 0.05);
         border-color: rgba(255, 255, 255, 0.1);
         color: #e4e4e7;
       }
-      :host ::ng-deep .peluqueria-date-picker .p-datepicker-trigger {
-        background: rgba(251, 191, 36, 0.15);
-        border-color: rgba(251, 191, 36, 0.3);
-        color: #fbbf24;
+      :host ::ng-deep .clinica-date-picker .p-datepicker-trigger {
+        background: rgba(52, 211, 153, 0.15);
+        border-color: rgba(52, 211, 153, 0.3);
+        color: #34d399;
       }
       .section-subtitle {
         color: #a1a1aa;
@@ -541,15 +531,15 @@ export type BranchPeluqueriaRow = {
         min-width: 140px;
       }
       .stat-item.stat-pets {
-        border-color: rgba(251, 191, 36, 0.2);
-        background: rgba(251, 191, 36, 0.05);
+        border-color: rgba(52, 211, 153, 0.2);
+        background: rgba(52, 211, 153, 0.05);
       }
       .stat-icon {
         font-size: 1.25rem;
         color: #71717a;
       }
       .stat-pets .stat-icon {
-        color: #fbbf24;
+        color: #34d399;
       }
       .stat-content {
         display: flex;
@@ -562,7 +552,7 @@ export type BranchPeluqueriaRow = {
         line-height: 1.2;
       }
       .stat-pets .stat-value {
-        color: #fbbf24;
+        color: #34d399;
       }
       .stat-label {
         font-size: 0.75rem;
@@ -572,7 +562,6 @@ export type BranchPeluqueriaRow = {
         font-size: 0.875rem;
         font-weight: 500;
       }
-
       .loading-state,
       .error-state,
       .empty-state {
@@ -604,26 +593,7 @@ export type BranchPeluqueriaRow = {
         transition: border-color 0.2s;
       }
       .branch-card:hover {
-        border-color: rgba(251, 191, 36, 0.2);
-      }
-      .branch-card.branch-card-alert {
-        border-color: rgba(239, 68, 68, 0.4);
-        box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.2);
-      }
-      .overflow-alert {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.8rem;
-        font-weight: 600;
-        color: #f87171;
-        background: rgba(239, 68, 68, 0.12);
-        padding: 0.5rem 0.75rem;
-        border-radius: 8px;
-        margin-bottom: 0.75rem;
-      }
-      .overflow-alert i {
-        font-size: 1rem;
+        border-color: rgba(52, 211, 153, 0.2);
       }
       .branch-card-header {
         display: flex;
@@ -646,8 +616,8 @@ export type BranchPeluqueriaRow = {
       .branch-count-badge {
         font-size: 0.85rem;
         font-weight: 600;
-        color: #fbbf24;
-        background: rgba(251, 191, 36, 0.12);
+        color: #34d399;
+        background: rgba(52, 211, 153, 0.12);
         padding: 0.25rem 0.5rem;
         border-radius: 8px;
       }
@@ -657,9 +627,9 @@ export type BranchPeluqueriaRow = {
         gap: 0.25rem;
         font-size: 0.75rem;
         font-weight: 500;
-        color: #fcd34d;
-        background: rgba(251, 191, 36, 0.08);
-        border: 1px solid rgba(251, 191, 36, 0.15);
+        color: #6ee7b7;
+        background: rgba(52, 211, 153, 0.08);
+        border: 1px solid rgba(52, 211, 153, 0.15);
         padding: 0.2rem 0.5rem;
         border-radius: 6px;
       }
@@ -712,10 +682,6 @@ export type BranchPeluqueriaRow = {
         overflow: hidden;
         text-overflow: ellipsis;
       }
-      .person-position {
-        font-size: 0.75rem;
-        color: #71717a;
-      }
       .day-record {
         display: flex;
         gap: 1rem;
@@ -747,17 +713,17 @@ export type BranchPeluqueriaRow = {
         align-items: center;
         gap: 0.25rem;
         font-size: 0.75rem;
-        color: #fbbf24;
+        color: #34d399;
         margin-top: 0.15rem;
       }
       .person-row.person-late {
-        background: rgba(251, 191, 36, 0.06);
+        background: rgba(52, 211, 153, 0.06);
         border-radius: 8px;
         margin: 0 -0.25rem;
         padding-left: 0.5rem;
       }
       .status-late {
-        color: #fbbf24;
+        color: #34d399;
       }
       .entry-time {
         display: inline-flex;
@@ -835,7 +801,7 @@ export type BranchPeluqueriaRow = {
     `,
   ],
 })
-export class PeluqueriaSectionComponent {
+export class ClinicaSectionComponent {
   homeData = inject(HomeDataService);
   protected device = inject(DeviceService);
   private branchesStore = inject(BranchesStore);
@@ -844,41 +810,42 @@ export class PeluqueriaSectionComponent {
   private http = inject(HttpClient);
   private apiUrl = inject(ApiUrlService);
 
-  readonly ALERT_POSITION_THRESHOLD = ALERT_POSITION_THRESHOLD;
-
-  /** Total de personas en todas las sucursales (para mobile summary) */
   totalPeopleCount = computed(() => this.branchRows().reduce((sum, r) => sum + r.count, 0));
-  private readonly peluqueriaPositionNames = PELUQUERIA_POSITION_NAMES as readonly string[];
 
-  /** Órdenes de Odoo para la fecha de vista Peluquería */
-  odooOrders = computed((): OdooSaleOrder[] => {
-    this.homeData.peluqueriaViewDate();
-    const res = this.homeData.odooSaleOrdersForPeluqueriaView.value?.();
+  /** Todas las órdenes Odoo para la fecha seleccionada */
+  private odooOrdersAll = computed((): OdooSaleOrder[] => {
+    this.homeData.clinicaViewDate();
+    const res = this.homeData.odooSaleOrdersForClinicaView.value?.();
     if (!res?.success || !Array.isArray(res.data)) return [];
     return res.data;
   });
 
-  odooOrdersLoading = computed(() => this.homeData.odooSaleOrdersForPeluqueriaView.isLoading?.() ?? false);
+  /** Solo órdenes que tienen veterinaria */
+  odooOrdersVet = computed(() =>
+    this.odooOrdersAll().filter((o) => o.tiene_veterinaria || (o.count_veterinaria ?? 0) > 0)
+  );
+
+  odooOrdersLoading = computed(() => this.homeData.odooSaleOrdersForClinicaView.isLoading?.() ?? false);
   odooOrdersError = computed(() => {
-    const e = this.homeData.odooSaleOrdersForPeluqueriaView.error?.();
+    const e = this.homeData.odooSaleOrdersForClinicaView.error?.();
     return e instanceof Error ? e.message : (e as string | undefined) ?? null;
   });
 
-  /** Total de mascotas de peluquería (solo peluquería, sin clínica) */
+  /** Total de mascotas de veterinaria */
   totalPetsCount = computed(() => {
-    const orders = this.odooOrders();
-    return orders.reduce((sum, o) => sum + (o.count_peluqueria ?? 0), 0);
+    const orders = this.odooOrdersAll();
+    return orders.reduce((sum, o) => sum + (o.count_veterinaria ?? 0), 0);
   });
 
-  /** Pet counts por warehouse name (del Odoo) */
+  /** Pet counts por warehouse name (del Odoo) — solo veterinaria */
   private petCountByWarehouse = computed((): Map<string, number> => {
-    const orders = this.odooOrders();
+    const orders = this.odooOrdersAll();
     const map = new Map<string, number>();
     for (const order of orders) {
       const wh = order.warehouse_id;
       const whName = Array.isArray(wh) ? wh[1] : '';
       if (!whName) continue;
-      map.set(whName.toLowerCase(), (map.get(whName.toLowerCase()) ?? 0) + (order.count_peluqueria ?? 0));
+      map.set(whName.toLowerCase(), (map.get(whName.toLowerCase()) ?? 0) + (order.count_veterinaria ?? 0));
     }
     return map;
   });
@@ -887,16 +854,12 @@ export class PeluqueriaSectionComponent {
   private matchPetCountForBranch(branchName: string): number {
     const petMap = this.petCountByWarehouse();
     const bn = branchName.toLowerCase().trim();
-
-    // Exact match first
     for (const [wh, count] of petMap) {
       if (wh === bn) return count;
     }
-    // Partial: warehouse contains branch or branch contains warehouse
     for (const [wh, count] of petMap) {
       if (wh.includes(bn) || bn.includes(wh)) return count;
     }
-    // Keyword match (first significant word)
     const branchKey = bn.split(/\s+/)[0];
     if (branchKey.length >= 4) {
       for (const [wh, count] of petMap) {
@@ -906,61 +869,49 @@ export class PeluqueriaSectionComponent {
     return 0;
   }
 
-  /** Hora de última actualización de datos */
   lastUpdateTime = signal<string>('—');
 
   private updateTimeTracker = effect(() => {
-    // Se dispara cada vez que los datos cambian (timelogs o órdenes Odoo)
-    this.homeData.timelogsEntryForPeluqueriaView.value?.();
-    this.homeData.odooSaleOrdersForPeluqueriaView.value?.();
+    this.homeData.timelogsEntryForClinicaView.value?.();
+    this.homeData.odooSaleOrdersForClinicaView.value?.();
     const now = new Date();
-    // Escribir fuera del effect para evitar NG0600
     setTimeout(() => this.lastUpdateTime.set(format(toZonedTime(now, TZ), 'HH:mm:ss')));
   });
 
-  /** Persiste conteo de mascotas por sucursal en Supabase (branch_daily_pet_count) */
+  /** Persiste conteo de mascotas por sucursal en Supabase */
   private petCountDebounce: any = null;
   private persistPetCountsEffect = effect(() => {
     const rows = this.branchRows();
-    const orders = this.odooOrders();
-    if (orders.length === 0) return; // No hay datos Odoo aún
-
+    const orders = this.odooOrdersAll();
+    if (orders.length === 0) return;
     const today = format(toZonedTime(new Date(), TZ), 'yyyy-MM-dd');
     const rowsWithPets = rows.filter((r) => r.petCount > 0);
     if (rowsWithPets.length === 0) return;
-
     // Debounce: esperar 2s de estabilidad antes de persistir
     clearTimeout(this.petCountDebounce);
     this.petCountDebounce = setTimeout(() => this.upsertPetCounts(rowsWithPets, today), 2000);
   });
 
-  private async upsertPetCounts(rows: BranchPeluqueriaRow[], recordDate: string): Promise<void> {
+  private upsertPetCounts(rows: BranchClinicaRow[], recordDate: string): void {
     const baseUrl = this.apiUrl.baseUrl;
     if (!baseUrl) return;
-
     for (const row of rows) {
-      try {
-        const body = {
-          branch_id: row.branchId,
-          branch_name: row.branchName,
-          pet_count: row.petCount,
-          record_date: recordDate,
-          service_type: 'peluqueria',
-          updated_at: new Date().toISOString(),
-        };
-        this.http
-          .post(`${baseUrl}/rest/v1/branch_daily_pet_count?on_conflict=branch_name,record_date,service_type`, body, {
-            headers: {
-              Prefer: 'resolution=merge-duplicates',
-            },
-          })
-          .subscribe({
-            error: (err) =>
-              this.logger.warn(`[Peluqueria] Error upserting pet count for ${row.branchName}:`, err),
-          });
-      } catch (err) {
-        this.logger.warn(`[Peluqueria] Error upserting pet count for ${row.branchName}:`, err);
-      }
+      const body = {
+        branch_id: row.branchId,
+        branch_name: row.branchName,
+        pet_count: row.petCount,
+        record_date: recordDate,
+        service_type: 'clinica',
+        updated_at: new Date().toISOString(),
+      };
+      this.http
+        .post(`${baseUrl}/rest/v1/branch_daily_pet_count?on_conflict=branch_name,record_date,service_type`, body, {
+          headers: { Prefer: 'resolution=merge-duplicates' },
+        })
+        .subscribe({
+          error: (err) =>
+            this.logger.warn(`[Clinica] Error upserting pet count for ${row.branchName}:`, err),
+        });
     }
   }
 
@@ -975,49 +926,48 @@ export class PeluqueriaSectionComponent {
   }
 
   onViewDateChange(value: Date | null): void {
-    this.homeData.peluqueriaViewDate.set(value ? new Date(value) : new Date());
+    this.homeData.clinicaViewDate.set(value ? new Date(value) : new Date());
   }
 
-  /** Fecha máxima seleccionable (hoy) */
   maxDate = computed(() => new Date());
 
-  /** Etiqueta de la fecha seleccionada */
   dateLabel = computed(() => {
-    const d = toZonedTime(this.homeData.peluqueriaViewDate(), TZ);
+    const d = toZonedTime(this.homeData.clinicaViewDate(), TZ);
     return format(d, "EEEE d 'de' MMMM, yyyy");
   });
 
-  loading = computed(() => this.homeData.timelogsEntryForPeluqueriaView.isLoading?.() ?? false);
+  loading = computed(() => this.homeData.timelogsEntryForClinicaView.isLoading?.() ?? false);
 
   error = computed(() => {
-    const t = this.homeData.timelogsEntryForPeluqueriaView.error?.();
+    const t = this.homeData.timelogsEntryForClinicaView.error?.();
     return t instanceof Error ? t.message : (t as string | undefined) || null;
   });
 
-  /** Para el template: convierte positionCounts en array [nombre, cantidad] ordenado */
-  getPositionCountEntries(counts: BranchPeluqueriaRow['positionCounts']) {
+  getPositionCountEntries(counts: BranchClinicaRow['positionCounts']) {
     return Object.entries(counts).sort((a, b) => a[0].localeCompare(b[0])) as [string, number][];
   }
 
-  branchRows = computed((): BranchPeluqueriaRow[] => {
-    this.homeData.peluqueriaViewDate(); // dependencia para recalcular al cambiar fecha
-    const timelogs = (this.homeData.timelogsEntryForPeluqueriaView.value?.() ?? []) as TimelogWithBranch[];
-    const exitLogs = (this.homeData.timelogsExitForPeluqueriaView.value?.() ?? []) as TimelogExitRaw[];
+  /** Sucursales con clínica filtradas */
+  private clinicaBranches = computed(() => {
+    const allBranches = this.branchesStore.entities();
+    const clinicaNames = CLINICA_BRANCH_NAMES.map((n) => n.toLowerCase());
+    return allBranches.filter((b) => {
+      if (!b.is_active) return false;
+      const name = b.name?.trim().toLowerCase() ?? '';
+      return clinicaNames.some((cn) => name.includes(cn) || cn.includes(name));
+    });
+  });
+
+  branchRows = computed((): BranchClinicaRow[] => {
+    this.homeData.clinicaViewDate();
+    const timelogs = (this.homeData.timelogsEntryForClinicaView.value?.() ?? []) as TimelogWithBranch[];
+    const exitLogs = (this.homeData.timelogsExitForClinicaView.value?.() ?? []) as TimelogExitRaw[];
     const schedules = (this.homeData.employeeSchedules.value?.() ?? []) as EmployeeScheduleForLate[];
-    const branches = this.branchesStore
-      .entities()
-      .filter((b) => b.is_active && !BRANCHES_EXCLUDED_FROM_PELUQUERIA.includes(b.name?.trim() ?? ''));
-    const viewDate = this.homeData.peluqueriaViewDate();
+    const branches = this.clinicaBranches();
+    const viewDate = this.homeData.clinicaViewDate();
     const selectedDayStr = format(toZonedTime(viewDate, TZ), 'yyyy-MM-dd');
 
-    const isPeluqueriaPosition = (positionName: string | undefined): boolean => {
-      if (!positionName?.trim()) return false;
-      return this.peluqueriaPositionNames.some(
-        (allowed) => positionName.trim().toLowerCase() === allowed.toLowerCase()
-      );
-    };
-
-    // Horarios del mes que aplican hoy (start_date <= today <= end_date), excluir feriado/día libre
+    // Horarios del día
     const schedulesToday = schedules.filter((s) => {
       if (!s.start_date || !s.end_date) return false;
       if (s.start_date > selectedDayStr || s.end_date < selectedDayStr) return false;
@@ -1027,7 +977,7 @@ export class PeluqueriaSectionComponent {
       return true;
     });
 
-    // Salidas de hoy: por (branch_id, employee_id) quedarse con la última salida del día
+    // Salidas: por (branch_id, employee_id) quedarse con la última
     const exitByBranchEmployee = new Map<string, string>();
     for (const log of exitLogs) {
       const branchId = log.branch_id;
@@ -1043,7 +993,7 @@ export class PeluqueriaSectionComponent {
       }
     }
 
-    // Por branch_id: mapa de employee_id -> datos del empleado incluyendo tardanza
+    // Por branch_id: mapa de employee_id -> datos
     const byBranch = new Map<
       string,
       Map<string, {
@@ -1063,7 +1013,7 @@ export class PeluqueriaSectionComponent {
     >();
 
     for (const log of timelogs) {
-      if (!isPeluqueriaPosition(log.employee?.position?.name)) continue;
+      if (!isVetPosition(log.employee?.position?.name)) continue;
 
       const branchId = log.branch_id || log.branch?.id;
       if (!branchId) continue;
@@ -1091,7 +1041,7 @@ export class PeluqueriaSectionComponent {
           const tolerance = (schedule.schedule as { minutes_tolerance?: number }).minutes_tolerance ?? 0;
           if (diff > tolerance) {
             isLate = true;
-            minutesLate = diff; // minutos después de la hora programada
+            minutesLate = diff;
           }
           scheduledEntryTime = scheduledEntry;
           toleranceMinutes = tolerance;
@@ -1122,10 +1072,9 @@ export class PeluqueriaSectionComponent {
       }
     }
 
-    // Una fila por sucursal (todas las sucursales activas) con positionCounts, peopleByPosition y alerta por posición
-    const rows: BranchPeluqueriaRow[] = branches.map((b) => {
+    const rows: BranchClinicaRow[] = branches.map((b) => {
       const peopleMap = byBranch.get(b.id) ?? new Map();
-      const people: PersonPeluqueria[] = Array.from(peopleMap.entries()).map(([employeeId, data]) => ({
+      const people: PersonClinica[] = Array.from(peopleMap.entries()).map(([employeeId, data]) => ({
         employeeId,
         name: data.name,
         position: data.position,
@@ -1145,8 +1094,7 @@ export class PeluqueriaSectionComponent {
         const pos = data.position ?? 'Sin posición';
         positionCounts[pos] = (positionCounts[pos] ?? 0) + 1;
       }
-      // Agrupar por posición para la lista dividida
-      const byPosition = new Map<string, PersonPeluqueria[]>();
+      const byPosition = new Map<string, PersonClinica[]>();
       for (const p of people) {
         const key = p.position ?? 'Sin posición';
         if (!byPosition.has(key)) byPosition.set(key, []);
@@ -1159,8 +1107,6 @@ export class PeluqueriaSectionComponent {
           people: groupPeople,
         }))
         .sort((a, b) => a.positionName.localeCompare(b.positionName));
-      const alertPositionCount = people.filter((p) => p.positionId === ALERT_POSITION_ID).length;
-      const alertOverflow = alertPositionCount > ALERT_POSITION_THRESHOLD;
       return {
         branchId: b.id,
         branchName: b.name,
@@ -1169,13 +1115,11 @@ export class PeluqueriaSectionComponent {
         petCount: this.matchPetCountForBranch(b.name),
         positionCounts,
         peopleByPosition,
-        alertOverflow,
-        alertPositionCount,
         people,
       };
     });
 
-    // Persistir tardanzas automáticamente (fire-and-forget, fuera del computed)
+    // Persistir tardanzas
     const allLatePeople = rows.flatMap((r) =>
       r.people.filter((p) => p.isLate && p.minutesLate && p.minutesLate > 0)
     );
@@ -1186,28 +1130,15 @@ export class PeluqueriaSectionComponent {
     return rows.sort((a, b) => a.branchName.localeCompare(b.branchName));
   });
 
-  /**
-   * Persiste automáticamente los registros de tardanza en la base de datos
-   * Ejecuta en background sin bloquear la UI
-   */
   private async persistLateRecords(
-    latePeople: PersonPeluqueria[],
+    latePeople: PersonClinica[],
     timelogDate: string
   ): Promise<void> {
     for (const person of latePeople) {
       try {
-        // Verificar que tengamos todos los datos necesarios
-        if (!person.scheduledEntryTime || !person.entryTime || !person.minutesLate) {
-          this.logger.warn(
-            `[Peluqueria] Datos incompletos para tardanza: ${person.name}`
-          );
-          continue;
-        }
-
-        // Formatear horas a HH:mm:ss
+        if (!person.scheduledEntryTime || !person.entryTime || !person.minutesLate) continue;
         const [actualH, actualM] = person.entryTime.split(':');
         const actualEntryTime = `${actualH.padStart(2, '0')}:${actualM.padStart(2, '0')}:00`;
-
         await this.lateRecordsService.save({
           employee_id: person.employeeId,
           timelog_date: timelogDate,
@@ -1220,22 +1151,15 @@ export class PeluqueriaSectionComponent {
           position_name: person.position,
           branch_id: person.branchId,
           branch_name: person.branchName,
-          source_module: 'peluqueria',
+          source_module: 'clinica',
           source_timelog_id: person.timelogId,
         });
-
-        this.logger.debug(
-          `[Peluqueria] Tardanza persistida: ${person.name} - ${person.minutesLate} min`
-        );
       } catch (error) {
-        // Error silencioso - no afecta la UI
-        this.logger.error(
-          `[Peluqueria] Error persistiendo tardanza para ${person.name}:`,
-          error
-        );
+        this.logger.error(`[Clinica] Error persistiendo tardanza para ${person.name}:`, error);
       }
     }
   }
+
   private formatScheduledTime(t: string | Date): string {
     if (typeof t === 'string') {
       const parts = t.split(':');
